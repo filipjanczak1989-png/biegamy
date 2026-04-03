@@ -337,7 +337,7 @@ async function initAuth() {
     if (!s2) return; // No redirect - just don't load data
     _coachId = s2.user.id;
     const name2 = s2.user.user_metadata?.full_name || 'Trener';
-    const initials2 = name2.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+    const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     document.getElementById('av-btn').textContent = initials2;
     document.getElementById('menu-email').textContent = s2.user.email;
     document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name2.split(' ')[0] + '</span>';
@@ -346,7 +346,7 @@ async function initAuth() {
   }
   _coachId = session.user.id;
   const name = session.user.user_metadata?.full_name || 'Trener';
-  const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+  const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('av-btn').textContent = initials;
   document.getElementById('menu-email').textContent = session.user.email;
   document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name.split(' ')[0] + '</span>';
@@ -376,7 +376,7 @@ async function loadAthletes() {
 function renderDbAthletes(list) {
   document.getElementById('ath-list').innerHTML = list.map((a,i) => {
     const name = a.full_name || a.goal || 'Zawodnik';
-    const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+    const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     return `
     <div class="ath-card fi" style="animation-delay:${0.04+i*0.04}s">
       <div class="ath-stripe" style="background:var(--accent)"></div>
@@ -415,7 +415,7 @@ async function selA_db(athleteId) {
   if (!a) return;
   
   const name = a.full_name || a.goal || 'Zawodnik';
-  const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+  const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('pav').textContent = initials;
   document.getElementById('pav').style.background = 'var(--accent)';
   document.getElementById('pname').textContent = name;
