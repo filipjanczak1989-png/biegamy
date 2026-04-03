@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiegaMy — Kalendarz</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0e0c;
+  --surface: #1a1916;
+  --surface2: #222120;
+  --border: #2e2c29;
+  --accent: #d4501a;
+  --fg: #f0ece4;
+  --muted: #6a6560;
+  --green: #4caf78;
+  --yellow: #e8c84a;
+  --blue: #5a9fe8;
+  --purple: #9a6fe8;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;overflow:hidden;}
+
+/* SHELL */
+.shell{display:grid;grid-template-rows:56px 1fr;height:100vh;}
+
+/* NAV */
+nav{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  flex-shrink:0;
+}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;text-decoration:none;color:var(--fg);}
+.nav-logo span{color:var(--accent);}
+.nav-links{display:flex;gap:2px;}
+.nav-link{
+  font-size:10px;letter-spacing:0.15em;text-transform:uppercase;
+  padding:7px 14px;text-decoration:none;color:var(--muted);
+  border:1px solid transparent;transition:all 0.15s;
+}
+.nav-link:hover{color:var(--fg);border-color:var(--border);}
+.nav-link.active{color:var(--fg);border-color:var(--accent);background:rgba(212,80,26,0.08);}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.athlete-select{
+  background:var(--surface2);border:1px solid var(--border);color:var(--fg);
+  font-family:'DM Mono',monospace;font-size:11px;padding:6px 10px;cursor:pointer;outline:none;
+}
+.athlete-select option{background:var(--surface);}
+.btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;border:none;cursor:pointer;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:var(--fg);}
+.btn-primary:hover{background:#e8621a;}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+.btn-ghost:hover{border-color:var(--muted);color:var(--fg);}
+
+/* CALENDAR TOOLBAR */
+.cal-toolbar{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);
+}
+.week-nav{display:flex;align-items:center;gap:8px;}
+.week-nav-btn{
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  width:30px;height:30px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:all 0.15s;
+}
+.week-nav-btn:hover{border-color:var(--accent);color:var(--fg);}
+.week-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;min-width:220px;}
+.today-btn{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
+.today-btn:hover{border-color:var(--accent);color:var(--fg);}
+.toolbar-spacer{flex:1;}
+.week-km-badge{font-size:10px;color:var(--muted);letter-spacing:0.1em;}
+.week-km-badge span{color:var(--accent);font-size:14px;font-family:'Bebas Neue',sans-serif;}
+
+/* WEEK GRID */
+.week-wrap{
+  display:grid;
+  grid-template-rows:auto 1fr;
+  overflow:hidden;
+  height:100%;
+}
+.week-header{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.day-header{
+  padding:12px 16px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:2px;
+}
+.day-header:last-child{border-right:none;}
+.day-header.today{background:rgba(212,80,26,0.06);}
+.day-name{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);}
+.day-num{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);}
+.day-header.today .day-num{color:var(--accent);}
+.day-total{font-size:10px;color:var(--muted);}
+.day-total span{color:var(--green);}
+
+/* DAY COLUMNS */
+.week-body{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  overflow-y:auto;
+}
+.day-col{
+  border-right:1px solid var(--border);padding:12px;
+  display:flex;flex-direction:column;gap:8px;
+  min-height:100%;position:relative;
+  transition:background 0.15s;
+}
+.day-col:last-child{border-right:none;}
+.day-col.today{background:rgba(212,80,26,0.03);}
+.day-col.drop-target{background:rgba(212,80,26,0.08);border-color:var(--accent);}
+
+/* TRAINING CARDS */
+.training-card{
+  border:1px solid var(--border);padding:10px 12px;
+  cursor:pointer;position:relative;
+  transition:all 0.2s;
+  animation:cardIn 0.2s ease forwards;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+.training-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.4);}
+.training-card.done{border-left:3px solid var(--green);}
+.training-card.missed{border-left:3px solid var(--accent);opacity:0.6;}
+.training-card.rest-card{border-style:dashed;opacity:0.5;}
+
+.card-type{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px;}
+.card-type.spokojny{color:#5a9fe8;}
+.card-type.interwaly{color:#e8c84a;}
+.card-type.tempo{color:#d4501a;}
+.card-type.wybieganie{color:#9a6fe8;}
+.card-type.regeneracja{color:#4caf78;}
+.card-type.odpoczynek{color:var(--muted);}
+
+.card-main{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:4px;}
+.card-pace{font-size:10px;color:var(--muted);margin-bottom:6px;}
+.card-desc{font-size:10px;color:rgba(240,236,228,0.6);line-height:1.6;font-family:'Lora',serif;font-style:italic;}
+.card-status{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
+  margin-top:8px;padding:3px 8px;border:1px solid var(--border);color:var(--muted);
+}
+.card-status.done{border-color:var(--green);color:var(--green);}
+.card-status.missed{border-color:var(--accent);color:var(--accent);}
+.card-delete{
+  position:absolute;top:6px;right:6px;
+  width:18px;height:18px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:12px;opacity:0;transition:opacity 0.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.training-card:hover .card-delete{opacity:1;}
+.card-delete:hover{color:var(--accent);}
+
+/* ADD TRAINING PLACEHOLDER */
+.add-training-btn{
+  border:1px dashed var(--border);padding:10px;text-align:center;
+  color:var(--muted);cursor:pointer;font-size:10px;letter-spacing:0.1em;
+  transition:all 0.15s;text-transform:uppercase;
+}
+.add-training-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* MODAL */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
+.modal-bg.open{opacity:1;pointer-events:all;}
+.modal{
+  background:var(--surface);border:1px solid var(--border);width:480px;max-width:90vw;
+  max-height:88vh;overflow-y:auto;
+  transform:translateY(8px);transition:transform 0.2s;
+}
+.modal-bg.open .modal{transform:translateY(0);}
+.modal-header{
+  padding:18px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;transition:color 0.15s;}
+.modal-close:hover{color:var(--fg);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* FORM */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);
+  font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;transition:border-color 0.15s;
+}
+.field input:focus,.field textarea:focus{border-color:var(--accent);}
+.field select{cursor:pointer;}
+.field select option{background:var(--surface);}
+.field textarea{resize:vertical;min-height:70px;line-height:1.6;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* TYPE PILLS */
+.type-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.type-pill{
+  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;
+  border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);
+  background:transparent;font-family:'DM Mono',monospace;
+}
+.type-pill:hover{border-color:var(--muted);color:var(--fg);}
+.type-pill.sel{color:var(--fg);}
+.type-pill.sel.spokojny-p{border-color:var(--blue);background:rgba(90,159,232,0.15);color:var(--blue);}
+.type-pill.sel.interwaly-p{border-color:var(--yellow);background:rgba(232,200,74,0.15);color:var(--yellow);}
+.type-pill.sel.tempo-p{border-color:var(--accent);background:rgba(212,80,26,0.15);color:var(--accent);}
+.type-pill.sel.wybieganie-p{border-color:var(--purple);background:rgba(154,111,232,0.15);color:var(--purple);}
+.type-pill.sel.regeneracja-p{border-color:var(--green);background:rgba(76,175,120,0.15);color:var(--green);}
+.type-pill.sel.odpoczynek-p{border-color:var(--muted);background:rgba(106,101,96,0.15);}
+
+/* NOTIF */
+.notif{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--green);color:#0a1a0f;
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;
+  padding:12px 20px;transform:translateY(80px);opacity:0;transition:all 0.3s;z-index:200;
+}
+.notif.show{transform:translateY(0);opacity:1;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border);}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">Biega<span>My</span></a>
+  <div class="nav-links">
+    <a href="trener.html" class="nav-link">Trener</a>
+    <a href="kalendarz.html" class="nav-link active">Kalendarz</a>
+    <a href="zawodnik.html" class="nav-link">Zawodnik</a>
+  </div>
+  <div class="nav-right">
+    <select class="athlete-select" onchange="changeAthlete(this.value)">
+      <option>Marek Kowalski</option>
+      <option>Anna Wiśniewska</option>
+      <option>Piotr Szymański</option>
+      <option>Kasia Brzozowska</option>
+      <option>Tomek Rutkowski</option>
+    </select>
+    <button class="btn btn-primary" onclick="openModal(null)">+ Nowy trening</button>
+  </div>
+</nav>
+
+<!-- TOOLBAR -->
+<div class="cal-toolbar">
+  <div class="week-nav">
+    <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
+    <div class="week-label" id="week-label">30 Mar — 5 Kwi 2026</div>
+    <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
+  </div>
+  <button class="today-btn" onclick="goToday()">Dziś</button>
+  <div class="toolbar-spacer"></div>
+  <div class="week-km-badge">Kilometraż tygodnia: <span id="week-total-km">0</span> km</div>
+</div>
+
+<!-- WEEK -->
+<div class="week-wrap">
+  <div class="week-header" id="week-header"></div>
+  <div class="week-body" id="week-body"></div>
+</div>
+
+</div><!-- /shell -->
+
+<!-- MODAL — ADD/EDIT TRAINING -->
+<div class="modal-bg" id="modal-bg" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Nowy trening</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:10px;color:var(--accent);letter-spacing:0.15em;margin-bottom:16px;" id="modal-date-label"></div>
+      <div class="field">
+        <label>Typ treningu</label>
+        <div class="type-pills">
+          <button class="type-pill sel spokojny-p" onclick="selType(this,'Bieg spokojny','spokojny')">Spokojny</button>
+          <button class="type-pill" onclick="selType(this,'Interwały','interwaly')">Interwały</button>
+          <button class="type-pill" onclick="selType(this,'Tempo','tempo')">Tempo</button>
+          <button class="type-pill" onclick="selType(this,'Wybieganie','wybieganie')">Wybieganie</button>
+          <button class="type-pill" onclick="selType(this,'Regeneracja','regeneracja')">Regeneracja</button>
+          <button class="type-pill" onclick="selType(this,'Odpoczynek','odpoczynek')">Odpoczynek</button>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Dystans (km)</label>
+          <input type="number" id="f-dist" placeholder="np. 12" min="0" max="60" step="0.5">
+        </div>
+        <div class="field">
+          <label>Czas (min)</label>
+          <input type="number" id="f-time" placeholder="np. 70">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tempo docelowe (min/km)</label>
+          <input type="text" id="f-pace" placeholder="np. 5:30">
+        </div>
+        <div class="field">
+          <label>Tętno docelowe (bpm)</label>
+          <input type="text" id="f-hr" placeholder="np. 140–155">
+        </div>
+      </div>
+      <div class="field">
+        <label>Opis / instrukcje dla zawodnika</label>
+        <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="planned">Zaplanowany</option>
+          <option value="done">Wykonany</option>
+          <option value="missed">Nie wykonany</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
+      <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIF -->
+<div class="notif" id="notif"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const typeColors = {
+  'Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo',
+  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek'
+};
+
+let trainings = {
+  '2026-03-30':[{type:'Bieg spokojny',dist:10,time:62,pace:'6:12',hr:'140-150',desc:'Spokojny bieg na rozluźnienie po weekendzie. Trzymaj niskie tętno.',status:'done'}],
+  '2026-03-31':[{type:'Interwały',dist:8,time:46,pace:'4:20',hr:'170-180',desc:'8×400m z 90 sek odpoczynku. Rozgrzewka 2 km, schłodzenie 1 km.',status:'done'}],
+  '2026-04-01':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Pełny odpoczynek. Możesz zrobić 20 min rozciągania.',status:'done'}],
+  '2026-04-02':[{type:'Tempo',dist:14,time:76,pace:'5:25',hr:'155-165',desc:'14 km w tempie maratońskim. Pierwsze 3 km spokojnie, środkowe 8 km w tempie, ostatnie 3 km spokojnie.',status:'done'}],
+  '2026-04-03':[{type:'Regeneracja',dist:6,time:38,pace:'6:20',hr:'130-140',desc:'Bardzo spokojny trucht. Cel to regeneracja, nie trening.',status:'done'}],
+  '2026-04-04':[{type:'Wybieganie',dist:22,time:132,pace:'6:00',hr:'140-150',desc:'Długie wybieganie. Spokojne tempo przez cały czas. Zjedz żel po 15 km.',status:'done'}],
+  '2026-04-05':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'done'}],
+  '2026-04-06':[{type:'Bieg spokojny',dist:10,time:60,pace:'6:00',hr:'140-150',desc:'Spokojny bieg regeneracyjny po długim wybiegu.',status:'planned'}],
+  '2026-04-07':[{type:'Interwały',dist:10,time:55,pace:'4:15',hr:'175-185',desc:'10×800m, przerwy 90 sek. Ostatnie 2 powtórzenia mocniej.',status:'planned'}],
+  '2026-04-08':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'planned'}],
+  '2026-04-09':[{type:'Tempo',dist:16,time:86,pace:'5:22',hr:'158-168',desc:'16 km w tempie półmaratonu. Testujemy nowe tempo.',status:'planned'}],
+  '2026-04-10':[{type:'Bieg spokojny',dist:8,time:50,pace:'6:15',hr:'135-145',desc:'Lekki bieg. Schłodzenie po ciężkim tygodniu.',status:'planned'}],
+  '2026-04-11':[{type:'Wybieganie',dist:26,time:158,pace:'6:05',hr:'142-152',desc:'Najdłuższy bieg w tym bloku. Jedz żele co 45 min.',status:'planned'}],
+  '2026-04-12':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'planned'}],
+};
+
+const monthNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+const dayNames = ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
+
+let currentWeekStart = getWeekStart(new Date(2026,3,6)); // Mon Apr 6
+let editingDate = null;
+let editingIndex = null;
+let selectedType = 'Bieg spokojny';
+let selectedTypeCls = 'spokojny';
+
+// ── WEEK HELPERS ──────────────────────────────────────────────────────────────
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function dateStr(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Week label
+  const s = days[0], e = days[6];
+  document.getElementById('week-label').textContent =
+    `${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
+
+  // Total km
+  let totalKm = 0;
+  days.forEach(d => {
+    const ts = trainings[dateStr(d)] || [];
+    ts.forEach(t => totalKm += (t.dist||0));
+  });
+  document.getElementById('week-total-km').textContent = totalKm.toFixed(0);
+
+  // Header
+  document.getElementById('week-header').innerHTML = days.map(d => {
+    const ds = dateStr(d);
+    const isToday = d.getTime() === today.getTime();
+    const ts = trainings[ds] || [];
+    const km = ts.reduce((s,t)=>s+(t.dist||0),0);
+    return `<div class="day-header ${isToday?'today':''}">
+      <div class="day-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
+      <div class="day-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
+      ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
+    </div>`;
+  }).join('');
+
+  // Body
+  document.getElementById('week-body').innerHTML = days.map(d => {
+    const ds = dateStr(d);
+    const isToday = d.getTime() === today.getTime();
+    const ts = trainings[ds] || [];
+
+    const cards = ts.map((t,i) => {
+      const tc = typeColors[t.type] || 'spokojny';
+      const statusCls = t.status==='done'?'done':t.status==='missed'?'missed':'';
+      const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie wykonany':'';
+
+      return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
+                   onclick="openModal('${ds}',${i})">
+        <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
+        <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
+        ${t.dist>0?`<div class="card-main">${t.dist} km</div>`:'<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
+        ${(t.pace||t.hr)?`<div class="card-pace">${t.pace?t.pace+'/km':''} ${t.hr?'· ♥ '+t.hr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
+        ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
+        ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
+      </div>`;
+    }).join('');
+
+    return `<div class="day-col ${isToday?'today':''}">
+      ${cards}
+      <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
+    </div>`;
+  }).join('');
+}
+
+// ── WEEK NAV ──────────────────────────────────────────────────────────────────
+function changeWeek(dir) {
+  currentWeekStart = addDays(currentWeekStart, dir*7);
+  render();
+}
+function goToday() {
+  currentWeekStart = getWeekStart(new Date());
+  render();
+}
+function changeAthlete(name) {
+  notify(`Przełączono: ${name}`);
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(ds, idx) {
+  editingDate = ds;
+  editingIndex = idx;
+
+  // Reset form
+  selectedType = 'Bieg spokojny';
+  selectedTypeCls = 'spokojny';
+  document.querySelectorAll('.type-pill').forEach(p=>{
+    p.className='type-pill';
+    if(p.textContent.trim()==='Spokojny') p.className='type-pill sel spokojny-p';
+  });
+  document.getElementById('f-dist').value='';
+  document.getElementById('f-time').value='';
+  document.getElementById('f-pace').value='';
+  document.getElementById('f-hr').value='';
+  document.getElementById('f-desc').value='';
+  document.getElementById('f-status').value='planned';
+
+  if(ds) {
+    const d = new Date(ds);
+    document.getElementById('modal-date-label').textContent =
+      d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  } else {
+    document.getElementById('modal-date-label').textContent = 'Wybierz datę';
+  }
+
+  if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
+    const t = trainings[ds][idx];
+    document.getElementById('modal-title').textContent = 'Edytuj trening';
+    selectedType = t.type;
+    selectedTypeCls = typeColors[t.type] || 'spokojny';
+    document.querySelectorAll('.type-pill').forEach(p=>{
+      p.className='type-pill';
+      const map={Spokojny:'spokojny-p',Interwały:'interwaly-p',Tempo:'tempo-p',Wybieganie:'wybieganie-p',Regeneracja:'regeneracja-p',Odpoczynek:'odpoczynek-p'};
+      if(p.textContent.trim()===t.type.replace('Bieg spokojny','Spokojny').replace('Interwały','Interwały')) {
+        p.className=`type-pill sel ${map[p.textContent.trim()]||'spokojny-p'}`;
+      }
+    });
+    document.getElementById('f-dist').value = t.dist||'';
+    document.getElementById('f-time').value = t.time||'';
+    document.getElementById('f-pace').value = t.pace||'';
+    document.getElementById('f-hr').value = t.hr||'';
+    document.getElementById('f-desc').value = t.desc||'';
+    document.getElementById('f-status').value = t.status||'planned';
+  } else {
+    document.getElementById('modal-title').textContent = 'Nowy trening';
+  }
+
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+}
+function closeModalOnBg(e) {
+  if(e.target===document.getElementById('modal-bg')) closeModal();
+}
+
+function selType(el, type, cls) {
+  document.querySelectorAll('.type-pill').forEach(p=>p.className='type-pill');
+  el.className = `type-pill sel ${cls}-p`;
+  selectedType = type;
+  selectedTypeCls = cls;
+}
+
+function saveTraining() {
+  const dist = parseFloat(document.getElementById('f-dist').value)||0;
+  const time = parseInt(document.getElementById('f-time').value)||0;
+  const pace = document.getElementById('f-pace').value;
+  const hr = document.getElementById('f-hr').value;
+  const desc = document.getElementById('f-desc').value;
+  const status = document.getElementById('f-status').value;
+
+  if(!editingDate) { notify('Brak daty'); return; }
+
+  const t = {type:selectedType,dist,time,pace,hr,desc,status};
+
+  if(!trainings[editingDate]) trainings[editingDate]=[];
+  if(editingIndex!==null && editingIndex>=0) {
+    trainings[editingDate][editingIndex] = t;
+    notify('Trening zaktualizowany ✓');
+  } else {
+    trainings[editingDate].push(t);
+    notify(`Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);
+  }
+
+  closeModal();
+  render();
+}
+
+function deleteTraining(e, ds, idx) {
+  e.stopPropagation();
+  if(!confirm('Usunąć ten trening?')) return;
+  trainings[ds].splice(idx,1);
+  if(trainings[ds].length===0) delete trainings[ds];
+  render();
+  notify('Trening usunięty');
+}
+
+// ── NOTIF ─────────────────────────────────────────────────────────────────────
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') closeModal();
+  if(e.key==='ArrowLeft' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(-1);
+  if(e.key==='ArrowRight' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(1);
+});
+
+render();
+</script>
+</body>
+</html>
