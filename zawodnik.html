@@ -81,21 +81,35 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .coach-ts{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;}
 .coach-body{padding:16px;font-size:13px;line-height:1.7;color:rgba(240,237,232,0.75);font-weight:300;}
 .coach-body strong{color:var(--fg);font-weight:500;}
-.log-list{padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
-.log-card{background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 16px;display:flex;align-items:center;gap:14px;}
-.log-card.feel-good{border-left:3px solid var(--green);}
-.log-card.feel-mid{border-left:3px solid var(--yellow);}
-.log-card.feel-bad{border-left:3px solid var(--red);}
-.log-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
-.log-ico.spokojny{background:rgba(80,144,224,0.15);}
-.log-ico.interwaly{background:rgba(232,184,64,0.15);}
-.log-ico.tempo{background:rgba(212,80,26,0.15);}
-.log-ico.wybieganie{background:rgba(154,111,232,0.15);}
-.log-ico.regeneracja{background:rgba(61,184,112,0.15);}
+.log-list{padding:0 20px;display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.log-card{background:var(--card);border-radius:14px;border:1px solid var(--border);padding:0;overflow:hidden;position:relative;}
+.log-card-inner{display:flex;align-items:stretch;gap:0;}
+.log-bar{width:4px;flex-shrink:0;}
+.log-bar.spokojny{background:var(--blue);}
+.log-bar.interwaly{background:var(--yellow);}
+.log-bar.tempo{background:var(--accent);}
+.log-bar.wybieganie{background:var(--purple);}
+.log-bar.regeneracja{background:var(--green);}
+.log-content{flex:1;padding:14px 14px 14px 12px;display:flex;align-items:center;gap:12px;}
+.log-icon-wrap{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.log-icon-wrap.spokojny{background:rgba(80,144,224,0.12);border:1px solid rgba(80,144,224,0.2);}
+.log-icon-wrap.interwaly{background:rgba(232,184,64,0.12);border:1px solid rgba(232,184,64,0.2);}
+.log-icon-wrap.tempo{background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.2);}
+.log-icon-wrap.wybieganie{background:rgba(154,111,232,0.12);border:1px solid rgba(154,111,232,0.2);}
+.log-icon-wrap.regeneracja{background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.2);}
+.log-icon-svg{width:20px;height:20px;}
 .log-cnt{flex:1;min-width:0;}
-.log-type{font-size:12px;font-weight:500;margin-bottom:2px;}
-.log-det{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;}
-.log-dt{font-size:10px;color:var(--muted2);margin-top:2px;}
+.log-type{font-size:12px;font-weight:600;margin-bottom:3px;letter-spacing:0.02em;}
+.log-det{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;}
+.log-dt{font-size:10px;color:var(--muted2);margin-top:2px;font-family:'DM Mono',monospace;}
+.log-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
+.log-dist{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--fg);}
+.log-dist-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
+.log-feel{font-size:16px;}
+.log-feel-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.log-feel-dot.good{background:var(--green);}
+.log-feel-dot.mid{background:var(--yellow);}
+.log-feel-dot.bad{background:var(--red);}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(22,22,26,0.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;z-index:50;}
 .nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;cursor:pointer;text-decoration:none;}
 .nav-lbl{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
@@ -381,14 +395,8 @@ function init(){
   renderLogs();
 }
 function renderLogs(){
-  const fc={good:'feel-good',mid:'feel-mid',bad:'feel-bad'};
-  const fe={good:'😊',mid:'😐',bad:'😓'};
-  document.getElementById('log-list').innerHTML=logs.map(l=>`<div class="log-card ${fc[l.feel]||''}">`+
-    `<div class="log-ico ${l.cls}">${l.icon}</div>`+
-    `<div class="log-cnt"><div class="log-type">${l.type} · ${l.dist}</div>`+
-    `<div class="log-det">${l.det}</div><div class="log-dt">${l.date}</div></div>`+
-    `<div style="font-size:18px">${fe[l.feel]||''}</div></div>`
-  ).join('');
+  // Statyczne dane — pokazuj tylko jeśli nie ma DB
+  document.getElementById('log-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Brak logów. Zaloguj pierwszy trening!</div>';
 }
 function toggleDayDetail(i) {
   const el = document.getElementById('detail-'+i);
@@ -586,23 +594,37 @@ async function loadCoachMessage() {
 }
 
 function renderLogsDb(data) {
-  const fc={good:'feel-good',mid:'feel-mid',bad:'feel-bad'};
-  const fe={good:'😊',mid:'😐',bad:'😓'};
-  const icons={Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚'};
-  const cls={Spokojny:'spokojny',Interwały:'interwaly',Tempo:'tempo',Wybieganie:'wybieganie',Regeneracja:'regeneracja'};
+  const clsMap={Spokojny:'spokojny',Interwały:'interwaly',Tempo:'tempo',Wybieganie:'wybieganie',Regeneracja:'regeneracja'};
+  const svgIcons = {
+    Spokojny: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8"><circle cx="12" cy="5" r="2"/><path d="M12 7v5l3 3"/><path d="M9 12H5l-2 4"/><path d="M15 12h4l2 4"/><path d="M9 17l1 4"/><path d="M15 17l-1 4"/></svg>`,
+    Interwały: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="1.8"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    Tempo: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+    Wybieganie: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>`,
+    Regeneracja: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
+  };
   document.getElementById('log-list').innerHTML = data.map(l => {
     const type = l.training_type || 'Trening';
-    const dist = l.distance_km ? l.distance_km + ' km' : '';
-    const det = [l.duration, l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥'+l.heart_rate : ''].filter(Boolean).join(' · ') || '—';
+    const cls = clsMap[type] || 'spokojny';
+    const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : null;
+    const det = [l.duration, l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥ '+l.heart_rate : ''].filter(Boolean).join('  ·  ') || '—';
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
-    return `<div class="log-card ${fc[l.feel]||''}">
-      <div class="log-ico ${cls[type]||''}">${icons[type]||'🏅'}</div>
-      <div class="log-cnt">
-        <div class="log-type">${type}${dist?' · '+dist:''}</div>
-        <div class="log-det">${det}</div>
-        <div class="log-dt">${date}</div>
+    const feelDot = l.feel ? `<div class="log-feel-dot ${l.feel}"></div>` : '';
+    return `<div class="log-card">
+      <div class="log-card-inner">
+        <div class="log-bar ${cls}"></div>
+        <div class="log-content">
+          <div class="log-icon-wrap ${cls}">${svgIcons[type]||svgIcons['Spokojny']}</div>
+          <div class="log-cnt">
+            <div class="log-type">${type}</div>
+            <div class="log-det">${det}</div>
+            <div class="log-dt">${date}</div>
+          </div>
+          <div class="log-right">
+            ${dist ? `<div class="log-dist">${dist}</div><div class="log-dist-lbl">km</div>` : ''}
+            ${feelDot}
+          </div>
+        </div>
       </div>
-      <div style="font-size:18px">${fe[l.feel]||''}</div>
     </div>`;
   }).join('');
 }
