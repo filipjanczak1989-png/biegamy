@@ -125,6 +125,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .fade-in:nth-child(3){animation-delay:0.15s;}
 .fade-in:nth-child(4){animation-delay:0.2s;}
 .fade-in:nth-child(5){animation-delay:0.25s;}
+.type-pill{font-size:10px;font-family:'DM Mono',monospace;padding:6px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.15s;}
+.type-pill.on{background:var(--accent);border-color:var(--accent);color:var(--fg);}
 </style>
 </head>
 <body>
@@ -223,16 +225,34 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Zaloguj trening</div>
-    <div class="modal-sub">Czwartek · Tempo · 14 km</div>
+    <div class="modal-sub" id="modal-sub">Dziś</div>
     <div class="modal-body">
-      <div class="f-row">
-        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="14.0" step="0.1" inputmode="decimal"></div>
-        <div class="field"><label>Czas</label><input type="text" id="l-time" placeholder="1:16:00"></div>
+
+      <!-- TYP TRENINGU -->
+      <div class="field">
+        <label>Typ treningu</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px;" id="type-pills">
+          <button class="type-pill on" onclick="selType(this,'Spokojny')">🏃 Spokojny</button>
+          <button class="type-pill" onclick="selType(this,'Interwały')">⚡ Interwały</button>
+          <button class="type-pill" onclick="selType(this,'Tempo')">🔥 Tempo</button>
+          <button class="type-pill" onclick="selType(this,'Wybieganie')">🛤️ Wybieganie</button>
+          <button class="type-pill" onclick="selType(this,'Regeneracja')">💚 Regeneracja</button>
+        </div>
       </div>
+
+      <!-- DYSTANS + CZAS -->
       <div class="f-row">
-        <div class="field"><label>Tempo (/km)</label><input type="text" id="l-pace" placeholder="5:27"></div>
-        <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="158" inputmode="numeric"></div>
+        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal"></div>
+        <div class="field"><label>Czas (np. 1:05:00)</label><input type="text" id="l-time" placeholder="1:05:00"></div>
       </div>
+
+      <!-- TEMPO + TĘTNO -->
+      <div class="f-row">
+        <div class="field"><label>Tempo /km</label><input type="text" id="l-pace" placeholder="6:30"></div>
+        <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
+      </div>
+
+      <!-- SAMOPOCZUCIE -->
       <div class="field">
         <label>Samopoczucie</label>
         <div class="feel-grid">
@@ -241,12 +261,28 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
           <div class="feel-btn" onclick="selFeel(this,'bad')"><span class="feel-emoji">😓</span><span class="feel-lbl">Ciężko</span></div>
         </div>
       </div>
+
+      <!-- KOMENTARZ -->
       <div class="field"><label>Komentarz dla trenera</label><textarea id="l-comment" placeholder="Jak poszło? Co czułeś?"></textarea></div>
+
+      <!-- STRAVA LINK -->
+      <div class="field"><label>Link Strava / Garmin (opcjonalnie)</label><input type="url" id="l-strava" placeholder="https://strava.com/activities/..."></div>
+
+      <!-- SCREEN UPLOAD -->
+      <div class="field">
+        <label>Załącz screen (opcjonalnie)</label>
+        <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:24px;margin-bottom:4px;">📎</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
+        </div>
+        <input type="file" id="l-file" accept="image/*" style="display:none" onchange="previewFile(this)">
+      </div>
+
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;">
-  <button class="btn" style="background:var(--card2);color:var(--muted);border:1px solid var(--border);width:auto;padding:12px 20px;" onclick="closeModal()">← Wstecz</button>
-  <button class="btn btn-primary" style="flex:1;" onclick="saveLog()">Zapisz log →</button>
-</div>
+      <button class="btn" style="background:var(--card2);color:var(--muted);border:1px solid var(--border);width:auto;padding:12px 20px;" onclick="closeModal()">← Wstecz</button>
+      <button class="btn btn-primary" style="flex:1;" id="save-btn" onclick="saveLog()">Zapisz log →</button>
+    </div>
   </div>
 </div>
 
@@ -311,7 +347,21 @@ function selFeel(el,t){
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   el.classList.add('sel-'+t);feel=t;
 }
-// saveLog() -> zastąpiona wersją DB poniżej
+let _logType = 'Spokojny';
+
+function selType(el, type) {
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  _logType = type;
+}
+
+function previewFile(input) {
+  const file = input.files[0];
+  if (file) {
+    document.getElementById('upload-label').textContent = '✓ ' + file.name;
+    document.getElementById('upload-area').style.borderColor = 'var(--green)';
+  }
+}
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),3000);
@@ -381,35 +431,60 @@ async function saveLog() {
   const dist = parseFloat(document.getElementById('l-dist').value);
   if (!dist) { toast('Podaj dystans'); return; }
 
+  const btn = document.getElementById('save-btn');
+  btn.textContent = 'Zapisuję...';
+  btn.disabled = true;
+
+  // Upload screena jeśli jest
+  let attachmentUrl = null;
+  const fileInput = document.getElementById('l-file');
+  if (fileInput.files[0] && _athleteId) {
+    const file = fileInput.files[0];
+    const ext = file.name.split('.').pop();
+    const path = _athleteId + '/' + Date.now() + '.' + ext;
+    const { data: upData, error: upErr } = await _sb.storage
+      .from('training-screenshots')
+      .upload(path, file, { upsert: true });
+    if (!upErr) {
+      const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+      attachmentUrl = urlData.publicUrl;
+    }
+  }
+
   const logData = {
     athlete_id: _athleteId,
-    training_type: 'Tempo',
+    training_type: _logType,
     distance_km: dist,
     duration: document.getElementById('l-time').value || null,
     pace: document.getElementById('l-pace').value || null,
-    heart_rate: document.getElementById('l-hr').value || null,
+    heart_rate: parseInt(document.getElementById('l-hr').value) || null,
     comment: document.getElementById('l-comment').value || null,
+    strava_link: document.getElementById('l-strava').value || null,
+    attachment_url: attachmentUrl,
     feel: feel || 'mid',
     logged_at: new Date().toISOString()
   };
 
-  if (_athleteId) {
-    const { error } = await _sb.from('training_logs').insert(logData);
-    if (error) { toast('Błąd zapisu: ' + error.message); return; }
-    await loadLogs();
-  } else {
-    // fallback lokalny jeśli brak athlete_id
-    logs.unshift({type:'Tempo',cls:'tempo',icon:'🔥',dist:dist+' km',
-      det:[document.getElementById('l-time').value,document.getElementById('l-pace').value?document.getElementById('l-pace').value+'/km':'',document.getElementById('l-hr').value?'♥'+document.getElementById('l-hr').value:''].filter(Boolean).join(' · ')||'—',
-      date:'Dziś',feel:feel||'mid'});
-    renderLogs();
-  }
+  const { error } = await _sb.from('training_logs').insert(logData);
+  
+  btn.textContent = 'Zapisz log →';
+  btn.disabled = false;
 
+  if (error) { toast('Błąd: ' + error.message); return; }
+
+  await loadLogs();
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
-  ['l-dist','l-time','l-pace','l-hr','l-comment'].forEach(id=>document.getElementById(id).value='');
+  
+  // Reset formularza
+  ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id=>document.getElementById(id).value='');
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
-  feel='';
+  document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
+  document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';
+  document.getElementById('upload-area').style.borderColor = 'var(--border)';
+  fileInput.value = '';
+  feel = '';
+  _logType = 'Spokojny';
 }
 
 // ── LOGOUT & MENU ─────────────────────────────────────────────────
