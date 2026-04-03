@@ -134,7 +134,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="topbar-greeting" id="greeting">Dzień dobry,</div>
     <div class="topbar-name">Marek <span>K.</span></div>
   </div>
-  <div style="position:relative;">
+  <div style="position:relative;display:flex;align-items:center;gap:8px;">
+    <a id="back-to-trener" href="trener.html" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;">MK</div>
     <div id="av-menu" style="display:none;position:absolute;top:54px;right:0;background:#16161a;border:1px solid #d4501a;border-radius:12px;padding:8px;z-index:9999;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.8);">
       <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:'DM Mono',monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
@@ -273,6 +274,11 @@ let feel='';
 function init(){
   const h=new Date().getHours();
   document.getElementById('greeting').textContent=h<12?'Dzień dobry,':h<18?'Cześć,':'Dobry wieczór,';
+  // Pokaż przycisk powrotu jeśli wejście z panelu trenera
+  if(new URLSearchParams(window.location.search).get('from')==='trener'){
+    const btn=document.getElementById('back-to-trener');
+    if(btn) btn.style.display='block';
+  }
   document.getElementById('week-strip').innerHTML=weekPlan.map(d=>`<div class="day-card ${d.today?'today':''} ${d.done?'done':''} ${d.rest?'rest':''}">`+
     `<div class="dc-stripe" style="background:${d.color}"></div>`+
     `<div class="dc-name">${d.name}</div><div class="dc-num">${d.num}</div>`+
