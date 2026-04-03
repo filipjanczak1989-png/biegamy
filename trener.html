@@ -116,7 +116,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="topbar-av" onclick="toggleMenu()" id="av-btn">F</div>
 <div id="av-menu" style="display:none;position:absolute;top:48px;right:0;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px;z-index:9999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
   <div style="padding:8px 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);margin-bottom:6px;" id="menu-email">...</div>
-  <a href="zawodnik.html" style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--fg);cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-decoration:none;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='transparent'">
+  <a href="zawodnik.html?from=trener" style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--fg);cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-decoration:none;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='transparent'">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Widok zawodnika
   </a>
@@ -129,9 +129,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </div>
 
 <div class="quick-stats fi">
-  <div class="qs-card"><div class="qs-val a">10</div><div class="qs-lbl">Zawodników</div></div>
-  <div class="qs-card"><div class="qs-val g">3</div><div class="qs-lbl">Nowe logi</div></div>
-  <div class="qs-card"><div class="qs-val">181</div><div class="qs-lbl">Dni do startu</div></div>
+  <div class="qs-card"><div class="qs-val a" id="stat-count">—</div><div class="qs-lbl">Zawodników</div></div>
+  <div class="qs-card"><div class="qs-val g" id="stat-logs">—</div><div class="qs-lbl">Nowe logi</div></div>
+  <div class="qs-card"><div class="qs-val" id="stat-days">—</div><div class="qs-lbl">Dni do startu</div></div>
 </div>
 
 <div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div>
@@ -244,7 +244,7 @@ function init(){
   const h=new Date().getHours();
   document.getElementById('greet').textContent=h<12?'Dzien dobry,':h<18?'Czesc,':'Dobry wieczor,';
   document.getElementById('fd').value=new Date().toISOString().split('T')[0];
-  renderAth();
+  // Lista ładowana z DB przez loadAthletes() po auth
 }
 function renderAth(){
   document.getElementById('ath-list').innerHTML=athletes.map((a,i)=>`
@@ -363,13 +363,29 @@ async function loadAthletes() {
 
   if (error) { console.error(error); return; }
   
-  if (data && data.length > 0) {
-    _dbAthletes = data;
-    renderDbAthletes(data);
+  _dbAthletes = data || [];
+  
+  // Update stats
+  const countEl = document.getElementById('stat-count');
+  if (countEl) countEl.textContent = _dbAthletes.length;
+  
+  // Days to next target_date
+  const withDate = _dbAthletes.filter(a => a.target_date);
+  if (withDate.length > 0) {
+    const next = withDate.map(a => new Date(a.target_date)).sort((a,b) => a-b)[0];
+    const days = Math.max(0, Math.ceil((next - new Date()) / 86400000));
+    const daysEl = document.getElementById('stat-days');
+    if (daysEl) daysEl.textContent = days;
   } else {
-    // Show empty state
+    const daysEl = document.getElementById('stat-days');
+    if (daysEl) daysEl.textContent = '—';
+  }
+
+  if (_dbAthletes.length > 0) {
+    renderDbAthletes(_dbAthletes);
+  } else {
     document.getElementById('ath-list').innerHTML = 
-      `<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników. Kliknij + Dodaj.</div>`;
+      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników. Kliknij + Dodaj.</div>';
   }
 }
 
