@@ -158,7 +158,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="topbar">
   <div>
     <div class="topbar-greeting" id="greeting">Dzień dobry,</div>
-    <div class="topbar-name">Marek <span>K.</span></div>
+    <div class="topbar-name" id="topbar-name" style="opacity:0.3;">—</div>
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;">
     <a id="back-to-trener" href="trener.html" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
@@ -254,28 +254,60 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </div>
 
 <!-- SEKCJA: PROFIL -->
-<div id="section-profile" style="display:none;padding:0 20px;">
-  <div style="text-align:center;margin-bottom:24px;">
-    <div id="profile-avatar" onclick="document.getElementById('avatar-input').click()" style="width:80px;height:80px;border-radius:50%;border:2px solid var(--accent);background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);margin:0 auto 8px;cursor:pointer;overflow:hidden;position:relative;">
+<div id="section-profile" style="display:none;padding:0 20px 100px;">
+
+  <!-- Avatar + imię -->
+  <div style="text-align:center;padding:20px 0 24px;">
+    <div onclick="document.getElementById('avatar-input').click()" style="width:88px;height:88px;border-radius:50%;border:2px solid var(--accent);background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);margin:0 auto 10px;cursor:pointer;overflow:hidden;position:relative;">
       <span id="avatar-initials">?</span>
       <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
     </div>
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-    <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Kliknij aby zmienić zdjęcie</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;" id="profile-name">—</div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;" id="profile-email">—</div>
+    <div style="font-size:10px;color:var(--muted2);font-family:'DM Mono',monospace;margin-top:6px;">Kliknij avatar aby zmienić zdjęcie</div>
   </div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Imię i nazwisko</div>
-    <div style="font-size:15px;font-weight:500;" id="profile-name">—</div>
+
+  <!-- Życiówki -->
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Życiówki</div>
+  <div id="pbs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
+    </div>
   </div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">E-mail</div>
-    <div style="font-size:14px;color:var(--muted);" id="profile-email">—</div>
+
+  <!-- Cel startowy -->
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Cel startowy</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;">
+    <div style="font-size:14px;font-weight:500;margin-bottom:4px;" id="profile-goal">—</div>
+    <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;" id="profile-target-date"></div>
   </div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;" id="profile-pbs">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Życiówki</div>
-    <div id="pbs-content" style="color:var(--muted);font-size:12px;">Brak danych.</div>
+
+  <!-- Trener -->
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Trener</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:28px;display:flex;align-items:center;gap:12px;">
+    <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;" id="coach-avatar-lbl">F</div>
+    <div>
+      <div style="font-size:13px;font-weight:500;" id="profile-coach-name">BiegaMy Coaching</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">biegamy.run</div>
+    </div>
   </div>
-  <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.1);color:var(--red);border:1px solid rgba(224,80,80,0.3);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Wyloguj się</button>
+
+  <!-- Wyloguj -->
+  <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;">→ Wyloguj się</button>
 </div>
 
 <div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
@@ -493,31 +525,35 @@ async function loadProfile() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   const name = session.user.user_metadata?.full_name || '—';
+  const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('profile-name').textContent = name;
   document.getElementById('profile-email').textContent = session.user.email;
-  document.getElementById('avatar-initials').textContent = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('avatar-initials').textContent = initials;
   
-  // Załaduj avatar
-  const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(_athleteId + '/avatar.jpg');
-  if (urlData?.publicUrl) {
-    const img = document.getElementById('avatar-img');
-    img.src = urlData.publicUrl + '?t=' + Date.now();
-    img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
-  }
-  
-  // PBs
+  // Avatar z Supabase Storage
   if (_athleteId) {
-    const { data: ath } = await _sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k').eq('id',_athleteId).single();
+    const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(_athleteId + '/avatar.jpg');
+    if (urlData?.publicUrl) {
+      const img = document.getElementById('avatar-img');
+      img.src = urlData.publicUrl + '?t=' + Date.now();
+      img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
+    }
+    
+    // Dane z bazy
+    const { data: ath } = await _sb.from('athletes')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name')
+      .eq('id', _athleteId).single();
     if (ath) {
-      const pbs = [
-        ath.pb_marathon ? `Maraton: <strong>${ath.pb_marathon}</strong>` : null,
-        ath.pb_half ? `Półmaraton: <strong>${ath.pb_half}</strong>` : null,
-        ath.pb_10k ? `10 km: <strong>${ath.pb_10k}</strong>` : null,
-        ath.pb_5k ? `5 km: <strong>${ath.pb_5k}</strong>` : null,
-      ].filter(Boolean);
-      document.getElementById('pbs-content').innerHTML = pbs.length
-        ? pbs.map(p=>`<div style="margin-bottom:6px;font-size:13px;">${p}</div>`).join('')
-        : '<div style="color:var(--muted);font-size:12px;">Brak danych.</div>';
+      document.getElementById('pb-mar').textContent = ath.pb_marathon || '—';
+      document.getElementById('pb-half').textContent = ath.pb_half || '—';
+      document.getElementById('pb-10k').textContent = ath.pb_10k || '—';
+      document.getElementById('pb-5k').textContent = ath.pb_5k || '—';
+      document.getElementById('profile-goal').textContent = ath.goal || 'Brak celu';
+      if (ath.target_date) {
+        const d = new Date(ath.target_date);
+        const days = Math.ceil((d - new Date()) / 86400000);
+        document.getElementById('profile-target-date').textContent = d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}) + (days > 0 ? ' · ' + days + ' dni' : '');
+      }
     }
   }
 }
@@ -551,7 +587,7 @@ async function initAuth() {
   const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   document.getElementById('av-btn').textContent = initials;
   document.getElementById('menu-email').textContent = user.email;
-  document.querySelector('.topbar-name').innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>';
+  const tn = document.getElementById('topbar-name'); if(tn){tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1';}
 
   // Znajdź athlete_id po user_id
   const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', user.id).single();
