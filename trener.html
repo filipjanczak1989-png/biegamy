@@ -320,13 +320,193 @@ function calcP(){
 }
 function showToast(msg){const el=document.getElementById('t-el');el.textContent=msg;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),3000);}
 
-// ── LOGOUT & MENU ─────────────────────────────────────────────────
+// ── SUPABASE ──────────────────────────────────────────────────────
 const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+let _coachId = null;
+let _dbAthletes = [];
 
+// ── AUTH ──────────────────────────────────────────────────────────
+async function initAuth() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  _coachId = session.user.id;
+  const name = session.user.user_metadata?.full_name || 'Trener';
+  const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+  document.getElementById('av-btn').textContent = initials;
+  document.getElementById('menu-email').textContent = session.user.email;
+  document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name.split(' ')[0] + '</span>';
+  await loadAthletes();
+}
+
+// ── LOAD ATHLETES FROM DB ─────────────────────────────────────────
+async function loadAthletes() {
+  const { data, error } = await _sb
+    .from('athletes')
+    .select('*')
+    .eq('coach_id', _coachId)
+    .order('created_at');
+
+  if (error) { console.error(error); return; }
+  
+  if (data && data.length > 0) {
+    _dbAthletes = data;
+    renderDbAthletes(data);
+  } else {
+    // Show empty state
+    document.getElementById('ath-list').innerHTML = 
+      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Brak zawodników.<br>Kliknij + Dodaj żeby dodać pierwszego.</div>';
+  }
+}
+
+function renderDbAthletes(list) {
+  document.getElementById('ath-list').innerHTML = list.map((a,i) => `
+    <div class="ath-card fi" onclick="selA_db('${a.id}')" style="animation-delay:${0.04+i*0.04}s">
+      <div class="ath-stripe" style="background:var(--accent)"></div>
+      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent)">${a.goal?.slice(0,2).toUpperCase()||'?'}</div>
+      <div class="ath-info">
+        <div class="ath-name">${a.goal||'Zawodnik'}</div>
+        <div class="ath-goal">PB maraton: ${a.pb_marathon||'brak'}</div>
+      </div>
+      <div class="ath-right">
+        <div class="ath-km">0<span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"> km</span></div>
+        <div class="ath-dot"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── SELECT ATHLETE ────────────────────────────────────────────────
+async function selA_db(athleteId) {
+  const a = _dbAthletes.find(x => x.id === athleteId);
+  if (!a) return;
+  
+  document.getElementById('pav').textContent = a.goal?.slice(0,2).toUpperCase()||'?';
+  document.getElementById('pav').style.background = 'var(--accent)';
+  document.getElementById('pname').textContent = a.goal||'Zawodnik';
+  document.getElementById('pmeta').textContent = 'PB maraton: '+(a.pb_marathon||'brak')+' | '+a.target_race;
+  document.getElementById('panel').classList.add('on');
+  
+  window._selectedAthleteId = athleteId;
+  await loadAthleteTrainings(athleteId);
+  await loadAthleteLogs(athleteId);
+}
+
+// ── LOAD TRAININGS ────────────────────────────────────────────────
+async function loadAthleteTrainings(athleteId) {
+  const { data } = await _sb
+    .from('trainings')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .order('date', { ascending: false })
+    .limit(7);
+  
+  if (data && data.length > 0) {
+    renderWM_db(data);
+  }
+}
+
+function renderWM_db(trainings) {
+  const days = ['Pn','Wt','Sr','Cz','Pt','Sb','Nd'];
+  document.getElementById('wmini').innerHTML = trainings.slice(0,7).map(t => {
+    const d = new Date(t.date);
+    return `<div class="wm">
+      <div class="wm-n">${days[d.getDay()===0?6:d.getDay()-1]}</div>
+      <div class="wm-d" style="background:${t.status==='done'?'var(--green)':'var(--accent)'}"></div>
+      <div class="wm-k">${t.distance_km||''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── LOAD LOGS ─────────────────────────────────────────────────────
+async function loadAthleteLogs(athleteId) {
+  const { data } = await _sb
+    .from('training_logs')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .order('logged_at', { ascending: false })
+    .limit(5);
+  
+  if (data) renderLogs_db(data);
+}
+
+function renderLogs_db(logs) {
+  const fe = {good:'😊',mid:'😐',bad:'😓'};
+  const bc = {good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
+  document.getElementById('lcon').innerHTML = logs.length === 0
+    ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px;">Brak logów</div>'
+    : logs.map(l => `
+    <div class="plog" style="border-left:3px solid ${bc[l.feel]||'var(--border)' }">
+      <div class="pl-hdr">
+        <div class="pl-type">${l.duration||'Trening'}</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <div class="pl-date">${new Date(l.logged_at).toLocaleDateString('pl-PL')}</div>
+          <span style="font-size:16px">${fe[l.feel]||''}</span>
+        </div>
+      </div>
+      <div class="pl-det">${l.distance_km?l.distance_km+' km':''} ${l.pace?'· '+l.pace+'/km':''} ${l.heart_rate?'· ♥'+l.heart_rate:''}</div>
+      ${l.comment?`<div class="pl-cmt">"${l.comment}"</div>`:''}
+    </div>`).join('');
+}
+
+// ── SAVE TRAINING TO DB ───────────────────────────────────────────
+async function saveTr_db() {
+  if (!window._selectedAthleteId) { showToast('Wybierz zawodnika'); return; }
+  
+  const date = document.getElementById('fd').value;
+  const dist = parseFloat(document.getElementById('fdist').value)||null;
+  const time = parseInt(document.getElementById('ftime').value)||null;
+  const pace = document.getElementById('fpace').value||null;
+  const hr = document.getElementById('fhr').value||null;
+  const desc = document.getElementById('fdesc').value||null;
+  
+  if (!date) { showToast('Wybierz datę'); return; }
+  
+  const { error } = await _sb.from('trainings').insert({
+    athlete_id: window._selectedAthleteId,
+    coach_id: _coachId,
+    date,
+    type: selectedType,
+    distance_km: dist,
+    duration_min: time,
+    pace,
+    heart_rate: hr,
+    description: desc,
+    status: 'planned'
+  });
+  
+  if (error) { showToast('Błąd: '+error.message); return; }
+  
+  showToast('Trening zapisany ✓');
+  ['fdist','ftime','fpace','fhr','fdesc'].forEach(id => document.getElementById(id).value='');
+  await loadAthleteTrainings(window._selectedAthleteId);
+}
+
+async function saveSend_db() {
+  await saveTr_db();
+  if (window._selectedAthleteId) showToast('Plan wysłany do zawodnika ✓');
+}
+
+// ── ADD ATHLETE ───────────────────────────────────────────────────
+async function addAthlete_db() {
+  const goal = prompt('Cel zawodnika (np. Maraton Warszawski):');
+  if (!goal) return;
+  const pb = prompt('Życiówka maraton (np. 3:45 lub "brak"):');
+  
+  const { data, error } = await _sb.from('athletes').insert({
+    coach_id: _coachId,
+    goal,
+    pb_marathon: pb||null,
+    active: true
+  }).select();
+  
+  if (error) { showToast('Błąd: '+error.message); return; }
+  showToast('Zawodnik dodany ✓');
+  await loadAthletes();
+}
+
+// ── LOGOUT & MENU ─────────────────────────────────────────────────
 async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
-  localStorage.clear();
-  sessionStorage.clear();
+  localStorage.clear(); sessionStorage.clear();
   window.location.href = 'https://biegamy.run/login.html';
 }
 
@@ -341,6 +521,13 @@ document.addEventListener('click', e => {
     if (m) m.style.display = 'none';
   }
 });
+
+// Override static functions with DB versions
+function saveTr() { saveTr_db(); }
+function saveSend() { saveSend_db(); }
+function addAthlete() { addAthlete_db(); }
+
+setTimeout(() => initAuth(), 100);
 
 init();
 </script>
