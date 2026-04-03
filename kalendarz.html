@@ -4,23 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BiegaMy — Kalendarz</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0f0e0c;
-  --surface: #1a1916;
-  --surface2: #222120;
-  --border: #2e2c29;
+  --bg: #0d0d0f;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --border: #2a2a32;
   --accent: #d4501a;
-  --fg: #f0ece4;
-  --muted: #6a6560;
-  --green: #4caf78;
-  --yellow: #e8c84a;
-  --blue: #5a9fe8;
+  --accent2: #f06030;
+  --fg: #f0ede8;
+  --muted: #66636e;
+  --muted2: #44424a;
+  --green: #3db870;
+  --yellow: #e8b840;
+  --red: #e05050;
+  --blue: #5090e0;
   --purple: #9a6fe8;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;overflow:hidden;}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;}body{padding-bottom:80px;}
 
 /* SHELL */
 .shell{display:grid;grid-template-rows:56px 1fr;height:100vh;}
@@ -135,7 +138,7 @@ nav{
 
 .card-main{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:4px;}
 .card-pace{font-size:10px;color:var(--muted);margin-bottom:6px;}
-.card-desc{font-size:10px;color:rgba(240,236,228,0.6);line-height:1.6;font-family:'Lora',serif;font-style:italic;}
+.card-desc{font-size:10px;color:rgba(240,236,228,0.6);line-height:1.6;font-family:'DM Sans',sans-serif;font-style:italic;}
 .card-status{
   display:inline-flex;align-items:center;gap:4px;
   font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
@@ -233,7 +236,7 @@ nav{
 <!-- NAV -->
 <nav>
   <a href="#" class="nav-logo">Biega<span>My</span></a>
-  <div class="nav-links">
+  <div class="nav-links" style="display:flex;gap:4px;">
     <a href="trener.html" class="nav-link">Trener</a>
     <a href="kalendarz.html" class="nav-link active">Kalendarz</a>
     <a href="zawodnik.html" class="nav-link">Zawodnik</a>

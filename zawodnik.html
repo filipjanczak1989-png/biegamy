@@ -41,19 +41,30 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:12px;}
 .sec-title{font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
 .sec-link{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;text-decoration:none;}
-.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 20px;margin-bottom:16px;}
-.day-card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:10px 6px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.15s;text-align:center;}
-.day-card:active{transform:scale(0.97);}
+.week-grid{display:flex;flex-direction:column;gap:6px;padding:0 20px;margin-bottom:16px;}
+.day-card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:12px 14px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:12px;}
+.day-card:active{transform:scale(0.98);}
 .day-card.today{border-color:var(--accent);background:rgba(212,80,26,0.08);}
 .day-card.done{border-color:rgba(61,184,112,0.35);}
 .day-card.rest{opacity:0.55;}
-.dc-stripe{position:absolute;left:0;top:0;right:0;height:3px;}
-.dc-name{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:2px;}
-.dc-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;margin-bottom:4px;}
+.dc-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;}
+.dc-date{display:flex;flex-direction:column;align-items:center;min-width:32px;}
+.dc-name{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
+.dc-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;}
 .day-card.today .dc-num{color:var(--accent);}
-.dc-type{font-size:9px;font-weight:500;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dc-km{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
-.dc-check{position:absolute;top:6px;right:6px;width:14px;height:14px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:8px;color:#0a1a0f;}
+.dc-info{flex:1;}
+.dc-type{font-size:12px;font-weight:500;}
+.dc-km{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
+.dc-check{width:20px;height:20px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:10px;color:#0a1a0f;flex-shrink:0;}
+.dc-arrow{font-size:14px;color:var(--muted);flex-shrink:0;}
+/* Training detail panel */
+.day-detail{background:var(--card2);border-radius:10px;border:1px solid var(--accent);padding:14px 16px;margin-top:-2px;display:none;}
+.day-detail.open{display:block;}
+.dd-title{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);margin-bottom:6px;}
+.dd-meta{display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;}
+.dd-m{font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);}
+.dd-m span{color:var(--fg);}
+.dd-desc{font-size:12px;line-height:1.7;color:rgba(240,237,232,0.75);}
 .week-sum{margin:0 20px 20px;background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:16px;}
 .ring-wrap{position:relative;width:56px;height:56px;flex-shrink:0;}
 .ring-wrap svg{transform:rotate(-90deg);}
@@ -198,7 +209,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="log-list" id="log-list"></div>
 
 <nav class="bottom-nav">
-  <a class="nav-it active" href="#">
+  <a class="nav-it active" href="#" id="nav-home">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <div class="nav-lbl" style="color:var(--accent);">Dziś</div>
   </a>
@@ -210,15 +221,48 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
     <div class="nav-lbl">Log</div>
   </a>
-  <a class="nav-it" href="#">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <div class="nav-lbl">Postępy</div>
+  <a class="nav-it" href="#" onclick="showSection('msgs');return false;" id="nav-msgs">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <div class="nav-lbl">Wiadomości</div>
   </a>
-  <a class="nav-it" href="#">
+  <a class="nav-it" href="#" onclick="showSection('profile');return false;" id="nav-profile">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     <div class="nav-lbl">Profil</div>
   </a>
 </nav>
+
+<!-- SEKCJA: WIADOMOŚCI -->
+<div id="section-msgs" style="display:none;padding:0 20px;">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;">Wiadomości od trenera</div>
+  <div id="msgs-list">
+    <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;">Brak wiadomości.</div>
+  </div>
+</div>
+
+<!-- SEKCJA: PROFIL -->
+<div id="section-profile" style="display:none;padding:0 20px;">
+  <div style="text-align:center;margin-bottom:24px;">
+    <div id="profile-avatar" onclick="document.getElementById('avatar-input').click()" style="width:80px;height:80px;border-radius:50%;border:2px solid var(--accent);background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);margin:0 auto 8px;cursor:pointer;overflow:hidden;position:relative;">
+      <span id="avatar-initials">?</span>
+      <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
+    </div>
+    <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+    <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Kliknij aby zmienić zdjęcie</div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Imię i nazwisko</div>
+    <div style="font-size:15px;font-weight:500;" id="profile-name">—</div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">E-mail</div>
+    <div style="font-size:14px;color:var(--muted);" id="profile-email">—</div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;" id="profile-pbs">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Życiówki</div>
+    <div id="pbs-content" style="color:var(--muted);font-size:12px;">Brak danych.</div>
+  </div>
+  <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.1);color:var(--red);border:1px solid rgba(224,80,80,0.3);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Wyloguj się</button>
+</div>
 
 <div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
   <div class="modal">
@@ -314,14 +358,24 @@ function init(){
     const btn=document.getElementById('back-to-trener');
     if(btn) btn.style.display='block';
   }
-  document.getElementById('week-strip').innerHTML=weekPlan.map(d=>
-    `<div class="day-card ${d.today?'today':''} ${d.done?'done':''} ${d.rest?'rest':''}">
+  document.getElementById('week-strip').innerHTML=weekPlan.map((d,i)=>
+    `<div class="day-card ${d.today?'today':''} ${d.done?'done':''} ${d.rest?'rest':''}" onclick="toggleDayDetail(${i})">
       <div class="dc-stripe" style="background:${d.color}"></div>
-      <div class="dc-name">${d.name}</div>
-      <div class="dc-num">${d.num}</div>
-      <div class="dc-type">${d.rest?'—':d.type}</div>
-      ${d.km>0?`<div class="dc-km">${d.km}km</div>`:''}
-      ${d.done?'<div class="dc-check">✓</div>':''}
+      <div class="dc-date"><div class="dc-name">${d.name}</div><div class="dc-num">${d.num}</div></div>
+      <div class="dc-info">
+        <div class="dc-type">${d.rest?'Odpoczynek':d.type}</div>
+        ${d.km>0?`<div class="dc-km">${d.km} km</div>`:''}
+      </div>
+      ${d.done?'<div class="dc-check">✓</div>':'<div class="dc-arrow">›</div>'}
+    </div>
+    <div class="day-detail" id="detail-${i}">
+      <div class="dd-title">${d.rest?'Odpoczynek':d.type.toUpperCase()}</div>
+      <div class="dd-meta">
+        ${d.km>0?`<div class="dd-m">Dystans: <span>${d.km} km</span></div>`:''}
+        ${d.pace?`<div class="dd-m">Tempo: <span>${d.pace}/km</span></div>`:''}
+        ${d.hr?`<div class="dd-m">Tętno: <span>${d.hr}</span></div>`:''}
+      </div>
+      ${d.desc?`<div class="dd-desc">${d.desc}</div>`:'<div class="dd-desc" style="color:var(--muted);font-style:italic;">Brak opisu treningu.</div>'}
     </div>`
   ).join('');
   renderLogs();
@@ -335,6 +389,13 @@ function renderLogs(){
     `<div class="log-det">${l.det}</div><div class="log-dt">${l.date}</div></div>`+
     `<div style="font-size:18px">${fe[l.feel]||''}</div></div>`
   ).join('');
+}
+function toggleDayDetail(i) {
+  const el = document.getElementById('detail-'+i);
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.day-detail').forEach(d=>d.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
 }
 function markDone(btn){
   btn.textContent='✓ Gotowe!';
@@ -389,6 +450,79 @@ function calcPaceAuto() {
   document.getElementById('l-pace').value = paceStr;
   if(lbl) lbl.textContent = '← auto';
 }
+function showSection(name) {
+  // Ukryj główną zawartość
+  const main = ['today-hero','week-hdr','week-strip','week-sum','coach-hdr-sec','coach-box','logs-hdr','log-list'];
+  document.querySelectorAll('.fade-in, .sec-hdr, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => {
+    el.style.display = '';
+  });
+  document.getElementById('section-msgs').style.display = 'none';
+  document.getElementById('section-profile').style.display = 'none';
+  
+  // Reset nav
+  document.querySelectorAll('.nav-it').forEach(n => {
+    n.querySelectorAll('svg')[0]?.setAttribute('stroke','var(--muted)');
+    n.querySelector('.nav-lbl')?.style && (n.querySelector('.nav-lbl').style.color = '');
+  });
+
+  if (name === 'msgs') {
+    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
+    document.getElementById('section-msgs').style.display = 'block';
+    const n = document.getElementById('nav-msgs');
+    if(n) { n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
+  } else if (name === 'profile') {
+    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
+    document.getElementById('section-profile').style.display = 'block';
+    const n = document.getElementById('nav-profile');
+    if(n) { n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
+    loadProfile();
+  }
+}
+
+async function loadProfile() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) return;
+  const name = session.user.user_metadata?.full_name || '—';
+  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-email').textContent = session.user.email;
+  document.getElementById('avatar-initials').textContent = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  
+  // Załaduj avatar
+  const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(_athleteId + '/avatar.jpg');
+  if (urlData?.publicUrl) {
+    const img = document.getElementById('avatar-img');
+    img.src = urlData.publicUrl + '?t=' + Date.now();
+    img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
+  }
+  
+  // PBs
+  if (_athleteId) {
+    const { data: ath } = await _sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k').eq('id',_athleteId).single();
+    if (ath) {
+      const pbs = [
+        ath.pb_marathon ? `Maraton: <strong>${ath.pb_marathon}</strong>` : null,
+        ath.pb_half ? `Półmaraton: <strong>${ath.pb_half}</strong>` : null,
+        ath.pb_10k ? `10 km: <strong>${ath.pb_10k}</strong>` : null,
+        ath.pb_5k ? `5 km: <strong>${ath.pb_5k}</strong>` : null,
+      ].filter(Boolean);
+      document.getElementById('pbs-content').innerHTML = pbs.length
+        ? pbs.map(p=>`<div style="margin-bottom:6px;font-size:13px;">${p}</div>`).join('')
+        : '<div style="color:var(--muted);font-size:12px;">Brak danych.</div>';
+    }
+  }
+}
+
+async function uploadAvatar(input) {
+  if (!input.files[0] || !_athleteId) return;
+  const file = input.files[0];
+  const { error } = await _sb.storage.from('avatars').upload(_athleteId+'/avatar.jpg', file, {upsert:true, contentType: file.type});
+  if (error) { toast('Błąd uploadu: '+error.message); return; }
+  toast('Zdjęcie zaktualizowane ✓');
+  loadProfile();
+}
+
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),3000);
