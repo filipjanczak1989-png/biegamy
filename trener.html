@@ -132,7 +132,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="qs-card"><div class="qs-val">181</div><div class="qs-lbl">Dni do startu</div></div>
 </div>
 
-<div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><button class="sec-action" onclick="addAthlete_db()">+ Dodaj</button></div>
+<div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div>
 <div class="ath-list" id="ath-list"></div>
 
 <div class="panel" id="panel">
@@ -372,19 +372,39 @@ async function loadAthletes() {
 }
 
 function renderDbAthletes(list) {
-  document.getElementById('ath-list').innerHTML = list.map((a,i) => `
-    <div class="ath-card fi" onclick="selA_db('${a.id}')" style="animation-delay:${0.04+i*0.04}s">
+  document.getElementById('ath-list').innerHTML = list.map((a,i) => {
+    const name = a.full_name || a.goal || 'Zawodnik';
+    const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+    return `
+    <div class="ath-card fi" style="animation-delay:${0.04+i*0.04}s">
       <div class="ath-stripe" style="background:var(--accent)"></div>
-      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent)">${a.goal?.slice(0,2).toUpperCase()||'?'}</div>
-      <div class="ath-info">
-        <div class="ath-name">${a.goal||'Zawodnik'}</div>
-        <div class="ath-goal">PB maraton: ${a.pb_marathon||'brak'}</div>
+      <div class="ath-av" onclick="selA_db('${a.id}')" style="border:1px solid var(--accent);color:var(--accent);cursor:pointer;">${initials}</div>
+      <div class="ath-info" onclick="selA_db('${a.id}')" style="cursor:pointer;">
+        <div class="ath-name">${name}</div>
+        <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
-      <div class="ath-right">
-        <div class="ath-km">0<span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"> km</span></div>
+      <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         <div class="ath-dot"></div>
+        <button onclick="deleteAthlete('${a.id}','${name}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+
+async function deleteAthlete(id, name) {
+  if (!confirm('Usunąć zawodnika: ' + name + '?\nTa operacja jest nieodwracalna.')) return;
+  
+  const { error } = await _sb.from('athletes').delete().eq('id', id);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  
+  // Close panel if this athlete was selected
+  if (window._selectedAthleteId === id) {
+    document.getElementById('panel').classList.remove('on');
+    window._selectedAthleteId = null;
+  }
+  
+  showToast(name + ' usunięty');
+  await loadAthletes();
 }
 
 // ── SELECT ATHLETE ────────────────────────────────────────────────
@@ -540,9 +560,110 @@ function saveTr() { saveTr_db(); }
 function saveSend() { saveSend_db(); }
 function addAthlete() { addAthlete_db(); }
 
+// Auto colon for time fields h:mm:ss
+function autoColon(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
+  el.value = v.slice(0,7);
+}
+// Auto colon for mm:ss
+function autoColonShort(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
+  el.value = v.slice(0,5);
+}
+
+function openAthModal() {
+  const m = document.getElementById('add-ath-modal');
+  m.style.display = 'flex';
+  ['ath-name','ath-goal','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+}
+function closeAthModal() {
+  document.getElementById('add-ath-modal').style.display = 'none';
+}
+
+async function saveAthlete() {
+  const name = document.getElementById('ath-name').value.trim();
+  if (!name) { showToast('Wpisz imię i nazwisko'); return; }
+  
+  const { data, error } = await _sb.from('athletes').insert({
+    coach_id: _coachId,
+    full_name: name,
+    goal: document.getElementById('ath-goal').value.trim() || null,
+    pb_marathon: document.getElementById('ath-pb-mar').value.trim() || null,
+    pb_half: document.getElementById('ath-pb-half').value.trim() || null,
+    pb_10k: document.getElementById('ath-pb-10k').value.trim() || null,
+    pb_5k: document.getElementById('ath-pb-5k').value.trim() || null,
+    active: true
+  }).select();
+
+  // Also save name to profiles if user exists
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  
+  showToast(name + ' dodany ✓');
+  closeAthModal();
+  await loadAthletes();
+}
+
 setTimeout(() => initAuth(), 100);
 
 init();
 </script>
+
+<!-- ADD ATHLETE MODAL -->
+<div id="add-ath-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#16161a;border:1px solid #2a2a32;border-radius:16px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+    <div style="padding:18px 20px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Nowy zawodnik</div>
+      <button onclick="closeAthModal()" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:20px;">✕</button>
+    </div>
+    <div style="padding:20px;">
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Imię i nazwisko *</label>
+        <input id="ath-name" type="text" placeholder="np. Marek Kowalski" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Cel</label>
+        <input id="ath-goal" type="text" placeholder="np. Maraton Warszawski 2026" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Maraton</label>
+          <input id="ath-pb-mar" type="text" placeholder="3:45:00" maxlength="7"
+            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
+            oninput="autoColon(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Półmaraton</label>
+          <input id="ath-pb-half" type="text" placeholder="1:45:00" maxlength="7"
+            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
+            oninput="autoColon(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">
+        <div>
+          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 10 km</label>
+          <input id="ath-pb-10k" type="text" placeholder="45:30" maxlength="5"
+            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
+            oninput="autoColonShort(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 5 km</label>
+          <input id="ath-pb-5k" type="text" placeholder="22:00" maxlength="5"
+            style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
+            oninput="autoColonShort(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
+        <button onclick="saveAthlete()" style="flex:2;background:#d4501a;color:#f0ede8;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz zawodnika →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
