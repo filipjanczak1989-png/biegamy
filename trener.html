@@ -209,55 +209,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="toast" id="t-el"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
-window._sb = _sb;
 
-// Small delay to allow Supabase to restore session from storage
-setTimeout(() => {
-_sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    window.location.replace('https://biegamy.run/login.html');
-    return;
-  }
-  if (event === 'INITIAL_SESSION') {
-    if (!session) {
-      window.location.replace('https://biegamy.run/login.html');
-      return;
-    }
-    // Session restored - update UI
-    const user = session.user;
-    const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trener';
-    const initials = name.split(' ').map(x => x[0]).toUpperCase().join('').slice(0, 2);
-    const avBtn = document.getElementById('av-btn');
-    const menuEmail = document.getElementById('menu-email');
-    if (avBtn) avBtn.textContent = initials;
-    if (menuEmail) menuEmail.textContent = user.email;
-    
-  }
-});
-
-async function logout() {
-  await _sb.auth.signOut();
-  localStorage.clear();
-  sessionStorage.clear();
-  window.location.replace('https://biegamy.run/login.html');
-}
-
-function toggleMenu() {
-  const m = document.getElementById('av-menu');
-  m.style.display = m.style.display === 'none' ? 'block' : 'none';
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#av-btn') && !e.target.closest('#av-menu'))
-    document.getElementById('av-menu').style.display = 'none';
-});
-}, 500);
-
-init();
-</script>
 <script>
 const athletes=[
   {id:1,name:'Marek K.',full:'Marek Kowalski',goal:'Maraton Warszawski',pb:'3:42',weekKm:64,active:true,badge:'nl',bt:'Nowy log',color:'#d4501a'},
@@ -369,6 +321,55 @@ function calcP(){
 function showToast(msg){const el=document.getElementById('t-el');el.textContent=msg;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),3000);}
 
 init();
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+window._sb = _sb;
+
+// Small delay to allow Supabase to restore session from storage
+setTimeout(() => {
+_sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_OUT') {
+    window.location.replace('https://biegamy.run/login.html');
+    return;
+  }
+  if (event === 'INITIAL_SESSION') {
+    if (!session) {
+      window.location.replace('https://biegamy.run/login.html');
+      return;
+    }
+    // Session restored - update UI
+    const user = session.user;
+    const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trener';
+    const initials = name.split(' ').map(x => x[0]).toUpperCase().join('').slice(0, 2);
+    const avBtn = document.getElementById('av-btn');
+    const menuEmail = document.getElementById('menu-email');
+    if (avBtn) avBtn.textContent = initials;
+    if (menuEmail) menuEmail.textContent = user.email;
+    
+  }
+});
+
+async function logout() {
+  await _sb.auth.signOut();
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.replace('https://biegamy.run/login.html');
+}
+
+function toggleMenu() {
+  const m = document.getElementById('av-menu');
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#av-btn') && !e.target.closest('#av-menu'))
+    document.getElementById('av-menu').style.display = 'none';
+});
+}, 500);
+
+init();
+
 </script>
 </body>
 </html>
