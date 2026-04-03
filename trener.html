@@ -413,10 +413,12 @@ async function selA_db(athleteId) {
   const a = _dbAthletes.find(x => x.id === athleteId);
   if (!a) return;
   
-  document.getElementById('pav').textContent = a.goal?.slice(0,2).toUpperCase()||'?';
+  const displayName = a.full_name || a.goal || 'Zawodnik';
+  const initials = displayName.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+  document.getElementById('pav').textContent = initials;
   document.getElementById('pav').style.background = 'var(--accent)';
-  document.getElementById('pname').textContent = a.goal||'Zawodnik';
-  document.getElementById('pmeta').textContent = 'PB maraton: '+(a.pb_marathon||'brak')+' | '+a.target_race;
+  document.getElementById('pname').textContent = displayName;
+  document.getElementById('pmeta').textContent = 'Cel: '+(a.target_race||a.goal||'—')+' | PB: '+(a.pb_marathon||'brak');
   document.getElementById('panel').classList.add('on');
   
   window._selectedAthleteId = athleteId;
@@ -498,7 +500,7 @@ async function saveTr_db() {
     athlete_id: window._selectedAthleteId,
     coach_id: _coachId,
     date,
-    type: selectedType,
+    type: selType,
     distance_km: dist,
     duration_min: time,
     pace,
@@ -578,15 +580,16 @@ function autoColonShort(el) {
 function openAthModal() {
   const m = document.getElementById('add-ath-modal');
   m.removeAttribute('hidden');
-  m.classList.add('ath-modal-show');
+  m.style.display = 'flex';
   ['ath-name','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
-    document.getElementById(id).value = '';
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
 }
 function closeAthModal() {
   const m = document.getElementById('add-ath-modal');
   m.setAttribute('hidden', '');
-  m.classList.remove('ath-modal-show');
+  m.style.display = 'none';
 }
 
 async function saveAthlete() {
