@@ -311,16 +311,7 @@ function selFeel(el,t){
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   el.classList.add('sel-'+t);feel=t;
 }
-function saveLog(){
-  const dist=document.getElementById('l-dist').value;
-  if(!dist){toast('Podaj dystans');return;}
-  logs.unshift({type:'Tempo',cls:'tempo',icon:'🔥',dist:dist+' km',
-    det:[document.getElementById('l-time').value,document.getElementById('l-pace').value?document.getElementById('l-pace').value+'/km':'',document.getElementById('l-hr').value?'♥'+document.getElementById('l-hr').value:''].filter(Boolean).join(' · ')||'—',
-    date:'Dziś',feel:feel||'mid'});
-  renderLogs();closeModal();toast('Log zapisany! Trener widzi Twój wynik ✓');
-  ['l-dist','l-time','l-pace','l-hr','l-comment'].forEach(id=>document.getElementById(id).value='');
-  document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');feel='';
-}
+// saveLog() -> zastąpiona wersją DB poniżej
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),3000);
@@ -328,9 +319,100 @@ function toast(msg){
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();}});
 
 
-// ── LOGOUT & MENU ─────────────────────────────────────────────────
+// ── SUPABASE ──────────────────────────────────────────────────────
 const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+let _athleteId = null;
 
+// ── AUTH ──────────────────────────────────────────────────────────
+async function initAuth() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) return;
+  const user = session.user;
+  const name = user.user_metadata?.full_name || 'Zawodnik';
+  const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('av-btn').textContent = initials;
+  document.getElementById('menu-email').textContent = user.email;
+  document.querySelector('.topbar-name').innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>';
+
+  // Znajdź athlete_id po user_id
+  const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', user.id).single();
+  if (ath) {
+    _athleteId = ath.id;
+    await loadLogs();
+  }
+}
+
+// ── LOAD LOGS Z BAZY ──────────────────────────────────────────────
+async function loadLogs() {
+  if (!_athleteId) return;
+  const { data } = await _sb
+    .from('training_logs')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .order('logged_at', { ascending: false })
+    .limit(5);
+  if (data && data.length > 0) renderLogsDb(data);
+}
+
+function renderLogsDb(data) {
+  const fc={good:'feel-good',mid:'feel-mid',bad:'feel-bad'};
+  const fe={good:'😊',mid:'😐',bad:'😓'};
+  const icons={Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚'};
+  const cls={Spokojny:'spokojny',Interwały:'interwaly',Tempo:'tempo',Wybieganie:'wybieganie',Regeneracja:'regeneracja'};
+  document.getElementById('log-list').innerHTML = data.map(l => {
+    const type = l.training_type || 'Trening';
+    const dist = l.distance_km ? l.distance_km + ' km' : '';
+    const det = [l.duration, l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥'+l.heart_rate : ''].filter(Boolean).join(' · ') || '—';
+    const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+    return `<div class="log-card ${fc[l.feel]||''}">
+      <div class="log-ico ${cls[type]||''}">${icons[type]||'🏅'}</div>
+      <div class="log-cnt">
+        <div class="log-type">${type}${dist?' · '+dist:''}</div>
+        <div class="log-det">${det}</div>
+        <div class="log-dt">${date}</div>
+      </div>
+      <div style="font-size:18px">${fe[l.feel]||''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── SAVE LOG DO BAZY ──────────────────────────────────────────────
+async function saveLog() {
+  const dist = parseFloat(document.getElementById('l-dist').value);
+  if (!dist) { toast('Podaj dystans'); return; }
+
+  const logData = {
+    athlete_id: _athleteId,
+    training_type: 'Tempo',
+    distance_km: dist,
+    duration: document.getElementById('l-time').value || null,
+    pace: document.getElementById('l-pace').value || null,
+    heart_rate: document.getElementById('l-hr').value || null,
+    comment: document.getElementById('l-comment').value || null,
+    feel: feel || 'mid',
+    logged_at: new Date().toISOString()
+  };
+
+  if (_athleteId) {
+    const { error } = await _sb.from('training_logs').insert(logData);
+    if (error) { toast('Błąd zapisu: ' + error.message); return; }
+    await loadLogs();
+  } else {
+    // fallback lokalny jeśli brak athlete_id
+    logs.unshift({type:'Tempo',cls:'tempo',icon:'🔥',dist:dist+' km',
+      det:[document.getElementById('l-time').value,document.getElementById('l-pace').value?document.getElementById('l-pace').value+'/km':'',document.getElementById('l-hr').value?'♥'+document.getElementById('l-hr').value:''].filter(Boolean).join(' · ')||'—',
+      date:'Dziś',feel:feel||'mid'});
+    renderLogs();
+  }
+
+  closeModal();
+  toast('Log zapisany! Trener widzi Twój wynik ✓');
+  ['l-dist','l-time','l-pace','l-hr','l-comment'].forEach(id=>document.getElementById(id).value='');
+  document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
+  feel='';
+}
+
+// ── LOGOUT & MENU ─────────────────────────────────────────────────
 async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
@@ -351,6 +433,7 @@ document.addEventListener('click', e => {
 });
 
 init();
+setTimeout(() => initAuth(), 100);
 </script>
 </body>
 </html>
