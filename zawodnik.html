@@ -41,20 +41,19 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:12px;}
 .sec-title{font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
 .sec-link{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;text-decoration:none;}
-.week-scroll{overflow-x:auto;padding:0 20px 8px;display:flex;gap:8px;scrollbar-width:none;margin-bottom:20px;}
-.week-scroll::-webkit-scrollbar{display:none;}
-.day-card{flex-shrink:0;width:100px;background:var(--card);border-radius:12px;border:1px solid var(--border);padding:14px 12px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.15s;}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;padding:0 20px;margin-bottom:16px;}
+.day-card{background:var(--card);border-radius:10px;border:1px solid var(--border);padding:10px 6px;position:relative;overflow:hidden;cursor:pointer;transition:all 0.15s;text-align:center;}
 .day-card:active{transform:scale(0.97);}
 .day-card.today{border-color:var(--accent);background:rgba(212,80,26,0.08);}
 .day-card.done{border-color:rgba(61,184,112,0.35);}
 .day-card.rest{opacity:0.55;}
-.dc-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;}
-.dc-name{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:2px;}
-.dc-num{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;margin-bottom:8px;}
+.dc-stripe{position:absolute;left:0;top:0;right:0;height:3px;}
+.dc-name{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:2px;}
+.dc-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;margin-bottom:4px;}
 .day-card.today .dc-num{color:var(--accent);}
-.dc-type{font-size:10px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.dc-km{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
-.dc-check{position:absolute;top:10px;right:10px;width:16px;height:16px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:9px;color:#0a1a0f;}
+.dc-type{font-size:9px;font-weight:500;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dc-km{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
+.dc-check{position:absolute;top:6px;right:6px;width:14px;height:14px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;font-size:8px;color:#0a1a0f;}
 .week-sum{margin:0 20px 20px;background:var(--card);border-radius:12px;border:1px solid var(--border);padding:16px;display:flex;align-items:center;gap:16px;}
 .ring-wrap{position:relative;width:56px;height:56px;flex-shrink:0;}
 .ring-wrap svg{transform:rotate(-90deg);}
@@ -171,7 +170,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Ten tydzień</div><a href="kalendarz.html" class="sec-link">Pełny widok →</a></div>
-<div class="week-scroll fade-in" id="week-strip"></div>
+<div class="week-grid fade-in" id="week-strip"></div>
 
 <div class="week-sum fade-in">
   <div class="ring-wrap">
@@ -186,13 +185,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Wiadomość od trenera</div></div>
-<div class="coach-box fade-in">
+<div class="coach-box fade-in" id="coach-box">
   <div class="coach-hdr">
-    <div class="coach-av">F</div>
-    <div><div class="coach-nm">Trener Filip</div></div>
-    <div class="coach-ts">01.04 · 20:14</div>
+    <div class="coach-av" id="coach-av">F</div>
+    <div><div class="coach-nm" id="coach-nm">Trener</div></div>
+    <div class="coach-ts" id="coach-ts"></div>
   </div>
-  <div class="coach-body">Marek, <strong>świetny tydzień!</strong> Wybieganie 22 km to był dobry test. W tym tygodniu kluczowy jest <strong>czwartkowy trening tempowy</strong>. Trzymaj 5:25, nie szybciej. W niedzielę robimy 26 km.</div>
+  <div class="coach-body" id="coach-body" style="color:var(--muted);font-style:italic;">Brak wiadomości od trenera.</div>
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Ostatnie treningi</div><a href="#" class="sec-link">Wszystkie →</a></div>
@@ -242,13 +241,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
       <!-- DYSTANS + CZAS -->
       <div class="f-row">
-        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal"></div>
-        <div class="field"><label>Czas (np. 1:05:00)</label><input type="text" id="l-time" placeholder="1:05:00"></div>
+        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcPaceAuto()"></div>
+        <div class="field"><label>Czas (np. 1:05:00)</label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
       </div>
 
       <!-- TEMPO + TĘTNO -->
       <div class="f-row">
-        <div class="field"><label>Tempo /km</label><input type="text" id="l-pace" placeholder="6:30"></div>
+        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="6:30" maxlength="5" oninput="autoColonPace(this)"></div>
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
@@ -315,13 +314,15 @@ function init(){
     const btn=document.getElementById('back-to-trener');
     if(btn) btn.style.display='block';
   }
-  document.getElementById('week-strip').innerHTML=weekPlan.map(d=>`<div class="day-card ${d.today?'today':''} ${d.done?'done':''} ${d.rest?'rest':''}">`+
-    `<div class="dc-stripe" style="background:${d.color}"></div>`+
-    `<div class="dc-name">${d.name}</div><div class="dc-num">${d.num}</div>`+
-    `<div class="dc-type">${d.type}</div>`+
-    (d.km>0?`<div class="dc-km">${d.km} km</div>`:'')+
-    (d.done?'<div class="dc-check">✓</div>':'')+
-    '</div>'
+  document.getElementById('week-strip').innerHTML=weekPlan.map(d=>
+    `<div class="day-card ${d.today?'today':''} ${d.done?'done':''} ${d.rest?'rest':''}">
+      <div class="dc-stripe" style="background:${d.color}"></div>
+      <div class="dc-name">${d.name}</div>
+      <div class="dc-num">${d.num}</div>
+      <div class="dc-type">${d.rest?'—':d.type}</div>
+      ${d.km>0?`<div class="dc-km">${d.km}km</div>`:''}
+      ${d.done?'<div class="dc-check">✓</div>':''}
+    </div>`
   ).join('');
   renderLogs();
 }
@@ -361,6 +362,32 @@ function previewFile(input) {
     document.getElementById('upload-label').textContent = '✓ ' + file.name;
     document.getElementById('upload-area').style.borderColor = 'var(--green)';
   }
+}
+function autoColonTime(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
+  el.value = v.slice(0,7);
+}
+function autoColonPace(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
+  el.value = v.slice(0,5);
+}
+function calcPaceAuto() {
+  const dist = parseFloat(document.getElementById('l-dist').value);
+  const timeVal = document.getElementById('l-time').value;
+  const lbl = document.getElementById('pace-auto');
+  if (!dist || !timeVal || timeVal.length < 4) { if(lbl) lbl.textContent=''; return; }
+  const parts = timeVal.split(':').map(Number);
+  let secs = parts.length===3 ? parts[0]*3600+parts[1]*60+parts[2] : parts.length===2 ? parts[0]*60+parts[1] : 0;
+  if (!secs) { if(lbl) lbl.textContent=''; return; }
+  const pps = secs / dist;
+  const pm = Math.floor(pps/60);
+  const ps = String(Math.round(pps%60)).padStart(2,'0');
+  const paceStr = pm+':'+ps;
+  document.getElementById('l-pace').value = paceStr;
+  if(lbl) lbl.textContent = '← auto';
 }
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
@@ -402,6 +429,26 @@ async function loadLogs() {
     .order('logged_at', { ascending: false })
     .limit(5);
   if (data && data.length > 0) renderLogsDb(data);
+  await loadCoachMessage();
+}
+
+async function loadCoachMessage() {
+  if (!_athleteId) return;
+  // Szukaj wiadomości trenera — na razie z tabeli athletes pole 'coach_message'
+  const { data } = await _sb
+    .from('athletes')
+    .select('coach_message, coach_message_at, coach_id, profiles(full_name)')
+    .eq('id', _athleteId)
+    .single();
+  if (data?.coach_message) {
+    document.getElementById('coach-body').style.color = '';
+    document.getElementById('coach-body').style.fontStyle = '';
+    document.getElementById('coach-body').innerHTML = data.coach_message;
+    if (data.coach_message_at) {
+      const d = new Date(data.coach_message_at);
+      document.getElementById('coach-ts').textContent = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    }
+  }
 }
 
 function renderLogsDb(data) {
