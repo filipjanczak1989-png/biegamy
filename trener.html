@@ -100,6 +100,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 .fi{animation:fi 0.35s ease forwards;opacity:0;}
 @keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.ath-modal-show{display:flex!important;}
 </style>
 </head>
 <body>
@@ -326,34 +327,29 @@ let _coachId = null;
 let _dbAthletes = [];
 
 // ── AUTH ──────────────────────────────────────────────────────────
-function updateUI(user) {
-  const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trener';
-  const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
-  const av = document.getElementById('av-btn');
-  const em = document.getElementById('menu-email');
-  const tn = document.querySelector('.topbar-name');
-  if(av) av.textContent = initials;
-  if(em) em.textContent = user.email;
-  if(tn) tn.innerHTML = 'Trener <span>' + name.split(' ')[0] + '</span>';
-}
-
 async function initAuth() {
-  _sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_OUT') return;
-    if (session && !_coachId) {
-      _coachId = session.user.id;
-      updateUI(session.user);
-      await loadAthletes();
-    }
-  });
-  
-  // Also try immediate session
   const { data: { session } } = await _sb.auth.getSession();
-  if (session && !_coachId) {
-    _coachId = session.user.id;
-    updateUI(session.user);
+  if (!session) {
+    // Try once more after short delay
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: s2 } } = await _sb.auth.getSession();
+    if (!s2) return; // No redirect - just don't load data
+    _coachId = s2.user.id;
+    const name2 = s2.user.user_metadata?.full_name || 'Trener';
+    const initials2 = name2.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+    document.getElementById('av-btn').textContent = initials2;
+    document.getElementById('menu-email').textContent = s2.user.email;
+    document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name2.split(' ')[0] + '</span>';
     await loadAthletes();
+    return;
   }
+  _coachId = session.user.id;
+  const name = session.user.user_metadata?.full_name || 'Trener';
+  const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+  document.getElementById('av-btn').textContent = initials;
+  document.getElementById('menu-email').textContent = session.user.email;
+  document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name.split(' ')[0] + '</span>';
+  await loadAthletes();
 }
 
 // ── LOAD ATHLETES FROM DB ─────────────────────────────────────────
@@ -581,14 +577,17 @@ function autoColonShort(el) {
 
 function openAthModal() {
   const m = document.getElementById('add-ath-modal');
-  m.setAttribute('style', 'display:flex !important;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;');
+  m.removeAttribute('hidden');
+  m.classList.add('ath-modal-show');
   ['ath-name','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
     document.getElementById(id).value = '';
   });
+});
 }
 function closeAthModal() {
   const m = document.getElementById('add-ath-modal');
-  m.setAttribute('style', 'display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;');
+  m.setAttribute('hidden', '');
+  m.classList.remove('ath-modal-show');
 }
 
 async function saveAthlete() {
@@ -629,7 +628,7 @@ init();
 </script>
 
 <!-- ADD ATHLETE MODAL -->
-<div id="add-ath-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;">
+<div id="add-ath-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;" hidden>
   <div style="background:#16161a;border:1px solid #2a2a32;border-radius:16px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
     <div style="padding:18px 20px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Nowy zawodnik</div>
