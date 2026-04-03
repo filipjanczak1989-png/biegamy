@@ -577,7 +577,7 @@ function autoColonShort(el) {
 function openAthModal() {
   const m = document.getElementById('add-ath-modal');
   m.style.display = 'flex';
-  ['ath-name','ath-goal','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
+  ['ath-name','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
     document.getElementById(id).value = '';
   });
 }
@@ -589,10 +589,19 @@ async function saveAthlete() {
   const name = document.getElementById('ath-name').value.trim();
   if (!name) { showToast('Wpisz imię i nazwisko'); return; }
   
+  // Get fresh session if needed
+  if (!_coachId) {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) { showToast('Zaloguj się ponownie'); return; }
+    _coachId = session.user.id;
+  }
+  
   const { data, error } = await _sb.from('athletes').insert({
     coach_id: _coachId,
     full_name: name,
     goal: document.getElementById('ath-goal').value.trim() || null,
+    target_race: document.getElementById('ath-goal').value.trim() || null,
+    target_date: document.getElementById('ath-target-date').value || null,
     pb_marathon: document.getElementById('ath-pb-mar').value.trim() || null,
     pb_half: document.getElementById('ath-pb-half').value.trim() || null,
     pb_10k: document.getElementById('ath-pb-10k').value.trim() || null,
@@ -626,8 +635,12 @@ init();
         <input id="ath-name" type="text" placeholder="np. Marek Kowalski" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
       </div>
       <div style="margin-bottom:14px;">
-        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Cel</label>
-        <input id="ath-goal" type="text" placeholder="np. Maraton Warszawski 2026" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Cel (nazwa biegu)</label>
+        <input id="ath-goal" type="text" placeholder="np. Maraton Warszawski" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Data startu</label>
+        <input id="ath-target-date" type="date" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
         <div>
