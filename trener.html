@@ -328,7 +328,20 @@ let _dbAthletes = [];
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return; }
+  if (!session) {
+    // Try once more after short delay
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: s2 } } = await _sb.auth.getSession();
+    if (!s2) return; // No redirect - just don't load data
+    _coachId = s2.user.id;
+    const name2 = s2.user.user_metadata?.full_name || 'Trener';
+    const initials2 = name2.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
+    document.getElementById('av-btn').textContent = initials2;
+    document.getElementById('menu-email').textContent = s2.user.email;
+    document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name2.split(' ')[0] + '</span>';
+    await loadAthletes();
+    return;
+  }
   _coachId = session.user.id;
   const name = session.user.user_metadata?.full_name || 'Trener';
   const initials = name.split(' ').map(x=>x[0]).toUpperCase().join('').slice(0,2);
