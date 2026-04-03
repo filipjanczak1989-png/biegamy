@@ -320,12 +320,29 @@ function calcP(){
 }
 function showToast(msg){const el=document.getElementById('t-el');el.textContent=msg;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),3000);}
 
+// ── LOGOUT & MENU ─────────────────────────────────────────────────
+const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+
+async function logout() {
+  try { await _sb.auth.signOut(); } catch(e) {}
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = 'https://biegamy.run/login.html';
+}
+
+function toggleMenu() {
+  const m = document.getElementById('av-menu');
+  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#av-btn') && !e.target.closest('#av-menu')) {
+    const m = document.getElementById('av-menu');
+    if (m) m.style.display = 'none';
+  }
+});
+
 init();
-
-
-
-init();
-
 </script>
 </body>
 </html>
