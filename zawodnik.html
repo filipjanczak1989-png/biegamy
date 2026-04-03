@@ -320,48 +320,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeM
 
 init();
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
-const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
-window._sb = _sb;
 
-_sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT') {
-    window.location.replace('https://biegamy.run/login.html');
-    return;
-  }
-  if (event === 'INITIAL_SESSION') {
-    if (!session) {
-      window.location.replace('https://biegamy.run/login.html');
-      return;
-    }
-    // Session restored - update UI
-    const user = session.user;
-    const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Zawodnik';
-    const initials = name.split(' ').map(x => x[0]).toUpperCase().join('').slice(0, 2);
-    const avBtn = document.getElementById('av-btn');
-    const menuEmail = document.getElementById('menu-email');
-    if (avBtn) avBtn.textContent = initials;
-    if (menuEmail) menuEmail.textContent = user.email;
-    const tn = document.querySelector('.topbar-name'); if(tn) tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1] ? name.split(' ')[1][0]+'.' : '') + '</span>';
-  }
-});
-
-async function logout() {
-  await _sb.auth.signOut();
-  localStorage.clear();
-  sessionStorage.clear();
-  window.location.replace('https://biegamy.run/login.html');
-}
-
-function toggleMenu() {
-  const m = document.getElementById('av-menu');
-  m.style.display = m.style.display === 'none' ? 'block' : 'none';
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('#av-btn') && !e.target.closest('#av-menu'))
-    document.getElementById('av-menu').style.display = 'none';
-});
 
 init();
 
