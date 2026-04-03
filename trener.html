@@ -100,6 +100,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 .fi{animation:fi 0.35s ease forwards;opacity:0;}
 @keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.modal-overlay { display: none !important; }
+.modal-overlay.active { display: flex !important; }
 </style>
 </head>
 <body>
@@ -576,13 +579,13 @@ function autoColonShort(el) {
 
 function openAthModal() {
   const m = document.getElementById('add-ath-modal');
-  m.style.display = 'flex';
+  m.classList.add('active');
   ['ath-name','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
     document.getElementById(id).value = '';
   });
 }
 function closeAthModal() {
-  document.getElementById('add-ath-modal').style.display = 'none';
+  document.getElementById('add-ath-modal').classList.remove('active');
 }
 
 async function saveAthlete() {
@@ -623,7 +626,7 @@ init();
 </script>
 
 <!-- ADD ATHLETE MODAL -->
-<div id="add-ath-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:center;justify-content:center;padding:20px;">
+<div id="add-ath-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:#16161a;border:1px solid #2a2a32;border-radius:16px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
     <div style="padding:18px 20px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Nowy zawodnik</div>
