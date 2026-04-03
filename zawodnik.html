@@ -242,7 +242,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       </div>
       <div class="field"><label>Komentarz dla trenera</label><textarea id="l-comment" placeholder="Jak poszło? Co czułeś?"></textarea></div>
     </div>
-    <div class="modal-footer"><button class="btn btn-primary" style="width:100%;" onclick="saveLog()">Zapisz log →</button></div>
+    <div class="modal-footer" style="display:flex;gap:8px;">
+  <button class="btn" style="background:var(--card2);color:var(--muted);border:1px solid var(--border);width:auto;padding:12px 20px;" onclick="closeModal()">← Wstecz</button>
+  <button class="btn btn-primary" style="flex:1;" onclick="saveLog()">Zapisz log →</button>
+</div>
   </div>
 </div>
 

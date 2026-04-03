@@ -239,13 +239,7 @@ nav{
     <a href="zawodnik.html" class="nav-link">Zawodnik</a>
   </div>
   <div class="nav-right">
-    <select class="athlete-select" onchange="changeAthlete(this.value)">
-      <option>Marek Kowalski</option>
-      <option>Anna Wiśniewska</option>
-      <option>Piotr Szymański</option>
-      <option>Kasia Brzozowska</option>
-      <option>Tomek Rutkowski</option>
-    </select>
+    
     <button class="btn btn-primary" onclick="openModal(null)">+ Nowy trening</button>
   </div>
 </nav>
@@ -454,9 +448,6 @@ function changeWeek(dir) {
 function goToday() {
   currentWeekStart = getWeekStart(new Date());
   render();
-}
-function changeAthlete(name) {
-  notify(`Przełączono: ${name}`);
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
