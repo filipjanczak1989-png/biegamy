@@ -584,6 +584,56 @@ async function uploadAvatar(input) {
   loadProfile();
 }
 
+async function loadMessages() {
+  const thread = document.getElementById('msgs-thread');
+  if (!_athleteId) {
+    if(thread) thread.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Zaloguj się aby zobaczyć wiadomości.</div>';
+    return;
+  }
+  const { data, error } = await _sb
+    .from('messages')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .order('sent_at', { ascending: true })
+    .limit(50);
+
+  if (error) { console.error(error); return; }
+
+  if (!data || data.length === 0) {
+    if(thread) thread.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wiadomości. Napisz do trenera!</div>';
+    return;
+  }
+
+  if(thread) thread.innerHTML = data.map(m => {
+    const isAthlete = m.sender === 'athlete';
+    const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+    return `<div class="msg-row ${isAthlete?'athlete':'coach'}">
+      <div class="msg-bubble ${isAthlete?'athlete':'coach'}">${m.body}</div>
+      <div class="msg-meta">${date} · ${time}</div>
+    </div>`;
+  }).join('');
+
+  await _sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
+  setTimeout(() => { if(thread) thread.scrollTop = thread.scrollHeight; }, 50);
+}
+
+async function sendMessage() {
+  const input = document.getElementById('msg-input');
+  const body = input?.value?.trim();
+  if (!body) return;
+  if (!_athleteId) { toast('Musisz być zalogowany'); return; }
+  input.value = '';
+  const { error } = await _sb.from('messages').insert({
+    athlete_id: _athleteId,
+    sender: 'athlete',
+    body,
+    sent_at: new Date().toISOString()
+  });
+  if (error) { toast('Błąd: ' + error.message); return; }
+  await loadMessages();
+}
+
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),3000);
@@ -600,24 +650,29 @@ async function initAuth() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   const user = session.user;
-  const name = user.user_metadata?.full_name || 'Zawodnik';
-  const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('av-btn').textContent = initials;
   document.getElementById('menu-email').textContent = user.email;
-  const tn = document.getElementById('topbar-name'); if(tn){tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1';}
 
-  // Znajdź athlete_id po user_id (maybeSingle — nie rzuca 406 gdy brak)
+  // Pobierz dane z athletes (imię, id)
   const { data: ath } = await _sb
     .from('athletes')
-    .select('id')
+    .select('id, full_name')
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (ath) {
     _athleteId = ath.id;
+    // Użyj imienia z bazy lub z Google metadata
+    const name = ath.full_name || user.user_metadata?.full_name || 'Zawodnik';
+    const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('av-btn').textContent = initials;
+    const tn = document.getElementById('topbar-name');
+    if(tn){ tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1'; }
     await loadLogs();
   } else {
     // Brak rekordu — pokaż onboarding
+    const name = user.user_metadata?.full_name || 'Zawodnik';
+    const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    document.getElementById('av-btn').textContent = initials;
     showOnboarding();
   }
 }

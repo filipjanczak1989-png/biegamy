@@ -102,6 +102,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 @keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 #add-ath-modal{display:none;}
 .ath-modal-show{display:flex!important;}
+#msgs-panel-section{display:none;padding:0 20px 100px;}
+.msg-bubble-t{max-width:82%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.6;}
+.msg-bubble-t.coach{background:var(--accent);color:var(--fg);border-bottom-right-radius:4px;align-self:flex-end;}
+.msg-bubble-t.athlete{background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:4px;align-self:flex-start;}
+.msg-row-t{display:flex;flex-direction:column;gap:2px;}
+.msg-row-t.coach{align-items:flex-end;}
+.msg-row-t.athlete{align-items:flex-start;}
+.msg-meta-t{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 4px;}
 </style>
 </head>
 <body>
@@ -204,7 +212,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <a class="ni on" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)">Zawodnicy</div></a>
   <a class="ni" href="kalendarz.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2">Analityka</div></a>
-  <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2">Wiadomosci</div></a>
+  <a class="ni" href="#" onclick="showCoachSection('msgs');return false;" id="coach-nav-msgs" style="position:relative;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2" id="nav-msgs-lbl">Wiadomości</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg><div class="nl2">Ustawienia</div></a>
 </nav>
 
@@ -644,8 +652,115 @@ async function saveAthlete() {
 
 setTimeout(() => initAuth(), 100);
 
+let _currentChatAthleteId = null;
+
+function showCoachSection(name) {
+  const mainEls = document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel');
+  mainEls.forEach(el => el.style.display = '');
+  document.getElementById('msgs-panel-section').style.display = 'none';
+  document.querySelectorAll('.ni svg').forEach(s => s.setAttribute('stroke','var(--muted)'));
+  document.querySelectorAll('.nl2').forEach(l => l.style.color = '');
+  document.querySelector('.ni.on')?.classList.remove('on');
+
+  if (name === 'msgs') {
+    mainEls.forEach(el => el.style.display = 'none');
+    document.getElementById('msgs-panel-section').style.display = 'block';
+    const n = document.getElementById('coach-nav-msgs');
+    if(n){ n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
+    loadCoachMsgsList();
+  }
+}
+
+async function loadCoachMsgsList() {
+  if (!_coachId) return;
+  const list = document.getElementById('msgs-athletes-list');
+  list.style.display = 'flex';
+  document.getElementById('msgs-chat').style.display = 'none';
+
+  const { data: athletes } = await _sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
+  if (!athletes || athletes.length === 0) {
+    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników.</div>';
+    return;
+  }
+
+  const counts = await Promise.all(athletes.map(async a => {
+    const { count } = await _sb.from('messages').select('*',{count:'exact',head:true}).eq('athlete_id',a.id).eq('sender','athlete').eq('read',false);
+    return { ...a, unread: count || 0 };
+  }));
+
+  list.innerHTML = counts.map(a => {
+    const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    return `<div onclick="openCoachChat('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}');" style="background:var(--card);border:1px solid ${a.unread?'var(--accent)':'var(--border)'};border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--fg);flex-shrink:0;">${initials}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:500;">${a.full_name||'Zawodnik'}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Otwórz chat →</div></div>
+      ${a.unread ? `<div style="background:var(--accent);color:white;font-size:10px;border-radius:10px;padding:2px 8px;font-family:'DM Mono',monospace;">${a.unread} nowe</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function openCoachChat(athleteId, athleteName) {
+  _currentChatAthleteId = athleteId;
+  document.getElementById('chat-athlete-name').textContent = athleteName;
+  document.getElementById('msgs-athletes-list').style.display = 'none';
+  document.getElementById('msgs-chat').style.display = 'block';
+  await loadCoachChat();
+}
+
+async function loadCoachChat() {
+  if (!_currentChatAthleteId) return;
+  const { data } = await _sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:true}).limit(50);
+  const thread = document.getElementById('chat-thread');
+  if (!data || data.length === 0) {
+    thread.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak wiadomości.</div>';
+  } else {
+    thread.innerHTML = data.map(m => {
+      const isCoach = m.sender === 'coach';
+      const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+      const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+      return `<div class="msg-row-t ${isCoach?'coach':'athlete'}">
+        <div class="msg-bubble-t ${isCoach?'coach':'athlete'}">${m.body}</div>
+        <div class="msg-meta-t">${date} · ${time}</div>
+      </div>`;
+    }).join('');
+    setTimeout(() => { thread.scrollTop = thread.scrollHeight; }, 50);
+  }
+  await _sb.from('messages').update({read:true}).eq('athlete_id',_currentChatAthleteId).eq('sender','athlete').eq('read',false);
+}
+
+async function sendCoachMessage() {
+  const input = document.getElementById('coach-msg-input');
+  const body = input?.value?.trim();
+  if (!body || !_currentChatAthleteId) return;
+  input.value = '';
+  const { error } = await _sb.from('messages').insert({
+    athlete_id: _currentChatAthleteId,
+    sender: 'coach',
+    body,
+    sent_at: new Date().toISOString()
+  });
+  if (error) { showToast('Błąd: '+error.message); return; }
+  await loadCoachChat();
+}
+
 init();
 </script>
+
+<!-- SEKCJA WIADOMOŚCI TRENERA -->
+<div id="msgs-panel-section">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;">Wiadomości</div>
+  <div id="msgs-athletes-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;"></div>
+  <div id="msgs-chat" style="display:none;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <button onclick="document.getElementById('msgs-chat').style.display='none';document.getElementById('msgs-athletes-list').style.display='flex';" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">← Powrót</button>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;" id="chat-athlete-name">Zawodnik</div>
+    </div>
+    <div id="chat-thread" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;min-height:150px;"></div>
+    <div style="display:flex;gap:8px;">
+      <input id="coach-msg-input" type="text" placeholder="Napisz wiadomość..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendCoachMessage()">
+      <button onclick="sendCoachMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyślij →</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADD ATHLETE MODAL -->
 <div id="add-ath-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;" hidden>
