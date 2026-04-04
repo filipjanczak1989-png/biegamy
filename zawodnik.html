@@ -416,12 +416,7 @@ const weekPlan=[
   {name:'Sb',num:11,type:'Wybieganie',cls:'wybieganie',color:'#9a6fe8',km:26,done:false},
   {name:'Nd',num:12,type:'Odpoczynek',cls:'odpoczynek',color:'#44424a',km:0,done:false,rest:true},
 ];
-const logs=[
-  {type:'Interwały',cls:'interwaly',icon:'⚡',dist:'8 km',det:'44:50 · 5:36/km · ♥172',date:'Wt 7 Kwi',feel:'good'},
-  {type:'Spokojny',cls:'spokojny',icon:'🏃',dist:'10 km',det:'61:20 · 6:08/km · ♥143',date:'Pn 6 Kwi',feel:'mid'},
-  {type:'Wybieganie',cls:'wybieganie',icon:'🛤️',dist:'22 km',det:'2:11:00 · 5:58/km · ♥147',date:'Nd 5 Kwi',feel:'mid'},
-  {type:'Tempo',cls:'tempo',icon:'🔥',dist:'14 km',det:'75:20 · 5:22/km · ♥161',date:'Pt 4 Kwi',feel:'good'},
-];
+const logs=[]; // dane z bazy — ładowane przez loadLogs()
 let feel='';
 function init(){
   const h=new Date().getHours();
@@ -439,27 +434,9 @@ function init(){
     const btn=document.getElementById('back-to-trener');
     if(btn) btn.style.display='block';
   }
-  document.getElementById('week-strip').innerHTML=weekPlan.map((d,i)=>
-    `<div class="day-card ${d.today?'today':''} ${d.done?'done':''} ${d.rest?'rest':''}" onclick="toggleDayDetail(${i})">
-      <div class="dc-stripe" style="background:${d.color}"></div>
-      <div class="dc-date"><div class="dc-name">${d.name}</div><div class="dc-num">${d.num}</div></div>
-      <div class="dc-info">
-        <div class="dc-type">${d.rest?'Odpoczynek':d.type}</div>
-        ${d.km>0?`<div class="dc-km">${d.km} km</div>`:''}
-      </div>
-      ${d.done?'<div class="dc-check">✓</div>':'<div class="dc-arrow">›</div>'}
-    </div>
-    <div class="day-detail" id="detail-${i}">
-      <div class="dd-title">${d.rest?'Odpoczynek':d.type.toUpperCase()}</div>
-      <div class="dd-meta">
-        ${d.km>0?`<div class="dd-m">Dystans: <span>${d.km} km</span></div>`:''}
-        ${d.pace?`<div class="dd-m">Tempo: <span>${d.pace}/km</span></div>`:''}
-        ${d.hr?`<div class="dd-m">Tętno: <span>${d.hr}</span></div>`:''}
-      </div>
-      ${d.desc?`<div class="dd-desc">${d.desc}</div>`:'<div class="dd-desc" style="color:var(--muted);font-style:italic;">Brak opisu treningu.</div>'}
-    </div>`
-  ).join('');
-  renderLogs();
+  // Plan tygodnia ładowany z bazy przez loadWeekPlan() po auth
+  document.getElementById('week-strip').innerHTML = 
+    '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie planu...</div>';
 }
 function renderLogs(){
   // Statyczne dane — pokazuj tylko jeśli nie ma DB
@@ -739,8 +716,9 @@ async function sendMessage() {
     body,
     sent_at: new Date().toISOString()
   });
-  if (error) { toast('Błąd: ' + error.message); return; }
+  if (error) { toast('Błąd: ' + error.message); input.value = body; return; }
   await loadMessages();
+  toast('Wiadomość wysłana ✓');
 }
 
 function toast(msg){
@@ -886,6 +864,74 @@ async function saveOnboarding() {
   window.history.replaceState({}, '', 'zawodnik.html');
 }
 
+// ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
+async function loadWeekPlan() {
+  if (!_athleteId) return;
+
+  const now = new Date();
+  const day = now.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + diff);
+  weekStart.setHours(0,0,0,0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+
+  const { data, error } = await _sb.from('trainings')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .gte('date', weekStart.toISOString().split('T')[0])
+    .lte('date', weekEnd.toISOString().split('T')[0])
+    .order('date');
+
+  if (error || !data || data.length === 0) {
+    // Pokaż komunikat zamiast mock danych
+    document.getElementById('week-strip').innerHTML = 
+      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak planu na ten tydzień.<br>Trener wkrótce wyśle Twój plan.</div>';
+    return;
+  }
+
+  const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a'};
+  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+  const today = now.toISOString().split('T')[0];
+
+  document.getElementById('week-strip').innerHTML = data.map((t, i) => {
+    const d = new Date(t.date);
+    const dayName = dayNames[d.getDay()];
+    const dayNum = d.getDate();
+    const isToday = t.date === today;
+    const isDone = t.status === 'done';
+    const isRest = t.type === 'Odpoczynek';
+    const color = typeColors[t.type] || '#66636e';
+    const dist = t.distance_km ? parseFloat(t.distance_km) : 0;
+
+    // Puste pola — komunikat zamiast pustki
+    const paceDisplay = t.pace || '<span style="color:var(--muted2);font-style:italic;">nie podano</span>';
+    const hrDisplay = t.heart_rate || '<span style="color:var(--muted2);font-style:italic;">nie podano</span>';
+    const descDisplay = t.description || '<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>';
+
+    return `<div class="day-card ${isToday?'today':''} ${isDone?'done':''} ${isRest?'rest':''}" onclick="toggleDayDetail(${i})">
+      <div class="dc-stripe" style="background:${color}"></div>
+      <div class="dc-date"><div class="dc-name">${dayName}</div><div class="dc-num">${dayNum}</div></div>
+      <div class="dc-info">
+        <div class="dc-type">${isRest?'Odpoczynek':t.type}</div>
+        ${dist>0?`<div class="dc-km">${dist} km</div>`:''}
+      </div>
+      ${isDone?'<div class="dc-check">✓</div>':'<div class="dc-arrow">›</div>'}
+    </div>
+    <div class="day-detail" id="detail-${i}">
+      <div class="dd-title">${isRest?'ODPOCZYNEK':t.type.toUpperCase()}</div>
+      <div class="dd-meta">
+        ${dist>0?`<div class="dd-m">Dystans: <span>${dist} km</span></div>`:''}
+        <div class="dd-m">Tempo: ${paceDisplay}</div>
+        <div class="dd-m">Tętno: ${hrDisplay}</div>
+        ${t.duration_min?`<div class="dd-m">Czas: <span>~${t.duration_min} min</span></div>`:''}
+      </div>
+      <div class="dd-desc">${descDisplay}</div>
+    </div>`;
+  }).join('');
+}
+
 // ── LOAD LOGS Z BAZY ──────────────────────────────────────────────
 async function loadLogs() {
   if (!_athleteId) return;
@@ -898,6 +944,7 @@ async function loadLogs() {
   if (data && data.length > 0) renderLogsDb(data);
   await loadCoachMessage();
   await loadTodayTraining();
+  await loadWeekPlan();
   await checkNewMessages();
   setInterval(checkNewMessages, 30000);
   await updateWeekProgress();
@@ -980,13 +1027,13 @@ async function loadTodayTraining() {
   if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
   
   const metaItems = [
-    data.pace ? `<div class="meta-item"><div class="meta-lbl">Tempo</div><div class="meta-val">${data.pace} /km</div></div>` : '',
-    data.heart_rate ? `<div class="meta-item"><div class="meta-lbl">Tętno</div><div class="meta-val">${data.heart_rate}</div></div>` : '',
+    `<div class="meta-item"><div class="meta-lbl">Tempo</div><div class="meta-val">${data.pace ? data.pace+' /km' : '—'}</div></div>`,
+    `<div class="meta-item"><div class="meta-lbl">Tętno</div><div class="meta-val">${data.heart_rate || '—'}</div></div>`,
     data.duration_min ? `<div class="meta-item"><div class="meta-lbl">Czas</div><div class="meta-val">~${data.duration_min} min</div></div>` : '',
   ].filter(Boolean).join('');
   
   if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; divider.style.display='block'; }
-  if(desc) desc.textContent = data.description || '';
+  if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
 }
 
 async function loadCoachMessage() {
