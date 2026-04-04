@@ -151,6 +151,19 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .fade-in:nth-child(5){animation-delay:0.25s;}
 .type-pill{font-size:10px;font-family:'DM Mono',monospace;padding:6px 12px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--muted);transition:all 0.15s;}
 .type-pill.on{background:var(--accent);border-color:var(--accent);color:var(--fg);}
+#onboarding-modal{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;}
+#onboarding-modal.show{display:flex;}
+.ob-box{background:var(--card);border:1px solid var(--accent);border-radius:20px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;padding:28px 24px;}
+.ob-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;margin-bottom:4px;}
+.ob-sub{font-size:13px;color:var(--muted);margin-bottom:24px;font-weight:300;}
+.ob-field{margin-bottom:16px;}
+.ob-label{display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.ob-input{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;border-radius:10px;outline:none;transition:border-color 0.15s;}
+.ob-input:focus{border-color:var(--accent);}
+.ob-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ob-btn{width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:all 0.15s;}
+.ob-btn:hover{background:var(--accent2);}
+.ob-skip{width:100%;background:transparent;color:var(--muted);border:none;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -428,7 +441,7 @@ function init(){
 }
 function renderLogs(){
   // Statyczne dane — pokazuj tylko jeśli nie ma DB
-  document.getElementById('log-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Brak logów. Zaloguj pierwszy trening!</div>';
+  document.getElementById('log-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak logów. Zaloguj pierwszy trening!</div>';
 }
 function toggleDayDetail(i) {
   const el = document.getElementById('detail-'+i);
@@ -594,7 +607,84 @@ async function initAuth() {
   if (ath) {
     _athleteId = ath.id;
     await loadLogs();
+  } else {
+    // Brak rekordu — sprawdź czy to nowy zawodnik (onboarding)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('onboarding') === '1') {
+      showOnboarding();
+    } else {
+      // Spróbuj dopasować po emailu (zawodnik dodany przez trenera)
+      const { data: athByEmail } = await _sb.from('athletes')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+      if (athByEmail) {
+        // Zaktualizuj user_id
+        await _sb.from('athletes').update({user_id: user.id}).eq('id', athByEmail.id);
+        _athleteId = athByEmail.id;
+        await loadLogs();
+      } else {
+        // Nowy zawodnik bez onboardingu — pokaż modal
+        showOnboarding();
+      }
+    }
   }
+}
+
+const COACH_ID = 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5'; // Filip's user ID
+
+function showOnboarding() {
+  document.getElementById('onboarding-modal').classList.add('show');
+}
+
+function skipOnboarding() {
+  document.getElementById('onboarding-modal').classList.remove('show');
+}
+
+async function saveOnboarding() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) return;
+
+  const goal = document.getElementById('ob-goal').value.trim() || null;
+  const targetDate = document.getElementById('ob-date').value || null;
+  const pbMar = document.getElementById('ob-mar').value.trim() || null;
+  const pbHalf = document.getElementById('ob-half').value.trim() || null;
+  const pb10k = document.getElementById('ob-10k').value.trim() || null;
+  const pb5k = document.getElementById('ob-5k').value.trim() || null;
+  const name = session.user.user_metadata?.full_name || 'Zawodnik';
+
+  const btn = document.querySelector('.ob-btn');
+  btn.textContent = 'Zapisuję...';
+  btn.disabled = true;
+
+  const { data, error } = await _sb.from('athletes').insert({
+    user_id: session.user.id,
+    coach_id: COACH_ID,
+    full_name: name,
+    goal,
+    target_date: targetDate,
+    pb_marathon: pbMar,
+    pb_half: pbHalf,
+    pb_10k: pb10k,
+    pb_5k: pb5k,
+    active: true
+  }).select().single();
+
+  btn.textContent = 'Zapisz i zacznij →';
+  btn.disabled = false;
+
+  if (error) { 
+    console.error(error);
+    // Jeśli błąd RLS - athlete już może istnieć
+    skipOnboarding();
+    return;
+  }
+
+  _athleteId = data.id;
+  skipOnboarding();
+  await loadLogs();
+  // Usuń ?onboarding=1 z URL
+  window.history.replaceState({}, '', 'zawodnik.html');
 }
 
 // ── LOAD LOGS Z BAZY ──────────────────────────────────────────────
@@ -749,5 +839,46 @@ document.addEventListener('click', e => {
 init();
 setTimeout(() => initAuth(), 100);
 </script>
+<!-- ONBOARDING MODAL -->
+<div id="onboarding-modal">
+  <div class="ob-box">
+    <div style="font-size:28px;margin-bottom:8px;">🏃</div>
+    <div class="ob-title">Witaj w BiegaMy!</div>
+    <div class="ob-sub">Uzupełnij swój profil — trener zobaczy Twoje dane i przygotuje plan.</div>
+
+    <div class="ob-field">
+      <label class="ob-label">Cel startowy</label>
+      <input class="ob-input" id="ob-goal" type="text" placeholder="np. Maraton Warszawski 2026">
+    </div>
+    <div class="ob-field">
+      <label class="ob-label">Data startu</label>
+      <input class="ob-input" id="ob-date" type="date">
+    </div>
+    <div class="ob-row">
+      <div class="ob-field">
+        <label class="ob-label">PB Maraton</label>
+        <input class="ob-input" id="ob-mar" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)">
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">PB Półmaraton</label>
+        <input class="ob-input" id="ob-half" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)">
+      </div>
+    </div>
+    <div class="ob-row">
+      <div class="ob-field">
+        <label class="ob-label">PB 10 km</label>
+        <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonPace(this)">
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">PB 5 km</label>
+        <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonPace(this)">
+      </div>
+    </div>
+
+    <button class="ob-btn" onclick="saveOnboarding()">Zapisz i zacznij →</button>
+    <button class="ob-skip" onclick="skipOnboarding()">Pomiń — uzupełnię później</button>
+  </div>
+</div>
+
 </body>
 </html>

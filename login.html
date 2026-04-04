@@ -131,19 +131,7 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
         <label>Hasło (min. 8 znaków)</label>
         <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password">
       </div>
-      <div class="field">
-        <label>Kim jesteś?</label>
-        <div class="role-row">
-          <div class="role-btn sel" id="role-athlete" onclick="selRole('athlete')">
-            <div class="role-icon">🏃</div>
-            <div class="role-label">Zawodnik</div>
-          </div>
-          <div class="role-btn" id="role-coach" onclick="selRole('coach')">
-            <div class="role-icon">📋</div>
-            <div class="role-label">Trener</div>
-          </div>
-        </div>
-      </div>
+
       <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
@@ -202,13 +190,6 @@ function switchTab(tab) {
   document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
   document.getElementById('success-state').style.display = 'none';
   hideAlert();
-}
-
-// ── ROLE SELECT ───────────────────────────────────────────────────────────────
-function selRole(role) {
-  selectedRole = role;
-  document.getElementById('role-athlete').classList.toggle('sel', role === 'athlete');
-  document.getElementById('role-coach').classList.toggle('sel', role === 'coach');
 }
 
 // ── ALERT ─────────────────────────────────────────────────────────────────────
@@ -278,7 +259,7 @@ async function register() {
     options: {
       data: {
         full_name: name,
-        role: selectedRole,
+        role: 'athlete',
       }
     }
   });
@@ -300,10 +281,10 @@ async function register() {
   ss.style.display = 'block';
 
   if (data.session) {
-    // Auto-confirmed (email confirmation disabled)
-    document.getElementById('success-msg').textContent = `Witaj ${name}! Konto zostało utworzone.`;
+    // Auto-confirmed — idź na onboarding
+    document.getElementById('success-msg').textContent = `Witaj ${name}! Uzupełnij swój profil.`;
     document.getElementById('success-redirect').textContent = 'Przekierowuję...';
-    setTimeout(() => redirectUser(data.user), 1500);
+    setTimeout(() => { window.location.href = 'zawodnik.html?onboarding=1'; }, 1500);
   } else {
     // Email confirmation required
     document.getElementById('success-msg').textContent = `Wysłaliśmy link aktywacyjny na ${email}. Kliknij go żeby aktywować konto.`;
