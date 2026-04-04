@@ -617,6 +617,87 @@ async function loadRaceDates() {
 
 loadRaceDates();
 
+// ── LOAD TRAININGS FROM DB ────────────────────────────────────────
+async function loadTrainingsFromDB() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) return;
+
+  let query = _sbKal.from('trainings').select('*');
+
+  if (_urlRole === 'athlete') {
+    // Zawodnik — tylko swoje treningi
+    const { data: ath } = await _sbKal.from('athletes')
+      .select('id').eq('user_id', session.user.id).maybeSingle();
+    if (!ath) return;
+    query = query.eq('athlete_id', ath.id);
+  } else {
+    // Trener — treningi wszystkich swoich zawodników
+    query = query.eq('coach_id', session.user.id);
+  }
+
+  const { data, error } = await query.order('date');
+  if (error || !data) return;
+
+  // Wyczyść i załaduj do trainings{}
+  // Zachowaj istniejące dane (nie czyść hardcode żeby demo działało)
+  data.forEach(t => {
+    const ds = t.date;
+    if (!trainings[ds]) trainings[ds] = [];
+    // Sprawdź czy już nie ma tego treningu
+    const exists = trainings[ds].some(x => x._id === t.id);
+    if (!exists) {
+      trainings[ds].push({
+        _id: t.id,
+        type: t.type || 'Spokojny',
+        dist: parseFloat(t.distance_km) || 0,
+        time: t.duration_min || 0,
+        pace: t.pace || '',
+        hr: t.heart_rate || '',
+        desc: t.description || '',
+        status: t.status || 'planned'
+      });
+    }
+  });
+
+  render();
+}
+
+loadTrainingsFromDB();
+
+// ── SAVE TRAINING TO DB (override saveTraining) ───────────────────
+const _origSaveTraining = saveTraining;
+window.saveTraining = async function() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session || _urlRole === 'athlete') { _origSaveTraining(); return; }
+
+  const dist = parseFloat(document.getElementById('f-dist').value)||0;
+  const time = parseInt(document.getElementById('f-time').value)||0;
+  const pace = document.getElementById('f-pace').value;
+  const hr = document.getElementById('f-hr').value;
+  const desc = document.getElementById('f-desc').value;
+  const status = document.getElementById('f-status').value;
+
+  if (!editingDate) { notify('Brak daty'); return; }
+
+  // Zapisz do Supabase
+  const { error } = await _sbKal.from('trainings').insert({
+    coach_id: session.user.id,
+    date: editingDate,
+    type: selectedType,
+    distance_km: dist,
+    duration_min: time,
+    pace,
+    heart_rate: hr,
+    description: desc,
+    status
+  });
+
+  if (error) { notify('Błąd zapisu: ' + error.message); return; }
+  
+  // Też zapisz lokalnie (dla UX)
+  _origSaveTraining();
+};
+
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania i usuwania
   document.addEventListener('DOMContentLoaded', () => {

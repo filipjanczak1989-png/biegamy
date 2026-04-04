@@ -222,12 +222,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="ring-wrap">
     <svg width="56" height="56" viewBox="0 0 56 56">
       <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" stroke-width="4"/>
-      <circle cx="28" cy="28" r="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="38"/>
+      <circle cx="28" cy="28" r="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" id="ring-arc" stroke-dashoffset="138.2"/>
     </svg>
-    <div class="ring-text">72%</div>
+    <div class="ring-text" id="ring-pct">—</div>
   </div>
-  <div class="ws-info"><div class="ws-title">Postęp tygodnia</div><div class="ws-sub">5 z 6 zaplanowanych dni</div></div>
-  <div><div class="ws-km">64</div><div class="ws-km-lbl">z 70 km</div></div>
+  <div class="ws-info"><div class="ws-title">Postęp tygodnia</div><div class="ws-sub" id="ws-days">Ładowanie...</div></div>
+  <div><div class="ws-km" id="ws-km">—</div><div class="ws-km-lbl" id="ws-km-lbl">km</div></div>
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Wiadomość od trenera</div></div>
@@ -757,7 +757,26 @@ let _athleteId = null;
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) return;
+  if (!session) {
+    // Poczekaj chwilę (OAuth callback może być w toku)
+    await new Promise(r => setTimeout(r, 800));
+    const { data: { session: s2 } } = await _sb.auth.getSession();
+    if (!s2) { window.location.href = 'login.html'; return; }
+    // Kontynuuj z s2 jako sesją
+    const user2 = s2.user;
+    document.getElementById('menu-email').textContent = user2.email;
+    const { data: ath2 } = await _sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
+    if (ath2) {
+      _athleteId = ath2.id;
+      const name2 = ath2.full_name || user2.user_metadata?.full_name || 'Zawodnik';
+      const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      document.getElementById('av-btn').textContent = initials2;
+      const tn2 = document.getElementById('topbar-name');
+      if(tn2){ tn2.innerHTML = name2.split(' ')[0] + ' <span>' + (name2.split(' ')[1]?.[0]||'') + '.</span>'; tn2.style.opacity='1'; }
+      await loadLogs();
+    } else { showOnboarding(); }
+    return;
+  }
   const user = session.user;
   document.getElementById('menu-email').textContent = user.email;
 
@@ -881,6 +900,55 @@ async function loadLogs() {
   await loadTodayTraining();
   await checkNewMessages();
   setInterval(checkNewMessages, 30000);
+  await updateWeekProgress();
+}
+
+async function updateWeekProgress() {
+  if (!_athleteId) return;
+  
+  // Pobierz treningi z tego tygodnia
+  const now = new Date();
+  const day = now.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() + diff);
+  weekStart.setHours(0,0,0,0);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
+  weekEnd.setHours(23,59,59,999);
+
+  const { data: trainingsThisWeek } = await _sb.from('trainings')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .gte('date', weekStart.toISOString().split('T')[0])
+    .lte('date', weekEnd.toISOString().split('T')[0]);
+
+  const { data: logsThisWeek } = await _sb.from('training_logs')
+    .select('distance_km')
+    .eq('athlete_id', _athleteId)
+    .gte('logged_at', weekStart.toISOString())
+    .lte('logged_at', weekEnd.toISOString());
+
+  const planned = (trainingsThisWeek||[]).filter(t => t.type !== 'Odpoczynek').length;
+  const done = (trainingsThisWeek||[]).filter(t => t.status === 'done').length;
+  const totalKm = (logsThisWeek||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+  const plannedKm = (trainingsThisWeek||[]).reduce((s,t) => s + (parseFloat(t.distance_km)||0), 0);
+
+  const pct = planned > 0 ? Math.round((done / planned) * 100) : 0;
+  const circumference = 138.2;
+  const offset = circumference - (circumference * pct / 100);
+
+  const arc = document.getElementById('ring-arc');
+  const pctEl = document.getElementById('ring-pct');
+  const daysEl = document.getElementById('ws-days');
+  const kmEl = document.getElementById('ws-km');
+  const kmLblEl = document.getElementById('ws-km-lbl');
+
+  if (arc) arc.setAttribute('stroke-dashoffset', offset.toFixed(1));
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
+  if (kmEl) kmEl.textContent = totalKm.toFixed(0);
+  if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + plannedKm.toFixed(0) + ' km' : 'km ten tydzień';
 }
 
 async function loadTodayTraining() {
@@ -1042,7 +1110,7 @@ async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
   sessionStorage.clear();
-  window.location.href = 'https://biegamy.run/login.html';
+  window.location.href = 'login.html';
 }
 
 function toggleMenu() {

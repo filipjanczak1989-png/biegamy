@@ -247,7 +247,7 @@ const sLogs=[
   {type:'Spokojny',date:'01.04',det:'10 km - 61:20 - 6:08/km - 143bpm',feel:'mid',cmt:'Nogi troche ciezkie'},
   {type:'Wybieganie',date:'30.03',det:'22 km - 2:11:00 - 5:58/km - 147bpm',feel:'mid',cmt:'Po 18 km nogi protestowaly'},
 ];
-let selAth=null,selType='Spokojny';
+let selAth=null,selType='Spokojny',selectedType='Spokojny';
 function init(){
   const h=new Date().getHours();
   document.getElementById('greet').textContent=h<12?'Dzien dobry,':h<18?'Czesc,':'Dobry wieczor,';
@@ -304,7 +304,7 @@ function renderPLogs(){
       ${l.cmt?`<div class="pl-cmt">"${l.cmt}"</div>`:''}
     </div>`).join('');
 }
-function selT(el){document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));el.classList.add('on');selType=el.textContent.trim();}
+function selT(el){document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));el.classList.add('on');selType=el.textContent.trim();selectedType=selType;}
 function saveTr(){
   const dist=document.getElementById('fdist').value;
   const date=document.getElementById('fd').value;
@@ -342,7 +342,7 @@ async function initAuth() {
     // Try once more after short delay
     await new Promise(r => setTimeout(r, 800));
     const { data: { session: s2 } } = await _sb.auth.getSession();
-    if (!s2) return; // No redirect - just don't load data
+    if (!s2) { window.location.href = 'login.html'; return; } // redirect do logowania
     _coachId = s2.user.id;
     const name2 = s2.user.user_metadata?.full_name || 'Trener';
     const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -542,7 +542,7 @@ async function saveTr_db() {
     athlete_id: window._selectedAthleteId,
     coach_id: _coachId,
     date,
-    type: selectedType,
+    type: selType || selType,  // selType jest globalną zmienną z selT()
     distance_km: dist,
     duration_min: time,
     pace,
@@ -585,7 +585,7 @@ async function addAthlete_db() {
 async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear(); sessionStorage.clear();
-  window.location.href = 'https://biegamy.run/login.html';
+  window.location.href = 'login.html';
 }
 
 function toggleMenu() {
