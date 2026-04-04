@@ -175,7 +175,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;">
     <a id="back-to-trener" href="trener.html" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
-    <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;">MK</div>
+    <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;">—</div>
     <div id="av-menu" style="display:none;position:absolute;top:54px;right:0;background:#16161a;border:1px solid #d4501a;border-radius:12px;padding:8px;z-index:9999;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.8);">
       <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:'DM Mono',monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
@@ -189,16 +189,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
-    <div class="today-date">Czwartek, 2 Kwietnia 2026</div>
-    <div class="today-badge">⚡ Tempo</div>
-    <div class="today-dist">14 <span>km</span></div>
-    <div class="today-meta">
-      <div class="meta-item"><div class="meta-lbl">Tempo</div><div class="meta-val">5:25 /km</div></div>
-      <div class="meta-item"><div class="meta-lbl">Tętno</div><div class="meta-val">155–165</div></div>
-      <div class="meta-item"><div class="meta-lbl">Czas</div><div class="meta-val">~76 min</div></div>
-    </div>
-    <div class="divider"></div>
-    <div class="today-desc">Pierwsze 3 km jako rozgrzewka. Środkowe 8 km trzymaj 5:25. Ostatnie 3 km schłodzenie. Zjedz żel po 45 min.</div>
+    <div class="today-date" id="today-date">Ładowanie...</div>
+    <div class="today-badge" id="today-badge" style="display:none;"></div>
+    <div class="today-dist" id="today-dist" style="display:none;"></div>
+    <div class="today-meta" id="today-meta" style="display:none;"></div>
+    <div class="divider" id="today-divider" style="display:none;"></div>
+    <div class="today-desc" id="today-desc"></div>
     <div class="today-actions">
       <button class="btn btn-primary" onclick="openModal()">↓ Zaloguj wynik</button>
       <button class="btn btn-done" onclick="markDone(this)" id="done-btn">✓ Wykonany</button>
@@ -412,6 +408,14 @@ let feel='';
 function init(){
   const h=new Date().getHours();
   document.getElementById('greeting').textContent=h<12?'Dzień dobry,':h<18?'Cześć,':'Dobry wieczór,';
+  
+  // Dynamiczna data dzisiejsza
+  const now = new Date();
+  const days = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+  const months = ['Stycznia','Lutego','Marca','Kwietnia','Maja','Czerwca','Lipca','Sierpnia','Września','Października','Listopada','Grudnia'];
+  const dateEl = document.getElementById('today-date');
+  if(dateEl) dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
   // Pokaż przycisk powrotu jeśli wejście z panelu trenera
   if(new URLSearchParams(window.location.search).get('from')==='trener'){
     const btn=document.getElementById('back-to-trener');
@@ -698,6 +702,43 @@ async function loadLogs() {
     .limit(5);
   if (data && data.length > 0) renderLogsDb(data);
   await loadCoachMessage();
+  await loadTodayTraining();
+}
+
+async function loadTodayTraining() {
+  if (!_athleteId) return;
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await _sb
+    .from('trainings')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .eq('date', today)
+    .limit(1)
+    .single();
+  
+  if (!data) {
+    document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
+    return;
+  }
+  
+  const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
+  const badge = document.getElementById('today-badge');
+  const dist = document.getElementById('today-dist');
+  const meta = document.getElementById('today-meta');
+  const desc = document.getElementById('today-desc');
+  const divider = document.getElementById('today-divider');
+  
+  if(badge){ badge.textContent = (typeIcons[data.type]||'🏃') + ' ' + (data.type||'Trening'); badge.style.display='inline-flex'; }
+  if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
+  
+  const metaItems = [
+    data.pace ? `<div class="meta-item"><div class="meta-lbl">Tempo</div><div class="meta-val">${data.pace} /km</div></div>` : '',
+    data.heart_rate ? `<div class="meta-item"><div class="meta-lbl">Tętno</div><div class="meta-val">${data.heart_rate}</div></div>` : '',
+    data.duration_min ? `<div class="meta-item"><div class="meta-lbl">Czas</div><div class="meta-val">~${data.duration_min} min</div></div>` : '',
+  ].filter(Boolean).join('');
+  
+  if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; divider.style.display='block'; }
+  if(desc) desc.textContent = data.description || '';
 }
 
 async function loadCoachMessage() {
