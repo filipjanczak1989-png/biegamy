@@ -329,6 +329,7 @@ nav{
 <!-- NOTIF -->
 <div class="notif" id="notif"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const typeColors = {
@@ -356,7 +357,7 @@ let trainings = {
 const monthNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
 const dayNames = ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
 
-let currentWeekStart = getWeekStart(new Date(2026,3,6)); // Mon Apr 6
+let currentWeekStart = getWeekStart(new Date()); // aktualny tydzień
 let editingDate = null;
 let editingIndex = null;
 let selectedType = 'Bieg spokojny';
@@ -419,6 +420,14 @@ function render() {
     const isToday = d.getTime() === today.getTime();
     const ts = trainings[ds] || [];
 
+    // Sprawdź czy to dzień startu
+    const isRaceDay = window._raceDates && window._raceDates.some(r => r.date === ds);
+
+    const raceCard = isRaceDay ? `<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.4);border-radius:8px;padding:8px 10px;margin-bottom:4px;">
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:3px;">🏁 CEL STARTOWY</div>
+      <div style="font-size:13px;font-weight:500;">${window._raceDates.find(r=>r.date===ds)?.name||'Start'}</div>
+    </div>` : '';
+
     const cards = ts.map((t,i) => {
       const tc = typeColors[t.type] || 'spokojny';
       const statusCls = t.status==='done'?'done':t.status==='missed'?'missed':'';
@@ -436,6 +445,7 @@ function render() {
     }).join('');
 
     return `<div class="day-col ${isToday?'today':''}">
+      ${raceCard}
       ${cards}
       <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
     </div>`;
@@ -572,12 +582,40 @@ render();
 // ── ROLE DETECTION ────────────────────────────────────────────────
 const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
 const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
+const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
+const _sbKal = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function goBack() {
   window.location.href = _backUrl;
 }
 
 document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';
+
+// Pobierz daty startów
+window._raceDates = [];
+async function loadRaceDates() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) return;
+  
+  let query = _sbKal.from('athletes').select('goal, target_date');
+  if (_urlRole === 'athlete') {
+    query = query.eq('user_id', session.user.id);
+  } else {
+    // coach — wszyscy zawodnicy
+    query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
+  }
+  
+  const { data } = await query;
+  if (data) {
+    window._raceDates = data
+      .filter(a => a.target_date)
+      .map(a => ({ date: a.target_date, name: a.goal || 'Start' }));
+    render(); // odśwież kalendarz z datami startów
+  }
+}
+
+loadRaceDates();
 
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania i usuwania

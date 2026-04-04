@@ -477,7 +477,36 @@ function markDone(btn){
   btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
   toast('Trening oznaczony jako wykonany ✓');
 }
-function openModal(){document.getElementById('modal-bg').classList.add('open');}
+function openModal() {
+  document.getElementById('modal-bg').classList.add('open');
+  // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
+  if (window._todayTraining) {
+    const t = window._todayTraining;
+    // Typ treningu
+    const typeMap = {Spokojny:'Spokojny', Interwały:'Interwały', Tempo:'Tempo', Wybieganie:'Wybieganie', Regeneracja:'Regeneracja'};
+    const typeName = typeMap[t.type] || t.type;
+    document.querySelectorAll('.type-pill').forEach(p => {
+      p.classList.remove('on');
+      if (p.textContent.trim().includes(typeName)) p.classList.add('on');
+    });
+    window._logType = typeName || 'Spokojny';
+    // Dystans
+    if (t.distance_km) document.getElementById('l-dist').value = t.distance_km;
+    // Czas w minutach → hh:mm:ss
+    if (t.duration_min) {
+      const h = Math.floor(t.duration_min/60);
+      const m = t.duration_min % 60;
+      document.getElementById('l-time').value = h + ':' + String(m).padStart(2,'0') + ':00';
+    }
+    // Tempo
+    if (t.pace) document.getElementById('l-pace').value = t.pace;
+    // Tętno (środek zakresu)
+    if (t.heart_rate) {
+      const hr = t.heart_rate.toString().split('-')[0];
+      document.getElementById('l-hr').value = hr;
+    }
+  }
+}
 function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 function selFeel(el,t){
@@ -867,8 +896,10 @@ async function loadTodayTraining() {
   
   if (!data) {
     document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
+    window._todayTraining = null;
     return;
   }
+  window._todayTraining = data; // cache dla log modala
   
   const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
   const badge = document.getElementById('today-badge');
