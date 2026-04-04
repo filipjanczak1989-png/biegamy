@@ -606,32 +606,19 @@ async function initAuth() {
   document.getElementById('menu-email').textContent = user.email;
   const tn = document.getElementById('topbar-name'); if(tn){tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1';}
 
-  // Znajdź athlete_id po user_id
-  const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', user.id).single();
+  // Znajdź athlete_id po user_id (maybeSingle — nie rzuca 406 gdy brak)
+  const { data: ath } = await _sb
+    .from('athletes')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
   if (ath) {
     _athleteId = ath.id;
     await loadLogs();
   } else {
-    // Brak rekordu — sprawdź czy to nowy zawodnik (onboarding)
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('onboarding') === '1') {
-      showOnboarding();
-    } else {
-      // Spróbuj dopasować po emailu (zawodnik dodany przez trenera)
-      const { data: athByEmail } = await _sb.from('athletes')
-        .select('id')
-        .eq('email', user.email)
-        .single();
-      if (athByEmail) {
-        // Zaktualizuj user_id
-        await _sb.from('athletes').update({user_id: user.id}).eq('id', athByEmail.id);
-        _athleteId = athByEmail.id;
-        await loadLogs();
-      } else {
-        // Nowy zawodnik bez onboardingu — pokaż modal
-        showOnboarding();
-      }
-    }
+    // Brak rekordu — pokaż onboarding
+    showOnboarding();
   }
 }
 
@@ -678,9 +665,18 @@ async function saveOnboarding() {
   btn.disabled = false;
 
   if (error) { 
-    console.error(error);
-    // Jeśli błąd RLS - athlete już może istnieć
-    skipOnboarding();
+    console.error('Onboarding error:', error);
+    const btn2 = document.querySelector('.ob-btn');
+    btn2.textContent = 'Zapisz i zacznij →';
+    btn2.disabled = false;
+    
+    if (error.code === '42501' || error.message?.includes('policy')) {
+      // RLS blokuje — pokaż instrukcję
+      const sub = document.querySelector('.ob-sub');
+      if(sub) sub.innerHTML = '<span style="color:var(--red)">Błąd uprawnień — skontaktuj się z trenerem żeby aktywował Twoje konto.</span>';
+    } else {
+      skipOnboarding();
+    }
     return;
   }
 
@@ -714,7 +710,7 @@ async function loadTodayTraining() {
     .eq('athlete_id', _athleteId)
     .eq('date', today)
     .limit(1)
-    .single();
+    .maybeSingle();
   
   if (!data) {
     document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
