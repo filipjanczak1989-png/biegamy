@@ -120,7 +120,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="topbar-name">Trener <span>Filip</span></div>
   </div>
   <div class="topbar-right">
-    <div class="notif-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="ndot"></div></div>
+    <div class="notif-btn" id="notif-btn" onclick="showCoachSection('msgs')" style="cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" id="notif-icon"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="ndot" id="notif-dot" style="display:none;"></div></div>
     <div class="topbar-av" onclick="toggleMenu()" id="av-btn">F</div>
 <div id="av-menu" style="display:none;position:absolute;top:48px;right:0;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px;z-index:9999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
   <div style="padding:8px 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);margin-bottom:6px;" id="menu-email">...</div>
@@ -210,7 +210,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <nav class="bottom-nav">
   <a class="ni on" href="#" id="coach-nav-home" onclick="showCoachSection('home');return false;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)" id="nav-home-lbl">Zawodnicy</div></a>
-  <a class="ni" href="kalendarz.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
+  <a class="ni" href="kalendarz.html" id="coach-nav-kal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2">Analityka</div></a>
   <a class="ni" href="#" onclick="showCoachSection('msgs');return false;" id="coach-nav-msgs" style="position:relative;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2" id="nav-msgs-lbl">Wiadomości</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg><div class="nl2">Ustawienia</div></a>
@@ -658,7 +658,7 @@ async function saveAthlete() {
   await loadAthletes();
 }
 
-setTimeout(() => initAuth(), 100);
+setTimeout(async () => { await initAuth(); await checkUnreadMessages(); setInterval(checkUnreadMessages, 30000); }, 100);
 
 let _currentChatAthleteId = null;
 
@@ -722,21 +722,82 @@ async function loadCoachChat() {
   if (!_currentChatAthleteId) return;
   const { data } = await _sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:true}).limit(50);
   const thread = document.getElementById('chat-thread');
+
+  const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
+    <button onclick="clearCoachChat()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
+  </div>`;
+
   if (!data || data.length === 0) {
     thread.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak wiadomości.</div>';
   } else {
-    thread.innerHTML = data.map(m => {
+    thread.innerHTML = headerHtml + data.map(m => {
       const isCoach = m.sender === 'coach';
       const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
       const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+      // Wykryj link do zdjęcia
+      const body = m.body.includes('[zdjęcie]') ? m.body : m.body;
       return `<div class="msg-row-t ${isCoach?'coach':'athlete'}">
-        <div class="msg-bubble-t ${isCoach?'coach':'athlete'}">${m.body}</div>
+        <div class="msg-bubble-t ${isCoach?'coach':'athlete'}" 
+             oncontextmenu="deleteCoachMsg(event,'${m.id}','${isCoach}')"
+             style="cursor:pointer;">${body}</div>
         <div class="msg-meta-t">${date} · ${time}</div>
       </div>`;
     }).join('');
     setTimeout(() => { thread.scrollTop = thread.scrollHeight; }, 50);
   }
-  await _sb.from('messages').update({read:true}).eq('athlete_id',_currentChatAthleteId).eq('sender','athlete').eq('read',false);
+  // Oznacz jako przeczytane
+  await _sb.from('messages').update({read:true})
+    .eq('athlete_id',_currentChatAthleteId)
+    .eq('sender','athlete')
+    .eq('read',false);
+  // Odśwież badge
+  await checkUnreadMessages();
+}
+
+async function deleteCoachMsg(e, msgId, isCoach) {
+  e.preventDefault();
+  if (isCoach !== 'true') return;
+  if (!confirm('Usunąć tę wiadomość?')) return;
+  await _sb.from('messages').delete().eq('id', msgId);
+  await loadCoachChat();
+}
+
+async function clearCoachChat() {
+  if (!confirm('Usunąć całą historię czatu?')) return;
+  await _sb.from('messages').delete().eq('athlete_id', _currentChatAthleteId);
+  await loadCoachChat();
+}
+
+async function checkUnreadMessages() {
+  if (!_coachId) return;
+  const { count } = await _sb.from('messages')
+    .select('*', {count:'exact', head:true})
+    .eq('read', false)
+    .eq('sender', 'athlete');
+  // Pokaż/ukryj dzwoneczek
+  const dot = document.getElementById('notif-dot');
+  const icon = document.getElementById('notif-icon');
+  if (dot) dot.style.display = count > 0 ? 'block' : 'none';
+  if (icon) icon.setAttribute('stroke', count > 0 ? 'var(--accent)' : 'var(--muted)');
+}
+
+async function sendCoachFile(input) {
+  if (!input.files[0] || !_currentChatAthleteId) return;
+  const file = input.files[0];
+  const ext = file.name.split('.').pop();
+  const path = _currentChatAthleteId + '/coach_' + Date.now() + '.' + ext;
+  const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+  if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
+  const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+  await _sb.from('messages').insert({
+    athlete_id: _currentChatAthleteId,
+    sender: 'coach',
+    body: `[zdjęcie] <a href="${urlData.publicUrl}" target="_blank" style="color:var(--fg);text-decoration:underline;">Otwórz →</a>`,
+    sent_at: new Date().toISOString()
+  });
+  input.value = '';
+  showToast('Zdjęcie wysłane ✓');
+  await loadCoachChat();
 }
 
 async function sendCoachMessage() {
@@ -768,6 +829,8 @@ init();
     </div>
     <div id="chat-thread" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;min-height:150px;"></div>
     <div style="display:flex;gap:8px;">
+      <input id="coach-file" type="file" accept="image/*" style="display:none" onchange="sendCoachFile(this)">
+      <button onclick="document.getElementById('coach-file').click()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;">📎</button>
       <input id="coach-msg-input" type="text" placeholder="Napisz wiadomość..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendCoachMessage()">
       <button onclick="sendCoachMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyślij →</button>
     </div>

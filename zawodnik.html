@@ -521,29 +521,35 @@ function calcPaceAuto() {
   if(lbl) lbl.textContent = '← auto';
 }
 function showSection(name) {
-  // Reset wszystkiego
-  document.querySelectorAll('.fade-in, .sec-hdr, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = '');
-  document.getElementById('section-msgs').style.display = 'none';
-  document.getElementById('section-profile').style.display = 'none';
-  
-  // Reset nav kolorów
+  // Reset nav
   document.querySelectorAll('.nav-it').forEach(n => {
     n.querySelector('svg')?.setAttribute('stroke','var(--muted)');
     const lbl = n.querySelector('.nav-lbl');
     if(lbl) lbl.style.color = '';
+    n.classList.remove('active');
   });
 
+  // Ukryj sekcje
+  document.getElementById('section-msgs').style.display = 'none';
+  document.getElementById('section-profile').style.display = 'none';
+
   if (name === 'home') {
-    // Pokaż główny widok — wszystko już przywrócone powyżej
+    // Force-pokaż wszystkie główne elementy
+    document.querySelector('.today-hero')?.style.setProperty('display','');
+    document.querySelector('.week-sum')?.style.setProperty('display','');
+    document.querySelector('.coach-box')?.style.setProperty('display','');
+    document.getElementById('log-list')?.style.setProperty('display','');
+    document.querySelectorAll('.fade-in').forEach(el => el.style.display = '');
+    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = '');
     const n = document.getElementById('nav-home');
-    if(n) { n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
+    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
 
   } else if (name === 'msgs') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('section-msgs').style.display = 'block';
     const n = document.getElementById('nav-msgs');
-    if(n) { n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
+    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
     loadMessages();
 
   } else if (name === 'profile') {
@@ -551,7 +557,7 @@ function showSection(name) {
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('section-profile').style.display = 'block';
     const n = document.getElementById('nav-profile');
-    if(n) { n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
+    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
     loadProfile();
   }
 }
