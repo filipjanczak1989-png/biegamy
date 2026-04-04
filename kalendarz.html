@@ -154,6 +154,12 @@ nav{
 }
 .training-card:hover .card-delete{opacity:1;}
 .card-delete:hover{color:var(--accent);}
+.card-approve{
+  margin-top:8px;width:100%;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.35);
+  color:var(--green);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;
+  text-transform:uppercase;padding:6px;cursor:pointer;transition:all 0.15s;border-radius:4px;
+}
+.card-approve:hover{background:rgba(61,184,112,0.25);}
 
 /* ADD TRAINING PLACEHOLDER */
 .add-training-btn{
@@ -441,6 +447,7 @@ function render() {
         ${(t.pace||t.hr)?`<div class="card-pace">${t.pace?t.pace+'/km':''} ${t.hr?'· ♥ '+t.hr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
         ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
+        ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;
     }).join('');
 
@@ -551,6 +558,20 @@ function saveTraining() {
 
   closeModal();
   render();
+}
+
+async function approveTraining(e, ds, idx, dbId) {
+  e.stopPropagation();
+  if (!trainings[ds] || !trainings[ds][idx]) return;
+  trainings[ds][idx].status = 'done';
+  
+  // Zapisz do Supabase jeśli mamy id
+  if (dbId && typeof _sbKal !== 'undefined') {
+    await _sbKal.from('trainings').update({status:'done'}).eq('id', dbId);
+  }
+  
+  render();
+  notify('Trening zatwierdzony ✓');
 }
 
 function deleteTraining(e, ds, idx) {
