@@ -235,10 +235,10 @@ nav{
 
 <!-- NAV -->
 <nav>
-  <a href="#" class="nav-logo">Biega<span>My</span></a>
+  <a href="#" class="nav-logo" id="nav-logo-back">Biega<span>My</span></a>
   <div class="nav-links" style="display:flex;gap:4px;">
-    <a href="zawodnik.html" class="nav-link">← Powrót</a>
-    <a href="kalendarz.html" class="nav-link active">Kalendarz</a>
+    <a href="#" class="nav-link" id="back-link" onclick="goBack()">← Powrót</a>
+    <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
   </div>
   <div class="nav-right">
     
@@ -568,6 +568,29 @@ document.addEventListener('keydown', e => {
 });
 
 render();
+
+// ── ROLE DETECTION ────────────────────────────────────────────────
+const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
+const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
+
+function goBack() {
+  window.location.href = _backUrl;
+}
+
+document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';
+
+if (_urlRole === 'athlete') {
+  // Zawodnik — ukryj przyciski dodawania i usuwania
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.add-training-btn, .card-delete, .btn-primary').forEach(el => el.style.display = 'none');
+  });
+  // Override openModal żeby nie działał dla zawodnika
+  window._origOpenModal = window.openModal;
+  window.openModal = function(ds, idx) {
+    if (idx !== null && idx !== undefined) window._origOpenModal(ds, idx); // tylko podgląd istniejącego
+    // nie otwieraj dla nowych
+  };
+}
 </script>
 </body>
 </html>

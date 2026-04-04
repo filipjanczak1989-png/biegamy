@@ -210,7 +210,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <nav class="bottom-nav">
   <a class="ni on" href="#" id="coach-nav-home" onclick="showCoachSection('home');return false;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)" id="nav-home-lbl">Zawodnicy</div></a>
-  <a class="ni" href="kalendarz.html" id="coach-nav-kal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
+  <a class="ni" href="kalendarz.html?role=coach" target="_blank" id="coach-nav-kal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2">Analityka</div></a>
   <a class="ni" href="#" onclick="showCoachSection('msgs');return false;" id="coach-nav-msgs" style="position:relative;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2" id="nav-msgs-lbl">Wiadomości</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg><div class="nl2">Ustawienia</div></a>
@@ -451,7 +451,16 @@ async function selA_db(athleteId) {
   document.getElementById('pav').textContent = initials;
   document.getElementById('pav').style.background = 'var(--accent)';
   document.getElementById('pname').textContent = name;
-  document.getElementById('pmeta').textContent = (a.goal||'') + (a.pb_marathon?' · PB: '+a.pb_marathon:'');
+  
+  // Pokaż cel startowy z odliczaniem
+  let metaText = a.goal || '';
+  if (a.pb_marathon) metaText += ' · PB: ' + a.pb_marathon;
+  if (a.target_date) {
+    const days = Math.ceil((new Date(a.target_date) - new Date()) / 86400000);
+    if (days > 0) metaText += ' · 🏁 ' + days + ' dni';
+    else if (days === 0) metaText += ' · 🏁 DZIŚ!';
+  }
+  document.getElementById('pmeta').textContent = metaText;
   document.getElementById('panel').classList.add('on');
   
   window._selectedAthleteId = athleteId;

@@ -14,6 +14,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .topbar-greeting{font-size:13px;color:var(--muted);font-weight:300;}
 .topbar-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;line-height:1;}
 .topbar-name span{color:var(--accent);}
+.notif-bell-z{width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
 .topbar-avatar{width:42px;height:42px;border-radius:50%;border:2px solid var(--accent);background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent);}
 .today-hero{margin:8px 20px 20px;background:var(--card);border-radius:16px;overflow:hidden;border:1px solid var(--border);}
 .today-hero-top{height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));}
@@ -182,6 +183,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;">
     <a id="back-to-trener" href="trener.html" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
+    <div onclick="showSection('msgs');return false;" style="width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;" id="zawodnik-bell">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>
+    </div>
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;">—</div>
     <div id="av-menu" style="display:none;position:absolute;top:54px;right:0;background:#16161a;border:1px solid #d4501a;border-radius:12px;padding:8px;z-index:9999;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.8);">
       <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:'DM Mono',monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
@@ -205,12 +210,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="today-actions">
       <button class="btn btn-primary" onclick="openModal()">↓ Zaloguj wynik</button>
       <button class="btn btn-done" onclick="markDone(this)" id="done-btn">✓ Wykonany</button>
-      <a href="kalendarz.html" class="btn btn-ghost">📅 Kalendarz</a>
+      <a href="kalendarz.html?role=athlete" class="btn btn-ghost">📅 Kalendarz</a>
     </div>
   </div>
 </div>
 
-<div class="sec-hdr fade-in"><div class="sec-title">Ten tydzień</div><a href="kalendarz.html" class="sec-link">Pełny widok →</a></div>
+<div class="sec-hdr fade-in"><div class="sec-title">Ten tydzień</div><a href="kalendarz.html?role=athlete" class="sec-link">Pełny widok →</a></div>
 <div class="week-grid fade-in" id="week-strip"></div>
 
 <div class="week-sum fade-in">
@@ -243,7 +248,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <div class="nav-lbl" style="color:var(--accent);">Dziś</div>
   </a>
-  <a class="nav-it" href="kalendarz.html">
+  <a class="nav-it" href="kalendarz.html?role=athlete">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     <div class="nav-lbl">Plan</div>
   </a>
@@ -608,6 +613,14 @@ async function uploadAvatar(input) {
   loadProfile();
 }
 
+async function checkNewMessages() {
+  if (!_athleteId) return;
+  const { count } = await _sb.from('messages').select('*',{count:'exact',head:true})
+    .eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
+  const dot = document.getElementById('zawodnik-bell-dot');
+  if (dot) dot.style.display = (count && count > 0) ? 'block' : 'none';
+}
+
 async function loadMessages() {
   const thread = document.getElementById('msgs-thread');
   if (!_athleteId) {
@@ -647,6 +660,7 @@ async function loadMessages() {
 
   await _sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   setTimeout(() => { if(thread) thread.scrollTop = thread.scrollHeight; }, 50);
+  await checkNewMessages();
 }
 
 async function deleteMsgPrompt(e, msgId, isAthlete) {
@@ -733,6 +747,22 @@ async function initAuth() {
     document.getElementById('av-btn').textContent = initials;
     const tn = document.getElementById('topbar-name');
     if(tn){ tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1'; }
+    // Pobierz target_date
+    const { data: athFull } = await _sb.from('athletes').select('target_date,goal').eq('id',_athleteId).maybeSingle();
+    if (athFull?.target_date) {
+      const tDate = new Date(athFull.target_date);
+      const daysLeft = Math.ceil((tDate - new Date()) / 86400000);
+      if (daysLeft >= 0 && daysLeft <= 365) {
+        const heroInner = document.querySelector('.today-hero-inner');
+        if (heroInner && !document.getElementById('race-countdown')) {
+          const badge = document.createElement('div');
+          badge.id = 'race-countdown';
+          badge.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;padding:4px 10px;border-radius:4px;margin-bottom:10px;';
+          badge.textContent = '🏁 ' + (athFull.goal||'Start') + ' · ' + (daysLeft === 0 ? 'DZIŚ!' : daysLeft + ' dni');
+          heroInner.insertBefore(badge, heroInner.firstChild);
+        }
+      }
+    }
     await loadLogs();
   } else {
     // Brak rekordu — pokaż onboarding
@@ -820,6 +850,8 @@ async function loadLogs() {
   if (data && data.length > 0) renderLogsDb(data);
   await loadCoachMessage();
   await loadTodayTraining();
+  await checkNewMessages();
+  setInterval(checkNewMessages, 30000);
 }
 
 async function loadTodayTraining() {
