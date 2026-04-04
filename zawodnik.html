@@ -268,6 +268,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
   </div>
   <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:10px 16px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:8px;z-index:60;">
+    <input id="msg-file" type="file" accept="image/*" style="display:none" onchange="sendFileMessage(this)">
+    <button onclick="document.getElementById('msg-file').click()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;">📎</button>
     <input id="msg-input" type="text" placeholder="Napisz do trenera..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendMessage()">
     <button onclick="sendMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">Wyślij →</button>
   </div>
@@ -615,23 +617,65 @@ async function loadMessages() {
 
   if (error) { console.error(error); return; }
 
+  const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
+    <button onclick="clearAllMessages()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
+  </div>`;
+
   if (!data || data.length === 0) {
     if(thread) thread.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wiadomości. Napisz do trenera!</div>';
     return;
   }
 
-  if(thread) thread.innerHTML = data.map(m => {
+  if(thread) thread.innerHTML = headerHtml + data.map(m => {
     const isAthlete = m.sender === 'athlete';
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-    return `<div class="msg-row ${isAthlete?'athlete':'coach'}">
-      <div class="msg-bubble ${isAthlete?'athlete':'coach'}">${m.body}</div>
+    return `<div class="msg-row ${isAthlete?'athlete':'coach'}" id="msg-${m.id}">
+      <div class="msg-bubble ${isAthlete?'athlete':'coach'}" 
+           oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')"
+           style="cursor:pointer;"
+           title="Przytrzymaj aby usunąć">${m.body}</div>
       <div class="msg-meta">${date} · ${time}</div>
     </div>`;
   }).join('');
 
   await _sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   setTimeout(() => { if(thread) thread.scrollTop = thread.scrollHeight; }, 50);
+}
+
+async function deleteMsgPrompt(e, msgId, isAthlete) {
+  e.preventDefault();
+  if (isAthlete !== 'true') return; // zawodnik może usuwać tylko swoje
+  if (!confirm('Usunąć tę wiadomość?')) return;
+  await _sb.from('messages').delete().eq('id', msgId);
+  await loadMessages();
+}
+
+async function clearAllMessages() {
+  if (!confirm('Usunąć całą historię wiadomości?')) return;
+  await _sb.from('messages').delete().eq('athlete_id', _athleteId);
+  await loadMessages();
+}
+
+async function sendFileMessage(input) {
+  if (!input.files[0] || !_athleteId) return;
+  const file = input.files[0];
+  const ext = file.name.split('.').pop();
+  const path = _athleteId + '/msg_' + Date.now() + '.' + ext;
+  const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+  if (upErr) { toast('Błąd uploadu: ' + upErr.message); return; }
+  const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+  const url = urlData.publicUrl;
+  // Wyślij jako wiadomość z linkiem do obrazka
+  await _sb.from('messages').insert({
+    athlete_id: _athleteId,
+    sender: 'athlete',
+    body: `[zdjęcie] <a href="${url}" target="_blank" style="color:var(--accent)">Otwórz →</a>`,
+    sent_at: new Date().toISOString()
+  });
+  input.value = '';
+  toast('Zdjęcie wysłane ✓');
+  await loadMessages();
 }
 
 async function sendMessage() {

@@ -209,7 +209,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </div>
 
 <nav class="bottom-nav">
-  <a class="ni on" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)">Zawodnicy</div></a>
+  <a class="ni on" href="#" id="coach-nav-home" onclick="showCoachSection('home');return false;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)" id="nav-home-lbl">Zawodnicy</div></a>
   <a class="ni" href="kalendarz.html"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
   <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2">Analityka</div></a>
   <a class="ni" href="#" onclick="showCoachSection('msgs');return false;" id="coach-nav-msgs" style="position:relative;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2" id="nav-msgs-lbl">Wiadomości</div></a>
@@ -397,8 +397,16 @@ async function loadAthletes() {
   }
 }
 
-function renderDbAthletes(list) {
-  document.getElementById('ath-list').innerHTML = list.map((a,i) => {
+async function renderDbAthletes(list) {
+  // Sprawdź nowe logi dla każdego zawodnika
+  const withLogs = await Promise.all(list.map(async a => {
+    const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
+      .eq('athlete_id', a.id)
+      .gt('logged_at', new Date(Date.now() - 86400000*2).toISOString()); // ostatnie 2 dni
+    return { ...a, newLogs: count || 0 };
+  }));
+
+  document.getElementById('ath-list').innerHTML = withLogs.map((a,i) => {
     const name = a.full_name || a.goal || 'Zawodnik';
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     return `
@@ -410,7 +418,7 @@ function renderDbAthletes(list) {
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        <div class="ath-dot"></div>
+        ${a.newLogs > 0 ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;">${a.newLogs} log</div>` : '<div class="ath-dot"></div>'}
         <button onclick="deleteAthlete('${a.id}','${name}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
@@ -655,18 +663,22 @@ setTimeout(() => initAuth(), 100);
 let _currentChatAthleteId = null;
 
 function showCoachSection(name) {
-  const mainEls = document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel');
-  mainEls.forEach(el => el.style.display = '');
+  // Reset
+  document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = '');
   document.getElementById('msgs-panel-section').style.display = 'none';
+  // Reset nav
   document.querySelectorAll('.ni svg').forEach(s => s.setAttribute('stroke','var(--muted)'));
   document.querySelectorAll('.nl2').forEach(l => l.style.color = '');
-  document.querySelector('.ni.on')?.classList.remove('on');
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
 
-  if (name === 'msgs') {
-    mainEls.forEach(el => el.style.display = 'none');
+  if (name === 'home') {
+    const n = document.getElementById('coach-nav-home');
+    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-home-lbl').style.color='var(--accent)'; }
+  } else if (name === 'msgs') {
+    document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'block';
     const n = document.getElementById('coach-nav-msgs');
-    if(n){ n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
+    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
     loadCoachMsgsList();
   }
 }
