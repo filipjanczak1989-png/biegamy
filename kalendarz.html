@@ -250,7 +250,8 @@ nav{
     <select id="cal-athlete-sel" class="athlete-select" style="display:none;">
       <option value="">— wszyscy zawodnicy —</option>
     </select>
-    <button class="btn btn-primary" onclick="openModal(null)">+ Nowy trening</button>
+    <button class="btn btn-ghost" onclick="openGoalModal()" id="goal-btn" style="display:none;">🏁 Cel startowy</button>
+    <button class="btn btn-primary" onclick="openModal(null)" id="add-training-btn">+ Nowy trening</button>
   </div>
 </nav>
 
@@ -297,26 +298,26 @@ nav{
       <div class="field-row">
         <div class="field">
           <label>Dystans (km)</label>
-          <input type="number" id="f-dist" placeholder="np. 12" min="0" max="60" step="0.5">
+          <input type="number" id="f-dist" placeholder="np. 12" min="0" max="60" step="0.5" oninput="kalCalcPace()">
         </div>
         <div class="field">
-          <label>Czas (min)</label>
-          <input type="number" id="f-time" placeholder="np. 70">
+          <label>Czas (h:mm:ss) <span id="kal-time-auto" style="color:#d4501a;font-size:9px;"></span></label>
+          <input type="text" id="f-time" placeholder="np. 1:04:00" maxlength="7" oninput="kalAutoColon(this);kalCalcPace()">
         </div>
       </div>
       <div class="field-row">
         <div class="field">
-          <label>Tempo docelowe (min/km)</label>
-          <input type="text" id="f-pace" placeholder="np. 5:30">
+          <label>Tempo (min/km) <span id="kal-pace-auto" style="color:#d4501a;font-size:9px;"></span></label>
+          <input type="text" id="f-pace" placeholder="np. 5:20" maxlength="5" oninput="kalAutoColonPace(this);kalCalcTime()">
         </div>
         <div class="field">
-          <label>Tętno docelowe (bpm)</label>
+          <label>Tętno (bpm)</label>
           <input type="text" id="f-hr" placeholder="np. 140–155">
         </div>
       </div>
       <div class="field">
         <label>Opis / instrukcje dla zawodnika</label>
-        <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
+        <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka."></textarea>
       </div>
       <div class="field">
         <label>Status</label>
@@ -788,18 +789,128 @@ window.deleteTraining = async function(e, ds, idx) {
   notify('Trening usunięty');
 };
 
-if (_urlRole === 'athlete') {
-  // Zawodnik — ukryj przyciski dodawania i usuwania
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.add-training-btn, .card-delete, .btn-primary').forEach(el => el.style.display = 'none');
-  });
-  // Override openModal żeby nie działał dla zawodnika
-  window._origOpenModal = window.openModal;
-  window.openModal = function(ds, idx) {
-    if (idx !== null && idx !== undefined) window._origOpenModal(ds, idx); // tylko podgląd istniejącego
-    // nie otwieraj dla nowych
-  };
+// ── AUTO PRZELICZANIE CZAS ↔ TEMPO ───────────────────────────────
+function kalAutoColon(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
+  el.value = v.slice(0,7);
 }
+function kalAutoColonPace(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
+  el.value = v.slice(0,5);
+}
+function kalCalcPace() {
+  const dist = parseFloat(document.getElementById('f-dist').value);
+  const timeVal = document.getElementById('f-time').value;
+  const lbl = document.getElementById('kal-pace-auto');
+  if (!dist || !timeVal || timeVal.length < 4) { if(lbl) lbl.textContent=''; return; }
+  const parts = timeVal.split(':').map(Number);
+  let secs = parts.length===3 ? parts[0]*3600+parts[1]*60+parts[2] : parts.length===2 ? parts[0]*60+parts[1] : 0;
+  if (!secs) { if(lbl) lbl.textContent=''; return; }
+  const pps = secs / dist;
+  const pm = Math.floor(pps/60);
+  const ps = String(Math.round(pps%60)).padStart(2,'0');
+  document.getElementById('f-pace').value = pm+':'+ps;
+  if(lbl) lbl.textContent = '← auto';
+}
+function kalCalcTime() {
+  const dist = parseFloat(document.getElementById('f-dist').value);
+  const paceVal = document.getElementById('f-pace').value;
+  const lbl = document.getElementById('kal-time-auto');
+  if (!dist || !paceVal || paceVal.length < 3) { if(lbl) lbl.textContent=''; return; }
+  const parts = paceVal.split(':').map(Number);
+  if (parts.length < 2) { if(lbl) lbl.textContent=''; return; }
+  const paceSecs = parts[0]*60+(parts[1]||0);
+  const totalSecs = Math.round(paceSecs * dist);
+  const h = Math.floor(totalSecs/3600);
+  const m = String(Math.floor((totalSecs%3600)/60)).padStart(2,'0');
+  const s = String(totalSecs%60).padStart(2,'0');
+  document.getElementById('f-time').value = h+':'+m+':'+s;
+  if(lbl) lbl.textContent = '← auto';
+}
+
+if (_urlRole === 'athlete') {
+  // Zawodnik — ukryj przycisk dodawania nowych treningów i usuwania
+  // ale pozwól na podgląd istniejących (kliknięcie w kafelek)
+  setTimeout(() => {
+    document.querySelectorAll('.add-training-btn, .card-delete').forEach(el => el.style.display = 'none');
+    const addBtn = document.querySelector('.btn-primary');
+    if (addBtn) addBtn.style.display = 'none';
+    // Ukryj status i opis w modalu (zawodnik tylko przegląda)
+  }, 100);
+}
+</script>
+<!-- MODAL CEL STARTOWY -->
+<div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);width:420px;max-width:92vw;padding:24px;border-radius:4px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:4px;">🏁 Cel startowy</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace;">Wpisz swój cel — pojawi się w kalendarzu jako oznaczony dzień.</div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>Nazwa biegu</label>
+      <input type="text" id="goal-name" placeholder="np. Maraton Warszawski" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;">
+    </div>
+    <div class="field" style="margin-bottom:20px;">
+      <label>Data startu</label>
+      <input type="date" id="goal-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeGoalModal()" style="flex:1;">Anuluj</button>
+      <button class="btn btn-primary" onclick="saveGoal()" style="flex:2;">Zapisz cel →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openGoalModal() {
+  // Wypełnij istniejącymi danymi jeśli są
+  if (window._raceDates && window._raceDates.length > 0) {
+    const r = window._raceDates[0];
+    document.getElementById('goal-name').value = r.name || '';
+    document.getElementById('goal-date').value = r.date || '';
+  }
+  document.getElementById('goal-modal').style.display = 'flex';
+}
+function closeGoalModal() {
+  document.getElementById('goal-modal').style.display = 'none';
+}
+async function saveGoal() {
+  const name = document.getElementById('goal-name').value.trim();
+  const date = document.getElementById('goal-date').value;
+  if (!name || !date) { notify('Wypełnij nazwę i datę'); return; }
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) return;
+
+  if (_urlRole === 'athlete') {
+    // Zawodnik — zapisz do swojego rekordu athletes
+    const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    if (!ath) { notify('Brak profilu zawodnika'); return; }
+    const { error } = await _sbKal.from('athletes').update({ goal: name, target_date: date }).eq('id', ath.id);
+    if (error) { notify('Błąd: ' + error.message); return; }
+  } else {
+    // Trener — zapisz do wybranego zawodnika
+    if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy'); return; }
+    const { error } = await _sbKal.from('athletes').update({ goal: name, target_date: date }).eq('id', _calSelectedAthleteId);
+    if (error) { notify('Błąd: ' + error.message); return; }
+  }
+
+  // Odśwież daty startów
+  window._raceDates = [{ date, name }];
+  closeGoalModal();
+  render();
+  notify('Cel startowy zapisany ✓');
+}
+
+// Pokaż przycisk celu startowego dla zawodnika i trenera
+setTimeout(() => {
+  const goalBtn = document.getElementById('goal-btn');
+  if (goalBtn) goalBtn.style.display = 'block';
+  if (_urlRole === 'athlete') {
+    const addBtn = document.getElementById('add-training-btn');
+    if (addBtn) addBtn.style.display = 'none';
+  }
+}, 200);
 </script>
 </body>
 </html>
