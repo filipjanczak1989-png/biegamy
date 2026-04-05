@@ -876,12 +876,15 @@ async function loadWeekPlan() {
   weekStart.setHours(0,0,0,0);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
+  // Używaj stringa daty żeby uniknąć problemów z timezone
+  const weekStartStr = weekStart.toISOString().split('T')[0];
+  const weekEndStr = weekEnd.toISOString().split('T')[0];
 
   const { data, error } = await _sb.from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
-    .gte('date', weekStart.toISOString().split('T')[0])
-    .lte('date', weekEnd.toISOString().split('T')[0])
+    .gte('date', weekStartStr)
+    .lte('date', weekEndStr)
     .order('date');
 
   if (error || !data || data.length === 0) {

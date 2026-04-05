@@ -709,15 +709,27 @@ function openTemplateModal() {
     sel.appendChild(opt);
   });
   
-  // Renderuj dni
+  // Renderuj dni — edytowalne pola
   const list = document.getElementById('tpl-days-list');
   list.innerHTML = WEEK_TEMPLATE.map((d, i) => `
-    <div class="tpl-day">
-      <div class="tpl-day-name">${d.day}</div>
-      <div style="flex:1;">
-        <div class="tpl-day-type">${d.type}${d.dist > 0 ? ' · ' + d.dist + ' km' : ''}</div>
-        ${d.pace ? `<div class="tpl-day-detail">${d.pace}/km · ${d.hr}</div>` : ''}
+    <div class="tpl-day" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="tpl-day-name" style="min-width:28px;">${d.day}</div>
+        <select id="tpl-type-${i}" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+          <option ${d.type==='Odpoczynek'?'selected':''}>Odpoczynek</option>
+          <option ${d.type==='Bieg spokojny'?'selected':''}>Bieg spokojny</option>
+          <option ${d.type==='Interwały'?'selected':''}>Interwały</option>
+          <option ${d.type==='Tempo'?'selected':''}>Tempo</option>
+          <option ${d.type==='Wybieganie'?'selected':''}>Wybieganie</option>
+          <option ${d.type==='Regeneracja'?'selected':''}>Regeneracja</option>
+        </select>
+        <input id="tpl-dist-${i}" type="number" min="0" step="0.5" value="${d.dist||''}" placeholder="km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;width:60px;">
       </div>
+      <div style="display:flex;gap:6px;padding-left:38px;">
+        <input id="tpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="tempo np. 5:30" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+        <input id="tpl-hr-${i}" type="text" value="${d.hr||''}" placeholder="tętno np. 140-155" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+      </div>
+      <textarea id="tpl-desc-${i}" placeholder="Opis treningu..." style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;resize:none;height:48px;line-height:1.5;margin-left:38px;">${d.desc||''}</textarea>
     </div>
   `).join('');
   
@@ -743,7 +755,13 @@ async function sendTemplate() {
   const errors = [];
   
   for (let i = 0; i < WEEK_TEMPLATE.length; i++) {
-    const d = WEEK_TEMPLATE[i];
+    // Czytaj z edytowalnych pól
+    const type = document.getElementById(`tpl-type-${i}`)?.value || WEEK_TEMPLATE[i].type;
+    const dist = parseFloat(document.getElementById(`tpl-dist-${i}`)?.value) || 0;
+    const pace = document.getElementById(`tpl-pace-${i}`)?.value.trim() || '';
+    const hr = document.getElementById(`tpl-hr-${i}`)?.value.trim() || '';
+    const desc = document.getElementById(`tpl-desc-${i}`)?.value.trim() || '';
+
     const date = new Date(weekStart);
     date.setDate(weekStart.getDate() + i);
     const dateStr = date.toISOString().split('T')[0];
@@ -758,12 +776,12 @@ async function sendTemplate() {
       athlete_id: athleteId,
       coach_id: _coachId,
       date: dateStr,
-      type: d.type,
-      distance_km: d.dist || null,
-      duration_min: d.time || null,
-      pace: d.pace || null,
-      heart_rate: d.hr || null,
-      description: d.desc || null,
+      type: type,
+      distance_km: dist || null,
+      duration_min: null,
+      pace: pace || null,
+      heart_rate: hr || null,
+      description: desc || null,
       status: 'planned'
     });
     
