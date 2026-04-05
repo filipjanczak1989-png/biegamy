@@ -260,9 +260,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <div class="nav-lbl">Wiadomości</div>
   </a>
-  <a class="nav-it" href="#" onclick="showSection('profile');return false;" id="nav-profile">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    <div class="nav-lbl">Profil</div>
+  <a class="nav-it" href="#" onclick="showSection('stats');return false;" id="nav-stats">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <div class="nav-lbl">Statystyki</div>
   </a>
 </nav>
 
@@ -359,12 +359,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <!-- DYSTANS + CZAS -->
       <div class="f-row">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcPaceAuto()"></div>
-        <div class="field"><label>Czas (np. 1:05:00)</label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
+        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
       </div>
 
       <!-- TEMPO + TĘTNO -->
       <div class="f-row">
-        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="6:30" maxlength="5" oninput="autoColonPace(this)"></div>
+        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="6:30" maxlength="5" oninput="autoColonPace(this);calcTimeAuto()"></div>
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
@@ -527,9 +527,23 @@ function calcPaceAuto() {
   const pps = secs / dist;
   const pm = Math.floor(pps/60);
   const ps = String(Math.round(pps%60)).padStart(2,'0');
-  const paceStr = pm+':'+ps;
-  document.getElementById('l-pace').value = paceStr;
+  document.getElementById('l-pace').value = pm+':'+ps;
   if(lbl) lbl.textContent = '← auto';
+}
+function calcTimeAuto() {
+  const dist = parseFloat(document.getElementById('l-dist').value);
+  const paceVal = document.getElementById('l-pace').value;
+  const timeLbl = document.getElementById('time-auto');
+  if (!dist || !paceVal || paceVal.length < 3) { if(timeLbl) timeLbl.textContent=''; return; }
+  const parts = paceVal.split(':').map(Number);
+  if (parts.length < 2) { if(timeLbl) timeLbl.textContent=''; return; }
+  const paceSecs = parts[0]*60 + (parts[1]||0);
+  const totalSecs = Math.round(paceSecs * dist);
+  const h = Math.floor(totalSecs/3600);
+  const m = String(Math.floor((totalSecs%3600)/60)).padStart(2,'0');
+  const s = String(totalSecs%60).padStart(2,'0');
+  document.getElementById('l-time').value = h+':'+m+':'+s;
+  if(timeLbl) timeLbl.textContent = '← auto';
 }
 function showSection(name) {
   // Reset nav
@@ -543,6 +557,7 @@ function showSection(name) {
   // Ukryj sekcje
   document.getElementById('section-msgs').style.display = 'none';
   document.getElementById('section-profile').style.display = 'none';
+  document.getElementById('section-stats').style.display = 'none';
 
   if (name === 'home') {
     // Force-pokaż wszystkie główne elementy
@@ -567,9 +582,15 @@ function showSection(name) {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('section-profile').style.display = 'block';
-    const n = document.getElementById('nav-profile');
-    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
     loadProfile();
+
+  } else if (name === 'stats') {
+    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
+    document.getElementById('section-stats').style.display = 'block';
+    const n = document.getElementById('nav-stats');
+    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
+    loadStats();
   }
 }
 
@@ -951,7 +972,6 @@ async function loadLogs() {
 async function updateWeekProgress() {
   if (!_athleteId) return;
   
-  // Pobierz treningi z tego tygodnia
   const now = new Date();
   const day = now.getDay();
   const diff = (day === 0) ? -6 : 1 - day;
@@ -963,23 +983,24 @@ async function updateWeekProgress() {
   weekEnd.setHours(23,59,59,999);
 
   const { data: trainingsThisWeek } = await _sb.from('trainings')
-    .select('*')
-    .eq('athlete_id', _athleteId)
+    .select('*').eq('athlete_id', _athleteId)
     .gte('date', weekStart.toISOString().split('T')[0])
     .lte('date', weekEnd.toISOString().split('T')[0]);
 
   const { data: logsThisWeek } = await _sb.from('training_logs')
-    .select('distance_km')
-    .eq('athlete_id', _athleteId)
+    .select('distance_km').eq('athlete_id', _athleteId)
     .gte('logged_at', weekStart.toISOString())
     .lte('logged_at', weekEnd.toISOString());
 
   const planned = (trainingsThisWeek||[]).filter(t => t.type !== 'Odpoczynek').length;
-  const done = (trainingsThisWeek||[]).filter(t => t.status === 'done').length;
+  // Zawodnik zaliczył trening jeśli status=done LUB wpisał log
+  const doneByStatus = (trainingsThisWeek||[]).filter(t => t.status === 'done').length;
+  const logsCount = (logsThisWeek||[]).length;
+  const done = Math.max(doneByStatus, Math.min(logsCount, planned));
   const totalKm = (logsThisWeek||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
   const plannedKm = (trainingsThisWeek||[]).reduce((s,t) => s + (parseFloat(t.distance_km)||0), 0);
 
-  const pct = planned > 0 ? Math.round((done / planned) * 100) : 0;
+  const pct = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : 0;
   const circumference = 138.2;
   const offset = circumference - (circumference * pct / 100);
 
@@ -1058,7 +1079,8 @@ async function loadCoachMessage() {
 }
 
 function renderLogsDb(data) {
-  const clsMap={Spokojny:'spokojny',Interwały:'interwaly',Tempo:'tempo',Wybieganie:'wybieganie',Regeneracja:'regeneracja'};
+  const clsMap={'Spokojny':'spokojny','Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo','Wybieganie':'wybieganie','Regeneracja':'regeneracja'};
+  const displayName={'Spokojny':'Spokojny','Bieg spokojny':'Spokojny','Interwały':'Interwały','Tempo':'Tempo','Wybieganie':'Wybieganie','Regeneracja':'Regeneracja'};
   const svgIcons = {
     Spokojny: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.8"><circle cx="12" cy="5" r="2"/><path d="M12 7v5l3 3"/><path d="M9 12H5l-2 4"/><path d="M15 12h4l2 4"/><path d="M9 17l1 4"/><path d="M15 17l-1 4"/></svg>`,
     Interwały: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="1.8"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
@@ -1067,8 +1089,9 @@ function renderLogsDb(data) {
     Regeneracja: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
   };
   document.getElementById('log-list').innerHTML = data.map(l => {
-    const type = l.training_type || 'Trening';
-    const cls = clsMap[type] || 'spokojny';
+    const rawType = l.training_type || 'Spokojny';
+    const type = displayName[rawType] || rawType;
+    const cls = clsMap[rawType] || 'spokojny';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : null;
     const det = [l.duration, l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥ '+l.heart_rate : ''].filter(Boolean).join('  ·  ') || '—';
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
@@ -1174,9 +1197,108 @@ document.addEventListener('click', e => {
   }
 });
 
+async function loadStats() {
+  if (!_athleteId) return;
+  const el = document.getElementById('stats-content');
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;text-align:center;">Ładowanie...</div>';
+
+  // Ostatnie 30 dni
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+  const since7 = new Date(); since7.setDate(since7.getDate() - 7);
+
+  const { data: logs30 } = await _sb.from('training_logs').select('*')
+    .eq('athlete_id', _athleteId).gte('logged_at', since30.toISOString()).order('logged_at', {ascending:false});
+  const { data: logs7 } = await _sb.from('training_logs').select('distance_km, training_type')
+    .eq('athlete_id', _athleteId).gte('logged_at', since7.toISOString());
+
+  const km30 = (logs30||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+  const km7 = (logs7||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+  const sessions30 = (logs30||[]).length;
+
+  // Typ treningu breakdown
+  const typeCount = {};
+  (logs30||[]).forEach(l => { const t = l.training_type||'Inne'; typeCount[t] = (typeCount[t]||0) + 1; });
+  const typeColors = {'Spokojny':'var(--blue)','Bieg spokojny':'var(--blue)','Interwały':'var(--yellow)','Tempo':'var(--accent)','Wybieganie':'var(--purple)','Regeneracja':'var(--green)'};
+
+  // Najlepsze tempo
+  const paces = (logs30||[]).filter(l => l.pace).map(l => {
+    const p = l.pace.split(':').map(Number);
+    return p.length === 2 ? p[0]*60+p[1] : null;
+  }).filter(Boolean);
+  const bestPaceSecs = paces.length ? Math.min(...paces) : null;
+  const bestPace = bestPaceSecs ? Math.floor(bestPaceSecs/60)+':'+ String(bestPaceSecs%60).padStart(2,'0') : '—';
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;">${km7.toFixed(1)}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">km ten tydzień</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;">${km30.toFixed(1)}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">km ostatnie 30 dni</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green);line-height:1;">${sessions30}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">sesji / 30 dni</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--blue);line-height:1;">${bestPace}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">najlepsze tempo /km</div>
+      </div>
+    </div>
+
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
+      ${Object.keys(typeCount).length === 0 ? '<div style="color:var(--muted);font-size:12px;text-align:center;">Brak danych</div>' :
+        Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type, count]) => {
+          const pct = Math.round(count/sessions30*100);
+          const color = typeColors[type] || 'var(--muted)';
+          return `<div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <div style="font-size:12px;">${type}</div>
+              <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${count}x · ${pct}%</div>
+            </div>
+            <div style="background:var(--card2);border-radius:4px;height:4px;">
+              <div style="background:${color};height:4px;border-radius:4px;width:${pct}%;transition:width 0.5s;"></div>
+            </div>
+          </div>`;
+        }).join('')
+      }
+    </div>
+
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Ostatnie treningi</div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      ${(logs30||[]).slice(0,5).map(l => {
+        const type = l.training_type || 'Trening';
+        const color = typeColors[type] || 'var(--muted)';
+        const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+        const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
+        const pace = l.pace ? l.pace + '/km' : '';
+        return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+          <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${type}</div>
+            <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;">${dist}</div>
+            ${pace ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
 init();
 setTimeout(() => initAuth(), 100);
 </script>
+<!-- SEKCJA: STATYSTYKI -->
+<div id="section-stats" style="display:none;padding:0 20px 100px;">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Moje statystyki</div>
+  <div id="stats-content"></div>
+</div>
+
 <!-- ONBOARDING MODAL -->
 <div id="onboarding-modal">
   <div class="ob-box">

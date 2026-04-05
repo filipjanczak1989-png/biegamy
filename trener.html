@@ -1119,26 +1119,6 @@ init();
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </div>
   </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;">Supabase — e-mail</div>
-    <div style="padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.7;">
-      Żeby maile wychodziły z <span style="color:var(--fg);font-family:'DM Mono',monospace;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="6709081502170b1e27050e0200060a1e49151209">[email&#160;protected]</a></span> wejdź w:<br>
-      <span style="color:var(--accent);">Supabase → Authentication → Settings → SMTP</span><br>
-      i podaj dane Resend.com. W sekcji "Email Templates" możesz dodać logo biegamy.run.
-    </div>
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;">RLS — zawodnicy widzą plan</div>
-    <div style="padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.7;">
-      Żeby zawodnik widział plan wysłany z szablonu, uruchom w Supabase → SQL Editor:<br>
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);word-break:break-all;">
-        CREATE POLICY "athlete_view_own_trainings" ON trainings FOR SELECT USING (athlete_id IN (SELECT id FROM athletes WHERE user_id = auth.uid()));
-      </div>
-      <button onclick="navigator.clipboard.writeText(\"CREATE POLICY \\\"athlete_view_own_trainings\\\" ON trainings FOR SELECT USING (athlete_id IN (SELECT id FROM athletes WHERE user_id = auth.uid()));\").then(()=>showToast('Skopiowane ✓'))" style="margin-top:8px;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.1em;">📋 Kopiuj SQL</button>
-    </div>
-  </div>
 </div>
 
 <!-- ADD ATHLETE MODAL -->
