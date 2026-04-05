@@ -247,7 +247,9 @@ nav{
     <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
   </div>
   <div class="nav-right">
-    
+    <select id="cal-athlete-sel" class="athlete-select" style="display:none;">
+      <option value="">— wszyscy zawodnicy —</option>
+    </select>
     <button class="btn btn-primary" onclick="openModal(null)">+ Nowy trening</button>
   </div>
 </nav>
@@ -343,22 +345,7 @@ const typeColors = {
   'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek'
 };
 
-let trainings = {
-  '2026-03-30':[{type:'Bieg spokojny',dist:10,time:62,pace:'6:12',hr:'140-150',desc:'Spokojny bieg na rozluźnienie po weekendzie. Trzymaj niskie tętno.',status:'done'}],
-  '2026-03-31':[{type:'Interwały',dist:8,time:46,pace:'4:20',hr:'170-180',desc:'8×400m z 90 sek odpoczynku. Rozgrzewka 2 km, schłodzenie 1 km.',status:'done'}],
-  '2026-04-01':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Pełny odpoczynek. Możesz zrobić 20 min rozciągania.',status:'done'}],
-  '2026-04-02':[{type:'Tempo',dist:14,time:76,pace:'5:25',hr:'155-165',desc:'14 km w tempie maratońskim. Pierwsze 3 km spokojnie, środkowe 8 km w tempie, ostatnie 3 km spokojnie.',status:'done'}],
-  '2026-04-03':[{type:'Regeneracja',dist:6,time:38,pace:'6:20',hr:'130-140',desc:'Bardzo spokojny trucht. Cel to regeneracja, nie trening.',status:'done'}],
-  '2026-04-04':[{type:'Wybieganie',dist:22,time:132,pace:'6:00',hr:'140-150',desc:'Długie wybieganie. Spokojne tempo przez cały czas. Zjedz żel po 15 km.',status:'done'}],
-  '2026-04-05':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'done'}],
-  '2026-04-06':[{type:'Bieg spokojny',dist:10,time:60,pace:'6:00',hr:'140-150',desc:'Spokojny bieg regeneracyjny po długim wybiegu.',status:'planned'}],
-  '2026-04-07':[{type:'Interwały',dist:10,time:55,pace:'4:15',hr:'175-185',desc:'10×800m, przerwy 90 sek. Ostatnie 2 powtórzenia mocniej.',status:'planned'}],
-  '2026-04-08':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'planned'}],
-  '2026-04-09':[{type:'Tempo',dist:16,time:86,pace:'5:22',hr:'158-168',desc:'16 km w tempie półmaratonu. Testujemy nowe tempo.',status:'planned'}],
-  '2026-04-10':[{type:'Bieg spokojny',dist:8,time:50,pace:'6:15',hr:'135-145',desc:'Lekki bieg. Schłodzenie po ciężkim tygodniu.',status:'planned'}],
-  '2026-04-11':[{type:'Wybieganie',dist:26,time:158,pace:'6:05',hr:'142-152',desc:'Najdłuższy bieg w tym bloku. Jedz żele co 45 min.',status:'planned'}],
-  '2026-04-12':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'planned'}],
-};
+let trainings = {};  // dane ładowane z bazy — brak hardcode
 
 const monthNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
 const dayNames = ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
@@ -612,6 +599,7 @@ function goBack() {
 }
 
 document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';
+document.getElementById('nav-logo-back').href = _backUrl;
 
 // Pobierz daty startów
 window._raceDates = [];
@@ -638,6 +626,13 @@ async function loadRaceDates() {
 
 loadRaceDates();
 
+// Pokaż selector zawodników dla trenera
+if (_urlRole === 'coach') {
+  const sel = document.getElementById('cal-athlete-sel');
+  if (sel) sel.style.display = 'block';
+  loadAthletesForCalendar();
+}
+
 // ── LOAD TRAININGS FROM DB ────────────────────────────────────────
 async function loadTrainingsFromDB() {
   const { data: { session } } = await _sbKal.auth.getSession();
@@ -652,19 +647,23 @@ async function loadTrainingsFromDB() {
     if (!ath) return;
     query = query.eq('athlete_id', ath.id);
   } else {
-    // Trener — treningi wszystkich swoich zawodników
-    query = query.eq('coach_id', session.user.id);
+    // Trener — treningi wybranego zawodnika lub wszystkich
+    if (_calSelectedAthleteId) {
+      query = query.eq('athlete_id', _calSelectedAthleteId);
+    } else {
+      query = query.eq('coach_id', session.user.id);
+    }
   }
 
   const { data, error } = await query.order('date');
   if (error || !data) return;
 
-  // Wyczyść i załaduj do trainings{}
-  // Zachowaj istniejące dane (nie czyść hardcode żeby demo działało)
+  // Wyczyść hardcoded treningi i załaduj z bazy
+  Object.keys(trainings).forEach(k => delete trainings[k]);
+
   data.forEach(t => {
     const ds = t.date;
     if (!trainings[ds]) trainings[ds] = [];
-    // Sprawdź czy już nie ma tego treningu
     const exists = trainings[ds].some(x => x._id === t.id);
     if (!exists) {
       trainings[ds].push({
@@ -685,6 +684,26 @@ async function loadTrainingsFromDB() {
 
 loadTrainingsFromDB();
 
+// ── ATHLETE SELECT dla trenera ────────────────────────────────────
+let _calAthletes = [];
+let _calSelectedAthleteId = null;
+
+async function loadAthletesForCalendar() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session || _urlRole === 'athlete') return;
+  const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
+  _calAthletes = data || [];
+  const sel = document.getElementById('cal-athlete-sel');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— wszyscy zawodnicy —</option>' +
+    _calAthletes.map(a => `<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
+  sel.addEventListener('change', () => {
+    _calSelectedAthleteId = sel.value || null;
+    // Przeładuj treningi dla wybranego zawodnika
+    loadTrainingsFromDB();
+  });
+}
+
 // ── SAVE TRAINING TO DB (override saveTraining) ───────────────────
 const _origSaveTraining = saveTraining;
 window.saveTraining = async function() {
@@ -699,10 +718,12 @@ window.saveTraining = async function() {
   const status = document.getElementById('f-status').value;
 
   if (!editingDate) { notify('Brak daty'); return; }
+  if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy powyżej'); return; }
 
-  // Zapisz do Supabase
+  // Zapisz do Supabase Z athlete_id
   const { error } = await _sbKal.from('trainings').insert({
     coach_id: session.user.id,
+    athlete_id: _calSelectedAthleteId,
     date: editingDate,
     type: selectedType,
     distance_km: dist,

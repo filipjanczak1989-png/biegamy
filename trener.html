@@ -228,10 +228,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <nav class="bottom-nav">
   <a class="ni on" href="#" id="coach-nav-home" onclick="showCoachSection('home');return false;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)" id="nav-home-lbl">Zawodnicy</div></a>
-  <a class="ni" href="kalendarz.html?role=coach" target="_blank" id="coach-nav-kal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
-  <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2">Analityka</div></a>
+  <a class="ni" href="kalendarz.html?role=coach" id="coach-nav-kal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Kalendarz</div></a>
+  <a class="ni" href="#" onclick="showCoachSection('analytics');return false;" id="coach-nav-analytics"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2" id="nav-analytics-lbl">Analityka</div></a>
   <a class="ni" href="#" onclick="showCoachSection('msgs');return false;" id="coach-nav-msgs" style="position:relative;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2" id="nav-msgs-lbl">Wiadomości</div></a>
-  <a class="ni" href="#"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg><div class="nl2">Ustawienia</div></a>
+  <a class="ni" href="#" onclick="showCoachSection('settings');return false;" id="coach-nav-settings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg><div class="nl2" id="nav-settings-lbl">Ustawienia</div></a>
 </nav>
 
 <div class="toast" id="t-el"></div>
@@ -376,6 +376,8 @@ async function initAuth() {
   document.getElementById('av-btn').textContent = initials;
   document.getElementById('menu-email').textContent = session.user.email;
   document.querySelector('.topbar-name').innerHTML = 'Trener <span>' + name.split(' ')[0] + '</span>';
+  const settingsEmail = document.getElementById('settings-email');
+  if (settingsEmail) settingsEmail.textContent = session.user.email;
   await loadAthletes();
 }
 
@@ -784,9 +786,11 @@ setTimeout(async () => { await initAuth(); await checkUnreadMessages(); setInter
 let _currentChatAthleteId = null;
 
 function showCoachSection(name) {
-  // Reset
+  // Reset — schowaj wszystko
   document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = '');
   document.getElementById('msgs-panel-section').style.display = 'none';
+  document.getElementById('analytics-section').style.display = 'none';
+  document.getElementById('settings-section').style.display = 'none';
   // Reset nav
   document.querySelectorAll('.ni svg').forEach(s => s.setAttribute('stroke','var(--muted)'));
   document.querySelectorAll('.nl2').forEach(l => l.style.color = '');
@@ -801,6 +805,20 @@ function showCoachSection(name) {
     const n = document.getElementById('coach-nav-msgs');
     if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
     loadCoachMsgsList();
+  } else if (name === 'analytics') {
+    document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
+    document.getElementById('msgs-panel-section').style.display = 'none';
+    document.getElementById('analytics-section').style.display = 'block';
+    const n = document.getElementById('coach-nav-analytics');
+    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-analytics-lbl').style.color='var(--accent)'; }
+    loadAnalytics();
+  } else if (name === 'settings') {
+    document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
+    document.getElementById('msgs-panel-section').style.display = 'none';
+    document.getElementById('analytics-section').style.display = 'none';
+    document.getElementById('settings-section').style.display = 'block';
+    const n = document.getElementById('coach-nav-settings');
+    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-settings-lbl').style.color='var(--accent)'; }
   }
 }
 
@@ -936,6 +954,33 @@ async function sendCoachMessage() {
   await loadCoachChat();
 }
 
+async function loadAnalytics() {
+  if (!_coachId) return;
+  const el = document.getElementById('analytics-content');
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;">Ładowanie...</div>';
+  const { data: athletes } = await _sb.from('athletes').select('id,full_name,goal').eq('coach_id', _coachId);
+  if (!athletes || athletes.length === 0) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;">Brak zawodników.</div>'; return; }
+  const since = new Date(); since.setDate(since.getDate() - 30);
+  const stats = await Promise.all(athletes.map(async a => {
+    const { data: logs } = await _sb.from('training_logs').select('distance_km').eq('athlete_id', a.id).gte('logged_at', since.toISOString());
+    const totalKm = (logs||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+    return { ...a, totalKm: totalKm.toFixed(1), sessions: (logs||[]).length };
+  }));
+  el.innerHTML = stats.map(a => {
+    const name = a.full_name || 'Zawodnik';
+    const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--fg);flex-shrink:0;">${initials}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:500;margin-bottom:2px;">${name}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${a.goal||'—'}</div></div>
+      <div style="text-align:right;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--accent);">${a.totalKm}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">km / 30 dni</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${a.sessions} sesji</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 init();
 </script>
 
@@ -981,6 +1026,51 @@ init();
     
     <button class="tpl-btn" onclick="sendTemplate()">Wyślij plan →</button>
     <button class="tpl-btn-ghost" onclick="closeTemplateModal()">Anuluj</button>
+  </div>
+</div>
+
+<!-- SEKCJA ANALITYKI -->
+<div id="analytics-section" style="display:none;padding:0 20px 100px;">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Analityka — ostatnie 30 dni</div>
+  <div id="analytics-content"></div>
+</div>
+
+<!-- SEKCJA USTAWIEŃ -->
+<div id="settings-section" style="display:none;padding:0 20px 100px;">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Ustawienia</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;">Konto</div>
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:13px;">E-mail</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="settings-email">—</div>
+      </div>
+    </div>
+    <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="logout()">
+      <div style="font-size:13px;color:var(--red);">Wyloguj się</div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;">Supabase — e-mail</div>
+    <div style="padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.7;">
+      Żeby maile wychodziły z <span style="color:var(--fg);font-family:'DM Mono',monospace;">noreply@biegamy.run</span> wejdź w:<br>
+      <span style="color:var(--accent);">Supabase → Authentication → Settings → SMTP</span><br>
+      i podaj dane Resend.com. W sekcji "Email Templates" możesz dodać logo biegamy.run.
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);font-size:13px;font-weight:500;">RLS — zawodnicy widzą plan</div>
+    <div style="padding:14px 16px;font-size:12px;color:var(--muted);line-height:1.7;">
+      Żeby zawodnik widział plan wysłany z szablonu, uruchom w Supabase → SQL Editor:<br>
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-top:8px;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);word-break:break-all;">
+        CREATE POLICY "athlete_view_own_trainings" ON trainings FOR SELECT USING (athlete_id IN (SELECT id FROM athletes WHERE user_id = auth.uid()));
+      </div>
+      <button onclick="navigator.clipboard.writeText(\"CREATE POLICY \\\"athlete_view_own_trainings\\\" ON trainings FOR SELECT USING (athlete_id IN (SELECT id FROM athletes WHERE user_id = auth.uid()));\").then(()=>showToast('Skopiowane ✓'))" style="margin-top:8px;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.1em;">📋 Kopiuj SQL</button>
+    </div>
   </div>
 </div>
 
@@ -1036,6 +1126,56 @@ init();
         <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
         <button onclick="saveAthlete()" style="flex:2;background:#d4501a;color:#f0ede8;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz zawodnika →</button>
       </div>
+    </div>
+  </div>
+</div>
+<!-- SEKCJA ANALITYKI -->
+<div id="analytics-section" style="display:none;padding:0 20px 100px;">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;padding-top:4px;">Analityka zawodników</div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Ostatnie 30 dni</div>
+  <div id="analytics-content"></div>
+</div>
+
+<!-- SEKCJA USTAWIEŃ -->
+<div id="settings-section" style="display:none;padding:0 20px 100px;">
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Ustawienia</div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:500;margin-bottom:2px;">Konto</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="settings-email">—</div>
+    </div>
+    <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:13px;">Wyloguj się</div>
+      <button onclick="logout()" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:var(--red);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:7px 14px;border-radius:8px;cursor:pointer;">Wyloguj →</button>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
+      <div style="font-size:12px;font-weight:500;">Szablon planu tygodniowego</div>
+    </div>
+    <div style="padding:14px 16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Twój domyślny plan który wysyłasz zawodnikom:</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Pn</span><span>Odpoczynek</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Wt</span><span>Bieg spokojny · 10 km</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Śr</span><span>Interwały · 8 km</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Cz</span><span>Wybieganie · 12 km</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Pt</span><span>Odpoczynek</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Sb</span><span>Tempo · 14 km</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Nd</span><span>Długie wybieganie · 22 km</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+    <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div style="font-size:12px;font-weight:500;margin-bottom:2px;">Kalendarz</div>
+        <div style="font-size:11px;color:var(--muted);">Pełny widok tygodniowy</div>
+      </div>
+      <a href="kalendarz.html?role=coach" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:7px 14px;border-radius:8px;text-decoration:none;">Otwórz →</a>
     </div>
   </div>
 </div>
