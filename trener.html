@@ -702,13 +702,9 @@ async function saveAthlete() {
 const WEEK_TEMPLATE = [{"day": "Pn", "dayFull": "Poniedzia\u0142ek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzie\u0144 wolny. Odpoczynek lub lekkie rozci\u0105ganie."}, {"day": "Wt", "dayFull": "Wtorek", "type": "Bieg spokojny", "dist": 10, "time": 65, "pace": "6:30", "hr": "130-145", "desc": "Spokojny bieg regeneracyjny. Trzymaj niskie t\u0119tno przez ca\u0142y czas."}, {"day": "\u015ar", "dayFull": "\u015aroda", "type": "Interwa\u0142y", "dist": 8, "time": 50, "pace": "5:00", "hr": "165-180", "desc": "8\u00d7600m z 90 sek odpoczynku. Rozgrzewka 2 km, sch\u0142odzenie 1 km."}, {"day": "Cz", "dayFull": "Czwartek", "type": "Wybieganie", "dist": 12, "time": 75, "pace": "6:10", "hr": "135-150", "desc": "Spokojne rozbieganie. Cel: nogi pracuj\u0105, nie jeste\u015b zm\u0119czony."}, {"day": "Pt", "dayFull": "Pi\u0105tek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzie\u0144 wolny przed mocnym weekendem."}, {"day": "Sb", "dayFull": "Sobota", "type": "Tempo", "dist": 14, "time": 80, "pace": "5:25", "hr": "155-168", "desc": "Bieg progowy. Trzymaj sta\u0142e, wymagaj\u0105ce tempo przez ca\u0142y dystans."}, {"day": "Nd", "dayFull": "Niedziela", "type": "Wybieganie", "dist": 22, "time": 135, "pace": "6:00", "hr": "140-152", "desc": "D\u0142ugie wybieganie. Spokojne tempo, jedz \u017cele co 45 min od 10 km."}];
 
 function openTemplateModal() {
-  // Ustaw domyślny poniedziałek (najbliższy)
+  // Ustaw domyślnie dzisiaj
   const now = new Date();
-  const day = now.getDay();
-  const diff = (day === 0) ? 1 : (day === 1 ? 0 : 8 - day);
-  const nextMon = new Date(now);
-  nextMon.setDate(now.getDate() + diff);
-  document.getElementById('tpl-week-date').value = nextMon.toISOString().split('T')[0];
+  document.getElementById('tpl-week-date').value = now.toISOString().split('T')[0];
   
   // Wypełnij listę zawodników
   const sel = document.getElementById('tpl-athlete-select');
@@ -741,6 +737,7 @@ function openTemplateModal() {
         <input id="tpl-hr-${i}" type="text" value="${d.hr||''}" placeholder="tętno np. 140-155" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
       </div>
       <textarea id="tpl-desc-${i}" placeholder="Opis treningu..." style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;resize:none;height:48px;line-height:1.5;margin-left:38px;">${d.desc||''}</textarea>
+      <textarea id="tpl-extra-${i}" placeholder="Dodatkowe: np. 3×10 przysiadów, 10 min ćwiczeń oddechowych..." style="background:var(--card2);border:1px solid rgba(154,111,232,0.3);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;resize:none;height:40px;line-height:1.5;margin-left:38px;"></textarea>
     </div>
   `).join('');
   
@@ -772,6 +769,8 @@ async function sendTemplate() {
     const pace = document.getElementById(`tpl-pace-${i}`)?.value.trim() || '';
     const hr = document.getElementById(`tpl-hr-${i}`)?.value.trim() || '';
     const desc = document.getElementById(`tpl-desc-${i}`)?.value.trim() || '';
+    const extra = document.getElementById(`tpl-extra-${i}`)?.value.trim() || '';
+    const fullDesc = extra ? (desc ? desc + '\n\n💪 Dodatkowe: ' + extra : '💪 Dodatkowe: ' + extra) : desc;
 
     const date = new Date(weekStart);
     date.setDate(weekStart.getDate() + i);
@@ -792,7 +791,7 @@ async function sendTemplate() {
       duration_min: null,
       pace: pace || null,
       heart_rate: hr || null,
-      description: desc || null,
+      description: fullDesc || null,
       status: 'planned'
     });
     
@@ -1085,7 +1084,7 @@ init();
     </div>
     
     <div class="tpl-week-start">
-      <label>Tydzień od (poniedziałek)</label>
+      <label>Zacznij od dnia</label>
       <input type="date" id="tpl-week-date">
     </div>
 

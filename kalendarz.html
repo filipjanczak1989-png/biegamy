@@ -734,26 +734,58 @@ window.saveTraining = async function() {
   const status = document.getElementById('f-status').value;
 
   if (!editingDate) { notify('Brak daty'); return; }
-  if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy powyżej'); return; }
 
-  // Zapisz do Supabase Z athlete_id
+  // Edycja istniejącego treningu z bazy
+  const existing = editingIndex !== null && trainings[editingDate] && trainings[editingDate][editingIndex];
+  const dbId = existing?._id;
+
+  if (dbId) {
+    // UPDATE w Supabase
+    const { error } = await _sbKal.from('trainings').update({
+      type: selectedType,
+      distance_km: dist || null,
+      duration_min: time || null,
+      pace: pace || null,
+      heart_rate: hr || null,
+      description: desc || null,
+      status
+    }).eq('id', dbId);
+    if (error) { notify('Błąd edycji: ' + error.message); return; }
+    _origSaveTraining();
+    return;
+  }
+
+  // Nowy trening — INSERT
+  if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy powyżej'); return; }
   const { error } = await _sbKal.from('trainings').insert({
     coach_id: session.user.id,
     athlete_id: _calSelectedAthleteId,
     date: editingDate,
     type: selectedType,
-    distance_km: dist,
-    duration_min: time,
-    pace,
-    heart_rate: hr,
-    description: desc,
+    distance_km: dist || null,
+    duration_min: time || null,
+    pace: pace || null,
+    heart_rate: hr || null,
+    description: desc || null,
     status
   });
-
   if (error) { notify('Błąd zapisu: ' + error.message); return; }
-  
-  // Też zapisz lokalnie (dla UX)
   _origSaveTraining();
+};
+
+// Override deleteTraining żeby usuwał też z bazy
+const _origDeleteTraining = deleteTraining;
+window.deleteTraining = async function(e, ds, idx) {
+  e.stopPropagation();
+  if (!confirm('Usunąć ten trening?')) return;
+  const t = trainings[ds]?.[idx];
+  if (t?._id && typeof _sbKal !== 'undefined') {
+    await _sbKal.from('trainings').delete().eq('id', t._id);
+  }
+  trainings[ds].splice(idx, 1);
+  if (trainings[ds].length === 0) delete trainings[ds];
+  render();
+  notify('Trening usunięty');
 };
 
 if (_urlRole === 'athlete') {
