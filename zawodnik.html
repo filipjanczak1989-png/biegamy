@@ -868,23 +868,18 @@ async function saveOnboarding() {
 async function loadWeekPlan() {
   if (!_athleteId) return;
 
+  // Pokaż najbliższe 14 dni od dziś — zawodnik zawsze widzi nadchodzący plan
   const now = new Date();
-  const day = now.getDay();
-  const diff = (day === 0) ? -6 : 1 - day;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() + diff);
-  weekStart.setHours(0,0,0,0);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  // Używaj stringa daty żeby uniknąć problemów z timezone
-  const weekStartStr = weekStart.toISOString().split('T')[0];
-  const weekEndStr = weekEnd.toISOString().split('T')[0];
+  const todayStr = now.toISOString().split('T')[0];
+  const rangeEnd = new Date(now);
+  rangeEnd.setDate(now.getDate() + 13);
+  const rangeEndStr = rangeEnd.toISOString().split('T')[0];
 
   const { data, error } = await _sb.from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
-    .gte('date', weekStartStr)
-    .lte('date', weekEndStr)
+    .gte('date', todayStr)
+    .lte('date', rangeEndStr)
     .order('date');
 
   if (error || !data || data.length === 0) {
@@ -1041,18 +1036,22 @@ async function loadTodayTraining() {
 
 async function loadCoachMessage() {
   if (!_athleteId) return;
-  // Szukaj wiadomości trenera — na razie z tabeli athletes pole 'coach_message'
+  // Pobierz ostatnią wiadomość od trenera z tabeli messages
   const { data } = await _sb
-    .from('athletes')
-    .select('coach_message, coach_message_at, coach_id, profiles(full_name)')
-    .eq('id', _athleteId)
-    .single();
-  if (data?.coach_message) {
+    .from('messages')
+    .select('body, sent_at')
+    .eq('athlete_id', _athleteId)
+    .eq('sender', 'coach')
+    .order('sent_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (data?.body) {
     document.getElementById('coach-body').style.color = '';
     document.getElementById('coach-body').style.fontStyle = '';
-    document.getElementById('coach-body').innerHTML = data.coach_message;
-    if (data.coach_message_at) {
-      const d = new Date(data.coach_message_at);
+    document.getElementById('coach-body').innerHTML = data.body;
+    if (data.sent_at) {
+      const d = new Date(data.sent_at);
       document.getElementById('coach-ts').textContent = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     }
   }

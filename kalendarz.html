@@ -601,6 +601,22 @@ function goBack() {
 document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';
 document.getElementById('nav-logo-back').href = _backUrl;
 
+// Weryfikacja roli — zawodnik nie może wejść jako trener i odwrotnie
+async function verifyRole() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  const userRole = session.user.user_metadata?.role || 'athlete';
+  if (_urlRole === 'coach' && userRole !== 'coach') {
+    window.location.href = 'kalendarz.html?role=athlete';
+    return;
+  }
+  if (_urlRole === 'athlete' && userRole === 'coach') {
+    window.location.href = 'kalendarz.html?role=coach';
+    return;
+  }
+}
+verifyRole();
+
 // Pobierz daty startów
 window._raceDates = [];
 async function loadRaceDates() {
