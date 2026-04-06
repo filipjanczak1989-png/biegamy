@@ -83,52 +83,65 @@ nav{
   height:100%;
 }
 .week-header{
-  display:grid;grid-template-columns:repeat(7,1fr);
+  display:grid;grid-template-columns:60px repeat(7,1fr);
   border-bottom:1px solid var(--border);
   background:var(--surface);
 }
 .day-header{
-  padding:12px 16px;border-right:1px solid var(--border);
-  display:flex;flex-direction:column;gap:2px;
+  padding:8px 10px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:1px;
 }
 .day-header:last-child{border-right:none;}
 .day-header.today{background:rgba(212,80,26,0.06);}
-.day-name{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);}
-.day-num{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);}
+.day-name{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+.day-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);}
 .day-header.today .day-num{color:var(--accent);}
-.day-total{font-size:10px;color:var(--muted);}
+.day-total{font-size:9px;color:var(--muted);}
 .day-total span{color:var(--green);}
+
+/* TIME COLUMN */
+.time-col{
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+}
+.time-slot{
+  height:48px;border-bottom:1px solid rgba(42,42,50,0.5);
+  display:flex;align-items:flex-start;padding:3px 6px;
+  font-size:9px;color:var(--muted);letter-spacing:0.05em;flex-shrink:0;
+}
+.time-slot.hour{border-bottom-color:var(--border);color:var(--muted);}
 
 /* DAY COLUMNS */
 .week-body{
-  display:grid;grid-template-columns:repeat(7,1fr);
+  display:grid;grid-template-columns:60px repeat(7,1fr);
   overflow-y:auto;
 }
 .day-col{
-  border-right:1px solid var(--border);padding:12px;
-  display:flex;flex-direction:column;gap:8px;
-  min-height:100%;position:relative;
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:4px;
+  padding:8px 6px;
+  position:relative;
   transition:background 0.15s;
 }
 .day-col:last-child{border-right:none;}
 .day-col.today{background:rgba(212,80,26,0.03);}
 .day-col.drop-target{background:rgba(212,80,26,0.08);border-color:var(--accent);}
 
-/* TRAINING CARDS */
+/* TRAINING CARDS — compact */
 .training-card{
-  border:1px solid var(--border);padding:10px 12px;
+  border:1px solid var(--border);padding:7px 9px;
   cursor:pointer;position:relative;
   transition:all 0.2s;
   animation:cardIn 0.2s ease forwards;
+  border-radius:3px;
 }
 @keyframes cardIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-
-.training-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.4);}
+.training-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.4);}
 .training-card.done{border-left:3px solid var(--green);}
 .training-card.missed{border-left:3px solid var(--accent);opacity:0.6;}
-.training-card.rest-card{border-style:dashed;opacity:0.5;}
+.training-card.rest-card{border-style:dashed;opacity:0.4;}
 
-.card-type{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px;}
+.card-type{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;}
 .card-type.spokojny{color:#5a9fe8;}
 .card-type.interwaly{color:#e8c84a;}
 .card-type.tempo{color:#d4501a;}
@@ -136,36 +149,37 @@ nav{
 .card-type.regeneracja{color:#4caf78;}
 .card-type.odpoczynek{color:var(--muted);}
 
-.card-main{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:4px;}
-.card-pace{font-size:10px;color:var(--muted);margin-bottom:6px;}
-.card-desc{font-size:10px;color:rgba(240,236,228,0.6);line-height:1.6;font-family:'DM Sans',sans-serif;font-style:italic;}
+.card-main{font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;color:var(--fg);margin-bottom:2px;}
+.card-pace{font-size:9px;color:var(--muted);margin-bottom:4px;}
+.card-desc{font-size:9px;color:rgba(240,236,228,0.55);line-height:1.5;font-family:'DM Sans',sans-serif;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .card-status{
-  display:inline-flex;align-items:center;gap:4px;
-  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
-  margin-top:8px;padding:3px 8px;border:1px solid var(--border);color:var(--muted);
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:8px;letter-spacing:0.08em;text-transform:uppercase;
+  margin-top:5px;padding:2px 6px;border:1px solid var(--border);color:var(--muted);
 }
 .card-status.done{border-color:var(--green);color:var(--green);}
 .card-status.missed{border-color:var(--accent);color:var(--accent);}
 .card-delete{
-  position:absolute;top:6px;right:6px;
-  width:18px;height:18px;border:none;background:transparent;
-  color:var(--muted);cursor:pointer;font-size:12px;opacity:0;transition:opacity 0.15s;
+  position:absolute;top:4px;right:4px;
+  width:16px;height:16px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:10px;opacity:0;transition:opacity 0.15s;
   display:flex;align-items:center;justify-content:center;
 }
 .training-card:hover .card-delete{opacity:1;}
 .card-delete:hover{color:var(--accent);}
 .card-approve{
-  margin-top:8px;width:100%;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.35);
-  color:var(--green);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;
-  text-transform:uppercase;padding:6px;cursor:pointer;transition:all 0.15s;border-radius:4px;
+  margin-top:5px;width:100%;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.35);
+  color:var(--green);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;
+  text-transform:uppercase;padding:4px;cursor:pointer;transition:all 0.15s;
 }
 .card-approve:hover{background:rgba(61,184,112,0.25);}
 
 /* ADD TRAINING PLACEHOLDER */
 .add-training-btn{
-  border:1px dashed var(--border);padding:10px;text-align:center;
-  color:var(--muted);cursor:pointer;font-size:10px;letter-spacing:0.1em;
-  transition:all 0.15s;text-transform:uppercase;
+  border:1px dashed var(--border);padding:6px;text-align:center;
+  color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;
+  transition:all 0.15s;text-transform:uppercase;border-radius:2px;
+  margin-top:auto;
 }
 .add-training-btn:hover{border-color:var(--accent);color:var(--accent);}
 
@@ -395,44 +409,48 @@ function render() {
   });
   document.getElementById('week-total-km').textContent = totalKm.toFixed(0);
 
-  // Header
-  document.getElementById('week-header').innerHTML = days.map(d => {
+  // Header — z kolumną czasu
+  document.getElementById('week-header').innerHTML = 
+    '<div class="day-header" style="border-right:1px solid var(--border);background:var(--surface2);justify-content:flex-end;padding-bottom:6px;"><div style="font-size:8px;color:var(--muted);letter-spacing:0.1em;">KM</div></div>' +
+    days.map(d => {
+      const ds = dateStr(d);
+      const isToday = d.getTime() === today.getTime();
+      const ts = trainings[ds] || [];
+      const km = ts.reduce((s,t)=>s+(t.dist||0),0);
+      return `<div class="day-header ${isToday?'today':''}">
+        <div class="day-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
+        <div class="day-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
+        ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total" style="opacity:0.4;">—</div>'}
+      </div>`;
+    }).join('');
+
+  // Body — z kolumną czasu po lewej
+  const timeSlots = ['06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21'];
+  const timeColHtml = `<div class="time-col">${timeSlots.map(h=>`<div class="time-slot hour">${h}:00</div>`).join('')}</div>`;
+
+  document.getElementById('week-body').innerHTML = timeColHtml + days.map(d => {
     const ds = dateStr(d);
     const isToday = d.getTime() === today.getTime();
     const ts = trainings[ds] || [];
-    const km = ts.reduce((s,t)=>s+(t.dist||0),0);
-    return `<div class="day-header ${isToday?'today':''}">
-      <div class="day-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
-      <div class="day-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
-      ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
-    </div>`;
-  }).join('');
 
-  // Body
-  document.getElementById('week-body').innerHTML = days.map(d => {
-    const ds = dateStr(d);
-    const isToday = d.getTime() === today.getTime();
-    const ts = trainings[ds] || [];
-
-    // Sprawdź czy to dzień startu
     const isRaceDay = window._raceDates && window._raceDates.some(r => r.date === ds);
-
-    const raceCard = isRaceDay ? `<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.4);border-radius:8px;padding:8px 10px;margin-bottom:4px;">
-      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:3px;">🏁 CEL STARTOWY</div>
-      <div style="font-size:13px;font-weight:500;">${window._raceDates.find(r=>r.date===ds)?.name||'Start'}</div>
+    const raceCard = isRaceDay ? `<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.4);padding:5px 8px;margin-bottom:2px;">
+      <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);margin-bottom:1px;">🏁 START</div>
+      <div style="font-size:11px;font-weight:500;">${window._raceDates.find(r=>r.date===ds)?.name||'Start'}</div>
     </div>` : '';
 
     const cards = ts.map((t,i) => {
       const tc = typeColors[t.type] || 'spokojny';
       const statusCls = t.status==='done'?'done':t.status==='missed'?'missed':'';
-      const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie wykonany':'';
+      const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie':''
+      const timeDisplay = t.time ? (typeof t.time === 'string' && t.time.includes(':') ? t.time : t.time + ' min') : '';
 
       return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
                    onclick="openModal('${ds}',${i})">
         <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
-        <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
-        ${t.dist>0?`<div class="card-main">${t.dist} km</div>`:'<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
-        ${(t.pace||t.hr)?`<div class="card-pace">${t.pace?t.pace+'/km':''} ${t.hr?'· ♥ '+t.hr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
+        <div class="card-type ${tc}">${t.type==='Bieg spokojny'?'SPOKOJNY':t.type.toUpperCase()}</div>
+        ${t.dist>0?`<div class="card-main">${t.dist}<span style="font-size:11px;color:var(--muted);font-family:'DM Sans',sans-serif;"> km</span></div>`:'<div class="card-main" style="font-size:14px;color:var(--muted);">—</div>'}
+        ${(t.pace||timeDisplay)?`<div class="card-pace">${t.pace?t.pace+'/km':''}${t.pace&&timeDisplay?' · ':''}${timeDisplay}</div>`:''}
         ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
@@ -442,7 +460,7 @@ function render() {
     return `<div class="day-col ${isToday?'today':''}">
       ${raceCard}
       ${cards}
-      <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
+      <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj</div>
     </div>`;
   }).join('');
 }
@@ -475,6 +493,10 @@ function openModal(ds, idx) {
   document.getElementById('f-hr').value='';
   document.getElementById('f-desc').value='';
   document.getElementById('f-status').value='planned';
+  const palbl = document.getElementById('kal-pace-auto');
+  const tilbl = document.getElementById('kal-time-auto');
+  if(palbl) palbl.textContent='';
+  if(tilbl) tilbl.textContent='';
 
   if(ds) {
     const d = new Date(ds);
@@ -525,7 +547,7 @@ function selType(el, type, cls) {
 
 function saveTraining() {
   const dist = parseFloat(document.getElementById('f-dist').value)||0;
-  const time = parseInt(document.getElementById('f-time').value)||0;
+  const time = document.getElementById('f-time').value.trim(); // teraz string h:mm:ss
   const pace = document.getElementById('f-pace').value;
   const hr = document.getElementById('f-hr').value;
   const desc = document.getElementById('f-desc').value;
@@ -537,7 +559,7 @@ function saveTraining() {
 
   if(!trainings[editingDate]) trainings[editingDate]=[];
   if(editingIndex!==null && editingIndex>=0) {
-    trainings[editingDate][editingIndex] = t;
+    trainings[editingDate][editingIndex] = {...trainings[editingDate][editingIndex], ...t};
     notify('Trening zaktualizowany ✓');
   } else {
     trainings[editingDate].push(t);
@@ -683,11 +705,18 @@ async function loadTrainingsFromDB() {
     if (!trainings[ds]) trainings[ds] = [];
     const exists = trainings[ds].some(x => x._id === t.id);
     if (!exists) {
+      // Konwertuj minuty na h:mm:ss
+      let timeStr = '';
+      if (t.duration_min) {
+        const h = Math.floor(t.duration_min / 60);
+        const m = String(t.duration_min % 60).padStart(2,'0');
+        timeStr = h + ':' + m + ':00';
+      }
       trainings[ds].push({
         _id: t.id,
         type: t.type || 'Spokojny',
         dist: parseFloat(t.distance_km) || 0,
-        time: t.duration_min || 0,
+        time: timeStr,
         pace: t.pace || '',
         hr: t.heart_rate || '',
         desc: t.description || '',
@@ -728,7 +757,15 @@ window.saveTraining = async function() {
   if (!session || _urlRole === 'athlete') { _origSaveTraining(); return; }
 
   const dist = parseFloat(document.getElementById('f-dist').value)||0;
-  const time = parseInt(document.getElementById('f-time').value)||0;
+  const timeStr = document.getElementById('f-time').value.trim();
+  // Przelicz czas na minuty do bazy (duration_min)
+  let durationMin = null;
+  if (timeStr) {
+    const parts = timeStr.split(':').map(Number);
+    if (parts.length === 3) durationMin = parts[0]*60 + parts[1] + Math.round(parts[2]/60);
+    else if (parts.length === 2) durationMin = parts[0]*60 + parts[1];
+    else durationMin = parseInt(timeStr) || null;
+  }
   const pace = document.getElementById('f-pace').value;
   const hr = document.getElementById('f-hr').value;
   const desc = document.getElementById('f-desc').value;
@@ -736,16 +773,14 @@ window.saveTraining = async function() {
 
   if (!editingDate) { notify('Brak daty'); return; }
 
-  // Edycja istniejącego treningu z bazy
   const existing = editingIndex !== null && trainings[editingDate] && trainings[editingDate][editingIndex];
   const dbId = existing?._id;
 
   if (dbId) {
-    // UPDATE w Supabase
     const { error } = await _sbKal.from('trainings').update({
       type: selectedType,
       distance_km: dist || null,
-      duration_min: time || null,
+      duration_min: durationMin,
       pace: pace || null,
       heart_rate: hr || null,
       description: desc || null,
@@ -756,7 +791,6 @@ window.saveTraining = async function() {
     return;
   }
 
-  // Nowy trening — INSERT
   if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy powyżej'); return; }
   const { error } = await _sbKal.from('trainings').insert({
     coach_id: session.user.id,
@@ -764,7 +798,7 @@ window.saveTraining = async function() {
     date: editingDate,
     type: selectedType,
     distance_km: dist || null,
-    duration_min: time || null,
+    duration_min: durationMin,
     pace: pace || null,
     heart_rate: hr || null,
     description: desc || null,
