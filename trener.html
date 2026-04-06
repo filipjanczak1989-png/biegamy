@@ -643,10 +643,10 @@ function autoColon(el) {
   if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
   el.value = v.slice(0,7);
 }
-// Auto colon for mm:ss
+// Auto colon for mm:ss (tempo np. 5:20)
 function autoColonShort(el) {
   let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
+  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
   el.value = v.slice(0,5);
 }
 
@@ -733,7 +733,7 @@ function openTemplateModal() {
         <input id="tpl-dist-${i}" type="number" min="0" step="0.5" value="${d.dist||''}" placeholder="km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;width:60px;">
       </div>
       <div style="display:flex;gap:6px;padding-left:38px;">
-        <input id="tpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="tempo np. 5:30" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+        <input id="tpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="5" oninput="autoColonShort(this)" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
         <input id="tpl-hr-${i}" type="text" value="${d.hr||''}" placeholder="tętno np. 140-155" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
       </div>
       <textarea id="tpl-desc-${i}" placeholder="Opis treningu..." style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;resize:none;height:48px;line-height:1.5;margin-left:38px;">${d.desc||''}</textarea>
