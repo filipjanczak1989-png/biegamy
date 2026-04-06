@@ -190,6 +190,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;">—</div>
     <div id="av-menu" style="display:none;position:absolute;top:54px;right:0;background:#16161a;border:1px solid #d4501a;border-radius:12px;padding:8px;z-index:9999;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.8);">
       <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:'DM Mono',monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
+      <div onclick="showSection('profile');toggleMenu();" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
+        👤 Mój profil
+      </div>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
       </div>
@@ -296,32 +299,42 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
 
   <!-- Życiówki -->
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Życiówki</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Życiówki</div>
+    <button onclick="toggleEditPBs()" id="edit-pbs-btn" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
+  </div>
   <div id="pbs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
+      <input id="pb-mar-input" type="text" placeholder="3:45:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
+      <input id="pb-half-input" type="text" placeholder="1:45:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
+      <input id="pb-10k-input" type="text" placeholder="45:30" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
+      <input id="pb-5k-input" type="text" placeholder="22:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
   </div>
-
-  <!-- Cel startowy -->
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Cel startowy</div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px;">
-    <div style="font-size:14px;font-weight:500;margin-bottom:4px;" id="profile-goal">—</div>
-    <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;" id="profile-target-date"></div>
+  <div id="save-pbs-row" style="display:none;margin-bottom:20px;">
+    <button onclick="savePBs()" style="width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz życiówki →</button>
   </div>
+
+  <!-- Cele startowe -->
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Cele startowe</div>
+    <button onclick="openAddGoal()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--green);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">+ Dodaj</button>
+  </div>
+  <div id="goals-list" style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;"></div>
 
   <!-- Trener -->
   <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Trener</div>
@@ -334,7 +347,26 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
 
   <!-- Wyloguj -->
-  <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;">→ Wyloguj się</button>
+  <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
+</div>
+
+<!-- MODAL DODAJ CEL -->
+<div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">🏁 Cel startowy</div>
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Nazwa biegu</label>
+      <input id="goal-name-input" type="text" placeholder="np. Maraton Warszawski 2026" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+    </div>
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Data startu</label>
+      <input id="goal-date-input" type="date" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeAddGoal()" style="flex:1;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+      <button onclick="saveGoal()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
@@ -523,11 +555,11 @@ function calcPaceAuto() {
   if (!dist || !timeVal || timeVal.length < 4) { if(lbl) lbl.textContent=''; return; }
   const parts = timeVal.split(':').map(Number);
   let secs = parts.length===3 ? parts[0]*3600+parts[1]*60+parts[2] : parts.length===2 ? parts[0]*60+parts[1] : 0;
-  if (!secs) { if(lbl) lbl.textContent=''; return; }
-  const pps = secs / dist;
-  const pm = Math.floor(pps/60);
-  const ps = String(Math.round(pps%60)).padStart(2,'0');
-  document.getElementById('l-pace').value = pm+':'+ps;
+  if (!secs || !dist) { if(lbl) lbl.textContent=''; return; }
+  const paceSecPerKm = secs / dist;
+  const pm = Math.floor(paceSecPerKm / 60);
+  const ps = String(Math.round(paceSecPerKm % 60)).padStart(2,'0');
+  document.getElementById('l-pace').value = pm + ':' + ps;
   if(lbl) lbl.textContent = '← auto';
 }
 function calcTimeAuto() {
@@ -603,32 +635,125 @@ async function loadProfile() {
   document.getElementById('profile-email').textContent = session.user.email;
   document.getElementById('avatar-initials').textContent = initials;
   
-  // Avatar z Supabase Storage
   if (_athleteId) {
+    // Avatar
     const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(_athleteId + '/avatar.jpg');
     if (urlData?.publicUrl) {
       const img = document.getElementById('avatar-img');
       img.src = urlData.publicUrl + '?t=' + Date.now();
       img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
     }
-    
     // Dane z bazy
     const { data: ath } = await _sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals')
       .eq('id', _athleteId).single();
     if (ath) {
       document.getElementById('pb-mar').textContent = ath.pb_marathon || '—';
       document.getElementById('pb-half').textContent = ath.pb_half || '—';
       document.getElementById('pb-10k').textContent = ath.pb_10k || '—';
       document.getElementById('pb-5k').textContent = ath.pb_5k || '—';
-      document.getElementById('profile-goal').textContent = ath.goal || 'Brak celu';
-      if (ath.target_date) {
-        const d = new Date(ath.target_date);
-        const days = Math.ceil((d - new Date()) / 86400000);
-        document.getElementById('profile-target-date').textContent = d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}) + (days > 0 ? ' · ' + days + ' dni' : '');
-      }
+      // Wstaw wartości do inputów edycji
+      document.getElementById('pb-mar-input').value = ath.pb_marathon || '';
+      document.getElementById('pb-half-input').value = ath.pb_half || '';
+      document.getElementById('pb-10k-input').value = ath.pb_10k || '';
+      document.getElementById('pb-5k-input').value = ath.pb_5k || '';
+      // Cele startowe — z pola race_goals (JSON) lub legacy goal/target_date
+      let goals = [];
+      try { goals = JSON.parse(ath.race_goals || '[]'); } catch(e) {}
+      if (goals.length === 0 && ath.goal) goals = [{name: ath.goal, date: ath.target_date||''}];
+      renderGoals(goals);
     }
   }
+}
+
+function renderGoals(goals) {
+  const list = document.getElementById('goals-list');
+  if (!list) return;
+  if (goals.length === 0) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:12px 0;">Brak celów. Dodaj swój pierwszy start!</div>';
+    return;
+  }
+  list.innerHTML = goals.map((g, i) => {
+    const d = g.date ? new Date(g.date) : null;
+    const days = d ? Math.ceil((d - new Date()) / 86400000) : null;
+    const dateStr = d ? d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}) : '';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+      <div style="font-size:20px;">🏁</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;">${g.name||'—'}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${dateStr}${days !== null && days >= 0 ? ' · ' + days + ' dni' : ''}</div>
+      </div>
+      <button onclick="deleteGoal(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;">🗑</button>
+    </div>`;
+  }).join('');
+  // Zapisz lokalnie do odczytu przy usuwaniu
+  window._profileGoals = goals;
+}
+
+let _editingPBs = false;
+function toggleEditPBs() {
+  _editingPBs = !_editingPBs;
+  ['pb-mar','pb-half','pb-10k','pb-5k'].forEach(id => {
+    document.getElementById(id).style.display = _editingPBs ? 'none' : '';
+    document.getElementById(id+'-input').style.display = _editingPBs ? 'block' : 'none';
+  });
+  document.getElementById('save-pbs-row').style.display = _editingPBs ? 'block' : 'none';
+  document.getElementById('edit-pbs-btn').textContent = _editingPBs ? '✕ Anuluj' : '✏️ Edytuj';
+}
+
+async function savePBs() {
+  if (!_athleteId) return;
+  const updates = {
+    pb_marathon: document.getElementById('pb-mar-input').value.trim() || null,
+    pb_half: document.getElementById('pb-half-input').value.trim() || null,
+    pb_10k: document.getElementById('pb-10k-input').value.trim() || null,
+    pb_5k: document.getElementById('pb-5k-input').value.trim() || null,
+  };
+  const { error } = await _sb.from('athletes').update(updates).eq('id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  toast('Życiówki zapisane ✓');
+  toggleEditPBs();
+  await loadProfile();
+}
+
+function openAddGoal() {
+  document.getElementById('goal-name-input').value = '';
+  document.getElementById('goal-date-input').value = '';
+  document.getElementById('goal-modal').style.display = 'flex';
+}
+function closeAddGoal() {
+  document.getElementById('goal-modal').style.display = 'none';
+}
+
+async function saveGoal() {
+  const name = document.getElementById('goal-name-input').value.trim();
+  const date = document.getElementById('goal-date-input').value;
+  if (!name) { toast('Wpisz nazwę biegu'); return; }
+  if (!_athleteId) return;
+  const goals = window._profileGoals || [];
+  goals.push({ name, date });
+  const { error } = await _sb.from('athletes').update({
+    race_goals: JSON.stringify(goals),
+    goal: goals[0]?.name || null,
+    target_date: goals[0]?.date || null
+  }).eq('id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  toast('Cel dodany ✓');
+  closeAddGoal();
+  renderGoals(goals);
+}
+
+async function deleteGoal(idx) {
+  if (!confirm('Usunąć ten cel?')) return;
+  const goals = (window._profileGoals || []).filter((_,i) => i !== idx);
+  const { error } = await _sb.from('athletes').update({
+    race_goals: JSON.stringify(goals),
+    goal: goals[0]?.name || null,
+    target_date: goals[0]?.date || null
+  }).eq('id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  toast('Cel usunięty');
+  renderGoals(goals);
 }
 
 async function uploadAvatar(input) {
