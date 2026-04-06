@@ -2,7 +2,7 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BiegaMy — Mój Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -481,10 +481,23 @@ function toggleDayDetail(i) {
   document.querySelectorAll('.day-detail').forEach(d=>d.classList.remove('open'));
   if (!isOpen) el.classList.add('open');
 }
-function markDone(btn){
+async function markDone(btn){
+  if (!_athleteId || !window._todayTraining?._id) {
+    // Brak treningu z bazy — tylko lokalna zmiana
+    btn.textContent='✓ Gotowe!';
+    btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
+    toast('Trening oznaczony jako wykonany ✓');
+    return;
+  }
+  btn.textContent='...';btn.disabled=true;
+  const { error } = await _sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining._id);
+  btn.disabled=false;
+  if (error) { toast('Błąd: ' + error.message); return; }
   btn.textContent='✓ Gotowe!';
   btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
+  window._todayTraining.status = 'done';
   toast('Trening oznaczony jako wykonany ✓');
+  await updateWeekProgress();
 }
 function openModal() {
   document.getElementById('modal-bg').classList.add('open');
@@ -1085,7 +1098,11 @@ async function loadLogs() {
     .eq('athlete_id', _athleteId)
     .order('logged_at', { ascending: false })
     .limit(5);
-  if (data && data.length > 0) renderLogsDb(data);
+  if (data && data.length > 0) {
+    renderLogsDb(data);
+  } else {
+    document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
+  }
   await loadCoachMessage();
   await loadTodayTraining();
   await loadWeekPlan();
@@ -1242,10 +1259,21 @@ function renderLogsDb(data) {
 }
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
+let _savingLog = false;
 async function saveLog() {
-  const dist = parseFloat(document.getElementById('l-dist').value);
-  if (!dist) { toast('Podaj dystans'); return; }
+  if (_savingLog) return; // debounce
 
+  const dist = parseFloat(document.getElementById('l-dist').value);
+  const pace = document.getElementById('l-pace').value.trim();
+  const time = document.getElementById('l-time').value.trim();
+
+  // Walidacja
+  if (!dist || dist <= 0) { toast('Podaj dystans (km)'); return; }
+  if (dist > 300) { toast('Dystans wygląda nieprawidłowo'); return; }
+  if (pace && !/^\d{1,2}:\d{2}$/.test(pace)) { toast('Tempo w formacie mm:ss (np. 5:30)'); return; }
+  if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
+
+  _savingLog = true;
   const btn = document.getElementById('save-btn');
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
@@ -1257,9 +1285,7 @@ async function saveLog() {
     const file = fileInput.files[0];
     const ext = file.name.split('.').pop();
     const path = _athleteId + '/' + Date.now() + '.' + ext;
-    const { data: upData, error: upErr } = await _sb.storage
-      .from('training-screenshots')
-      .upload(path, file, { upsert: true });
+    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, { upsert: true });
     if (!upErr) {
       const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
       attachmentUrl = urlData.publicUrl;
@@ -1270,8 +1296,8 @@ async function saveLog() {
     athlete_id: _athleteId,
     training_type: _logType,
     distance_km: dist,
-    duration: document.getElementById('l-time').value || null,
-    pace: document.getElementById('l-pace').value || null,
+    duration: time || null,
+    pace: pace || null,
     heart_rate: parseInt(document.getElementById('l-hr').value) || null,
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
@@ -1284,6 +1310,7 @@ async function saveLog() {
   
   btn.textContent = 'Zapisz log →';
   btn.disabled = false;
+  _savingLog = false;
 
   if (error) { toast('Błąd: ' + error.message); return; }
 
