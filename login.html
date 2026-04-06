@@ -242,7 +242,9 @@ async function login() {
 }
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
+let _registering = false;
 async function register() {
+  if (_registering) return;
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
@@ -251,20 +253,19 @@ async function register() {
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }
 
   hideAlert();
+  _registering = true;
   setLoading('btn-register', true);
 
   const { data, error } = await sb.auth.signUp({
     email,
     password,
     options: {
-      data: {
-        full_name: name,
-        role: 'athlete',
-      }
+      data: { full_name: name, role: 'athlete' }
     }
   });
 
   setLoading('btn-register', false);
+  _registering = false;
 
   if (error) {
     const msgs = {
@@ -275,18 +276,15 @@ async function register() {
     return;
   }
 
-  // Show success
   document.getElementById('form-register').style.display = 'none';
   const ss = document.getElementById('success-state');
   ss.style.display = 'block';
 
   if (data.session) {
-    // Auto-confirmed — idź na onboarding
     document.getElementById('success-msg').textContent = `Witaj ${name}! Uzupełnij swój profil.`;
     document.getElementById('success-redirect').textContent = 'Przekierowuję...';
     setTimeout(() => { window.location.href = 'zawodnik.html?onboarding=1'; }, 1500);
   } else {
-    // Email confirmation required
     document.getElementById('success-msg').textContent = `Wysłaliśmy link aktywacyjny na ${email}. Kliknij go żeby aktywować konto.`;
     document.getElementById('success-redirect').textContent = 'Po aktywacji wróć tutaj i zaloguj się.';
   }

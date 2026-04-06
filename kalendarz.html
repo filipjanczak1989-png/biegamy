@@ -54,10 +54,18 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 .dh-rest{font-size:10px;color:var(--muted2);margin-top:1px;}
 
 /* DAY COLUMNS */
-.week-body{display:grid;grid-template-columns:repeat(7,1fr);flex:1;overflow-y:auto;}
-.day-col{border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:6px;}
+.week-body{display:grid;grid-template-columns:repeat(7,1fr);flex:1;overflow-y:auto;max-height:calc(100vh - 52px - 48px - 56px);}
+.day-col{border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:6px;min-height:120px;}
 .day-col:last-child{border-right:none;}
 .day-col.today{background:rgba(212,80,26,0.02);}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,0.96);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;height:56px;z-index:30;}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--muted);transition:color 0.15s;border:none;background:none;font-family:'DM Mono',monospace;}
+.bn-item:hover,.bn-item.active{color:var(--accent);}
+.bn-item svg{transition:stroke 0.15s;}
+.bn-item.active svg{stroke:var(--accent);}
+.bn-lbl{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;}
 
 /* TRAINING CARDS */
 .tcard{border-radius:6px;padding:10px 11px;cursor:pointer;position:relative;transition:all 0.18s;border:1px solid var(--border);background:var(--surface);}
@@ -194,7 +202,10 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
       </div>
       <div class="frow">
         <div class="field"><label>Tempo /km <span class="auto-lbl" id="lbl-pace"></span></label><input type="text" id="f-pace" placeholder="5:20" maxlength="5" oninput="kalAutoColonPace(this);kalCalcTime()"></div>
-        <div class="field"><label>Tętno (bpm)</label><input type="text" id="f-hr" placeholder="140–155"></div>
+        <div class="field">
+          <label>Tętno (bpm) <span id="kal-zone-lbl" style="font-size:9px;margin-left:4px;"></span></label>
+          <input type="text" id="f-hr" placeholder="140–155" oninput="kalUpdateZone()">
+        </div>
       </div>
       <div class="field"><label>Opis / instrukcje</label><textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km rozgrzewka."></textarea></div>
       <div class="field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
@@ -348,6 +359,21 @@ function kalCalcTime(){
   const h=Math.floor(totalSecs/3600),m=String(Math.floor((totalSecs%3600)/60)).padStart(2,'0'),s=String(totalSecs%60).padStart(2,'0');
   document.getElementById('f-time').value=h+':'+m+':'+s;
   if(lbl)lbl.textContent='← auto';
+}
+function kalUpdateZone(){
+  const hr=document.getElementById('f-hr').value;
+  const lbl=document.getElementById('kal-zone-lbl');
+  if(!lbl||!hr) return;
+  const p=hr.split('-').map(Number);
+  const avg=p.length===2?Math.round((p[0]+p[1])/2):parseInt(hr)||null;
+  if(!avg){lbl.textContent='';return;}
+  let zone,color;
+  if(avg<115){zone='Z1';color='#5090e0';}
+  else if(avg<135){zone='Z2';color='#3db870';}
+  else if(avg<155){zone='Z3';color='#e8b840';}
+  else if(avg<170){zone='Z4';color='#f06030';}
+  else{zone='Z5 VO2max';color='#e05050';}
+  lbl.textContent=zone;lbl.style.color=color;
 }
 
 // ── SAVE / APPROVE / DELETE ───────────────────────────────────────
@@ -529,6 +555,59 @@ async function saveGoal(){
   window._raceDates=[{date,name}];
   closeGoalModal();render();notify('Cel zapisany ✓');
 }
+
+// ── BOTTOM NAV ────────────────────────────────────────────────────
+setTimeout(()=>{
+  const nav = document.getElementById('bottom-nav');
+  if (!nav) return;
+  if (_urlRole === 'coach') {
+    nav.innerHTML = `
+      <a class="bn-item" href="trener.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="bn-lbl">Zawodnicy</span>
+      </a>
+      <a class="bn-item active" href="kalendarz.html?role=coach">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="bn-lbl" style="color:var(--accent);">Kalendarz</span>
+      </a>
+      <button class="bn-item" onclick="openModal(null)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span class="bn-lbl">Dodaj</span>
+      </button>
+      <a class="bn-item" href="trener.html" onclick="sessionStorage.setItem('coachTab','msgs')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="bn-lbl">Wiadomości</span>
+      </a>
+      <a class="bn-item" href="trener.html" onclick="sessionStorage.setItem('coachTab','analytics')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="bn-lbl">Analityka</span>
+      </a>`;
+  } else {
+    nav.innerHTML = `
+      <a class="bn-item" href="zawodnik.html">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="bn-lbl">Dziś</span>
+      </a>
+      <a class="bn-item active" href="kalendarz.html?role=athlete">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="bn-lbl" style="color:var(--accent);">Plan</span>
+      </a>
+      <a class="bn-item" href="zawodnik.html" onclick="sessionStorage.setItem('athleteTab','msgs')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span class="bn-lbl">Wiadomości</span>
+      </a>
+      <a class="bn-item" href="zawodnik.html" onclick="sessionStorage.setItem('athleteTab','stats')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span class="bn-lbl">Statystyki</span>
+      </a>
+      <a class="bn-item" href="zawodnik.html" onclick="sessionStorage.setItem('athleteTab','profile')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <span class="bn-lbl">Profil</span>
+      </a>`;
+  }
+}, 250);
 </script>
+
+<nav class="bottom-nav" id="bottom-nav"></nav>
 </body>
 </html>

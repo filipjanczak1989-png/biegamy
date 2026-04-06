@@ -733,8 +733,18 @@ function openTemplateModal() {
         <input id="tpl-dist-${i}" type="number" min="0" step="0.5" value="${d.dist||''}" placeholder="km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;width:60px;">
       </div>
       <div style="display:flex;gap:6px;padding-left:38px;">
-        <input id="tpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="tempo np. 5:30" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
-        <input id="tpl-hr-${i}" type="text" value="${d.hr||''}" placeholder="tętno np. 140-155" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+        <input id="tpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="5"
+          oninput="tplAutoColonPace(this);tplCalcTime(${i})"
+          style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+        <input id="tpl-time-${i}" type="text" value="${d.time ? (()=>{const h=Math.floor(d.time/60),m=String(d.time%60).padStart(2,'0');return h+':'+m+':00';})() : ''}" placeholder="czas h:mm:ss" maxlength="7"
+          oninput="tplAutoColon(this);tplCalcPace(${i})"
+          style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+        <div style="position:relative;flex:1;">
+          <input id="tpl-hr-${i}" type="text" value="${d.hr||''}" placeholder="140-155 bpm"
+            oninput="tplUpdateZone(${i})"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;">
+          <div id="tpl-zone-${i}" style="font-size:9px;margin-top:2px;text-align:center;"></div>
+        </div>
       </div>
       <textarea id="tpl-desc-${i}" placeholder="Opis treningu..." style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;resize:none;height:48px;line-height:1.5;margin-left:38px;">${d.desc||''}</textarea>
       <textarea id="tpl-extra-${i}" placeholder="Dodatkowe: np. 3×10 przysiadów, 10 min ćwiczeń oddechowych..." style="background:var(--card2);border:1px solid rgba(154,111,232,0.3);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:6px 8px;border-radius:6px;resize:none;height:40px;line-height:1.5;margin-left:38px;"></textarea>
@@ -768,6 +778,13 @@ async function sendTemplate() {
     const dist = parseFloat(document.getElementById(`tpl-dist-${i}`)?.value) || 0;
     const pace = document.getElementById(`tpl-pace-${i}`)?.value.trim() || '';
     const hr = document.getElementById(`tpl-hr-${i}`)?.value.trim() || '';
+    const timeStr = document.getElementById(`tpl-time-${i}`)?.value.trim() || '';
+    let durMin = null;
+    if (timeStr) {
+      const tp = timeStr.split(':').map(Number);
+      if (tp.length===3) durMin = tp[0]*60+tp[1]+Math.round(tp[2]/60);
+      else if (tp.length===2) durMin = tp[0]*60+tp[1];
+    }
     const desc = document.getElementById(`tpl-desc-${i}`)?.value.trim() || '';
     const extra = document.getElementById(`tpl-extra-${i}`)?.value.trim() || '';
     const fullDesc = extra ? (desc ? desc + '\n\n💪 Dodatkowe: ' + extra : '💪 Dodatkowe: ' + extra) : desc;
@@ -788,7 +805,7 @@ async function sendTemplate() {
       date: dateStr,
       type: type,
       distance_km: dist || null,
-      duration_min: null,
+      duration_min: durMin,
       pace: pace || null,
       heart_rate: hr || null,
       description: fullDesc || null,
@@ -1046,6 +1063,59 @@ async function sendPanelMessage() {
   if (error) { showToast('Błąd: ' + error.message); return; }
   showToast('Wiadomość wysłana ✓');
   await loadPanelChat();
+}
+
+// ── SZABLON — AUTO CALC ───────────────────────────────────────────
+function tplAutoColonPace(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
+  el.value = v.slice(0,5);
+}
+function tplAutoColon(el) {
+  let v = el.value.replace(/[^0-9]/g,'');
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
+  el.value = v.slice(0,7);
+}
+function tplCalcTime(i) {
+  const dist = parseFloat(document.getElementById(`tpl-dist-${i}`)?.value);
+  const pv = document.getElementById(`tpl-pace-${i}`)?.value;
+  if (!dist || !pv || pv.length < 3) return;
+  const p = pv.split(':').map(Number);
+  if (p.length < 2) return;
+  const totalSecs = Math.round((p[0]*60+(p[1]||0)) * dist);
+  const h = Math.floor(totalSecs/3600);
+  const m = String(Math.floor((totalSecs%3600)/60)).padStart(2,'0');
+  const s = String(totalSecs%60).padStart(2,'0');
+  const tf = document.getElementById(`tpl-time-${i}`);
+  if (tf) tf.value = h+':'+m+':'+s;
+}
+function tplCalcPace(i) {
+  const dist = parseFloat(document.getElementById(`tpl-dist-${i}`)?.value);
+  const tv = document.getElementById(`tpl-time-${i}`)?.value;
+  if (!dist || !tv || tv.length < 4) return;
+  const p = tv.split(':').map(Number);
+  const secs = p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:0;
+  if (!secs) return;
+  const pps = secs/dist;
+  const pm = Math.floor(pps/60), ps = String(Math.round(pps%60)).padStart(2,'0');
+  const pf = document.getElementById(`tpl-pace-${i}`);
+  if (pf) pf.value = pm+':'+ps;
+}
+function tplUpdateZone(i) {
+  const hr = document.getElementById(`tpl-hr-${i}`)?.value;
+  const zoneEl = document.getElementById(`tpl-zone-${i}`);
+  if (!zoneEl) return;
+  const avg = hr ? (()=>{const p=hr.split('-').map(Number);return p.length===2?Math.round((p[0]+p[1])/2):p[0];})() : null;
+  if (!avg) { zoneEl.textContent=''; return; }
+  let zone, color;
+  if (avg < 115) { zone='Z1 Regeneracja'; color='#5090e0'; }
+  else if (avg < 135) { zone='Z2 Aerobowa'; color='#3db870'; }
+  else if (avg < 155) { zone='Z3 Progowa'; color='#e8b840'; }
+  else if (avg < 170) { zone='Z4 Wyścigowa'; color='#f06030'; }
+  else { zone='Z5 VO2max'; color='#e05050'; }
+  zoneEl.textContent = zone;
+  zoneEl.style.color = color;
 }
 
 init();
