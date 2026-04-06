@@ -208,7 +208,7 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
         </div>
       </div>
       <div class="field"><label>Opis / instrukcje</label><textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km rozgrzewka."></textarea></div>
-      <div class="field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
+      <div class="field" id="status-field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
     </div>
     <div class="mfoot">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
@@ -313,10 +313,23 @@ function openModal(ds,idx){
   document.getElementById('f-status').value='planned';
   document.getElementById('lbl-pace').textContent='';
   document.getElementById('lbl-time').textContent='';
+  if(document.getElementById('kal-zone-lbl')) document.getElementById('kal-zone-lbl').textContent='';
+
+  // Dostosuj modal do roli
+  const statusField=document.getElementById('status-field');
+  const saveBtn=document.querySelector('.mfoot .btn-primary');
+  if(_urlRole==='athlete'){
+    if(statusField) statusField.style.display='none';
+    if(saveBtn) saveBtn.textContent='Zapisz log →';
+  } else {
+    if(statusField) statusField.style.display='';
+    if(saveBtn) saveBtn.textContent='Zapisz →';
+  }
+
   if(ds){const d=new Date(ds);document.getElementById('modal-date').textContent=d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
   if(idx!==null&&ds&&trainings[ds]?.[idx]){
     const t=trainings[ds][idx];
-    document.getElementById('modal-ttl').textContent='Edytuj trening';
+    document.getElementById('modal-ttl').textContent=_urlRole==='athlete'?'Zaloguj wynik':'Edytuj trening';
     selectedType=t.type;selectedTypeCls=typeColors[t.type]||'sp';
     const tmap={'Bieg spokojny':'🏃 Spokojny','Interwały':'⚡ Interwały','Tempo':'🔥 Tempo','Wybieganie':'🛤 Wybieganie','Regeneracja':'💚 Regeneracja','Odpoczynek':'💤 Odpoczynek'};
     document.querySelectorAll('.tpill').forEach(p=>{if(p.textContent.trim()===tmap[t.type])p.className=`tpill sel ${selectedTypeCls}`;});
@@ -326,7 +339,9 @@ function openModal(ds,idx){
     document.getElementById('f-hr').value=t.hr||'';
     document.getElementById('f-desc').value=t.desc||'';
     document.getElementById('f-status').value=t.status||'planned';
-  } else {document.getElementById('modal-ttl').textContent='Nowy trening';}
+  } else {
+    document.getElementById('modal-ttl').textContent=_urlRole==='athlete'?'Zaloguj wynik':'Nowy trening';
+  }
   document.getElementById('modal-bg').classList.add('open');
 }
 function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
@@ -449,9 +464,11 @@ setTimeout(()=>{
   const btn=document.getElementById('goal-btn');
   if(btn)btn.style.display='block';
   if(_urlRole==='athlete'){
+    // Ukryj tylko górny przycisk "Nowy trening" — przyciski w kolumnach zostają
     const ab=document.getElementById('add-training-btn');
     if(ab)ab.style.display='none';
-    document.querySelectorAll('.add-btn,.tc-del').forEach(el=>el.style.display='none');
+    // Ukryj przyciski usuwania i zatwierdzania — zawodnik nie edytuje planu trenera
+    document.querySelectorAll('.tc-del,.tc-approve').forEach(el=>el.style.display='none');
   }
   if(_urlRole==='coach')loadAthletesForCalendar();
 },300);
@@ -500,7 +517,8 @@ async function loadAthletesForCalendar(){
 const _origSave=saveTraining;
 window.saveTraining=async function(){
   const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session||_urlRole==='athlete'){_origSave();return;}
+  if(!session){_origSave();return;}
+
   const dist=parseFloat(document.getElementById('f-dist').value)||0;
   const ts=document.getElementById('f-time').value.trim();
   let dur=null;
@@ -510,6 +528,30 @@ window.saveTraining=async function(){
   const desc=document.getElementById('f-desc').value;
   const status=document.getElementById('f-status').value;
   if(!editingDate){notify('Brak daty');return;}
+
+  // ZAWODNIK — zapisz log treningu (widoczny u trenera)
+  if(_urlRole==='athlete'){
+    const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
+    if(!ath){notify('Brak profilu zawodnika');return;}
+    if(!dist){notify('Podaj dystans');return;}
+    const {error}=await _sbKal.from('training_logs').insert({
+      athlete_id:ath.id,
+      training_type:selectedType,
+      distance_km:dist||null,
+      duration:ts||null,
+      pace:pace||null,
+      heart_rate:parseInt(hr)||null,
+      comment:desc||null,
+      feel:'mid',
+      logged_at:new Date().toISOString()
+    });
+    if(error){notify('Błąd: '+error.message);return;}
+    notify('Log zapisany! Trener widzi Twój wynik ✓');
+    _origSave();
+    return;
+  }
+
+  // TRENER — zapisz/edytuj plan treningowy
   const dbId=editingIndex!==null?trainings[editingDate]?.[editingIndex]?._id:null;
   if(dbId){
     const {error}=await _sbKal.from('trainings').update({type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status}).eq('id',dbId);
