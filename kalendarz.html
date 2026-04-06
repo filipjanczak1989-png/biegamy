@@ -46,8 +46,8 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 .dh.today .dh-num{color:var(--accent);}
 .dh-km{font-size:10px;color:var(--green);font-weight:500;margin-top:1px;}
 .dh-rest{font-size:10px;color:var(--muted2);margin-top:1px;}
-.week-body{display:grid;grid-template-columns:repeat(7,1fr);flex:1;overflow-y:auto;padding-bottom:64px;}
-.day-col{border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:6px;min-height:160px;}
+.week-body{display:grid;grid-template-columns:repeat(7,1fr);flex:1;overflow-y:auto;padding-bottom:64px;align-items:start;}
+.day-col{border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:6px;min-height:180px;}
 .day-col:last-child{border-right:none;}
 .day-col.today{background:rgba(212,80,26,0.02);}
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;height:56px;z-index:30;}
@@ -81,7 +81,7 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 .tc-del{position:absolute;top:5px;right:5px;width:16px;height:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;}
 .tcard:hover .tc-del{opacity:1;}
 .tc-del:hover{color:var(--red);}
-.add-btn{border:1px dashed var(--border);padding:8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;}
+.add-btn{border:1px dashed var(--border);padding:10px 8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;display:block;width:100%;}
 .add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,80,26,0.04);}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
 .modal-bg.open{opacity:1;pointer-events:all;}
@@ -504,10 +504,9 @@ async function loadAthletesForCalendar(){
 }
 
 // Override saveTraining z DB
-const _origSave=saveTraining;
 window.saveTraining=async function(){
   const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session){_origSave();return;}
+  if(!session){notify('Musisz być zalogowany');return;}
   const dist=parseFloat(document.getElementById('f-dist').value)||0;
   const ts=document.getElementById('f-time').value.trim();
   let dur=null;
@@ -523,28 +522,37 @@ window.saveTraining=async function(){
     if(!ath){notify('Brak profilu zawodnika');return;}
     if(!dist){notify('Podaj dystans');return;}
     const {error}=await _sbKal.from('training_logs').insert({
-      athlete_id:ath.id,training_type:selectedType,distance_km:dist||null,
-      duration:ts||null,pace:pace||null,heart_rate:parseInt(hr)||null,
-      comment:desc||null,feel:'mid',logged_at:new Date().toISOString()
+      athlete_id:ath.id,
+      training_type:selectedType,
+      distance_km:dist||null,
+      duration:ts||null,
+      pace:pace||null,
+      heart_rate:parseInt(hr)||null,
+      comment:desc||null,
+      feel:'mid',
+      logged_at:editingDate ? editingDate+'T12:00:00Z' : new Date().toISOString()
     });
     if(error){notify('Błąd: '+error.message);return;}
+    closeModal();
     notify('Log zapisany! Trener widzi Twój wynik ✓');
-    _origSave();return;
+    await loadTrainingsFromDB(); // przeładuj z bazy żeby nie było duplikatów
+    return;
   }
 
   const dbId=editingIndex!==null?trainings[editingDate]?.[editingIndex]?._id:null;
   if(dbId){
     const {error}=await _sbKal.from('trainings').update({type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status}).eq('id',dbId);
     if(error){notify('Błąd: '+error.message);return;}
-    _origSave();return;
+    closeModal();notify('Trening zaktualizowany ✓');
+    await loadTrainingsFromDB();return;
   }
-  if(!_calSelectedAthleteId){notify('Wybierz zawodnika z listy');return;}
+  if(!_calSelectedAthleteId){notify('Wybierz zawodnika z listy powyżej');return;}
   const {error}=await _sbKal.from('trainings').insert({coach_id:session.user.id,athlete_id:_calSelectedAthleteId,date:editingDate,type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status});
   if(error){notify('Błąd: '+error.message);return;}
-  _origSave();
+  closeModal();notify(`Trening dodany ✓`);
+  await loadTrainingsFromDB();
 };
 
-const _origDel=deleteTraining;
 window.deleteTraining=async function(e,ds,idx){
   e.stopPropagation();
   if(!confirm('Usunąć ten trening?'))return;

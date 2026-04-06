@@ -1049,6 +1049,73 @@ async function sendPanelMessage() {
   await loadPanelChat();
 }
 
+// ── ATHLETE MODAL TABS ────────────────────────────────────────────
+function switchAthTab(tab) {
+  const isNew = tab === 'new';
+  document.getElementById('ath-tab-new').style.display = isNew ? 'block' : 'none';
+  document.getElementById('ath-tab-existing').style.display = isNew ? 'none' : 'block';
+  document.getElementById('tab-new').style.background = isNew ? 'rgba(212,80,26,0.1)' : 'transparent';
+  document.getElementById('tab-new').style.borderBottomColor = isNew ? '#d4501a' : 'transparent';
+  document.getElementById('tab-new').style.color = isNew ? '#f0ede8' : '#66636e';
+  document.getElementById('tab-existing').style.background = isNew ? 'transparent' : 'rgba(61,184,112,0.1)';
+  document.getElementById('tab-existing').style.borderBottomColor = isNew ? 'transparent' : '#3db870';
+  document.getElementById('tab-existing').style.color = isNew ? '#66636e' : '#f0ede8';
+}
+
+let _foundAthleteId = null;
+async function searchAthleteByEmail() {
+  const email = document.getElementById('ath-email-search').value.trim().toLowerCase();
+  const res = document.getElementById('ath-search-result');
+  const btn = document.getElementById('btn-assign');
+  _foundAthleteId = null;
+  btn.style.display = 'none';
+  res.innerHTML = '<div style="font-size:11px;color:#66636e;font-family:DM Mono,monospace;">Szukam...</div>';
+
+  if (!email) { res.innerHTML = '<div style="color:#e05050;font-size:11px;font-family:DM Mono,monospace;">Wpisz email</div>'; return; }
+
+  // Szukaj zawodnika po emailu — Supabase przechowuje email w auth.users
+  // Używamy widoku users_with_email jeśli istnieje, lub szukamy przez athlete email kolumnę
+  const { data, error } = await _sb
+    .from('athletes')
+    .select('id, full_name, coach_id, user_id, email')
+    .ilike('email', email)
+    .maybeSingle();
+
+  if (!data) {
+    // email może nie być w athletes — szukaj przez dedicated view lub kolumnę
+    res.innerHTML = `<div style="background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:8px;padding:12px;font-size:11px;color:#e05050;font-family:'DM Mono',monospace;">
+      Nie znaleziono zawodnika z emailem <strong>${email}</strong>.<br>
+      <span style="color:#66636e;margin-top:4px;display:block;">Upewnij się że zawodnik zarejestrował się w BiegaMy i podałeś poprawny email.</span>
+    </div>`;
+    return;
+  }
+
+  if (data.coach_id && data.coach_id !== _coachId) {
+    res.innerHTML = `<div style="background:rgba(232,184,64,0.1);border:1px solid rgba(232,184,64,0.3);border-radius:8px;padding:12px;font-size:11px;color:#e8b840;font-family:'DM Mono',monospace;">Ten zawodnik jest już przypisany do innego trenera.</div>`;
+    return;
+  }
+  if (data.coach_id === _coachId) {
+    res.innerHTML = `<div style="background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;font-size:11px;color:#3db870;font-family:'DM Mono',monospace;">✓ ${data.full_name||'Zawodnik'} jest już w Twojej grupie.</div>`;
+    return;
+  }
+
+  _foundAthleteId = data.id;
+  res.innerHTML = `<div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;">
+    <div style="font-size:13px;font-weight:500;color:#f0ede8;">${data.full_name||'Zawodnik'}</div>
+    <div style="font-size:10px;color:#66636e;font-family:'DM Mono',monospace;margin-top:2px;">${email}</div>
+  </div>`;
+  btn.style.display = 'block';
+}
+
+async function assignAthleteByEmail() {
+  if (!_foundAthleteId) return;
+  const { error } = await _sb.from('athletes').update({ coach_id: _coachId }).eq('id', _foundAthleteId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  showToast('Zawodnik przypisany do Twojej grupy ✓');
+  closeAthModal();
+  await loadAthletes();
+}
+
 init();
 
 // Obsługa ?tab= z kalendarza
@@ -1135,7 +1202,15 @@ if (_tabParam) {
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Nowy zawodnik</div>
       <button onclick="closeAthModal()" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:20px;">✕</button>
     </div>
-    <div style="padding:20px;">
+
+    <!-- ZAKŁADKI -->
+    <div style="display:flex;border-bottom:1px solid #2a2a32;margin-bottom:0;">
+      <button id="tab-new" onclick="switchAthTab('new')" style="flex:1;background:rgba(212,80,26,0.1);border:none;border-bottom:2px solid #d4501a;color:#f0ede8;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:10px;cursor:pointer;">+ Nowy</button>
+      <button id="tab-existing" onclick="switchAthTab('existing')" style="flex:1;background:transparent;border:none;border-bottom:2px solid transparent;color:#66636e;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:10px;cursor:pointer;">Przypisz istniejącego</button>
+    </div>
+
+    <!-- TAB: NOWY ZAWODNIK -->
+    <div id="ath-tab-new" style="padding:20px;">
       <div style="margin-bottom:14px;">
         <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Imię i nazwisko *</label>
         <input id="ath-name" type="text" placeholder="np. Marek Kowalski" style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
@@ -1180,9 +1255,27 @@ if (_tabParam) {
         <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
         <button onclick="saveAthlete()" style="flex:2;background:#d4501a;color:#f0ede8;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz zawodnika →</button>
       </div>
-    </div>
-  </div>
-</div>
+    </div><!-- /ath-tab-new -->
+
+    <!-- TAB: PRZYPISZ ISTNIEJĄCEGO -->
+    <div id="ath-tab-existing" style="display:none;padding:20px;">
+      <div style="font-size:11px;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:14px;line-height:1.6;">Wpisz email zawodnika który już zarejestrował się w BiegaMy. Zostanie przypisany do Twojej grupy.</div>
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">Email zawodnika</label>
+        <div style="display:flex;gap:8px;">
+          <input id="ath-email-search" type="email" placeholder="jan@kowalski.pl" style="flex:1;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+          <button onclick="searchAthleteByEmail()" style="background:#d4501a;color:#f0ede8;border:none;border-radius:8px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Szukaj</button>
+        </div>
+      </div>
+      <div id="ath-search-result" style="margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="closeAthModal()" style="flex:1;background:#1e1e24;color:#66636e;border:1px solid #2a2a32;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
+        <button onclick="assignAthleteByEmail()" id="btn-assign" style="flex:2;background:#3db870;color:#061a0e;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;display:none;">Przypisz do grupy →</button>
+      </div>
+    </div><!-- /ath-tab-existing -->
+  </div><!-- /.modal inner -->
+</div><!-- /#add-ath-modal -->
+
 <!-- SEKCJA ANALITYKI -->
 <div id="analytics-section" style="display:none;padding:0 20px 100px;">
   <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;padding-top:4px;">Analityka zawodników</div>
