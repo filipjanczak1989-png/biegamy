@@ -1444,6 +1444,12 @@ async function loadStats() {
 
 init();
 setTimeout(() => initAuth(), 100);
+
+// Obsługa ?tab= z kalendarza
+const _tabParam = new URLSearchParams(window.location.search).get('tab');
+if (_tabParam) {
+  setTimeout(() => showSection(_tabParam), 800);
+}
 </script>
 <!-- SEKCJA: STATYSTYKI -->
 <div id="section-stats" style="display:none;padding:0 20px 100px;">

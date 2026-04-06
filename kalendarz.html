@@ -612,15 +612,11 @@ setTimeout(()=>{
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span class="bn-lbl" style="color:var(--accent);">Kalendarz</span>
       </a>
-      <button class="bn-item" onclick="openModal(null)">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-        <span class="bn-lbl">Dodaj</span>
-      </button>
-      <a class="bn-item" href="trener.html" onclick="sessionStorage.setItem('coachTab','msgs')">
+      <a class="bn-item" href="trener.html?tab=msgs">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span class="bn-lbl">Wiadomości</span>
       </a>
-      <a class="bn-item" href="trener.html" onclick="sessionStorage.setItem('coachTab','analytics')">
+      <a class="bn-item" href="trener.html?tab=analytics">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span class="bn-lbl">Analityka</span>
       </a>`;
@@ -634,15 +630,15 @@ setTimeout(()=>{
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span class="bn-lbl" style="color:var(--accent);">Plan</span>
       </a>
-      <a class="bn-item" href="zawodnik.html" onclick="sessionStorage.setItem('athleteTab','msgs')">
+      <a class="bn-item" href="zawodnik.html?tab=msgs">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         <span class="bn-lbl">Wiadomości</span>
       </a>
-      <a class="bn-item" href="zawodnik.html" onclick="sessionStorage.setItem('athleteTab','stats')">
+      <a class="bn-item" href="zawodnik.html?tab=stats">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
         <span class="bn-lbl">Statystyki</span>
       </a>
-      <a class="bn-item" href="zawodnik.html" onclick="sessionStorage.setItem('athleteTab','profile')">
+      <a class="bn-item" href="zawodnik.html?tab=profile">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <span class="bn-lbl">Profil</span>
       </a>`;
