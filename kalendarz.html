@@ -98,7 +98,7 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 .tc-del:hover{color:var(--red);}
 
 /* ADD BTN */
-.add-btn{border:1px dashed var(--border);padding:8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;margin-top:auto;}
+.add-btn{border:1px dashed var(--border);padding:8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;}
 .add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,80,26,0.04);}
 
 /* MODAL */
@@ -280,6 +280,7 @@ function render(){
       <div class="tc-type race">🏁 START</div>
       <div style="font-size:12px;font-weight:500;margin-top:3px;color:var(--green);">${raceDay.name||'Start'}</div>
     </div>`:'';
+    const isAthlete = _urlRole === 'athlete';
     const cards=ts.map((t,i)=>{
       const cls=typeColors[t.type]||'sp';
       const lbl=typeLabels[t.type]||t.type.toUpperCase();
@@ -287,16 +288,17 @@ function render(){
       const timeDisplay=t.time?(t.time.includes&&t.time.includes(':')?t.time:t.time+' min'):'';
       const meta=[t.pace?t.pace+'/km':'',timeDisplay,t.hr?'♥ '+t.hr:''].filter(Boolean).join(' · ');
       return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" onclick="openModal('${ds}',${i})">
-        <button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
+        ${!isAthlete?`<button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>`:''}
         <div class="tc-type ${cls}">${lbl}</div>
         ${t.dist>0?`<div class="tc-dist">${t.dist}<span> km</span></div>`:''}
         ${meta?`<div class="tc-meta">${meta}</div>`:''}
         ${t.desc?`<div class="tc-desc">${t.desc}</div>`:''}
         ${t.status==='done'?'<div class="tc-status done">✓ Wykonany</div>':t.status==='missed'?'<div class="tc-status missed">✗ Pominięty</div>':''}
-        ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="tc-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
+        ${!isAthlete&&t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="tc-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;
     }).join('');
-    return `<div class="day-col ${isToday?'today':''}">${raceHtml}${cards}<div class="add-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div></div>`;
+    const addLabel = isAthlete ? '+ Zaloguj wynik' : '+ Dodaj trening';
+    return `<div class="day-col ${isToday?'today':''}">${raceHtml}${cards}<div class="add-btn" onclick="openModal('${ds}',null)">${addLabel}</div></div>`;
   }).join('');
 }
 
@@ -464,11 +466,8 @@ setTimeout(()=>{
   const btn=document.getElementById('goal-btn');
   if(btn)btn.style.display='block';
   if(_urlRole==='athlete'){
-    // Ukryj tylko górny przycisk "Nowy trening" — przyciski w kolumnach zostają
     const ab=document.getElementById('add-training-btn');
     if(ab)ab.style.display='none';
-    // Ukryj przyciski usuwania i zatwierdzania — zawodnik nie edytuje planu trenera
-    document.querySelectorAll('.tc-del,.tc-approve').forEach(el=>el.style.display='none');
   }
   if(_urlRole==='coach')loadAthletesForCalendar();
 },300);

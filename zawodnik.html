@@ -743,7 +743,10 @@ async function saveGoal() {
   const date = document.getElementById('goal-date-input').value;
   if (!name) { toast('Wpisz nazwę biegu'); return; }
   if (!_athleteId) return;
-  const goals = window._profileGoals || [];
+  // Zawsze pobierz świeże dane z bazy — unikamy przestarzałego _profileGoals
+  const { data: fresh } = await _sb.from('athletes').select('race_goals').eq('id', _athleteId).single();
+  let goals = [];
+  try { goals = JSON.parse(fresh?.race_goals || '[]'); } catch(e) {}
   goals.push({ name, date });
   const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
@@ -753,12 +756,17 @@ async function saveGoal() {
   if (error) { toast('Błąd: ' + error.message); return; }
   toast('Cel dodany ✓');
   closeAddGoal();
+  window._profileGoals = goals;
   renderGoals(goals);
 }
 
 async function deleteGoal(idx) {
   if (!confirm('Usunąć ten cel?')) return;
-  const goals = (window._profileGoals || []).filter((_,i) => i !== idx);
+  // Zawsze pobierz świeże dane z bazy
+  const { data: fresh } = await _sb.from('athletes').select('race_goals').eq('id', _athleteId).single();
+  let goals = [];
+  try { goals = JSON.parse(fresh?.race_goals || '[]'); } catch(e) {}
+  goals = goals.filter((_, i) => i !== idx);
   const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
@@ -766,6 +774,7 @@ async function deleteGoal(idx) {
   }).eq('id', _athleteId);
   if (error) { toast('Błąd: ' + error.message); return; }
   toast('Cel usunięty');
+  window._profileGoals = goals;
   renderGoals(goals);
 }
 
