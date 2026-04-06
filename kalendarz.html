@@ -112,6 +112,7 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 .tpill.sel.wy{border-color:var(--purple);background:rgba(154,111,232,0.12);color:var(--purple);}
 .tpill.sel.re{border-color:var(--green);background:rgba(61,184,112,0.12);color:var(--green);}
 .tpill.sel.od{border-color:var(--muted);background:rgba(102,99,110,0.12);}
+.tpill.sel.race{border-color:var(--green);background:rgba(61,184,112,0.12);color:var(--green);}
 .notif{position:fixed;bottom:68px;right:20px;background:var(--green);color:#061a0e;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:11px 18px;border-radius:6px;transform:translateY(60px);opacity:0;transition:all 0.28s;z-index:200;}
 .notif.show{transform:translateY(0);opacity:1;}
 ::-webkit-scrollbar{width:4px;height:4px;}
@@ -177,6 +178,7 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
           <button class="tpill" onclick="selType(this,'Wybieganie','wy')">🛤 Wybieganie</button>
           <button class="tpill" onclick="selType(this,'Regeneracja','re')">💚 Regeneracja</button>
           <button class="tpill" onclick="selType(this,'Odpoczynek','od')">💤 Odpoczynek</button>
+          <button class="tpill" onclick="selType(this,'Start','race')">🏁 Start</button>
         </div>
       </div>
       <div class="frow">
@@ -218,8 +220,8 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const typeColors={'Bieg spokojny':'sp','Interwały':'in','Tempo':'te','Wybieganie':'wy','Regeneracja':'re','Odpoczynek':'od'};
-const typeLabels={'Bieg spokojny':'SPOKOJNY','Interwały':'INTERWAŁY','Tempo':'TEMPO','Wybieganie':'WYBIEGANIE','Regeneracja':'REGENERACJA','Odpoczynek':'ODPOCZYNEK'};
+const typeColors={'Bieg spokojny':'sp','Interwały':'in','Tempo':'te','Wybieganie':'wy','Regeneracja':'re','Odpoczynek':'od','Start':'race'};
+const typeLabels={'Bieg spokojny':'SPOKOJNY','Interwały':'INTERWAŁY','Tempo':'TEMPO','Wybieganie':'WYBIEGANIE','Regeneracja':'REGENERACJA','Odpoczynek':'ODPOCZYNEK','Start':'🏁 START'};
 let trainings={};
 const monthNames=['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
 const dayNames=['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
@@ -227,7 +229,7 @@ let currentWeekStart=getWeekStart(new Date());
 let editingDate=null,editingIndex=null,selectedType='Bieg spokojny',selectedTypeCls='sp';
 
 function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
-function dateStr(d){return d.toISOString().split('T')[0];}
+function dateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
 
 function render(){
@@ -303,7 +305,7 @@ function openModal(ds,idx){
     const t=trainings[ds][idx];
     document.getElementById('modal-ttl').textContent=isAthlete?'Zaloguj wynik':'Edytuj trening';
     selectedType=t.type;selectedTypeCls=typeColors[t.type]||'sp';
-    const tmap={'Bieg spokojny':'🏃 Spokojny','Interwały':'⚡ Interwały','Tempo':'🔥 Tempo','Wybieganie':'🛤 Wybieganie','Regeneracja':'💚 Regeneracja','Odpoczynek':'💤 Odpoczynek'};
+    const tmap={'Bieg spokojny':'🏃 Spokojny','Interwały':'⚡ Interwały','Tempo':'🔥 Tempo','Wybieganie':'🛤 Wybieganie','Regeneracja':'💚 Regeneracja','Odpoczynek':'💤 Odpoczynek','Start':'🏁 Start'};
     document.querySelectorAll('.tpill').forEach(p=>{if(p.textContent.trim()===tmap[t.type])p.className=`tpill sel ${selectedTypeCls}`;});
     document.getElementById('f-dist').value=t.dist||'';
     document.getElementById('f-time').value=t.time||'';

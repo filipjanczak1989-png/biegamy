@@ -279,7 +279,7 @@ let selAth=null,selType='Spokojny',selectedType='Spokojny';
 function init(){
   const h=new Date().getHours();
   document.getElementById('greet').textContent=h<12?'Dzien dobry,':h<18?'Czesc,':'Dobry wieczor,';
-  document.getElementById('fd').value=new Date().toISOString().split('T')[0];
+  document.getElementById('fd').value=(() => { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
   // Lista ładowana z DB przez loadAthletes() po auth
 }
 function renderAth(){
@@ -760,7 +760,9 @@ async function sendTemplate() {
   btn.textContent = 'Wysyłam...';
   btn.disabled = true;
   
-  const weekStart = new Date(weekDateStr);
+  // Parsuj datę jako lokalną (bez przesunięcia UTC)
+  const [yyyy, mm, dd] = weekDateStr.split('-').map(Number);
+  const weekStart = new Date(yyyy, mm - 1, dd); // lokalny czas, bez UTC
   const errors = [];
   
   for (let i = 0; i < WEEK_TEMPLATE.length; i++) {
@@ -775,7 +777,7 @@ async function sendTemplate() {
 
     const date = new Date(weekStart);
     date.setDate(weekStart.getDate() + i);
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
     
     // Sprawdź czy trening na ten dzień już istnieje
     const { data: existing } = await _sb.from('trainings')
