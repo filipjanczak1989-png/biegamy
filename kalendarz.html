@@ -6,945 +6,529 @@
 <title>BiegaMy — Kalendarz</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #0d0d0f;
-  --surface: #16161a;
-  --surface2: #1e1e24;
-  --border: #2a2a32;
-  --accent: #d4501a;
-  --accent2: #f06030;
-  --fg: #f0ede8;
-  --muted: #66636e;
-  --muted2: #44424a;
-  --green: #3db870;
-  --yellow: #e8b840;
-  --red: #e05050;
-  --blue: #5090e0;
-  --purple: #9a6fe8;
-}
+:root{--bg:#0d0d0f;--surface:#16161a;--surface2:#1e1e24;--border:#2a2a32;--accent:#d4501a;--accent2:#f06030;--fg:#f0ede8;--muted:#66636e;--muted2:#44424a;--green:#3db870;--yellow:#e8b840;--red:#e05050;--blue:#5090e0;--purple:#9a6fe8;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;}body{padding-bottom:80px;}
-
-/* SHELL */
-.shell{display:grid;grid-template-rows:56px 1fr;height:100vh;}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;}
+.shell{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 
 /* NAV */
-nav{
-  background:var(--surface);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
-  flex-shrink:0;
-}
+nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;flex-shrink:0;}
 .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;text-decoration:none;color:var(--fg);}
 .nav-logo span{color:var(--accent);}
 .nav-links{display:flex;gap:2px;}
-.nav-link{
-  font-size:10px;letter-spacing:0.15em;text-transform:uppercase;
-  padding:7px 14px;text-decoration:none;color:var(--muted);
-  border:1px solid transparent;transition:all 0.15s;
-}
+.nav-link{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;text-decoration:none;color:var(--muted);border:1px solid transparent;transition:all 0.15s;border-radius:4px;}
 .nav-link:hover{color:var(--fg);border-color:var(--border);}
 .nav-link.active{color:var(--fg);border-color:var(--accent);background:rgba(212,80,26,0.08);}
-.nav-right{display:flex;align-items:center;gap:12px;}
-.athlete-select{
-  background:var(--surface2);border:1px solid var(--border);color:var(--fg);
-  font-family:'DM Mono',monospace;font-size:11px;padding:6px 10px;cursor:pointer;outline:none;
-}
-.athlete-select option{background:var(--surface);}
-.btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;border:none;cursor:pointer;transition:all 0.15s;}
+.nav-right{display:flex;align-items:center;gap:8px;}
+.athlete-select{background:var(--surface2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;cursor:pointer;outline:none;border-radius:4px;}
+.btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border:none;cursor:pointer;transition:all 0.15s;border-radius:4px;}
 .btn-primary{background:var(--accent);color:var(--fg);}
-.btn-primary:hover{background:#e8621a;}
+.btn-primary:hover{background:var(--accent2);}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
-.btn-ghost:hover{border-color:var(--muted);color:var(--fg);}
+.btn-ghost:hover{border-color:var(--fg);color:var(--fg);}
 
-/* CALENDAR TOOLBAR */
-.cal-toolbar{
-  display:flex;align-items:center;gap:12px;
-  padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);
-}
-.week-nav{display:flex;align-items:center;gap:8px;}
-.week-nav-btn{
-  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
-  width:30px;height:30px;cursor:pointer;font-size:16px;
-  display:flex;align-items:center;justify-content:center;transition:all 0.15s;
-}
-.week-nav-btn:hover{border-color:var(--accent);color:var(--fg);}
-.week-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;min-width:220px;}
-.today-btn{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
+/* TOOLBAR */
+.toolbar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
+.week-nav{display:flex;align-items:center;gap:6px;}
+.wnav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;border-radius:4px;}
+.wnav-btn:hover{border-color:var(--accent);color:var(--fg);}
+.week-label{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.03em;min-width:200px;}
+.today-btn{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;border-radius:4px;}
 .today-btn:hover{border-color:var(--accent);color:var(--fg);}
-.toolbar-spacer{flex:1;}
-.week-km-badge{font-size:10px;color:var(--muted);letter-spacing:0.1em;}
-.week-km-badge span{color:var(--accent);font-size:14px;font-family:'Bebas Neue',sans-serif;}
+.spacer{flex:1;}
+.week-stats{display:flex;gap:20px;}
+.wstat{text-align:right;}
+.wstat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;}
+.wstat-lbl{font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
 
 /* WEEK GRID */
-.week-wrap{
-  display:grid;
-  grid-template-rows:auto 1fr;
-  overflow:hidden;
-  height:100%;
-}
-.week-header{
-  display:grid;grid-template-columns:60px repeat(7,1fr);
-  border-bottom:1px solid var(--border);
-  background:var(--surface);
-}
-.day-header{
-  padding:8px 10px;border-right:1px solid var(--border);
-  display:flex;flex-direction:column;gap:1px;
-}
-.day-header:last-child{border-right:none;}
-.day-header.today{background:rgba(212,80,26,0.06);}
-.day-name{font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
-.day-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);}
-.day-header.today .day-num{color:var(--accent);}
-.day-total{font-size:9px;color:var(--muted);}
-.day-total span{color:var(--green);}
-
-/* TIME COLUMN */
-.time-col{
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;
-}
-.time-slot{
-  height:48px;border-bottom:1px solid rgba(42,42,50,0.5);
-  display:flex;align-items:flex-start;padding:3px 6px;
-  font-size:9px;color:var(--muted);letter-spacing:0.05em;flex-shrink:0;
-}
-.time-slot.hour{border-bottom-color:var(--border);color:var(--muted);}
+.week-grid{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.week-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0;}
+.dh{padding:10px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
+.dh:last-child{border-right:none;}
+.dh.today{background:rgba(212,80,26,0.05);}
+.dh-name{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+.dh-num{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;}
+.dh.today .dh-num{color:var(--accent);}
+.dh-km{font-size:10px;color:var(--green);font-weight:500;margin-top:1px;}
+.dh-rest{font-size:10px;color:var(--muted2);margin-top:1px;}
 
 /* DAY COLUMNS */
-.week-body{
-  display:grid;grid-template-columns:60px repeat(7,1fr);
-  overflow-y:auto;
-}
-.day-col{
-  border-right:1px solid var(--border);
-  display:flex;flex-direction:column;gap:4px;
-  padding:8px 6px;
-  position:relative;
-  transition:background 0.15s;
-}
+.week-body{display:grid;grid-template-columns:repeat(7,1fr);flex:1;overflow-y:auto;}
+.day-col{border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:6px;}
 .day-col:last-child{border-right:none;}
-.day-col.today{background:rgba(212,80,26,0.03);}
-.day-col.drop-target{background:rgba(212,80,26,0.08);border-color:var(--accent);}
+.day-col.today{background:rgba(212,80,26,0.02);}
 
-/* TRAINING CARDS — compact */
-.training-card{
-  border:1px solid var(--border);padding:7px 9px;
-  cursor:pointer;position:relative;
-  transition:all 0.2s;
-  animation:cardIn 0.2s ease forwards;
-  border-radius:3px;
-}
-@keyframes cardIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-.training-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.4);}
-.training-card.done{border-left:3px solid var(--green);}
-.training-card.missed{border-left:3px solid var(--accent);opacity:0.6;}
-.training-card.rest-card{border-style:dashed;opacity:0.4;}
+/* TRAINING CARDS */
+.tcard{border-radius:6px;padding:10px 11px;cursor:pointer;position:relative;transition:all 0.18s;border:1px solid var(--border);background:var(--surface);}
+.tcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.5);border-color:var(--accent);}
+.tcard.done{border-left:3px solid var(--green);}
+.tcard.missed{border-left:3px solid var(--red);opacity:0.65;}
+.tcard.rest{opacity:0.35;border-style:dashed;background:transparent;}
+.tcard.raceday{border-color:rgba(61,184,112,0.5);background:rgba(61,184,112,0.06);cursor:default;}
 
-.card-type{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:3px;}
-.card-type.spokojny{color:#5a9fe8;}
-.card-type.interwaly{color:#e8c84a;}
-.card-type.tempo{color:#d4501a;}
-.card-type.wybieganie{color:#9a6fe8;}
-.card-type.regeneracja{color:#4caf78;}
-.card-type.odpoczynek{color:var(--muted);}
+.tc-type{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;font-weight:600;}
+.tc-type.sp{color:var(--blue);}
+.tc-type.in{color:var(--yellow);}
+.tc-type.te{color:var(--accent);}
+.tc-type.wy{color:var(--purple);}
+.tc-type.re{color:var(--green);}
+.tc-type.od{color:var(--muted);}
+.tc-type.race{color:var(--green);}
 
-.card-main{font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;color:var(--fg);margin-bottom:2px;}
-.card-pace{font-size:9px;color:var(--muted);margin-bottom:4px;}
-.card-desc{font-size:9px;color:rgba(240,236,228,0.55);line-height:1.5;font-family:'DM Sans',sans-serif;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.card-status{
-  display:inline-flex;align-items:center;gap:3px;
-  font-size:8px;letter-spacing:0.08em;text-transform:uppercase;
-  margin-top:5px;padding:2px 6px;border:1px solid var(--border);color:var(--muted);
-}
-.card-status.done{border-color:var(--green);color:var(--green);}
-.card-status.missed{border-color:var(--accent);color:var(--accent);}
-.card-delete{
-  position:absolute;top:4px;right:4px;
-  width:16px;height:16px;border:none;background:transparent;
-  color:var(--muted);cursor:pointer;font-size:10px;opacity:0;transition:opacity 0.15s;
-  display:flex;align-items:center;justify-content:center;
-}
-.training-card:hover .card-delete{opacity:1;}
-.card-delete:hover{color:var(--accent);}
-.card-approve{
-  margin-top:5px;width:100%;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.35);
-  color:var(--green);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;
-  text-transform:uppercase;padding:4px;cursor:pointer;transition:all 0.15s;
-}
-.card-approve:hover{background:rgba(61,184,112,0.25);}
+.tc-dist{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);}
+.tc-dist span{font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:300;}
+.tc-meta{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.tc-desc{font-size:9px;color:rgba(240,236,228,0.5);margin-top:5px;line-height:1.55;font-family:'DM Sans',sans-serif;font-style:italic;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+.tc-status{display:inline-flex;align-items:center;gap:3px;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;margin-top:7px;padding:2px 7px;border-radius:3px;}
+.tc-status.done{background:rgba(61,184,112,0.12);color:var(--green);border:1px solid rgba(61,184,112,0.3);}
+.tc-status.missed{background:rgba(224,80,80,0.1);color:var(--red);border:1px solid rgba(224,80,80,0.3);}
+.tc-approve{margin-top:7px;width:100%;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:5px;cursor:pointer;transition:all 0.15s;border-radius:4px;}
+.tc-approve:hover{background:rgba(61,184,112,0.2);}
+.tc-del{position:absolute;top:5px;right:5px;width:16px;height:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;}
+.tcard:hover .tc-del{opacity:1;}
+.tc-del:hover{color:var(--red);}
 
-/* ADD TRAINING PLACEHOLDER */
-.add-training-btn{
-  border:1px dashed var(--border);padding:6px;text-align:center;
-  color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;
-  transition:all 0.15s;text-transform:uppercase;border-radius:2px;
-  margin-top:auto;
-}
-.add-training-btn:hover{border-color:var(--accent);color:var(--accent);}
+/* ADD BTN */
+.add-btn{border:1px dashed var(--border);padding:8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;margin-top:auto;}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,80,26,0.04);}
 
 /* MODAL */
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:50;
-  display:flex;align-items:center;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity 0.2s;
-}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
 .modal-bg.open{opacity:1;pointer-events:all;}
-.modal{
-  background:var(--surface);border:1px solid var(--border);width:480px;max-width:90vw;
-  max-height:88vh;overflow-y:auto;
-  transform:translateY(8px);transition:transform 0.2s;
-}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:500px;max-width:94vw;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform 0.2s;}
 .modal-bg.open .modal{transform:translateY(0);}
-.modal-header{
-  padding:18px 24px;border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;}
-.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;transition:color 0.15s;}
-.modal-close:hover{color:var(--fg);}
-.modal-body{padding:20px 24px;}
-.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
-
-/* FORM */
+.mhdr{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.mttl{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;}
+.mx{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
+.mx:hover{color:var(--fg);}
+.mbody{padding:20px 22px;}
+.mfoot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.mdate{font-size:10px;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;}
 .field{margin-bottom:14px;}
-.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-.field input,.field select,.field textarea{
-  width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);
-  font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;transition:border-color 0.15s;
-}
+.field label{display:block;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;outline:none;transition:border-color 0.15s;border-radius:4px;}
 .field input:focus,.field textarea:focus{border-color:var(--accent);}
 .field select{cursor:pointer;}
 .field select option{background:var(--surface);}
-.field textarea{resize:vertical;min-height:70px;line-height:1.6;}
-.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-
-/* TYPE PILLS */
-.type-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
-.type-pill{
-  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;
-  border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);
-  background:transparent;font-family:'DM Mono',monospace;
-}
-.type-pill:hover{border-color:var(--muted);color:var(--fg);}
-.type-pill.sel{color:var(--fg);}
-.type-pill.sel.spokojny-p{border-color:var(--blue);background:rgba(90,159,232,0.15);color:var(--blue);}
-.type-pill.sel.interwaly-p{border-color:var(--yellow);background:rgba(232,200,74,0.15);color:var(--yellow);}
-.type-pill.sel.tempo-p{border-color:var(--accent);background:rgba(212,80,26,0.15);color:var(--accent);}
-.type-pill.sel.wybieganie-p{border-color:var(--purple);background:rgba(154,111,232,0.15);color:var(--purple);}
-.type-pill.sel.regeneracja-p{border-color:var(--green);background:rgba(76,175,120,0.15);color:var(--green);}
-.type-pill.sel.odpoczynek-p{border-color:var(--muted);background:rgba(106,101,96,0.15);}
+.field textarea{resize:vertical;min-height:68px;line-height:1.6;}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.auto-lbl{color:var(--accent);font-size:9px;margin-left:4px;}
+.tpills{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
+.tpill{font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);background:transparent;font-family:'DM Mono',monospace;border-radius:4px;}
+.tpill:hover{border-color:var(--muted);color:var(--fg);}
+.tpill.sel.sp{border-color:var(--blue);background:rgba(80,144,224,0.12);color:var(--blue);}
+.tpill.sel.in{border-color:var(--yellow);background:rgba(232,184,64,0.12);color:var(--yellow);}
+.tpill.sel.te{border-color:var(--accent);background:rgba(212,80,26,0.12);color:var(--accent);}
+.tpill.sel.wy{border-color:var(--purple);background:rgba(154,111,232,0.12);color:var(--purple);}
+.tpill.sel.re{border-color:var(--green);background:rgba(61,184,112,0.12);color:var(--green);}
+.tpill.sel.od{border-color:var(--muted);background:rgba(102,99,110,0.12);}
 
 /* NOTIF */
-.notif{
-  position:fixed;bottom:24px;right:24px;
-  background:var(--green);color:#0a1a0f;
-  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;
-  padding:12px 20px;transform:translateY(80px);opacity:0;transition:all 0.3s;z-index:200;
-}
+.notif{position:fixed;bottom:20px;right:20px;background:var(--green);color:#061a0e;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:11px 18px;border-radius:6px;transform:translateY(60px);opacity:0;transition:all 0.28s;z-index:200;}
 .notif.show{transform:translateY(0);opacity:1;}
-
-/* SCROLLBAR */
-::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--border);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 </style>
 </head>
 <body>
 <div class="shell">
 
-<!-- NAV -->
 <nav>
   <a href="#" class="nav-logo" id="nav-logo-back">Biega<span>My</span></a>
-  <div class="nav-links" style="display:flex;gap:4px;">
-    <a href="#" class="nav-link" id="back-link" onclick="goBack()">← Powrót</a>
-    <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
+  <div class="nav-links">
+    <a href="#" class="nav-link" onclick="goBack()">← Powrót</a>
+    <a class="nav-link active" id="role-label">Kalendarz</a>
   </div>
   <div class="nav-right">
-    <select id="cal-athlete-sel" class="athlete-select" style="display:none;">
-      <option value="">— wszyscy zawodnicy —</option>
-    </select>
+    <select id="cal-athlete-sel" class="athlete-select" style="display:none;"></select>
     <button class="btn btn-ghost" onclick="openGoalModal()" id="goal-btn" style="display:none;">🏁 Cel startowy</button>
     <button class="btn btn-primary" onclick="openModal(null)" id="add-training-btn">+ Nowy trening</button>
   </div>
 </nav>
 
-<!-- TOOLBAR -->
-<div class="cal-toolbar">
+<div class="toolbar">
   <div class="week-nav">
-    <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
-    <div class="week-label" id="week-label">30 Mar — 5 Kwi 2026</div>
-    <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
+    <button class="wnav-btn" onclick="changeWeek(-1)">‹</button>
+    <div class="week-label" id="week-label"></div>
+    <button class="wnav-btn" onclick="changeWeek(1)">›</button>
   </div>
   <button class="today-btn" onclick="goToday()">Dziś</button>
-  <div class="toolbar-spacer"></div>
-  <div class="week-km-badge">Kilometraż tygodnia: <span id="week-total-km">0</span> km</div>
+  <div class="spacer"></div>
+  <div class="week-stats">
+    <div class="wstat"><div class="wstat-val" id="week-km">0</div><div class="wstat-lbl">km tygodnia</div></div>
+    <div class="wstat"><div class="wstat-val" id="week-sessions">0</div><div class="wstat-lbl">treningów</div></div>
+  </div>
 </div>
 
-<!-- WEEK -->
-<div class="week-wrap">
-  <div class="week-header" id="week-header"></div>
+<div class="week-grid">
+  <div class="week-head" id="week-head"></div>
   <div class="week-body" id="week-body"></div>
 </div>
+</div>
 
-</div><!-- /shell -->
-
-<!-- MODAL — ADD/EDIT TRAINING -->
-<div class="modal-bg" id="modal-bg" onclick="closeModalOnBg(event)">
+<!-- MODAL TRENING -->
+<div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-title">Nowy trening</div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="mhdr">
+      <div class="mttl" id="modal-ttl">Nowy trening</div>
+      <button class="mx" onclick="closeModal()">✕</button>
     </div>
-    <div class="modal-body">
-      <div style="font-size:10px;color:var(--accent);letter-spacing:0.15em;margin-bottom:16px;" id="modal-date-label"></div>
+    <div class="mbody">
+      <div class="mdate" id="modal-date"></div>
       <div class="field">
         <label>Typ treningu</label>
-        <div class="type-pills">
-          <button class="type-pill sel spokojny-p" onclick="selType(this,'Bieg spokojny','spokojny')">Spokojny</button>
-          <button class="type-pill" onclick="selType(this,'Interwały','interwaly')">Interwały</button>
-          <button class="type-pill" onclick="selType(this,'Tempo','tempo')">Tempo</button>
-          <button class="type-pill" onclick="selType(this,'Wybieganie','wybieganie')">Wybieganie</button>
-          <button class="type-pill" onclick="selType(this,'Regeneracja','regeneracja')">Regeneracja</button>
-          <button class="type-pill" onclick="selType(this,'Odpoczynek','odpoczynek')">Odpoczynek</button>
+        <div class="tpills">
+          <button class="tpill sel sp" onclick="selType(this,'Bieg spokojny','sp')">🏃 Spokojny</button>
+          <button class="tpill" onclick="selType(this,'Interwały','in')">⚡ Interwały</button>
+          <button class="tpill" onclick="selType(this,'Tempo','te')">🔥 Tempo</button>
+          <button class="tpill" onclick="selType(this,'Wybieganie','wy')">🛤 Wybieganie</button>
+          <button class="tpill" onclick="selType(this,'Regeneracja','re')">💚 Regeneracja</button>
+          <button class="tpill" onclick="selType(this,'Odpoczynek','od')">💤 Odpoczynek</button>
         </div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Dystans (km)</label>
-          <input type="number" id="f-dist" placeholder="np. 12" min="0" max="60" step="0.5" oninput="kalCalcPace()">
-        </div>
-        <div class="field">
-          <label>Czas (h:mm:ss) <span id="kal-time-auto" style="color:#d4501a;font-size:9px;"></span></label>
-          <input type="text" id="f-time" placeholder="np. 1:04:00" maxlength="7" oninput="kalAutoColon(this);kalCalcPace()">
-        </div>
+      <div class="frow">
+        <div class="field"><label>Dystans (km)</label><input type="number" id="f-dist" placeholder="np. 12" min="0" step="0.5" oninput="kalCalcPace()"></div>
+        <div class="field"><label>Czas <span class="auto-lbl" id="lbl-time"></span></label><input type="text" id="f-time" placeholder="1:04:00" maxlength="7" oninput="kalAutoColon(this);kalCalcPace()"></div>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Tempo (min/km) <span id="kal-pace-auto" style="color:#d4501a;font-size:9px;"></span></label>
-          <input type="text" id="f-pace" placeholder="np. 5:20" maxlength="5" oninput="kalAutoColonPace(this);kalCalcTime()">
-        </div>
-        <div class="field">
-          <label>Tętno (bpm)</label>
-          <input type="text" id="f-hr" placeholder="np. 140–155">
-        </div>
+      <div class="frow">
+        <div class="field"><label>Tempo /km <span class="auto-lbl" id="lbl-pace"></span></label><input type="text" id="f-pace" placeholder="5:20" maxlength="5" oninput="kalAutoColonPace(this);kalCalcTime()"></div>
+        <div class="field"><label>Tętno (bpm)</label><input type="text" id="f-hr" placeholder="140–155"></div>
       </div>
-      <div class="field">
-        <label>Opis / instrukcje dla zawodnika</label>
-        <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka."></textarea>
-      </div>
-      <div class="field">
-        <label>Status</label>
-        <select id="f-status">
-          <option value="planned">Zaplanowany</option>
-          <option value="done">Wykonany</option>
-          <option value="missed">Nie wykonany</option>
-        </select>
-      </div>
+      <div class="field"><label>Opis / instrukcje</label><textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km rozgrzewka."></textarea></div>
+      <div class="field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
     </div>
-    <div class="modal-footer">
+    <div class="mfoot">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
+      <button class="btn btn-primary" onclick="saveTraining()">Zapisz →</button>
     </div>
   </div>
 </div>
 
-<!-- NOTIF -->
+<!-- MODAL CEL STARTOWY -->
+<div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:420px;max-width:92vw;padding:24px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:4px;">🏁 Cel startowy</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:18px;">Pojawi się w kalendarzu jako oznaczony dzień.</div>
+    <div class="field"><label>Nazwa biegu</label><input type="text" id="goal-name" placeholder="np. Maraton Warszawski"></div>
+    <div class="field" style="margin-bottom:20px;"><label>Data startu</label><input type="date" id="goal-date"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeGoalModal()" style="flex:1;">Anuluj</button>
+      <button class="btn btn-primary" onclick="saveGoal()" style="flex:2;">Zapisz →</button>
+    </div>
+  </div>
+</div>
+
 <div class="notif" id="notif"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ── DATA ──────────────────────────────────────────────────────────────────────
-const typeColors = {
-  'Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo',
-  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek'
-};
+// ── CORE DATA ─────────────────────────────────────────────────────
+const typeColors={'Bieg spokojny':'sp','Interwały':'in','Tempo':'te','Wybieganie':'wy','Regeneracja':'re','Odpoczynek':'od'};
+const typeLabels={'Bieg spokojny':'SPOKOJNY','Interwały':'INTERWAŁY','Tempo':'TEMPO','Wybieganie':'WYBIEGANIE','Regeneracja':'REGENERACJA','Odpoczynek':'ODPOCZYNEK'};
+let trainings={};
+const monthNames=['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+const dayNames=['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
+let currentWeekStart=getWeekStart(new Date());
+let editingDate=null,editingIndex=null,selectedType='Bieg spokojny',selectedTypeCls='sp';
 
-let trainings = {};  // dane ładowane z bazy — brak hardcode
+function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
+function dateStr(d){return d.toISOString().split('T')[0];}
+function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
 
-const monthNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
-const dayNames = ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
+// ── RENDER ────────────────────────────────────────────────────────
+function render(){
+  const days=Array.from({length:7},(_,i)=>addDays(currentWeekStart,i));
+  const today=new Date();today.setHours(0,0,0,0);
+  const s=days[0],e=days[6];
+  document.getElementById('week-label').textContent=`${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
 
-let currentWeekStart = getWeekStart(new Date()); // aktualny tydzień
-let editingDate = null;
-let editingIndex = null;
-let selectedType = 'Bieg spokojny';
-let selectedTypeCls = 'spokojny';
+  let totalKm=0,totalSessions=0;
+  days.forEach(d=>{(trainings[dateStr(d)]||[]).forEach(t=>{totalKm+=(t.dist||0);if(t.type!=='Odpoczynek')totalSessions++;});});
+  document.getElementById('week-km').textContent=totalKm.toFixed(0);
+  document.getElementById('week-sessions').textContent=totalSessions;
 
-// ── WEEK HELPERS ──────────────────────────────────────────────────────────────
-function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = (day === 0) ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0,0,0,0);
-  return d;
-}
-
-function dateStr(date) {
-  return date.toISOString().split('T')[0];
-}
-
-function addDays(date, n) {
-  const d = new Date(date);
-  d.setDate(d.getDate() + n);
-  return d;
-}
-
-// ── RENDER ────────────────────────────────────────────────────────────────────
-function render() {
-  const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
-  const today = new Date(); today.setHours(0,0,0,0);
-
-  // Week label
-  const s = days[0], e = days[6];
-  document.getElementById('week-label').textContent =
-    `${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
-
-  // Total km
-  let totalKm = 0;
-  days.forEach(d => {
-    const ts = trainings[dateStr(d)] || [];
-    ts.forEach(t => totalKm += (t.dist||0));
-  });
-  document.getElementById('week-total-km').textContent = totalKm.toFixed(0);
-
-  // Header — z kolumną czasu
-  document.getElementById('week-header').innerHTML = 
-    '<div class="day-header" style="border-right:1px solid var(--border);background:var(--surface2);justify-content:flex-end;padding-bottom:6px;"><div style="font-size:8px;color:var(--muted);letter-spacing:0.1em;">KM</div></div>' +
-    days.map(d => {
-      const ds = dateStr(d);
-      const isToday = d.getTime() === today.getTime();
-      const ts = trainings[ds] || [];
-      const km = ts.reduce((s,t)=>s+(t.dist||0),0);
-      return `<div class="day-header ${isToday?'today':''}">
-        <div class="day-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
-        <div class="day-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
-        ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total" style="opacity:0.4;">—</div>'}
-      </div>`;
-    }).join('');
-
-  // Body — z kolumną czasu po lewej
-  const timeSlots = ['06','07','08','09','10','11','12','13','14','15','16','17','18','19','20','21'];
-  const timeColHtml = `<div class="time-col">${timeSlots.map(h=>`<div class="time-slot hour">${h}:00</div>`).join('')}</div>`;
-
-  document.getElementById('week-body').innerHTML = timeColHtml + days.map(d => {
-    const ds = dateStr(d);
-    const isToday = d.getTime() === today.getTime();
-    const ts = trainings[ds] || [];
-
-    const isRaceDay = window._raceDates && window._raceDates.some(r => r.date === ds);
-    const raceCard = isRaceDay ? `<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.4);padding:5px 8px;margin-bottom:2px;">
-      <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);margin-bottom:1px;">🏁 START</div>
-      <div style="font-size:11px;font-weight:500;">${window._raceDates.find(r=>r.date===ds)?.name||'Start'}</div>
-    </div>` : '';
-
-    const cards = ts.map((t,i) => {
-      const tc = typeColors[t.type] || 'spokojny';
-      const statusCls = t.status==='done'?'done':t.status==='missed'?'missed':'';
-      const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie':''
-      const timeDisplay = t.time ? (typeof t.time === 'string' && t.time.includes(':') ? t.time : t.time + ' min') : '';
-
-      return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
-                   onclick="openModal('${ds}',${i})">
-        <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
-        <div class="card-type ${tc}">${t.type==='Bieg spokojny'?'SPOKOJNY':t.type.toUpperCase()}</div>
-        ${t.dist>0?`<div class="card-main">${t.dist}<span style="font-size:11px;color:var(--muted);font-family:'DM Sans',sans-serif;"> km</span></div>`:'<div class="card-main" style="font-size:14px;color:var(--muted);">—</div>'}
-        ${(t.pace||timeDisplay)?`<div class="card-pace">${t.pace?t.pace+'/km':''}${t.pace&&timeDisplay?' · ':''}${timeDisplay}</div>`:''}
-        ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
-        ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
-        ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
-      </div>`;
-    }).join('');
-
-    return `<div class="day-col ${isToday?'today':''}">
-      ${raceCard}
-      ${cards}
-      <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj</div>
+  document.getElementById('week-head').innerHTML=days.map(d=>{
+    const ds=dateStr(d),isToday=d.getTime()===today.getTime();
+    const ts=trainings[ds]||[];
+    const km=ts.reduce((s,t)=>s+(t.dist||0),0);
+    const sessions=ts.filter(t=>t.type!=='Odpoczynek').length;
+    return `<div class="dh ${isToday?'today':''}">
+      <div class="dh-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
+      <div class="dh-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
+      ${km>0?`<div class="dh-km">${km} km${sessions>1?' · '+sessions+'×':''}</div>`:'<div class="dh-rest">—</div>'}
     </div>`;
+  }).join('');
+
+  document.getElementById('week-body').innerHTML=days.map(d=>{
+    const ds=dateStr(d),isToday=d.getTime()===today.getTime();
+    const ts=trainings[ds]||[];
+    const raceDay=window._raceDates&&window._raceDates.find(r=>r.date===ds);
+    const raceHtml=raceDay?`<div class="tcard raceday">
+      <div class="tc-type race">🏁 START</div>
+      <div style="font-size:12px;font-weight:500;margin-top:3px;color:var(--green);">${raceDay.name||'Start'}</div>
+    </div>`:'';
+    const cards=ts.map((t,i)=>{
+      const cls=typeColors[t.type]||'sp';
+      const lbl=typeLabels[t.type]||t.type.toUpperCase();
+      const statusCls=t.status==='done'?'done':t.status==='missed'?'missed':'';
+      const timeDisplay=t.time?(t.time.includes&&t.time.includes(':')?t.time:t.time+' min'):'';
+      const meta=[t.pace?t.pace+'/km':'',timeDisplay,t.hr?'♥ '+t.hr:''].filter(Boolean).join(' · ');
+      return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" onclick="openModal('${ds}',${i})">
+        <button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
+        <div class="tc-type ${cls}">${lbl}</div>
+        ${t.dist>0?`<div class="tc-dist">${t.dist}<span> km</span></div>`:''}
+        ${meta?`<div class="tc-meta">${meta}</div>`:''}
+        ${t.desc?`<div class="tc-desc">${t.desc}</div>`:''}
+        ${t.status==='done'?'<div class="tc-status done">✓ Wykonany</div>':t.status==='missed'?'<div class="tc-status missed">✗ Pominięty</div>':''}
+        ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="tc-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
+      </div>`;
+    }).join('');
+    return `<div class="day-col ${isToday?'today':''}">${raceHtml}${cards}<div class="add-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div></div>`;
   }).join('');
 }
 
-// ── WEEK NAV ──────────────────────────────────────────────────────────────────
-function changeWeek(dir) {
-  currentWeekStart = addDays(currentWeekStart, dir*7);
-  render();
-}
-function goToday() {
-  currentWeekStart = getWeekStart(new Date());
-  render();
-}
+function changeWeek(dir){currentWeekStart=addDays(currentWeekStart,dir*7);render();}
+function goToday(){currentWeekStart=getWeekStart(new Date());render();}
 
-// ── MODAL ─────────────────────────────────────────────────────────────────────
-function openModal(ds, idx) {
-  editingDate = ds;
-  editingIndex = idx;
-
-  // Reset form
-  selectedType = 'Bieg spokojny';
-  selectedTypeCls = 'spokojny';
-  document.querySelectorAll('.type-pill').forEach(p=>{
-    p.className='type-pill';
-    if(p.textContent.trim()==='Spokojny') p.className='type-pill sel spokojny-p';
-  });
-  document.getElementById('f-dist').value='';
-  document.getElementById('f-time').value='';
-  document.getElementById('f-pace').value='';
-  document.getElementById('f-hr').value='';
-  document.getElementById('f-desc').value='';
+// ── MODAL ─────────────────────────────────────────────────────────
+function openModal(ds,idx){
+  editingDate=ds;editingIndex=idx;
+  selectedType='Bieg spokojny';selectedTypeCls='sp';
+  document.querySelectorAll('.tpill').forEach(p=>p.className='tpill');
+  document.querySelector('.tpill').className='tpill sel sp';
+  ['f-dist','f-time','f-pace','f-hr','f-desc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('f-status').value='planned';
-  const palbl = document.getElementById('kal-pace-auto');
-  const tilbl = document.getElementById('kal-time-auto');
-  if(palbl) palbl.textContent='';
-  if(tilbl) tilbl.textContent='';
-
-  if(ds) {
-    const d = new Date(ds);
-    document.getElementById('modal-date-label').textContent =
-      d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-  } else {
-    document.getElementById('modal-date-label').textContent = 'Wybierz datę';
-  }
-
-  if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
-    const t = trainings[ds][idx];
-    document.getElementById('modal-title').textContent = 'Edytuj trening';
-    selectedType = t.type;
-    selectedTypeCls = typeColors[t.type] || 'spokojny';
-    document.querySelectorAll('.type-pill').forEach(p=>{
-      p.className='type-pill';
-      const map={Spokojny:'spokojny-p',Interwały:'interwaly-p',Tempo:'tempo-p',Wybieganie:'wybieganie-p',Regeneracja:'regeneracja-p',Odpoczynek:'odpoczynek-p'};
-      if(p.textContent.trim()===t.type.replace('Bieg spokojny','Spokojny').replace('Interwały','Interwały')) {
-        p.className=`type-pill sel ${map[p.textContent.trim()]||'spokojny-p'}`;
-      }
-    });
-    document.getElementById('f-dist').value = t.dist||'';
-    document.getElementById('f-time').value = t.time||'';
-    document.getElementById('f-pace').value = t.pace||'';
-    document.getElementById('f-hr').value = t.hr||'';
-    document.getElementById('f-desc').value = t.desc||'';
-    document.getElementById('f-status').value = t.status||'planned';
-  } else {
-    document.getElementById('modal-title').textContent = 'Nowy trening';
-  }
-
+  document.getElementById('lbl-pace').textContent='';
+  document.getElementById('lbl-time').textContent='';
+  if(ds){const d=new Date(ds);document.getElementById('modal-date').textContent=d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+  if(idx!==null&&ds&&trainings[ds]?.[idx]){
+    const t=trainings[ds][idx];
+    document.getElementById('modal-ttl').textContent='Edytuj trening';
+    selectedType=t.type;selectedTypeCls=typeColors[t.type]||'sp';
+    const tmap={'Bieg spokojny':'🏃 Spokojny','Interwały':'⚡ Interwały','Tempo':'🔥 Tempo','Wybieganie':'🛤 Wybieganie','Regeneracja':'💚 Regeneracja','Odpoczynek':'💤 Odpoczynek'};
+    document.querySelectorAll('.tpill').forEach(p=>{if(p.textContent.trim()===tmap[t.type])p.className=`tpill sel ${selectedTypeCls}`;});
+    document.getElementById('f-dist').value=t.dist||'';
+    document.getElementById('f-time').value=t.time||'';
+    document.getElementById('f-pace').value=t.pace||'';
+    document.getElementById('f-hr').value=t.hr||'';
+    document.getElementById('f-desc').value=t.desc||'';
+    document.getElementById('f-status').value=t.status||'planned';
+  } else {document.getElementById('modal-ttl').textContent='Nowy trening';}
   document.getElementById('modal-bg').classList.add('open');
 }
+function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
+function selType(el,type,cls){document.querySelectorAll('.tpill').forEach(p=>p.className='tpill');el.className=`tpill sel ${cls}`;selectedType=type;selectedTypeCls=cls;}
 
-function closeModal() {
-  document.getElementById('modal-bg').classList.remove('open');
+// ── AUTO CALC ─────────────────────────────────────────────────────
+function kalAutoColon(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);if(v.length>=5)v=v.slice(0,4)+':'+v.slice(4);el.value=v.slice(0,7);}
+function kalAutoColonPace(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,2)+':'+v.slice(2);el.value=v.slice(0,5);}
+function kalCalcPace(){
+  const dist=parseFloat(document.getElementById('f-dist').value);
+  const tv=document.getElementById('f-time').value;
+  const lbl=document.getElementById('lbl-pace');
+  if(!dist||!tv||tv.length<4){if(lbl)lbl.textContent='';return;}
+  const p=tv.split(':').map(Number);
+  const secs=p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:0;
+  if(!secs){if(lbl)lbl.textContent='';return;}
+  const pps=secs/dist,pm=Math.floor(pps/60),ps=String(Math.round(pps%60)).padStart(2,'0');
+  document.getElementById('f-pace').value=pm+':'+ps;
+  if(lbl)lbl.textContent='← auto';
 }
-function closeModalOnBg(e) {
-  if(e.target===document.getElementById('modal-bg')) closeModal();
-}
-
-function selType(el, type, cls) {
-  document.querySelectorAll('.type-pill').forEach(p=>p.className='type-pill');
-  el.className = `type-pill sel ${cls}-p`;
-  selectedType = type;
-  selectedTypeCls = cls;
-}
-
-function saveTraining() {
-  const dist = parseFloat(document.getElementById('f-dist').value)||0;
-  const time = document.getElementById('f-time').value.trim(); // teraz string h:mm:ss
-  const pace = document.getElementById('f-pace').value;
-  const hr = document.getElementById('f-hr').value;
-  const desc = document.getElementById('f-desc').value;
-  const status = document.getElementById('f-status').value;
-
-  if(!editingDate) { notify('Brak daty'); return; }
-
-  const t = {type:selectedType,dist,time,pace,hr,desc,status};
-
-  if(!trainings[editingDate]) trainings[editingDate]=[];
-  if(editingIndex!==null && editingIndex>=0) {
-    trainings[editingDate][editingIndex] = {...trainings[editingDate][editingIndex], ...t};
-    notify('Trening zaktualizowany ✓');
-  } else {
-    trainings[editingDate].push(t);
-    notify(`Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);
-  }
-
-  closeModal();
-  render();
+function kalCalcTime(){
+  const dist=parseFloat(document.getElementById('f-dist').value);
+  const pv=document.getElementById('f-pace').value;
+  const lbl=document.getElementById('lbl-time');
+  if(!dist||!pv||pv.length<3){if(lbl)lbl.textContent='';return;}
+  const p=pv.split(':').map(Number);
+  if(p.length<2){if(lbl)lbl.textContent='';return;}
+  const totalSecs=Math.round((p[0]*60+(p[1]||0))*dist);
+  const h=Math.floor(totalSecs/3600),m=String(Math.floor((totalSecs%3600)/60)).padStart(2,'0'),s=String(totalSecs%60).padStart(2,'0');
+  document.getElementById('f-time').value=h+':'+m+':'+s;
+  if(lbl)lbl.textContent='← auto';
 }
 
-async function approveTraining(e, ds, idx, dbId) {
+// ── SAVE / APPROVE / DELETE ───────────────────────────────────────
+function saveTraining(){
+  const dist=parseFloat(document.getElementById('f-dist').value)||0;
+  const time=document.getElementById('f-time').value.trim();
+  const pace=document.getElementById('f-pace').value;
+  const hr=document.getElementById('f-hr').value;
+  const desc=document.getElementById('f-desc').value;
+  const status=document.getElementById('f-status').value;
+  if(!editingDate){notify('Brak daty');return;}
+  const t={type:selectedType,dist,time,pace,hr,desc,status};
+  if(!trainings[editingDate])trainings[editingDate]=[];
+  if(editingIndex!==null&&editingIndex>=0){trainings[editingDate][editingIndex]={...trainings[editingDate][editingIndex],...t};notify('Trening zaktualizowany ✓');}
+  else{trainings[editingDate].push(t);notify(`Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);}
+  closeModal();render();
+}
+async function approveTraining(e,ds,idx,dbId){
   e.stopPropagation();
-  if (!trainings[ds] || !trainings[ds][idx]) return;
-  trainings[ds][idx].status = 'done';
-  
-  // Zapisz do Supabase jeśli mamy id
-  if (dbId && typeof _sbKal !== 'undefined') {
-    await _sbKal.from('trainings').update({status:'done'}).eq('id', dbId);
-  }
-  
-  render();
-  notify('Trening zatwierdzony ✓');
+  if(!trainings[ds]?.[idx])return;
+  trainings[ds][idx].status='done';
+  if(dbId&&typeof _sbKal!=='undefined')await _sbKal.from('trainings').update({status:'done'}).eq('id',dbId);
+  render();notify('Trening zatwierdzony ✓');
 }
-
-function deleteTraining(e, ds, idx) {
+function deleteTraining(e,ds,idx){
   e.stopPropagation();
-  if(!confirm('Usunąć ten trening?')) return;
+  if(!confirm('Usunąć ten trening?'))return;
   trainings[ds].splice(idx,1);
-  if(trainings[ds].length===0) delete trainings[ds];
-  render();
-  notify('Trening usunięty');
+  if(!trainings[ds].length)delete trainings[ds];
+  render();notify('Trening usunięty');
 }
+function notify(msg){const el=document.getElementById('notif');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
 
-// ── NOTIF ─────────────────────────────────────────────────────────────────────
-function notify(msg) {
-  const el = document.getElementById('notif');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(()=>el.classList.remove('show'),2800);
-}
-
-// ── KEYBOARD ──────────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if(e.key==='Escape') closeModal();
-  if(e.key==='ArrowLeft' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(-1);
-  if(e.key==='ArrowRight' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(1);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeModal();
+  if(e.key==='ArrowLeft'&&!document.getElementById('modal-bg').classList.contains('open'))changeWeek(-1);
+  if(e.key==='ArrowRight'&&!document.getElementById('modal-bg').classList.contains('open'))changeWeek(1);
 });
 
 render();
 
-// ── ROLE DETECTION ────────────────────────────────────────────────
-const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
-const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
-const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
-const _sbKal = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ── SUPABASE ──────────────────────────────────────────────────────
+const _urlRole=new URLSearchParams(window.location.search).get('role')||'coach';
+const _backUrl=_urlRole==='coach'?'trener.html':'zawodnik.html';
+const _sbKal=supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co','sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 
-function goBack() {
-  window.location.href = _backUrl;
-}
+function goBack(){window.location.href=_backUrl;}
+document.getElementById('role-label').textContent=_urlRole==='coach'?'Kalendarz trenera':'Mój plan';
+document.getElementById('nav-logo-back').href=_backUrl;
 
-document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';
-document.getElementById('nav-logo-back').href = _backUrl;
-
-// Weryfikacja roli — zawodnik nie może wejść jako trener i odwrotnie
-async function verifyRole() {
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return; }
-  const userRole = session.user.user_metadata?.role || 'athlete';
-  if (_urlRole === 'coach' && userRole !== 'coach') {
-    window.location.href = 'kalendarz.html?role=athlete';
-    return;
-  }
-  if (_urlRole === 'athlete' && userRole === 'coach') {
-    window.location.href = 'kalendarz.html?role=coach';
-    return;
-  }
+async function verifyRole(){
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session){window.location.href='login.html';return;}
+  const role=session.user.user_metadata?.role||'athlete';
+  if(_urlRole==='coach'&&role!=='coach'){window.location.href='kalendarz.html?role=athlete';return;}
+  if(_urlRole==='athlete'&&role==='coach'){window.location.href='kalendarz.html?role=coach';return;}
 }
 verifyRole();
 
-// Pobierz daty startów
-window._raceDates = [];
-async function loadRaceDates() {
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) return;
-  
-  let query = _sbKal.from('athletes').select('goal, target_date');
-  if (_urlRole === 'athlete') {
-    query = query.eq('user_id', session.user.id);
-  } else {
-    // coach — wszyscy zawodnicy
-    query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
-  }
-  
-  const { data } = await query;
-  if (data) {
-    window._raceDates = data
-      .filter(a => a.target_date)
-      .map(a => ({ date: a.target_date, name: a.goal || 'Start' }));
-    render(); // odśwież kalendarz z datami startów
-  }
+window._raceDates=[];
+async function loadRaceDates(){
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session)return;
+  let q=_sbKal.from('athletes').select('goal,target_date');
+  if(_urlRole==='athlete')q=q.eq('user_id',session.user.id);
+  else q=q.eq('coach_id',session.user.id).not('target_date','is',null);
+  const {data}=await q;
+  if(data){window._raceDates=data.filter(a=>a.target_date).map(a=>({date:a.target_date,name:a.goal||'Start'}));render();}
 }
-
 loadRaceDates();
 
-// Pokaż selector zawodników dla trenera
-if (_urlRole === 'coach') {
-  const sel = document.getElementById('cal-athlete-sel');
-  if (sel) sel.style.display = 'block';
-  loadAthletesForCalendar();
-}
-
-// ── LOAD TRAININGS FROM DB ────────────────────────────────────────
-async function loadTrainingsFromDB() {
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) return;
-
-  let query = _sbKal.from('trainings').select('*');
-
-  if (_urlRole === 'athlete') {
-    // Zawodnik — tylko swoje treningi
-    const { data: ath } = await _sbKal.from('athletes')
-      .select('id').eq('user_id', session.user.id).maybeSingle();
-    if (!ath) return;
-    query = query.eq('athlete_id', ath.id);
-  } else {
-    // Trener — treningi wybranego zawodnika lub wszystkich
-    if (_calSelectedAthleteId) {
-      query = query.eq('athlete_id', _calSelectedAthleteId);
-    } else {
-      query = query.eq('coach_id', session.user.id);
-    }
+setTimeout(()=>{
+  const btn=document.getElementById('goal-btn');
+  if(btn)btn.style.display='block';
+  if(_urlRole==='athlete'){
+    const ab=document.getElementById('add-training-btn');
+    if(ab)ab.style.display='none';
+    document.querySelectorAll('.add-btn,.tc-del').forEach(el=>el.style.display='none');
   }
+  if(_urlRole==='coach')loadAthletesForCalendar();
+},300);
 
-  const { data, error } = await query.order('date');
-  if (error || !data) return;
-
-  // Wyczyść hardcoded treningi i załaduj z bazy
-  Object.keys(trainings).forEach(k => delete trainings[k]);
-
-  data.forEach(t => {
-    const ds = t.date;
-    if (!trainings[ds]) trainings[ds] = [];
-    const exists = trainings[ds].some(x => x._id === t.id);
-    if (!exists) {
-      // Konwertuj minuty na h:mm:ss
-      let timeStr = '';
-      if (t.duration_min) {
-        const h = Math.floor(t.duration_min / 60);
-        const m = String(t.duration_min % 60).padStart(2,'0');
-        timeStr = h + ':' + m + ':00';
-      }
-      trainings[ds].push({
-        _id: t.id,
-        type: t.type || 'Spokojny',
-        dist: parseFloat(t.distance_km) || 0,
-        time: timeStr,
-        pace: t.pace || '',
-        hr: t.heart_rate || '',
-        desc: t.description || '',
-        status: t.status || 'planned'
-      });
+let _calSelectedAthleteId=null;
+async function loadTrainingsFromDB(){
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session)return;
+  let q=_sbKal.from('trainings').select('*');
+  if(_urlRole==='athlete'){
+    const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
+    if(!ath)return;
+    q=q.eq('athlete_id',ath.id);
+  } else {
+    if(_calSelectedAthleteId)q=q.eq('athlete_id',_calSelectedAthleteId);
+    else q=q.eq('coach_id',session.user.id);
+  }
+  const {data,error}=await q.order('date');
+  if(error||!data)return;
+  Object.keys(trainings).forEach(k=>delete trainings[k]);
+  data.forEach(t=>{
+    const ds=t.date;
+    if(!trainings[ds])trainings[ds]=[];
+    if(!trainings[ds].some(x=>x._id===t.id)){
+      let timeStr='';
+      if(t.duration_min){const h=Math.floor(t.duration_min/60),m=String(t.duration_min%60).padStart(2,'0');timeStr=h+':'+m+':00';}
+      trainings[ds].push({_id:t.id,type:t.type||'Bieg spokojny',dist:parseFloat(t.distance_km)||0,time:timeStr,pace:t.pace||'',hr:t.heart_rate||'',desc:t.description||'',status:t.status||'planned'});
     }
   });
-
   render();
 }
-
 loadTrainingsFromDB();
 
-// ── ATHLETE SELECT dla trenera ────────────────────────────────────
-let _calAthletes = [];
-let _calSelectedAthleteId = null;
-
-async function loadAthletesForCalendar() {
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session || _urlRole === 'athlete') return;
-  const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
-  _calAthletes = data || [];
-  const sel = document.getElementById('cal-athlete-sel');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— wszyscy zawodnicy —</option>' +
-    _calAthletes.map(a => `<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
-  sel.addEventListener('change', () => {
-    _calSelectedAthleteId = sel.value || null;
-    // Przeładuj treningi dla wybranego zawodnika
-    loadTrainingsFromDB();
-  });
+async function loadAthletesForCalendar(){
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session||_urlRole==='athlete')return;
+  const {data}=await _sbKal.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
+  const sel=document.getElementById('cal-athlete-sel');
+  if(!sel||!data)return;
+  sel.style.display='block';
+  sel.innerHTML='<option value="">— wszyscy zawodnicy —</option>'+data.map(a=>`<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
+  sel.addEventListener('change',()=>{_calSelectedAthleteId=sel.value||null;loadTrainingsFromDB();});
 }
 
-// ── SAVE TRAINING TO DB (override saveTraining) ───────────────────
-const _origSaveTraining = saveTraining;
-window.saveTraining = async function() {
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session || _urlRole === 'athlete') { _origSaveTraining(); return; }
-
-  const dist = parseFloat(document.getElementById('f-dist').value)||0;
-  const timeStr = document.getElementById('f-time').value.trim();
-  // Przelicz czas na minuty do bazy (duration_min)
-  let durationMin = null;
-  if (timeStr) {
-    const parts = timeStr.split(':').map(Number);
-    if (parts.length === 3) durationMin = parts[0]*60 + parts[1] + Math.round(parts[2]/60);
-    else if (parts.length === 2) durationMin = parts[0]*60 + parts[1];
-    else durationMin = parseInt(timeStr) || null;
+// Override save/delete z DB
+const _origSave=saveTraining;
+window.saveTraining=async function(){
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session||_urlRole==='athlete'){_origSave();return;}
+  const dist=parseFloat(document.getElementById('f-dist').value)||0;
+  const ts=document.getElementById('f-time').value.trim();
+  let dur=null;
+  if(ts){const p=ts.split(':').map(Number);if(p.length===3)dur=p[0]*60+p[1]+Math.round(p[2]/60);else if(p.length===2)dur=p[0]*60+p[1];}
+  const pace=document.getElementById('f-pace').value;
+  const hr=document.getElementById('f-hr').value;
+  const desc=document.getElementById('f-desc').value;
+  const status=document.getElementById('f-status').value;
+  if(!editingDate){notify('Brak daty');return;}
+  const dbId=editingIndex!==null?trainings[editingDate]?.[editingIndex]?._id:null;
+  if(dbId){
+    const {error}=await _sbKal.from('trainings').update({type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status}).eq('id',dbId);
+    if(error){notify('Błąd: '+error.message);return;}
+    _origSave();return;
   }
-  const pace = document.getElementById('f-pace').value;
-  const hr = document.getElementById('f-hr').value;
-  const desc = document.getElementById('f-desc').value;
-  const status = document.getElementById('f-status').value;
-
-  if (!editingDate) { notify('Brak daty'); return; }
-
-  const existing = editingIndex !== null && trainings[editingDate] && trainings[editingDate][editingIndex];
-  const dbId = existing?._id;
-
-  if (dbId) {
-    const { error } = await _sbKal.from('trainings').update({
-      type: selectedType,
-      distance_km: dist || null,
-      duration_min: durationMin,
-      pace: pace || null,
-      heart_rate: hr || null,
-      description: desc || null,
-      status
-    }).eq('id', dbId);
-    if (error) { notify('Błąd edycji: ' + error.message); return; }
-    _origSaveTraining();
-    return;
-  }
-
-  if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy powyżej'); return; }
-  const { error } = await _sbKal.from('trainings').insert({
-    coach_id: session.user.id,
-    athlete_id: _calSelectedAthleteId,
-    date: editingDate,
-    type: selectedType,
-    distance_km: dist || null,
-    duration_min: durationMin,
-    pace: pace || null,
-    heart_rate: hr || null,
-    description: desc || null,
-    status
-  });
-  if (error) { notify('Błąd zapisu: ' + error.message); return; }
-  _origSaveTraining();
+  if(!_calSelectedAthleteId){notify('Wybierz zawodnika z listy');return;}
+  const {error}=await _sbKal.from('trainings').insert({coach_id:session.user.id,athlete_id:_calSelectedAthleteId,date:editingDate,type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status});
+  if(error){notify('Błąd: '+error.message);return;}
+  _origSave();
 };
 
-// Override deleteTraining żeby usuwał też z bazy
-const _origDeleteTraining = deleteTraining;
-window.deleteTraining = async function(e, ds, idx) {
+const _origDel=deleteTraining;
+window.deleteTraining=async function(e,ds,idx){
   e.stopPropagation();
-  if (!confirm('Usunąć ten trening?')) return;
-  const t = trainings[ds]?.[idx];
-  if (t?._id && typeof _sbKal !== 'undefined') {
-    await _sbKal.from('trainings').delete().eq('id', t._id);
-  }
-  trainings[ds].splice(idx, 1);
-  if (trainings[ds].length === 0) delete trainings[ds];
-  render();
-  notify('Trening usunięty');
+  if(!confirm('Usunąć ten trening?'))return;
+  const t=trainings[ds]?.[idx];
+  if(t?._id)await _sbKal.from('trainings').delete().eq('id',t._id);
+  trainings[ds].splice(idx,1);
+  if(!trainings[ds].length)delete trainings[ds];
+  render();notify('Trening usunięty');
 };
 
-// ── AUTO PRZELICZANIE CZAS ↔ TEMPO ───────────────────────────────
-function kalAutoColon(el) {
-  let v = el.value.replace(/[^0-9]/g,'');
-  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
-  if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
-  el.value = v.slice(0,7);
+function openGoalModal(){
+  if(window._raceDates?.length){document.getElementById('goal-name').value=window._raceDates[0].name||'';document.getElementById('goal-date').value=window._raceDates[0].date||'';}
+  document.getElementById('goal-modal').style.display='flex';
 }
-function kalAutoColonPace(el) {
-  let v = el.value.replace(/[^0-9]/g,'');
-  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
-  el.value = v.slice(0,5);
-}
-function kalCalcPace() {
-  const dist = parseFloat(document.getElementById('f-dist').value);
-  const timeVal = document.getElementById('f-time').value;
-  const lbl = document.getElementById('kal-pace-auto');
-  if (!dist || !timeVal || timeVal.length < 4) { if(lbl) lbl.textContent=''; return; }
-  const parts = timeVal.split(':').map(Number);
-  let secs = parts.length===3 ? parts[0]*3600+parts[1]*60+parts[2] : parts.length===2 ? parts[0]*60+parts[1] : 0;
-  if (!secs) { if(lbl) lbl.textContent=''; return; }
-  const pps = secs / dist;
-  const pm = Math.floor(pps/60);
-  const ps = String(Math.round(pps%60)).padStart(2,'0');
-  document.getElementById('f-pace').value = pm+':'+ps;
-  if(lbl) lbl.textContent = '← auto';
-}
-function kalCalcTime() {
-  const dist = parseFloat(document.getElementById('f-dist').value);
-  const paceVal = document.getElementById('f-pace').value;
-  const lbl = document.getElementById('kal-time-auto');
-  if (!dist || !paceVal || paceVal.length < 3) { if(lbl) lbl.textContent=''; return; }
-  const parts = paceVal.split(':').map(Number);
-  if (parts.length < 2) { if(lbl) lbl.textContent=''; return; }
-  const paceSecs = parts[0]*60+(parts[1]||0);
-  const totalSecs = Math.round(paceSecs * dist);
-  const h = Math.floor(totalSecs/3600);
-  const m = String(Math.floor((totalSecs%3600)/60)).padStart(2,'0');
-  const s = String(totalSecs%60).padStart(2,'0');
-  document.getElementById('f-time').value = h+':'+m+':'+s;
-  if(lbl) lbl.textContent = '← auto';
-}
-
-if (_urlRole === 'athlete') {
-  // Zawodnik — ukryj przycisk dodawania nowych treningów i usuwania
-  // ale pozwól na podgląd istniejących (kliknięcie w kafelek)
-  setTimeout(() => {
-    document.querySelectorAll('.add-training-btn, .card-delete').forEach(el => el.style.display = 'none');
-    const addBtn = document.querySelector('.btn-primary');
-    if (addBtn) addBtn.style.display = 'none';
-    // Ukryj status i opis w modalu (zawodnik tylko przegląda)
-  }, 100);
-}
-</script>
-<!-- MODAL CEL STARTOWY -->
-<div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;display:none;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);width:420px;max-width:92vw;padding:24px;border-radius:4px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:4px;">🏁 Cel startowy</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:20px;font-family:'DM Mono',monospace;">Wpisz swój cel — pojawi się w kalendarzu jako oznaczony dzień.</div>
-    <div class="field" style="margin-bottom:14px;">
-      <label>Nazwa biegu</label>
-      <input type="text" id="goal-name" placeholder="np. Maraton Warszawski" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;">
-    </div>
-    <div class="field" style="margin-bottom:20px;">
-      <label>Data startu</label>
-      <input type="date" id="goal-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;">
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeGoalModal()" style="flex:1;">Anuluj</button>
-      <button class="btn btn-primary" onclick="saveGoal()" style="flex:2;">Zapisz cel →</button>
-    </div>
-  </div>
-</div>
-
-<script>
-function openGoalModal() {
-  // Wypełnij istniejącymi danymi jeśli są
-  if (window._raceDates && window._raceDates.length > 0) {
-    const r = window._raceDates[0];
-    document.getElementById('goal-name').value = r.name || '';
-    document.getElementById('goal-date').value = r.date || '';
-  }
-  document.getElementById('goal-modal').style.display = 'flex';
-}
-function closeGoalModal() {
-  document.getElementById('goal-modal').style.display = 'none';
-}
-async function saveGoal() {
-  const name = document.getElementById('goal-name').value.trim();
-  const date = document.getElementById('goal-date').value;
-  if (!name || !date) { notify('Wypełnij nazwę i datę'); return; }
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) return;
-
-  if (_urlRole === 'athlete') {
-    // Zawodnik — zapisz do swojego rekordu athletes
-    const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-    if (!ath) { notify('Brak profilu zawodnika'); return; }
-    const { error } = await _sbKal.from('athletes').update({ goal: name, target_date: date }).eq('id', ath.id);
-    if (error) { notify('Błąd: ' + error.message); return; }
+function closeGoalModal(){document.getElementById('goal-modal').style.display='none';}
+async function saveGoal(){
+  const name=document.getElementById('goal-name').value.trim();
+  const date=document.getElementById('goal-date').value;
+  if(!name||!date){notify('Wypełnij nazwę i datę');return;}
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session)return;
+  if(_urlRole==='athlete'){
+    const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
+    if(!ath){notify('Brak profilu');return;}
+    await _sbKal.from('athletes').update({goal:name,target_date:date}).eq('id',ath.id);
   } else {
-    // Trener — zapisz do wybranego zawodnika
-    if (!_calSelectedAthleteId) { notify('Wybierz zawodnika z listy'); return; }
-    const { error } = await _sbKal.from('athletes').update({ goal: name, target_date: date }).eq('id', _calSelectedAthleteId);
-    if (error) { notify('Błąd: ' + error.message); return; }
+    if(!_calSelectedAthleteId){notify('Wybierz zawodnika');return;}
+    await _sbKal.from('athletes').update({goal:name,target_date:date}).eq('id',_calSelectedAthleteId);
   }
-
-  // Odśwież daty startów
-  window._raceDates = [{ date, name }];
-  closeGoalModal();
-  render();
-  notify('Cel startowy zapisany ✓');
+  window._raceDates=[{date,name}];
+  closeGoalModal();render();notify('Cel zapisany ✓');
 }
-
-// Pokaż przycisk celu startowego dla zawodnika i trenera
-setTimeout(() => {
-  const goalBtn = document.getElementById('goal-btn');
-  if (goalBtn) goalBtn.style.display = 'block';
-  if (_urlRole === 'athlete') {
-    const addBtn = document.getElementById('add-training-btn');
-    if (addBtn) addBtn.style.display = 'none';
-  }
-}, 200);
 </script>
 </body>
 </html>
