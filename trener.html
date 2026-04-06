@@ -646,8 +646,9 @@ function autoColon(el) {
 // Auto colon for mm:ss (tempo np. 5:20)
 function autoColonShort(el) {
   let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
-  el.value = v.slice(0,5);
+  // Tempo zawsze jednocyfrowe minuty (3:00 - 9:59), więc dwukropek po 1. cyfrze
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  el.value = v.slice(0,4);
 }
 
 function openAthModal() {
