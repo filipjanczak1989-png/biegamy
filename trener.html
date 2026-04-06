@@ -457,18 +457,23 @@ async function renderDbAthletes(list) {
 }
 
 async function deleteAthlete(id, name) {
-  if (!confirm('Usunąć zawodnika: ' + name + '?\nTa operacja jest nieodwracalna.')) return;
-  
+  if (!confirm('Usunąć zawodnika: ' + name + '?\nZostaną usunięte wszystkie jego treningi i wiadomości. Operacja nieodwracalna.')) return;
+
+  // Usuń powiązane dane
+  await _sb.from('training_logs').delete().eq('athlete_id', id);
+  await _sb.from('trainings').delete().eq('athlete_id', id);
+  await _sb.from('messages').delete().eq('athlete_id', id);
+
+  // Usuń zawodnika
   const { error } = await _sb.from('athletes').delete().eq('id', id);
   if (error) { showToast('Błąd: ' + error.message); return; }
-  
-  // Close panel if this athlete was selected
+
   if (window._selectedAthleteId === id) {
     document.getElementById('panel').classList.remove('on');
     window._selectedAthleteId = null;
   }
-  
-  showToast(name + ' usunięty');
+
+  showToast(name + ' usunięty ✓');
   await loadAthletes();
 }
 
