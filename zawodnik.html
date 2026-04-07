@@ -820,12 +820,11 @@ async function loadProfile() {
       document.getElementById('pb-half-input').value = ath.pb_half || '';
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
-      // Cele startowe — z race_goals JSON lub legacy goal/target_date
+      // Cele startowe — wyłącznie z race_goals JSON
       let goals = [];
       if (ath.race_goals) {
         try { const p = JSON.parse(ath.race_goals); if (Array.isArray(p)) goals = p; } catch(e) {}
       }
-      if (goals.length === 0 && ath.goal) goals = [{name: ath.goal, date: ath.target_date||''}];
       window._profileGoals = goals;
       renderGoals(goals);
     }
@@ -897,21 +896,18 @@ async function saveGoal() {
   if (!name) { toast('Wpisz nazwę biegu'); return; }
   if (!_athleteId) return;
 
-  // Zacznij od lokalnej kopii — najświeższe co mamy
+  // Startuj od lokalnej kopii (już załadowanej przy loadProfile)
   let goals = Array.isArray(window._profileGoals) ? [...window._profileGoals] : [];
 
-  // Jeśli lokalna kopia pusta, spróbuj pobrać z bazy
+  // Jeśli lokalna kopia pusta — pobierz z bazy (tylko race_goals, bez legacy)
   if (goals.length === 0) {
     const { data: fresh } = await _sb.from('athletes')
-      .select('race_goals, goal, target_date')
+      .select('race_goals')
       .eq('id', _athleteId).maybeSingle();
     if (fresh?.race_goals) {
       try { const p = JSON.parse(fresh.race_goals); if (Array.isArray(p)) goals = p; } catch(e) {}
     }
-    // Migracja z legacy pól
-    if (goals.length === 0 && fresh?.goal) {
-      goals = [{ name: fresh.goal, date: fresh.target_date || '' }];
-    }
+    // Nie migrujemy z legacy pola 'goal' — może zawierać śmieciowe dane
   }
 
   goals.push({ name, date });
@@ -1195,12 +1191,18 @@ async function saveOnboarding() {
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
 
+  // Buduj race_goals jako JSON od razu — żeby uniknąć problemów z legacy polem
+  const raceGoals = (goal && targetDate) ? JSON.stringify([{name: goal, date: targetDate}])
+                  : goal ? JSON.stringify([{name: goal, date: ''}])
+                  : JSON.stringify([]);
+
   const { data, error } = await _sb.from('athletes').insert({
     user_id: session.user.id,
     coach_id: COACH_ID,
     full_name: name,
     goal,
     target_date: targetDate,
+    race_goals: raceGoals,
     pb_marathon: pbMar,
     pb_half: pbHalf,
     pb_10k: pb10k,
