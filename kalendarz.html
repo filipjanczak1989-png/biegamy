@@ -739,8 +739,8 @@ async function loadRaceDates(){
     data.forEach(a=>{
       let goals=[];
       try{goals=JSON.parse(a.race_goals||'[]');}catch(e){}
-      if(goals.length)dates.push(...goals.filter(g=>g.date));
-      else if(a.target_date)dates.push({date:a.target_date,name:a.goal||'Start'});
+      // Tylko z race_goals — nie używamy legacy pola goal (może zawierać śmieciowe dane)
+      dates.push(...goals.filter(g=>g.date&&g.name));
     });
     window._raceDates=dates;render();
   }
@@ -914,13 +914,13 @@ async function openGoalModal(){
   document.getElementById('goal-name').value='';document.getElementById('goal-date').value='';
   const {data:{session}}=await _sbKal.auth.getSession();if(!session)return;
   if(_urlRole==='athlete'){
-    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals,goal,target_date').eq('user_id',session.user.id).maybeSingle();
+    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals').eq('user_id',session.user.id).maybeSingle();
     if(ath){window._goalAthId=ath.id;let g=[];try{g=JSON.parse(ath.race_goals||'[]');}catch(e){}
-    if(!g.length&&ath.goal)g=[{name:ath.goal,date:ath.target_date||''}];window._kalGoals=g;renderGoalListKal(g);}
+    window._kalGoals=g;renderGoalListKal(g);}
   } else if(_calSelectedAthleteId){
-    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals,goal,target_date').eq('id',_calSelectedAthleteId).maybeSingle();
+    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals').eq('id',_calSelectedAthleteId).maybeSingle();
     if(ath){window._goalAthId=ath.id;let g=[];try{g=JSON.parse(ath.race_goals||'[]');}catch(e){}
-    if(!g.length&&ath.goal)g=[{name:ath.goal,date:ath.target_date||''}];window._kalGoals=g;renderGoalListKal(g);}
+    window._kalGoals=g;renderGoalListKal(g);}
   }
   document.getElementById('goal-modal').style.display='flex';
 }
