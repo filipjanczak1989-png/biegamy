@@ -469,27 +469,59 @@ let _calSelectedAthleteId=null;
 async function loadTrainingsFromDB(){
   const {data:{session}}=await _sbKal.auth.getSession();
   if(!session)return;
-  let q=_sbKal.from('trainings').select('*');
+
+  let athId = null;
+
   if(_urlRole==='athlete'){
     const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
     if(!ath)return;
-    q=q.eq('athlete_id',ath.id);
-  } else {
+    athId = ath.id;
+  }
+
+  // Załaduj plan treningowy (trainings)
+  let q=_sbKal.from('trainings').select('*');
+  if(_urlRole==='athlete') q=q.eq('athlete_id',athId);
+  else {
     if(_calSelectedAthleteId)q=q.eq('athlete_id',_calSelectedAthleteId);
     else q=q.eq('coach_id',session.user.id);
   }
   const {data,error}=await q.order('date');
-  if(error||!data)return;
+
   Object.keys(trainings).forEach(k=>delete trainings[k]);
-  data.forEach(t=>{
-    const ds=t.date;
-    if(!trainings[ds])trainings[ds]=[];
-    if(!trainings[ds].some(x=>x._id===t.id)){
-      let timeStr='';
-      if(t.duration_min){const h=Math.floor(t.duration_min/60),m=String(t.duration_min%60).padStart(2,'0');timeStr=h+':'+m+':00';}
-      trainings[ds].push({_id:t.id,type:t.type||'Bieg spokojny',dist:parseFloat(t.distance_km)||0,time:timeStr,pace:t.pace||'',hr:t.heart_rate||'',desc:t.description||'',status:t.status||'planned'});
+
+  if(!error&&data){
+    data.forEach(t=>{
+      const ds=t.date;
+      if(!trainings[ds])trainings[ds]=[];
+      if(!trainings[ds].some(x=>x._id===t.id)){
+        let timeStr='';
+        if(t.duration_min){const h=Math.floor(t.duration_min/60),m=String(t.duration_min%60).padStart(2,'0');timeStr=h+':'+m+':00';}
+        trainings[ds].push({_id:t.id,type:t.type||'Bieg spokojny',dist:parseFloat(t.distance_km)||0,time:timeStr,pace:t.pace||'',hr:t.heart_rate||'',desc:t.description||'',status:t.status||'planned',_source:'plan'});
+      }
+    });
+  }
+
+  // Załaduj też logi zawodnika (training_logs) — widoczne jako osobne kafelki
+  if(athId||_calSelectedAthleteId){
+    const logAthId = athId || _calSelectedAthleteId;
+    const {data:logs}=await _sbKal.from('training_logs').select('*').eq('athlete_id',logAthId).order('logged_at');
+    if(logs){
+      logs.forEach(l=>{
+        const ds=l.logged_at?l.logged_at.split('T')[0]:null;
+        if(!ds)return;
+        if(!trainings[ds])trainings[ds]=[];
+        // Nie duplikuj jeśli ten sam dzień jest już oznaczony jako done w planie
+        const alreadyDone=trainings[ds].some(x=>x.status==='done'&&x._source==='plan');
+        if(!alreadyDone){
+          const fakeId='log_'+l.id;
+          if(!trainings[ds].some(x=>x._id===fakeId)){
+            trainings[ds].push({_id:fakeId,_logId:l.id,type:l.training_type||'Bieg spokojny',dist:parseFloat(l.distance_km)||0,time:l.duration||'',pace:l.pace||'',hr:l.heart_rate?.toString()||'',desc:l.comment||'',status:'done',_source:'log'});
+          }
+        }
+      });
     }
-  });
+  }
+
   render();
 }
 loadTrainingsFromDB();

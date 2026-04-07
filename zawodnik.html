@@ -1274,7 +1274,9 @@ function renderLogsDb(data) {
     Wybieganie: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="1.8"><path d="M3 12h4l3-9 4 18 3-9h4"/></svg>`,
     Regeneracja: `<svg class="log-icon-svg" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.8"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`,
   };
-  document.getElementById('log-list').innerHTML = data.map(l => {
+  // Zapisz logi globalnie do edycji
+  window._logsData = data;
+  document.getElementById('log-list').innerHTML = data.map((l, idx) => {
     const rawType = l.training_type || 'Spokojny';
     const type = displayName[rawType] || rawType;
     const cls = clsMap[rawType] || 'spokojny';
@@ -1295,11 +1297,55 @@ function renderLogsDb(data) {
           <div class="log-right">
             ${dist ? `<div class="log-dist">${dist}</div><div class="log-dist-lbl">km</div>` : ''}
             ${feelDot}
+            <div style="display:flex;flex-direction:column;gap:4px;margin-left:8px;">
+              <button onclick="editLog(${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px;" title="Edytuj">✏️</button>
+              <button onclick="deleteLog('${l.id}')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px;" title="Usuń">🗑</button>
+            </div>
           </div>
         </div>
       </div>
     </div>`;
   }).join('');
+}
+
+async function deleteLog(logId) {
+  if (!confirm('Usunąć ten log?')) return;
+  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  toast('Log usunięty');
+  await loadLogs();
+}
+
+let _editingLogId = null;
+function editLog(idx) {
+  const l = window._logsData?.[idx];
+  if (!l) return;
+  _editingLogId = l.id;
+  _logDate = l.logged_at ? l.logged_at.split('T')[0] : null;
+  // Wypełnij formularz danymi logu
+  document.getElementById('l-dist').value = l.distance_km || '';
+  document.getElementById('l-time').value = l.duration || '';
+  document.getElementById('l-pace').value = l.pace || '';
+  document.getElementById('l-hr').value = l.heart_rate || '';
+  document.getElementById('l-comment').value = l.comment || '';
+  document.getElementById('l-strava').value = l.strava_link || '';
+  // Ustaw typ
+  _logType = l.training_type || 'Spokojny';
+  document.querySelectorAll('.type-pill').forEach(p => {
+    p.classList.remove('on');
+    if (p.textContent.trim().includes(_logType)) p.classList.add('on');
+  });
+  // Ustaw samopoczucie
+  feel = l.feel || '';
+  document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
+  if (feel) document.querySelector(`.feel-btn[onclick*="${feel}"]`)?.classList.add('sel-'+feel);
+  // Zmień tytuł i otwórz modal
+  document.getElementById('modal-sub').textContent = _logDate
+    ? new Date(_logDate+'T12:00:00').toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'})
+    : 'Edycja logu';
+  document.querySelector('#modal-bg .modal-title').textContent = 'Edytuj trening';
+  document.getElementById('save-btn').textContent = 'Zaktualizuj →';
+  document.getElementById('modal-bg').classList.add('open');
 }
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
@@ -1341,7 +1387,6 @@ async function saveLog() {
   const logDate = _logDate || localToday;
 
   const logData = {
-    athlete_id: _athleteId,
     training_type: _logType,
     distance_km: dist,
     duration: time || null,
@@ -1349,12 +1394,18 @@ async function saveLog() {
     heart_rate: parseInt(document.getElementById('l-hr').value) || null,
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
-    attachment_url: attachmentUrl,
     feel: feel || 'mid',
     logged_at: logDate + 'T12:00:00'
   };
 
-  const { error } = await _sb.from('training_logs').insert(logData);
+  let error;
+  if (_editingLogId) {
+    // UPDATE istniejącego logu
+    ({ error } = await _sb.from('training_logs').update(logData).eq('id', _editingLogId));
+  } else {
+    // INSERT nowego logu
+    ({ error } = await _sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));
+  }
 
   if (error) {
     btn.textContent = 'Zapisz log →';
@@ -1386,9 +1437,12 @@ async function saveLog() {
 
   await loadLogs();
   closeModal();
-  toast('Log zapisany! Trener widzi Twój wynik ✓');
+  toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
 
   // Reset formularza
+  _editingLogId = null;
+  document.querySelector('#modal-bg .modal-title').textContent = 'Zaloguj trening';
+  document.getElementById('save-btn').textContent = 'Zapisz log →';
   ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id=>document.getElementById(id).value='');
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
