@@ -396,7 +396,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
       <!-- TEMPO + TĘTNO -->
       <div class="f-row">
-        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="6:30" maxlength="5" oninput="autoColonPace(this);calcTimeAuto()"></div>
+        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="5:30" maxlength="4" oninput="autoColonPace(this);calcTimeAuto()"></div>
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
@@ -500,11 +500,12 @@ async function markDone(btn){
   await updateWeekProgress();
 }
 function openModal() {
+  _logDate = null; // brak konkretnej daty — użyj dzisiaj
+  document.getElementById('modal-sub').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('modal-bg').classList.add('open');
   // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
   if (window._todayTraining) {
     const t = window._todayTraining;
-    // Typ treningu
     const typeMap = {Spokojny:'Spokojny', Interwały:'Interwały', Tempo:'Tempo', Wybieganie:'Wybieganie', Regeneracja:'Regeneracja'};
     const typeName = typeMap[t.type] || t.type;
     document.querySelectorAll('.type-pill').forEach(p => {
@@ -512,22 +513,28 @@ function openModal() {
       if (p.textContent.trim().includes(typeName)) p.classList.add('on');
     });
     window._logType = typeName || 'Spokojny';
-    // Dystans
     if (t.distance_km) document.getElementById('l-dist').value = t.distance_km;
-    // Czas w minutach → hh:mm:ss
     if (t.duration_min) {
       const h = Math.floor(t.duration_min/60);
       const m = t.duration_min % 60;
       document.getElementById('l-time').value = h + ':' + String(m).padStart(2,'0') + ':00';
     }
-    // Tempo
     if (t.pace) document.getElementById('l-pace').value = t.pace;
-    // Tętno (środek zakresu)
     if (t.heart_rate) {
       const hr = t.heart_rate.toString().split('-')[0];
       document.getElementById('l-hr').value = hr;
     }
   }
+}
+
+let _logDate = null;
+function openModalForDate(dateStr, e) {
+  if(e) e.stopPropagation();
+  _logDate = dateStr;
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('modal-bg').classList.add('open');
 }
 function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
@@ -558,8 +565,8 @@ function autoColonTime(el) {
 }
 function autoColonPace(el) {
   let v = el.value.replace(/[^0-9]/g,'');
-  if (v.length >= 2) v = v.slice(0,2) + ':' + v.slice(2);
-  el.value = v.slice(0,5);
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  el.value = v.slice(0,4);
 }
 function calcPaceAuto() {
   const dist = parseFloat(document.getElementById('l-dist').value);
@@ -1063,12 +1070,13 @@ async function saveOnboarding() {
 async function loadWeekPlan() {
   if (!_athleteId) return;
 
-  // Pokaż najbliższe 14 dni od dziś — zawodnik zawsze widzi nadchodzący plan
   const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  // Użyj lokalnej daty żeby uniknąć UTC offset
+  const localDateStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const todayStr = localDateStr(now);
   const rangeEnd = new Date(now);
   rangeEnd.setDate(now.getDate() + 13);
-  const rangeEndStr = rangeEnd.toISOString().split('T')[0];
+  const rangeEndStr = localDateStr(rangeEnd);
 
   const { data, error } = await _sb.from('trainings')
     .select('*')
@@ -1078,18 +1086,19 @@ async function loadWeekPlan() {
     .order('date');
 
   if (error || !data || data.length === 0) {
-    // Pokaż komunikat zamiast mock danych
     document.getElementById('week-strip').innerHTML = 
       '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak planu na ten tydzień.<br>Trener wkrótce wyśle Twój plan.</div>';
     return;
   }
 
-  const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a'};
+  const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
   const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
-  const today = now.toISOString().split('T')[0];
+  const today = todayStr;
 
   document.getElementById('week-strip').innerHTML = data.map((t, i) => {
-    const d = new Date(t.date);
+    // Parsuj datę lokalnie — new Date('2026-04-06') = UTC, powoduje przesunięcie
+    const [dy, dm, dd2] = t.date.split('-').map(Number);
+    const d = new Date(dy, dm-1, dd2);
     const dayName = dayNames[d.getDay()];
     const dayNum = d.getDate();
     const isToday = t.date === today;
@@ -1097,8 +1106,6 @@ async function loadWeekPlan() {
     const isRest = t.type === 'Odpoczynek';
     const color = typeColors[t.type] || '#66636e';
     const dist = t.distance_km ? parseFloat(t.distance_km) : 0;
-
-    // Puste pola — komunikat zamiast pustki
     const paceDisplay = t.pace || '<span style="color:var(--muted2);font-style:italic;">nie podano</span>';
     const hrDisplay = t.heart_rate || '<span style="color:var(--muted2);font-style:italic;">nie podano</span>';
     const descDisplay = t.description || '<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>';
@@ -1121,6 +1128,7 @@ async function loadWeekPlan() {
         ${t.duration_min?`<div class="dd-m">Czas: <span>~${t.duration_min} min</span></div>`:''}
       </div>
       <div class="dd-desc">${descDisplay}</div>
+      ${!isDone&&!isRest?`<button onclick="openModalForDate('${t.date}',event)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">↓ Zaloguj wynik z ${dayName} ${dayNum}</button>`:''}
     </div>`;
   }).join('');
 }
@@ -1297,16 +1305,15 @@ function renderLogsDb(data) {
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
 let _savingLog = false;
 async function saveLog() {
-  if (_savingLog) return; // debounce
+  if (_savingLog) return;
 
   const dist = parseFloat(document.getElementById('l-dist').value);
   const pace = document.getElementById('l-pace').value.trim();
   const time = document.getElementById('l-time').value.trim();
 
-  // Walidacja
   if (!dist || dist <= 0) { toast('Podaj dystans (km)'); return; }
   if (dist > 300) { toast('Dystans wygląda nieprawidłowo'); return; }
-  if (pace && !/^\d{1,2}:\d{2}$/.test(pace)) { toast('Tempo w formacie mm:ss (np. 5:30)'); return; }
+  if (pace && !/^\d{1}:\d{2}$/.test(pace)) { toast('Tempo w formacie m:ss (np. 5:30)'); return; }
   if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
 
   _savingLog = true;
@@ -1314,7 +1321,7 @@ async function saveLog() {
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
 
-  // Upload screena jeśli jest
+  // Upload screena
   let attachmentUrl = null;
   const fileInput = document.getElementById('l-file');
   if (fileInput.files[0] && _athleteId) {
@@ -1328,6 +1335,11 @@ async function saveLog() {
     }
   }
 
+  // Wyznacz datę logu
+  const now = new Date();
+  const localToday = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const logDate = _logDate || localToday;
+
   const logData = {
     athlete_id: _athleteId,
     training_type: _logType,
@@ -1339,21 +1351,43 @@ async function saveLog() {
     strava_link: document.getElementById('l-strava').value || null,
     attachment_url: attachmentUrl,
     feel: feel || 'mid',
-    logged_at: new Date().toISOString()
+    logged_at: logDate + 'T12:00:00'
   };
 
   const { error } = await _sb.from('training_logs').insert(logData);
-  
+
+  if (error) {
+    btn.textContent = 'Zapisz log →';
+    btn.disabled = false;
+    _savingLog = false;
+    toast('Błąd: ' + error.message);
+    return;
+  }
+
+  // Oznacz trening z kalendarza jako wykonany (jeśli istnieje na ten dzień)
+  const { data: planned } = await _sb.from('trainings')
+    .select('id')
+    .eq('athlete_id', _athleteId)
+    .eq('date', logDate)
+    .neq('status', 'done')
+    .maybeSingle();
+  if (planned) {
+    await _sb.from('trainings').update({
+      status: 'done',
+      distance_km: dist,
+      pace: pace || null,
+      heart_rate: parseInt(document.getElementById('l-hr').value) || null
+    }).eq('id', planned.id);
+  }
+
   btn.textContent = 'Zapisz log →';
   btn.disabled = false;
   _savingLog = false;
 
-  if (error) { toast('Błąd: ' + error.message); return; }
-
   await loadLogs();
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
-  
+
   // Reset formularza
   ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id=>document.getElementById(id).value='');
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
@@ -1363,6 +1397,7 @@ async function saveLog() {
   fileInput.value = '';
   feel = '';
   _logType = 'Spokojny';
+  _logDate = null;
 }
 
 // ── LOGOUT & MENU ─────────────────────────────────────────────────

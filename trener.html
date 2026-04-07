@@ -708,13 +708,14 @@ async function saveAthlete() {
 const WEEK_TEMPLATE = [{"day": "Pn", "dayFull": "Poniedzia\u0142ek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzie\u0144 wolny. Odpoczynek lub lekkie rozci\u0105ganie."}, {"day": "Wt", "dayFull": "Wtorek", "type": "Bieg spokojny", "dist": 10, "time": 65, "pace": "6:30", "hr": "130-145", "desc": "Spokojny bieg regeneracyjny. Trzymaj niskie t\u0119tno przez ca\u0142y czas."}, {"day": "\u015ar", "dayFull": "\u015aroda", "type": "Interwa\u0142y", "dist": 8, "time": 50, "pace": "5:00", "hr": "165-180", "desc": "8\u00d7600m z 90 sek odpoczynku. Rozgrzewka 2 km, sch\u0142odzenie 1 km."}, {"day": "Cz", "dayFull": "Czwartek", "type": "Wybieganie", "dist": 12, "time": 75, "pace": "6:10", "hr": "135-150", "desc": "Spokojne rozbieganie. Cel: nogi pracuj\u0105, nie jeste\u015b zm\u0119czony."}, {"day": "Pt", "dayFull": "Pi\u0105tek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzie\u0144 wolny przed mocnym weekendem."}, {"day": "Sb", "dayFull": "Sobota", "type": "Tempo", "dist": 14, "time": 80, "pace": "5:25", "hr": "155-168", "desc": "Bieg progowy. Trzymaj sta\u0142e, wymagaj\u0105ce tempo przez ca\u0142y dystans."}, {"day": "Nd", "dayFull": "Niedziela", "type": "Wybieganie", "dist": 22, "time": 135, "pace": "6:00", "hr": "140-152", "desc": "D\u0142ugie wybieganie. Spokojne tempo, jedz \u017cele co 45 min od 10 km."}];
 
 function openTemplateModal() {
-  // Ustaw domyślnie dzisiaj
+  // Ustaw domyślnie dzisiaj — lokalna data
   const now = new Date();
-  document.getElementById('tpl-week-date').value = now.toISOString().split('T')[0];
-  
+  const localToday = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  document.getElementById('tpl-week-date').value = localToday;
+
   // Wypełnij listę zawodników
   const sel = document.getElementById('tpl-athlete-select');
-  sel.innerHTML = '<option value="">— wybierz zawodnika —</option>';
+  sel.innerHTML = '<option value="">— wybierz zawodnika —</option><option value="__ALL__">👥 Wszyscy zawodnicy</option>';
   (_dbAthletes||[]).forEach(a => {
     const opt = document.createElement('option');
     opt.value = a.id;
@@ -755,64 +756,78 @@ function closeTemplateModal() {
 }
 
 async function sendTemplate() {
-  const athleteId = document.getElementById('tpl-athlete-select').value;
+  const athleteVal = document.getElementById('tpl-athlete-select').value;
   const weekDateStr = document.getElementById('tpl-week-date').value;
-  
-  if (!athleteId) { showToast('Wybierz zawodnika'); return; }
+
+  if (!athleteVal) { showToast('Wybierz zawodnika'); return; }
   if (!weekDateStr) { showToast('Wybierz datę tygodnia'); return; }
-  
+
   const btn = document.querySelector('.tpl-btn');
   btn.textContent = 'Wysyłam...';
   btn.disabled = true;
-  
-  // Parsuj datę jako lokalną (bez przesunięcia UTC)
+
+  // Lista zawodników do wysłania
+  const targets = athleteVal === '__ALL__'
+    ? (_dbAthletes||[]).map(a => a.id)
+    : [athleteVal];
+
+  if (targets.length === 0) { showToast('Brak zawodników'); btn.textContent='Wyślij plan →'; btn.disabled=false; return; }
+
+  // Parsuj datę lokalnie
   const [yyyy, mm, dd] = weekDateStr.split('-').map(Number);
-  const weekStart = new Date(yyyy, mm - 1, dd); // lokalny czas, bez UTC
-  const errors = [];
-  
-  for (let i = 0; i < WEEK_TEMPLATE.length; i++) {
-    // Czytaj z edytowalnych pól
-    const type = document.getElementById(`tpl-type-${i}`)?.value || WEEK_TEMPLATE[i].type;
+  const weekStart = new Date(yyyy, mm - 1, dd);
+
+  // Zbierz dane z formularza raz
+  const days = WEEK_TEMPLATE.map((d, i) => {
+    const type = document.getElementById(`tpl-type-${i}`)?.value || d.type;
     const dist = parseFloat(document.getElementById(`tpl-dist-${i}`)?.value) || 0;
     const pace = document.getElementById(`tpl-pace-${i}`)?.value.trim() || '';
     const hr = document.getElementById(`tpl-hr-${i}`)?.value.trim() || '';
+    const timeStr = document.getElementById(`tpl-time-${i}`)?.value.trim() || '';
+    let durMin = null;
+    if (timeStr) { const p=timeStr.split(':').map(Number); if(p.length===3)durMin=p[0]*60+p[1]; else if(p.length===2)durMin=p[0]*60+p[1]; }
     const desc = document.getElementById(`tpl-desc-${i}`)?.value.trim() || '';
     const extra = document.getElementById(`tpl-extra-${i}`)?.value.trim() || '';
-    const fullDesc = extra ? (desc ? desc + '\n\n💪 Dodatkowe: ' + extra : '💪 Dodatkowe: ' + extra) : desc;
+    const fullDesc = extra ? (desc ? desc+'\n\n💪 Dodatkowe: '+extra : '💪 Dodatkowe: '+extra) : desc;
+    const date = new Date(weekStart); date.setDate(weekStart.getDate()+i);
+    const dateStr = date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0');
+    return { type, dist, pace, hr, durMin, fullDesc, dateStr };
+  });
 
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + i);
-    const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
-    
-    // Sprawdź czy trening na ten dzień już istnieje
-    const { data: existing } = await _sb.from('trainings')
-      .select('id').eq('athlete_id', athleteId).eq('date', dateStr).maybeSingle();
-    
-    if (existing) continue; // nie nadpisuj
-    
-    const { error } = await _sb.from('trainings').insert({
-      athlete_id: athleteId,
-      coach_id: _coachId,
-      date: dateStr,
-      type: type,
-      distance_km: dist || null,
-      duration_min: null,
-      pace: pace || null,
-      heart_rate: hr || null,
-      description: fullDesc || null,
-      status: 'planned'
-    });
-    
-    if (error) errors.push(d.day + ': ' + error.message);
+  let sent = 0, skipped = 0, errors = 0;
+
+  for (const athleteId of targets) {
+    for (const day of days) {
+      const { data: existing } = await _sb.from('trainings')
+        .select('id').eq('athlete_id', athleteId).eq('date', day.dateStr).maybeSingle();
+      if (existing) { skipped++; continue; }
+
+      const { error } = await _sb.from('trainings').insert({
+        athlete_id: athleteId,
+        coach_id: _coachId,
+        date: day.dateStr,
+        type: day.type,
+        distance_km: day.dist || null,
+        duration_min: day.durMin,
+        pace: day.pace || null,
+        heart_rate: day.hr || null,
+        description: day.fullDesc || null,
+        status: 'planned'
+      });
+      if (error) errors++; else sent++;
+    }
   }
-  
+
   btn.textContent = 'Wyślij plan →';
   btn.disabled = false;
-  
-  if (errors.length > 0) {
-    showToast('Błędy: ' + errors.join(', '));
+
+  if (errors > 0) {
+    showToast(`Wysłano ${sent}, błędy: ${errors}`);
   } else {
-    showToast('Plan tygodnia wysłany ✓');
+    const msg = athleteVal === '__ALL__'
+      ? `Plan wysłany do ${targets.length} zawodników ✓${skipped>0?' ('+skipped+' już istniało)':''}`
+      : `Plan tygodnia wysłany ✓`;
+    showToast(msg);
     closeTemplateModal();
   }
 }
@@ -1161,6 +1176,7 @@ if (_tabParam) {
       <label>Zawodnik</label>
       <select id="tpl-athlete-select">
         <option value="">— wybierz zawodnika —</option>
+        <option value="__ALL__">👥 Wszyscy zawodnicy</option>
       </select>
     </div>
     
