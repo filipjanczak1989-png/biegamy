@@ -820,10 +820,19 @@ async function loadProfile() {
       document.getElementById('pb-half-input').value = ath.pb_half || '';
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
-      // Cele startowe
+      // Cele startowe — zawsze z bazy, migracja z legacy pola
       let goals = [];
-      try { goals = JSON.parse(ath.race_goals || '[]'); } catch(e) {}
-      if (goals.length === 0 && ath.goal) goals = [{name: ath.goal, date: ath.target_date||''}];
+      if (ath.race_goals) {
+        try {
+          const parsed = JSON.parse(ath.race_goals);
+          if (Array.isArray(parsed)) goals = parsed;
+        } catch(e) { goals = []; }
+      }
+      // Migracja: jeśli race_goals puste ale stare pole goal istnieje
+      if (goals.length === 0 && ath.goal) {
+        goals = [{ name: ath.goal, date: ath.target_date || '' }];
+      }
+      window._profileGoals = goals;
       renderGoals(goals);
     }
   }
@@ -893,29 +902,66 @@ async function saveGoal() {
   const date = document.getElementById('goal-date-input').value;
   if (!name) { toast('Wpisz nazwę biegu'); return; }
   if (!_athleteId) return;
-  // Zawsze pobierz świeże dane z bazy — unikamy przestarzałego _profileGoals
-  const { data: fresh } = await _sb.from('athletes').select('race_goals').eq('id', _athleteId).single();
+
+  // Pobierz świeże dane z bazy
+  const { data: fresh, error: fetchErr } = await _sb
+    .from('athletes').select('race_goals,goal,target_date')
+    .eq('id', _athleteId).maybeSingle();
+
+  console.log('[saveGoal] fresh:', fresh, 'fetchErr:', fetchErr);
+
   let goals = [];
-  try { goals = JSON.parse(fresh?.race_goals || '[]'); } catch(e) {}
+  // Jeśli race_goals istnieje i nie jest puste
+  if (!fetchErr && fresh?.race_goals) {
+    try {
+      const parsed = JSON.parse(fresh.race_goals);
+      goals = Array.isArray(parsed) ? parsed : [];
+    } catch(e) { goals = []; }
+  }
+  // Migracja z legacy pól — tylko jeśli race_goals było puste/null
+  if (goals.length === 0 && !fetchErr && fresh?.goal) {
+    goals = [{ name: fresh.goal, date: fresh.target_date || '' }];
+  }
+
+  console.log('[saveGoal] goals before push:', JSON.stringify(goals));
   goals.push({ name, date });
-  const { error } = await _sb.from('athletes').update({
+  console.log('[saveGoal] goals after push:', JSON.stringify(goals));
+
+  const payload = {
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
-  }).eq('id', _athleteId);
-  if (error) { toast('Błąd: ' + error.message); return; }
+  };
+  console.log('[saveGoal] updating with:', JSON.stringify(payload));
+
+  const { data: updateData, error } = await _sb.from('athletes').update(payload)
+    .eq('id', _athleteId).select('race_goals');
+  console.log('[saveGoal] update result:', updateData, 'error:', error);
+
+  if (error) { toast('Błąd zapisu: ' + error.message); return; }
+
+  // Zweryfikuj — odczytaj co faktycznie jest w bazie po zapisie
+  const { data: verify } = await _sb
+    .from('athletes').select('race_goals')
+    .eq('id', _athleteId).maybeSingle();
+  let verifiedGoals = goals; // fallback na lokalne
+  if (verify?.race_goals) {
+    try {
+      const parsed = JSON.parse(verify.race_goals);
+      if (Array.isArray(parsed)) verifiedGoals = parsed;
+    } catch(e) {}
+  }
+
   toast('Cel dodany ✓');
   closeAddGoal();
-  window._profileGoals = goals;
-  renderGoals(goals);
+  window._profileGoals = verifiedGoals;
+  renderGoals(verifiedGoals);
 }
 
 async function deleteGoal(idx) {
   if (!confirm('Usunąć ten cel?')) return;
-  // Zawsze pobierz świeże dane z bazy
-  const { data: fresh } = await _sb.from('athletes').select('race_goals').eq('id', _athleteId).single();
-  let goals = [];
-  try { goals = JSON.parse(fresh?.race_goals || '[]'); } catch(e) {}
+  // Użyj lokalnej kopii — już zsynchonizowanej przy ładowaniu
+  let goals = Array.isArray(window._profileGoals) ? [...window._profileGoals] : [];
   goals = goals.filter((_, i) => i !== idx);
   const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
