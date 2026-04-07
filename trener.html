@@ -175,6 +175,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('lg',this)">Logi</button>
     <button class="ptab" onclick="ptab('ms',this)">Wiad.</button>
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
+    <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
   </div>
   <div class="panel-body">
     <div id="pov">
@@ -232,6 +233,55 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       </div>
       <button class="btn btn-p" onclick="calcP()">Oblicz strefy</button>
       <div class="pace-zones" id="pzones" style="display:none;"></div>
+    </div>
+
+    <!-- PB / CELE TAB -->
+    <div id="ppb" style="display:none;">
+      <!-- PB cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;" id="ppb-grid">
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);" id="ppb-mar">—</div>
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);" id="ppb-half">—</div>
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);" id="ppb-10k">—</div>
+        </div>
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;">
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);" id="ppb-5k">—</div>
+        </div>
+      </div>
+      <!-- Edit PB -->
+      <button onclick="togglePanelPBEdit()" style="width:100%;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;margin-bottom:12px;" id="ppb-edit-btn">✏ Edytuj PB</button>
+      <div id="ppb-edit-form" style="display:none;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</label>
+            <input id="ppb-mar-in" type="text" placeholder="3:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+          <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</label>
+            <input id="ppb-half-in" type="text" placeholder="1:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+          <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</label>
+            <input id="ppb-10k-in" type="text" placeholder="45:30" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+          <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</label>
+            <input id="ppb-5k-in" type="text" placeholder="22:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+        </div>
+        <button onclick="savePanelPB()" style="width:100%;margin-top:10px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz PB →</button>
+      </div>
+      <!-- Cele startowe -->
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Cele startowe</div>
+      <div id="ppb-goals-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px;"></div>
+      <button onclick="addPanelGoal()" style="width:100%;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px;border-radius:6px;border:1px dashed var(--border);background:transparent;color:var(--muted);cursor:pointer;">+ Dodaj cel startowy</button>
+      <div id="ppb-goal-form" style="display:none;margin-top:10px;">
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:8px;">
+          <input id="ppb-goal-name" type="text" placeholder="Nazwa biegu" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:6px;outline:none;width:100%;">
+          <input id="ppb-goal-date" type="date" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:6px;outline:none;width:100%;">
+        </div>
+        <button onclick="savePanelGoal()" style="width:100%;margin-top:8px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:9px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz cel →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -310,10 +360,109 @@ function selA(id){
 }
 function closePanel(){document.getElementById('panel').classList.remove('on');selAth=null;renderAth();}
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl'].forEach(t=>document.getElementById('p'+t).style.display=t===n?'block':'none');
+  ['ov','pl','lg','ms','cl','pb'].forEach(t=>document.getElementById('p'+t).style.display=t===n?'block':'none');
   document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
   if (n === 'ms') loadPanelChat();
+  if (n === 'pb') loadPanelPB();
+}
+
+// ── PB / CELE PANEL ───────────────────────────────────────────────
+async function loadPanelPB() {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  const { data: a } = await _sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k,race_goals,goal,target_date').eq('id', id).maybeSingle();
+  if (!a) return;
+  document.getElementById('ppb-mar').textContent = a.pb_marathon || '—';
+  document.getElementById('ppb-half').textContent = a.pb_half || '—';
+  document.getElementById('ppb-10k').textContent = a.pb_10k || '—';
+  document.getElementById('ppb-5k').textContent = a.pb_5k || '—';
+  document.getElementById('ppb-mar-in').value = a.pb_marathon || '';
+  document.getElementById('ppb-half-in').value = a.pb_half || '';
+  document.getElementById('ppb-10k-in').value = a.pb_10k || '';
+  document.getElementById('ppb-5k-in').value = a.pb_5k || '';
+  // Cele
+  let goals = [];
+  try { goals = JSON.parse(a.race_goals || '[]'); } catch(e) {}
+  if (goals.length === 0 && a.goal) goals = [{name: a.goal, date: a.target_date||''}];
+  renderPanelGoals(goals);
+}
+
+function renderPanelGoals(goals) {
+  const list = document.getElementById('ppb-goals-list');
+  if (!list) return;
+  list.innerHTML = goals.map((g, i) => {
+    const d = g.date ? new Date(g.date) : null;
+    const days = d ? Math.ceil((d - new Date()) / 86400000) : null;
+    const dateStr = d ? d.toLocaleDateString('pl-PL', {day:'numeric',month:'short',year:'numeric'}) : '';
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+      <div style="font-size:16px;">🏁</div>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:500;">${g.name||'—'}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dateStr}${days !== null && days >= 0 ? ' · ' + days + ' dni' : ''}</div>
+      </div>
+      <button onclick="deletePanelGoal(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
+    </div>`;
+  }).join('');
+  window._panelGoals = goals;
+}
+
+function togglePanelPBEdit() {
+  const f = document.getElementById('ppb-edit-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  document.getElementById('ppb-edit-btn').textContent = f.style.display === 'none' ? '✏ Edytuj PB' : '✕ Anuluj';
+}
+
+async function savePanelPB() {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  const { error } = await _sb.from('athletes').update({
+    pb_marathon: document.getElementById('ppb-mar-in').value.trim() || null,
+    pb_half: document.getElementById('ppb-half-in').value.trim() || null,
+    pb_10k: document.getElementById('ppb-10k-in').value.trim() || null,
+    pb_5k: document.getElementById('ppb-5k-in').value.trim() || null,
+  }).eq('id', id);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  showToast('PB zapisane ✓');
+  togglePanelPBEdit();
+  await loadPanelPB();
+}
+
+function addPanelGoal() {
+  const f = document.getElementById('ppb-goal-form');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+}
+
+async function deletePanelGoal(idx) {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  const goals = (window._panelGoals || []).filter((_,i) => i !== idx);
+  await _sb.from('athletes').update({
+    race_goals: JSON.stringify(goals),
+    goal: goals[0]?.name || null,
+    target_date: goals[0]?.date || null
+  }).eq('id', id);
+  renderPanelGoals(goals);
+}
+
+async function savePanelGoal() {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  const name = document.getElementById('ppb-goal-name').value.trim();
+  const date = document.getElementById('ppb-goal-date').value;
+  if (!name) { showToast('Podaj nazwę biegu'); return; }
+  const goals = [...(window._panelGoals||[]), {name, date}];
+  const { error } = await _sb.from('athletes').update({
+    race_goals: JSON.stringify(goals),
+    goal: goals[0]?.name || null,
+    target_date: goals[0]?.date || null
+  }).eq('id', id);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  document.getElementById('ppb-goal-name').value = '';
+  document.getElementById('ppb-goal-date').value = '';
+  document.getElementById('ppb-goal-form').style.display = 'none';
+  showToast('Cel zapisany ✓');
+  renderPanelGoals(goals);
 }
 function renderWM(){
   document.getElementById('wmini').innerHTML=wmData.map(d=>`

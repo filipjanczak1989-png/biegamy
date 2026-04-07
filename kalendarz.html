@@ -193,11 +193,49 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
         </div>
       </div>
       <div class="field"><label>Opis / instrukcje</label><textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km rozgrzewka."></textarea></div>
+
+      <!-- INTERWAŁY — widoczne gdy typ = Interwały -->
+      <div class="field" id="kal-iv-section" style="display:none;">
+        <label>Interwały — seria powtórzeń</label>
+        <div style="display:flex;flex-direction:column;gap:6px;" id="kal-iv-list">
+          <div class="kal-iv-row" style="display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;align-items:center;">
+            <input type="text" class="kiv-dist" placeholder="np. 400m / 1km" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;" oninput="kalIvCalc(this)">
+            <input type="text" class="kiv-pace" placeholder="tempo np. 4:00" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;">
+            <button onclick="kalIvRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">✕</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:6px;align-items:center;">
+          <button onclick="kalIvAdd(event)" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">+ Seria</button>
+          <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;" id="kal-iv-sum">—</span>
+        </div>
+      </div>
+
+      <!-- RYTMÓWKI — widoczne gdy typ = Tempo -->
+      <div class="field" id="kal-ryt-section" style="display:none;">
+        <label>Rytmówki — odcinki tempowe</label>
+        <div style="display:flex;flex-direction:column;gap:6px;" id="kal-ryt-list">
+          <div class="kal-ryt-row" style="display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;align-items:center;">
+            <input type="text" class="kryt-dist" placeholder="np. 2km / 5km" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;">
+            <input type="text" class="kryt-pace" placeholder="tempo np. 4:30" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;">
+            <button onclick="kalRytRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">✕</button>
+          </div>
+        </div>
+        <div style="margin-top:6px;">
+          <button onclick="kalRytAdd(event)" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">+ Odcinek</button>
+        </div>
+      </div>
+
       <div class="field" id="status-field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
     </div>
-    <div class="mfoot">
+    <div class="mfoot" style="flex-wrap:wrap;gap:8px;">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button class="btn btn-primary" id="save-btn" onclick="saveTraining()">Zapisz →</button>
+      <button class="btn" id="kal-start-btn" onclick="kalStartTraining()" style="display:none;background:var(--green);color:#061a0e;border:none;">▶ Start</button>
+      <div id="kal-timer-wrap" style="display:none;align-items:center;gap:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);">
+        <span id="kal-timer-disp">00:00:00</span>
+        <button onclick="kalPauseTimer()" id="kal-pause-btn" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(61,184,112,0.4);background:transparent;color:var(--green);cursor:pointer;">⏸</button>
+        <button onclick="kalStopTimer()" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(224,80,80,0.4);background:transparent;color:var(--red);cursor:pointer;">■ Stop</button>
+      </div>
+      <button class="btn btn-primary" id="save-btn" onclick="saveTraining()" style="margin-left:auto;">Zapisz →</button>
     </div>
   </div>
 </div>
@@ -331,9 +369,114 @@ function openModal(ds,idx){
   } else {document.getElementById('modal-ttl').textContent=isAthlete?'Zaloguj wynik':'Nowy trening';}
   document.getElementById('modal-bg').classList.add('open');
 }
-function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  // Reset timer if running
+  if(_kalTimer){clearInterval(_kalTimer);_kalTimer=null;}
+  const tw=document.getElementById('kal-timer-wrap');if(tw)tw.style.display='none';
+  const sb=document.getElementById('kal-start-btn');
+  if(sb&&_urlRole==='athlete')sb.style.display='';
+  // Reset interval sections
+  const ivS=document.getElementById('kal-iv-section');if(ivS)ivS.style.display='none';
+  const rS=document.getElementById('kal-ryt-section');if(rS)rS.style.display='none';
+  // Reset interval rows to default
+  const ivList=document.getElementById('kal-iv-list');
+  if(ivList)ivList.innerHTML=`<div class="kal-iv-row" style="display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;align-items:center;"><input type="text" class="kiv-dist" placeholder="np. 400m / 1km" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;" oninput="kalIvCalc(this)"><input type="text" class="kiv-pace" placeholder="tempo np. 4:00" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;"><button onclick="kalIvRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">✕</button></div>`;
+  const rytList=document.getElementById('kal-ryt-list');
+  if(rytList)rytList.innerHTML=`<div class="kal-ryt-row" style="display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;align-items:center;"><input type="text" class="kryt-dist" placeholder="np. 2km / 5km" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;"><input type="text" class="kryt-pace" placeholder="tempo np. 4:30" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;"><button onclick="kalRytRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">✕</button></div>`;
+}
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
-function selType(el,type,cls){document.querySelectorAll('.tpill').forEach(p=>p.className='tpill');el.className=`tpill sel ${cls}`;selectedType=type;selectedTypeCls=cls;}
+function selType(el,type,cls){
+  document.querySelectorAll('.tpill').forEach(p=>p.className='tpill');
+  el.className=`tpill sel ${cls}`;
+  selectedType=type;selectedTypeCls=cls;
+  const ivSec=document.getElementById('kal-iv-section');
+  const rytSec=document.getElementById('kal-ryt-section');
+  if(ivSec) ivSec.style.display=(type==='Interwały')?'block':'none';
+  if(rytSec) rytSec.style.display=(type==='Tempo')?'block':'none';
+}
+
+// ── INTERWAŁY / RYTMÓWKI ─────────────────────────────────────────
+function kalIvAdd(e){
+  e.preventDefault();
+  const list=document.getElementById('kal-iv-list');
+  const row=document.createElement('div');
+  row.className='kal-iv-row';
+  row.style.cssText='display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;align-items:center;';
+  row.innerHTML=`<input type="text" class="kiv-dist" placeholder="np. 400m / 1km" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;" oninput="kalIvCalc(this)">
+    <input type="text" class="kiv-pace" placeholder="tempo np. 4:00" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;">
+    <button onclick="kalIvRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">✕</button>`;
+  list.appendChild(row);
+  kalIvSummary();
+}
+function kalIvRemove(btn,e){e.preventDefault();btn.closest('.kal-iv-row').remove();kalIvSummary();}
+function kalIvCalc(inp){
+  // Oblicz czas na podstawie dystansu i tempa w wierszu
+  const row=inp.closest('.kal-iv-row');
+  kalIvSummary();
+}
+function kalIvSummary(){
+  const rows=document.querySelectorAll('.kal-iv-row');
+  const sum=document.getElementById('kal-iv-sum');
+  if(!sum) return;
+  let totalKm=0,count=0;
+  rows.forEach(row=>{
+    const d=row.querySelector('.kiv-dist')?.value.trim();
+    if(!d){return;}
+    count++;
+    const mM=d.match(/(\d+(?:\.\d+)?)\s*m\b/i);
+    const kM=d.match(/(\d+(?:\.\d+)?)\s*km/i);
+    const nM=d.match(/^(\d+(?:\.\d+)?)$/);
+    if(mM) totalKm+=parseFloat(mM[1])/1000;
+    else if(kM) totalKm+=parseFloat(kM[1]);
+    else if(nM) totalKm+=parseFloat(nM[1])>=100?parseFloat(nM[1])/1000:parseFloat(nM[1]);
+  });
+  sum.textContent=count>0?count+' serii · '+totalKm.toFixed(2)+' km łącznie':'—';
+  if(totalKm>0){const fd=document.getElementById('f-dist');if(fd&&!fd.value)fd.value=totalKm.toFixed(2);}
+}
+function kalRytAdd(e){
+  e.preventDefault();
+  const list=document.getElementById('kal-ryt-list');
+  const row=document.createElement('div');
+  row.className='kal-ryt-row';
+  row.style.cssText='display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;align-items:center;';
+  row.innerHTML=`<input type="text" class="kryt-dist" placeholder="np. 2km / 5km" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;">
+    <input type="text" class="kryt-pace" placeholder="tempo np. 4:30" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;">
+    <button onclick="kalRytRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">✕</button>`;
+  list.appendChild(row);
+}
+function kalRytRemove(btn,e){e.preventDefault();btn.closest('.kal-ryt-row').remove();}
+
+// ── START TIMER (athlete) ─────────────────────────────────────────
+let _kalTimer=null,_kalSecs=0,_kalPaused=false;
+function kalStartTraining(){
+  _kalSecs=0;_kalPaused=false;
+  document.getElementById('kal-start-btn').style.display='none';
+  const wrap=document.getElementById('kal-timer-wrap');
+  wrap.style.display='flex';
+  _kalTimer=setInterval(()=>{
+    if(!_kalPaused){
+      _kalSecs++;
+      const h=String(Math.floor(_kalSecs/3600)).padStart(2,'0');
+      const m=String(Math.floor((_kalSecs%3600)/60)).padStart(2,'0');
+      const s=String(_kalSecs%60).padStart(2,'0');
+      document.getElementById('kal-timer-disp').textContent=h+':'+m+':'+s;
+    }
+  },1000);
+}
+function kalPauseTimer(){
+  _kalPaused=!_kalPaused;
+  const btn=document.getElementById('kal-pause-btn');
+  btn.textContent=_kalPaused?'▶':'⏸';
+}
+function kalStopTimer(){
+  clearInterval(_kalTimer);
+  document.getElementById('kal-timer-wrap').style.display='none';
+  document.getElementById('kal-start-btn').style.display='';
+  const h=Math.floor(_kalSecs/3600),m=String(Math.floor((_kalSecs%3600)/60)).padStart(2,'0'),s=String(_kalSecs%60).padStart(2,'0');
+  document.getElementById('f-time').value=h+':'+m+':'+s;
+  kalCalcPace();
+}
 
 function kalAutoColon(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);if(v.length>=5)v=v.slice(0,4)+':'+v.slice(4);el.value=v.slice(0,7);}
 function kalAutoColonPace(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);el.value=v.slice(0,4);}
@@ -464,6 +607,10 @@ async function verifyRole(){
   if(_urlRole==='coach'&&role!=='coach'){window.location.href='kalendarz.html?role=athlete';return;}
   if(_urlRole==='athlete'&&role==='coach'){window.location.href='kalendarz.html?role=coach';return;}
   document.getElementById('goal-btn').style.display='block';
+  if(_urlRole==='athlete'){
+    const startBtn=document.getElementById('kal-start-btn');
+    if(startBtn) startBtn.style.display='';
+  }
   if(_urlRole==='coach')loadAthletesForCalendar();
 }
 verifyRole();
