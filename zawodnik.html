@@ -1697,43 +1697,7 @@ async function loadStats() {
     if(days30[ds]!==undefined)days30[ds]+=parseFloat(l.distance_km)||0;
   });
 
-  // Pobierz dane zawodnika — cele startowe
-  const { data: athData } = await _sb.from('athletes')
-    .select('goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k')
-    .eq('id',_athleteId).maybeSingle();
-  
-  let upcomingGoals = [];
-  if(athData){
-    let goals=[];
-    try{goals=JSON.parse(athData.race_goals||'[]');}catch(e){}
-    if(!goals.length&&athData.goal)goals=[{name:athData.goal,date:athData.target_date||''}];
-    // Tylko przyszłe starty
-    const today=new Date();today.setHours(0,0,0,0);
-    upcomingGoals=goals.filter(g=>g.date&&new Date(g.date)>=today).sort((a,b)=>new Date(a.date)-new Date(b.date));
-  }
-
   el.innerHTML = `
-  <!-- CELE STARTOWE — tylko przyszłe -->
-  ${upcomingGoals.length?`
-  <div style="margin-bottom:16px;">
-    ${upcomingGoals.map(g=>{
-      const d=new Date(g.date);
-      const days=Math.ceil((d-new Date())/86400000);
-      const dateStr=d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'});
-      const isUrgent=days<=30;
-      return \`<div style="background:\${isUrgent?'rgba(61,184,112,0.08)':'var(--card)'};border:1px solid \${isUrgent?'rgba(61,184,112,0.35)':'var(--border)'};border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-        <div style="font-size:24px;">🏁</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:500;">\${g.name||'Start'}</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">\${dateStr}</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:\${isUrgent?'var(--green)':'var(--accent)'};">\${days}</div>
-          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">\${days===0?'DZIŚ!':days===1?'jutro':'dni'}</div>
-        </div>
-      </div>\`;
-    }).join('')}
-  </div>`:''}
 
   <!-- TOP STATS -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
