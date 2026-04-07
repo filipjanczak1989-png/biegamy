@@ -237,20 +237,29 @@ function render(){
   const today=new Date();today.setHours(0,0,0,0);
   const s=days[0],e=days[6];
   document.getElementById('week-label').textContent=`${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
+  // Licz km i sesje tylko raz per dzień (log nadpisuje plan, nie sumuje)
   let totalKm=0,totalSessions=0;
-  days.forEach(d=>{(trainings[dateStr(d)]||[]).forEach(t=>{totalKm+=(t.dist||0);if(t.type!=='Odpoczynek')totalSessions++;});});
+  days.forEach(d=>{
+    const ts=trainings[dateStr(d)]||[];
+    // Max 1 trening per dzień do liczenia (log już nadpisał dystans planu)
+    const counted=ts.filter(t=>t.type!=='Odpoczynek');
+    if(counted.length>0){
+      totalKm+=counted[0].dist||0; // weź tylko pierwszy (log już scalony z planem)
+      totalSessions++;
+    }
+  });
   document.getElementById('week-km').textContent=totalKm.toFixed(0);
   document.getElementById('week-sessions').textContent=totalSessions;
 
   document.getElementById('week-head').innerHTML=days.map(d=>{
     const ds=dateStr(d),isToday=d.getTime()===today.getTime();
     const ts=trainings[ds]||[];
-    const km=ts.reduce((s,t)=>s+(t.dist||0),0);
-    const sessions=ts.filter(t=>t.type!=='Odpoczynek').length;
+    const main=ts.find(t=>t.type!=='Odpoczynek');
+    const km=main?main.dist:0;
     return `<div class="dh ${isToday?'today':''}">
       <div class="dh-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
       <div class="dh-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
-      ${km>0?`<div class="dh-km">${km} km${sessions>1?' · '+sessions+'×':''}</div>`:'<div class="dh-rest">—</div>'}
+      ${km>0?`<div class="dh-km">${km} km${main?._hasLog?' ✓':''}</div>`:'<div class="dh-rest">—</div>'}
     </div>`;
   }).join('');
 
@@ -269,14 +278,20 @@ function render(){
       const statusCls=t.status==='done'?'done':t.status==='missed'?'missed':'';
       const timeDisplay=t.time?(t.time.includes&&t.time.includes(':')?t.time:t.time+' min'):'';
       const meta=[t.pace?t.pace+'/km':'',timeDisplay,t.hr?'♥ '+t.hr:''].filter(Boolean).join(' · ');
+      // Jeśli trening ma log — pokaż rzeczywiste dane vs plan
+      const planBadge=t._hasLog&&t._planDist&&t._planDist!==t.dist
+        ?`<div style="font-size:8px;color:var(--muted);margin-top:3px;">plan: ${t._planDist} km</div>`:'';
+      const logBadge=t._hasLog?'<div class="tc-status done" style="margin-top:4px;">📋 zalogowany</div>':'';
       return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" onclick="openModal('${ds}',${i})">
         ${!isAthlete?`<button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>`:''}
         <div class="tc-type ${cls}">${lbl}</div>
         ${t.dist>0?`<div class="tc-dist">${t.dist}<span> km</span></div>`:''}
+        ${planBadge}
         ${meta?`<div class="tc-meta">${meta}</div>`:''}
         ${t.desc?`<div class="tc-desc">${t.desc}</div>`:''}
-        ${t.status==='done'?'<div class="tc-status done">✓ Wykonany</div>':t.status==='missed'?'<div class="tc-status missed">✗ Pominięty</div>':''}
-        ${!isAthlete&&t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="tc-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
+        ${logBadge}
+        ${!t._hasLog&&t.status==='missed'?'<div class="tc-status missed">✗ Pominięty</div>':''}
+        ${!isAthlete&&!t._hasLog&&t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="tc-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;
     }).join('');
     const addLabel=isAthlete?'+ Zaloguj wynik':'+ Dodaj trening';
@@ -470,15 +485,14 @@ async function loadTrainingsFromDB(){
   const {data:{session}}=await _sbKal.auth.getSession();
   if(!session)return;
 
-  let athId = null;
-
+  let athId=null;
   if(_urlRole==='athlete'){
     const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
     if(!ath)return;
-    athId = ath.id;
+    athId=ath.id;
   }
 
-  // Załaduj plan treningowy (trainings)
+  // 1. Załaduj plan trenera
   let q=_sbKal.from('trainings').select('*');
   if(_urlRole==='athlete') q=q.eq('athlete_id',athId);
   else {
@@ -496,27 +510,58 @@ async function loadTrainingsFromDB(){
       if(!trainings[ds].some(x=>x._id===t.id)){
         let timeStr='';
         if(t.duration_min){const h=Math.floor(t.duration_min/60),m=String(t.duration_min%60).padStart(2,'0');timeStr=h+':'+m+':00';}
-        trainings[ds].push({_id:t.id,type:t.type||'Bieg spokojny',dist:parseFloat(t.distance_km)||0,time:timeStr,pace:t.pace||'',hr:t.heart_rate||'',desc:t.description||'',status:t.status||'planned',_source:'plan'});
+        trainings[ds].push({
+          _id:t.id,
+          type:t.type||'Bieg spokojny',
+          dist:parseFloat(t.distance_km)||0,
+          time:timeStr,
+          pace:t.pace||'',
+          hr:t.heart_rate||'',
+          desc:t.description||'',
+          status:t.status||'planned',
+          // plan wartości (oryginalne od trenera)
+          _planDist:parseFloat(t.distance_km)||0,
+          _planPace:t.pace||'',
+        });
       }
     });
   }
 
-  // Załaduj też logi zawodnika (training_logs) — widoczne jako osobne kafelki
-  if(athId||_calSelectedAthleteId){
-    const logAthId = athId || _calSelectedAthleteId;
-    const {data:logs}=await _sbKal.from('training_logs').select('*').eq('athlete_id',logAthId).order('logged_at');
+  // 2. Załaduj logi i scal z planem — nie dodawaj osobnych wpisów
+  const logAthId=athId||_calSelectedAthleteId;
+  if(logAthId){
+    const {data:logs}=await _sbKal.from('training_logs')
+      .select('*').eq('athlete_id',logAthId).order('logged_at');
     if(logs){
       logs.forEach(l=>{
         const ds=l.logged_at?l.logged_at.split('T')[0]:null;
         if(!ds)return;
         if(!trainings[ds])trainings[ds]=[];
-        // Nie duplikuj jeśli ten sam dzień jest już oznaczony jako done w planie
-        const alreadyDone=trainings[ds].some(x=>x.status==='done'&&x._source==='plan');
-        if(!alreadyDone){
-          const fakeId='log_'+l.id;
-          if(!trainings[ds].some(x=>x._id===fakeId)){
-            trainings[ds].push({_id:fakeId,_logId:l.id,type:l.training_type||'Bieg spokojny',dist:parseFloat(l.distance_km)||0,time:l.duration||'',pace:l.pace||'',hr:l.heart_rate?.toString()||'',desc:l.comment||'',status:'done',_source:'log'});
-          }
+        // Znajdź istniejący trening na ten dzień i zaktualizuj go rzeczywistymi danymi
+        const existing=trainings[ds].find(x=>x._source!=='log');
+        if(existing){
+          // Nadpisz plan rzeczywistymi danymi z logu
+          existing.dist=parseFloat(l.distance_km)||existing.dist;
+          existing.pace=l.pace||existing.pace;
+          existing.hr=l.heart_rate?.toString()||existing.hr;
+          existing.time=l.duration||existing.time;
+          existing.status='done';
+          existing._logId=l.id;
+          existing._hasLog=true;
+        } else {
+          // Brak planu — dodaj log jako samodzielny kafelek
+          trainings[ds].push({
+            _id:'log_'+l.id,
+            _logId:l.id,
+            _hasLog:true,
+            type:l.training_type||'Bieg spokojny',
+            dist:parseFloat(l.distance_km)||0,
+            time:l.duration||'',
+            pace:l.pace||'',
+            hr:l.heart_rate?.toString()||'',
+            desc:l.comment||'',
+            status:'done',
+          });
         }
       });
     }

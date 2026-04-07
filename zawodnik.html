@@ -1479,92 +1479,194 @@ async function loadStats() {
   const el = document.getElementById('stats-content');
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;text-align:center;">Ładowanie...</div>';
 
-  // Ostatnie 30 dni
+  const since90 = new Date(); since90.setDate(since90.getDate() - 90);
   const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-  const since7 = new Date(); since7.setDate(since7.getDate() - 7);
+  const since7  = new Date(); since7.setDate(since7.getDate() - 7);
 
-  const { data: logs30 } = await _sb.from('training_logs').select('*')
-    .eq('athlete_id', _athleteId).gte('logged_at', since30.toISOString()).order('logged_at', {ascending:false});
-  const { data: logs7 } = await _sb.from('training_logs').select('distance_km, training_type')
-    .eq('athlete_id', _athleteId).gte('logged_at', since7.toISOString());
+  const { data: logs } = await _sb.from('training_logs').select('*')
+    .eq('athlete_id', _athleteId)
+    .gte('logged_at', since90.toISOString())
+    .order('logged_at', {ascending: true});
 
-  const km30 = (logs30||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
-  const km7 = (logs7||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
-  const sessions30 = (logs30||[]).length;
+  const all = logs || [];
+  const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
+  const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
 
-  // Typ treningu breakdown
-  const typeCount = {};
-  (logs30||[]).forEach(l => { const t = l.training_type||'Inne'; typeCount[t] = (typeCount[t]||0) + 1; });
-  const typeColors = {'Spokojny':'var(--blue)','Bieg spokojny':'var(--blue)','Interwały':'var(--yellow)','Tempo':'var(--accent)','Wybieganie':'var(--purple)','Regeneracja':'var(--green)'};
+  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km90=km(all), km30=km(logs30), km7=km(logs7);
+  const sessions30=logs30.length, sessions7=logs7.length;
 
-  // Najlepsze tempo
-  const paces = (logs30||[]).filter(l => l.pace).map(l => {
-    const p = l.pace.split(':').map(Number);
-    return p.length === 2 ? p[0]*60+p[1] : null;
+  const paces = logs30.filter(l=>l.pace).map(l=>{
+    const p=l.pace.split(':').map(Number);
+    return p.length===2?p[0]*60+p[1]:null;
   }).filter(Boolean);
-  const bestPaceSecs = paces.length ? Math.min(...paces) : null;
-  const bestPace = bestPaceSecs ? Math.floor(bestPaceSecs/60)+':'+ String(bestPaceSecs%60).padStart(2,'0') : '—';
+  const bestPaceSecs=paces.length?Math.min(...paces):null;
+  const bestPace=bestPaceSecs?Math.floor(bestPaceSecs/60)+':'+String(bestPaceSecs%60).padStart(2,'0'):'—';
+  const avgPaceSecs=paces.length?Math.round(paces.reduce((a,b)=>a+b,0)/paces.length):null;
+  const avgPace=avgPaceSecs?Math.floor(avgPaceSecs/60)+':'+String(avgPaceSecs%60).padStart(2,'0'):'—';
+
+  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const typeCount={};
+  logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
+
+  // Tygodniowe km (ostatnie 8 tygodni)
+  const weeks=[];
+  for(let i=7;i>=0;i--){
+    const wEnd=new Date(); wEnd.setDate(wEnd.getDate()-i*7);
+    const wStart=new Date(wEnd); wStart.setDate(wStart.getDate()-6);
+    const wLogs=all.filter(l=>{const d=new Date(l.logged_at);return d>=wStart&&d<=wEnd;});
+    const wKm=km(wLogs);
+    const label=(wEnd.getDate())+'.'+String(wEnd.getMonth()+1).padStart(2,'0');
+    weeks.push({label,km:parseFloat(wKm.toFixed(1))});
+  }
+
+  // Ostatnie 30 dni — km per dzień (dla wykresu)
+  const days30={};
+  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');days30[ds]=0;}
+  logs30.forEach(l=>{
+    const d=new Date(l.logged_at);
+    const ds=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');
+    if(days30[ds]!==undefined)days30[ds]+=parseFloat(l.distance_km)||0;
+  });
 
   el.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;">${km7.toFixed(1)}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">km ten tydzień</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--accent);line-height:1;">${km30.toFixed(1)}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">km ostatnie 30 dni</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--green);line-height:1;">${sessions30}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">sesji / 30 dni</div>
-      </div>
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--blue);line-height:1;">${bestPace}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">najlepsze tempo /km</div>
-      </div>
+  <!-- TOP STATS -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);line-height:1;">${km7.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / tydzień</div>
     </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--green);line-height:1;">${sessions30}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji / 30 dni</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--blue);line-height:1;">${bestPace}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">najlepsze tempo</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km30.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 30 dni</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--purple);line-height:1;">${avgPace}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">śr. tempo /km</div>
+    </div>
+  </div>
 
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
-      ${Object.keys(typeCount).length === 0 ? '<div style="color:var(--muted);font-size:12px;text-align:center;">Brak danych</div>' :
-        Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type, count]) => {
-          const pct = Math.round(count/sessions30*100);
-          const color = typeColors[type] || 'var(--muted)';
-          return `<div style="margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-              <div style="font-size:12px;">${type}</div>
-              <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${count}x · ${pct}%</div>
+  <!-- WYKRES: km tygodniowo -->
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+    <canvas id="chart-weekly" height="140"></canvas>
+  </div>
+
+  <!-- WYKRES: aktywność 30 dni -->
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Aktywność ostatnie 30 dni</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+    <canvas id="chart-daily" height="100"></canvas>
+  </div>
+
+  <!-- TYPY TRENINGÓW -->
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;gap:16px;align-items:center;">
+    <div style="flex-shrink:0;"><canvas id="chart-types" width="100" height="100"></canvas></div>
+    <div style="flex:1;">
+      ${Object.keys(typeCount).length===0?'<div style="color:var(--muted);font-size:12px;">Brak danych</div>':
+        Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type,count])=>{
+          const pct=Math.round(count/sessions30*100);
+          const color=typeColors2[type]||'#66636e';
+          return `<div style="margin-bottom:8px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+              <div style="font-size:11px;">${type}</div>
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${count}× · ${pct}%</div>
             </div>
-            <div style="background:var(--card2);border-radius:4px;height:4px;">
-              <div style="background:${color};height:4px;border-radius:4px;width:${pct}%;transition:width 0.5s;"></div>
+            <div style="background:var(--card2);border-radius:3px;height:3px;">
+              <div style="background:${color};height:3px;border-radius:3px;width:${pct}%;"></div>
             </div>
           </div>`;
         }).join('')
       }
     </div>
+  </div>
 
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Ostatnie treningi</div>
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      ${(logs30||[]).slice(0,5).map(l => {
-        const type = l.training_type || 'Trening';
-        const color = typeColors[type] || 'var(--muted)';
-        const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
-        const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
-        const pace = l.pace ? l.pace + '/km' : '';
-        return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
-          <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
-          <div style="flex:1;">
-            <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${type}</div>
-            <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;">${dist}</div>
-            ${pace ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}</div>` : ''}
-          </div>
-        </div>`;
-      }).join('')}
-    </div>`;
+  <!-- OSTATNIE TRENINGI -->
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Ostatnie treningi</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+    ${[...all].reverse().slice(0,8).map(l=>{
+      const type=l.training_type||'Trening';
+      const color=typeColors2[type]||'#66636e';
+      const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+      const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
+      const pace=l.pace?l.pace+'/km':'';
+      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;">${type}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}${l.comment?'  ·  <span style="font-style:italic;">'+l.comment.slice(0,30)+'...</span>':''}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${dist}</div>
+          ${pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}</div>`:''}
+        </div>
+        <div style="font-size:16px;">${feel}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // Ładuj Chart.js i renderuj wykresy
+  if(!window.Chart){
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    s.onload=()=>_renderCharts(weeks,days30,typeCount,typeColors2);
+    document.head.appendChild(s);
+  } else {
+    _renderCharts(weeks,days30,typeCount,typeColors2);
+  }
+}
+
+function _renderCharts(weeks,days30,typeCount,typeColors2){
+  const defaults={
+    color:'#66636e',
+    borderColor:'#2a2a32',
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e24',titleColor:'#f0ede8',bodyColor:'#66636e',borderColor:'#2a2a32',borderWidth:1}},
+    scales:{x:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}},y:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}}}
+  };
+
+  // Wykres tygodniowy
+  const cw=document.getElementById('chart-weekly');
+  if(cw){
+    new Chart(cw,{type:'bar',data:{
+      labels:weeks.map(w=>w.label),
+      datasets:[{data:weeks.map(w=>w.km),backgroundColor:'rgba(212,80,26,0.7)',borderRadius:4,borderSkipped:false}]
+    },options:{...defaults,plugins:{...defaults.plugins}}});
+  }
+
+  // Wykres dzienny
+  const cd=document.getElementById('chart-daily');
+  if(cd){
+    const dKeys=Object.keys(days30);
+    const step=Math.ceil(dKeys.length/8);
+    new Chart(cd,{type:'line',data:{
+      labels:dKeys,
+      datasets:[{data:Object.values(days30),borderColor:'#5090e0',backgroundColor:'rgba(80,144,224,0.1)',fill:true,tension:0.4,pointRadius:2,pointBackgroundColor:'#5090e0'}]
+    },options:{...defaults,plugins:{...defaults.plugins},scales:{
+      x:{...defaults.scales.x,ticks:{...defaults.scales.x.ticks,callback:(v,i)=>i%step===0?dKeys[i]:''}},
+      y:{...defaults.scales.y,beginAtZero:true}
+    }}});
+  }
+
+  // Pie chart typów
+  const ct=document.getElementById('chart-types');
+  if(ct&&Object.keys(typeCount).length>0){
+    const labels=Object.keys(typeCount);
+    new Chart(ct,{type:'doughnut',data:{
+      labels,
+      datasets:[{data:Object.values(typeCount),backgroundColor:labels.map(l=>typeColors2[l]||'#66636e'),borderWidth:0}]
+    },options:{plugins:{legend:{display:false}},cutout:'65%'}});
+  }
 }
 
 init();
