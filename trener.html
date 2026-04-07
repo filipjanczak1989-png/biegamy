@@ -1158,27 +1158,141 @@ async function loadAnalytics() {
   if (!_coachId) return;
   const el = document.getElementById('analytics-content');
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;">Ładowanie...</div>';
-  const { data: athletes } = await _sb.from('athletes').select('id,full_name,goal').eq('coach_id', _coachId);
-  if (!athletes || athletes.length === 0) { el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;">Brak zawodników.</div>'; return; }
-  const since = new Date(); since.setDate(since.getDate() - 30);
+
+  const { data: athletes } = await _sb.from('athletes')
+    .select('id,full_name,goal,target_date,pb_marathon,pb_half,pb_10k,pb_5k,race_goals')
+    .eq('coach_id', _coachId);
+  if (!athletes || athletes.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;">Brak zawodników.</div>';
+    return;
+  }
+
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+  const since7 = new Date(); since7.setDate(since7.getDate() - 7);
+  const typeColors2 = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
+
   const stats = await Promise.all(athletes.map(async a => {
-    const { data: logs } = await _sb.from('training_logs').select('distance_km').eq('athlete_id', a.id).gte('logged_at', since.toISOString());
-    const totalKm = (logs||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
-    return { ...a, totalKm: totalKm.toFixed(1), sessions: (logs||[]).length };
+    const { data: logs30 } = await _sb.from('training_logs')
+      .select('distance_km,training_type,logged_at,pace,duration,feel')
+      .eq('athlete_id', a.id)
+      .gte('logged_at', since30.toISOString())
+      .order('logged_at', {ascending:false});
+    const logs = logs30 || [];
+    const totalKm = logs.reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+    // Tygodniowe km
+    const km7 = logs.filter(l=>new Date(l.logged_at)>=since7).reduce((s,l)=>s+(parseFloat(l.distance_km)||0),0);
+    // Typy
+    const typeCounts = {};
+    logs.forEach(l => { const t=l.training_type||'Spokojny'; typeCounts[t]=(typeCounts[t]||0)+1; });
+    // Best pace
+    const paces = logs.filter(l=>l.pace).map(l=>{const p=l.pace.split(':').map(Number);return p.length===2?p[0]*60+p[1]:null;}).filter(Boolean);
+    const bestPaceSec = paces.length?Math.min(...paces):null;
+    const bestPace = bestPaceSec?Math.floor(bestPaceSec/60)+':'+String(bestPaceSec%60).padStart(2,'0'):null;
+    // Dni do startu
+    let daysToRace = null, raceName = '';
+    try {
+      const goals = JSON.parse(a.race_goals||'[]');
+      const upcoming = goals.filter(g=>g.date&&new Date(g.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date));
+      if(upcoming.length){daysToRace=Math.ceil((new Date(upcoming[0].date)-new Date())/86400000);raceName=upcoming[0].name||'';}
+    } catch(e) {
+      if(a.target_date&&new Date(a.target_date)>=new Date()){daysToRace=Math.ceil((new Date(a.target_date)-new Date())/86400000);raceName=a.goal||'';}
+    }
+    return { ...a, totalKm: totalKm.toFixed(1), km7: km7.toFixed(1), sessions: logs.length, typeCounts, bestPace, logs: logs.slice(0,3), daysToRace, raceName };
   }));
-  el.innerHTML = stats.map(a => {
-    const name = a.full_name || 'Zawodnik';
-    const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--fg);flex-shrink:0;">${initials}</div>
-      <div style="flex:1;"><div style="font-size:14px;font-weight:500;margin-bottom:2px;">${name}</div><div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${a.goal||'—'}</div></div>
-      <div style="text-align:right;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--accent);">${a.totalKm}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">km / 30 dni</div>
-        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${a.sessions} sesji</div>
+
+  // Sortuj po totalKm malejąco
+  stats.sort((a,b) => parseFloat(b.totalKm)-parseFloat(a.totalKm));
+
+  el.innerHTML = `
+    <!-- Nagłówek summary -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${athletes.length}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">ZAWODNIKÓW</div>
       </div>
-    </div>`;
-  }).join('');
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${stats.reduce((s,a)=>s+parseFloat(a.totalKm),0).toFixed(0)}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">KM / 30 DNI</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${stats.reduce((s,a)=>s+a.sessions,0)}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">SESJI ŁĄCZNIE</div>
+      </div>
+    </div>
+
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Zawodnicy — ostatnie 30 dni</div>
+
+    ${stats.map(a => {
+      const name = a.full_name || 'Zawodnik';
+      const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      const maxKm = parseFloat(stats[0].totalKm)||1;
+      const barPct = Math.round(parseFloat(a.totalKm)/maxKm*100);
+      // Typy bar
+      const totalSess = a.sessions||1;
+      const typeBar = Object.entries(a.typeCounts).map(([t,n])=>{
+        const pct=Math.round(n/totalSess*100);
+        return `<div style="height:4px;width:${pct}%;background:${typeColors2[t]||'#66636e'};border-radius:2px;" title="${t}: ${n}"></div>`;
+      }).join('');
+      // PB row
+      const pbs = [
+        a.pb_marathon?`<span style="color:var(--fg);">${a.pb_marathon}</span> <span style="color:var(--muted2);font-size:9px;">mar</span>`:'',
+        a.pb_half?`<span style="color:var(--fg);">${a.pb_half}</span> <span style="color:var(--muted2);font-size:9px;">HM</span>`:'',
+        a.pb_10k?`<span style="color:var(--fg);">${a.pb_10k}</span> <span style="color:var(--muted2);font-size:9px;">10k</span>`:'',
+        a.pb_5k?`<span style="color:var(--fg);">${a.pb_5k}</span> <span style="color:var(--muted2);font-size:9px;">5k</span>`:''
+      ].filter(Boolean).join(' &nbsp; ');
+      // Ostatnie logi
+      const recentLogs = a.logs.map(l=>{
+        const d=new Date(l.logged_at);
+        const ds=d.getDate()+'.'+(d.getMonth()+1).toString().padStart(2,'0');
+        return `<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);">
+          <div style="width:6px;height:6px;border-radius:50%;background:${typeColors2[l.training_type]||'#66636e'};flex-shrink:0;"></div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;min-width:30px;">${ds}</div>
+          <div style="font-size:11px;flex:1;">${l.training_type||'Trening'}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--accent);">${parseFloat(l.distance_km||0).toFixed(1)}</div>
+          <div style="font-size:9px;color:var(--muted);">km</div>
+          ${l.pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${l.pace}</div>`:''}
+        </div>`;
+      }).join('');
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
+        <!-- Header -->
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+          <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);flex-shrink:0;">${initials}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;">${name}</div>
+            ${a.daysToRace!==null?`<div style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;">🏁 ${a.raceName} · ${a.daysToRace} dni</div>`:''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--accent);">${a.totalKm}</div>
+            <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">km · ${a.sessions} sesji</div>
+          </div>
+        </div>
+        <!-- Bar -->
+        <div style="height:3px;background:var(--card2);margin:0 16px;">
+          <div style="height:3px;width:${barPct}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;"></div>
+        </div>
+        <!-- Expandable detail -->
+        <div style="display:none;padding:12px 16px;">
+          ${typeBar?`<div style="display:flex;gap:3px;margin-bottom:10px;">${typeBar}</div>`:''}
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
+            <div style="background:var(--card2);border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${a.km7}</div>
+              <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">km / 7 dni</div>
+            </div>
+            <div style="background:var(--card2);border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${a.bestPace||'—'}</div>
+              <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">best tempo</div>
+            </div>
+            <div style="background:var(--card2);border-radius:6px;padding:8px;text-align:center;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${a.sessions}</div>
+              <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">sesji / 30d</div>
+            </div>
+          </div>
+          ${pbs?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:8px;">PB: ${pbs}</div>`:''}
+          ${recentLogs?`<div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:4px;">Ostatnie logi</div>${recentLogs}`:''}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
 }
 
 async function loadPanelChat() {

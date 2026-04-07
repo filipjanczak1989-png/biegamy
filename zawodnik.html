@@ -1103,18 +1103,27 @@ async function initAuth() {
     document.getElementById('av-btn').textContent = initials;
     const tn = document.getElementById('topbar-name');
     if(tn){ tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1'; }
-    const { data: athFull } = await _sb.from('athletes').select('target_date,goal').eq('id',_athleteId).maybeSingle();
-    if (athFull?.target_date) {
-      const tDate = new Date(athFull.target_date);
-      const daysLeft = Math.ceil((tDate - new Date()) / 86400000);
-      if (daysLeft >= 0 && daysLeft <= 365) {
-        const heroInner = document.querySelector('.today-hero-inner');
-        if (heroInner && !document.getElementById('race-countdown')) {
-          const badge = document.createElement('div');
-          badge.id = 'race-countdown';
-          badge.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;padding:4px 10px;border-radius:4px;margin-bottom:10px;';
-          badge.textContent = '🏁 ' + (athFull.goal||'Start') + ' · ' + (daysLeft === 0 ? 'DZIŚ!' : daysLeft + ' dni');
-          heroInner.insertBefore(badge, heroInner.firstChild);
+    const { data: athFull } = await _sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
+    if (athFull) {
+      // Znajdź najbliższy przyszły start z race_goals lub legacy
+      let goals=[];
+      try{goals=JSON.parse(athFull.race_goals||'[]');}catch(e){}
+      if(!goals.length&&athFull.goal)goals=[{name:athFull.goal,date:athFull.target_date||''}];
+      const today2=new Date();today2.setHours(0,0,0,0);
+      const upcoming=goals.filter(g=>g.date&&new Date(g.date)>=today2).sort((a,b)=>new Date(a.date)-new Date(b.date));
+      if(upcoming.length){
+        const nearest=upcoming[0];
+        const tDate=new Date(nearest.date);
+        const daysLeft=Math.ceil((tDate-new Date())/86400000);
+        if(daysLeft<=365){
+          const heroInner=document.querySelector('.today-hero-inner');
+          if(heroInner&&!document.getElementById('race-countdown')){
+            const badge=document.createElement('div');
+            badge.id='race-countdown';
+            badge.style.cssText='display:inline-flex;align-items:center;gap:6px;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;padding:4px 10px;border-radius:4px;margin-bottom:10px;';
+            badge.textContent='🏁 '+(nearest.name||'Start')+' · '+(daysLeft===0?'DZIŚ!':daysLeft+' dni');
+            heroInner.insertBefore(badge,heroInner.firstChild);
+          }
         }
       }
     }
@@ -1672,7 +1681,44 @@ async function loadStats() {
     if(days30[ds]!==undefined)days30[ds]+=parseFloat(l.distance_km)||0;
   });
 
+  // Pobierz dane zawodnika — cele startowe
+  const { data: athData } = await _sb.from('athletes')
+    .select('goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k')
+    .eq('id',_athleteId).maybeSingle();
+  
+  let upcomingGoals = [];
+  if(athData){
+    let goals=[];
+    try{goals=JSON.parse(athData.race_goals||'[]');}catch(e){}
+    if(!goals.length&&athData.goal)goals=[{name:athData.goal,date:athData.target_date||''}];
+    // Tylko przyszłe starty
+    const today=new Date();today.setHours(0,0,0,0);
+    upcomingGoals=goals.filter(g=>g.date&&new Date(g.date)>=today).sort((a,b)=>new Date(a.date)-new Date(b.date));
+  }
+
   el.innerHTML = `
+  <!-- CELE STARTOWE — tylko przyszłe -->
+  ${upcomingGoals.length?`
+  <div style="margin-bottom:16px;">
+    ${upcomingGoals.map(g=>{
+      const d=new Date(g.date);
+      const days=Math.ceil((d-new Date())/86400000);
+      const dateStr=d.toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'});
+      const isUrgent=days<=30;
+      return \`<div style="background:\${isUrgent?'rgba(61,184,112,0.08)':'var(--card)'};border:1px solid \${isUrgent?'rgba(61,184,112,0.35)':'var(--border)'};border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <div style="font-size:24px;">🏁</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;">\${g.name||'Start'}</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">\${dateStr}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:\${isUrgent?'var(--green)':'var(--accent)'};">\${days}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">\${days===0?'DZIŚ!':days===1?'jutro':'dni'}</div>
+        </div>
+      </div>\`;
+    }).join('')}
+  </div>`:''}
+
   <!-- TOP STATS -->
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">

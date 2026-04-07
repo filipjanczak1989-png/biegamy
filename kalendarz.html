@@ -80,6 +80,11 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 .tc-approve:hover{background:rgba(61,184,112,0.2);}
 .tc-del{position:absolute;top:5px;right:5px;width:16px;height:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;}
 .tcard:hover .tc-del{opacity:1;}
+.tc-copy{position:absolute;top:5px;right:24px;width:16px;height:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;}
+.tcard:hover .tc-copy{opacity:1;}
+.tc-copy:hover{color:var(--blue);}
+.tcard.dragging{opacity:0.35;transform:scale(0.97);border-style:dashed;}
+.day-col.drag-over{background:rgba(212,80,26,0.08);outline:2px dashed var(--accent);outline-offset:-4px;}
 .tc-del:hover{color:var(--red);}
 .add-btn{border:1px dashed var(--border);padding:10px 8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;display:block;width:100%;}
 .add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,80,26,0.04);}
@@ -299,6 +304,24 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
 
 <div class="notif" id="notif"></div>
 
+<!-- MODAL KOPIUJ DO ZAWODNIKA -->
+<div id="copy-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;display:none;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:380px;max-width:92vw;padding:24px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">⧉ Kopiuj trening</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;" id="copy-modal-desc">Wybierz zawodnika i datę docelową</div>
+    <div class="field"><label>Zawodnik</label>
+      <select id="copy-to-athlete" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;border-radius:4px;outline:none;cursor:pointer;"></select>
+    </div>
+    <div class="field" style="margin-bottom:16px;"><label>Data</label>
+      <input type="date" id="copy-to-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;border-radius:4px;outline:none;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeCopyModal()" style="flex:1;">Anuluj</button>
+      <button class="btn btn-primary" onclick="confirmCopy()" style="flex:2;">Kopiuj →</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const typeColors={'Bieg spokojny':'sp','Interwały':'in','Tempo':'te','Wybieganie':'wy','Regeneracja':'re','Odpoczynek':'od','Start':'race'};
@@ -363,8 +386,9 @@ function render(){
       const planBadge=t._hasLog&&t._planDist&&t._planDist!==t.dist
         ?`<div style="font-size:8px;color:var(--muted);margin-top:3px;">plan: ${t._planDist} km</div>`:'';
       const logBadge=t._hasLog?'<div class="tc-status done" style="margin-top:4px;">📋 zalogowany</div>':'';
-      return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" onclick="openModal('${ds}',${i})">
-        ${!isAthlete?`<button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>`:''}
+      return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" draggable="${!isAthlete}" ondragstart="dragStart(event,'${ds}',${i})" ondragend="dragEnd(event)" onclick="openModal('${ds}',${i})">
+        ${!isAthlete?`<button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
+          <button class="tc-copy" onclick="copyTraining(event,'${ds}',${i})" title="Kopiuj do zawodnika">⧉</button>`:''}
         <div class="tc-type ${cls}">${lbl}</div>
         ${t.dist>0?`<div class="tc-dist">${t.dist}<span> km</span></div>`:''}
         ${planBadge}
@@ -376,7 +400,7 @@ function render(){
       </div>`;
     }).join('');
     const addLabel=isAthlete?'+ Zaloguj wynik':'+ Dodaj trening';
-    return `<div class="day-col ${isToday?'today':''}">${raceHtml}${cards}<div class="add-btn" onclick="openModal('${ds}',null)">${addLabel}</div></div>`;
+    return `<div class="day-col ${isToday?'today':''}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${ds}')">${raceHtml}${cards}<div class="add-btn" onclick="openModal('${ds}',null)">${addLabel}</div></div>`;
   }).join('');
 }
 
@@ -822,6 +846,7 @@ async function loadAthletesForCalendar(){
   if(!sel||!data)return;
   sel.style.display='block';
   sel.innerHTML='<option value="">— wszyscy zawodnicy —</option>'+data.map(a=>`<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
+  window._dbAthletes=data;
   sel.addEventListener('change',()=>{_calSelectedAthleteId=sel.value||null;loadTrainingsFromDB();});
 }
 
@@ -913,6 +938,91 @@ async function saveGoal(){
   await _sbKal.from('athletes').update({race_goals:JSON.stringify(goals),goal:goals[0]?.name||null,target_date:goals[0]?.date||null}).eq('id',window._goalAthId);
   renderGoalListKal(goals);document.getElementById('goal-name').value='';document.getElementById('goal-date').value='';
   window._raceDates=goals;render();notify('Cel zapisany ✓');
+}
+
+// ── COPY TO ATHLETE ───────────────────────────────────────────────
+let _copyTraining=null;
+function copyTraining(e,ds,idx){
+  e.stopPropagation();
+  const t=trainings[ds]?.[idx];
+  if(!t)return;
+  _copyTraining=t;
+  // Ustaw datę domyślną = ta sama
+  document.getElementById('copy-to-date').value=ds;
+  // Opis
+  const desc=document.getElementById('copy-modal-desc');
+  if(desc)desc.textContent=(t.type||'Trening')+(t.dist?' · '+t.dist+' km':'');
+  // Załaduj listę zawodników
+  const sel=document.getElementById('copy-to-athlete');
+  sel.innerHTML='';
+  if(window._dbAthletes&&window._dbAthletes.length){
+    window._dbAthletes.forEach(a=>{
+      const opt=document.createElement('option');
+      opt.value=a.id;opt.textContent=a.full_name||'Zawodnik';
+      sel.appendChild(opt);
+    });
+  }else{sel.innerHTML='<option value="">Brak zawodników</option>';}
+  document.getElementById('copy-modal').style.display='flex';
+}
+function closeCopyModal(){document.getElementById('copy-modal').style.display='none';_copyTraining=null;}
+async function confirmCopy(){
+  const athId=document.getElementById('copy-to-athlete').value;
+  const date=document.getElementById('copy-to-date').value;
+  if(!athId||!date){notify('Wybierz zawodnika i datę');return;}
+  const t=_copyTraining;if(!t){closeCopyModal();return;}
+  const {data:{session}}=await _sbKal.auth.getSession();
+  if(!session)return;
+  const {error}=await _sbKal.from('trainings').insert({
+    coach_id:session.user.id,athlete_id:athId,date,
+    type:t.type,distance_km:t.dist||null,
+    pace:t.pace||null,heart_rate:t.hr||null,
+    description:t.desc||null,status:'planned'
+  });
+  if(error){notify('Błąd: '+error.message);}
+  else{notify('Trening skopiowany ✓');}
+  closeCopyModal();
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────────
+let _dragSrc=null,_dragIdx=null;
+function dragStart(e,ds,idx){
+  _dragSrc=ds;_dragIdx=idx;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+  e.dataTransfer.setData('text/plain',ds+'|'+idx);
+}
+function dragEnd(e){
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.day-col.drag-over').forEach(el=>el.classList.remove('drag-over'));
+}
+function dragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  e.currentTarget.classList.add('drag-over');
+}
+function dragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+async function drop(e,targetDs){
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if(!_dragSrc||_dragIdx===null||_dragSrc===targetDs)return;
+  const t=trainings[_dragSrc]?.[_dragIdx];
+  if(!t)return;
+  // Przenieś lokalnie
+  trainings[_dragSrc].splice(_dragIdx,1);
+  if(!trainings[_dragSrc].length)delete trainings[_dragSrc];
+  if(!trainings[targetDs])trainings[targetDs]=[];
+  const moved={...t};
+  trainings[targetDs].push(moved);
+  _dragSrc=null;_dragIdx=null;
+  render();
+  // Zapisz do bazy jeśli ma _id
+  if(moved._id&&typeof _sbKal!=='undefined'){
+    const {error}=await _sbKal.from('trainings').update({date:targetDs}).eq('id',moved._id);
+    if(error)notify('Błąd zapisu: '+error.message);
+    else notify('Trening przeniesiony ✓');
+  }
 }
 
 render();
