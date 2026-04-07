@@ -576,24 +576,19 @@ function kalStopTimer(){
 }
 
 // ── MULTI-GOAL ────────────────────────────────────────────────────
-function renderGoalListKal(goals) {
-  const list = document.getElementById('goal-list-kal');
-  if (!list) return;
-  if (!goals || !goals.length) {
-    list.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:4px 0;">Brak celów startowych.</div>';
-    return;
-  }
-  list.innerHTML = goals.map((g, i) => {
-    const d = g.date ? new Date(g.date) : null;
-    const days = d ? Math.ceil((d - new Date()) / 86400000) : null;
-    const ds = d ? d.toLocaleDateString('pl-PL', {day:'numeric', month:'short', year:'numeric'}) : '';
-    const daysStr = days !== null ? (days >= 0 ? ' · ' + days + ' dni' : ' · minął') : '';
+function renderGoalListKal(goals){
+  const list=document.getElementById('goal-list-kal');if(!list)return;
+  if(!goals||!goals.length){list.innerHTML='<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;padding:4px 0;">Brak cel\u00f3w startowych.</div>';return;}
+  list.innerHTML=goals.map((g,i)=>{
+    const d=g.date?new Date(g.date):null;
+    const days=d?Math.ceil((d-new Date())/86400000):null;
+    const ds=d?d.toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'}):'';
+    const daysStr=days!==null?(days>=0?' \u00b7 '+days+' dni':' \u00b7 min\u0105\u0142'):'';
     return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;">'
-      + '<span>🏁</span>'
-      + '<div style="flex:1;"><div style="font-size:12px;font-weight:500;">' + (g.name || '—') + '</div>'
-      + '<div style="font-size:10px;color:var(--muted);">' + ds + daysStr + '</div></div>'
-      + '<button onclick="deleteGoalKal(' + i + ')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;">✕</button>'
-      + '</div>';
+      +'<span>🏁</span>'
+      +'<div style="flex:1;"><div style="font-size:12px;font-weight:500;">'+g.name+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;">'+ds+daysStr+'</div></div>'
+      +'<button onclick="deleteGoalKal('+i+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;">\u2715</button></div>';
   }).join('');
 }
 
@@ -739,13 +734,11 @@ async function loadRaceDates(){
   if(_urlRole==='athlete')q=q.eq('user_id',session.user.id);
   else q=q.eq('coach_id',session.user.id);
   const {data}=await q;
-  console.log('[loadRaceDates] data from DB:', JSON.stringify(data));
   if(data){
     let dates=[];
     data.forEach(a=>{
       let goals=[];
       try{goals=JSON.parse(a.race_goals||'[]');}catch(e){}
-      // Tylko z race_goals — nie używamy legacy pola goal (może zawierać śmieciowe dane)
       dates.push(...goals.filter(g=>g.date&&g.name));
     });
     window._raceDates=dates;render();
@@ -920,7 +913,7 @@ async function openGoalModal(){
   document.getElementById('goal-name').value='';document.getElementById('goal-date').value='';
   const {data:{session}}=await _sbKal.auth.getSession();if(!session)return;
   if(_urlRole==='athlete'){
-    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals').eq('user_id',session.user.id).maybeSingle();
+    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals,goal,target_date').eq('user_id',session.user.id).maybeSingle();
     if(ath){window._goalAthId=ath.id;let g=[];try{g=JSON.parse(ath.race_goals||'[]');}catch(e){}
     window._kalGoals=g;renderGoalListKal(g);}
   } else if(_calSelectedAthleteId){
