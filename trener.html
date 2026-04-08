@@ -361,7 +361,11 @@ function selA(id){
   p.classList.add('open');
   setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
-function closePanel(){const p=document.getElementById('panel');p.classList.remove('open');selAth=null;window._selectedAthleteId=null;if(typeof _dbAthletes!=='undefined'&&_dbAthletes.length)renderDbAthletes(_dbAthletes);}
+function closePanel(){
+  document.getElementById('panel').classList.remove('open');
+  selAth=null;window._selectedAthleteId=null;
+  loadAthletes(); // przeładuj z bazy — badge zniknie bo read_by_coach już true
+}
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
 function ptab(n,el){
@@ -605,7 +609,7 @@ async function renderDbAthletes(list) {
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${a.newLogs > 0 ? `<div id="badge-${sid}" onclick="event.stopPropagation();selA_db('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;cursor:pointer;">&#128276; ${a.newLogs} nowe</div>` : '<div class="ath-dot"></div>'}
+        ${a.newLogs > 0 ? `<div onclick="event.stopPropagation();selA_db('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;cursor:pointer;">&#128276; ${a.newLogs} nowe</div>` : '<div class="ath-dot"></div>'}
         <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
@@ -663,11 +667,8 @@ async function selA_db(athleteId) {
   document.getElementById('panel').classList.add('open');
   
   window._selectedAthleteId = athleteId;
-  // Badge znika natychmiast
-  const badge = document.getElementById('badge-' + athleteId);
-  if (badge) badge.style.display = 'none';
-  // Oznacz w tle jako przeczytane
-  _sb.from('training_logs').update({read_by_coach:true}).eq('athlete_id',athleteId).is('read_by_coach',null).then(()=>loadAthletes());
+  // Oznacz logi jako przeczytane w tle
+  _sb.from('training_logs').update({read_by_coach:true}).eq('athlete_id',athleteId).is('read_by_coach',null).then(()=>{});
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
   await loadPanelPB();
@@ -1037,14 +1038,14 @@ function showCoachSection(name) {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'block';
     const n = document.getElementById('coach-nav-msgs');
-    if(n){ n.classList.add('open'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
+    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
     loadCoachMsgsList();
   } else if (name === 'analytics') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'none';
     document.getElementById('analytics-section').style.display = 'block';
     const n = document.getElementById('coach-nav-analytics');
-    if(n){ n.classList.add('open'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-analytics-lbl').style.color='var(--accent)'; }
+    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-analytics-lbl').style.color='var(--accent)'; }
     loadAnalytics();
   } else if (name === 'settings') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');

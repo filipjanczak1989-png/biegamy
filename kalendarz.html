@@ -723,6 +723,8 @@ async function verifyRole(){
   document.getElementById('goal-btn').style.display='block';
   if(_urlRole==='athlete'){const sb=document.getElementById('kal-start-btn');if(sb)sb.style.display='';}
   if(_urlRole==='coach')loadAthletesForCalendar();
+  // Załaduj cele po weryfikacji sesji
+  await loadRaceDates();
 }
 verifyRole();
 
@@ -730,21 +732,25 @@ window._raceDates=[];
 async function loadRaceDates(){
   const {data:{session}}=await _sbKal.auth.getSession();
   if(!session)return;
-  let q=_sbKal.from('athletes').select('goal,target_date,race_goals');
+  let q=_sbKal.from('athletes').select('id,goal,target_date,race_goals');
   if(_urlRole==='athlete')q=q.eq('user_id',session.user.id);
   else q=q.eq('coach_id',session.user.id);
-  const {data}=await q;
+  const {data,error}=await q;
+  console.log('[loadRaceDates] raw:', JSON.stringify(data), 'err:', error?.message);
   if(data){
     let dates=[];
     data.forEach(a=>{
       let goals=[];
       try{goals=JSON.parse(a.race_goals||'[]');}catch(e){}
+      console.log('[loadRaceDates] athlete', a.id, 'race_goals:', a.race_goals, 'parsed:', goals.length);
       dates.push(...goals.filter(g=>g.date&&g.name));
     });
-    window._raceDates=dates;render();
+    window._raceDates=dates;
+    console.log('[loadRaceDates] _raceDates set to:', JSON.stringify(dates));
+    render();
   }
 }
-loadRaceDates();
+// loadRaceDates() — teraz wywoływane przez verifyRole
 
 let _calSelectedAthleteId=null;
 async function loadTrainingsFromDB(){
@@ -846,6 +852,16 @@ async function loadAthletesForCalendar(){
   sel.style.display='block';
   sel.innerHTML='<option value="">— wszyscy zawodnicy —</option>'+data.map(a=>`<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
   window._dbAthletes=data;
+  // Jeśli przyszliśmy z panelu trenera z konkretnym zawodnikiem — ustaw go od razu
+  const _urlAthlete = new URLSearchParams(window.location.search).get('athlete');
+  if (_urlAthlete) {
+    _calSelectedAthleteId = _urlAthlete;
+    sel.value = _urlAthlete;
+    // Pokaż nazwę zawodnika w nagłówku
+    const found = data.find(a => String(a.id) === String(_urlAthlete));
+    if (found) document.getElementById('role-label').textContent = found.full_name || 'Zawodnik';
+    loadTrainingsFromDB();
+  }
   sel.addEventListener('change',()=>{_calSelectedAthleteId=sel.value||null;loadTrainingsFromDB();});
 }
 
