@@ -308,22 +308,22 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
-      <input id="pb-mar-input" type="text" placeholder="3:45:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
-      <input id="pb-half-input" type="text" placeholder="1:45:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
-      <input id="pb-10k-input" type="text" placeholder="45:30" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="5" oninput="autoColonPace(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
-      <input id="pb-5k-input" type="text" placeholder="22:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="5" oninput="autoColonPace(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
   </div>
   <div id="save-pbs-row" style="display:none;margin-bottom:20px;">
