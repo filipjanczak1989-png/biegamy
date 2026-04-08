@@ -598,7 +598,7 @@ async function renderDbAthletes(list) {
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${a.newLogs > 0 ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;">${a.newLogs} log</div>` : '<div class="ath-dot"></div>'}
+        ${a.newLogs > 0 ? `<div onclick="selA_db_logs('${a.id}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;cursor:pointer;">&#128276; ${a.newLogs} nowe</div>` : '<div class="ath-dot"></div>'}
         <button onclick="deleteAthlete('${a.id}','${name}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
@@ -627,6 +627,21 @@ async function deleteAthlete(id, name) {
 }
 
 // ── SELECT ATHLETE ────────────────────────────────────────────────
+// Otwórz panel bezpośrednio na zakładce Logi (z badge'a)
+async function selA_db_logs(athleteId) {
+  await selA_db(athleteId);
+  // Przejdź na zakładkę Logi i oznacz jako przeczytane
+  const lgTab = document.querySelectorAll('.ptab')[2]; // Logi = 3. zakładka
+  if (lgTab) ptab('lg', lgTab);
+  // Oznacz logi jako przeczytane (zresetuj licznik)
+  await _sb.from('training_logs')
+    .update({read_by_coach: true})
+    .eq('athlete_id', athleteId)
+    .is('read_by_coach', null);
+  // Odśwież listę żeby badge zniknął
+  await loadAthletes();
+}
+
 async function selA_db(athleteId) {
   const a = _dbAthletes.find(x => x.id === athleteId);
   if (!a) return;
@@ -686,7 +701,7 @@ async function loadAthleteLogs(athleteId) {
     .select('*')
     .eq('athlete_id', athleteId)
     .order('logged_at', { ascending: false })
-    .limit(5);
+    .limit(20);
   
   if (data) renderLogs_db(data);
 }
@@ -694,20 +709,34 @@ async function loadAthleteLogs(athleteId) {
 function renderLogs_db(logs) {
   const fe = {good:'😊',mid:'😐',bad:'😓'};
   const bc = {good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
+  const typeColors = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870'};
   document.getElementById('lcon').innerHTML = logs.length === 0
     ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px;">Brak logów</div>'
-    : logs.map(l => `
-    <div class="plog" style="border-left:3px solid ${bc[l.feel]||'var(--border)' }">
-      <div class="pl-hdr">
-        <div class="pl-type">${l.duration||'Trening'}</div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="pl-date">${new Date(l.logged_at).toLocaleDateString('pl-PL')}</div>
-          <span style="font-size:16px">${fe[l.feel]||''}</span>
+    : logs.map(l => {
+      const type = l.training_type || 'Trening';
+      const color = typeColors[type] || 'var(--muted)';
+      const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {weekday:'short',day:'numeric',month:'short'});
+      const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
+      const pace = l.pace ? l.pace + '/km' : '';
+      const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
+      const det = [dist, pace, hr].filter(Boolean).join(' · ');
+      return `<div class="plog" style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:10px;background:var(--card2);border-radius:8px;padding:12px 14px 12px 14px;border-left-width:3px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+            <div style="font-size:13px;font-weight:500;">${type}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+            <span style="font-size:16px;">${fe[l.feel]||''}</span>
+          </div>
         </div>
-      </div>
-      <div class="pl-det">${l.distance_km?l.distance_km+' km':''} ${l.pace?'· '+l.pace+'/km':''} ${l.heart_rate?'· ♥'+l.heart_rate:''}</div>
-      ${l.comment?`<div class="pl-cmt">"${l.comment}"</div>`:''}
-    </div>`).join('');
+        ${det ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">${det}</div>` : ''}
+        ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${l.comment}"</div>` : ''}
+        ${l.attachment_url ? `<div style="margin-bottom:6px;"><img src="${l.attachment_url}" style="width:100%;max-height:180px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${l.attachment_url}','_blank')"></div>` : ''}
+        ${l.strava_link ? `<a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;">↗ Strava/Garmin</a>` : ''}
+      </div>`;
+    }).join('');
 }
 
 // ── SAVE TRAINING TO DB ───────────────────────────────────────────
