@@ -44,13 +44,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .ath-badge{font-size:9px;font-family:'DM Mono',monospace;padding:2px 7px;border-radius:20px;}
 .ath-badge.nl{background:rgba(61,184,112,0.15);color:var(--green);border:1px solid rgba(61,184,112,0.3);}
 .ath-badge.pd{background:rgba(232,184,64,0.15);color:var(--yellow);border:1px solid rgba(232,184,64,0.3);}
-.panel{margin:0 20px 20px;background:var(--card);border:1px solid var(--accent);border-radius:16px;overflow:hidden;display:none;}
-.panel.on{display:block;}
+.panel{position:fixed;inset:0;z-index:200;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.65);}
+.panel.on{display:flex;}
 .panel-hdr{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
 .panel-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);flex-shrink:0;}
 .panel-name{font-family:'Bebas Neue',sans-serif;font-size:22px;}
 .panel-meta{font-size:11px;color:var(--muted);margin-top:1px;}
 .panel-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;}
+.panel-inner{background:var(--card);border-radius:20px 20px 0 0;border:1px solid var(--accent);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
 .panel-tabs{display:flex;border-bottom:1px solid var(--border);}
 .ptab{flex:1;padding:10px 8px;text-align:center;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all 0.15s;}
 .ptab.on{color:var(--fg);border-bottom-color:var(--accent);}
@@ -163,7 +164,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><div style="display:flex;gap:8px;"><button class="sec-action" onclick="openTemplateModal()" style="color:var(--green);">📋 Szablon</button><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div></div>
 <div class="ath-list" id="ath-list"></div>
 
-<div class="panel" id="panel">
+<div class="panel" id="panel" onclick="closePanelBg(event)">
+  <div class="panel-inner">
   <div class="panel-hdr">
     <div class="panel-av" id="pav">MK</div>
     <div><div class="panel-name" id="pname">Marek Kowalski</div><div class="panel-meta" id="pmeta">Cel: ... PB: ...</div></div>
@@ -171,7 +173,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
   <div class="panel-tabs">
     <button class="ptab on" onclick="ptab('ov',this)">Przeg.</button>
-    <button class="ptab" onclick="ptab('pl',this)">Plan</button>
+    <button class="ptab" onclick="goToAthleteCalendar()">Plan</button>
     <button class="ptab" onclick="ptab('lg',this)">Logi</button>
     <button class="ptab" onclick="ptab('ms',this)">Wiad.</button>
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
@@ -189,11 +191,29 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <button class="btn btn-p" onclick="ptab('pl',document.querySelectorAll('.ptab')[1])">+ Dodaj trening</button>
     </div>
     <div id="ppl" style="display:none;">
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;">
-        <div style="font-size:36px;margin-bottom:12px;">&#128197;</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:8px;letter-spacing:0.03em;">Kalendarz zawodnika</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.7;font-family:'DM Sans',sans-serif;">Pełny plan tygodniowy z możliwością edycji,<br>przeciągania treningów i dodawania nowych.</div>
-        <a id="plan-cal-link" href="kalendarz.html?role=coach" style="display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:12px 24px;border-radius:10px;text-decoration:none;">Otwórz kalendarz →</a>
+      <div class="add-form">
+        <div class="field"><label>Data</label><input type="date" id="fd"></div>
+        <div class="field"><label>Typ</label>
+          <div class="type-pills">
+            <button class="tp on" onclick="selT(this)">Spokojny</button>
+            <button class="tp" onclick="selT(this)">Interwaly</button>
+            <button class="tp" onclick="selT(this)">Tempo</button>
+            <button class="tp" onclick="selT(this)">Wybieganie</button>
+            <button class="tp" onclick="selT(this)">Regeneracja</button>
+            <button class="tp" onclick="selT(this)">Odpoczynek</button>
+          </div>
+        </div>
+        <div class="f-row">
+          <div class="field"><label>Dystans (km)</label><input type="number" id="fdist" placeholder="12" step="0.5"></div>
+          <div class="field"><label>Czas (min)</label><input type="number" id="ftime" placeholder="70"></div>
+        </div>
+        <div class="f-row">
+          <div class="field"><label>Tempo</label><input type="text" id="fpace" placeholder="5:30"></div>
+          <div class="field"><label>Tetno</label><input type="text" id="fhr" placeholder="140-155"></div>
+        </div>
+        <div class="field"><label>Opis</label><textarea id="fdesc" placeholder="Instrukcje dla zawodnika..."></textarea></div>
+        <button class="btn btn-p" onclick="saveTr()">Zapisz trening</button>
+        <button class="btn btn-g" onclick="saveSend()">Zapisz i wyslij &#x2192;</button>
       </div>
     </div>
     <div id="plg" style="display:none;"><div id="lcon"></div></div>
@@ -266,6 +286,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       </div>
     </div>
   </div>
+  </div><!-- /panel-inner -->
 </div>
 
 <nav class="bottom-nav">
@@ -341,6 +362,11 @@ function selA(id){
   setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
 function closePanel(){document.getElementById('panel').classList.remove('on');selAth=null;renderAth();}
+function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
+function goToAthleteCalendar(){
+  const id = window._selectedAthleteId;
+  window.location.href = 'kalendarz.html?role=coach' + (id ? '&athlete='+id : '');
+}
 function ptab(n,el){
   ['ov','pl','lg','ms','cl','pb'].forEach(t=>document.getElementById('p'+t).style.display=t===n?'block':'none');
   document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
@@ -571,10 +597,10 @@ async function renderDbAthletes(list) {
   document.getElementById('ath-list').innerHTML = withLogs.map((a,i) => {
     const name = a.full_name || a.goal || 'Zawodnik';
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    const safeId = String(a.id);
-    const safeName = name.replace(/'/g, '&#39;');
+    const sid = String(a.id);
+    const sname = name.replace(/'/g,"&#39;");
     return `
-    <div class="ath-card fi" onclick="selA_db('${safeId}')" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
+    <div class="ath-card fi" onclick="selA_db('${sid}')" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
       <div class="ath-stripe" style="background:var(--accent)"></div>
       <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${initials}</div>
       <div class="ath-info">
@@ -582,8 +608,8 @@ async function renderDbAthletes(list) {
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${a.newLogs > 0 ? `<div onclick="event.stopPropagation();selA_db_logs('${safeId}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;cursor:pointer;">&#128276; ${a.newLogs} nowe</div>` : '<div class="ath-dot"></div>'}
-        <button onclick="event.stopPropagation();deleteAthlete('${safeId}','${safeName}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
+        ${a.newLogs > 0 ? `<div id="badge-${sid}" onclick="event.stopPropagation();selA_db('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;cursor:pointer;">&#128276; ${a.newLogs} nowe</div>` : '<div class="ath-dot"></div>'}
+        <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
   }).join('');
@@ -614,7 +640,6 @@ async function deleteAthlete(id, name) {
 // Otwórz panel bezpośrednio na zakładce Logi (z badge'a)
 async function selA_db_logs(athleteId) {
   await selA_db(athleteId);
-  // Przejdź na zakładkę Logi (oznaczenie jako przeczytane robi już selA_db)
   const lgTab = document.querySelectorAll('.ptab')[2];
   if (lgTab) ptab('lg', lgTab);
 }
@@ -639,20 +664,13 @@ async function selA_db(athleteId) {
   }
   document.getElementById('pmeta').textContent = metaText;
   document.getElementById('panel').classList.add('on');
-
-  // Ustaw link kalendarza z wybranym zawodnikiem
-  const calLink = document.getElementById('plan-cal-link');
-  if (calLink) calLink.href = 'kalendarz.html?role=coach&athlete=' + athleteId;
-
+  
   window._selectedAthleteId = athleteId;
-
-  // Oznacz logi jako przeczytane od razu po wejsciu w zawodnika (badge znika)
-  _sb.from('training_logs')
-    .update({read_by_coach: true})
-    .eq('athlete_id', athleteId)
-    .is('read_by_coach', null)
-    .then(() => loadAthletes()); // odśwież listę w tle
-
+  // Schowaj badge natychmiast w UI bez czekania na reload
+  const badge = document.getElementById('badge-' + athleteId);
+  if (badge) badge.style.display = 'none';
+  // Oznacz w tle
+  _sb.from('training_logs').update({read_by_coach:true}).eq('athlete_id',athleteId).is('read_by_coach',null).then(()=>loadAthletes());
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
   await loadPanelPB();
@@ -698,56 +716,35 @@ async function loadAthleteLogs(athleteId) {
 
 function renderLogs_db(logs) {
   const fe = {good:'😊',mid:'😐',bad:'😓'};
-  const feelColor = {good:'rgba(61,184,112,0.15)',mid:'rgba(232,184,64,0.15)',bad:'rgba(224,80,80,0.15)'};
-  const feelBorder = {good:'rgba(61,184,112,0.35)',mid:'rgba(232,184,64,0.35)',bad:'rgba(224,80,80,0.35)'};
-  const typeColors = {'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Interwaly':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
-  const typeIcons = {'Spokojny':'🏃','Bieg spokojny':'🏃','Interwały':'⚡','Interwaly':'⚡','Tempo':'🔥','Wybieganie':'🛤️','Regeneracja':'💚'};
-  if (logs.length === 0) {
-    document.getElementById('lcon').innerHTML = '<div style="padding:32px 0;text-align:center;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak logów treningowych</div>';
-    return;
-  }
-  document.getElementById('lcon').innerHTML = logs.map(l => {
-    const type = l.training_type || 'Trening';
-    const color = typeColors[type] || '#66636e';
-    const icon = typeIcons[type] || '🏃';
-    const feel = l.feel || '';
-    const date = new Date(l.logged_at);
-    const dateStr = date.toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'});
-    const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : null;
-    const pace = l.pace || null;
-    const hr = l.heart_rate || null;
-    const dur = l.duration || null;
-    const bgColor = feelColor[feel] || 'var(--card2)';
-    const borderColor = feelBorder[feel] || 'var(--border)';
-    return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:12px;overflow:hidden;margin-bottom:10px;">
-      <div style="display:flex;align-items:stretch;">
-        <div style="width:3px;background:${color};flex-shrink:0;"></div>
-        <div style="flex:1;padding:12px 14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:18px;">${icon}</span>
-              <div>
-                <div style="font-size:13px;font-weight:600;">${type}</div>
-                <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${dateStr}</div>
-              </div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              ${feel ? `<span style="font-size:20px;">${fe[feel]}</span>` : ''}
-              ${dist ? `<div style="text-align:right;"><div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--fg);">${dist}</div><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">km</div></div>` : ''}
-            </div>
+  const bc = {good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
+  const typeColors = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870'};
+  document.getElementById('lcon').innerHTML = logs.length === 0
+    ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px;">Brak logów</div>'
+    : logs.map(l => {
+      const type = l.training_type || 'Trening';
+      const color = typeColors[type] || 'var(--muted)';
+      const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {weekday:'short',day:'numeric',month:'short'});
+      const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
+      const pace = l.pace ? l.pace + '/km' : '';
+      const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
+      const det = [dist, pace, hr].filter(Boolean).join(' · ');
+      return `<div class="plog" style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:10px;background:var(--card2);border-radius:8px;padding:12px 14px 12px 14px;border-left-width:3px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+            <div style="font-size:13px;font-weight:500;">${type}</div>
           </div>
-          ${(pace||hr||dur) ? `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
-            ${pace ? `<div style="font-size:11px;font-family:'DM Mono',monospace;"><span style="color:var(--muted);">Tempo </span><span style="color:var(--fg);">${pace}/km</span></div>` : ''}
-            ${hr ? `<div style="font-size:11px;font-family:'DM Mono',monospace;"><span style="color:var(--muted);">♥ </span><span style="color:var(--fg);">${hr}</span></div>` : ''}
-            ${dur ? `<div style="font-size:11px;font-family:'DM Mono',monospace;"><span style="color:var(--muted);">Czas </span><span style="color:var(--fg);">${dur}</span></div>` : ''}
-          </div>` : ''}
-          ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.75);font-style:italic;line-height:1.6;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;margin-top:4px;">"${l.comment}"</div>` : ''}
-          ${l.attachment_url ? `<div style="margin-top:8px;"><img src="${l.attachment_url}" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="window.open('${l.attachment_url}','_blank')"></div>` : ''}
-          ${l.strava_link ? `<a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;margin-top:6px;">↗ Strava/Garmin</a>` : ''}
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+            <span style="font-size:16px;">${fe[l.feel]||''}</span>
+          </div>
         </div>
-      </div>
-    </div>`;
-  }).join('');
+        ${det ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">${det}</div>` : ''}
+        ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${l.comment}"</div>` : ''}
+        ${l.attachment_url ? `<div style="margin-bottom:6px;"><img src="${l.attachment_url}" style="width:100%;max-height:180px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${l.attachment_url}','_blank')"></div>` : ''}
+        ${l.strava_link ? `<a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;">↗ Strava/Garmin</a>` : ''}
+      </div>`;
+    }).join('');
 }
 
 // ── SAVE TRAINING TO DB ───────────────────────────────────────────
