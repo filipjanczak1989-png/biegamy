@@ -308,12 +308,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
-      <input id="pb-mar-input" type="text" placeholder="3:45:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
-      <input id="pb-half-input" type="text" placeholder="1:45:00" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
       <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
@@ -705,17 +705,15 @@ function autoColonTime(el) {
   if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
   el.value = v.slice(0,7);
 }
+function autoColonResult(el) {
+  let v = el.value.replace(/[^0-9]/g,"");
+  if (v.length >= 3) v = v.slice(0,2) + ":" + v.slice(2);
+  el.value = v.slice(0,5);
+}
 function autoColonPace(el) {
-  // Format M:SS — tempo /km (np. 5:30), dwukropek po 1 cyfrze
   let v = el.value.replace(/[^0-9]/g,'');
   if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
   el.value = v.slice(0,4);
-}
-function autoColonResult(el) {
-  // Format MM:SS — wyniki 10k/5k (np. 45:30), dwukropek po 2 cyfrach
-  let v = el.value.replace(/[^0-9]/g,'');
-  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
-  el.value = v.slice(0,5);
 }
 function calcPaceAuto() {
   const dist = parseFloat(document.getElementById('l-dist').value);
@@ -1890,11 +1888,11 @@ if (_tabParam) {
     <div class="ob-row">
       <div class="ob-field">
         <label class="ob-label">PB 10 km</label>
-        <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)">
+        <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonPace(this)">
       </div>
       <div class="ob-field">
         <label class="ob-label">PB 5 km</label>
-        <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)">
+        <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonPace(this)">
       </div>
     </div>
 
