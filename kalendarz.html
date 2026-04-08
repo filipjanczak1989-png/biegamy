@@ -275,7 +275,6 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
     </div>
     <div class="mfoot" style="flex-wrap:wrap;gap:8px;">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button class="btn" id="kal-start-btn" onclick="kalStartTraining()" style="display:none;background:var(--green);color:#061a0e;border:none;">▶ Start</button>
       <div id="kal-timer-wrap" style="display:none;align-items:center;gap:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);">
         <span id="kal-timer-disp">00:00:00</span>
         <button onclick="kalPauseTimer()" id="kal-pause-btn" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(61,184,112,0.4);background:transparent;color:var(--green);cursor:pointer;">⏸</button>
@@ -429,8 +428,10 @@ function openModal(ds,idx){
   const lt=document.getElementById('lbl-time');if(lt)lt.textContent='';
   const zl=document.getElementById('kal-zone-lbl');if(zl)zl.textContent='';
   const sf=document.getElementById('status-field');if(sf)sf.style.display=isAthlete?'none':'';
+  const ae=document.getElementById('kal-athlete-extras');if(ae)ae.style.display=isAthlete?'block':'none';
+  if(isAthlete){const ks=document.getElementById('kal-strava');if(ks)ks.value='';const kul=document.getElementById('kal-upload-label');if(kul)kul.textContent='Kliknij aby dodać zdjęcie';const kub=document.getElementById('kal-upload-area');if(kub)kub.style.borderColor='var(--border)';const kf=document.getElementById('kal-file');if(kf)kf.value='';}
   const sv=document.getElementById('save-btn');if(sv)sv.textContent=isAthlete?'Zapisz log →':'Zapisz →';
-  const startBtn=document.getElementById('kal-start-btn');if(startBtn)startBtn.style.display=isAthlete?'':'none';
+  
   if(ds){const d=new Date(ds);document.getElementById('modal-date').textContent=d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
   if(idx!==null&&ds&&trainings[ds]?.[idx]){
     const t=trainings[ds][idx];
@@ -468,7 +469,7 @@ function closeModal(){
   document.getElementById('modal-bg').classList.remove('open');
   if(_kalTimer){clearInterval(_kalTimer);_kalTimer=null;}
   const tw=document.getElementById('kal-timer-wrap');if(tw)tw.style.display='none';
-  const sb=document.getElementById('kal-start-btn');if(sb)sb.style.display='none';
+  
   const ivList=document.getElementById('kal-iv-list');if(ivList)ivList.innerHTML='';
   const rytList=document.getElementById('kal-ryt-list');if(rytList)rytList.innerHTML='';
 }
@@ -555,7 +556,7 @@ function kalRytRemove(btn,e){e.preventDefault();btn.closest('.kal-ryt-row').remo
 let _kalTimer=null,_kalSecs=0,_kalPaused=false;
 function kalStartTraining(){
   _kalSecs=0;_kalPaused=false;
-  document.getElementById('kal-start-btn').style.display='none';
+  
   document.getElementById('kal-timer-wrap').style.display='flex';
   _kalTimer=setInterval(()=>{
     if(!_kalPaused){_kalSecs++;
@@ -569,7 +570,7 @@ function kalPauseTimer(){_kalPaused=!_kalPaused;document.getElementById('kal-pau
 function kalStopTimer(){
   clearInterval(_kalTimer);_kalTimer=null;
   document.getElementById('kal-timer-wrap').style.display='none';
-  document.getElementById('kal-start-btn').style.display='';
+  
   const h=Math.floor(_kalSecs/3600),m=String(Math.floor((_kalSecs%3600)/60)).padStart(2,'0'),s=String(_kalSecs%60).padStart(2,'0');
   const ft=document.getElementById('f-time');if(ft)ft.value=h+':'+m+':'+s;
   kalCalcPace();
@@ -592,6 +593,13 @@ function renderGoalListKal(goals){
   }).join('');
 }
 
+function kalPreviewFile(input){
+  const file=input.files[0];
+  if(file){
+    document.getElementById('kal-upload-label').textContent='✓ '+file.name;
+    document.getElementById('kal-upload-area').style.borderColor='var(--green)';
+  }
+}
 function kalAutoColon(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);if(v.length>=5)v=v.slice(0,4)+':'+v.slice(4);el.value=v.slice(0,7);}
 function kalAutoColonPace(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);el.value=v.slice(0,4);}
 function kalCalcPace(){
@@ -721,7 +729,7 @@ async function verifyRole(){
   if(_urlRole==='coach'&&role!=='coach'){window.location.href='kalendarz.html?role=athlete';return;}
   if(_urlRole==='athlete'&&role==='coach'){window.location.href='kalendarz.html?role=coach';return;}
   document.getElementById('goal-btn').style.display='block';
-  if(_urlRole==='athlete'){const sb=document.getElementById('kal-start-btn');if(sb)sb.style.display='';}
+  
   if(_urlRole==='coach')loadAthletesForCalendar();
   // Załaduj cele po weryfikacji sesji
   await loadRaceDates();
@@ -852,14 +860,12 @@ async function loadAthletesForCalendar(){
   sel.style.display='block';
   sel.innerHTML='<option value="">— wszyscy zawodnicy —</option>'+data.map(a=>`<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
   window._dbAthletes=data;
-  // Jeśli przyszliśmy z panelu trenera z konkretnym zawodnikiem — ustaw go od razu
-  const _urlAthlete = new URLSearchParams(window.location.search).get('athlete');
-  if (_urlAthlete) {
-    _calSelectedAthleteId = _urlAthlete;
-    sel.value = _urlAthlete;
-    // Pokaż nazwę zawodnika w nagłówku
-    const found = data.find(a => String(a.id) === String(_urlAthlete));
-    if (found) document.getElementById('role-label').textContent = found.full_name || 'Zawodnik';
+  const _urlAthlete=new URLSearchParams(window.location.search).get('athlete');
+  if(_urlAthlete){
+    _calSelectedAthleteId=_urlAthlete;
+    sel.value=_urlAthlete;
+    const found=data.find(a=>String(a.id)===String(_urlAthlete));
+    if(found)document.getElementById('role-label').textContent=found.full_name||'Zawodnik';
     loadTrainingsFromDB();
   }
   sel.addEventListener('change',()=>{_calSelectedAthleteId=sel.value||null;loadTrainingsFromDB();});
@@ -883,6 +889,16 @@ window.saveTraining=async function(){
     const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
     if(!ath){notify('Brak profilu zawodnika');return;}
     if(!dist){notify('Podaj dystans');return;}
+    let kalAttUrl=null;
+    const kalFileInput=document.getElementById('kal-file');
+    if(kalFileInput&&kalFileInput.files[0]){
+      const file=kalFileInput.files[0];
+      const ext=file.name.split('.').pop();
+      const path=ath.id+'/kal_'+Date.now()+'.'+ext;
+      const {error:upErr}=await _sbKal.storage.from('training-screenshots').upload(path,file,{upsert:true});
+      if(!upErr){const {data:ud}=_sbKal.storage.from('training-screenshots').getPublicUrl(path);kalAttUrl=ud.publicUrl;}
+    }
+    const kalStravaVal=document.getElementById('kal-strava')?.value||null;
     const {error}=await _sbKal.from('training_logs').insert({
       athlete_id:ath.id,
       training_type:selectedType,
@@ -892,6 +908,8 @@ window.saveTraining=async function(){
       heart_rate:parseInt(hr)||null,
       comment:desc||null,
       feel:'mid',
+      strava_link:kalStravaVal,
+      attachment_url:kalAttUrl,
       logged_at:editingDate ? editingDate+'T12:00:00Z' : new Date().toISOString()
     });
     if(error){notify('Błąd: '+error.message);return;}
