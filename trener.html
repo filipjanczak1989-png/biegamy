@@ -363,8 +363,8 @@ function selA(id){
 }
 function closePanel(){
   document.getElementById('panel').classList.remove('open');
-  selAth=null;window._selectedAthleteId=null;
-  loadAthletes(); // przeładuj z bazy — badge zniknie bo read_by_coach już true
+  selAth=null; window._selectedAthleteId=null;
+  loadAthletes();
 }
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
@@ -591,7 +591,7 @@ async function renderDbAthletes(list) {
   const withLogs = await Promise.all(list.map(async a => {
     const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
-      .gt('logged_at', new Date(Date.now() - 86400000*2).toISOString()); // ostatnie 2 dni
+      .is('read_by_coach', null); // tylko nieprzeczytane przez trenera
     return { ...a, newLogs: count || 0 };
   }));
 
@@ -667,7 +667,6 @@ async function selA_db(athleteId) {
   document.getElementById('panel').classList.add('open');
   
   window._selectedAthleteId = athleteId;
-  // Oznacz logi jako przeczytane w tle
   _sb.from('training_logs').update({read_by_coach:true}).eq('athlete_id',athleteId).is('read_by_coach',null).then(()=>{});
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
