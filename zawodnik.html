@@ -277,7 +277,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
   </div>
   <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:10px 16px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:8px;z-index:60;">
-    <input id="msg-file" type="file" accept="image/*" style="display:none" onchange="sendFileMessage(this)">
+    <input id="msg-file" type="file" accept="image/*" multiple style="display:none" onchange="sendFileMessage(this)">
     <button onclick="document.getElementById('msg-file').click()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;">📎</button>
     <input id="msg-input" type="text" placeholder="Napisz do trenera..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendMessage()">
     <button onclick="sendMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">Wyślij →</button>
@@ -438,9 +438,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <label>Załącz screen (opcjonalnie)</label>
         <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:24px;margin-bottom:4px;">📎</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcia (można kilka)</div>
         </div>
-        <input type="file" id="l-file" accept="image/*" style="display:none" onchange="previewFile(this)">
+        <input type="file" id="l-file" accept="image/*,video/*" multiple style="display:none" onchange="previewFiles(this)">
       </div>
 
     </div>
@@ -1019,23 +1019,26 @@ async function clearAllMessages() {
 }
 
 async function sendFileMessage(input) {
-  if (!input.files[0] || !_athleteId) return;
-  const file = input.files[0];
-  const ext = file.name.split('.').pop();
-  const path = _athleteId + '/msg_' + Date.now() + '.' + ext;
-  const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
-  if (upErr) { toast('Błąd uploadu: ' + upErr.message); return; }
-  const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
-  const url = urlData.publicUrl;
-  // Wyślij jako wiadomość z linkiem do obrazka
+  if (!input.files.length || !_athleteId) return;
+  const urls = [];
+  for (const file of input.files) {
+    const ext = file.name.split('.').pop();
+    const path = _athleteId + '/msg_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+    if (upErr) { toast('Błąd: ' + upErr.message); continue; }
+    const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+    urls.push(urlData.publicUrl);
+  }
+  if (!urls.length) return;
+  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" />`).join('');
   await _sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
-    body: `[zdjęcie] <a href="${url}" target="_blank" style="color:var(--accent)">Otwórz →</a>`,
+    body,
     sent_at: new Date().toISOString()
   });
   input.value = '';
-  toast('Zdjęcie wysłane ✓');
+  toast(urls.length + ' zdjęcie(cia) wysłane ✓');
   await loadMessages();
 }
 
@@ -1479,7 +1482,10 @@ function renderLogsDb(data) {
           </div>
         </div>
       </div>
-      ${l.attachment_url ? `<div style="padding:0 14px 12px;"><img src="${l.attachment_url}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${l.attachment_url}','_blank')"></div>` : ''}
+      ${l.attachment_url ? `<div style="padding:0 14px 12px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="window.open('${url}','_blank')">`).join('')}
+      </div>` : ''}
+      ${l.strava_link ? `<div style="padding:0 14px 12px;"><a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(252,76,2,0.1);border:1px solid rgba(252,76,2,0.3);color:#fc4c02;font-size:11px;font-family:DM Mono,monospace;padding:5px 10px;border-radius:6px;text-decoration:none;">🟠 Strava →</a></div>` : ''}
       ${l.strava_link ? `<div style="padding:0 14px 12px;"><a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;">&#x2197; Strava / Garmin</a></div>` : ''}
     </div>`;
   }).join('');

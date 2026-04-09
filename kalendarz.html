@@ -6,1059 +6,794 @@
 <title>BiegaMy — Kalendarz</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0d0d0f;--surface:#16161a;--surface2:#1e1e24;--border:#2a2a32;--accent:#d4501a;--accent2:#f06030;--fg:#f0ede8;--muted:#66636e;--muted2:#44424a;--green:#3db870;--yellow:#e8b840;--red:#e05050;--blue:#5090e0;--purple:#9a6fe8;}
+:root {
+  --bg: #0d0d0f;
+  --surface: #16161a;
+  --surface2: #1e1e24;
+  --border: #2a2a32;
+  --accent: #d4501a;
+  --accent2: #f06030;
+  --fg: #f0ede8;
+  --muted: #66636e;
+  --muted2: #44424a;
+  --green: #3db870;
+  --yellow: #e8b840;
+  --red: #e05050;
+  --blue: #5090e0;
+  --purple: #9a6fe8;
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;}
-.shell{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
-nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:52px;flex-shrink:0;}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;}body{padding-bottom:80px;}
+
+/* SHELL */
+.shell{display:grid;grid-template-rows:56px 1fr;height:100vh;}
+
+/* NAV */
+nav{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 24px;
+  flex-shrink:0;
+}
 .nav-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;text-decoration:none;color:var(--fg);}
 .nav-logo span{color:var(--accent);}
 .nav-links{display:flex;gap:2px;}
-.nav-link{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;text-decoration:none;color:var(--muted);border:1px solid transparent;transition:all 0.15s;border-radius:4px;}
+.nav-link{
+  font-size:10px;letter-spacing:0.15em;text-transform:uppercase;
+  padding:7px 14px;text-decoration:none;color:var(--muted);
+  border:1px solid transparent;transition:all 0.15s;
+}
 .nav-link:hover{color:var(--fg);border-color:var(--border);}
 .nav-link.active{color:var(--fg);border-color:var(--accent);background:rgba(212,80,26,0.08);}
-.nav-right{display:flex;align-items:center;gap:8px;}
-.athlete-select{background:var(--surface2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;cursor:pointer;outline:none;border-radius:4px;}
-.btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border:none;cursor:pointer;transition:all 0.15s;border-radius:4px;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.athlete-select{
+  background:var(--surface2);border:1px solid var(--border);color:var(--fg);
+  font-family:'DM Mono',monospace;font-size:11px;padding:6px 10px;cursor:pointer;outline:none;
+}
+.athlete-select option{background:var(--surface);}
+.btn{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:7px 14px;border:none;cursor:pointer;transition:all 0.15s;}
 .btn-primary{background:var(--accent);color:var(--fg);}
-.btn-primary:hover{background:var(--accent2);}
+.btn-primary:hover{background:#e8621a;}
 .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
-.btn-ghost:hover{border-color:var(--fg);color:var(--fg);}
-.toolbar{display:flex;align-items:center;gap:10px;padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;}
-.week-nav{display:flex;align-items:center;gap:6px;}
-.wnav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;border-radius:4px;}
-.wnav-btn:hover{border-color:var(--accent);color:var(--fg);}
-.week-label{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.03em;min-width:200px;}
-.today-btn{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;border-radius:4px;}
+.btn-ghost:hover{border-color:var(--muted);color:var(--fg);}
+
+/* CALENDAR TOOLBAR */
+.cal-toolbar{
+  display:flex;align-items:center;gap:12px;
+  padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);
+}
+.week-nav{display:flex;align-items:center;gap:8px;}
+.week-nav-btn{
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  width:30px;height:30px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:all 0.15s;
+}
+.week-nav-btn:hover{border-color:var(--accent);color:var(--fg);}
+.week-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;min-width:220px;}
+.today-btn{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;}
 .today-btn:hover{border-color:var(--accent);color:var(--fg);}
-.spacer{flex:1;}
-.week-stats{display:flex;gap:20px;}
-.wstat{text-align:right;}
-.wstat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;}
-.wstat-lbl{font-size:8px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
-.week-grid{display:flex;flex-direction:column;flex:1;overflow:hidden;}
-.week-head{display:grid;grid-template-columns:repeat(7,1fr);background:var(--surface);border-bottom:2px solid var(--border);flex-shrink:0;}
-.dh{padding:10px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:2px;}
-.dh:last-child{border-right:none;}
-.dh.today{background:rgba(212,80,26,0.05);}
-.dh-name{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
-.dh-num{font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;}
-.dh.today .dh-num{color:var(--accent);}
-.dh-km{font-size:10px;color:var(--green);font-weight:500;margin-top:1px;}
-.dh-rest{font-size:10px;color:var(--muted2);margin-top:1px;}
-.week-body{display:grid;grid-template-columns:repeat(7,1fr);flex:1;overflow-y:auto;padding-bottom:64px;align-items:start;}
-.day-col{border-right:1px solid var(--border);padding:8px;display:flex;flex-direction:column;gap:6px;min-height:180px;}
+.toolbar-spacer{flex:1;}
+.week-km-badge{font-size:10px;color:var(--muted);letter-spacing:0.1em;}
+.week-km-badge span{color:var(--accent);font-size:14px;font-family:'Bebas Neue',sans-serif;}
+
+/* WEEK GRID */
+.week-wrap{
+  display:grid;
+  grid-template-rows:auto 1fr;
+  overflow:hidden;
+  height:100%;
+}
+.week-header{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+}
+.day-header{
+  padding:12px 16px;border-right:1px solid var(--border);
+  display:flex;flex-direction:column;gap:2px;
+}
+.day-header:last-child{border-right:none;}
+.day-header.today{background:rgba(212,80,26,0.06);}
+.day-name{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);}
+.day-num{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);}
+.day-header.today .day-num{color:var(--accent);}
+.day-total{font-size:10px;color:var(--muted);}
+.day-total span{color:var(--green);}
+
+/* DAY COLUMNS */
+.week-body{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  overflow-y:auto;
+}
+.day-col{
+  border-right:1px solid var(--border);padding:12px;
+  display:flex;flex-direction:column;gap:8px;
+  min-height:100%;position:relative;
+  transition:background 0.15s;
+}
 .day-col:last-child{border-right:none;}
-.day-col.today{background:rgba(212,80,26,0.02);}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;height:56px;z-index:30;}
-.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;text-decoration:none;color:var(--muted);transition:color 0.15s;border:none;background:none;font-family:'DM Mono',monospace;padding:0;}
-.bn-item:hover{color:var(--fg);}
-.bn-item.active{color:var(--accent);}
-.bn-lbl{font-size:8px;letter-spacing:0.1em;text-transform:uppercase;}
-.tcard{border-radius:6px;padding:10px 11px;cursor:pointer;position:relative;transition:all 0.18s;border:1px solid var(--border);background:var(--surface);}
-.tcard:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.5);border-color:var(--accent);}
-.tcard.done{border-left:3px solid var(--green);}
-.tcard.missed{border-left:3px solid var(--red);opacity:0.65;}
-.tcard.rest{opacity:0.35;border-style:dashed;background:transparent;}
-.tcard.raceday{border-color:rgba(61,184,112,0.5);background:rgba(61,184,112,0.06);cursor:default;}
-.tc-type{font-size:8px;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;font-weight:600;}
-.tc-type.sp{color:var(--blue);}
-.tc-type.in{color:var(--yellow);}
-.tc-type.te{color:var(--accent);}
-.tc-type.wy{color:var(--purple);}
-.tc-type.re{color:var(--green);}
-.tc-type.od{color:var(--muted);}
-.tc-type.race{color:var(--green);}
-.tc-dist{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);}
-.tc-dist span{font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:300;}
-.tc-meta{font-size:9px;color:var(--muted);margin-top:3px;line-height:1.5;}
-.tc-desc{font-size:9px;color:rgba(240,236,228,0.5);margin-top:5px;line-height:1.55;font-family:'DM Sans',sans-serif;font-style:italic;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
-.tc-status{display:inline-flex;align-items:center;gap:3px;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;margin-top:7px;padding:2px 7px;border-radius:3px;}
-.tc-status.done{background:rgba(61,184,112,0.12);color:var(--green);border:1px solid rgba(61,184,112,0.3);}
-.tc-status.missed{background:rgba(224,80,80,0.1);color:var(--red);border:1px solid rgba(224,80,80,0.3);}
-.tc-approve{margin-top:7px;width:100%;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:5px;cursor:pointer;transition:all 0.15s;border-radius:4px;}
-.tc-approve:hover{background:rgba(61,184,112,0.2);}
-.tc-del{position:absolute;top:5px;right:5px;width:16px;height:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:11px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;}
-.tcard:hover .tc-del{opacity:1;}
-.tc-copy{position:absolute;top:5px;right:24px;width:16px;height:16px;border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;}
-.tcard:hover .tc-copy{opacity:1;}
-.tc-copy:hover{color:var(--blue);}
-.tcard.dragging{opacity:0.35;transform:scale(0.97);border-style:dashed;}
-.day-col.drag-over{background:rgba(212,80,26,0.08);outline:2px dashed var(--accent);outline-offset:-4px;}
-.tc-del:hover{color:var(--red);}
-.add-btn{border:1px dashed var(--border);padding:10px 8px;text-align:center;color:var(--muted2);cursor:pointer;font-size:9px;letter-spacing:0.08em;transition:all 0.15s;text-transform:uppercase;border-radius:4px;display:block;width:100%;}
-.add-btn:hover{border-color:var(--accent);color:var(--accent);background:rgba(212,80,26,0.04);}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.day-col.today{background:rgba(212,80,26,0.03);}
+.day-col.drop-target{background:rgba(212,80,26,0.08);border-color:var(--accent);}
+
+/* TRAINING CARDS */
+.training-card{
+  border:1px solid var(--border);padding:10px 12px;
+  cursor:pointer;position:relative;
+  transition:all 0.2s;
+  animation:cardIn 0.2s ease forwards;
+}
+@keyframes cardIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+.training-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.4);}
+.training-card.done{border-left:3px solid var(--green);}
+.training-card.missed{border-left:3px solid var(--accent);opacity:0.6;}
+.training-card.rest-card{border-style:dashed;opacity:0.5;}
+
+.card-type{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;margin-bottom:5px;}
+.card-type.spokojny{color:#5a9fe8;}
+.card-type.interwaly{color:#e8c84a;}
+.card-type.tempo{color:#d4501a;}
+.card-type.wybieganie{color:#9a6fe8;}
+.card-type.regeneracja{color:#4caf78;}
+.card-type.odpoczynek{color:var(--muted);}
+
+.card-main{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:4px;}
+.card-pace{font-size:10px;color:var(--muted);margin-bottom:6px;}
+.card-desc{font-size:10px;color:rgba(240,236,228,0.6);line-height:1.6;font-family:'DM Sans',sans-serif;font-style:italic;}
+.card-status{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;
+  margin-top:8px;padding:3px 8px;border:1px solid var(--border);color:var(--muted);
+}
+.card-status.done{border-color:var(--green);color:var(--green);}
+.card-status.missed{border-color:var(--accent);color:var(--accent);}
+.card-delete{
+  position:absolute;top:6px;right:6px;
+  width:18px;height:18px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:12px;opacity:0;transition:opacity 0.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.training-card:hover .card-delete{opacity:1;}
+.card-delete:hover{color:var(--accent);}
+.card-approve{
+  margin-top:8px;width:100%;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.35);
+  color:var(--green);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;
+  text-transform:uppercase;padding:6px;cursor:pointer;transition:all 0.15s;border-radius:4px;
+}
+.card-approve:hover{background:rgba(61,184,112,0.25);}
+
+/* ADD TRAINING PLACEHOLDER */
+.add-training-btn{
+  border:1px dashed var(--border);padding:10px;text-align:center;
+  color:var(--muted);cursor:pointer;font-size:10px;letter-spacing:0.1em;
+  transition:all 0.15s;text-transform:uppercase;
+}
+.add-training-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* MODAL */
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.2s;
+}
 .modal-bg.open{opacity:1;pointer-events:all;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;width:500px;max-width:94vw;max-height:90vh;overflow-y:auto;transform:translateY(10px);transition:transform 0.2s;}
+.modal{
+  background:var(--surface);border:1px solid var(--border);width:480px;max-width:90vw;
+  max-height:88vh;overflow-y:auto;
+  transform:translateY(8px);transition:transform 0.2s;
+}
 .modal-bg.open .modal{transform:translateY(0);}
-.mhdr{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.mttl{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;}
-.mx{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;}
-.mx:hover{color:var(--fg);}
-.mbody{padding:20px 22px;}
-.mfoot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
-.mdate{font-size:10px;color:var(--accent);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:16px;}
+.modal-header{
+  padding:18px 24px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;transition:color 0.15s;}
+.modal-close:hover{color:var(--fg);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+/* FORM */
 .field{margin-bottom:14px;}
-.field label{display:block;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;outline:none;transition:border-color 0.15s;border-radius:4px;}
+.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);
+  font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;transition:border-color 0.15s;
+}
 .field input:focus,.field textarea:focus{border-color:var(--accent);}
 .field select{cursor:pointer;}
 .field select option{background:var(--surface);}
-.field textarea{resize:vertical;min-height:68px;line-height:1.6;}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.auto-lbl{color:var(--accent);font-size:9px;margin-left:4px;}
-.tpills{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px;}
-.tpill{font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);background:transparent;font-family:'DM Mono',monospace;border-radius:4px;}
-.tpill:hover{border-color:var(--muted);color:var(--fg);}
-.tpill.sel.sp{border-color:var(--blue);background:rgba(80,144,224,0.12);color:var(--blue);}
-.tpill.sel.in{border-color:var(--yellow);background:rgba(232,184,64,0.12);color:var(--yellow);}
-.tpill.sel.te{border-color:var(--accent);background:rgba(212,80,26,0.12);color:var(--accent);}
-.tpill.sel.wy{border-color:var(--purple);background:rgba(154,111,232,0.12);color:var(--purple);}
-.tpill.sel.re{border-color:var(--green);background:rgba(61,184,112,0.12);color:var(--green);}
-.tpill.sel.od{border-color:var(--muted);background:rgba(102,99,110,0.12);}
-.tpill.sel.race{border-color:var(--green);background:rgba(61,184,112,0.12);color:var(--green);}
-.notif{position:fixed;bottom:68px;right:20px;background:var(--green);color:#061a0e;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:11px 18px;border-radius:6px;transform:translateY(60px);opacity:0;transition:all 0.28s;z-index:200;}
+.field textarea{resize:vertical;min-height:70px;line-height:1.6;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* TYPE PILLS */
+.type-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.type-pill{
+  font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;
+  border:1px solid var(--border);cursor:pointer;transition:all 0.15s;color:var(--muted);
+  background:transparent;font-family:'DM Mono',monospace;
+}
+.type-pill:hover{border-color:var(--muted);color:var(--fg);}
+.type-pill.sel{color:var(--fg);}
+.type-pill.sel.spokojny-p{border-color:var(--blue);background:rgba(90,159,232,0.15);color:var(--blue);}
+.type-pill.sel.interwaly-p{border-color:var(--yellow);background:rgba(232,200,74,0.15);color:var(--yellow);}
+.type-pill.sel.tempo-p{border-color:var(--accent);background:rgba(212,80,26,0.15);color:var(--accent);}
+.type-pill.sel.wybieganie-p{border-color:var(--purple);background:rgba(154,111,232,0.15);color:var(--purple);}
+.type-pill.sel.regeneracja-p{border-color:var(--green);background:rgba(76,175,120,0.15);color:var(--green);}
+.type-pill.sel.odpoczynek-p{border-color:var(--muted);background:rgba(106,101,96,0.15);}
+
+/* NOTIF */
+.notif{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--green);color:#0a1a0f;
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;
+  padding:12px 20px;transform:translateY(80px);opacity:0;transition:all 0.3s;z-index:200;
+}
 .notif.show{transform:translateY(0);opacity:1;}
-::-webkit-scrollbar{width:4px;height:4px;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+::-webkit-scrollbar-thumb{background:var(--border);}
 </style>
 </head>
 <body>
 <div class="shell">
 
+<!-- NAV -->
 <nav>
   <a href="#" class="nav-logo" id="nav-logo-back">Biega<span>My</span></a>
-  <div class="nav-links">
-    <a href="#" class="nav-link" onclick="goBack()">← Powrót</a>
-    <a class="nav-link active" id="role-label">Kalendarz</a>
+  <div class="nav-links" style="display:flex;gap:4px;">
+    <a href="#" class="nav-link" id="back-link" onclick="goBack()">← Powrót</a>
+    <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
   </div>
   <div class="nav-right">
-    <select id="cal-athlete-sel" class="athlete-select" style="display:none;"></select>
-    <button class="btn btn-ghost" onclick="openGoalModal()" id="goal-btn" style="display:none;">🏁 Cel startowy</button>
-    <button class="btn btn-primary" onclick="openModal(null)" id="add-training-btn">+ Nowy trening</button>
+    
+    <button class="btn btn-primary" onclick="openModal(null)">+ Nowy trening</button>
   </div>
 </nav>
 
-<div class="toolbar">
+<!-- TOOLBAR -->
+<div class="cal-toolbar">
   <div class="week-nav">
-    <button class="wnav-btn" onclick="changeWeek(-1)">‹</button>
-    <div class="week-label" id="week-label"></div>
-    <button class="wnav-btn" onclick="changeWeek(1)">›</button>
+    <button class="week-nav-btn" onclick="changeWeek(-1)">‹</button>
+    <div class="week-label" id="week-label">30 Mar — 5 Kwi 2026</div>
+    <button class="week-nav-btn" onclick="changeWeek(1)">›</button>
   </div>
   <button class="today-btn" onclick="goToday()">Dziś</button>
-  <div class="spacer"></div>
-  <div class="week-stats">
-    <div class="wstat"><div class="wstat-val" id="week-km">0</div><div class="wstat-lbl">km tygodnia</div></div>
-    <div class="wstat"><div class="wstat-val" id="week-sessions">0</div><div class="wstat-lbl">treningów</div></div>
-  </div>
+  <div class="toolbar-spacer"></div>
+  <div class="week-km-badge">Kilometraż tygodnia: <span id="week-total-km">0</span> km</div>
 </div>
 
-<div class="week-grid">
-  <div class="week-head" id="week-head"></div>
+<!-- WEEK -->
+<div class="week-wrap">
+  <div class="week-header" id="week-header"></div>
   <div class="week-body" id="week-body"></div>
 </div>
 
 </div><!-- /shell -->
 
-<!-- DOLNA NAWIGACJA — musi być przed skryptami -->
-<nav class="bottom-nav" id="bottom-nav"></nav>
-
-<!-- MODAL TRENING -->
-<div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
+<!-- MODAL — ADD/EDIT TRAINING -->
+<div class="modal-bg" id="modal-bg" onclick="closeModalOnBg(event)">
   <div class="modal">
-    <div class="mhdr">
-      <div class="mttl" id="modal-ttl">Nowy trening</div>
-      <button class="mx" onclick="closeModal()">✕</button>
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Nowy trening</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div class="mbody">
-      <div class="mdate" id="modal-date"></div>
+    <div class="modal-body">
+      <div style="font-size:10px;color:var(--accent);letter-spacing:0.15em;margin-bottom:16px;" id="modal-date-label"></div>
       <div class="field">
         <label>Typ treningu</label>
-        <div class="tpills">
-          <button class="tpill sel sp" onclick="selType(this,'Bieg spokojny','sp')">🏃 Spokojny</button>
-          <button class="tpill" onclick="selType(this,'Interwały','in')">⚡ Interwały</button>
-          <button class="tpill" onclick="selType(this,'Tempo','te')">🔥 Tempo</button>
-          <button class="tpill" onclick="selType(this,'Wybieganie','wy')">🛤 Wybieganie</button>
-          <button class="tpill" onclick="selType(this,'Regeneracja','re')">💚 Regeneracja</button>
-          <button class="tpill" onclick="selType(this,'Odpoczynek','od')">💤 Odpoczynek</button>
-          <button class="tpill" onclick="selType(this,'Start','race')">🏁 Start</button>
+        <div class="type-pills">
+          <button class="type-pill sel spokojny-p" onclick="selType(this,'Bieg spokojny','spokojny')">Spokojny</button>
+          <button class="type-pill" onclick="selType(this,'Interwały','interwaly')">Interwały</button>
+          <button class="type-pill" onclick="selType(this,'Tempo','tempo')">Tempo</button>
+          <button class="type-pill" onclick="selType(this,'Wybieganie','wybieganie')">Wybieganie</button>
+          <button class="type-pill" onclick="selType(this,'Regeneracja','regeneracja')">Regeneracja</button>
+          <button class="type-pill" onclick="selType(this,'Odpoczynek','odpoczynek')">Odpoczynek</button>
         </div>
       </div>
-      <!-- ODPOCZYNEK -->
-      <div id="view-odpoczynek" style="display:none;">
-        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:20px;text-align:center;margin-bottom:12px;">
-          <div style="font-size:36px;margin-bottom:8px;">😴</div>
-          <div style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;">Dzień odpoczynku</div>
-          <div style="font-size:11px;color:var(--muted2);margin-top:4px;">Regeneracja — bez treningu</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Dystans (km)</label>
+          <input type="number" id="f-dist" placeholder="np. 12" min="0" max="60" step="0.5">
         </div>
-        <div class="field"><label>Notatka (opcjonalnie)</label><textarea id="f-desc-rest" placeholder="np. masaż, rozciąganie, spacer..." style="height:60px;"></textarea></div>
+        <div class="field">
+          <label>Czas (min)</label>
+          <input type="number" id="f-time" placeholder="np. 70">
+        </div>
       </div>
-      <!-- START -->
-      <div id="view-start" style="display:none;">
-        <div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.3);border-radius:6px;padding:16px;margin-bottom:12px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:10px;">🏁 Dzień startu</div>
-          <div class="frow">
-            <div class="field"><label>Nazwa biegu</label><input type="text" id="f-race-name" placeholder="np. Maraton Warszawski"></div>
-            <div class="field"><label>Dystans</label><select id="f-race-dist" style="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;border-radius:4px;width:100%;outline:none;cursor:pointer;"><option value="5">5 km</option><option value="10">10 km</option><option value="21.1">Półmaraton</option><option value="42.2" selected>Maraton</option><option value="">Inny</option></select></div>
+      <div class="field-row">
+        <div class="field">
+          <label>Tempo docelowe (min/km)</label>
+          <input type="text" id="f-pace" placeholder="np. 5:30">
+        </div>
+        <div class="field">
+          <label>Tętno docelowe (bpm)</label>
+          <input type="text" id="f-hr" placeholder="np. 140–155">
+        </div>
+      </div>
+      <div class="field">
+        <label>Opis / instrukcje dla zawodnika</label>
+        <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <select id="f-status" onchange="document.getElementById('log-fields').style.display=this.value==='done'?'block':'none'">
+          <option value="planned">Zaplanowany</option>
+          <option value="done">Wykonany</option>
+          <option value="missed">Nie wykonany</option>
+        </select>
+      </div>
+      <div class="field" id="log-fields" style="display:none;">
+        <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;padding-top:4px;border-top:1px solid var(--border);">Log zawodnika</div>
+        <div class="field-row" style="margin-bottom:10px;">
+          <div class="field">
+            <label>Dystans (km)</label>
+            <input type="number" id="f-log-dist" placeholder="np. 12" step="0.1">
           </div>
-          <div class="field"><label>Cel czasowy</label><input type="text" id="f-race-goal" placeholder="np. sub 4:00:00"></div>
-        </div>
-        <div class="field"><label>Notatka</label><textarea id="f-desc-race" placeholder="np. start o 9:00, sektor B..." style="height:55px;"></textarea></div>
-      </div>
-      <!-- REGENERACJA -->
-      <div id="view-regeneracja" style="display:none;">
-        <div style="background:rgba(61,184,112,0.06);border:1px solid rgba(61,184,112,0.2);border-radius:6px;padding:14px;margin-bottom:12px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:10px;">💚 Bieg regeneracyjny</div>
-          <div class="frow">
-            <div class="field"><label>Dystans (km)</label><input type="number" id="f-dist-regen" placeholder="6" min="0" step="0.5"></div>
-            <div class="field"><label>Tempo /km</label><input type="text" id="f-pace-regen" placeholder="6:30" maxlength="5"></div>
-          </div>
-          <div class="field" style="margin-bottom:0;"><label>Tętno docelowe</label><input type="text" id="f-hr-regen" placeholder="120–135 bpm"></div>
-        </div>
-        <div class="field"><label>Opis</label><textarea id="f-desc-regen" placeholder="np. bardzo spokojny..." style="height:55px;"></textarea></div>
-      </div>
-      <!-- INTERWAŁY -->
-      <div id="view-interwaly" style="display:none;">
-        <div style="background:rgba(232,184,64,0.06);border:1px solid rgba(232,184,64,0.2);border-radius:6px;padding:14px;margin-bottom:12px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--yellow);font-family:'DM Mono',monospace;margin-bottom:10px;">⚡ Serie interwałów</div>
-          <div style="display:grid;grid-template-columns:3fr 2fr 2fr 1fr;gap:6px;margin-bottom:4px;">
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;">Dystans</div>
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;">Tempo</div>
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;">Czas</div>
-            <div></div>
-          </div>
-          <div id="kal-iv-list" style="display:flex;flex-direction:column;gap:5px;"></div>
-          <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-            <button onclick="kalIvAdd(event)" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:4px;border:1px dashed rgba(232,184,64,0.4);background:transparent;color:var(--yellow);cursor:pointer;">+ Seria</button>
-            <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;" id="kal-iv-sum">—</span>
+          <div class="field">
+            <label>Tempo /km</label>
+            <input type="text" id="f-log-pace" placeholder="np. 5:30">
           </div>
         </div>
-        <div class="frow">
-          <div class="field"><label>Rozgrzewka (km)</label><input type="number" id="f-warmup" placeholder="2" min="0" step="0.5"></div>
-          <div class="field"><label>Schłodzenie (km)</label><input type="number" id="f-cooldown" placeholder="2" min="0" step="0.5"></div>
+        <div class="field" style="margin-bottom:10px;">
+          <label>Link Strava / Garmin</label>
+          <input type="url" id="f-log-strava" placeholder="https://strava.com/activities/...">
         </div>
-        <div class="field"><label>Opis / uwagi</label><textarea id="f-desc-iv" placeholder="np. przerwy 90s trucht..." style="height:55px;"></textarea></div>
+        <div class="field">
+          <label>Zdjęcia (można kilka)</label>
+          <div onclick="document.getElementById('f-log-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);" id="f-log-files-label">📎 Dodaj zdjęcia</div>
+          <input type="file" id="f-log-files" accept="image/*" multiple style="display:none" onchange="document.getElementById('f-log-files-label').textContent = this.files.length + ' plik(ów) wybranych'">
+          <div id="f-log-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
       </div>
-      <!-- TEMPO / RYTMÓWKI -->
-      <div id="view-tempo" style="display:none;">
-        <div style="background:rgba(212,80,26,0.06);border:1px solid rgba(212,80,26,0.2);border-radius:6px;padding:14px;margin-bottom:12px;">
-          <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;">🔥 Odcinki tempowe</div>
-          <div style="display:grid;grid-template-columns:3fr 2fr 1fr;gap:6px;margin-bottom:4px;">
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;">Dystans</div>
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;">Tempo</div>
-            <div></div>
-          </div>
-          <div id="kal-ryt-list" style="display:flex;flex-direction:column;gap:5px;"></div>
-          <button onclick="kalRytAdd(event)" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:4px;border:1px dashed rgba(212,80,26,0.4);background:transparent;color:var(--accent);cursor:pointer;margin-top:8px;">+ Odcinek</button>
-        </div>
-        <div class="frow">
-          <div class="field"><label>Łączny dystans (km)</label><input type="number" id="f-dist-tempo" placeholder="np. 14" min="0" step="0.5"></div>
-          <div class="field"><label>Czas łączny</label><input type="text" id="f-time-tempo" placeholder="1:04:00" maxlength="7" oninput="kalAutoColon(this)"></div>
-        </div>
-        <div class="field"><label>Opis</label><textarea id="f-desc-tempo" placeholder="np. 3x2km w 4:20/km..." style="height:55px;"></textarea></div>
-      </div>
-      <!-- STANDARD (Spokojny / Wybieganie) -->
-      <div id="view-standard" style="display:block;">
-        <div class="frow">
-          <div class="field"><label>Dystans (km)</label><input type="number" id="f-dist" placeholder="np. 12" min="0" step="0.5" oninput="kalCalcPace()"></div>
-          <div class="field"><label>Czas <span class="auto-lbl" id="lbl-time"></span></label><input type="text" id="f-time" placeholder="1:04:00" maxlength="7" oninput="kalAutoColon(this);kalCalcPace()"></div>
-        </div>
-        <div class="frow">
-          <div class="field"><label>Tempo /km <span class="auto-lbl" id="lbl-pace"></span></label><input type="text" id="f-pace" placeholder="5:20" maxlength="5" oninput="kalAutoColonPace(this);kalCalcTime()"></div>
-          <div class="field"><label>Tętno (bpm) <span id="kal-zone-lbl" style="font-size:9px;margin-left:4px;"></span></label><input type="text" id="f-hr" placeholder="140–155" oninput="kalUpdateZone()"></div>
-        </div>
-        <div class="field"><label>Opis / instrukcje</label><textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150."></textarea></div>
-      </div>
-      <div class="field" id="status-field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
     </div>
-    <div class="mfoot" style="flex-wrap:wrap;gap:8px;">
+    <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <div id="kal-timer-wrap" style="display:none;align-items:center;gap:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);">
-        <span id="kal-timer-disp">00:00:00</span>
-        <button onclick="kalPauseTimer()" id="kal-pause-btn" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(61,184,112,0.4);background:transparent;color:var(--green);cursor:pointer;">⏸</button>
-        <button onclick="kalStopTimer()" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(224,80,80,0.4);background:transparent;color:var(--red);cursor:pointer;">■ Stop</button>
-      </div>
-      <button class="btn btn-primary" id="save-btn" onclick="saveTraining()" style="margin-left:auto;">Zapisz →</button>
+      <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL CEL STARTOWY -->
-<div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;display:none;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:460px;max-width:94vw;padding:24px;max-height:90vh;overflow-y:auto;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:4px;">🏁 Cele startowe</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;">Pojawią się w kalendarzu jako oznaczone dni.</div>
-    <div id="goal-list-kal" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;"></div>
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:14px;margin-bottom:16px;">
-      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;">+ Nowy cel</div>
-      <div class="field"><label>Nazwa biegu</label><input type="text" id="goal-name" placeholder="np. Maraton Warszawski"></div>
-      <div class="field" style="margin-bottom:8px;"><label>Data startu</label><input type="date" id="goal-date"></div>
-      <button class="btn btn-primary" onclick="saveGoal()" style="width:100%;">Dodaj cel →</button>
-    </div>
-    <button class="btn btn-ghost" onclick="closeGoalModal()" style="width:100%;">Zamknij</button>
-  </div>
-</div>
-
+<!-- NOTIF -->
 <div class="notif" id="notif"></div>
-
-<!-- MODAL KOPIUJ DO ZAWODNIKA -->
-<div id="copy-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:200;display:none;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;width:380px;max-width:92vw;padding:24px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">⧉ Kopiuj trening</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:16px;" id="copy-modal-desc">Wybierz zawodnika i datę docelową</div>
-    <div class="field"><label>Zawodnik</label>
-      <select id="copy-to-athlete" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;border-radius:4px;outline:none;cursor:pointer;"></select>
-    </div>
-    <div class="field" style="margin-bottom:16px;"><label>Data</label>
-      <input type="date" id="copy-to-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;border-radius:4px;outline:none;">
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button class="btn btn-ghost" onclick="closeCopyModal()" style="flex:1;">Anuluj</button>
-      <button class="btn btn-primary" onclick="confirmCopy()" style="flex:2;">Kopiuj →</button>
-    </div>
-  </div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const typeColors={'Bieg spokojny':'sp','Interwały':'in','Tempo':'te','Wybieganie':'wy','Regeneracja':'re','Odpoczynek':'od','Start':'race'};
-const typeLabels={'Bieg spokojny':'SPOKOJNY','Interwały':'INTERWAŁY','Tempo':'TEMPO','Wybieganie':'WYBIEGANIE','Regeneracja':'REGENERACJA','Odpoczynek':'ODPOCZYNEK','Start':'🏁 START'};
-let trainings={};
-const monthNames=['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
-const dayNames=['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
-let currentWeekStart=getWeekStart(new Date());
-let editingDate=null,editingIndex=null,selectedType='Bieg spokojny',selectedTypeCls='sp';
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const typeColors = {
+  'Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo',
+  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek'
+};
 
-function getWeekStart(date){const d=new Date(date);const day=d.getDay();d.setDate(d.getDate()+(day===0?-6:1-day));d.setHours(0,0,0,0);return d;}
-function dateStr(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function addDays(date,n){const d=new Date(date);d.setDate(d.getDate()+n);return d;}
+let trainings = {
+  '2026-03-30':[{type:'Bieg spokojny',dist:10,time:62,pace:'6:12',hr:'140-150',desc:'Spokojny bieg na rozluźnienie po weekendzie. Trzymaj niskie tętno.',status:'done'}],
+  '2026-03-31':[{type:'Interwały',dist:8,time:46,pace:'4:20',hr:'170-180',desc:'8×400m z 90 sek odpoczynku. Rozgrzewka 2 km, schłodzenie 1 km.',status:'done'}],
+  '2026-04-01':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Pełny odpoczynek. Możesz zrobić 20 min rozciągania.',status:'done'}],
+  '2026-04-02':[{type:'Tempo',dist:14,time:76,pace:'5:25',hr:'155-165',desc:'14 km w tempie maratońskim. Pierwsze 3 km spokojnie, środkowe 8 km w tempie, ostatnie 3 km spokojnie.',status:'done'}],
+  '2026-04-03':[{type:'Regeneracja',dist:6,time:38,pace:'6:20',hr:'130-140',desc:'Bardzo spokojny trucht. Cel to regeneracja, nie trening.',status:'done'}],
+  '2026-04-04':[{type:'Wybieganie',dist:22,time:132,pace:'6:00',hr:'140-150',desc:'Długie wybieganie. Spokojne tempo przez cały czas. Zjedz żel po 15 km.',status:'done'}],
+  '2026-04-05':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'done'}],
+  '2026-04-06':[{type:'Bieg spokojny',dist:10,time:60,pace:'6:00',hr:'140-150',desc:'Spokojny bieg regeneracyjny po długim wybiegu.',status:'planned'}],
+  '2026-04-07':[{type:'Interwały',dist:10,time:55,pace:'4:15',hr:'175-185',desc:'10×800m, przerwy 90 sek. Ostatnie 2 powtórzenia mocniej.',status:'planned'}],
+  '2026-04-08':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'planned'}],
+  '2026-04-09':[{type:'Tempo',dist:16,time:86,pace:'5:22',hr:'158-168',desc:'16 km w tempie półmaratonu. Testujemy nowe tempo.',status:'planned'}],
+  '2026-04-10':[{type:'Bieg spokojny',dist:8,time:50,pace:'6:15',hr:'135-145',desc:'Lekki bieg. Schłodzenie po ciężkim tygodniu.',status:'planned'}],
+  '2026-04-11':[{type:'Wybieganie',dist:26,time:158,pace:'6:05',hr:'142-152',desc:'Najdłuższy bieg w tym bloku. Jedz żele co 45 min.',status:'planned'}],
+  '2026-04-12':[{type:'Odpoczynek',dist:0,time:0,pace:'',hr:'',desc:'Odpoczynek.',status:'planned'}],
+};
 
-function render(){
-  const days=Array.from({length:7},(_,i)=>addDays(currentWeekStart,i));
-  const today=new Date();today.setHours(0,0,0,0);
-  const s=days[0],e=days[6];
-  document.getElementById('week-label').textContent=`${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
-  // Licz km i sesje tylko raz per dzień (log nadpisuje plan, nie sumuje)
-  let totalKm=0,totalSessions=0;
-  days.forEach(d=>{
-    const ts=trainings[dateStr(d)]||[];
-    // Max 1 trening per dzień do liczenia (log już nadpisał dystans planu)
-    const counted=ts.filter(t=>t.type!=='Odpoczynek');
-    if(counted.length>0){
-      totalKm+=counted[0].dist||0; // weź tylko pierwszy (log już scalony z planem)
-      totalSessions++;
-    }
+const monthNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+const dayNames = ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
+
+let currentWeekStart = getWeekStart(new Date()); // aktualny tydzień
+let editingDate = null;
+let editingIndex = null;
+let selectedType = 'Bieg spokojny';
+let selectedTypeCls = 'spokojny';
+
+// ── WEEK HELPERS ──────────────────────────────────────────────────────────────
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = (day === 0) ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function dateStr(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function addDays(date, n) {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Week label
+  const s = days[0], e = days[6];
+  document.getElementById('week-label').textContent =
+    `${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
+
+  // Total km
+  let totalKm = 0;
+  days.forEach(d => {
+    const ts = trainings[dateStr(d)] || [];
+    ts.forEach(t => totalKm += (t.dist||0));
   });
-  document.getElementById('week-km').textContent=totalKm.toFixed(0);
-  document.getElementById('week-sessions').textContent=totalSessions;
+  document.getElementById('week-total-km').textContent = totalKm.toFixed(0);
 
-  document.getElementById('week-head').innerHTML=days.map(d=>{
-    const ds=dateStr(d),isToday=d.getTime()===today.getTime();
-    const ts=trainings[ds]||[];
-    const main=ts.find(t=>t.type!=='Odpoczynek');
-    const km=main?main.dist:0;
-    return `<div class="dh ${isToday?'today':''}">
-      <div class="dh-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
-      <div class="dh-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
-      ${km>0?`<div class="dh-km">${km} km${main?._hasLog?' ✓':''}</div>`:'<div class="dh-rest">—</div>'}
+  // Header
+  document.getElementById('week-header').innerHTML = days.map(d => {
+    const ds = dateStr(d);
+    const isToday = d.getTime() === today.getTime();
+    const ts = trainings[ds] || [];
+    const km = ts.reduce((s,t)=>s+(t.dist||0),0);
+    return `<div class="day-header ${isToday?'today':''}">
+      <div class="day-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
+      <div class="day-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
+      ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
     </div>`;
   }).join('');
 
-  const isAthlete=_urlRole==='athlete';
-  document.getElementById('week-body').innerHTML=days.map(d=>{
-    const ds=dateStr(d),isToday=d.getTime()===today.getTime();
-    const ts=trainings[ds]||[];
-    const raceDay=window._raceDates&&window._raceDates.find(r=>r.date===ds);
-    const raceHtml=raceDay?`<div class="tcard raceday">
-      <div class="tc-type race">🏁 START</div>
-      <div style="font-size:12px;font-weight:500;margin-top:3px;color:var(--green);">${raceDay.name||'Start'}</div>
-    </div>`:'';
-    const cards=ts.map((t,i)=>{
-      const cls=typeColors[t.type]||'sp';
-      const lbl=typeLabels[t.type]||t.type.toUpperCase();
-      const statusCls=t.status==='done'?'done':t.status==='missed'?'missed':'';
-      const timeDisplay=t.time?(t.time.includes&&t.time.includes(':')?t.time:t.time+' min'):'';
-      const meta=[t.pace?t.pace+'/km':'',timeDisplay,t.hr?'♥ '+t.hr:''].filter(Boolean).join(' · ');
-      // Jeśli trening ma log — pokaż rzeczywiste dane vs plan
-      const planBadge=t._hasLog&&t._planDist&&t._planDist!==t.dist
-        ?`<div style="font-size:8px;color:var(--muted);margin-top:3px;">plan: ${t._planDist} km</div>`:'';
-      const logBadge=t._hasLog?'<div class="tc-status done" style="margin-top:4px;">📋 zalogowany</div>':'';
-      return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" draggable="${!isAthlete}" ondragstart="dragStart(event,'${ds}',${i})" ondragend="dragEnd(event)" onclick="openModal('${ds}',${i})">
-        ${!isAthlete?`<button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
-          <button class="tc-copy" onclick="copyTraining(event,'${ds}',${i})" title="Kopiuj do zawodnika">⧉</button>`:''}
-        <div class="tc-type ${cls}">${lbl}</div>
-        ${t.dist>0?`<div class="tc-dist">${t.dist}<span> km</span></div>`:''}
-        ${planBadge}
-        ${meta?`<div class="tc-meta">${meta}</div>`:''}
-        ${t.desc?`<div class="tc-desc">${t.desc}</div>`:''}
-        ${logBadge}
-        ${!t._hasLog&&t.status==='missed'?'<div class="tc-status missed">✗ Pominięty</div>':''}
-        ${!isAthlete&&!t._hasLog&&t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="tc-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
+  // Body
+  document.getElementById('week-body').innerHTML = days.map(d => {
+    const ds = dateStr(d);
+    const isToday = d.getTime() === today.getTime();
+    const ts = trainings[ds] || [];
+
+    // Sprawdź czy to dzień startu
+    const isRaceDay = window._raceDates && window._raceDates.some(r => r.date === ds);
+
+    const raceCard = isRaceDay ? `<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.4);border-radius:8px;padding:8px 10px;margin-bottom:4px;">
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:3px;">🏁 CEL STARTOWY</div>
+      <div style="font-size:13px;font-weight:500;">${window._raceDates.find(r=>r.date===ds)?.name||'Start'}</div>
+    </div>` : '';
+
+    const cards = ts.map((t,i) => {
+      const tc = typeColors[t.type] || 'spokojny';
+      const statusCls = t.status==='done'?'done':t.status==='missed'?'missed':'';
+      const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie wykonany':'';
+
+      return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
+                   onclick="openModal('${ds}',${i})">
+        <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
+        <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
+        ${t.dist>0?`<div class="card-main">${t.dist} km</div>`:'<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
+        ${(t.pace||t.hr)?`<div class="card-pace">${t.pace?t.pace+'/km':''} ${t.hr?'· ♥ '+t.hr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
+        ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
+        ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
+        ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;
     }).join('');
-    const addLabel=isAthlete?'+ Zaloguj wynik':'+ Dodaj trening';
-    return `<div class="day-col ${isToday?'today':''}" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="drop(event,'${ds}')">${raceHtml}${cards}<div class="add-btn" onclick="openModal('${ds}',null)">${addLabel}</div></div>`;
+
+    return `<div class="day-col ${isToday?'today':''}">
+      ${raceCard}
+      ${cards}
+      <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
+    </div>`;
   }).join('');
 }
 
-function changeWeek(dir){currentWeekStart=addDays(currentWeekStart,dir*7);render();}
-function goToday(){currentWeekStart=getWeekStart(new Date());render();}
+// ── WEEK NAV ──────────────────────────────────────────────────────────────────
+function changeWeek(dir) {
+  currentWeekStart = addDays(currentWeekStart, dir*7);
+  render();
+}
+function goToday() {
+  currentWeekStart = getWeekStart(new Date());
+  render();
+}
 
-function openModal(ds,idx){
-  editingDate=ds;editingIndex=idx;
-  const isAthlete=_urlRole==='athlete';
-  ['standard','interwaly','tempo','regeneracja','odpoczynek','start'].forEach(v=>{
-    const el=document.getElementById('view-'+v);
-    if(el)el.style.display=v==='standard'?'block':'none';
+// ── MODAL ─────────────────────────────────────────────────────────────────────
+function openModal(ds, idx) {
+  editingDate = ds;
+  editingIndex = idx;
+
+  // Reset form
+  selectedType = 'Bieg spokojny';
+  selectedTypeCls = 'spokojny';
+  document.querySelectorAll('.type-pill').forEach(p=>{
+    p.className='type-pill';
+    if(p.textContent.trim()==='Spokojny') p.className='type-pill sel spokojny-p';
   });
-  document.querySelectorAll('.tpill').forEach(p=>p.className='tpill');
-  document.querySelector('.tpill').className='tpill sel sp';
-  selectedType='Bieg spokojny';selectedTypeCls='sp';
-  ['f-dist','f-time','f-pace','f-hr','f-desc','f-dist-regen','f-pace-regen','f-hr-regen',
-   'f-desc-regen','f-desc-iv','f-desc-tempo','f-desc-rest','f-desc-race','f-race-name',
-   'f-race-goal','f-warmup','f-cooldown','f-dist-tempo','f-time-tempo'].forEach(id=>{
-    const el=document.getElementById(id);if(el)el.value='';
-  });
-  const ivList=document.getElementById('kal-iv-list');if(ivList)ivList.innerHTML='';
-  const rytList=document.getElementById('kal-ryt-list');if(rytList)rytList.innerHTML='';
+  document.getElementById('f-dist').value='';
+  document.getElementById('f-time').value='';
+  document.getElementById('f-pace').value='';
+  document.getElementById('f-hr').value='';
+  document.getElementById('f-desc').value='';
   document.getElementById('f-status').value='planned';
-  const lp=document.getElementById('lbl-pace');if(lp)lp.textContent='';
-  const lt=document.getElementById('lbl-time');if(lt)lt.textContent='';
-  const zl=document.getElementById('kal-zone-lbl');if(zl)zl.textContent='';
-  const sf=document.getElementById('status-field');if(sf)sf.style.display=isAthlete?'none':'';
-  const ae=document.getElementById('kal-athlete-extras');if(ae)ae.style.display=isAthlete?'block':'none';
-  if(isAthlete){const ks=document.getElementById('kal-strava');if(ks)ks.value='';const kul=document.getElementById('kal-upload-label');if(kul)kul.textContent='Kliknij aby dodać zdjęcie';const kub=document.getElementById('kal-upload-area');if(kub)kub.style.borderColor='var(--border)';const kf=document.getElementById('kal-file');if(kf)kf.value='';}
-  const sv=document.getElementById('save-btn');if(sv)sv.textContent=isAthlete?'Zapisz log →':'Zapisz →';
-  
-  if(ds){const d=new Date(ds);document.getElementById('modal-date').textContent=d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
-  if(idx!==null&&ds&&trainings[ds]?.[idx]){
-    const t=trainings[ds][idx];
-    document.getElementById('modal-ttl').textContent=isAthlete?'Zaloguj wynik':'Edytuj trening';
-    const tmap={'Bieg spokojny':'🏃 Spokojny','Interwały':'⚡ Interwały','Tempo':'🔥 Tempo','Wybieganie':'🛤 Wybieganie','Regeneracja':'💚 Regeneracja','Odpoczynek':'😴 Odpoczynek','Start':'🏁 Start'};
-    const matchPill=Array.from(document.querySelectorAll('.tpill')).find(p=>p.textContent.trim()===tmap[t.type]);
-    if(matchPill)selType(matchPill,t.type,typeColors[t.type]||'sp');
-    const view=_typeViews[t.type]||'standard';
-    if(view==='standard'){
-      const fd=document.getElementById('f-dist');if(fd)fd.value=t.dist||'';
-      const ft=document.getElementById('f-time');if(ft)ft.value=t.time||'';
-      const fp=document.getElementById('f-pace');if(fp)fp.value=t.pace||'';
-      const fh=document.getElementById('f-hr');if(fh)fh.value=t.hr||'';
-      const fdesc=document.getElementById('f-desc');if(fdesc)fdesc.value=t.desc||'';
-    }else if(view==='regeneracja'){
-      const fd=document.getElementById('f-dist-regen');if(fd)fd.value=t.dist||'';
-      const fp=document.getElementById('f-pace-regen');if(fp)fp.value=t.pace||'';
-      const fh=document.getElementById('f-hr-regen');if(fh)fh.value=t.hr||'';
-      const fd2=document.getElementById('f-desc-regen');if(fd2)fd2.value=t.desc||'';
-    }else if(view==='odpoczynek'){
-      const fd=document.getElementById('f-desc-rest');if(fd)fd.value=t.desc||'';
-    }else if(view==='tempo'){
-      const fd=document.getElementById('f-dist-tempo');if(fd)fd.value=t.dist||'';
-      const ft=document.getElementById('f-time-tempo');if(ft)ft.value=t.time||'';
-      const fd2=document.getElementById('f-desc-tempo');if(fd2)fd2.value=t.desc||'';
-    }else if(view==='start'){
-      const fn=document.getElementById('f-race-name');if(fn)fn.value=t.desc||'';
-    }
-    document.getElementById('f-status').value=t.status||'planned';
-  }else{document.getElementById('modal-ttl').textContent=isAthlete?'Zaloguj wynik':'Nowy trening';}
+
+  if(ds) {
+    const d = new Date(ds);
+    document.getElementById('modal-date-label').textContent =
+      d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  } else {
+    document.getElementById('modal-date-label').textContent = 'Wybierz datę';
+  }
+
+  if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
+    const t = trainings[ds][idx];
+    document.getElementById('modal-title').textContent = 'Edytuj trening';
+    selectedType = t.type;
+    selectedTypeCls = typeColors[t.type] || 'spokojny';
+    document.querySelectorAll('.type-pill').forEach(p=>{
+      p.className='type-pill';
+      const map={Spokojny:'spokojny-p',Interwały:'interwaly-p',Tempo:'tempo-p',Wybieganie:'wybieganie-p',Regeneracja:'regeneracja-p',Odpoczynek:'odpoczynek-p'};
+      if(p.textContent.trim()===t.type.replace('Bieg spokojny','Spokojny').replace('Interwały','Interwały')) {
+        p.className=`type-pill sel ${map[p.textContent.trim()]||'spokojny-p'}`;
+      }
+    });
+    document.getElementById('f-dist').value = t.dist||'';
+    document.getElementById('f-time').value = t.time||'';
+    document.getElementById('f-pace').value = t.pace||'';
+    document.getElementById('f-hr').value = t.hr||'';
+    document.getElementById('f-desc').value = t.desc||'';
+    document.getElementById('f-status').value = t.status||'planned';
+  } else {
+    document.getElementById('modal-title').textContent = 'Nowy trening';
+  }
+
   document.getElementById('modal-bg').classList.add('open');
 }
 
-function closeModal(){
+function closeModal() {
   document.getElementById('modal-bg').classList.remove('open');
-  if(_kalTimer){clearInterval(_kalTimer);_kalTimer=null;}
-  const tw=document.getElementById('kal-timer-wrap');if(tw)tw.style.display='none';
-  
-  const ivList=document.getElementById('kal-iv-list');if(ivList)ivList.innerHTML='';
-  const rytList=document.getElementById('kal-ryt-list');if(rytList)rytList.innerHTML='';
 }
-function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
-const _typeViews={
-  'Bieg spokojny':'standard','Wybieganie':'standard',
-  'Interwaly':'interwaly','Interwa\u0142y':'interwaly','Tempo':'tempo',
-  'Regeneracja':'regeneracja','Odpoczynek':'odpoczynek','Start':'start'
-};
-function selType(el,type,cls){
-  document.querySelectorAll('.tpill').forEach(p=>p.className='tpill');
-  el.className='tpill sel '+cls;
-  selectedType=type;selectedTypeCls=cls;
-  ['standard','interwaly','tempo','regeneracja','odpoczynek','start'].forEach(v=>{
-    const el2=document.getElementById('view-'+v);
-    if(el2) el2.style.display=(_typeViews[type]===v)?'block':'none';
-  });
-  if((type==='Interwa\u0142y'||type==='Interwaly')&&document.querySelectorAll('#kal-iv-list .kal-iv-row').length===0) kalIvAddRow();
-  if(type==='Tempo'&&document.querySelectorAll('#kal-ryt-list .kal-ryt-row').length===0) kalRytAddRow();
+function closeModalOnBg(e) {
+  if(e.target===document.getElementById('modal-bg')) closeModal();
 }
 
-// ── INTERVAL BUILDERS ─────────────────────────────────────────────
-const _ris="background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 9px;border-radius:4px;outline:none;width:100%;";
-function kalIvAddRow(){
-  const list=document.getElementById('kal-iv-list');if(!list)return;
-  const row=document.createElement('div');
-  row.className='kal-iv-row';
-  row.style.cssText='display:grid;grid-template-columns:3fr 2fr 2fr 1fr;gap:5px;align-items:center;';
-  row.innerHTML='<input type="text" class="kiv-dist" placeholder="np. 400m" style="'+_ris+'" oninput="kalIvCalcRow(this)">'
-    +'<input type="text" class="kiv-pace" placeholder="4:00/km" style="'+_ris+'" oninput="kalIvCalcRow(this)">'
-    +'<div class="kiv-time" style="font-family:\'DM Mono\',monospace;font-size:11px;color:var(--accent);padding-left:4px;">\u2014</div>'
-    +'<button onclick="kalIvRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">\u2715</button>';
-  list.appendChild(row);kalIvSummary();
-}
-function kalIvAdd(e){e.preventDefault();kalIvAddRow();}
-function kalIvRemove(btn,e){e.preventDefault();btn.closest('.kal-iv-row').remove();kalIvSummary();}
-function kalIvCalcRow(inp){
-  const row=inp.closest('.kal-iv-row');
-  const dv=row.querySelector('.kiv-dist').value.trim();
-  const pv=row.querySelector('.kiv-pace').value.trim();
-  const timeEl=row.querySelector('.kiv-time');
-  let dk=null;
-  const mM=dv.match(/(\d+(?:\.\d+)?)\s*m\b/i);
-  const kM=dv.match(/(\d+(?:\.\d+)?)\s*km/i);
-  const nM=dv.match(/^(\d+(?:\.\d+)?)$/);
-  if(mM)dk=parseFloat(mM[1])/1000;
-  else if(kM)dk=parseFloat(kM[1]);
-  else if(nM)dk=parseFloat(nM[1])>=100?parseFloat(nM[1])/1000:parseFloat(nM[1]);
-  const pp=pv.split(':').map(Number);
-  const ps=pp.length===2&&!isNaN(pp[0])&&!isNaN(pp[1])?pp[0]*60+pp[1]:null;
-  if(dk&&ps){const t=Math.round(dk*ps);timeEl.textContent=Math.floor(t/60)+':'+String(t%60).padStart(2,'0');}
-  else timeEl.textContent='\u2014';
-  kalIvSummary();
-}
-function kalIvSummary(){
-  const rows=document.querySelectorAll('.kal-iv-row');
-  const sum=document.getElementById('kal-iv-sum');if(!sum)return;
-  let totalKm=0,count=0;
-  rows.forEach(row=>{
-    const d=row.querySelector('.kiv-dist')?.value.trim();if(!d)return;count++;
-    const mM=d.match(/(\d+(?:\.\d+)?)\s*m\b/i);
-    const kM=d.match(/(\d+(?:\.\d+)?)\s*km/i);
-    const nM=d.match(/^(\d+(?:\.\d+)?)$/);
-    if(mM)totalKm+=parseFloat(mM[1])/1000;
-    else if(kM)totalKm+=parseFloat(kM[1]);
-    else if(nM)totalKm+=parseFloat(nM[1])>=100?parseFloat(nM[1])/1000:parseFloat(nM[1]);
-  });
-  sum.textContent=count>0?count+' serii \u00b7 '+totalKm.toFixed(2)+' km':'\u2014';
-}
-function kalRytAddRow(){
-  const list=document.getElementById('kal-ryt-list');if(!list)return;
-  const row=document.createElement('div');
-  row.className='kal-ryt-row';
-  row.style.cssText='display:grid;grid-template-columns:3fr 2fr 1fr;gap:5px;align-items:center;';
-  row.innerHTML='<input type="text" class="kryt-dist" placeholder="np. 2km" style="'+_ris+'">'
-    +'<input type="text" class="kryt-pace" placeholder="4:30/km" style="'+_ris+'">'
-    +'<button onclick="kalRytRemove(this,event)" style="border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:4px;">\u2715</button>';
-  list.appendChild(row);
-}
-function kalRytAdd(e){e.preventDefault();kalRytAddRow();}
-function kalRytRemove(btn,e){e.preventDefault();btn.closest('.kal-ryt-row').remove();}
-
-// ── START TIMER ───────────────────────────────────────────────────
-let _kalTimer=null,_kalSecs=0,_kalPaused=false;
-function kalStartTraining(){
-  _kalSecs=0;_kalPaused=false;
-  
-  document.getElementById('kal-timer-wrap').style.display='flex';
-  _kalTimer=setInterval(()=>{
-    if(!_kalPaused){_kalSecs++;
-      const h=String(Math.floor(_kalSecs/3600)).padStart(2,'0');
-      const m=String(Math.floor((_kalSecs%3600)/60)).padStart(2,'0');
-      const s=String(_kalSecs%60).padStart(2,'0');
-      document.getElementById('kal-timer-disp').textContent=h+':'+m+':'+s;}
-  },1000);
-}
-function kalPauseTimer(){_kalPaused=!_kalPaused;document.getElementById('kal-pause-btn').textContent=_kalPaused?'\u25b6':'\u23f8';}
-function kalStopTimer(){
-  clearInterval(_kalTimer);_kalTimer=null;
-  document.getElementById('kal-timer-wrap').style.display='none';
-  
-  const h=Math.floor(_kalSecs/3600),m=String(Math.floor((_kalSecs%3600)/60)).padStart(2,'0'),s=String(_kalSecs%60).padStart(2,'0');
-  const ft=document.getElementById('f-time');if(ft)ft.value=h+':'+m+':'+s;
-  kalCalcPace();
+function selType(el, type, cls) {
+  document.querySelectorAll('.type-pill').forEach(p=>p.className='type-pill');
+  el.className = `type-pill sel ${cls}-p`;
+  selectedType = type;
+  selectedTypeCls = cls;
 }
 
-// ── MULTI-GOAL ────────────────────────────────────────────────────
-function renderGoalListKal(goals){
-  const list=document.getElementById('goal-list-kal');if(!list)return;
-  if(!goals||!goals.length){list.innerHTML='<div style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;padding:4px 0;">Brak cel\u00f3w startowych.</div>';return;}
-  list.innerHTML=goals.map((g,i)=>{
-    const d=g.date?new Date(g.date):null;
-    const days=d?Math.ceil((d-new Date())/86400000):null;
-    const ds=d?d.toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'}):'';
-    const daysStr=days!==null?(days>=0?' \u00b7 '+days+' dni':' \u00b7 min\u0105\u0142'):'';
-    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;">'
-      +'<span>🏁</span>'
-      +'<div style="flex:1;"><div style="font-size:12px;font-weight:500;">'+g.name+'</div>'
-      +'<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;">'+ds+daysStr+'</div></div>'
-      +'<button onclick="deleteGoalKal('+i+')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 6px;">\u2715</button></div>';
-  }).join('');
-}
+async function saveTraining() {
+  const dist = parseFloat(document.getElementById('f-dist').value)||0;
+  const time = parseInt(document.getElementById('f-time').value)||0;
+  const pace = document.getElementById('f-pace').value;
+  const hr = document.getElementById('f-hr').value;
+  const desc = document.getElementById('f-desc').value;
+  const status = document.getElementById('f-status').value;
 
-function kalPreviewFile(input){
-  const file=input.files[0];
-  if(file){
-    document.getElementById('kal-upload-label').textContent='✓ '+file.name;
-    document.getElementById('kal-upload-area').style.borderColor='var(--green)';
+  if(!editingDate) { notify('Brak daty'); return; }
+
+  const t = {type:selectedType,dist,time,pace,hr,desc,status};
+
+  if(!trainings[editingDate]) trainings[editingDate]=[];
+  if(editingIndex!==null && editingIndex>=0) {
+    trainings[editingDate][editingIndex] = t;
+    notify('Trening zaktualizowany ✓');
+  } else {
+    trainings[editingDate].push(t);
+    notify(`Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);
   }
-}
-function kalAutoColon(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);if(v.length>=5)v=v.slice(0,4)+':'+v.slice(4);el.value=v.slice(0,7);}
-function kalAutoColonPace(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);el.value=v.slice(0,4);}
-function kalCalcPace(){
-  const dist=parseFloat(document.getElementById('f-dist').value);
-  const tv=document.getElementById('f-time').value;
-  const lbl=document.getElementById('lbl-pace');
-  if(!dist||!tv||tv.length<4){if(lbl)lbl.textContent='';return;}
-  const p=tv.split(':').map(Number);
-  const secs=p.length===3?p[0]*3600+p[1]*60+p[2]:p.length===2?p[0]*60+p[1]:0;
-  if(!secs){if(lbl)lbl.textContent='';return;}
-  const pps=secs/dist,pm=Math.floor(pps/60),ps=String(Math.round(pps%60)).padStart(2,'0');
-  document.getElementById('f-pace').value=pm+':'+ps;
-  if(lbl)lbl.textContent='← auto';
-}
-function kalCalcTime(){
-  const dist=parseFloat(document.getElementById('f-dist').value);
-  const pv=document.getElementById('f-pace').value;
-  const lbl=document.getElementById('lbl-time');
-  if(!dist||!pv||pv.length<3){if(lbl)lbl.textContent='';return;}
-  const p=pv.split(':').map(Number);
-  if(p.length<2){if(lbl)lbl.textContent='';return;}
-  const totalSecs=Math.round((p[0]*60+(p[1]||0))*dist);
-  const h=Math.floor(totalSecs/3600),m=String(Math.floor((totalSecs%3600)/60)).padStart(2,'0'),s=String(totalSecs%60).padStart(2,'0');
-  document.getElementById('f-time').value=h+':'+m+':'+s;
-  if(lbl)lbl.textContent='← auto';
-}
-function kalUpdateZone(){
-  const hr=document.getElementById('f-hr').value;
-  const lbl=document.getElementById('kal-zone-lbl');
-  if(!lbl||!hr){if(lbl)lbl.textContent='';return;}
-  const p=hr.split('-').map(Number);
-  const avg=p.length===2?Math.round((p[0]+p[1])/2):parseInt(hr)||null;
-  if(!avg){lbl.textContent='';return;}
-  let zone,color;
-  if(avg<115){zone='Z1';color='#5090e0';}
-  else if(avg<135){zone='Z2';color='#3db870';}
-  else if(avg<155){zone='Z3';color='#e8b840';}
-  else if(avg<170){zone='Z4';color='#f06030';}
-  else{zone='Z5';color='#e05050';}
-  lbl.textContent=zone;lbl.style.color=color;
+
+  // Jeśli status=done i jesteśmy w widoku zawodnika — zapisz log do Supabase
+  if (status === 'done' && _urlRole === 'athlete' && typeof _sbKal !== 'undefined') {
+    const { data: { session } } = await _sbKal.auth.getSession();
+    if (session) {
+      const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      if (ath) {
+        // Upload zdjęć
+        const logFiles = document.getElementById('f-log-files');
+        const logStrava = document.getElementById('f-log-strava')?.value || null;
+        const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
+        const logPace = document.getElementById('f-log-pace')?.value || pace || null;
+        let attachmentUrl = null;
+
+        if (logFiles && logFiles.files.length > 0) {
+          const urls = [];
+          for (const file of logFiles.files) {
+            const path = ath.id + '/log_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
+            const { error: upErr } = await _sbKal.storage.from('training-screenshots').upload(path, file, {upsert:true});
+            if (!upErr) {
+              const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
+              urls.push(urlData.publicUrl);
+            }
+          }
+          if (urls.length) attachmentUrl = urls.join(',');
+        }
+
+        await _sbKal.from('training_logs').insert({
+          athlete_id: ath.id,
+          training_type: selectedType,
+          distance_km: logDist,
+          pace: logPace,
+          strava_link: logStrava,
+          attachment_url: attachmentUrl,
+          logged_at: new Date().toISOString()
+        });
+        notify('Log zapisany ✓');
+      }
+    }
+  }
+
+  closeModal();
+  render();
 }
 
-function saveTraining(){
-  const dist=parseFloat(document.getElementById('f-dist').value)||0;
-  const time=document.getElementById('f-time').value.trim();
-  const pace=document.getElementById('f-pace').value;
-  const hr=document.getElementById('f-hr').value;
-  const desc=document.getElementById('f-desc').value;
-  const status=document.getElementById('f-status').value;
-  if(!editingDate){notify('Brak daty');return;}
-  const t={type:selectedType,dist,time,pace,hr,desc,status};
-  if(!trainings[editingDate])trainings[editingDate]=[];
-  if(editingIndex!==null&&editingIndex>=0){trainings[editingDate][editingIndex]={...trainings[editingDate][editingIndex],...t};notify('Trening zaktualizowany ✓');}
-  else{trainings[editingDate].push(t);notify(`Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);}
-  closeModal();render();
-}
-async function approveTraining(e,ds,idx,dbId){
+async function approveTraining(e, ds, idx, dbId) {
   e.stopPropagation();
-  if(!trainings[ds]?.[idx])return;
-  trainings[ds][idx].status='done';
-  if(dbId&&typeof _sbKal!=='undefined')await _sbKal.from('trainings').update({status:'done'}).eq('id',dbId);
-  render();notify('Trening zatwierdzony ✓');
+  if (!trainings[ds] || !trainings[ds][idx]) return;
+  trainings[ds][idx].status = 'done';
+  
+  // Zapisz do Supabase jeśli mamy id
+  if (dbId && typeof _sbKal !== 'undefined') {
+    await _sbKal.from('trainings').update({status:'done'}).eq('id', dbId);
+  }
+  
+  render();
+  notify('Trening zatwierdzony ✓');
 }
-function deleteTraining(e,ds,idx){
+
+function deleteTraining(e, ds, idx) {
   e.stopPropagation();
-  if(!confirm('Usunąć ten trening?'))return;
+  if(!confirm('Usunąć ten trening?')) return;
   trainings[ds].splice(idx,1);
-  if(!trainings[ds].length)delete trainings[ds];
-  render();notify('Trening usunięty');
+  if(trainings[ds].length===0) delete trainings[ds];
+  render();
+  notify('Trening usunięty');
 }
-function notify(msg){const el=document.getElementById('notif');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2800);}
 
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape')closeModal();
-  if(e.key==='ArrowLeft'&&!document.getElementById('modal-bg').classList.contains('open'))changeWeek(-1);
-  if(e.key==='ArrowRight'&&!document.getElementById('modal-bg').classList.contains('open'))changeWeek(1);
+// ── NOTIF ─────────────────────────────────────────────────────────────────────
+function notify(msg) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── KEYBOARD ──────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if(e.key==='Escape') closeModal();
+  if(e.key==='ArrowLeft' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(-1);
+  if(e.key==='ArrowRight' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(1);
 });
 
-// ── SUPABASE ──────────────────────────────────────────────────────
-const _urlRole=new URLSearchParams(window.location.search).get('role')||'coach';
-const _backUrl=_urlRole==='coach'?'trener.html':'zawodnik.html';
-const _sbKal=supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co','sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+render();
 
-function goBack(){window.location.href=_backUrl;}
-document.getElementById('role-label').textContent=_urlRole==='coach'?'Kalendarz trenera':'Mój plan';
-document.getElementById('nav-logo-back').href=_backUrl;
-if(_urlRole==='athlete'){
-  document.getElementById('add-training-btn').style.display='none';
+// ── ROLE DETECTION ────────────────────────────────────────────────
+const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
+const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
+const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
+const _sbKal = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function goBack() {
+  window.location.href = _backUrl;
 }
 
-// Dolna nawigacja — teraz działa bo <nav id="bottom-nav"> jest już w DOM
-(function buildNav(){
-  const nav=document.getElementById('bottom-nav');
-  if(!nav)return;
-  const svg={
-    people:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-    cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-    msg:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-    chart:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
-    home:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
-    user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>'
-  };
-  function icon(k){return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">${svg[k]}</svg>`;}
-  function item(href,iconKey,label,active){return `<a class="bn-item${active?' active':''}" href="${href}">${icon(iconKey)}<span class="bn-lbl">${label}</span></a>`;}
+document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kalendarz trenera' : 'Mój plan';
 
-  if(_urlRole==='coach'){
-    nav.innerHTML=
-      item('trener.html','people','Zawodnicy')+
-      item('kalendarz.html?role=coach','cal','Kalendarz',true)+
-      item('trener.html?tab=msgs','msg','Wiadomości')+
-      item('trener.html?tab=analytics','chart','Analityka');
-  } else {
-    nav.innerHTML=
-      item('zawodnik.html','home','Dziś')+
-      item('kalendarz.html?role=athlete','cal','Plan',true)+
-      item('zawodnik.html?tab=msgs','msg','Wiadomości')+
-      item('zawodnik.html?tab=stats','chart','Statystyki')+
-      item('zawodnik.html?tab=profile','user','Profil');
-  }
-})();
-
-// ── AUTH & DATA ───────────────────────────────────────────────────
-async function verifyRole(){
-  const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session){window.location.href='login.html';return;}
-  const role=session.user.user_metadata?.role||'athlete';
-  if(_urlRole==='coach'&&role!=='coach'){window.location.href='kalendarz.html?role=athlete';return;}
-  if(_urlRole==='athlete'&&role==='coach'){window.location.href='kalendarz.html?role=coach';return;}
-  document.getElementById('goal-btn').style.display='block';
+// Pobierz daty startów
+window._raceDates = [];
+async function loadRaceDates() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) return;
   
-  if(_urlRole==='coach')loadAthletesForCalendar();
-  // Załaduj cele po weryfikacji sesji
-  await loadRaceDates();
-}
-verifyRole();
-
-window._raceDates=[];
-async function loadRaceDates(){
-  const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session)return;
-  let q=_sbKal.from('athletes').select('id,goal,target_date,race_goals');
-  if(_urlRole==='athlete')q=q.eq('user_id',session.user.id);
-  else q=q.eq('coach_id',session.user.id);
-  const {data,error}=await q;
-  console.log('[loadRaceDates] raw:', JSON.stringify(data), 'err:', error?.message);
-  if(data){
-    let dates=[];
-    data.forEach(a=>{
-      let goals=[];
-      try{goals=JSON.parse(a.race_goals||'[]');}catch(e){}
-      console.log('[loadRaceDates] athlete', a.id, 'race_goals:', a.race_goals, 'parsed:', goals.length);
-      dates.push(...goals.filter(g=>g.date&&g.name));
-    });
-    window._raceDates=dates;
-    console.log('[loadRaceDates] _raceDates set to:', JSON.stringify(dates));
-    render();
+  let query = _sbKal.from('athletes').select('goal, target_date');
+  if (_urlRole === 'athlete') {
+    query = query.eq('user_id', session.user.id);
+  } else {
+    // coach — wszyscy zawodnicy
+    query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
+  }
+  
+  const { data } = await query;
+  if (data) {
+    window._raceDates = data
+      .filter(a => a.target_date)
+      .map(a => ({ date: a.target_date, name: a.goal || 'Start' }));
+    render(); // odśwież kalendarz z datami startów
   }
 }
-// loadRaceDates() — teraz wywoływane przez verifyRole
 
-let _calSelectedAthleteId=null;
-async function loadTrainingsFromDB(){
-  const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session)return;
+loadRaceDates();
 
-  let athId=null;
-  if(_urlRole==='athlete'){
-    const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
-    if(!ath)return;
-    athId=ath.id;
+// ── LOAD TRAININGS FROM DB ────────────────────────────────────────
+async function loadTrainingsFromDB() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) return;
+
+  let query = _sbKal.from('trainings').select('*');
+
+  if (_urlRole === 'athlete') {
+    // Zawodnik — tylko swoje treningi
+    const { data: ath } = await _sbKal.from('athletes')
+      .select('id').eq('user_id', session.user.id).maybeSingle();
+    if (!ath) return;
+    query = query.eq('athlete_id', ath.id);
+  } else {
+    // Trener — treningi wszystkich swoich zawodników
+    query = query.eq('coach_id', session.user.id);
   }
 
-  // 1. Załaduj plan trenera
-  let q=_sbKal.from('trainings').select('*');
-  if(_urlRole==='athlete') q=q.eq('athlete_id',athId);
-  else {
-    if(_calSelectedAthleteId)q=q.eq('athlete_id',_calSelectedAthleteId);
-    else q=q.eq('coach_id',session.user.id);
-  }
-  const {data,error}=await q.order('date');
+  const { data, error } = await query.order('date');
+  if (error || !data) return;
 
-  Object.keys(trainings).forEach(k=>delete trainings[k]);
-
-  if(!error&&data){
-    data.forEach(t=>{
-      const ds=t.date;
-      if(!trainings[ds])trainings[ds]=[];
-      if(!trainings[ds].some(x=>x._id===t.id)){
-        let timeStr='';
-        if(t.duration_min){const h=Math.floor(t.duration_min/60),m=String(t.duration_min%60).padStart(2,'0');timeStr=h+':'+m+':00';}
-        trainings[ds].push({
-          _id:t.id,
-          type:t.type||'Bieg spokojny',
-          dist:parseFloat(t.distance_km)||0,
-          time:timeStr,
-          pace:t.pace||'',
-          hr:t.heart_rate||'',
-          desc:t.description||'',
-          status:t.status||'planned',
-          // plan wartości (oryginalne od trenera)
-          _planDist:parseFloat(t.distance_km)||0,
-          _planPace:t.pace||'',
-        });
-      }
-    });
-  }
-
-  // 2. Załaduj logi i scal z planem — nie dodawaj osobnych wpisów
-  const logAthId=athId||_calSelectedAthleteId;
-  if(logAthId){
-    const {data:logs}=await _sbKal.from('training_logs')
-      .select('*').eq('athlete_id',logAthId).order('logged_at');
-    if(logs){
-      logs.forEach(l=>{
-        const ds=l.logged_at?l.logged_at.split('T')[0]:null;
-        if(!ds)return;
-        if(!trainings[ds])trainings[ds]=[];
-        // Znajdź istniejący trening na ten dzień i zaktualizuj go rzeczywistymi danymi
-        const existing=trainings[ds].find(x=>x._source!=='log');
-        if(existing){
-          // Nadpisz plan rzeczywistymi danymi z logu
-          existing.dist=parseFloat(l.distance_km)||existing.dist;
-          existing.pace=l.pace||existing.pace;
-          existing.hr=l.heart_rate?.toString()||existing.hr;
-          existing.time=l.duration||existing.time;
-          existing.status='done';
-          existing._logId=l.id;
-          existing._hasLog=true;
-        } else {
-          // Brak planu — dodaj log jako samodzielny kafelek
-          trainings[ds].push({
-            _id:'log_'+l.id,
-            _logId:l.id,
-            _hasLog:true,
-            type:l.training_type||'Bieg spokojny',
-            dist:parseFloat(l.distance_km)||0,
-            time:l.duration||'',
-            pace:l.pace||'',
-            hr:l.heart_rate?.toString()||'',
-            desc:l.comment||'',
-            status:'done',
-          });
-        }
+  // Wyczyść i załaduj do trainings{}
+  // Zachowaj istniejące dane (nie czyść hardcode żeby demo działało)
+  data.forEach(t => {
+    const ds = t.date;
+    if (!trainings[ds]) trainings[ds] = [];
+    // Sprawdź czy już nie ma tego treningu
+    const exists = trainings[ds].some(x => x._id === t.id);
+    if (!exists) {
+      trainings[ds].push({
+        _id: t.id,
+        type: t.type || 'Spokojny',
+        dist: parseFloat(t.distance_km) || 0,
+        time: t.duration_min || 0,
+        pace: t.pace || '',
+        hr: t.heart_rate || '',
+        desc: t.description || '',
+        status: t.status || 'planned'
       });
     }
-  }
+  });
 
   render();
 }
+
 loadTrainingsFromDB();
 
-async function loadAthletesForCalendar(){
-  const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session||_urlRole==='athlete')return;
-  const {data}=await _sbKal.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
-  const sel=document.getElementById('cal-athlete-sel');
-  if(!sel||!data)return;
-  sel.style.display='block';
-  sel.innerHTML='<option value="">— wszyscy zawodnicy —</option>'+data.map(a=>`<option value="${a.id}">${a.full_name||'Zawodnik'}</option>`).join('');
-  window._dbAthletes=data;
-  const _urlAthlete=new URLSearchParams(window.location.search).get('athlete');
-  if(_urlAthlete){
-    _calSelectedAthleteId=_urlAthlete;
-    sel.value=_urlAthlete;
-    const found=data.find(a=>String(a.id)===String(_urlAthlete));
-    if(found)document.getElementById('role-label').textContent=found.full_name||'Zawodnik';
-    loadTrainingsFromDB();
-  }
-  sel.addEventListener('change',()=>{_calSelectedAthleteId=sel.value||null;loadTrainingsFromDB();});
-}
+// ── SAVE TRAINING TO DB (override saveTraining) ───────────────────
+const _origSaveTraining = saveTraining;
+window.saveTraining = async function() {
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session || _urlRole === 'athlete') { _origSaveTraining(); return; }
 
-// Override saveTraining z DB
-window.saveTraining=async function(){
-  const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session){notify('Musisz być zalogowany');return;}
-  const dist=parseFloat(document.getElementById('f-dist').value)||0;
-  const ts=document.getElementById('f-time').value.trim();
-  let dur=null;
-  if(ts){const p=ts.split(':').map(Number);if(p.length===3)dur=p[0]*60+p[1]+Math.round(p[2]/60);else if(p.length===2)dur=p[0]*60+p[1];}
-  const pace=document.getElementById('f-pace').value;
-  const hr=document.getElementById('f-hr').value;
-  const desc=document.getElementById('f-desc').value;
-  const status=document.getElementById('f-status').value;
-  if(!editingDate){notify('Brak daty');return;}
+  const dist = parseFloat(document.getElementById('f-dist').value)||0;
+  const time = parseInt(document.getElementById('f-time').value)||0;
+  const pace = document.getElementById('f-pace').value;
+  const hr = document.getElementById('f-hr').value;
+  const desc = document.getElementById('f-desc').value;
+  const status = document.getElementById('f-status').value;
 
-  if(_urlRole==='athlete'){
-    const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
-    if(!ath){notify('Brak profilu zawodnika');return;}
-    if(!dist){notify('Podaj dystans');return;}
-    let kalAttUrl=null;
-    const kalFileInput=document.getElementById('kal-file');
-    if(kalFileInput&&kalFileInput.files[0]){
-      const file=kalFileInput.files[0];
-      const ext=file.name.split('.').pop();
-      const path=ath.id+'/kal_'+Date.now()+'.'+ext;
-      const {error:upErr}=await _sbKal.storage.from('training-screenshots').upload(path,file,{upsert:true});
-      if(!upErr){const {data:ud}=_sbKal.storage.from('training-screenshots').getPublicUrl(path);kalAttUrl=ud.publicUrl;}
-    }
-    const kalStravaVal=document.getElementById('kal-strava')?.value||null;
-    const {error}=await _sbKal.from('training_logs').insert({
-      athlete_id:ath.id,
-      training_type:selectedType,
-      distance_km:dist||null,
-      duration:ts||null,
-      pace:pace||null,
-      heart_rate:parseInt(hr)||null,
-      comment:desc||null,
-      feel:'mid',
-      strava_link:kalStravaVal,
-      attachment_url:kalAttUrl,
-      logged_at:editingDate ? editingDate+'T12:00:00Z' : new Date().toISOString()
-    });
-    if(error){notify('Błąd: '+error.message);return;}
-    closeModal();
-    notify('Log zapisany! Trener widzi Twój wynik ✓');
-    await loadTrainingsFromDB(); // przeładuj z bazy żeby nie było duplikatów
-    return;
-  }
+  if (!editingDate) { notify('Brak daty'); return; }
 
-  const dbId=editingIndex!==null?trainings[editingDate]?.[editingIndex]?._id:null;
-  if(dbId){
-    const {error}=await _sbKal.from('trainings').update({type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status}).eq('id',dbId);
-    if(error){notify('Błąd: '+error.message);return;}
-    closeModal();notify('Trening zaktualizowany ✓');
-    await loadTrainingsFromDB();return;
-  }
-  if(!_calSelectedAthleteId){notify('Wybierz zawodnika z listy powyżej');return;}
-  const {error}=await _sbKal.from('trainings').insert({coach_id:session.user.id,athlete_id:_calSelectedAthleteId,date:editingDate,type:selectedType,distance_km:dist||null,duration_min:dur,pace:pace||null,heart_rate:hr||null,description:desc||null,status});
-  if(error){notify('Błąd: '+error.message);return;}
-  closeModal();notify(`Trening dodany ✓`);
-  await loadTrainingsFromDB();
-};
-
-window.deleteTraining=async function(e,ds,idx){
-  e.stopPropagation();
-  if(!confirm('Usunąć ten trening?'))return;
-  const t=trainings[ds]?.[idx];
-  if(t?._id)await _sbKal.from('trainings').delete().eq('id',t._id);
-  trainings[ds].splice(idx,1);
-  if(!trainings[ds].length)delete trainings[ds];
-  render();notify('Trening usunięty');
-};
-
-async function openGoalModal(){
-  document.getElementById('goal-name').value='';document.getElementById('goal-date').value='';
-  const {data:{session}}=await _sbKal.auth.getSession();if(!session)return;
-  if(_urlRole==='athlete'){
-    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals,goal,target_date').eq('user_id',session.user.id).maybeSingle();
-    if(ath){window._goalAthId=ath.id;let g=[];try{g=JSON.parse(ath.race_goals||'[]');}catch(e){}
-    window._kalGoals=g;renderGoalListKal(g);}
-  } else if(_calSelectedAthleteId){
-    const {data:ath}=await _sbKal.from('athletes').select('id,race_goals').eq('id',_calSelectedAthleteId).maybeSingle();
-    if(ath){window._goalAthId=ath.id;let g=[];try{g=JSON.parse(ath.race_goals||'[]');}catch(e){}
-    window._kalGoals=g;renderGoalListKal(g);}
-  }
-  document.getElementById('goal-modal').style.display='flex';
-}
-function closeGoalModal(){document.getElementById('goal-modal').style.display='none';}
-async function deleteGoalKal(idx){
-  const goals=(window._kalGoals||[]).filter((_,i)=>i!==idx);window._kalGoals=goals;
-  await _sbKal.from('athletes').update({race_goals:JSON.stringify(goals),goal:goals[0]?.name||null,target_date:goals[0]?.date||null}).eq('id',window._goalAthId);
-  renderGoalListKal(goals);window._raceDates=goals;render();notify('Cel usunięty');
-}
-async function saveGoal(){
-  const name=document.getElementById('goal-name').value.trim();
-  const date=document.getElementById('goal-date').value;
-  if(!name||!date){notify('Wypełnij nazwę i datę');return;}
-  const goals=[...(window._kalGoals||[]),{name,date}];window._kalGoals=goals;
-  await _sbKal.from('athletes').update({race_goals:JSON.stringify(goals),goal:goals[0]?.name||null,target_date:goals[0]?.date||null}).eq('id',window._goalAthId);
-  renderGoalListKal(goals);document.getElementById('goal-name').value='';document.getElementById('goal-date').value='';
-  window._raceDates=goals;render();notify('Cel zapisany ✓');
-}
-
-// ── COPY TO ATHLETE ───────────────────────────────────────────────
-let _copyTraining=null;
-function copyTraining(e,ds,idx){
-  e.stopPropagation();
-  const t=trainings[ds]?.[idx];
-  if(!t)return;
-  _copyTraining=t;
-  // Ustaw datę domyślną = ta sama
-  document.getElementById('copy-to-date').value=ds;
-  // Opis
-  const desc=document.getElementById('copy-modal-desc');
-  if(desc)desc.textContent=(t.type||'Trening')+(t.dist?' · '+t.dist+' km':'');
-  // Załaduj listę zawodników
-  const sel=document.getElementById('copy-to-athlete');
-  sel.innerHTML='';
-  if(window._dbAthletes&&window._dbAthletes.length){
-    window._dbAthletes.forEach(a=>{
-      const opt=document.createElement('option');
-      opt.value=a.id;opt.textContent=a.full_name||'Zawodnik';
-      sel.appendChild(opt);
-    });
-  }else{sel.innerHTML='<option value="">Brak zawodników</option>';}
-  document.getElementById('copy-modal').style.display='flex';
-}
-function closeCopyModal(){document.getElementById('copy-modal').style.display='none';_copyTraining=null;}
-async function confirmCopy(){
-  const athId=document.getElementById('copy-to-athlete').value;
-  const date=document.getElementById('copy-to-date').value;
-  if(!athId||!date){notify('Wybierz zawodnika i datę');return;}
-  const t=_copyTraining;if(!t){closeCopyModal();return;}
-  const {data:{session}}=await _sbKal.auth.getSession();
-  if(!session)return;
-  const {error}=await _sbKal.from('trainings').insert({
-    coach_id:session.user.id,athlete_id:athId,date,
-    type:t.type,distance_km:t.dist||null,
-    pace:t.pace||null,heart_rate:t.hr||null,
-    description:t.desc||null,status:'planned'
+  // Zapisz do Supabase
+  const { error } = await _sbKal.from('trainings').insert({
+    coach_id: session.user.id,
+    date: editingDate,
+    type: selectedType,
+    distance_km: dist,
+    duration_min: time,
+    pace,
+    heart_rate: hr,
+    description: desc,
+    status
   });
-  if(error){notify('Błąd: '+error.message);}
-  else{notify('Trening skopiowany ✓');}
-  closeCopyModal();
-}
 
-// ── DRAG & DROP ───────────────────────────────────────────────────
-let _dragSrc=null,_dragIdx=null;
-function dragStart(e,ds,idx){
-  _dragSrc=ds;_dragIdx=idx;
-  e.currentTarget.classList.add('dragging');
-  e.dataTransfer.effectAllowed='move';
-  e.dataTransfer.setData('text/plain',ds+'|'+idx);
-}
-function dragEnd(e){
-  e.currentTarget.classList.remove('dragging');
-  document.querySelectorAll('.day-col.drag-over').forEach(el=>el.classList.remove('drag-over'));
-}
-function dragOver(e){
-  e.preventDefault();
-  e.dataTransfer.dropEffect='move';
-  e.currentTarget.classList.add('drag-over');
-}
-function dragLeave(e){
-  e.currentTarget.classList.remove('drag-over');
-}
-async function drop(e,targetDs){
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  if(!_dragSrc||_dragIdx===null||_dragSrc===targetDs)return;
-  const t=trainings[_dragSrc]?.[_dragIdx];
-  if(!t)return;
-  // Przenieś lokalnie
-  trainings[_dragSrc].splice(_dragIdx,1);
-  if(!trainings[_dragSrc].length)delete trainings[_dragSrc];
-  if(!trainings[targetDs])trainings[targetDs]=[];
-  const moved={...t};
-  trainings[targetDs].push(moved);
-  _dragSrc=null;_dragIdx=null;
-  render();
-  // Zapisz do bazy jeśli ma _id
-  if(moved._id&&typeof _sbKal!=='undefined'){
-    const {error}=await _sbKal.from('trainings').update({date:targetDs}).eq('id',moved._id);
-    if(error)notify('Błąd zapisu: '+error.message);
-    else notify('Trening przeniesiony ✓');
-  }
-}
+  if (error) { notify('Błąd zapisu: ' + error.message); return; }
+  
+  // Też zapisz lokalnie (dla UX)
+  _origSaveTraining();
+};
 
-render();
+if (_urlRole === 'athlete') {
+  // Zawodnik — ukryj przyciski dodawania i usuwania
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.add-training-btn, .card-delete, .btn-primary').forEach(el => el.style.display = 'none');
+  });
+  // Override openModal żeby nie działał dla zawodnika
+  window._origOpenModal = window.openModal;
+  window.openModal = function(ds, idx) {
+    if (idx !== null && idx !== undefined) window._origOpenModal(ds, idx); // tylko podgląd istniejącego
+    // nie otwieraj dla nowych
+  };
+}
 </script>
 </body>
 </html>
