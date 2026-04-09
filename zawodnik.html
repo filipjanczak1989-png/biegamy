@@ -377,6 +377,15 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="modal-sub" id="modal-sub">Dziś</div>
     <div class="modal-body">
 
+      <!-- OCR UPLOAD — NA GÓRZE -->
+      <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:2px dashed var(--accent);border-radius:14px;padding:22px 16px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:16px;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
+        <div style="font-size:32px;margin-bottom:6px;">📱</div>
+        <div style="font-size:14px;font-weight:500;margin-bottom:3px;">Wgraj screen z Garmin / Strava</div>
+        <div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.08em;" id="upload-label">AI odczyta dane automatycznie</div>
+      </div>
+      <input type="file" id="l-file" accept="image/*" multiple style="display:none" onchange="runOCRandPreview(this)">
+      <div id="ocr-spinner" style="display:none;text-align:center;padding:8px 0 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">⏳ Analizuję screen...</div>
+
       <!-- TYP TRENINGU -->
       <div class="field">
         <label>Typ treningu</label>
@@ -389,7 +398,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         </div>
       </div>
 
-      <!-- INTERWAŁY (widoczne tylko gdy typ = Interwały) -->
+      <!-- INTERWAŁY -->
       <div class="field" id="intervals-section" style="display:none;">
         <label>Interwały — szczegóły</label>
         <div style="display:flex;flex-direction:column;gap:8px;" id="intervals-list">
@@ -408,7 +417,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <!-- DYSTANS + CZAS -->
       <div class="f-row">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcPaceAuto()"></div>
-        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
+        <div class="field"><label>Czas <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
       </div>
 
       <!-- TEMPO + TĘTNO -->
@@ -431,17 +440,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div class="field"><label>Komentarz dla trenera</label><textarea id="l-comment" placeholder="Jak poszło? Co czułeś?"></textarea></div>
 
       <!-- STRAVA LINK -->
-      <div class="field"><label>Link Strava / Garmin (opcjonalnie)</label><input type="url" id="l-strava" placeholder="https://strava.com/activities/..."></div>
+      <div class="field"><label>Link Strava / Garmin</label><input type="url" id="l-strava" placeholder="https://strava.com/activities/..."></div>
 
-      <!-- SCREEN UPLOAD -->
-      <div class="field">
-        <label>Załącz screen (opcjonalnie)</label>
-        <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:24px;margin-bottom:4px;">📎</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcia (można kilka)</div>
-        </div>
-        <input type="file" id="l-file" accept="image/*,video/*" multiple style="display:none" onchange="previewFile(this)">
-      </div>
+      <!-- Podgląd wgranych zdjęć -->
+      <div id="preview-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;"></div>
 
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;">
@@ -690,6 +692,54 @@ function updateIvSummary() {
     const ld = document.getElementById('l-dist');
     if (ld && !ld.value) ld.value = totalKm.toFixed(2);
   }
+}
+
+async function runOCRandPreview(input) {
+  if (!input.files.length) return;
+  const files = input.files;
+  // Podgląd miniatur
+  const thumbs = document.getElementById('preview-thumbs');
+  thumbs.innerHTML = '';
+  Array.from(files).forEach(f => {
+    const url = URL.createObjectURL(f);
+    thumbs.innerHTML += `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:8px;">`;
+  });
+  // Aktualizuj label
+  document.getElementById('upload-label').textContent = files.length === 1 ? '✓ ' + files[0].name : '✓ ' + files.length + ' pliki wybrane';
+  document.getElementById('upload-area').style.background = 'rgba(61,184,112,0.08)';
+  document.getElementById('upload-area').style.borderColor = 'var(--green)';
+
+  // OCR tylko pierwszego pliku (screen z garmin/strava)
+  const file = files[0];
+  if (!file.type.startsWith('image/')) return;
+  document.getElementById('ocr-spinner').style.display = 'block';
+  const base64 = await new Promise(res => {
+    const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file);
+  });
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 300,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: file.type, data: base64 } },
+          { type: 'text', text: 'To jest screen z aplikacji Garmin, Strava lub podobnej. Odczytaj dane treningowe i zwróć TYLKO JSON bez żadnego opisu ani backtick. Format: {"distance_km": liczba_lub_null, "duration": "H:MM:SS_lub_null", "pace": "M:SS_lub_null", "heart_rate": liczba_lub_null}' }
+        ]}]
+      })
+    });
+    const json = await resp.json();
+    const text = (json.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
+    const p = JSON.parse(text);
+    if (p.distance_km) { document.getElementById('l-dist').value = p.distance_km; calcPaceAuto(); }
+    if (p.duration) { document.getElementById('l-time').value = p.duration; calcPaceAuto(); }
+    if (p.pace) document.getElementById('l-pace').value = p.pace;
+    if (p.heart_rate) document.getElementById('l-hr').value = p.heart_rate;
+    toast('Dane odczytane ✓ — sprawdź i potwierdź');
+  } catch(err) {
+    toast('Nie udało się odczytać — uzupełnij ręcznie');
+  }
+  document.getElementById('ocr-spinner').style.display = 'none';
 }
 
 function previewFile(input) {
@@ -1640,8 +1690,10 @@ async function saveLog() {
   ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id=>document.getElementById(id).value='');
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
-  document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';
-  document.getElementById('upload-area').style.borderColor = 'var(--border)';
+  document.getElementById('upload-label').textContent = 'AI odczyta dane automatycznie';
+  document.getElementById('upload-area').style.background = 'rgba(212,80,26,0.04)';
+  document.getElementById('upload-area').style.borderColor = 'var(--accent)';
+  const pt = document.getElementById('preview-thumbs'); if(pt) pt.innerHTML = '';
   fileInput.value = '';
   feel = '';
   _logType = 'Spokojny';
