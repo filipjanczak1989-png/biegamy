@@ -440,7 +440,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
           <div style="font-size:24px;margin-bottom:4px;">📎</div>
           <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcia (można kilka)</div>
         </div>
-        <input type="file" id="l-file" accept="image/*,video/*" multiple style="display:none" onchange="previewFiles(this)">
+        <input type="file" id="l-file" accept="image/*,video/*" multiple style="display:none" onchange="previewFile(this)">
       </div>
 
     </div>
@@ -693,11 +693,13 @@ function updateIvSummary() {
 }
 
 function previewFile(input) {
-  const file = input.files[0];
-  if (file) {
-    document.getElementById('upload-label').textContent = '✓ ' + file.name;
-    document.getElementById('upload-area').style.borderColor = 'var(--green)';
-  }
+  const files = input.files;
+  if (!files.length) return;
+  const label = files.length === 1
+    ? '✓ ' + files[0].name
+    : '✓ ' + files.length + ' pliki wybrane';
+  document.getElementById('upload-label').textContent = label;
+  document.getElementById('upload-area').style.borderColor = 'var(--green)';
 }
 function autoColonTime(el) {
   let v = el.value.replace(/[^0-9]/g,'');
@@ -1553,15 +1555,20 @@ async function saveLog() {
   // Upload screena
   let attachmentUrl = null;
   const fileInput = document.getElementById('l-file');
-  if (fileInput.files[0] && _athleteId) {
-    const file = fileInput.files[0];
-    const ext = file.name.split('.').pop();
-    const path = _athleteId + '/' + Date.now() + '.' + ext;
-    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, { upsert: true });
-    if (!upErr) {
-      const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
-      attachmentUrl = urlData.publicUrl;
+  if (fileInput.files.length > 0 && _athleteId) {
+    const urls = [];
+    for (const file of fileInput.files) {
+      const ext = file.name.split('.').pop();
+      const path = _athleteId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+      const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+      if (!upErr) {
+        const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+        urls.push(urlData.publicUrl);
+      } else {
+        toast('Błąd uploadu: ' + upErr.message);
+      }
     }
+    if (urls.length) attachmentUrl = urls.join(',');
   }
 
   // Wyznacz datę logu

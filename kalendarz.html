@@ -510,6 +510,17 @@ function openModal(ds, idx) {
   document.getElementById('f-hr').value='';
   document.getElementById('f-desc').value='';
   document.getElementById('f-status').value='planned';
+  document.getElementById('log-fields').style.display='none';
+  const fLogDist = document.getElementById('f-log-dist');
+  const fLogPace = document.getElementById('f-log-pace');
+  const fLogStrava = document.getElementById('f-log-strava');
+  const fLogFiles = document.getElementById('f-log-files');
+  const fLogLabel = document.getElementById('f-log-files-label');
+  if(fLogDist) fLogDist.value='';
+  if(fLogPace) fLogPace.value='';
+  if(fLogStrava) fLogStrava.value='';
+  if(fLogFiles) fLogFiles.value='';
+  if(fLogLabel) fLogLabel.textContent='📎 Dodaj zdjęcia';
 
   if(ds) {
     const d = new Date(ds);
@@ -763,29 +774,35 @@ window.saveTraining = async function() {
 
   if (!editingDate) { notify('Brak daty'); return; }
 
+  if (!editingDate) { notify('Brak daty'); return; }
+
   // Zapisz do Supabase
+  const athleteId = window._calSelectedAthleteId || null;
   const { error } = await _sbKal.from('trainings').insert({
     coach_id: session.user.id,
+    athlete_id: athleteId,
     date: editingDate,
     type: selectedType,
-    distance_km: dist,
-    duration_min: time,
-    pace,
-    heart_rate: hr,
-    description: desc,
+    distance_km: dist || null,
+    duration_min: time || null,
+    pace: pace || null,
+    heart_rate: hr || null,
+    description: desc || null,
     status
   });
 
   if (error) { notify('Błąd zapisu: ' + error.message); return; }
+  notify('Trening zapisany ✓');
   
   // Też zapisz lokalnie (dla UX)
   _origSaveTraining();
+  await loadTrainingsFromDB();
 };
 
 if (_urlRole === 'athlete') {
-  // Zawodnik — ukryj przyciski dodawania i usuwania
+  // Zawodnik — ukryj tylko przyciski dodawania i usuwania (nie btn-primary w modalu)
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.add-training-btn, .card-delete, .btn-primary').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.add-training-btn, .card-delete, .card-approve').forEach(el => el.style.display = 'none');
   });
   // Override openModal żeby nie działał dla zawodnika
   window._origOpenModal = window.openModal;
