@@ -319,15 +319,16 @@ nav{
       <button onclick="closeLogModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <div style="padding:0 20px 24px;">
-      <!-- Upload screena — NA GÓRZE, główny element -->
-      <div id="ocr-upload-area" onclick="document.getElementById('ocr-file').click()" style="border:2px dashed var(--accent);border-radius:14px;padding:24px 16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all 0.15s;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
-        <div style="font-size:32px;margin-bottom:6px;">📱</div>
-        <div style="font-size:14px;font-weight:500;color:var(--fg);margin-bottom:4px;">Wgraj screen z Garmin / Strava</div>
-        <div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.08em;" id="ocr-file-label">AI odczyta dane automatycznie</div>
+      <!-- Upload screena -->
+      <div id="ocr-upload-area" onclick="document.getElementById('ocr-file').click()" style="border:1px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:24px;margin-bottom:6px;">📱</div>
+        <div style="font-size:12px;color:var(--fg);margin-bottom:3px;">Wgraj screen z Garmin / Strava</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;" id="ocr-file-label">AI odczyta dane automatycznie</div>
       </div>
-      <div id="ocr-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-      <input type="file" id="ocr-file" accept="image/*" multiple style="display:none" onchange="runOCR(this)">
-      <div id="ocr-spinner" style="display:none;text-align:center;padding:8px 0 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">⏳ Analizuję screen...</div>
+      <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="runOCR(this)">
+      
+      <!-- Spinner -->
+      <div id="ocr-spinner" style="display:none;text-align:center;padding:12px 0;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">⏳ Analizuję screen...</div>
 
       <!-- Pola do potwierdzenia -->
       <div id="log-confirm-fields">
@@ -1096,38 +1097,38 @@ function selectFeel(btn) {
 
 async function runOCR(input) {
   if (!input.files.length) return;
-  const files = input.files;
-  const file = files[0];
-  // Miniatury
-  const thumbsEl = document.getElementById('ocr-thumbs');
-  thumbsEl.innerHTML = '';
-  Array.from(files).forEach(f => {
-    const url = URL.createObjectURL(f);
-    thumbsEl.innerHTML += `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:8px;">`;
-  });
-  document.getElementById('ocr-file-label').textContent = files.length === 1 ? '✓ ' + file.name : '✓ ' + files.length + ' pliki';
-  document.getElementById('ocr-upload-area').style.background = 'rgba(61,184,112,0.08)';
+  const file = input.files[0];
+  document.getElementById('ocr-file-label').textContent = '✓ ' + file.name;
   document.getElementById('ocr-upload-area').style.borderColor = 'var(--green)';
   document.getElementById('ocr-spinner').style.display = 'block';
+
   // Konwertuj do base64
   const base64 = await new Promise(res => {
-    const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file);
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.readAsDataURL(file);
   });
+
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 300,
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } },
-          { type: 'text', text: 'To jest screen z aplikacji Garmin, Strava lub podobnej. Odczytaj dane treningowe i zwróć TYLKO JSON bez żadnego opisu ani backtick. Format: {"distance_km": liczba_lub_null, "duration": "H:MM:SS_lub_null", "pace": "M:SS_lub_null", "heart_rate": liczba_lub_null}' }
-        ]}]
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 300,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } },
+            { type: 'text', text: 'To jest screen z aplikacji Garmin, Strava lub podobnej. Odczytaj dane treningowe i zwróć TYLKO JSON bez żadnego opisu. Format: {"distance_km": liczba_lub_null, "duration": "HH:MM:SS_lub_null", "pace": "M:SS_lub_null", "heart_rate": liczba_lub_null}. Jeśli nie możesz odczytać wartości, użyj null.' }
+          ]
+        }]
       })
     });
     const json = await resp.json();
-    const text = (json.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(text);
+    const text = json.content?.[0]?.text || '';
+    const clean = text.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
     if (parsed.distance_km) document.getElementById('lm-dist').value = parsed.distance_km;
     if (parsed.duration) document.getElementById('lm-time').value = parsed.duration;
     if (parsed.pace) document.getElementById('lm-pace').value = parsed.pace;
