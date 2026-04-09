@@ -80,10 +80,11 @@ nav{
   display:grid;
   grid-template-rows:auto 1fr;
   overflow:hidden;
+  overflow-x:auto;
   height:100%;
 }
 .week-header{
-  display:grid;grid-template-columns:repeat(7,1fr);
+  display:grid;grid-template-columns:repeat(7,minmax(140px,1fr));
   border-bottom:1px solid var(--border);
   background:var(--surface);
 }
@@ -101,7 +102,7 @@ nav{
 
 /* DAY COLUMNS */
 .week-body{
-  display:grid;grid-template-columns:repeat(7,1fr);
+  display:grid;grid-template-columns:repeat(7,minmax(140px,1fr));
   overflow-y:auto;
 }
 .day-col{
@@ -135,6 +136,7 @@ nav{
 .card-type.wybieganie{color:#9a6fe8;}
 .card-type.regeneracja{color:#4caf78;}
 .card-type.odpoczynek{color:var(--muted);}
+.card-type.start{color:var(--green);}
 
 .card-main{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:4px;}
 .card-pace{font-size:10px;color:var(--muted);margin-bottom:6px;}
@@ -292,6 +294,7 @@ nav{
           <button class="type-pill" onclick="selType(this,'Wybieganie','wybieganie')">Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja','regeneracja')">Regeneracja</button>
           <button class="type-pill" onclick="selType(this,'Odpoczynek','odpoczynek')">Odpoczynek</button>
+          <button class="type-pill" onclick="selType(this,'Start','start')">🏁 Start</button>
         </div>
       </div>
       <div class="field-row">
@@ -365,7 +368,7 @@ nav{
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const typeColors = {
   'Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo',
-  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek'
+  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek','Start':'start'
 };
 
 let trainings = {}; // dane z Supabase
@@ -708,11 +711,14 @@ async function loadRaceDates() {
   const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
   
-  let query = _sbKal.from('athletes').select('goal, target_date');
+  let query = _sbKal.from('athletes').select('id, full_name, goal, target_date');
   if (_urlRole === 'athlete') {
     query = query.eq('user_id', session.user.id);
+  } else if (window._calSelectedAthleteId) {
+    // Trener — tylko wybrany zawodnik
+    query = query.eq('id', window._calSelectedAthleteId);
   } else {
-    // coach — wszyscy zawodnicy
+    // Trener — wszyscy zawodnicy
     query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
   }
   
@@ -720,8 +726,11 @@ async function loadRaceDates() {
   if (data) {
     window._raceDates = data
       .filter(a => a.target_date)
-      .map(a => ({ date: a.target_date, name: a.goal || 'Start' }));
-    render(); // odśwież kalendarz z datami startów
+      .map(a => ({
+        date: a.target_date,
+        name: (a.full_name ? a.full_name + ': ' : '') + (a.goal || 'Start')
+      }));
+    render();
   }
 }
 
@@ -807,15 +816,15 @@ loadTrainingsFromDB();
 // saveTraining DB logic is in async saveTraining()
 
 if (_urlRole === 'athlete') {
-  // Zawodnik — ukryj tylko przyciski dodawania i usuwania (nie btn-primary w modalu)
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.add-training-btn, .card-delete, .card-approve').forEach(el => el.style.display = 'none');
+  // Zawodnik — ukryj przyciski dodawania/usuwania
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.add-training-btn, .card-delete, .card-approve, #btn-new-training').forEach(el => el.style.display = 'none');
   });
-  // Override openModal żeby nie działał dla zawodnika
-  window._origOpenModal = window.openModal;
+  // Zawodnik może tylko przeglądać istniejące — nie tworzyć nowych
+  const _origOM = window.openModal;
   window.openModal = function(ds, idx) {
-    if (idx !== null && idx !== undefined) window._origOpenModal(ds, idx); // tylko podgląd istniejącego
-    // nie otwieraj dla nowych
+    if (idx !== null && idx !== undefined) _origOM(ds, idx);
+    // ds=null oznacza nowy trening — blokuj
   };
 }
 </script>
