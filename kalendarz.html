@@ -273,13 +273,24 @@ nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex
       </div>
       <div class="field" id="status-field"><label>Status</label><select id="f-status"><option value="planned">Zaplanowany</option><option value="done">Wykonany</option><option value="missed">Nie wykonany</option></select></div>
     </div>
+    <div id="kal-athlete-extras" style="display:none;padding:0 22px 16px;border-top:1px solid var(--border);margin-top:4px;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin:14px 0 10px;">Dodaj do logu</div>
+      <div class="field" style="margin-bottom:10px;">
+        <label>Link Strava / Garmin</label>
+        <input type="url" id="kal-strava" placeholder="https://strava.com/activities/..." style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 11px;border-radius:4px;outline:none;">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Załącz zdjęcia (możesz wybrać kilka)</label>
+        <div id="kal-upload-area" onclick="document.getElementById('kal-file').click()" style="border:1px dashed var(--border);border-radius:6px;padding:14px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:22px;margin-bottom:4px;">📎</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;" id="kal-upload-label">Kliknij aby wybrać zdjęcia</div>
+        </div>
+        <input type="file" id="kal-file" accept="image/*" multiple style="display:none" onchange="kalPreviewFiles(this)">
+        <div id="kal-preview-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
+      </div>
+    </div>
     <div class="mfoot" style="flex-wrap:wrap;gap:8px;">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <div id="kal-timer-wrap" style="display:none;align-items:center;gap:8px;font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--green);">
-        <span id="kal-timer-disp">00:00:00</span>
-        <button onclick="kalPauseTimer()" id="kal-pause-btn" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(61,184,112,0.4);background:transparent;color:var(--green);cursor:pointer;">⏸</button>
-        <button onclick="kalStopTimer()" style="font-family:'DM Mono',monospace;font-size:9px;padding:4px 8px;border-radius:4px;border:1px solid rgba(224,80,80,0.4);background:transparent;color:var(--red);cursor:pointer;">■ Stop</button>
-      </div>
       <button class="btn btn-primary" id="save-btn" onclick="saveTraining()" style="margin-left:auto;">Zapisz →</button>
     </div>
   </div>
@@ -384,7 +395,10 @@ function render(){
       // Jeśli trening ma log — pokaż rzeczywiste dane vs plan
       const planBadge=t._hasLog&&t._planDist&&t._planDist!==t.dist
         ?`<div style="font-size:8px;color:var(--muted);margin-top:3px;">plan: ${t._planDist} km</div>`:'';
-      const logBadge=t._hasLog?'<div class="tc-status done" style="margin-top:4px;">📋 zalogowany</div>':'';
+      const logBadge=t._hasLog?`<div class="tc-status done" style="margin-top:4px;">📋 zalogowany</div>
+        ${t._logStrava?`<a href="${t._logStrava}" target="_blank" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:8px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;margin-top:3px;">↗ Strava/Garmin</a>`:''}
+        ${t._logPhotos&&t._logPhotos.length?`<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap;">${t._logPhotos.map(url=>`<img src="${url}" onclick="event.stopPropagation();window.open('${url}','_blank')" style="width:48px;height:48px;object-fit:cover;border-radius:4px;cursor:pointer;border:1px solid var(--border);">`).join('')}</div>`:''}
+      `:'';
       return `<div class="tcard ${statusCls} ${t.type==='Odpoczynek'?'rest':''}" draggable="${!isAthlete}" ondragstart="dragStart(event,'${ds}',${i})" ondragend="dragEnd(event)" onclick="openModal('${ds}',${i})">
         ${!isAthlete?`<button class="tc-del" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
           <button class="tc-copy" onclick="copyTraining(event,'${ds}',${i})" title="Kopiuj do zawodnika">⧉</button>`:''}
@@ -428,6 +442,14 @@ function openModal(ds,idx){
   const lt=document.getElementById('lbl-time');if(lt)lt.textContent='';
   const zl=document.getElementById('kal-zone-lbl');if(zl)zl.textContent='';
   const sf=document.getElementById('status-field');if(sf)sf.style.display=isAthlete?'none':'';
+  const ae=document.getElementById('kal-athlete-extras');if(ae)ae.style.display=isAthlete?'block':'none';
+  if(isAthlete){
+    const ks=document.getElementById('kal-strava');if(ks)ks.value='';
+    const kul=document.getElementById('kal-upload-label');if(kul)kul.textContent='Kliknij aby wybrać zdjęcia';
+    const kub=document.getElementById('kal-upload-area');if(kub)kub.style.borderColor='var(--border)';
+    const kf=document.getElementById('kal-file');if(kf)kf.value='';
+    const kpl=document.getElementById('kal-preview-list');if(kpl)kpl.innerHTML='';
+  }
   const ae=document.getElementById('kal-athlete-extras');if(ae)ae.style.display=isAthlete?'block':'none';
   if(isAthlete){const ks=document.getElementById('kal-strava');if(ks)ks.value='';const kul=document.getElementById('kal-upload-label');if(kul)kul.textContent='Kliknij aby dodać zdjęcie';const kub=document.getElementById('kal-upload-area');if(kub)kub.style.borderColor='var(--border)';const kf=document.getElementById('kal-file');if(kf)kf.value='';}
   const sv=document.getElementById('save-btn');if(sv)sv.textContent=isAthlete?'Zapisz log →':'Zapisz →';
@@ -598,6 +620,28 @@ function kalPreviewFile(input){
   if(file){
     document.getElementById('kal-upload-label').textContent='✓ '+file.name;
     document.getElementById('kal-upload-area').style.borderColor='var(--green)';
+  }
+}
+function kalPreviewFiles(input){
+  const files=Array.from(input.files);
+  const lbl=document.getElementById('kal-upload-label');
+  const area=document.getElementById('kal-upload-area');
+  const preview=document.getElementById('kal-preview-list');
+  if(!files.length)return;
+  if(lbl)lbl.textContent=files.length===1?('✓ '+files[0].name):('✓ '+files.length+' zdjęć');
+  if(area)area.style.borderColor='var(--green)';
+  if(preview){
+    preview.innerHTML='';
+    files.forEach(file=>{
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const img=document.createElement('img');
+        img.src=e.target.result;
+        img.style.cssText='width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 function kalAutoColon(el){let v=el.value.replace(/[^0-9]/g,'');if(v.length>=2)v=v.slice(0,1)+':'+v.slice(1);if(v.length>=5)v=v.slice(0,4)+':'+v.slice(4);el.value=v.slice(0,7);}
@@ -828,8 +872,14 @@ async function loadTrainingsFromDB(){
           existing.status='done';
           existing._logId=l.id;
           existing._hasLog=true;
+          existing._logStrava=l.strava_link||null;
+          let _lp=[];
+          try{if(l.attachment_urls)_lp=JSON.parse(l.attachment_urls);else if(l.attachment_url)_lp=[l.attachment_url];}catch(e){if(l.attachment_url)_lp=[l.attachment_url];}
+          existing._logPhotos=_lp;
         } else {
           // Brak planu — dodaj log jako samodzielny kafelek
+          let _lp2=[];
+          try{if(l.attachment_urls)_lp2=JSON.parse(l.attachment_urls);else if(l.attachment_url)_lp2=[l.attachment_url];}catch(e){if(l.attachment_url)_lp2=[l.attachment_url];}
           trainings[ds].push({
             _id:'log_'+l.id,
             _logId:l.id,
@@ -841,6 +891,8 @@ async function loadTrainingsFromDB(){
             hr:l.heart_rate?.toString()||'',
             desc:l.comment||'',
             status:'done',
+            _logStrava:l.strava_link||null,
+            _logPhotos:_lp2,
           });
         }
       });
@@ -889,14 +941,15 @@ window.saveTraining=async function(){
     const {data:ath}=await _sbKal.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();
     if(!ath){notify('Brak profilu zawodnika');return;}
     if(!dist){notify('Podaj dystans');return;}
-    let kalAttUrl=null;
+    // Upload wielu zdjęć
     const kalFileInput=document.getElementById('kal-file');
-    if(kalFileInput&&kalFileInput.files[0]){
-      const file=kalFileInput.files[0];
+    const kalFiles=kalFileInput?Array.from(kalFileInput.files):[];
+    const kalUrls=[];
+    for(const file of kalFiles){
       const ext=file.name.split('.').pop();
-      const path=ath.id+'/kal_'+Date.now()+'.'+ext;
+      const path=ath.id+'/kal_'+Date.now()+'_'+Math.random().toString(36).slice(2)+'.'+ext;
       const {error:upErr}=await _sbKal.storage.from('training-screenshots').upload(path,file,{upsert:true});
-      if(!upErr){const {data:ud}=_sbKal.storage.from('training-screenshots').getPublicUrl(path);kalAttUrl=ud.publicUrl;}
+      if(!upErr){const {data:ud}=_sbKal.storage.from('training-screenshots').getPublicUrl(path);kalUrls.push(ud.publicUrl);}
     }
     const kalStravaVal=document.getElementById('kal-strava')?.value||null;
     const {error}=await _sbKal.from('training_logs').insert({
@@ -909,7 +962,8 @@ window.saveTraining=async function(){
       comment:desc||null,
       feel:'mid',
       strava_link:kalStravaVal,
-      attachment_url:kalAttUrl,
+      attachment_url:kalUrls[0]||null,
+      attachment_urls:kalUrls.length>0?JSON.stringify(kalUrls):null,
       logged_at:editingDate ? editingDate+'T12:00:00Z' : new Date().toISOString()
     });
     if(error){notify('Błąd: '+error.message);return;}

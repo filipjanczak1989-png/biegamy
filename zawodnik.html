@@ -277,7 +277,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
   </div>
   <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:10px 16px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:8px;z-index:60;">
-    <input id="msg-file" type="file" accept="image/*" style="display:none" onchange="sendFileMessage(this)">
+    <input id="msg-file" type="file" accept="image/*" multiple style="display:none" onchange="sendFileMessage(this)">
     <button onclick="document.getElementById('msg-file').click()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;">📎</button>
     <input id="msg-input" type="text" placeholder="Napisz do trenera..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendMessage()">
     <button onclick="sendMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">Wyślij →</button>
@@ -435,12 +435,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
       <!-- SCREEN UPLOAD -->
       <div class="field">
-        <label>Załącz screen (opcjonalnie)</label>
+        <label>Załącz zdjęcia (możesz wybrać kilka)</label>
         <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:24px;margin-bottom:4px;">📎</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby wybrać zdjęcia</div>
         </div>
-        <input type="file" id="l-file" accept="image/*" style="display:none" onchange="previewFile(this)">
+        <input type="file" id="l-file" accept="image/*" multiple style="display:none" onchange="previewFiles(this)">
+        <div id="preview-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
       </div>
 
     </div>
@@ -553,7 +554,13 @@ function openModalForDate(dateStr, e) {
   document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('modal-bg').classList.add('open');
 }
-function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  const pl=document.getElementById('preview-list');if(pl)pl.innerHTML='';
+  const ul=document.getElementById('upload-label');if(ul)ul.textContent='Kliknij aby wybrać zdjęcia';
+  const ua=document.getElementById('upload-area');if(ua)ua.style.borderColor='var(--border)';
+  const lf=document.getElementById('l-file');if(lf)lf.value='';
+}
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 function selFeel(el,t){
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
@@ -692,11 +699,26 @@ function updateIvSummary() {
   }
 }
 
-function previewFile(input) {
-  const file = input.files[0];
-  if (file) {
-    document.getElementById('upload-label').textContent = '✓ ' + file.name;
-    document.getElementById('upload-area').style.borderColor = 'var(--green)';
+function previewFiles(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const lbl = document.getElementById('upload-label');
+  const area = document.getElementById('upload-area');
+  const preview = document.getElementById('preview-list');
+  if (lbl) lbl.textContent = files.length === 1 ? ('✓ ' + files[0].name) : ('✓ ' + files.length + ' zdjęć');
+  if (area) area.style.borderColor = 'var(--green)';
+  if (preview) {
+    preview.innerHTML = '';
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = document.createElement('img');
+        img.src = e.target.result;
+        img.style.cssText = 'width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+        preview.appendChild(img);
+      };
+      reader.readAsDataURL(file);
+    });
   }
 }
 function autoColonTime(el) {
@@ -1020,22 +1042,26 @@ async function clearAllMessages() {
 
 async function sendFileMessage(input) {
   if (!input.files[0] || !_athleteId) return;
-  const file = input.files[0];
-  const ext = file.name.split('.').pop();
-  const path = _athleteId + '/msg_' + Date.now() + '.' + ext;
-  const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
-  if (upErr) { toast('Błąd uploadu: ' + upErr.message); return; }
-  const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
-  const url = urlData.publicUrl;
-  // Wyślij jako wiadomość z linkiem do obrazka
+  const files = Array.from(input.files);
+  const urls = [];
+  for (const file of files) {
+    const ext = file.name.split('.').pop();
+    const path = _athleteId + '/msg_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+    if (upErr) { toast('Błąd uploadu: ' + upErr.message); continue; }
+    const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+    urls.push(urlData.publicUrl);
+  }
+  if (!urls.length) return;
+  const body = urls.map(url => `<a href="${url}" target="_blank" style="color:var(--accent);display:inline-block;margin:2px;">&#128247; Zdjęcie</a>`).join(' ');
   await _sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
-    body: `[zdjęcie] <a href="${url}" target="_blank" style="color:var(--accent)">Otwórz →</a>`,
+    body,
     sent_at: new Date().toISOString()
   });
   input.value = '';
-  toast('Zdjęcie wysłane ✓');
+  toast(files.length > 1 ? (files.length + ' zdjęć wysłanych ✓') : 'Zdjęcie wysłane ✓');
   await loadMessages();
 }
 
@@ -1479,7 +1505,11 @@ function renderLogsDb(data) {
           </div>
         </div>
       </div>
-      ${l.attachment_url ? `<div style="padding:0 14px 12px;"><img src="${l.attachment_url}" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${l.attachment_url}','_blank')"></div>` : ''}
+      ${(()=>{
+        let photos=[];
+        try{if(l.attachment_urls)photos=JSON.parse(l.attachment_urls);else if(l.attachment_url)photos=[l.attachment_url];}catch(e){if(l.attachment_url)photos=[l.attachment_url];}
+        return photos.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 12px;">${photos.map(u=>`<img src="${u}" onclick="window.open('${u}','_blank')" style="width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:1px solid var(--border);">`).join('')}</div>`:'';
+      })()}
       ${l.strava_link ? `<div style="padding:0 14px 12px;"><a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;">&#x2197; Strava / Garmin</a></div>` : ''}
     </div>`;
   }).join('');
@@ -1544,19 +1574,20 @@ async function saveLog() {
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
 
-  // Upload screena
-  let attachmentUrl = null;
+  // Upload wielu zdjęć
   const fileInput = document.getElementById('l-file');
-  if (fileInput.files[0] && _athleteId) {
-    const file = fileInput.files[0];
+  const filesToUpload = fileInput ? Array.from(fileInput.files) : [];
+  const uploadedUrls = [];
+  for (const file of filesToUpload) {
     const ext = file.name.split('.').pop();
-    const path = _athleteId + '/' + Date.now() + '.' + ext;
+    const path = _athleteId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
     const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, { upsert: true });
     if (!upErr) {
       const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
-      attachmentUrl = urlData.publicUrl;
+      uploadedUrls.push(urlData.publicUrl);
     }
   }
+  const attachmentUrl = uploadedUrls[0] || null;
 
   // Wyznacz datę logu
   const now = new Date();
@@ -1572,7 +1603,8 @@ async function saveLog() {
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
     feel: feel || 'mid',
-    logged_at: logDate + 'T12:00:00'
+    logged_at: logDate + 'T12:00:00',
+    attachment_urls: uploadedUrls.length > 0 ? JSON.stringify(uploadedUrls) : null,
   };
 
   let error;
