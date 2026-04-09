@@ -1113,8 +1113,12 @@ async function loadCoachChat() {
       const isCoach = m.sender === 'coach';
       const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
       const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-      // Wykryj link do zdjęcia
-      const body = m.body.includes('[zdjęcie]') ? m.body : m.body;
+      // Konwertuj stary format [zdjęcie] <a href="URL"> na <img>
+      let body = m.body;
+      if (body.includes('[zdjęcie]')) {
+        body = body.replace(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/g,
+          (_, url) => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${url}','_blank')" />`);
+      }
       return `<div class="msg-row-t ${isCoach?'coach':'athlete'}">
         <div class="msg-bubble-t ${isCoach?'coach':'athlete'}" 
              oncontextmenu="deleteCoachMsg(event,'${m.id}','${isCoach}')"
