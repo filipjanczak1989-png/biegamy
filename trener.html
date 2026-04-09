@@ -591,7 +591,7 @@ async function renderDbAthletes(list) {
   const withLogs = await Promise.all(list.map(async a => {
     const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
-      .is('read_by_coach', null); // tylko nieprzeczytane przez trenera
+      .is('read_by_coach', null);
     return { ...a, newLogs: count || 0 };
   }));
 
@@ -609,7 +609,9 @@ async function renderDbAthletes(list) {
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${a.newLogs > 0 ? `<div onclick="event.stopPropagation();selA_db('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;cursor:pointer;">&#128276; ${a.newLogs} nowe</div>` : '<div class="ath-dot"></div>'}
+        ${a.newLogs > 0 
+          ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🆕 ${a.newLogs} log</div>` 
+          : '<div class="ath-dot"></div>'}
         <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
@@ -667,7 +669,7 @@ async function selA_db(athleteId) {
   document.getElementById('panel').classList.add('open');
   
   window._selectedAthleteId = athleteId;
-  _sb.from('training_logs').update({read_by_coach:true}).eq('athlete_id',athleteId).is('read_by_coach',null).then(()=>{});
+  await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
   await loadPanelPB();
