@@ -1487,7 +1487,7 @@ function renderLogsDb(data) {
         </div>
       </div>
       ${l.attachment_url ? `<div style="padding:0 14px 12px;display:flex;flex-wrap:wrap;gap:6px;">
-        ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="window.open('${url}','_blank')">`).join('')}
+        ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:8px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}
       </div>` : ''}
       ${l.strava_link ? `<div style="padding:0 14px 12px;"><a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:rgba(252,76,2,0.1);border:1px solid rgba(252,76,2,0.3);color:#fc4c02;font-size:11px;font-family:DM Mono,monospace;padding:5px 10px;border-radius:6px;text-decoration:none;">🟠 Strava →</a></div>` : ''}
       ${l.strava_link ? `<div style="padding:0 14px 12px;"><a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;">&#x2197; Strava / Garmin</a></div>` : ''}
