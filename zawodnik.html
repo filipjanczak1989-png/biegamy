@@ -1023,10 +1023,12 @@ async function clearAllMessages() {
 async function sendFileMessage(input) {
   if (!input.files.length || !_athleteId) return;
   const urls = [];
-  for (const file of input.files) {
+  const base = Date.now();
+  for (let i = 0; i < input.files.length; i++) {
+    const file = input.files[i];
     const ext = file.name.split('.').pop();
-    const path = _athleteId + '/msg_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + ext;
-    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+    const path = _athleteId + '/msg_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
     if (upErr) { toast('Błąd: ' + upErr.message); continue; }
     const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
     urls.push(urlData.publicUrl);
@@ -1557,10 +1559,12 @@ async function saveLog() {
   const fileInput = document.getElementById('l-file');
   if (fileInput.files.length > 0 && _athleteId) {
     const urls = [];
-    for (const file of fileInput.files) {
+    const base = Date.now();
+    for (let i = 0; i < fileInput.files.length; i++) {
+      const file = fileInput.files[i];
       const ext = file.name.split('.').pop();
-      const path = _athleteId + '/' + Date.now() + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
-      const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+      const path = _athleteId + '/' + base + '_' + i + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+      const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
       if (!upErr) {
         const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
         urls.push(urlData.publicUrl);

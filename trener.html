@@ -1163,9 +1163,11 @@ async function checkUnreadMessages() {
 async function sendCoachFile(input) {
   if (!input.files.length || !_currentChatAthleteId) return;
   const urls = [];
-  for (const file of input.files) {
-    const path = _currentChatAthleteId + '/coach_' + Date.now() + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
-    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true});
+  const base = Date.now();
+  for (let i = 0; i < input.files.length; i++) {
+    const file = input.files[i];
+    const path = _currentChatAthleteId + '/coach_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
+    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
     if (upErr) { showToast('Błąd: '+upErr.message); continue; }
     const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
     urls.push(urlData.publicUrl);
