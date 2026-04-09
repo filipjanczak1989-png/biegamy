@@ -361,10 +361,10 @@ function selA(id){
   p.classList.add('open');
   setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
-async function closePanel(){
+function closePanel(){
   document.getElementById('panel').classList.remove('open');
   selAth=null; window._selectedAthleteId=null;
-  await loadAthletes();
+  loadAthletes();
 }
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
@@ -595,11 +595,6 @@ async function renderDbAthletes(list) {
     return { ...a, newLogs: count || 0 };
   }));
 
-  // Aktualizuj stat-logs
-  const totalNewLogs = withLogs.reduce((sum, a) => sum + a.newLogs, 0);
-  const statLogs = document.getElementById('stat-logs');
-  if (statLogs) statLogs.textContent = totalNewLogs > 0 ? totalNewLogs : '0';
-
   document.getElementById('ath-list').innerHTML = withLogs.map((a,i) => {
     const name = a.full_name || a.goal || 'Zawodnik';
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -674,31 +669,7 @@ async function selA_db(athleteId) {
   document.getElementById('panel').classList.add('open');
   
   window._selectedAthleteId = athleteId;
-  
-  // Oznacz jako przeczytane i od razu usuń badge z listy
-  _sb.from('training_logs')
-    .update({read_by_coach: new Date().toISOString()})
-    .eq('athlete_id', athleteId)
-    .is('read_by_coach', null)
-    .then(() => {});
-  
-  // Natychmiast usuń badge z karty zawodnika w liście
-  const cards = document.querySelectorAll('.ath-card');
-  cards.forEach(card => {
-    if (card.getAttribute('onclick') && card.getAttribute('onclick').includes(athleteId)) {
-      const badge = card.querySelector('[style*="var(--green)"]');
-      if (badge && badge.textContent.includes('log')) {
-        badge.outerHTML = '<div class="ath-dot"></div>';
-      }
-    }
-  });
-  // Aktualizuj stat-logs
-  const sl = document.getElementById('stat-logs');
-  if (sl) {
-    const cur = parseInt(sl.textContent) || 0;
-    if (cur > 0) sl.textContent = Math.max(0, cur - 1);
-  }
-  
+  await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
   await loadPanelPB();
