@@ -361,10 +361,10 @@ function selA(id){
   p.classList.add('open');
   setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50);
 }
-function closePanel(){
+async function closePanel(){
   document.getElementById('panel').classList.remove('open');
   selAth=null; window._selectedAthleteId=null;
-  loadAthletes();
+  await loadAthletes();
 }
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
@@ -594,6 +594,10 @@ async function renderDbAthletes(list) {
       .is('read_by_coach', null);
     return { ...a, newLogs: count || 0 };
   }));
+
+  const totalNewLogs = withLogs.reduce((s,a) => s + a.newLogs, 0);
+  const statLogs = document.getElementById('stat-logs');
+  if (statLogs) statLogs.textContent = totalNewLogs;
 
   document.getElementById('ath-list').innerHTML = withLogs.map((a,i) => {
     const name = a.full_name || a.goal || 'Zawodnik';
