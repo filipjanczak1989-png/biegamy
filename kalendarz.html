@@ -158,6 +158,14 @@ nav{
 }
 .training-card:hover .card-delete{opacity:1;}
 .card-delete:hover{color:var(--accent);}
+.card-copy{
+  position:absolute;top:6px;right:26px;
+  width:18px;height:18px;border:none;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:13px;opacity:0;transition:opacity 0.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.training-card:hover .card-copy{opacity:1;}
+.card-copy:hover{color:var(--blue);}
 .card-approve{
   margin-top:8px;width:100%;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.35);
   color:var(--green);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;
@@ -474,9 +482,8 @@ nav{
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
+    <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button class="btn btn-ghost" id="btn-copy-training" onclick="openCopyModal()" style="display:none;">📋 Kopiuj do...</button>
       <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
     </div>
   </div>
@@ -607,6 +614,7 @@ function render() {
                    ondragend="dragEnd(event)"
                    onclick="openModal('${ds}',${i})">
         <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
+        ${_urlRole==='coach'?`<button class="card-copy" onclick="openCopyModalFromCard(event,'${ds}',${i})" title="Kopiuj do zawodnika">⧉</button>`:''}
         <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
         ${t.dist>0?`<div class="card-main">${t.dist} km</div>`:'<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
         ${(t.pace||t.hr)?`<div class="card-pace">${t.pace?t.pace+'/km':''} ${t.hr?'· ♥ '+t.hr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
@@ -711,8 +719,7 @@ function openModal(ds, idx) {
   if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
     const t = trainings[ds][idx];
     document.getElementById('modal-title').textContent = 'Edytuj trening';
-    const _copyBtn = document.getElementById('btn-copy-training');
-    if (_copyBtn) _copyBtn.style.display = _urlRole === 'coach' ? 'inline-flex' : 'none';
+
     selectedType = t.type;
     selectedTypeCls = typeColors[t.type] || 'spokojny';
     document.querySelectorAll('.type-pill').forEach(p=>{
@@ -730,8 +737,7 @@ function openModal(ds, idx) {
     document.getElementById('f-status').value = t.status||'planned';
   } else {
     document.getElementById('modal-title').textContent = 'Nowy trening';
-    const _copyBtn2 = document.getElementById('btn-copy-training');
-    if (_copyBtn2) _copyBtn2.style.display = 'none';
+
   }
 
   document.getElementById('modal-bg').classList.add('open');
@@ -1478,6 +1484,29 @@ async function dragDrop(e, targetDs) {
 
 // ── COPY TRAINING ─────────────────────────────────────────────────
 let _copyTrainingData = null;
+let _copySourceDate = null;
+
+async function openCopyModalFromCard(e, ds, idx) {
+  e.stopPropagation();
+  const t = trainings[ds] && trainings[ds][idx];
+  if (!t) return;
+  _copyTrainingData = t;
+  _copySourceDate = ds;
+  const sel = document.getElementById('copy-athlete-select');
+  sel.innerHTML = '<option value="">— wybierz —</option>';
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (session) {
+    const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
+    (data||[]).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id; opt.textContent = a.full_name || a.id;
+      sel.appendChild(opt);
+    });
+  }
+  document.getElementById('copy-date').value = ds || '';
+  const modal = document.getElementById('copy-modal-bg');
+  modal.style.opacity='1'; modal.style.pointerEvents='all';
+}
 
 async function openCopyModal() {
   const t = editingIndex !== null && editingDate && trainings[editingDate] && trainings[editingDate][editingIndex];
@@ -1504,7 +1533,7 @@ function closeCopyModal() {
 }
 async function copyTraining() {
   const athleteId = document.getElementById('copy-athlete-select').value;
-  const date = document.getElementById('copy-date').value || editingDate;
+  const date = document.getElementById('copy-date').value || _copySourceDate || editingDate;
   if (!athleteId) { notify('Wybierz zawodnika'); return; }
   if (!date) { notify('Podaj datę'); return; }
   const t = _copyTrainingData;

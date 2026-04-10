@@ -436,11 +436,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <!-- SCREEN UPLOAD -->
       <div class="field">
         <label>Załącz screen (opcjonalnie)</label>
-        <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:1px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:24px;margin-bottom:4px;">📎</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcia (można kilka)</div>
+        <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:2px dashed var(--accent);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all 0.15s;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
+          <div style="font-size:22px;margin-bottom:4px;">📎</div>
+          <div style="font-size:11px;color:var(--fg);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">Klikaj wielokrotnie aby dodać kolejne</div>
         </div>
-        <input type="file" id="l-file" accept="image/*,video/*" multiple style="display:none" onchange="previewFile(this)">
+        <input type="file" id="l-file" accept="image/*,video/*" style="display:none" onchange="appendFile(this)">
+        <div id="file-preview-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
       </div>
 
     </div>
@@ -692,6 +694,34 @@ function updateIvSummary() {
   }
 }
 
+// Lista plików do uploadu — dodawana po jednej
+window._pendingFiles = [];
+
+function appendFile(input) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  window._pendingFiles.push(file);
+  // Podgląd
+  const list = document.getElementById('file-preview-list');
+  const idx = window._pendingFiles.length - 1;
+  const url = URL.createObjectURL(file);
+  const div = document.createElement('div');
+  div.style.cssText = 'position:relative;width:calc(50% - 3px);';
+  div.innerHTML = `<img src="${url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;display:block;">
+    <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">✕</button>`;
+  list.appendChild(div);
+  // Update label
+  document.getElementById('upload-label').textContent = `Kliknij aby dodać kolejne (${window._pendingFiles.length})`;
+  input.value = ''; // reset żeby można było dodać ten sam plik
+}
+
+function removeFile(idx, el) {
+  window._pendingFiles.splice(idx, 1);
+  el.remove();
+  const count = window._pendingFiles.length;
+  document.getElementById('upload-label').textContent = count > 0 ? `Kliknij aby dodać kolejne (${count})` : 'Kliknij aby dodać zdjęcie';
+}
+
 function previewFile(input) {
   const files = input.files;
   if (!files.length) return;
@@ -811,8 +841,9 @@ async function loadProfile() {
     const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(_athleteId + '/avatar.jpg');
     if (urlData?.publicUrl) {
       const img = document.getElementById('avatar-img');
-      img.src = urlData.publicUrl + '?t=' + Date.now();
+      img.onerror = () => { img.style.display='none'; document.getElementById('avatar-initials').style.display=''; };
       img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
+      img.src = urlData.publicUrl + '?t=' + Date.now();
     }
     // Dane z bazy
     const { data: ath } = await _sb.from('athletes')
@@ -1554,14 +1585,16 @@ async function saveLog() {
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
 
-  // Upload screena
+  // Upload screena — użyj _pendingFiles
   let attachmentUrl = null;
-  const fileInput = document.getElementById('l-file');
-  if (fileInput.files.length > 0 && _athleteId) {
+  const filesToUpload = window._pendingFiles && window._pendingFiles.length > 0
+    ? window._pendingFiles
+    : (() => { const fi = document.getElementById('l-file'); return fi.files.length > 0 ? Array.from(fi.files) : []; })();
+  if (filesToUpload.length > 0 && _athleteId) {
     const urls = [];
     const base = Date.now();
-    for (let i = 0; i < fileInput.files.length; i++) {
-      const file = fileInput.files[i];
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i];
       const ext = file.name.split('.').pop();
       const path = _athleteId + '/' + base + '_' + i + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
       const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
