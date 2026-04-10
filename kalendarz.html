@@ -253,6 +253,57 @@ nav{
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* ── MOBILE VIEW ─────────────────────────────────────────────────── */
+.view-switcher{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px;}
+.view-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:4px;transition:all 0.15s;}
+.view-btn.active{background:var(--accent);color:var(--fg);}
+
+#mobile-view{display:none;padding:0 0 100px;}
+.mobile-day{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;}
+.mobile-day-header{display:flex;align-items:center;padding:14px 20px;cursor:pointer;gap:12px;transition:background 0.15s;}
+.mobile-day-header:hover{background:rgba(255,255,255,0.03);}
+.mobile-day-header.today{background:rgba(212,80,26,0.06);}
+.mobile-day-header.today .mday-date{color:var(--accent);}
+.mday-abbr{width:36px;height:36px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;color:var(--muted);flex-shrink:0;}
+.mobile-day-header.today .mday-abbr{background:var(--accent);color:var(--fg);}
+.mday-info{flex:1;min-width:0;}
+.mday-date{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:var(--fg);}
+.mday-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
+.mday-km{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);line-height:1;}
+.mday-km-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;text-align:right;}
+.mday-chevron{color:var(--muted);font-size:14px;flex-shrink:0;transition:transform 0.2s;}
+.mobile-day.open .mday-chevron{transform:rotate(180deg);}
+.mobile-day-body{display:none;padding:0 16px 12px;}
+.mobile-day.open .mobile-day-body{display:block;}
+
+.mtraining{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:8px;position:relative;overflow:hidden;}
+.mtraining::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.mtraining.spokojny::before{background:var(--blue,#5090e0);}
+.mtraining.interwaly::before{background:var(--yellow,#e8b840);}
+.mtraining.tempo::before{background:var(--accent);}
+.mtraining.wybieganie::before{background:var(--purple,#9a6fe8);}
+.mtraining.regeneracja::before{background:var(--green);}
+.mtraining.odpoczynek::before{background:var(--muted2);}
+.mtraining.start::before{background:var(--green);}
+.mtraining.zastepczy::before{background:var(--yellow,#e8b840);}
+.mtraining-type{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:4px;}
+.mtraining-main{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);}
+.mtraining-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.mtraining-desc{font-size:12px;color:rgba(240,237,232,0.65);line-height:1.6;margin-top:6px;font-family:'DM Sans',sans-serif;}
+.mtraining-status{display:inline-flex;align-items:center;gap:4px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-top:8px;padding:3px 8px;border-radius:4px;font-family:'DM Mono',monospace;}
+.mtraining-status.done{background:rgba(61,184,112,0.12);color:var(--green);border:1px solid rgba(61,184,112,0.3);}
+.mtraining-status.missed{background:rgba(212,80,26,0.12);color:var(--accent);border:1px solid rgba(212,80,26,0.3);}
+.mtraining-actions{display:flex;gap:6px;margin-top:8px;}
+.mtraining-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;}
+.mtraining-btn:hover{border-color:var(--accent);color:var(--accent);}
+.mtraining-btn.approve{border-color:rgba(61,184,112,0.35);color:var(--green);}
+.mtraining-btn.approve:hover{background:rgba(61,184,112,0.12);}
+
+.mobile-sticky-btn{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:400px;background:var(--accent);color:var(--fg);border:none;border-radius:50px;padding:16px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;z-index:40;box-shadow:0 4px 20px rgba(212,80,26,0.4);transition:all 0.15s;}
+.mobile-sticky-btn:hover{background:var(--accent2);transform:translateX(-50%) translateY(-2px);}
+.mday-log-thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
+.mday-log-thumbs img{width:calc(50% - 2px);max-height:80px;object-fit:cover;border-radius:6px;cursor:pointer;}
 </style>
 </head>
 <body>
@@ -287,7 +338,11 @@ nav{
   </div>
   <button class="today-btn" onclick="goToday()">Dziś</button>
   <div class="toolbar-spacer"></div>
-  <div class="week-km-badge">Kilometraż tygodnia: <span id="week-total-km">0</span> km</div>
+  <div class="view-switcher">
+    <button class="view-btn" id="btn-classic-view" onclick="setView('classic')">Klasyczny</button>
+    <button class="view-btn active" id="btn-mobile-view" onclick="setView('mobile')">Mobilny</button>
+  </div>
+  <div class="week-km-badge" style="display:none;" id="week-km-wrap">Km: <span id="week-total-km">0</span></div>
 </div>
 
 
@@ -389,10 +444,12 @@ nav{
 </div>
 
 <!-- WEEK -->
-<div class="week-wrap">
+<div class="week-wrap" id="classic-view">
   <div class="week-header" id="week-header"></div>
   <div class="week-body" id="week-body"></div>
 </div>
+<div id="mobile-view"></div>
+<button class="mobile-sticky-btn" id="mobile-new-btn" style="display:none;" onclick="openModal(null)">+ Nowy trening</button>
 
 </div><!-- /shell -->
 
@@ -643,6 +700,8 @@ function render() {
       <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
     </div>`;
   }).join('');
+  // Jeśli aktywny widok mobilny — odśwież też
+  if (typeof _calView !== 'undefined' && _calView === 'mobile') renderMobile();
 }
 
 // ── WEEK NAV ──────────────────────────────────────────────────────────────────
@@ -1566,10 +1625,124 @@ async function copyTraining() {
 
 // saveTraining DB logic is in async saveTraining()
 
+
+// ── VIEW SWITCHER ──────────────────────────────────────────────────
+let _calView = localStorage.getItem('calendarView') || (window.innerWidth < 768 ? 'mobile' : 'classic');
+
+function setView(v) {
+  _calView = v;
+  localStorage.setItem('calendarView', v);
+  const classic = document.getElementById('classic-view');
+  const mobile  = document.getElementById('mobile-view');
+  const mBtn    = document.getElementById('mobile-new-btn');
+  const btnC    = document.getElementById('btn-classic-view');
+  const btnM    = document.getElementById('btn-mobile-view');
+  if (v === 'mobile') {
+    classic.style.display = 'none';
+    mobile.style.display  = 'block';
+    if(mBtn && _urlRole === 'coach') mBtn.style.display = 'block';
+    if(btnC) btnC.classList.remove('active');
+    if(btnM) btnM.classList.add('active');
+    renderMobile();
+  } else {
+    classic.style.display = '';
+    mobile.style.display  = 'none';
+    if(mBtn) mBtn.style.display = 'none';
+    if(btnC) btnC.classList.add('active');
+    if(btnM) btnM.classList.remove('active');
+  }
+}
+
+const _mTypeColors = {
+  'Bieg spokojny':'spokojny','Spokojny':'spokojny',
+  'Interwały':'interwaly','Tempo':'tempo',
+  'Wybieganie':'wybieganie','Regeneracja':'regeneracja',
+  'Odpoczynek':'odpoczynek','Start':'start','Zastępczy':'zastepczy'
+};
+
+function renderMobile() {
+  const el = document.getElementById('mobile-view');
+  if (!el) return;
+  const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  el.innerHTML = days.map(d => {
+    const ds = dateStr(d);
+    const isToday = d.getTime() === today.getTime();
+    const ts = trainings[ds] || [];
+    const km = ts.reduce((s,t)=>s+(t.dist||0),0);
+    const dayN = dayNames[d.getDay()===0?6:d.getDay()-1];
+    const dateLabel = `${d.getDate()} ${monthNames[d.getMonth()].toUpperCase()}`;
+    const sessionCount = ts.length;
+    const countLabel = sessionCount === 0 ? 'Odpoczynek' : sessionCount === 1 ? '1 trening' : sessionCount + ' treningi';
+
+    // Race goal
+    const showRace = _urlRole === 'athlete' || window._calSelectedAthleteId;
+    const raceGoal = showRace && window._goals && window._goals.find(g => g.date === ds);
+    const raceHtml = raceGoal ? `<div style="background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.4);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal('${raceGoal.id}')">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;">🏁 ${raceGoal.name}</div>
+    </div>` : '';
+
+    // Trening cards
+    const cardsHtml = ts.map((t, i) => {
+      const tc = _mTypeColors[t.type] || 'spokojny';
+      const statusHtml = t.status==='done'
+        ? '<div class="mtraining-status done">✓ Wykonany</div>'
+        : t.status==='missed' ? '<div class="mtraining-status missed">✗ Nie wykonany</div>' : '';
+      const approveHtml = (t.status!=='done' && t.type!=='Odpoczynek')
+        ? `<button class="mtraining-btn approve" onclick="event.stopPropagation();approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>` : '';
+      const editHtml = `<button class="mtraining-btn" onclick="event.stopPropagation();openModal('${ds}',${i})">✏ Edytuj</button>`;
+      const copyHtml = _urlRole==='coach' ? `<button class="mtraining-btn" onclick="event.stopPropagation();openCopyModalFromCard(event,'${ds}',${i})">⧉ Kopiuj</button>` : '';
+      const delHtml  = `<button class="mtraining-btn" style="color:var(--red);border-color:rgba(224,80,80,0.3);" onclick="event.stopPropagation();deleteTraining(event,'${ds}',${i})">✕</button>`;
+
+      return `<div class="mtraining ${tc}">
+        <div class="mtraining-type" style="color:${tc==='spokojny'?'#5090e0':tc==='interwaly'?'#e8b840':tc==='tempo'?'#d4501a':tc==='wybieganie'?'#9a6fe8':tc==='regeneracja'?'#3db870':tc==='start'?'#3db870':'var(--muted)'};">${t.type.toUpperCase()}</div>
+        ${t.dist>0?`<div class="mtraining-main">${t.dist} <span style="font-size:16px;color:var(--muted);">km</span></div>`:''}
+        ${(t.pace||t.hr||t.time)?`<div class="mtraining-meta">${[t.pace?t.pace+'/km':'', t.hr?'♥ '+t.hr:'', t.time?t.time+' min':''].filter(Boolean).join('  ·  ')}</div>`:''}
+        ${t.desc?`<div class="mtraining-desc">${t.desc}</div>`:''}
+        ${statusHtml}
+        <div class="mtraining-actions">${editHtml}${approveHtml}${copyHtml}${delHtml}</div>
+      </div>`;
+    }).join('');
+
+    // Log thumbnails
+    const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
+    const thumbsHtml = dayLogs.filter(l=>l.attachment_url).length > 0
+      ? `<div class="mday-log-thumbs">${dayLogs.filter(l=>l.attachment_url).flatMap(l=>l.attachment_url.split(',')).map(url=>`<img src="${url}" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}</div>` : '';
+
+    const addBtnHtml = `<button class="mtraining-btn" style="width:100%;text-align:center;margin-top:4px;" onclick="openModal('${ds}',null)">+ Dodaj trening</button>`;
+
+    return `<div class="mobile-day${isToday?' open':''}" id="mday-${ds}">
+      <div class="mobile-day-header${isToday?' today':''}" onclick="toggleMobileDay('${ds}')">
+        <div class="mday-abbr">${dayN}</div>
+        <div class="mday-info">
+          <div class="mday-date">${dateLabel}</div>
+          <div class="mday-sub">${countLabel}</div>
+        </div>
+        ${km>0?`<div style="text-align:right;"><div class="mday-km">${km.toFixed(0)}</div><div class="mday-km-lbl">km</div></div>`:''}
+        <div class="mday-chevron">⌄</div>
+      </div>
+      <div class="mobile-day-body">
+        ${raceHtml}
+        ${cardsHtml}
+        ${thumbsHtml}
+        ${addBtnHtml}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleMobileDay(ds) {
+  const el = document.getElementById('mday-'+ds);
+  if (!el) return;
+  el.classList.toggle('open');
+}
+
 render();
 loadAthletesSelect();
 loadTrainingsFromDB();
 loadGoals();
+setTimeout(()=>setView(_calView),50);
 
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania/usuwania
