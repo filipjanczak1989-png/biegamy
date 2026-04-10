@@ -288,12 +288,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </nav>
 
 <!-- SEKCJA: WIADOMOŚCI -->
-<div id="section-msgs" style="display:none;">
+<div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:45;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);">
   <div style="padding:16px 20px 8px;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Wiadomości</div>
-  <div id="msgs-thread" style="padding:0 20px;display:flex;flex-direction:column;gap:10px;margin-bottom:90px;min-height:200px;">
+  <div id="msgs-thread" style="padding:0 20px 12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;position:absolute;top:44px;bottom:130px;left:0;right:0;">
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
   </div>
-  <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:8px 12px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:60;">
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px 20px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:60;">
     <div style="position:relative;">
       <!-- Emoji picker -->
       <div class="emoji-picker" id="z-emoji-picker"><button class="emoji-btn" onclick="insertEmoji('😊')">😊</button><button class="emoji-btn" onclick="insertEmoji('😂')">😂</button><button class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button><button class="emoji-btn" onclick="insertEmoji('💪')">💪</button><button class="emoji-btn" onclick="insertEmoji('🏃')">🏃</button><button class="emoji-btn" onclick="insertEmoji('👍')">👍</button><button class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button><button class="emoji-btn" onclick="insertEmoji('🏁')">🏁</button><button class="emoji-btn" onclick="insertEmoji('😅')">😅</button><button class="emoji-btn" onclick="insertEmoji('🤣')">🤣</button><button class="emoji-btn" onclick="insertEmoji('😍')">😍</button><button class="emoji-btn" onclick="insertEmoji('🥇')">🥇</button><button class="emoji-btn" onclick="insertEmoji('✅')">✅</button><button class="emoji-btn" onclick="insertEmoji('💯')">💯</button><button class="emoji-btn" onclick="insertEmoji('👏')">👏</button><button class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button><button class="emoji-btn" onclick="insertEmoji('😓')">😓</button><button class="emoji-btn" onclick="insertEmoji('😤')">😤</button><button class="emoji-btn" onclick="insertEmoji('🙏')">🙏</button><button class="emoji-btn" onclick="insertEmoji('⚡')">⚡</button><button class="emoji-btn" onclick="insertEmoji('🌟')">🌟</button><button class="emoji-btn" onclick="insertEmoji('😎')">😎</button><button class="emoji-btn" onclick="insertEmoji('🤙')">🤙</button><button class="emoji-btn" onclick="insertEmoji('💥')">💥</button><button class="emoji-btn" onclick="insertEmoji('🏆')">🏆</button><button class="emoji-btn" onclick="insertEmoji('😪')">😪</button><button class="emoji-btn" onclick="insertEmoji('🤦')">🤦</button><button class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button><button class="emoji-btn" onclick="insertEmoji('👊')">👊</button><button class="emoji-btn" onclick="insertEmoji('🦵')">🦵</button></div>
@@ -863,7 +863,7 @@ function showSection(name) {
   } else if (name === 'msgs') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
-    document.getElementById('section-msgs').style.display = 'block';
+    document.getElementById('section-msgs').style.display = 'flex';
     const n = document.getElementById('nav-msgs');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
     loadMessages();
@@ -1201,6 +1201,38 @@ async function sendMessage() {
   toast('Wiadomość wysłana ✓');
 }
 
+// ── POWIADOMIENIE TRENINGOWE ──────────────────────────────────────
+function notifyTraining(title, body, type) {
+  const existing = document.getElementById('training-notif');
+  if (existing) existing.remove();
+  const colors = {
+    new: 'var(--accent)',
+    update: 'var(--blue,#5090e0)',
+    plan: 'var(--green)'
+  };
+  const icons = { new: '📅', update: '✏️', plan: '📋' };
+  const color = colors[type] || 'var(--accent)';
+  const icon = icons[type] || '📅';
+  const el = document.createElement('div');
+  el.id = 'training-notif';
+  el.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);width:calc(100% - 40px);max-width:380px;background:var(--card);border:1px solid ${color};border-left:4px solid ${color};border-radius:12px;padding:14px 16px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);display:flex;align-items:flex-start;gap:12px;`;
+  el.innerHTML = `
+    <div style="font-size:22px;flex-shrink:0;line-height:1.2;">${icon}</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">${title}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.4;">${body}</div>
+    </div>
+    <button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;line-height:1;">✕</button>`;
+  document.body.appendChild(el);
+  // Animacja wjazdu
+  setTimeout(() => el.style.transform = 'translateX(-50%) translateY(0)', 10);
+  // Auto-znikanie po 5 sekundach
+  setTimeout(() => {
+    el.style.transform = 'translateX(-50%) translateY(-80px)';
+    setTimeout(() => el.remove(), 300);
+  }, 5000);
+}
+
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),3000);
@@ -1479,6 +1511,38 @@ async function loadLogs() {
         filter:'athlete_id=eq.'+_athleteId}, () => {
           loadMessages();
           checkNewMessages();
+        })
+      .subscribe();
+  }
+  // Realtime — powiadomienia o zmianach w treningach
+  if (!window._realtimeTrainings && _athleteId) {
+    window._realtimeTrainings = _sb.channel('trainings-' + _athleteId)
+      .on('postgres_changes', {event:'INSERT', schema:'public', table:'trainings',
+        filter:'athlete_id=eq.'+_athleteId}, (payload) => {
+          const t = payload.new;
+          const date = t.date ? new Date(t.date+'T12:00:00').toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'}) : '';
+          const dist = t.distance_km ? ' · ' + parseFloat(t.distance_km).toFixed(0) + ' km' : '';
+          const type = t.type || 'Trening';
+          notifyTraining(
+            'Nowy trening w planie',
+            `${date}: ${type}${dist}`,
+            'new'
+          );
+          // Odśwież widok tygodnia jeśli jest otwarty
+          if (typeof init === 'function') init();
+        })
+      .on('postgres_changes', {event:'UPDATE', schema:'public', table:'trainings',
+        filter:'athlete_id=eq.'+_athleteId}, (payload) => {
+          const t = payload.new;
+          const date = t.date ? new Date(t.date+'T12:00:00').toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'}) : '';
+          const dist = t.distance_km ? ' · ' + parseFloat(t.distance_km).toFixed(0) + ' km' : '';
+          const type = t.type || 'Trening';
+          notifyTraining(
+            'Trening zaktualizowany',
+            `${date}: ${type}${dist}`,
+            'update'
+          );
+          if (typeof init === 'function') init();
         })
       .subscribe();
   }
