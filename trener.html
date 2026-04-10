@@ -1261,6 +1261,7 @@ async function openCoachChat(athleteId, athleteName) {
   document.getElementById('msgs-athletes-list').style.display = 'none';
   document.getElementById('msgs-chat').style.display = 'block';
   await loadCoachChat();
+  const _cht = document.getElementById('chat-thread'); if(_cht) requestAnimationFrame(()=>{ _cht.scrollTop = _cht.scrollHeight; });
 }
 
 async function loadCoachChat() {
@@ -1292,7 +1293,7 @@ async function loadCoachChat() {
         <div class="msg-meta-t">${date} · ${time}</div>
       </div>`;
     }).join('');
-    setTimeout(() => { thread.scrollTop = thread.scrollHeight; }, 50);
+    requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
   }
   // Oznacz jako przeczytane
   await _sb.from('messages').update({read:true})
@@ -1434,6 +1435,7 @@ function playVoiceMsg(btn, url) {
   audio.play();
   audio.onended = () => btn.textContent = '▶️';
 }
+const playVoice = playVoiceMsg; // alias — zawodnik wysyla z playVoice
 async function sendCoachFile(input) {
   if (!input.files.length || !_currentChatAthleteId) return;
   const urls = [];
@@ -1773,7 +1775,7 @@ async function loadPanelChat() {
       <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;padding:0 4px;">${time}</div>
     </div>`;
   }).join('');
-  setTimeout(() => { thread.scrollTop = thread.scrollHeight; }, 50);
+  requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
   // Oznacz jako przeczytane
   await _sb.from('messages').update({read:true}).eq('athlete_id', athleteId).eq('sender','athlete').eq('read',false);
 }
