@@ -253,10 +253,15 @@ nav{
     <a href="#" class="nav-link" id="back-link" onclick="goBack()">← Powrót</a>
     <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
   </div>
-  <div class="nav-right">
+  <div class="nav-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
     <select class="athlete-select" id="athlete-select" style="display:none;" onchange="onAthleteChange(this.value)">
       <option value="">Wszyscy zawodnicy</option>
     </select>
+    <!-- Cele startowe w nav -->
+    <div id="nav-goals-wrap" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <div id="nav-goals-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+      <button onclick="openGoalModal()" style="background:transparent;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🏁 + Cel</button>
+    </div>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)">+ Nowy trening</button>
   </div>
 </nav>
@@ -273,12 +278,6 @@ nav{
   <div class="week-km-badge">Kilometraż tygodnia: <span id="week-total-km">0</span> km</div>
 </div>
 
-<!-- RACE GOALS PANEL -->
-<div id="race-goals-panel" style="background:var(--surface);border-bottom:1px solid var(--border);padding:10px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:44px;">
-  <span style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;">Cele startowe:</span>
-  <div id="race-goals-list" style="display:flex;gap:8px;flex-wrap:wrap;flex:1;"></div>
-  <button id="btn-add-goal" onclick="openGoalModal()" style="background:transparent;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Dodaj cel</button>
-</div>
 
 <!-- GOAL MODAL -->
 <div id="goal-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeGoalModal()">
@@ -574,13 +573,22 @@ function render() {
         ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
-        ${_urlRole==='athlete'&&t.type!=='Odpoczynek'?`<button class="card-approve" style="background:rgba(212,80,26,0.12);border-color:rgba(212,80,26,0.35);color:var(--accent);margin-top:4px;" onclick="openLogModal(event,'${ds}',${i})">📝 Dodaj log</button>`:''}
       </div>`;
     }).join('');
+
+    // Miniatury z logów dla tego dnia
+    const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
+    const logThumbs = dayLogs.filter(l => l.attachment_url).map(l => {
+      return l.attachment_url.split(',').map(url =>
+        `<img src="${url}" style="width:calc(50% - 2px);max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`
+      ).join('');
+    }).join('');
+    const logThumbsHtml = logThumbs ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding:6px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:6px;">${logThumbs}</div>` : '';
 
     return `<div class="day-col ${isToday?'today':''}">
       ${raceCard}
       ${cards}
+      ${logThumbsHtml}
       <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
     </div>`;
   }).join('');
@@ -634,17 +642,20 @@ function openModal(ds, idx) {
   if(fLogLabel) fLogLabel.textContent='📎 Dodaj zdjęcia';
 
   if(ds) {
-    const d = new Date(ds);
+    const d = new Date(ds + 'T12:00:00');
     document.getElementById('modal-date-label').textContent =
       d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-    document.getElementById('f-date-picker').style.display='none';
-    document.getElementById('f-date-picker').value='';
+    const fp = document.getElementById('f-date-picker');
+    if(fp){ fp.style.display='none'; fp.value=''; }
   } else {
-    document.getElementById('modal-date-label').textContent = 'Wybierz datę treningu';
-    document.getElementById('f-date-picker').style.display='block';
+    document.getElementById('modal-date-label').textContent = '';
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('f-date-picker').value=today;
     editingDate = today;
+    const fp = document.getElementById('f-date-picker');
+    if(fp){ fp.style.display='block'; fp.value=today; }
+    const d = new Date(today + 'T12:00:00');
+    document.getElementById('modal-date-label').textContent =
+      d.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   }
 
   if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
@@ -939,6 +950,23 @@ async function loadTrainingsFromDB() {
     }
   });
 
+  // Załaduj logi dla tych samych zawodników
+  let logsQuery = _sbKal.from('training_logs').select('athlete_id, logged_at, attachment_url, distance_km, pace, feel').order('logged_at');
+  if (_urlRole === 'athlete') {
+    const { data: ath2 } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
+  } else if (window._calSelectedAthleteId) {
+    logsQuery = logsQuery.eq('athlete_id', window._calSelectedAthleteId);
+  }
+  const { data: logsData } = await logsQuery;
+  window._calLogs = {};
+  (logsData || []).forEach(l => {
+    const ds = l.logged_at ? l.logged_at.split('T')[0] : null;
+    if (!ds) return;
+    if (!window._calLogs[ds]) window._calLogs[ds] = [];
+    window._calLogs[ds].push(l);
+  });
+
   render();
 }
 
@@ -967,23 +995,29 @@ async function loadGoals() {
 }
 
 function renderGoals() {
-  const list = document.getElementById('race-goals-list');
+  const list = document.getElementById('nav-goals-list');
   if (!list) return;
   if (!window._goals.length) {
-    list.innerHTML = '<span style="font-size:11px;color:var(--muted2);font-family:DM Mono,monospace;">Brak celów startowych</span>';
+    list.innerHTML = '<span style="font-size:10px;color:var(--muted2);font-family:DM Mono,monospace;letter-spacing:0.05em;">Brak celów</span>';
     return;
   }
   list.innerHTML = window._goals.map(g => {
-    const d = new Date(g.date);
+    const d = new Date(g.date + 'T12:00:00');
     const now = new Date();
     const days = Math.round((d - now) / 86400000);
-    const daysStr = days > 0 ? days + ' dni' : days === 0 ? 'Dziś!' : 'Minął';
-    const isClose = days >= 0 && days <= 14;
-    return `<div style="display:inline-flex;align-items:center;gap:8px;background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,${isClose?'0.6':'0.25'});border-radius:6px;padding:5px 10px;cursor:pointer;" onclick="openGoalModal('${g.id}')">
-      <span style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;">🏁</span>
-      <span style="font-size:11px;font-weight:500;">${g.name}</span>
+    const daysStr = days > 0 ? days + 'd' : days === 0 ? 'Dziś!' : 'po terminie';
+    const isClose = days >= 0 && days <= 21;
+    const isVeryClose = days >= 0 && days <= 7;
+    const borderColor = isVeryClose ? 'rgba(232,184,64,0.8)' : isClose ? 'rgba(61,184,112,0.7)' : 'rgba(61,184,112,0.3)';
+    const bg = isVeryClose ? 'rgba(232,184,64,0.12)' : 'rgba(61,184,112,0.08)';
+    const dayColor = isVeryClose ? 'var(--yellow)' : isClose ? 'var(--green)' : 'var(--muted)';
+    const athleteStr = (_urlRole === 'coach' && g.athlete_name) ? `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.athlete_name.split(' ')[0]}</span>` : '';
+    return `<div style="display:inline-flex;align-items:center;gap:6px;background:${bg};border:1px solid ${borderColor};border-radius:6px;padding:6px 10px;cursor:pointer;transition:all 0.15s;" onclick="openGoalModal('${g.id}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${borderColor}'">
+      <span style="font-size:13px;">🏁</span>
+      ${athleteStr}
+      <span style="font-size:11px;font-weight:600;color:var(--fg);">${g.name}</span>
       <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'})}</span>
-      <span style="font-size:10px;color:${isClose?'var(--green)':'var(--muted)'};font-family:'DM Mono',monospace;">${daysStr}</span>
+      <span style="font-size:10px;font-weight:600;color:${dayColor};font-family:'DM Mono',monospace;background:${dayColor.replace('var(--','rgba(').replace(')',',0.12)')};padding:1px 5px;border-radius:3px;">${daysStr}</span>
     </div>`;
   }).join('');
 }
