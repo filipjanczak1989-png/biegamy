@@ -925,7 +925,10 @@ document.addEventListener('keydown', e => {
 
 // ── ROLE DETECTION ────────────────────────────────────────────────
 const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
+const _urlAthlete = new URLSearchParams(window.location.search).get('athlete') || null;
 const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
+// Jeśli trener przyszedł z wybranym zawodnikiem — ustaw od razu
+if (_urlAthlete) window._calSelectedAthleteId = _urlAthlete;
 const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
 const _sbKal = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -955,6 +958,8 @@ async function loadAthletesSelect() {
     opt.textContent = a.full_name || a.goal || 'Zawodnik';
     sel.appendChild(opt);
   });
+  // Jeśli przyszedł z URL z wybranym zawodnikiem — zaznacz go
+  if (_urlAthlete) sel.value = _urlAthlete;
 }
 
 function onAthleteChange(athleteId) {
