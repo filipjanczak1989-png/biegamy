@@ -434,8 +434,9 @@ async function loadPanelStats() {
   const avgPace=avgPaceSecs?Math.floor(avgPaceSecs/60)+':'+String(avgPaceSecs%60).padStart(2,'0'):'—';
 
   const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const normalizeType = t => (t==='Bieg spokojny')?'Spokojny':t||'Inne';
   const typeCount={};
-  logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
+  logs30.forEach(l=>{const t=normalizeType(l.training_type);typeCount[t]=(typeCount[t]||0)+1;});
 
   // Tygodniowe km (ostatnie 8 tygodni)
   const weeks=[];
@@ -1501,8 +1502,9 @@ async function loadAnalytics() {
     // Tygodniowe km
     const km7 = logs.filter(l=>new Date(l.logged_at)>=since7).reduce((s,l)=>s+(parseFloat(l.distance_km)||0),0);
     // Typy
+    const normalizeType2 = t => (t==='Bieg spokojny')?'Spokojny':t||'Spokojny';
     const typeCounts = {};
-    logs.forEach(l => { const t=l.training_type||'Spokojny'; typeCounts[t]=(typeCounts[t]||0)+1; });
+    logs.forEach(l => { const t=normalizeType2(l.training_type); typeCounts[t]=(typeCounts[t]||0)+1; });
     // Best pace
     const paces = logs.filter(l=>l.pace).map(l=>{const p=l.pace.split(':').map(Number);return p.length===2?p[0]*60+p[1]:null;}).filter(Boolean);
     const bestPaceSec = paces.length?Math.min(...paces):null;
@@ -1654,8 +1656,9 @@ async function loadAthleteDetailStats(athleteId, container) {
   const avgPace=avgPaceSecs?Math.floor(avgPaceSecs/60)+':'+String(avgPaceSecs%60).padStart(2,'0'):'—';
 
   const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const normalizeType = t => (t==='Bieg spokojny')?'Spokojny':t||'Inne';
   const typeCount={};
-  logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
+  logs30.forEach(l=>{const t=normalizeType(l.training_type);typeCount[t]=(typeCount[t]||0)+1;});
 
   const weeks=[];
   for(let i=7;i>=0;i--){
@@ -1877,7 +1880,7 @@ if (_tabParam) {
       <button onclick="document.getElementById('msgs-chat').style.display='none';document.getElementById('msgs-athletes-list').style.display='flex';" style="background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;">← Powrót</button>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;" id="chat-athlete-name">Zawodnik</div>
     </div>
-    <div id="chat-thread" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;min-height:150px;"></div>
+    <div id="chat-thread" style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;height:calc(100vh - 340px);max-height:420px;min-height:150px;overflow-y:auto;"></div>
     <div style="position:relative;">
       <div class="emoji-picker" id="t-emoji-picker"><button class="emoji-btn" onclick="insertEmojiCoach('😊')">😊</button><button class="emoji-btn" onclick="insertEmojiCoach('😂')">😂</button><button class="emoji-btn" onclick="insertEmojiCoach('🔥')">🔥</button><button class="emoji-btn" onclick="insertEmojiCoach('💪')">💪</button><button class="emoji-btn" onclick="insertEmojiCoach('🏃')">🏃</button><button class="emoji-btn" onclick="insertEmojiCoach('👍')">👍</button><button class="emoji-btn" onclick="insertEmojiCoach('❤️')">❤️</button><button class="emoji-btn" onclick="insertEmojiCoach('🏁')">🏁</button><button class="emoji-btn" onclick="insertEmojiCoach('😅')">😅</button><button class="emoji-btn" onclick="insertEmojiCoach('🤣')">🤣</button><button class="emoji-btn" onclick="insertEmojiCoach('😍')">😍</button><button class="emoji-btn" onclick="insertEmojiCoach('🥇')">🥇</button><button class="emoji-btn" onclick="insertEmojiCoach('✅')">✅</button><button class="emoji-btn" onclick="insertEmojiCoach('💯')">💯</button><button class="emoji-btn" onclick="insertEmojiCoach('👏')">👏</button><button class="emoji-btn" onclick="insertEmojiCoach('🎯')">🎯</button><button class="emoji-btn" onclick="insertEmojiCoach('😓')">😓</button><button class="emoji-btn" onclick="insertEmojiCoach('😤')">😤</button><button class="emoji-btn" onclick="insertEmojiCoach('🙏')">🙏</button><button class="emoji-btn" onclick="insertEmojiCoach('⚡')">⚡</button><button class="emoji-btn" onclick="insertEmojiCoach('🌟')">🌟</button><button class="emoji-btn" onclick="insertEmojiCoach('😎')">😎</button><button class="emoji-btn" onclick="insertEmojiCoach('🤙')">🤙</button><button class="emoji-btn" onclick="insertEmojiCoach('💥')">💥</button><button class="emoji-btn" onclick="insertEmojiCoach('🏆')">🏆</button><button class="emoji-btn" onclick="insertEmojiCoach('😪')">😪</button><button class="emoji-btn" onclick="insertEmojiCoach('🤦')">🤦</button><button class="emoji-btn" onclick="insertEmojiCoach('🎉')">🎉</button><button class="emoji-btn" onclick="insertEmojiCoach('👊')">👊</button><button class="emoji-btn" onclick="insertEmojiCoach('🦵')">🦵</button></div>
       <div class="gif-picker" id="t-gif-picker">

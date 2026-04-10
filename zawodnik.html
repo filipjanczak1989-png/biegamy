@@ -217,6 +217,18 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
 </div>
 
+<!-- MOTYWACJA DNIA -->
+<div id="daily-motivation" class="fade-in" style="margin:12px 20px 0;background:var(--card);border-radius:14px;border:1px solid var(--border);padding:14px 16px;overflow:hidden;position:relative;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--blue,#5090e0),var(--green));"></div>
+  <div id="motiv-content" style="display:flex;align-items:flex-start;gap:10px;">
+    <div id="motiv-icon" style="font-size:22px;flex-shrink:0;margin-top:1px;">💬</div>
+    <div>
+      <div id="motiv-text" style="font-size:13px;line-height:1.6;color:var(--fg);font-style:italic;">&nbsp;</div>
+      <div id="motiv-source" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;letter-spacing:0.05em;"></div>
+    </div>
+  </div>
+</div>
+
 <div class="today-hero fade-in">
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
@@ -572,7 +584,7 @@ function openModal() {
   // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
   if (window._todayTraining) {
     const t = window._todayTraining;
-    const typeMap = {Spokojny:'Spokojny', Interwały:'Interwały', Tempo:'Tempo', Wybieganie:'Wybieganie', Regeneracja:'Regeneracja'};
+    const typeMap = {'Spokojny':'Spokojny','Bieg spokojny':'Spokojny','Interwały':'Interwały','Tempo':'Tempo','Wybieganie':'Wybieganie','Regeneracja':'Regeneracja','Zastępczy':'Zastępczy'};
     const typeName = typeMap[t.type] || t.type;
     document.querySelectorAll('.type-pill').forEach(p => {
       p.classList.remove('on');
@@ -1201,38 +1213,6 @@ async function sendMessage() {
   toast('Wiadomość wysłana ✓');
 }
 
-// ── POWIADOMIENIE TRENINGOWE ──────────────────────────────────────
-function notifyTraining(title, body, type) {
-  const existing = document.getElementById('training-notif');
-  if (existing) existing.remove();
-  const colors = {
-    new: 'var(--accent)',
-    update: 'var(--blue,#5090e0)',
-    plan: 'var(--green)'
-  };
-  const icons = { new: '📅', update: '✏️', plan: '📋' };
-  const color = colors[type] || 'var(--accent)';
-  const icon = icons[type] || '📅';
-  const el = document.createElement('div');
-  el.id = 'training-notif';
-  el.style.cssText = `position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);width:calc(100% - 40px);max-width:380px;background:var(--card);border:1px solid ${color};border-left:4px solid ${color};border-radius:12px;padding:14px 16px;z-index:999;box-shadow:0 8px 32px rgba(0,0,0,0.5);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);display:flex;align-items:flex-start;gap:12px;`;
-  el.innerHTML = `
-    <div style="font-size:22px;flex-shrink:0;line-height:1.2;">${icon}</div>
-    <div style="flex:1;min-width:0;">
-      <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">${title}</div>
-      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.4;">${body}</div>
-    </div>
-    <button onclick="this.parentNode.remove()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;line-height:1;">✕</button>`;
-  document.body.appendChild(el);
-  // Animacja wjazdu
-  setTimeout(() => el.style.transform = 'translateX(-50%) translateY(0)', 10);
-  // Auto-znikanie po 5 sekundach
-  setTimeout(() => {
-    el.style.transform = 'translateX(-50%) translateY(-80px)';
-    setTimeout(() => el.remove(), 300);
-  }, 5000);
-}
-
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
   setTimeout(()=>el.classList.remove('show'),3000);
@@ -1243,6 +1223,63 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeM
 // ── SUPABASE ──────────────────────────────────────────────────────
 const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 let _athleteId = null;
+
+
+// ── MOTYWACJA DNIA ────────────────────────────────────────────────
+const _QUOTES = [
+  {icon:'🔥', text:'"Nie ma złej pogody na trening, są tylko złe usprawiedliwienia."', source:'— zasada biegaczy'},
+  {icon:'💪', text:'"Każdy kilometr na treningu to inwestycja w dzień startu."', source:'— BiegaMy'},
+  {icon:'🏃', text:'"Ból jest tymczasowy. Duma z ukończenia trwa wiecznie."', source:'— Lance Armstrong'},
+  {icon:'⚡', text:'"Nie porównuj swojego rozdziału 1 z czyimś rozdziałem 20."', source:'— zasada sportu'},
+  {icon:'🎯', text:'"Konsekwencja pokonuje intensywność."', source:'— zasada treningowa'},
+  {icon:'🌟', text:'"Każdy bieg, nawet najkrótszy, przybliża cię do celu."', source:'— BiegaMy'},
+  {icon:'🏆', text:'"Twoje nogi będą robić to, co nakaże im głowa."', source:'— maraton 40. km'},
+  {icon:'❤️', text:'"Biegnij dziś, żeby jutro czuć się wolnym."', source:'— BiegaMy'},
+  {icon:'🚀', text:'"Najgorszy trening to ten, którego nie było."', source:'— zasada biegaczy'},
+  {icon:'💯', text:'"Nie musisz być szybki. Musisz być dalej niż wczoraj."', source:'— BiegaMy'},
+];
+
+async function loadDailyMotivation() {
+  const el = document.getElementById('daily-motivation');
+  if (!el) return;
+  
+  // Cytat — rotacja dzienna (deterministyczna na podstawie dnia roku)
+  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  const q = _QUOTES[dayOfYear % _QUOTES.length];
+  
+  // Sprawdź czy są dane o innych zawodnikach — statystyka społeczna
+  let socialText = null;
+  if (_athleteId) {
+    try {
+      // Pobierz ile osób biegło dziś lub wczoraj
+      const since = new Date(); since.setDate(since.getDate()-1);
+      const { count } = await _sb.from('training_logs')
+        .select('*', {count:'exact', head:true})
+        .gte('logged_at', since.toISOString());
+      if (count && count > 1) {
+        const types = ['spokojne biegi','interwały','tempo','wybiegania'];
+        socialText = `Wczoraj ${count} zawodników z BiegaMy zaliczył${count>4?'o':''} trening 💪`;
+      }
+    } catch(e) {}
+    
+    // Sprawdź też cel zawodnika — ile dni do startu
+    try {
+      const { data: ath } = await _sb.from('athletes').select('goal,target_date').eq('id',_athleteId).maybeSingle();
+      if (ath?.target_date && ath?.goal) {
+        const days = Math.ceil((new Date(ath.target_date+'T12:00:00') - new Date()) / 86400000);
+        if (days > 0 && days <= 90) {
+          socialText = `${days} dni do ${ath.goal} — każdy trening się liczy! 🏁`;
+        } else if (days > 0) {
+          socialText = `Przygotowujesz się do: ${ath.goal} 🏁`;
+        }
+      }
+    } catch(e) {}
+  }
+  
+  document.getElementById('motiv-icon').textContent = socialText ? '📊' : q.icon;
+  document.getElementById('motiv-text').textContent = socialText || q.text;
+  document.getElementById('motiv-source').textContent = socialText ? 'Twój plan' : q.source;
+}
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
@@ -1511,38 +1548,6 @@ async function loadLogs() {
         filter:'athlete_id=eq.'+_athleteId}, () => {
           loadMessages();
           checkNewMessages();
-        })
-      .subscribe();
-  }
-  // Realtime — powiadomienia o zmianach w treningach
-  if (!window._realtimeTrainings && _athleteId) {
-    window._realtimeTrainings = _sb.channel('trainings-' + _athleteId)
-      .on('postgres_changes', {event:'INSERT', schema:'public', table:'trainings',
-        filter:'athlete_id=eq.'+_athleteId}, (payload) => {
-          const t = payload.new;
-          const date = t.date ? new Date(t.date+'T12:00:00').toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'}) : '';
-          const dist = t.distance_km ? ' · ' + parseFloat(t.distance_km).toFixed(0) + ' km' : '';
-          const type = t.type || 'Trening';
-          notifyTraining(
-            'Nowy trening w planie',
-            `${date}: ${type}${dist}`,
-            'new'
-          );
-          // Odśwież widok tygodnia jeśli jest otwarty
-          if (typeof init === 'function') init();
-        })
-      .on('postgres_changes', {event:'UPDATE', schema:'public', table:'trainings',
-        filter:'athlete_id=eq.'+_athleteId}, (payload) => {
-          const t = payload.new;
-          const date = t.date ? new Date(t.date+'T12:00:00').toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'}) : '';
-          const dist = t.distance_km ? ' · ' + parseFloat(t.distance_km).toFixed(0) + ' km' : '';
-          const type = t.type || 'Trening';
-          notifyTraining(
-            'Trening zaktualizowany',
-            `${date}: ${type}${dist}`,
-            'update'
-          );
-          if (typeof init === 'function') init();
         })
       .subscribe();
   }
@@ -2080,6 +2085,7 @@ function _renderCharts(weeks,days30,typeCount,typeColors2){
 
 init();
 setTimeout(() => initAuth(), 100);
+setTimeout(() => loadDailyMotivation(), 200);
 
 // Obsługa ?tab= z kalendarza
 const _tabParam = new URLSearchParams(window.location.search).get('tab');
