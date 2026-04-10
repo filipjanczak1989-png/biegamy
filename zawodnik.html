@@ -2055,9 +2055,13 @@ async function searchGifs(q, pickerId) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(q)}&limit=12&rating=g`);
+    const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q||'running')}&key=AIzaSyAyimkuYQYF_FXVALexPmha5hTzZS9JmXQ&limit=12&media_filter=gif`);
     const d = await r.json();
-    grid.innerHTML = d.data.map(g => `<img class="gif-item" src="${g.images.fixed_height_small.url}" onclick="sendGif('${g.images.fixed_height.url}','${pickerId}')" alt="${g.title}">`).join('');
+    grid.innerHTML = (d.results||[]).map(g => {
+      const sm = g.media_formats?.tinygif?.url || g.media_formats?.gif?.url || '';
+      const lg = g.media_formats?.gif?.url || sm;
+      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.content_description||'gif'}">`;
+    }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>'; }
 }
 
