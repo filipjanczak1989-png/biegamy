@@ -254,56 +254,87 @@ nav{
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);}
 
-/* ── MOBILE VIEW ─────────────────────────────────────────────────── */
-.view-switcher{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px;}
-.view-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:4px;transition:all 0.15s;}
+/* ── MOBILE VIEW — PREMIUM ─────────────────────────────────────── */
+.view-switcher{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.view-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:6px;transition:all 0.15s;}
 .view-btn.active{background:var(--accent);color:var(--fg);}
 
-#mobile-view{display:none;padding:0 0 100px;}
-.mobile-day{background:var(--surface);border-bottom:1px solid var(--border);overflow:hidden;}
-.mobile-day-header{display:flex;align-items:center;padding:14px 20px;cursor:pointer;gap:12px;transition:background 0.15s;}
-.mobile-day-header:hover{background:rgba(255,255,255,0.03);}
-.mobile-day-header.today{background:rgba(212,80,26,0.06);}
-.mobile-day-header.today .mday-date{color:var(--accent);}
-.mday-abbr{width:36px;height:36px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;color:var(--muted);flex-shrink:0;}
-.mobile-day-header.today .mday-abbr{background:var(--accent);color:var(--fg);}
+#mobile-view{display:none;padding:0 0 120px;}
+
+/* Day accordion */
+.mobile-day{background:transparent;margin:0 16px 10px;border-radius:16px;overflow:hidden;border:1px solid var(--border);transition:border-color 0.2s;}
+.mobile-day.open{border-color:var(--accent);}
+.mobile-day-header{display:flex;align-items:center;padding:16px;cursor:pointer;gap:14px;background:var(--surface);transition:background 0.15s;}
+.mobile-day-header:active{background:var(--surface2);}
+.mobile-day-header.today{background:rgba(212,80,26,0.08);}
+.mday-abbr{width:44px;height:44px;border-radius:12px;background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;color:var(--muted);flex-shrink:0;gap:1px;}
+.mday-abbr-day{font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+.mday-abbr-num{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:var(--fg);}
+.mobile-day-header.today .mday-abbr{background:var(--accent);}
+.mobile-day-header.today .mday-abbr-day{color:rgba(240,237,232,0.7);}
+.mobile-day-header.today .mday-abbr-num{color:var(--fg);}
 .mday-info{flex:1;min-width:0;}
-.mday-date{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:var(--fg);}
-.mday-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;}
-.mday-km{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);line-height:1;}
-.mday-km-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;text-align:right;}
-.mday-chevron{color:var(--muted);font-size:14px;flex-shrink:0;transition:transform 0.2s;}
-.mobile-day.open .mday-chevron{transform:rotate(180deg);}
-.mobile-day-body{display:none;padding:0 16px 12px;}
-.mobile-day.open .mobile-day-body{display:block;}
+.mday-month{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;}
+.mday-types{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.mday-type-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.mday-km-wrap{text-align:right;flex-shrink:0;}
+.mday-km{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1;}
+.mday-km-lbl{font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;}
+.mday-chevron{color:var(--muted2);font-size:12px;flex-shrink:0;transition:transform 0.25s;margin-left:4px;}
+.mobile-day.open .mday-chevron{transform:rotate(180deg);color:var(--accent);}
+.mobile-day-body{display:none;background:var(--surface);border-top:1px solid var(--border);padding:12px 14px 14px;}
+.mobile-day.open .mobile-day-body{display:block;animation:slideDown 0.2s ease;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 
-.mtraining{background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:8px;position:relative;overflow:hidden;}
-.mtraining::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
-.mtraining.spokojny::before{background:var(--blue,#5090e0);}
-.mtraining.interwaly::before{background:var(--yellow,#e8b840);}
-.mtraining.tempo::before{background:var(--accent);}
-.mtraining.wybieganie::before{background:var(--purple,#9a6fe8);}
-.mtraining.regeneracja::before{background:var(--green);}
+/* Training cards premium */
+.mtraining{border-radius:12px;padding:14px 16px 14px 20px;margin-bottom:8px;position:relative;overflow:hidden;border:1px solid transparent;transition:border-color 0.15s;}
+.mtraining:last-child{margin-bottom:0;}
+.mtraining::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:0;}
+.mtraining.spokojny{background:rgba(80,144,224,0.08);border-color:rgba(80,144,224,0.15);}
+.mtraining.spokojny::before{background:linear-gradient(180deg,#5090e0,#3070c0);}
+.mtraining.interwaly{background:rgba(232,184,64,0.08);border-color:rgba(232,184,64,0.15);}
+.mtraining.interwaly::before{background:linear-gradient(180deg,#e8b840,#d4a020);}
+.mtraining.tempo{background:rgba(212,80,26,0.08);border-color:rgba(212,80,26,0.15);}
+.mtraining.tempo::before{background:linear-gradient(180deg,#d4501a,#f06030);}
+.mtraining.wybieganie{background:rgba(154,111,232,0.08);border-color:rgba(154,111,232,0.15);}
+.mtraining.wybieganie::before{background:linear-gradient(180deg,#9a6fe8,#7a4fc8);}
+.mtraining.regeneracja{background:rgba(61,184,112,0.08);border-color:rgba(61,184,112,0.15);}
+.mtraining.regeneracja::before{background:linear-gradient(180deg,#3db870,#2a9a58);}
+.mtraining.odpoczynek{background:rgba(68,66,74,0.3);border-color:rgba(68,66,74,0.4);}
 .mtraining.odpoczynek::before{background:var(--muted2);}
-.mtraining.start::before{background:var(--green);}
-.mtraining.zastepczy::before{background:var(--yellow,#e8b840);}
-.mtraining-type{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:4px;}
-.mtraining-main{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);}
-.mtraining-meta{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
-.mtraining-desc{font-size:12px;color:rgba(240,237,232,0.65);line-height:1.6;margin-top:6px;font-family:'DM Sans',sans-serif;}
-.mtraining-status{display:inline-flex;align-items:center;gap:4px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-top:8px;padding:3px 8px;border-radius:4px;font-family:'DM Mono',monospace;}
-.mtraining-status.done{background:rgba(61,184,112,0.12);color:var(--green);border:1px solid rgba(61,184,112,0.3);}
-.mtraining-status.missed{background:rgba(212,80,26,0.12);color:var(--accent);border:1px solid rgba(212,80,26,0.3);}
-.mtraining-actions{display:flex;gap:6px;margin-top:8px;}
-.mtraining-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;}
+.mtraining.start{background:rgba(61,184,112,0.12);border-color:rgba(61,184,112,0.3);}
+.mtraining.start::before{background:linear-gradient(180deg,#3db870,#2a9a58);}
+.mtraining.zastepczy{background:rgba(232,184,64,0.08);border-color:rgba(232,184,64,0.15);}
+.mtraining.zastepczy::before{background:linear-gradient(180deg,#e8b840,#d4a020);}
+.mtraining-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.mtraining-type-label{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.mtraining.spokojny .mtraining-type-label{color:#5090e0;}
+.mtraining.interwaly .mtraining-type-label{color:#e8b840;}
+.mtraining.tempo .mtraining-type-label{color:#d4501a;}
+.mtraining.wybieganie .mtraining-type-label{color:#9a6fe8;}
+.mtraining.regeneracja .mtraining-type-label{color:#3db870;}
+.mtraining.odpoczynek .mtraining-type-label{color:var(--muted);}
+.mtraining.start .mtraining-type-label{color:#3db870;}
+.mtraining-dist{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--fg);}
+.mtraining-dist span{font-size:16px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:300;margin-left:2px;}
+.mtraining-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.mchip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);border-radius:6px;padding:3px 8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--fg);}
+.mtraining-desc{font-size:12px;color:rgba(240,237,232,0.6);line-height:1.7;margin-top:8px;font-family:'DM Sans',sans-serif;font-weight:300;border-top:1px solid rgba(255,255,255,0.06);padding-top:8px;}
+.mtraining-status{display:inline-flex;align-items:center;gap:5px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;margin-top:8px;padding:4px 10px;border-radius:20px;font-family:'DM Mono',monospace;}
+.mtraining-status.done{background:rgba(61,184,112,0.15);color:#3db870;}
+.mtraining-status.missed{background:rgba(212,80,26,0.15);color:var(--accent);}
+.mtraining-actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.mtraining-btn{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all 0.15s;}
 .mtraining-btn:hover{border-color:var(--accent);color:var(--accent);}
-.mtraining-btn.approve{border-color:rgba(61,184,112,0.35);color:var(--green);}
-.mtraining-btn.approve:hover{background:rgba(61,184,112,0.12);}
+.mtraining-btn.approve{border-color:rgba(61,184,112,0.4);color:#3db870;background:rgba(61,184,112,0.08);}
+.mtraining-btn.del{border-color:rgba(224,80,80,0.3);color:var(--red);}
 
-.mobile-sticky-btn{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:400px;background:var(--accent);color:var(--fg);border:none;border-radius:50px;padding:16px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;z-index:40;box-shadow:0 4px 20px rgba(212,80,26,0.4);transition:all 0.15s;}
-.mobile-sticky-btn:hover{background:var(--accent2);transform:translateX(-50%) translateY(-2px);}
-.mday-log-thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}
-.mday-log-thumbs img{width:calc(50% - 2px);max-height:80px;object-fit:cover;border-radius:6px;cursor:pointer;}
+.mobile-sticky-btn{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);width:calc(100% - 40px);max-width:400px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--fg);border:none;border-radius:50px;padding:17px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;cursor:pointer;z-index:40;box-shadow:0 6px 24px rgba(212,80,26,0.45);transition:all 0.2s;}
+.mobile-sticky-btn:hover{transform:translateX(-50%) translateY(-2px);box-shadow:0 8px 32px rgba(212,80,26,0.55);}
+.mday-log-thumbs{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;}
+.mday-log-thumbs img{width:calc(50% - 2px);max-height:90px;object-fit:cover;border-radius:8px;cursor:pointer;}
+.m-add-btn{width:100%;padding:12px;border-radius:10px;border:1px dashed var(--border);background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:all 0.15s;}
+.m-add-btn:hover{border-color:var(--accent);color:var(--accent);}
 </style>
 </head>
 <body>
@@ -1627,7 +1658,7 @@ async function copyTraining() {
 
 
 // ── VIEW SWITCHER ──────────────────────────────────────────────────
-let _calView = localStorage.getItem('calendarView') || (window.innerWidth < 768 ? 'mobile' : 'classic');
+let _calView = localStorage.getItem('calendarView') || (_urlRole === 'athlete' ? 'mobile' : 'classic');
 
 function setView(v) {
   _calView = v;
@@ -1666,41 +1697,65 @@ function renderMobile() {
   const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
   const today = new Date(); today.setHours(0,0,0,0);
 
+  const typeColorMap = {
+    'spokojny':'#5090e0','interwaly':'#e8b840','tempo':'#d4501a',
+    'wybieganie':'#9a6fe8','regeneracja':'#3db870','start':'#3db870',
+    'zastepczy':'#e8b840','odpoczynek':'var(--muted2)'
+  };
+
   el.innerHTML = days.map(d => {
     const ds = dateStr(d);
     const isToday = d.getTime() === today.getTime();
     const ts = trainings[ds] || [];
     const km = ts.reduce((s,t)=>s+(t.dist||0),0);
     const dayN = dayNames[d.getDay()===0?6:d.getDay()-1];
-    const dateLabel = `${d.getDate()} ${monthNames[d.getMonth()].toUpperCase()}`;
     const sessionCount = ts.length;
-    const countLabel = sessionCount === 0 ? 'Odpoczynek' : sessionCount === 1 ? '1 trening' : sessionCount + ' treningi';
+
+    // Dots — typy treningów w nagłówku
+    const typeDots = ts.filter(t=>t.type!=='Odpoczynek').map(t => {
+      const tc = _mTypeColors[t.type] || 'spokojny';
+      const col = typeColorMap[tc] || '#5090e0';
+      return `<div class="mday-type-dot" style="background:${col};"></div>`;
+    }).join('');
 
     // Race goal
     const showRace = _urlRole === 'athlete' || window._calSelectedAthleteId;
     const raceGoal = showRace && window._goals && window._goals.find(g => g.date === ds);
-    const raceHtml = raceGoal ? `<div style="background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.4);border-radius:8px;padding:8px 10px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal('${raceGoal.id}')">
-      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;">🏁 ${raceGoal.name}</div>
+    const raceHtml = raceGoal ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.15),rgba(61,184,112,0.05));border:1px solid rgba(61,184,112,0.4);border-radius:10px;padding:10px 14px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:10px;" onclick="openGoalModal('${raceGoal.id}')">
+      <span style="font-size:18px;">🏁</span>
+      <div><div style="font-size:12px;font-weight:600;color:var(--green);">${raceGoal.name}</div><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">kliknij aby edytować</div></div>
     </div>` : '';
 
-    // Trening cards
+    // Training cards — premium
     const cardsHtml = ts.map((t, i) => {
       const tc = _mTypeColors[t.type] || 'spokojny';
+      const col = typeColorMap[tc] || '#5090e0';
+      
+      // Chips z metadanymi
+      const chips = [
+        t.pace ? `<span class="mchip">⚡ ${t.pace}/km</span>` : '',
+        t.hr   ? `<span class="mchip">♥ ${t.hr}</span>` : '',
+        t.time ? `<span class="mchip">⏱ ${t.time} min</span>` : '',
+      ].filter(Boolean).join('');
+
       const statusHtml = t.status==='done'
         ? '<div class="mtraining-status done">✓ Wykonany</div>'
         : t.status==='missed' ? '<div class="mtraining-status missed">✗ Nie wykonany</div>' : '';
+
       const approveHtml = (t.status!=='done' && t.type!=='Odpoczynek')
         ? `<button class="mtraining-btn approve" onclick="event.stopPropagation();approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>` : '';
       const editHtml = `<button class="mtraining-btn" onclick="event.stopPropagation();openModal('${ds}',${i})">✏ Edytuj</button>`;
       const copyHtml = _urlRole==='coach' ? `<button class="mtraining-btn" onclick="event.stopPropagation();openCopyModalFromCard(event,'${ds}',${i})">⧉ Kopiuj</button>` : '';
-      const delHtml  = `<button class="mtraining-btn" style="color:var(--red);border-color:rgba(224,80,80,0.3);" onclick="event.stopPropagation();deleteTraining(event,'${ds}',${i})">✕</button>`;
+      const delHtml  = `<button class="mtraining-btn del" onclick="event.stopPropagation();deleteTraining(event,'${ds}',${i})">✕</button>`;
 
       return `<div class="mtraining ${tc}">
-        <div class="mtraining-type" style="color:${tc==='spokojny'?'#5090e0':tc==='interwaly'?'#e8b840':tc==='tempo'?'#d4501a':tc==='wybieganie'?'#9a6fe8':tc==='regeneracja'?'#3db870':tc==='start'?'#3db870':'var(--muted)'};">${t.type.toUpperCase()}</div>
-        ${t.dist>0?`<div class="mtraining-main">${t.dist} <span style="font-size:16px;color:var(--muted);">km</span></div>`:''}
-        ${(t.pace||t.hr||t.time)?`<div class="mtraining-meta">${[t.pace?t.pace+'/km':'', t.hr?'♥ '+t.hr:'', t.time?t.time+' min':''].filter(Boolean).join('  ·  ')}</div>`:''}
+        <div class="mtraining-header">
+          <div class="mtraining-type-label">${t.type.toUpperCase()}</div>
+          ${statusHtml}
+        </div>
+        ${t.dist>0?`<div class="mtraining-dist">${t.dist}<span>km</span></div>`:''}
+        ${chips?`<div class="mtraining-chips">${chips}</div>`:''}
         ${t.desc?`<div class="mtraining-desc">${t.desc}</div>`:''}
-        ${statusHtml}
         <div class="mtraining-actions">${editHtml}${approveHtml}${copyHtml}${delHtml}</div>
       </div>`;
     }).join('');
@@ -1710,23 +1765,27 @@ function renderMobile() {
     const thumbsHtml = dayLogs.filter(l=>l.attachment_url).length > 0
       ? `<div class="mday-log-thumbs">${dayLogs.filter(l=>l.attachment_url).flatMap(l=>l.attachment_url.split(',')).map(url=>`<img src="${url}" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}</div>` : '';
 
-    const addBtnHtml = `<button class="mtraining-btn" style="width:100%;text-align:center;margin-top:4px;" onclick="openModal('${ds}',null)">+ Dodaj trening</button>`;
-
     return `<div class="mobile-day${isToday?' open':''}" id="mday-${ds}">
       <div class="mobile-day-header${isToday?' today':''}" onclick="toggleMobileDay('${ds}')">
-        <div class="mday-abbr">${dayN}</div>
-        <div class="mday-info">
-          <div class="mday-date">${dateLabel}</div>
-          <div class="mday-sub">${countLabel}</div>
+        <div class="mday-abbr">
+          <div class="mday-abbr-day">${dayN}</div>
+          <div class="mday-abbr-num">${d.getDate()}</div>
         </div>
-        ${km>0?`<div style="text-align:right;"><div class="mday-km">${km.toFixed(0)}</div><div class="mday-km-lbl">km</div></div>`:''}
-        <div class="mday-chevron">⌄</div>
+        <div class="mday-info">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;color:${isToday?'var(--accent)':'var(--fg)'};">${monthNames[d.getMonth()].toUpperCase()}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+            ${typeDots}
+            ${sessionCount===0?`<span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;letter-spacing:0.08em;">ODPOCZYNEK</span>`:`<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${sessionCount} ${sessionCount===1?'trening':'treningi'}</span>`}
+          </div>
+        </div>
+        ${km>0?`<div class="mday-km-wrap"><div class="mday-km">${km.toFixed(0)}</div><div class="mday-km-lbl">km</div></div>`:''}
+        <div class="mday-chevron">›</div>
       </div>
       <div class="mobile-day-body">
         ${raceHtml}
         ${cardsHtml}
         ${thumbsHtml}
-        ${addBtnHtml}
+        <button class="m-add-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</button>
       </div>
     </div>`;
   }).join('');
