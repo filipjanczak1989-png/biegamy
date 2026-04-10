@@ -808,12 +808,17 @@ async function approveTraining(e, ds, idx, dbId) {
   notify('Trening zatwierdzony ✓');
 }
 
-function deleteTraining(e, ds, idx) {
+async function deleteTraining(e, ds, idx) {
   e.stopPropagation();
   if(!confirm('Usunąć ten trening?')) return;
+  const t = trainings[ds] && trainings[ds][idx];
+  const dbId = t ? t._id : null;
   trainings[ds].splice(idx,1);
   if(trainings[ds].length===0) delete trainings[ds];
   render();
+  if (dbId) {
+    await _sbKal.from('trainings').delete().eq('id', dbId);
+  }
   notify('Trening usunięty');
 }
 
@@ -1195,16 +1200,23 @@ async function saveLog() {
     comment, feel: _logFeel,
     logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
   });
-  // Oznacz trening jako wykonany
+  // Oznacz trening jako wykonany i zaktualizuj dystans z logu
   if (_logTrainingId) {
-    await _sbKal.from('trainings').update({status:'done'}).eq('id', _logTrainingId);
+    const updateData = { status: 'done' };
+    if (dist) updateData.distance_km = dist;
+    if (pace) updateData.pace = pace;
+    await _sbKal.from('trainings').update(updateData).eq('id', _logTrainingId);
     if (trainings[_logDate2]) {
       const t = trainings[_logDate2].find(x => x._id === _logTrainingId);
-      if (t) t.status = 'done';
+      if (t) {
+        t.status = 'done';
+        if (dist) t.dist = dist;
+        if (pace) t.pace = pace;
+      }
     }
   }
   closeLogModal();
-  render();
+  await loadTrainingsFromDB();
   notify('Log zapisany ✓');
 }
 
