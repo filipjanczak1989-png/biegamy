@@ -513,7 +513,10 @@ function getWeekStart(date) {
 }
 
 function dateStr(date) {
-  return date.toISOString().split('T')[0];
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+d;
 }
 
 function addDays(date, n) {
@@ -1168,7 +1171,16 @@ function renderGoals() {
     list.innerHTML = '<span style="font-size:10px;color:var(--muted2);font-family:DM Mono,monospace;letter-spacing:0.05em;">Brak celów</span>';
     return;
   }
-  list.innerHTML = window._goals.map(g => {
+  // Trener bez wybranego zawodnika — tylko 1 najbliższy cel
+  let goalsToRender = window._goals;
+  if (_urlRole === 'coach' && !window._calSelectedAthleteId) {
+    const now2 = new Date();
+    const future = window._goals.filter(g => new Date(g.date+'T12:00:00') >= now2);
+    future.sort((a,b) => a.date.localeCompare(b.date));
+    goalsToRender = future.length ? [future[0]] : window._goals.slice(-1);
+  }
+
+  list.innerHTML = goalsToRender.map(g => {
     const d = new Date(g.date + 'T12:00:00');
     const now = new Date();
     const days = Math.round((d - now) / 86400000);
