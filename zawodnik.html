@@ -1146,11 +1146,12 @@ async function uploadVoiceMsg(blob, duration, sender) {
   const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
   if (error) { toast('Błąd: '+error.message); return; }
   const {data:urlData} = _sb.storage.from('training-screenshots').getPublicUrl(path);
-  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
+  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
   await _sb.from('messages').insert({athlete_id:_athleteId,sender:sender,body,sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
+function playVoiceMsg(btn, url) { playVoice(btn, url); }
 function playVoice(btn, url) {
   const audio = new Audio(url);
   btn.textContent = '⏸️';
@@ -2055,12 +2056,12 @@ async function searchGifs(q, pickerId) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q||'running')}&key=AIzaSyAyimkuYQYF_FXVALexPmha5hTzZS9JmXQ&limit=12&media_filter=gif`);
+    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=12`);
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
-      const sm = g.media_formats?.tinygif?.url || g.media_formats?.gif?.url || '';
-      const lg = g.media_formats?.gif?.url || sm;
-      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.content_description||'gif'}">`;
+      const sm = g.media?.[0]?.tinygif?.[0]?.url || g.media?.[0]?.gif?.[0]?.url || '';
+      const lg = g.media?.[0]?.gif?.[0]?.url || sm;
+      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.title||'gif'}">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>'; }
 }

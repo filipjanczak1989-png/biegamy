@@ -1371,7 +1371,7 @@ async function searchGifsCoach(q) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(q||'running')}&key=AIzaSyAyimkuYQYF_FXVALexPmha5hTzZS9JmXQ&limit=12&media_filter=gif`);
+    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=12`);
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
       const sm = g.media_formats?.tinygif?.url || g.media_formats?.gif?.url || '';
@@ -1426,6 +1426,7 @@ async function recallCoachMsg(msgId) {
   await _sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
   await loadCoachChat();
 }
+function playVoice(btn, url) { playVoiceMsg(btn, url); }
 function playVoiceMsg(btn, url) {
   const audio = new Audio(url);
   btn.textContent = '⏸️';
