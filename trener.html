@@ -1287,13 +1287,13 @@ function showCoachSection(name) {
   if (name === 'home') {
     const n = document.getElementById('coach-nav-home');
     if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-home-lbl').style.color='var(--accent)'; }
-  } else if (name === 'msgs') {
+  } else if (name === 'msgs' || name === 'messages' || name === 'czat' || name === 'wiadomosci') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'block';
     const n = document.getElementById('coach-nav-msgs');
     if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
     loadCoachMsgsList();
-  } else if (name === 'analytics') {
+  } else if (name === 'analytics' || name === 'statystyki') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'none';
     document.getElementById('analytics-section').style.display = 'block';

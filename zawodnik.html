@@ -301,6 +301,15 @@ body{
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;padding:14px 22px 4px;color:var(--fg);}
 .modal-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 22px 16px;letter-spacing:0.05em;}
 .modal-body{padding:0 22px;}
+/* Chat bubbles */
+.msg-bubble{max-width:78%;padding:10px 14px;border-radius:18px;font-size:13px;line-height:1.6;word-break:break-word;}
+.msg-bubble.coach{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-bottom-left-radius:4px;align-self:flex-start;}
+.msg-bubble.athlete{background:var(--accent);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;}
+.msg-row{display:flex;flex-direction:column;gap:2px;}
+.msg-row.athlete{align-items:flex-end;}
+.msg-row.coach{align-items:flex-start;}
+.msg-meta{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 4px;}
+.msg-recall{font-size:11px;color:var(--muted2);font-style:italic;}
 .field{margin-bottom:16px;}
 .field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
 .field input,.field textarea,.field select{
@@ -437,6 +446,80 @@ body{
 
 /* ── NOTIF ───────────────────────────────────────────────────────── */
 #training-notif{pointer-events:all;}
+
+/* ── ONBOARDING MODAL ────────────────────────────────────────────── */
+#onboarding-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;
+  display:none;align-items:center;justify-content:center;
+  padding:20px;backdrop-filter:blur(8px);
+}
+#onboarding-modal.show{display:flex;}
+.ob-box{
+  background:var(--card2);border:1px solid rgba(255,255,255,0.1);
+  border-radius:24px;padding:28px 24px;width:100%;max-width:380px;
+  max-height:90vh;overflow-y:auto;
+  box-shadow:0 24px 80px rgba(0,0,0,0.8),0 1px 0 rgba(255,255,255,0.06) inset;
+  position:relative;
+}
+.ob-box::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  border-radius:24px 24px 0 0;
+}
+.ob-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:6px;}
+.ob-sub{font-size:13px;color:rgba(240,237,232,0.55);line-height:1.6;margin-bottom:22px;}
+.ob-field{margin-bottom:14px;}
+.ob-label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.ob-input{
+  width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);
+  color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;
+  padding:11px 14px;border-radius:12px;outline:none;
+  transition:border-color 0.2s,box-shadow 0.2s;
+}
+.ob-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.12);}
+.ob-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ob-btn{
+  width:100%;margin-top:18px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;border:none;border-radius:14px;padding:14px;
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;
+  text-transform:uppercase;cursor:pointer;
+  box-shadow:0 4px 20px rgba(232,86,30,0.4);transition:all 0.18s;
+}
+.ob-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(232,86,30,0.5);}
+.ob-skip{
+  width:100%;margin-top:10px;background:transparent;
+  border:none;color:var(--muted);font-family:'DM Mono',monospace;
+  font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;padding:8px;
+}
+.ob-skip:hover{color:var(--fg);}
+
+/* ── SECTION FIXES ───────────────────────────────────────────────── */
+#section-profile{padding:0 0 100px;}
+#section-stats{padding:0 0 100px;}
+.section-pad{padding:0 20px;}
+
+/* ── PROFILE SECTION PREMIUM ─────────────────────────────────────── */
+.profile-avatar-wrap{text-align:center;padding:28px 20px 24px;}
+.profile-avatar{width:90px;height:90px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);margin:0 auto 12px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 24px var(--glow-o);}
+.profile-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;}
+.profile-email{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.profile-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:20px;margin:0 16px 12px;}
+.profile-card-title{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;}
+.pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pb-item{background:rgba(255,255,255,0.03);border-radius:12px;padding:12px 14px;}
+.pb-lbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.pb-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1;}
+.goals-list{display:flex;flex-direction:column;gap:8px;}
+.goal-item{background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.goal-icon{font-size:18px;}
+.goal-name{font-size:13px;font-weight:500;}
+.goal-date{font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-top:2px;}
+
+/* ── STATS SECTION ───────────────────────────────────────────────── */
+#stats-content .stat-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:20px;padding:18px 20px;margin-bottom:12px;}
+
 </style>
 </head>
 <body>
@@ -550,12 +633,13 @@ body{
 <!-- SEKCJA: WIADOMOŚCI -->
 <div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);">
   <!-- Header czatu -->
-  <div class="pchat-view-hdr" style="flex-shrink:0;">
-    <div class="pchat-view-av" id="z-coach-av" style="background:#d4501a;">F</div>
+  <div class="pchat-view-hdr" style="flex-shrink:0;padding-top:max(12px,env(safe-area-inset-top));">
+    <div class="pchat-view-av" id="z-coach-av">F</div>
     <div style="flex:1;">
       <div class="pchat-view-name" id="z-coach-name">Trener</div>
-      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">wiadomości</div>
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">wiadomości</div>
     </div>
+    <button onclick="showSection('home')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">✕</button>
   </div>
   <!-- Thread -->
   <div id="msgs-thread" style="flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:6px;"></div>
@@ -581,18 +665,22 @@ body{
 </div>
 
 <!-- SEKCJA: PROFIL -->
-<div id="section-profile" style="display:none;padding:0 20px 100px;">
+<div id="section-profile" style="display:none;padding:0 0 100px;">
+  <!-- Topbar sekcji profilu -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:52px 20px 0;">
+    <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Profil</div>
+  </div>
 
   <!-- Avatar + imię -->
-  <div style="text-align:center;padding:20px 0 24px;">
-    <div onclick="document.getElementById('avatar-input').click()" style="width:88px;height:88px;border-radius:50%;border:2px solid var(--accent);background:var(--card2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);margin:0 auto 10px;cursor:pointer;overflow:hidden;position:relative;">
+  <div style="text-align:center;padding:20px 0 28px;">
+    <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);margin:0 auto 14px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(232,86,30,0.25);">
       <span id="avatar-initials">?</span>
       <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
     </div>
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;" id="profile-name">—</div>
-    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;" id="profile-email">—</div>
-    <div style="font-size:10px;color:var(--muted2);font-family:'DM Mono',monospace;margin-top:6px;">Kliknij avatar aby zmienić zdjęcie</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.2);font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.06em;">kliknij avatar · zmień zdjęcie</div>
   </div>
 
   <!-- Życiówki -->
@@ -1094,41 +1182,46 @@ function showSection(name) {
     n.classList.remove('active');
   });
 
-  // Ukryj sekcje
+  // Ukryj sekcje + home elements
   document.getElementById('section-msgs').style.display = 'none';
   document.getElementById('section-profile').style.display = 'none';
   document.getElementById('section-stats').style.display = 'none';
+  // Ukryj home-only elementy (przywrócone tylko w 'home')
+  if (name !== 'home') {
+    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
+    document.getElementById('daily-motivation')?.style.setProperty('display','none');
+    document.getElementById('week-strip')?.style.setProperty('display','none');
+    document.getElementById('log-list')?.style.setProperty('display','none');
+  }
 
   if (name === 'home') {
-    // Force-pokaż wszystkie główne elementy
-    document.querySelector('.today-hero')?.style.setProperty('display','');
-    document.querySelector('.week-sum')?.style.setProperty('display','');
-    document.querySelector('.coach-box')?.style.setProperty('display','');
-    document.getElementById('log-list')?.style.setProperty('display','');
+    // Ukryj ALL sekcje overlay
+    document.getElementById('section-msgs').style.display = 'none';
+    document.getElementById('section-profile').style.display = 'none';
+    document.getElementById('section-stats').style.display = 'none';
+    // Pokaż elementy home
+    document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     document.querySelectorAll('.fade-in').forEach(el => el.style.display = '');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = '');
+    document.getElementById('daily-motivation')?.style.setProperty('display','');
+    document.getElementById('week-strip')?.style.setProperty('display','');
     const n = document.getElementById('nav-home');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
 
-  } else if (name === 'msgs') {
-    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
+  } else if (name === 'msgs' || name === 'messages' || name === 'czat') {
     document.getElementById('section-msgs').style.display = 'flex';
     const n = document.getElementById('nav-msgs');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
-    loadMessages().then(() => { setTimeout(() => { const th = document.getElementById('msgs-thread'); if(th) th.scrollTop = th.scrollHeight; }, 100); });
+    loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
     // Załaduj imię trenera
     if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
   } else if (name === 'profile') {
-    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('section-profile').style.display = 'block';
     loadProfile();
 
-  } else if (name === 'stats') {
-    document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
+  } else if (name === 'stats' || name === 'analytics' || name === 'statystyki') {
     document.getElementById('section-stats').style.display = 'block';
     const n = document.getElementById('nav-stats');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
@@ -1896,24 +1989,42 @@ async function loadTodayTraining() {
 
 async function loadCoachMessage() {
   if (!_athleteId) return;
-  // Pobierz ostatnią wiadomość od trenera z tabeli messages
-  const { data } = await _sb
+  // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
+  const { data: msgs } = await _sb
     .from('messages')
     .select('body, sent_at')
     .eq('athlete_id', _athleteId)
     .eq('sender', 'coach')
     .order('sent_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(20);
 
-  if (data?.body) {
-    document.getElementById('coach-body').style.color = '';
-    document.getElementById('coach-body').style.fontStyle = '';
-    document.getElementById('coach-body').innerHTML = data.body;
-    if (data.sent_at) {
-      const d = new Date(data.sent_at);
-      document.getElementById('coach-ts').textContent = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    }
+  if (!msgs || !msgs.length) return;
+  const el = document.getElementById('coach-body');
+  const ts = document.getElementById('coach-ts');
+  if (!el) return;
+
+  // Znajdź ostatnią sensowną wiadomość (niekoniecznie pierwszą)
+  const last = msgs[0]; // najnowsza
+  let body = last.body || '';
+  el.style.fontStyle = '';
+
+  if (body.includes('tenor.com') || (body.includes('<img') && body.includes('gif'))) {
+    el.innerHTML = '🎬 GIF od trenera'; el.style.color = 'var(--muted)';
+  } else if (body.includes('voice-msg') || body.includes('.webm')) {
+    el.innerHTML = '🎤 Głosówka od trenera'; el.style.color = 'var(--muted)';
+  } else if (body.includes('<img')) {
+    el.innerHTML = '📷 Zdjęcie od trenera'; el.style.color = 'var(--muted)';
+  } else if (body.includes('<a ')) {
+    // Link — wyczyść HTML i pokaż tekst
+    const tmp = document.createElement('div'); tmp.innerHTML = body;
+    el.textContent = tmp.textContent || 'Wiadomość od trenera';
+    el.style.color = '';
+  } else {
+    el.innerHTML = body; el.style.color = '';
+  }
+  if (last.sent_at && ts) {
+    const d = new Date(last.sent_at);
+    ts.textContent = d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'})+' · '+d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
   }
 }
 
@@ -2417,9 +2528,14 @@ async function toggleVoice(btnId, sender) {
 
 </script>
 <!-- SEKCJA: STATYSTYKI -->
-<div id="section-stats" style="display:none;padding:0 20px 100px;">
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Moje statystyki</div>
-  <div id="stats-content"></div>
+<div id="section-stats" style="display:none;padding:0 0 100px;">
+  <div style="padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Statystyki</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin-top:2px;">Moje dane</div>
+    </div>
+  </div>
+  <div id="stats-content" style="padding:0 16px;"></div>
 </div>
 
 <!-- ONBOARDING MODAL -->

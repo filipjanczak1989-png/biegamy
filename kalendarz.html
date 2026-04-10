@@ -1833,8 +1833,8 @@ if (_urlRole === 'athlete') {
 // Ustaw linki w bottom nav na podstawie roli
 const _isCoach = typeof _urlRole !== 'undefined' && _urlRole === 'coach';
 document.getElementById('bnav-home').href = _isCoach ? 'trener.html' : 'zawodnik.html';
-document.getElementById('bnav-stats').href = _isCoach ? 'trener.html#stats' : 'zawodnik.html?tab=stats';
-document.getElementById('bnav-msg').href = _isCoach ? 'trener.html#messages' : 'zawodnik.html?tab=messages';
+document.getElementById('bnav-stats').href = _isCoach ? 'trener.html?tab=analytics' : 'zawodnik.html?tab=stats';
+document.getElementById('bnav-msg').href = _isCoach ? 'trener.html?tab=msgs' : 'zawodnik.html?tab=msgs';
 </script>
 </body>
 </html>
