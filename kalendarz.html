@@ -854,12 +854,8 @@ async function deleteTraining(e, ds, idx) {
     const { error } = await _sbKal.from('trainings').delete().eq('id', dbId);
     if (error) { notify('Błąd usuwania: ' + error.message); return; }
   }
-  // Usuń lokalnie i przerenderuj
-  if (trainings[ds]) {
-    trainings[ds].splice(idx, 1);
-    if (trainings[ds].length === 0) delete trainings[ds];
-  }
-  render();
+  // Przeładuj z bazy — świeży stan po DELETE
+  await loadTrainingsFromDB();
   notify('Trening usunięty');
 }
 
@@ -1144,12 +1140,12 @@ async function loadGoals() {
   if (!session) return;
   let query = _sbKal.from('athletes').select('id, full_name, goal, target_date');
   if (_urlRole === 'athlete') {
-    query = query.eq('user_id', session.user.id);
+    query = query.eq('user_id', session.user.id).not('target_date', 'is', null);
   } else {
     query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
   }
   const { data } = await query;
-  window._goals = (data || []).filter(a => a.target_date).map(a => ({
+  window._goals = (data || []).filter(a => a.target_date && a.goal).map(a => ({
     id: a.id, name: a.goal || 'Start', date: a.target_date, athlete_name: a.full_name || ''
   }));
   window._raceDates = window._goals.map(g => ({ date: g.date, name: (_urlRole==='coach'&&g.athlete_name?g.athlete_name+': ':'')+g.name }));
@@ -1391,14 +1387,9 @@ loadGoals();
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania/usuwania
   window.addEventListener('load', () => {
-    document.querySelectorAll('.add-training-btn, .card-delete, .card-approve, #btn-new-training').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.card-delete, .card-approve, #btn-new-training').forEach(el => el.style.display = 'none');
   });
-  // Zawodnik może tylko przeglądać istniejące — nie tworzyć nowych
-  const _origOM = window.openModal;
-  window.openModal = function(ds, idx) {
-    if (idx !== null && idx !== undefined) _origOM(ds, idx);
-    // ds=null oznacza nowy trening — blokuj
-  };
+  // Zawodnik może przeglądać i dodawać własne treningi
 }
 </script>
 <nav class="bottom-nav" id="bottom-nav-cal">
