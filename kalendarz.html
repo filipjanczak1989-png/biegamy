@@ -124,8 +124,6 @@ nav{
 @keyframes cardIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 
 .training-card:hover{border-color:var(--accent);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.4);}
-.training-card.dragging{opacity:0.4;transform:scale(0.97);}
-.day-col.drag-over{background:rgba(212,80,26,0.1);border-color:var(--accent);}
 .training-card.done{border-left:3px solid var(--green);}
 .training-card.missed{border-left:3px solid var(--accent);opacity:0.6;}
 .training-card.rest-card{border-style:dashed;opacity:0.5;}
@@ -258,14 +256,14 @@ nav{
     <a href="kalendarz.html" class="nav-link active" id="role-label">Kalendarz</a>
   </div>
   <div class="nav-right" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+    <select class="athlete-select" id="athlete-select" style="display:none;" onchange="onAthleteChange(this.value)">
+      <option value="">Wszyscy zawodnicy</option>
+    </select>
     <!-- Cele startowe w nav -->
     <div id="nav-goals-wrap" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <div id="nav-goals-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       <button onclick="openGoalModal()" style="background:transparent;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🏁 + Cel</button>
     </div>
-    <select class="athlete-select" id="athlete-select" style="display:none;" onchange="onAthleteChange(this.value)">
-      <option value="">Wszyscy zawodnicy</option>
-    </select>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)">+ Nowy trening</button>
   </div>
 </nav>
@@ -306,9 +304,12 @@ nav{
         </select>
       </div>
     </div>
-    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
-      <button onclick="closeGoalModal()" style="background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Anuluj</button>
-      <button onclick="saveGoal()" style="background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Zapisz</button>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
+      <button id="btn-delete-goal" onclick="deleteGoal()" style="display:none;background:transparent;color:var(--red);border:1px solid rgba(224,80,80,0.4);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">🗑 Usuń cel</button>
+      <div style="display:flex;gap:8px;margin-left:auto;">
+        <button onclick="closeGoalModal()" style="background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Anuluj</button>
+        <button onclick="saveGoal()" style="background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Zapisz</button>
+      </div>
     </div>
   </div>
 </div>
@@ -471,32 +472,9 @@ nav{
         </div>
       </div>
     </div>
-    <div class="modal-footer" style="flex-wrap:wrap;gap:6px;">
+    <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button class="btn btn-ghost" id="btn-copy-training" onclick="openCopyModal()" style="display:none;">📋 Kopiuj do...</button>
       <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
-    </div>
-  </div>
-</div>
-
-<!-- COPY MODAL -->
-<div id="copy-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeCopyModal()">
-  <div style="background:var(--surface);border:1px solid var(--border);width:340px;max-width:92vw;">
-    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;">Kopiuj trening do zawodnika</div>
-      <button onclick="closeCopyModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
-    </div>
-    <div style="padding:16px 20px;">
-      <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">Zawodnik</label>
-      <select id="copy-athlete-select" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;margin-bottom:12px;cursor:pointer;">
-        <option value="">— wybierz —</option>
-      </select>
-      <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-family:'DM Mono',monospace;">Data (opcjonalnie — domyślnie ta sama)</label>
-      <input type="date" id="copy-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 12px;outline:none;">
-    </div>
-    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;">
-      <button onclick="closeCopyModal()" style="background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Anuluj</button>
-      <button onclick="copyTraining()" style="background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Kopiuj →</button>
     </div>
   </div>
 </div>
@@ -535,10 +513,7 @@ function getWeekStart(date) {
 }
 
 function dateStr(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth()+1).padStart(2,'0');
-  const d = String(date.getDate()).padStart(2,'0');
-  return y+'-'+m+'-'+d;
+  return date.toISOString().split('T')[0];
 }
 
 function addDays(date, n) {
@@ -584,12 +559,13 @@ function render() {
     const isToday = d.getTime() === today.getTime();
     const ts = trainings[ds] || [];
 
-    // Sprawdź czy to dzień startu
-    const isRaceDay = window._raceDates && window._raceDates.some(r => r.date === ds);
-
-    const raceCard = isRaceDay ? `<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.4);border-radius:8px;padding:8px 10px;margin-bottom:4px;">
-      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:3px;">🏁 CEL STARTOWY</div>
-      <div style="font-size:13px;font-weight:500;">${window._raceDates.find(r=>r.date===ds)?.name||'Start'}</div>
+    // Sprawdź czy to dzień startu — dla trenera tylko gdy wybrany zawodnik
+    const showRace = _urlRole === 'athlete' || window._calSelectedAthleteId;
+    const raceGoalForDay = showRace && window._goals && window._goals.find(g => g.date === ds);
+    const raceCard = raceGoalForDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08));border:2px solid rgba(61,184,112,0.6);border-radius:8px;padding:10px 12px;margin-bottom:4px;cursor:pointer;" onclick="openGoalModal('${raceGoalForDay.id}')">
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">🏁 CEL STARTOWY</div>
+      <div style="font-size:14px;font-weight:700;color:var(--fg);">${raceGoalForDay.name}</div>
+      <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">kliknij aby edytować</div>
     </div>` : '';
 
     const cards = ts.map((t,i) => {
@@ -598,9 +574,6 @@ function render() {
       const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie wykonany':'';
 
       return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
-                   draggable="true"
-                   ondragstart="dragStart(event,'${ds}',${i})"
-                   ondragend="dragEnd(event)"
                    onclick="openModal('${ds}',${i})">
         <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
         <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
@@ -621,10 +594,7 @@ function render() {
     }).join('');
     const logThumbsHtml = logThumbs ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding:6px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:6px;">${logThumbs}</div>` : '';
 
-    return `<div class="day-col ${isToday?'today':''}"
-      ondragover="event.preventDefault();this.classList.add('drag-over')"
-      ondragleave="this.classList.remove('drag-over')"
-      ondrop="dragDrop(event,'${ds}')">
+    return `<div class="day-col ${isToday?'today':''}">
       ${raceCard}
       ${cards}
       ${logThumbsHtml}
@@ -707,8 +677,6 @@ function openModal(ds, idx) {
   if(idx !== null && ds && trainings[ds] && trainings[ds][idx]) {
     const t = trainings[ds][idx];
     document.getElementById('modal-title').textContent = 'Edytuj trening';
-    const copyBtn = document.getElementById('btn-copy-training');
-    if (copyBtn) copyBtn.style.display = _urlRole === 'coach' ? 'block' : 'none';
     selectedType = t.type;
     selectedTypeCls = typeColors[t.type] || 'spokojny';
     document.querySelectorAll('.type-pill').forEach(p=>{
@@ -726,8 +694,6 @@ function openModal(ds, idx) {
     document.getElementById('f-status').value = t.status||'planned';
   } else {
     document.getElementById('modal-title').textContent = 'Nowy trening';
-    const copyBtn2 = document.getElementById('btn-copy-training');
-    if (copyBtn2) copyBtn2.style.display = 'none';
   }
 
   document.getElementById('modal-bg').classList.add('open');
@@ -1179,7 +1145,11 @@ async function loadGoals() {
   let query = _sbKal.from('athletes').select('id, full_name, goal, target_date');
   if (_urlRole === 'athlete') {
     query = query.eq('user_id', session.user.id).not('target_date', 'is', null);
+  } else if (window._calSelectedAthleteId) {
+    // Trener — tylko wybrany zawodnik
+    query = query.eq('id', window._calSelectedAthleteId).not('target_date', 'is', null);
   } else {
+    // Trener — wszyscy, ale w kalendarzu pokaż tylko najbliższy
     query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
   }
   const { data } = await query;
@@ -1198,13 +1168,7 @@ function renderGoals() {
     list.innerHTML = '<span style="font-size:10px;color:var(--muted2);font-family:DM Mono,monospace;letter-spacing:0.05em;">Brak celów</span>';
     return;
   }
-  // Trener — tylko 1 najbliższy cel; zawodnik — wszystkie swoje
-  let goalsToShow = window._goals;
-  if (_urlRole === 'coach') {
-    const future = window._goals.filter(g => new Date(g.date+'T12:00:00') >= new Date());
-    goalsToShow = future.length ? [future.sort((a,b)=>a.date.localeCompare(b.date))[0]] : [window._goals[window._goals.length-1]];
-  }
-  list.innerHTML = goalsToShow.map(g => {
+  list.innerHTML = window._goals.map(g => {
     const d = new Date(g.date + 'T12:00:00');
     const now = new Date();
     const days = Math.round((d - now) / 86400000);
@@ -1246,6 +1210,7 @@ async function openGoalModal(athleteId) {
   } else {
     document.getElementById('goal-athlete-wrap').style.display = 'none';
   }
+  const deleteBtn = document.getElementById('btn-delete-goal');
   if (athleteId) {
     title.textContent = 'Edytuj cel startowy';
     const g = window._goals.find(x => x.id === athleteId);
@@ -1254,10 +1219,12 @@ async function openGoalModal(athleteId) {
       document.getElementById('goal-date').value = g.date;
       if (_urlRole === 'coach') document.getElementById('goal-athlete').value = athleteId;
     }
+    if (deleteBtn) deleteBtn.style.display = 'block';
   } else {
     title.textContent = 'Nowy cel startowy';
     document.getElementById('goal-name').value = '';
     document.getElementById('goal-date').value = '';
+    if (deleteBtn) deleteBtn.style.display = 'none';
   }
   modal.style.opacity = '1'; modal.style.pointerEvents = 'all';
 }
@@ -1265,6 +1232,16 @@ async function openGoalModal(athleteId) {
 function closeGoalModal() {
   const modal = document.getElementById('goal-modal-bg');
   modal.style.opacity = '0'; modal.style.pointerEvents = 'none';
+}
+
+async function deleteGoal() {
+  if (!_editingGoalId) return;
+  if (!confirm('Usunąć ten cel startowy?')) return;
+  const { error } = await _sbKal.from('athletes').update({ goal: null, target_date: null }).eq('id', _editingGoalId);
+  if (error) { notify('Błąd: ' + error.message); return; }
+  closeGoalModal();
+  await loadGoals();
+  notify('Cel usunięty');
 }
 
 async function saveGoal() {
@@ -1422,91 +1399,6 @@ async function saveLog() {
 }
 
 // saveTraining DB logic is in async saveTraining()
-
-// ── DRAG & DROP ───────────────────────────────────────────────────
-let _dragDs = null, _dragIdx = null;
-
-function dragStart(e, ds, idx) {
-  _dragDs = ds; _dragIdx = idx;
-  e.target.classList.add('dragging');
-  e.dataTransfer.effectAllowed = 'move';
-}
-function dragEnd(e) { e.target.classList.remove('dragging'); }
-
-async function dragDrop(e, targetDs) {
-  e.preventDefault();
-  document.querySelectorAll('.day-col').forEach(c => c.classList.remove('drag-over'));
-  if (!_dragDs || _dragIdx === null || _dragDs === targetDs) return;
-  const t = trainings[_dragDs] && trainings[_dragDs][_dragIdx];
-  if (!t) return;
-  const dbId = t._id;
-  if (dbId) {
-    const { error } = await _sbKal.from('trainings').update({ date: targetDs }).eq('id', dbId);
-    if (error) { notify('Błąd: ' + error.message); return; }
-  }
-  // Przesuń lokalnie
-  if (!trainings[targetDs]) trainings[targetDs] = [];
-  trainings[targetDs].push({...t, _id: dbId});
-  trainings[_dragDs].splice(_dragIdx, 1);
-  if (!trainings[_dragDs].length) delete trainings[_dragDs];
-  _dragDs = null; _dragIdx = null;
-  render();
-  notify('Trening przeniesiony ✓');
-}
-
-// ── COPY TRAINING ─────────────────────────────────────────────────
-let _copyTrainingData = null;
-
-async function openCopyModal() {
-  const t = editingIndex !== null && trainings[editingDate] && trainings[editingDate][editingIndex];
-  if (!t) return;
-  _copyTrainingData = t;
-  // Załaduj zawodników do selecta
-  const sel = document.getElementById('copy-athlete-select');
-  sel.innerHTML = '<option value="">— wybierz —</option>';
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (session) {
-    const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
-    (data||[]).forEach(a => {
-      const opt = document.createElement('option');
-      opt.value = a.id; opt.textContent = a.full_name || a.id;
-      sel.appendChild(opt);
-    });
-  }
-  document.getElementById('copy-date').value = editingDate || '';
-  const modal = document.getElementById('copy-modal-bg');
-  modal.style.opacity='1'; modal.style.pointerEvents='all';
-}
-function closeCopyModal() {
-  const modal = document.getElementById('copy-modal-bg');
-  modal.style.opacity='0'; modal.style.pointerEvents='none';
-}
-async function copyTraining() {
-  const athleteId = document.getElementById('copy-athlete-select').value;
-  const date = document.getElementById('copy-date').value || editingDate;
-  if (!athleteId) { notify('Wybierz zawodnika'); return; }
-  if (!date) { notify('Podaj datę'); return; }
-  const t = _copyTrainingData;
-  if (!t) return;
-  const { data: { session } } = await _sbKal.auth.getSession();
-  const { error } = await _sbKal.from('trainings').insert({
-    coach_id: session.user.id,
-    athlete_id: athleteId,
-    date,
-    type: t.type,
-    distance_km: t.dist || null,
-    duration_min: t.time || null,
-    pace: t.pace || null,
-    heart_rate: t.hr || null,
-    description: t.desc || null,
-    status: 'planned'
-  });
-  if (error) { notify('Błąd: ' + error.message); return; }
-  closeCopyModal();
-  closeModal();
-  await loadTrainingsFromDB();
-  notify('Trening skopiowany ✓');
-}
 
 render();
 loadAthletesSelect();
