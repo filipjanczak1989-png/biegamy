@@ -136,6 +136,7 @@ nav{
 .card-type.regeneracja{color:#4caf78;}
 .card-type.odpoczynek{color:var(--muted);}
 .card-type.start{color:var(--green);}
+.card-type.zastepczy{color:#e8b840;}
 
 .card-main{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:4px;}
 .card-pace{font-size:10px;color:var(--muted);margin-bottom:6px;}
@@ -222,6 +223,7 @@ nav{
 .type-pill.sel.regeneracja-p{border-color:var(--green);background:rgba(76,175,120,0.15);color:var(--green);}
 .type-pill.sel.odpoczynek-p{border-color:var(--muted);background:rgba(106,101,96,0.15);}
 .type-pill.sel.start-p{border-color:var(--green);background:rgba(61,184,112,0.15);color:var(--green);}
+.type-pill.sel.zastepczy-p{border-color:#e8b840;background:rgba(232,184,64,0.15);color:#e8b840;}
 
 /* NOTIF */
 .notif{
@@ -403,6 +405,7 @@ nav{
           <button class="type-pill" onclick="selType(this,'Regeneracja','regeneracja')">Regeneracja</button>
           <button class="type-pill" onclick="selType(this,'Odpoczynek','odpoczynek')">Odpoczynek</button>
           <button class="type-pill" onclick="selType(this,'Start','start')">🏁 Start</button>
+          <button class="type-pill" onclick="selType(this,'Zastępczy','zastepczy')">🔄 Zastępczy</button>
         </div>
       </div>
       <div class="field-row">
@@ -481,7 +484,8 @@ nav{
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const typeColors = {
   'Bieg spokojny':'spokojny','Interwały':'interwaly','Tempo':'tempo',
-  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek','Start':'start'
+  'Wybieganie':'wybieganie','Regeneracja':'regeneracja','Odpoczynek':'odpoczynek',
+  'Start':'start','Zastępczy':'zastepczy'
 };
 
 let trainings = {}; // dane z Supabase
@@ -673,7 +677,7 @@ function openModal(ds, idx) {
     selectedTypeCls = typeColors[t.type] || 'spokojny';
     document.querySelectorAll('.type-pill').forEach(p=>{
       p.className='type-pill';
-      const map={Spokojny:'spokojny-p',Interwały:'interwaly-p',Tempo:'tempo-p',Wybieganie:'wybieganie-p',Regeneracja:'regeneracja-p',Odpoczynek:'odpoczynek-p','🏁 Start':'start-p'};
+      const map={Spokojny:'spokojny-p',Interwały:'interwaly-p',Tempo:'tempo-p',Wybieganie:'wybieganie-p',Regeneracja:'regeneracja-p',Odpoczynek:'odpoczynek-p','🏁 Start':'start-p','🔄 Zastępczy':'zastepczy-p'};
       if(p.textContent.trim()===t.type.replace('Bieg spokojny','Spokojny').replace('Interwały','Interwały')) {
         p.className=`type-pill sel ${map[p.textContent.trim()]||'spokojny-p'}`;
       }
@@ -733,18 +737,29 @@ async function saveTraining() {
     const dbId = existingTraining?._id || null;
 
     if (dbId) {
-      // UPDATE istniejącego
-      await _sbKal.from('trainings').update({
+      const { error: updErr } = await _sbKal.from('trainings').update({
         type: selectedType, distance_km: dist||null, duration_min: time||null,
         pace: pace||null, heart_rate: hr||null, description: desc||null, status
       }).eq('id', dbId);
+      if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
     } else {
-      // INSERT nowego
-      await _sbKal.from('trainings').insert({
-        coach_id: session.user.id, athlete_id: athleteId, date: editingDate,
-        type: selectedType, distance_km: dist||null, duration_min: time||null,
-        pace: pace||null, heart_rate: hr||null, description: desc||null, status
+      // Sprawdź czy mamy wybrane zawodnika — jeśli nie, zapytaj
+      const selEl = document.getElementById('athlete-select');
+      const selVal = selEl ? selEl.value : '';
+      const finalAthleteId = athleteId || selVal || null;
+      const { error: insErr } = await _sbKal.from('trainings').insert({
+        coach_id: session.user.id,
+        athlete_id: finalAthleteId,
+        date: editingDate,
+        type: selectedType,
+        distance_km: dist||null,
+        duration_min: time||null,
+        pace: pace||null,
+        heart_rate: hr||null,
+        description: desc||null,
+        status
       });
+      if (insErr) { notify('Błąd zapisu: ' + insErr.message); return; }
     }
     closeModal();
     await loadTrainingsFromDB();
@@ -1241,14 +1256,18 @@ async function saveGoal() {
   if (!name || !date) { notify('Wypełnij nazwę i datę'); return; }
   const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
-  let athleteId = _editingGoalId;
-  if (_urlRole === 'coach') athleteId = document.getElementById('goal-athlete').value || _editingGoalId;
-  if (!athleteId && _urlRole === 'athlete') {
+  let athleteId = null;
+  if (_urlRole === 'coach') {
+    athleteId = document.getElementById('goal-athlete').value || _editingGoalId;
+    if (!athleteId) { notify('Wybierz zawodnika'); return; }
+  } else {
+    // Zawodnik — zawsze zapisuje na swoje konto
     const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     athleteId = ath?.id;
+    if (!athleteId) { notify('Błąd konta'); return; }
   }
-  if (!athleteId) { notify('Wybierz zawodnika'); return; }
-  await _sbKal.from('athletes').update({ goal: name, target_date: date }).eq('id', athleteId);
+  const { error } = await _sbKal.from('athletes').update({ goal: name, target_date: date }).eq('id', athleteId);
+  if (error) { notify('Błąd: ' + error.message); return; }
   closeGoalModal();
   await loadGoals();
   notify('Cel startowy zapisany ✓');
