@@ -878,7 +878,6 @@ document.addEventListener('keydown', e => {
   if(e.key==='ArrowRight' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(1);
 });
 
-// render() przeniesiony do initApp()
 
 // ── ROLE DETECTION ────────────────────────────────────────────────
 const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
@@ -919,7 +918,6 @@ function onAthleteChange(athleteId) {
   Promise.all([loadTrainingsFromDB(), loadGoals()]);
 }
 
-// loadAthletesSelect() przeniesione do initApp()
 
 // ── LOAD TRAININGS FROM DB ────────────────────────────────────────
 async function loadTrainingsFromDB() {
@@ -928,15 +926,7 @@ async function loadTrainingsFromDB() {
 
   let query = _sbKal.from('trainings').select('*');
 
-  // ── INIT — wywołaj wszystko po zdefiniowaniu funkcji ──────────────
-async function initApp() {
-  render(); // renderuj szkielet
-  await loadAthletesSelect();
-  await Promise.all([loadTrainingsFromDB(), loadGoals()]);
-}
-initApp();
-
-if (_urlRole === 'athlete') {
+  if (_urlRole === 'athlete') {
     // Zawodnik — tylko swoje treningi
     const { data: ath } = await _sbKal.from('athletes')
       .select('id').eq('user_id', session.user.id).maybeSingle();
@@ -995,7 +985,6 @@ if (_urlRole === 'athlete') {
   render();
 }
 
-loadTrainingsFromDB();
 
 // ── SMART SUGGEST ─────────────────────────────────────────────────
 // Konwertuje tempo "M:SS" na sekundy/km
@@ -1261,7 +1250,6 @@ async function saveGoal() {
   notify('Cel startowy zapisany ✓');
 }
 
-// loadGoals() przeniesione do initApp()
 
 // ── LOG MODAL (zawodnik) ──────────────────────────────────────────
 let _logTrainingId = null;
@@ -1394,6 +1382,11 @@ async function saveLog() {
 }
 
 // saveTraining DB logic is in async saveTraining()
+
+render();
+loadAthletesSelect();
+loadTrainingsFromDB();
+loadGoals();
 
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania/usuwania
