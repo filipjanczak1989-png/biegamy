@@ -841,12 +841,16 @@ async function selA_db(athleteId) {
 
 // ── LOAD TRAININGS ────────────────────────────────────────────────
 async function loadAthleteTrainings(athleteId) {
+  const rangeStart = new Date(); rangeStart.setDate(rangeStart.getDate()-1);
+  const rangeEnd = new Date(); rangeEnd.setDate(rangeEnd.getDate()+13);
+  const fmt = d => d.toISOString().split('T')[0];
   const { data } = await _sb
     .from('trainings')
     .select('*')
     .eq('athlete_id', athleteId)
-    .order('date', { ascending: false })
-    .limit(7);
+    .gte('date', fmt(rangeStart))
+    .lte('date', fmt(rangeEnd))
+    .order('date', { ascending: true });
   
   if (data && data.length > 0) {
     renderWM_db(data);
@@ -949,22 +953,6 @@ async function saveSend_db() {
 }
 
 // ── ADD ATHLETE ───────────────────────────────────────────────────
-async function addAthlete_db() {
-  const goal = prompt('Cel zawodnika (np. Maraton Warszawski):');
-  if (!goal) return;
-  const pb = prompt('Życiówka maraton (np. 3:45 lub "brak"):');
-  
-  const { data, error } = await _sb.from('athletes').insert({
-    coach_id: _coachId,
-    goal,
-    pb_marathon: pb||null,
-    active: true
-  }).select();
-  
-  if (error) { showToast('Błąd: '+error.message); return; }
-  showToast('Zawodnik dodany ✓');
-  await loadAthletes();
-}
 
 // ── LOGOUT & MENU ─────────────────────────────────────────────────
 async function logout() {
@@ -1054,7 +1042,7 @@ async function saveAthlete() {
 }
 
 
-const WEEK_TEMPLATE = [{"day": "Pn", "dayFull": "Poniedzia\u0142ek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzie\u0144 wolny. Odpoczynek lub lekkie rozci\u0105ganie."}, {"day": "Wt", "dayFull": "Wtorek", "type": "Bieg spokojny", "dist": 10, "time": 65, "pace": "6:30", "hr": "130-145", "desc": "Spokojny bieg regeneracyjny. Trzymaj niskie t\u0119tno przez ca\u0142y czas."}, {"day": "\u015ar", "dayFull": "\u015aroda", "type": "Interwa\u0142y", "dist": 8, "time": 50, "pace": "5:00", "hr": "165-180", "desc": "8\u00d7600m z 90 sek odpoczynku. Rozgrzewka 2 km, sch\u0142odzenie 1 km."}, {"day": "Cz", "dayFull": "Czwartek", "type": "Wybieganie", "dist": 12, "time": 75, "pace": "6:10", "hr": "135-150", "desc": "Spokojne rozbieganie. Cel: nogi pracuj\u0105, nie jeste\u015b zm\u0119czony."}, {"day": "Pt", "dayFull": "Pi\u0105tek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzie\u0144 wolny przed mocnym weekendem."}, {"day": "Sb", "dayFull": "Sobota", "type": "Tempo", "dist": 14, "time": 80, "pace": "5:25", "hr": "155-168", "desc": "Bieg progowy. Trzymaj sta\u0142e, wymagaj\u0105ce tempo przez ca\u0142y dystans."}, {"day": "Nd", "dayFull": "Niedziela", "type": "Wybieganie", "dist": 22, "time": 135, "pace": "6:00", "hr": "140-152", "desc": "D\u0142ugie wybieganie. Spokojne tempo, jedz \u017cele co 45 min od 10 km."}];
+const WEEK_TEMPLATE = [{"day": "Pn", "dayFull": "Poniedziałek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzień wolny. Odpoczynek lub lekkie rozciąganie."}, {"day": "Wt", "dayFull": "Wtorek", "type": "Spokojny", "dist": 10, "time": 65, "pace": "6:30", "hr": "130-145", "desc": "Spokojny bieg regeneracyjny. Trzymaj niskie tętno przez cały czas."}, {"day": "Śr", "dayFull": "Środa", "type": "Interwały", "dist": 8, "time": 50, "pace": "5:00", "hr": "165-180", "desc": "8×600m z 90 sek odpoczynku. Rozgrzewka 2 km, schłodzenie 1 km."}, {"day": "Cz", "dayFull": "Czwartek", "type": "Wybieganie", "dist": 12, "time": 75, "pace": "6:10", "hr": "135-150", "desc": "Spokojne rozbieganie. Cel: nogi pracują, nie jesteś zmęczony."}, {"day": "Pt", "dayFull": "Piątek", "type": "Odpoczynek", "dist": 0, "time": 0, "pace": "", "hr": "", "desc": "Dzień wolny przed mocnym weekendem."}, {"day": "Sb", "dayFull": "Sobota", "type": "Tempo", "dist": 14, "time": 80, "pace": "5:25", "hr": "155-168", "desc": "Bieg progowy. Trzymaj stałe, wymagające tempo przez cały dystans."}, {"day": "Nd", "dayFull": "Niedziela", "type": "Wybieganie", "dist": 22, "time": 135, "pace": "6:00", "hr": "140-152", "desc": "Długie wybieganie. Spokojne tempo, jedz żele co 45 min od 10 km."}];
 
 function openTemplateModal() {
   // Ustaw domyślnie dzisiaj — lokalna data
@@ -1080,7 +1068,7 @@ function openTemplateModal() {
         <div class="tpl-day-name" style="min-width:28px;">${d.day}</div>
         <select id="tpl-type-${i}" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
           <option ${d.type==='Odpoczynek'?'selected':''}>Odpoczynek</option>
-          <option ${d.type==='Bieg spokojny'?'selected':''}>Bieg spokojny</option>
+          <option ${d.type==='Spokojny'?'selected':''}>Spokojny</option>
           <option ${d.type==='Interwały'?'selected':''}>Interwały</option>
           <option ${d.type==='Tempo'?'selected':''}>Tempo</option>
           <option ${d.type==='Wybieganie'?'selected':''}>Wybieganie</option>

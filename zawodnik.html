@@ -405,6 +405,22 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         </div>
       </div>
 
+      <!-- TIMER -->
+      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Zmierz czas biegu</div>
+          <div id="timer-display" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--fg);line-height:1;">00:00:00</div>
+        </div>
+        <div id="timer-bar" style="height:2px;background:var(--border);border-radius:1px;margin-bottom:10px;overflow:hidden;">
+          <div id="timer-bar-fill" style="height:2px;background:var(--accent);width:0%;"></div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button id="start-btn" onclick="toggleTimer(this)" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">▶ Start</button>
+          <button id="pause-btn" onclick="pauseTimer()" style="flex:1;background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;display:none;">⏸</button>
+          <button id="stop-btn" onclick="stopTimer()" style="flex:1;background:var(--card);border:1px solid rgba(224,80,80,0.3);color:var(--red);border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;display:none;">⏹</button>
+        </div>
+      </div>
+
       <!-- DYSTANS + CZAS -->
       <div class="f-row">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcPaceAuto()"></div>
@@ -501,7 +517,7 @@ function toggleDayDetail(i) {
   if (!isOpen) el.classList.add('open');
 }
 async function markDone(btn){
-  if (!_athleteId || !window._todayTraining?._id) {
+  if (!_athleteId || !window._todayTraining?.id) {
     // Brak treningu z bazy — tylko lokalna zmiana
     btn.textContent='✓ Gotowe!';
     btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
@@ -509,7 +525,7 @@ async function markDone(btn){
     return;
   }
   btn.textContent='...';btn.disabled=true;
-  const { error } = await _sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining._id);
+  const { error } = await _sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining.id);
   btn.disabled=false;
   if (error) { toast('Błąd: ' + error.message); return; }
   btn.textContent='✓ Gotowe!';
@@ -555,7 +571,11 @@ function openModalForDate(dateStr, e) {
   document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('modal-bg').classList.add('open');
 }
-function closeModal(){document.getElementById('modal-bg').classList.remove('open');}
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  // Reset timera
+  if (window._timerRunning) stopTimer();
+}
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 function selFeel(el,t){
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
@@ -583,16 +603,20 @@ function toggleTimer(btn) {
   _timerRunning = true;
   _timerSeconds = 0;
   _timerPaused = false;
-  btn.style.display = 'none';
-  const bar = document.getElementById('timer-bar');
-  bar.style.display = 'flex';
+  const startBtn = document.getElementById('start-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const stopBtn  = document.getElementById('stop-btn');
+  if (startBtn) startBtn.style.display = 'none';
+  if (pauseBtn) pauseBtn.style.display = 'block';
+  if (stopBtn)  stopBtn.style.display  = 'block';
   _timerInterval = setInterval(() => {
     if (!_timerPaused) {
       _timerSeconds++;
       const h = String(Math.floor(_timerSeconds / 3600)).padStart(2,'0');
       const m = String(Math.floor((_timerSeconds % 3600) / 60)).padStart(2,'0');
       const s = String(_timerSeconds % 60).padStart(2,'0');
-      document.getElementById('timer-display').textContent = h + ':' + m + ':' + s;
+      const disp = document.getElementById('timer-display');
+      if (disp) disp.textContent = h + ':' + m + ':' + s;
     }
   }, 1000);
 }
@@ -608,10 +632,14 @@ function stopTimer() {
   clearInterval(_timerInterval);
   _timerRunning = false;
   _timerPaused = false;
-  const bar = document.getElementById('timer-bar');
-  bar.style.display = 'none';
-  const startBtn = document.getElementById('start-btn');
-  startBtn.style.display = 'flex';
+  const startBtn2 = document.getElementById('start-btn');
+  const pauseBtn2 = document.getElementById('pause-btn');
+  const stopBtn2  = document.getElementById('stop-btn');
+  if (startBtn2) startBtn2.style.display = 'block';
+  if (pauseBtn2) pauseBtn2.style.display = 'none';
+  if (stopBtn2)  stopBtn2.style.display  = 'none';
+  const disp2 = document.getElementById('timer-display');
+  if (disp2) disp2.textContent = '00:00:00';
   // Przelicz czas i wstaw do pola log
   const h = Math.floor(_timerSeconds / 3600);
   const m = Math.floor((_timerSeconds % 3600) / 60);
@@ -838,7 +866,7 @@ async function loadProfile() {
   
   if (_athleteId) {
     // Avatar
-    const { data: urlData } = _sb.storage.from('avatars').getPublicUrl(_athleteId + '/avatar.jpg');
+    const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(_athleteId + '/avatar.jpg');
     if (urlData?.publicUrl) {
       const img = document.getElementById('avatar-img');
       img.onerror = () => { img.style.display='none'; document.getElementById('avatar-initials').style.display=''; };
@@ -858,10 +886,18 @@ async function loadProfile() {
       document.getElementById('pb-half-input').value = ath.pb_half || '';
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
-      // Cele startowe — wyłącznie z race_goals JSON
+      // Cele startowe — race_goals JSON, fallback z goal+target_date (ustawione przez trenera w kalendarzu)
       let goals = [];
       if (ath.race_goals) {
         try { const p = JSON.parse(ath.race_goals); if (Array.isArray(p)) goals = p; } catch(e) {}
+      }
+      // Jeśli race_goals puste ale jest goal/target_date (ustawione przez trenera) — pokaż to
+      if (!goals.length && ath.goal) {
+        goals = [{ name: ath.goal, date: ath.target_date || '' }];
+        // Synchronizuj race_goals z tym co ustawił trener
+        if (_athleteId) {
+          _sb.from('athletes').update({ race_goals: JSON.stringify(goals) }).eq('id', _athleteId).then(() => {});
+        }
       }
       window._profileGoals = goals;
       renderGoals(goals);
@@ -981,7 +1017,7 @@ async function deleteGoal(idx) {
 async function uploadAvatar(input) {
   if (!input.files[0] || !_athleteId) return;
   const file = input.files[0];
-  const { error } = await _sb.storage.from('avatars').upload(_athleteId+'/avatar.jpg', file, {upsert:true, contentType: file.type});
+  const { error } = await _sb.storage.from('training-screenshots').upload(_athleteId+'/avatar.jpg', file, {upsert:true, contentType: file.type});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
   toast('Zdjęcie zaktualizowane ✓');
   loadProfile();
@@ -1047,7 +1083,7 @@ async function deleteMsgPrompt(e, msgId, isAthlete) {
 
 async function clearAllMessages() {
   if (!confirm('Usunąć całą historię wiadomości?')) return;
-  await _sb.from('messages').delete().eq('athlete_id', _athleteId);
+  await _sb.from('messages').delete().eq('athlete_id', _athleteId).eq('sender', 'athlete');
   await loadMessages();
 }
 
@@ -1364,7 +1400,17 @@ async function loadLogs() {
   await loadTodayTraining();
   await loadWeekPlan();
   await checkNewMessages();
-  setInterval(checkNewMessages, 30000);
+  if (!window._msgInterval) window._msgInterval = setInterval(checkNewMessages, 30000);
+  // Realtime — nowe wiadomości od trenera od razu
+  if (!window._realtimeChannel && _athleteId) {
+    window._realtimeChannel = _sb.channel('messages-' + _athleteId)
+      .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
+        filter:'athlete_id=eq.'+_athleteId}, () => {
+          loadMessages();
+          checkNewMessages();
+        })
+      .subscribe();
+  }
   await updateWeekProgress();
 }
 
