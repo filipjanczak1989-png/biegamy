@@ -172,6 +172,23 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .ob-btn{width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:14px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:all 0.15s;}
 .ob-btn:hover{background:var(--accent2);}
 .ob-skip{width:100%;background:transparent;color:var(--muted);border:none;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;margin-top:4px;}
+
+.emoji-picker{position:absolute;bottom:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:none;flex-wrap:wrap;gap:4px;width:280px;max-height:200px;overflow-y:auto;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.emoji-picker.open{display:flex;}
+.emoji-btn{font-size:20px;background:none;border:none;cursor:pointer;padding:3px;border-radius:6px;transition:background 0.1s;line-height:1;}
+.emoji-btn:hover{background:var(--card2);}
+.gif-picker{position:absolute;bottom:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:none;flex-direction:column;gap:8px;width:300px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+.gif-picker.open{display:flex;}
+.gif-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-height:240px;overflow-y:auto;}
+.gif-item{border-radius:8px;overflow:hidden;cursor:pointer;aspect-ratio:16/9;object-fit:cover;transition:transform 0.15s;}
+.gif-item:hover{transform:scale(1.04);}
+.voice-btn{background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;transition:all 0.15s;position:relative;}
+.voice-btn.recording{background:rgba(224,80,80,0.2);border-color:var(--red);color:var(--red);animation:pulse-rec 1s infinite;}
+@keyframes pulse-rec{0%,100%{opacity:1;}50%{opacity:0.6;}}
+.msg-recall{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;font-style:italic;opacity:0.6;}
+.voice-msg{display:flex;align-items:center;gap:8px;padding:4px 0;}
+.voice-play{background:none;border:none;cursor:pointer;font-size:18px;color:inherit;}
+.voice-duration{font-size:11px;font-family:'DM Mono',monospace;opacity:0.7;}
 </style>
 </head>
 <body>
@@ -276,11 +293,25 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div id="msgs-thread" style="padding:0 20px;display:flex;flex-direction:column;gap:10px;margin-bottom:90px;min-height:200px;">
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
   </div>
-  <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:10px 16px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;gap:8px;z-index:60;">
-    <input id="msg-file" type="file" accept="image/*" multiple style="display:none" onchange="sendFileMessage(this)">
-    <button onclick="document.getElementById('msg-file').click()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:16px;flex-shrink:0;">📎</button>
-    <input id="msg-input" type="text" placeholder="Napisz do trenera..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendMessage()">
-    <button onclick="sendMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:10px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">Wyślij →</button>
+  <div style="position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:100%;max-width:420px;padding:8px 12px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:60;">
+    <div style="position:relative;">
+      <!-- Emoji picker -->
+      <div class="emoji-picker" id="z-emoji-picker"><button class="emoji-btn" onclick="insertEmoji('😊')">😊</button><button class="emoji-btn" onclick="insertEmoji('😂')">😂</button><button class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button><button class="emoji-btn" onclick="insertEmoji('💪')">💪</button><button class="emoji-btn" onclick="insertEmoji('🏃')">🏃</button><button class="emoji-btn" onclick="insertEmoji('👍')">👍</button><button class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button><button class="emoji-btn" onclick="insertEmoji('🏁')">🏁</button><button class="emoji-btn" onclick="insertEmoji('😅')">😅</button><button class="emoji-btn" onclick="insertEmoji('🤣')">🤣</button><button class="emoji-btn" onclick="insertEmoji('😍')">😍</button><button class="emoji-btn" onclick="insertEmoji('🥇')">🥇</button><button class="emoji-btn" onclick="insertEmoji('✅')">✅</button><button class="emoji-btn" onclick="insertEmoji('💯')">💯</button><button class="emoji-btn" onclick="insertEmoji('👏')">👏</button><button class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button><button class="emoji-btn" onclick="insertEmoji('😓')">😓</button><button class="emoji-btn" onclick="insertEmoji('😤')">😤</button><button class="emoji-btn" onclick="insertEmoji('🙏')">🙏</button><button class="emoji-btn" onclick="insertEmoji('⚡')">⚡</button><button class="emoji-btn" onclick="insertEmoji('🌟')">🌟</button><button class="emoji-btn" onclick="insertEmoji('😎')">😎</button><button class="emoji-btn" onclick="insertEmoji('🤙')">🤙</button><button class="emoji-btn" onclick="insertEmoji('💥')">💥</button><button class="emoji-btn" onclick="insertEmoji('🏆')">🏆</button><button class="emoji-btn" onclick="insertEmoji('😪')">😪</button><button class="emoji-btn" onclick="insertEmoji('🤦')">🤦</button><button class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button><button class="emoji-btn" onclick="insertEmoji('👊')">👊</button><button class="emoji-btn" onclick="insertEmoji('🦵')">🦵</button></div>
+      <!-- GIF picker -->
+      <div class="gif-picker" id="z-gif-picker">
+        <input type="text" placeholder="Szukaj GIFa..." style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:7px 10px;border-radius:8px;outline:none;width:100%;" oninput="searchGifs(this.value||'running','z-gif-picker')">
+        <div class="gif-grid" id="z-gif-picker-grid"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <input id="msg-file" type="file" accept="image/*" multiple style="display:none" onchange="sendFileMessage(this)">
+      <button onclick="document.getElementById('msg-file').click()" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 11px;cursor:pointer;font-size:15px;flex-shrink:0;">📎</button>
+      <button onclick="toggleEmojiPicker('z-emoji-picker')" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 11px;cursor:pointer;font-size:15px;flex-shrink:0;">😊</button>
+      <button onclick="toggleGifPicker('z-gif-picker')" style="background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:10px;padding:9px 10px;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:0.05em;flex-shrink:0;">GIF</button>
+      <button id="z-voice-btn" class="voice-btn" onclick="toggleVoice('z-voice-btn','athlete')">🎤</button>
+      <input id="msg-input" type="text" placeholder="Napisz do trenera..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;border-radius:10px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendMessage()">
+      <button onclick="sendMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">→</button>
+    </div>
   </div>
 </div>
 
@@ -1075,9 +1106,23 @@ async function loadMessages() {
 
 async function deleteMsgPrompt(e, msgId, isAthlete) {
   e.preventDefault();
-  if (isAthlete !== 'true') return; // zawodnik może usuwać tylko swoje
-  if (!confirm('Usunąć tę wiadomość?')) return;
-  await _sb.from('messages').delete().eq('id', msgId);
+  if (isAthlete !== 'true') return;
+  // Pokaż menu cofnięcia
+  const existing = document.getElementById('msg-ctx-menu');
+  if (existing) existing.remove();
+  const menu = document.createElement('div');
+  menu.id = 'msg-ctx-menu';
+  menu.style.cssText = 'position:fixed;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.5);';
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = (e.clientY - 80) + 'px';
+  menu.innerHTML = `<button onclick="recallMsg('${msgId}')" style="display:block;width:100%;background:none;border:none;color:var(--red);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:8px 14px;cursor:pointer;text-align:left;border-radius:6px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">↩ Cofnij wiadomość</button>
+  <button onclick="document.getElementById('msg-ctx-menu').remove()" style="display:block;width:100%;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:8px 14px;cursor:pointer;text-align:left;border-radius:6px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">Anuluj</button>`;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), {once:true}), 50);
+}
+async function recallMsg(msgId) {
+  document.getElementById('msg-ctx-menu')?.remove();
+  await _sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
   await loadMessages();
 }
 
@@ -1085,6 +1130,32 @@ async function clearAllMessages() {
   if (!confirm('Usunąć całą historię wiadomości?')) return;
   await _sb.from('messages').delete().eq('athlete_id', _athleteId).eq('sender', 'athlete');
   await loadMessages();
+}
+
+async function sendGif(url, pickerId) {
+  document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
+  if (!_athleteId) return;
+  const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
+  await _sb.from('messages').insert({athlete_id:_athleteId,sender:'athlete',body,sent_at:new Date().toISOString()});
+  await loadMessages();
+}
+
+async function uploadVoiceMsg(blob, duration, sender) {
+  if (!_athleteId) return;
+  const path = _athleteId + '/voice_' + Date.now() + '.webm';
+  const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
+  if (error) { toast('Błąd: '+error.message); return; }
+  const {data:urlData} = _sb.storage.from('training-screenshots').getPublicUrl(path);
+  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
+  await _sb.from('messages').insert({athlete_id:_athleteId,sender:sender,body,sent_at:new Date().toISOString()});
+  await loadMessages();
+}
+
+function playVoice(btn, url) {
+  const audio = new Audio(url);
+  btn.textContent = '⏸️';
+  audio.play();
+  audio.onended = () => btn.textContent = '▶️';
 }
 
 async function sendFileMessage(input) {
@@ -1951,6 +2022,75 @@ const _tabParam = new URLSearchParams(window.location.search).get('tab');
 if (_tabParam) {
   setTimeout(() => showSection(_tabParam), 800);
 }
+
+// ── EMOJI PICKER ──────────────────────────────────────────────────
+function toggleEmojiPicker(pickerId) {
+  const p = document.getElementById(pickerId);
+  if (!p) return;
+  p.classList.toggle('open');
+  document.getElementById(pickerId.replace('emoji','gif')+'-gif')?.classList?.remove('open');
+}
+function insertEmoji(e) {
+  const inp = document.getElementById('msg-input');
+  if (!inp) return;
+  const pos = inp.selectionStart || inp.value.length;
+  inp.value = inp.value.slice(0,pos) + e + inp.value.slice(pos);
+  inp.focus();
+  document.querySelectorAll('.emoji-picker').forEach(p=>p.classList.remove('open'));
+}
+
+// ── GIF PICKER ────────────────────────────────────────────────────
+async function toggleGifPicker(pickerId) {
+  const p = document.getElementById(pickerId);
+  if (!p) return;
+  const isOpen = p.classList.contains('open');
+  document.querySelectorAll('.gif-picker,.emoji-picker').forEach(x=>x.classList.remove('open'));
+  if (isOpen) return;
+  p.classList.add('open');
+  const inp = p.querySelector('input');
+  if (inp && !inp.dataset.loaded) { await searchGifs('running', pickerId); inp.dataset.loaded='1'; }
+}
+async function searchGifs(q, pickerId) {
+  const grid = document.getElementById(pickerId+'-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
+  try {
+    const r = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(q)}&limit=12&rating=g`);
+    const d = await r.json();
+    grid.innerHTML = d.data.map(g => `<img class="gif-item" src="${g.images.fixed_height_small.url}" onclick="sendGif('${g.images.fixed_height.url}','${pickerId}')" alt="${g.title}">`).join('');
+  } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>'; }
+}
+
+// ── VOICE MESSAGES ────────────────────────────────────────────────
+let _mediaRecorder = null, _audioChunks = [], _recordingStart = 0;
+
+async function toggleVoice(btnId, sender) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+    _mediaRecorder.stop();
+    btn.classList.remove('recording');
+    btn.textContent = '🎤';
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    _audioChunks = [];
+    _recordingStart = Date.now();
+    _mediaRecorder = new MediaRecorder(stream);
+    _mediaRecorder.ondataavailable = e => _audioChunks.push(e.data);
+    _mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t=>t.stop());
+      const blob = new Blob(_audioChunks, {type:'audio/webm'});
+      const dur = Math.round((Date.now()-_recordingStart)/1000);
+      uploadVoiceMsg(blob, dur, sender);
+    };
+    _mediaRecorder.start();
+    btn.classList.add('recording');
+    btn.textContent = '⏹';
+  } catch(e) { alert('Brak dostępu do mikrofonu'); }
+}
+
 </script>
 <!-- SEKCJA: STATYSTYKI -->
 <div id="section-stats" style="display:none;padding:0 20px 100px;">
