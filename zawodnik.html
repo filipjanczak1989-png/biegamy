@@ -2,7 +2,6 @@
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BiegaMy — Mój Plan</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -1147,12 +1146,11 @@ async function uploadVoiceMsg(blob, duration, sender) {
   const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
   if (error) { toast('Błąd: '+error.message); return; }
   const {data:urlData} = _sb.storage.from('training-screenshots').getPublicUrl(path);
-  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
+  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
   await _sb.from('messages').insert({athlete_id:_athleteId,sender:sender,body,sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
-function playVoiceMsg(btn, url) { playVoice(btn, url); }
 function playVoice(btn, url) {
   const audio = new Audio(url);
   btn.textContent = '⏸️';
@@ -2057,14 +2055,14 @@ async function searchGifs(q, pickerId) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=12`);
+    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=12&media_filter=tinygif,gif`);
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
-      const sm = g.media?.[0]?.tinygif?.url || g.media?.[0]?.gif?.url || '';
-      const lg = g.media?.[0]?.gif?.url || sm;
-      if (!sm) return '';
-      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.title||'gif'}">`;
-    }).filter(Boolean).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Brak wyników</div>';
+      const media = g.media?.[0] || {};
+      const sm = media.tinygif?.url || media.nanogif?.url || media.gif?.url || '';
+      const lg = media.gif?.url || media.tinygif?.url || sm;
+      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.content_description||'gif'}">`;
+    }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>'; }
 }
 
