@@ -878,7 +878,7 @@ function showSection(name) {
     document.getElementById('section-msgs').style.display = 'flex';
     const n = document.getElementById('nav-msgs');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
-    loadMessages();
+    loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) th.scrollTop = th.scrollHeight; });
 
   } else if (name === 'profile') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
@@ -1112,7 +1112,7 @@ async function loadMessages() {
   }).join('');
 
   await _sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
-  setTimeout(() => { if(thread) thread.scrollTop = thread.scrollHeight; }, 50);
+  requestAnimationFrame(() => { if(thread) { thread.scrollTop = thread.scrollHeight; } });
   await checkNewMessages();
 }
 
@@ -1169,6 +1169,7 @@ function playVoice(btn, url) {
   audio.play();
   audio.onended = () => btn.textContent = '▶️';
 }
+const playVoiceMsg = playVoice; // alias — trener wysyla z playVoiceMsg
 
 async function sendFileMessage(input) {
   if (!input.files.length || !_athleteId) return;
