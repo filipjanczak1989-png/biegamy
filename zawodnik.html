@@ -300,12 +300,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 </nav>
 
 <!-- SEKCJA: WIADOMOŚCI -->
-<div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:45;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);">
-  <div style="padding:16px 20px 8px;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Wiadomości</div>
-  <div id="msgs-thread" style="padding:0 20px 12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;position:absolute;top:44px;bottom:130px;left:0;right:0;">
+<div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);">
+  <div style="padding:12px 20px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);flex-shrink:0;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;">💬 Wiadomości</div>
+  </div>
+  <div id="msgs-thread" style="padding:0 20px 12px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;position:absolute;top:44px;bottom:145px;left:0;right:0;">
     <div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
   </div>
-  <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px 20px;background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:60;">
+  <div style="position:absolute;bottom:0;left:0;right:0;padding:8px 12px env(safe-area-inset-bottom, 20px);background:rgba(22,22,26,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);z-index:60;">
     <div style="position:relative;">
       <!-- Emoji picker -->
       <div class="emoji-picker" id="z-emoji-picker"><button class="emoji-btn" onclick="insertEmoji('😊')">😊</button><button class="emoji-btn" onclick="insertEmoji('😂')">😂</button><button class="emoji-btn" onclick="insertEmoji('🔥')">🔥</button><button class="emoji-btn" onclick="insertEmoji('💪')">💪</button><button class="emoji-btn" onclick="insertEmoji('🏃')">🏃</button><button class="emoji-btn" onclick="insertEmoji('👍')">👍</button><button class="emoji-btn" onclick="insertEmoji('❤️')">❤️</button><button class="emoji-btn" onclick="insertEmoji('🏁')">🏁</button><button class="emoji-btn" onclick="insertEmoji('😅')">😅</button><button class="emoji-btn" onclick="insertEmoji('🤣')">🤣</button><button class="emoji-btn" onclick="insertEmoji('😍')">😍</button><button class="emoji-btn" onclick="insertEmoji('🥇')">🥇</button><button class="emoji-btn" onclick="insertEmoji('✅')">✅</button><button class="emoji-btn" onclick="insertEmoji('💯')">💯</button><button class="emoji-btn" onclick="insertEmoji('👏')">👏</button><button class="emoji-btn" onclick="insertEmoji('🎯')">🎯</button><button class="emoji-btn" onclick="insertEmoji('😓')">😓</button><button class="emoji-btn" onclick="insertEmoji('😤')">😤</button><button class="emoji-btn" onclick="insertEmoji('🙏')">🙏</button><button class="emoji-btn" onclick="insertEmoji('⚡')">⚡</button><button class="emoji-btn" onclick="insertEmoji('🌟')">🌟</button><button class="emoji-btn" onclick="insertEmoji('😎')">😎</button><button class="emoji-btn" onclick="insertEmoji('🤙')">🤙</button><button class="emoji-btn" onclick="insertEmoji('💥')">💥</button><button class="emoji-btn" onclick="insertEmoji('🏆')">🏆</button><button class="emoji-btn" onclick="insertEmoji('😪')">😪</button><button class="emoji-btn" onclick="insertEmoji('🤦')">🤦</button><button class="emoji-btn" onclick="insertEmoji('🎉')">🎉</button><button class="emoji-btn" onclick="insertEmoji('👊')">👊</button><button class="emoji-btn" onclick="insertEmoji('🦵')">🦵</button></div>
@@ -445,22 +447,6 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="display:flex;gap:6px;margin-top:6px;">
           <button onclick="addInterval(event)" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;">+ Dodaj interwał</button>
           <div style="flex:1;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;display:flex;align-items:center;padding-left:4px;" id="iv-summary">—</div>
-        </div>
-      </div>
-
-      <!-- TIMER -->
-      <div style="background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Zmierz czas biegu</div>
-          <div id="timer-display" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--fg);line-height:1;">00:00:00</div>
-        </div>
-        <div id="timer-bar" style="height:2px;background:var(--border);border-radius:1px;margin-bottom:10px;overflow:hidden;">
-          <div id="timer-bar-fill" style="height:2px;background:var(--accent);width:0%;"></div>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button id="start-btn" onclick="toggleTimer(this)" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">▶ Start</button>
-          <button id="pause-btn" onclick="pauseTimer()" style="flex:1;background:var(--card);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;display:none;">⏸</button>
-          <button id="stop-btn" onclick="stopTimer()" style="flex:1;background:var(--card);border:1px solid rgba(224,80,80,0.3);color:var(--red);border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;display:none;">⏹</button>
         </div>
       </div>
 
@@ -878,7 +864,7 @@ function showSection(name) {
     document.getElementById('section-msgs').style.display = 'flex';
     const n = document.getElementById('nav-msgs');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
-    loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) th.scrollTop = th.scrollHeight; });
+    loadMessages().then(() => { setTimeout(() => { const th = document.getElementById('msgs-thread'); if(th) th.scrollTop = th.scrollHeight; }, 100); });
 
   } else if (name === 'profile') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box, .log-list').forEach(el => el.style.display = 'none');
