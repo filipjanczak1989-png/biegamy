@@ -178,6 +178,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('ms',this)">Wiad.</button>
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
+    <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
   </div>
   <div class="panel-body">
     <div id="pov">
@@ -224,6 +225,11 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div style="display:flex;gap:8px;">
         <input id="panel-msg-input" type="text" placeholder="Napisz wiadomość..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendPanelMessage()">
         <button onclick="sendPanelMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyślij →</button>
+      </div>
+    </div>
+    <div id="pst" style="display:none;">
+      <div id="pst-content">
+        <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć statystyki.</div>
       </div>
     </div>
     <div id="pcl" style="display:none;">
@@ -369,11 +375,165 @@ async function closePanel(){
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb'].forEach(t=>document.getElementById('p'+t).style.display=t===n?'block':'none');
+  ['ov','pl','lg','ms','cl','pb','st'].forEach(t=>document.getElementById('p'+t).style.display=t===n?'block':'none');
   document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
   if (n === 'ms') loadPanelChat();
   if (n === 'pb') loadPanelPB();
+  if (n === 'st') loadPanelStats();
+}
+
+// ── STATS PANEL ──────────────────────────────────────────────────
+async function loadPanelStats() {
+  const id = window._selectedAthleteId;
+  const el = document.getElementById('pst-content');
+  if (!id) { el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;">Wybierz zawodnika.</div>'; return; }
+  el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+
+  const since90 = new Date(); since90.setDate(since90.getDate()-90);
+  const since30 = new Date(); since30.setDate(since30.getDate()-30);
+  const since7  = new Date(); since7.setDate(since7.getDate()-7);
+
+  const { data: logs } = await _sb.from('training_logs').select('*')
+    .eq('athlete_id', id)
+    .gte('logged_at', since90.toISOString())
+    .order('logged_at', {ascending:true});
+
+  const all = logs || [];
+  const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
+  const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
+
+  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km90=km(all), km30=km(logs30), km7=km(logs7);
+  const sessions30=logs30.length;
+
+  const paces = logs30.filter(l=>l.pace).map(l=>{
+    const p=l.pace.split(':').map(Number);
+    return p.length===2?p[0]*60+p[1]:null;
+  }).filter(Boolean);
+  const bestPaceSecs=paces.length?Math.min(...paces):null;
+  const bestPace=bestPaceSecs?Math.floor(bestPaceSecs/60)+':'+String(bestPaceSecs%60).padStart(2,'0'):'—';
+  const avgPaceSecs=paces.length?Math.round(paces.reduce((a,b)=>a+b,0)/paces.length):null;
+  const avgPace=avgPaceSecs?Math.floor(avgPaceSecs/60)+':'+String(avgPaceSecs%60).padStart(2,'0'):'—';
+
+  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const typeCount={};
+  logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
+
+  // Tygodniowe km (ostatnie 8 tygodni)
+  const weeks=[];
+  for(let i=7;i>=0;i--){
+    const wEnd=new Date(); wEnd.setDate(wEnd.getDate()-i*7);
+    const wStart=new Date(wEnd); wStart.setDate(wStart.getDate()-6);
+    const wLogs=all.filter(l=>{const d=new Date(l.logged_at);return d>=wStart&&d<=wEnd;});
+    const label=(wEnd.getDate())+'.'+String(wEnd.getMonth()+1).padStart(2,'0');
+    weeks.push({label,km:parseFloat(km(wLogs).toFixed(1))});
+  }
+
+  const days30={};
+  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const ds=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');days30[ds]=0;}
+  logs30.forEach(l=>{
+    const d=new Date(l.logged_at);
+    const ds=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');
+    if(days30[ds]!==undefined)days30[ds]+=parseFloat(l.distance_km)||0;
+  });
+
+  el.innerHTML = `
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km7.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.08em;text-transform:uppercase;">km/tydzień</div>
+    </div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--green);line-height:1;">${km30.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.08em;text-transform:uppercase;">km/30 dni</div>
+    </div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--blue);line-height:1;">${sessions30}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.08em;text-transform:uppercase;">sesji/30 dni</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px;">
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${bestPace}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.08em;text-transform:uppercase;">najlepsze tempo</div>
+    </div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--purple,#9a6fe8);line-height:1;">${avgPace}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.08em;text-transform:uppercase;">śr. tempo/km</div>
+    </div>
+  </div>
+
+  <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Km tygodniowo</div>
+  <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
+    <canvas id="pst-chart-weekly" height="120"></canvas>
+  </div>
+
+  <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Typy treningów (30 dni)</div>
+  <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;">
+    ${Object.keys(typeCount).length===0?'<div style="color:var(--muted);font-size:12px;">Brak danych</div>':
+      Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type,count])=>{
+        const pct=sessions30?Math.round(count/sessions30*100):0;
+        const color=typeColors2[type]||'#66636e';
+        return `<div style="margin-bottom:7px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+            <div style="font-size:11px;">${type}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${count}× · ${pct}%</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:3px;height:3px;">
+            <div style="background:${color};height:3px;border-radius:3px;width:${pct}%;"></div>
+          </div>
+        </div>`;
+      }).join('')
+    }
+  </div>
+
+  <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie treningi</div>
+  <div style="display:flex;flex-direction:column;gap:6px;">
+    ${[...all].reverse().slice(0,6).map(l=>{
+      const type=l.training_type||'Trening';
+      const color=typeColors2[type]||'#66636e';
+      const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+      const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
+      const pace=l.pace?l.pace+'/km':'';
+      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;display:flex;align-items:center;gap:8px;">
+        <div style="width:3px;height:32px;background:${color};border-radius:2px;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:500;">${type}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;">${dist}</div>
+          ${pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}</div>`:''}
+        </div>
+        <div style="font-size:14px;">${feel}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // Załaduj Chart.js i renderuj wykres
+  const renderPstChart = () => {
+    const cw = document.getElementById('pst-chart-weekly');
+    if (!cw || !window.Chart) return;
+    // Zniszcz stary wykres jeśli istnieje
+    if (cw._chartInstance) cw._chartInstance.destroy();
+    cw._chartInstance = new window.Chart(cw, {type:'bar', data:{
+      labels: weeks.map(w=>w.label),
+      datasets:[{data:weeks.map(w=>w.km),backgroundColor:'rgba(212,80,26,0.7)',borderRadius:4,borderSkipped:false}]
+    }, options:{
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e24',titleColor:'#f0ede8',bodyColor:'#66636e',borderColor:'#2a2a32',borderWidth:1}},
+      scales:{x:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}},y:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}},beginAtZero:true}}
+    }});
+  };
+  if (!window.Chart) {
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    s.onload=renderPstChart;
+    document.head.appendChild(s);
+  } else {
+    setTimeout(renderPstChart, 50);
+  }
 }
 
 // ── PB / CELE PANEL ───────────────────────────────────────────────
@@ -1305,7 +1465,7 @@ async function loadAnalytics() {
       }).join('');
       return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
         <!-- Header -->
-        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="toggleAthleteStats(event,'${a.id}',this)">
           <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);flex-shrink:0;">${initials}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:500;">${name}</div>
@@ -1320,29 +1480,153 @@ async function loadAnalytics() {
         <div style="height:3px;background:var(--card2);margin:0 16px;">
           <div style="height:3px;width:${barPct}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;"></div>
         </div>
-        <!-- Expandable detail -->
-        <div style="display:none;padding:12px 16px;">
-          ${typeBar?`<div style="display:flex;gap:3px;margin-bottom:10px;">${typeBar}</div>`:''}
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px;">
-            <div style="background:var(--card2);border-radius:6px;padding:8px;text-align:center;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${a.km7}</div>
-              <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">km / 7 dni</div>
-            </div>
-            <div style="background:var(--card2);border-radius:6px;padding:8px;text-align:center;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${a.bestPace||'—'}</div>
-              <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">best tempo</div>
-            </div>
-            <div style="background:var(--card2);border-radius:6px;padding:8px;text-align:center;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${a.sessions}</div>
-              <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">sesji / 30d</div>
-            </div>
-          </div>
-          ${pbs?`<div style="font-size:11px;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:8px;">PB: ${pbs}</div>`:''}
-          ${recentLogs?`<div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted2);font-family:'DM Mono',monospace;margin-bottom:4px;">Ostatnie logi</div>${recentLogs}`:''}
+        <!-- Expandable detail — szczegółowe statystyki -->
+        <div class="athlete-detail-panel" data-id="${a.id}" style="display:none;">
+          <div style="padding:6px 16px 4px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">Ładowanie statystyk...</div>
         </div>
       </div>`;
     }).join('')}
   `;
+}
+
+// ── ATHLETE DETAIL STATS W ANALITYCE ──────────────────────────────
+async function toggleAthleteStats(e, athleteId, headerEl) {
+  e.stopPropagation();
+  const panel = headerEl.nextElementSibling;
+  const isOpen = panel.style.display !== 'none';
+  // Zamknij wszystkie inne
+  document.querySelectorAll('.athlete-detail-panel').forEach(p => p.style.display = 'none');
+  if (isOpen) return;
+  panel.style.display = 'block';
+  await loadAthleteDetailStats(athleteId, panel);
+}
+
+async function loadAthleteDetailStats(athleteId, container) {
+  container.innerHTML = '<div style="padding:12px 16px;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">Ładowanie...</div>';
+
+  const since90 = new Date(); since90.setDate(since90.getDate()-90);
+  const since30 = new Date(); since30.setDate(since30.getDate()-30);
+  const since7  = new Date(); since7.setDate(since7.getDate()-7);
+
+  const { data: logs } = await _sb.from('training_logs').select('*')
+    .eq('athlete_id', athleteId)
+    .gte('logged_at', since90.toISOString())
+    .order('logged_at', {ascending:true});
+
+  const all = logs || [];
+  const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
+  const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
+
+  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km30=km(logs30), km7=km(logs7), sessions30=logs30.length;
+
+  const paces = logs30.filter(l=>l.pace).map(l=>{
+    const p=l.pace.split(':').map(Number);
+    return p.length===2?p[0]*60+p[1]:null;
+  }).filter(Boolean);
+  const bestPaceSecs=paces.length?Math.min(...paces):null;
+  const bestPace=bestPaceSecs?Math.floor(bestPaceSecs/60)+':'+String(bestPaceSecs%60).padStart(2,'0'):'—';
+  const avgPaceSecs=paces.length?Math.round(paces.reduce((a,b)=>a+b,0)/paces.length):null;
+  const avgPace=avgPaceSecs?Math.floor(avgPaceSecs/60)+':'+String(avgPaceSecs%60).padStart(2,'0'):'—';
+
+  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const typeCount={};
+  logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
+
+  const weeks=[];
+  for(let i=7;i>=0;i--){
+    const wEnd=new Date(); wEnd.setDate(wEnd.getDate()-i*7);
+    const wStart=new Date(wEnd); wStart.setDate(wStart.getDate()-6);
+    const wLogs=all.filter(l=>{const d=new Date(l.logged_at);return d>=wStart&&d<=wEnd;});
+    const label=(wEnd.getDate())+'.'+String(wEnd.getMonth()+1).padStart(2,'0');
+    weeks.push({label,km:parseFloat(km(wLogs).toFixed(1))});
+  }
+
+  const chartId = 'ast-chart-' + athleteId.slice(0,8);
+
+  container.innerHTML = `<div style="padding:12px 16px;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${km7.toFixed(0)}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;">km/tydzień</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green);line-height:1;">${km30.toFixed(0)}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;">km/30 dni</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--blue,#5090e0);line-height:1;">${sessions30}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;">sesji/30 dni</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;">
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);line-height:1;">${bestPace}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;">najlepsze tempo</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--purple,#9a6fe8);line-height:1;">${avgPace}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;text-transform:uppercase;">śr. tempo/km</div>
+      </div>
+    </div>
+    <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Km tygodniowo (8 tyg.)</div>
+    <div style="background:var(--card2);border-radius:8px;padding:10px;margin-bottom:10px;">
+      <canvas id="${chartId}" height="100"></canvas>
+    </div>
+    ${Object.keys(typeCount).length ? `
+    <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Typy treningów (30 dni)</div>
+    <div style="background:var(--card2);border-radius:8px;padding:10px;margin-bottom:10px;">
+      ${Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type,count])=>{
+        const pct=sessions30?Math.round(count/sessions30*100):0;
+        const color=typeColors2[type]||'#66636e';
+        return `<div style="margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+            <div style="font-size:11px;">${type}</div>
+            <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${count}× · ${pct}%</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.06);border-radius:2px;height:3px;">
+            <div style="background:${color};height:3px;border-radius:2px;width:${pct}%;"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : ''}
+    <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Ostatnie treningi</div>
+    ${[...all].reverse().slice(0,5).map(l=>{
+      const type=l.training_type||'Trening';
+      const color=typeColors2[type]||'#66636e';
+      const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+      const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
+      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      return `<div style="background:var(--card2);border-radius:6px;padding:7px 10px;display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="width:3px;height:28px;background:${color};border-radius:2px;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-weight:500;">${type}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;">${dist}</div>
+        <div style="font-size:13px;">${feel}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // Wykres
+  const renderChart = () => {
+    const cw = document.getElementById(chartId);
+    if (!cw || !window.Chart) return;
+    if (cw._chartInstance) cw._chartInstance.destroy();
+    cw._chartInstance = new window.Chart(cw, {type:'bar', data:{
+      labels: weeks.map(w=>w.label),
+      datasets:[{data:weeks.map(w=>w.km),backgroundColor:'rgba(212,80,26,0.7)',borderRadius:3,borderSkipped:false}]
+    }, options:{
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1e1e24',titleColor:'#f0ede8',bodyColor:'#66636e',borderColor:'#2a2a32',borderWidth:1}},
+      scales:{x:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:8}}},y:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:8}},beginAtZero:true}}
+    }});
+  };
+  if (!window.Chart) {
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    s.onload=renderChart; document.head.appendChild(s);
+  } else { setTimeout(renderChart, 50); }
 }
 
 async function loadPanelChat() {
@@ -1613,10 +1897,7 @@ if (_tabParam) {
 </div><!-- /#add-ath-modal -->
 
 <!-- SEKCJA ANALITYKI -->
-<div id="analytics-section" style="display:none;padding:0 20px 100px;">
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;padding-top:4px;">Analityka zawodników</div>
-  <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Ostatnie 30 dni</div>
-  <div id="analytics-content"></div>
+
 </div>
 
 <!-- SEKCJA USTAWIEŃ -->
