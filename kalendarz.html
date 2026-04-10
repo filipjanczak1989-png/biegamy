@@ -747,6 +747,10 @@ async function saveTraining() {
       const selEl = document.getElementById('athlete-select');
       const selVal = selEl ? selEl.value : '';
       const finalAthleteId = athleteId || selVal || null;
+      if (!finalAthleteId && _urlRole === 'coach') {
+        notify('Wybierz zawodnika w prawym górnym rogu');
+        return;
+      }
       const { error: insErr } = await _sbKal.from('trainings').insert({
         coach_id: session.user.id,
         athlete_id: finalAthleteId,
@@ -759,7 +763,7 @@ async function saveTraining() {
         description: desc||null,
         status
       });
-      if (insErr) { notify('Błąd zapisu: ' + insErr.message); return; }
+      if (insErr) { notify('Błąd: ' + insErr.message); return; }
     }
     closeModal();
     await loadTrainingsFromDB();
@@ -845,12 +849,17 @@ async function deleteTraining(e, ds, idx) {
   if(!confirm('Usunąć ten trening?')) return;
   const t = trainings[ds] && trainings[ds][idx];
   const dbId = t ? t._id : null;
-  trainings[ds].splice(idx,1);
-  if(trainings[ds].length===0) delete trainings[ds];
-  render();
+  // Najpierw usuń z DB, potem odśwież — unikamy race condition
   if (dbId) {
-    await _sbKal.from('trainings').delete().eq('id', dbId);
+    const { error } = await _sbKal.from('trainings').delete().eq('id', dbId);
+    if (error) { notify('Błąd usuwania: ' + error.message); return; }
   }
+  // Usuń lokalnie i przerenderuj
+  if (trainings[ds]) {
+    trainings[ds].splice(idx, 1);
+    if (trainings[ds].length === 0) delete trainings[ds];
+  }
+  render();
   notify('Trening usunięty');
 }
 
@@ -886,32 +895,8 @@ document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kale
 
 // Pobierz daty startów
 window._raceDates = [];
-async function loadRaceDates() {
-  const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) return;
-  
-  let query = _sbKal.from('athletes').select('id, full_name, goal, target_date');
-  if (_urlRole === 'athlete') {
-    query = query.eq('user_id', session.user.id);
-  } else if (window._calSelectedAthleteId) {
-    // Trener — tylko wybrany zawodnik
-    query = query.eq('id', window._calSelectedAthleteId);
-  } else {
-    // Trener — wszyscy zawodnicy
-    query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
-  }
-  
-  const { data } = await query;
-  if (data) {
-    window._raceDates = data
-      .filter(a => a.target_date)
-      .map(a => ({
-        date: a.target_date,
-        name: (a.full_name ? a.full_name + ': ' : '') + (a.goal || 'Start')
-      }));
-    render();
-  }
-}
+// loadRaceDates -> używaj loadGoals zamiast tego
+async function loadRaceDates() { await loadGoals(); }
 
 loadRaceDates();
 
@@ -936,7 +921,7 @@ async function loadAthletesSelect() {
 function onAthleteChange(athleteId) {
   window._calSelectedAthleteId = athleteId || null;
   loadTrainingsFromDB();
-  loadRaceDates();
+  loadGoals();
 }
 
 loadAthletesSelect();
