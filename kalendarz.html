@@ -878,7 +878,7 @@ document.addEventListener('keydown', e => {
   if(e.key==='ArrowRight' && !document.getElementById('modal-bg').classList.contains('open')) changeWeek(1);
 });
 
-render();
+// render() przeniesiony do initApp()
 
 // ── ROLE DETECTION ────────────────────────────────────────────────
 const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
@@ -895,10 +895,6 @@ document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kale
 
 // Pobierz daty startów
 window._raceDates = [];
-// loadRaceDates -> używaj loadGoals zamiast tego
-async function loadRaceDates() { await loadGoals(); }
-
-loadRaceDates();
 
 // ── LOAD ATHLETES INTO SELECT (trener) ───────────────────────────
 async function loadAthletesSelect() {
@@ -920,11 +916,10 @@ async function loadAthletesSelect() {
 
 function onAthleteChange(athleteId) {
   window._calSelectedAthleteId = athleteId || null;
-  loadTrainingsFromDB();
-  loadGoals();
+  Promise.all([loadTrainingsFromDB(), loadGoals()]);
 }
 
-loadAthletesSelect();
+// loadAthletesSelect() przeniesione do initApp()
 
 // ── LOAD TRAININGS FROM DB ────────────────────────────────────────
 async function loadTrainingsFromDB() {
@@ -933,7 +928,15 @@ async function loadTrainingsFromDB() {
 
   let query = _sbKal.from('trainings').select('*');
 
-  if (_urlRole === 'athlete') {
+  // ── INIT — wywołaj wszystko po zdefiniowaniu funkcji ──────────────
+async function initApp() {
+  render(); // renderuj szkielet
+  await loadAthletesSelect();
+  await Promise.all([loadTrainingsFromDB(), loadGoals()]);
+}
+initApp();
+
+if (_urlRole === 'athlete') {
     // Zawodnik — tylko swoje treningi
     const { data: ath } = await _sbKal.from('athletes')
       .select('id').eq('user_id', session.user.id).maybeSingle();
@@ -1258,7 +1261,7 @@ async function saveGoal() {
   notify('Cel startowy zapisany ✓');
 }
 
-loadGoals();
+// loadGoals() przeniesione do initApp()
 
 // ── LOG MODAL (zawodnik) ──────────────────────────────────────────
 let _logTrainingId = null;
