@@ -425,6 +425,7 @@ nav{
           <input type="text" id="f-hr" placeholder="np. 140–155">
         </div>
       </div>
+      <div id="smart-hint" style="display:none;font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.08em;margin-bottom:10px;padding:6px 10px;background:rgba(212,80,26,0.08);border-left:2px solid var(--accent);"></div>
       <div class="field">
         <label>Opis / instrukcje dla zawodnika</label>
         <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
@@ -620,6 +621,13 @@ function openModal(ds, idx) {
   document.getElementById('f-time').value='';
   document.getElementById('f-pace').value='';
   document.getElementById('f-hr').value='';
+  // Reset smart suggest
+  const distEl2 = document.getElementById('f-dist');
+  const paceEl2 = document.getElementById('f-pace');
+  if(distEl2){ distEl2.placeholder='np. 12'; delete distEl2.dataset.suggested; }
+  if(paceEl2){ paceEl2.placeholder='np. 5:30'; delete paceEl2.dataset.suggested; }
+  const sh = document.getElementById('smart-hint');
+  if(sh){ sh.style.display='none'; sh.textContent=''; }
   document.getElementById('f-desc').value='';
   document.getElementById('f-status').value='planned';
   document.getElementById('log-fields').style.display='none';
@@ -681,6 +689,12 @@ function openModal(ds, idx) {
   }
 
   document.getElementById('modal-bg').classList.add('open');
+
+  // Smart suggest — tylko dla trenera, po otwarciu modalu
+  if (_urlRole === 'coach') {
+    const athleteId = window._calSelectedAthleteId || null;
+    smartSuggest(athleteId, selectedType, idx !== null);
+  }
 }
 
 function closeModal() {
@@ -700,7 +714,10 @@ function selType(el, type, cls) {
 async function saveTraining() {
   const dist = parseFloat(document.getElementById('f-dist').value)||0;
   const time = parseInt(document.getElementById('f-time').value)||0;
-  const pace = document.getElementById('f-pace').value;
+  const paceElS = document.getElementById('f-pace');
+  const pace = paceElS.value || paceElS.dataset.suggested || '';
+  const distElS = document.getElementById('f-dist');
+  if (!distElS.value && distElS.dataset.suggested) distElS.value = distElS.dataset.suggested;
   const hr = document.getElementById('f-hr').value;
   const desc = document.getElementById('f-desc').value;
   const status = document.getElementById('f-status').value;
@@ -976,6 +993,155 @@ async function loadTrainingsFromDB() {
 }
 
 loadTrainingsFromDB();
+
+// ── SMART SUGGEST ─────────────────────────────────────────────────
+// Konwertuje tempo "M:SS" na sekundy/km
+function paceToSec(pace) {
+  if (!pace) return null;
+  const s = String(pace).trim();
+  const parts = s.split(':');
+  if (parts.length === 2) return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+  return null;
+}
+// Konwertuje sekundy/km na "M:SS"
+function secToPace(sec) {
+  if (!sec || sec <= 0) return null;
+  const m = Math.floor(sec / 60);
+  const s = String(Math.round(sec % 60)).padStart(2, '0');
+  return m + ':' + s;
+}
+// Parsuje PB "H:MM:SS" lub "M:SS" na sekundy
+function pbToSec(pb) {
+  if (!pb) return null;
+  const parts = String(pb).trim().split(':').map(Number);
+  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  if (parts.length === 2) return parts[0]*60 + parts[1];
+  return null;
+}
+
+// Strefy tempa z PB (uproszczony model Danielsa)
+function zonesFromPB(pbSec, distKm) {
+  if (!pbSec || !distKm) return null;
+  // Przelicz na tempo (sec/km) dla maratonu jako baza
+  let marPaceSec;
+  if (distKm === 42.195) marPaceSec = pbSec / 42.195;
+  else if (distKm === 21.0975) marPaceSec = pbSec / 21.0975 * 1.08;
+  else if (distKm === 10) marPaceSec = pbSec / 10 * 1.18;
+  else if (distKm === 5) marPaceSec = pbSec / 5 * 1.28;
+  else return null;
+  return {
+    'Bieg spokojny':  secToPace(marPaceSec * 1.20),
+    'Wybieganie':     secToPace(marPaceSec * 1.15),
+    'Regeneracja':    secToPace(marPaceSec * 1.30),
+    'Tempo':          secToPace(marPaceSec * 0.97),
+    'Interwały':      secToPace(marPaceSec * 0.88),
+    'Start':          secToPace(marPaceSec * 1.00),
+  };
+}
+
+// Mediana tablicy liczb
+function median(arr) {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a,b) => a-b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m-1]+s[m])/2;
+}
+
+async function smartSuggest(athleteId, trainingType, isEdit) {
+  // Nie nadpisuj pól jeśli to edycja istniejącego treningu
+  if (isEdit) return;
+
+  const distEl = document.getElementById('f-dist');
+  const paceEl = document.getElementById('f-pace');
+  const hrEl   = document.getElementById('f-hr');
+  const hint   = document.getElementById('smart-hint');
+  if (hint) hint.textContent = '';
+
+  let suggestedPace = null;
+  let suggestedDist = null;
+  let source = '';
+
+  // ── Krok 1: Logi z ostatnich 8 tygodni ───────────────────────────
+  if (athleteId) {
+    const since = new Date();
+    since.setDate(since.getDate() - 56);
+    const { data: logs } = await _sbKal
+      .from('training_logs')
+      .select('training_type, distance_km, pace')
+      .eq('athlete_id', athleteId)
+      .gte('logged_at', since.toISOString())
+      .order('logged_at', { ascending: false });
+
+    if (logs && logs.length) {
+      // Filtruj po typie — normalizuj nazwy
+      const typeMap = {
+        'Bieg spokojny': ['Bieg spokojny','Spokojny','spokojny','easy'],
+        'Interwały':     ['Interwały','Interwaly','interval'],
+        'Tempo':         ['Tempo','tempo'],
+        'Wybieganie':    ['Wybieganie','wybieganie','long'],
+        'Regeneracja':   ['Regeneracja','regeneracja','recovery'],
+        'Start':         ['Start','start','race'],
+      };
+      const aliases = typeMap[trainingType] || [trainingType];
+      const matching = logs.filter(l =>
+        aliases.some(a => (l.training_type||'').toLowerCase().includes(a.toLowerCase()))
+      );
+
+      if (matching.length >= 2) {
+        const paces = matching.map(l => paceToSec(l.pace)).filter(Boolean);
+        const dists = matching.map(l => parseFloat(l.distance_km)).filter(d => d > 0);
+        if (paces.length >= 2) {
+          suggestedPace = secToPace(median(paces));
+          source = 'logów';
+        }
+        if (dists.length >= 2) {
+          suggestedDist = Math.round(median(dists) * 2) / 2; // zaokrągl do 0.5
+        }
+      }
+    }
+  }
+
+  // ── Krok 2: Fallback z PB zawodnika ──────────────────────────────
+  if (!suggestedPace && athleteId) {
+    const { data: ath } = await _sbKal
+      .from('athletes')
+      .select('pb_marathon, pb_half, pb_10k, pb_5k')
+      .eq('id', athleteId)
+      .maybeSingle();
+
+    if (ath) {
+      // Użyj najlepszego dostępnego PB
+      const candidates = [
+        { pb: pbToSec(ath.pb_marathon), km: 42.195 },
+        { pb: pbToSec(ath.pb_half),     km: 21.0975 },
+        { pb: pbToSec(ath.pb_10k),      km: 10 },
+        { pb: pbToSec(ath.pb_5k),       km: 5 },
+      ].filter(c => c.pb);
+      if (candidates.length) {
+        const best = candidates[0];
+        const zones = zonesFromPB(best.pb, best.km);
+        if (zones && zones[trainingType]) {
+          suggestedPace = zones[trainingType];
+          source = 'PB';
+        }
+      }
+    }
+  }
+
+  // ── Wstaw sugestie tylko do pustych pól ──────────────────────────
+  if (suggestedPace && !paceEl.value) {
+    paceEl.placeholder = suggestedPace + ' (sugestia)';
+    paceEl.dataset.suggested = suggestedPace;
+  }
+  if (suggestedDist && !distEl.value) {
+    distEl.placeholder = suggestedDist + ' km (sugestia)';
+    distEl.dataset.suggested = suggestedDist;
+  }
+  if (hint && source) {
+    hint.textContent = '💡 Sugestia na podstawie ' + source + ' zawodnika';
+    hint.style.display = 'block';
+  }
+}
 
 // ── RACE GOALS ────────────────────────────────────────────────────
 window._goals = []; // {id, name, date, athlete_id, athlete_name}
