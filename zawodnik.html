@@ -821,7 +821,7 @@ body{
 
       <!-- DYSTANS + CZAS -->
       <div class="f-row">
-        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcPaceAuto()"></div>
+        <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
         <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
       </div>
 
@@ -1046,6 +1046,24 @@ function selType(el, type) {
   // Pokaż sekcję interwałów
   const ivSec = document.getElementById('intervals-section');
   if (ivSec) ivSec.style.display = (type === 'Interwały') ? 'block' : 'none';
+  // Sugeruj tętno jeśli pole puste
+  const hrEl = document.getElementById('l-hr');
+  if (hrEl && !hrEl.value) {
+    const hrDefaults = {
+      'Spokojny': 135, 'Bieg spokojny': 135,
+      'Wybieganie': 140,
+      'Regeneracja': 120,
+      'Tempo': 162,
+      'Interwały': 172,
+      '🏁 Start': 168,
+      '🔄 Zastępczy': 135,
+      'Odpoczynek': ''
+    };
+    const suggested = hrDefaults[type];
+    if (suggested) {
+      hrEl.placeholder = 'np. ' + suggested + ' (sugestia)';
+    }
+  }
 }
 
 // ── TIMER ─────────────────────────────────────────────────────────
@@ -1231,6 +1249,16 @@ function autoColonPace(el) {
   if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
   el.value = v.slice(0,4);
 }
+function calcBothAuto() {
+  const paceVal = document.getElementById('l-pace').value;
+  const timeVal = document.getElementById('l-time').value;
+  if (paceVal && paceVal.length >= 3) {
+    calcTimeAuto(); // pace filled → calc time
+  } else if (timeVal && timeVal.length >= 4) {
+    calcPaceAuto(); // time filled → calc pace
+  }
+}
+
 function calcPaceAuto() {
   const dist = parseFloat(document.getElementById('l-dist').value);
   const timeVal = document.getElementById('l-time').value;
@@ -2152,7 +2180,8 @@ function renderLogsDb(data) {
     </div>
     ${l.attachment_url ? `<div style="padding:0 16px 4px;display:flex;flex-wrap:wrap;gap:6px;">
       ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}
-    </div>` : ''}`;
+    </div>` : ''}
+    ${l.strava_link ? `<div style="padding:0 16px 8px;"><a href="${l.strava_link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}`;
   }).join('');
 }
 
