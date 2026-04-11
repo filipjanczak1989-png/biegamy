@@ -289,7 +289,11 @@ nav{
   </div>
   <button class="today-btn" onclick="goToday()">Dziś</button>
   <div class="toolbar-spacer"></div>
-
+  <!-- VIEW TOGGLE -->
+  <div style="display:flex;gap:0;border:1px solid var(--border);overflow:hidden;flex-shrink:0;">
+    <button id="btn-classic-view" onclick="setView('classic')" style="background:transparent;color:var(--muted);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">☰ Tabela</button>
+    <button id="btn-mobile-view" onclick="setView('mobile')" style="background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">≡ Mobilny</button>
+  </div>
   <div class="week-km-badge" style="display:none;" id="week-km-wrap">Km: <span id="week-total-km">0</span></div>
 </div>
 
@@ -391,10 +395,18 @@ nav{
   </div>
 </div>
 
-<!-- WEEK -->
+<!-- CLASSIC VIEW -->
+<div id="classic-view">
 <div class="week-wrap">
   <div class="week-header" id="week-header"></div>
   <div class="week-body" id="week-body"></div>
+</div>
+</div>
+
+<!-- MOBILE VIEW -->
+<div id="mobile-view" style="display:none;padding:8px 12px 80px;">
+  <div id="mobile-days-container"></div>
+  <button id="mobile-new-btn" onclick="openModal(null)" style="display:none;position:fixed;bottom:80px;right:20px;background:var(--accent);color:var(--fg);border:none;border-radius:50%;width:52px;height:52px;font-size:24px;cursor:pointer;z-index:90;box-shadow:0 4px 16px rgba(212,80,26,0.5);">+</button>
 </div>
 
 
@@ -1574,37 +1586,85 @@ async function copyTraining() {
 
 
 // ── VIEW SWITCHER ──────────────────────────────────────────────────
-let _calView = localStorage.getItem('calendarView') || (_urlRole === 'athlete' ? 'mobile' : 'classic');
+const _calViewKey = 'calendarView_' + _urlRole;
+let _calView = localStorage.getItem(_calViewKey) || (_urlRole === 'athlete' ? 'mobile' : 'classic');
 
 function setView(v) {
   _calView = v;
-  localStorage.setItem('calendarView', v);
+  localStorage.setItem(_calViewKey, v);
   const classic = document.getElementById('classic-view');
   const mobile  = document.getElementById('mobile-view');
   const mBtn    = document.getElementById('mobile-new-btn');
   const btnC    = document.getElementById('btn-classic-view');
   const btnM    = document.getElementById('btn-mobile-view');
   if (v === 'mobile') {
-    classic.style.display = 'none';
-    mobile.style.display  = 'block';
-    if(mBtn && _urlRole === 'coach') mBtn.style.display = 'block';
-    if(btnC) btnC.classList.remove('active');
-    if(btnM) btnM.classList.add('active');
+    if(classic) classic.style.display = 'none';
+    if(mobile)  mobile.style.display  = 'block';
+    if(mBtn && _urlRole !== 'athlete') mBtn.style.display = 'block';
+    if(btnC){ btnC.style.background='transparent'; btnC.style.color='var(--muted)'; }
+    if(btnM){ btnM.style.background='rgba(212,80,26,0.12)'; btnM.style.color='var(--accent)'; }
     renderMobile();
   } else {
-    classic.style.display = '';
-    mobile.style.display  = 'none';
-    if(mBtn) mBtn.style.display = 'none';
-    if(btnC) btnC.classList.add('active');
-    if(btnM) btnM.classList.remove('active');
+    if(classic) classic.style.display = '';
+    if(mobile)  mobile.style.display  = 'none';
+    if(mBtn)    mBtn.style.display    = 'none';
+    if(btnC){ btnC.style.background='rgba(212,80,26,0.12)'; btnC.style.color='var(--accent)'; }
+    if(btnM){ btnM.style.background='transparent'; btnM.style.color='var(--muted)'; }
   }
+}
+
+function renderMobile() {
+  const container = document.getElementById('mobile-days-container');
+  if (!container) return;
+  const days = [];
+  for (let i = 0; i < 7; i++) days.push(dateStr(addDays(currentWeekStart, i)));
+  const today = dateStr(new Date());
+  const typeIcons = {
+    'Bieg spokojny':'🟦','Interwały':'🟡','Tempo':'🟠','Wybieganie':'🟢',
+    'Regeneracja':'🩵','Odpoczynek':'⬜','🏁 Start':'🏁','🔄 Zastępczy':'🔄'
+  };
+  container.innerHTML = days.map(ds => {
+    const items = trainings[ds] || [];
+    const d = new Date(ds + 'T12:00:00');
+    const isToday = ds === today;
+    const raceGoal = (goals || []).find(g => g.date === ds);
+    const totalKm = items.reduce((s,t) => s + (parseFloat(t.dist||t.distance_km)||0), 0);
+    const dayName = d.toLocaleDateString('pl-PL',{weekday:'long'});
+    const dayNum  = d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+    return `<div style="border:1px solid ${isToday?'var(--accent)':'var(--border)'};border-radius:10px;margin-bottom:10px;overflow:hidden;${isToday?'box-shadow:0 0 0 2px rgba(212,80,26,0.18);':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isToday?'rgba(212,80,26,0.07)':'var(--surface)'};cursor:pointer;" onclick="openModal('${ds}')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:${isToday?'var(--accent)':'var(--fg)'};">${d.getDate()}</div>
+          <div>
+            <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">${dayName}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dayNum}${totalKm>0?' · <span style="color:var(--green)">'+totalKm.toFixed(1)+'km</span>':''}</div>
+          </div>
+        </div>
+        ${raceGoal ? `<span style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.06em;">🏁 ${raceGoal.name||'Start'}</span>` : ''}
+        <span style="color:var(--muted);font-size:18px;">+</span>
+      </div>
+      ${items.length > 0 ? `<div style="padding:6px 10px 10px;">` + items.map((t,i) => {
+        const icon = typeIcons[t.type] || '🟦';
+        const isDone = t.status === 'done';
+        const isMissed = t.status === 'missed';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;margin-bottom:4px;background:var(--surface2);border-left:3px solid ${isDone?'var(--green)':isMissed?'var(--accent)':'var(--border)'};cursor:pointer;" onclick="event.stopPropagation();openModal('${ds}',${i})">
+          <span style="font-size:14px;">${icon}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.type}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${t.dist||t.distance_km?((t.dist||t.distance_km)+'km'):''}${t.pace?' · '+t.pace+'/km':''}${t.time||t.duration_min?' · '+(t.time||t.duration_min)+'min':''}</div>
+          </div>
+          <span style="font-size:14px;">${isDone?'✅':isMissed?'❌':''}</span>
+        </div>`;
+      }).join('') + `</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 
 render();
 loadAthletesSelect();
 loadGoals();
-loadTrainingsFromDB();
+loadTrainingsFromDB().then(() => setView(_calView));
 
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania/usuwania
