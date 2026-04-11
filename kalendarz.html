@@ -1694,6 +1694,8 @@ const _mTypeColors = {
 function renderMobile() {
   const el = document.getElementById('mobile-view');
   if (!el) return;
+  // Upewnij się że mobile-view jest widoczny
+  if (el.style.display === 'none') { el.style.display = 'block'; }
   const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
   const today = new Date(); today.setHours(0,0,0,0);
 
@@ -1810,6 +1812,26 @@ function toggleMobileDay(ds) {
   if (!el) return;
   el.classList.toggle('open');
 }
+
+// Natychmiastowe przełączenie widoku - nie czekaj na dane
+(function() {
+  const v = localStorage.getItem('calendarView') || (_urlRole === 'athlete' ? 'mobile' : 'classic');
+  const classic = document.getElementById('classic-view');
+  const mobile  = document.getElementById('mobile-view');
+  const btnC    = document.getElementById('btn-classic-view');
+  const btnM    = document.getElementById('btn-mobile-view');
+  if (v === 'mobile' && classic && mobile) {
+    classic.style.display = 'none';
+    mobile.style.display  = 'block';
+    if(btnC) btnC.classList.remove('active');
+    if(btnM) btnM.classList.add('active');
+  } else if (v === 'classic' && classic && mobile) {
+    classic.style.display = '';
+    mobile.style.display  = 'none';
+    if(btnC) btnC.classList.add('active');
+    if(btnM) btnM.classList.remove('active');
+  }
+})();
 
 render();
 loadAthletesSelect();
