@@ -1712,6 +1712,7 @@ function renderMobile() {
     const sessionCount = ts.length;
 
     // Dots — typy treningów w nagłówku
+    const raceDot = raceGoal ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(61,184,112,0.6);"></div>` : '';
     const typeDots = ts.filter(t=>t.type!=='Odpoczynek').map(t => {
       const tc = _mTypeColors[t.type] || 'spokojny';
       const col = typeColorMap[tc] || '#5090e0';
@@ -1739,8 +1740,8 @@ function renderMobile() {
       ].filter(Boolean).join('');
 
       const statusHtml = t.status==='done'
-        ? '<div class="mtraining-status done">✓ Wykonany</div>'
-        : t.status==='missed' ? '<div class="mtraining-status missed">✗ Nie wykonany</div>' : '';
+        ? '<div class="mtraining-status done" style="display:inline-flex;align-items:center;gap:5px;background:rgba(61,184,112,0.15);color:var(--green);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:20px;font-family:DM Mono,monospace;margin-top:6px;">✓ Wykonany</div>'
+        : t.status==='missed' ? '<div class="mtraining-status missed" style="display:inline-flex;align-items:center;gap:5px;background:rgba(224,80,80,0.12);color:var(--red);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:20px;font-family:DM Mono,monospace;margin-top:6px;">✗ Nie wykonany</div>' : '';
 
       const approveHtml = (t.status!=='done' && t.type!=='Odpoczynek')
         ? `<button class="mtraining-btn approve" onclick="event.stopPropagation();approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>` : '';
@@ -1765,7 +1766,20 @@ function renderMobile() {
     const thumbsHtml = dayLogs.filter(l=>l.attachment_url).length > 0
       ? `<div class="mday-log-thumbs">${dayLogs.filter(l=>l.attachment_url).flatMap(l=>l.attachment_url.split(',')).map(url=>`<img src="${url}" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}</div>` : '';
 
-    return `<div class="mobile-day${isToday?' open':''}" id="mday-${ds}">
+    // Dominujący typ dnia (dla koloru akcentu)
+    const dominantType = ts.filter(t=>t.type!=='Odpoczynek')[0]?.type || '';
+    const dayAccent = {
+      'Spokojny':'rgba(78,140,214,0.08)', 'Bieg spokojny':'rgba(78,140,214,0.08)',
+      'Interwały':'rgba(232,184,64,0.08)', 'Tempo':'rgba(232,86,30,0.08)',
+      'Wybieganie':'rgba(138,98,216,0.08)', 'Regeneracja':'rgba(61,184,112,0.08)'
+    }[dominantType] || '';
+    const dayBorderAccent = {
+      'Spokojny':'rgba(78,140,214,0.2)', 'Bieg spokojny':'rgba(78,140,214,0.2)',
+      'Interwały':'rgba(232,184,64,0.2)', 'Tempo':'rgba(232,86,30,0.2)',
+      'Wybieganie':'rgba(138,98,216,0.2)', 'Regeneracja':'rgba(61,184,112,0.2)'
+    }[dominantType] || (raceGoal?'rgba(61,184,112,0.35)':'rgba(255,255,255,0.06)');
+
+    return `<div class="mobile-day${isToday?' open':''}" id="mday-${ds}" style="${dayAccent?'background:'+dayAccent+';':''};border-color:${dayBorderAccent}${isToday?';border-color:rgba(232,86,30,0.5)':''}">
       <div class="mobile-day-header${isToday?' today':''}" onclick="toggleMobileDay('${ds}')">
         <div class="mday-abbr">
           <div class="mday-abbr-day">${dayN}</div>
@@ -1774,8 +1788,8 @@ function renderMobile() {
         <div class="mday-info">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;color:${isToday?'var(--accent)':'var(--fg)'};">${monthNames[d.getMonth()].toUpperCase()}</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
-            ${typeDots}
-            ${sessionCount===0?`<span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;letter-spacing:0.08em;">ODPOCZYNEK</span>`:`<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${sessionCount} ${sessionCount===1?'trening':'treningi'}</span>`}
+            ${raceDot}${typeDots}
+            ${raceGoal ? `<span style="font-size:9px;color:var(--green);font-family:'DM Mono',monospace;letter-spacing:0.08em;font-weight:700;">🏁 DZIEŃ STARTU</span>` : sessionCount===0?`<span style="font-size:9px;color:var(--muted2);font-family:'DM Mono',monospace;letter-spacing:0.08em;">ODPOCZYNEK</span>`:`<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${sessionCount} ${sessionCount===1?'trening':'treningi'}</span>`}
           </div>
         </div>
         ${km>0?`<div class="mday-km-wrap"><div class="mday-km">${km.toFixed(0)}</div><div class="mday-km-lbl">km</div></div>`:''}

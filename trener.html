@@ -1314,8 +1314,8 @@ function showCoachSection(name) {
 async function loadCoachMsgsList() {
   if (!_coachId) return;
   const list = document.getElementById('t-chat-rows') || document.getElementById('msgs-athletes-list');
-  const tListEl = document.getElementById('t-chat-list'); if(tListEl) tListEl.style.display='flex';
-  document.getElementById('msgs-chat').style.display = 'none';
+  const tListEl = document.getElementById('t-chat-list'); if(tListEl){tListEl.style.display='flex';tListEl.style.flexDirection='column';}
+  document.getElementById('msgs-chat')?.style?.setProperty('display','none');
 
   const { data: athletes } = await _sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
   if (!athletes || athletes.length === 0) {
