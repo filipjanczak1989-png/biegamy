@@ -404,7 +404,8 @@ nav{
 </div>
 
 <!-- MOBILE VIEW -->
-<div id="mobile-view" style="display:none;padding:8px 12px 80px;">
+<div id="mobile-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom, 0px) + 72px);">
+
   <div id="mobile-days-container"></div>
   <button id="mobile-new-btn" onclick="openModal(null)" style="display:none;position:fixed;bottom:80px;right:20px;background:var(--accent);color:var(--fg);border:none;border-radius:50%;width:52px;height:52px;font-size:24px;cursor:pointer;z-index:90;box-shadow:0 4px 16px rgba(212,80,26,0.5);">+</button>
 </div>
@@ -1724,7 +1725,7 @@ function renderMobile() {
     const summaryText = isRaceDay
       ? (raceGoal.name || 'Start')
       : trainCount > 0
-        ? '(' + trainCount + ' ' + (trainCount===1?'trening':trainCount<5?'treningi':'trening\u00f3w') + ')'
+        ? [...new Set(items.map(t => t.type))].join(' · ')
         : '';
 
     // === LOG THUMBNAILS — małe, klikalny kafelek ===
