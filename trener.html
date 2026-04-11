@@ -147,8 +147,20 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .tpl-week-start input{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;}
 .tpl-week-start input:focus{border-color:var(--accent);}
 .tpl-athlete-sel{margin-bottom:16px;}
-.tpl-athlete-sel label{display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
-.tpl-athlete-sel select{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:8px;outline:none;cursor:pointer;}
+.tpl-athlete-sel label{display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.tpl-ath-list{display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:4px;}
+.tpl-ath-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;cursor:pointer;transition:background 0.1s;}
+.tpl-ath-item:hover{background:var(--card2);}
+.tpl-ath-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;}
+.tpl-ath-item label{font-size:13px;color:var(--fg);cursor:pointer;flex:1;font-family:'DM Sans',sans-serif;}
+.tpl-select-all{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);margin-bottom:2px;}
+.tpl-select-all span{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;}
+.drill-lib{margin-bottom:16px;}
+.drill-cat{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.drill-chips{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;}
+.drill-chip{font-size:10px;font-family:'DM Mono',monospace;padding:4px 10px;border-radius:20px;border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all 0.15s;letter-spacing:0.04em;}
+.drill-chip:hover,.drill-chip.sel{background:rgba(212,80,26,0.12);border-color:var(--accent);color:var(--accent);}
+.drill-preview{background:var(--card2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 12px;font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.55;display:none;margin-top:4px;}
 .tpl-btn{width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:8px;}
 .tpl-btn-ghost{width:100%;background:transparent;color:var(--muted);border:none;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;margin-top:4px;}
 #msgs-panel-section{display:none;padding:0 20px 100px;}
@@ -852,12 +864,29 @@ async function loadAthletes() {
 }
 
 async function renderDbAthletes(list) {
-  // Sprawdź nowe logi dla każdego zawodnika
+  // Sprawdź nowe logi i ostrzeżenia dla każdego zawodnika
+  const now = new Date();
+  const twoDaysAgo = new Date(now); twoDaysAgo.setDate(now.getDate() - 2);
+  const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
+  const todayStr = now.toISOString().split('T')[0];
+
   const withLogs = await Promise.all(list.map(async a => {
     const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
       .is('read_by_coach', null);
-    return { ...a, newLogs: count || 0 };
+
+    // Sprawdź czy zawodnik miał zaplanowany trening 2+ dni temu bez logu
+    const { data: missedTrainings } = await _sb.from('trainings')
+      .select('date,type')
+      .eq('athlete_id', a.id)
+      .neq('type', 'Odpoczynek')
+      .neq('status', 'done')
+      .lte('date', twoDaysAgoStr)
+      .gte('date', new Date(now.getTime() - 7*86400000).toISOString().split('T')[0])
+      .limit(1);
+    const hasMissed = missedTrainings && missedTrainings.length > 0;
+
+    return { ...a, newLogs: count || 0, hasMissed };
   }));
 
   const totalNewLogs = withLogs.reduce((s,a) => s + a.newLogs, 0);
@@ -878,9 +907,11 @@ async function renderDbAthletes(list) {
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
-        ${a.newLogs > 0 
-          ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🆕 ${a.newLogs} log</div>` 
-          : '<div class="ath-dot"></div>'}
+        ${a.hasMissed
+          ? `<div style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
+          : a.newLogs > 0
+            ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🆕 ${a.newLogs} log</div>`
+            : '<div class="ath-dot off"></div>'}
         <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
@@ -1155,15 +1186,20 @@ function openTemplateModal() {
   const localToday = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   document.getElementById('tpl-week-date').value = localToday;
 
-  // Wypełnij listę zawodników
-  const sel = document.getElementById('tpl-athlete-select');
-  sel.innerHTML = '<option value="">— wybierz zawodnika —</option><option value="__ALL__">👥 Wszyscy zawodnicy</option>';
+  // Wypełnij listę zawodników jako checkboxy
+  const athList = document.getElementById('tpl-ath-list');
+  // Zostaw "zaznacz wszystkich" row, usuń resztę
+  const existing = athList.querySelectorAll('.tpl-ath-item');
+  existing.forEach(e => e.remove());
   (_dbAthletes||[]).forEach(a => {
-    const opt = document.createElement('option');
-    opt.value = a.id;
-    opt.textContent = a.full_name || a.goal || 'Zawodnik';
-    sel.appendChild(opt);
+    const name = a.full_name || a.goal || 'Zawodnik';
+    const div = document.createElement('div');
+    div.className = 'tpl-ath-item';
+    div.innerHTML = `<input type="checkbox" id="tpl-chk-${a.id}" value="${a.id}" onchange="tplUpdateCount()">
+      <label for="tpl-chk-${a.id}">${name}</label>`;
+    athList.appendChild(div);
   });
+  tplUpdateCount();
   
   // Renderuj dni — edytowalne pola
   const list = document.getElementById('tpl-days-list');
@@ -1197,23 +1233,93 @@ function closeTemplateModal() {
   document.getElementById('template-modal').classList.remove('show');
 }
 
+function tplUpdateCount() {
+  const checked = document.querySelectorAll('#tpl-ath-list input[type=checkbox]:not(#tpl-chk-all):checked').length;
+  const total = document.querySelectorAll('#tpl-ath-list input[type=checkbox]:not(#tpl-chk-all)').length;
+  const lbl = document.getElementById('tpl-sel-count');
+  if (lbl) lbl.textContent = checked === 0 ? '— zaznacz' : checked === total ? `👥 wszyscy (${total})` : `✓ ${checked} z ${total}`;
+  const allChk = document.getElementById('tpl-chk-all');
+  if (allChk) allChk.checked = checked === total && total > 0;
+}
+
+function tplToggleAll(masterChk) {
+  document.querySelectorAll('#tpl-ath-list input[type=checkbox]:not(#tpl-chk-all)').forEach(c => c.checked = masterChk.checked);
+  tplUpdateCount();
+}
+
+// ── BAZA ĆWICZEŃ BIEGOWYCH ─────────────────────────────────────────
+const DRILLS = {
+  fartlek1: { name:'Klasyczny fartlek', type:'Interwały', desc:'Rozbieganie 2 km. Następnie 20–25 min swobodnego fartleku: przyspieszenia wg samopoczucia, od 30 sek do 3 min, z truchtem jako odpoczynkiem. Zakończenie 2 km spokojnego biegu.' },
+  fartlek2: { name:'Fartlek 1-2-3-2-1', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1 min szybko, 1 min trucht, 2 min szybko, 2 min trucht, 3 min szybko, 2 min trucht, 2 min szybko, 1 min trucht, 1 min szybko. Schłodzenie 2 km.' },
+  fartlek3: { name:'Fartlek progowy', type:'Tempo', desc:'Rozbieganie 2 km. 5–6 przyspieszeń po 2–3 min w tempie progowym (ok. 10–15 sek/km szybciej niż LT). Odpoczynek: 90 sek trucht. Zakończenie 2 km spokojnie.' },
+  int1: { name:'5×1000m', type:'Interwały', desc:'Rozbieganie 2–3 km. 5 powtórzeń po 1000 m w tempie 5 km (VO2max). Przerwa: 90 sek–2 min truchtu. Schłodzenie 2 km. Łącznie ok. 12–14 km.' },
+  int2: { name:'8×400m', type:'Interwały', desc:'Rozbieganie 3 km. 8 powtórzeń po 400 m w tempie 3–5 km. Przerwa: 400 m trucht (ok. 2 min). Schłodzenie 2 km. Łącznie ok. 10–11 km.' },
+  int3: { name:'6×3min', type:'Interwały', desc:'Rozbieganie 2–3 km. 6 powtórzeń po 3 min w tempie VO2max (ciężkie, ale do utrzymania). Przerwa: 2 min truchtu. Schłodzenie 2 km.' },
+  int4: { name:'10×1min', type:'Interwały', desc:'Rozbieganie 3 km. 10 powtórzeń po 1 min bardzo szybko (95–100% max), 1 min truchtu. Dobre na szybkość i neuromięśniowe. Schłodzenie 2 km.' },
+  int5: { name:'4×2km', type:'Interwały', desc:'Rozbieganie 3 km. 4 powtórzenia po 2 km w tempie półmaratonu lub szybciej. Przerwa: 3 min truchtu. Schłodzenie 2 km. Łącznie ok. 16–18 km.' },
+  prog1: { name:'Próg 20min', type:'Tempo', desc:'Rozbieganie 3 km. 20 min ciągłego biegu w tempie progowym (LT, ok. 85–90% max tętna, komfortowo trudne). Schłodzenie 2–3 km. Łącznie ok. 10 km.' },
+  prog2: { name:'2×15min progowy', type:'Tempo', desc:'Rozbieganie 3 km. 2 odcinki po 15 min w tempie progowym, przerwa 3 min truchtu. Schłodzenie 2 km. Dobry trening progowy dla tych co nie mogą utrzymać ciągłego 30 min.' },
+  prog3: { name:'Tempo ciągłe 30min', type:'Tempo', desc:'Rozbieganie 3 km. 30 min ciągłego biegu w tempie progowym. Schłodzenie 2–3 km. Klasyczny trening Danielsa — buduje zdolność do utrzymania wysiłku.' },
+  pyr1: { name:'Piramida 1-2-3-2-1km', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1 km, 2 km, 3 km, 2 km, 1 km w tempie 10 km–półmaraton. Przerwy: 2 min truchtu. Schłodzenie 2 km. Łącznie ok. 16 km.' },
+  pyr2: { name:'Piramida 200-400-800-400-200m', type:'Interwały', desc:'Rozbieganie 2–3 km. Odcinki: 200 m, 400 m, 800 m, 400 m, 200 m w tempie 1–3 km, przerwy równe długości odcinka (trucht). Schłodzenie 2 km.' },
+  pyr3: { name:'Piramida minutowa 1-2-3-4-3-2-1min', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1, 2, 3, 4, 3, 2, 1 min szybko (VO2max), przerwy = połowa czasu odcinka trucht. Razem 16 min intensywnej pracy. Schłodzenie 2 km.' },
+  over1: { name:'Nad progiem 5×1km', type:'Interwały', desc:'Rozbieganie 3 km. 5 powtórzeń po 1 km ok. 5–8 sek/km szybciej niż LT (nad progiem). Przerwa: 2 min truchtu. Schłodzenie 2 km. Buduje tolerancję mleczanu.' },
+  under1: { name:'Pod progiem 3×2km', type:'Tempo', desc:'Rozbieganie 3 km. 3 odcinki po 2 km ok. 5 sek/km wolniej niż LT (pod progiem). Przerwa: 2 min truchtu. Bezpieczny trening dla zawodników po kontuzji lub przy budowie bazy.' },
+  over2: { name:'VO2max 6×800m', type:'Interwały', desc:'Rozbieganie 3 km. 6 powtórzeń po 800 m w tempie 5 km (VO2max, bardzo ciężkie). Przerwa: 400 m truchtu. Schłodzenie 2 km. Jeden z najskuteczniejszych treningów wydolnościowych.' },
+};
+
+let _selectedDrill = null;
+
+function insertDrill(el, drillId) {
+  document.querySelectorAll('.drill-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  _selectedDrill = drillId;
+  const drill = DRILLS[drillId];
+  if (!drill) return;
+  const preview = document.getElementById('drill-preview');
+  const target = document.getElementById('drill-insert-target');
+  const dayBtns = document.getElementById('drill-day-btns');
+  if (preview) { preview.textContent = drill.desc; preview.style.display = 'block'; }
+  if (target && dayBtns) {
+    target.style.display = 'block';
+    // Build day buttons
+    dayBtns.innerHTML = WEEK_TEMPLATE.map((d, i) => {
+      const type = document.getElementById('tpl-type-' + i)?.value || d.type;
+      const isMatch = type === drill.type || type === 'Interwały' || type === 'Tempo';
+      return `<button onclick="applyDrillToDay(${i})" style="font-size:9px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:12px;border:1px solid ${isMatch?'var(--accent)':'var(--border)'};background:${isMatch?'rgba(212,80,26,0.1)':'transparent'};color:${isMatch?'var(--accent)':'var(--muted)'};cursor:pointer;">${d.day}</button>`;
+    }).join('');
+  }
+}
+
+function applyDrillToDay(dayIdx) {
+  if (!_selectedDrill) return;
+  const drill = DRILLS[_selectedDrill];
+  if (!drill) return;
+  const descEl = document.getElementById('tpl-desc-' + dayIdx);
+  const typeEl = document.getElementById('tpl-type-' + dayIdx);
+  if (descEl) {
+    descEl.value = drill.desc;
+    descEl.style.height = 'auto';
+    descEl.style.height = descEl.scrollHeight + 'px';
+  }
+  if (typeEl) typeEl.value = drill.type === 'Interwały' ? 'Interwały' : 'Tempo';
+  showToast('Ćwiczenie dodane do dnia ' + (WEEK_TEMPLATE[dayIdx]?.day || dayIdx+1) + ' ✓');
+  // Zamknij details
+  const det = document.getElementById('drill-details');
+  if (det) det.removeAttribute('open');
+}
+
 async function sendTemplate() {
-  const athleteVal = document.getElementById('tpl-athlete-select').value;
+  const checked = [...document.querySelectorAll('#tpl-ath-list input[type=checkbox]:not(#tpl-chk-all):checked')];
+  const targets = checked.map(c => c.value);
   const weekDateStr = document.getElementById('tpl-week-date').value;
 
-  if (!athleteVal) { showToast('Wybierz zawodnika'); return; }
+  if (targets.length === 0) { showToast('Zaznacz co najmniej jednego zawodnika'); return; }
   if (!weekDateStr) { showToast('Wybierz datę tygodnia'); return; }
 
   const btn = document.querySelector('.tpl-btn');
   btn.textContent = 'Wysyłam...';
   btn.disabled = true;
-
-  // Lista zawodników do wysłania
-  const targets = athleteVal === '__ALL__'
-    ? (_dbAthletes||[]).map(a => a.id)
-    : [athleteVal];
-
-  if (targets.length === 0) { showToast('Brak zawodników'); btn.textContent='Wyślij plan →'; btn.disabled=false; return; }
 
   // Parsuj datę lokalnie
   const [yyyy, mm, dd] = weekDateStr.split('-').map(Number);
@@ -2071,11 +2177,14 @@ if (_tabParam) {
     <div class="tpl-sub">Wyślij plan tygodniowy do zawodnika. Możesz edytować przed wysłaniem.</div>
     
     <div class="tpl-athlete-sel">
-      <label>Zawodnik</label>
-      <select id="tpl-athlete-select">
-        <option value="">— wybierz zawodnika —</option>
-        <option value="__ALL__">👥 Wszyscy zawodnicy</option>
-      </select>
+      <label>Zawodnicy <span id="tpl-sel-count" style="color:var(--accent);">— zaznacz</span></label>
+      <div class="tpl-ath-list" id="tpl-ath-list">
+        <div class="tpl-select-all">
+          <input type="checkbox" id="tpl-chk-all" onchange="tplToggleAll(this)">
+          <span onclick="document.getElementById('tpl-chk-all').click()">Zaznacz wszystkich</span>
+        </div>
+        <!-- wypełniane przez JS -->
+      </div>
     </div>
     
     <div class="tpl-week-start">
@@ -2086,6 +2195,51 @@ if (_tabParam) {
     <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Plan tygodnia</div>
     <div id="tpl-days-list"></div>
     
+    <details style="margin-bottom:12px;" id="drill-details">
+      <summary style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px;">
+        <span style="color:var(--accent);">💡</span> Baza zabaw biegowych (inspiracje)
+        <svg style="margin-left:auto;transition:transform 0.2s;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </summary>
+      <div style="margin-top:8px;">
+        <div class="drill-cat">Fartleki</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'fartlek1')">Klasyczny fartlek</span>
+          <span class="drill-chip" onclick="insertDrill(this,'fartlek2')">Fartlek 1-2-3-2-1</span>
+          <span class="drill-chip" onclick="insertDrill(this,'fartlek3')">Fartlek progowy</span>
+        </div>
+        <div class="drill-cat">Interwały / Minutówki</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'int1')">5×1000m</span>
+          <span class="drill-chip" onclick="insertDrill(this,'int2')">8×400m</span>
+          <span class="drill-chip" onclick="insertDrill(this,'int3')">6×3min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'int4')">10×1min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'int5')">4×2km</span>
+        </div>
+        <div class="drill-cat">Biegi progowe</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'prog1')">Próg 20min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'prog2')">2×15min progowy</span>
+          <span class="drill-chip" onclick="insertDrill(this,'prog3')">Tempo ciągłe 30min</span>
+        </div>
+        <div class="drill-cat">Piramidki</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'pyr1')">Piramida 1-2-3-2-1km</span>
+          <span class="drill-chip" onclick="insertDrill(this,'pyr2')">Piramida 200-400-800-400-200m</span>
+          <span class="drill-chip" onclick="insertDrill(this,'pyr3')">Piramida minutowa 1-2-3-4-3-2-1min</span>
+        </div>
+        <div class="drill-cat">Nad / Pod progiem</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'over1')">Nad progiem 5×1km</span>
+          <span class="drill-chip" onclick="insertDrill(this,'under1')">Pod progiem 3×2km</span>
+          <span class="drill-chip" onclick="insertDrill(this,'over2')">VO2max 6×800m</span>
+        </div>
+        <div id="drill-preview" class="drill-preview"></div>
+        <div id="drill-insert-target" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:6px;display:none;">
+          Wklej do dnia: <span id="drill-day-btns" style="display:inline-flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></span>
+        </div>
+      </div>
+    </details>
+
     <button class="tpl-btn" onclick="sendTemplate()">Wyślij plan →</button>
     <button class="tpl-btn-ghost" onclick="closeTemplateModal()">Anuluj</button>
   </div>

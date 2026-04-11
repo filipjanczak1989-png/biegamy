@@ -1727,15 +1727,15 @@ function renderMobile() {
         ? '(' + trainCount + ' ' + (trainCount===1?'trening':trainCount<5?'treningi':'trening\u00f3w') + ')'
         : '';
 
-    // === LOG THUMBNAILS ===
+    // === LOG THUMBNAILS — małe, klikalny kafelek ===
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
     const logThumbs = dayLogs.filter(l => l.attachment_url).map(l =>
       l.attachment_url.split(',').map(url =>
-        `<img src="${url}" style="width:calc(50% - 2px);max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`
+        `<img src="${url}" style="width:calc(25% - 3px);aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;flex-shrink:0;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`
       ).join('')
     ).join('');
     const logThumbsHtml = logThumbs
-      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;padding:8px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:8px;">${logThumbs}</div>`
+      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">${logThumbs}</div>`
       : '';
 
     // === TRAINING CARDS ===
@@ -1745,7 +1745,7 @@ function renderMobile() {
       const tc = typeColorsM[t.type] || '#5090e0';
       const borderLeft = isDone ? 'var(--green)' : isMissed ? 'var(--red)' : tc;
       const statusBadge = isDone
-        ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">\u2713 WYKONANE</span>`
+        ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">✓ WYKONANE</span>`
         : isMissed
         ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>`
         : '';
@@ -1760,14 +1760,16 @@ function renderMobile() {
       <span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;font-weight:500;">${t.type.toUpperCase()}</span>
       ${km>0?`<span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${km} KM</span>`:''}
     </div>
-    ${km>0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:2px;">${km} KM${pace?`<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${pace}/km${hr?` \u00b7 ${hr}`:''}</span>`:''}</div>`:''}
+    ${km>0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:2px;">${km} KM${pace?`<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${pace}/km${hr?` · ${hr}`:''}</span>`:''}</div>`:''}
     ${dur?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dur} min</div>`:''}
-    ${desc?`<div style="font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.45;margin-top:4px;">${desc}</div>`:''}
+    ${desc?`<div style="margin-top:7px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;border-left:2px solid ${tc}40;">
+      <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;margin-bottom:3px;opacity:0.8;">Wskazówki trenera</div>
+      <div style="font-size:12px;color:rgba(240,237,232,0.75);font-family:'DM Sans',sans-serif;line-height:1.5;">${desc}</div>
+    </div>`:''}
     ${statusBadge?`<div style="margin-top:6px;">${statusBadge}</div>`:''}
   </div>
 </div>`;
     }).join('');
-
     // === RACE GOAL CARD (top of day) ===
     const raceCard = isRaceDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.06));border:2px solid rgba(61,184,112,0.5);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal('${raceGoal.id}')">
   <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">\U0001f3c1 CEL STARTOWY</div>
