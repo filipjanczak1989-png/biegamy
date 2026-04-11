@@ -1462,6 +1462,10 @@ async function checkUnreadMessages() {
 function toggleEmojiPickerCoach() {
   document.getElementById('t-emoji-picker').classList.toggle('open');
   document.getElementById('t-gif-picker').classList.remove('open');
+  setTimeout(() => {
+    const th = document.getElementById('chat-thread');
+    if (th) th.scrollTop = th.scrollHeight;
+  }, 50);
 }
 function insertEmojiCoach(e) {
   const inp = document.getElementById('coach-msg-input');
@@ -1478,6 +1482,10 @@ async function toggleGifPickerCoach() {
   if (isOpen) return;
   p.classList.add('open');
   if (!p.dataset.loaded) { await searchGifsCoach('running'); p.dataset.loaded='1'; }
+  setTimeout(() => {
+    const th = document.getElementById('chat-thread');
+    if (th) th.scrollTop = th.scrollHeight;
+  }, 50);
 }
 async function searchGifsCoach(q) {
   const grid = document.getElementById('t-gif-picker-grid');

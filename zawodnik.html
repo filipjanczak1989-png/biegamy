@@ -645,7 +645,7 @@ body{
     <button onclick="showSection('home')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">✕</button>
   </div>
   <!-- Thread -->
-  <div id="msgs-thread" style="flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:6px;padding-bottom:12px;"></div>
+  <div id="msgs-thread" style="flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:6px;padding-bottom:160px;"></div>
   <!-- Input -->
   <div class="pchat-input-area">
     <div class="pchat-pickers" style="position:relative;">
@@ -969,6 +969,63 @@ function openModalForDate(dateStr, e) {
   const date = new Date(y, m-1, d);
   document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('modal-bg').classList.add('open');
+
+  // Reset pól przed prefillowaniem
+  ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
+  window._logType = 'Spokojny';
+
+  // Prefilluj z treningu dla tej daty (szukaj w week-plan data)
+  _prefillLogFromDate(dateStr);
+}
+
+async function _prefillLogFromDate(dateStr) {
+  // Sprawdź czy to dzisiejszy trening (już załadowany)
+  const today = new Date().toISOString().split('T')[0];
+  let training = null;
+
+  if (dateStr === today && window._todayTraining) {
+    training = window._todayTraining;
+  } else if (_athleteId) {
+    // Pobierz trening dla tej daty z bazy
+    const { data } = await _sb.from('trainings')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .eq('date', dateStr)
+      .neq('type', 'Odpoczynek')
+      .order('created_at')
+      .limit(1)
+      .maybeSingle();
+    training = data;
+  }
+
+  if (!training) return;
+
+  const typeMap = {
+    'Spokojny':'Spokojny','Bieg spokojny':'Spokojny',
+    'Interwały':'Interwały','Tempo':'Tempo',
+    'Wybieganie':'Wybieganie','Regeneracja':'Regeneracja','Zastępczy':'Zastępczy'
+  };
+  const typeName = typeMap[training.type] || training.type;
+  document.querySelectorAll('.type-pill').forEach(p => {
+    p.classList.remove('on');
+    if (p.textContent.trim().includes(typeName)) p.classList.add('on');
+  });
+  window._logType = typeName || 'Spokojny';
+  if (training.distance_km) document.getElementById('l-dist').value = training.distance_km;
+  if (training.pace) document.getElementById('l-pace').value = training.pace;
+  if (training.duration_min) {
+    const h = Math.floor(training.duration_min/60);
+    const m2 = training.duration_min % 60;
+    document.getElementById('l-time').value = h + ':' + String(m2).padStart(2,'0') + ':00';
+  }
+  if (training.heart_rate) {
+    const hr = training.heart_rate.toString().split('-')[0];
+    document.getElementById('l-hr').value = hr;
+  }
 }
 function closeModal(){
   document.getElementById('modal-bg').classList.remove('open');
@@ -2486,6 +2543,11 @@ function toggleEmojiPicker(pickerId) {
   if (!p) return;
   p.classList.toggle('open');
   document.getElementById(pickerId.replace('emoji','gif')+'-gif')?.classList?.remove('open');
+  // Przewiń wątek na dół żeby ostatnia wiadomość była widoczna nad pickerem
+  setTimeout(() => {
+    const th = document.getElementById('msgs-thread') || document.getElementById('chat-thread');
+    if (th) th.scrollTop = th.scrollHeight;
+  }, 50);
 }
 function insertEmoji(e) {
   const inp = document.getElementById('msg-input');
@@ -2506,6 +2568,11 @@ async function toggleGifPicker(pickerId) {
   p.classList.add('open');
   const inp = p.querySelector('input');
   if (inp && !inp.dataset.loaded) { await searchGifs('running', pickerId); inp.dataset.loaded='1'; }
+  // Przewiń wątek na dół żeby ostatnia wiadomość była widoczna nad pickerem
+  setTimeout(() => {
+    const th = document.getElementById('msgs-thread') || document.getElementById('chat-thread');
+    if (th) th.scrollTop = th.scrollHeight;
+  }, 50);
 }
 async function searchGifs(q, pickerId) {
   const grid = document.getElementById(pickerId+'-grid');
