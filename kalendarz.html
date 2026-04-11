@@ -1813,9 +1813,10 @@ function toggleMobileDay(ds) {
 
 render();
 loadAthletesSelect();
-loadTrainingsFromDB();
 loadGoals();
-setTimeout(()=>setView(_calView),50);
+loadTrainingsFromDB().then(() => {
+  setView(_calView);
+});
 
 if (_urlRole === 'athlete') {
   // Zawodnik — ukryj przyciski dodawania/usuwania
