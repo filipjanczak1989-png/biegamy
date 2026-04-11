@@ -1620,13 +1620,39 @@ function renderMobile() {
   for (let i = 0; i < 7; i++) days.push(dateStr(addDays(currentWeekStart, i)));
   const today = dateStr(new Date());
 
-  const dayAbbrPL = ['ND','PN','WT','\u015aR','CZ','PT','SB'];
-  const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PA\u0179','LIS','GRU'];
+  const dayAbbrPL = ['ND','PN','WT','ŚR','CZ','PT','SB'];
+  const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PAŽ','LIS','GRU'];
+
+  // Kolory typów — identyczne jak w tabeli
   const typeColorsM = {
-    'Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840','Tempo':'#f06030',
-    'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Odpoczynek':'#44424a',
-    '\U0001f3c1 Start':'#3db870','\U0001f504 Zast\u0119pczy':'#66636e'
+    'Bieg spokojny':'#5090e0',
+    'Interwały':'#e8b840',
+    'Tempo':'#f06030',
+    'Wybieganie':'#3db870',
+    'Regeneracja':'#9a6fe8',
+    'Odpoczynek':'#44424a',
+    '🏁 Start':'#3db870',
+    '🔄 Zastępczy':'#66636e'
   };
+
+  // Kolor dominującego treningu dnia (pomija odpoczynek jeśli są inne)
+  function getDayAccentColor(items, isRaceDay) {
+    if (isRaceDay) return '#3db870';
+    if (!items.length) return '#44424a';
+    const priority = ['Interwały','Tempo','🏁 Start','Wybieganie','Bieg spokojny','Regeneracja','🔄 Zastępczy','Odpoczynek'];
+    for (const p of priority) {
+      if (items.find(t => t.type === p)) return typeColorsM[p] || '#5090e0';
+    }
+    return typeColorsM[items[0].type] || '#5090e0';
+  }
+
+  // Krótki opis dnia: typy treningów oddzielone " · "
+  function getDaySummary(items, isRaceDay, raceGoal) {
+    if (isRaceDay) return raceGoal.name || 'Start';
+    if (!items.length) return 'Dzień wolny';
+    const types = [...new Set(items.map(t => t.type))];
+    return types.join(' · ');
+  }
 
   const defaultOpen = days.includes(today) ? today : days[0];
 
@@ -1641,27 +1667,23 @@ function renderMobile() {
     const dayNum = d.getDate();
     const monthStr = monthNamesM[d.getMonth()];
     const isOpen = ds === defaultOpen;
-    const trainCount = items.length;
 
-    // === HEADER STYLING ===
-    // Race day gets special green treatment
+    const accentColor = getDayAccentColor(items, isRaceDay);
+    const summaryText = getDaySummary(items, isRaceDay, raceGoal);
+
+    // Header tło i ramka
     const headerBg = isRaceDay
-      ? 'linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08))'
-      : isToday ? 'rgba(212,80,26,0.07)' : 'var(--surface)';
-    const headerBorder = isRaceDay ? 'rgba(61,184,112,0.7)' : isToday ? 'var(--accent)' : 'var(--border)';
-    const boxShadow = isRaceDay ? 'box-shadow:0 0 0 2px rgba(61,184,112,0.25);'
-      : isToday ? 'box-shadow:0 0 0 2px rgba(212,80,26,0.15);' : '';
-    const abbrBg = isRaceDay ? '#3db870' : isToday ? 'var(--accent)' : 'var(--surface2)';
-    const abbrColor = (isRaceDay || isToday) ? '#fff' : 'var(--muted)';
-    const abbrContent = isRaceDay ? '\U0001f3c1' : abbr;
+      ? 'linear-gradient(90deg,rgba(61,184,112,0.13) 0%,var(--surface) 100%)'
+      : isToday
+        ? 'linear-gradient(90deg,rgba(212,80,26,0.10) 0%,var(--surface) 100%)'
+        : 'var(--surface)';
+    const outerBorder = isRaceDay ? 'rgba(61,184,112,0.5)'
+      : isToday ? 'var(--accent)' : 'var(--border)';
+    const boxShadow = isRaceDay ? 'box-shadow:0 0 0 2px rgba(61,184,112,0.18);'
+      : isToday ? 'box-shadow:0 0 0 2px rgba(212,80,26,0.12);' : '';
     const titleColor = isRaceDay ? 'var(--green)' : isToday ? 'var(--accent)' : 'var(--fg)';
     const kmColor = isRaceDay ? 'var(--green)' : 'var(--accent)';
-
-    const summaryText = isRaceDay
-      ? (raceGoal.name || 'Start')
-      : trainCount > 0
-        ? '(' + trainCount + ' ' + (trainCount===1?'trening':trainCount<5?'treningi':'trening\u00f3w') + ')'
-        : '';
+    const chevronColor = isRaceDay ? 'var(--green)' : 'var(--muted)';
 
     // === LOG THUMBNAILS ===
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
@@ -1681,7 +1703,7 @@ function renderMobile() {
       const tc = typeColorsM[t.type] || '#5090e0';
       const borderLeft = isDone ? 'var(--green)' : isMissed ? 'var(--red)' : tc;
       const statusBadge = isDone
-        ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">\u2713 WYKONANE</span>`
+        ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">✓ WYKONANE</span>`
         : isMissed
         ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>`
         : '';
@@ -1690,26 +1712,14 @@ function renderMobile() {
       const hr = t.hr||t.heart_rate||'';
       const dur = t.time||t.duration_min||'';
       const desc = t.desc||t.description||'';
-      return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${borderLeft};cursor:pointer;" onclick="openModal('${ds}',${i})">
-  <div style="padding:11px 13px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${km||desc?'4':'0'}px;">
-      <span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;font-weight:500;">${t.type.toUpperCase()}</span>
-      ${km>0?`<span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${km} KM</span>`:''}
-    </div>
-    ${km>0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:2px;">${km} KM${pace?`<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${pace}/km${hr?` \u00b7 ${hr}`:''}</span>`:''}</div>`:''}
-    ${dur?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dur} min</div>`:''}
-    ${desc?`<div style="font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.45;margin-top:4px;">${desc}</div>`:''}
-    ${statusBadge?`<div style="margin-top:6px;">${statusBadge}</div>`:''}
-  </div>
-</div>`;
+      return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${borderLeft};cursor:pointer;" onclick="openModal('${ds}',${i})"><div style="padding:11px 13px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${km||desc?'4':'0'}px;"><span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;font-weight:500;">${t.type.toUpperCase()}</span>${km>0?`<span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${km} KM</span>`:''}</div>${km>0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:2px;">${km} KM${pace?`<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${pace}/km${hr?` · ${hr}`:''}</span>`:''}</div>`:''
+      }${dur?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dur} min</div>`:''
+      }${desc?`<div style="font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.45;margin-top:4px;">${desc}</div>`:''
+      }${statusBadge?`<div style="margin-top:6px;">${statusBadge}</div>`:''}</div></div>`;
     }).join('');
 
-    // === RACE GOAL CARD (top of day) ===
-    const raceCard = isRaceDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.06));border:2px solid rgba(61,184,112,0.5);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal('${raceGoal.id}')">
-  <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">\U0001f3c1 CEL STARTOWY</div>
-  <div style="font-size:16px;font-weight:700;color:var(--fg);">${raceGoal.name}</div>
-  <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">kliknij aby edytowa\u0107</div>
-</div>` : '';
+    // === RACE GOAL CARD ===
+    const raceCard = isRaceDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.06));border:2px solid rgba(61,184,112,0.5);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal('${raceGoal.id}')"><div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">🏁 CEL STARTOWY</div><div style="font-size:16px;font-weight:700;color:var(--fg);">${raceGoal.name}</div><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">kliknij aby edytować</div></div>` : '';
 
     // === ADD BUTTON ===
     const addBtn = _urlRole !== 'athlete'
@@ -1719,17 +1729,26 @@ function renderMobile() {
     const contentId = 'mday-' + ds;
     const hasContent = items.length > 0 || isRaceDay || logThumbs;
 
-    return `<div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;${boxShadow}">
-  <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${headerBg};cursor:pointer;" onclick="toggleMobileDay('${contentId}',this)">
-    <div style="width:38px;height:38px;border-radius:8px;background:${abbrBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${isRaceDay?'18':'11'}px;font-weight:700;letter-spacing:0.06em;font-family:'DM Mono',monospace;color:${abbrColor};">${abbrContent}</div>
-    <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:baseline;gap:8px;">
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:${titleColor};">${dayNum} ${monthStr}</span>
-        ${totalKm>0?`<span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${kmColor};">${totalKm.toFixed(0)} km</span>`:''}
+    // === HEADER: lewy kolorowy pasek + skrót dnia + data + km + opis ===
+    return `<div style="border:1px solid ${outerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;${boxShadow}">
+  <div style="display:flex;align-items:stretch;background:${headerBg};cursor:pointer;" onclick="toggleMobileDay('${contentId}',this)">
+    <div style="width:5px;flex-shrink:0;background:${accentColor};border-radius:0;opacity:${items.length||isRaceDay?'1':'0.35'};"></div>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;flex:1;min-width:0;">
+      <div style="flex-shrink:0;text-align:center;min-width:28px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">${abbr}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:${titleColor};">${dayNum}</div>
       </div>
-      ${summaryText?`<div style="font-size:10px;color:${isRaceDay?'var(--green)':'var(--muted)'};font-family:'DM Mono',monospace;margin-top:1px;letter-spacing:0.04em;">${summaryText}</div>`:''}
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:baseline;gap:6px;">
+          <span style="font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;color:${titleColor};">${monthStr} ${d.getFullYear()===new Date().getFullYear()?'':' '+d.getFullYear()}</span>
+          ${totalKm>0?`<span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${kmColor};">${totalKm.toFixed(0)} km</span>`:''}
+        </div>
+        <div style="font-size:11px;color:${isRaceDay?'var(--green)':'var(--muted)'};font-family:'DM Mono',monospace;letter-spacing:0.04em;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${summaryText}</div>
+      </div>
     </div>
-    <svg class="mday-chevron" style="flex-shrink:0;transition:transform 0.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isRaceDay?'var(--green)':'var(--muted)'}" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    <div style="display:flex;align-items:center;padding-right:14px;">
+      <svg class="mday-chevron" style="transition:transform 0.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${chevronColor}" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
   </div>
   <div id="${contentId}" style="display:${isOpen?'block':'none'};padding:${hasContent||addBtn?'8px 10px 10px':'4px 10px'};background:var(--bg);">
     ${raceCard}${cards}${logThumbsHtml}${addBtn}
@@ -1741,6 +1760,7 @@ function renderMobile() {
   const mBtn = document.getElementById('mobile-new-btn');
   if (mBtn) mBtn.style.display = _urlRole !== 'athlete' ? 'flex' : 'none';
 }
+
 
 function toggleMobileDay(contentId, headerEl) {
   const content = document.getElementById(contentId);
