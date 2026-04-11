@@ -1619,45 +1619,68 @@ function renderMobile() {
   const days = [];
   for (let i = 0; i < 7; i++) days.push(dateStr(addDays(currentWeekStart, i)));
   const today = dateStr(new Date());
-  const typeIcons = {
-    'Bieg spokojny':'🟦','Interwały':'🟡','Tempo':'🟠','Wybieganie':'🟢',
-    'Regeneracja':'🩵','Odpoczynek':'⬜','🏁 Start':'🏁','🔄 Zastępczy':'🔄'
+  const dayAbbrPL = ['ND','PN','WT','ŚR','CZ','PT','SB'];
+  const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PAŹ','LIS','GRU'];
+  const typeColorsM = {
+    'Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#f06030',
+    'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Odpoczynek':'#44424a',
+    '🏁 Start':'#3db870','🔄 Zastępczy':'#66636e'
   };
+  const defaultOpen = days.includes(today) ? today : days[0];
   container.innerHTML = days.map(ds => {
     const items = trainings[ds] || [];
     const d = new Date(ds + 'T12:00:00');
     const isToday = ds === today;
-    const raceGoal = (goals || []).find(g => g.date === ds);
+    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
     const totalKm = items.reduce((s,t) => s + (parseFloat(t.dist||t.distance_km)||0), 0);
-    const dayName = d.toLocaleDateString('pl-PL',{weekday:'long'});
-    const dayNum  = d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-    return `<div style="border:1px solid ${isToday?'var(--accent)':'var(--border)'};border-radius:10px;margin-bottom:10px;overflow:hidden;${isToday?'box-shadow:0 0 0 2px rgba(212,80,26,0.18);':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:${isToday?'rgba(212,80,26,0.07)':'var(--surface)'};cursor:pointer;" onclick="openModal('${ds}')">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:${isToday?'var(--accent)':'var(--fg)'};">${d.getDate()}</div>
-          <div>
-            <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">${dayName}</div>
-            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dayNum}${totalKm>0?' · <span style="color:var(--green)">'+totalKm.toFixed(1)+'km</span>':''}</div>
-          </div>
-        </div>
-        ${raceGoal ? `<span style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.06em;">🏁 ${raceGoal.name||'Start'}</span>` : ''}
-        <span style="color:var(--muted);font-size:18px;">+</span>
-      </div>
-      ${items.length > 0 ? `<div style="padding:6px 10px 10px;">` + items.map((t,i) => {
-        const icon = typeIcons[t.type] || '🟦';
-        const isDone = t.status === 'done';
-        const isMissed = t.status === 'missed';
-        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;margin-bottom:4px;background:var(--surface2);border-left:3px solid ${isDone?'var(--green)':isMissed?'var(--accent)':'var(--border)'};cursor:pointer;" onclick="event.stopPropagation();openModal('${ds}',${i})">
-          <span style="font-size:14px;">${icon}</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${t.type}</div>
-            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${t.dist||t.distance_km?((t.dist||t.distance_km)+'km'):''}${t.pace?' · '+t.pace+'/km':''}${t.time||t.duration_min?' · '+(t.time||t.duration_min)+'min':''}</div>
-          </div>
-          <span style="font-size:14px;">${isDone?'✅':isMissed?'❌':''}</span>
-        </div>`;
-      }).join('') + `</div>` : ''}
-    </div>`;
+    const abbr = dayAbbrPL[d.getDay()];
+    const dayNum = d.getDate();
+    const monthStr = monthNamesM[d.getMonth()];
+    const isOpen = ds === defaultOpen;
+    const trainCount = items.length;
+    const headerBg = isToday ? 'rgba(212,80,26,0.07)' : 'var(--surface)';
+    const headerBorder = isToday ? 'var(--accent)' : 'var(--border)';
+    const abbrBg = isToday ? 'var(--accent)' : 'var(--surface2)';
+    const abbrColor = isToday ? '#fff' : 'var(--muted)';
+    const summaryText = trainCount > 0
+      ? '(' + trainCount + ' ' + (trainCount===1?'trening':trainCount<5?'treningi':'treningów') + ')'
+      : raceGoal ? '🏁 ' + (raceGoal.name||'Start') : '';
+    const cards = items.map((t, i) => {
+      const isDone = t.status === 'done';
+      const isMissed = t.status === 'missed';
+      const tc = typeColorsM[t.type] || '#5090e0';
+      const borderLeft = isDone ? 'var(--green)' : isMissed ? 'var(--red)' : tc;
+      const statusBadge = isDone
+        ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 8px;border-radius:4px;">✓ WYKONANE</span>'
+        : isMissed
+        ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 8px;border-radius:4px;">✓ BRAK DANYCH</span>'
+        : '';
+      const km = parseFloat(t.dist||t.distance_km)||0;
+      const pace = t.pace||'';
+      const hr = t.hr||t.heart_rate||'';
+      const dur = t.time||t.duration_min||'';
+      const desc = t.desc||t.description||'';
+      const tcEsc = tc;
+      const blEsc = borderLeft;
+      return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${blEsc};cursor:pointer;" onclick="openModal('${ds}',${i})"><div style="padding:12px 14px;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;"><span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tcEsc};font-family:'DM Mono',monospace;font-weight:500;">${t.type.toUpperCase()}</span>${km>0?`<span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${km} KM</span>`:''}</div>${km>0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--fg);margin-bottom:2px;">${km} KM${pace?`<span style="font-size:13px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${pace}/km${hr?' · '+hr:''}</span>`:''}</div>`:''}${desc?`<div style="font-size:12px;color:var(--muted);font-family:'DM Sans',sans-serif;line-height:1.4;margin-bottom:4px;">${desc}</div>`:''}${statusBadge?`<div style="margin-top:4px;">${statusBadge}</div>`:''}</div></div>`;
+    }).join('');
+    const contentId = 'mday-' + ds;
+    const addBtn = _urlRole !== 'athlete'
+      ? `<button onclick="openModal('${ds}')" style="width:100%;background:transparent;border:1px dashed rgba(212,80,26,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:8px;margin-top:${items.length?'4':'0'}px;" onmouseover="this.style.background='rgba(212,80,26,0.06)'" onmouseout="this.style.background='transparent'">+ Dodaj trening</button>`
+      : (items.length===0 ? `<div style="text-align:center;padding:10px 0;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Brak treningu</div>` : '');
+    return `<div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;${isToday?'box-shadow:0 0 0 2px rgba(212,80,26,0.15);':''}"><div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${headerBg};cursor:pointer;" onclick="toggleMobileDay('${contentId}',this)"><div style="width:38px;height:38px;border-radius:8px;background:${abbrBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:11px;font-weight:700;letter-spacing:0.06em;font-family:'DM Mono',monospace;color:${abbrColor};">${abbr}</span></div><div style="flex:1;min-width:0;"><div style="display:flex;align-items:baseline;gap:8px;"><span style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:${isToday?'var(--accent)':'var(--fg)'};">${dayNum} ${monthStr}</span>${totalKm>0?`<span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);">${totalKm.toFixed(0)} km</span>`:''}</div>${summaryText?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${summaryText}</div>`:''}</div><svg class="mday-chevron" style="flex-shrink:0;transition:transform 0.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div><div id="${contentId}" style="display:${isOpen?'block':'none'};padding:${items.length?'8px 10px 10px':'4px 10px'};background:var(--bg);">${cards}${addBtn}</div></div>`;
   }).join('');
+  const mBtn = document.getElementById('mobile-new-btn');
+  if (mBtn) mBtn.style.display = _urlRole !== 'athlete' ? 'flex' : 'none';
+}
+
+function toggleMobileDay(contentId, headerEl) {
+  const content = document.getElementById(contentId);
+  if (!content) return;
+  const isOpen = content.style.display !== 'none';
+  content.style.display = isOpen ? 'none' : 'block';
+  const chevron = headerEl.querySelector('.mday-chevron');
+  if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
 
