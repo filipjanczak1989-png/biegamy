@@ -876,15 +876,26 @@ async function renderDbAthletes(list) {
       .is('read_by_coach', null);
 
     // Sprawdź czy zawodnik miał zaplanowany trening 2+ dni temu bez logu
-    const { data: missedTrainings } = await _sb.from('trainings')
-      .select('date,type')
+    // ORAZ nie zalogował żadnego treningu w ciągu ostatnich 2 dni
+    const { data: recentLogs } = await _sb.from('training_logs')
+      .select('logged_at')
       .eq('athlete_id', a.id)
-      .neq('type', 'Odpoczynek')
-      .neq('status', 'done')
-      .lte('date', twoDaysAgoStr)
-      .gte('date', new Date(now.getTime() - 7*86400000).toISOString().split('T')[0])
+      .gte('logged_at', twoDaysAgo.toISOString())
       .limit(1);
-    const hasMissed = missedTrainings && missedTrainings.length > 0;
+    const hasRecentLog = recentLogs && recentLogs.length > 0;
+
+    let hasMissed = false;
+    if (!hasRecentLog) {
+      const { data: missedTrainings } = await _sb.from('trainings')
+        .select('date,type')
+        .eq('athlete_id', a.id)
+        .neq('type', 'Odpoczynek')
+        .neq('status', 'done')
+        .lte('date', twoDaysAgoStr)
+        .gte('date', new Date(now.getTime() - 7*86400000).toISOString().split('T')[0])
+        .limit(1);
+      hasMissed = missedTrainings && missedTrainings.length > 0;
+    }
 
     return { ...a, newLogs: count || 0, hasMissed };
   }));
@@ -1207,7 +1218,7 @@ function openTemplateModal() {
     <div class="tpl-day" style="flex-direction:column;align-items:stretch;gap:6px;padding:10px 0;border-bottom:1px solid var(--border);">
       <div style="display:flex;align-items:center;gap:10px;">
         <div class="tpl-day-name" style="min-width:28px;">${d.day}</div>
-        <select id="tpl-type-${i}" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
+        <select id="tpl-type-${i}" onchange="tplTypeChanged(${i},this.value)" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:5px 8px;border-radius:6px;flex:1;">
           <option ${d.type==='Odpoczynek'?'selected':''}>Odpoczynek</option>
           <option ${d.type==='Spokojny'?'selected':''}>Spokojny</option>
           <option ${d.type==='Interwały'?'selected':''}>Interwały</option>
@@ -1249,24 +1260,80 @@ function tplToggleAll(masterChk) {
 
 // ── BAZA ĆWICZEŃ BIEGOWYCH ─────────────────────────────────────────
 const DRILLS = {
+  // ── FARTLEKI ──
   fartlek1: { name:'Klasyczny fartlek', type:'Interwały', desc:'Rozbieganie 2 km. Następnie 20–25 min swobodnego fartleku: przyspieszenia wg samopoczucia, od 30 sek do 3 min, z truchtem jako odpoczynkiem. Zakończenie 2 km spokojnego biegu.' },
   fartlek2: { name:'Fartlek 1-2-3-2-1', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1 min szybko, 1 min trucht, 2 min szybko, 2 min trucht, 3 min szybko, 2 min trucht, 2 min szybko, 1 min trucht, 1 min szybko. Schłodzenie 2 km.' },
   fartlek3: { name:'Fartlek progowy', type:'Tempo', desc:'Rozbieganie 2 km. 5–6 przyspieszeń po 2–3 min w tempie progowym (ok. 10–15 sek/km szybciej niż LT). Odpoczynek: 90 sek trucht. Zakończenie 2 km spokojnie.' },
+  fartlek4: { name:'Fartlek szwedzki', type:'Interwały', desc:'Rozbieganie 2 km w terenie. 8–12 odcinków po 1 min maksymalnie, odpoczynek 1–2 min trucht. Świetny na bieganie po pagórkach i nierównym terenie. Zakończenie 2 km.' },
+  fartlek5: { name:'Fartlek wzgórzowy', type:'Interwały', desc:'Rozbieganie 3 km. 6–8 sprintów pod górę (20–30 sek), trucht z powrotem jako przerwa. Buduje siłę biegową i VO2max. Zakończenie 2 km spokojnie.' },
+  // ── INTERWAŁY / MINUTÓWKI ──
   int1: { name:'5×1000m', type:'Interwały', desc:'Rozbieganie 2–3 km. 5 powtórzeń po 1000 m w tempie 5 km (VO2max). Przerwa: 90 sek–2 min truchtu. Schłodzenie 2 km. Łącznie ok. 12–14 km.' },
   int2: { name:'8×400m', type:'Interwały', desc:'Rozbieganie 3 km. 8 powtórzeń po 400 m w tempie 3–5 km. Przerwa: 400 m trucht (ok. 2 min). Schłodzenie 2 km. Łącznie ok. 10–11 km.' },
   int3: { name:'6×3min', type:'Interwały', desc:'Rozbieganie 2–3 km. 6 powtórzeń po 3 min w tempie VO2max (ciężkie, ale do utrzymania). Przerwa: 2 min truchtu. Schłodzenie 2 km.' },
   int4: { name:'10×1min', type:'Interwały', desc:'Rozbieganie 3 km. 10 powtórzeń po 1 min bardzo szybko (95–100% max), 1 min truchtu. Dobre na szybkość i neuromięśniowe. Schłodzenie 2 km.' },
   int5: { name:'4×2km', type:'Interwały', desc:'Rozbieganie 3 km. 4 powtórzenia po 2 km w tempie półmaratonu lub szybciej. Przerwa: 3 min truchtu. Schłodzenie 2 km. Łącznie ok. 16–18 km.' },
+  int6: { name:'12×200m', type:'Interwały', desc:'Rozbieganie 3 km. 12 powtórzeń po 200 m w tempie 1500 m, przerwa 200 m trucht. Trening szybkościowy — neuromięśniowy i forma. Schłodzenie 2 km.' },
+  int7: { name:'3×3×400m', type:'Interwały', desc:'Rozbieganie 3 km. 3 serie po 3×400 m w tempie 1500–3000 m. Przerwa między powtórzeniami: 60 sek, między seriami: 3 min. Schłodzenie 2 km.' },
+  // ── BIEGI PROGOWE ──
   prog1: { name:'Próg 20min', type:'Tempo', desc:'Rozbieganie 3 km. 20 min ciągłego biegu w tempie progowym (LT, ok. 85–90% max tętna, komfortowo trudne). Schłodzenie 2–3 km. Łącznie ok. 10 km.' },
-  prog2: { name:'2×15min progowy', type:'Tempo', desc:'Rozbieganie 3 km. 2 odcinki po 15 min w tempie progowym, przerwa 3 min truchtu. Schłodzenie 2 km. Dobry trening progowy dla tych co nie mogą utrzymać ciągłego 30 min.' },
-  prog3: { name:'Tempo ciągłe 30min', type:'Tempo', desc:'Rozbieganie 3 km. 30 min ciągłego biegu w tempie progowym. Schłodzenie 2–3 km. Klasyczny trening Danielsa — buduje zdolność do utrzymania wysiłku.' },
+  prog2: { name:'2×15min progowy', type:'Tempo', desc:'Rozbieganie 3 km. 2 odcinki po 15 min w tempie progowym, przerwa 3 min truchtu. Schłodzenie 2 km.' },
+  prog3: { name:'Tempo ciągłe 30min', type:'Tempo', desc:'Rozbieganie 3 km. 30 min ciągłego biegu w tempie progowym. Schłodzenie 2–3 km. Klasyczny trening Danielsa.' },
+  prog4: { name:'Cruise intervals 5×1mi', type:'Tempo', desc:'Rozbieganie 3 km. 5 odcinków po ~1600 m w tempie progowym, przerwa 60 sek trucht. Schłodzenie 2 km. Buduje wydolność tlenową bez nadmiernego zmęczenia.' },
+  // ── PIRAMIDKI ──
   pyr1: { name:'Piramida 1-2-3-2-1km', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1 km, 2 km, 3 km, 2 km, 1 km w tempie 10 km–półmaraton. Przerwy: 2 min truchtu. Schłodzenie 2 km. Łącznie ok. 16 km.' },
   pyr2: { name:'Piramida 200-400-800-400-200m', type:'Interwały', desc:'Rozbieganie 2–3 km. Odcinki: 200 m, 400 m, 800 m, 400 m, 200 m w tempie 1–3 km, przerwy równe długości odcinka (trucht). Schłodzenie 2 km.' },
   pyr3: { name:'Piramida minutowa 1-2-3-4-3-2-1min', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1, 2, 3, 4, 3, 2, 1 min szybko (VO2max), przerwy = połowa czasu odcinka trucht. Razem 16 min intensywnej pracy. Schłodzenie 2 km.' },
+  pyr4: { name:'Piramida dystansowa (odwrócona)', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki malejące: 1200 m, 1000 m, 800 m, 600 m, 400 m, 200 m w tempie 5 km. Przerwy: 90 sek–2 min. Psychologicznie łatwiej — każdy odcinek krótszy.' },
+  // ── NAD/POD PROGIEM ──
   over1: { name:'Nad progiem 5×1km', type:'Interwały', desc:'Rozbieganie 3 km. 5 powtórzeń po 1 km ok. 5–8 sek/km szybciej niż LT (nad progiem). Przerwa: 2 min truchtu. Schłodzenie 2 km. Buduje tolerancję mleczanu.' },
   under1: { name:'Pod progiem 3×2km', type:'Tempo', desc:'Rozbieganie 3 km. 3 odcinki po 2 km ok. 5 sek/km wolniej niż LT (pod progiem). Przerwa: 2 min truchtu. Bezpieczny trening dla zawodników po kontuzji lub przy budowie bazy.' },
   over2: { name:'VO2max 6×800m', type:'Interwały', desc:'Rozbieganie 3 km. 6 powtórzeń po 800 m w tempie 5 km (VO2max, bardzo ciężkie). Przerwa: 400 m truchtu. Schłodzenie 2 km. Jeden z najskuteczniejszych treningów wydolnościowych.' },
+  // ── WZMACNIAJĄCE (~30min) ──
+  sil1: { name:'Siła biegowa 30min', type:'Regeneracja', desc:'Po rozgrzewce 10 min biegu spokojnie: 3×10 przysiadów, 3×10 wykroków naprzemiennych, 3×15 uniesień bioder (glute bridge), 3×30 sek deski (plank), 3×10 martwych robaków. Bez przerw między ćwiczeniami, 2 min odpoczynku między seriami. Razem ok. 30 min.' },
+  sil2: { name:'Wzmocnienie核心 30min', type:'Regeneracja', desc:'Obwód: 45 sek ćwiczenie / 15 sek przerwa × 4 rundy. Ćwiczenia: plank, side plank (L/P), mountain climbers, hollow body, bird-dog, dead bug, Russian twists, plank z unoszeniem nogi. Wzmacnia rdzeń i stabilizację niezbędną dla biegacza.' },
+  sil3: { name:'Siła nóg 30min', type:'Regeneracja', desc:'3 serie: 12 przysiadów bułgarskich na nodze (każda), 10 step-upów na podwyższenie, 15 wyprostów łydek (calf raises), 10 RDL na jednej nodze. Przerwa 90 sek między seriami. Zapobiega kontuzjom i poprawia ekonomię biegu.' },
+  sil4: { name:'Drills biegowe 20min', type:'Regeneracja', desc:'Przed treningiem lub jako osobna sesja: 2×30m skip A, 2×30m skip B, 2×30m bieg z wysokim uniesieniem kolan, 2×30m bieg z piętami do pośladków, 2×60m strides (70–80% max). Poprawia technikę i aktywuje mięśnie.' },
+  // ── ODDECHOWE/MOBILNOŚĆ (~5-10min) ──
+  odd1: { name:'Oddech przeponowy 5min', type:'Regeneracja', desc:'Połóż się na plecach, kolana ugięte. Połóż rękę na brzuchu. Wdech nosem 4 sek (brzuch unosi się, klatka nieruchoma), zatrzymanie 4 sek, wydech ustami 6 sek. 10 powtórzeń. Aktywuje nerw błędny, obniża HRV i kortyzol. Idealne przed snem lub po intensywnym treningu.' },
+  odd2: { name:'Box breathing 5min', type:'Regeneracja', desc:'Wdech nosem 4 sek → zatrzymanie 4 sek → wydech 4 sek → zatrzymanie 4 sek. 15 cykli = ok. 4 min. Technika stosowana przez Navy SEALs. Reguluje układ nerwowy przed startem lub po ciężkim treningu.' },
+  odd3: { name:'Mobilność bioder 10min', type:'Regeneracja', desc:'2×60 sek pigeon pose na stronę, 2×60 sek hip flexor stretch (low lunge), 2×30 sek rotacja bioder w leżeniu (supine twist), 10 krążeń bioder w każdą stronę. Kluczowe dla biegaczy po długich wybieganiach.' },
+  odd4: { name:'Rozciąganie po biegu 10min', type:'Regeneracja', desc:'60 sek: łydki przy ścianie, uda (stając), biodra (figura 4), hamstringi w leżeniu, klatka piersiowa (objęcie kolan). Trzymaj każdą pozycję spokojnie, oddychaj. Nie rozciągaj przed biegiem — tylko po.' },
 };
+
+// ── DEFAULT DESCRIPTIONS BY TYPE ──────────────────────────────────
+const TYPE_DEFAULT_DESC = {
+  'Spokojny':     'Bieg w strefie 1–2. Tętno max 140–150 bpm, możliwość swobodnej rozmowy. Skupiaj się na regularnym oddechu i rozluźnieniu.',
+  'Regeneracja':  'Bardzo spokojny trucht, tętno poniżej 130 bpm. Celem jest aktywna regeneracja — nie tempo ani dystans. Możesz iść jeśli trzeba.',
+  'Wybieganie':   'Długi bieg w strefie 2, tętno 135–150 bpm. Stałe, komfortowe tempo przez cały dystans. Jedz/pij co 45 min na dłuższych wybieganiach.',
+  'Interwały':    'Rozbieganie 2–3 km spokojnie. Odcinki szybkie w zadanym tempie z pełnym odpoczynkiem. Schłodzenie 2 km. Nie skracaj przerw.',
+  'Tempo':        'Rozbieganie 3 km. Bieg w tempie progowym (LT) — komfortowo trudne, możliwość wypowiedzenia krótkiego zdania. Schłodzenie 2–3 km.',
+  'Odpoczynek':   'Dzień wolny. Odpoczynek lub lekkie rozciąganie 10 min. Nie biegaj.',
+};
+
+function tplTypeChanged(dayIdx, newType) {
+  const descEl = document.getElementById('tpl-desc-' + dayIdx);
+  const distEl = document.getElementById('tpl-dist-' + dayIdx);
+  const hrEl   = document.getElementById('tpl-hr-' + dayIdx);
+  if (!descEl) return;
+  // Tylko nadpisz jeśli pole puste lub zawiera poprzedni domyślny opis
+  const currentDesc = descEl.value.trim();
+  const isDefault = currentDesc === '' || Object.values(TYPE_DEFAULT_DESC).some(d => currentDesc === d);
+  if (isDefault) {
+    descEl.value = TYPE_DEFAULT_DESC[newType] || '';
+    descEl.style.height = 'auto';
+    descEl.style.height = Math.max(48, descEl.scrollHeight) + 'px';
+  }
+  // Sugeruj tętno
+  const hrDefaults = { 'Spokojny':'130–145', 'Wybieganie':'135–150', 'Regeneracja':'115–130', 'Tempo':'155–168', 'Interwały':'160–175', 'Odpoczynek':'' };
+  if (hrEl && (!hrEl.value || Object.values(hrDefaults).includes(hrEl.value))) {
+    hrEl.value = hrDefaults[newType] || '';
+  }
+  // Sugeruj dystans jeśli puste
+  const distDefaults = { 'Spokojny':'12', 'Wybieganie':'22', 'Regeneracja':'6', 'Tempo':'14', 'Interwały':'14', 'Odpoczynek':'' };
+  if (distEl && !distEl.value) {
+    distEl.placeholder = distDefaults[newType] ? distDefaults[newType]+' km' : 'km';
+  }
+}
 
 let _selectedDrill = null;
 
@@ -2206,6 +2273,8 @@ if (_tabParam) {
           <span class="drill-chip" onclick="insertDrill(this,'fartlek1')">Klasyczny fartlek</span>
           <span class="drill-chip" onclick="insertDrill(this,'fartlek2')">Fartlek 1-2-3-2-1</span>
           <span class="drill-chip" onclick="insertDrill(this,'fartlek3')">Fartlek progowy</span>
+          <span class="drill-chip" onclick="insertDrill(this,'fartlek4')">Fartlek szwedzki</span>
+          <span class="drill-chip" onclick="insertDrill(this,'fartlek5')">Fartlek wzgórzowy</span>
         </div>
         <div class="drill-cat">Interwały / Minutówki</div>
         <div class="drill-chips">
@@ -2214,24 +2283,42 @@ if (_tabParam) {
           <span class="drill-chip" onclick="insertDrill(this,'int3')">6×3min</span>
           <span class="drill-chip" onclick="insertDrill(this,'int4')">10×1min</span>
           <span class="drill-chip" onclick="insertDrill(this,'int5')">4×2km</span>
+          <span class="drill-chip" onclick="insertDrill(this,'int6')">12×200m</span>
+          <span class="drill-chip" onclick="insertDrill(this,'int7')">3×3×400m</span>
         </div>
         <div class="drill-cat">Biegi progowe</div>
         <div class="drill-chips">
           <span class="drill-chip" onclick="insertDrill(this,'prog1')">Próg 20min</span>
           <span class="drill-chip" onclick="insertDrill(this,'prog2')">2×15min progowy</span>
           <span class="drill-chip" onclick="insertDrill(this,'prog3')">Tempo ciągłe 30min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'prog4')">Cruise intervals 5×1mi</span>
         </div>
         <div class="drill-cat">Piramidki</div>
         <div class="drill-chips">
           <span class="drill-chip" onclick="insertDrill(this,'pyr1')">Piramida 1-2-3-2-1km</span>
           <span class="drill-chip" onclick="insertDrill(this,'pyr2')">Piramida 200-400-800-400-200m</span>
           <span class="drill-chip" onclick="insertDrill(this,'pyr3')">Piramida minutowa 1-2-3-4-3-2-1min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'pyr4')">Piramida odwrócona</span>
         </div>
         <div class="drill-cat">Nad / Pod progiem</div>
         <div class="drill-chips">
           <span class="drill-chip" onclick="insertDrill(this,'over1')">Nad progiem 5×1km</span>
           <span class="drill-chip" onclick="insertDrill(this,'under1')">Pod progiem 3×2km</span>
           <span class="drill-chip" onclick="insertDrill(this,'over2')">VO2max 6×800m</span>
+        </div>
+        <div class="drill-cat">Wzmacniające (~30min)</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'sil1')">Siła biegowa 30min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'sil2')">Wzmocnienie core 30min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'sil3')">Siła nóg 30min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'sil4')">Drills biegowe 20min</span>
+        </div>
+        <div class="drill-cat">Oddechowe / Mobilność (~5-10min)</div>
+        <div class="drill-chips">
+          <span class="drill-chip" onclick="insertDrill(this,'odd1')">Oddech przeponowy 5min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'odd2')">Box breathing 5min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'odd3')">Mobilność bioder 10min</span>
+          <span class="drill-chip" onclick="insertDrill(this,'odd4')">Rozciąganie po biegu 10min</span>
         </div>
         <div id="drill-preview" class="drill-preview"></div>
         <div id="drill-insert-target" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:6px;display:none;">
