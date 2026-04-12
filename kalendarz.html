@@ -277,6 +277,7 @@ nav{
       <button onclick="openGoalModal()" style="background:transparent;border:1px dashed var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">🏁 + Cel</button>
     </div>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)">+ Nowy trening</button>
+    <button class="btn btn-ghost" id="btn-templates" onclick="openTemplatesModal()" style="display:none;">📋 Szablony</button>
   </div>
 </nav>
 
@@ -502,6 +503,58 @@ nav{
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
       <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATES MODAL -->
+<div id="templates-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:350;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeTemplatesModal()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;width:480px;max-width:94vw;max-height:85vh;overflow-y:auto;transform:translateY(10px);transition:transform 0.2s;" id="templates-modal-inner">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;">📋 Szablony treningów</div>
+      <button onclick="closeTemplatesModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div style="padding:16px 20px;">
+      <!-- Zapisz aktualny trening jako szablon -->
+      <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;">+ Nowy szablon</div>
+        <input id="tmpl-name" type="text" placeholder="Nazwa szablonu (np. Interwały 8x400m)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:6px;outline:none;box-sizing:border-box;margin-bottom:8px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Typ</label>
+            <select id="tmpl-type" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:6px;outline:none;cursor:pointer;">
+              <option value="Bieg spokojny">Spokojny</option>
+              <option value="Interwały">Interwały</option>
+              <option value="Tempo">Tempo</option>
+              <option value="Wybieganie">Wybieganie</option>
+              <option value="Regeneracja">Regeneracja</option>
+              <option value="Odpoczynek">Odpoczynek</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Dystans (km)</label>
+            <input id="tmpl-dist" type="number" placeholder="np. 10" min="0" step="0.5" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div>
+            <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Tempo /km</label>
+            <input id="tmpl-pace" type="text" placeholder="np. 5:30" maxlength="5" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Tętno (bpm)</label>
+            <input id="tmpl-hr" type="text" placeholder="np. 140-155" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Opis / instrukcje</label>
+          <textarea id="tmpl-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km rozgrzewka..." style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;resize:none;height:68px;line-height:1.5;box-sizing:border-box;"></textarea>
+        </div>
+        <button onclick="saveTemplate()" style="width:100%;margin-top:10px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz szablon →</button>
+      </div>
+      <!-- Lista szablonów -->
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Zapisane szablony</div>
+      <div id="templates-list"></div>
     </div>
   </div>
 </div>
@@ -943,7 +996,9 @@ document.addEventListener('keydown', e => {
 
 
 // ── ROLE DETECTION ────────────────────────────────────────────────
-const _urlRole = new URLSearchParams(window.location.search).get('role') || 'coach';
+const _urlRoleFromUrl = new URLSearchParams(window.location.search).get('role');
+// Jeśli brak parametru role w URL — będzie wykryty z sesji w initRole()
+let _urlRole = _urlRoleFromUrl || 'athlete'; // bezpieczny default to athlete
 const _urlAthlete = new URLSearchParams(window.location.search).get('athlete') || null;
 const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
 // Jeśli trener przyszedł z wybranym zawodnikiem — ustaw od razu
@@ -962,6 +1017,22 @@ document.getElementById('role-label').textContent = _urlRole === 'coach' ? 'Kale
 window._raceDates = [];
 
 // ── LOAD ATHLETES INTO SELECT (trener) ───────────────────────────
+async function initRole() {
+  if (_urlRoleFromUrl) return; // URL ma rolę — ufamy jej
+  // Brak roli w URL — sprawdź w sesji
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  const role = session.user.user_metadata?.role || 'athlete';
+  if (role === 'coach') {
+    // Coach bez roli w URL — przekieruj z rolą
+    const params = new URLSearchParams(window.location.search);
+    params.set('role', 'coach');
+    window.location.replace('kalendarz.html?' + params.toString());
+  }
+  // athlete — zostaje, _urlRole jest już 'athlete'
+}
+initRole();
+
 async function loadAthletesSelect() {
   if (_urlRole !== 'coach') return;
   const { data: { session } } = await _sbKal.auth.getSession();
@@ -1818,6 +1889,114 @@ function toggleMobileDay(contentId, headerEl) {
   if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
+
+// ── SZABLONY ──────────────────────────────────────────────────────
+function openTemplatesModal() {
+  renderTemplatesList();
+  const bg = document.getElementById('templates-modal-bg');
+  const inner = document.getElementById('templates-modal-inner');
+  bg.style.opacity = '1';
+  bg.style.pointerEvents = 'all';
+  if (inner) inner.style.transform = 'translateY(0)';
+}
+function closeTemplatesModal() {
+  const bg = document.getElementById('templates-modal-bg');
+  const inner = document.getElementById('templates-modal-inner');
+  bg.style.opacity = '0';
+  bg.style.pointerEvents = 'none';
+  if (inner) inner.style.transform = 'translateY(10px)';
+}
+
+function getTemplates() {
+  try { return JSON.parse(localStorage.getItem('coach_templates') || '[]'); } catch(e) { return []; }
+}
+function saveTemplates(list) {
+  localStorage.setItem('coach_templates', JSON.stringify(list));
+}
+
+function saveTemplate() {
+  const name = document.getElementById('tmpl-name').value.trim();
+  if (!name) { notify('Podaj nazwę szablonu'); return; }
+  const tmpl = {
+    id: Date.now(),
+    name,
+    type: document.getElementById('tmpl-type').value,
+    dist: parseFloat(document.getElementById('tmpl-dist').value) || null,
+    pace: document.getElementById('tmpl-pace').value.trim() || null,
+    hr: document.getElementById('tmpl-hr').value.trim() || null,
+    desc: document.getElementById('tmpl-desc').value.trim() || null,
+  };
+  const list = getTemplates();
+  list.unshift(tmpl);
+  saveTemplates(list);
+  // Wyczyść pola
+  ['tmpl-name','tmpl-dist','tmpl-pace','tmpl-hr','tmpl-desc'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  document.getElementById('tmpl-type').value = 'Bieg spokojny';
+  renderTemplatesList();
+  notify('Szablon zapisany ✓');
+}
+
+function deleteTemplate(id) {
+  const list = getTemplates().filter(t => t.id !== id);
+  saveTemplates(list);
+  renderTemplatesList();
+}
+
+function applyTemplate(id) {
+  const tmpl = getTemplates().find(t => t.id === id);
+  if (!tmpl) return;
+  closeTemplatesModal();
+  // Otwórz modal treningu z wypełnionymi danymi z szablonu
+  openModal(null);
+  setTimeout(() => {
+    // Ustaw typ
+    const pill = Array.from(document.querySelectorAll('.type-pill')).find(p => {
+      const txt = p.textContent.trim().toLowerCase();
+      return txt.includes(tmpl.type.toLowerCase().slice(0,5));
+    });
+    if (pill) pill.click();
+    // Wypełnij pola
+    const fdist = document.getElementById('f-dist'); if(fdist && tmpl.dist) fdist.value = tmpl.dist;
+    const fpace = document.getElementById('f-pace'); if(fpace && tmpl.pace) fpace.value = tmpl.pace;
+    const fhr = document.getElementById('f-hr'); if(fhr && tmpl.hr) fhr.value = tmpl.hr;
+    const fdesc = document.getElementById('f-desc'); if(fdesc && tmpl.desc) fdesc.value = tmpl.desc;
+  }, 80);
+  notify('Szablon załadowany — wybierz datę i zawodnika');
+}
+
+function renderTemplatesList() {
+  const list = document.getElementById('templates-list');
+  if (!list) return;
+  const templates = getTemplates();
+  if (!templates.length) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;padding:12px 0;text-align:center;">Brak szablonów. Dodaj pierwszy powyżej.</div>';
+    return;
+  }
+  const typeColors = {'Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870','Odpoczynek':'#44424a'};
+  list.innerHTML = templates.map(t => {
+    const color = typeColors[t.type] || '#66636e';
+    const meta = [t.dist ? t.dist + ' km' : '', t.pace ? t.pace + '/km' : '', t.hr ? '♥ ' + t.hr : ''].filter(Boolean).join(' · ');
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+      <div style="width:3px;height:40px;background:${color};border-radius:2px;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${t.name}</div>
+        <div style="font-size:10px;color:${color};font-family:'DM Mono',monospace;margin-bottom:2px;">${t.type}</div>
+        ${meta ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${meta}</div>` : ''}
+        ${t.desc ? `<div style="font-size:10px;color:rgba(240,237,232,0.5);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        <button onclick="applyTemplate(${t.id})" style="background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Użyj →</button>
+        <button onclick="deleteTemplate(${t.id})" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">Usuń</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Pokaż przycisk szablonów tylko dla trenera
+if (_urlRole === 'coach') {
+  const tBtn = document.getElementById('btn-templates');
+  if (tBtn) tBtn.style.display = '';
+}
 
 render();
 loadAthletesSelect();

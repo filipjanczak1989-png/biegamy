@@ -302,7 +302,7 @@ body{
 .modal-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 22px 16px;letter-spacing:0.05em;}
 .modal-body{padding:0 22px;}
 /* Chat bubbles */
-.msg-bubble{max-width:78%;padding:10px 14px;border-radius:18px;font-size:13px;line-height:1.6;word-break:break-word;}
+.msg-bubble{max-width:72%;padding:10px 14px;border-radius:18px;font-size:13px;line-height:1.6;word-break:break-word;overflow-wrap:break-word;}
 .msg-bubble.coach{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-bottom-left-radius:4px;align-self:flex-start;}
 .msg-bubble.athlete{background:var(--accent);color:#fff;border-bottom-right-radius:4px;align-self:flex-end;}
 .msg-row{display:flex;flex-direction:column;gap:2px;}
@@ -434,7 +434,7 @@ body{
 .pchat-msg-row{display:flex;flex-direction:column;gap:3px;}
 .pchat-msg-row.me{align-items:flex-end;}
 .pchat-msg-row.them{align-items:flex-start;}
-.pchat-bubble{max-width:78%;padding:11px 15px;font-size:13px;line-height:1.55;word-break:break-word;position:relative;}
+.pchat-bubble{max-width:72%;padding:11px 15px;font-size:13px;line-height:1.55;word-break:break-word;overflow-wrap:break-word;position:relative;}
 .pchat-msg-row.me .pchat-bubble{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 3px 16px var(--glow-o);}
 .pchat-bubble img,.pchat-bubble video{max-width:100%;border-radius:10px;display:block;margin:2px 0;}
 .pchat-msg-row.them .pchat-bubble{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:18px 18px 18px 4px;}
@@ -443,7 +443,7 @@ body{
 .pchat-pickers{position:relative;}
 .pchat-input-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:24px;padding:5px 5px 5px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.12);}
-.pchat-input-row input{flex:1;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;padding:4px 0;}
+.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;padding:4px 0;}
 .pchat-input-row input::placeholder{color:var(--muted);}
 .pchat-act{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:5px;border-radius:50%;transition:all 0.15s;flex-shrink:0;}
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
@@ -637,7 +637,7 @@ body{
 </nav>
 
 <!-- SEKCJA: WIADOMOŚCI -->
-<div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);">
+<div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;width:100%;left:50%;transform:translateX(-50%);overflow:hidden;">
   <!-- Header czatu -->
   <div class="pchat-view-hdr" style="flex-shrink:0;padding-top:max(12px,env(safe-area-inset-top));display:flex;align-items:center;">
     <div class="pchat-view-av" id="z-coach-av">F</div>
@@ -648,7 +648,7 @@ body{
     <button onclick="showSection('home')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);">✕</button>
   </div>
   <!-- Thread -->
-  <div id="msgs-thread" style="flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;"></div>
+  <div id="msgs-thread" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;width:100%;box-sizing:border-box;"></div>
   <!-- Input -->
   <div class="pchat-input-area">
     <div class="pchat-pickers" style="position:relative;">
@@ -2717,11 +2717,11 @@ async function toggleVoice(btnId, sender) {
     <div class="ob-row">
       <div class="ob-field">
         <label class="ob-label">PB 10 km</label>
-        <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonPace(this)">
+        <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)">
       </div>
       <div class="ob-field">
         <label class="ob-label">PB 5 km</label>
-        <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonPace(this)">
+        <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)">
       </div>
     </div>
 
