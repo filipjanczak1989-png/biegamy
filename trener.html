@@ -1292,35 +1292,47 @@ const DRILLS = {
   int1: { name:'5×1000m', type:'Interwały', desc:'Rozbieganie 2–3 km. 5 powtórzeń po 1000 m w tempie 5 km (VO2max). Przerwa: 90 sek–2 min truchtu. Schłodzenie 2 km. Łącznie ok. 12–14 km.' },
   int2: { name:'8×400m', type:'Interwały', desc:'Rozbieganie 3 km. 8 powtórzeń po 400 m w tempie 3–5 km. Przerwa: 400 m trucht (ok. 2 min). Schłodzenie 2 km. Łącznie ok. 10–11 km.' },
   int3: { name:'6×3min', type:'Interwały', desc:'Rozbieganie 2–3 km. 6 powtórzeń po 3 min w tempie VO2max (ciężkie, ale do utrzymania). Przerwa: 2 min truchtu. Schłodzenie 2 km.' },
-  int4: { name:'10×1min', type:'Interwały', desc:'Rozbieganie 3 km. 10 powtórzeń po 1 min bardzo szybko (95–100% max), 1 min truchtu. Dobre na szybkość i neuromięśniowe. Schłodzenie 2 km.' },
+  int4: { name:'10×1min', type:'Interwały', desc:'Rozbieganie 3 km. 10 powtórzeń po 1 min bardzo szybko (95–100% max), 1 min trucht. Dobre na szybkość i nerwowo-mięśniowe. Schłodzenie 2 km.' },
   int5: { name:'4×2km', type:'Interwały', desc:'Rozbieganie 3 km. 4 powtórzenia po 2 km w tempie półmaratonu lub szybciej. Przerwa: 3 min truchtu. Schłodzenie 2 km. Łącznie ok. 16–18 km.' },
-  int6: { name:'12×200m', type:'Interwały', desc:'Rozbieganie 3 km. 12 powtórzeń po 200 m w tempie 1500 m, przerwa 200 m trucht. Trening szybkościowy — neuromięśniowy i forma. Schłodzenie 2 km.' },
+  int6: { name:'12×200m', type:'Interwały', desc:'Rozbieganie 3 km. 12 powtórzeń po 200 m w tempie 1500 m, przerwa 200 m trucht. Trening szybkościowy — nerwowo-mięśniowy i forma. Schłodzenie 2 km.' },
   int7: { name:'3×3×400m', type:'Interwały', desc:'Rozbieganie 3 km. 3 serie po 3×400 m w tempie 1500–3000 m. Przerwa między powtórzeniami: 60 sek, między seriami: 3 min. Schłodzenie 2 km.' },
+  int8: { name:'6×1600m', type:'Interwały', desc:'Rozbieganie 3 km. 6 powtórzeń po 1600 m w tempie 10 km. Przerwa: 2 min truchtu. Schłodzenie 2 km. Łącznie ok. 16 km. Klasyczny trening Lyddiarda.' },
+  int9: { name:'20×30sek/30sek', type:'Interwały', desc:'Rozbieganie 3 km. 20 powtórzeń: 30 sek bardzo szybko (95% max) / 30 sek trucht. Łącznie 20 min intensywnej pracy. Skuteczny trening VO2max przy minimalnym czasie. Schłodzenie 2 km.' },
   // ── BIEGI PROGOWE ──
   prog1: { name:'Próg 20min', type:'Tempo', desc:'Rozbieganie 3 km. 20 min ciągłego biegu w tempie progowym (LT, ok. 85–90% max tętna, komfortowo trudne). Schłodzenie 2–3 km. Łącznie ok. 10 km.' },
   prog2: { name:'2×15min progowy', type:'Tempo', desc:'Rozbieganie 3 km. 2 odcinki po 15 min w tempie progowym, przerwa 3 min truchtu. Schłodzenie 2 km.' },
   prog3: { name:'Tempo ciągłe 30min', type:'Tempo', desc:'Rozbieganie 3 km. 30 min ciągłego biegu w tempie progowym. Schłodzenie 2–3 km. Klasyczny trening Danielsa.' },
   prog4: { name:'Cruise intervals 5×1mi', type:'Tempo', desc:'Rozbieganie 3 km. 5 odcinków po ~1600 m w tempie progowym, przerwa 60 sek trucht. Schłodzenie 2 km. Buduje wydolność tlenową bez nadmiernego zmęczenia.' },
+  prog5: { name:'Bieg maratoński 14km', type:'Tempo', desc:'Rozbieganie 2 km. 14 km w tempie docelowym maratonu. Schłodzenie 2 km. Uczy gospodarki wysiłkiem i biegu w tempie startowym. Łącznie ok. 18 km.' },
+  prog6: { name:'10km w tempie półmaratonu', type:'Tempo', desc:'Rozbieganie 3 km. 10 km dokładnie w tempie docelowym półmaratonu. Schłodzenie 2 km. Sprawdzian gotowości startowej i forma kontrolna.' },
   // ── PIRAMIDKI ──
   pyr1: { name:'Piramida 1-2-3-2-1km', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1 km, 2 km, 3 km, 2 km, 1 km w tempie 10 km–półmaraton. Przerwy: 2 min truchtu. Schłodzenie 2 km. Łącznie ok. 16 km.' },
   pyr2: { name:'Piramida 200-400-800-400-200m', type:'Interwały', desc:'Rozbieganie 2–3 km. Odcinki: 200 m, 400 m, 800 m, 400 m, 200 m w tempie 1–3 km, przerwy równe długości odcinka (trucht). Schłodzenie 2 km.' },
   pyr3: { name:'Piramida minutowa 1-2-3-4-3-2-1min', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki: 1, 2, 3, 4, 3, 2, 1 min szybko (VO2max), przerwy = połowa czasu odcinka trucht. Razem 16 min intensywnej pracy. Schłodzenie 2 km.' },
-  pyr4: { name:'Piramida dystansowa (odwrócona)', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki malejące: 1200 m, 1000 m, 800 m, 600 m, 400 m, 200 m w tempie 5 km. Przerwy: 90 sek–2 min. Psychologicznie łatwiej — każdy odcinek krótszy.' },
+  pyr4: { name:'Piramida odwrócona', type:'Interwały', desc:'Rozbieganie 2 km. Odcinki malejące: 1200 m, 1000 m, 800 m, 600 m, 400 m, 200 m w tempie 5 km. Przerwy: 90 sek–2 min. Psychologicznie łatwiej — każdy odcinek krótszy.' },
   // ── NAD/POD PROGIEM ──
   over1: { name:'Nad progiem 5×1km', type:'Interwały', desc:'Rozbieganie 3 km. 5 powtórzeń po 1 km ok. 5–8 sek/km szybciej niż LT (nad progiem). Przerwa: 2 min truchtu. Schłodzenie 2 km. Buduje tolerancję mleczanu.' },
   under1: { name:'Pod progiem 3×2km', type:'Tempo', desc:'Rozbieganie 3 km. 3 odcinki po 2 km ok. 5 sek/km wolniej niż LT (pod progiem). Przerwa: 2 min truchtu. Bezpieczny trening dla zawodników po kontuzji lub przy budowie bazy.' },
   over2: { name:'VO2max 6×800m', type:'Interwały', desc:'Rozbieganie 3 km. 6 powtórzeń po 800 m w tempie 5 km (VO2max, bardzo ciężkie). Przerwa: 400 m truchtu. Schłodzenie 2 km. Jeden z najskuteczniejszych treningów wydolnościowych.' },
+  // ── SPECJALNE / KONTROLNE ──
+  spec1: { name:'Start kontrolny 5km', type:'Interwały', desc:'Rozbieganie 2 km. 5 km w tempie startowym (lub nieco wolniej) jako sprawdzian formy. Schłodzenie 2 km. Notuj czas i tętno. Nie ścigaj się — to test, nie zawody.' },
+  spec2: { name:'Strides (przyśpieszenia)', type:'Spokojny', desc:'Na końcu spokojnego biegu: 6–8 przyśpieszeń po 80–100 m (do ok. 90% max). Każde zaczyna się wolno, przyspiesza do pełnej szybkości i zwalnia. Przerwa 60 sek marszu. Aktywuje układ nerwowy przed zawodami lub interwałami.' },
+  spec3: { name:'Progresywny 10km', type:'Tempo', desc:'10 km z narastającym tempem: pierwsze 3 km spokojnie, środkowe 4 km w tempie półmaratonu, ostatnie 3 km w tempie 10 km. Uczy negatywnego splitu i kontroli wysiłku.' },
+  spec4: { name:'Bieg w górach 90min', type:'Wybieganie', desc:'90 min biegu w terenie (las, pagórki). Bieg na tętno (strefa 2), nie na tempo. Pod górę zwalniaj, na zjazdach przyspieszaj. Wzmacnia mięśnie, stawy i mentalność. Jeden z najcenniejszych treningów dla maratończyka.' },
   // ── WZMACNIAJĄCE (~30min) ──
-  sil1: { name:'Siła biegowa 30min', type:'Regeneracja', desc:'Po rozgrzewce 10 min biegu spokojnie: 3×10 przysiadów, 3×10 wykroków naprzemiennych, 3×15 uniesień bioder (glute bridge), 3×30 sek deski (plank), 3×10 martwych robaków. Bez przerw między ćwiczeniami, 2 min odpoczynku między seriami. Razem ok. 30 min.' },
-  sil2: { name:'Wzmocnienie核心 30min', type:'Regeneracja', desc:'Obwód: 45 sek ćwiczenie / 15 sek przerwa × 4 rundy. Ćwiczenia: plank, side plank (L/P), mountain climbers, hollow body, bird-dog, dead bug, Russian twists, plank z unoszeniem nogi. Wzmacnia rdzeń i stabilizację niezbędną dla biegacza.' },
+  sil1: { name:'Siła biegowa 30min', type:'Regeneracja', desc:'Po rozgrzewce 10 min biegu spokojnie: 3×10 przysiadów, 3×10 wykroków naprzemiennych, 3×15 unieśień bioder (glute bridge), 3×30 sek deski (plank), 3×10 martwych robaków. Bez przerw między ćwiczeniami, 2 min odpoczynku między seriami. Razem ok. 30 min.' },
+  sil2: { name:'Wzmocnienie core 30min', type:'Regeneracja', desc:'Obwód: 45 sek ćwiczenie / 15 sek przerwa × 4 rundy. Æwiczenia: plank, side plank (L/P), mountain climbers, hollow body, bird-dog, dead bug, Russian twists, plank z unoszeniem nogi. Wzmacnia rdzeń i stabilizację niezbędną dla biegacza.' },
   sil3: { name:'Siła nóg 30min', type:'Regeneracja', desc:'3 serie: 12 przysiadów bułgarskich na nodze (każda), 10 step-upów na podwyższenie, 15 wyprostów łydek (calf raises), 10 RDL na jednej nodze. Przerwa 90 sek między seriami. Zapobiega kontuzjom i poprawia ekonomię biegu.' },
   sil4: { name:'Drills biegowe 20min', type:'Regeneracja', desc:'Przed treningiem lub jako osobna sesja: 2×30m skip A, 2×30m skip B, 2×30m bieg z wysokim uniesieniem kolan, 2×30m bieg z piętami do pośladków, 2×60m strides (70–80% max). Poprawia technikę i aktywuje mięśnie.' },
-  // ── ODDECHOWE/MOBILNOŚĆ (~5-10min) ──
+  sil5: { name:'Wzmocnienie + bieg 45min', type:'Regeneracja', desc:'15 min ćwiczeń (3×10 przysiadów, 3×10 wykroków, 3×15 glute bridge) → 30 min spokojnego biegu. Połączenie siłowe-biegowe na lżejsze dni. Ważna kolejność: siła przed biegiem.' },
+  // ── ODDECHOWE / MOBILNOŚĆ (~5-10min) ──
   odd1: { name:'Oddech przeponowy 5min', type:'Regeneracja', desc:'Połóż się na plecach, kolana ugięte. Połóż rękę na brzuchu. Wdech nosem 4 sek (brzuch unosi się, klatka nieruchoma), zatrzymanie 4 sek, wydech ustami 6 sek. 10 powtórzeń. Aktywuje nerw błędny, obniża HRV i kortyzol. Idealne przed snem lub po intensywnym treningu.' },
   odd2: { name:'Box breathing 5min', type:'Regeneracja', desc:'Wdech nosem 4 sek → zatrzymanie 4 sek → wydech 4 sek → zatrzymanie 4 sek. 15 cykli = ok. 4 min. Technika stosowana przez Navy SEALs. Reguluje układ nerwowy przed startem lub po ciężkim treningu.' },
   odd3: { name:'Mobilność bioder 10min', type:'Regeneracja', desc:'2×60 sek pigeon pose na stronę, 2×60 sek hip flexor stretch (low lunge), 2×30 sek rotacja bioder w leżeniu (supine twist), 10 krążeń bioder w każdą stronę. Kluczowe dla biegaczy po długich wybieganiach.' },
   odd4: { name:'Rozciąganie po biegu 10min', type:'Regeneracja', desc:'60 sek: łydki przy ścianie, uda (stając), biodra (figura 4), hamstringi w leżeniu, klatka piersiowa (objęcie kolan). Trzymaj każdą pozycję spokojnie, oddychaj. Nie rozciągaj przed biegiem — tylko po.' },
-};
+  odd5: { name:'Joga biegacza 15min', type:'Regeneracja', desc:'Pozycje dla biegaczy (trzymaj 45–60 sek każdą): Downward Dog, Low Lunge, Pigeon Pose, Supine Twist, Happy Baby, Legs-Up-The-Wall. Redukuje napięcia w łańcuchu tylnym i biodrach. Idealne wieczorem po intensywnym tygodniu.' },
+  odd6: { name:'Oddechowe przed startem 5min', type:'Regeneracja', desc:'30 min przed startem: 5 min oddechu 4-7-8 (wdech 4 sek, wstrzymaj 7 sek, wydech 8 sek). Obniża tętno spoczynkowe, redukuje tręmę startową, ułatwia skupienie. Wykonuj siedzący, z zamkniętymi oczami.' },
+}
 
 // ── DEFAULT DESCRIPTIONS BY TYPE ──────────────────────────────────
 const TYPE_DEFAULT_DESC = {
@@ -1357,45 +1369,229 @@ function tplTypeChanged(dayIdx, newType) {
   }
 }
 
-let _selectedDrill = null;
+// ── EDYTOWALNA BIBLIOTEKA ĆWICZEŃ ─────────────────────────────────
 
-function insertDrill(el, drillId) {
-  document.querySelectorAll('.drill-chip').forEach(c => c.classList.remove('sel'));
-  el.classList.add('sel');
-  _selectedDrill = drillId;
-  const drill = DRILLS[drillId];
+const DRILLS_STORAGE_KEY = 'biegamy_drills_v1';
+
+// Załaduj z localStorage lub użyj domyślnych
+function loadDrillsLibrary() {
+  try {
+    const saved = localStorage.getItem(DRILLS_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  // Pierwszy raz — zainicjuj domyślnymi
+  const initial = Object.entries(DRILLS).map(([id, d]) => ({
+    id: 'b_' + id, cat: _guessDrillCat(d.type, id), name: d.name, type: d.type, desc: d.desc
+  }));
+  saveDrillsLibrary(initial);
+  return initial;
+}
+
+function saveDrillsLibrary(list) {
+  localStorage.setItem(DRILLS_STORAGE_KEY, JSON.stringify(list));
+}
+
+function _guessDrillCat(type, id) {
+  if (id.startsWith('fartlek')) return 'Fartleki';
+  if (id.startsWith('int')) return 'Interwały';
+  if (id.startsWith('prog')) return 'Biegi progowe';
+  if (id.startsWith('pyr')) return 'Piramidki';
+  if (id.startsWith('over') || id.startsWith('under')) return 'Nad/Pod progiem';
+  if (id.startsWith('spec')) return 'Specjalne';
+  if (id.startsWith('sil')) return 'Wzmacniające';
+  if (id.startsWith('odd')) return 'Oddechowe';
+  return 'Inne';
+}
+
+let _selectedDrill = null;
+let _drillLibrary = null; // załadowane przy otwarciu szablonu
+
+function getDrillLibrary() {
+  if (!_drillLibrary) _drillLibrary = loadDrillsLibrary();
+  return _drillLibrary;
+}
+
+// Renderuj bibliotekę w szablonie
+function renderDrillLibrary() {
+  const lib = getDrillLibrary();
+  const container = document.getElementById('drill-lib-container');
+  if (!container) return;
+
+  // Grupuj po kategoriach
+  const cats = {};
+  lib.forEach(d => {
+    if (!cats[d.cat]) cats[d.cat] = [];
+    cats[d.cat].push(d);
+  });
+
+  container.innerHTML = Object.entries(cats).map(([cat, drills]) => `
+    <div class="drill-cat" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>${cat}</span>
+      <button onclick="drillAddNew('${cat.replace(/'/g,'\\\'')}')" title="Dodaj do tej kategorii" style="background:transparent;border:none;color:var(--accent);font-size:14px;cursor:pointer;padding:0 2px;line-height:1;" >+</button>
+    </div>
+    <div class="drill-chips" style="margin-bottom:4px;">
+      ${drills.map(d => `
+        <span class="drill-chip ${_selectedDrill===d.id?'sel':''}" style="position:relative;padding-right:22px;" onclick="insertDrillById('${d.id}')">
+          ${d.name.replace(/</g,'&lt;')}
+          <span onclick="event.stopPropagation();drillEdit('${d.id}')" title="Edytuj" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--muted);cursor:pointer;opacity:0.7;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7">✏</span>
+          <span onclick="event.stopPropagation();drillDelete('${d.id}')" title="Usuń" style="position:absolute;right:-2px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--muted);cursor:pointer;opacity:0.5;" onmouseover="this.style.opacity=1;this.style.color='var(--red)'" onmouseout="this.style.opacity=0.5;this.style.color='var(--muted)'">✕</span>
+        </span>`).join('')}
+    </div>
+  `).join('') + `
+    <button onclick="drillAddNew('')" style="width:100%;background:transparent;border:1px dashed rgba(212,80,26,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px;cursor:pointer;border-radius:8px;margin-top:4px;">+ Nowe ćwiczenie</button>`;
+}
+
+function insertDrillById(drillId) {
+  const lib = getDrillLibrary();
+  const drill = lib.find(d => d.id === drillId);
   if (!drill) return;
+  _selectedDrill = drillId;
+  renderDrillLibrary(); // odśwież żeby pokazać 'sel'
   const preview = document.getElementById('drill-preview');
   const target = document.getElementById('drill-insert-target');
   const dayBtns = document.getElementById('drill-day-btns');
   if (preview) { preview.textContent = drill.desc; preview.style.display = 'block'; }
   if (target && dayBtns) {
     target.style.display = 'block';
-    // Build day buttons
     dayBtns.innerHTML = WEEK_TEMPLATE.map((d, i) => {
       const type = document.getElementById('tpl-type-' + i)?.value || d.type;
-      const isMatch = type === drill.type || type === 'Interwały' || type === 'Tempo';
-      return `<button onclick="applyDrillToDay(${i})" style="font-size:9px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:12px;border:1px solid ${isMatch?'var(--accent)':'var(--border)'};background:${isMatch?'rgba(212,80,26,0.1)':'transparent'};color:${isMatch?'var(--accent)':'var(--muted)'};cursor:pointer;">${d.day}</button>`;
+      const isMatch = drill.type === 'Regeneracja' || type === drill.type;
+      return `<label style="display:inline-flex;align-items:center;gap:3px;font-size:9px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:12px;border:1px solid ${isMatch?'var(--accent)':'var(--border)'};background:${isMatch?'rgba(212,80,26,0.1)':'transparent'};color:${isMatch?'var(--accent)':'var(--muted)'};cursor:pointer;">
+        <input type="checkbox" id="drill-day-${i}" value="${i}" ${isMatch?'checked':''} style="accent-color:var(--accent);width:11px;height:11px;cursor:pointer;">${d.day}
+      </label>`;
     }).join('');
   }
 }
 
+// Stara kompatybilność (żeby nie zepsuć jeśli ktoś wywołuje insertDrill)
+function insertDrill(el, drillId) { insertDrillById('b_' + drillId); }
+
 function applyDrillToDay(dayIdx) {
   if (!_selectedDrill) return;
-  const drill = DRILLS[_selectedDrill];
+  const lib = getDrillLibrary();
+  const drill = lib.find(d => d.id === _selectedDrill);
   if (!drill) return;
   const descEl = document.getElementById('tpl-desc-' + dayIdx);
   const typeEl = document.getElementById('tpl-type-' + dayIdx);
   if (descEl) {
-    descEl.value = drill.desc;
+    const existing = descEl.value.trim();
+    descEl.value = existing ? existing + '\n\nDodatkowo: ' + drill.desc : drill.desc;
     descEl.style.height = 'auto';
     descEl.style.height = descEl.scrollHeight + 'px';
   }
-  if (typeEl) typeEl.value = drill.type === 'Interwały' ? 'Interwały' : 'Tempo';
-  showToast('Ćwiczenie dodane do dnia ' + (WEEK_TEMPLATE[dayIdx]?.day || dayIdx+1) + ' ✓');
-  // Zamknij details
-  const det = document.getElementById('drill-details');
-  if (det) det.removeAttribute('open');
+  if (typeEl && drill.type !== 'Regeneracja') typeEl.value = drill.type;
+}
+
+function applyDrillToSelected() {
+  if (!_selectedDrill) { showToast('Najpierw wybierz ćwiczenie z listy'); return; }
+  const checked = [...document.querySelectorAll('[id^="drill-day-"]:checked')];
+  if (checked.length === 0) { showToast('Zaznacz co najmniej jeden dzień'); return; }
+  checked.forEach(chk => applyDrillToDay(parseInt(chk.value)));
+  const days = checked.map(c => WEEK_TEMPLATE[parseInt(c.value)]?.day || '').join(', ');
+  showToast(`Wklejono do: ${days} ✓`);
+  document.getElementById('drill-details')?.removeAttribute('open');
+}
+
+function drillDelete(drillId) {
+  const lib = getDrillLibrary();
+  const drill = lib.find(d => d.id === drillId);
+  if (!drill) return;
+  if (!confirm(`Usunąć "${drill.name}"?`)) return;
+  const newLib = lib.filter(d => d.id !== drillId);
+  _drillLibrary = newLib;
+  saveDrillsLibrary(newLib);
+  if (_selectedDrill === drillId) {
+    _selectedDrill = null;
+    const preview = document.getElementById('drill-preview');
+    const target = document.getElementById('drill-insert-target');
+    if (preview) { preview.textContent = ''; preview.style.display = 'none'; }
+    if (target) target.style.display = 'none';
+  }
+  renderDrillLibrary();
+  showToast('Usunięto ✓');
+}
+
+function drillEdit(drillId) {
+  const lib = getDrillLibrary();
+  const drill = lib.find(d => d.id === drillId);
+  if (!drill) return;
+  openDrillEditor(drill);
+}
+
+function drillAddNew(defaultCat) {
+  openDrillEditor({ id: null, cat: defaultCat || 'Inne', name: '', type: 'Spokojny', desc: '' });
+}
+
+function openDrillEditor(drill) {
+  // Usuń ewentualny stary modal
+  document.getElementById('drill-editor-modal')?.remove();
+
+  const cats = [...new Set(getDrillLibrary().map(d => d.cat)), 'Inne', 'Fartleki', 'Interwały', 'Biegi progowe', 'Piramidki', 'Nad/Pod progiem', 'Specjalne', 'Wzmacniające', 'Oddechowe'];
+  const uniqueCats = [...new Set(cats)];
+  const types = ['Spokojny','Interwały','Tempo','Wybieganie','Regeneracja','Odpoczynek'];
+
+  const modal = document.createElement('div');
+  modal.id = 'drill-editor-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;padding:20px 20px 32px;max-height:92vh;overflow-y:auto;">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:16px;">${drill.id ? 'Edytuj ćwiczenie' : 'Nowe ćwiczenie'}</div>
+
+      <div style="margin-bottom:10px;">
+        <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Nazwa</label>
+        <input id="de-name" type="text" value="${(drill.name||'').replace(/"/g,'&quot;')}" placeholder="np. 5×1000m" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Typ treningu</label>
+          <select id="de-type" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 10px;border-radius:8px;outline:none;cursor:pointer;">
+            ${types.map(t => `<option value="${t}" ${drill.type===t?'selected':''}>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Kategoria</label>
+          <input id="de-cat" type="text" list="de-cat-list" value="${(drill.cat||'').replace(/"/g,'&quot;')}" placeholder="np. Interwały" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
+          <datalist id="de-cat-list">${uniqueCats.map(c => `<option value="${c}">`).join('')}</datalist>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Opis / instrukcja</label>
+        <textarea id="de-desc" placeholder="Opis treningu..." style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 12px;border-radius:8px;outline:none;resize:vertical;height:140px;line-height:1.55;box-sizing:border-box;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">${(drill.desc||'').replace(/</g,'&lt;')}</textarea>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="saveDrillEditor('${drill.id||''}')" style="flex:1;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz</button>
+        <button onclick="document.getElementById('drill-editor-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('de-name')?.focus(), 100);
+}
+
+function saveDrillEditor(existingId) {
+  const name = document.getElementById('de-name')?.value.trim();
+  const type = document.getElementById('de-type')?.value;
+  const cat  = document.getElementById('de-cat')?.value.trim() || 'Inne';
+  const desc = document.getElementById('de-desc')?.value.trim();
+  if (!name) { showToast('Podaj nazwę ćwiczenia'); return; }
+
+  const lib = getDrillLibrary();
+  if (existingId) {
+    const idx = lib.findIndex(d => d.id === existingId);
+    if (idx !== -1) lib[idx] = { ...lib[idx], name, type, cat, desc };
+  } else {
+    const newId = 'custom_' + Date.now();
+    lib.push({ id: newId, cat, name, type, desc });
+  }
+  _drillLibrary = lib;
+  saveDrillsLibrary(lib);
+  document.getElementById('drill-editor-modal')?.remove();
+  renderDrillLibrary();
+  showToast(existingId ? 'Zaktualizowano ✓' : 'Dodano do biblioteki ✓');
 }
 
 async function sendTemplate() {
@@ -2284,67 +2480,18 @@ if (_tabParam) {
     <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Plan tygodnia</div>
     <div id="tpl-days-list"></div>
     
-    <details style="margin-bottom:12px;" id="drill-details">
+    <details style="margin-bottom:12px;" id="drill-details" ontoggle="if(this.open) renderDrillLibrary()">
       <summary style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;padding:6px 0;list-style:none;display:flex;align-items:center;gap:6px;">
-        <span style="color:var(--accent);">💡</span> Baza zabaw biegowych (inspiracje)
+        <span style="color:var(--accent);">💡</span> Baza ćwiczeń (edytowalna)
         <svg style="margin-left:auto;transition:transform 0.2s;" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </summary>
       <div style="margin-top:8px;">
-        <div class="drill-cat">Fartleki</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'fartlek1')">Klasyczny fartlek</span>
-          <span class="drill-chip" onclick="insertDrill(this,'fartlek2')">Fartlek 1-2-3-2-1</span>
-          <span class="drill-chip" onclick="insertDrill(this,'fartlek3')">Fartlek progowy</span>
-          <span class="drill-chip" onclick="insertDrill(this,'fartlek4')">Fartlek szwedzki</span>
-          <span class="drill-chip" onclick="insertDrill(this,'fartlek5')">Fartlek wzgórzowy</span>
-        </div>
-        <div class="drill-cat">Interwały / Minutówki</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'int1')">5×1000m</span>
-          <span class="drill-chip" onclick="insertDrill(this,'int2')">8×400m</span>
-          <span class="drill-chip" onclick="insertDrill(this,'int3')">6×3min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'int4')">10×1min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'int5')">4×2km</span>
-          <span class="drill-chip" onclick="insertDrill(this,'int6')">12×200m</span>
-          <span class="drill-chip" onclick="insertDrill(this,'int7')">3×3×400m</span>
-        </div>
-        <div class="drill-cat">Biegi progowe</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'prog1')">Próg 20min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'prog2')">2×15min progowy</span>
-          <span class="drill-chip" onclick="insertDrill(this,'prog3')">Tempo ciągłe 30min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'prog4')">Cruise intervals 5×1mi</span>
-        </div>
-        <div class="drill-cat">Piramidki</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'pyr1')">Piramida 1-2-3-2-1km</span>
-          <span class="drill-chip" onclick="insertDrill(this,'pyr2')">Piramida 200-400-800-400-200m</span>
-          <span class="drill-chip" onclick="insertDrill(this,'pyr3')">Piramida minutowa 1-2-3-4-3-2-1min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'pyr4')">Piramida odwrócona</span>
-        </div>
-        <div class="drill-cat">Nad / Pod progiem</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'over1')">Nad progiem 5×1km</span>
-          <span class="drill-chip" onclick="insertDrill(this,'under1')">Pod progiem 3×2km</span>
-          <span class="drill-chip" onclick="insertDrill(this,'over2')">VO2max 6×800m</span>
-        </div>
-        <div class="drill-cat">Wzmacniające (~30min)</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'sil1')">Siła biegowa 30min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'sil2')">Wzmocnienie core 30min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'sil3')">Siła nóg 30min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'sil4')">Drills biegowe 20min</span>
-        </div>
-        <div class="drill-cat">Oddechowe / Mobilność (~5-10min)</div>
-        <div class="drill-chips">
-          <span class="drill-chip" onclick="insertDrill(this,'odd1')">Oddech przeponowy 5min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'odd2')">Box breathing 5min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'odd3')">Mobilność bioder 10min</span>
-          <span class="drill-chip" onclick="insertDrill(this,'odd4')">Rozciąganie po biegu 10min</span>
-        </div>
+        <div id="drill-lib-container"></div>
         <div id="drill-preview" class="drill-preview"></div>
-        <div id="drill-insert-target" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:6px;display:none;">
-          Wklej do dnia: <span id="drill-day-btns" style="display:inline-flex;flex-wrap:wrap;gap:4px;margin-top:4px;"></span>
+        <div id="drill-insert-target" style="display:none;margin-top:8px;padding:10px;background:var(--card2);border-radius:8px;border:1px solid var(--border);">
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Zaznacz dni do wklejenia:</div>
+          <div id="drill-day-btns" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;"></div>
+          <button onclick="applyDrillToSelected()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">↓ Wklej do zaznaczonych dni</button>
         </div>
       </div>
     </details>
