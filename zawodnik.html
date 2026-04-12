@@ -655,6 +655,67 @@ body{
   100% { transform: translateX(-50%) scaleX(0.6); opacity: 0.6; }
 }
 
+
+/* ═══════════════════════════════════════
+   BM ANIMATION SYSTEM — global
+   transform + opacity only (60fps)
+   ═══════════════════════════════════════ */
+:root {
+  --dur-xs:  0.15s;
+  --dur-s:   0.22s;
+  --dur-m:   0.35s;
+  --dur-l:   0.48s;
+  --ease:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-sp: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Page enter */
+@keyframes bm-page-in {
+  from { opacity:0; transform:translateY(18px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.bm-page-in { animation: bm-page-in var(--dur-m) var(--ease) both; }
+
+/* Card entry */
+@keyframes bm-card-in {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+.bm-card-in { animation: bm-card-in var(--dur-m) var(--ease) both; }
+
+/* Message slide-in */
+@keyframes bm-msg-in {
+  from { opacity:0; transform:translateY(10px) scale(0.97); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+.bm-msg-in { animation: bm-msg-in var(--dur-s) var(--ease) both; }
+
+/* Skeleton shimmer */
+@keyframes bm-shimmer {
+  0%   { background-position:-200% 0; }
+  100% { background-position: 200% 0; }
+}
+.bm-skel {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: bm-shimmer 1.5s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Success toast */
+@keyframes bm-toast-in  { from{opacity:0;transform:translateX(-50%) translateY(14px) scale(.93);}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);} }
+@keyframes bm-toast-out { from{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}to{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.94);} }
+
+/* Nav active dot */
+@keyframes bm-nav-dot { from{transform:translateX(-50%) scaleX(0);}to{transform:translateX(-50%) scaleX(1);} }
+
+/* Input focus glow handled via JS transition */
+
+/* Tap — added via JS touchstart, no class needed */
+
 </style>
 </head>
 <body>
@@ -1485,15 +1546,26 @@ function showSection(name) {
     });
 
   } else if (name === 'msgs' || name === 'messages' || name === 'czat') {
-    document.getElementById('section-msgs').style.display = 'flex';
+    const msgsEl = document.getElementById('section-msgs');
+    msgsEl.style.display = 'flex';
+    BM_Anim.pageIn(msgsEl);
     const n = document.getElementById('nav-msgs');
     if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
-    loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
+    loadMessages().then(() => {
+    const th = document.getElementById('msgs-thread');
+    if (th) requestAnimationFrame(() => {
+      th.scrollTop = th.scrollHeight;
+      const last = th.lastElementChild;
+      if (last && !last.dataset.bmSeen) { last.classList.add('bm-msg-in'); last.dataset.bmSeen='1'; }
+    });
+  });
     // Załaduj imię trenera
     if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
   } else if (name === 'profile') {
-    document.getElementById('section-profile').style.display = 'block';
+    const profEl = document.getElementById('section-profile');
+    profEl.style.display = 'block';
+    BM_Anim.pageIn(profEl);
     loadProfile();
 
   } else if (name === 'stats' || name === 'analytics' || name === 'statystyki') {
@@ -1809,6 +1881,7 @@ async function sendMessage() {
   const body = input?.value?.trim();
   if (!body) return;
   if (!_athleteId) { toast('Musisz być zalogowany'); return; }
+  BM_Anim.playSend();
   input.value = '';
   const { error } = await _sb.from('messages').insert({
     athlete_id: _athleteId,
@@ -2360,6 +2433,7 @@ function renderLogsDb(data) {
     </div>` : ''}
     ${l.strava_link ? `<div style="padding:0 16px 8px;"><a href="${l.strava_link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}`;
   }).join('');
+  requestAnimationFrame(() => BM_Anim.observe('.log-item'));
 }
 
 async function deleteLog(logId) {
@@ -2555,6 +2629,7 @@ document.addEventListener('click', e => {
 async function loadStats() {
   if (!_athleteId) return;
   const el = document.getElementById('stats-content');
+  BM_Anim.skeleton(el, 4);
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;text-align:center;">Ładowanie...</div>';
 
   const since90 = new Date(); since90.setDate(since90.getDate() - 90);
@@ -2977,7 +3052,10 @@ Anim.initSound();
 
 init();
 setTimeout(() => initAuth(), 100);
-// Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
+// BM_Anim global tap (unified)
+BM_Anim.initTap('.btn,.day-card,.log-item,.log-card,.coach-box,.feel-btn,.type-pill,.nav-it');
+BM_Anim.initInputs();
+// Legacy touchstart tap
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
   if (!btn) return;
@@ -3077,6 +3155,236 @@ async function toggleVoice(btnId, sender) {
     btn.textContent = '⏹';
   } catch(e) { alert('Brak dostępu do mikrofonu'); }
 }
+
+
+// ═══════════════════════════════════════════════
+// BM_Anim — shared animation system
+// ═══════════════════════════════════════════════
+const BM_Anim = (function() {
+
+  /* Sound */
+  let _ctx = null, _sound = localStorage.getItem('bm_snd') !== '0';
+  function _ac() { if (!_ctx) try { _ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} return _ctx; }
+
+  function playSuccess() {
+    if (!_sound) return;
+    const c = _ac(); if (!c) return;
+    try {
+      const o = c.createOscillator(), g = c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(880, c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(440, c.currentTime + 0.13);
+      g.gain.setValueAtTime(0.12, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.18);
+      o.start(); o.stop(c.currentTime + 0.18);
+    } catch(e){}
+  }
+
+  function playTap() {
+    if (!_sound) return;
+    const c = _ac(); if (!c) return;
+    try {
+      const buf = c.createBuffer(1, c.sampleRate * 0.035, c.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = (Math.random()*2-1)*(1-i/d.length)*0.07;
+      const s = c.createBufferSource(), g = c.createGain();
+      s.buffer = buf; s.connect(g); g.connect(c.destination);
+      g.gain.value = 0.25; s.start();
+    } catch(e){}
+  }
+
+  function playSend() {
+    if (!_sound) return;
+    const c = _ac(); if (!c) return;
+    try {
+      const o = c.createOscillator(), g = c.createGain();
+      o.connect(g); g.connect(c.destination);
+      o.type = 'sine';
+      o.frequency.setValueAtTime(660, c.currentTime);
+      o.frequency.exponentialRampToValueAtTime(880, c.currentTime + 0.08);
+      g.gain.setValueAtTime(0.08, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.12);
+      o.start(); o.stop(c.currentTime + 0.12);
+    } catch(e){}
+  }
+
+  function toggleSound(v) { _sound = v; localStorage.setItem('bm_snd', v ? '1' : '0'); }
+  function soundEnabled() { return _sound; }
+
+  /* Page enter */
+  function pageIn(el) {
+    if (!el) return;
+    el.style.animation = 'none';
+    void el.offsetHeight;
+    el.classList.add('bm-page-in');
+    el.addEventListener('animationend', () => el.classList.remove('bm-page-in'), {once:true});
+  }
+
+  /* Card entry with stagger — uses IntersectionObserver */
+  function cardsIn(containerOrSelector, itemSelector) {
+    const container = typeof containerOrSelector === 'string'
+      ? document.querySelector(containerOrSelector) : containerOrSelector;
+    if (!container) return;
+    const items = itemSelector
+      ? container.querySelectorAll(itemSelector)
+      : container.children;
+    Array.from(items).forEach((el, i) => {
+      if (el.dataset.bmAnim) return;
+      el.dataset.bmAnim = '1';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(14px)';
+      const delay = i * 28;
+      setTimeout(() => {
+        el.style.transition = `opacity .32s cubic-bezier(.16,1,.3,1) ${delay}ms, transform .32s cubic-bezier(.16,1,.3,1) ${delay}ms`;
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }, 16);
+    });
+  }
+
+  /* Count-up */
+  function countUp(el, target, ms, suffix) {
+    if (!el || target == null || isNaN(target)) return;
+    ms = ms || 900; suffix = suffix || '';
+    const isF = target % 1 !== 0;
+    const t0 = performance.now();
+    (function step(now) {
+      const p = Math.min((now - t0) / ms, 1);
+      const e = 1 - (1-p)*(1-p); // ease-out quad
+      el.textContent = (isF ? (e*target).toFixed(1) : Math.round(e*target)) + suffix;
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  /* Progress bar (width) */
+  function progressBar(el, pct, ms) {
+    if (!el) return;
+    el.style.width = '0%'; el.style.transition = 'none';
+    requestAnimationFrame(() => setTimeout(() => {
+      el.style.transition = `width ${ms||600}ms cubic-bezier(.16,1,.3,1)`;
+      el.style.width = Math.min(100, pct) + '%';
+    }, 30));
+  }
+
+  /* Ring arc (stroke-dashoffset) */
+  function ringArc(el, offset, circ) {
+    if (!el) return;
+    circ = circ || 138.2;
+    el.setAttribute('stroke-dashoffset', circ);
+    el.style.transition = 'none';
+    requestAnimationFrame(() => setTimeout(() => {
+      el.style.transition = 'stroke-dashoffset .85s cubic-bezier(.16,1,.3,1)';
+      el.setAttribute('stroke-dashoffset', offset);
+    }, 60));
+  }
+
+  /* Skeleton loader */
+  function skeleton(container, rows) {
+    if (!container) return;
+    rows = rows || 3;
+    container.innerHTML = Array.from({length: rows}, (_, i) => `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;opacity:${1-i*.18}">
+        <div class="bm-skel" style="width:42px;height:42px;border-radius:12px;flex-shrink:0;"></div>
+        <div style="flex:1">
+          <div class="bm-skel" style="height:13px;width:${55+i*15}%;margin-bottom:6px;"></div>
+          <div class="bm-skel" style="height:10px;width:${35+i*12}%;"></div>
+        </div>
+        <div class="bm-skel" style="width:36px;height:26px;border-radius:4px;flex-shrink:0;"></div>
+      </div>`).join('');
+  }
+
+  /* Success toast */
+  function toast(msg, dur) {
+    document.querySelector('.bm-toast-el')?.remove();
+    const el = document.createElement('div');
+    el.className = 'bm-toast-el';
+    el.innerHTML = `<div style="
+      position:fixed;bottom:88px;left:50%;
+      transform:translateX(-50%) translateY(14px) scale(.93);
+      background:linear-gradient(135deg,#3db870,#2da85f);
+      color:#061a0e;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;
+      letter-spacing:.08em;padding:11px 22px;border-radius:28px;
+      white-space:nowrap;z-index:9999;
+      box-shadow:0 8px 28px rgba(61,184,112,.35);
+      animation:bm-toast-in .32s cubic-bezier(.34,1.4,.64,1) both;
+      display:flex;align-items:center;gap:8px;" id="bm-toast-inner">
+      <span style="font-size:16px;">✓</span><span>${msg}</span></div>`;
+    document.body.appendChild(el);
+    playSuccess();
+    setTimeout(() => {
+      const inner = document.getElementById('bm-toast-inner');
+      if (inner) {
+        inner.style.animation = 'bm-toast-out .28s cubic-bezier(.16,1,.3,1) both';
+        setTimeout(() => el.remove(), 300);
+      }
+    }, dur || 2200);
+  }
+
+  /* Global tap feedback — call once on DOMContentLoaded */
+  function initTap(extraSelectors) {
+    const SEL = '.btn,.day-card,.log-card,.log-item,.coach-box,.ath-card,.tcard,.feel-btn,.type-pill,.pchat-row,.bn-item,.nav-it,.plog' + (extraSelectors ? ',' + extraSelectors : '');
+    document.addEventListener('touchstart', e => {
+      const t = e.target.closest(SEL);
+      if (!t) return;
+      t.style.transition = 'transform var(--dur-xs,0.15s) var(--ease,cubic-bezier(.16,1,.3,1))';
+      t.style.transform = (t.style.transform||'').replace(/scale\([^)]+\)/,'') + ' scale(0.97)';
+      const reset = () => { t.style.transform = t.style.transform.replace(' scale(0.97)',''); };
+      t.addEventListener('touchend',   reset, {once:true});
+      t.addEventListener('touchcancel',reset, {once:true});
+    }, {passive:true});
+  }
+
+  /* Input focus glow */
+  function initInputs() {
+    document.querySelectorAll('input,textarea,select').forEach(el => {
+      if (el.dataset.bmInput) return;
+      el.dataset.bmInput = '1';
+      el.style.transition = 'border-color var(--dur-s,.22s) var(--ease), box-shadow var(--dur-s,.22s) var(--ease)';
+      el.addEventListener('focus', () => {
+        el.style.boxShadow = '0 0 0 3px rgba(212,80,26,0.18)';
+      });
+      el.addEventListener('blur', () => {
+        el.style.boxShadow = '';
+      });
+    });
+  }
+
+  /* Nav tab animation */
+  function navTap(activeEl) {
+    if (!activeEl) return;
+    activeEl.style.transform = 'scale(1.12)';
+    setTimeout(() => { activeEl.style.transform = ''; }, 200);
+  }
+
+  /* Observe cards — lazy animate on scroll */
+  function observe(selector) {
+    if (!('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const el = entry.target;
+        if (el.dataset.bmSeen) return;
+        el.dataset.bmSeen = '1';
+        el.style.opacity = '0';
+        el.style.transform = 'translateY(12px)';
+        requestAnimationFrame(() => {
+          el.style.transition = 'opacity .3s cubic-bezier(.16,1,.3,1), transform .3s cubic-bezier(.16,1,.3,1)';
+          el.style.opacity = '1';
+          el.style.transform = 'translateY(0)';
+        });
+        io.unobserve(el);
+      });
+    }, {threshold: 0.08});
+    document.querySelectorAll(selector).forEach(el => {
+      if (!el.dataset.bmSeen) io.observe(el);
+    });
+  }
+
+  return { pageIn, cardsIn, countUp, progressBar, ringArc, skeleton, toast,
+           initTap, initInputs, navTap, observe,
+           playSuccess, playTap, playSend, toggleSound, soundEnabled };
+})();
 
 </script>
 <!-- SEKCJA: STATYSTYKI -->
