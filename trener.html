@@ -353,7 +353,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div class="field"><label>Dystans</label>
           <select id="cdist"><option value="5">5 km</option><option value="10">10 km</option><option value="21.1" selected>Polmaraton</option><option value="42.2">Maraton</option></select>
         </div>
-        <div class="field"><label>Wynik</label><input type="text" id="ctime" placeholder="1:45:30" maxlength="7" oninput="autoColon(this)"></div>
+        <div class="field"><label>Wynik</label><input type="text" id="ctime" placeholder="1:45:30"></div>
       </div>
       <button class="btn btn-p" onclick="calcP()">Oblicz strefy</button>
       <div class="pace-zones" id="pzones" style="display:none;"></div>
@@ -385,13 +385,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div id="ppb-edit-form" style="display:none;margin-bottom:16px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</label>
-            <input id="ppb-mar-in" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColon(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-mar-in" type="text" placeholder="3:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</label>
-            <input id="ppb-half-in" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColon(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-half-in" type="text" placeholder="1:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</label>
-            <input id="ppb-10k-in" type="text" placeholder="45:30" maxlength="5" oninput="autoColonShort(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-10k-in" type="text" placeholder="45:30" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</label>
-            <input id="ppb-5k-in" type="text" placeholder="22:00" maxlength="5" oninput="autoColonShort(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-5k-in" type="text" placeholder="22:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
         </div>
         <button onclick="savePanelPB()" style="width:100%;margin-top:10px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz PB →</button>
       </div>
@@ -1054,9 +1054,10 @@ function renderLogs_db(logs) {
   const fe = {good:'😊',mid:'😐',bad:'😓'};
   const bc = {good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
   const typeColors = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870'};
+  window._coachLogs = logs;
   document.getElementById('lcon').innerHTML = logs.length === 0
     ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px;">Brak logów</div>'
-    : logs.map(l => {
+    : logs.map((l, idx) => {
       const type = l.training_type || 'Trening';
       const color = typeColors[type] || 'var(--muted)';
       const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {weekday:'short',day:'numeric',month:'short'});
@@ -1064,23 +1065,95 @@ function renderLogs_db(logs) {
       const pace = l.pace ? l.pace + '/km' : '';
       const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
       const det = [dist, pace, hr].filter(Boolean).join(' · ');
-      return `<div class="plog" style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:10px;background:var(--card2);border-radius:8px;padding:12px 14px 12px 14px;border-left-width:3px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
-            <div style="font-size:13px;font-weight:500;">${type}</div>
+      const reaction = l.athlete_reaction ? `<span style="font-size:18px;">${l.athlete_reaction}</span>` : '';
+      return `<div style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:12px;background:var(--card2);border-radius:8px;overflow:hidden;">
+        <div style="padding:12px 14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></div>
+              <div style="font-size:13px;font-weight:500;">${type}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+              <span style="font-size:16px;">${fe[l.feel]||''}</span>
+              ${reaction}
+            </div>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
-            <span style="font-size:16px;">${fe[l.feel]||''}</span>
-          </div>
+          ${det ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">${det}</div>` : ''}
+          ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${l.comment}"</div>` : ''}
+          ${l.attachment_url ? `<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px;">${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 2px);max-height:140px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}</div>` : ''}
+          ${l.strava_link ? `<a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;margin-bottom:6px;display:block;">↗ Strava/Garmin</a>` : ''}
+          ${l.coach_gif ? `<div style="margin-bottom:6px;"><img src="${l.coach_gif}" style="max-width:100%;max-height:160px;border-radius:8px;" onerror="this.style.display='none'"></div>` : ''}
+          ${l.coach_comment ? `<div style="background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:8px;padding:8px 12px;display:flex;align-items:flex-start;gap:8px;">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;">T</div>
+            <div style="font-size:12px;line-height:1.5;">${l.coach_comment}</div>
+          </div>` : ''}
         </div>
-        ${det ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">${det}</div>` : ''}
-        ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${l.comment}"</div>` : ''}
-        ${l.attachment_url ? `<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px;">${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 2px);max-height:140px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}</div>` : ''}
-        ${l.strava_link ? `<a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;">↗ Strava/Garmin</a>` : ''}
+        <div style="border-top:1px solid rgba(255,255,255,0.05);padding:8px 12px;background:rgba(0,0,0,0.1);display:flex;gap:6px;align-items:center;">
+          <input type="text" id="ccmt-${idx}" placeholder="Skomentuj..." value="${(l.coach_comment||'').replace(/"/g,'&quot;')}"
+            style="flex:1;min-width:0;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;padding:4px 0;"
+            onkeydown="if(event.key==='Enter')saveCoachComment('${l.id}',${idx})">
+          <button onclick="openCoachGifPicker('${l.id}',${idx})" title="GIF"
+            style="background:none;border:1px solid var(--border);cursor:pointer;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;padding:4px 8px;border-radius:4px;flex-shrink:0;">GIF</button>
+          <button onclick="saveCoachComment('${l.id}',${idx})"
+            style="background:var(--accent);border:none;color:var(--fg);cursor:pointer;font-size:14px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
+        </div>
+        <div id="cgif-preview-${idx}" style="padding:${l.coach_gif?'0 12px 8px':'0'};">
+          ${l.coach_gif ? `<div style="display:flex;align-items:center;gap:6px;"><img src="${l.coach_gif}" style="height:36px;border-radius:4px;"><button onclick="removeCoachGif('${l.id}',${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;">✕ usuń GIF</button></div>` : ''}
+        </div>
       </div>`;
     }).join('');
+}
+
+async function saveCoachComment(logId, idx) {
+  const input = document.getElementById('ccmt-'+idx);
+  if (!input) return;
+  const comment = input.value.trim();
+  const gif = window._pendingGif?.[idx] || null;
+  const updateData = {coach_comment: comment || null};
+  if (gif) updateData.coach_gif = gif;
+  const { error } = await _sb.from('training_logs').update(updateData).eq('id', logId);
+  if (error) { showToast('Błąd: '+error.message); return; }
+  if (gif) delete window._pendingGif[idx];
+  showToast('Komentarz zapisany ✓');
+  await loadAthleteLogs(window._selectedAthleteId);
+}
+
+async function removeCoachGif(logId, idx) {
+  await _sb.from('training_logs').update({coach_gif: null}).eq('id', logId);
+  await loadAthleteLogs(window._selectedAthleteId);
+}
+
+let _gifLogId = null, _gifIdx = null;
+function openCoachGifPicker(logId, idx) {
+  _gifLogId = logId; _gifIdx = idx;
+  const modal = document.getElementById('coach-gif-modal');
+  if (modal) { modal.style.display='flex'; searchCoachGif('great job running'); }
+}
+function closeCoachGifModal() {
+  const m = document.getElementById('coach-gif-modal');
+  if (m) m.style.display='none';
+}
+async function searchCoachGif(q) {
+  const grid = document.getElementById('coach-gif-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Szukam...</div>';
+  try {
+    const r = await fetch('https://api.giphy.com/v1/gifs/search?api_key=sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh&q='+encodeURIComponent(q)+'&limit=12&rating=g');
+    const d = await r.json();
+    grid.innerHTML = (d.data||[]).map(g => {
+      const url = g.images.fixed_height_small.url;
+      return `<img src="${url}" style="width:100%;border-radius:6px;cursor:pointer;aspect-ratio:1;object-fit:cover;" onclick="selectCoachGif('${url}')" onerror="this.style.display='none'">`;
+    }).join('');
+    if (!d.data?.length) grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Brak wyników</div>';
+  } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Błąd ładowania</div>'; }
+}
+function selectCoachGif(url) {
+  if (!window._pendingGif) window._pendingGif = {};
+  window._pendingGif[_gifIdx] = url;
+  const preview = document.getElementById('cgif-preview-'+_gifIdx);
+  if (preview) preview.innerHTML = `<div style="padding:0 12px 8px;display:flex;align-items:center;gap:6px;"><img src="${url}" style="height:36px;border-radius:4px;"><span style="font-size:10px;color:var(--muted);">GIF wybrany — kliknij ↑ żeby zapisać</span></div>`;
+  closeCoachGifModal();
 }
 
 // ── SAVE TRAINING TO DB ───────────────────────────────────────────
@@ -1156,10 +1229,10 @@ function autoColon(el) {
 }
 // Auto colon for mm:ss (tempo np. 5:20)
 function autoColonShort(el) {
-  // Format MM:SS dla 10k/5k (np. 45:30, 22:00) — dwukropek po 2 cyfrach
   let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
-  el.value = v.slice(0,5);
+  // Tempo zawsze jednocyfrowe minuty (3:00 - 9:59), więc dwukropek po 1. cyfrze
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  el.value = v.slice(0,4);
 }
 
 function openAthModal() {
@@ -2686,4 +2759,24 @@ if (_tabParam) {
         <div style="font-size:12px;font-weight:500;margin-bottom:2px;">Kalendarz</div>
         <div style="font-size:11px;color:var(--muted);">Pełny widok tygodniowy</div>
       </div>
-      <a href="kalendarz.html?role=coach" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:upper
+      <a href="kalendarz.html?role=coach" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase">Otwórz →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COACH GIF MODAL -->
+<div id="coach-gif-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeCoachGifModal()">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;width:380px;max-width:94vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <input type="text" placeholder="Szukaj GIFa (np. great job, running...)" 
+        style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 12px;border-radius:8px;outline:none;"
+        oninput="searchCoachGif(this.value||'running')">
+      <button onclick="closeCoachGifModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
+    </div>
+    <div id="coach-gif-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:10px;overflow-y:auto;max-height:400px;"></div>
+  </div>
+</div>
+
+</body>
+</html>

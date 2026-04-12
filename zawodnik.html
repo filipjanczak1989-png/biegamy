@@ -2167,6 +2167,7 @@ function renderLogsDb(data) {
     const borderColors = {spokojny:'rgba(80,144,224,0.15)',interwaly:'rgba(232,184,64,0.15)',tempo:'rgba(224,85,32,0.15)',wybieganie:'rgba(154,111,232,0.15)',regeneracja:'rgba(61,184,112,0.15)'};
     const iconBg = {spokojny:'rgba(80,144,224,0.12)',interwaly:'rgba(232,184,64,0.12)',tempo:'rgba(224,85,32,0.12)',wybieganie:'rgba(154,111,232,0.12)',regeneracja:'rgba(61,184,112,0.12)'};
     const feelEmoji = l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+    const hasCoachContent = l.coach_comment || l.coach_gif;
     return `<div class="log-item ${cls}" style="background:${bgColors[cls]||'var(--card)'};border-color:${borderColors[cls]||'rgba(255,255,255,0.06)'};" onclick="editLog(${idx})">
       <div style="width:42px;height:42px;border-radius:12px;background:${iconBg[cls]||'rgba(255,255,255,0.04)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         ${svgIcons[type]||svgIcons['Spokojny']}
@@ -2184,8 +2185,21 @@ function renderLogsDb(data) {
     ${l.attachment_url ? `<div style="padding:0 16px 4px;display:flex;flex-wrap:wrap;gap:6px;">
       ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}
     </div>` : ''}
-    ${l.strava_link ? `<div style="padding:0 16px 8px;"><a href="${l.strava_link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}`;
+    ${l.strava_link ? `<div style="padding:0 16px 8px;"><a href="${l.strava_link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}
+    ${hasCoachContent ? `<div style="margin:0 16px 8px;background:rgba(212,80,26,0.06);border:1px solid rgba(212,80,26,0.15);border-radius:10px;padding:10px 12px;">
+      <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px;">💬 Trener</div>
+      ${l.coach_gif ? `<img src="${l.coach_gif}" style="max-width:100%;max-height:140px;border-radius:8px;display:block;margin-bottom:6px;" onerror="this.style.display='none'">` : ''}
+      ${l.coach_comment ? `<div style="font-size:12px;line-height:1.6;color:var(--fg);">${l.coach_comment}</div>` : ''}
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        ${['💪','🔥','😊','👏','🏆','❤️'].map(e => `<button onclick="event.stopPropagation();reactToLog('${l.id}','${e}')" style="background:${l.athlete_reaction===e?'rgba(212,80,26,0.2)':'rgba(255,255,255,0.05)'};border:1px solid ${l.athlete_reaction===e?'var(--accent)':'rgba(255,255,255,0.08)'};border-radius:20px;padding:4px 10px;font-size:16px;cursor:pointer;transition:all 0.15s;">${e}</button>`).join('')}
+      </div>
+    </div>` : ''}`;
   }).join('');
+}
+
+async function reactToLog(logId, emoji) {
+  await _sb.from('training_logs').update({athlete_reaction: emoji}).eq('id', logId);
+  await loadLogs();
 }
 
 async function deleteLog(logId) {
@@ -2559,96 +2573,6 @@ function _renderCharts(weeks,days30,typeCount,typeColors2){
   }
 }
 
-// ── KALKULATOR TEMPA ──────────────────────────────────────────────
-function calcPaceResult() {
-  const distVal = parseFloat(document.getElementById('calc-dist').value);
-  const goalVal = document.getElementById('calc-goal').value.trim();
-  const result = document.getElementById('calc-result');
-
-  if (!goalVal || goalVal.length < 4) { result.style.display='none'; return; }
-
-  // Parsuj czas: H:MM:SS lub MM:SS
-  const parts = goalVal.split(':').map(Number);
-  let totalSec = 0;
-  if (parts.length === 3) totalSec = parts[0]*3600 + parts[1]*60 + parts[2];
-  else if (parts.length === 2) totalSec = parts[0]*60 + parts[1];
-  if (!totalSec || !distVal) { result.style.display='none'; return; }
-
-  result.style.display = 'block';
-
-  // Tempo /km
-  const paceSec = totalSec / distVal;
-  const paceMin = Math.floor(paceSec/60);
-  const paceSc = String(Math.round(paceSec%60)).padStart(2,'0');
-  document.getElementById('calc-pace-out').textContent = paceMin+':'+paceSc;
-
-  // Czas docelowy (powtórz wejście czytelnie)
-  const h = Math.floor(totalSec/3600);
-  const m = String(Math.floor((totalSec%3600)/60)).padStart(2,'0');
-  const s = String(totalSec%60).padStart(2,'0');
-  document.getElementById('calc-time-out').textContent = h>0 ? h+':'+m+':'+s : m+':'+s;
-
-  // Splity co 5km
-  const splitDist = 5;
-  const splits = [];
-  const numSplits = Math.floor(distVal / splitDist);
-  const splitsEl = document.getElementById('calc-splits');
-  splitsEl.innerHTML = '';
-  for (let i = 1; i <= numSplits; i++) {
-    const elapsed = paceSec * splitDist * i;
-    const eh = Math.floor(elapsed/3600);
-    const em = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
-    const es = String(Math.round(elapsed%60)).padStart(2,'0');
-    const timeStr = eh>0 ? eh+':'+em+':'+es : em+':'+es;
-    const km = splitDist * i;
-    const isFinal = km >= distVal;
-    splitsEl.innerHTML += `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:${isFinal?'rgba(212,80,26,0.1)':'var(--card2)'};border-radius:6px;border:1px solid ${isFinal?'rgba(212,80,26,0.3)':'var(--border)'};">
-      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;min-width:36px;">${km} km</div>
-      <div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;width:${Math.min(100,km/distVal*100)}%;background:var(--accent);border-radius:2px;"></div></div>
-      <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:500;">${timeStr}</div>
-    </div>`;
-  }
-  // Ostatni fragment jeśli dystans nie jest wielokrotnością 5
-  const remainder = distVal % splitDist;
-  if (remainder > 0.1) {
-    const elapsed = totalSec;
-    const eh = Math.floor(elapsed/3600);
-    const em = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
-    const es = String(Math.round(elapsed%60)).padStart(2,'0');
-    const timeStr = eh>0 ? eh+':'+em+':'+es : em+':'+es;
-    splitsEl.innerHTML += `<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:rgba(212,80,26,0.1);border-radius:6px;border:1px solid rgba(212,80,26,0.3);">
-      <div style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;min-width:36px;font-weight:600;">FINISZ</div>
-      <div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;width:100%;background:var(--accent);border-radius:2px;"></div></div>
-      <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:var(--accent);">${timeStr}</div>
-    </div>`;
-  }
-
-  // Prognozowane wyniki — formuła Riegel: T2 = T1 * (D2/D1)^1.06
-  const distances = [
-    {name:'5 km', km:5},
-    {name:'10 km', km:10},
-    {name:'Półmaraton', km:21.0975},
-    {name:'Maraton', km:42.195},
-  ].filter(d => Math.abs(d.km - distVal) > 0.5); // pomiń aktualny dystans
-
-  const predEl = document.getElementById('calc-predictions');
-  predEl.innerHTML = distances.map(d => {
-    const predSec = totalSec * Math.pow(d.km / distVal, 1.06);
-    const ph = Math.floor(predSec/3600);
-    const pm = String(Math.floor((predSec%3600)/60)).padStart(2,'0');
-    const ps = String(Math.round(predSec%60)).padStart(2,'0');
-    const predTime = ph>0 ? ph+':'+pm+':'+ps : pm+':'+ps;
-    const predPaceSec = predSec / d.km;
-    const ppm = Math.floor(predPaceSec/60);
-    const pps = String(Math.round(predPaceSec%60)).padStart(2,'0');
-    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;">
-      <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">${d.name}</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1;">${predTime}</div>
-      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${ppm}:${pps}/km</div>
-    </div>`;
-  }).join('');
-}
-
 init();
 setTimeout(() => initAuth(), 100);
 setTimeout(() => loadDailyMotivation(), 200);
@@ -2751,49 +2675,6 @@ async function toggleVoice(btnId, sender) {
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin-top:2px;">Moje dane</div>
     </div>
   </div>
-  <!-- KALKULATOR TEMPA -->
-  <div style="padding:0 16px 20px;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:16px;">
-      <div style="height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));"></div>
-      <div style="padding:16px 18px;">
-        <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:14px;">🧮 Kalkulator tempa</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-          <div>
-            <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans</label>
-            <select id="calc-dist" onchange="calcPace()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:8px;outline:none;cursor:pointer;">
-              <option value="5">5 km</option>
-              <option value="10">10 km</option>
-              <option value="21.0975" selected>Półmaraton</option>
-              <option value="42.195">Maraton</option>
-            </select>
-          </div>
-          <div>
-            <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Cel czasowy</label>
-            <input id="calc-goal" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this);calcPaceResult()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
-          </div>
-        </div>
-        <div id="calc-result" style="display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-            <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);line-height:1;" id="calc-pace-out">—</div>
-              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-top:3px;">TEMPO /KM</div>
-            </div>
-            <div style="background:var(--card2);border-radius:8px;padding:12px;text-align:center;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--green);line-height:1;" id="calc-time-out">—</div>
-              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-top:3px;">CZAS DOCELOWY</div>
-            </div>
-          </div>
-          <!-- Splity -->
-          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Splity co 5 km</div>
-          <div id="calc-splits" style="display:flex;flex-direction:column;gap:4px;"></div>
-          <!-- Prognozowane wyniki -->
-          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin:12px 0 8px;">Prognoza na inne dystanse</div>
-          <div id="calc-predictions" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div id="stats-content" style="padding:0 16px;"></div>
 
 
