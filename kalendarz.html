@@ -895,13 +895,17 @@ async function saveTraining() {
   // ── TRENER: zapisz/zaktualizuj w Supabase ───────────────────────
   if (session && _urlRole === 'coach') {
     const athleteId = window._calSelectedAthleteId || null;
-    const existingTraining = editingIndex !== null && trainings[editingDate] && trainings[editingDate][editingIndex];
+    // Jawne sprawdzenie editingIndex (0 jest falsy!)
+    const existingTraining = (editingIndex !== null && editingIndex >= 0 && trainings[editingDate])
+      ? trainings[editingDate][editingIndex]
+      : null;
     const dbId = existingTraining?._id || null;
 
     if (dbId) {
       const { error: updErr } = await _sbKal.from('trainings').update({
         type: selectedType, distance_km: dist||null, duration_min: time||null,
-        pace: pace||null, heart_rate: hr||null, description: desc||null, status
+        pace: pace||null, heart_rate: hr||null, description: desc||null, status,
+        athlete_id: existingTraining?.athlete_id || athleteId || null
       }).eq('id', dbId);
       if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
     } else {
@@ -1135,6 +1139,7 @@ async function loadTrainingsFromDB() {
     if (!exists) {
       trainings[ds].push({
         _id: t.id,
+        athlete_id: t.athlete_id || null,
         type: t.type || 'Spokojny',
         dist: parseFloat(t.distance_km) || 0,
         time: t.duration_min || 0,
