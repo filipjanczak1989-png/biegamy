@@ -353,7 +353,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div class="field"><label>Dystans</label>
           <select id="cdist"><option value="5">5 km</option><option value="10">10 km</option><option value="21.1" selected>Polmaraton</option><option value="42.2">Maraton</option></select>
         </div>
-        <div class="field"><label>Wynik</label><input type="text" id="ctime" placeholder="1:45:30"></div>
+        <div class="field"><label>Wynik</label><input type="text" id="ctime" placeholder="1:45:30" maxlength="7" oninput="autoColon(this)"></div>
       </div>
       <button class="btn btn-p" onclick="calcP()">Oblicz strefy</button>
       <div class="pace-zones" id="pzones" style="display:none;"></div>
@@ -385,13 +385,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div id="ppb-edit-form" style="display:none;margin-bottom:16px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</label>
-            <input id="ppb-mar-in" type="text" placeholder="3:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-mar-in" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColon(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</label>
-            <input id="ppb-half-in" type="text" placeholder="1:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-half-in" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColon(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</label>
-            <input id="ppb-10k-in" type="text" placeholder="45:30" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-10k-in" type="text" placeholder="45:30" maxlength="5" oninput="autoColonShort(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
           <div><label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</label>
-            <input id="ppb-5k-in" type="text" placeholder="22:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
+            <input id="ppb-5k-in" type="text" placeholder="22:00" maxlength="5" oninput="autoColonShort(this)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;"></div>
         </div>
         <button onclick="savePanelPB()" style="width:100%;margin-top:10px;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz PB →</button>
       </div>
@@ -1156,10 +1156,10 @@ function autoColon(el) {
 }
 // Auto colon for mm:ss (tempo np. 5:20)
 function autoColonShort(el) {
+  // Format MM:SS dla 10k/5k (np. 45:30, 22:00) — dwukropek po 2 cyfrach
   let v = el.value.replace(/[^0-9]/g, '');
-  // Tempo zawsze jednocyfrowe minuty (3:00 - 9:59), więc dwukropek po 1. cyfrze
-  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
-  el.value = v.slice(0,4);
+  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
+  el.value = v.slice(0,5);
 }
 
 function openAthModal() {

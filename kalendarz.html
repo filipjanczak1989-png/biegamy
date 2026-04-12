@@ -255,6 +255,19 @@ nav{
 ::-webkit-scrollbar-thumb{background:var(--border);}
 
 
+#week-tpl-modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;}
+#week-tpl-modal.show{display:flex;}
+.wtpl-box{background:var(--surface);border:1px solid var(--accent);border-radius:12px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:0;}
+.wtpl-hdr{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1;}
+.wtpl-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;}
+.wtpl-body{padding:16px 20px;}
+.wtpl-day{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;}
+.wtpl-day-hdr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.wtpl-day-name{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);min-width:24px;}
+.wtpl-day select,.wtpl-day input,.wtpl-day textarea{background:var(--surface);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:6px 8px;border-radius:4px;outline:none;}
+.wtpl-day select:focus,.wtpl-day input:focus,.wtpl-day textarea:focus{border-color:var(--accent);}
+.wtpl-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;}
+.wtpl-day textarea{width:100%;margin-top:6px;resize:none;height:44px;line-height:1.5;font-family:'DM Sans',sans-serif;font-size:11px;box-sizing:border-box;}
 </style>
 </head>
 <body>
@@ -278,6 +291,7 @@ nav{
     </div>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)">+ Nowy trening</button>
     <button class="btn btn-ghost" id="btn-templates" onclick="openTemplatesModal()" style="display:none;">📋 Szablony</button>
+    <button class="btn btn-ghost" id="btn-week-template" onclick="openWeekTemplateModal()" style="display:none;">📅 Szablon tygodnia</button>
   </div>
 </nav>
 
@@ -452,7 +466,7 @@ nav{
       <div class="field-row">
         <div class="field">
           <label>Tempo docelowe (min/km)</label>
-          <input type="text" id="f-pace" placeholder="np. 5:30">
+          <input type="text" id="f-pace" placeholder="np. 5:30" maxlength="4" oninput="autoColonPace(this)">
         </div>
         <div class="field">
           <label>Tętno docelowe (bpm)</label>
@@ -503,6 +517,34 @@ nav{
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
       <button class="btn btn-primary" onclick="saveTraining()">Zapisz trening</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- WEEK TEMPLATE MODAL -->
+<div id="week-tpl-modal">
+  <div class="wtpl-box">
+    <div class="wtpl-hdr">
+      <div class="wtpl-title">📅 Szablon tygodnia</div>
+      <button onclick="closeWeekTemplateModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;">✕</button>
+    </div>
+    <div class="wtpl-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Zawodnik</label>
+          <select id="wtpl-athlete" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:4px;outline:none;cursor:pointer;"></select>
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Pierwszy dzień tygodnia</label>
+          <input type="date" id="wtpl-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px 10px;border-radius:4px;outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <div id="wtpl-days-list"></div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:8px;">
+        <button onclick="closeWeekTemplateModal()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:4px;">Anuluj</button>
+        <button onclick="sendWeekTemplate()" id="wtpl-send-btn" style="flex:2;background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:4px;">Wyślij plan →</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1997,6 +2039,156 @@ if (_urlRole === 'coach') {
   const tBtn = document.getElementById('btn-templates');
   if (tBtn) tBtn.style.display = '';
 }
+
+// ── SZABLON TYGODNIA ──────────────────────────────────────────────
+const KAL_WEEK_TEMPLATE = [
+  {day:'Pn', type:'Odpoczynek', dist:0,    pace:'',     hr:'',         desc:'Dzień wolny. Odpoczynek lub lekkie rozciąganie.'},
+  {day:'Wt', type:'Spokojny',   dist:10,   pace:'6:30', hr:'130-145',  desc:'Spokojny bieg regeneracyjny. Trzymaj niskie tętno.'},
+  {day:'Śr', type:'Interwały',  dist:8,    pace:'5:00', hr:'165-180',  desc:'8×600m z 90 sek odpoczynku. Rozgrzewka 2 km.'},
+  {day:'Cz', type:'Wybieganie', dist:12,   pace:'6:10', hr:'135-150',  desc:'Spokojne rozbieganie. Cel: nogi pracują, nie zmęczony.'},
+  {day:'Pt', type:'Odpoczynek', dist:0,    pace:'',     hr:'',         desc:'Dzień wolny przed mocnym weekendem.'},
+  {day:'Sb', type:'Tempo',      dist:14,   pace:'5:25', hr:'155-168',  desc:'Bieg progowy. Stałe, wymagające tempo.'},
+  {day:'Nd', type:'Wybieganie', dist:22,   pace:'6:00', hr:'140-152',  desc:'Długie wybieganie. Spokojne tempo.'},
+];
+
+async function openWeekTemplateModal() {
+  const modal = document.getElementById('week-tpl-modal');
+  // Ustaw datę na najbliższy poniedziałek
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? 1 : (8 - day) % 7 || 7;
+  const nextMon = new Date(now); nextMon.setDate(now.getDate() + (day === 1 ? 0 : diff));
+  const dateStr = nextMon.getFullYear() + '-' + String(nextMon.getMonth()+1).padStart(2,'0') + '-' + String(nextMon.getDate()).padStart(2,'0');
+  document.getElementById('wtpl-date').value = dateStr;
+
+  // Załaduj zawodników
+  const sel = document.getElementById('wtpl-athlete');
+  sel.innerHTML = '<option value="">— wybierz zawodnika —</option>';
+  const {data:{session}} = await _sbKal.auth.getSession();
+  if (session) {
+    const {data:athletes} = await _sbKal.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
+    (athletes||[]).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.full_name || 'Zawodnik';
+      sel.appendChild(opt);
+    });
+    // Jeśli jest wybrany zawodnik w kalendarzu — zaznacz go
+    if (window._calSelectedAthleteId) sel.value = window._calSelectedAthleteId;
+  }
+
+  // Renderuj dni
+  renderWtplDays();
+  modal.classList.add('show');
+}
+
+function renderWtplDays() {
+  const list = document.getElementById('wtpl-days-list');
+  list.innerHTML = KAL_WEEK_TEMPLATE.map((d, i) => `
+    <div class="wtpl-day">
+      <div class="wtpl-day-hdr">
+        <div class="wtpl-day-name">${d.day}</div>
+        <select id="wtpl-type-${i}" style="flex:1;width:100%;">
+          <option ${d.type==='Odpoczynek'?'selected':''}>Odpoczynek</option>
+          <option ${d.type==='Spokojny'?'selected':''}>Spokojny</option>
+          <option ${d.type==='Interwały'?'selected':''}>Interwały</option>
+          <option ${d.type==='Tempo'?'selected':''}>Tempo</option>
+          <option ${d.type==='Wybieganie'?'selected':''}>Wybieganie</option>
+          <option ${d.type==='Regeneracja'?'selected':''}>Regeneracja</option>
+        </select>
+      </div>
+      <div class="wtpl-row">
+        <div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Dystans (km)</div>
+          <input id="wtpl-dist-${i}" type="number" min="0" step="0.5" value="${d.dist||''}" placeholder="0" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Tempo /km</div>
+          <input id="wtpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="4" oninput="wtplAutoColonPace(this)" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Tętno</div>
+          <input id="wtpl-hr-${i}" type="text" value="${d.hr||''}" placeholder="140-155" style="width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <textarea id="wtpl-desc-${i}" placeholder="Opis treningu...">${d.desc||''}</textarea>
+    </div>
+  `).join('');
+}
+
+function wtplAutoColonPace(el) {
+  // Format M:SS — tempo /km
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
+  el.value = v.slice(0,4);
+}
+
+function closeWeekTemplateModal() {
+  document.getElementById('week-tpl-modal').classList.remove('show');
+}
+
+async function sendWeekTemplate() {
+  const athleteId = document.getElementById('wtpl-athlete').value;
+  const weekDateStr = document.getElementById('wtpl-date').value;
+  if (!athleteId) { notify('Wybierz zawodnika'); return; }
+  if (!weekDateStr) { notify('Wybierz datę'); return; }
+
+  const btn = document.getElementById('wtpl-send-btn');
+  btn.textContent = 'Wysyłam...'; btn.disabled = true;
+
+  const {data:{session}} = await _sbKal.auth.getSession();
+  if (!session) { btn.textContent = 'Wyślij plan →'; btn.disabled = false; return; }
+
+  const [yyyy, mm, dd] = weekDateStr.split('-').map(Number);
+  const weekStart = new Date(yyyy, mm-1, dd);
+
+  let sent = 0, skipped = 0, errors = 0;
+
+  for (let i = 0; i < KAL_WEEK_TEMPLATE.length; i++) {
+    const type = document.getElementById('wtpl-type-'+i)?.value || KAL_WEEK_TEMPLATE[i].type;
+    const dist = parseFloat(document.getElementById('wtpl-dist-'+i)?.value) || 0;
+    const pace = document.getElementById('wtpl-pace-'+i)?.value.trim() || null;
+    const hr = document.getElementById('wtpl-hr-'+i)?.value.trim() || null;
+    const desc = document.getElementById('wtpl-desc-'+i)?.value.trim() || null;
+    const date = new Date(weekStart); date.setDate(weekStart.getDate() + i);
+    const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
+
+    // Sprawdź czy już istnieje
+    const {data:existing} = await _sbKal.from('trainings').select('id').eq('athlete_id',athleteId).eq('date',dateStr).maybeSingle();
+    if (existing) { skipped++; continue; }
+
+    const {error} = await _sbKal.from('trainings').insert({
+      athlete_id: athleteId,
+      coach_id: session.user.id,
+      date: dateStr,
+      type,
+      distance_km: dist || null,
+      pace,
+      heart_rate: hr || null,
+      description: desc || null,
+      status: 'planned'
+    });
+    if (error) errors++; else sent++;
+  }
+
+  btn.textContent = 'Wyślij plan →'; btn.disabled = false;
+
+  if (errors > 0) {
+    notify('Wysłano ' + sent + ', błędy: ' + errors);
+  } else {
+    notify('Plan tygodnia wysłany ✓' + (skipped > 0 ? ' (' + skipped + ' już istniało)' : ''));
+    closeWeekTemplateModal();
+    await loadTrainingsFromDB();
+  }
+}
+
+// Pokaż przyciski trenera
+if (_urlRole === 'coach') {
+  const wtBtn = document.getElementById('btn-week-template');
+  if (wtBtn) wtBtn.style.display = '';
+}
+
+function autoColonPace(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=2)v=v.slice(0,1)+":"+v.slice(1);el.value=v.slice(0,4);}
 
 render();
 loadAthletesSelect();
