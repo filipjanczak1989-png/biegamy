@@ -2109,20 +2109,37 @@ async function obSaveCoach() {
 
   let data, error;
   if (_athleteId) {
+    // Mamy już id rekordu — aktualizuj
     ({ data, error } = await _sb.from('athletes')
       .update({ coach_id: _selectedCoachId })
       .eq('id', _athleteId)
       .select().single());
   } else {
-    ({ data, error } = await _sb.from('athletes')
-      .upsert({
-        user_id: session.user.id,
-        coach_id: _selectedCoachId,
-        full_name: name,
-        email: session.user.email,
-        active: true
-      }, { onConflict: 'user_id' })
-      .select().single());
+    // Sprawdź czy rekord już istnieje dla tego user_id
+    const { data: existing } = await _sb.from('athletes')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (existing) {
+      // Rekord istnieje — aktualizuj coach_id
+      _athleteId = existing.id;
+      ({ data, error } = await _sb.from('athletes')
+        .update({ coach_id: _selectedCoachId })
+        .eq('id', existing.id)
+        .select().single());
+    } else {
+      // Nowy rekord — insert
+      ({ data, error } = await _sb.from('athletes')
+        .insert({
+          user_id: session.user.id,
+          coach_id: _selectedCoachId,
+          full_name: name,
+          email: session.user.email,
+          active: true
+        })
+        .select().single());
+    }
   }
 
   if (btn) { btn.textContent = 'Zacznij trening →'; btn.disabled = false; }
