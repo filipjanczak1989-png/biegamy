@@ -2124,7 +2124,9 @@ async function obSaveCoach() {
 
   if (error) {
     console.error('Onboarding error:', error);
-    if (err) { err.textContent = 'Błąd zapisu — spróbuj ponownie.'; err.style.display = 'block'; }
+    const msg = error.message || error.details || JSON.stringify(error);
+    if (err) { err.textContent = 'Błąd zapisu: ' + msg; err.style.display = 'block'; }
+    if (btn) { btn.textContent = 'Zacznij trening →'; btn.disabled = false; }
     return;
   }
 
