@@ -1180,6 +1180,12 @@ function closeModal(){
   document.getElementById('modal-bg').classList.remove('open');
   // Reset timera
   if (window._timerRunning) stopTimer();
+  // Reset pendingFiles — zapobiegaj wysyłaniu starych plików przy następnym logu
+  window._pendingFiles = [];
+  const previewList = document.getElementById('file-preview-list');
+  if (previewList) previewList.innerHTML = '';
+  const uploadLabel = document.getElementById('upload-label');
+  if (uploadLabel) uploadLabel.textContent = 'Kliknij aby dodać zdjęcie';
 }
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 function selFeel(el,t){
@@ -1834,7 +1840,7 @@ function toast(msg) {
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), 3000);
 }
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();}});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); const m=document.getElementById('av-menu'); if(m) m.style.display='none'; } });
 
 
 // ── SUPABASE ──────────────────────────────────────────────────────
@@ -2511,7 +2517,7 @@ async function saveLog() {
   document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
   document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';
   document.getElementById('upload-area').style.borderColor = 'var(--border)';
-  fileInput.value = '';
+  const lFile = document.getElementById('l-file'); if(lFile) lFile.value = '';
   feel = '';
   _logType = 'Spokojny';
   _logDate = null;
