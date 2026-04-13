@@ -879,138 +879,146 @@ function selType(el, type, cls) {
 
 async function saveTraining() {
   const dist = parseFloat(document.getElementById('f-dist').value)||0;
-  const time = parseInt(document.getElementById('f-time').value)||0;
-  const paceElS = document.getElementById('f-pace');
-  const pace = paceElS.value || paceElS.dataset.suggested || '';
-  const distElS = document.getElementById('f-dist');
-  if (!distElS.value && distElS.dataset.suggested) distElS.value = distElS.dataset.suggested;
-  const hr = document.getElementById('f-hr').value;
+  const time  = parseInt(document.getElementById('f-time').value)||0;
+  const paceEl = document.getElementById('f-pace');
+  const pace   = paceEl.value || paceEl.dataset.suggested || '';
+  const distEl = document.getElementById('f-dist');
+  if (!distEl.value && distEl.dataset.suggested) distEl.value = distEl.dataset.suggested;
+  const hr   = document.getElementById('f-hr').value;
   const desc = document.getElementById('f-desc').value;
   const status = document.getElementById('f-status').value;
 
-  if(!editingDate) { notify('Brak daty'); return; }
+  if (!editingDate) { notify('Brak daty'); return; }
 
   const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) { notify('Brak sesji — zaloguj się'); return; }
 
-  // ── TRENER: zapisz/zaktualizuj w Supabase ───────────────────────
-  if (session && _urlRole === 'coach') {
-    const athleteId = window._calSelectedAthleteId || null;
-    const existingTraining = editingIndex !== null && trainings[editingDate] && trainings[editingDate][editingIndex];
-    const dbId = existingTraining?._id || null;
+  // ── TRENER ────────────────────────────────────────────────────────
+  if (_urlRole === 'coach') {
+    const selEl = document.getElementById('athlete-select');
+    const athleteId = window._calSelectedAthleteId || (selEl ? selEl.value : '') || null;
+
+    // Jawne sprawdzenie indeksu — 0 jest poprawnym indeksem!
+    const existing = (editingIndex !== null && editingIndex >= 0 && trainings[editingDate])
+      ? trainings[editingDate][editingIndex] : null;
+    const dbId = existing?._id || null;
 
     if (dbId) {
-      const { error: updErr } = await _sbKal.from('trainings').update({
-        type: selectedType, distance_km: dist||null, duration_min: time||null,
-        pace: pace||null, heart_rate: hr||null, description: desc||null, status
+      // UPDATE
+      const { error } = await _sbKal.from('trainings').update({
+        type: selectedType,
+        distance_km: dist || null,
+        duration_min: time || null,
+        pace: pace || null,
+        heart_rate: hr || null,
+        description: desc || null,
+        status
       }).eq('id', dbId);
-      if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
+      if (error) { notify('Błąd zapisu: ' + error.message); return; }
     } else {
-      // Sprawdź czy mamy wybrane zawodnika — jeśli nie, zapytaj
-      const selEl = document.getElementById('athlete-select');
-      const selVal = selEl ? selEl.value : '';
-      const finalAthleteId = athleteId || selVal || null;
-      if (!finalAthleteId && _urlRole === 'coach') {
-        notify('Wybierz zawodnika w prawym górnym rogu');
-        return;
-      }
-      const { error: insErr } = await _sbKal.from('trainings').insert({
+      // INSERT
+      if (!athleteId) { notify('Wybierz zawodnika w prawym górnym rogu'); return; }
+      const { error } = await _sbKal.from('trainings').insert({
         coach_id: session.user.id,
-        athlete_id: finalAthleteId,
+        athlete_id: athleteId,
         date: editingDate,
         type: selectedType,
-        distance_km: dist||null,
-        duration_min: time||null,
-        pace: pace||null,
-        heart_rate: hr||null,
-        description: desc||null,
+        distance_km: dist || null,
+        duration_min: time || null,
+        pace: pace || null,
+        heart_rate: hr || null,
+        description: desc || null,
         status
       });
-      if (insErr) { notify('Błąd: ' + insErr.message); return; }
+      if (error) { notify('Błąd: ' + error.message); return; }
     }
     closeModal();
     await loadTrainingsFromDB();
-    notify(dbId ? 'Trening zaktualizowany ✓' : `Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);
+    notify(dbId ? 'Trening zaktualizowany ✓' : `Dodano: ${selectedType}${dist > 0 ? ' · ' + dist + ' km' : ''}`);
     return;
   }
 
-  // ── ZAWODNIK: zapis do Supabase ─────────────────────────────────
-  const t = {type:selectedType,dist,time,pace,hr,desc,status};
+  // ── ZAWODNIK ──────────────────────────────────────────────────────
+  const existing2 = (editingIndex !== null && editingIndex >= 0 && trainings[editingDate])
+    ? trainings[editingDate][editingIndex] : null;
+  const dbId2 = existing2?._id || null;
 
-  // Pobierz sesję zawodnika
-  const { data: { session: athSession } } = await _sbKal.auth.getSession();
-
-  if (athSession) {
-    // Zawodnik zawsze edytuje istniejące treningi z bazy (dbId z trainings[])
-    const existingT = (editingIndex !== null && editingIndex >= 0 && trainings[editingDate])
-      ? trainings[editingDate][editingIndex] : null;
-    const athDbId = existingT?._id || null;
-
-    if (athDbId) {
-      // Update istniejącego treningu
-      const { error: athUpdErr } = await _sbKal.from('trainings').update({
-        status,
-        // Zawodnik może tylko zmieniać status — reszta read-only (plan od trenera)
-      }).eq('id', athDbId);
-      if (athUpdErr) { notify('Błąd: ' + athUpdErr.message); return; }
-    }
-  }
-
-  if(!trainings[editingDate]) trainings[editingDate]=[];
-  if(editingIndex!==null && editingIndex>=0) {
-    trainings[editingDate][editingIndex] = {...(trainings[editingDate][editingIndex]||{}), ...t};
-    notify('Zapisano ✓');
+  if (dbId2) {
+    // UPDATE istniejącego treningu
+    const { error } = await _sbKal.from('trainings').update({
+      type: selectedType,
+      distance_km: dist || null,
+      duration_min: time || null,
+      pace: pace || null,
+      heart_rate: hr || null,
+      description: desc || null,
+      status
+    }).eq('id', dbId2);
+    if (error) { notify('Błąd: ' + error.message); return; }
   } else {
-    trainings[editingDate].push(t);
-    notify(`Dodano: ${selectedType}${dist>0?' · '+dist+' km':''}`);
+    // INSERT nowego treningu przez zawodnika
+    const { data: ath } = await _sbKal.from('athletes')
+      .select('id').eq('user_id', session.user.id).maybeSingle();
+    if (!ath) { notify('Nie znaleziono profilu zawodnika'); return; }
+    const { error } = await _sbKal.from('trainings').insert({
+      athlete_id: ath.id,
+      date: editingDate,
+      type: selectedType,
+      distance_km: dist || null,
+      duration_min: time || null,
+      pace: pace || null,
+      heart_rate: hr || null,
+      description: desc || null,
+      status
+    });
+    if (error) { notify('Błąd: ' + error.message); return; }
   }
 
-  // Jeśli status=done i jesteśmy w widoku zawodnika — zapisz log do Supabase
-  if (status === 'done' && _urlRole === 'athlete' && typeof _sbKal !== 'undefined') {
-    const { data: { session } } = await _sbKal.auth.getSession();
-    if (session) {
-      const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-      if (ath) {
-        // Upload zdjęć
-        const logFiles = document.getElementById('f-log-files');
-        const logStrava = document.getElementById('f-log-strava')?.value || null;
-        const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
-        const logPace = document.getElementById('f-log-pace')?.value || pace || null;
-        let attachmentUrl = null;
+  // Jeśli status=done — zapisz log
+  if (status === 'done') {
+    const { data: ath } = await _sbKal.from('athletes')
+      .select('id').eq('user_id', session.user.id).maybeSingle();
+    if (ath) {
+      const logFiles  = document.getElementById('f-log-files');
+      const logStrava = document.getElementById('f-log-strava')?.value || null;
+      const logDist   = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
+      const logPace   = document.getElementById('f-log-pace')?.value || pace || null;
+      let attachmentUrl = null;
 
-        if (logFiles && logFiles.files.length > 0) {
-          const urls = [];
-          const base = Date.now();
-          for (let fi = 0; fi < logFiles.files.length; fi++) {
-            const file = logFiles.files[fi];
-            const path = ath.id + '/log_' + base + '_' + fi + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
-            const { error: upErr } = await _sbKal.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
-            if (!upErr) {
-              const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
-              urls.push(urlData.publicUrl);
-            }
+      if (logFiles && logFiles.files.length > 0) {
+        const urls = [];
+        const base = Date.now();
+        for (let fi = 0; fi < logFiles.files.length; fi++) {
+          const file = logFiles.files[fi];
+          const path = ath.id + '/log_' + base + '_' + fi + '.' + file.name.split('.').pop();
+          const { error: upErr } = await _sbKal.storage
+            .from('training-screenshots').upload(path, file, { upsert: true, contentType: file.type });
+          if (!upErr) {
+            const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
+            urls.push(urlData.publicUrl);
           }
-          if (urls.length) attachmentUrl = urls.join(',');
         }
-
-        const logComment = document.getElementById('f-comment')?.value || null;
-        await _sbKal.from('training_logs').insert({
-          athlete_id: ath.id,
-          training_type: selectedType,
-          distance_km: logDist,
-          pace: logPace,
-          strava_link: logStrava,
-          attachment_url: attachmentUrl,
-          comment: logComment,
-          logged_at: new Date().toISOString()
-        });
-        notify('Log zapisany ✓');
+        if (urls.length) attachmentUrl = urls.join(',');
       }
+
+      await _sbKal.from('training_logs').insert({
+        athlete_id: ath.id,
+        training_type: selectedType,
+        distance_km: logDist,
+        pace: logPace,
+        strava_link: logStrava,
+        attachment_url: attachmentUrl,
+        comment: document.getElementById('f-comment')?.value || null,
+        logged_at: new Date().toISOString()
+      });
     }
   }
 
   closeModal();
-  render();
+  await loadTrainingsFromDB();
+  notify('Zapisano ✓');
 }
+
 
 async function approveTraining(e, ds, idx, dbId) {
   e.stopPropagation();
@@ -2108,7 +2116,7 @@ function renderWtplDays() {
     <div class="wtpl-day">
       <div class="wtpl-day-hdr">
         <div class="wtpl-day-name">${d.day}</div>
-        <select id="wtpl-type-${i}" style="flex:1;width:100%;">
+        <select id="wtpl-type-${i}" style="flex:1;width:100%;" onchange="wtplTypeChanged(${i},this.value)">
           <option ${d.type==='Odpoczynek'?'selected':''}>Odpoczynek</option>
           <option ${d.type==='Spokojny'?'selected':''}>Spokojny</option>
           <option ${d.type==='Interwały'?'selected':''}>Interwały</option>
@@ -2141,6 +2149,100 @@ function wtplAutoColonPace(el) {
   let v = el.value.replace(/[^0-9]/g, '');
   if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
   el.value = v.slice(0,4);
+}
+
+async function wtplTypeChanged(idx, type) {
+  if (type === 'Odpoczynek') {
+    // Wyczyść pola dla odpoczynku
+    const d = document.getElementById('wtpl-dist-'+idx);
+    const p = document.getElementById('wtpl-pace-'+idx);
+    const h = document.getElementById('wtpl-hr-'+idx);
+    const t = document.getElementById('wtpl-desc-'+idx);
+    if (d) d.value = '';
+    if (p) p.value = '';
+    if (h) h.value = '';
+    if (t) t.value = 'Dzień wolny. Odpoczynek lub lekkie rozciąganie.';
+    return;
+  }
+
+  // Pobierz sugestie z PB i logów zawodnika
+  const athleteId = document.getElementById('wtpl-athlete')?.value;
+  if (!athleteId) return;
+
+  const { data: ath } = await _sbKal.from('athletes')
+    .select('pb_marathon,pb_half,pb_10k,pb_5k').eq('id', athleteId).maybeSingle();
+
+  // Funkcje pomocnicze (inline)
+  const pbToSec = pb => {
+    if (!pb) return null;
+    const p = String(pb).split(':').map(Number);
+    return p.length === 3 ? p[0]*3600+p[1]*60+p[2] : p.length === 2 ? p[0]*60+p[1] : null;
+  };
+  const secToPace = s => s ? Math.floor(s/60)+':'+(Math.round(s%60)).toString().padStart(2,'0') : '';
+
+  // Wybierz najlepsze PB
+  let marPaceSec = null;
+  const pb = ath || {};
+  if (pb.pb_marathon)    marPaceSec = pbToSec(pb.pb_marathon) / 42.195;
+  else if (pb.pb_half)   marPaceSec = pbToSec(pb.pb_half) / 21.0975 * 1.08;
+  else if (pb.pb_10k)    marPaceSec = pbToSec(pb.pb_10k) / 10 * 1.18;
+  else if (pb.pb_5k)     marPaceSec = pbToSec(pb.pb_5k) / 5 * 1.28;
+
+  // Pobierz też ostatnie logi żeby dać sugestię dystansu
+  const { data: logs } = await _sbKal.from('training_logs')
+    .select('distance_km,training_type').eq('athlete_id', athleteId)
+    .order('logged_at', {ascending: false}).limit(10);
+
+  const typeAvgDist = {};
+  (logs || []).forEach(l => {
+    if (!l.training_type || !l.distance_km) return;
+    if (!typeAvgDist[l.training_type]) typeAvgDist[l.training_type] = [];
+    typeAvgDist[l.training_type].push(parseFloat(l.distance_km));
+  });
+  const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : null;
+
+  const paceMap = marPaceSec ? {
+    'Spokojny':    secToPace(marPaceSec * 1.20),
+    'Wybieganie':  secToPace(marPaceSec * 1.15),
+    'Regeneracja': secToPace(marPaceSec * 1.30),
+    'Tempo':       secToPace(marPaceSec * 0.97),
+    'Interwały':   secToPace(marPaceSec * 0.88),
+    'Start':       secToPace(marPaceSec * 1.00),
+  } : {};
+
+  const hrMap = {
+    'Spokojny': '130-145', 'Wybieganie': '135-150', 'Regeneracja': '120-135',
+    'Tempo': '155-168', 'Interwały': '165-180', 'Start': '150-175'
+  };
+
+  const distMap = {
+    'Spokojny': 10, 'Wybieganie': 14, 'Regeneracja': 8,
+    'Tempo': 12, 'Interwały': 8, 'Start': null
+  };
+
+  const pEl = document.getElementById('wtpl-pace-'+idx);
+  const hEl = document.getElementById('wtpl-hr-'+idx);
+  const dEl = document.getElementById('wtpl-dist-'+idx);
+
+  if (pEl && paceMap[type]) pEl.value = paceMap[type];
+  if (hEl && hrMap[type])   hEl.value = hrMap[type];
+  if (dEl) {
+    const fromLogs = avg(typeAvgDist[type] || []);
+    const fromMap  = distMap[type];
+    dEl.value = fromLogs || fromMap || '';
+  }
+
+  // Hint w polu opisu
+  const dscEl = document.getElementById('wtpl-desc-'+idx);
+  const hintMap = {
+    'Spokojny':    'Spokojny bieg regeneracyjny. Trzymaj niskie tętno przez cały czas.',
+    'Interwały':   '8×600m z 90 sek odpoczynku. Rozgrzewka 2 km, schłodzenie 1 km.',
+    'Tempo':       'Bieg progowy. Trzymaj stałe, wymagające tempo przez cały dystans.',
+    'Wybieganie':  'Spokojne rozbieganie. Cel: nogi pracują, nie jesteś zmęczony.',
+    'Regeneracja': 'Bardzo wolny bieg. Priorytet to regeneracja mięśni.',
+    'Start':       'Dzień startu. Rozgrzewka 2 km, potem wyścig.',
+  };
+  if (dscEl && hintMap[type] && !dscEl.value) dscEl.value = hintMap[type];
 }
 
 function closeWeekTemplateModal() {
