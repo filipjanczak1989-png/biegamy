@@ -318,28 +318,31 @@ async function register() {
       id: data.user.id,
       full_name: name,
       specialization: spec || null
-    }).catch(() => {}); // ignoruj błąd jeśli tabela nie istnieje
+    }).catch(() => {});
   }
 
+  // Zawsze pokaż success — niezależnie czy sesja istnieje (email confirmation może być włączone)
   document.getElementById('form-register').style.display = 'none';
-  const ss = document.getElementById('success-state');
-  ss.style.display = 'block';
+  document.getElementById('success-state').style.display = 'block';
 
   const roleLabel = selectedRole === 'coach' ? 'trenera' : 'zawodnika';
 
   if (data.session) {
-    document.getElementById('success-msg').textContent = `Witaj ${name}! Konto ${roleLabel} zostało utworzone.`;
+    // Auto-login (email confirmation wyłączone) — przekieruj od razu
+    document.getElementById('success-msg').textContent = `Witaj, ${name}! Konto ${roleLabel} zostało utworzone.`;
     document.getElementById('success-redirect').textContent = 'Przekierowuję...';
     setTimeout(() => {
-      if (selectedRole === 'coach') {
-        window.location.href = 'trener.html';
-      } else {
-        window.location.href = 'zawodnik.html?onboarding=1';
-      }
+      window.location.href = selectedRole === 'coach' ? 'trener.html' : 'zawodnik.html?onboarding=1';
     }, 1500);
   } else {
-    document.getElementById('success-msg').textContent = `Wysłaliśmy link aktywacyjny na ${email}. Kliknij go żeby aktywować konto ${roleLabel}.`;
-    document.getElementById('success-redirect').textContent = 'Po aktywacji wróć tutaj i zaloguj się.';
+    // Email confirmation włączone — poinformuj i zostań na stronie
+    if (selectedRole === 'coach') {
+      document.getElementById('success-msg').textContent = `Konto trenera dla ${name} zostało utworzone! Sprawdź skrzynkę ${email} i kliknij link aktywacyjny.`;
+      document.getElementById('success-redirect').textContent = 'Po aktywacji zaloguj się tutaj.';
+    } else {
+      document.getElementById('success-msg').textContent = `Konto zawodnika dla ${name} zostało utworzone! Sprawdź skrzynkę ${email} i kliknij link aktywacyjny.`;
+      document.getElementById('success-redirect').textContent = 'Po aktywacji zaloguj się — zostaniesz przywitany przez system.';
+    }
   }
 }
 
