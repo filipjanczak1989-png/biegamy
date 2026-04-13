@@ -2183,7 +2183,7 @@ async function loadCoaches() {
   coachesEl.innerHTML = list.map((c, i) => {
     const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isFirst = i === 0;
-    return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', this)" style="${isFirst?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);':''}">
+    return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', document.getElementById('ob-coach-${c.id}'))" style="${isFirst?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);cursor:pointer;':'cursor:pointer;'}">
       <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;transition:all 0.2s;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
@@ -2196,19 +2196,26 @@ async function loadCoaches() {
 
 function selectCoach(coachId, el) {
   _selectedCoachId = coachId;
-  document.querySelectorAll('.ob-coach-card').forEach(c => {
+  // Resetuj tylko karty w ob-coaches, nie w change-coaches-list
+  document.querySelectorAll('#ob-coaches .ob-coach-card').forEach(c => {
     c.classList.remove('selected');
-    const av = c.querySelector('div');
-    const check = c.querySelector('.ob-coach-check');
     c.style.borderColor = 'rgba(255,255,255,0.08)';
     c.style.background = 'rgba(255,255,255,0.02)';
+    const av = c.querySelector('div');
+    if(av) av.style.background = 'rgba(255,255,255,0.08)';
+    const check = c.querySelector('.ob-coach-check');
+    if(check) { check.innerHTML = ''; check.style.borderColor = 'rgba(255,255,255,0.15)'; }
   });
   el.classList.add('selected');
   el.style.borderColor = 'rgba(232,86,30,0.4)';
   el.style.background = 'rgba(232,86,30,0.07)';
+  const av = el.querySelector('div');
+  if(av) av.style.background = 'var(--accent)';
   const check = el.querySelector('.ob-coach-check');
-  if(check) check.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>';
-  check.style.borderColor = 'var(--accent)';
+  if(check) { check.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>'; check.style.borderColor = 'var(--accent)'; }
+  // Ukryj błąd walidacji
+  const err = document.getElementById('ob-error');
+  if(err) err.style.display = 'none';
 }
 
 
@@ -2233,7 +2240,7 @@ async function openChangeCoach() {
   list.innerHTML = coachList.map(c => {
     const isSelected = c.id === currentCoachId;
     const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', this)" style="${isSelected?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);':''}">
+    return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', document.getElementById('chg-coach-${c.id}'))" style="${isSelected?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);cursor:pointer;':'cursor:pointer;'}">
       <div style="width:38px;height:38px;border-radius:50%;background:${isSelected?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${initials}</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name}</div>
@@ -2250,12 +2257,16 @@ function selectChangeCoach(coachId, el) {
     c.classList.remove('selected');
     c.style.background = 'rgba(255,255,255,0.02)';
     c.style.borderColor = 'rgba(255,255,255,0.08)';
+    const av = c.querySelector('div');
+    if(av) av.style.background = 'rgba(255,255,255,0.08)';
     const check = c.querySelector('.ob-coach-check');
     if(check) { check.innerHTML = ''; check.style.borderColor = 'rgba(255,255,255,0.15)'; }
   });
   el.classList.add('selected');
   el.style.background = 'rgba(232,86,30,0.07)';
   el.style.borderColor = 'rgba(232,86,30,0.4)';
+  const av = el.querySelector('div');
+  if(av) av.style.background = 'var(--accent)';
   const check = el.querySelector('.ob-coach-check');
   if(check) { check.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>'; check.style.borderColor = 'var(--accent)'; }
 }
