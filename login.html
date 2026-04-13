@@ -96,6 +96,16 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
   </div>
 
   <div class="card">
+    <!-- Baner aktywnej sesji (ukryty domyślnie) -->
+    <div id="session-banner" style="display:none;background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.25);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:6px;">Jesteś zalogowany</div>
+      <div style="font-size:13px;color:var(--fg);margin-bottom:12px;" id="session-email">—</div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="continueSession()" style="flex:2;background:var(--green);color:#0a1a0f;border:none;border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">Kontynuuj →</button>
+        <button onclick="logoutSession()" style="flex:1;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyloguj</button>
+      </div>
+    </div>
+
     <div class="tabs">
       <button class="tab active" onclick="switchTab('login')">Logowanie</button>
       <button class="tab" onclick="switchTab('register')">Rejestracja</button>
@@ -198,9 +208,26 @@ function selectRole(role) {
 // ── CHECK IF ALREADY LOGGED IN ────────────────────────────────────────────────
 async function checkSession() {
   const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    redirectUser(session.user);
-  }
+  if (!session) return;
+  // Nie przekierowuj automatycznie — pokaż baner żeby użytkownik mógł wybrać
+  const banner = document.getElementById('session-banner');
+  const emailEl = document.getElementById('session-email');
+  if (banner) banner.style.display = 'block';
+  if (emailEl) emailEl.textContent = session.user.email;
+  // Zapamiętaj sesję do ewentualnego przekierowania
+  window._activeSession = session;
+}
+
+function continueSession() {
+  if (window._activeSession) redirectUser(window._activeSession.user);
+}
+
+async function logoutSession() {
+  await sb.auth.signOut();
+  const banner = document.getElementById('session-banner');
+  if (banner) banner.style.display = 'none';
+  window._activeSession = null;
+  showAlert('Wylogowano pomyślnie.', 'success');
 }
 
 function redirectUser(user) {
