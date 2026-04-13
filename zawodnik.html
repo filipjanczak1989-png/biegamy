@@ -907,14 +907,6 @@ body{
       <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">biegamy.run</div>
     </div>
   </div>
-
-  <!-- Telefon w profilu -->
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Numer telefonu</div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-    <div style="font-size:13px;font-family:'DM Mono',monospace;" id="profile-phone">—</div>
-    <button onclick="editPhone()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
-  </div>
-
   <!-- Wyloguj -->
   <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
 </div>
@@ -934,21 +926,7 @@ body{
   </div>
 </div>
 
-<!-- MODAL EDYCJA TELEFONU -->
-<div id="phone-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);">
-  <div style="background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:380px;padding:24px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px;">Numer telefonu</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;line-height:1.6;">Trener może wysłać Ci SMS z podziękowaniami po miesiącu treningów.</div>
-    <div style="margin-bottom:20px;margin-top:16px;">
-      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Numer telefonu</label>
-      <input id="phone-input" type="tel" placeholder="+48 600 000 000" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;padding:12px 14px;border-radius:10px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
-    </div>
-    <div style="display:flex;gap:8px;">
-      <button onclick="closePhoneModal()" style="flex:1;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
-      <button onclick="savePhone()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
-    </div>
-  </div>
-</div>
+
 <div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">🏁 Cel startowy</div>
@@ -1620,12 +1598,9 @@ async function loadProfile() {
       }
       window._profileGoals = goals;
       renderGoals(goals);
-
-      // Telefon i trener — dociągamy z bazy
+      // Trener — dociągamy z bazy
       try {
-        const { data: athExtra } = await _sb.from('athletes').select('phone, coach_id').eq('id', _athleteId).maybeSingle();
-        const phoneEl = document.getElementById('profile-phone');
-        if(phoneEl && athExtra) phoneEl.textContent = athExtra.phone || '—';
+        const { data: athExtra } = await _sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
         if(athExtra?.coach_id) {
           let coachName = 'BiegaMy Coaching';
           try {
@@ -2110,46 +2085,33 @@ async function loadCoaches() {
   const loading = document.getElementById('ob-coach-loading');
   const coachesEl = document.getElementById('ob-coaches');
   if (!coachesEl) return;
-  try {
-    // Pobierz trenerów — szukamy po roli w user_metadata lub w osobnej tabeli
-    const { data, error } = await _sb.from('athletes')
-      .select('id, full_name, coach_id')
-      .is('coach_id', null)
-      .limit(1); // test czy w ogóle mamy dostęp
 
-    // Pobierz wszystkich trenerów (users z rolą coach)
-    const { data: coaches, error: coachErr } = await _sb.rpc('get_coaches').maybeSingle().catch(() => ({data: null}));
-    
-    // Fallback — spróbuj pobrać z tabeli coaches jeśli istnieje
-    let coachList = [];
-    const { data: coachTable } = await _sb.from('coaches').select('id, full_name, specialization').catch(() => ({data: null})) || {};
-    if (coachTable && coachTable.length > 0) {
-      coachList = coachTable;
-    } else {
-      // Hardcoded fallback — przynajmniej główny trener
-      coachList = [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
-    }
+  const { data: coachList, error } = await _sb
+    .from('coaches')
+    .select('id, full_name, specialization')
+    .order('full_name');
 
-    if(loading) loading.style.display = 'none';
-    coachesEl.style.display = 'flex';
+  if (loading) loading.style.display = 'none';
+  coachesEl.style.display = 'flex';
 
-    coachesEl.innerHTML = coachList.map((c, i) => {
-      const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      const isFirst = i === 0;
-      if(isFirst) _selectedCoachId = c.id;
-      return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', this)">
-        <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:${isFirst?'#fff':'var(--muted)'};flex-shrink:0;box-shadow:${isFirst?'0 0 14px var(--glow-o)':'none'};transition:all 0.2s;">${initials}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
-          ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${c.specialization}</div>`:''}
-        </div>
-        <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isFirst?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;">${isFirst?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
-      </div>`;
-    }).join('');
-  } catch(e) {
-    if(loading) loading.textContent = 'Nie można załadować trenerów.';
-    _selectedCoachId = COACH_ID;
-  }
+  const list = (!error && coachList && coachList.length > 0)
+    ? coachList
+    : [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
+
+  _selectedCoachId = list[0].id;
+
+  coachesEl.innerHTML = list.map((c, i) => {
+    const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    const isFirst = i === 0;
+    return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', this)" style="${isFirst?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);':''}">
+      <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;transition:all 0.2s;">${initials}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
+        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${c.specialization}</div>`:''}
+      </div>
+      <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isFirst?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;">${isFirst?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+    </div>`;
+  }).join('');
 }
 
 function selectCoach(coachId, el) {
@@ -2180,7 +2142,6 @@ async function saveOnboarding() {
   const pbHalf = document.getElementById('ob-half').value.trim() || null;
   const pb10k = document.getElementById('ob-10k').value.trim() || null;
   const pb5k = document.getElementById('ob-5k').value.trim() || null;
-  const phone = document.getElementById('ob-phone')?.value.trim() || null;
   const name = session.user.user_metadata?.full_name || 'Zawodnik';
   const chosenCoachId = _selectedCoachId || COACH_ID;
 
@@ -2205,7 +2166,6 @@ async function saveOnboarding() {
     pb_5k: pb5k,
     active: true
   };
-  if(phone) insertData.phone = phone;
 
   // Jeśli zawodnik już ma rekord (np. przekierowany z ?onboarding=1) — aktualizuj zamiast insertować
   let data, error;
@@ -2251,13 +2211,10 @@ async function openChangeCoach() {
   const list = document.getElementById('change-coaches-list');
   list.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Ładuję...</div>';
 
-  let coachList = [];
-  const { data: coachTable } = await _sb.from('coaches').select('id, full_name, specialization').catch(() => ({data: null})) || {};
-  if (coachTable && coachTable.length > 0) {
-    coachList = coachTable;
-  } else {
-    coachList = [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
-  }
+  const { data: coachTable } = await _sb.from('coaches').select('id, full_name, specialization').order('full_name');
+  const coachList = (coachTable && coachTable.length > 0)
+    ? coachTable
+    : [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
 
   // Pobierz aktualnego trenera zawodnika
   const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
@@ -2308,25 +2265,6 @@ async function saveCoachChange() {
   toast('Trener zmieniony ✓');
 }
 
-// ── EDYCJA TELEFONU ───────────────────────────────────────────────
-async function editPhone() {
-  const { data: ath } = await _sb.from('athletes').select('phone').eq('id', _athleteId).maybeSingle();
-  document.getElementById('phone-input').value = ath?.phone || '';
-  document.getElementById('phone-modal').style.display = 'flex';
-}
-function closePhoneModal() {
-  document.getElementById('phone-modal').style.display = 'none';
-}
-async function savePhone() {
-  const phone = document.getElementById('phone-input').value.trim() || null;
-  if (!_athleteId) return;
-  const { error } = await _sb.from('athletes').update({ phone }).eq('id', _athleteId);
-  if (error) { toast('Błąd: ' + error.message); return; }
-  closePhoneModal();
-  const el = document.getElementById('profile-phone');
-  if(el) el.textContent = phone || '—';
-  toast('Numer telefonu zapisany ✓');
-}
 
 // ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
 async function loadWeekPlan() {
@@ -3394,13 +3332,6 @@ async function toggleVoice(btnId, sender) {
         <label class="ob-label">Wybierz trenera</label>
         <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;">Ładuję listę trenerów...</div>
         <div id="ob-coaches" style="display:none;display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
-
-      <!-- Telefon -->
-      <div class="ob-field" style="margin-top:14px;">
-        <label class="ob-label">Numer telefonu <span style="color:var(--muted);font-weight:400;">(opcjonalnie)</span></label>
-        <input class="ob-input" id="ob-phone" type="tel" placeholder="+48 600 000 000" autocomplete="tel">
-        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;line-height:1.5;">Trener może wysłać Ci SMS z podsumowaniem po miesiącu.</div>
       </div>
 
       <button class="ob-btn" onclick="obGoStep(2)" style="margin-top:20px;">Dalej →</button>
