@@ -2027,6 +2027,8 @@ async function initAuth() {
     .eq('user_id', user.id)
     .maybeSingle();
 
+  const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
+
   if (ath) {
     _athleteId = ath.id;
     const name = ath.full_name || user.user_metadata?.full_name || 'Zawodnik';
@@ -2034,6 +2036,16 @@ async function initAuth() {
     document.getElementById('av-btn').textContent = initials;
     const tn = document.getElementById('topbar-name');
     if(tn){ tn.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tn.style.opacity='1'; }
+
+    // Nowy zawodnik przekierowany z login.html — pokaż modal onboardingu
+    // (rekord mógł być wcześniej stworzony przez initAuth, ale dane są puste)
+    if (_isOnboarding) {
+      await loadLogs();
+      showOnboarding();
+      window.history.replaceState({}, '', 'zawodnik.html');
+      return;
+    }
+
     const { data: athFull } = await _sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
     if (athFull) {
       // Znajdź najbliższy przyszły start z race_goals lub legacy
@@ -2195,9 +2207,20 @@ async function saveOnboarding() {
   };
   if(phone) insertData.phone = phone;
 
-  const { data, error } = await _sb.from('athletes')
-    .upsert(insertData, { onConflict: 'user_id' })
-    .select().single();
+  // Jeśli zawodnik już ma rekord (np. przekierowany z ?onboarding=1) — aktualizuj zamiast insertować
+  let data, error;
+  if (_athleteId) {
+    // Usuń user_id z update (nie można go zmieniać)
+    const { user_id: _uid, ...updateData } = insertData;
+    ({ data, error } = await _sb.from('athletes')
+      .update(updateData)
+      .eq('id', _athleteId)
+      .select().single());
+  } else {
+    ({ data, error } = await _sb.from('athletes')
+      .upsert(insertData, { onConflict: 'user_id' })
+      .select().single());
+  }
 
   if(btn) { btn.textContent = 'Zapisz i zacznij →'; btn.disabled = false; }
 
