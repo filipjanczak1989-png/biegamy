@@ -2114,6 +2114,7 @@ async function obSaveCoach() {
         user_id: session.user.id,
         coach_id: _selectedCoachId,
         full_name: name,
+        email: session.user.email,
         active: true
       }, { onConflict: 'user_id' })
       .select().single());
