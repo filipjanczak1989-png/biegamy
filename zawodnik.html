@@ -942,10 +942,11 @@ body{
       <div class="field" id="intervals-section" style="display:none;">
         <label>Interwały — szczegóły</label>
         <div style="display:flex;flex-direction:column;gap:8px;" id="intervals-list">
-          <div class="interval-row" style="display:grid;grid-template-columns:2fr 2fr 1fr;gap:6px;align-items:center;">
+          <div class="interval-row" style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:center;">
             <input type="text" class="iv-dist" placeholder="400 m / 1 km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
             <input type="text" class="iv-time" placeholder="1:45" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
             <div class="iv-pace" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
+            <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-top:6px;">
@@ -1282,15 +1283,26 @@ function stopTimer() {
 }
 
 // ── INTERWAŁY ──────────────────────────────────────────────────────
+function removeInterval(btn) {
+  const row = btn.closest('.interval-row');
+  if (!row) return;
+  // Nie usuwaj jeśli to jedyny wiersz
+  const list = document.getElementById('intervals-list');
+  if (list && list.querySelectorAll('.interval-row').length <= 1) return;
+  row.remove();
+  updateIvSummary();
+}
+
 function addInterval(e) {
   e.preventDefault();
   const list = document.getElementById('intervals-list');
   const row = document.createElement('div');
   row.className = 'interval-row';
-  row.style.cssText = 'display:grid;grid-template-columns:2fr 2fr 1fr;gap:6px;align-items:center;margin-top:6px;';
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:center;margin-top:6px;';
   row.innerHTML = `<input type="text" class="iv-dist" placeholder="400 m / 1 km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
     <input type="text" class="iv-time" placeholder="1:45" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
-    <div class="iv-pace" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>`;
+    <div class="iv-pace" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
+    <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>`;
   list.appendChild(row);
   updateIvSummary();
 }
@@ -1969,7 +1981,7 @@ async function initAuth() {
         const nearest=upcoming[0];
         const tDate=new Date(nearest.date);
         const daysLeft=Math.ceil((tDate-new Date())/86400000);
-        if(daysLeft<=365){
+        if(daysLeft>0 && daysLeft<=365){
           const heroInner=document.querySelector('.today-hero-inner');
           if(heroInner&&!document.getElementById('race-countdown')){
             const badge=document.createElement('div');
@@ -2469,8 +2481,10 @@ async function saveLog() {
 
   let error;
   if (_editingLogId) {
-    // UPDATE istniejącego logu
-    ({ error } = await _sb.from('training_logs').update(logData).eq('id', _editingLogId));
+    // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
+    const updateData = {...logData};
+    if (attachmentUrl) updateData.attachment_url = attachmentUrl;
+    ({ error } = await _sb.from('training_logs').update(updateData).eq('id', _editingLogId));
   } else {
     // INSERT nowego logu
     ({ error } = await _sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));

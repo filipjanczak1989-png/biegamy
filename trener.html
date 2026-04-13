@@ -1912,10 +1912,14 @@ async function clearCoachChat() {
 
 async function checkUnreadMessages() {
   if (!_coachId) return;
+  // Filtruj tylko zawodników tego trenera — bez tego liczymy wiadomości z całego systemu
+  const athleteIds = (_dbAthletes || []).map(a => a.id);
+  if (!athleteIds.length) return;
   const { count } = await _sb.from('messages')
     .select('*', {count:'exact', head:true})
     .eq('read', false)
-    .eq('sender', 'athlete');
+    .eq('sender', 'athlete')
+    .in('athlete_id', athleteIds);
   // Pokaż/ukryj dzwoneczek
   const dot = document.getElementById('notif-dot');
   const icon = document.getElementById('notif-icon');
