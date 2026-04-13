@@ -501,6 +501,15 @@ body{
 }
 .ob-skip:hover{color:var(--fg);}
 
+/* ── COACH CARD W ONBOARDINGU ────────────────────────────────────── */
+.ob-coach-card{
+  display:flex;align-items:center;gap:12px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;padding:13px 14px;cursor:pointer;transition:all 0.18s;
+}
+.ob-coach-card:hover{background:rgba(232,86,30,0.05);border-color:rgba(232,86,30,0.25);}
+.ob-coach-card.selected{background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);}
+
 /* ── SECTION FIXES ───────────────────────────────────────────────── */
 #section-profile{padding:0 0 100px;}
 #section-stats{padding:0 0 100px;}
@@ -887,8 +896,11 @@ body{
   <div id="goals-list" style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;"></div>
 
   <!-- Trener -->
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Trener</div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:28px;display:flex;align-items:center;gap:12px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Trener</div>
+    <button onclick="openChangeCoach()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Zmień</button>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
     <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;" id="coach-avatar-lbl">F</div>
     <div>
       <div style="font-size:13px;font-weight:500;" id="profile-coach-name">BiegaMy Coaching</div>
@@ -896,11 +908,47 @@ body{
     </div>
   </div>
 
+  <!-- Telefon w profilu -->
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Numer telefonu</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:28px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+    <div style="font-size:13px;font-family:'DM Mono',monospace;" id="profile-phone">—</div>
+    <button onclick="editPhone()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
+  </div>
+
   <!-- Wyloguj -->
   <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
 </div>
 
-<!-- MODAL DODAJ CEL -->
+<!-- MODAL ZMIANA TRENERA -->
+<div id="change-coach-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);">
+  <div style="background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:380px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,0.8);">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px;">Zmień trenera</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Wybierz trenera, z którym chcesz pracować.</div>
+    <div id="change-coaches-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Ładuję...</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeChangeCoach()" style="flex:1;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+      <button onclick="saveCoachChange()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDYCJA TELEFONU -->
+<div id="phone-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);">
+  <div style="background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:380px;padding:24px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px;">Numer telefonu</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;line-height:1.6;">Trener może wysłać Ci SMS z podziękowaniami po miesiącu treningów.</div>
+    <div style="margin-bottom:20px;margin-top:16px;">
+      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Numer telefonu</label>
+      <input id="phone-input" type="tel" placeholder="+48 600 000 000" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;padding:12px 14px;border-radius:10px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="closePhoneModal()" style="flex:1;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+      <button onclick="savePhone()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
+    </div>
+  </div>
+</div>
 <div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">🏁 Cel startowy</div>
@@ -1572,9 +1620,30 @@ async function loadProfile() {
       }
       window._profileGoals = goals;
       renderGoals(goals);
+
+      // Telefon i trener — dociągamy z bazy
+      try {
+        const { data: athExtra } = await _sb.from('athletes').select('phone, coach_id').eq('id', _athleteId).maybeSingle();
+        const phoneEl = document.getElementById('profile-phone');
+        if(phoneEl && athExtra) phoneEl.textContent = athExtra.phone || '—';
+        if(athExtra?.coach_id) {
+          let coachName = 'BiegaMy Coaching';
+          try {
+            const { data: coachRow } = await _sb.from('coaches').select('full_name').eq('id', athExtra.coach_id).maybeSingle();
+            if(coachRow?.full_name) coachName = coachRow.full_name;
+          } catch(e) {}
+          const cnEl = document.getElementById('profile-coach-name');
+          const caEl = document.getElementById('coach-avatar-lbl');
+          if(cnEl) cnEl.textContent = coachName;
+          if(caEl) caEl.textContent = coachName.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+        }
+      } catch(e) {}
     }
   }
 }
+
+// Alias — saveCoachChange wywołuje loadProfileSection
+const loadProfileSection = loadProfile;
 
 function renderGoals(goals) {
   const list = document.getElementById('goals-list');
@@ -2019,16 +2088,94 @@ async function initAuth() {
   }
 }
 
-const COACH_ID = 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5'; // Filip's user ID
+let COACH_ID = 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5'; // domyślny, nadpisywany przez wybór
+let _selectedCoachId = COACH_ID;
 
 function showOnboarding() {
   document.getElementById('onboarding-modal').classList.add('show');
+  loadCoaches();
 }
 
 function skipOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('show');
 }
 
+// ── NAWIGACJA KROKÓW ONBOARDINGU ──────────────────────────────────
+function obGoStep(step) {
+  [1,2,3].forEach(s => {
+    const el = document.getElementById('ob-step-'+s);
+    if(el) el.style.display = s===step ? 'block' : 'none';
+  });
+  // Animacja wejścia
+  const active = document.getElementById('ob-step-'+step);
+  if(active) { active.style.opacity='0'; active.style.transform='translateY(10px)'; requestAnimationFrame(()=>{ active.style.transition='opacity 0.25s,transform 0.25s'; active.style.opacity='1'; active.style.transform='translateY(0)'; }); }
+}
+
+// ── LOAD COACHES ──────────────────────────────────────────────────
+async function loadCoaches() {
+  const loading = document.getElementById('ob-coach-loading');
+  const coachesEl = document.getElementById('ob-coaches');
+  if (!coachesEl) return;
+  try {
+    // Pobierz trenerów — szukamy po roli w user_metadata lub w osobnej tabeli
+    const { data, error } = await _sb.from('athletes')
+      .select('id, full_name, coach_id')
+      .is('coach_id', null)
+      .limit(1); // test czy w ogóle mamy dostęp
+
+    // Pobierz wszystkich trenerów (users z rolą coach)
+    const { data: coaches, error: coachErr } = await _sb.rpc('get_coaches').maybeSingle().catch(() => ({data: null}));
+    
+    // Fallback — spróbuj pobrać z tabeli coaches jeśli istnieje
+    let coachList = [];
+    const { data: coachTable } = await _sb.from('coaches').select('id, full_name, specialization').catch(() => ({data: null})) || {};
+    if (coachTable && coachTable.length > 0) {
+      coachList = coachTable;
+    } else {
+      // Hardcoded fallback — przynajmniej główny trener
+      coachList = [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
+    }
+
+    if(loading) loading.style.display = 'none';
+    coachesEl.style.display = 'flex';
+
+    coachesEl.innerHTML = coachList.map((c, i) => {
+      const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      const isFirst = i === 0;
+      if(isFirst) _selectedCoachId = c.id;
+      return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', this)">
+        <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:${isFirst?'#fff':'var(--muted)'};flex-shrink:0;box-shadow:${isFirst?'0 0 14px var(--glow-o)':'none'};transition:all 0.2s;">${initials}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
+          ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${c.specialization}</div>`:''}
+        </div>
+        <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isFirst?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;">${isFirst?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    if(loading) loading.textContent = 'Nie można załadować trenerów.';
+    _selectedCoachId = COACH_ID;
+  }
+}
+
+function selectCoach(coachId, el) {
+  _selectedCoachId = coachId;
+  document.querySelectorAll('.ob-coach-card').forEach(c => {
+    c.classList.remove('selected');
+    const av = c.querySelector('div');
+    const check = c.querySelector('.ob-coach-check');
+    c.style.borderColor = 'rgba(255,255,255,0.08)';
+    c.style.background = 'rgba(255,255,255,0.02)';
+  });
+  el.classList.add('selected');
+  el.style.borderColor = 'rgba(232,86,30,0.4)';
+  el.style.background = 'rgba(232,86,30,0.07)';
+  const check = el.querySelector('.ob-coach-check');
+  if(check) check.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>';
+  check.style.borderColor = 'var(--accent)';
+}
+
+// ── SAVE ONBOARDING ───────────────────────────────────────────────
 async function saveOnboarding() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
@@ -2039,20 +2186,20 @@ async function saveOnboarding() {
   const pbHalf = document.getElementById('ob-half').value.trim() || null;
   const pb10k = document.getElementById('ob-10k').value.trim() || null;
   const pb5k = document.getElementById('ob-5k').value.trim() || null;
+  const phone = document.getElementById('ob-phone')?.value.trim() || null;
   const name = session.user.user_metadata?.full_name || 'Zawodnik';
+  const chosenCoachId = _selectedCoachId || COACH_ID;
 
-  const btn = document.querySelector('.ob-btn');
-  btn.textContent = 'Zapisuję...';
-  btn.disabled = true;
+  const btn = document.getElementById('ob-save-btn');
+  if(btn) { btn.textContent = 'Zapisuję...'; btn.disabled = true; }
 
-  // Buduj race_goals jako JSON od razu — żeby uniknąć problemów z legacy polem
   const raceGoals = (goal && targetDate) ? JSON.stringify([{name: goal, date: targetDate}])
                   : goal ? JSON.stringify([{name: goal, date: ''}])
                   : JSON.stringify([]);
 
-  const { data, error } = await _sb.from('athletes').insert({
+  const insertData = {
     user_id: session.user.id,
-    coach_id: COACH_ID,
+    coach_id: chosenCoachId,
     full_name: name,
     goal,
     target_date: targetDate,
@@ -2062,20 +2209,17 @@ async function saveOnboarding() {
     pb_10k: pb10k,
     pb_5k: pb5k,
     active: true
-  }).select().single();
+  };
+  if(phone) insertData.phone = phone;
 
-  btn.textContent = 'Zapisz i zacznij →';
-  btn.disabled = false;
+  const { data, error } = await _sb.from('athletes').insert(insertData).select().single();
+
+  if(btn) { btn.textContent = 'Zapisz i zacznij →'; btn.disabled = false; }
 
   if (error) { 
     console.error('Onboarding error:', error);
-    const btn2 = document.querySelector('.ob-btn');
-    btn2.textContent = 'Zapisz i zacznij →';
-    btn2.disabled = false;
-    
     if (error.code === '42501' || error.message?.includes('policy')) {
-      // RLS blokuje — pokaż instrukcję
-      const sub = document.querySelector('.ob-sub');
+      const sub = document.querySelector('#ob-step-3 .ob-sub');
       if(sub) sub.innerHTML = '<span style="color:var(--red)">Błąd uprawnień — skontaktuj się z trenerem żeby aktywował Twoje konto.</span>';
     } else {
       skipOnboarding();
@@ -2084,10 +2228,96 @@ async function saveOnboarding() {
   }
 
   _athleteId = data.id;
+  COACH_ID = chosenCoachId;
   skipOnboarding();
   await loadLogs();
-  // Usuń ?onboarding=1 z URL
   window.history.replaceState({}, '', 'zawodnik.html');
+  toast('Profil zapisany! Witaj w BiegaMy 🏃');
+}
+
+// ── ZMIANA TRENERA ────────────────────────────────────────────────
+let _changeCoachId = null;
+
+async function openChangeCoach() {
+  document.getElementById('change-coach-modal').style.display = 'flex';
+  const list = document.getElementById('change-coaches-list');
+  list.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Ładuję...</div>';
+
+  let coachList = [];
+  const { data: coachTable } = await _sb.from('coaches').select('id, full_name, specialization').catch(() => ({data: null})) || {};
+  if (coachTable && coachTable.length > 0) {
+    coachList = coachTable;
+  } else {
+    coachList = [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
+  }
+
+  // Pobierz aktualnego trenera zawodnika
+  const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
+  const currentCoachId = ath?.coach_id || COACH_ID;
+  _changeCoachId = currentCoachId;
+
+  list.innerHTML = coachList.map(c => {
+    const isSelected = c.id === currentCoachId;
+    const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', this)" style="${isSelected?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);':''}">
+      <div style="width:38px;height:38px;border-radius:50%;background:${isSelected?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${initials}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name}</div>
+        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${c.specialization}</div>`:''}
+      </div>
+      <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isSelected?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;">${isSelected?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+    </div>`;
+  }).join('');
+}
+
+function selectChangeCoach(coachId, el) {
+  _changeCoachId = coachId;
+  document.querySelectorAll('#change-coaches-list .ob-coach-card').forEach(c => {
+    c.classList.remove('selected');
+    c.style.background = 'rgba(255,255,255,0.02)';
+    c.style.borderColor = 'rgba(255,255,255,0.08)';
+    const check = c.querySelector('.ob-coach-check');
+    if(check) { check.innerHTML = ''; check.style.borderColor = 'rgba(255,255,255,0.15)'; }
+  });
+  el.classList.add('selected');
+  el.style.background = 'rgba(232,86,30,0.07)';
+  el.style.borderColor = 'rgba(232,86,30,0.4)';
+  const check = el.querySelector('.ob-coach-check');
+  if(check) { check.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>'; check.style.borderColor = 'var(--accent)'; }
+}
+
+function closeChangeCoach() {
+  document.getElementById('change-coach-modal').style.display = 'none';
+}
+
+async function saveCoachChange() {
+  if (!_changeCoachId || !_athleteId) return;
+  const { error } = await _sb.from('athletes').update({ coach_id: _changeCoachId }).eq('id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  COACH_ID = _changeCoachId;
+  closeChangeCoach();
+  await loadProfileSection();
+  toast('Trener zmieniony ✓');
+}
+
+// ── EDYCJA TELEFONU ───────────────────────────────────────────────
+async function editPhone() {
+  const { data: ath } = await _sb.from('athletes').select('phone').eq('id', _athleteId).maybeSingle();
+  document.getElementById('phone-input').value = ath?.phone || '';
+  document.getElementById('phone-modal').style.display = 'flex';
+}
+function closePhoneModal() {
+  document.getElementById('phone-modal').style.display = 'none';
+}
+async function savePhone() {
+  const phone = document.getElementById('phone-input').value.trim() || null;
+  if (!_athleteId) return;
+  const { error } = await _sb.from('athletes').update({ phone }).eq('id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  closePhoneModal();
+  const el = document.getElementById('profile-phone');
+  if(el) el.textContent = phone || '—';
+  toast('Numer telefonu zapisany ✓');
 }
 
 // ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
@@ -3138,41 +3368,105 @@ async function toggleVoice(btnId, sender) {
 <!-- ONBOARDING MODAL -->
 <div id="onboarding-modal">
   <div class="ob-box">
-    <div style="font-size:28px;margin-bottom:8px;">🏃</div>
-    <div class="ob-title">Witaj w BiegaMy!</div>
-    <div class="ob-sub">Uzupełnij swój profil — trener zobaczy Twoje dane i przygotuje plan.</div>
 
-    <div class="ob-field">
-      <label class="ob-label">Cel startowy</label>
-      <input class="ob-input" id="ob-goal" type="text" placeholder="np. Maraton Warszawski 2026">
-    </div>
-    <div class="ob-field">
-      <label class="ob-label">Data startu</label>
-      <input class="ob-input" id="ob-date" type="date">
-    </div>
-    <div class="ob-row">
-      <div class="ob-field">
-        <label class="ob-label">PB Maraton</label>
-        <input class="ob-input" id="ob-mar" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)">
+    <!-- STEP 1: Witaj -->
+    <div id="ob-step-1">
+      <div style="font-size:36px;margin-bottom:10px;text-align:center;">🏃</div>
+      <div class="ob-title" style="text-align:center;">Witaj w BiegaMy!</div>
+      <div class="ob-sub" style="text-align:center;">Uzupełnij profil w 3 krokach — zajmie to tylko chwilę.</div>
+
+      <div style="display:flex;gap:6px;margin:20px 0 24px;">
+        <div style="flex:1;height:3px;border-radius:2px;background:var(--accent);"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);" id="ob-prog-2"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);" id="ob-prog-3"></div>
       </div>
+
+      <!-- Wybór trenera -->
       <div class="ob-field">
-        <label class="ob-label">PB Półmaraton</label>
-        <input class="ob-input" id="ob-half" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)">
+        <label class="ob-label">Wybierz trenera</label>
+        <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;">Ładuję listę trenerów...</div>
+        <div id="ob-coaches" style="display:none;display:flex;flex-direction:column;gap:8px;"></div>
       </div>
-    </div>
-    <div class="ob-row">
-      <div class="ob-field">
-        <label class="ob-label">PB 10 km</label>
-        <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)">
+
+      <!-- Telefon -->
+      <div class="ob-field" style="margin-top:14px;">
+        <label class="ob-label">Numer telefonu <span style="color:var(--muted);font-weight:400;">(opcjonalnie)</span></label>
+        <input class="ob-input" id="ob-phone" type="tel" placeholder="+48 600 000 000" autocomplete="tel">
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:5px;line-height:1.5;">Trener może wysłać Ci SMS z podsumowaniem po miesiącu.</div>
       </div>
-      <div class="ob-field">
-        <label class="ob-label">PB 5 km</label>
-        <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)">
-      </div>
+
+      <button class="ob-btn" onclick="obGoStep(2)" style="margin-top:20px;">Dalej →</button>
+      <button class="ob-skip" onclick="skipOnboarding()">Pomiń — uzupełnię później</button>
     </div>
 
-    <button class="ob-btn" onclick="saveOnboarding()">Zapisz i zacznij →</button>
-    <button class="ob-skip" onclick="skipOnboarding()">Pomiń — uzupełnię później</button>
+    <!-- STEP 2: Cele -->
+    <div id="ob-step-2" style="display:none;">
+      <div style="font-size:28px;margin-bottom:8px;text-align:center;">🏁</div>
+      <div class="ob-title">Twój cel startowy</div>
+      <div class="ob-sub">Na jaki bieg się przygotowujesz?</div>
+
+      <div style="display:flex;gap:6px;margin:16px 0 20px;">
+        <div style="flex:1;height:3px;border-radius:2px;background:var(--accent);"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:var(--accent);"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,0.1);"></div>
+      </div>
+
+      <div class="ob-field">
+        <label class="ob-label">Nazwa biegu</label>
+        <input class="ob-input" id="ob-goal" type="text" placeholder="np. Maraton Warszawski 2026">
+      </div>
+      <div class="ob-field">
+        <label class="ob-label">Data startu</label>
+        <input class="ob-input" id="ob-date" type="date">
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:18px;">
+        <button class="ob-btn" onclick="obGoStep(1)" style="flex:0 0 auto;width:auto;padding:14px 20px;background:rgba(255,255,255,0.06);color:var(--muted);box-shadow:none;">← Wstecz</button>
+        <button class="ob-btn" onclick="obGoStep(3)" style="flex:1;">Dalej →</button>
+      </div>
+      <button class="ob-skip" onclick="skipOnboarding()">Pomiń — uzupełnię później</button>
+    </div>
+
+    <!-- STEP 3: PB -->
+    <div id="ob-step-3" style="display:none;">
+      <div style="font-size:28px;margin-bottom:8px;text-align:center;">⚡</div>
+      <div class="ob-title">Twoje życiówki</div>
+      <div class="ob-sub">Trener zobaczy Twój poziom i dopasuje plan.</div>
+
+      <div style="display:flex;gap:6px;margin:16px 0 20px;">
+        <div style="flex:1;height:3px;border-radius:2px;background:var(--accent);"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:var(--accent);"></div>
+        <div style="flex:1;height:3px;border-radius:2px;background:var(--accent);"></div>
+      </div>
+
+      <div class="ob-row">
+        <div class="ob-field">
+          <label class="ob-label">PB Maraton</label>
+          <input class="ob-input" id="ob-mar" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)">
+        </div>
+        <div class="ob-field">
+          <label class="ob-label">PB Półmaraton</label>
+          <input class="ob-input" id="ob-half" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)">
+        </div>
+      </div>
+      <div class="ob-row">
+        <div class="ob-field">
+          <label class="ob-label">PB 10 km</label>
+          <input class="ob-input" id="ob-10k" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)">
+        </div>
+        <div class="ob-field">
+          <label class="ob-label">PB 5 km</label>
+          <input class="ob-input" id="ob-5k" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:18px;">
+        <button class="ob-btn" onclick="obGoStep(2)" style="flex:0 0 auto;width:auto;padding:14px 20px;background:rgba(255,255,255,0.06);color:var(--muted);box-shadow:none;">← Wstecz</button>
+        <button class="ob-btn" id="ob-save-btn" onclick="saveOnboarding()" style="flex:1;">Zapisz i zacznij →</button>
+      </div>
+      <button class="ob-skip" onclick="skipOnboarding()">Pomiń — uzupełnię później</button>
+    </div>
+
   </div>
 </div>
 

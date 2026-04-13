@@ -132,6 +132,27 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
         <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password">
       </div>
 
+      <!-- WYBÓR ROLI -->
+      <div class="field">
+        <label>Rejestruję się jako</label>
+        <div class="role-row">
+          <div class="role-btn sel" id="role-athlete" onclick="selectRole('athlete')">
+            <div class="role-icon">🏃</div>
+            <div class="role-label">Zawodnik</div>
+          </div>
+          <div class="role-btn" id="role-coach" onclick="selectRole('coach')">
+            <div class="role-icon">📋</div>
+            <div class="role-label">Trener</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Specjalizacja trenera (ukryta domyślnie) -->
+      <div class="field" id="coach-spec-field" style="display:none;">
+        <label>Specjalizacja <span style="color:var(--muted);font-weight:400;">(opcjonalnie)</span></label>
+        <input type="text" id="reg-spec" placeholder="np. Bieganie długodystansowe">
+      </div>
+
       <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
@@ -163,6 +184,16 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let selectedRole = 'athlete';
 let currentTab = 'login';
+
+// ── WYBÓR ROLI ────────────────────────────────────────────────────────────────
+function selectRole(role) {
+  selectedRole = role;
+  document.getElementById('role-athlete').classList.toggle('sel', role === 'athlete');
+  document.getElementById('role-coach').classList.toggle('sel', role === 'coach');
+  document.getElementById('coach-spec-field').style.display = role === 'coach' ? 'block' : 'none';
+  const btn = document.getElementById('btn-register');
+  btn.textContent = role === 'coach' ? 'Utwórz konto trenera →' : 'Utwórz konto →';
+}
 
 // ── CHECK IF ALREADY LOGGED IN ────────────────────────────────────────────────
 async function checkSession() {
@@ -210,7 +241,11 @@ function setLoading(btnId, loading) {
     btn.innerHTML = '<div class="spinner"></div>';
   } else {
     btn.disabled = false;
-    btn.innerHTML = btnId === 'btn-login' ? 'Zaloguj się →' : 'Utwórz konto →';
+    if (btnId === 'btn-login') {
+      btn.innerHTML = 'Zaloguj się →';
+    } else {
+      btn.innerHTML = selectedRole === 'coach' ? 'Utwórz konto trenera →' : 'Utwórz konto →';
+    }
   }
 }
 
@@ -248,6 +283,7 @@ async function register() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
+  const spec = document.getElementById('reg-spec')?.value.trim() || null;
 
   if (!name || !email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }
@@ -260,7 +296,7 @@ async function register() {
     email,
     password,
     options: {
-      data: { full_name: name, role: 'athlete' }
+      data: { full_name: name, role: selectedRole }
     }
   });
 
@@ -276,16 +312,33 @@ async function register() {
     return;
   }
 
+  // Jeśli trener i mamy sesję — utwórz wpis w tabeli coaches
+  if (selectedRole === 'coach' && data.session) {
+    await sb.from('coaches').insert({
+      id: data.user.id,
+      full_name: name,
+      specialization: spec || null
+    }).catch(() => {}); // ignoruj błąd jeśli tabela nie istnieje
+  }
+
   document.getElementById('form-register').style.display = 'none';
   const ss = document.getElementById('success-state');
   ss.style.display = 'block';
 
+  const roleLabel = selectedRole === 'coach' ? 'trenera' : 'zawodnika';
+
   if (data.session) {
-    document.getElementById('success-msg').textContent = `Witaj ${name}! Uzupełnij swój profil.`;
+    document.getElementById('success-msg').textContent = `Witaj ${name}! Konto ${roleLabel} zostało utworzone.`;
     document.getElementById('success-redirect').textContent = 'Przekierowuję...';
-    setTimeout(() => { window.location.href = 'zawodnik.html?onboarding=1'; }, 1500);
+    setTimeout(() => {
+      if (selectedRole === 'coach') {
+        window.location.href = 'trener.html';
+      } else {
+        window.location.href = 'zawodnik.html?onboarding=1';
+      }
+    }, 1500);
   } else {
-    document.getElementById('success-msg').textContent = `Wysłaliśmy link aktywacyjny na ${email}. Kliknij go żeby aktywować konto.`;
+    document.getElementById('success-msg').textContent = `Wysłaliśmy link aktywacyjny na ${email}. Kliknij go żeby aktywować konto ${roleLabel}.`;
     document.getElementById('success-redirect').textContent = 'Po aktywacji wróć tutaj i zaloguj się.';
   }
 }

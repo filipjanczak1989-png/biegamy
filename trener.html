@@ -303,6 +303,15 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div class="ms"><div class="ms-val">82%</div><div class="ms-lbl">wykonania</div></div>
         <div class="ms"><div class="ms-val" id="mspb">3:42</div><div class="ms-lbl">PB maraton</div></div>
       </div>
+      <!-- Telefon zawodnika -->
+      <div id="pov-phone-row" style="display:none;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:16px;">📱</span>
+        <div>
+          <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Telefon</div>
+          <div style="font-size:13px;font-family:'DM Mono',monospace;color:var(--fg);margin-top:2px;" id="pov-phone">—</div>
+        </div>
+        <a id="pov-phone-link" href="#" style="margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;text-transform:uppercase;">SMS →</a>
+      </div>
       <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ten tydzien</div>
       <div class="week-mini" id="wmini"></div>
       <button class="btn btn-p" onclick="ptab('pl',document.querySelectorAll('.ptab')[1])">+ Dodaj trening</button>
@@ -1006,6 +1015,21 @@ async function selA_db(athleteId) {
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
   await loadPanelPB();
+
+  // Telefon zawodnika
+  const phoneRow = document.getElementById('pov-phone-row');
+  const phoneEl = document.getElementById('pov-phone');
+  const phoneLink = document.getElementById('pov-phone-link');
+  if (phoneRow && phoneEl) {
+    const phone = a.phone || null;
+    if (phone) {
+      phoneEl.textContent = phone;
+      if(phoneLink) phoneLink.href = 'sms:' + phone.replace(/\s/g,'');
+      phoneRow.style.display = 'flex';
+    } else {
+      phoneRow.style.display = 'none';
+    }
+  }
 }
 
 // ── LOAD TRAININGS ────────────────────────────────────────────────
