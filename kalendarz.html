@@ -720,6 +720,14 @@ function render() {
       const statusCls = t.status==='done'?'done':t.status==='missed'?'missed':'';
       const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie wykonany':'';
 
+      // Jeśli trening wykonany — pokaż dane z logu zamiast planu
+      const dayLog = (window._calLogs && window._calLogs[ds] && t.status === 'done')
+        ? window._calLogs[ds][0] : null;
+      const displayDist = dayLog && dayLog.distance_km ? parseFloat(dayLog.distance_km) : t.dist;
+      const displayPace = dayLog && dayLog.pace ? dayLog.pace : t.pace;
+      const displayHr   = dayLog && dayLog.heart_rate ? dayLog.heart_rate : t.hr;
+      const hasLog = !!dayLog;
+
       return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
                    draggable="true"
                    ondragstart="dragStart(event,'${ds}',${i})"
@@ -728,8 +736,10 @@ function render() {
         <button class="card-delete" onclick="deleteTraining(event,'${ds}',${i})">✕</button>
         ${_urlRole==='coach'?`<button class="card-copy" onclick="openCopyModalFromCard(event,'${ds}',${i})" title="Kopiuj do zawodnika">⧉</button>`:''}
         <div class="card-type ${tc}">${t.type.toUpperCase()}</div>
-        ${t.dist>0?`<div class="card-main">${t.dist} km</div>`:'<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
-        ${(t.pace||t.hr)?`<div class="card-pace">${t.pace?t.pace+'/km':''} ${t.hr?'· ♥ '+t.hr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
+        ${displayDist>0
+          ? `<div class="card-main">${displayDist} km</div>`
+          : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
+        ${(displayPace||displayHr)?`<div class="card-pace">${displayPace?displayPace+'/km':''} ${displayHr?'· ♥ '+displayHr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
         ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
@@ -1167,7 +1177,7 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = _sbKal.from('training_logs').select('athlete_id, logged_at, attachment_url, distance_km, pace, feel').order('logged_at');
+  let logsQuery = _sbKal.from('training_logs').select('athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration').order('logged_at');
   if (_urlRole === 'athlete') {
     const { data: ath2 } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
@@ -1938,11 +1948,16 @@ function renderMobile() {
         : isMissed
         ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>`
         : '';
-      const km = parseFloat(t.dist||t.distance_km)||0;
-      const pace = t.pace||'';
-      const hr = t.hr||t.heart_rate||'';
+      // Dane z logu zamiast planu gdy wykonany
+      const dayLogM = (window._calLogs && window._calLogs[ds] && isDone)
+        ? window._calLogs[ds][0] : null;
+      const km = parseFloat((dayLogM && dayLogM.distance_km) || t.dist || t.distance_km) || 0;
+      const planKm = parseFloat(t.dist || t.distance_km) || 0;
+      const pace = (dayLogM && dayLogM.pace) || t.pace || '';
+      const hr = (dayLogM && dayLogM.heart_rate) || t.hr || t.heart_rate || '';
       const dur = t.time||t.duration_min||'';
       const desc = t.desc||t.description||'';
+      const kmChanged = dayLogM && planKm > 0 && km !== planKm;
       return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${borderLeft};cursor:pointer;" onclick="openModal('${ds}',${i})">
   <div style="padding:11px 13px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${km||desc?'4':'0'}px;">
