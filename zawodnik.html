@@ -2098,8 +2098,13 @@ async function obSaveCoach() {
   if (btn) { btn.textContent = 'Zapisuję...'; btn.disabled = true; }
 
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) return;
+  if (!session) {
+    if (btn) { btn.textContent = 'Zacznij trening →'; btn.disabled = false; }
+    if (err) { err.textContent = 'Brak sesji — zaloguj się ponownie.'; err.style.display = 'block'; }
+    return;
+  }
 
+  console.log('Session user id:', session.user.id, 'email:', session.user.email);
   const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Zawodnik';
 
   let data, error;
@@ -3159,7 +3164,22 @@ const Anim = {
 Anim.initSound();
 
 init();
-setTimeout(() => initAuth(), 100);
+// Obsłuż token z linku aktywacyjnego ZANIM initAuth
+// Supabase SDK przetwarza #access_token z URL asynchronicznie
+_sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' && session && !window._authInitDone) {
+    window._authInitDone = true;
+    initAuth();
+  }
+});
+
+// Fallback — jeśli sesja już istnieje (normalne logowanie, brak tokenu w URL)
+setTimeout(() => {
+  if (!window._authInitDone) {
+    window._authInitDone = true;
+    initAuth();
+  }
+}, 300);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
