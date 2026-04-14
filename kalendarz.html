@@ -755,12 +755,43 @@ function render() {
     }).join('');
     const logThumbsHtml = logThumbs ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding:6px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:6px;">${logThumbs}</div>` : '';
 
+    // Aktywności Stravy dla tego dnia
+    const stravaDay = (window._stravaActivities && window._stravaActivities[ds]) || [];
+    const stravaHtml = stravaDay.map(a => {
+      const km = (a.distance / 1000).toFixed(1);
+      const pace = a.average_speed > 0
+        ? Math.floor(1000/a.average_speed/60)+':'+String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
+        : '—';
+      const hr = a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '';
+
+      // Porównaj z zaplanowanym treningiem
+      const planned = (trainings[ds] || []).find(t => t.type !== 'Odpoczynek' && t.dist > 0);
+      let compareHtml = '';
+      if (planned && planned.dist > 0) {
+        const diff = parseFloat(km) - planned.dist;
+        const pct = Math.round((parseFloat(km) / planned.dist) * 100);
+        const color = pct >= 95 ? 'var(--green)' : pct >= 80 ? 'var(--yellow)' : 'var(--red)';
+        compareHtml = `<div style="font-size:9px;color:${color};font-family:'DM Mono',monospace;margin-top:2px;">${pct}% planu (${diff>=0?'+':''}${diff.toFixed(1)} km)</div>`;
+      }
+
+      return `<div style="background:rgba(252,76,2,0.07);border:1px solid rgba(252,76,2,0.2);border-radius:6px;padding:5px 8px;margin-top:4px;font-size:11px;">
+        <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          <span style="color:#FC4C02;font-family:'DM Mono',monospace;font-weight:600;">${km} km</span>
+          <span style="color:var(--muted);font-family:'DM Mono',monospace;">${pace}/km${hr}</span>
+        </div>
+        <div style="color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+        ${compareHtml}
+      </div>`;
+    }).join('');
+
     return `<div class="day-col ${isToday?'today':''}"
       ondragover="event.preventDefault();this.classList.add('drag-over')"
       ondragleave="this.classList.remove('drag-over')"
       ondrop="dragDrop(event,'${ds}')">
       ${raceCard}
       ${cards}
+      ${stravaHtml}
       ${logThumbsHtml}
       <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
     </div>`;
@@ -1197,6 +1228,29 @@ async function loadTrainingsFromDB() {
     if (!window._calLogs[ds]) window._calLogs[ds] = [];
     window._calLogs[ds].push(l);
   });
+
+  // Załaduj aktywności Stravy (tylko dla zawodnika)
+  if (_urlRole === 'athlete') {
+    const { data: ath3 } = await _sbKal.from('athletes')
+      .select('id, strava_athlete_id').eq('user_id', session.user.id).maybeSingle();
+    if (ath3?.strava_athlete_id) {
+      const { data: stravaData } = await _sbKal
+        .from('strava_activities')
+        .select('*')
+        .eq('athlete_id', ath3.id)
+        .order('start_date', { ascending: false })
+        .limit(60);
+      window._stravaActivities = {};
+      (stravaData || []).forEach(a => {
+        const ds = a.start_date ? a.start_date.split('T')[0] : null;
+        if (!ds) return;
+        if (!window._stravaActivities[ds]) window._stravaActivities[ds] = [];
+        window._stravaActivities[ds].push(a);
+      });
+    } else {
+      window._stravaActivities = {};
+    }
+  }
 
   render();
 }
