@@ -2045,8 +2045,34 @@ function renderMobile() {
       ? `<button onclick="openModal('${ds}')" style="width:100%;background:transparent;border:1px dashed rgba(212,80,26,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:8px;margin-top:${items.length||isRaceDay?'4':'0'}px;transition:background 0.15s;" onmouseover="this.style.background='rgba(212,80,26,0.07)'" onmouseout="this.style.background='transparent'">+ DODAJ TRENING</button>`
       : '';
 
+    // Aktywności Stravy dla widoku mobilnego
+    const stravaDayM = (window._stravaActivities && window._stravaActivities[ds]) || [];
+    const stravaHtmlM = stravaDayM.map(a => {
+      const km = (a.distance / 1000).toFixed(1);
+      const pace = a.average_speed > 0
+        ? Math.floor(1000/a.average_speed/60)+':'+String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
+        : '—';
+      const hr = a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '';
+      const planned = (trainings[ds] || []).find(t => t.type !== 'Odpoczynek' && t.dist > 0);
+      let compareHtml = '';
+      if (planned && planned.dist > 0) {
+        const pct = Math.round((parseFloat(km) / planned.dist) * 100);
+        const color = pct >= 95 ? 'var(--green)' : pct >= 80 ? 'var(--yellow)' : 'var(--red)';
+        compareHtml = `<span style="font-size:9px;color:${color};font-family:'DM Mono',monospace;margin-left:6px;">${pct}% planu</span>`;
+      }
+      return `<div style="background:rgba(252,76,2,0.07);border:1px solid rgba(252,76,2,0.2);border-left:3px solid #FC4C02;border-radius:8px;padding:9px 12px;margin-bottom:6px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#FC4C02;">${km} KM</span>
+          <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}/km${hr}</span>
+          ${compareHtml}
+        </div>
+        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+      </div>`;
+    }).join('');
+
     const contentId = 'mday-' + ds;
-    const hasContent = items.length > 0 || isRaceDay || logThumbs;
+    const hasContent = items.length > 0 || isRaceDay || logThumbs || stravaDayM.length > 0;
 
     return `<div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;${boxShadow}">
   <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${headerBg};cursor:pointer;" onclick="toggleMobileDay('${contentId}',this)">
@@ -2061,7 +2087,7 @@ function renderMobile() {
     <svg class="mday-chevron" style="flex-shrink:0;transition:transform 0.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isRaceDay?'var(--green)':'var(--muted)'}" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
   <div id="${contentId}" style="display:${isOpen?'block':'none'};padding:${hasContent||addBtn?'8px 10px 10px':'4px 10px'};background:var(--bg);">
-    ${raceCard}${cards}${logThumbsHtml}${addBtn}
+    ${raceCard}${cards}${stravaHtmlM}${logThumbsHtml}${addBtn}
     ${!hasContent&&!addBtn?`<div style="text-align:center;padding:10px 0;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Brak treningu</div>`:''}
   </div>
 </div>`;

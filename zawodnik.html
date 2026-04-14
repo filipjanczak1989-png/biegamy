@@ -706,6 +706,21 @@ body{
   </div>
 </div>
 
+<!-- Baner Strava (widoczny tylko gdy brak połączenia) -->
+<div id="strava-home-banner" style="display:none;margin:0 16px 16px;background:linear-gradient(135deg,rgba(252,76,2,0.1),rgba(252,76,2,0.04));border:1px solid rgba(252,76,2,0.3);border-radius:20px;padding:16px 20px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#FC4C02,rgba(252,76,2,0.2));"></div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="width:44px;height:44px;border-radius:12px;background:rgba(252,76,2,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">Połącz ze Stravą</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Trener widzi Twoje biegi automatycznie</div>
+    </div>
+    <button onclick="showSection('profile');setTimeout(()=>connectStrava(),300)" style="background:#FC4C02;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0;box-shadow:0 4px 12px rgba(252,76,2,0.3);">Połącz →</button>
+  </div>
+</div>
+
 <div class="today-hero fade-in">
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
@@ -753,21 +768,6 @@ body{
 
 <div class="sec-hdr fade-in"><div class="sec-title">Ostatnie treningi</div><a href="#" class="sec-link">Wszystkie →</a></div>
 <div class="log-list" id="log-list"></div>
-
-<!-- Baner Strava (widoczny tylko gdy brak połączenia) -->
-<div id="strava-home-banner" style="display:none;margin:0 16px 18px;background:rgba(252,76,2,0.06);border:1px solid rgba(252,76,2,0.2);border-radius:20px;padding:18px 20px;position:relative;overflow:hidden;">
-  <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#FC4C02,rgba(252,76,2,0.2));"></div>
-  <div style="display:flex;align-items:center;gap:14px;">
-    <div style="width:44px;height:44px;border-radius:12px;background:rgba(252,76,2,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-    </div>
-    <div style="flex:1;">
-      <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">Połącz ze Stravą</div>
-      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Trener zobaczy Twoje biegi automatycznie</div>
-    </div>
-    <button onclick="showSection('profile');setTimeout(()=>connectStrava(),300)" style="background:#FC4C02;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0;">Połącz →</button>
-  </div>
-</div>
 
 <nav class="bottom-nav">
   <a class="nav-it active" href="#" id="nav-home" onclick="showSection('home');return false;">
@@ -2513,28 +2513,79 @@ async function loadTodayTraining() {
   if (!data) {
     document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
     window._todayTraining = null;
-    return;
+  } else {
+    window._todayTraining = data;
+
+    const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
+    const badge = document.getElementById('today-badge');
+    const dist = document.getElementById('today-dist');
+    const meta = document.getElementById('today-meta');
+    const desc = document.getElementById('today-desc');
+    const divider = document.getElementById('today-divider');
+
+    if(badge){ badge.textContent = (typeIcons[data.type]||'🏃') + ' ' + (data.type||'Trening'); badge.style.display='inline-flex'; }
+    if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
+
+    const metaItems = [
+      `<div class="today-meta-item"><div class="today-meta-lbl">Tempo</div><div class="today-meta-val">${data.pace ? data.pace+' /km' : '—'}</div></div>`,
+      `<div class="today-meta-item"><div class="today-meta-lbl">Tętno</div><div class="today-meta-val">${data.heart_rate || '—'}</div></div>`,
+      data.duration_min ? `<div class="today-meta-item"><div class="today-meta-lbl">Czas</div><div class="today-meta-val">~${data.duration_min} min</div></div>` : '',
+    ].filter(Boolean).join('');
+
+    if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; divider.style.display='block'; }
+    if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
   }
-  window._todayTraining = data; // cache dla log modala
-  
-  const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
-  const badge = document.getElementById('today-badge');
-  const dist = document.getElementById('today-dist');
-  const meta = document.getElementById('today-meta');
-  const desc = document.getElementById('today-desc');
-  const divider = document.getElementById('today-divider');
-  
-  if(badge){ badge.textContent = (typeIcons[data.type]||'🏃') + ' ' + (data.type||'Trening'); badge.style.display='inline-flex'; }
-  if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
-  
-  const metaItems = [
-    `<div class="today-meta-item"><div class="today-meta-lbl">Tempo</div><div class="today-meta-val">${data.pace ? data.pace+' /km' : '—'}</div></div>`,
-    `<div class="today-meta-item"><div class="today-meta-lbl">Tętno</div><div class="today-meta-val">${data.heart_rate || '—'}</div></div>`,
-    data.duration_min ? `<div class="today-meta-item"><div class="today-meta-lbl">Czas</div><div class="today-meta-val">~${data.duration_min} min</div></div>` : '',
-  ].filter(Boolean).join('');
-  
-  if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; divider.style.display='block'; }
-  if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
+
+  // Sprawdź aktywność Stravy z dziś
+  const { data: stravaToday } = await _sb
+    .from('strava_activities')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .gte('start_date', today + 'T00:00:00')
+    .lte('start_date', today + 'T23:59:59')
+    .order('start_date', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (stravaToday) {
+    const km = (stravaToday.distance / 1000).toFixed(2);
+    const pace = stravaToday.average_speed > 0
+      ? Math.floor(1000/stravaToday.average_speed/60)+':'+String(Math.round((1000/stravaToday.average_speed)%60)).padStart(2,'0')
+      : '—';
+    const hr = stravaToday.average_heartrate ? Math.round(stravaToday.average_heartrate) : null;
+
+    // Porównanie z planem
+    let compareHtml = '';
+    if (data && data.distance_km) {
+      const pct = Math.round((parseFloat(km) / parseFloat(data.distance_km)) * 100);
+      const color = pct >= 95 ? '#3db870' : pct >= 80 ? '#e8b840' : '#e05050';
+      const diff = (parseFloat(km) - parseFloat(data.distance_km)).toFixed(1);
+      compareHtml = `<div style="font-size:10px;color:${color};font-family:'DM Mono',monospace;margin-top:4px;">
+        ${pct}% planu · ${diff >= 0 ? '+' : ''}${diff} km
+      </div>`;
+    }
+
+    // Wstaw kafelek Stravy do today-hero
+    const heroInner = document.querySelector('.today-hero-inner');
+    if (heroInner && !document.getElementById('strava-today-card')) {
+      const card = document.createElement('div');
+      card.id = 'strava-today-card';
+      card.style.cssText = 'background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:12px 14px;margin-top:12px;';
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          <span style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#FC4C02;font-family:'DM Mono',monospace;">Strava — dziś</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:10px;">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--fg);">${km} <span style="font-size:16px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:300;">km</span></span>
+          <span style="font-size:13px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}/km${hr ? ' · ♥ '+hr : ''}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px;">${stravaToday.name}</div>
+        ${compareHtml}
+      `;
+      heroInner.appendChild(card);
+    }
+  }
 }
 
 async function loadCoachMessage() {
