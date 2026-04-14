@@ -910,8 +910,7 @@ body{
   <!-- Strava -->
   <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strava</div>
   <div id="strava-section">
-    <!-- Stan ładowania -->
-    <div id="strava-connected" style="display:none;background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:none;align-items:center;gap:12px;">
+    <div id="strava-connected" style="display:none;background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;align-items:center;gap:12px;">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:500;color:var(--fg);">Połączono ze Stravą</div>
@@ -919,6 +918,18 @@ body{
       </div>
       <button onclick="disconnectStrava()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
     </div>
+
+    <!-- Przycisk sync (widoczny gdy połączono) -->
+    <button id="strava-sync-btn" onclick="syncStrava()" style="display:none;width:100%;background:rgba(252,76,2,0.12);color:#FC4C02;border:1px solid rgba(252,76,2,0.3);border-radius:12px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;transition:all 0.18s;">
+      ↻ Synchronizuj aktywności
+    </button>
+
+    <!-- Lista ostatnich aktywności -->
+    <div id="strava-activities" style="display:none;margin-bottom:20px;">
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie biegi ze Stravy</div>
+      <div id="strava-activities-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+
     <button id="strava-connect-btn" onclick="connectStrava()" style="width:100%;background:#FC4C02;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;transition:all 0.18s;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
       Połącz ze Stravą
@@ -2803,6 +2814,68 @@ async function disconnectStrava() {
   toast('Strava odłączona');
 }
 
+async function syncStrava() {
+  if (!_athleteId) return;
+  const btn = document.getElementById('strava-sync-btn');
+  if (btn) { btn.textContent = '↻ Synchronizuję...'; btn.disabled = true; }
+
+  try {
+    const res = await fetch(
+      `https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/strava-sync?athlete_id=${_athleteId}`,
+      { headers: { 'Authorization': `Bearer sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY` } }
+    );
+    const data = await res.json();
+    console.log('Sync result:', data);
+
+    if (data.success) {
+      toast(`Zsynchronizowano ${data.synced} biegów ze Stravy ✓`);
+      await loadStravaActivities();
+    } else {
+      toast('Błąd synchronizacji: ' + (data.error || 'nieznany'));
+    }
+  } catch(e) {
+    toast('Błąd: ' + e.message);
+  }
+
+  if (btn) { btn.textContent = '↻ Synchronizuj aktywności'; btn.disabled = false; }
+}
+
+async function loadStravaActivities() {
+  if (!_athleteId) return;
+  const { data } = await _sb
+    .from('strava_activities')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .order('start_date', { ascending: false })
+    .limit(10);
+
+  if (!data || data.length === 0) return;
+
+  const listEl = document.getElementById('strava-activities-list');
+  const wrapper = document.getElementById('strava-activities');
+  if (!listEl || !wrapper) return;
+
+  wrapper.style.display = 'block';
+
+  listEl.innerHTML = data.map(a => {
+    const km = (a.distance / 1000).toFixed(2);
+    const mins = Math.floor(a.moving_time / 60);
+    const secs = a.moving_time % 60;
+    const pace = a.average_speed > 0
+      ? Math.floor(1000 / a.average_speed / 60) + ':' + String(Math.round((1000 / a.average_speed) % 60)).padStart(2,'0')
+      : '—';
+    const date = new Date(a.start_date).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
+    return `<div style="background:rgba(252,76,2,0.05);border:1px solid rgba(252,76,2,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FC4C02" style="flex-shrink:0;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${date} · ${km} km · ${pace}/km</div>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#FC4C02;flex-shrink:0;">${km}<span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;"> km</span></div>
+    </div>`;
+  }).join('');
+}
+
 async function checkStravaStatus() {
   if (!_athleteId) return;
   const { data } = await _sb.from('athletes')
@@ -2812,10 +2885,12 @@ async function checkStravaStatus() {
 
   const connectedEl = document.getElementById('strava-connected');
   const connectBtn = document.getElementById('strava-connect-btn');
+  const syncBtn = document.getElementById('strava-sync-btn');
 
   if (data?.strava_athlete_id) {
     if (connectedEl) connectedEl.style.display = 'flex';
     if (connectBtn) connectBtn.style.display = 'none';
+    if (syncBtn) syncBtn.style.display = 'block';
     const nameEl = document.getElementById('strava-athlete-name');
     if (nameEl) {
       const date = data.strava_connected_at
@@ -2823,12 +2898,13 @@ async function checkStravaStatus() {
         : '';
       nameEl.textContent = 'ID: ' + data.strava_athlete_id + (date ? ' · od ' + date : '');
     }
+    await loadStravaActivities();
   } else {
     if (connectedEl) connectedEl.style.display = 'none';
     if (connectBtn) connectBtn.style.display = 'flex';
+    if (syncBtn) syncBtn.style.display = 'none';
   }
 
-  // Sprawdź czy wróciliśmy z Stravy
   const params = new URLSearchParams(window.location.search);
   const stravaStatus = params.get('strava');
   if (stravaStatus === 'success') {
