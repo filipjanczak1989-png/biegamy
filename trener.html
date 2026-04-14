@@ -295,6 +295,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
+    <button class="ptab" onclick="ptab('str',this)" style="color:#FC4C02;">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02" style="vertical-align:middle;margin-right:3px;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>Strava
+    </button>
   </div>
   <div class="panel-body">
     <div id="pov">
@@ -355,6 +358,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div id="pst" style="display:none;">
       <div id="pst-content">
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć statystyki.</div>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA STRAVA -->
+    <div id="pstr" style="display:none;">
+      <div id="pstr-content">
+        <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć aktywności Strava.</div>
       </div>
     </div>
     <div id="pcl" style="display:none;">
@@ -500,12 +510,96 @@ async function closePanel(){
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st'].forEach(t=>document.getElementById('p'+t).style.display=t===n?'block':'none');
+  ['ov','pl','lg','ms','cl','pb','st','str'].forEach(t=>{
+    const el2 = document.getElementById('p'+t);
+    if(el2) el2.style.display = t===n ? 'block' : 'none';
+  });
   document.querySelectorAll('.ptab').forEach(t=>t.classList.remove('on'));
   el.classList.add('on');
   if (n === 'ms') loadPanelChat();
   if (n === 'pb') loadPanelPB();
   if (n === 'st') loadPanelStats();
+  if (n === 'str') loadStravaPanel();
+}
+
+// ── STRAVA PANEL ──────────────────────────────────────────────────
+async function loadStravaPanel() {
+  const id = window._selectedAthleteId;
+  const el = document.getElementById('pstr-content');
+  if (!id || !el) return;
+
+  el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+
+  // Sprawdź czy zawodnik ma Stravę
+  const { data: ath } = await _sb.from('athletes')
+    .select('strava_athlete_id, strava_connected_at')
+    .eq('id', id).maybeSingle();
+
+  if (!ath?.strava_athlete_id) {
+    el.innerHTML = `<div style="padding:24px 0;text-align:center;">
+      <div style="font-size:24px;margin-bottom:8px;">📵</div>
+      <div style="font-size:13px;color:var(--muted);">Zawodnik nie połączył Stravy.</div>
+    </div>`;
+    return;
+  }
+
+  // Pobierz aktywności
+  const { data: activities } = await _sb
+    .from('strava_activities')
+    .select('*')
+    .eq('athlete_id', id)
+    .order('start_date', { ascending: false })
+    .limit(20);
+
+  if (!activities || activities.length === 0) {
+    el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności Strava.</div>';
+    return;
+  }
+
+  // Statystyki zbiorcze
+  const totalKm = activities.reduce((s,a) => s + (a.distance||0), 0) / 1000;
+  const avgPace = activities.filter(a=>a.average_speed>0).reduce((s,a) => s + 1000/a.average_speed, 0) / activities.filter(a=>a.average_speed>0).length;
+  const avgPaceStr = avgPace > 0
+    ? Math.floor(avgPace/60)+':'+String(Math.round(avgPace%60)).padStart(2,'0')
+    : '—';
+
+  el.innerHTML = `
+    <!-- Statystyki zbiorcze -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#FC4C02;">${totalKm.toFixed(0)}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">km łącznie</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);">${activities.length}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">aktywności</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:10px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);">${avgPaceStr}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">śr. tempo</div>
+      </div>
+    </div>
+
+    <!-- Lista aktywności -->
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie biegi</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      ${activities.map(a => {
+        const km = (a.distance/1000).toFixed(2);
+        const pace = a.average_speed > 0
+          ? Math.floor(1000/a.average_speed/60)+':'+String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
+          : '—';
+        const hr = a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '';
+        const date = new Date(a.start_date).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'2-digit'});
+        return `<div style="background:rgba(252,76,2,0.05);border:1px solid rgba(252,76,2,0.15);border-left:3px solid #FC4C02;border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:10px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${date} · ${pace}/km${hr}</div>
+          </div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#FC4C02;flex-shrink:0;">${km} <span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;">km</span></div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
 }
 
 // ── STATS PANEL ──────────────────────────────────────────────────
