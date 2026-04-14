@@ -907,6 +907,24 @@ body{
       <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">biegamy.run</div>
     </div>
   </div>
+  <!-- Strava -->
+  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strava</div>
+  <div id="strava-section">
+    <!-- Stan ładowania -->
+    <div id="strava-connected" style="display:none;background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:none;align-items:center;gap:12px;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:500;color:var(--fg);">Połączono ze Stravą</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;" id="strava-athlete-name">—</div>
+      </div>
+      <button onclick="disconnectStrava()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
+    </div>
+    <button id="strava-connect-btn" onclick="connectStrava()" style="width:100%;background:#FC4C02;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;transition:all 0.18s;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+      Połącz ze Stravą
+    </button>
+  </div>
+
   <!-- Wyloguj -->
   <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
 </div>
@@ -1560,6 +1578,7 @@ async function loadProfile() {
   document.getElementById('avatar-initials').textContent = initials;
   // Zawsze wyjdź z trybu edycji przy ładowaniu profilu
   if (_editingPBs) toggleEditPBs();
+  if (_athleteId) checkStravaStatus();
   
   if (_athleteId) {
     // Avatar
@@ -2749,6 +2768,79 @@ function updateSoundLabel() {
   if (item) item.innerHTML = '🔊 Dźwięki: ' + (Anim._soundEnabled ? 'wł.' : 'wył.');
 }
 
+// ── STRAVA ────────────────────────────────────────────────────────
+const STRAVA_CLIENT_ID = '98a7f89304a39b72bd0a42d9925fc94a18569e98';
+const STRAVA_CALLBACK_URL = 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/strava-callback';
+
+async function connectStrava() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { toast('Musisz być zalogowany'); return; }
+
+  const authUrl = 'https://www.strava.com/oauth/authorize' +
+    '?client_id=' + STRAVA_CLIENT_ID +
+    '&redirect_uri=' + encodeURIComponent(STRAVA_CALLBACK_URL) +
+    '&response_type=code' +
+    '&approval_prompt=auto' +
+    '&scope=activity:read_all' +
+    '&state=' + session.user.id;
+
+  window.location.href = authUrl;
+}
+
+async function disconnectStrava() {
+  if (!_athleteId) return;
+  if (!confirm('Odłączyć Stravę?')) return;
+  const { error } = await _sb.from('athletes').update({
+    strava_athlete_id: null,
+    strava_access_token: null,
+    strava_refresh_token: null,
+    strava_token_expires_at: null,
+    strava_connected_at: null,
+  }).eq('id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  document.getElementById('strava-connected').style.display = 'none';
+  document.getElementById('strava-connect-btn').style.display = 'flex';
+  toast('Strava odłączona');
+}
+
+async function checkStravaStatus() {
+  if (!_athleteId) return;
+  const { data } = await _sb.from('athletes')
+    .select('strava_athlete_id, strava_connected_at')
+    .eq('id', _athleteId)
+    .maybeSingle();
+
+  const connectedEl = document.getElementById('strava-connected');
+  const connectBtn = document.getElementById('strava-connect-btn');
+
+  if (data?.strava_athlete_id) {
+    if (connectedEl) connectedEl.style.display = 'flex';
+    if (connectBtn) connectBtn.style.display = 'none';
+    const nameEl = document.getElementById('strava-athlete-name');
+    if (nameEl) {
+      const date = data.strava_connected_at
+        ? new Date(data.strava_connected_at).toLocaleDateString('pl-PL')
+        : '';
+      nameEl.textContent = 'ID: ' + data.strava_athlete_id + (date ? ' · od ' + date : '');
+    }
+  } else {
+    if (connectedEl) connectedEl.style.display = 'none';
+    if (connectBtn) connectBtn.style.display = 'flex';
+  }
+
+  // Sprawdź czy wróciliśmy z Stravy
+  const params = new URLSearchParams(window.location.search);
+  const stravaStatus = params.get('strava');
+  if (stravaStatus === 'success') {
+    toast('Strava połączona! 🎉');
+    window.history.replaceState({}, '', 'zawodnik.html');
+    await checkStravaStatus();
+  } else if (stravaStatus === 'error') {
+    toast('Błąd połączenia ze Stravą');
+    window.history.replaceState({}, '', 'zawodnik.html');
+  }
+}
+
 async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
@@ -3197,7 +3289,7 @@ init();
 _sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
-    initAuth();
+    initAuth().then(() => checkStravaStatus());
   }
 });
 
@@ -3205,7 +3297,7 @@ _sb.auth.onAuthStateChange((event, session) => {
 setTimeout(() => {
   if (!window._authInitDone) {
     window._authInitDone = true;
-    initAuth();
+    initAuth().then(() => checkStravaStatus());
   }
 }, 300);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
