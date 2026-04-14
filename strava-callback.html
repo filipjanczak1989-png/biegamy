@@ -43,18 +43,24 @@ async function handleCallback() {
   }
 
   try {
-    // Przekaż kod do Edge Function
     const res = await fetch(
-      `${EDGE_FUNCTION_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
-      { redirect: 'manual' }
+      `${EDGE_FUNCTION_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`
     );
 
-    // Edge Function zwraca redirect — obsługujemy ręcznie
-    showSuccess();
-    setTimeout(() => { window.location.href = 'zawodnik.html?strava=success'; }, 1500);
+    const data = await res.json();
+    console.log('Edge function response:', data);
+
+    if (data.success) {
+      showSuccess();
+      setTimeout(() => { window.location.href = 'zawodnik.html?strava=success'; }, 1500);
+    } else {
+      showError('Błąd: ' + (data.error || 'Nieznany błąd'));
+      setTimeout(() => { window.location.href = 'zawodnik.html?strava=error'; }, 3000);
+    }
 
   } catch (e) {
-    showError('Błąd połączenia z serwerem.');
+    console.error('Fetch error:', e);
+    showError('Błąd połączenia z serwerem: ' + e.message);
     setTimeout(() => { window.location.href = 'zawodnik.html?strava=error'; }, 2000);
   }
 }
