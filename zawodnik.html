@@ -2448,11 +2448,40 @@ async function loadLogs() {
       .subscribe();
   }
   await updateWeekProgress();
+  autoSyncStrava(); // w tle, raz dziennie
+}
+
+async function autoSyncStrava() {
+  if (!_athleteId) return;
+  const { data: ath } = await _sb
+    .from('athletes')
+    .select('strava_athlete_id')
+    .eq('id', _athleteId)
+    .maybeSingle();
+  if (!ath?.strava_athlete_id) return;
+
+  // Sync tylko raz dziennie
+  const today = new Date().toISOString().split('T')[0];
+  const lastSync = localStorage.getItem('strava_last_sync_' + _athleteId);
+  if (lastSync === today) return;
+
+  try {
+    const res = await fetch(
+      `https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/strava-sync?athlete_id=${_athleteId}`
+    );
+    const data = await res.json();
+    if (data.success) {
+      localStorage.setItem('strava_last_sync_' + _athleteId, today);
+      console.log('Auto-sync Strava:', data.synced, 'aktywności');
+    }
+  } catch(e) {
+    console.log('Auto-sync Strava error:', e.message);
+  }
 }
 
 async function updateWeekProgress() {
   if (!_athleteId) return;
-  
+
   const now = new Date();
   const day = now.getDay();
   const diff = (day === 0) ? -6 : 1 - day;
