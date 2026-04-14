@@ -2095,6 +2095,7 @@ async function initAuth() {
       }
     }
     await loadLogs();
+    checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
   } else {
     // Brak rekordu — nowy użytkownik, pokaż onboarding
     showOnboarding();
