@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiegaMy — Łączenie ze Stravą</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:#07070a;color:#f0ede8;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+  .box{text-align:center;padding:40px 24px;max-width:360px;}
+  .logo{font-family:sans-serif;font-size:32px;font-weight:700;letter-spacing:0.05em;margin-bottom:32px;}
+  .logo span{color:#e8561e;}
+  .icon{font-size:48px;margin-bottom:16px;}
+  .title{font-size:20px;font-weight:600;margin-bottom:8px;}
+  .sub{font-size:13px;color:#5a5766;line-height:1.6;}
+  .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.1);border-top-color:#FC4C02;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">Biega<span>My</span></div>
+  <div id="status">
+    <div class="spinner"></div>
+    <div class="title">Łączę ze Stravą...</div>
+    <div class="sub">Chwileczkę, przetwarzam autoryzację.</div>
+  </div>
+</div>
+
+<script>
+const EDGE_FUNCTION_URL = 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/strava-callback';
+
+async function handleCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state'); // user_id
+  const error = params.get('error');
+
+  if (error || !code || !state) {
+    showError('Autoryzacja odrzucona lub błąd połączenia.');
+    setTimeout(() => { window.location.href = 'zawodnik.html?strava=error'; }, 2000);
+    return;
+  }
+
+  try {
+    // Przekaż kod do Edge Function
+    const res = await fetch(
+      `${EDGE_FUNCTION_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
+      { redirect: 'manual' }
+    );
+
+    // Edge Function zwraca redirect — obsługujemy ręcznie
+    showSuccess();
+    setTimeout(() => { window.location.href = 'zawodnik.html?strava=success'; }, 1500);
+
+  } catch (e) {
+    showError('Błąd połączenia z serwerem.');
+    setTimeout(() => { window.location.href = 'zawodnik.html?strava=error'; }, 2000);
+  }
+}
+
+function showSuccess() {
+  document.getElementById('status').innerHTML = `
+    <div class="icon">✅</div>
+    <div class="title">Połączono ze Stravą!</div>
+    <div class="sub">Przekierowuję do aplikacji...</div>
+  `;
+}
+
+function showError(msg) {
+  document.getElementById('status').innerHTML = `
+    <div class="icon">❌</div>
+    <div class="title">Błąd połączenia</div>
+    <div class="sub">${msg}</div>
+  `;
+}
+
+handleCallback();
+</script>
+</body>
+</html>
