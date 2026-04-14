@@ -42,7 +42,8 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
 .role-btn{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;cursor:pointer;transition:all 0.15s;}
 .role-btn:active{transform:scale(0.97);}
 .role-btn.sel{border-color:var(--accent);background:rgba(212,80,26,0.1);}
-.role-icon{font-size:24px;margin-bottom:4px;}
+.role-icon{font-size:24px;margin-bottom:4px;color:var(--muted);}
+.role-btn.sel .role-icon{color:var(--accent);}
 .role-label{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);}
 .role-btn.sel .role-label{color:var(--accent);}
 
@@ -147,11 +148,15 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
         <label>Rejestruję się jako</label>
         <div class="role-row">
           <div class="role-btn sel" id="role-athlete" onclick="selectRole('athlete')">
-            <div class="role-icon">🏃</div>
+            <div class="role-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v6l-3 5"/><path d="M12 13l3 5"/><path d="M9 11H6"/><path d="M15 11h3"/></svg>
+            </div>
             <div class="role-label">Zawodnik</div>
           </div>
           <div class="role-btn" id="role-coach" onclick="selectRole('coach')">
-            <div class="role-icon">📋</div>
+            <div class="role-icon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
             <div class="role-label">Trener</div>
           </div>
         </div>

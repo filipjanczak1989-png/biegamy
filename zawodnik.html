@@ -754,6 +754,21 @@ body{
 <div class="sec-hdr fade-in"><div class="sec-title">Ostatnie treningi</div><a href="#" class="sec-link">Wszystkie →</a></div>
 <div class="log-list" id="log-list"></div>
 
+<!-- Baner Strava (widoczny tylko gdy brak połączenia) -->
+<div id="strava-home-banner" style="display:none;margin:0 16px 18px;background:rgba(252,76,2,0.06);border:1px solid rgba(252,76,2,0.2);border-radius:20px;padding:18px 20px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#FC4C02,rgba(252,76,2,0.2));"></div>
+  <div style="display:flex;align-items:center;gap:14px;">
+    <div style="width:44px;height:44px;border-radius:12px;background:rgba(252,76,2,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+    </div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">Połącz ze Stravą</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Trener zobaczy Twoje biegi automatycznie</div>
+    </div>
+    <button onclick="showSection('profile');setTimeout(()=>connectStrava(),300)" style="background:#FC4C02;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0;">Połącz →</button>
+  </div>
+</div>
+
 <nav class="bottom-nav">
   <a class="nav-it active" href="#" id="nav-home" onclick="showSection('home');return false;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -2886,10 +2901,13 @@ async function checkStravaStatus() {
   const connectBtn = document.getElementById('strava-connect-btn');
   const syncBtn = document.getElementById('strava-sync-btn');
 
+  const banner = document.getElementById('strava-home-banner');
+
   if (data?.strava_athlete_id) {
     if (connectedEl) connectedEl.style.display = 'flex';
     if (connectBtn) connectBtn.style.display = 'none';
     if (syncBtn) syncBtn.style.display = 'block';
+    if (banner) banner.style.display = 'none';
     const nameEl = document.getElementById('strava-athlete-name');
     if (nameEl) {
       const date = data.strava_connected_at
@@ -2902,6 +2920,7 @@ async function checkStravaStatus() {
     if (connectedEl) connectedEl.style.display = 'none';
     if (connectBtn) connectBtn.style.display = 'flex';
     if (syncBtn) syncBtn.style.display = 'none';
+    if (banner) banner.style.display = 'block';
   }
 
   const params = new URLSearchParams(window.location.search);
