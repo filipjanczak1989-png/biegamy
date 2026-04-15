@@ -122,8 +122,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pz-v{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);line-height:1;}
 .pz-n{font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
 .bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(22,22,26,0.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;z-index:50;}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;cursor:pointer;text-decoration:none;}
-.nl2{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;cursor:pointer;text-decoration:none;min-width:0;}
+.nl2{font-size:8px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
 .ni.on .nl2{color:var(--accent);}
 .ni.on{position:relative;}
 .ni.on::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:28px;height:2px;background:var(--accent);border-radius:0 0 3px 3px;box-shadow:0 0 10px var(--glow-o);}
@@ -226,10 +226,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-thread::-webkit-scrollbar{width:3px;}
 .pchat-thread::-webkit-scrollbar-track{background:transparent;}
 .pchat-thread::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.pchat-msg-row{display:flex;flex-direction:column;gap:3px;}
+.pchat-msg-row{display:flex;flex-direction:column;gap:3px;width:100%;}
 .pchat-msg-row.me{align-items:flex-end;}
 .pchat-msg-row.them{align-items:flex-start;}
-.pchat-bubble{max-width:78%;padding:10px 14px;font-size:13px;line-height:1.55;word-break:break-word;position:relative;}
+.pchat-bubble{max-width:75%;padding:10px 14px;font-size:13px;line-height:1.55;word-break:break-word;position:relative;}
 .pchat-msg-row.me .pchat-bubble{background:linear-gradient(135deg,#d4501a,#e06030);color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 3px 14px rgba(212,80,26,0.35);}
 .pchat-msg-row.them .pchat-bubble{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:18px 18px 18px 4px;}
 .pchat-bubble img,.pchat-bubble video{max-width:100%;border-radius:10px;display:block;margin:2px 0;}
