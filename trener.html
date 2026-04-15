@@ -2466,23 +2466,26 @@ async function loadAthleteDetailStats(athleteId, container) {
 async function loadPanelChat() {
   const athleteId = window._selectedAthleteId;
   const thread = document.getElementById('panel-msg-thread');
-  if (!athleteId) { thread.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wybierz zawodnika.</div>'; return; }
-  const { data } = await _sb.from('messages').select('*').eq('athlete_id', athleteId).order('sent_at', {ascending:true}).limit(30);
-  if (!data || data.length === 0) {
-    thread.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wiadomości. Napisz pierwszą!</div>';
+
+  if (!athleteId) {
+    thread.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wybierz zawodnika.</div>';
     return;
   }
-  thread.innerHTML = data.map(m => {
-    const isCoach = m.sender === 'coach';
-    const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    return `<div style="display:flex;flex-direction:column;width:100%;align-items:${isCoach?'flex-end':'flex-start'};gap:2px;margin-bottom:4px;">
-      <div style="max-width:75%;padding:8px 12px;border-radius:12px;font-size:12px;line-height:1.5;word-break:break-word;${isCoach?'background:var(--accent);color:var(--fg);border-bottom-right-radius:3px;':'background:var(--card2);border:1px solid var(--border);border-bottom-left-radius:3px;'}">${m.body}</div>
-      <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;padding:0 4px;">${time}</div>
-    </div>`;
-  }).join('');
-  requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
-  // Oznacz jako przeczytane
-  await _sb.from('messages').update({read:true}).eq('athlete_id', athleteId).eq('sender','athlete').eq('read',false);
+
+  // Zamknij panel i otwórz pełnoekranowy czat
+  document.getElementById('panel').classList.remove('open');
+
+  // Pobierz imię zawodnika
+  const { data } = await _sb.from('athletes')
+    .select('id, full_name')
+    .eq('id', athleteId)
+    .maybeSingle();
+
+  const name = data?.full_name || 'Zawodnik';
+  
+  // Przejdź do sekcji wiadomości i otwórz czat
+  showCoachSection('msgs');
+  await openCoachChat(athleteId, name);
 }
 
 async function sendPanelMessage() {
