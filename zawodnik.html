@@ -909,18 +909,6 @@ body{
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
-    <!-- Liczniki -->
-    <div style="display:flex;justify-content:center;gap:24px;margin-top:12px;">
-      <div onclick="showSection('social');setTimeout(()=>switchSocialTab('following'),200)" style="text-align:center;cursor:pointer;" title="Obserwujesz">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--fg);" id="count-following">—</div>
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">obserwujesz</div>
-      </div>
-      <div style="width:1px;background:var(--border);"></div>
-      <div style="text-align:center;" title="Obserwujący">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--fg);" id="count-followers">—</div>
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">obserwujących</div>
-      </div>
-    </div>
   </div>
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
@@ -1020,6 +1008,9 @@ body{
 
     <!-- Wyloguj -->
     <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
+
+    <!-- Usuń konto -->
+    <button onclick="confirmDeleteAccount()" style="width:100%;background:transparent;color:rgba(224,80,80,0.4);border:none;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;margin-top:4px;">Usuń konto</button>
   </div>
 
   <!-- TAB: WIADOMOŚCI -->
@@ -1179,6 +1170,18 @@ body{
         <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
       </div>
 
+      <!-- DATA LOGU -->
+      <div class="field" style="margin-bottom:10px;">
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Data treningu</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button type="button" onclick="shiftLogDate(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">‹</button>
+            <span id="l-date-display" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:80px;text-align:center;"></span>
+            <button type="button" onclick="shiftLogDate(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">›</button>
+          </div>
+        </label>
+      </div>
+
       <!-- TEMPO + TĘTNO -->
       <div class="f-row">
         <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="5:30" maxlength="4" oninput="autoColonPace(this);calcTimeAuto()"></div>
@@ -1303,6 +1306,7 @@ async function markDone(btn){
 }
 function openModal() {
   _logDate = null; // brak konkretnej daty — użyj dzisiaj
+  setTimeout(_updateLogDateDisplay, 50);
   document.getElementById('modal-sub').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('modal-bg').classList.add('open');
   // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
@@ -1330,9 +1334,31 @@ function openModal() {
 }
 
 let _logDate = null;
+
+function _updateLogDateDisplay() {
+  const el = document.getElementById('l-date-display');
+  if (!el) return;
+  const d = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((new Date(_logDate ? _logDate + 'T12:00:00' : new Date()) - today) / 86400000);
+  const label = diff === 0 ? 'Dziś' : diff === -1 ? 'Wczoraj' : diff === 1 ? 'Jutro' : d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  el.textContent = label;
+  el.style.color = diff === 0 ? 'var(--accent)' : diff < 0 ? 'var(--muted)' : '#3db870';
+}
+
+function shiftLogDate(delta) {
+  const current = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
+  current.setDate(current.getDate() + delta);
+  // Nie pozwól na przyszłość dalej niż dziś
+  const today = new Date(); today.setHours(23,59,59,999);
+  if (current > today) return;
+  _logDate = current.getFullYear() + '-' + String(current.getMonth()+1).padStart(2,'0') + '-' + String(current.getDate()).padStart(2,'0');
+  _updateLogDateDisplay();
+}
 function openModalForDate(dateStr, e) {
   if(e) e.stopPropagation();
   _logDate = dateStr;
+  setTimeout(_updateLogDateDisplay, 50);
   const [y,m,d] = dateStr.split('-').map(Number);
   const date = new Date(y, m-1, d);
   document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
@@ -2117,18 +2143,6 @@ function calcPaceCalc() {
   }
 }
 
-async function loadFollowCounts() {
-  if (!_athleteId) return;
-  const [{ count: following }, { count: followers }] = await Promise.all([
-    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', _athleteId),
-    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', _athleteId),
-  ]);
-  const fEl = document.getElementById('count-following');
-  const rEl = document.getElementById('count-followers');
-  if (fEl) fEl.textContent = following ?? 0;
-  if (rEl) rEl.textContent = followers ?? 0;
-}
-
 async function loadProfile() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
@@ -2141,7 +2155,6 @@ async function loadProfile() {
   if (_editingPBs) toggleEditPBs();
   if (_athleteId) checkStravaStatus();
   if (_athleteId) loadAvatarTopbar(_athleteId);
-  if (_athleteId) loadFollowCounts();
   
   if (_athleteId) {
     // Avatar
@@ -3274,6 +3287,7 @@ function editLog(idx) {
   if (!l) return;
   _editingLogId = l.id;
   _logDate = l.logged_at ? l.logged_at.split('T')[0] : null;
+  setTimeout(_updateLogDateDisplay, 50);
   // Wypełnij formularz danymi logu
   document.getElementById('l-dist').value = l.distance_km || '';
   document.getElementById('l-time').value = l.duration || '';
@@ -3581,6 +3595,88 @@ async function logout() {
   window.location.href = 'login.html';
 }
 
+async function confirmDeleteAccount() {
+  // Krok 1 — ostrzeżenie
+  const modal = document.createElement('div');
+  modal.id = 'delete-account-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:99999;display:flex;align-items:flex-end;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--red);width:100%;max-width:480px;padding:24px 20px 32px;">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;"></div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--red);margin-bottom:8px;">Usuń konto</div>
+      <div style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;">
+        Spowoduje to <strong style="color:var(--fg);">trwałe usunięcie</strong> Twojego konta, wszystkich treningów i danych. Tej operacji nie można cofnąć.
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Wpisz USUŃ aby potwierdzić</label>
+        <input id="delete-confirm-input" type="text" placeholder="USUŃ"
+          style="width:100%;background:var(--card2);border:1px solid var(--red);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:12px;border-radius:8px;outline:none;box-sizing:border-box;letter-spacing:0.1em;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('delete-account-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+        <button onclick="executeDeleteAccount()" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;" id="delete-confirm-btn">Usuń konto</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('delete-confirm-input')?.focus(), 100);
+}
+
+async function executeDeleteAccount() {
+  const input = document.getElementById('delete-confirm-input')?.value.trim().toUpperCase();
+  if (input !== 'USUŃ') {
+    document.getElementById('delete-confirm-input').style.borderColor = 'var(--red)';
+    document.getElementById('delete-confirm-input').style.animation = 'none';
+    toast('Wpisz USUŃ aby potwierdzić');
+    return;
+  }
+  const btn = document.getElementById('delete-confirm-btn');
+  if (btn) { btn.textContent = 'Usuwam...'; btn.disabled = true; }
+
+  try {
+    // Usuń dane zawodnika (treningi, logi, follows — kaskadowo przez FK)
+    if (_athleteId) {
+      await _sb.from('training_logs').delete().eq('athlete_id', _athleteId);
+      await _sb.from('messages').delete().eq('athlete_id', _athleteId);
+      await _sb.from('follows').delete().eq('follower_id', _athleteId);
+      await _sb.from('follows').delete().eq('following_id', _athleteId);
+      await _sb.from('notifications').delete().eq('athlete_id', _athleteId);
+      await _sb.from('athletes').delete().eq('id', _athleteId);
+    }
+    // Wyloguj
+    await _sb.auth.signOut();
+    localStorage.clear();
+    document.getElementById('delete-account-modal')?.remove();
+    // Pokaż potwierdzenie i przekieruj
+    document.body.innerHTML = '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07070a;color:#f0ede8;font-family:\'DM Sans\',sans-serif;gap:16px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;">Konto usunięte</div><div style="font-size:13px;color:#66636e;">Do zobaczenia na trasie 🏃</div></div>';
+    setTimeout(() => window.location.href = 'login.html', 3000);
+  } catch(e) {
+    toast('Błąd: ' + e.message);
+    if (btn) { btn.textContent = 'Usuń konto'; btn.disabled = false; }
+  }
+}
+
+// Blokowanie użytkownika (z powiadomień lub profilu publicznego)
+async function blockUser(targetAthleteId, targetName) {
+  if (!confirm(`Zablokować ${targetName}?\nNie będzie widoczny w wyszukiwaniu ani feedzie.`)) return;
+  try {
+    // Zapisz blokadę lokalnie (Supabase nie ma dedykowanej tabeli — używamy localStorage)
+    const blocked = JSON.parse(localStorage.getItem('biegamy_blocked') || '[]');
+    if (!blocked.includes(targetAthleteId)) {
+      blocked.push(targetAthleteId);
+      localStorage.setItem('biegamy_blocked', JSON.stringify(blocked));
+    }
+    // Przestań obserwować jeśli obserwujesz
+    await _sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetAthleteId);
+    await _sb.from('follows').delete().eq('follower_id', targetAthleteId).eq('following_id', _athleteId);
+    document.getElementById('athlete-profile-modal')?.remove();
+    toast(`Zablokowano ${targetName} ✓`);
+  } catch(e) {
+    toast('Błąd: ' + e.message);
+  }
+}
+
+
+
 function toggleMenu() {
   const m = document.getElementById('av-menu');
   if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
@@ -3835,32 +3931,14 @@ async function openAthleteProfile(athleteId) {
     { label: '5 km', val: ath.pb_5k },
   ].filter(p => p.val);
 
-  // Pobierz liczniki obserwujących dla tego zawodnika
-  const [{ count: apFollowing }, { count: apFollowers }] = await Promise.all([
-    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', athleteId),
-    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', athleteId),
-  ]);
-
   document.getElementById('ap-content').innerHTML = `
     <!-- Avatar + imię -->
     <div style="text-align:center;padding:20px 0 16px;">
       <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:0 auto 12px;box-shadow:0 0 24px rgba(232,86,30,0.3);" id="ap-avatar">${ini}</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;">${name}</div>
       ${ath.goal ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">${ath.goal}</div>` : ''}
-      <!-- Liczniki -->
-      <div style="display:flex;justify-content:center;gap:24px;margin:12px 0;">
-        <div style="text-align:center;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;">${apFollowing ?? 0}</div>
-          <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">obserwuje</div>
-        </div>
-        <div style="width:1px;background:var(--border);"></div>
-        <div style="text-align:center;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;">${apFollowers ?? 0}</div>
-          <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">obserwujących</div>
-        </div>
-      </div>
       <button id="ap-follow-btn" onclick="_apToggleFollow('${athleteId}', ${isFollowing})"
-        style="margin-top:4px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
+        style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
         ${isFollowing ? '✓ Obserwujesz' : '+ Obserwuj'}
       </button>
     </div>
@@ -3896,7 +3974,10 @@ async function openAthleteProfile(athleteId) {
       }).join('')}
     </div>` : '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak publicznych treningów.</div>'}
 
-    <button onclick="document.getElementById('athlete-profile-modal').remove()" style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;margin-top:4px;">Zamknij</button>`;
+    <div style="display:flex;gap:8px;margin-top:4px;">
+      <button onclick="document.getElementById('athlete-profile-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zamknij</button>
+      <button onclick="blockUser('${athleteId}','${name.replace(/'/g,"\\'")}');document.getElementById('athlete-profile-modal')?.remove()" style="background:transparent;color:rgba(224,80,80,0.5);border:1px solid rgba(224,80,80,0.2);border-radius:10px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;" title="Zablokuj użytkownika">Zablokuj</button>
+    </div>`;
 
   // Spróbuj załadować avatar
   const { data: avUrl } = _sb.storage.from('training-screenshots').getPublicUrl(athleteId + '/avatar.jpg');
