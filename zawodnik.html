@@ -3020,8 +3020,54 @@ async function loadWeekPlan() {
     .order('date');
 
   if (error || !data || data.length === 0) {
-    document.getElementById('week-strip').innerHTML = 
-      '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak planu na ten tydzień.<br>Trener wkrótce wyśle Twój plan.</div>';
+    // Brak planu od trenera — pokaż własne logi w kalendarzu
+    const { data: ownLogs } = await _sb.from('training_logs')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .gte('logged_at', todayStr + 'T00:00:00')
+      .order('logged_at', { ascending: false })
+      .limit(14);
+
+    // Pokaż też logi z ostatnich 14 dni
+    const { data: pastLogs } = await _sb.from('training_logs')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .lt('logged_at', todayStr + 'T00:00:00')
+      .order('logged_at', { ascending: false })
+      .limit(14);
+
+    const allLogs = [...(ownLogs||[]), ...(pastLogs||[])];
+
+    if (!allLogs.length) {
+      document.getElementById('week-strip').innerHTML =
+        '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak planu. Dodaj trening przyciskiem poniżej.</div>';
+      return;
+    }
+
+    const typeColors2 = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870'};
+    const dayNames2 = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+    document.getElementById('week-strip').innerHTML = allLogs.map((l, i) => {
+      const d = new Date(l.logged_at);
+      const dateStr = l.logged_at.split('T')[0];
+      const dayName = dayNames2[d.getDay()];
+      const dayNum = d.getDate();
+      const isToday = dateStr === todayStr;
+      const col = typeColors2[l.training_type] || '#66636e';
+      const dist = l.distance_km ? parseFloat(l.distance_km) : 0;
+      return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;" onclick="editLog(${i})">
+        <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
+          <div style="width:44px;height:44px;border-radius:12px;background:${isToday?'var(--accent)':'rgba(255,255,255,0.04)'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="font-size:9px;letter-spacing:0.1em;color:${isToday?'rgba(255,255,255,0.7)':'var(--muted)'};font-family:'DM Mono',monospace;">${dayName}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:${isToday?'#fff':'var(--fg)'};">${dayNum}</div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:500;color:var(--fg);">${l.training_type||'Trening'}</div>
+            ${dist>0?`<div style="font-size:11px;color:${col};font-family:'DM Mono',monospace;margin-top:2px;font-weight:600;">${dist} km</div>`:''}
+          </div>
+          <div style="width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 6px rgba(61,184,112,0.5);flex-shrink:0;"></div>
+        </div>
+      </div>`;
+    }).join('');
     return;
   }
 
@@ -3330,6 +3376,21 @@ function editLog(idx) {
   document.querySelector('#modal-bg .modal-title').textContent = 'Edytuj trening';
   document.getElementById('save-btn').textContent = 'Zaktualizuj →';
   document.getElementById('modal-bg').classList.add('open');
+}
+
+// Edycja logu po ID (używana z feedu społeczności)
+async function editLogById(logId) {
+  const { data: l, error } = await _sb.from('training_logs').select('*').eq('id', logId).maybeSingle();
+  if (error || !l) { toast('Nie można załadować logu'); return; }
+  // Dodaj do globalnej listy i edytuj
+  if (!window._logsData) window._logsData = [];
+  const existing = window._logsData.findIndex(x => x.id === logId);
+  if (existing >= 0) {
+    editLog(existing);
+  } else {
+    window._logsData.unshift(l);
+    editLog(0);
+  }
 }
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
@@ -3727,9 +3788,8 @@ async function loadSocialFeed() {
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
 
-  // Pokaż aktywności WSZYSTKICH publicznych profili (nie tylko obserwowanych)
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,athletes(id,full_name,is_public)')
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,athletes(id,full_name,is_public)')
     .order('logged_at', { ascending: false })
     .limit(30);
 
@@ -3738,13 +3798,11 @@ async function loadSocialFeed() {
     return;
   }
 
-  // Sprawdź kogo obserwujemy (do oznaczenia w feedzie)
   const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(f => f.following_id));
 
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
   const rendered = logs.map(l => {
-    // Pokaż tylko publiczne profile lub własne treningi
     if (l.athletes?.is_public === false && l.athlete_id !== _athleteId) return '';
     const athId = l.athletes?.id || l.athlete_id;
     const name = l.athletes?.full_name || 'Biegacz';
@@ -3755,26 +3813,45 @@ async function loadSocialFeed() {
     const type = l.training_type || 'Trening';
     const col = tc[type] || 'var(--muted)';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
-    const feel = {good:'😊',mid:'😐',bad:'😓'}[l.feel] || '';
-    return `<div onclick="${isOwn ? '' : `openAthleteProfile('${athId}')`}" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;${!isOwn?'cursor:pointer;':''}" ${!isOwn?`onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='var(--border)'"`:''}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${dist||l.comment?'10':'0'}px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${isOwn?'var(--accent)':'rgba(255,255,255,0.08)'};border:${isOwn?'none':'1px solid var(--border)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">${ini}</div>
+    const feelEmoji = {good:'😊',mid:'😐',bad:'😓'}[l.feel] || '';
+
+    const photos = l.attachment_url
+      ? l.attachment_url.split(',').filter(Boolean).map(url =>
+          \`<img src="\${url}" style="width:calc(50% - 3px);max-height:150px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="event.stopPropagation();window.open(\'\${url}\',\'_blank\')" onerror="this.style.display=\'none\'">\`
+        ).join('')
+      : '';
+    const photosHtml = photos ? \`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">\${photos}</div>\` : '';
+
+    const ownActions = isOwn
+      ? \`<div style="display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.05);">
+           <button onclick="event.stopPropagation();editLogById(\'\${l.id}\')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:7px 10px;border-radius:8px;cursor:pointer;" onmouseover="this.style.color=\'var(--fg)\'" onmouseout="this.style.color=\'var(--muted)\'">✎ Edytuj</button>
+           <button onclick="event.stopPropagation();deleteLog(\'\${l.id}\')" style="background:rgba(224,80,80,0.08);border:1px solid rgba(224,80,80,0.2);color:var(--red);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:7px 10px;border-radius:8px;cursor:pointer;">✕ Usuń</button>
+         </div>\`
+      : '';
+
+    return \`<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;\${!isOwn?'cursor:pointer;':''}" \${!isOwn?\`onclick="openAthleteProfile(\'\${athId}\')" onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"\`:''}>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:\${dist||l.comment||photos?'10':'0'}px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:\${isOwn?'var(--accent)':'rgba(255,255,255,0.08)'};border:\${isOwn?'none':'1px solid var(--border)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">\${ini}</div>
         <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;">${isOwn ? 'Ty' : name}${isFollowed && !isOwn ? ' <span style="font-size:9px;color:var(--accent);font-family:\'DM Mono\',monospace;background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>' : ''}</div>
-          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+          <div style="font-size:13px;font-weight:600;">\${isOwn?'Ty':name}\${isFollowed&&!isOwn?' <span style="font-size:9px;color:var(--accent);font-family:\'DM Mono\',monospace;background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':''}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">\${date}</div>
         </div>
-        <span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;background:${col}18;padding:3px 8px;border-radius:6px;">${type}</span>
+        <span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:\${col};font-family:'DM Mono',monospace;background:\${col}18;padding:3px 8px;border-radius:6px;">\${type}</span>
       </div>
-      ${dist?`<div style="display:flex;gap:20px;align-items:baseline;margin-bottom:${l.comment?'8':'0'}px;">
-        <div><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;">${dist}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">KM</span></div>
-        ${l.pace?`<div><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${l.pace}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">/KM</span></div>`:''}
-        ${feel?`<div style="margin-left:auto;font-size:22px;">${feel}</div>`:''}
-      </div>`:''}
-      ${l.comment?`<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:'DM Sans',sans-serif;font-style:italic;">"${l.comment}"</div>`:''}</div>`;
+      \${dist?\`<div style="display:flex;gap:20px;align-items:baseline;margin-bottom:\${l.comment||photos?'8':'0'}px;">
+        <div><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;">\${dist}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">KM</span></div>
+        \${l.pace?\`<div><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">\${l.pace}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">/KM</span></div>\`:''}
+        \${feelEmoji?\`<div style="margin-left:auto;font-size:22px;">\${feelEmoji}</div>\`:''}
+      </div>\`:''}
+      \${l.comment?\`<div style="font-size:12px;color:rgba(240,237,232,0.6);font-style:italic;">"\${l.comment}"</div>\`:''}
+      \${photosHtml}
+      \${ownActions}
+    </div>\`;
   }).filter(Boolean).join('');
 
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak publicznych aktywności.</div>';
 }
+
 
 async function loadFollowing() {
   if (!_athleteId) return;
