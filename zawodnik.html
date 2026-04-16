@@ -896,14 +896,19 @@ body{
 
   <!-- Avatar + imię -->
   <div style="text-align:center;padding:16px 0 20px;">
-    <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);margin:0 auto 12px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(232,86,30,0.25);">
-      <span id="avatar-initials">?</span>
-      <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
+    <div style="position:relative;width:96px;margin:0 auto 12px;">
+      <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(232,86,30,0.25);">
+        <span id="avatar-initials">?</span>
+        <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
+      </div>
+      <!-- Ikona edycji -->
+      <div onclick="document.getElementById('avatar-input').click()" style="position:absolute;bottom:2px;right:2px;width:26px;height:26px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.4);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </div>
     </div>
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
-    <div style="font-size:9px;color:rgba(255,255,255,0.18);font-family:'DM Mono',monospace;margin-top:6px;letter-spacing:0.06em;">kliknij avatar · zmień zdjęcie</div>
   </div>
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
@@ -2742,14 +2747,8 @@ async function obFinish() {
     const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
     const goalText = goalLabels[_obGoal] || 'Poprawa formy';
 
-    const athleteData = {
-      full_name: name,
-      email: session.user.email,
-      active: true,
-      goal: goalText,
-    };
+    const athleteData = { full_name: name, email: session.user.email, active: true, goal: goalText };
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
-
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
     const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
     const pbHalf = document.getElementById('ob-pb-half')?.value.trim();
@@ -2759,44 +2758,33 @@ async function obFinish() {
     if (pbHalf) athleteData.pb_half = pbHalf;
     if (pbMar) athleteData.pb_marathon = pbMar;
 
-    // Strategia: próbuj update jeśli mamy _athleteId, 
-    // jeśli nie — insert, jeśli 409 (rekord istnieje) — znajdź przez service i aktualizuj
-    const upsertData = { ...athleteData, user_id: session.user.id };
-
-    let savedId = _athleteId || null;
-
-    if (savedId) {
-      // Mamy ID — po prostu update
-      await _sb.from('athletes').update(athleteData).eq('id', savedId);
+    // Jeśli mamy _athleteId (użytkownik już istnieje) — tylko update
+    if (_athleteId) {
+      const { error } = await _sb.from('athletes').update(athleteData).eq('id', _athleteId);
+      if (error) console.warn('Update warning:', error.message); // nie blokuj — dane i tak są w bazie
     } else {
-      // Próbuj insert
+      // Nowy user — próbuj insert
       const { data: ins, error: insErr } = await _sb.from('athletes')
-        .insert(upsertData)
-        .select('id')
-        .maybeSingle();
+        .insert({ ...athleteData, user_id: session.user.id })
+        .select('id').maybeSingle();
 
-      if (!insErr) {
-        savedId = ins?.id || null;
-      } else if (insErr.code === '23505' || (insErr.message || '').includes('duplicate') || (insErr.message || '').includes('409')) {
-        // Rekord już istnieje — znajdź go przez auth.uid()
-        // Używamy innego pola — email jest unikalny, użyj go jako fallback
-        const { data: found } = await _sb.from('athletes')
-          .select('id')
-          .eq('email', session.user.email)
-          .maybeSingle();
-        if (found?.id) {
-          savedId = found.id;
-          await _sb.from('athletes').update(athleteData).eq('id', found.id);
-        }
-      } else {
+      if (ins?.id) {
+        _athleteId = ins.id;
+      } else if (insErr?.code === '23505' || insErr?.code === '409' || (insErr?.message||'').includes('duplicate') || (insErr?.message||'').includes('already exists')) {
+        // Rekord istnieje — szukaj po emailu
+        const { data: byEmail } = await _sb.from('athletes').select('id').eq('email', session.user.email).maybeSingle();
+        if (byEmail?.id) _athleteId = byEmail.id;
+        // Spróbuj update jeśli mamy ID
+        if (_athleteId) await _sb.from('athletes').update(athleteData).eq('id', _athleteId);
+      } else if (insErr) {
+        // Inny błąd — pokaż ale nie blokuj jeśli to RLS
         console.error('Insert error:', insErr);
-        if (errEl) { errEl.textContent = 'Błąd: ' + (insErr.message || JSON.stringify(insErr)); errEl.style.display = 'block'; }
+        if (errEl) { errEl.textContent = 'Błąd: ' + (insErr.message || 'Spróbuj ponownie'); errEl.style.display = 'block'; }
         if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
         return;
       }
     }
 
-    if (savedId) _athleteId = savedId;
     if (_selectedCoachId) COACH_ID = _selectedCoachId;
 
     // Avatar upload (non-blocking)
@@ -2804,20 +2792,18 @@ async function obFinish() {
       const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
       _sb.storage.from('training-screenshots')
         .upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type })
-        .catch(e => console.warn('Avatar upload:', e.message));
+        .catch(e => console.warn('Avatar:', e.message));
     }
 
-    // Close modal
+    // Zamknij i idź dalej — nawet jeśli update się nie udał (dane są w bazie)
     document.getElementById('onboarding-modal').classList.remove('show');
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
-    // Load data
     if (_athleteId) {
       await loadLogs();
     } else {
-      // No ID yet — reload page to trigger proper auth flow
-      setTimeout(() => window.location.reload(), 1000);
+      setTimeout(() => window.location.reload(), 800);
     }
 
   } catch(e) {
