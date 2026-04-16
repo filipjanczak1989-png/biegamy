@@ -455,59 +455,81 @@ body{
 
 /* ── ONBOARDING MODAL ────────────────────────────────────────────── */
 #onboarding-modal{
-  position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;
-  display:none;align-items:center;justify-content:center;
-  padding:20px;backdrop-filter:blur(8px);
+  position:fixed;inset:0;background:#07070a;z-index:1000;
+  display:none;flex-direction:column;overflow:hidden;
 }
 #onboarding-modal.show{display:flex;}
-.ob-box{
-  background:var(--card2);border:1px solid rgba(255,255,255,0.1);
-  border-radius:24px;padding:28px 24px;width:100%;max-width:380px;
-  max-height:90vh;overflow-y:auto;
-  box-shadow:0 24px 80px rgba(0,0,0,0.8),0 1px 0 rgba(255,255,255,0.06) inset;
-  position:relative;
+.ob-screen{
+  flex:1;display:flex;flex-direction:column;overflow:hidden;
+  animation:obIn 0.35s cubic-bezier(0.4,0,0.2,1);
 }
-.ob-box::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,var(--accent),var(--accent2));
-  border-radius:24px 24px 0 0;
+@keyframes obIn{from{opacity:0;transform:translateX(32px);}to{opacity:1;transform:translateX(0);}}
+.ob-hero{
+  flex-shrink:0;background:linear-gradient(180deg,rgba(232,86,30,0.08) 0%,transparent 100%);
+  padding:max(52px,env(safe-area-inset-top,0px)) 24px 24px;
 }
-.ob-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:6px;}
-.ob-sub{font-size:13px;color:rgba(240,237,232,0.55);line-height:1.6;margin-bottom:22px;}
+.ob-progress{display:flex;gap:5px;margin-bottom:24px;}
+.ob-pip{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 0.3s;}
+.ob-pip.done{background:var(--accent);}
+.ob-step-lbl{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.ob-h1{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:1;letter-spacing:0.02em;margin-bottom:8px;}
+.ob-h1 em{color:var(--accent);font-style:normal;}
+.ob-body{flex:1;overflow-y:auto;padding:0 24px 24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
+.ob-footer{flex-shrink:0;padding:16px 24px max(24px,env(safe-area-inset-bottom,0px));background:rgba(7,7,10,0.95);border-top:1px solid rgba(255,255,255,0.06);}
+.ob-btn{
+  width:100%;background:var(--accent);color:#fff;border:none;
+  border-radius:14px;padding:16px;font-family:'Bebas Neue',sans-serif;
+  font-size:20px;letter-spacing:0.08em;cursor:pointer;
+  transition:all 0.15s;box-shadow:0 4px 24px rgba(232,86,30,0.3);
+}
+.ob-btn:active{transform:scale(0.98);}
+.ob-btn-ghost{
+  width:100%;background:transparent;color:rgba(240,237,232,0.35);border:none;
+  padding:12px;font-family:'DM Mono',monospace;font-size:11px;
+  letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:8px;
+}
+.ob-card{
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
+  border-radius:14px;padding:16px 18px;margin-bottom:10px;
+  cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:14px;
+}
+.ob-card:active,.ob-card.sel{
+  background:rgba(232,86,30,0.1);border-color:rgba(232,86,30,0.5);
+}
+.ob-card-icon{font-size:28px;flex-shrink:0;width:44px;text-align:center;}
+.ob-card-name{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:2px;}
+.ob-card-sub{font-size:12px;color:var(--muted);line-height:1.4;}
+.ob-check{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all 0.15s;}
+.ob-card.sel .ob-check{background:var(--accent);border-color:var(--accent);}
 .ob-field{margin-bottom:14px;}
 .ob-label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
 .ob-input{
   width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);
-  color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;
-  padding:11px 14px;border-radius:12px;outline:none;
-  transition:border-color 0.2s,box-shadow 0.2s;
+  color:var(--fg);font-family:'DM Mono',monospace;font-size:15px;
+  padding:12px 14px;border-radius:10px;outline:none;box-sizing:border-box;
+  transition:border-color 0.2s;
 }
-.ob-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.12);}
-.ob-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.ob-btn{
-  width:100%;margin-top:18px;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  color:#fff;border:none;border-radius:14px;padding:14px;
-  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;
-  text-transform:uppercase;cursor:pointer;
-  box-shadow:0 4px 20px rgba(232,86,30,0.4);transition:all 0.18s;
+.ob-input:focus{border-color:var(--accent);}
+.ob-pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
+.ob-pb-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;}
+.ob-pb-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.ob-pb-input{width:100%;background:transparent;border:none;color:var(--fg);font-family:'Bebas Neue',sans-serif;font-size:26px;outline:none;padding:0;}
+.ob-pb-input::placeholder{color:rgba(240,237,232,0.15);}
+.ob-avatar-wrap{text-align:center;padding:8px 0 20px;}
+.ob-avatar-circle{
+  width:110px;height:110px;border-radius:50%;
+  border:3px solid rgba(232,86,30,0.4);
+  background:rgba(232,86,30,0.08);
+  display:flex;align-items:center;justify-content:center;
+  font-size:40px;margin:0 auto 14px;cursor:pointer;
+  transition:all 0.2s;overflow:hidden;position:relative;
 }
-.ob-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(232,86,30,0.5);}
-.ob-skip{
-  width:100%;margin-top:10px;background:transparent;
-  border:none;color:var(--muted);font-family:'DM Mono',monospace;
-  font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
-  cursor:pointer;padding:8px;
-}
-.ob-skip:hover{color:var(--fg);}
-
-/* ── COACH CARD W ONBOARDINGU ────────────────────────────────────── */
+.ob-avatar-circle:hover{border-color:var(--accent);box-shadow:0 0 24px rgba(232,86,30,0.3);}
 .ob-coach-card{
-  display:flex;align-items:center;gap:12px;
-  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);
-  border-radius:14px;padding:13px 14px;cursor:pointer;transition:all 0.18s;
+  display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.08);border-radius:12px;
+  padding:14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;
 }
-.ob-coach-card:hover{background:rgba(232,86,30,0.05);border-color:rgba(232,86,30,0.25);}
 .ob-coach-card.selected{background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);}
 
 /* ── SECTION FIXES ───────────────────────────────────────────────── */
@@ -2102,108 +2124,165 @@ async function initAuth() {
   }
 }
 
-let COACH_ID = null; // ustawiany przez wybór w onboardingu — brak domyślnego!
+
+let COACH_ID = null;
 let _selectedCoachId = null;
+let _obMode = 'solo'; // solo | coach | find
+let _obGoal = 'improve';
+let _obAvatarFile = null;
+
+// ── ONBOARDING FLOW ───────────────────────────────────────────────
 
 function showOnboarding() {
   _selectedCoachId = null;
+  _obMode = 'solo';
+  _obGoal = 'improve';
+  _obAvatarFile = null;
   document.getElementById('onboarding-modal').classList.add('show');
-  loadCoaches();
 
-  // Przywitaj po imieniu asynchronicznie
+  // Pre-fill name from auth
   _sb.auth.getSession().then(({ data: { session } }) => {
     if (!session) return;
     const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '';
     const firstName = name.split(' ')[0];
-    const titleEl = document.getElementById('ob-welcome-title');
-    if (titleEl && firstName) titleEl.textContent = `Cześć, ${firstName}!`;
+    const inp = document.getElementById('ob-name-input');
+    if (inp && firstName) inp.value = firstName;
   });
 }
 
-function skipOnboarding() {
-  // Nie pozwól pominąć jeśli brak trenera
-  if (!_selectedCoachId) {
-    const err = document.getElementById('ob-error');
-    if (err) { err.style.display = 'block'; }
-    return;
+function obSelectMode(mode) {
+  _obMode = mode;
+  ['solo','coach','find'].forEach(m => {
+    const card = document.getElementById('ob-mode-' + m);
+    if (card) {
+      const isSel = m === mode;
+      card.classList.toggle('sel', isSel);
+      const check = card.querySelector('.ob-check');
+      if (check) check.innerHTML = isSel
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '';
+    }
+  });
+  const coachSec = document.getElementById('ob-coach-section');
+  if (coachSec) {
+    coachSec.style.display = (mode === 'coach' || mode === 'find') ? 'block' : 'none';
+    if (mode === 'coach' || mode === 'find') loadCoaches();
   }
-  document.getElementById('onboarding-modal').classList.remove('show');
 }
 
-// ── ZAPIS ONBOARDINGU (tylko trener) ─────────────────────────────
-async function obSaveCoach() {
-  if (!_selectedCoachId) {
-    const err = document.getElementById('ob-error');
-    if (err) { err.style.display = 'block'; }
-    return;
-  }
-  const err = document.getElementById('ob-error');
-  if (err) err.style.display = 'none';
+function obSelectGoal(goal) {
+  _obGoal = goal;
+  ['improve','time','return','race'].forEach(g => {
+    const card = document.getElementById('ob-goal-' + g);
+    if (card) {
+      const isSel = g === goal;
+      card.classList.toggle('sel', isSel);
+      const check = card.querySelector('.ob-check');
+      if (check) check.innerHTML = isSel
+        ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>'
+        : '';
+    }
+  });
+}
 
-  const btn = document.querySelector('#onboarding-modal .ob-btn');
+function obPreviewAvatar(input) {
+  const file = input.files[0];
+  if (!file) return;
+  _obAvatarFile = file;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('ob-avatar-preview');
+    const emoji = document.getElementById('ob-avatar-emoji');
+    if (preview) { preview.src = e.target.result; preview.style.display = 'block'; }
+    if (emoji) emoji.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function obNext(step) {
+  // Validate step 1
+  if (step === 1) {
+    if ((_obMode === 'coach' || _obMode === 'find') && !_selectedCoachId) {
+      // Let them proceed without coach — they can set later
+    }
+  }
+  document.getElementById('ob-s' + step).style.display = 'none';
+  const next = document.getElementById('ob-s' + (step + 1));
+  if (next) next.style.display = 'flex';
+}
+
+async function obFinish() {
+  const btn = document.getElementById('ob-finish-btn');
   if (btn) { btn.textContent = 'Zapisuję...'; btn.disabled = true; }
 
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) {
-    if (btn) { btn.textContent = 'Zacznij trening →'; btn.disabled = false; }
-    if (err) { err.textContent = 'Brak sesji — zaloguj się ponownie.'; err.style.display = 'block'; }
+    if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
     return;
   }
 
-  console.log('Session user id:', session.user.id, 'email:', session.user.email);
-  const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Zawodnik';
+  const nameInput = document.getElementById('ob-name-input');
+  const name = nameInput?.value.trim() || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Zawodnik';
+
+  const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
+  const goalText = goalLabels[_obGoal] || 'Poprawa formy';
+
+  const pbData = {
+    pb_5k: document.getElementById('ob-pb-5k')?.value.trim() || null,
+    pb_10k: document.getElementById('ob-pb-10k')?.value.trim() || null,
+    pb_half: document.getElementById('ob-pb-half')?.value.trim() || null,
+    pb_marathon: document.getElementById('ob-pb-mar')?.value.trim() || null,
+  };
+
+  const athleteData = {
+    user_id: session.user.id,
+    full_name: name,
+    email: session.user.email,
+    active: true,
+    goal: goalText,
+    training_mode: _obMode,
+    coach_id: _selectedCoachId || null,
+    ...pbData,
+  };
 
   let data, error;
   if (_athleteId) {
-    // Mamy już id rekordu — aktualizuj
-    ({ data, error } = await _sb.from('athletes')
-      .update({ coach_id: _selectedCoachId })
-      .eq('id', _athleteId)
-      .select().single());
+    ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', _athleteId).select().single());
   } else {
-    // Sprawdź czy rekord już istnieje dla tego user_id
-    const { data: existing } = await _sb.from('athletes')
-      .select('id')
-      .eq('user_id', session.user.id)
-      .maybeSingle();
-
+    const { data: existing } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (existing) {
-      // Rekord istnieje — aktualizuj coach_id
       _athleteId = existing.id;
-      ({ data, error } = await _sb.from('athletes')
-        .update({ coach_id: _selectedCoachId })
-        .eq('id', existing.id)
-        .select().single());
+      ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', existing.id).select().single());
     } else {
-      // Nowy rekord — insert
-      ({ data, error } = await _sb.from('athletes')
-        .insert({
-          user_id: session.user.id,
-          coach_id: _selectedCoachId,
-          full_name: name,
-          email: session.user.email,
-          active: true
-        })
-        .select().single());
+      ({ data, error } = await _sb.from('athletes').insert(athleteData).select().single());
     }
   }
 
-  if (btn) { btn.textContent = 'Zacznij trening →'; btn.disabled = false; }
-
   if (error) {
     console.error('Onboarding error:', error);
-    const msg = error.message || error.details || JSON.stringify(error);
-    if (err) { err.textContent = 'Błąd zapisu: ' + msg; err.style.display = 'block'; }
-    if (btn) { btn.textContent = 'Zacznij trening →'; btn.disabled = false; }
+    const errEl = document.getElementById('ob-error');
+    if (errEl) { errEl.textContent = 'Błąd zapisu: ' + (error.message || JSON.stringify(error)); errEl.style.display = 'block'; }
+    if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
     return;
   }
 
   _athleteId = data.id;
-  COACH_ID = _selectedCoachId;
+  if (_selectedCoachId) COACH_ID = _selectedCoachId;
+
+  // Upload avatar if provided
+  if (_obAvatarFile && _athleteId) {
+    const ext = _obAvatarFile.name.split('.').pop();
+    await _sb.storage.from('training-screenshots').upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
+  }
+
   document.getElementById('onboarding-modal').classList.remove('show');
   window.history.replaceState({}, '', 'zawodnik.html');
   await loadLogs();
   toast('Witaj w BiegaMy! 🏃');
+}
+
+function skipOnboarding() {
+  document.getElementById('onboarding-modal').classList.remove('show');
 }
 
 // ── LOAD COACHES ──────────────────────────────────────────────────
@@ -2212,57 +2291,52 @@ async function loadCoaches() {
   const coachesEl = document.getElementById('ob-coaches');
   if (!coachesEl) return;
 
-  const { data: coachList, error } = await _sb
-    .from('coaches')
-    .select('id, full_name, specialization')
-    .order('full_name');
-
+  const { data: coachList, error } = await _sb.from('coaches').select('id, full_name, specialization').order('full_name');
   if (loading) loading.style.display = 'none';
-  coachesEl.style.display = 'flex';
+  coachesEl.style.display = 'block';
 
   const list = (!error && coachList && coachList.length > 0)
     ? coachList
     : [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
 
-  _selectedCoachId = list[0].id;
+  if (!_selectedCoachId) _selectedCoachId = list[0].id;
 
   coachesEl.innerHTML = list.map((c, i) => {
     const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    const isFirst = i === 0;
-    return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', document.getElementById('ob-coach-${c.id}'))" style="${isFirst?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);cursor:pointer;':'cursor:pointer;'}">
-      <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;transition:all 0.2s;">${initials}</div>
+    const isFirst = i === 0 || c.id === _selectedCoachId;
+    return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', document.getElementById('ob-coach-${c.id}'))">
+      <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
         ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${c.specialization}</div>`:''}
       </div>
-      <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isFirst?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;">${isFirst?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
+      <div class="ob-check ${isFirst?'sel':''}">${isFirst?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
     </div>`;
   }).join('');
 }
 
 function selectCoach(coachId, el) {
   _selectedCoachId = coachId;
-  // Resetuj tylko karty w ob-coaches, nie w change-coaches-list
   document.querySelectorAll('#ob-coaches .ob-coach-card').forEach(c => {
     c.classList.remove('selected');
-    c.style.borderColor = 'rgba(255,255,255,0.08)';
-    c.style.background = 'rgba(255,255,255,0.02)';
     const av = c.querySelector('div');
     if(av) av.style.background = 'rgba(255,255,255,0.08)';
-    const check = c.querySelector('.ob-coach-check');
-    if(check) { check.innerHTML = ''; check.style.borderColor = 'rgba(255,255,255,0.15)'; }
+    const check = c.querySelector('.ob-check');
+    if(check) { check.innerHTML = ''; check.classList.remove('sel'); }
   });
   el.classList.add('selected');
-  el.style.borderColor = 'rgba(232,86,30,0.4)';
-  el.style.background = 'rgba(232,86,30,0.07)';
   const av = el.querySelector('div');
   if(av) av.style.background = 'var(--accent)';
-  const check = el.querySelector('.ob-coach-check');
-  if(check) { check.innerHTML = '<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>'; check.style.borderColor = 'var(--accent)'; }
-  // Ukryj błąd walidacji
-  const err = document.getElementById('ob-error');
-  if(err) err.style.display = 'none';
+  const check = el.querySelector('.ob-check');
+  if(check) {
+    check.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+    check.classList.add('sel');
+  }
 }
+
+// ── SAVE ONBOARD (legacy compatibility) ───────────────────────────
+async function obSaveCoach() { await obFinish(); }
+
 
 
 // ── ZMIANA TRENERA ────────────────────────────────────────────────
@@ -3535,27 +3609,160 @@ async function toggleVoice(btnId, sender) {
 
 <!-- ONBOARDING MODAL -->
 <div id="onboarding-modal">
-  <div class="ob-box">
 
-    <div style="font-size:36px;margin-bottom:10px;text-align:center;">🏃</div>
-    <div class="ob-title" style="text-align:center;" id="ob-welcome-title">Witaj w BiegaMy!</div>
-    <div class="ob-sub" style="text-align:center;">Wybierz swojego trenera, żeby zacząć.</div>
-
-    <!-- Wybór trenera -->
-    <div class="ob-field" style="margin-top:20px;">
-      <label class="ob-label">Trener</label>
-      <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;">Ładuję listę trenerów...</div>
-      <div id="ob-coaches" style="display:none;flex-direction:column;gap:8px;"></div>
+<!-- EKRAN 1: Cel / tryb -->
+<div id="ob-s1" class="ob-screen">
+  <div class="ob-hero">
+    <div class="ob-progress">
+      <div class="ob-pip done" id="ob-pip-1"></div>
+      <div class="ob-pip" id="ob-pip-2"></div>
+      <div class="ob-pip" id="ob-pip-3"></div>
+      <div class="ob-pip" id="ob-pip-4"></div>
     </div>
-
-    <!-- Błąd walidacji -->
-    <div id="ob-error" style="display:none;margin-top:12px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:#f08080;border-radius:8px;padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;">
-      Wybierz trenera żeby kontynuować.
+    <div class="ob-step-lbl">Krok 1 z 4</div>
+    <div class="ob-h1">Po co korzystasz<br>z <em>BiegaMy?</em></div>
+  </div>
+  <div class="ob-body">
+    <div class="ob-card sel" id="ob-mode-solo" onclick="obSelectMode('solo')">
+      <div class="ob-card-icon">&#x1F3C3;</div>
+      <div><div class="ob-card-name">Trenuję sam</div><div class="ob-card-sub">Tworzę plan i trenuję samodzielnie</div></div>
+      <div class="ob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
     </div>
-
-    <button class="ob-btn" onclick="obSaveCoach()" style="margin-top:20px;">Zacznij trening →</button>
+    <div class="ob-card" id="ob-mode-coach" onclick="obSelectMode('coach')">
+      <div class="ob-card-icon">&#x1F9D1;&#x200D;&#x1F3EB;</div>
+      <div><div class="ob-card-name">Mam trenera</div><div class="ob-card-sub">Już pracuję z trenerem w BiegaMy</div></div>
+      <div class="ob-check"></div>
+    </div>
+    <div class="ob-card" id="ob-mode-find" onclick="obSelectMode('find')">
+      <div class="ob-card-icon">&#x1F50D;</div>
+      <div><div class="ob-card-name">Szukam trenera</div><div class="ob-card-sub">Chcę znaleźć dobrego trenera</div></div>
+      <div class="ob-check"></div>
+    </div>
+    <!-- Wybór trenera (pokazuje się gdy mode=coach lub find) -->
+    <div id="ob-coach-section" style="display:none;margin-top:16px;">
+      <div class="ob-label">Wybierz trenera</div>
+      <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;">&#x23F3; Ładuję listę trenerów...</div>
+      <div id="ob-coaches" style="display:none;"></div>
+    </div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn" onclick="obNext(1)">Dalej &#x2192;</button>
   </div>
 </div>
 
+<!-- EKRAN 2: Avatar + imię -->
+<div id="ob-s2" class="ob-screen" style="display:none;">
+  <div class="ob-hero">
+    <div class="ob-progress">
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip"></div>
+      <div class="ob-pip"></div>
+    </div>
+    <div class="ob-step-lbl">Krok 2 z 4</div>
+    <div class="ob-h1">Dodaj swoje<br><em>zdjęcie</em></div>
+  </div>
+  <div class="ob-body">
+    <div class="ob-avatar-wrap">
+      <div class="ob-avatar-circle" onclick="document.getElementById('ob-avatar-input').click()">
+        <span id="ob-avatar-emoji" style="font-size:44px;">&#x1F464;</span>
+        <img id="ob-avatar-preview" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" />
+      </div>
+      <input type="file" id="ob-avatar-input" accept="image/*" style="display:none" onchange="obPreviewAvatar(this)">
+      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Kliknij aby dodać zdjęcie</div>
+    </div>
+    <div class="ob-field" style="margin-top:8px;">
+      <label class="ob-label">Twoje imię</label>
+      <input class="ob-input" id="ob-name-input" type="text" placeholder="np. Filip" autocomplete="given-name">
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;margin-top:8px;">Inni biegacze zobaczą Twój profil</div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn" onclick="obNext(2)">Dalej &#x2192;</button>
+    <button class="ob-btn-ghost" onclick="obNext(2)">Pomiń</button>
+  </div>
+</div>
+
+<!-- EKRAN 3: Życiówki -->
+<div id="ob-s3" class="ob-screen" style="display:none;">
+  <div class="ob-hero">
+    <div class="ob-progress">
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip"></div>
+    </div>
+    <div class="ob-step-lbl">Krok 3 z 4</div>
+    <div class="ob-h1">Twoje<br><em>rekordy</em></div>
+    <div style="font-size:13px;color:rgba(240,237,232,0.5);margin-top:6px;">Podaj swoje najlepsze wyniki &#x1F3C5;</div>
+  </div>
+  <div class="ob-body">
+    <div class="ob-pb-grid">
+      <div class="ob-pb-item">
+        <div class="ob-pb-lbl">5 km</div>
+        <input class="ob-pb-input" id="ob-pb-5k" type="text" placeholder="00:00" maxlength="7" oninput="autoColonPace(this)">
+      </div>
+      <div class="ob-pb-item">
+        <div class="ob-pb-lbl">10 km</div>
+        <input class="ob-pb-input" id="ob-pb-10k" type="text" placeholder="0:00:00" maxlength="7">
+      </div>
+      <div class="ob-pb-item">
+        <div class="ob-pb-lbl">Półmaraton</div>
+        <input class="ob-pb-input" id="ob-pb-half" type="text" placeholder="0:00:00" maxlength="7">
+      </div>
+      <div class="ob-pb-item">
+        <div class="ob-pb-lbl">Maraton</div>
+        <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="0:00:00" maxlength="7">
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;margin-top:16px;">Możesz uzupełnić później w profilu</div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn" onclick="obNext(3)">Dalej &#x2192;</button>
+    <button class="ob-btn-ghost" onclick="obNext(3)">Pomiń</button>
+  </div>
+</div>
+
+<!-- EKRAN 4: Cel -->
+<div id="ob-s4" class="ob-screen" style="display:none;">
+  <div class="ob-hero">
+    <div class="ob-progress">
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+    </div>
+    <div class="ob-step-lbl">Krok 4 z 4</div>
+    <div class="ob-h1">Jaki masz<br><em>cel?</em></div>
+  </div>
+  <div class="ob-body">
+    <div class="ob-card sel" id="ob-goal-improve" onclick="obSelectGoal('improve')">
+      <div class="ob-card-icon">&#x1F4C8;</div>
+      <div><div class="ob-card-name">Poprawa formy</div><div class="ob-card-sub">Chcę być w lepszej kondycji i biegać regularnie</div></div>
+      <div class="ob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+    <div class="ob-card" id="ob-goal-time" onclick="obSelectGoal('time')">
+      <div class="ob-card-icon">&#x23F1;</div>
+      <div><div class="ob-card-name">Konkretny czas</div><div class="ob-card-sub">Mam cel wynikowy — dystans i czas do pobicia</div></div>
+      <div class="ob-check"></div>
+    </div>
+    <div class="ob-card" id="ob-goal-return" onclick="obSelectGoal('return')">
+      <div class="ob-card-icon">&#x1F6A9;</div>
+      <div><div class="ob-card-name">Powrót do biegania</div><div class="ob-card-sub">Wracam po przerwie lub kontuzji</div></div>
+      <div class="ob-check"></div>
+    </div>
+    <div class="ob-card" id="ob-goal-race" onclick="obSelectGoal('race')">
+      <div class="ob-card-icon">&#x1F3C1;</div>
+      <div><div class="ob-card-name">Przygotowanie do startu</div><div class="ob-card-sub">Mam zaplanowany wyścig i chcę się do niego przygotować</div></div>
+      <div class="ob-check"></div>
+    </div>
+    <div id="ob-error" style="display:none;margin-top:12px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:#f08080;border-radius:8px;padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;"></div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn" onclick="obFinish()" id="ob-finish-btn">Gotowe! &#x1F3C3;</button>
+  </div>
+</div>
+
+</div>
 </body>
 </html>
