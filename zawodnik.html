@@ -701,7 +701,10 @@ body{
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>
     </div>
-    <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;">—</div>
+    <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
+      <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">—</span>
+      <img id="av-photo" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%;">
+    </div>
     <div id="av-menu" style="display:none;position:absolute;top:54px;right:0;background:#16161a;border:1px solid #d4501a;border-radius:12px;padding:8px;z-index:9999;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,0.8);">
       <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:'DM Mono',monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
       <div onclick="showSection('profile');toggleMenu();" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
@@ -903,12 +906,24 @@ body{
     <div style="font-size:9px;color:rgba(255,255,255,0.18);font-family:'DM Mono',monospace;margin-top:6px;letter-spacing:0.06em;">kliknij avatar · zmień zdjęcie</div>
   </div>
 
-  <!-- Sub-tabs: Profil | Wiadomości | Statystyki -->
-  <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:0 0 16px;">
-    <button id="ptab-info" onclick="switchProfileTab('info')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Dane</button>
-    <button id="ptab-msgs" onclick="switchProfileTab('msgs')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Wiadomości</button>
-    <button id="ptab-stats" onclick="switchProfileTab('stats')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Statystyki</button>
-    <button id="ptab-calc" onclick="switchProfileTab('calc')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Kalkulator</button>
+  <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 20px;">
+    <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Dane</span>
+    </button>
+    <button id="ptab-msgs" onclick="switchProfileTab('msgs')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Czat</span>
+    </button>
+    <button id="ptab-stats" onclick="switchProfileTab('stats')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Statystyki</span>
+    </button>
+    <button id="ptab-calc" onclick="switchProfileTab('calc')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/></svg>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Kalkulator</span>
+    </button>
   </div>
 
   <!-- TAB: DANE (info) -->
@@ -1724,12 +1739,24 @@ let _profileTab = 'info';
 
 function switchProfileTab(tab) {
   _profileTab = tab;
+  const svgColors = {
+    info:  { svg: 'var(--accent)', bg: 'rgba(232,86,30,0.12)', border: 'rgba(232,86,30,0.4)', text: 'var(--accent)' },
+    msgs:  { svg: '#5090e0',       bg: 'rgba(80,144,224,0.12)', border: 'rgba(80,144,224,0.4)', text: '#5090e0' },
+    stats: { svg: '#3db870',       bg: 'rgba(61,184,112,0.12)', border: 'rgba(61,184,112,0.4)', text: '#3db870' },
+    calc:  { svg: '#9a6fe8',       bg: 'rgba(154,111,232,0.12)', border: 'rgba(154,111,232,0.4)', text: '#9a6fe8' },
+  };
   ['info','msgs','stats','calc'].forEach(t => {
     const btn = document.getElementById('ptab-' + t);
     const panel = document.getElementById('ptab-panel-' + t);
     if (btn) {
-      btn.style.background = t === tab ? 'rgba(232,86,30,0.12)' : 'transparent';
-      btn.style.color = t === tab ? 'var(--accent)' : 'var(--muted)';
+      const isActive = t === tab;
+      const col = svgColors[t];
+      btn.style.background = isActive ? col.bg : 'transparent';
+      btn.style.borderColor = isActive ? col.border : 'var(--border)';
+      const svg = btn.querySelector('svg');
+      if (svg) svg.setAttribute('stroke', isActive ? col.svg : 'var(--muted)');
+      const span = btn.querySelector('span');
+      if (span) span.style.color = isActive ? col.text : 'var(--muted)';
     }
     if (panel) panel.style.display = t === tab ? 'block' : 'none';
   });
@@ -1800,18 +1827,107 @@ async function sendProfileMsg() {
 async function _loadStatsInProfile() {
   const el = document.getElementById('stats-content-profile');
   if (!el || !_athleteId) return;
-  // Call existing loadStats but redirect output to profile container
-  const oldEl = document.getElementById('stats-content');
-  // Temporarily swap the stats-content element reference
-  if (oldEl) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;text-align:center;">Ładowanie...</div>';
-    await loadStats();
-    // Copy result
-    el.innerHTML = oldEl.innerHTML;
-    oldEl.innerHTML = '';
-  } else {
-    await loadStats();
-  }
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;padding:20px 0;text-align:center;">Ładowanie statystyk...</div>';
+
+  const since90 = new Date(); since90.setDate(since90.getDate() - 90);
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+  const since7  = new Date(); since7.setDate(since7.getDate() - 7);
+  const { data: logs } = await _sb.from('training_logs').select('*')
+    .eq('athlete_id', _athleteId).gte('logged_at', since90.toISOString())
+    .order('logged_at', {ascending: true});
+
+  const all = logs || [];
+  const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
+  const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
+  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km90=km(all), km30=km(logs30), km7=km(logs7);
+  const sessions30=logs30.length;
+
+  const paces = logs30.filter(l=>l.pace).map(l=>{const p=l.pace.split(':').map(Number);return p.length===2?p[0]*60+p[1]:null;}).filter(Boolean);
+  const bestPaceSecs=paces.length?Math.min(...paces):null;
+  const bestPace=bestPaceSecs?Math.floor(bestPaceSecs/60)+':'+String(bestPaceSecs%60).padStart(2,'0'):'—';
+
+  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const typeCount={};
+  logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
+
+  const weeks=[];
+  for(let i=7;i>=0;i--){const wEnd=new Date();wEnd.setDate(wEnd.getDate()-i*7);const wStart=new Date(wEnd);wStart.setDate(wStart.getDate()-6);const wLogs=all.filter(l=>{const d=new Date(l.logged_at);return d>=wStart&&d<=wEnd;});weeks.push({label:(wEnd.getDate())+'.'+String(wEnd.getMonth()+1).padStart(2,'0'),km:parseFloat(km(wLogs).toFixed(1))});}
+
+  el.innerHTML = `
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);line-height:1;">${km7.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / tydzień</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--green);line-height:1;">${sessions30}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji / 30 dni</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#5090e0;line-height:1;">${bestPace}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">najl. tempo</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km30.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 30 dni</div>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km90.toFixed(0)}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 90 dni</div>
+    </div>
+  </div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
+    <canvas id="chart-weekly-profile" height="120"></canvas>
+  </div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
+    ${Object.keys(typeCount).length===0?'<div style="color:var(--muted);font-size:12px;">Brak danych</div>':
+      Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type,count])=>{
+        const pct=Math.round(count/Math.max(sessions30,1)*100);
+        const color=typeColors2[type]||'#66636e';
+        return `<div style="margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-size:12px;">${type}</span>
+            <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${count}× · ${pct}%</span>
+          </div>
+          <div style="background:var(--card2);border-radius:3px;height:3px;">
+            <div style="background:${color};height:3px;border-radius:3px;width:${pct}%;transition:width 0.5s;"></div>
+          </div>
+        </div>`;
+      }).join('')}
+  </div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Ostatnie treningi</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+    ${[...all].reverse().slice(0,10).map(l=>{
+      const type=l.training_type||'Trening';const color=typeColors2[type]||'#66636e';
+      const date=new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
+      const dist=l.distance_km?parseFloat(l.distance_km).toFixed(1)+' km':'';
+      const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
+      return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+        <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${type}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div></div>
+        <div style="text-align:right;flex-shrink:0;"><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${dist}</div>${l.pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${l.pace}/km</div>`:''}</div>
+        <div style="font-size:16px;">${feel}</div>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // Chart
+  const renderChart = () => {
+    const cw = document.getElementById('chart-weekly-profile');
+    if (!cw || !window.Chart) return;
+    new Chart(cw, {type:'bar', data:{
+      labels: weeks.map(w=>w.label),
+      datasets:[{data:weeks.map(w=>w.km),backgroundColor:'rgba(212,80,26,0.7)',borderRadius:4,borderSkipped:false}]
+    }, options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}},y:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}}}}});
+  };
+  if (!window.Chart) {
+    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';s.onload=renderChart;document.head.appendChild(s);
+  } else { renderChart(); }
 }
 
 // ── PRIVACY TOGGLE ────────────────────────────────────────────────
@@ -1995,6 +2111,7 @@ async function loadProfile() {
   // Zawsze wyjdź z trybu edycji przy ładowaniu profilu
   if (_editingPBs) toggleEditPBs();
   if (_athleteId) checkStravaStatus();
+  if (_athleteId) loadAvatarTopbar(_athleteId);
   
   if (_athleteId) {
     // Avatar
@@ -2398,6 +2515,29 @@ async function loadDailyMotivation() {
   document.getElementById('motiv-source').textContent = socialText ? 'Twój plan' : q.source;
 }
 
+// ── AVATAR HELPERS ────────────────────────────────────────────────
+function setAvBtn(initials) {
+  const ini = document.getElementById('av-initials');
+  if (ini) ini.textContent = initials;
+}
+
+function loadAvatarTopbar(athleteId) {
+  if (!athleteId) return;
+  const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(athleteId + '/avatar.jpg');
+  if (!urlData?.publicUrl) return;
+  const photo = document.getElementById('av-photo');
+  const ini = document.getElementById('av-initials');
+  if (!photo) return;
+  const img = new Image();
+  img.onload = () => {
+    photo.src = urlData.publicUrl + '?t=' + Date.now();
+    photo.style.display = 'block';
+    if (ini) ini.style.display = 'none';
+  };
+  img.onerror = () => {}; // no photo — keep initials
+  img.src = urlData.publicUrl + '?t=' + Date.now();
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
@@ -2413,7 +2553,7 @@ async function initAuth() {
     document.getElementById('menu-email').textContent = user2.email;
     const name2 = user2.user_metadata?.full_name || user2.email?.split('@')[0] || 'Zawodnik';
     const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    document.getElementById('av-btn').textContent = initials2;
+    setAvBtn(initials2);
     const tn2 = document.getElementById('topbar-name');
     if(tn2){ tn2.innerHTML = name2.split(' ')[0]; tn2.style.opacity='1'; }
 
@@ -2422,7 +2562,7 @@ async function initAuth() {
       _athleteId = ath2.id;
       const n2 = ath2.full_name || name2;
       const i2 = n2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      document.getElementById('av-btn').textContent = i2;
+      setAvBtn(i2);
       if(tn2){ tn2.innerHTML = n2.split(' ')[0] + ' <span>' + (n2.split(' ')[1]?.[0]||'') + '.</span>'; }
       if (_isOnboarding) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
       await loadLogs();
@@ -2438,7 +2578,7 @@ async function initAuth() {
   // Ustaw imię od razu z metadanych zanim pobierzemy z bazy
   const nameFromMeta = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Zawodnik';
   const initialsFromMeta = nameFromMeta.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-  document.getElementById('av-btn').textContent = initialsFromMeta;
+  setAvBtn(initialsFromMeta);
   const tnEl = document.getElementById('topbar-name');
   if(tnEl){ tnEl.innerHTML = nameFromMeta.split(' ')[0]; tnEl.style.opacity='1'; }
 
@@ -2453,7 +2593,7 @@ async function initAuth() {
     _athleteId = ath.id;
     const name = ath.full_name || nameFromMeta;
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    document.getElementById('av-btn').textContent = initials;
+    setAvBtn(initials);
     if(tnEl){ tnEl.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
 
     // Nowy zawodnik z ?onboarding=1 — pokaż onboarding
@@ -2489,6 +2629,7 @@ async function initAuth() {
     }
     await loadLogs();
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
+    loadAvatarTopbar(_athleteId);
   } else {
     // Brak rekordu — nowy użytkownik, pokaż onboarding
     showOnboarding();
@@ -2601,7 +2742,6 @@ async function obFinish() {
     const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
     const goalText = goalLabels[_obGoal] || 'Poprawa formy';
 
-    // Build data — only include coach_id if user explicitly selected one
     const athleteData = {
       full_name: name,
       email: session.user.email,
@@ -2610,7 +2750,6 @@ async function obFinish() {
     };
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
 
-    // PBs — only add if filled
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
     const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
     const pbHalf = document.getElementById('ob-pb-half')?.value.trim();
@@ -2620,39 +2759,46 @@ async function obFinish() {
     if (pbHalf) athleteData.pb_half = pbHalf;
     if (pbMar) athleteData.pb_marathon = pbMar;
 
-    let data, error;
-
     // Check if athlete record exists
     const { data: existing } = await _sb.from('athletes')
       .select('id')
       .eq('user_id', session.user.id)
       .maybeSingle();
 
-    if (existing) {
-      _athleteId = existing.id;
-      ({ data, error } = await _sb.from('athletes')
+    let savedId = null;
+
+    if (existing?.id) {
+      savedId = existing.id;
+      const { error } = await _sb.from('athletes')
         .update(athleteData)
-        .eq('id', existing.id)
-        .select()
-        .single());
-    } else {
-      ({ data, error } = await _sb.from('athletes')
-        .insert({ ...athleteData, user_id: session.user.id })
-        .select()
-        .single());
-    }
-
-    if (error) {
-      console.error('Onboarding DB error:', error);
-      if (errEl) {
-        errEl.textContent = 'Błąd zapisu: ' + (error.message || JSON.stringify(error));
-        errEl.style.display = 'block';
+        .eq('id', existing.id);
+      if (error) {
+        console.error('Update error:', error);
+        if (errEl) { errEl.textContent = 'Błąd: ' + (error.message || JSON.stringify(error)); errEl.style.display = 'block'; }
+        if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
+        return;
       }
-      if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
-      return;
+    } else {
+      const { data: inserted, error } = await _sb.from('athletes')
+        .insert({ ...athleteData, user_id: session.user.id })
+        .select('id')
+        .maybeSingle();
+      if (error) {
+        console.error('Insert error:', error);
+        if (errEl) { errEl.textContent = 'Błąd: ' + (error.message || JSON.stringify(error)); errEl.style.display = 'block'; }
+        if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
+        return;
+      }
+      // inserted may be null if RLS blocks SELECT after INSERT — fetch manually
+      if (inserted?.id) {
+        savedId = inserted.id;
+      } else {
+        const { data: fetched } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+        savedId = fetched?.id || null;
+      }
     }
 
-    _athleteId = data.id;
+    if (savedId) _athleteId = savedId;
     if (_selectedCoachId) COACH_ID = _selectedCoachId;
 
     // Avatar upload (non-blocking)
@@ -2663,13 +2809,18 @@ async function obFinish() {
         .catch(e => console.warn('Avatar upload:', e.message));
     }
 
-    // Close modal first, then load data
+    // Close modal
     document.getElementById('onboarding-modal').classList.remove('show');
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
-    // Load data after modal closed
-    await loadLogs();
+    // Load data
+    if (_athleteId) {
+      await loadLogs();
+    } else {
+      // No ID yet — reload page to trigger proper auth flow
+      setTimeout(() => window.location.reload(), 1000);
+    }
 
   } catch(e) {
     console.error('obFinish exception:', e);
