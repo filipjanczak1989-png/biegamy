@@ -3634,23 +3634,45 @@ async function loadFollowing() {
   const el = document.getElementById('social-following-content');
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
-  const { data } = await _sb.from('follows')
-    .select('following_id,athletes!follows_following_id_fkey(id,full_name,pb_marathon)')
+
+  // Krok 1: pobierz listę obserwowanych ID
+  const { data: followRows, error: fErr } = await _sb.from('follows')
+    .select('following_id')
     .eq('follower_id', _athleteId);
-  if (!data || data.length === 0) {
+
+  console.log('follows rows:', followRows, fErr);
+
+  if (!followRows || followRows.length === 0) {
     el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Nie obserwujesz jeszcze nikogo.</div>';
     return;
   }
-  el.innerHTML = data.map(f => {
-    const a = f.athletes; if (!a) return '';
-    const name = a.full_name||'Biegacz';
+
+  // Krok 2: pobierz dane tych zawodników
+  const ids = followRows.map(f => f.following_id);
+  const { data: athletes } = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal')
+    .in('id', ids);
+
+  if (!athletes || athletes.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak danych obserwowanych.</div>';
+    return;
+  }
+
+  el.innerHTML = athletes.map(a => {
+    const name = a.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+    return `<div onclick="openAthleteProfile('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
-      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${name}</div>${a.pb_marathon?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">PB: ${a.pb_marathon}</div>`:''}</div>
-      <button onclick="unfollowAthlete('${a.id}',this)" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 9px;border-radius:7px;cursor:pointer;">Przestań</button>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:600;">${name}</div>
+        ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${a.goal}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">M: ${a.pb_marathon}</div>` : ''}
+        <button onclick="event.stopPropagation();unfollowAthlete('${a.id}',this.closest('[onclick]'))" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;cursor:pointer;">Przestań</button>
+      </div>
     </div>`;
-  }).filter(Boolean).join('');
+  }).join('');
 }
 
 let _searchTimer = null;
@@ -3682,10 +3704,10 @@ async function _doSearch(q) {
     const name = a.full_name||'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isF = fSet.has(a.id);
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+    return `<div onclick="openAthleteProfile('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
       <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${name}</div>${a.pb_marathon?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">PB: ${a.pb_marathon}</div>`:''}</div>
-      <button id="fb-${a.id}" onclick="toggleFollow('${a.id}',this,${isF})"
+      <button id="fb-${a.id}" onclick="event.stopPropagation();toggleFollow('${a.id}',this,${isF})"
         style="background:${isF?'transparent':'var(--accent)'};border:1px solid ${isF?'var(--border)':'var(--accent)'};color:${isF?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">
         ${isF ? 'Obserwujesz' : '+ Obserwuj'}
       </button>
@@ -3708,12 +3730,157 @@ async function toggleFollow(targetId, btn, isFollowing) {
   btn.disabled = false;
 }
 
-async function unfollowAthlete(targetId, btn) {
+async function unfollowAthlete(targetId, cardEl) {
   if (!confirm('Przestać obserwować?')) return;
-  await _sb.from('follows').delete().eq('follower_id',_athleteId).eq('following_id',targetId);
-  btn.closest('div[style*="margin-bottom:8px"]')?.remove();
+  await _sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetId);
+  if (cardEl) cardEl.remove();
+  else loadFollowing();
   toast('Usunięto z obserwowanych ✓');
 }
+
+// ── PROFIL PUBLICZNY ZAWODNIKA ────────────────────────────────────
+
+async function openAthleteProfile(athleteId) {
+  // Usuń stary modal jeśli istnieje
+  document.getElementById('athlete-profile-modal')?.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'athlete-profile-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);';
+  modal.innerHTML = `
+    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:32px;">
+      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
+      <div id="ap-content" style="padding:0 20px;">
+        <div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>
+      </div>
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+
+  // Pobierz dane zawodnika
+  const { data: ath } = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,is_public')
+    .eq('id', athleteId).maybeSingle();
+
+  if (!ath) {
+    document.getElementById('ap-content').innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Nie znaleziono profilu.</div>';
+    return;
+  }
+
+  // Sprawdź czy profil prywatny
+  if (ath.is_public === false) {
+    document.getElementById('ap-content').innerHTML = `
+      <div style="text-align:center;padding:40px 0;">
+        <div style="font-size:36px;margin-bottom:12px;">🔒</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:8px;">${ath.full_name||'Biegacz'}</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Profil prywatny</div>
+      </div>`;
+    return;
+  }
+
+  // Sprawdź czy obserwujemy
+  const { data: followCheck } = await _sb.from('follows').select('id')
+    .eq('follower_id', _athleteId).eq('following_id', athleteId).maybeSingle();
+  const isFollowing = !!followCheck;
+
+  // Pobierz ostatnie treningi
+  const { data: logs } = await _sb.from('training_logs')
+    .select('training_type,distance_km,pace,logged_at,feel')
+    .eq('athlete_id', athleteId)
+    .order('logged_at', { ascending: false })
+    .limit(5);
+
+  const name = ath.full_name || 'Biegacz';
+  const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  const typeColors = { Spokojny:'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
+
+  const pbs = [
+    { label: 'Maraton', val: ath.pb_marathon },
+    { label: 'Półmaraton', val: ath.pb_half },
+    { label: '10 km', val: ath.pb_10k },
+    { label: '5 km', val: ath.pb_5k },
+  ].filter(p => p.val);
+
+  document.getElementById('ap-content').innerHTML = `
+    <!-- Avatar + imię -->
+    <div style="text-align:center;padding:20px 0 16px;">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:0 auto 12px;box-shadow:0 0 24px rgba(232,86,30,0.3);" id="ap-avatar">${ini}</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;">${name}</div>
+      ${ath.goal ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">${ath.goal}</div>` : ''}
+      <button id="ap-follow-btn" onclick="_apToggleFollow('${athleteId}', ${isFollowing})"
+        style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
+        ${isFollowing ? '✓ Obserwujesz' : '+ Obserwuj'}
+      </button>
+    </div>
+
+    ${pbs.length ? `
+    <!-- Życiówki -->
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Życiówki</div>
+    <div style="display:grid;grid-template-columns:repeat(${Math.min(pbs.length,2)},1fr);gap:8px;margin-bottom:20px;">
+      ${pbs.map(p => `
+        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
+          <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">${p.label}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);">${p.val}</div>
+        </div>`).join('')}
+    </div>` : ''}
+
+    ${logs && logs.length ? `
+    <!-- Ostatnie treningi -->
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie treningi</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+      ${logs.map(l => {
+        const type = l.training_type || 'Trening';
+        const col = typeColors[type] || 'var(--muted)';
+        const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
+        const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
+        const feel = {good:'😊', mid:'😐', bad:'😓'}[l.feel] || '';
+        return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
+          <div style="width:3px;height:32px;background:${col};border-radius:2px;flex-shrink:0;"></div>
+          <div style="flex:1;"><div style="font-size:13px;">${type}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div></div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;">${dist}</div>
+          ${l.pace ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${l.pace}/km</div>` : ''}
+          <div>${feel}</div>
+        </div>`;
+      }).join('')}
+    </div>` : '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak publicznych treningów.</div>'}
+
+    <button onclick="document.getElementById('athlete-profile-modal').remove()" style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;margin-top:4px;">Zamknij</button>`;
+
+  // Spróbuj załadować avatar
+  const { data: avUrl } = _sb.storage.from('training-screenshots').getPublicUrl(athleteId + '/avatar.jpg');
+  if (avUrl?.publicUrl) {
+    const avEl = document.getElementById('ap-avatar');
+    if (avEl) {
+      const img = new Image();
+      img.onload = () => { avEl.innerHTML = ''; avEl.style.overflow = 'hidden'; avEl.style.padding = '0'; const i = document.createElement('img'); i.src = avUrl.publicUrl; i.style.cssText = 'width:100%;height:100%;object-fit:cover;'; avEl.appendChild(i); };
+      img.src = avUrl.publicUrl + '?t=' + Date.now();
+    }
+  }
+}
+
+async function _apToggleFollow(targetId, isFollowing) {
+  const btn = document.getElementById('ap-follow-btn');
+  if (!btn) return;
+  btn.disabled = true;
+  if (isFollowing) {
+    await _sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetId);
+    btn.textContent = '+ Obserwuj';
+    btn.style.background = 'var(--accent)';
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.color = '#fff';
+    btn.onclick = () => _apToggleFollow(targetId, false);
+  } else {
+    await _sb.from('follows').insert({ follower_id: _athleteId, following_id: targetId });
+    btn.textContent = '✓ Obserwujesz';
+    btn.style.background = 'transparent';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--muted)';
+    btn.onclick = () => _apToggleFollow(targetId, true);
+  }
+  btn.disabled = false;
+}
+
+
 
 async function loadStats() {
   if (!_athleteId) return;
