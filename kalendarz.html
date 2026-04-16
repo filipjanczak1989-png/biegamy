@@ -2387,27 +2387,33 @@ if (_urlRole === 'athlete') {
 <nav class="bottom-nav" id="bottom-nav-cal">
   <a id="bnav-home" class="nav-it">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span class="nav-lbl">Panel</span>
+    <span class="nav-lbl" id="bnav-home-lbl">Panel</span>
   </a>
   <a href="kalendarz.html" class="nav-it active" id="bnav-cal">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <span class="nav-lbl" style="color:var(--accent);">Kalendarz</span>
+    <span class="nav-lbl" style="color:var(--accent);">Plan</span>
   </a>
-  <a id="bnav-stats" class="nav-it">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span class="nav-lbl">Statystyki</span>
+  <a id="bnav-log" class="nav-it">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <span class="nav-lbl">Log</span>
   </a>
-  <a id="bnav-msg" class="nav-it">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <span class="nav-lbl">Czat</span>
+  <a id="bnav-social" class="nav-it">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span class="nav-lbl">Spo&#x142;eczno&#x15B;&#x107;</span>
+  </a>
+  <a id="bnav-profile" class="nav-it">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    <span class="nav-lbl">Profil</span>
   </a>
 </nav>
 <script>
-// Ustaw linki w bottom nav na podstawie roli
 const _isCoach = typeof _urlRole !== 'undefined' && _urlRole === 'coach';
 document.getElementById('bnav-home').href = _isCoach ? 'trener.html' : 'zawodnik.html';
-document.getElementById('bnav-stats').href = _isCoach ? 'trener.html?tab=analytics' : 'zawodnik.html?tab=stats';
-document.getElementById('bnav-msg').href = _isCoach ? 'trener.html?tab=msgs' : 'zawodnik.html?tab=msgs';
+document.getElementById('bnav-home-lbl').textContent = _isCoach ? 'Zawodnicy' : 'Dziś';
+document.getElementById('bnav-log').href = _isCoach ? 'trener.html' : 'zawodnik.html?tab=msgs';
+document.getElementById('bnav-log').querySelector('.nav-lbl').textContent = _isCoach ? 'Trener' : 'Log';
+document.getElementById('bnav-social').href = _isCoach ? 'trener.html?tab=analytics' : 'zawodnik.html?tab=social';
+document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=settings' : 'zawodnik.html?tab=profile';
 </script>
 </body>
 </html>

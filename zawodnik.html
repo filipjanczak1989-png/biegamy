@@ -791,7 +791,7 @@ body{
   </div>
 </div>
 
-<nav class="bottom-nav">
+<nav class="bottom-nav" id="main-bottom-nav">
   <a class="nav-it active" href="#" id="nav-home" onclick="showSection('home');return false;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     <div class="nav-lbl" style="color:var(--accent);">Dziś</div>
@@ -804,13 +804,13 @@ body{
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
     <div class="nav-lbl">Log</div>
   </a>
-  <a class="nav-it" href="#" onclick="showSection('msgs');return false;" id="nav-msgs">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-    <div class="nav-lbl">Wiadomości</div>
+  <a class="nav-it" href="#" onclick="showSection('social');return false;" id="nav-social">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <div class="nav-lbl">Spo&#x142;eczno&#x15B;&#x107;</div>
   </a>
-  <a class="nav-it" href="#" onclick="showSection('stats');return false;" id="nav-stats">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-    <div class="nav-lbl">Statystyki</div>
+  <a class="nav-it" href="#" onclick="showSection('profile');return false;" id="nav-profile">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    <div class="nav-lbl">Profil</div>
   </a>
 </nav>
 
@@ -1548,19 +1548,20 @@ function calcTimeAuto() {
   if(timeLbl) timeLbl.textContent = '← auto';
 }
 function showSection(name) {
-  // Reset nav
-  document.querySelectorAll('.nav-it').forEach(n => {
-    n.querySelector('svg')?.setAttribute('stroke','var(--muted)');
+  // Reset all nav items
+  document.querySelectorAll('#main-bottom-nav .nav-it, .nav-it').forEach(n => {
+    n.querySelectorAll('svg').forEach(s => s.setAttribute('stroke','var(--muted)'));
     const lbl = n.querySelector('.nav-lbl');
     if(lbl) lbl.style.color = '';
     n.classList.remove('active');
   });
 
-  // Ukryj sekcje + home elements
-  document.getElementById('section-msgs').style.display = 'none';
-  document.getElementById('section-profile').style.display = 'none';
-  document.getElementById('section-stats').style.display = 'none';
-  // Ukryj home-only elementy (przywrócone tylko w 'home')
+  // Hide all overlay sections
+  ['section-msgs','section-profile','section-stats','section-social'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
@@ -1569,26 +1570,29 @@ function showSection(name) {
     document.getElementById('log-list')?.style.setProperty('display','none');
   }
 
+  function activateNav(id) {
+    const n = document.getElementById(id);
+    if (n) {
+      n.classList.add('active');
+      n.querySelectorAll('svg').forEach(s => s.setAttribute('stroke','var(--accent)'));
+      const lbl = n.querySelector('.nav-lbl');
+      if (lbl) lbl.style.color = 'var(--accent)';
+    }
+  }
+
   if (name === 'home') {
-    document.getElementById('section-msgs').style.display = 'none';
-    document.getElementById('section-profile').style.display = 'none';
-    document.getElementById('section-stats').style.display = 'none';
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     document.querySelectorAll('.fade-in').forEach(el => el.style.display = '');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = '');
     document.getElementById('daily-motivation')?.style.setProperty('display','');
     document.getElementById('week-strip')?.style.setProperty('display','');
-    const n = document.getElementById('nav-home');
-    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
-    // PAGE ENTER
+    activateNav('nav-home');
     requestAnimationFrame(() => {
       document.querySelectorAll('.today-hero,.week-sum,.coach-box').forEach((el,i) => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(14px)';
+        el.style.opacity = '0'; el.style.transform = 'translateY(14px)';
         setTimeout(() => {
           el.style.transition = `opacity 0.38s cubic-bezier(0.16,1,0.3,1) ${i*60}ms, transform 0.38s cubic-bezier(0.16,1,0.3,1) ${i*60}ms`;
-          el.style.opacity = '1';
-          el.style.transform = 'translateY(0)';
+          el.style.opacity = '1'; el.style.transform = 'translateY(0)';
         }, 20);
       });
       setTimeout(() => Anim.observeCards(), 200);
@@ -1596,23 +1600,28 @@ function showSection(name) {
 
   } else if (name === 'msgs' || name === 'messages' || name === 'czat') {
     document.getElementById('section-msgs').style.display = 'flex';
-    const n = document.getElementById('nav-msgs');
-    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
     loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
-    // Załaduj imię trenera
     if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
   } else if (name === 'profile') {
     document.getElementById('section-profile').style.display = 'block';
+    activateNav('nav-profile');
     loadProfile();
 
   } else if (name === 'stats' || name === 'analytics' || name === 'statystyki') {
-    const statsEl = document.getElementById('section-stats');
-    statsEl.style.display = 'block';
-    Anim.pageEnter(statsEl);
-    const n = document.getElementById('nav-stats');
-    if(n) { n.classList.add('active'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); n.querySelector('.nav-lbl').style.color='var(--accent)'; }
-    loadStats();
+    // Stats moved to profile
+    document.getElementById('section-profile').style.display = 'block';
+    activateNav('nav-profile');
+    loadProfile();
+    setTimeout(() => {
+      const el = document.getElementById('section-profile');
+      if (el) el.scrollTop = el.scrollHeight;
+    }, 300);
+
+  } else if (name === 'social' || name === 'spolecznosc') {
+    document.getElementById('section-social').style.display = 'block';
+    activateNav('nav-social');
+    loadSocialFeed();
   }
 }
 
@@ -2227,20 +2236,19 @@ async function obFinish() {
 
     const nameInput = document.getElementById('ob-name-input');
     const name = nameInput?.value.trim() || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Zawodnik';
-
     const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
     const goalText = goalLabels[_obGoal] || 'Poprawa formy';
 
-    // Build update object — only columns that exist in DB
+    // Build data — only include coach_id if user explicitly selected one
     const athleteData = {
       full_name: name,
       email: session.user.email,
       active: true,
       goal: goalText,
-      coach_id: _selectedCoachId || null,
     };
+    if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
 
-    // Add PBs only if filled
+    // PBs — only add if filled
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
     const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
     const pbHalf = document.getElementById('ob-pb-half')?.value.trim();
@@ -2251,21 +2259,33 @@ async function obFinish() {
     if (pbMar) athleteData.pb_marathon = pbMar;
 
     let data, error;
-    if (_athleteId) {
-      ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', _athleteId).select().single());
+
+    // Check if athlete record exists
+    const { data: existing } = await _sb.from('athletes')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .maybeSingle();
+
+    if (existing) {
+      _athleteId = existing.id;
+      ({ data, error } = await _sb.from('athletes')
+        .update(athleteData)
+        .eq('id', existing.id)
+        .select()
+        .single());
     } else {
-      const { data: existing } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-      if (existing) {
-        _athleteId = existing.id;
-        ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', existing.id).select().single());
-      } else {
-        ({ data, error } = await _sb.from('athletes').insert({ ...athleteData, user_id: session.user.id }).select().single());
-      }
+      ({ data, error } = await _sb.from('athletes')
+        .insert({ ...athleteData, user_id: session.user.id })
+        .select()
+        .single());
     }
 
     if (error) {
       console.error('Onboarding DB error:', error);
-      if (errEl) { errEl.textContent = 'Błąd zapisu: ' + (error.message || JSON.stringify(error)); errEl.style.display = 'block'; }
+      if (errEl) {
+        errEl.textContent = 'Błąd zapisu: ' + (error.message || JSON.stringify(error));
+        errEl.style.display = 'block';
+      }
       if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
       return;
     }
@@ -2273,20 +2293,21 @@ async function obFinish() {
     _athleteId = data.id;
     if (_selectedCoachId) COACH_ID = _selectedCoachId;
 
-    // Upload avatar if provided
+    // Avatar upload (non-blocking)
     if (_obAvatarFile && _athleteId) {
-      try {
-        const ext = _obAvatarFile.name.split('.').pop() || 'jpg';
-        await _sb.storage.from('training-screenshots').upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
-      } catch(avatarErr) {
-        console.warn('Avatar upload failed:', avatarErr);
-      }
+      const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
+      _sb.storage.from('training-screenshots')
+        .upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type })
+        .catch(e => console.warn('Avatar upload:', e.message));
     }
 
+    // Close modal first, then load data
     document.getElementById('onboarding-modal').classList.remove('show');
     window.history.replaceState({}, '', 'zawodnik.html');
-    await loadLogs();
     toast('Witaj w BiegaMy! 🏃');
+
+    // Load data after modal closed
+    await loadLogs();
 
   } catch(e) {
     console.error('obFinish exception:', e);
@@ -3049,6 +3070,144 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
+
+function switchSocialTab(tab) {
+  ['feed','following','find'].forEach(t => {
+    const btn = document.getElementById('stab-' + t);
+    const panel = document.getElementById('social-' + t);
+    if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
+    if (panel) panel.style.display = t===tab?'block':'none';
+  });
+  if (tab==='feed') loadSocialFeed();
+  if (tab==='following') loadFollowing();
+}
+
+async function loadSocialFeed() {
+  if (!_athleteId) return;
+  const feedEl = document.getElementById('social-feed-content');
+  if (!feedEl) return;
+  feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
+
+  const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
+  if (!followData || followData.length === 0) {
+    feedEl.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;line-height:1.8;">Nie obserwujesz jeszcze żadnego biegacza.<br>Znajdź znajomych w zakładce <strong style="color:var(--fg);">Znajdź</strong>.</div>';
+    return;
+  }
+
+  const ids = followData.map(f => f.following_id);
+  const { data: logs } = await _sb.from('training_logs')
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,athletes(full_name,is_public)')
+    .in('athlete_id', ids)
+    .order('logged_at', { ascending: false })
+    .limit(20);
+
+  if (!logs || logs.length === 0) {
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak aktywności obserwowanych biegaczy.</div>';
+    return;
+  }
+
+  const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
+  feedEl.innerHTML = logs.map(l => {
+    if (l.athletes?.is_public === false) return '';
+    const name = l.athletes?.full_name || 'Biegacz';
+    const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+    const type = l.training_type || 'Trening';
+    const col = tc[type] || 'var(--muted)';
+    const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
+    const feel = {good:'😊',mid:'😐',bad:'😓'}[l.feel] || '';
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${dist||l.comment?'10':'0'}px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">${ini}</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">${name}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div></div>
+        <span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;background:${col}18;padding:3px 8px;border-radius:6px;">${type}</span>
+      </div>
+      ${dist?`<div style="display:flex;gap:20px;align-items:baseline;margin-bottom:${l.comment?'8':'0'}px;">
+        <div><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;">${dist}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">KM</span></div>
+        ${l.pace?`<div><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${l.pace}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">/KM</span></div>`:''}
+        ${feel?`<div style="margin-left:auto;font-size:22px;">${feel}</div>`:''}
+      </div>`:''}
+      ${l.comment?`<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:'DM Sans',sans-serif;font-style:italic;">"${l.comment}"</div>`:''}</div>`;
+  }).filter(Boolean).join('') || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak aktywności.</div>';
+}
+
+async function loadFollowing() {
+  if (!_athleteId) return;
+  const el = document.getElementById('social-following-content');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
+  const { data } = await _sb.from('follows')
+    .select('following_id,athletes!follows_following_id_fkey(id,full_name,pb_marathon)')
+    .eq('follower_id', _athleteId);
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Nie obserwujesz jeszcze nikogo.</div>';
+    return;
+  }
+  el.innerHTML = data.map(f => {
+    const a = f.athletes; if (!a) return '';
+    const name = a.full_name||'Biegacz';
+    const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${name}</div>${a.pb_marathon?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">PB: ${a.pb_marathon}</div>`:''}</div>
+      <button onclick="unfollowAthlete('${a.id}',this)" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 9px;border-radius:7px;cursor:pointer;">Przestań</button>
+    </div>`;
+  }).filter(Boolean).join('');
+}
+
+let _searchTimer = null;
+function socialSearch(q) {
+  clearTimeout(_searchTimer);
+  const el = document.getElementById('social-search-results');
+  if (!q.trim()) { el.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz imię żeby szukać</div>'; return; }
+  el.innerHTML='<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Szukam...</div>';
+  _searchTimer = setTimeout(()=>_doSearch(q), 400);
+}
+
+async function _doSearch(q) {
+  const el = document.getElementById('social-search-results');
+  const { data } = await _sb.from('athletes').select('id,full_name,pb_marathon,is_public').ilike('full_name','%'+q+'%').neq('id',_athleteId).limit(15);
+  if (!data||!data.length) { el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników.</div>'; return; }
+  const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id',_athleteId);
+  const fSet = new Set((myF||[]).map(f=>f.following_id));
+  el.innerHTML = data.map(a => {
+    const name = a.full_name||'Biegacz';
+    const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    const isF = fSet.has(a.id);
+    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${name}</div>${a.pb_marathon?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">PB: ${a.pb_marathon}</div>`:''}</div>
+      <button id="fb-${a.id}" onclick="toggleFollow('${a.id}',this,${isF})"
+        style="background:${isF?'transparent':'var(--accent)'};border:1px solid ${isF?'var(--border)':'var(--accent)'};color:${isF?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">
+        ${isF?'Obserwujesz':'+ Obserwuj'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+async function toggleFollow(targetId, btn, isFollowing) {
+  if (!_athleteId) return;
+  btn.disabled = true;
+  if (isFollowing) {
+    await _sb.from('follows').delete().eq('follower_id',_athleteId).eq('following_id',targetId);
+    btn.textContent='+ Obserwuj'; btn.style.background='var(--accent)'; btn.style.borderColor='var(--accent)'; btn.style.color='#fff';
+    btn.onclick=()=>toggleFollow(targetId,btn,false);
+  } else {
+    await _sb.from('follows').insert({follower_id:_athleteId,following_id:targetId});
+    btn.textContent='Obserwujesz'; btn.style.background='transparent'; btn.style.borderColor='var(--border)'; btn.style.color='var(--muted)';
+    btn.onclick=()=>toggleFollow(targetId,btn,true);
+  }
+  btn.disabled = false;
+}
+
+async function unfollowAthlete(targetId, btn) {
+  if (!confirm('Przestać obserwować?')) return;
+  await _sb.from('follows').delete().eq('follower_id',_athleteId).eq('following_id',targetId);
+  btn.closest('div[style*="margin-bottom:8px"]')?.remove();
+  toast('Usunięto z obserwowanych ✓');
+}
+
 async function loadStats() {
   if (!_athleteId) return;
   const el = document.getElementById('stats-content');
@@ -3592,6 +3751,34 @@ async function toggleVoice(btnId, sender) {
 
 </script>
 <!-- SEKCJA: STATYSTYKI -->
+<!-- SEKCJA: SPOŁECZNOŚĆ -->
+<div id="section-social" style="display:none;padding:0 0 100px;">
+  <div style="padding:52px 16px 0 16px;">
+    <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Biegacze</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;margin-bottom:16px;">Społeczność</div>
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
+      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Aktywność</button>
+      <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Obserwujesz</button>
+      <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
+    </div>
+  </div>
+  <div id="social-feed" style="padding:0 16px;">
+    <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;line-height:1.8;">Zaobserwuj innych bieg aczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
+  </div>
+  <div id="social-following" style="display:none;padding:0 16px;">
+    <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
+  </div>
+  <div id="social-find" style="display:none;padding:0 16px;">
+    <div style="position:relative;margin-bottom:12px;">
+      <input id="social-search-inp" type="text" placeholder="Szukaj po imieniu..." oninput="socialSearch(this.value)"
+        style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px 11px 40px;border-radius:10px;outline:none;box-sizing:border-box;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+      <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    </div>
+    <div id="social-search-results"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wpisz imię żeby szukać</div></div>
+  </div>
+</div>
+
 <div id="section-stats" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;">
     <div>

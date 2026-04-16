@@ -353,6 +353,15 @@ async function register() {
     }).catch(() => {});
   }
 
+  // Wyślij mail powitalny przez Resend (non-blocking)
+  if (!error && data.user?.email) {
+    fetch('https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/send-welcome-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: data.user.email, name: name })
+    }).catch(() => {}); // ignoruj błąd — nie blokuj rejestracji
+  }
+
   // Zawsze pokaż success — niezależnie czy sesja istnieje (email confirmation może być włączone)
   document.getElementById('form-register').style.display = 'none';
   document.getElementById('success-state').style.display = 'block';
@@ -393,7 +402,7 @@ async function loginGoogle() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + '/login.html'
+      redirectTo: 'https://biegamy.run/login.html'
     }
   });
   if (error) showAlert('Błąd logowania przez Google: ' + error.message);
