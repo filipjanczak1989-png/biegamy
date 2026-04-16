@@ -3275,7 +3275,7 @@ function renderLogsDb(data) {
 
 async function deleteLog(logId) {
   if (!confirm('Usunąć ten log?')) return;
-  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  const { error } = await _sb.from('training_logs').delete().eq('id', logId).eq('athlete_id', _athleteId);
   if (error) { toast('Błąd: ' + error.message); return; }
   toast('Log usunięty');
   await loadLogs();
@@ -3378,7 +3378,7 @@ async function saveLog() {
     // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
     const updateData = {...logData};
     if (attachmentUrl) updateData.attachment_url = attachmentUrl;
-    ({ error } = await _sb.from('training_logs').update(updateData).eq('id', _editingLogId));
+    ({ error } = await _sb.from('training_logs').update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId));
   } else {
     // INSERT nowego logu
     ({ error } = await _sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));
