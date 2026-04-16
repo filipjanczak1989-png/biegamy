@@ -2754,6 +2754,24 @@ function obPreviewAvatar(input) {
   reader.readAsDataURL(file);
 }
 
+let _obPrivacy = 'private'; // domyślnie prywatny
+
+function obSelectPrivacy(p) {
+  _obPrivacy = p;
+  ['private','public'].forEach(v => {
+    const card = document.getElementById('ob-privacy-' + v);
+    if (!card) return;
+    const check = card.querySelector('.ob-check');
+    if (v === p) {
+      card.classList.add('sel');
+      check.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>';
+    } else {
+      card.classList.remove('sel');
+      check.innerHTML = '';
+    }
+  });
+}
+
 function obNext(step) {
   // Validate step 1
   if (step === 1) {
@@ -2785,7 +2803,7 @@ async function obFinish() {
     const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
     const goalText = goalLabels[_obGoal] || 'Poprawa formy';
 
-    const athleteData = { full_name: name, email: session.user.email, active: true, goal: goalText };
+    const athleteData = { full_name: name, email: session.user.email, active: true, goal: goalText, is_public: _obPrivacy === 'public' };
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
     const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
@@ -3700,6 +3718,7 @@ function switchSocialTab(tab) {
   });
   if (tab==='feed') loadSocialFeed();
   if (tab==='following') loadFollowing();
+  if (tab==='find') loadSuggestedProfiles();
 }
 
 async function loadSocialFeed() {
@@ -3807,39 +3826,69 @@ let _searchTimer = null;
 function socialSearch(q) {
   clearTimeout(_searchTimer);
   const el = document.getElementById('social-search-results');
-  if (!q.trim()) { el.innerHTML='<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz imię żeby szukać</div>'; return; }
-  el.innerHTML='<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Szukam...</div>';
+  if (!q.trim()) {
+    loadSuggestedProfiles();
+    return;
+  }
+  el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Szukam...</div>';
   _searchTimer = setTimeout(()=>_doSearch(q), 400);
+}
+
+async function loadSuggestedProfiles() {
+  const el = document.getElementById('social-search-results');
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:10px;">Sugerowane profile</div>';
+
+  const { data } = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon,goal')
+    .eq('is_public', true)
+    .neq('id', _athleteId)
+    .limit(6);
+
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz imię żeby szukać</div>';
+    return;
+  }
+  const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
+  const fSet = new Set((myF||[]).map(f=>f.following_id));
+  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:10px;">Sugerowane profile</div>'
+    + _buildAthleteCards(data, fSet);
 }
 
 async function _doSearch(q) {
   const el = document.getElementById('social-search-results');
   if (!el) return;
-  // Brak filtra is_public — pokazujemy wszystkich (RLS w Supabase kontroluje dostęp)
+  // Tylko publiczne profile
   const { data, error } = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon')
+    .select('id,full_name,pb_marathon,goal')
+    .eq('is_public', true)
     .ilike('full_name', '%' + q + '%')
     .limit(20);
   console.log('Search:', q, data, error);
   const results = (data || []).filter(a => a.id !== _athleteId);
   if (!results.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników dla &quot;' + q + '&quot;</div>';
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników dla "' + q + '"</div>';
     return;
   }
   const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
-  el.innerHTML = results.map(a => {
-    const name = a.full_name||'Biegacz';
+  el.innerHTML = _buildAthleteCards(results, fSet);
+}
+
+function _buildAthleteCards(athletes, fSet) {
+  return athletes.map(a => {
+    const name = a.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isF = fSet.has(a.id);
-    return `<div onclick="openAthleteProfile('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
-      <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${name}</div>${a.pb_marathon?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">PB: ${a.pb_marathon}</div>`:''}</div>
-      <button id="fb-${a.id}" onclick="event.stopPropagation();toggleFollow('${a.id}',this,${isF})"
-        style="background:${isF?'transparent':'var(--accent)'};border:1px solid ${isF?'var(--border)':'var(--accent)'};color:${isF?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">
-        ${isF ? 'Obserwujesz' : '+ Obserwuj'}
-      </button>
-    </div>`;
+    const followBtn = '<button id="fb-' + a.id + '" onclick="event.stopPropagation();toggleFollow(\'' + a.id + '\',this,' + isF + ')"'
+      + ' style="background:' + (isF?'transparent':'var(--accent)') + ';border:1px solid ' + (isF?'var(--border)':'var(--accent)') + ';color:' + (isF?'var(--muted)':'#fff') + ';font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">'
+      + (isF ? 'Obserwujesz' : '+ Obserwuj') + '</button>';
+    return '<div onclick="openAthleteProfile(\'' + a.id + '\')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:15px;flex-shrink:0;">' + ini + '</div>'
+      + '<div style="flex:1;"><div style="font-size:14px;font-weight:600;">' + name + '</div>'
+      + (a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:1px;">M: ' + a.pb_marathon + '</div>' : '')
+      + (a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:1px;">' + a.goal + '</div>' : '')
+      + '</div>' + followBtn + '</div>';
   }).join('');
 }
 
@@ -4735,8 +4784,9 @@ async function toggleVoice(btnId, sender) {
       <div class="ob-pip" id="ob-pip-2"></div>
       <div class="ob-pip" id="ob-pip-3"></div>
       <div class="ob-pip" id="ob-pip-4"></div>
+      <div class="ob-pip" id="ob-pip-5"></div>
     </div>
-    <div class="ob-step-lbl">Krok 1 z 4</div>
+    <div class="ob-step-lbl">Krok 1 z 5</div>
     <div class="ob-h1">Po co korzystasz<br>z <em>BiegaMy?</em></div>
   </div>
   <div class="ob-body">
@@ -4775,7 +4825,7 @@ async function toggleVoice(btnId, sender) {
       <div class="ob-pip"></div>
       <div class="ob-pip"></div>
     </div>
-    <div class="ob-step-lbl">Krok 2 z 4</div>
+    <div class="ob-step-lbl">Krok 2 z 5</div>
     <div class="ob-h1">Dodaj swoje<br><em>zdjęcie</em></div>
   </div>
   <div class="ob-body">
@@ -4808,7 +4858,7 @@ async function toggleVoice(btnId, sender) {
       <div class="ob-pip done"></div>
       <div class="ob-pip"></div>
     </div>
-    <div class="ob-step-lbl">Krok 3 z 4</div>
+    <div class="ob-step-lbl">Krok 3 z 5</div>
     <div class="ob-h1">Twoje<br><em>rekordy</em></div>
     <div style="font-size:13px;color:rgba(240,237,232,0.5);margin-top:6px;">Podaj swoje najlepsze wyniki &#x1F3C5;</div>
   </div>
@@ -4848,7 +4898,7 @@ async function toggleVoice(btnId, sender) {
       <div class="ob-pip done"></div>
       <div class="ob-pip done"></div>
     </div>
-    <div class="ob-step-lbl">Krok 4 z 4</div>
+    <div class="ob-step-lbl">Krok 4 z 5</div>
     <div class="ob-h1">Jaki masz<br><em>cel?</em></div>
   </div>
   <div class="ob-body">
@@ -4881,6 +4931,41 @@ async function toggleVoice(btnId, sender) {
       <div class="ob-check"></div>
     </div>
     <div id="ob-error" style="display:none;margin-top:12px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:#f08080;border-radius:8px;padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;"></div>
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn" onclick="obNext(4)" id="ob-s4-next-btn">Dalej →</button>
+  </div>
+</div>
+
+<!-- KROK 5: Prywatność -->
+<div id="ob-s5" class="ob-screen" style="display:none;">
+  <div class="ob-header">
+    <div class="ob-pips">
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+      <div class="ob-pip done"></div>
+    </div>
+    <div class="ob-step-lbl">Krok 5 z 5</div>
+    <div class="ob-h1">Czy chcesz<br><em>publiczny profil?</em></div>
+    <div style="font-size:13px;color:var(--muted);margin-top:8px;line-height:1.6;">Publiczny profil pozwala innym biegaczom zobaczyć Twoje treningi i życiówki. Możesz to zmienić w dowolnym momencie.</div>
+  </div>
+  <div class="ob-body">
+    <div class="ob-card sel" id="ob-privacy-private" onclick="obSelectPrivacy('private')">
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div><div class="ob-card-name">Prywatny</div><div class="ob-card-sub">Tylko Ty i Twój trener widzą Twoje treningi</div></div>
+      <div class="ob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>
+    <div class="ob-card" id="ob-privacy-public" onclick="obSelectPrivacy('public')">
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      </div>
+      <div><div class="ob-card-name">Publiczny</div><div class="ob-card-sub">Inni biegacze mogą Cię znaleźć i obserwować</div></div>
+      <div class="ob-check"></div>
+    </div>
   </div>
   <div class="ob-footer">
     <button class="ob-btn" onclick="obFinish()" id="ob-finish-btn">Gotowe! &#x1F3C3;</button>
