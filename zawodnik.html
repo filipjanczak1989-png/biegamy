@@ -2759,24 +2759,44 @@ async function obFinish() {
     if (pbHalf) athleteData.pb_half = pbHalf;
     if (pbMar) athleteData.pb_marathon = pbMar;
 
-    // Upsert — działa niezależnie czy rekord istnieje czy nie
-    // onConflict: 'user_id' — jeśli user_id już jest, robi UPDATE
+    // Strategia: próbuj update jeśli mamy _athleteId, 
+    // jeśli nie — insert, jeśli 409 (rekord istnieje) — znajdź przez service i aktualizuj
     const upsertData = { ...athleteData, user_id: session.user.id };
-    const { error: upsertError } = await _sb.from('athletes')
-      .upsert(upsertData, { onConflict: 'user_id' });
 
-    if (upsertError) {
-      console.error('Upsert error:', upsertError);
-      if (errEl) { errEl.textContent = 'Błąd zapisu: ' + (upsertError.message || JSON.stringify(upsertError)); errEl.style.display = 'block'; }
-      if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
-      return;
+    let savedId = _athleteId || null;
+
+    if (savedId) {
+      // Mamy ID — po prostu update
+      await _sb.from('athletes').update(athleteData).eq('id', savedId);
+    } else {
+      // Próbuj insert
+      const { data: ins, error: insErr } = await _sb.from('athletes')
+        .insert(upsertData)
+        .select('id')
+        .maybeSingle();
+
+      if (!insErr) {
+        savedId = ins?.id || null;
+      } else if (insErr.code === '23505' || (insErr.message || '').includes('duplicate') || (insErr.message || '').includes('409')) {
+        // Rekord już istnieje — znajdź go przez auth.uid()
+        // Używamy innego pola — email jest unikalny, użyj go jako fallback
+        const { data: found } = await _sb.from('athletes')
+          .select('id')
+          .eq('email', session.user.email)
+          .maybeSingle();
+        if (found?.id) {
+          savedId = found.id;
+          await _sb.from('athletes').update(athleteData).eq('id', found.id);
+        }
+      } else {
+        console.error('Insert error:', insErr);
+        if (errEl) { errEl.textContent = 'Błąd: ' + (insErr.message || JSON.stringify(insErr)); errEl.style.display = 'block'; }
+        if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
+        return;
+      }
     }
 
-    // Pobierz ID po upsert (RLS może blokować zwrot z upsert)
-    if (!_athleteId) {
-      const { data: fetched } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-      if (fetched?.id) _athleteId = fetched.id;
-    }
+    if (savedId) _athleteId = savedId;
     if (_selectedCoachId) COACH_ID = _selectedCoachId;
 
     // Avatar upload (non-blocking)
