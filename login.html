@@ -402,7 +402,7 @@ async function loginGoogle() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: 'https://biegamy.run/login.html'
+      redirectTo: window.location.origin + '/login.html'
     }
   });
   if (error) showAlert('Błąd logowania przez Google: ' + error.message);
