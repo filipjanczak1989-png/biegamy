@@ -168,6 +168,17 @@ body{display:flex;align-items:center;justify-content:center;min-height:100vh;pad
         <input type="text" id="reg-spec" placeholder="np. Bieganie długodystansowe">
       </div>
 
+      <!-- Hasło dostępu dla trenera (ukryte domyślnie) -->
+      <div class="field" id="coach-pass-field" style="display:none;">
+        <label>Kod dostępu trenera <span style="color:var(--red);font-weight:500;">*</span></label>
+        <input type="password" id="reg-coach-pass" placeholder="Kod dostępu"
+          style="border-color:rgba(232,86,30,0.3);"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(232,86,30,0.3)'">
+        <div style="font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">
+          Konta trenerów są dostępne wyłącznie na zaproszenie.
+        </div>
+      </div>
+
       <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
@@ -206,6 +217,7 @@ function selectRole(role) {
   document.getElementById('role-athlete').classList.toggle('sel', role === 'athlete');
   document.getElementById('role-coach').classList.toggle('sel', role === 'coach');
   document.getElementById('coach-spec-field').style.display = role === 'coach' ? 'block' : 'none';
+  document.getElementById('coach-pass-field').style.display = role === 'coach' ? 'block' : 'none';
   const btn = document.getElementById('btn-register');
   btn.textContent = role === 'coach' ? 'Utwórz konto trenera →' : 'Utwórz konto →';
 }
@@ -316,9 +328,22 @@ async function register() {
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
   const spec = document.getElementById('reg-spec')?.value.trim() || null;
+  const coachPass = document.getElementById('reg-coach-pass')?.value || '';
 
   if (!name || !email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }
+
+  // Weryfikacja kodu trenera
+  const COACH_ACCESS_CODE = 'BIEGAMY2026';
+  if (selectedRole === 'coach') {
+    if (!coachPass) { showAlert('Podaj kod dostępu trenera'); return; }
+    if (coachPass.trim().toUpperCase() !== COACH_ACCESS_CODE) {
+      showAlert('Nieprawidłowy kod dostępu. Skontaktuj się z BiegaMy.');
+      document.getElementById('reg-coach-pass').value = '';
+      document.getElementById('reg-coach-pass').focus();
+      return;
+    }
+  }
 
   hideAlert();
   _registering = true;
@@ -351,15 +376,6 @@ async function register() {
       full_name: name,
       specialization: spec || null
     }).catch(() => {});
-  }
-
-  // Wyślij mail powitalny przez Resend (non-blocking)
-  if (!error && data.user?.email) {
-    fetch('https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/send-welcome-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: data.user.email, name: name })
-    }).catch(() => {}); // ignoruj błąd — nie blokuj rejestracji
   }
 
   // Zawsze pokaż success — niezależnie czy sesja istnieje (email confirmation może być włączone)

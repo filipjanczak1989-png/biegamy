@@ -877,104 +877,198 @@ body{
 
 <!-- SEKCJA: PROFIL -->
 <div id="section-profile" style="display:none;padding:0 0 100px;">
-  <!-- Topbar sekcji profilu -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:52px 20px 0;">
-    <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Profil</div>
+
+  <!-- Topbar -->
+  <div style="padding:52px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">BiegaMy</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;margin-top:2px;">Mój profil</div>
+    </div>
+    <!-- Toggle publiczny/prywatny -->
+    <button id="privacy-toggle-btn" onclick="togglePrivacy()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;">
+      <svg id="privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--green);">Publiczny</span>
+    </button>
   </div>
 
   <!-- Avatar + imię -->
-  <div style="text-align:center;padding:20px 0 28px;">
-    <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);margin:0 auto 14px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(232,86,30,0.25);">
+  <div style="text-align:center;padding:16px 0 20px;">
+    <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);margin:0 auto 12px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(232,86,30,0.25);">
       <span id="avatar-initials">?</span>
       <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
     </div>
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
-    <div style="font-size:10px;color:rgba(255,255,255,0.2);font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.06em;">kliknij avatar · zmień zdjęcie</div>
+    <div style="font-size:9px;color:rgba(255,255,255,0.18);font-family:'DM Mono',monospace;margin-top:6px;letter-spacing:0.06em;">kliknij avatar · zmień zdjęcie</div>
   </div>
 
-  <!-- Życiówki -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Życiówki</div>
-    <button onclick="toggleEditPBs()" id="edit-pbs-btn" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
-  </div>
-  <div id="pbs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
-      <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
-      <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
-      <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-    </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
-      <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
-    </div>
-  </div>
-  <div id="save-pbs-row" style="display:none;margin-bottom:20px;">
-    <button onclick="savePBs()" style="width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz życiówki →</button>
+  <!-- Sub-tabs: Profil | Wiadomości | Statystyki -->
+  <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:0 0 16px;">
+    <button id="ptab-info" onclick="switchProfileTab('info')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Dane</button>
+    <button id="ptab-msgs" onclick="switchProfileTab('msgs')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Wiadomości</button>
+    <button id="ptab-stats" onclick="switchProfileTab('stats')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Statystyki</button>
+    <button id="ptab-calc" onclick="switchProfileTab('calc')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Kalkulator</button>
   </div>
 
-  <!-- Cele startowe -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Cele startowe</div>
-    <button onclick="openAddGoal()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--green);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">+ Dodaj</button>
-  </div>
-  <div id="goals-list" style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;"></div>
-
-  <!-- Trener -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Trener</div>
-    <button onclick="openChangeCoach()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Zmień</button>
-  </div>
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
-    <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;" id="coach-avatar-lbl">F</div>
-    <div>
-      <div style="font-size:13px;font-weight:500;" id="profile-coach-name">BiegaMy Coaching</div>
-      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">biegamy.run</div>
+  <!-- TAB: DANE (info) -->
+  <div id="ptab-panel-info">
+    <!-- Życiówki -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Życiówki</div>
+      <button onclick="toggleEditPBs()" id="edit-pbs-btn" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
     </div>
-  </div>
-  <!-- Strava -->
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strava</div>
-  <div id="strava-section">
-    <div id="strava-connected" style="display:none;background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;align-items:center;gap:12px;">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;color:var(--fg);">Połączono ze Stravą</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;" id="strava-athlete-name">—</div>
+    <div id="pbs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
+        <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
       </div>
-      <button onclick="disconnectStrava()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
+        <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
+        <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
+        <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+      </div>
+    </div>
+    <div id="save-pbs-row" style="display:none;margin-bottom:20px;">
+      <button onclick="savePBs()" style="width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz Życiówki →</button>
     </div>
 
-    <!-- Przycisk sync (widoczny gdy połączono) -->
-    <button id="strava-sync-btn" onclick="syncStrava()" style="display:none;width:100%;background:rgba(252,76,2,0.12);color:#FC4C02;border:1px solid rgba(252,76,2,0.3);border-radius:12px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;transition:all 0.18s;">
-      ↻ Synchronizuj aktywności
-    </button>
+    <!-- Cele startowe -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Cele startowe</div>
+      <button onclick="openAddGoal()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--green);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">+ Dodaj</button>
+    </div>
+    <div id="goals-list" style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;"></div>
 
-    <!-- Lista ostatnich aktywności -->
-    <div id="strava-activities" style="display:none;margin-bottom:20px;">
-      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie biegi ze Stravy</div>
-      <div id="strava-activities-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+    <!-- Trener -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Trener</div>
+      <button onclick="openChangeCoach()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Zmień</button>
+    </div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;" id="coach-avatar-lbl">F</div>
+      <div>
+        <div style="font-size:13px;font-weight:500;" id="profile-coach-name">BiegaMy Coaching</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">biegamy.run</div>
+      </div>
     </div>
 
-    <button id="strava-connect-btn" onclick="connectStrava()" style="width:100%;background:#FC4C02;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;transition:all 0.18s;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-      Połącz ze Stravą
-    </button>
+    <!-- Strava -->
+    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strava</div>
+    <div id="strava-section">
+      <div id="strava-connected" style="display:none;background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;align-items:center;gap:12px;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;color:var(--fg);">Połączono ze Stravą</div>
+          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;" id="strava-athlete-name">—</div>
+        </div>
+        <button onclick="disconnectStrava()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
+      </div>
+      <button id="strava-sync-btn" onclick="syncStrava()" style="display:none;width:100%;background:rgba(252,76,2,0.12);color:#FC4C02;border:1px solid rgba(252,76,2,0.3);border-radius:12px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;">↻ Synchronizuj aktywności</button>
+      <div id="strava-activities" style="display:none;margin-bottom:20px;">
+        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie biegi ze Stravy</div>
+        <div id="strava-activities-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+      </div>
+      <button id="strava-connect-btn" onclick="connectStrava()" style="width:100%;background:#FC4C02;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+        Połącz ze Stravą
+      </button>
+    </div>
+
+    <!-- Wyloguj -->
+    <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
   </div>
 
-  <!-- Wyloguj -->
-  <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
+  <!-- TAB: WIADOMOŚCI -->
+  <div id="ptab-panel-msgs" style="display:none;margin:-16px -20px 0;"></div>
+
+  <!-- TAB: STATYSTYKI -->
+  <div id="ptab-panel-stats" style="display:none;">
+    <div id="stats-content-profile"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div></div>
+  </div>
+
+  <!-- TAB: KALKULATOR -->
+  <div id="ptab-panel-calc" style="display:none;">
+
+    <!-- Kalkulator stref tętna -->
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strefy tętna (Karvonen)</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Wiek</label>
+          <input id="calc-age" type="number" placeholder="30" min="10" max="80" oninput="calcZones()"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">HR spoczynkowe</label>
+          <input id="calc-rhr" type="number" placeholder="60" min="30" max="100" oninput="calcZones()"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <div id="zones-result"></div>
+    </div>
+
+    <!-- Prognoza czasów (Riegel) -->
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Prognoza czasów (Riegel)</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans bazowy</label>
+          <select id="calc-riegel-dist" onchange="calcRiegel()"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 10px;border-radius:8px;outline:none;cursor:pointer;">
+            <option value="5">5 km</option>
+            <option value="10" selected>10 km</option>
+            <option value="21.097">Półmaraton</option>
+            <option value="42.195">Maraton</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Twój czas</label>
+          <input id="calc-riegel-time" type="text" placeholder="45:00" maxlength="7" oninput="autoColonTime(this);calcRiegel()"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <div id="riegel-result"></div>
+    </div>
+
+    <!-- Kalkulator tempa -->
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kalkulator tempa</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:20px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans km</label>
+          <input id="calc-pace-dist" type="number" placeholder="10" step="0.1" oninput="calcPaceCalc()"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Czas</label>
+          <input id="calc-pace-time" type="text" placeholder="1:00:00" maxlength="7" oninput="autoColonTime(this);calcPaceCalc()"
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Tempo /km</label>
+          <input id="calc-pace-result" type="text" placeholder="6:00" readonly
+            style="width:100%;background:var(--card2);border:1px solid rgba(232,86,30,0.3);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;cursor:default;">
+        </div>
+      </div>
+      <div id="pace-splits" style="display:none;">
+        <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Splity (co 5 km)</div>
+        <div id="pace-splits-content" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- MODAL ZMIANA TRENERA -->
@@ -1625,6 +1719,271 @@ function showSection(name) {
   }
 }
 
+// ── PROFILE TABS ──────────────────────────────────────────────────
+let _profileTab = 'info';
+
+function switchProfileTab(tab) {
+  _profileTab = tab;
+  ['info','msgs','stats','calc'].forEach(t => {
+    const btn = document.getElementById('ptab-' + t);
+    const panel = document.getElementById('ptab-panel-' + t);
+    if (btn) {
+      btn.style.background = t === tab ? 'rgba(232,86,30,0.12)' : 'transparent';
+      btn.style.color = t === tab ? 'var(--accent)' : 'var(--muted)';
+    }
+    if (panel) panel.style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'msgs') _mountMsgsInProfile();
+  if (tab === 'stats') _loadStatsInProfile();
+  if (tab === 'calc') _initCalcFromPBs();
+}
+
+function _mountMsgsInProfile() {
+  // Move section-msgs content into profile msgs panel
+  const panel = document.getElementById('ptab-panel-msgs');
+  if (!panel) return;
+  panel.style.display = 'block';
+  // Render inline chat view (reuse messages data)
+  loadMessages().then(() => {
+    const thread = document.getElementById('msgs-thread');
+    if (thread) requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
+  });
+  // Show msgs section content inline
+  const msgsSection = document.getElementById('section-msgs');
+  if (msgsSection && panel.children.length === 0) {
+    // Clone the msgs content into the profile panel
+    panel.innerHTML = `<div style="height:calc(100vh - 280px);display:flex;flex-direction:column;">
+      <div id="profile-msgs-thread" style="flex:1;overflow-y:auto;padding:12px 20px;"></div>
+      <div style="padding:10px 20px 0;display:flex;gap:8px;">
+        <input id="profile-msg-inp" type="text" placeholder="Napisz do trenera..." 
+          style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter')sendProfileMsg()">
+        <button onclick="sendProfileMsg()" style="background:var(--accent);border:none;border-radius:10px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>`;
+    _loadProfileMsgs();
+  }
+}
+
+async function _loadProfileMsgs() {
+  if (!_athleteId) return;
+  const thread = document.getElementById('profile-msgs-thread');
+  if (!thread) return;
+  const { data } = await _sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: true }).limit(50);
+  if (!data) return;
+  const typeColors = { Spokojny:'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
+  thread.innerHTML = data.map(m => {
+    const isAthlete = m.sender === 'athlete';
+    const time = new Date(m.sent_at).toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
+    return `<div style="display:flex;justify-content:${isAthlete?'flex-end':'flex-start'};margin-bottom:8px;">
+      <div style="max-width:80%;background:${isAthlete?'var(--accent)':'var(--card2)'};border-radius:${isAthlete?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:10px 13px;">
+        <div style="font-size:13px;line-height:1.5;">${m.body}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:'DM Mono',monospace;">${time}</div>
+      </div>
+    </div>`;
+  }).join('');
+  thread.scrollTop = thread.scrollHeight;
+}
+
+async function sendProfileMsg() {
+  const inp = document.getElementById('profile-msg-inp');
+  if (!inp || !inp.value.trim() || !_athleteId) return;
+  const body = inp.value.trim();
+  inp.value = '';
+  await _sb.from('messages').insert({ athlete_id: _athleteId, sender: 'athlete', body, sent_at: new Date().toISOString() });
+  _loadProfileMsgs();
+}
+
+async function _loadStatsInProfile() {
+  const el = document.getElementById('stats-content-profile');
+  if (!el || !_athleteId) return;
+  // Call existing loadStats but redirect output to profile container
+  const oldEl = document.getElementById('stats-content');
+  // Temporarily swap the stats-content element reference
+  if (oldEl) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;text-align:center;">Ładowanie...</div>';
+    await loadStats();
+    // Copy result
+    el.innerHTML = oldEl.innerHTML;
+    oldEl.innerHTML = '';
+  } else {
+    await loadStats();
+  }
+}
+
+// ── PRIVACY TOGGLE ────────────────────────────────────────────────
+let _isPublic = true;
+
+async function togglePrivacy() {
+  if (!_athleteId) return;
+  _isPublic = !_isPublic;
+  _updatePrivacyUI();
+  const { error } = await _sb.from('athletes').update({ is_public: _isPublic }).eq('id', _athleteId);
+  if (error) { _isPublic = !_isPublic; _updatePrivacyUI(); toast('Błąd zapisu'); }
+  else toast(_isPublic ? 'Profil publiczny ✓' : 'Profil prywatny ✓');
+}
+
+function _updatePrivacyUI() {
+  const btn = document.getElementById('privacy-toggle-btn');
+  const icon = document.getElementById('privacy-icon');
+  const lbl = document.getElementById('privacy-label');
+  if (!btn) return;
+  if (_isPublic) {
+    if (icon) icon.setAttribute('stroke', 'var(--green)');
+    if (lbl) { lbl.textContent = 'Publiczny'; lbl.style.color = 'var(--green)'; }
+    btn.style.borderColor = 'rgba(61,184,112,0.3)';
+  } else {
+    if (icon) { icon.setAttribute('stroke', 'var(--muted)'); icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>'; }
+    if (lbl) { lbl.textContent = 'Prywatny'; lbl.style.color = 'var(--muted)'; }
+    btn.style.borderColor = 'var(--border)';
+  }
+}
+
+// ── KALKULATOR BIEGOWY ────────────────────────────────────────────
+
+function _initCalcFromPBs() {
+  // Pre-fill Riegel from best PB
+  const pbs = [
+    { dist: 5, val: document.getElementById('pb-5k')?.textContent },
+    { dist: 10, val: document.getElementById('pb-10k')?.textContent },
+    { dist: 21.097, val: document.getElementById('pb-half')?.textContent },
+    { dist: 42.195, val: document.getElementById('pb-mar')?.textContent },
+  ].filter(p => p.val && p.val !== '—' && p.val.includes(':'));
+
+  if (pbs.length > 0) {
+    const best = pbs[0];
+    document.getElementById('calc-riegel-dist').value = best.dist;
+    document.getElementById('calc-riegel-time').value = best.val;
+    calcRiegel();
+  }
+}
+
+function calcZones() {
+  const age = parseInt(document.getElementById('calc-age')?.value);
+  const rhr = parseInt(document.getElementById('calc-rhr')?.value);
+  const el = document.getElementById('zones-result');
+  if (!el) return;
+  if (!age || !rhr || age < 10 || age > 90 || rhr < 30 || rhr > 120) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz wiek i HR spoczynkowe</div>';
+    return;
+  }
+  const hrMax = 220 - age;
+  const hrr = hrMax - rhr; // Heart Rate Reserve
+  const zones = [
+    { name: 'Z1 Regeneracja', pct: [50, 60], color: '#3db870', desc: 'Trucht, rozmowa możliwa' },
+    { name: 'Z2 Tlenowa baza', pct: [60, 70], color: '#5090e0', desc: 'Spokojny bieg, długie dystanse' },
+    { name: 'Z3 Tempo', pct: [70, 80], color: '#e8b840', desc: 'Komfortowo trudne' },
+    { name: 'Z4 Próg mleczanowy', pct: [80, 90], color: '#f06030', desc: 'Ciężkie, 10km–półmaraton' },
+    { name: 'Z5 VO2max', pct: [90, 100], color: '#e05050', desc: 'Maksymalny wysiłek, interwały' },
+  ];
+  const zoneRows = zones.map(z => {
+    const lo = Math.round(rhr + hrr * z.pct[0] / 100);
+    const hi = Math.round(rhr + hrr * z.pct[1] / 100);
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+      <div style="width:3px;height:40px;background:${z.color};border-radius:2px;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-size:11px;font-weight:600;margin-bottom:1px;">${z.name} <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${z.color};">${lo}–${hi}</span> <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">bpm</span></div>
+        <div style="font-size:10px;color:var(--muted);">${z.desc}</div>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML = `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">${hrMax}</strong> bpm · Rezerwa: <strong style="color:var(--fg);">${hrr}</strong> bpm</div>${zoneRows}`;
+}
+
+function _parseTimeToSecs(t) {
+  if (!t || !t.includes(':')) return null;
+  const parts = t.split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  if (parts.length === 2) return parts[0]*60 + parts[1];
+  return null;
+}
+
+function _secsToTime(secs) {
+  secs = Math.round(secs);
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+function calcRiegel() {
+  const distA = parseFloat(document.getElementById('calc-riegel-dist')?.value);
+  const timeStr = document.getElementById('calc-riegel-time')?.value;
+  const el = document.getElementById('riegel-result');
+  if (!el) return;
+
+  const secsA = _parseTimeToSecs(timeStr);
+  if (!secsA || !distA) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz czas dla wybranego dystansu</div>';
+    return;
+  }
+
+  // Riegel formula: T2 = T1 × (D2/D1)^1.06
+  const targets = [
+    { name: '5 km', dist: 5 },
+    { name: '10 km', dist: 10 },
+    { name: 'Półmaraton', dist: 21.097 },
+    { name: 'Maraton', dist: 42.195 },
+  ].filter(t => t.dist !== distA);
+
+  const paceA = secsA / distA;
+  const rows = targets.map(t => {
+    const secsB = secsA * Math.pow(t.dist / distA, 1.06);
+    const paceB = secsB / t.dist;
+    const paceStr = _secsToTime(paceB) + '/km';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:13px;">${t.name}</div>
+      <div style="text-align:right;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${_secsToTime(secsB)}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${paceStr}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Na podstawie ${_secsToTime(secsA)} na ${distA} km · tempo ${_secsToTime(paceA)}/km</div>${rows}`;
+}
+
+function calcPaceCalc() {
+  const dist = parseFloat(document.getElementById('calc-pace-dist')?.value);
+  const timeStr = document.getElementById('calc-pace-time')?.value;
+  const resultEl = document.getElementById('calc-pace-result');
+  const splitsEl = document.getElementById('pace-splits');
+  const splitsContent = document.getElementById('pace-splits-content');
+  if (!resultEl) return;
+
+  const secs = _parseTimeToSecs(timeStr);
+  if (!secs || !dist || dist <= 0) {
+    resultEl.value = '';
+    if (splitsEl) splitsEl.style.display = 'none';
+    return;
+  }
+  const paceSecs = secs / dist;
+  resultEl.value = _secsToTime(paceSecs);
+
+  // Splits co 5 km
+  if (splitsEl && splitsContent && dist >= 5) {
+    splitsEl.style.display = 'block';
+    const interval = 5;
+    const numSplits = Math.floor(dist / interval);
+    let html = '';
+    for (let i = 1; i <= numSplits; i++) {
+      const splitSecs = paceSecs * interval * i;
+      html += `<div style="background:var(--card2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:10px;text-align:center;">
+        <div style="color:var(--muted);font-size:8px;margin-bottom:2px;">${i * interval} km</div>
+        <div style="color:var(--fg);">${_secsToTime(splitSecs)}</div>
+      </div>`;
+    }
+    splitsContent.innerHTML = html;
+  } else if (splitsEl) {
+    splitsEl.style.display = 'none';
+  }
+}
+
 async function loadProfile() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
@@ -1648,7 +2007,7 @@ async function loadProfile() {
     }
     // Dane z bazy
     const { data: ath } = await _sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals,is_public')
       .eq('id', _athleteId).single();
     if (ath) {
       document.getElementById('pb-mar').textContent = ath.pb_marathon || '—';
@@ -1659,6 +2018,9 @@ async function loadProfile() {
       document.getElementById('pb-half-input').value = ath.pb_half || '';
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
+      // Ustaw status prywatności
+      _isPublic = ath.is_public !== false; // domyślnie true
+      _updatePrivacyUI();
       // Cele startowe — race_goals JSON, fallback z goal+target_date (ustawione przez trenera w kalendarzu)
       let goals = [];
       if (ath.race_goals) {
@@ -3167,11 +3529,21 @@ function socialSearch(q) {
 
 async function _doSearch(q) {
   const el = document.getElementById('social-search-results');
-  const { data } = await _sb.from('athletes').select('id,full_name,pb_marathon,is_public').ilike('full_name','%'+q+'%').neq('id',_athleteId).limit(15);
-  if (!data||!data.length) { el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników.</div>'; return; }
-  const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id',_athleteId);
+  if (!el) return;
+  // Brak filtra is_public — pokazujemy wszystkich (RLS w Supabase kontroluje dostęp)
+  const { data, error } = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon')
+    .ilike('full_name', '%' + q + '%')
+    .limit(20);
+  console.log('Search:', q, data, error);
+  const results = (data || []).filter(a => a.id !== _athleteId);
+  if (!results.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników dla &quot;' + q + '&quot;</div>';
+    return;
+  }
+  const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
-  el.innerHTML = data.map(a => {
+  el.innerHTML = results.map(a => {
     const name = a.full_name||'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isF = fSet.has(a.id);
@@ -3180,7 +3552,7 @@ async function _doSearch(q) {
       <div style="flex:1;"><div style="font-size:14px;font-weight:600;">${name}</div>${a.pb_marathon?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">PB: ${a.pb_marathon}</div>`:''}</div>
       <button id="fb-${a.id}" onclick="toggleFollow('${a.id}',this,${isF})"
         style="background:${isF?'transparent':'var(--accent)'};border:1px solid ${isF?'var(--border)':'var(--accent)'};color:${isF?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">
-        ${isF?'Obserwujesz':'+ Obserwuj'}
+        ${isF ? 'Obserwujesz' : '+ Obserwuj'}
       </button>
     </div>`;
   }).join('');
