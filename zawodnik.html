@@ -909,6 +909,18 @@ body{
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
+    <!-- Liczniki -->
+    <div style="display:flex;justify-content:center;gap:24px;margin-top:12px;">
+      <div onclick="showSection('social');setTimeout(()=>switchSocialTab('following'),200)" style="text-align:center;cursor:pointer;" title="Obserwujesz">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--fg);" id="count-following">—</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">obserwujesz</div>
+      </div>
+      <div style="width:1px;background:var(--border);"></div>
+      <div style="text-align:center;" title="Obserwujący">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--fg);" id="count-followers">—</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">obserwujących</div>
+      </div>
+    </div>
   </div>
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
@@ -2105,6 +2117,18 @@ function calcPaceCalc() {
   }
 }
 
+async function loadFollowCounts() {
+  if (!_athleteId) return;
+  const [{ count: following }, { count: followers }] = await Promise.all([
+    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', _athleteId),
+    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', _athleteId),
+  ]);
+  const fEl = document.getElementById('count-following');
+  const rEl = document.getElementById('count-followers');
+  if (fEl) fEl.textContent = following ?? 0;
+  if (rEl) rEl.textContent = followers ?? 0;
+}
+
 async function loadProfile() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
@@ -2117,6 +2141,7 @@ async function loadProfile() {
   if (_editingPBs) toggleEditPBs();
   if (_athleteId) checkStravaStatus();
   if (_athleteId) loadAvatarTopbar(_athleteId);
+  if (_athleteId) loadFollowCounts();
   
   if (_athleteId) {
     // Avatar
@@ -3810,14 +3835,32 @@ async function openAthleteProfile(athleteId) {
     { label: '5 km', val: ath.pb_5k },
   ].filter(p => p.val);
 
+  // Pobierz liczniki obserwujących dla tego zawodnika
+  const [{ count: apFollowing }, { count: apFollowers }] = await Promise.all([
+    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('follower_id', athleteId),
+    _sb.from('follows').select('*', { count: 'exact', head: true }).eq('following_id', athleteId),
+  ]);
+
   document.getElementById('ap-content').innerHTML = `
     <!-- Avatar + imię -->
     <div style="text-align:center;padding:20px 0 16px;">
       <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:0 auto 12px;box-shadow:0 0 24px rgba(232,86,30,0.3);" id="ap-avatar">${ini}</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;">${name}</div>
       ${ath.goal ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">${ath.goal}</div>` : ''}
+      <!-- Liczniki -->
+      <div style="display:flex;justify-content:center;gap:24px;margin:12px 0;">
+        <div style="text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;">${apFollowing ?? 0}</div>
+          <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">obserwuje</div>
+        </div>
+        <div style="width:1px;background:var(--border);"></div>
+        <div style="text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;">${apFollowers ?? 0}</div>
+          <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">obserwujących</div>
+        </div>
+      </div>
       <button id="ap-follow-btn" onclick="_apToggleFollow('${athleteId}', ${isFollowing})"
-        style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
+        style="margin-top:4px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
         ${isFollowing ? '✓ Obserwujesz' : '+ Obserwuj'}
       </button>
     </div>
