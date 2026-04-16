@@ -697,9 +697,9 @@ body{
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;">
     <a id="back-to-trener" href="trener.html" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
-    <div onclick="showSection('msgs');return false;" class="notif-bell-z" id="zawodnik-bell">
+    <div onclick="openNotifications()" class="notif-bell-z" id="zawodnik-bell">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>
+      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#3db870;"></div>
     </div>
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
       <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">—</span>
@@ -3048,7 +3048,8 @@ async function loadLogs() {
   await loadTodayTraining();
   await loadWeekPlan();
   await checkNewMessages();
-  if (!window._msgInterval) window._msgInterval = setInterval(checkNewMessages, 30000);
+  checkNotifications();
+  if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
   // Realtime — nowe wiadomości od trenera od razu
   if (!window._realtimeChannel && _athleteId) {
     window._realtimeChannel = _sb.channel('messages-' + _athleteId)
@@ -3586,38 +3587,42 @@ async function loadSocialFeed() {
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
 
-  const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
-  if (!followData || followData.length === 0) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;line-height:1.8;">Nie obserwujesz jeszcze żadnego biegacza.<br>Znajdź znajomych w zakładce <strong style="color:var(--fg);">Znajdź</strong>.</div>';
-    return;
-  }
-
-  const ids = followData.map(f => f.following_id);
+  // Pokaż aktywności WSZYSTKICH publicznych profili (nie tylko obserwowanych)
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,athletes(full_name,is_public)')
-    .in('athlete_id', ids)
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,athletes(id,full_name,is_public)')
     .order('logged_at', { ascending: false })
-    .limit(20);
+    .limit(30);
 
   if (!logs || logs.length === 0) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak aktywności obserwowanych biegaczy.</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak aktywności.</div>';
     return;
   }
 
+  // Sprawdź kogo obserwujemy (do oznaczenia w feedzie)
+  const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
+  const followingSet = new Set((followData||[]).map(f => f.following_id));
+
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
-  feedEl.innerHTML = logs.map(l => {
-    if (l.athletes?.is_public === false) return '';
+  const rendered = logs.map(l => {
+    // Pokaż tylko publiczne profile lub własne treningi
+    if (l.athletes?.is_public === false && l.athlete_id !== _athleteId) return '';
+    const athId = l.athletes?.id || l.athlete_id;
     const name = l.athletes?.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    const isOwn = l.athlete_id === _athleteId;
+    const isFollowed = followingSet.has(athId);
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
     const type = l.training_type || 'Trening';
     const col = tc[type] || 'var(--muted)';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feel = {good:'😊',mid:'😐',bad:'😓'}[l.feel] || '';
-    return `<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+    return `<div onclick="${isOwn ? '' : `openAthleteProfile('${athId}')`}" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;${!isOwn?'cursor:pointer;':''}" ${!isOwn?`onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='var(--border)'"`:''}">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:${dist||l.comment?'10':'0'}px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">${ini}</div>
-        <div style="flex:1;"><div style="font-size:13px;font-weight:600;">${name}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div></div>
+        <div style="width:36px;height:36px;border-radius:50%;background:${isOwn?'var(--accent)':'rgba(255,255,255,0.08)'};border:${isOwn?'none':'1px solid var(--border)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">${ini}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;">${isOwn ? 'Ty' : name}${isFollowed && !isOwn ? ' <span style="font-size:9px;color:var(--accent);font-family:\'DM Mono\',monospace;background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>' : ''}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+        </div>
         <span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;background:${col}18;padding:3px 8px;border-radius:6px;">${type}</span>
       </div>
       ${dist?`<div style="display:flex;gap:20px;align-items:baseline;margin-bottom:${l.comment?'8':'0'}px;">
@@ -3626,7 +3631,9 @@ async function loadSocialFeed() {
         ${feel?`<div style="margin-left:auto;font-size:22px;">${feel}</div>`:''}
       </div>`:''}
       ${l.comment?`<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:'DM Sans',sans-serif;font-style:italic;">"${l.comment}"</div>`:''}</div>`;
-  }).filter(Boolean).join('') || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak aktywności.</div>';
+  }).filter(Boolean).join('');
+
+  feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak publicznych aktywności.</div>';
 }
 
 async function loadFollowing() {
@@ -3726,6 +3733,8 @@ async function toggleFollow(targetId, btn, isFollowing) {
     await _sb.from('follows').insert({follower_id:_athleteId,following_id:targetId});
     btn.textContent='Obserwujesz'; btn.style.background='transparent'; btn.style.borderColor='var(--border)'; btn.style.color='var(--muted)';
     btn.onclick=()=>toggleFollow(targetId,btn,true);
+    // Wyślij powiadomienie
+    _sendFollowNotification(targetId);
   }
   btn.disabled = false;
 }
@@ -3876,9 +3885,112 @@ async function _apToggleFollow(targetId, isFollowing) {
     btn.style.borderColor = 'var(--border)';
     btn.style.color = 'var(--muted)';
     btn.onclick = () => _apToggleFollow(targetId, true);
+    _sendFollowNotification(targetId);
   }
   btn.disabled = false;
 }
+
+// ── POWIADOMIENIA ─────────────────────────────────────────────────
+
+async function _sendFollowNotification(targetAthleteId) {
+  if (!_athleteId) return;
+  // Pobierz imię obserwującego
+  const { data: me } = await _sb.from('athletes').select('full_name').eq('id', _athleteId).maybeSingle();
+  const myName = me?.full_name || 'Ktoś';
+  try {
+    await _sb.from('notifications').insert({
+      athlete_id: targetAthleteId,
+      type: 'follow',
+      from_athlete_id: _athleteId,
+      message: `${myName} zaczął(a) Cię obserwować`,
+      read: false,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) {
+    console.warn('Notification insert failed (tabela może nie istnieć):', e.message);
+  }
+}
+
+async function checkNotifications() {
+  if (!_athleteId) return;
+  try {
+    const { count } = await _sb.from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('athlete_id', _athleteId)
+      .eq('read', false);
+    const dot = document.getElementById('zawodnik-bell-dot');
+    if (dot) dot.style.display = (count && count > 0) ? 'block' : 'none';
+    // Zmień kolor kropki na inny niż wiadomości
+    if (dot && count > 0) dot.style.background = '#3db870';
+  } catch(e) {} // tabela może nie istnieć
+}
+
+async function openNotifications() {
+  // Toggle panel
+  const existing = document.getElementById('notif-panel');
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.createElement('div');
+  panel.id = 'notif-panel';
+  panel.style.cssText = 'position:fixed;top:64px;right:16px;width:300px;max-width:calc(100vw - 32px);background:var(--card);border:1px solid var(--border);border-radius:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.6);overflow:hidden;';
+  panel.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;">Powiadomienia</div>
+      <button onclick="document.getElementById('notif-panel').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
+    </div>
+    <div id="notif-list" style="max-height:320px;overflow-y:auto;padding:8px;">
+      <div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>
+    </div>`;
+  document.body.appendChild(panel);
+
+  // Zamknij przy kliknięciu poza panel
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!panel.contains(e.target) && e.target.id !== 'zawodnik-bell') {
+        panel.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+
+  try {
+    const { data: notifs } = await _sb.from('notifications')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    const listEl = document.getElementById('notif-list');
+    if (!listEl) return;
+
+    if (!notifs || notifs.length === 0) {
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak powiadomień</div>';
+    } else {
+      const icons = { follow: '👤', message: '💬', like: '🔥' };
+      listEl.innerHTML = notifs.map(n => {
+        const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+        return `<div onclick="${n.type==='follow' && n.from_athlete_id ? `openAthleteProfile('${n.from_athlete_id}');document.getElementById('notif-panel')?.remove();` : ''}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${n.from_athlete_id?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
+          <span style="font-size:18px;flex-shrink:0;">${icons[n.type]||'🔔'}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;line-height:1.4;">${n.message}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">${time}</div>
+          </div>
+          ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#3db870;flex-shrink:0;margin-top:4px;"></div>' : ''}
+        </div>`;
+      }).join('');
+
+      // Oznacz wszystkie jako przeczytane
+      await _sb.from('notifications').update({ read: true }).eq('athlete_id', _athleteId).eq('read', false);
+      const dot = document.getElementById('zawodnik-bell-dot');
+      if (dot) dot.style.display = 'none';
+    }
+  } catch(e) {
+    const listEl = document.getElementById('notif-list');
+    if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Utwórz tabelę notifications w Supabase</div>';
+  }
+}
+
+
 
 
 
