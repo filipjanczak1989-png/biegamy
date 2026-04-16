@@ -2152,7 +2152,7 @@ function showOnboarding() {
 
 function obSelectMode(mode) {
   _obMode = mode;
-  ['solo','coach','find'].forEach(m => {
+  ['solo','coach'].forEach(m => {
     const card = document.getElementById('ob-mode-' + m);
     if (card) {
       const isSel = m === mode;
@@ -2165,8 +2165,8 @@ function obSelectMode(mode) {
   });
   const coachSec = document.getElementById('ob-coach-section');
   if (coachSec) {
-    coachSec.style.display = (mode === 'coach' || mode === 'find') ? 'block' : 'none';
-    if (mode === 'coach' || mode === 'find') loadCoaches();
+    coachSec.style.display = mode === 'coach' ? 'block' : 'none';
+    if (mode === 'coach') loadCoaches();
   }
 }
 
@@ -2213,72 +2213,86 @@ function obNext(step) {
 
 async function obFinish() {
   const btn = document.getElementById('ob-finish-btn');
+  const errEl = document.getElementById('ob-error');
+  if (errEl) errEl.style.display = 'none';
   if (btn) { btn.textContent = 'Zapisuję...'; btn.disabled = true; }
 
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) {
-    if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
-    return;
-  }
-
-  const nameInput = document.getElementById('ob-name-input');
-  const name = nameInput?.value.trim() || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Zawodnik';
-
-  const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
-  const goalText = goalLabels[_obGoal] || 'Poprawa formy';
-
-  const pbData = {
-    pb_5k: document.getElementById('ob-pb-5k')?.value.trim() || null,
-    pb_10k: document.getElementById('ob-pb-10k')?.value.trim() || null,
-    pb_half: document.getElementById('ob-pb-half')?.value.trim() || null,
-    pb_marathon: document.getElementById('ob-pb-mar')?.value.trim() || null,
-  };
-
-  const athleteData = {
-    user_id: session.user.id,
-    full_name: name,
-    email: session.user.email,
-    active: true,
-    goal: goalText,
-    training_mode: _obMode,
-    coach_id: _selectedCoachId || null,
-    ...pbData,
-  };
-
-  let data, error;
-  if (_athleteId) {
-    ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', _athleteId).select().single());
-  } else {
-    const { data: existing } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-    if (existing) {
-      _athleteId = existing.id;
-      ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', existing.id).select().single());
-    } else {
-      ({ data, error } = await _sb.from('athletes').insert(athleteData).select().single());
+  try {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) {
+      if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
+      if (errEl) { errEl.textContent = 'Brak sesji — zaloguj się ponownie.'; errEl.style.display = 'block'; }
+      return;
     }
-  }
 
-  if (error) {
-    console.error('Onboarding error:', error);
-    const errEl = document.getElementById('ob-error');
-    if (errEl) { errEl.textContent = 'Błąd zapisu: ' + (error.message || JSON.stringify(error)); errEl.style.display = 'block'; }
+    const nameInput = document.getElementById('ob-name-input');
+    const name = nameInput?.value.trim() || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Zawodnik';
+
+    const goalLabels = { improve: 'Poprawa formy', time: 'Konkretny czas', return: 'Powrót do biegania', race: 'Przygotowanie do startu' };
+    const goalText = goalLabels[_obGoal] || 'Poprawa formy';
+
+    // Build update object — only columns that exist in DB
+    const athleteData = {
+      full_name: name,
+      email: session.user.email,
+      active: true,
+      goal: goalText,
+      coach_id: _selectedCoachId || null,
+    };
+
+    // Add PBs only if filled
+    const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
+    const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
+    const pbHalf = document.getElementById('ob-pb-half')?.value.trim();
+    const pbMar = document.getElementById('ob-pb-mar')?.value.trim();
+    if (pb5k) athleteData.pb_5k = pb5k;
+    if (pb10k) athleteData.pb_10k = pb10k;
+    if (pbHalf) athleteData.pb_half = pbHalf;
+    if (pbMar) athleteData.pb_marathon = pbMar;
+
+    let data, error;
+    if (_athleteId) {
+      ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', _athleteId).select().single());
+    } else {
+      const { data: existing } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      if (existing) {
+        _athleteId = existing.id;
+        ({ data, error } = await _sb.from('athletes').update(athleteData).eq('id', existing.id).select().single());
+      } else {
+        ({ data, error } = await _sb.from('athletes').insert({ ...athleteData, user_id: session.user.id }).select().single());
+      }
+    }
+
+    if (error) {
+      console.error('Onboarding DB error:', error);
+      if (errEl) { errEl.textContent = 'Błąd zapisu: ' + (error.message || JSON.stringify(error)); errEl.style.display = 'block'; }
+      if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
+      return;
+    }
+
+    _athleteId = data.id;
+    if (_selectedCoachId) COACH_ID = _selectedCoachId;
+
+    // Upload avatar if provided
+    if (_obAvatarFile && _athleteId) {
+      try {
+        const ext = _obAvatarFile.name.split('.').pop() || 'jpg';
+        await _sb.storage.from('training-screenshots').upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
+      } catch(avatarErr) {
+        console.warn('Avatar upload failed:', avatarErr);
+      }
+    }
+
+    document.getElementById('onboarding-modal').classList.remove('show');
+    window.history.replaceState({}, '', 'zawodnik.html');
+    await loadLogs();
+    toast('Witaj w BiegaMy! 🏃');
+
+  } catch(e) {
+    console.error('obFinish exception:', e);
+    if (errEl) { errEl.textContent = 'Błąd: ' + e.message; errEl.style.display = 'block'; }
     if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
-    return;
   }
-
-  _athleteId = data.id;
-  if (_selectedCoachId) COACH_ID = _selectedCoachId;
-
-  // Upload avatar if provided
-  if (_obAvatarFile && _athleteId) {
-    const ext = _obAvatarFile.name.split('.').pop();
-    await _sb.storage.from('training-screenshots').upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
-  }
-
-  document.getElementById('onboarding-modal').classList.remove('show');
-  window.history.replaceState({}, '', 'zawodnik.html');
-  await loadLogs();
-  toast('Witaj w BiegaMy! 🏃');
 }
 
 function skipOnboarding() {
@@ -2292,25 +2306,31 @@ async function loadCoaches() {
   if (!coachesEl) return;
 
   const { data: coachList, error } = await _sb.from('coaches').select('id, full_name, specialization').order('full_name');
+  console.log('Coaches loaded:', coachList, error);
   if (loading) loading.style.display = 'none';
   coachesEl.style.display = 'block';
 
+  // Always show real coaches from DB; fallback only if truly empty
   const list = (!error && coachList && coachList.length > 0)
     ? coachList
-    : [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
+    : [
+        {id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'},
+        {id: 'kasia-coach-id', full_name: 'Kasia — BiegaMy Coaching', specialization: 'Biegi długodystansowe'}
+      ];
 
+  // Auto-select first if none selected
   if (!_selectedCoachId) _selectedCoachId = list[0].id;
 
-  coachesEl.innerHTML = list.map((c, i) => {
+  coachesEl.innerHTML = list.map((c) => {
     const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    const isFirst = i === 0 || c.id === _selectedCoachId;
-    return `<div class="ob-coach-card ${isFirst?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', document.getElementById('ob-coach-${c.id}'))">
-      <div style="width:40px;height:40px;border-radius:50%;background:${isFirst?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;">${initials}</div>
+    const isSel = c.id === _selectedCoachId;
+    return `<div class="ob-coach-card ${isSel?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', this)">
+      <div style="width:40px;height:40px;border-radius:50%;background:${isSel?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;transition:background 0.15s;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
         ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${c.specialization}</div>`:''}
       </div>
-      <div class="ob-check ${isFirst?'sel':''}">${isFirst?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
+      <div class="ob-check" style="${isSel?'background:var(--accent);border-color:var(--accent);':''}">${isSel?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
     </div>`;
   }).join('');
 }
@@ -3624,18 +3644,17 @@ async function toggleVoice(btnId, sender) {
   </div>
   <div class="ob-body">
     <div class="ob-card sel" id="ob-mode-solo" onclick="obSelectMode('solo')">
-      <div class="ob-card-icon">&#x1F3C3;</div>
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+      </div>
       <div><div class="ob-card-name">Trenuję sam</div><div class="ob-card-sub">Tworzę plan i trenuję samodzielnie</div></div>
       <div class="ob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
     </div>
     <div class="ob-card" id="ob-mode-coach" onclick="obSelectMode('coach')">
-      <div class="ob-card-icon">&#x1F9D1;&#x200D;&#x1F3EB;</div>
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
       <div><div class="ob-card-name">Mam trenera</div><div class="ob-card-sub">Już pracuję z trenerem w BiegaMy</div></div>
-      <div class="ob-check"></div>
-    </div>
-    <div class="ob-card" id="ob-mode-find" onclick="obSelectMode('find')">
-      <div class="ob-card-icon">&#x1F50D;</div>
-      <div><div class="ob-card-name">Szukam trenera</div><div class="ob-card-sub">Chcę znaleźć dobrego trenera</div></div>
       <div class="ob-check"></div>
     </div>
     <!-- Wybór trenera (pokazuje się gdy mode=coach lub find) -->
@@ -3700,19 +3719,19 @@ async function toggleVoice(btnId, sender) {
     <div class="ob-pb-grid">
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">5 km</div>
-        <input class="ob-pb-input" id="ob-pb-5k" type="text" placeholder="00:00" maxlength="7" oninput="autoColonPace(this)">
+        <input class="ob-pb-input" id="ob-pb-5k" type="text" placeholder="22:00" maxlength="5" inputmode="numeric" oninput="autoColonResult(this)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">10 km</div>
-        <input class="ob-pb-input" id="ob-pb-10k" type="text" placeholder="0:00:00" maxlength="7">
+        <input class="ob-pb-input" id="ob-pb-10k" type="text" placeholder="45:00" maxlength="5" inputmode="numeric" oninput="autoColonResult(this)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">Półmaraton</div>
-        <input class="ob-pb-input" id="ob-pb-half" type="text" placeholder="0:00:00" maxlength="7">
+        <input class="ob-pb-input" id="ob-pb-half" type="text" placeholder="1:45:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)">
       </div>
       <div class="ob-pb-item">
         <div class="ob-pb-lbl">Maraton</div>
-        <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="0:00:00" maxlength="7">
+        <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="3:30:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)">
       </div>
     </div>
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;margin-top:16px;">Możesz uzupełnić później w profilu</div>
@@ -3737,22 +3756,30 @@ async function toggleVoice(btnId, sender) {
   </div>
   <div class="ob-body">
     <div class="ob-card sel" id="ob-goal-improve" onclick="obSelectGoal('improve')">
-      <div class="ob-card-icon">&#x1F4C8;</div>
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+      </div>
       <div><div class="ob-card-name">Poprawa formy</div><div class="ob-card-sub">Chcę być w lepszej kondycji i biegać regularnie</div></div>
       <div class="ob-check"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div>
     </div>
     <div class="ob-card" id="ob-goal-time" onclick="obSelectGoal('time')">
-      <div class="ob-card-icon">&#x23F1;</div>
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
       <div><div class="ob-card-name">Konkretny czas</div><div class="ob-card-sub">Mam cel wynikowy — dystans i czas do pobicia</div></div>
       <div class="ob-check"></div>
     </div>
     <div class="ob-card" id="ob-goal-return" onclick="obSelectGoal('return')">
-      <div class="ob-card-icon">&#x1F6A9;</div>
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+      </div>
       <div><div class="ob-card-name">Powrót do biegania</div><div class="ob-card-sub">Wracam po przerwie lub kontuzji</div></div>
       <div class="ob-check"></div>
     </div>
     <div class="ob-card" id="ob-goal-race" onclick="obSelectGoal('race')">
-      <div class="ob-card-icon">&#x1F3C1;</div>
+      <div class="ob-card-icon" style="font-size:0;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      </div>
       <div><div class="ob-card-name">Przygotowanie do startu</div><div class="ob-card-sub">Mam zaplanowany wyścig i chcę się do niego przygotować</div></div>
       <div class="ob-check"></div>
     </div>
