@@ -1196,6 +1196,12 @@ body{
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
+      <!-- PRZEWYŻSZENIE -->
+      <div class="f-row">
+        <div class="field"><label>Przewyższenie (m) <span style="font-size:9px;color:#3db870;">▲</span></label><input type="number" id="l-elevation" placeholder="120" inputmode="numeric" min="0"></div>
+        <div class="field"></div>
+      </div>
+
       <!-- SAMOPOCZUCIE -->
       <div class="field">
         <label>Samopoczucie</label>
@@ -1373,7 +1379,7 @@ function openModalForDate(dateStr, e) {
   document.getElementById('modal-bg').classList.add('open');
 
   // Reset pól przed prefillowaniem
-  ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id => {
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
@@ -1893,6 +1899,8 @@ async function _loadStatsInProfile() {
   const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
   const km90=km(all), km30=km(logs30), km7=km(logs7);
   const sessions30=logs30.length;
+  const elev30 = logs30.reduce((s,l) => s+(parseInt(l.elevation_gain)||0), 0);
+  const elev90 = all.reduce((s,l) => s+(parseInt(l.elevation_gain)||0), 0);
 
   const paces = logs30.filter(l=>l.pace).map(l=>{const p=l.pace.split(':').map(Number);return p.length===2?p[0]*60+p[1]:null;}).filter(Boolean);
   const bestPaceSecs=paces.length?Math.min(...paces):null;
@@ -1930,6 +1938,16 @@ async function _loadStatsInProfile() {
       <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 90 dni</div>
     </div>
   </div>
+  ${elev90 > 0 ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+    <div style="background:var(--card);border:1px solid rgba(61,184,112,0.3);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#3db870;line-height:1;">▲${elev30}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">m wzn. / 30 dni</div>
+    </div>
+    <div style="background:var(--card);border:1px solid rgba(61,184,112,0.3);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#3db870;line-height:1;">▲${elev90}</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">m wzn. / 90 dni</div>
+    </div>
+  </div>` : ''}
   <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
     <canvas id="chart-weekly-profile" height="120"></canvas>
@@ -2427,14 +2445,17 @@ async function sendGif(url, pickerId) {
   await loadMessages();
 }
 
-async function uploadVoiceMsg(blob, duration, sender) {
+async function uploadVoiceMsg(blob, duration, sender, mimeType) {
   if (!_athleteId) return;
-  const path = _athleteId + '/voice_' + Date.now() + '.webm';
-  const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
-  if (error) { toast('Błąd: '+error.message); return; }
+  // Determine file extension from mime type
+  const ext = (mimeType||'').includes('mp4') ? 'mp4' : (mimeType||'').includes('ogg') ? 'ogg' : 'webm';
+  const contentType = mimeType || 'audio/webm';
+  const path = _athleteId + '/voice_' + Date.now() + '.' + ext;
+  const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
+  if (error) { toast('Błąd uploadu: '+error.message); return; }
   const {data:urlData} = _sb.storage.from('training-screenshots').getPublicUrl(path);
   const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
-  await _sb.from('messages').insert({athlete_id:_athleteId,sender:sender,body,sent_at:new Date().toISOString()});
+  await _sb.from('messages').insert({athlete_id:_athleteId, sender:sender, body, sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
@@ -3280,7 +3301,7 @@ function renderLogsDb(data) {
     const type = displayName[rawType] || rawType;
     const cls = clsMap[rawType] || 'spokojny';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : null;
-    const det = [l.duration, l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥ '+l.heart_rate : ''].filter(Boolean).join('  ·  ') || '—';
+    const det = [l.duration, l.pace ? l.pace+'/km' : '', l.heart_rate ? '♥ '+l.heart_rate : '', l.elevation_gain ? '▲'+l.elevation_gain+'m' : ''].filter(Boolean).join('  ·  ') || '—';
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});
     const feelDot = l.feel ? `<div class="log-feel-dot ${l.feel}"></div>` : '';
     const bgColors = {spokojny:'rgba(80,144,224,0.05)',interwaly:'rgba(232,184,64,0.05)',tempo:'rgba(224,85,32,0.05)',wybieganie:'rgba(154,111,232,0.05)',regeneracja:'rgba(61,184,112,0.05)'};
@@ -3328,6 +3349,7 @@ function editLog(idx) {
   document.getElementById('l-time').value = l.duration || '';
   document.getElementById('l-pace').value = l.pace || '';
   document.getElementById('l-hr').value = l.heart_rate || '';
+  const elevEl = document.getElementById('l-elevation'); if (elevEl) elevEl.value = l.elevation_gain || '';
   document.getElementById('l-comment').value = l.comment || '';
   document.getElementById('l-strava').value = l.strava_link || '';
   // Ustaw typ
@@ -3402,6 +3424,7 @@ async function saveLog() {
     duration: time || null,
     pace: pace || null,
     heart_rate: parseInt(document.getElementById('l-hr').value) || null,
+      elevation_gain: parseInt(document.getElementById('l-elevation')?.value) || null,
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
     feel: feel || 'mid',
@@ -3455,7 +3478,7 @@ async function saveLog() {
   _editingLogId = null;
   document.querySelector('#modal-bg .modal-title').textContent = 'Zaloguj trening';
   document.getElementById('save-btn').textContent = 'Zapisz log →';
-  ['l-dist','l-time','l-pace','l-hr','l-comment','l-strava'].forEach(id=>document.getElementById(id).value='');
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
   document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';
@@ -4856,31 +4879,80 @@ async function searchGifs(q, pickerId) {
 // ── VOICE MESSAGES ────────────────────────────────────────────────
 let _mediaRecorder = null, _audioChunks = [], _recordingStart = 0;
 
+// Detect best supported audio format (iOS Safari needs mp4/aac, Chrome prefers webm)
+function _getBestAudioMime() {
+  const types = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+  for (const t of types) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return ''; // let browser decide
+}
+
 async function toggleVoice(btnId, sender) {
   const btn = document.getElementById(btnId);
   if (!btn) return;
+
+  // Stop if recording
   if (_mediaRecorder && _mediaRecorder.state === 'recording') {
     _mediaRecorder.stop();
     btn.classList.remove('recording');
     btn.textContent = '🎤';
     return;
   }
+
+  // Check support
+  if (typeof MediaRecorder === 'undefined') {
+    toast('Nagrywanie głosu nie jest obsługiwane przez tę przeglądarkę');
+    return;
+  }
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const stream = await navigator.mediaDevices.getUserMedia({audio: true});
     _audioChunks = [];
     _recordingStart = Date.now();
-    _mediaRecorder = new MediaRecorder(stream);
-    _mediaRecorder.ondataavailable = e => _audioChunks.push(e.data);
+
+    const mimeType = _getBestAudioMime();
+    const options = mimeType ? {mimeType} : {};
+
+    try {
+      _mediaRecorder = new MediaRecorder(stream, options);
+    } catch(e) {
+      _mediaRecorder = new MediaRecorder(stream); // fallback bez opcji
+    }
+
+    _mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) _audioChunks.push(e.data); };
     _mediaRecorder.onstop = () => {
-      stream.getTracks().forEach(t=>t.stop());
-      const blob = new Blob(_audioChunks, {type:'audio/webm'});
-      const dur = Math.round((Date.now()-_recordingStart)/1000);
-      uploadVoiceMsg(blob, dur, sender);
+      stream.getTracks().forEach(t => t.stop());
+      const usedMime = _mediaRecorder.mimeType || mimeType || 'audio/webm';
+      const blob = new Blob(_audioChunks, {type: usedMime});
+      const dur = Math.round((Date.now() - _recordingStart) / 1000);
+      if (blob.size < 100) { toast('Nagranie za krótkie'); return; }
+      uploadVoiceMsg(blob, dur, sender, usedMime);
     };
-    _mediaRecorder.start();
+
+    _mediaRecorder.start(100); // collect data every 100ms
     btn.classList.add('recording');
     btn.textContent = '⏹';
-  } catch(e) { alert('Brak dostępu do mikrofonu'); }
+
+    // Auto-stop after 60 seconds
+    setTimeout(() => {
+      if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+        _mediaRecorder.stop();
+        btn.classList.remove('recording');
+        btn.textContent = '🎤';
+      }
+    }, 60000);
+
+  } catch(e) {
+    console.error('Voice error:', e);
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      toast('Brak dostępu do mikrofonu — sprawdź uprawnienia');
+    } else if (e.name === 'NotFoundError') {
+      toast('Nie znaleziono mikrofonu');
+    } else {
+      toast('Błąd nagrywania: ' + e.message);
+    }
+  }
 }
 
 </script>
