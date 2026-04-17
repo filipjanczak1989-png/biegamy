@@ -3825,20 +3825,45 @@ async function loadSocialFeed(compact) {
   const feedEl = document.getElementById(compact ? 'home-social-preview' : 'social-feed-content');
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
+
+  // Pobierz ID publicznych zawodników
+  const { data: publicAthletes } = await _sb.from('athletes')
+    .select('id,full_name,is_public')
+    .eq('is_public', true)
+    .limit(100);
+
+  const publicIds = (publicAthletes||[]).map(function(a){return a.id;});
+  // Zawsze dodaj własne ID
+  if (_athleteId && !publicIds.includes(_athleteId)) publicIds.push(_athleteId);
+
+  if (!publicIds.length) {
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    return;
+  }
+
+  // Pobierz logi tych zawodników
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,athletes(id,full_name,is_public)')
-    .order('logged_at', { ascending: false }).limit(compact ? 3 : 30);
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
+    .in('athlete_id', publicIds.slice(0, 50))
+    .order('logged_at', { ascending: false })
+    .limit(compact ? 3 : 30);
+
   if (!logs || logs.length === 0) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
+
+  // Buduj mapę athlete_id → dane
+  const athMap = {};
+  (publicAthletes||[]).forEach(function(a){ athMap[a.id] = a; });
+
   const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
-  const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
+  const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
   function buildCard(l) {
-    if (l.athletes && l.athletes.is_public === false && l.athlete_id !== _athleteId) return '';
-    const athId = (l.athletes && l.athletes.id) || l.athlete_id;
-    const name = (l.athletes && l.athletes.full_name) || 'Biegacz';
+    const athId = l.athlete_id;
+    const ath = athMap[athId] || {};
+    const name = ath.full_name || 'Biegacz';
     const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     const isOwn = l.athlete_id === _athleteId;
     const isFollowed = followingSet.has(athId);
@@ -4008,8 +4033,10 @@ async function editFeedLog(logId) {
     const cached = window._logsData.find(function(x){ return x.id === logId; });
     if (cached) { editLog(window._logsData.indexOf(cached)); return; }
   }
-  const { data: l, error } = await _sb.from('training_logs').select('*').eq('id', logId).maybeSingle();
-  if (error || !l) { toast('Nie można załadować logu'); return; }
+  if (!_athleteId) { toast('Błąd sesji'); return; }
+  const { data: l, error } = await _sb.from('training_logs')
+    .select('*').eq('id', logId).eq('athlete_id', _athleteId).maybeSingle();
+  if (error || !l) { toast('Nie można załadować logu: ' + (error?.message || 'brak danych')); return; }
   if (!window._logsData) window._logsData = [];
   window._logsData.unshift(l);
   editLog(0);
