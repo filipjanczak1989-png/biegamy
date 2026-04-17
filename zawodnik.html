@@ -3501,11 +3501,13 @@ async function saveLog() {
     // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
     const updateData = {...logData};
     if (attachmentUrl) updateData.attachment_url = attachmentUrl;
+    console.log('[saveLog] UPDATE attempt:', _editingLogId, 'athlete:', _athleteId);
     const { data: updData, error: updErr } = await _sb.from('training_logs')
       .update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId).select('id');
+    console.log('[saveLog] UPDATE result:', updData, updErr);
     error = updErr;
     if (!updErr && (!updData || updData.length === 0)) {
-      error = { message: 'Brak uprawnień do edycji — sprawdź polityki RLS w Supabase' };
+      error = { message: 'Brak uprawnień do edycji. Wykonaj SQL: CREATE POLICY update_own_logs ON training_logs FOR UPDATE USING (athlete_id = (SELECT id FROM athletes WHERE user_id = auth.uid()))' };
     }
   } else {
     // INSERT nowego logu
