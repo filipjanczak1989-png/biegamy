@@ -1450,6 +1450,9 @@ function closeModal(){
   if (previewList) previewList.innerHTML = '';
   const uploadLabel = document.getElementById('upload-label');
   if (uploadLabel) uploadLabel.textContent = 'Kliknij aby dodać zdjęcie';
+  _editingLogId = null;
+  _savingLog = false;
+  const saveBtn = document.getElementById('save-btn'); if (saveBtn) { saveBtn.textContent = 'Zapisz log →'; saveBtn.disabled = false; }
 }
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 function selFeel(el,t){
@@ -3437,6 +3440,7 @@ async function saveLog() {
   if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
 
   _savingLog = true;
+  try {
   const btn = document.getElementById('save-btn');
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
@@ -3545,6 +3549,13 @@ async function saveLog() {
   feel = '';
   _logType = 'Spokojny';
   _logDate = null;
+  } catch(saveErr) {
+    console.error('saveLog:', saveErr);
+    toast('Błąd: ' + saveErr.message);
+  } finally {
+    _savingLog = false;
+    if (document.getElementById('save-btn')) { document.getElementById('save-btn').textContent = 'Zapisz log →'; document.getElementById('save-btn').disabled = false; }
+  }
 }
 
 // ── LOGOUT & MENU ─────────────────────────────────────────────────
