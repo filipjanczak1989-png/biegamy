@@ -2703,8 +2703,40 @@ async function initAuth() {
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
   } else {
-    // Brak rekordu — nowy użytkownik, pokaż onboarding
-    showOnboarding();
+    // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
+    const fromTrener = new URLSearchParams(window.location.search).get('from') === 'trener';
+    if (fromTrener) {
+      // Trener wchodzi jako zawodnik — utwórz automatycznie profil zawodnika
+      const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trener';
+      const { data: created, error: cErr } = await _sb.from('athletes').insert({
+        user_id: user.id,
+        full_name: name,
+        email: user.email,
+        active: true,
+        is_public: false,
+        goal: 'Trener BiegaMy'
+      }).select('id').maybeSingle();
+      
+      if (created?.id) {
+        _athleteId = created.id;
+        await loadLogs();
+        loadAvatarTopbar(_athleteId);
+        toast('Profil zawodnika utworzony ✓');
+      } else {
+        // Może już istnieje (race condition) — pobierz po user_id
+        const { data: fetched } = await _sb.from('athletes').select('id').eq('user_id', user.id).maybeSingle();
+        if (fetched?.id) {
+          _athleteId = fetched.id;
+          await loadLogs();
+          loadAvatarTopbar(_athleteId);
+        } else {
+          showOnboarding();
+        }
+      }
+    } else {
+      // Nowy użytkownik bez profilu — pokaż onboarding
+      showOnboarding();
+    }
   }
 }
 
@@ -3950,7 +3982,9 @@ async function editFeedLog(logId) {
 
 async function deleteFeedLog(logId) {
   if (!confirm('Usunąć ten trening?')) return;
-  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  if (!_athleteId) { toast('Błąd sesji — odśwież stronę'); return; }
+  const { error } = await _sb.from('training_logs').delete()
+    .eq('id', logId).eq('athlete_id', _athleteId);
   if (error) { console.error('deleteFeedLog:', error); toast('Błąd: ' + error.message); return; }
   if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Usunięto ✓');
@@ -4114,17 +4148,22 @@ function _buildAthleteCards(athletes, fSet) {
 }
 
 async function toggleFollow(targetId, btn, isFollowing) {
-  if (!_athleteId) return;
+  if (!_athleteId) { toast('Zaloguj się jako zawodnik aby obserwować'); return; }
   btn.disabled = true;
   if (isFollowing) {
-    await _sb.from('follows').delete().eq('follower_id',_athleteId).eq('following_id',targetId);
-    btn.textContent='+ Obserwuj'; btn.style.background='var(--accent)'; btn.style.borderColor='var(--accent)'; btn.style.color='#fff';
+    const { error } = await _sb.from('follows').delete()
+      .eq('follower_id',_athleteId).eq('following_id',targetId);
+    if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
+    btn.textContent='+ Obserwuj'; btn.style.background='var(--accent)';
+    btn.style.borderColor='var(--accent)'; btn.style.color='#fff';
     btn.onclick=()=>toggleFollow(targetId,btn,false);
   } else {
-    await _sb.from('follows').insert({follower_id:_athleteId,following_id:targetId});
-    btn.textContent='Obserwujesz'; btn.style.background='transparent'; btn.style.borderColor='var(--border)'; btn.style.color='var(--muted)';
+    const { error } = await _sb.from('follows').insert(
+      {follower_id:_athleteId, following_id:targetId});
+    if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
+    btn.textContent='Obserwujesz'; btn.style.background='transparent';
+    btn.style.borderColor='var(--border)'; btn.style.color='var(--muted)';
     btn.onclick=()=>toggleFollow(targetId,btn,true);
-    // Wyślij powiadomienie
     _sendFollowNotification(targetId);
   }
   btn.disabled = false;
@@ -4307,16 +4346,21 @@ async function openAthleteProfile(athleteId) {
 async function _apToggleFollow(targetId, isFollowing) {
   const btn = document.getElementById('ap-follow-btn');
   if (!btn) return;
+  if (!_athleteId) { toast('Zaloguj się jako zawodnik aby obserwować'); return; }
   btn.disabled = true;
   if (isFollowing) {
-    await _sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetId);
+    const { error } = await _sb.from('follows').delete()
+      .eq('follower_id', _athleteId).eq('following_id', targetId);
+    if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
     btn.textContent = '+ Obserwuj';
     btn.style.background = 'var(--accent)';
     btn.style.borderColor = 'var(--accent)';
     btn.style.color = '#fff';
     btn.onclick = () => _apToggleFollow(targetId, false);
   } else {
-    await _sb.from('follows').insert({ follower_id: _athleteId, following_id: targetId });
+    const { error } = await _sb.from('follows').insert(
+      { follower_id: _athleteId, following_id: targetId });
+    if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
     btn.textContent = '✓ Obserwujesz';
     btn.style.background = 'transparent';
     btn.style.borderColor = 'var(--border)';
