@@ -3372,18 +3372,21 @@ function renderLogsDb(data) {
 async function deleteLog(logId) {
   if (!confirm('Usunąć ten log?')) return;
   if (!_athleteId) { toast('Błąd sesji — odśwież stronę'); return; }
-  // Usuń — RLS powinno działać przez user session, athlete_id jako dodatkowy filtr
-  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  const { data: delData, error } = await _sb.from('training_logs').delete()
+    .eq('id', logId).eq('athlete_id', _athleteId).select('id');
   if (error) {
     console.error('deleteLog error:', error);
     toast('Błąd usuwania: ' + error.message);
     return;
   }
-  // Zaktualizuj cache
+  if (!delData || delData.length === 0) {
+    toast('Nie można usunąć — sprawdź polityki RLS');
+    console.error('RLS blocked delete: logId', logId, 'athleteId', _athleteId);
+    return;
+  }
   if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Log usunięty ✓');
   await loadLogs();
-  // Odśwież feed jeśli otwarty
   const feedEl = document.getElementById('social-feed-content');
   if (feedEl && feedEl.style.display !== 'none') loadSocialFeed(false);
 }
@@ -3482,11 +3485,11 @@ async function saveLog() {
 
   const logData = {
     training_type: _logType,
-    distance_km: dist,
+    distance_km: (dist && dist > 0) ? dist : null,
     duration: time || null,
     pace: pace || null,
     heart_rate: parseInt(document.getElementById('l-hr').value) || null,
-      elevation_gain: parseInt(document.getElementById('l-elevation')?.value) || null,
+    elevation_gain: parseInt(document.getElementById('l-elevation')?.value) || null,
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
     feel: feel || 'mid',
@@ -3498,7 +3501,12 @@ async function saveLog() {
     // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
     const updateData = {...logData};
     if (attachmentUrl) updateData.attachment_url = attachmentUrl;
-    ({ error } = await _sb.from('training_logs').update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId));
+    const { data: updData, error: updErr } = await _sb.from('training_logs')
+      .update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId).select('id');
+    error = updErr;
+    if (!updErr && (!updData || updData.length === 0)) {
+      error = { message: 'Brak uprawnień do edycji — sprawdź polityki RLS w Supabase' };
+    }
   } else {
     // INSERT nowego logu
     ({ error } = await _sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));
@@ -4056,9 +4064,14 @@ async function editFeedLog(logId) {
 async function deleteFeedLog(logId) {
   if (!confirm('Usunąć ten trening?')) return;
   if (!_athleteId) { toast('Błąd sesji — odśwież stronę'); return; }
-  const { error } = await _sb.from('training_logs').delete()
-    .eq('id', logId).eq('athlete_id', _athleteId);
+  const { data: delData, error } = await _sb.from('training_logs').delete()
+    .eq('id', logId).eq('athlete_id', _athleteId).select('id');
   if (error) { console.error('deleteFeedLog:', error); toast('Błąd: ' + error.message); return; }
+  if (!delData || delData.length === 0) {
+    toast('Nie można usunąć — sprawdź czy to Twój trening');
+    console.error('RLS blocked delete: no rows affected for logId', logId, 'athleteId', _athleteId);
+    return;
+  }
   if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Usunięto ✓');
   loadSocialFeed(false);
