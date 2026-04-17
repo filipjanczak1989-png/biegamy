@@ -255,7 +255,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="topbar-name">Trener <span>Filip</span></div>
   </div>
   <div class="topbar-right">
-    <div class="notif-btn" id="notif-btn" onclick="showCoachSection('msgs')" style="cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" id="notif-icon"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="ndot" id="notif-dot" style="display:none;"></div></div>
+    <div class="notif-btn" id="notif-btn" onclick="openCoachNotifications()" style="cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" id="notif-icon"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="ndot" id="notif-dot" style="display:none;"></div></div>
     <div class="topbar-av" onclick="toggleMenu()" id="av-btn">F</div>
 <div id="av-menu" style="display:none;position:absolute;top:48px;right:0;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px;z-index:9999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
   <div style="padding:8px 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);margin-bottom:6px;" id="menu-email">...</div>
@@ -276,6 +276,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="qs-card"><div class="qs-val g" id="stat-logs">—</div><div class="qs-lbl">Nowe logi</div></div>
   <div class="qs-card"><div class="qs-val" id="stat-days">—</div><div class="qs-lbl">Dni do startu</div></div>
 </div>
+
+<!-- Pasek statystyk aplikacji -->
+<div id="app-stats-bar" class="fi" style="margin:0 16px 16px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px;font-size:12px;color:var(--muted);"></div>
 
 <div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><div style="display:flex;gap:8px;"><button class="sec-action" onclick="openTemplateModal()" style="color:var(--green);">📋 Szablon</button><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div></div>
 <div class="ath-list" id="ath-list"></div>
@@ -1856,7 +1859,175 @@ async function sendTemplate() {
   }
 }
 
-setTimeout(async () => { await initAuth(); await checkUnreadMessages(); setInterval(checkUnreadMessages, 30000); }, 100);
+setTimeout(async () => { await initAuth(); await checkUnreadMessages(); loadAppStats(); initRealtimeNotifications(); setInterval(checkUnreadMessages, 30000); }, 100);
+
+// ── STATYSTYKI APLIKACJI ───────────────────────────────────────────
+let _appStats = { totalUsers: 0, newToday: 0 };
+const _coachNotifications = []; // local store for new registrations
+
+async function loadAppStats() {
+  try {
+    // Total athletes
+    const { count: total } = await _sb.from('athletes').select('*', { count: 'exact', head: true });
+    // New today
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const { count: today } = await _sb.from('athletes').select('*', { count: 'exact', head: true })
+      .gte('created_at', todayStart.toISOString());
+    _appStats.totalUsers = total || 0;
+    _appStats.newToday = today || 0;
+
+    // Update quick stats if visible
+    const el = document.getElementById('app-stats-bar');
+    if (el) _renderAppStatsBar(el);
+  } catch(e) { console.warn('loadAppStats:', e.message); }
+}
+
+function _renderAppStatsBar(el) {
+  el.innerHTML = '<div style="display:flex;gap:16px;align-items:center;">'
+    + '<div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">'
+    + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
+    + '<span><strong style="color:var(--fg);font-family:\'Bebas Neue\',sans-serif;font-size:16px;">' + _appStats.totalUsers + '</strong> zawodników w app</span>'
+    + '</div>'
+    + (_appStats.newToday > 0 ? '<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:#3db870;font-family:\'DM Mono\',monospace;">'
+      + '&#x2B;' + _appStats.newToday + ' dzisiaj'
+      + '</div>' : '')
+    + '</div>';
+}
+
+function initRealtimeNotifications() {
+  try {
+    _sb.channel('new-athletes')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'athletes' },
+        function(payload) {
+          const name = payload.new?.full_name || 'Nowy zawodnik';
+          const ts = new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+          _coachNotifications.unshift({ type: 'new_user', name, ts, id: payload.new?.id });
+          _appStats.totalUsers++;
+          _appStats.newToday++;
+          // Show dot on bell
+          const dot = document.getElementById('notif-dot');
+          if (dot) { dot.style.display = 'block'; dot.style.background = '#3db870'; }
+          // Flash bell
+          const bell = document.getElementById('notif-btn');
+          if (bell) { bell.style.background = 'rgba(61,184,112,0.15)'; bell.style.borderColor = '#3db870'; setTimeout(() => { bell.style.background = ''; bell.style.borderColor = ''; }, 3000); }
+          // Toast
+          showToast('&#x1F3C3; ' + name + ' dołączył(a) do BiegaMy!');
+          // Update stats bar
+          const el = document.getElementById('app-stats-bar');
+          if (el) _renderAppStatsBar(el);
+        })
+      .subscribe();
+  } catch(e) { console.warn('Realtime:', e.message); }
+}
+
+async function openCoachNotifications() {
+  // Toggle
+  const existing = document.getElementById('coach-notif-panel');
+  if (existing) { existing.remove(); return; }
+
+  const panel = document.createElement('div');
+  panel.id = 'coach-notif-panel';
+  panel.style.cssText = 'position:fixed;top:60px;right:16px;width:300px;max-width:calc(100vw - 32px);background:var(--card);border:1px solid var(--border);border-radius:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.6);overflow:hidden;';
+  document.body.appendChild(panel);
+
+  // Hide dot
+  const dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = 'none';
+
+  // Render
+  await _renderNotifPanel(panel);
+
+  // Close on outside click
+  setTimeout(() => {
+    document.addEventListener('click', function handler(e) {
+      if (!panel.contains(e.target) && e.target.id !== 'notif-btn') {
+        panel.remove();
+        document.removeEventListener('click', handler);
+      }
+    });
+  }, 100);
+}
+
+async function _renderNotifPanel(panel) {
+  // Fetch recent registrations
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
+
+  const { data: recent } = await _sb.from('athletes')
+    .select('id,full_name,created_at,goal')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const todayCount = (recent||[]).filter(a => new Date(a.created_at) >= todayStart).length;
+  const weekCount = (recent||[]).filter(a => new Date(a.created_at) >= weekStart).length;
+
+  let html = '<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;">Powiadomienia</div>'
+    + '<button onclick="document.getElementById(\'coach-notif-panel\').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">&#x2715;</button>'
+    + '</div>';
+
+  // Stats summary
+  html += '<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:20px;">'
+    + '<div style="text-align:center;">'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:var(--accent);">' + _appStats.totalUsers + '</div>'
+    + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;">w aplikacji</div>'
+    + '</div>'
+    + '<div style="text-align:center;">'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:#3db870;">' + todayCount + '</div>'
+    + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;">dziś</div>'
+    + '</div>'
+    + '<div style="text-align:center;">'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:#5090e0;">' + weekCount + '</div>'
+    + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;text-transform:uppercase;letter-spacing:0.1em;">7 dni</div>'
+    + '</div>'
+    + '</div>';
+
+  // Recent registrations
+  html += '<div style="max-height:280px;overflow-y:auto;">';
+  if (!recent || !recent.length) {
+    html += '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak rejestracji</div>';
+  } else {
+    html += '<div style="padding:8px 16px 4px;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;">Ostatnie rejestracje</div>';
+    html += recent.map(function(a) {
+      const name = a.full_name || 'Biegacz';
+      const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+      const date = new Date(a.created_at);
+      const isToday = date >= todayStart;
+      const isThisWeek = date >= weekStart;
+      const timeStr = isToday
+        ? date.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'})
+        : date.toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
+      const dot = isToday ? '#3db870' : isThisWeek ? '#5090e0' : 'var(--muted)';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);">'
+        + '<div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:12px;flex-shrink:0;">' + ini + '</div>'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;font-weight:500;">' + name + '</div>'
+        + (a.goal ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal + '</div>' : '')
+        + '</div>'
+        + '<div style="text-align:right;flex-shrink:0;">'
+        + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;">' + timeStr + '</div>'
+        + '<div style="width:7px;height:7px;border-radius:50%;background:' + dot + ';margin:3px 0 0 auto;"></div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+  html += '</div>';
+
+  // Real-time registrations (from this session)
+  if (_coachNotifications.length > 0) {
+    html += '<div style="padding:8px 16px 4px;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#3db870;font-family:\'DM Mono\',monospace;">&#x1F7E2; Na żywo (ta sesja)</div>'
+      + _coachNotifications.map(function(n) {
+        const ini = n.name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 16px;background:rgba(61,184,112,0.06);">'
+          + '<div style="width:28px;height:28px;border-radius:50%;background:#3db870;display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:11px;flex-shrink:0;">' + ini + '</div>'
+          + '<div style="flex:1;font-size:12px;">' + n.name + '</div>'
+          + '<div style="font-size:9px;color:#3db870;font-family:\'DM Mono\',monospace;">' + n.ts + '</div>'
+          + '</div>';
+      }).join('');
+  }
+
+  panel.innerHTML = html;
+}
 
 let _currentChatAthleteId = null;
 
@@ -2384,6 +2555,30 @@ async function sendCoachMessage() {
 
 async function loadAnalytics() {
   if (!_coachId) return;
+
+  // Render app stats in analytics section
+  const appEl = document.getElementById('analytics-app-stats');
+  if (appEl) {
+    const { count: total } = await _sb.from('athletes').select('*', { count:'exact', head:true });
+    const { count: myCount } = await _sb.from('athletes').select('*', { count:'exact', head:true }).eq('coach_id', _coachId);
+    const wS = new Date(); wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1); wS.setHours(0,0,0,0);
+    const { count: newWeek } = await _sb.from('athletes').select('*', { count:'exact', head:true }).gte('created_at', wS.toISOString());
+    appEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">'
+      + '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
+      + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:var(--accent);line-height:1;">' + (total||0) + '</div>'
+      + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">użytk. w app</div>'
+      + '</div>'
+      + '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
+      + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:#3db870;line-height:1;">' + (myCount||0) + '</div>'
+      + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">moich zawodn.</div>'
+      + '</div>'
+      + '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
+      + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:#5090e0;line-height:1;">' + (newWeek||0) + '</div>'
+      + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">nowych 7 dni</div>'
+      + '</div>'
+      + '</div>';
+  }
+
   const el = document.getElementById('analytics-content');
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;">Ładowanie...</div>';
 
@@ -2903,6 +3098,8 @@ if (_tabParam) {
 <!-- SEKCJA ANALITYKI -->
 <div id="analytics-section" style="display:none;padding:0 20px 100px;">
   <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Analityka zawodników</div>
+  <!-- Statystyki aplikacji -->
+  <div id="analytics-app-stats" style="margin-bottom:20px;"></div>
   <div id="analytics-content"></div>
 </div>
 
