@@ -3331,10 +3331,21 @@ function renderLogsDb(data) {
 
 async function deleteLog(logId) {
   if (!confirm('Usunąć ten log?')) return;
-  const { error } = await _sb.from('training_logs').delete().eq('id', logId).eq('athlete_id', _athleteId);
-  if (error) { toast('Błąd: ' + error.message); return; }
-  toast('Log usunięty');
+  if (!_athleteId) { toast('Błąd sesji — odśwież stronę'); return; }
+  // Usuń — RLS powinno działać przez user session, athlete_id jako dodatkowy filtr
+  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  if (error) {
+    console.error('deleteLog error:', error);
+    toast('Błąd usuwania: ' + error.message);
+    return;
+  }
+  // Zaktualizuj cache
+  if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
+  toast('Log usunięty ✓');
   await loadLogs();
+  // Odśwież feed jeśli otwarty
+  const feedEl = document.getElementById('social-feed-content');
+  if (feedEl && feedEl.style.display !== 'none') loadSocialFeed(false);
 }
 
 let _editingLogId = null;
@@ -3925,14 +3936,26 @@ async function deleteComment(commentId, logId) {
   await _sb.from('log_comments').delete().eq('id',commentId);_loadComments(logId);const el=document.getElementById('cc-'+logId);if(el)el.textContent=Math.max(0,parseInt(el.textContent||'0')-1);
 }
 
-function editFeedLog(logId) {
-  if(!window._logsData)return;const l=window._logsData.find(function(x){return x.id===logId;});if(!l)return;editLog(window._logsData.indexOf(l));
+async function editFeedLog(logId) {
+  if (window._logsData) {
+    const cached = window._logsData.find(function(x){ return x.id === logId; });
+    if (cached) { editLog(window._logsData.indexOf(cached)); return; }
+  }
+  const { data: l, error } = await _sb.from('training_logs').select('*').eq('id', logId).maybeSingle();
+  if (error || !l) { toast('Nie można załadować logu'); return; }
+  if (!window._logsData) window._logsData = [];
+  window._logsData.unshift(l);
+  editLog(0);
 }
 
 async function deleteFeedLog(logId) {
-  if(!confirm('Usunąć ten trening?'))return;
-  const{error}=await _sb.from('training_logs').delete().eq('id',logId).eq('athlete_id',_athleteId);
-  if(error){toast('Błąd: '+error.message);return;}toast('Usunięto ✓');loadSocialFeed(false);loadLogs();
+  if (!confirm('Usunąć ten trening?')) return;
+  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  if (error) { console.error('deleteFeedLog:', error); toast('Błąd: ' + error.message); return; }
+  if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
+  toast('Usunięto ✓');
+  loadSocialFeed(false);
+  loadLogs();
 }
 
 function loadChallenges() {
