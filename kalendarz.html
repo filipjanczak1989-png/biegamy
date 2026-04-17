@@ -1219,7 +1219,7 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = _sbKal.from('training_logs').select('athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration').order('logged_at');
+  let logsQuery = _sbKal.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type').order('logged_at');
   if (_urlRole === 'athlete') {
     const { data: ath2 } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
@@ -2068,7 +2068,9 @@ function renderMobile() {
     const isToday = ds === today;
     const raceGoal = window._goals && window._goals.find(g => g.date === ds);
     const isRaceDay = !!raceGoal;
-    const totalKm = items.reduce((s,t) => s + (parseFloat(t.dist||t.distance_km)||0), 0);
+    const totalKm = items.length > 0
+      ? items.reduce((s,t) => s + (parseFloat(t.dist||t.distance_km)||0), 0)
+      : dayLogs.reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
     const abbr = dayAbbrPL[d.getDay()];
     const dayNum = d.getDate();
     const monthStr = monthNamesM[d.getMonth()];
@@ -2093,7 +2095,9 @@ function renderMobile() {
       ? (raceGoal.name || 'Start')
       : trainCount > 0
         ? [...new Set(items.map(t => t.type))].join(' · ')
-        : '';
+        : dayLogs.length > 0
+          ? [...new Set(dayLogs.map(l => l.training_type).filter(Boolean))].join(' · ')
+          : '';
 
     // === LOG THUMBNAILS — małe, klikalny kafelek ===
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
@@ -2105,6 +2109,31 @@ function renderMobile() {
     const logThumbsHtml = logThumbs
       ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">${logThumbs}</div>`
       : '';
+
+    // === STANDALONE LOG CARDS — logi bez planu ===
+    const plannedDs = (trainings[ds] || []);
+    const standaloneLogCards = dayLogs
+      .filter(l => {
+        // Pokaż log jako osobną kartę gdy brak planu lub gdy jest dodatkowym logiem
+        if (!plannedDs.length) return true;
+        // Gdy jest plan ale log ma dystans/typ — pokaż jeśli nie pokrywa się z "done" planem
+        const hasDone = plannedDs.some(t => t.status === 'done');
+        return !hasDone && (parseFloat(l.distance_km) > 0);
+      })
+      .map(l => {
+        const type = l.training_type || 'Trening';
+        const tc = typeColorsM[type] || '#5090e0';
+        const km = parseFloat(l.distance_km) || 0;
+        const feel = {'good':'😊','mid':'😐','bad':'😓'}[l.feel] || '';
+        return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${tc};padding:10px 13px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${km?'4':'0'}px;">
+    <span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;font-weight:500;">${type.toUpperCase()}</span>
+    ${feel ? `<span style="font-size:16px;">${feel}</span>` : ''}
+  </div>
+  ${km > 0 ? `<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);">${km.toFixed(1)} KM${l.pace ? `<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${l.pace}/km${l.heart_rate ? ` · ♥ ${l.heart_rate}` : ''}</span>` : ''}</div>` : ''}
+  <span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;margin-top:4px;display:inline-block;">✓ LOG</span>
+</div>`;
+      }).join('');
 
     // === TRAINING CARDS ===
     const cards = items.map((t, i) => {
@@ -2182,7 +2211,7 @@ function renderMobile() {
     }).join('');
 
     const contentId = 'mday-' + ds;
-    const hasContent = items.length > 0 || isRaceDay || logThumbs || stravaDayM.length > 0;
+    const hasContent = items.length > 0 || isRaceDay || logThumbs || stravaDayM.length > 0 || standaloneLogCards.length > 0;
 
     return `<div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;${boxShadow}">
   <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${headerBg};cursor:pointer;" onclick="toggleMobileDay('${contentId}',this)">
@@ -2197,7 +2226,7 @@ function renderMobile() {
     <svg class="mday-chevron" style="flex-shrink:0;transition:transform 0.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isRaceDay?'var(--green)':'var(--muted)'}" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
   </div>
   <div id="${contentId}" style="display:${isOpen?'block':'none'};padding:${hasContent||addBtn?'8px 10px 10px':'4px 10px'};background:var(--bg);">
-    ${raceCard}${cards}${stravaHtmlM}${logThumbsHtml}${addBtn}
+    ${raceCard}${cards}${standaloneLogCards}${stravaHtmlM}${logThumbsHtml}${addBtn}
     ${!hasContent&&!addBtn?`<div style="text-align:center;padding:10px 0;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Brak treningu</div>`:''}
   </div>
 </div>`;

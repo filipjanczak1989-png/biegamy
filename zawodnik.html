@@ -696,7 +696,7 @@ body{
     <div class="topbar-name" id="topbar-name" style="opacity:0.3;">—</div>
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;">
-    <a id="back-to-trener" href="trener.html" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
+    <a id="back-to-trener" href="trener.html" onclick="sessionStorage.removeItem('_fromTrener')" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
     <div onclick="openNotifications()" class="notif-bell-z" id="zawodnik-bell">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#3db870;"></div>
@@ -1267,7 +1267,11 @@ function init(){
   if(dateEl) dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
 
   // Pokaż przycisk powrotu jeśli wejście z panelu trenera
+  // Zachowaj w sessionStorage żeby przeżył replaceState
   if(new URLSearchParams(window.location.search).get('from')==='trener'){
+    sessionStorage.setItem('_fromTrener','1');
+  }
+  if(sessionStorage.getItem('_fromTrener')==='1'){
     const btn=document.getElementById('back-to-trener');
     if(btn) btn.style.display='block';
   }
@@ -4008,36 +4012,98 @@ function loadChallenges() {
   const now=new Date();const dow=now.getDay()===0?7:now.getDay();
   const wS=new Date(now);wS.setDate(now.getDate()-dow+1);wS.setHours(0,0,0,0);
   const mS=new Date(now.getFullYear(),now.getMonth(),1);
-  const chs=[
-    {id:'week50',icon:'&#x1F3C3;',title:'50 km w tygodniu',desc:'Suma km w tym tygodniu',target:50,unit:'km',color:'#3db870'},
-    {id:'week5runs',icon:'&#x1F4C5;',title:'5 treningów w tygodniu',desc:'5 sesji w 7 dni',target:5,unit:'sesji',color:'#5090e0'},
-    {id:'month200',icon:'&#x1F4CD;',title:'200 km w miesiącu',desc:'Miesi\u0119czna suma km',target:200,unit:'km',color:'#e8b840'},
-    {id:'longrun20',icon:'&#x1F4AA;',title:'Wybieg 20+ km',desc:'Jeden trening 20 km lub wi\u0119cej',target:20,unit:'km',color:'#9a6fe8'},
-    {id:'pace530',icon:'&#x26A1;',title:'Tempo < 5:30/km',desc:'Trening z tempem < 5:30',target:'<5:30',unit:'/km',color:'#FC4C02'},
+
+  // Tygodniowy numer — rotacja co tydzień
+  const weekNum = Math.floor((wS - new Date(wS.getFullYear(),0,1)) / 604800000);
+
+  // Wszystkie możliwe wyzwania tygodniowe
+  const allWeekly = [
+    {id:'week50',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',title:'50 km w tygodniu',desc:'Suma km od poniedziałku',target:50,unit:'km',color:'#3db870',kind:'km'},
+    {id:'week5runs',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2"/><path d="M5 18l3-6 2 3 2-5 3 8"/><path d="M3 18h18"/></svg>',title:'5 treningów w tygodniu',desc:'5 sesji od poniedziałku',target:5,unit:'sesji',color:'#5090e0',kind:'sessions'},
+    {id:'week3days',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',title:'3 dni z rzędu',desc:'Trenuj 3 kolejne dni',target:3,unit:'dni',color:'#e8b840',kind:'streak'},
+    {id:'week30',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 8v4l3 3"/></svg>',title:'30 km w tygodniu',desc:'Suma km od poniedziałku',target:30,unit:'km',color:'#9a6fe8',kind:'km'},
+    {id:'pace600',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',title:'Tempo < 6:00/km',desc:'Jeden trening szybszy niż 6:00',target:360,unit:'/km',color:'#FC4C02',kind:'pace'},
+    {id:'longrun15',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17l4-8 4 4 4-6 4 4"/><path d="M3 20h18"/></svg>',title:'Długi wybieg 15+ km',desc:'Jeden trening 15 km lub więcej',target:15,unit:'km',color:'#3db870',kind:'long'},
   ];
-  function bCh(ch,prog,ach){
-    const spec=typeof ch.target==='string';const pct=spec?(ach?100:0):Math.min(100,Math.round((prog||0)/ch.target*100));
-    const pd=spec?(ach?'TAK':'NIE'):(typeof prog==='number'?prog.toFixed(prog>=10||prog===Math.floor(prog)?0:1):'0');
+
+  // Miesięczne — stałe
+  const monthlyAll = [
+    {id:'month150',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',title:'150 km w miesiącu',desc:'Suma km w tym miesiącu',target:150,unit:'km',color:'#e8b840',kind:'mkm'},
+    {id:'month200',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',title:'200 km w miesiącu',desc:'Suma km w tym miesiącu',target:200,unit:'km',color:'#FC4C02',kind:'mkm'},
+  ];
+
+  // Wybierz 2 tygodniowe na ten tydzień (rotacja)
+  const w1 = allWeekly[weekNum % allWeekly.length];
+  const w2 = allWeekly[(weekNum + 1) % allWeekly.length];
+  // Miesięczne — naprzemiennie
+  const monthly = monthlyAll[Math.floor(weekNum / 4) % monthlyAll.length];
+
+  const chs = [w1, w2, monthly];
+
+  function bCh(ch, prog, ach) {
+    const isMonthly = ch.kind === 'mkm';
+    const spec = typeof ch.target === 'string';
+    const pct = spec ? (ach?100:0) : Math.min(100, Math.round((prog||0)/ch.target*100));
+    const pd = spec ? (ach?'TAK':'NIE') : (typeof prog==='number' ? prog.toFixed(prog>=10||prog===Math.floor(prog)?0:1) : '0');
+    const labelTag = isMonthly
+      ? '<span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;margin-left:6px;">MIESIĄC</span>'
+      : '<span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;margin-left:6px;">TYDZIEŃ</span>';
     return '<div style="background:var(--card);border:1px solid '+(ach?ch.color:'var(--border)')+';border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
       +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'
-      +'<div style="font-size:24px;">'+ch.icon+'</div>'
-      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+ch.title+(ach?' &#x2705;':'')+'</div><div style="font-size:11px;color:var(--muted);">'+ch.desc+'</div></div>'
-      +'<div style="text-align:right;"><div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:'+ch.color+';">'+pd+'</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">'+ch.unit+'</div></div>'
-      +'</div><div style="background:var(--card2);border-radius:4px;height:4px;"><div style="background:'+ch.color+';height:4px;width:'+pct+'%;border-radius:4px;transition:width 0.5s;"></div></div></div>';
+      +'<div style="width:44px;height:44px;border-radius:12px;background:'+ch.color+'18;border:1px solid '+ch.color+'44;display:flex;align-items:center;justify-content:center;color:'+ch.color+';flex-shrink:0;">'+ch.svg+'</div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:14px;font-weight:600;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+ch.title+(ach?' <span style="color:#3db870;">✓</span>':'')+labelTag+'</div>'
+      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+ch.desc+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;flex-shrink:0;">'
+      +'<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:'+ch.color+';">'+pd+'</div>'
+      +'<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">'+ch.unit+'</div>'
+      +'</div></div>'
+      +'<div style="background:var(--card2);border-radius:4px;height:3px;">'
+      +'<div style="background:'+ch.color+';height:3px;width:'+pct+'%;border-radius:4px;transition:width 0.6s;"></div>'
+      +'</div></div>';
   }
-  el.innerHTML=chs.map(function(ch){return bCh(ch,0,false);}).join('')+'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;padding:8px 0;">Reset co poniedzia\u0142ek</div>';
-  if(_athleteId){
-    _sb.from('training_logs').select('distance_km,logged_at,pace').eq('athlete_id',_athleteId).gte('logged_at',mS.toISOString()).then(function(res){
-      const all=res.data||[];const wl=all.filter(function(l){return new Date(l.logged_at)>=wS;});
-      const km=wl.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
-      const mkm=all.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
-      const ses=wl.length;const mx=wl.reduce(function(m,l){return Math.max(m,parseFloat(l.distance_km)||0);},0);
-      const pcs=wl.filter(function(l){return l.pace;}).map(function(l){const p=l.pace.split(':');return p.length===2?parseInt(p[0])*60+parseInt(p[1]):999;});
-      const bp=pcs.length?Math.min.apply(null,pcs):999;
-      const prog={week50:km,week5runs:ses,month200:mkm,longrun20:mx,pace530:bp};
-      const ach={week50:km>=50,week5runs:ses>=5,month200:mkm>=200,longrun20:mx>=20,pace530:bp<=330};
-      el.innerHTML=chs.map(function(ch){return bCh(ch,prog[ch.id],ach[ch.id]);}).join('')+'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;padding:8px 0;">Reset co poniedzia\u0142ek</div>';
-    });
+
+  const resetLabel = '<div style="text-align:center;padding:8px 0 0;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;">Tygodniowe resetują się w poniedziałek</div>';
+  el.innerHTML = chs.map(function(ch){return bCh(ch,0,false);}).join('') + resetLabel;
+
+  if (_athleteId) {
+    _sb.from('training_logs').select('distance_km,logged_at,pace').eq('athlete_id',_athleteId)
+      .gte('logged_at', mS.toISOString()).then(function(res) {
+        const all = res.data||[];
+        const wl = all.filter(function(l){return new Date(l.logged_at)>=wS;});
+        const km = wl.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
+        const mkm = all.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
+        const ses = wl.length;
+        const mx = wl.reduce(function(m,l){return Math.max(m,parseFloat(l.distance_km)||0);},0);
+        const pcs = wl.filter(function(l){return l.pace;}).map(function(l){const p=l.pace.split(':');return p.length===2?parseInt(p[0])*60+parseInt(p[1]):999;});
+        const bp = pcs.length?Math.min.apply(null,pcs):999;
+
+        function prog(ch) {
+          if(ch.kind==='km') return km;
+          if(ch.kind==='sessions') return ses;
+          if(ch.kind==='mkm') return mkm;
+          if(ch.kind==='long') return mx;
+          if(ch.kind==='pace') return bp;
+          if(ch.kind==='streak') {
+            // count consecutive days
+            const dates = [...new Set(wl.map(function(l){return l.logged_at.split('T')[0];}))].sort();
+            let streak=0,prev=null;
+            dates.forEach(function(d){
+              if(!prev){streak=1;}
+              else{const diff=Math.round((new Date(d)-new Date(prev))/86400000);streak=diff===1?streak+1:1;}
+              prev=d;
+            });
+            return streak;
+          }
+          return 0;
+        }
+        function ach(ch,p) {
+          if(ch.kind==='pace') return p<=ch.target && p<999;
+          return typeof ch.target==='number' && p>=ch.target;
+        }
+        el.innerHTML = chs.map(function(ch){const p=prog(ch);return bCh(ch,p,ach(ch,p));}).join('') + resetLabel;
+      });
   }
 }
 
