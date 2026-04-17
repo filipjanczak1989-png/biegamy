@@ -4136,7 +4136,7 @@ async function openAthleteProfile(athleteId) {
 
   // Pobierz dane zawodnika
   const { data: ath } = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,is_public')
+    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,is_public,race_goals,target_date,link_strava,link_garmin,link_instagram,link_facebook')
     .eq('id', athleteId).maybeSingle();
 
   if (!ath) {
@@ -4169,62 +4169,105 @@ async function openAthleteProfile(athleteId) {
 
   const name = ath.full_name || 'Biegacz';
   const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-  const typeColors = { Spokojny:'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
+  const typeColors = { Spokojny:'#5090e0', Interwa\u0142y:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
 
   const pbs = [
     { label: 'Maraton', val: ath.pb_marathon },
-    { label: 'Półmaraton', val: ath.pb_half },
+    { label: 'P\u00f3\u0142maraton', val: ath.pb_half },
     { label: '10 km', val: ath.pb_10k },
     { label: '5 km', val: ath.pb_5k },
   ].filter(p => p.val);
 
-  document.getElementById('ap-content').innerHTML = `
-    <!-- Avatar + imię -->
-    <div style="text-align:center;padding:20px 0 16px;">
+  // Parse goals
+  let goals = [];
+  try { const p = JSON.parse(ath.race_goals || '[]'); if (Array.isArray(p)) goals = p; } catch(e2) {}
+  if (!goals.length && ath.goal) goals = [{ name: ath.goal, date: ath.target_date || '' }];
+  const nowDate = new Date();
+  const upcomingGoals = goals.filter(g => !g.date || new Date(g.date + (g.date.length === 7 ? '-01' : '')) >= new Date(nowDate.getFullYear(), 0, 1));
+
+  function _goalCard(g) {
+    const hasDate = g.date && g.date.length >= 7;
+    let daysLeft = null, dateStr = '', isPast = false;
+    if (hasDate) {
+      const d = new Date(g.date + (g.date.length === 7 ? '-01' : ''));
+      isPast = d < nowDate;
+      daysLeft = Math.ceil((d - nowDate) / 86400000);
+      dateStr = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+    const urgency = !hasDate ? '' : daysLeft <= 14 ? '#e8b840' : daysLeft <= 60 ? '#f06030' : '#3db870';
+    const badge = !hasDate ? ''
+      : isPast ? '<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;">uko\u0144czony</span>'
+      : daysLeft <= 0 ? '<span style="font-size:9px;color:#e8b840;font-family:DM Mono,monospace;background:rgba(232,184,64,0.1);padding:2px 7px;border-radius:4px;">DZI\u015a</span>'
+      : '<span style="font-size:9px;font-family:DM Mono,monospace;color:' + urgency + ';background:' + urgency + '18;padding:2px 7px;border-radius:4px;">' + daysLeft + ' dni</span>';
+    return '<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;">'
+      + '<div style="font-size:22px;flex-shrink:0;">&#x1F3C1;</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (g.name || 'Start') + '</div>'
+      + (dateStr ? '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">' + dateStr + '</div>' : '')
+      + '</div>'
+      + badge
+      + '</div>';
+  }
+  const _apHtml = [];
+  _apHtml.push(`<div style="text-align:center;padding:20px 0 16px;">
       <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:0 auto 12px;box-shadow:0 0 24px rgba(232,86,30,0.3);" id="ap-avatar">${ini}</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;">${name}</div>
       ${ath.goal ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">${ath.goal}</div>` : ''}
       <button id="ap-follow-btn" onclick="_apToggleFollow('${athleteId}', ${isFollowing})"
         style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
-        ${isFollowing ? '✓ Obserwujesz' : '+ Obserwuj'}
+        ${isFollowing ? '\u2713 Obserwujesz' : '+ Obserwuj'}
       </button>
-    </div>
+    </div>`);
 
-    ${pbs.length ? `
-    <!-- Życiówki -->
-    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Życiówki</div>
-    <div style="display:grid;grid-template-columns:repeat(${Math.min(pbs.length,2)},1fr);gap:8px;margin-bottom:20px;">
-      ${pbs.map(p => `
-        <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">
-          <div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">${p.label}</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);">${p.val}</div>
-        </div>`).join('')}
-    </div>` : ''}
+  if (pbs.length) {
+    _apHtml.push('<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">\u017byci\u00f3wki</div>');
+    _apHtml.push('<div style="display:grid;grid-template-columns:repeat(' + Math.min(pbs.length,2) + ',1fr);gap:8px;margin-bottom:20px;">');
+    pbs.forEach(function(p) {
+      _apHtml.push('<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">'
+        + '<div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">' + p.label + '</div>'
+        + '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--accent);">' + p.val + '</div>'
+        + '</div>');
+    });
+    _apHtml.push('</div>');
+  }
 
-    ${logs && logs.length ? `
-    <!-- Ostatnie treningi -->
-    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie treningi</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
-      ${logs.map(l => {
-        const type = l.training_type || 'Trening';
-        const col = typeColors[type] || 'var(--muted)';
-        const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
-        const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
-        const feel = {good:'😊', mid:'😐', bad:'😓'}[l.feel] || '';
-        return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
-          <div style="width:3px;height:32px;background:${col};border-radius:2px;flex-shrink:0;"></div>
-          <div style="flex:1;"><div style="font-size:13px;">${type}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div></div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;">${dist}</div>
-          ${l.pace ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${l.pace}/km</div>` : ''}
-          <div>${feel}</div>
-        </div>`;
-      }).join('')}
-    </div>` : '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak publicznych treningów.</div>'}
+  if (upcomingGoals.length) {
+    _apHtml.push('<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Cele startowe</div>');
+    _apHtml.push('<div style="margin-bottom:20px;">');
+    upcomingGoals.slice(0,4).forEach(function(g) { _apHtml.push(_goalCard(g)); });
+    _apHtml.push('</div>');
+  }
 
-    <div style="display:flex;gap:8px;margin-top:4px;">
-      <button onclick="document.getElementById('athlete-profile-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zamknij</button>
-      <button onclick="blockUser('${athleteId}','${name.replace(/'/g,"\\'")}');document.getElementById('athlete-profile-modal')?.remove()" style="background:transparent;color:rgba(224,80,80,0.5);border:1px solid rgba(224,80,80,0.2);border-radius:10px;padding:12px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;" title="Zablokuj użytkownika">Zablokuj</button>
-    </div>`;
+  if (logs && logs.length) {
+    _apHtml.push('<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Ostatnie treningi</div>');
+    _apHtml.push('<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">');
+    logs.forEach(function(l) {
+      const type = l.training_type || 'Trening';
+      const col = typeColors[type] || 'var(--muted)';
+      const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
+      const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
+      const feel = {good:'\uD83D\uDE0A', mid:'\uD83D\uDE10', bad:'\uD83D\uDE13'}[l.feel] || '';
+      _apHtml.push('<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">'
+        + '<div style="width:3px;height:32px;background:' + col + ';border-radius:2px;flex-shrink:0;"></div>'
+        + '<div style="flex:1;"><div style="font-size:13px;">' + type + '</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">' + date + '</div></div>'
+        + (dist ? '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">' + dist + '</div>' : '')
+        + (l.pace ? '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">' + l.pace + '/km</div>' : '')
+        + (feel ? '<div>' + feel + '</div>' : '')
+        + '</div>');
+    });
+    _apHtml.push('</div>');
+  } else {
+    _apHtml.push('<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak publicznych trening\u00f3w.</div>');
+  }
+
+  _apHtml.push(_renderSocialLinks(ath));
+
+  _apHtml.push('<div style="display:flex;gap:8px;margin-top:4px;">'
+    + '<button onclick="document.getElementById(\'athlete-profile-modal\').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Zamknij</button>'
+    + '<button onclick="blockUser(\'' + athleteId + '\',\'' + name.replace(/'/g,'_') + '\');document.getElementById(\'athlete-profile-modal\')?.remove()" style="background:transparent;color:rgba(224,80,80,0.5);border:1px solid rgba(224,80,80,0.2);border-radius:10px;padding:12px 14px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">Zablokuj</button>'
+    + '</div>');
+
+  document.getElementById('ap-content').innerHTML = _apHtml.join('');
 
   // Spróbuj załadować avatar
   const { data: avUrl } = _sb.storage.from('training-screenshots').getPublicUrl(athleteId + '/avatar.jpg');
