@@ -766,14 +766,22 @@ body{
   <div><div class="ws-km" id="ws-km">—</div><div class="ws-km-lbl" id="ws-km-lbl">km</div></div>
 </div>
 
-<div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Wiadomość od trenera</div><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">kliknij →</span></div>
-<div class="coach-box fade-in" id="coach-box" onclick="showSection('msgs')">
-  <div class="coach-hdr">
-    <div class="coach-av" id="coach-av">F</div>
-    <div><div class="coach-nm" id="coach-nm">Trener</div></div>
-    <div class="coach-ts" id="coach-ts"></div>
+<div class="sec-hdr fade-in" style="margin-top:4px;">
+  <div class="sec-title">Społeczność</div>
+  <a href="#" onclick="showSection('social');return false;" class="sec-link">Więcej →</a>
+</div>
+<div id="home-social-preview" class="fade-in" style="margin:0 0 18px;"></div>
+
+<div id="coach-msg-section" style="display:none;">
+  <div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Wiadomość od trenera</div><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">kliknij →</span></div>
+  <div class="coach-box fade-in" id="coach-box" onclick="showSection('msgs')">
+    <div class="coach-hdr">
+      <div class="coach-av" id="coach-av">F</div>
+      <div><div class="coach-nm" id="coach-nm">Trener</div></div>
+      <div class="coach-ts" id="coach-ts"></div>
+    </div>
+    <div class="coach-body" id="coach-body" style="color:var(--muted);font-style:italic;">Brak wiadomości od trenera.</div>
   </div>
-  <div class="coach-body" id="coach-body" style="color:var(--muted);font-style:italic;">Brak wiadomości od trenera.</div>
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Ostatnie treningi</div><a href="#" class="sec-link">Wszystkie →</a></div>
@@ -3106,6 +3114,8 @@ async function loadLogs() {
   await checkNewMessages();
   checkNotifications();
   if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
+  // Load social preview on homepage
+  loadHomeSocialPreview();
   // Realtime — nowe wiadomości od trenera od razu
   if (!window._realtimeChannel && _athleteId) {
     window._realtimeChannel = _sb.channel('messages-' + _athleteId)
@@ -3207,6 +3217,13 @@ async function loadTodayTraining() {
 }
 
 async function loadCoachMessage() {
+  // Show coach section only if athlete has coach
+  if (_athleteId) {
+    const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
+    const coachSection = document.getElementById('coach-msg-section');
+    if (coachSection) coachSection.style.display = ath && ath.coach_id ? 'block' : 'none';
+  }
+  
   if (!_athleteId) return;
   // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
   const { data: msgs } = await _sb
@@ -3710,71 +3727,229 @@ document.addEventListener('click', e => {
 // ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
 
 function switchSocialTab(tab) {
-  ['feed','following','find'].forEach(t => {
+  ['feed','challenges','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
     const panel = document.getElementById('social-' + t);
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
-  if (tab==='feed') loadSocialFeed();
+  if (tab==='feed') loadSocialFeed(false);
+  if (tab==='challenges') loadChallenges();
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
 }
 
-async function loadSocialFeed() {
+async function loadSocialFeed(compact) {
   if (!_athleteId) return;
-  const feedEl = document.getElementById('social-feed-content');
+  const feedEl = document.getElementById(compact ? 'home-social-preview' : 'social-feed-content');
   if (!feedEl) return;
-  feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
-
-  // Pokaż aktywności WSZYSTKICH publicznych profili (nie tylko obserwowanych)
+  feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,athletes(id,full_name,is_public)')
-    .order('logged_at', { ascending: false })
-    .limit(30);
-
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,athletes(id,full_name,is_public)')
+    .order('logged_at', { ascending: false }).limit(compact ? 3 : 30);
   if (!logs || logs.length === 0) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak aktywności.</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
-
-  // Sprawdź kogo obserwujemy (do oznaczenia w feedzie)
   const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
-  const followingSet = new Set((followData||[]).map(f => f.following_id));
-
-  const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
-  const rendered = logs.map(l => {
-    // Pokaż tylko publiczne profile lub własne treningi
-    if (l.athletes?.is_public === false && l.athlete_id !== _athleteId) return '';
-    const athId = l.athletes?.id || l.athlete_id;
-    const name = l.athletes?.full_name || 'Biegacz';
-    const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
+  const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
+  function buildCard(l) {
+    if (l.athletes && l.athletes.is_public === false && l.athlete_id !== _athleteId) return '';
+    const athId = (l.athletes && l.athletes.id) || l.athlete_id;
+    const name = (l.athletes && l.athletes.full_name) || 'Biegacz';
+    const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     const isOwn = l.athlete_id === _athleteId;
     const isFollowed = followingSet.has(athId);
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
     const type = l.training_type || 'Trening';
-    const col = tc[type] || 'var(--muted)';
+    const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
-    const feel = {good:'😊',mid:'😐',bad:'😓'}[l.feel] || '';
-    return `<div onclick="${isOwn ? '' : `openAthleteProfile('${athId}')`}" style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;${!isOwn?'cursor:pointer;':''}" ${!isOwn?`onmouseover="this.style.borderColor='rgba(212,80,26,0.3)'" onmouseout="this.style.borderColor='var(--border)'"`:''}">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:${dist||l.comment?'10':'0'}px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${isOwn?'var(--accent)':'rgba(255,255,255,0.08)'};border:${isOwn?'none':'1px solid var(--border)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;">${ini}</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;font-weight:600;">${isOwn ? 'Ty' : name}${isFollowed && !isOwn ? ' <span style="font-size:9px;color:var(--accent);font-family:\'DM Mono\',monospace;background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>' : ''}</div>
-          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
-        </div>
-        <span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;background:${col}18;padding:3px 8px;border-radius:6px;">${type}</span>
-      </div>
-      ${dist?`<div style="display:flex;gap:20px;align-items:baseline;margin-bottom:${l.comment?'8':'0'}px;">
-        <div><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;">${dist}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">KM</span></div>
-        ${l.pace?`<div><span style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${l.pace}</span><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:3px;">/KM</span></div>`:''}
-        ${feel?`<div style="margin-left:auto;font-size:22px;">${feel}</div>`:''}
-      </div>`:''}
-      ${l.comment?`<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:'DM Sans',sans-serif;font-style:italic;">"${l.comment}"</div>`:''}</div>`;
-  }).filter(Boolean).join('');
-
-  feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak publicznych aktywności.</div>';
+    const feelEmoji = {good:'&#x1F60A;',mid:'&#x1F610;',bad:'&#x1F613;'}[l.feel]||'';
+    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(' + JSON.stringify(athId) + ')"');
+    const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
+    const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
+    const editBtns = (isOwn&&!compact)
+      ? '<div style="display:flex;gap:4px;margin-left:auto;">'
+        +'<button onclick="event.stopPropagation();editFeedLog('+JSON.stringify(l.id)+')" style="background:transparent;border:none;color:var(--muted);cursor:pointer;padding:3px 6px;border-radius:6px;font-size:13px;" title="Edytuj">&#x270F;&#xFE0F;</button>'
+        +'<button onclick="event.stopPropagation();deleteFeedLog('+JSON.stringify(l.id)+')" style="background:transparent;border:none;color:var(--muted);cursor:pointer;padding:3px 6px;border-radius:6px;font-size:13px;" title="Usu\u0144">&#x1F5D1;&#xFE0F;</button>'
+        +'</div>' : '';
+    let screensHtml = '';
+    if (l.attachment_url) {
+      const urls = l.attachment_url.split(',').filter(Boolean);
+      if (urls.length) screensHtml = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'
+        +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
+    }
+    const reactBar = compact ? '' : (
+      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
+      +'<button onclick="event.stopPropagation();toggleReact('+JSON.stringify(l.id)+',\'fire\')" id="react-fire-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:14px;border-radius:8px;display:flex;align-items:center;gap:3px;">&#x1F525; <span id="rc-fire-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();toggleReact('+JSON.stringify(l.id)+',\'clap\')" id="react-clap-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:14px;border-radius:8px;display:flex;align-items:center;gap:3px;">&#x1F44F; <span id="rc-clap-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();toggleReact('+JSON.stringify(l.id)+',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:14px;border-radius:8px;display:flex;align-items:center;gap:3px;">&#x1F3C3; <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();openComments('+JSON.stringify(l.id)+')" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
+      +'</div>');
+    return '<div '+clickAttr+' '+hoverAttrs+' style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+type+'</span>'
+      +editBtns+'</div>'
+      +(dist?'<div style="display:flex;gap:16px;align-items:baseline;margin-top:10px;">'
+        +'<div><span style="font-family:Bebas Neue,sans-serif;font-size:28px;line-height:1;">'+dist+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">KM</span></div>'
+        +(l.pace?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:20px;line-height:1;">'+l.pace+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">/KM</span></div>':'')
+        +(feelEmoji?'<div style="margin-left:auto;font-size:20px;">'+feelEmoji+'</div>':'')+'</div>':'')
+      +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">"'+l.comment+'"</div>':'')
+      +screensHtml+reactBar+'</div>';
+  }
+  const rendered = logs.map(buildCard).filter(Boolean).join('');
+  feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
 }
+
+async function loadHomeSocialPreview() { loadSocialFeed(true); }
+
+const _myReactions = {};
+
+async function loadReactionCounts(logIds) {
+  if (!logIds||!logIds.length) return;
+  try {
+    const {data} = await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
+    if (!data) return;
+    const counts={};
+    data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;if(r.athlete_id===_athleteId){if(!_myReactions[r.log_id])_myReactions[r.log_id]=new Set();_myReactions[r.log_id].add(r.reaction_type);}});
+    Object.keys(counts).forEach(function(k){const i=k.lastIndexOf('_');const lid=k.slice(0,i);const tp=k.slice(i+1);const el=document.getElementById('rc-'+tp+'-'+lid);if(el)el.textContent=counts[k];});
+    Object.keys(_myReactions).forEach(function(lid){_myReactions[lid].forEach(function(tp){const btn=document.getElementById('react-'+tp+'-'+lid);if(btn)btn.style.background='rgba(255,255,255,0.08)';});});
+  } catch(e){console.warn('log_reactions:',e.message);}
+}
+
+async function loadCommentCounts(logIds) {
+  if (!logIds||!logIds.length) return;
+  try {
+    const {data}=await _sb.from('log_comments').select('log_id').in('log_id',logIds);
+    if(!data)return;
+    const counts={};data.forEach(function(r){counts[r.log_id]=(counts[r.log_id]||0)+1;});
+    Object.keys(counts).forEach(function(lid){const el=document.getElementById('cc-'+lid);if(el)el.textContent=counts[lid];});
+  } catch(e){console.warn('log_comments:',e.message);}
+}
+
+async function toggleReact(logId, type) {
+  if (!_athleteId) return;
+  if (!_myReactions[logId]) _myReactions[logId]=new Set();
+  const already=_myReactions[logId].has(type);
+  const btn=document.getElementById('react-'+type+'-'+logId);
+  const countEl=document.getElementById('rc-'+type+'-'+logId);
+  const cur=parseInt((countEl&&countEl.textContent)||'0');
+  try {
+    if (already) {
+      await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
+      _myReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);
+    } else {
+      await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
+      _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
+    }
+  } catch(e){toast('Utwórz tabel\u0119 log_reactions');}
+}
+
+async function openComments(logId) {
+  document.getElementById('comments-modal')?.remove();
+  const modal=document.createElement('div');modal.id='comments-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);';
+  modal.innerHTML='<div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:80vh;display:flex;flex-direction:column;">'
+    +'<div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>'
+    +'<div style="padding:12px 20px 0;font-family:Bebas Neue,sans-serif;font-size:22px;flex-shrink:0;">Komentarze</div>'
+    +'<div id="comments-list" style="flex:1;overflow-y:auto;padding:12px 20px;min-height:60px;"></div>'
+    +'<div style="padding:10px 16px 28px;display:flex;gap:8px;border-top:1px solid var(--border);flex-shrink:0;">'
+    +'<input id="comment-inp" type="text" placeholder="Napisz komentarz..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Sans,sans-serif;font-size:14px;padding:10px 14px;border-radius:10px;outline:none;" onfocus="this.style.borderColor=\'var(--accent)\'" onblur="this.style.borderColor=\'var(--border)\'" onkeydown="if(event.key===\'Enter\')submitComment(\''+logId+'\')">'
+    +'<button onclick="submitComment(\''+logId+'\')" style="background:var(--accent);border:none;border-radius:10px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>'
+    +'</div></div>';
+  modal.onclick=function(e){if(e.target===modal)modal.remove();};
+  document.body.appendChild(modal);
+  _loadComments(logId);
+  setTimeout(function(){document.getElementById('comment-inp')?.focus();},200);
+}
+
+async function _loadComments(logId) {
+  const el=document.getElementById('comments-list');if(!el)return;
+  try {
+    const {data}=await _sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>';return;}
+    el.innerHTML=data.map(function(cm){
+      const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
+      const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+      const own=cm.athlete_id===_athleteId;
+      const t=new Date(cm.created_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      return '<div style="display:flex;gap:10px;margin-bottom:12px;">'
+        +'<div style="width:32px;height:32px;border-radius:50%;background:'+(own?'var(--accent)':'rgba(255,255,255,0.08)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;">'+ini+'</div>'
+        +'<div style="flex:1;background:var(--card2);border-radius:10px;padding:8px 12px;">'
+        +'<div style="font-size:12px;font-weight:600;margin-bottom:2px;">'+nm+'</div>'
+        +'<div style="font-size:13px;line-height:1.5;">'+cm.body+'</div>'
+        +'<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">'+t+'</div>'
+        +'</div>'
+        +(own?'<button onclick="deleteComment(\''+cm.id+'\',\''+logId+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;align-self:flex-start;">\xd7</button>':'')
+        +'</div>';
+    }).join('');
+    el.scrollTop=el.scrollHeight;
+  } catch(e){el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Utwórz tabel\u0119 log_comments</div>';}
+}
+
+async function submitComment(logId) {
+  const inp=document.getElementById('comment-inp');if(!inp||!inp.value.trim()||!_athleteId)return;
+  const body=inp.value.trim();inp.value='';
+  try{await _sb.from('log_comments').insert({log_id:logId,athlete_id:_athleteId,body,created_at:new Date().toISOString()});_loadComments(logId);const el=document.getElementById('cc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;}
+  catch(e){toast('Bł\u0105d: '+e.message);}
+}
+
+async function deleteComment(commentId, logId) {
+  await _sb.from('log_comments').delete().eq('id',commentId);_loadComments(logId);const el=document.getElementById('cc-'+logId);if(el)el.textContent=Math.max(0,parseInt(el.textContent||'0')-1);
+}
+
+function editFeedLog(logId) {
+  if(!window._logsData)return;const l=window._logsData.find(function(x){return x.id===logId;});if(!l)return;editLog(window._logsData.indexOf(l));
+}
+
+async function deleteFeedLog(logId) {
+  if(!confirm('Usunąć ten trening?'))return;
+  const{error}=await _sb.from('training_logs').delete().eq('id',logId).eq('athlete_id',_athleteId);
+  if(error){toast('Błąd: '+error.message);return;}toast('Usunięto ✓');loadSocialFeed(false);loadLogs();
+}
+
+function loadChallenges() {
+  const el=document.getElementById('challenges-content');if(!el)return;
+  const now=new Date();const dow=now.getDay()===0?7:now.getDay();
+  const wS=new Date(now);wS.setDate(now.getDate()-dow+1);wS.setHours(0,0,0,0);
+  const mS=new Date(now.getFullYear(),now.getMonth(),1);
+  const chs=[
+    {id:'week50',icon:'&#x1F3C3;',title:'50 km w tygodniu',desc:'Suma km w tym tygodniu',target:50,unit:'km',color:'#3db870'},
+    {id:'week5runs',icon:'&#x1F4C5;',title:'5 treningów w tygodniu',desc:'5 sesji w 7 dni',target:5,unit:'sesji',color:'#5090e0'},
+    {id:'month200',icon:'&#x1F4CD;',title:'200 km w miesiącu',desc:'Miesi\u0119czna suma km',target:200,unit:'km',color:'#e8b840'},
+    {id:'longrun20',icon:'&#x1F4AA;',title:'Wybieg 20+ km',desc:'Jeden trening 20 km lub wi\u0119cej',target:20,unit:'km',color:'#9a6fe8'},
+    {id:'pace530',icon:'&#x26A1;',title:'Tempo < 5:30/km',desc:'Trening z tempem < 5:30',target:'<5:30',unit:'/km',color:'#FC4C02'},
+  ];
+  function bCh(ch,prog,ach){
+    const spec=typeof ch.target==='string';const pct=spec?(ach?100:0):Math.min(100,Math.round((prog||0)/ch.target*100));
+    const pd=spec?(ach?'TAK':'NIE'):(typeof prog==='number'?prog.toFixed(prog>=10||prog===Math.floor(prog)?0:1):'0');
+    return '<div style="background:var(--card);border:1px solid '+(ach?ch.color:'var(--border)')+';border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'
+      +'<div style="font-size:24px;">'+ch.icon+'</div>'
+      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+ch.title+(ach?' &#x2705;':'')+'</div><div style="font-size:11px;color:var(--muted);">'+ch.desc+'</div></div>'
+      +'<div style="text-align:right;"><div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:'+ch.color+';">'+pd+'</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">'+ch.unit+'</div></div>'
+      +'</div><div style="background:var(--card2);border-radius:4px;height:4px;"><div style="background:'+ch.color+';height:4px;width:'+pct+'%;border-radius:4px;transition:width 0.5s;"></div></div></div>';
+  }
+  el.innerHTML=chs.map(function(ch){return bCh(ch,0,false);}).join('')+'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;padding:8px 0;">Reset co poniedzia\u0142ek</div>';
+  if(_athleteId){
+    _sb.from('training_logs').select('distance_km,logged_at,pace').eq('athlete_id',_athleteId).gte('logged_at',mS.toISOString()).then(function(res){
+      const all=res.data||[];const wl=all.filter(function(l){return new Date(l.logged_at)>=wS;});
+      const km=wl.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
+      const mkm=all.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
+      const ses=wl.length;const mx=wl.reduce(function(m,l){return Math.max(m,parseFloat(l.distance_km)||0);},0);
+      const pcs=wl.filter(function(l){return l.pace;}).map(function(l){const p=l.pace.split(':');return p.length===2?parseInt(p[0])*60+parseInt(p[1]):999;});
+      const bp=pcs.length?Math.min.apply(null,pcs):999;
+      const prog={week50:km,week5runs:ses,month200:mkm,longrun20:mx,pace530:bp};
+      const ach={week50:km>=50,week5runs:ses>=5,month200:mkm>=200,longrun20:mx>=20,pace530:bp<=330};
+      el.innerHTML=chs.map(function(ch){return bCh(ch,prog[ch.id],ach[ch.id]);}).join('')+'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;padding:8px 0;">Reset co poniedzia\u0142ek</div>';
+    });
+  }
+}
+
 
 async function loadFollowing() {
   if (!_athleteId) return;
@@ -4716,13 +4891,17 @@ async function toggleVoice(btnId, sender) {
     <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Biegacze</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;margin-bottom:16px;">Społeczność</div>
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
-      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Aktywność</button>
-      <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Obserwujesz</button>
-      <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
+      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
+      <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
+      <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
+      <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
     </div>
   </div>
   <div id="social-feed" style="padding:0 16px;">
     <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;line-height:1.8;">Zaobserwuj innych bieg aczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
+  </div>
+  <div id="social-challenges" style="display:none;padding:0 16px;">
+    <div id="challenges-content"></div>
   </div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
