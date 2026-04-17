@@ -1152,6 +1152,7 @@ body{
           <button class="type-pill" onclick="selType(this,'Tempo')">🔥 Tempo</button>
           <button class="type-pill" onclick="selType(this,'Wybieganie')">🛤️ Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja')">💚 Regeneracja</button>
+          <button class="type-pill" onclick="selType(this,'Wzmacniający')">💪 Wzmacniający</button>
         </div>
       </div>
 
@@ -1906,7 +1907,7 @@ async function _loadStatsInProfile() {
   const bestPaceSecs=paces.length?Math.min(...paces):null;
   const bestPace=bestPaceSecs?Math.floor(bestPaceSecs/60)+':'+String(bestPaceSecs%60).padStart(2,'0'):'—';
 
-  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870','Wzmacniający':'#f0a830'};
   const typeCount={};
   logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
 
@@ -3423,7 +3424,10 @@ async function saveLog() {
   const pace = document.getElementById('l-pace').value.trim();
   const time = document.getElementById('l-time').value.trim();
 
-  if (!dist || dist <= 0) { toast('Podaj dystans (km)'); return; }
+  const noDistTypes = ['Wzmacniający','Regeneracja','Odpoczynek'];
+  if (!dist || dist <= 0) {
+    if (!noDistTypes.includes(_logType)) { toast('Podaj dystans (km)'); return; }
+  }
   if (dist > 300) { toast('Dystans wygląda nieprawidłowo'); return; }
   if (pace && !/^\d{1}:\d{2}$/.test(pace)) { toast('Tempo w formacie m:ss (np. 5:30)'); return; }
   if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
@@ -3456,10 +3460,17 @@ async function saveLog() {
     if (urls.length) attachmentUrl = urls.join(',');
   }
 
-  // Wyznacz datę logu
+  // Wyznacz datę logu — użyj lokalnej strefy czasowej
   const now = new Date();
   const localToday = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const logDate = _logDate || localToday;
+  // Utwórz datę w lokalnej strefie (noon) żeby uniknąć przesunięcia UTC
+  const loggedAtDate = new Date(logDate + 'T12:00:00');
+  const tzOffset = -loggedAtDate.getTimezoneOffset();
+  const tzSign = tzOffset >= 0 ? '+' : '-';
+  const tzHH = String(Math.floor(Math.abs(tzOffset)/60)).padStart(2,'0');
+  const tzMM = String(Math.abs(tzOffset)%60).padStart(2,'0');
+  const loggedAtISO = logDate + 'T12:00:00' + tzSign + tzHH + ':' + tzMM;
 
   const logData = {
     training_type: _logType,
@@ -3471,7 +3482,7 @@ async function saveLog() {
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
     feel: feel || 'mid',
-    logged_at: logDate + 'T12:00:00'
+    logged_at: loggedAtISO
   };
 
   let error;
@@ -4506,7 +4517,7 @@ async function loadStats() {
   const avgPaceSecs=paces.length?Math.round(paces.reduce((a,b)=>a+b,0)/paces.length):null;
   const avgPace=avgPaceSecs?Math.floor(avgPaceSecs/60)+':'+String(avgPaceSecs%60).padStart(2,'0'):'—';
 
-  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870'};
+  const typeColors2={'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870','Wzmacniający':'#f0a830'};
   const typeCount={};
   logs30.forEach(l=>{const t=l.training_type||'Inne';typeCount[t]=(typeCount[t]||0)+1;});
 

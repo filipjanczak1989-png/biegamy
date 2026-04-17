@@ -448,6 +448,7 @@ nav{
           <button class="type-pill" onclick="selType(this,'Tempo','tempo')">Tempo</button>
           <button class="type-pill" onclick="selType(this,'Wybieganie','wybieganie')">Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja','regeneracja')">Regeneracja</button>
+          <button class="type-pill" onclick="selType(this,'Wzmacniający','wzmacniajacy')">💪 Wzmacniający</button>
           <button class="type-pill" onclick="selType(this,'Odpoczynek','odpoczynek')">Odpoczynek</button>
           <button class="type-pill" onclick="selType(this,'Start','start')">🏁 Start</button>
           <button class="type-pill" onclick="selType(this,'Zastępczy','zastepczy')">🔄 Zastępczy</button>
@@ -570,6 +571,7 @@ nav{
               <option value="Tempo">Tempo</option>
               <option value="Wybieganie">Wybieganie</option>
               <option value="Regeneracja">Regeneracja</option>
+              <option value="Wzmacniający">💪 Wzmacniający</option>
               <option value="Odpoczynek">Odpoczynek</option>
             </select>
           </div>
@@ -749,8 +751,12 @@ function render() {
     // Miniatury z logów dla tego dnia
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
     const logThumbs = dayLogs.filter(l => l.attachment_url).map(l => {
-      return l.attachment_url.split(',').map(url =>
-        `<img src="${url}" style="width:calc(50% - 2px);max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`
+      const logId = l.id || '';
+      return l.attachment_url.split(',').map((url, urlIdx) =>
+        `<div style="position:relative;width:calc(50% - 2px);">
+          <img src="${url}" style="width:100%;max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">
+          <button onclick="event.stopPropagation();openMoveScreenModal('${logId}','${url}','${ds}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;border-radius:4px;color:#fff;font-size:9px;padding:2px 5px;cursor:pointer;font-family:'DM Mono',monospace;" title="Przesuń na inny dzień">↔</button>
+        </div>`
       ).join('');
     }).join('');
     const logThumbsHtml = logThumbs ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;padding:6px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:6px;">${logThumbs}</div>` : '';
@@ -1813,6 +1819,104 @@ function dragStart(e, ds, idx) {
 function dragEnd(e) {
   e.target.classList.remove('dragging');
 }
+// ── PRZENOSZENIE SCREENSHOTÓW ─────────────────────────────────────
+function openMoveScreenModal(logId, url, currentDs) {
+  document.getElementById('move-screen-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'move-screen-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+
+  // Generate date options for current week ± 2 weeks
+  const today = new Date();
+  const options = [];
+  for (let i = -7; i <= 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const ds = d.toISOString().split('T')[0];
+    if (ds === currentDs) continue;
+    const label = d.toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
+    const isToday = i === 0;
+    options.push(`<option value="${ds}"${isToday?' selected':''}>${label}${isToday?' (dziś)':''}</option>`);
+  }
+
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:360px;padding:24px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:6px;">Przesuń screenshot</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;">Wybierz dzień na który przenieść zdjęcie</div>
+      <img src="${url}" style="width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-bottom:16px;" onerror="this.style.display='none'">
+      <select id="move-screen-date" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:10px 12px;border-radius:8px;outline:none;margin-bottom:16px;">
+        ${options.join('')}
+      </select>
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('move-screen-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+        <button onclick="executeMoveScreen('${logId}','${url}','${currentDs}')" style="flex:2;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Przenieś →</button>
+      </div>
+    </div>`;
+  modal.onclick = e => { if (e.target === modal) modal.remove(); };
+  document.body.appendChild(modal);
+}
+
+async function executeMoveScreen(logId, url, currentDs) {
+  const targetDs = document.getElementById('move-screen-date')?.value;
+  if (!targetDs || !logId) return;
+
+  const btn = document.querySelector('#move-screen-modal button:last-child');
+  if (btn) { btn.textContent = 'Przenoszę...'; btn.disabled = true; }
+
+  try {
+    // Find log on current day with this URL
+    const { data: currentLog } = await _sbKal.from('training_logs')
+      .select('id,attachment_url,logged_at,athlete_id')
+      .eq('id', logId).maybeSingle();
+
+    if (!currentLog) throw new Error('Nie znaleziono logu');
+
+    const ownAthleteId = currentLog.athlete_id || window._calSelectedAthleteId;
+
+    // Find or create a log entry on the target day
+    const { data: targetLog } = await _sbKal.from('training_logs')
+      .select('id,attachment_url')
+      .eq('athlete_id', ownAthleteId)
+      .gte('logged_at', targetDs + 'T00:00:00')
+      .lte('logged_at', targetDs + 'T23:59:59')
+      .maybeSingle();
+
+    // Remove URL from current log's attachment_url
+    const currentUrls = (currentLog.attachment_url || '').split(',').filter(u => u && u !== url);
+    await _sbKal.from('training_logs').update({
+      attachment_url: currentUrls.length ? currentUrls.join(',') : null
+    }).eq('id', currentLog.id);
+
+    if (targetLog) {
+      // Append to existing log on target day
+      const existingUrls = (targetLog.attachment_url || '').split(',').filter(Boolean);
+      existingUrls.push(url);
+      await _sbKal.from('training_logs').update({
+        attachment_url: existingUrls.join(',')
+      }).eq('id', targetLog.id);
+    } else {
+      // Create new log entry on target day
+      const tzOffset = -new Date().getTimezoneOffset();
+      const tzSign = tzOffset >= 0 ? '+' : '-';
+      const tzHH = String(Math.floor(Math.abs(tzOffset)/60)).padStart(2,'0');
+      const tzMM = String(Math.abs(tzOffset)%60).padStart(2,'0');
+      await _sbKal.from('training_logs').insert({
+        athlete_id: ownAthleteId,
+        training_type: 'Zdjęcie',
+        logged_at: targetDs + 'T12:00:00' + tzSign + tzHH + ':' + tzMM,
+        attachment_url: url
+      });
+    }
+
+    document.getElementById('move-screen-modal')?.remove();
+    showKalToast('Screenshot przeniesiony ✓');
+    await renderWeek(currentWeekStart);
+  } catch(e) {
+    showKalToast('Błąd: ' + e.message);
+    if (btn) { btn.textContent = 'Przenieś →'; btn.disabled = false; }
+  }
+}
+
 async function dragDrop(e, targetDs) {
   e.preventDefault();
   document.querySelectorAll('.day-col').forEach(c => c.classList.remove('drag-over'));
@@ -1952,7 +2056,7 @@ function renderMobile() {
   const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PA\u0179','LIS','GRU'];
   const typeColorsM = {
     'Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840','Tempo':'#f06030',
-    'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Odpoczynek':'#44424a',
+    'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Wzmacniający':'#f0a830','Odpoczynek':'#44424a',
     '\U0001f3c1 Start':'#3db870','\U0001f504 Zast\u0119pczy':'#66636e'
   };
 
@@ -2195,7 +2299,7 @@ function renderTemplatesList() {
     list.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;padding:12px 0;text-align:center;">Brak szablonów. Dodaj pierwszy powyżej.</div>';
     return;
   }
-  const typeColors = {'Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870','Odpoczynek':'#44424a'};
+  const typeColors = {'Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870','Wzmacniający':'#f0a830','Odpoczynek':'#44424a'};
   list.innerHTML = templates.map(t => {
     const color = typeColors[t.type] || '#66636e';
     const meta = [t.dist ? t.dist + ' km' : '', t.pace ? t.pace + '/km' : '', t.hr ? '♥ ' + t.hr : ''].filter(Boolean).join(' · ');
