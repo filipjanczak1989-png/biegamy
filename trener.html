@@ -916,7 +916,7 @@ async function initAuth() {
     // Sprawdź rolę — tylko trener może tu wejść
     const role2 = s2.user.user_metadata?.role;
     if (role2 === 'athlete') { window.location.href = 'zawodnik.html'; return; }
-    const { data: coachCheck2 } = await _sb.from('coaches').select('id').eq('user_id', s2.user.id).maybeSingle();
+    const { data: coachCheck2 } = await _sb.from('coaches').select('id').eq('id', s2.user.id).maybeSingle();
     if (!coachCheck2) { window.location.href = 'zawodnik.html'; return; }
     const name2 = s2.user.user_metadata?.full_name || 'Trener';
     const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -930,7 +930,7 @@ async function initAuth() {
   // Sprawdź rolę — tylko trener może tu wejść
   const role = session.user.user_metadata?.role;
   if (role === 'athlete') { window.location.href = 'zawodnik.html'; return; }
-  const { data: coachCheck } = await _sb.from('coaches').select('id').eq('user_id', session.user.id).maybeSingle();
+  const { data: coachCheck } = await _sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
   if (!coachCheck) { window.location.href = 'zawodnik.html'; return; }
   const name = session.user.user_metadata?.full_name || 'Trener';
   const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);

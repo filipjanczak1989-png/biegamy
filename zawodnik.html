@@ -3927,7 +3927,14 @@ async function toggleReact(logId, type) {
       await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
       _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
     }
-  } catch(e){toast('Utwórz tabel\u0119 log_reactions');}
+  } catch(e){
+    if(e.message && e.message.includes('does not exist')) {
+      toast('Brak tabeli log_reactions — patrz SQL w konsoli');
+      console.error('SQL needed: CREATE TABLE log_reactions (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, log_id uuid NOT NULL REFERENCES training_logs(id) ON DELETE CASCADE, athlete_id uuid NOT NULL REFERENCES athletes(id) ON DELETE CASCADE, reaction_type text NOT NULL, created_at timestamptz DEFAULT now(), UNIQUE(log_id, athlete_id, reaction_type));');
+    } else {
+      toast('Błąd reakcji: '+e.message);
+    }
+  }
 }
 
 async function openComments(logId) {
@@ -3969,14 +3976,27 @@ async function _loadComments(logId) {
         +'</div>';
     }).join('');
     el.scrollTop=el.scrollHeight;
-  } catch(e){el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Utwórz tabel\u0119 log_comments</div>';}
+  } catch(e){
+    if(e.message&&e.message.includes('does not exist')){
+      el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Brak tabeli log_comments w Supabase</div>';
+    } else {
+      el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Błąd: '+e.message+'</div>';
+    }
+  }
 }
 
 async function submitComment(logId) {
   const inp=document.getElementById('comment-inp');if(!inp||!inp.value.trim()||!_athleteId)return;
   const body=inp.value.trim();inp.value='';
-  try{await _sb.from('log_comments').insert({log_id:logId,athlete_id:_athleteId,body,created_at:new Date().toISOString()});_loadComments(logId);const el=document.getElementById('cc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;}
-  catch(e){toast('Bł\u0105d: '+e.message);}
+  try{
+    await _sb.from('log_comments').insert({log_id:logId,athlete_id:_athleteId,body,created_at:new Date().toISOString()});
+    _loadComments(logId);
+    const el=document.getElementById('cc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;
+  } catch(e){
+    inp.value=body; // restore on error
+    if(e.message&&e.message.includes('does not exist')){toast('Brak tabeli log_comments — wykonaj SQL w Supabase');}
+    else{toast('Błąd: '+e.message);}
+  }
 }
 
 async function deleteComment(commentId, logId) {
