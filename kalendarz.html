@@ -491,6 +491,13 @@ nav{
           <option value="missed">Nie wykonany</option>
         </select>
       </div>
+      <!-- Zdjęcia — zawsze widoczne -->
+      <div class="field" id="f-photos-wrap">
+        <label>Zdjęcia / screeny</label>
+        <div onclick="document.getElementById('f-all-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);transition:border-color 0.15s;" id="f-all-files-label" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📎 Dodaj zdjęcia lub screeny</div>
+        <input type="file" id="f-all-files" accept="image/*" multiple style="display:none" onchange="onKalFileChange(this)">
+        <div id="f-all-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
       <div class="field" id="log-fields" style="display:none;">
         <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;padding-top:4px;border-top:1px solid var(--border);">Log zawodnika</div>
         <div class="field-row" style="margin-bottom:10px;">
@@ -507,13 +514,12 @@ nav{
           <label>Link Strava / Garmin</label>
           <input type="url" id="f-log-strava" placeholder="https://strava.com/activities/...">
         </div>
-      </div>
-      <!-- Screeny — zawsze widoczne, niezależnie od statusu -->
-      <div class="field" id="kal-screenshots-wrap">
-        <label>Zdjęcia / screeny</label>
-        <div onclick="document.getElementById('f-log-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);transition:border-color 0.15s;" id="f-log-files-label" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📎 Kliknij aby dodać zdjęcia</div>
-        <input type="file" id="f-log-files" accept="image/*" multiple style="display:none" onchange="onKalFileChange(this)">
-        <div id="f-log-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <div class="field">
+          <label>Zdjęcia (można kilka)</label>
+          <div onclick="document.getElementById('f-log-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);" id="f-log-files-label">📎 Dodaj zdjęcia</div>
+          <input type="file" id="f-log-files" accept="image/*" multiple style="display:none" onchange="document.getElementById('f-log-files-label').textContent = this.files.length + ' plik(ów) wybranych'">
+          <div id="f-log-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -859,9 +865,14 @@ function openModal(ds, idx) {
   if(fLogPace) fLogPace.value='';
   if(fLogStrava) fLogStrava.value='';
   if(fLogFiles) fLogFiles.value='';
-  if(fLogLabel) fLogLabel.textContent='📎 Kliknij aby dodać zdjęcia';
-  const fLogAttach = document.getElementById('f-log-attachments');
-  if(fLogAttach) fLogAttach.innerHTML='';
+  if(fLogLabel) fLogLabel.textContent='📎 Dodaj zdjęcia';
+  // Reset universal file picker
+  const fAllFiles = document.getElementById('f-all-files');
+  const fAllLabel = document.getElementById('f-all-files-label');
+  const fAllAttach = document.getElementById('f-all-attachments');
+  if(fAllFiles) fAllFiles.value='';
+  if(fAllLabel) fAllLabel.textContent='📎 Dodaj zdjęcia lub screeny';
+  if(fAllAttach) fAllAttach.innerHTML='';
 
   if(ds) {
     const d = new Date(ds + 'T12:00:00');
@@ -928,10 +939,10 @@ function selType(el, type, cls) {
 }
 
 function onKalFileChange(input) {
-  const label = document.getElementById('f-log-files-label');
-  const preview = document.getElementById('f-log-attachments');
+  const label = document.getElementById('f-all-files-label');
+  const preview = document.getElementById('f-all-attachments');
   if (!input.files.length) return;
-  if (label) label.textContent = input.files.length + ' plik(ów) wybranych';
+  if (label) label.textContent = input.files.length + ' plik(' + (input.files.length === 1 ? '' : input.files.length < 5 ? 'i' : 'ów') + ') wybranych';
   if (preview) {
     preview.innerHTML = '';
     Array.from(input.files).forEach(function(file) {
@@ -939,7 +950,7 @@ function onKalFileChange(input) {
       reader.onload = function(e) {
         const img = document.createElement('img');
         img.src = e.target.result;
-        img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+        img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
         preview.appendChild(img);
       };
       reader.readAsDataURL(file);
@@ -1042,74 +1053,49 @@ async function saveTraining() {
     if (insErr) { notify('Błąd zapisu: ' + insErr.message); return; }
   }
 
-  // Jeśli status=done — zapisz też log zawodnika (ze screenami)
-  // Screeny można dodać zawsze (przy każdym statusie)
-  const logFiles = document.getElementById('f-log-files');
-  const hasFiles = logFiles && logFiles.files.length > 0;
-  const logStrava = document.getElementById('f-log-strava')?.value || null;
-  const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
-  const logPace = document.getElementById('f-log-pace')?.value || pace || null;
-  const logComment = document.getElementById('f-comment')?.value || null;
-
-  if (status === 'done' || hasFiles) {
+  // Jeśli status=done — zapisz też log zawodnika
+  if (status === 'done') {
     const { data: athRow2 } = await _sbKal.from('athletes')
       .select('id').eq('user_id', session.user.id).maybeSingle();
     if (athRow2) {
+      const logFiles = document.getElementById('f-log-files');
+      const allFiles = document.getElementById('f-all-files');
+      const logStrava = document.getElementById('f-log-strava')?.value || null;
+      const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
+      const logPace = document.getElementById('f-log-pace')?.value || pace || null;
       let attachmentUrl = null;
 
-      if (hasFiles) {
+      // Collect files from both pickers
+      const fileSources = [];
+      if (allFiles && allFiles.files.length > 0) for (let f of allFiles.files) fileSources.push(f);
+      if (logFiles && logFiles.files.length > 0) for (let f of logFiles.files) fileSources.push(f);
+
+      if (fileSources.length > 0) {
         const urls = [];
         const base = Date.now();
-        for (let fi = 0; fi < logFiles.files.length; fi++) {
-          const file = logFiles.files[fi];
-          const ext = file.name.split('.').pop() || 'jpg';
-          const path = athRow2.id + '/log_' + base + '_' + fi + '.' + ext;
+        for (let fi = 0; fi < fileSources.length; fi++) {
+          const file = fileSources[fi];
+          const path = athRow2.id + '/log_' + base + '_' + fi + '.' + (file.name.split('.').pop()||'jpg');
           const { error: upErr } = await _sbKal.storage
             .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
           if (!upErr) {
             const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
             urls.push(urlData.publicUrl);
-          } else {
-            notify('Błąd uploadu: ' + upErr.message);
           }
         }
         if (urls.length) attachmentUrl = urls.join(',');
       }
 
-      // Sprawdź czy log na ten dzień już istnieje
-      const { data: existingLog } = await _sbKal.from('training_logs')
-        .select('id,attachment_url')
-        .eq('athlete_id', athRow2.id)
-        .gte('logged_at', editingDate + 'T00:00:00')
-        .lte('logged_at', editingDate + 'T23:59:59')
-        .maybeSingle();
-
-      if (existingLog) {
-        // Zaktualizuj istniejący log — dodaj screeny
-        const existingUrls = (existingLog.attachment_url || '').split(',').filter(Boolean);
-        const newUrls = attachmentUrl ? attachmentUrl.split(',') : [];
-        const merged = [...existingUrls, ...newUrls].filter(Boolean);
-        await _sbKal.from('training_logs').update({
-          training_type: selectedType,
-          distance_km: logDist || existingLog.distance_km,
-          pace: logPace || existingLog.pace,
-          strava_link: logStrava || existingLog.strava_link,
-          attachment_url: merged.length ? merged.join(',') : null,
-          comment: logComment || existingLog.comment,
-        }).eq('id', existingLog.id);
-      } else if (status === 'done' || attachmentUrl) {
-        // Wstaw nowy log
-        await _sbKal.from('training_logs').insert({
-          athlete_id: athRow2.id,
-          training_type: selectedType,
-          distance_km: logDist,
-          pace: logPace,
-          strava_link: logStrava,
-          attachment_url: attachmentUrl,
-          comment: logComment,
-          logged_at: editingDate + 'T12:00:00'
-        });
-      }
+      await _sbKal.from('training_logs').insert({
+        athlete_id: athRow2.id,
+        training_type: selectedType,
+        distance_km: logDist,
+        pace: logPace,
+        strava_link: logStrava,
+        attachment_url: attachmentUrl,
+        comment: document.getElementById('f-comment')?.value || null,
+        logged_at: new Date(editingDate + 'T12:00:00').toISOString()
+      });
     }
   }
 
@@ -2107,34 +2093,34 @@ function renderMobile() {
   const today = dateStr(new Date());
 
   const dayAbbrPL = ['ND','PN','WT','\u015aR','CZ','PT','SB'];
-  const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PA\u0179','LIS','GRU'];
+  const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PA\u017b','LIS','GRU'];
   const typeColorsM = {
     'Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840','Tempo':'#f06030',
-    'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Wzmacniający':'#f0a830','Odpoczynek':'#44424a',
-    '\U0001f3c1 Start':'#3db870','\U0001f504 Zast\u0119pczy':'#66636e'
+    'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Wzmacniaj\u0105cy':'#f0a830','Odpoczynek':'#44424a',
+    'Start':'#3db870','Zast\u0119pczy':'#66636e','Spokojny':'#5090e0'
   };
 
   const defaultOpen = days.includes(today) ? today : days[0];
 
-  container.innerHTML = days.map(ds => {
+  container.innerHTML = days.map(function(ds) {
     const items = trainings[ds] || [];
     const d = new Date(ds + 'T12:00:00');
     const isToday = ds === today;
-    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
+    const raceGoal = window._goals && window._goals.find(function(g){return g.date === ds;});
     const isRaceDay = !!raceGoal;
-    // WAŻNE: dayLogs musi być przed totalKm i summaryText (fix ReferenceError)
+
+    // dayLogs MUST be declared before any use
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
+
     const totalKm = items.length > 0
-      ? items.reduce((s,t) => s + (parseFloat(t.dist||t.distance_km)||0), 0)
-      : dayLogs.reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+      ? items.reduce(function(s,t){return s+(parseFloat(t.dist||t.distance_km)||0);}, 0)
+      : dayLogs.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);}, 0);
     const abbr = dayAbbrPL[d.getDay()];
     const dayNum = d.getDate();
     const monthStr = monthNamesM[d.getMonth()];
     const isOpen = ds === defaultOpen;
     const trainCount = items.length;
 
-    // === HEADER STYLING ===
-    // Race day gets special green treatment
     const headerBg = isRaceDay
       ? 'linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08))'
       : isToday ? 'rgba(212,80,26,0.07)' : 'var(--surface)';
@@ -2143,150 +2129,146 @@ function renderMobile() {
       : isToday ? 'box-shadow:0 0 0 2px rgba(212,80,26,0.15);' : '';
     const abbrBg = isRaceDay ? '#3db870' : isToday ? 'var(--accent)' : 'var(--surface2)';
     const abbrColor = (isRaceDay || isToday) ? '#fff' : 'var(--muted)';
-    const abbrContent = isRaceDay ? '\U0001f3c1' : abbr;
+    const abbrContent = isRaceDay ? '\ud83c\udfc1' : abbr;
     const titleColor = isRaceDay ? 'var(--green)' : isToday ? 'var(--accent)' : 'var(--fg)';
     const kmColor = isRaceDay ? 'var(--green)' : 'var(--accent)';
 
     const summaryText = isRaceDay
       ? (raceGoal.name || 'Start')
       : trainCount > 0
-        ? [...new Set(items.map(t => t.type))].join(' · ')
+        ? [...new Set(items.map(function(t){return t.type;}))].join(' \u00b7 ')
         : dayLogs.length > 0
-          ? [...new Set(dayLogs.map(l => l.training_type).filter(Boolean))].join(' · ')
+          ? [...new Set(dayLogs.map(function(l){return l.training_type;}).filter(Boolean))].join(' \u00b7 ')
           : '';
 
-    // === LOG THUMBNAILS — małe, klikalny kafelek ===
-    const logThumbs = dayLogs.filter(l => l.attachment_url).map(l =>
-      l.attachment_url.split(',').map(url =>
-        `<img src="${url}" style="width:calc(25% - 3px);aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;flex-shrink:0;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`
-      ).join('')
-    ).join('');
+    // Log thumbnails
+    const logThumbs = dayLogs.filter(function(l){return l.attachment_url;}).map(function(l) {
+      return l.attachment_url.split(',').map(function(url) {
+        return '<img src="' + url + '" style="width:calc(25% - 3px);aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;flex-shrink:0;" onclick="window.open(\'' + url + '\',\'_blank\')" onerror="this.style.display=\'none\'">';
+      }).join('');
+    }).join('');
     const logThumbsHtml = logThumbs
-      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">${logThumbs}</div>`
+      ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">' + logThumbs + '</div>'
       : '';
 
-    // === STANDALONE LOG CARDS — logi bez planu ===
-    const plannedDs = (trainings[ds] || []);
-    const standaloneLogCards = dayLogs
-      .filter(l => {
-        // Pokaż log jako osobną kartę gdy brak planu lub gdy jest dodatkowym logiem
-        if (!plannedDs.length) return true;
-        // Gdy jest plan ale log ma dystans/typ — pokaż jeśli nie pokrywa się z "done" planem
-        const hasDone = plannedDs.some(t => t.status === 'done');
-        return !hasDone && (parseFloat(l.distance_km) > 0);
-      })
-      .map(l => {
+    // Standalone log cards (logs without matching planned training)
+    const hasDonePlan = items.some(function(t){return t.status === 'done';});
+    const standaloneLogCards = (!hasDonePlan || !items.length) ? dayLogs
+      .filter(function(l){return parseFloat(l.distance_km) > 0 || l.training_type;})
+      .map(function(l) {
         const type = l.training_type || 'Trening';
         const tc = typeColorsM[type] || '#5090e0';
         const km = parseFloat(l.distance_km) || 0;
-        const feel = {'good':'😊','mid':'😐','bad':'😓'}[l.feel] || '';
-        return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${tc};padding:10px 13px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${km?'4':'0'}px;">
-    <span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;font-weight:500;">${type.toUpperCase()}</span>
-    ${feel ? `<span style="font-size:16px;">${feel}</span>` : ''}
-  </div>
-  ${km > 0 ? `<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);">${km.toFixed(1)} KM${l.pace ? `<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${l.pace}/km${l.heart_rate ? ` · ♥ ${l.heart_rate}` : ''}</span>` : ''}</div>` : ''}
-  <span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;margin-top:4px;display:inline-block;">✓ LOG</span>
-</div>`;
-      }).join('');
+        const feel = {'good':'\ud83d\ude0a','mid':'\ud83d\ude10','bad':'\ud83d\ude13'}[l.feel] || '';
+        return '<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + tc + ';padding:10px 13px;">'
+          + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (km?'4':'0') + 'px;">'
+          + '<span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:' + tc + ';font-family:\'DM Mono\',monospace;font-weight:500;">' + type.toUpperCase() + '</span>'
+          + (feel ? '<span style="font-size:16px;">' + feel + '</span>' : '')
+          + '</div>'
+          + (km > 0 ? '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;line-height:1;color:var(--fg);">' + km.toFixed(1) + ' KM'
+            + (l.pace ? '<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:\'DM Sans\',sans-serif;">' + l.pace + '/km' + (l.heart_rate ? ' \u00b7 \u2665 ' + l.heart_rate : '') + '</span>' : '')
+            + '</div>' : '')
+          + '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;margin-top:4px;display:inline-block;">\u2713 LOG</span>'
+          + '</div>';
+      }).join('') : '';
 
-    // === TRAINING CARDS ===
-    const cards = items.map((t, i) => {
+    // Training plan cards
+    const cards = items.map(function(t, i) {
       const isDone = t.status === 'done';
       const isMissed = t.status === 'missed';
       const tc = typeColorsM[t.type] || '#5090e0';
       const borderLeft = isDone ? 'var(--green)' : isMissed ? 'var(--red)' : tc;
       const statusBadge = isDone
-        ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">✓ WYKONANE</span>`
+        ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">\u2713 WYKONANE</span>'
         : isMissed
-        ? `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>`
+        ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>'
         : '';
-      // Dane z logu zamiast planu gdy wykonany
-      const dayLogM = (window._calLogs && window._calLogs[ds] && isDone)
-        ? window._calLogs[ds][0] : null;
+      const dayLogM = (window._calLogs && window._calLogs[ds] && isDone) ? window._calLogs[ds][0] : null;
       const km = parseFloat((dayLogM && dayLogM.distance_km) || t.dist || t.distance_km) || 0;
-      const planKm = parseFloat(t.dist || t.distance_km) || 0;
       const pace = (dayLogM && dayLogM.pace) || t.pace || '';
       const hr = (dayLogM && dayLogM.heart_rate) || t.hr || t.heart_rate || '';
-      const dur = t.time||t.duration_min||'';
-      const desc = t.desc||t.description||'';
-      const kmChanged = dayLogM && planKm > 0 && km !== planKm;
-      return `<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ${borderLeft};cursor:pointer;" onclick="openModal('${ds}',${i})">
-  <div style="padding:11px 13px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:${km||desc?'4':'0'}px;">
-      <span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;font-weight:500;">${t.type.toUpperCase()}</span>
-      ${km>0?`<span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${km} KM</span>`:''}
-    </div>
-    ${km>0?`<div style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:2px;">${km} KM${pace?`<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:'DM Sans',sans-serif;">${pace}/km${hr?` · ${hr}`:''}</span>`:''}</div>`:''}
-    ${dur?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dur} min</div>`:''}
-    ${desc?`<div style="margin-top:7px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;border-left:2px solid ${tc}40;">
-      <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:${tc};font-family:'DM Mono',monospace;margin-bottom:3px;opacity:0.8;">Wskazówki trenera</div>
-      <div style="font-size:12px;color:rgba(240,237,232,0.75);font-family:'DM Sans',sans-serif;line-height:1.5;">${desc}</div>
-    </div>`:''}
-    ${statusBadge?`<div style="margin-top:6px;">${statusBadge}</div>`:''}
-  </div>
-</div>`;
+      const dur = t.time || t.duration_min || '';
+      const desc = t.desc || t.description || '';
+
+      // Attachment thumbnails for this training
+      const planThumbs = (isDone && dayLogM && dayLogM.attachment_url)
+        ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">'
+          + dayLogM.attachment_url.split(',').filter(Boolean).map(function(url) {
+            return '<img src="' + url + '" style="width:calc(33% - 3px);aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open(\'' + url + '\',\'_blank\')" onerror="this.style.display=\'none\'">';
+          }).join('') + '</div>'
+        : '';
+
+      return '<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + borderLeft + ';cursor:pointer;" onclick="openModal(\'' + ds + '\',' + i + ')">'
+        + '<div style="padding:11px 13px;">'
+        + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (km||desc?'4':'0') + 'px;">'
+        + '<span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:' + tc + ';font-family:\'DM Mono\',monospace;font-weight:500;">' + t.type.toUpperCase() + '</span>'
+        + (km > 0 ? '<span style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;">' + km + ' KM</span>' : '')
+        + '</div>'
+        + (km > 0 ? '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;line-height:1;color:var(--fg);margin-bottom:2px;">' + km + ' KM'
+          + (pace ? '<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:\'DM Sans\',sans-serif;">' + pace + '/km' + (hr ? ' \u00b7 ' + hr : '') + '</span>' : '')
+          + '</div>' : '')
+        + (dur ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;">' + dur + ' min</div>' : '')
+        + (desc ? '<div style="margin-top:7px;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:6px;border-left:2px solid ' + tc + '40;">'
+          + '<div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:' + tc + ';font-family:\'DM Mono\',monospace;margin-bottom:3px;opacity:0.8;">Wskaz\u00f3wki trenera</div>'
+          + '<div style="font-size:12px;color:rgba(240,237,232,0.75);font-family:\'DM Sans\',sans-serif;line-height:1.5;">' + desc + '</div>'
+          + '</div>' : '')
+        + (statusBadge ? '<div style="margin-top:6px;">' + statusBadge + '</div>' : '')
+        + planThumbs
+        + '</div></div>';
     }).join('');
-    // === RACE GOAL CARD (top of day) ===
-    const raceCard = isRaceDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.06));border:2px solid rgba(61,184,112,0.5);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal('${raceGoal.id}')">
-  <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">\U0001f3c1 CEL STARTOWY</div>
-  <div style="font-size:16px;font-weight:700;color:var(--fg);">${raceGoal.name}</div>
-  <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">kliknij aby edytowa\u0107</div>
-</div>` : '';
 
-    // === ADD BUTTON — widoczny dla trenera I zawodnika ===
-    const addBtn = `<button onclick="openModal('${ds}')" style="width:100%;background:transparent;border:1px dashed rgba(212,80,26,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:8px;margin-top:${items.length||isRaceDay||dayLogs.length?'4':'0'}px;transition:background 0.15s;" onmouseover="this.style.background='rgba(212,80,26,0.07)'" onmouseout="this.style.background='transparent'">+ DODAJ TRENING</button>`;
+    // Race goal card
+    const raceCard = isRaceDay ? '<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.06));border:2px solid rgba(61,184,112,0.5);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;" onclick="openGoalModal(\'' + raceGoal.id + '\')">'
+      + '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:\'DM Mono\',monospace;margin-bottom:4px;">\ud83c\udfc1 CEL STARTOWY</div>'
+      + '<div style="font-size:16px;font-weight:700;color:var(--fg);">' + raceGoal.name + '</div>'
+      + '<div style="font-size:9px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:3px;">kliknij aby edytowa\u0107</div>'
+      + '</div>' : '';
 
-    // Aktywności Stravy dla widoku mobilnego
+    // Strava activities
     const stravaDayM = (window._stravaActivities && window._stravaActivities[ds]) || [];
-    const stravaHtmlM = stravaDayM.map(a => {
+    const stravaHtmlM = stravaDayM.map(function(a) {
       const km = (a.distance / 1000).toFixed(1);
       const pace = a.average_speed > 0
-        ? Math.floor(1000/a.average_speed/60)+':'+String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
-        : '—';
-      const hr = a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '';
-      const planned = (trainings[ds] || []).find(t => t.type !== 'Odpoczynek' && t.dist > 0);
-      let compareHtml = '';
-      if (planned && planned.dist > 0) {
-        const pct = Math.round((parseFloat(km) / planned.dist) * 100);
-        const color = pct >= 95 ? 'var(--green)' : pct >= 80 ? 'var(--yellow)' : 'var(--red)';
-        compareHtml = `<span style="font-size:9px;color:${color};font-family:'DM Mono',monospace;margin-left:6px;">${pct}% planu</span>`;
-      }
-      return `<div style="background:rgba(252,76,2,0.07);border:1px solid rgba(252,76,2,0.2);border-left:3px solid #FC4C02;border-radius:8px;padding:9px 12px;margin-bottom:6px;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#FC4C02;">${km} KM</span>
-          <span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}/km${hr}</span>
-          ${compareHtml}
-        </div>
-        <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
-      </div>`;
+        ? Math.floor(1000/a.average_speed/60) + ':' + String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
+        : '\u2014';
+      const hr = a.average_heartrate ? ' \u00b7 \u2665 ' + Math.round(a.average_heartrate) : '';
+      return '<div style="background:rgba(252,76,2,0.07);border:1px solid rgba(252,76,2,0.2);border-left:3px solid #FC4C02;border-radius:8px;padding:9px 12px;margin-bottom:6px;">'
+        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">'
+        + '<svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>'
+        + '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:#FC4C02;">' + km + ' KM</span>'
+        + '<span style="font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;">' + pace + '/km' + hr + '</span>'
+        + '</div>'
+        + '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.name + '</div>'
+        + '</div>';
     }).join('');
+
+    // Add training button — for coach always, for athlete always too
+    const addBtn = '<button onclick="openModal(\'' + ds + '\')" style="width:100%;background:transparent;border:1px dashed rgba(212,80,26,0.4);color:var(--accent);font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:8px;margin-top:' + (items.length||isRaceDay?'4':'0') + 'px;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(212,80,26,0.07)\'" onmouseout="this.style.background=\'transparent\'">+ DODAJ TRENING</button>';
 
     const contentId = 'mday-' + ds;
     const hasContent = items.length > 0 || isRaceDay || logThumbs || stravaDayM.length > 0 || standaloneLogCards.length > 0;
 
-    return `<div style="border:1px solid ${headerBorder};border-radius:12px;margin-bottom:8px;overflow:hidden;${boxShadow}">
-  <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:${headerBg};cursor:pointer;" onclick="toggleMobileDay('${contentId}',this)">
-    <div style="width:38px;height:38px;border-radius:8px;background:${abbrBg};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${isRaceDay?'18':'11'}px;font-weight:700;letter-spacing:0.06em;font-family:'DM Mono',monospace;color:${abbrColor};">${abbrContent}</div>
-    <div style="flex:1;min-width:0;">
-      <div style="display:flex;align-items:baseline;gap:8px;">
-        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;color:${titleColor};">${dayNum} ${monthStr}</span>
-        ${totalKm>0?`<span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:${kmColor};">${totalKm.toFixed(0)} km</span>`:''}
-      </div>
-      ${summaryText?`<div style="font-size:10px;color:${isRaceDay?'var(--green)':'var(--muted)'};font-family:'DM Mono',monospace;margin-top:1px;letter-spacing:0.04em;">${summaryText}</div>`:''}
-    </div>
-    <svg class="mday-chevron" style="flex-shrink:0;transition:transform 0.2s;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${isRaceDay?'var(--green)':'var(--muted)'}" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
-  </div>
-  <div id="${contentId}" style="display:${isOpen?'block':'none'};padding:${hasContent||addBtn?'8px 10px 10px':'4px 10px'};background:var(--bg);">
-    ${raceCard}${cards}${standaloneLogCards}${stravaHtmlM}${logThumbsHtml}${addBtn}
-    ${!hasContent&&!addBtn?`<div style="text-align:center;padding:10px 0;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Brak treningu</div>`:''}
-  </div>
-</div>`;
+    return '<div style="border:1px solid ' + headerBorder + ';border-radius:12px;margin-bottom:8px;overflow:hidden;' + boxShadow + '">'
+      + '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:' + headerBg + ';cursor:pointer;" onclick="toggleMobileDay(\'' + contentId + '\',this)">'
+      + '<div style="width:38px;height:38px;border-radius:8px;background:' + abbrBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:' + (isRaceDay?'18':'11') + 'px;font-weight:700;letter-spacing:0.06em;font-family:\'DM Mono\',monospace;color:' + abbrColor + ';">' + abbrContent + '</div>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="display:flex;align-items:baseline;gap:8px;">'
+      + '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;line-height:1;color:' + titleColor + ';">' + dayNum + ' ' + monthStr + '</span>'
+      + (totalKm > 0 ? '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:' + kmColor + ';">' + totalKm.toFixed(0) + ' km</span>' : '')
+      + '</div>'
+      + (summaryText ? '<div style="font-size:10px;color:' + (isRaceDay?'var(--green)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-top:1px;letter-spacing:0.04em;">' + summaryText + '</div>' : '')
+      + '</div>'
+      + '<svg class="mday-chevron" style="flex-shrink:0;transition:transform 0.2s;transform:' + (isOpen?'rotate(180deg)':'rotate(0deg)') + '" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + (isRaceDay?'var(--green)':'var(--muted)') + '" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'
+      + '</div>'
+      + '<div id="' + contentId + '" style="display:' + (isOpen?'block':'none') + ';padding:' + (hasContent?'8px 10px 10px':'4px 10px') + ';background:var(--bg);">'
+      + raceCard + cards + standaloneLogCards + stravaHtmlM + logThumbsHtml + addBtn
+      + (!hasContent ? '<div style="text-align:center;padding:10px 0;font-size:11px;color:var(--muted);font-family:\'DM Mono\',monospace;">Brak treningu</div>' : '')
+      + '</div>'
+      + '</div>';
   }).join('');
 
   const mBtn = document.getElementById('mobile-new-btn');
-  if (mBtn) mBtn.style.display = _urlRole !== 'athlete' ? 'flex' : 'none';
+  if (mBtn) mBtn.style.display = 'flex';
 }
 
 function toggleMobileDay(contentId, headerEl) {
