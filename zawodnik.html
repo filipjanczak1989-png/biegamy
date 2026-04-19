@@ -1819,7 +1819,7 @@ input, select, textarea { font-size: 16px !important; }
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
   // ── PERF: Debounce utility ──────────────────────────────────────────
@@ -2094,8 +2094,10 @@ function showSection(name) {
 
   } else if (name === 'social' || name === 'spolecznosc') {
     document.getElementById('section-social').style.display = 'block';
-    _injectSocialImages(); activateNav('nav-social'); loadSocialCircle();
-    loadSocialFeed();
+    _injectSocialImages();
+    activateNav('nav-social');
+    // BUGFIX: ensure feed tab is active before loading
+    switchSocialTab('feed');
   }
 }
 
@@ -2135,29 +2137,20 @@ function _mountMsgsInProfile() {
   const panel = document.getElementById('ptab-panel-msgs');
   if (!panel) return;
   panel.style.display = 'block';
-  // Render inline chat view (reuse messages data)
-  loadMessages().then(() => {
-    const thread = document.getElementById('msgs-thread');
-    if (thread) requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
-  });
-  // Show msgs section content inline
-  const msgsSection = document.getElementById('section-msgs');
-  if (msgsSection && panel.children.length === 0) {
-    // Clone the msgs content into the profile panel
-    panel.innerHTML = `<div style="height:calc(100vh - 280px);display:flex;flex-direction:column;">
-      <div id="profile-msgs-thread" style="flex:1;overflow-y:auto;padding:12px 20px;"></div>
-      <div style="padding:10px 20px 0;display:flex;gap:8px;">
-        <input id="profile-msg-inp" type="text" placeholder="Napisz do trenera..." 
-          style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
-          onkeydown="if(event.key==='Enter')sendProfileMsg()">
-        <button onclick="sendProfileMsg()" style="background:var(--accent);border:none;border-radius:10px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
-    </div>`;
-    _loadProfileMsgs();
-  }
+  // BUGFIX: always build/refresh the chat panel (was only built once)
+  panel.innerHTML = `<div style="height:calc(100vh - 280px);display:flex;flex-direction:column;">
+    <div id="profile-msgs-thread" style="flex:1;overflow-y:auto;padding:12px 20px;"></div>
+    <div style="padding:10px 20px 0;display:flex;gap:8px;">
+      <input id="profile-msg-inp" type="text" placeholder="Napisz do trenera..." 
+        style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')sendProfileMsg()">
+      <button onclick="sendProfileMsg()" style="background:var(--accent);border:none;border-radius:10px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>`;
+  _loadProfileMsgs();
 }
 
 async function _loadProfileMsgs() {
@@ -3377,16 +3370,23 @@ async function loadWeekPlan() {
   // Użyj lokalnej daty żeby uniknąć UTC offset
   const localDateStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const todayStr = localDateStr(now);
+  // BUGFIX: start 1 dzień wstecz żeby złapać dzisiejsze treningi przy różnicach UTC
+  const rangeStart = new Date(now);
+  rangeStart.setDate(now.getDate() - 1);
+  const rangeStartStr = localDateStr(rangeStart);
   const rangeEnd = new Date(now);
   rangeEnd.setDate(now.getDate() + 13);
   const rangeEndStr = localDateStr(rangeEnd);
 
-  const { data, error } = await _sb.from('trainings')
+  const { data: rawData, error } = await _sb.from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
-    .gte('date', todayStr)
+    .gte('date', rangeStartStr)
     .lte('date', rangeEndStr)
     .order('date');
+
+  // Filtruj lokalnie — pokaż od dzisiaj (w razie gdyby wczorajszy był zaciągnięty)
+  const data = (rawData || []).filter(t => t.date >= todayStr);
 
   if (error || !data || data.length === 0) {
     document.getElementById('week-strip').innerHTML = 
@@ -3457,51 +3457,56 @@ async function loadLogs() {
   if (!_athleteId) return;
   if (window._loadLogsRunning) return; // deduplication
   window._loadLogsRunning = true;
-  // Skeleton loader
-  const logList = document.getElementById('log-list');
-  if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
-  const { data } = await _sb
-    .from('training_logs')
-    .select('*')
-    .eq('athlete_id', _athleteId)
-    .order('logged_at', { ascending: false })
-    .limit(5);
-  if (data && data.length > 0) {
-    renderLogsDb(data);
-  } else {
-    document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
+  try {
+    // Skeleton loader
+    const logList = document.getElementById('log-list');
+    if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
+    const { data, error: logsErr } = await _sb
+      .from('training_logs')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .order('logged_at', { ascending: false })
+      .limit(10);
+    if (logsErr) console.error('loadLogs query error:', logsErr);
+    if (data && data.length > 0) {
+      renderLogsDb(data);
+    } else {
+      const ll = document.getElementById('log-list');
+      if (ll) ll.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
+    }
+    await loadCoachMessage();
+    await loadTodayTraining();
+    await loadWeekPlan();
+    await checkNewMessages();
+    checkNotifications();
+    if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
+    // Load social preview on homepage
+    loadHomeSocialPreview();
+    // Realtime — nowe wiadomości od trenera od razu
+    if (!window._realtimeChannel && _athleteId) {
+      window._realtimeChannel = _sb.channel('messages-' + _athleteId)
+        .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
+          filter:'athlete_id=eq.'+_athleteId}, () => {
+            loadMessages();
+            checkNewMessages();
+          })
+        .subscribe();
+    }
+    await updateWeekProgress();
+  } catch(e) {
+    console.error('loadLogs exception:', e);
+  } finally {
+    // BUGFIX: always release the lock — was never released on error
+    window._loadLogsRunning = false;
   }
-  await loadCoachMessage();
-  await loadTodayTraining();
-  await loadWeekPlan();
-  await checkNewMessages();
-  checkNotifications();
-  if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
-  // Load social preview on homepage
-  loadHomeSocialPreview();
-  // Realtime — nowe wiadomości od trenera od razu
-  if (!window._realtimeChannel && _athleteId) {
-    window._realtimeChannel = _sb.channel('messages-' + _athleteId)
-      .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
-        filter:'athlete_id=eq.'+_athleteId}, () => {
-          loadMessages();
-          checkNewMessages();
-        })
-      .subscribe();
-  }
-  window._loadLogsRunning = false;
-  await updateWeekProgress();
 }
 
 async function updateWeekProgress() {
   if (!_athleteId) return;
   if (window._weekProgressRunning) return;
   window._weekProgressRunning = true;
-  // Auto-release po czasie dłuższym niż animacja (900ms ring + bufor)
-  clearTimeout(window._weekProgressTimer);
-  window._weekProgressTimer = setTimeout(() => {
-    window._weekProgressRunning = false;
-  }, 1500);
+  // BUGFIX: use try/finally to guarantee flag release even on error
+  try {
   
   const now = new Date();
   const day = now.getDay();
@@ -3513,10 +3518,13 @@ async function updateWeekProgress() {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23,59,59,999);
 
+  // BUGFIX: użyj lokalnych dat dla training_logs (logged_at jest ISO timestamp, więc OK)
+  // ale dla trainings.date (YYYY-MM-DD) użyj lokalnych dat
+  const localStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const { data: trainingsThisWeek } = await _sb.from('trainings')
     .select('*').eq('athlete_id', _athleteId)
-    .gte('date', weekStart.toISOString().split('T')[0])
-    .lte('date', weekEnd.toISOString().split('T')[0]);
+    .gte('date', localStr(weekStart))
+    .lte('date', localStr(weekEnd));
 
   const { data: logsThisWeek } = await _sb.from('training_logs')
     .select('distance_km').eq('athlete_id', _athleteId)
@@ -3547,11 +3555,18 @@ async function updateWeekProgress() {
   if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
   if (kmEl) Anim.countUp(kmEl, totalKm, 900);
   if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + plannedKm.toFixed(0) + ' km' : 'km ten tydzień';
+  } catch(e) {
+    console.error('updateWeekProgress error:', e);
+  } finally {
+    window._weekProgressRunning = false;
+  }
 }
 
 async function loadTodayTraining() {
   if (!_athleteId) return;
-  const today = new Date().toISOString().split('T')[0];
+  // BUGFIX: użyj lokalnej daty (toISOString zwraca UTC — może różnić się od lokalnego dnia)
+  const _n = new Date();
+  const today = _n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
   const { data } = await _sb
     .from('trainings')
     .select('*')
@@ -4139,6 +4154,7 @@ document.addEventListener('click', e => {
 
 // ── TWÓJ KRĄG ────────────────────────────────────────────────────────
 async function loadSocialCircle() {
+  if (!_athleteId) return; // BUGFIX: guard — was missing, caused silent failure before auth
   const row = document.getElementById('social-circle-row');
   if (!row || !_athleteId) return;
 
@@ -4208,29 +4224,37 @@ async function loadSocialFeed(compact) {
     .limit(100);
 
   const publicIds = (publicAthletes||[]).map(function(a){return a.id;});
-  // Zawsze dodaj własne ID
+
+  // BUGFIX: zawsze dodaj własne ID do feedu (nawet jeśli profil prywatny)
   if (_athleteId && !publicIds.includes(_athleteId)) publicIds.push(_athleteId);
 
   if (!publicIds.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności.</div>';
     return;
   }
 
   // Pobierz logi tych zawodników
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
+    .select('id,training_type,distance_km,pace,heart_rate,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
     .order('logged_at', { ascending: false })
     .limit(compact ? 3 : 30);
 
   if (!logs || logs.length === 0) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności.</div>';
     return;
   }
 
   // Buduj mapę athlete_id → dane
   const athMap = {};
   (publicAthletes||[]).forEach(function(a){ athMap[a.id] = a; });
+  // BUGFIX: dociągnij własne dane jeśli nie ma ich w publicAthletes (profil prywatny)
+  if (_athleteId && !athMap[_athleteId]) {
+    try {
+      const { data: ownAth } = await _sb.from('athletes').select('id,full_name,is_public').eq('id',_athleteId).maybeSingle();
+      if (ownAth) athMap[_athleteId] = ownAth;
+    } catch(e) {}
+  }
 
   const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
@@ -5524,12 +5548,13 @@ _sb.auth.onAuthStateChange((event, session) => {
 });
 
 // Fallback — jeśli sesja już istnieje (normalne logowanie, brak tokenu w URL)
+// BUGFIX: zwiększono z 500ms do 1500ms — na wolnych połączeniach sesja może nie być gotowa
 setTimeout(() => {
   if (!window._authInitDone) {
     window._authInitDone = true;
     initAuth().then(() => checkStravaStatus());
   }
-}, 500);
+}, 1500);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
@@ -6167,15 +6192,18 @@ window.closeModal = function(){
 };
 
 // Intercept saveLog to fire confetti
-const _origSaveLog = window.saveLog;
-window.saveLog = async function(){
-  if(_origSaveLog) await _origSaveLog();
-  // Trigger after short delay (let DB write complete)
-  setTimeout(() => {
-    launchConfetti();
-    showPremiumToast('Trening zapisany! 🔥', '💪');
-  }, 400);
-};
+// Delay to ensure saveLog (defined as async function in main script) is available on window
+setTimeout(function(){
+  const _origSaveLog = window.saveLog;
+  if (!_origSaveLog) return; // safety
+  window.saveLog = async function(){
+    await _origSaveLog.apply(this, arguments);
+    setTimeout(() => {
+      launchConfetti();
+      showPremiumToast('Trening zapisany! 🔥', '💪');
+    }, 400);
+  };
+}, 0);
 
 // ── 9. HERO IMAGE TILT on touch ───────────────────────────────────────
 (function initHeroTilt(){
