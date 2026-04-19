@@ -394,12 +394,17 @@ function selectRole(role) {
 async function checkSession() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
-  // Nie przekierowuj automatycznie — pokaż baner żeby użytkownik mógł wybrać
+  const role = session.user.user_metadata?.role || 'athlete';
+  // Zawodnik → auto-redirect od razu
+  if (role !== 'coach' && role !== 'trener') {
+    window.location.href = 'zawodnik.html';
+    return;
+  }
+  // Trener → pokaż baner z wyborem
   const banner = document.getElementById('session-banner');
   const emailEl = document.getElementById('session-email');
   if (banner) banner.style.display = 'block';
   if (emailEl) emailEl.textContent = session.user.email;
-  // Zapamiętaj sesję do ewentualnego przekierowania
   window._activeSession = session;
 }
 
