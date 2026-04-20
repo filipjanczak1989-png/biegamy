@@ -158,7 +158,7 @@ body > *{position:relative;z-index:1;}
 }
 
 /* ── TOPBAR ─────────────────────────────────────────────────────────── */
-.topbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:54px 22px 18px;contain:layout paint;}
+.topbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:54px 22px 18px;}
 .topbar-greeting{font-size:12px;color:var(--muted);font-weight:400;letter-spacing:0.02em;}
 .topbar-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;line-height:1.05;}
 .topbar-name span{color:var(--accent);}
@@ -176,9 +176,9 @@ body > *{position:relative;z-index:1;}
   display:flex;align-items:center;justify-content:center;
   font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--accent);
   box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);
-  transition:transform 0.2s ease,opacity 0.2s ease,box-shadow 0.2s ease;cursor:pointer;will-change:transform;
+  transition:transform 0.2s ease,opacity 0.2s ease;cursor:pointer;
 }
-.topbar-avatar:hover{box-shadow:0 0 16px var(--glow-o),0 0 0 4px rgba(232,86,30,0.1);}
+.topbar-avatar:hover{box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.12);}
 
 /* ── SECTION HEADERS ─────────────────────────────────────────────────── */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:10px;margin-top:8px;}
@@ -212,7 +212,6 @@ body > *{position:relative;z-index:1;}
   border-radius:var(--tile-radius);
   pointer-events:none;
   transition:opacity 0.6s ease;
-  contain:layout paint;
 }
 #daily-motivation:hover .motiv-bg{ opacity:0.42; }
 #daily-motivation::before{
@@ -239,7 +238,6 @@ body > *{position:relative;z-index:1;}
   border:1px solid rgba(255,255,255,0.08);
   overflow:visible;
   position:relative;
-  will-change:transform;transform:translateZ(0);
 }
 
 /* Hero background image */
@@ -264,7 +262,7 @@ body > *{position:relative;z-index:1;}
   height:2px;
   background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 45%,rgba(78,140,214,0.45) 82%,transparent 100%);
   border-radius:var(--tile-radius-lg) var(--tile-radius-lg) 0 0;
-  box-shadow:0 0 20px rgba(232,86,30,0.5);
+  box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
 }
 /* Subtle runner illustration inside hero */
 .today-hero::after{
@@ -322,10 +320,10 @@ body > *{position:relative;z-index:1;}
 .btn-primary{
   background:linear-gradient(135deg,#d44c18 0%,var(--accent) 45%,var(--accent2) 100%);
   color:#fff;grid-column:span 2;
-  box-shadow:0 4px 16px rgba(232,86,30,0.35);
+  box-shadow:0 4px 24px rgba(232,86,30,0.42),0 1px 0 rgba(255,255,255,0.1) inset;
   letter-spacing:0.18em;font-size:11px;
 }
-.btn-primary:hover{box-shadow:0 6px 20px rgba(232,86,30,0.45);}
+.btn-primary:hover{box-shadow:0 8px 32px rgba(232,86,30,0.55);}
 .btn-done{
   background:rgba(61,184,112,0.1);color:var(--green);
   border:1px solid rgba(61,184,112,0.28);
@@ -348,15 +346,14 @@ body > *{position:relative;z-index:1;}
   position:relative;overflow:hidden;cursor:pointer;
   transition:transform var(--dur-fast) var(--ease-out),border-color 0.18s,box-shadow 0.18s;
   display:flex;align-items:center;gap:12px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.45);
-  will-change:transform;
+  box-shadow:0 4px 16px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.03) inset;
 }
 .day-card:hover{background:linear-gradient(135deg,rgba(24,21,34,0.95),rgba(15,14,22,0.98));border-color:rgba(255,255,255,0.11);}
 .day-card:active{transform:scale(0.985);}
 .day-card.today{
   border-color:rgba(232,86,30,0.38);
   background:linear-gradient(135deg,rgba(232,86,30,0.09),rgba(12,11,18,0.95));
-  box-shadow:0 0 16px rgba(232,86,30,0.1),0 4px 12px rgba(0,0,0,0.45);
+  box-shadow:0 0 28px rgba(232,86,30,0.12),0 4px 16px rgba(0,0,0,0.45);
 }
 .day-card.done{border-color:rgba(61,184,112,0.28);}
 .day-card.rest{opacity:0.45;}
@@ -488,7 +485,7 @@ body > *{position:relative;z-index:1;}
 }
 
 /* ── MODAL ──────────────────────────────────────────────────────────── */
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(6px);will-change:opacity;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(6px);}
 .modal-bg.open{opacity:1;pointer-events:all;}
 .modal{
   background:var(--card2);border-radius:24px 24px 0 0;
@@ -561,7 +558,7 @@ body > *{position:relative;z-index:1;}
 .fade-in:nth-child(5){animation-delay:0.24s;}
 
 /* ── SECTIONS ───────────────────────────────────────────────────────── */
-.section-inner{padding:0;contain:layout paint style;}
+.section-inner{padding:0;}
 #section-stats{padding:0 0 100px;}
 #section-profile{padding:0 20px 100px;}
 #section-profile,.sec-hdr{position:relative;z-index:1;}
@@ -757,11 +754,11 @@ body > *{position:relative;z-index:1;}
   border:1px solid rgba(255,255,255,0.09);
   border-radius:var(--tile-radius);padding:15px 16px;margin-bottom:10px;
   cursor:pointer;transition:transform 0.18s ease,opacity 0.18s ease;display:flex;align-items:center;gap:14px;
-  box-shadow:0 4px 12px rgba(0,0,0,0.4);
+  box-shadow:0 4px 16px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.03) inset;
 }
 .ob-card:active,.ob-card.sel{
   background:rgba(232,86,30,0.09);border-color:rgba(232,86,30,0.45);
-  box-shadow:0 4px 16px rgba(232,86,30,0.18);
+  box-shadow:0 4px 24px rgba(232,86,30,0.18),0 1px 0 rgba(255,255,255,0.04) inset;
 }
 .ob-card.sel::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
@@ -1196,14 +1193,14 @@ body > *{position:relative;z-index:1;}
 }
 .log-card:hover{
   transform:translateY(-2px);
-  box-shadow:0 8px 24px rgba(0,0,0,0.65);
+  box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset;
   border-color:rgba(255,255,255,0.12);
 }
 
 /* ── 10. GLOW PULSE na topbar avatar ────────────────────────────── */
 @keyframes avatarGlow{
   0%,100%{box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);}
-  50%{box-shadow:0 0 20px rgba(232,86,30,0.4),0 0 0 4px rgba(232,86,30,0.12);}
+  50%{box-shadow:0 0 32px rgba(232,86,30,0.5),0 0 0 6px rgba(232,86,30,0.15);}
 }
 .topbar-avatar{animation:avatarGlow 3.5s ease-in-out infinite;}
 
@@ -1952,7 +1949,7 @@ function appendFile(input) {
   const url = URL.createObjectURL(file);
   const div = document.createElement('div');
   div.style.cssText = 'position:relative;width:calc(50% - 3px);';
-  div.innerHTML = `<img src="${url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;display:block;" loading="lazy" decoding="async">
+  div.innerHTML = `<img src="${url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;display:block;">
     <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">✕</button>`;
   list.appendChild(div);
   // Update label
@@ -2754,7 +2751,7 @@ async function clearAllMessages() {
 async function sendGif(url, pickerId) {
   document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
   if (!_athleteId) return;
-  const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;" loading="lazy" decoding="async">`;
+  const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
   await _sb.from('messages').insert({athlete_id:_athleteId,sender:'athlete',body,sent_at:new Date().toISOString()});
   await loadMessages();
 }
@@ -2795,7 +2792,7 @@ async function sendFileMessage(input) {
     urls.push(urlData.publicUrl);
   }
   if (!urls.length) return;
-  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" loading="lazy" decoding="async" />`).join('');
+  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" />`).join('');
   await _sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
@@ -3172,9 +3169,10 @@ async function initAuth() {
     const tn2 = document.getElementById('topbar-name');
     if(tn2){ tn2.innerHTML = name2.split(' ')[0]; tn2.style.opacity='1'; }
 
-    const { data: ath2 } = await _sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
+    const { data: ath2 } = await _sb.from('athletes').select('id,full_name,coach_id').eq('user_id', user2.id).maybeSingle();
     if (ath2) {
       _athleteId = ath2.id;
+      window._athleteCoachId = ath2.coach_id || null;
       const n2 = ath2.full_name || name2;
       const i2 = n2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       setAvBtn(i2);
@@ -3198,14 +3196,16 @@ async function initAuth() {
   if(tnEl){ tnEl.innerHTML = nameFromMeta.split(' ')[0]; tnEl.style.opacity='1'; }
 
   // Pobierz dane z athletes
+  // PERF: jeden SELECT zamiast dwóch (id+full_name + target_date+goals+coach_id)
   const { data: ath } = await _sb
     .from('athletes')
-    .select('id, full_name')
+    .select('id, full_name, target_date, goal, race_goals, coach_id')
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (ath) {
     _athleteId = ath.id;
+    window._athleteCoachId = ath.coach_id || null; // cache dla loadCoachMessage
     const name = ath.full_name || nameFromMeta;
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
@@ -3219,11 +3219,11 @@ async function initAuth() {
       return;
     }
 
-    const { data: athFull } = await _sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
-    if (athFull) {
+    // Race countdown z danych już pobranych (bez extra SELECT)
+    try {
       let goals=[];
-      try{goals=JSON.parse(athFull.race_goals||'[]');}catch(e){}
-      if(!goals.length&&athFull.goal)goals=[{name:athFull.goal,date:athFull.target_date||''}];
+      try{goals=JSON.parse(ath.race_goals||'[]');}catch(e){}
+      if(!goals.length&&ath.goal)goals=[{name:ath.goal,date:ath.target_date||''}];
       const today2=new Date();today2.setHours(0,0,0,0);
       const upcoming=goals.filter(g=>g.date&&new Date(g.date)>=today2).sort((a,b)=>new Date(a.date)-new Date(b.date));
       if(upcoming.length){
@@ -3241,7 +3241,7 @@ async function initAuth() {
           }
         }
       }
-    }
+    } catch(e){}
     await loadLogs();
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
@@ -3733,9 +3733,9 @@ async function loadLogs() {
       checkNewMessages(),
       updateWeekProgress(),
     ];
-    Promise.all(loadTasks).catch(e => console.error('loadLogs parallel:', e));
-    checkNotifications();
-    loadHomeSocialPreview();
+    // PERF: checkNotifications równolegle z resztą
+    const allTasks = [...loadTasks, checkNotifications(), loadHomeSocialPreview()];
+    Promise.all(allTasks).catch(e => console.error('loadLogs parallel:', e));
     if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
     // Realtime — nowe wiadomości od trenera od razu
     if (!window._realtimeChannel && _athleteId) {
@@ -3855,14 +3855,10 @@ async function loadTodayTraining() {
 }
 
 async function loadCoachMessage() {
-  // Show coach section only if athlete has coach
-  if (_athleteId) {
-    const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
-    const coachSection = document.getElementById('coach-msg-section');
-    if (coachSection) coachSection.style.display = ath && ath.coach_id ? 'block' : 'none';
-  }
-  
-  if (!_athleteId) return;
+  // Show coach section only if athlete has coach (coach_id cached from initAuth, no extra SELECT)
+  const coachSection = document.getElementById('coach-msg-section');
+  if (coachSection) coachSection.style.display = window._athleteCoachId ? 'block' : 'none';
+  if (!_athleteId || !window._athleteCoachId) return;
   // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
   const { data: msgs } = await _sb
     .from('messages')
@@ -3940,7 +3936,7 @@ function renderLogsDb(data) {
       <button onclick="event.stopPropagation();deleteLog('${l.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;" title="Usuń">✕</button>
     </div>
     ${l.attachment_url ? `<div style="padding:0 16px 4px;display:flex;flex-wrap:wrap;gap:6px;">
-      ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}
+      ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'" loading="lazy" decoding="async">`).join('')}
     </div>` : ''}
     ${l.strava_link ? `<div style="padding:0 16px 8px;"><a href="${l.strava_link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}`;
   }).join('');
@@ -4258,7 +4254,7 @@ async function loadStravaActivities() {
   }).join('');
 }
 
-async function checkStravaStatus() {
+async async function checkStravaStatus() {
   if (!_athleteId) return;
   const { data } = await _sb.from('athletes')
     .select('strava_athlete_id, strava_connected_at')
@@ -4472,11 +4468,13 @@ async function loadSocialFeed(compact) {
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
 
-  // Pobierz ID publicznych zawodników
-  const { data: publicAthletes } = await _sb.from('athletes')
-    .select('id,full_name,is_public')
-    .eq('is_public', true)
-    .limit(100);
+  // PERF: zrównolegl athletes + follows (nie zależą od siebie)
+  const [publicAthletesRes, followDataRes] = await Promise.all([
+    _sb.from('athletes').select('id,full_name,is_public').eq('is_public', true).limit(100),
+    _sb.from('follows').select('following_id').eq('follower_id', _athleteId)
+  ]);
+  const publicAthletes = publicAthletesRes.data;
+  const followData = followDataRes.data;
 
   const publicIds = (publicAthletes||[]).map(function(a){return a.id;});
 
@@ -4488,7 +4486,7 @@ async function loadSocialFeed(compact) {
     return;
   }
 
-  // Pobierz logi tych zawodników
+  // Pobierz logi tych zawodników (teraz już mamy athletes i follows)
   const { data: logs } = await _sb.from('training_logs')
     .select('id,training_type,distance_km,pace,heart_rate,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
@@ -4505,13 +4503,10 @@ async function loadSocialFeed(compact) {
   (publicAthletes||[]).forEach(function(a){ athMap[a.id] = a; });
   // BUGFIX: dociągnij własne dane jeśli nie ma ich w publicAthletes (profil prywatny)
   if (_athleteId && !athMap[_athleteId]) {
-    try {
-      const { data: ownAth } = await _sb.from('athletes').select('id,full_name,is_public').eq('id',_athleteId).maybeSingle();
-      if (ownAth) athMap[_athleteId] = ownAth;
-    } catch(e) {}
+    // Użyj danych z cache zamiast extra SELECT
+    athMap[_athleteId] = { id: _athleteId, full_name: document.getElementById('topbar-name')?.textContent || 'Ja', is_public: false };
   }
 
-  const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
   function buildCard(l) {
@@ -5792,9 +5787,12 @@ const Anim = {
 // Inicjalizuj przy starcie
 Anim.initSound();
 
-initAuth();
-// Obsłuż token z linku aktywacyjnego ZANIM initAuth
-// Supabase SDK przetwarza #access_token z URL asynchronicznie
+// BUGFIX: dodaj guard żeby initAuth nie odpaliło się dwukrotnie
+window._authInitDone = false;
+window._authInitDone = true;
+initAuth().then(() => checkStravaStatus());
+
+// Obsłuż token z linku aktywacyjnego (OAuth callback — Supabase może odpalić SIGNED_IN)
 _sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
@@ -5802,14 +5800,7 @@ _sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Fallback — jeśli sesja już istnieje (normalne logowanie, brak tokenu w URL)
-// BUGFIX: zwiększono z 500ms do 1500ms — na wolnych połączeniach sesja może nie być gotowa
-setTimeout(() => {
-  if (!window._authInitDone) {
-    window._authInitDone = true;
-    initAuth().then(() => checkStravaStatus());
-  }
-}, 1500);
+// Fallback usunięty — już nie potrzebny (initAuth odpala się natychmiast z guardem)
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
