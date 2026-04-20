@@ -170,13 +170,33 @@ body > *{position:relative;z-index:1;}
 }
 .notif-bell-z:hover{border-color:var(--border2);background:rgba(255,255,255,0.07);}
 .topbar-avatar{
-  width:44px;height:44px;border-radius:50%;
+  width:44px;
+  height:44px;
+  border-radius:50%;
   border:2px solid var(--accent);
   background:radial-gradient(circle,rgba(232,86,30,0.2),rgba(232,86,30,0.05));
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--accent);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:17px;
+  color:var(--accent);
   box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);
-  transition:all 0.2s;cursor:pointer;
+  cursor:pointer;
+  transition:transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transform:translateZ(0);
+}
+.topbar-avatar:hover{
+  box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.12);
+}
+.topbar-avatar:active{
+  transform:scale(0.95);
+  background:radial-gradient(circle,rgba(232,86,30,0.35),rgba(232,86,30,0.1));
+  box-shadow:0 0 12px var(--glow-o),0 0 0 3px rgba(232,86,30,0.25);
+}
+.topbar-avatar:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(232,86,30,0.4),0 0 20px var(--glow-o);
 }
 .topbar-avatar:hover{box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.12);}
 
@@ -1196,7 +1216,35 @@ body > *{position:relative;z-index:1;}
   0%,100%{box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);}
   50%{box-shadow:0 0 32px rgba(232,86,30,0.5),0 0 0 6px rgba(232,86,30,0.15);}
 }
-.topbar-avatar{animation:avatarGlow 3.5s ease-in-out infinite;}
+.topbar-avatar{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  border:2px solid var(--accent);
+  background:radial-gradient(circle,rgba(232,86,30,0.2),rgba(232,86,30,0.05));
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:17px;
+  color:var(--accent);
+  box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);
+  cursor:pointer;
+  transition:transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transform:translateZ(0);
+}
+.topbar-avatar:hover{
+  box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.12);
+}
+.topbar-avatar:active{
+  transform:scale(0.95);
+  background:radial-gradient(circle,rgba(232,86,30,0.35),rgba(232,86,30,0.1));
+  box-shadow:0 0 12px var(--glow-o),0 0 0 3px rgba(232,86,30,0.25);
+}
+.topbar-avatar:focus{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(232,86,30,0.4),0 0 20px var(--glow-o);
+}
 
 /* ── 11. RING ANIMATION ──────────────────────────────────────────── */
 #ring-arc{
@@ -1274,7 +1322,7 @@ input, select, textarea { font-size: 16px !important; }
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#3db870;"></div>
     </div>
-    <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
+    <div class="topbar-avatar" tabindex="0" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
       <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">—</span>
       <img id="av-photo" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%;">
     </div>
@@ -3153,7 +3201,7 @@ async function initAuth() {
     // Poczekaj chwilę (OAuth callback lub email confirmation może być w toku)
     await new Promise(r => setTimeout(r, 1200));
     const { data: { session: s2 } } = await _sb.auth.getSession();
-    if (!s2) { window.location.href = 'login.html'; return; }
+    if (!s2) { window.location.href="#"; return; }
     // Kontynuuj z s2 jako sesją
     const user2 = s2.user;
     document.getElementById('menu-email').textContent = user2.email;
@@ -4298,7 +4346,7 @@ async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
   sessionStorage.clear();
-  window.location.href = 'login.html';
+  window.location.href="#";
 }
 
 async function confirmDeleteAccount() {
@@ -4354,7 +4402,7 @@ async function executeDeleteAccount() {
     document.getElementById('delete-account-modal')?.remove();
     // Pokaż potwierdzenie i przekieruj
     document.body.innerHTML = '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07070a;color:#f0ede8;font-family:\'DM Sans\',sans-serif;gap:16px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;">Konto usunięte</div><div style="font-size:13px;color:#66636e;">Do zobaczenia na trasie 🏃</div></div>';
-    setTimeout(() => window.location.href = 'login.html', 3000);
+    setTimeout(() => window.location.href="#", 3000);
   } catch(e) {
     toast('Błąd: ' + e.message);
     if (btn) { btn.textContent = 'Usuń konto'; btn.disabled = false; }
@@ -6530,6 +6578,100 @@ if(_wsKm){
 })();
 
 
+</script>
+
+
+<script>
+// ===== PERFORMANCE FIX: CONFETTI =====
+function runConfetti(){
+  const container = document.createElement('div');
+  container.style.position='fixed';
+  container.style.inset='0';
+  container.style.pointerEvents='none';
+  container.style.zIndex='9999';
+  document.body.appendChild(container);
+
+  const count = 24;
+  const pieces = [];
+
+  for(let i=0;i<count;i++){
+    const el = document.createElement('div');
+    el.style.position='absolute';
+    el.style.width='6px';
+    el.style.height='10px';
+    el.style.background='hsl('+Math.random()*360+',80%,60%)';
+    el.style.opacity='1';
+    el.style.transform='translate3d(0,0,0)';
+    container.appendChild(el);
+
+    pieces.push({
+      el,
+      x: Math.random()*window.innerWidth,
+      y: -20,
+      vx: (Math.random()-0.5)*4,
+      vy: Math.random()*4+2,
+      life: 0
+    });
+  }
+
+  let start = performance.now();
+  function animate(t){
+    let dt = t - start;
+    pieces.forEach(p=>{
+      p.life += 16;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.el.style.transform = `translate3d(${p.x}px,${p.y}px,0)`;
+      p.el.style.opacity = 1 - p.life/1000;
+    });
+    if(dt < 900){
+      requestAnimationFrame(animate);
+    }else{
+      container.remove();
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// ===== PERFORMANCE FIX: TOAST =====
+function showToast(msg){
+  let toast = document.createElement('div');
+  toast.innerText = msg;
+  toast.style.position='fixed';
+  toast.style.bottom='90px';
+  toast.style.left='50%';
+  toast.style.transform='translateX(-50%)';
+  toast.style.background='rgba(20,20,25,0.9)';
+  toast.style.border='1px solid rgba(255,255,255,0.1)';
+  toast.style.padding='10px 16px';
+  toast.style.borderRadius='12px';
+  toast.style.color='#fff';
+  toast.style.opacity='0';
+  toast.style.transition='opacity 0.3s';
+  toast.style.zIndex='9999';
+  toast.style.pointerEvents='none';
+
+  document.body.appendChild(toast);
+
+  requestAnimationFrame(()=> toast.style.opacity='1');
+
+  setTimeout(()=>{
+    toast.style.opacity='0';
+    setTimeout(()=>toast.remove(),300);
+  },2200);
+}
+
+// ===== UNBLOCK UI =====
+function clearOverlays(){
+  document.querySelectorAll('[data-overlay]').forEach(el=>el.remove());
+}
+
+// ===== HOOK SAVE =====
+function onSaveLog(){
+  clearOverlays();
+  runConfetti();
+  showToast("Zapisano trening ✅");
+}
 </script>
 
 </body>
