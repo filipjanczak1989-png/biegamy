@@ -262,7 +262,12 @@ nav{
 .add-training-btn:hover{border-color:rgba(232,86,30,0.4);color:var(--accent);background:rgba(232,86,30,0.04);}
 
 /* ── MODAL ──────────────────────────────────────────────────────────── */
-.modal-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.modal-bg{
+  position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:50;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.22s;
+  backdrop-filter:blur(6px);
+}
 .modal-bg.open{opacity:1;pointer-events:all;}
 .modal{
   background:var(--surface2);
@@ -371,11 +376,11 @@ nav{
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
 
 /* ── WEEK TEMPLATE MODAL ────────────────────────────────────────────── */
-#week-tpl-modal{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:400;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
+#week-tpl-modal{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);}
 #week-tpl-modal.show{display:flex;}
 .wtpl-box{
-  background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-  border:1px solid rgba(255,255,255,0.10);
+  background:var(--surface);
+  border:1px solid rgba(232,86,30,0.35);
   border-radius:20px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:0;
   box-shadow:0 24px 80px rgba(0,0,0,0.8);
 }
@@ -472,68 +477,6 @@ body > *{position:relative;z-index:1;}
   text-shadow:0 0 20px rgba(232,86,30,0.5);
 }
 
-
-/* ══ FULLSCREEN MODAL SYSTEM ══════════════════════════════════════ */
-.modal-fs-overlay,
-.modal-bg,
-[id*="modal"][style*="position:fixed"],
-[id*="modal"][style*="position: fixed"] {
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-}
-
-/* Inner content glassmorphism wrapper */
-.modal-glass {
-  background: rgba(10, 9, 18, 0.72) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 20px !important;
-  max-width: 500px !important;
-  width: 100% !important;
-  margin: 0 auto !important;
-}
-
-/* modal-bg class override → fullscreen */
-.modal-bg {
-  position: fixed !important;
-  inset: 0 !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background-color: rgba(0,0,0,0.85) !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 20px !important;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s;
-  box-sizing: border-box !important;
-}
-.modal-bg.open {
-  opacity: 1 !important;
-  pointer-events: all !important;
-}
-
-/* .modal inner content inside modal-bg */
-.modal-bg .modal {
-  background: rgba(10, 9, 18, 0.72) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 20px !important;
-  max-width: 500px !important;
-  width: 100% !important;
-  max-height: 92vh !important;
-  overflow-y: auto !important;
-  transform: translateY(0) !important;
-  margin: 0 auto !important;
-}
-/* ════════════════════════════════════════════════════════════════ */
 </style>
 </head>
 <body>
@@ -580,8 +523,8 @@ body > *{position:relative;z-index:1;}
 
 
 <!-- GOAL MODAL -->
-<div id="goal-modal-bg" onclick="if(event.target===this)closeGoalModal()" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 0.25s;">
-  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;overflow-y:auto;padding:0;padding:0;">
+<div id="goal-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeGoalModal()">
+  <div style="background:var(--surface);border:1px solid var(--border);width:380px;max-width:92vw;">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;" id="goal-modal-title">Nowy cel startowy</div>
       <button onclick="closeGoalModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
@@ -613,8 +556,8 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- LOG MODAL (zawodnik — OCR) -->
-<div id="log-modal-bg" onclick="if(event.target===this)closeLogModal()" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 0.25s;">
-  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;max-height:88vh;overflow-y:auto;padding:0;padding:0;" id="log-modal-inner">
+<div id="log-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeLogModal()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;" id="log-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;" id="log-modal-title">Log treningu</div>
@@ -705,7 +648,7 @@ body > *{position:relative;z-index:1;}
 
 <!-- MODAL — ADD/EDIT TRAINING -->
 <div class="modal-bg" id="modal-bg" onclick="closeModalOnBg(event)">
-  <div class="modal modal-glass">
+  <div class="modal">
     <div class="modal-header">
       <div class="modal-title" id="modal-title">Nowy trening</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
@@ -833,8 +776,8 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- TEMPLATES MODAL -->
-<div id="templates-modal-bg" onclick="if(event.target===this)closeTemplatesModal()" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:350;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 0.25s;">
-  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;max-height:85vh;overflow-y:auto;padding:0;padding:0;" id="templates-modal-inner">
+<div id="templates-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:350;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeTemplatesModal()">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;width:480px;max-width:94vw;max-height:85vh;overflow-y:auto;transform:translateY(10px);transition:transform 0.2s;" id="templates-modal-inner">
     <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;">📋 Szablony treningów</div>
       <button onclick="closeTemplatesModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
@@ -886,8 +829,8 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- COPY MODAL -->
-<div id="copy-modal-bg" onclick="if(event.target===this)closeCopyModal()" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 0.25s;">
-  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;overflow-y:auto;padding:0;padding:0;">
+<div id="copy-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeCopyModal()">
+  <div style="background:var(--surface);border:1px solid var(--border);width:340px;max-width:92vw;">
     <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;">Kopiuj trening do zawodnika</div>
       <button onclick="closeCopyModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
@@ -1450,7 +1393,7 @@ async function initRole() {
   if (_urlRoleFromUrl) return; // URL ma rolę — ufamy jej
   // Brak roli w URL — sprawdź w sesji
   const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return; }
+  if (!session) { window.location.href = 'index.html'; return; }
   const role = session.user.user_metadata?.role || 'athlete';
   if (role === 'coach') {
     // Coach bez roli w URL — przekieruj z rolą
@@ -2880,40 +2823,13 @@ document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=setti
   }
 })();
 
-// ── FULLSCREEN MODAL BACKGROUNDS ─────────────────────────────────
-const _MODAL_IMGS = 8; // number of images in /img folder (1..8)
-function _modalRandomBg(el) {
-  if (!el) return;
-  const n = Math.floor(Math.random() * _MODAL_IMGS) + 1;
-  el.style.backgroundImage = "url('/img/" + n + ".jpg')";
+// ── FADE-OUT NAVIGATION ──────────────────────────────────────────
+function _fadeNavigate(url, delay) {
+  delay = delay || 80;
+  document.body.style.transition = 'opacity 0.15s ease';
+  document.body.style.opacity = '0';
+  setTimeout(function() { window.location.href = url; }, delay);
 }
-// Patch: auto-apply bg whenever a modal becomes visible
-(function() {
-  const _origShow = Element.prototype._modalShow;
-  const _observer = new MutationObserver(mutations => {
-    mutations.forEach(m => {
-      if (m.type === 'attributes') {
-        const el = m.target;
-        const isModal = el.id && el.id.includes('modal');
-        if (!isModal) return;
-        const visible = el.style.display !== 'none' &&
-                        !el.hasAttribute('hidden') &&
-                        (el.classList.contains('open') || el.style.display === 'flex' || el.style.display === 'block');
-        if (visible && !el.dataset.bgSet) {
-          _modalRandomBg(el);
-          el.dataset.bgSet = '1';
-          // Reset on next open
-          setTimeout(() => { delete el.dataset.bgSet; }, 100);
-        }
-      }
-    });
-  });
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[id*="modal"]').forEach(el => {
-      _observer.observe(el, { attributes: true, attributeFilter: ['style','class','hidden'] });
-    });
-  });
-})();
 </script>
 </body>
 </html>

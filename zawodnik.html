@@ -485,7 +485,7 @@ body > *{position:relative;z-index:1;}
 }
 
 /* ── MODAL ──────────────────────────────────────────────────────────── */
-.modal-bg{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(6px);}
 .modal-bg.open{opacity:1;pointer-events:all;}
 .modal{
   background:var(--card2);border-radius:24px 24px 0 0;
@@ -496,7 +496,7 @@ body > *{position:relative;z-index:1;}
   padding-bottom:36px;
   box-shadow:0 -8px 40px rgba(0,0,0,0.6);
 }
-.modal-bg.open .modal{transform:translateY(0);opacity:1;}
+.modal-bg.open .modal{transform:translateY(0);}
 .modal-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);margin:14px auto 0;}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;padding:14px 22px 4px;color:var(--fg);}
 .modal-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 22px 16px;letter-spacing:0.05em;}
@@ -1263,67 +1263,9 @@ input, select, textarea { font-size: 16px !important; }
   }
 }
 
-/* ══ FULLSCREEN MODAL SYSTEM ══════════════════════════════════════ */
-.modal-fs-overlay,
-.modal-bg,
-[id*="modal"][style*="position:fixed"],
-[id*="modal"][style*="position: fixed"] {
-  background-size: cover !important;
-  background-position: center !important;
-  background-repeat: no-repeat !important;
-}
-
-/* Inner content glassmorphism wrapper */
-.modal-glass {
-  background: rgba(10, 9, 18, 0.72) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 20px !important;
-  max-width: 500px !important;
-  width: 100% !important;
-  margin: 0 auto !important;
-}
-
-/* modal-bg class override → fullscreen */
-.modal-bg {
-  position: fixed !important;
-  inset: 0 !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background-color: rgba(0,0,0,0.85) !important;
-  z-index: 9999 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 20px !important;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.25s;
-  box-sizing: border-box !important;
-}
-.modal-bg.open {
-  opacity: 1 !important;
-  pointer-events: all !important;
-}
-
-/* .modal inner content inside modal-bg */
-.modal-bg .modal {
-  background: rgba(10, 9, 18, 0.72) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
-  border-radius: 20px !important;
-  max-width: 500px !important;
-  width: 100% !important;
-  max-height: 92vh !important;
-  overflow-y: auto !important;
-  transform: translateY(0) !important;
-  margin: 0 auto !important;
-}
-/* ════════════════════════════════════════════════════════════════ */
+/* ── PAGE FADE-IN ───────────────────────────────────────── */
+body { opacity: 0; transition: opacity 0.2s ease; }
+body.page-ready { opacity: 1; }
 </style>
 </head>
 <body>
@@ -1749,8 +1691,8 @@ input, select, textarea { font-size: 16px !important; }
 </div>
 
 <!-- MODAL ZMIANA TRENERA -->
-<div id="change-coach-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;overflow-y:auto;padding:0;">
+<div id="change-coach-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);">
+  <div style="background:var(--card);border:1px solid rgba(255,255,255,0.1);border-radius:20px;width:100%;max-width:380px;padding:24px;box-shadow:0 24px 80px rgba(0,0,0,0.8);">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px;">Zmień trenera</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Wybierz trenera, z którym chcesz pracować.</div>
     <div id="change-coaches-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
@@ -1764,8 +1706,8 @@ input, select, textarea { font-size: 16px !important; }
 </div>
 
 
-<div id="goal-modal" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
-  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;overflow-y:auto;padding:0;padding:24px;">
+<div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">🏁 Cel startowy</div>
     <div style="margin-bottom:12px;">
       <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Nazwa biegu</label>
@@ -1783,7 +1725,7 @@ input, select, textarea { font-size: 16px !important; }
 </div>
 
 <div class="modal-bg" id="modal-bg" onclick="closeMBg(event)">
-  <div class="modal modal-glass">
+  <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Zaloguj trening</div>
     <div class="modal-sub" id="modal-sub">Dziś</div>
@@ -3221,7 +3163,7 @@ async function initAuth() {
     // Poczekaj chwilę (OAuth callback lub email confirmation może być w toku)
     await new Promise(r => setTimeout(r, 1200));
     const { data: { session: s2 } } = await _sb.auth.getSession();
-    if (!s2) { window.location.href = 'login.html'; return; }
+    if (!s2) { window.location.href = 'index.html'; return; }
     // Kontynuuj z s2 jako sesją
     const user2 = s2.user;
     document.getElementById('menu-email').textContent = user2.email;
@@ -3268,6 +3210,7 @@ async function initAuth() {
   if (ath) {
     _athleteId = ath.id;
     window._athleteCoachId = ath.coach_id || null; // cache dla loadCoachMessage
+    document.body.classList.add('page-ready'); // pokaż UI od razu po auth
     const name = ath.full_name || nameFromMeta;
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
@@ -3787,17 +3730,25 @@ async function loadLogs() {
       const ll = document.getElementById('log-list');
       if (ll) ll.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
     }
-    // PERF: uruchom wszystko równolegle zamiast sekwencyjnie
-    const loadTasks = [
-      loadCoachMessage(),
+    // PERF: UI gotowy — pokaż stronę od razu
+    document.body.classList.add('page-ready');
+
+    // Pierwsze zadania — krytyczne dla UI (trening na dziś, tydzień)
+    Promise.all([
       loadTodayTraining(),
       loadWeekPlan(),
-      checkNewMessages(),
-      updateWeekProgress(),
-    ];
-    // PERF: checkNotifications równolegle z resztą
-    const allTasks = [...loadTasks, checkNotifications(), loadHomeSocialPreview()];
-    Promise.all(allTasks).catch(e => console.error('loadLogs parallel:', e));
+    ]).catch(e => console.error('loadLogs critical:', e));
+
+    // Odroczone (100ms) — cięższe, nie blokują pierwszego renderowania
+    setTimeout(function() {
+      Promise.all([
+        loadCoachMessage(),
+        checkNewMessages(),
+        updateWeekProgress(),
+        checkNotifications(),
+        loadHomeSocialPreview(),
+      ]).catch(e => console.error('loadLogs deferred:', e));
+    }, 100);
     if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
     // Realtime — nowe wiadomości od trenera od razu
     if (!window._realtimeChannel && _athleteId) {
@@ -4375,7 +4326,7 @@ async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
   sessionStorage.clear();
-  window.location.href = 'login.html';
+  _fadeNavigate('index.html', 300);
 }
 
 async function confirmDeleteAccount() {
@@ -4431,7 +4382,7 @@ async function executeDeleteAccount() {
     document.getElementById('delete-account-modal')?.remove();
     // Pokaż potwierdzenie i przekieruj
     document.body.innerHTML = '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07070a;color:#f0ede8;font-family:\'DM Sans\',sans-serif;gap:16px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;">Konto usunięte</div><div style="font-size:13px;color:#66636e;">Do zobaczenia na trasie 🏃</div></div>';
-    setTimeout(() => window.location.href = 'login.html', 3000);
+    setTimeout(() => window.location.href = 'index.html', 3000);
   } catch(e) {
     toast('Błąd: ' + e.message);
     if (btn) { btn.textContent = 'Usuń konto'; btn.disabled = false; }
@@ -6612,40 +6563,22 @@ if(_wsKm){
 
 
 
-// ── FULLSCREEN MODAL BACKGROUNDS ─────────────────────────────────
-const _MODAL_IMGS = 8; // number of images in /img folder (1..8)
-function _modalRandomBg(el) {
-  if (!el) return;
-  const n = Math.floor(Math.random() * _MODAL_IMGS) + 1;
-  el.style.backgroundImage = "url('/img/" + n + ".jpg')";
+// ── FADE-OUT NAVIGATION ──────────────────────────────────────────
+function _fadeNavigate(url, delay) {
+  delay = delay || 80;
+  document.body.style.transition = 'opacity 0.15s ease';
+  document.body.style.opacity = '0';
+  setTimeout(function() { window.location.href = url; }, delay);
 }
-// Patch: auto-apply bg whenever a modal becomes visible
-(function() {
-  const _origShow = Element.prototype._modalShow;
-  const _observer = new MutationObserver(mutations => {
-    mutations.forEach(m => {
-      if (m.type === 'attributes') {
-        const el = m.target;
-        const isModal = el.id && el.id.includes('modal');
-        if (!isModal) return;
-        const visible = el.style.display !== 'none' &&
-                        !el.hasAttribute('hidden') &&
-                        (el.classList.contains('open') || el.style.display === 'flex' || el.style.display === 'block');
-        if (visible && !el.dataset.bgSet) {
-          _modalRandomBg(el);
-          el.dataset.bgSet = '1';
-          // Reset on next open
-          setTimeout(() => { delete el.dataset.bgSet; }, 100);
-        }
-      }
-    });
-  });
-  document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[id*="modal"]').forEach(el => {
-      _observer.observe(el, { attributes: true, attributeFilter: ['style','class','hidden'] });
-    });
-  });
-})();
+// Fade in immediately so page isn't invisible if auth is fast
+document.addEventListener('DOMContentLoaded', function() {
+  // Small delay to allow CSS to parse, then show
+  setTimeout(function() {
+    if (!document.body.classList.contains('page-ready')) {
+      document.body.classList.add('page-ready');
+    }
+  }, 50);
+});
 </script>
 
 </body>
