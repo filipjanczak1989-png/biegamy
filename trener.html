@@ -133,9 +133,9 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 @keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
 #add-ath-modal{display:none;}
 .ath-modal-show{display:flex!important;}
-#template-modal{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9998;display:none;align-items:center;justify-content:center;padding:20px;}
+#template-modal{position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:9998;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;}
 #template-modal.show{display:flex;}
-.tpl-box{background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;padding:24px;}
+.tpl-box{background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;padding:24px;}
 .tpl-title{font-family:'Bebas Neue',sans-serif;font-size:26px;margin-bottom:4px;}
 .tpl-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
 .tpl-day{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
@@ -245,6 +245,68 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
 .pchat-send{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;box-shadow:0 2px 8px rgba(212,80,26,0.4);}
 .pchat-send:hover{transform:scale(1.08);box-shadow:0 4px 14px rgba(212,80,26,0.5);}
+
+/* ══ FULLSCREEN MODAL SYSTEM ══════════════════════════════════════ */
+.modal-fs-overlay,
+.modal-bg,
+[id*="modal"][style*="position:fixed"],
+[id*="modal"][style*="position: fixed"] {
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+/* Inner content glassmorphism wrapper */
+.modal-glass {
+  background: rgba(10, 9, 18, 0.72) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 20px !important;
+  max-width: 500px !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+}
+
+/* modal-bg class override → fullscreen */
+.modal-bg {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0,0,0,0.85) !important;
+  z-index: 9999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+  box-sizing: border-box !important;
+}
+.modal-bg.open {
+  opacity: 1 !important;
+  pointer-events: all !important;
+}
+
+/* .modal inner content inside modal-bg */
+.modal-bg .modal {
+  background: rgba(10, 9, 18, 0.72) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: 20px !important;
+  max-width: 500px !important;
+  width: 100% !important;
+  max-height: 92vh !important;
+  overflow-y: auto !important;
+  transform: translateY(0) !important;
+  margin: 0 auto !important;
+}
+/* ════════════════════════════════════════════════════════════════ */
 </style>
 </head>
 <body>
@@ -257,7 +319,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="topbar-right">
     <div class="notif-btn" id="notif-btn" onclick="openCoachNotifications()" style="cursor:pointer;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" id="notif-icon"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><div class="ndot" id="notif-dot" style="display:none;"></div></div>
     <div class="topbar-av" onclick="toggleMenu()" id="av-btn">F</div>
-<div id="av-menu" style="display:none;position:absolute;top:48px;right:0;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px;z-index:9999;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
+<div id="av-menu" style="display:none;position:fixed;top:58px;right:16px;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px;z-index:10000;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
   <div style="padding:8px 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);margin-bottom:6px;" id="menu-email">...</div>
   <a href="zawodnik.html?from=trener" style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--fg);cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-decoration:none;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='transparent'">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -981,7 +1043,7 @@ async function loadAthletes() {
 async function renderDbAthletes(list) {
   // Sprawdź nowe logi i ostrzeżenia dla każdego zawodnika
   const now = new Date();
-  const twoDaysAgo = new Date(now); twoDaysAgo.setDate(now.getDate() - 3);
+  const twoDaysAgo = new Date(now); twoDaysAgo.setDate(now.getDate() - 2);
   const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
   const todayStr = now.toISOString().split('T')[0];
 
@@ -1025,7 +1087,7 @@ async function renderDbAthletes(list) {
     const sid = String(a.id);
     const sname = name.replace(/'/g,"&#39;");
     return `
-    <div class="ath-card fi" data-ath-id="${sid}" onclick="selA_db('${sid}')" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
+    <div class="ath-card fi" onclick="selA_db('${sid}')" data-athlete-id="${sid}" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
       <div class="ath-stripe" style="background:var(--accent)"></div>
       <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${initials}</div>
       <div class="ath-info">
@@ -1034,9 +1096,9 @@ async function renderDbAthletes(list) {
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         ${a.hasMissed
-          ? `<div data-ath-badge style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;" title="Brak logu 3+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
+          ? `<div style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
           : a.newLogs > 0
-            ? `<div data-ath-badge style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🆕 ${a.newLogs} log</div>`
+            ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🆕 ${a.newLogs} log</div>`
             : '<div class="ath-dot off"></div>'}
         <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
@@ -1097,23 +1159,25 @@ async function selA_db(athleteId) {
   window._selectedAthleteId = athleteId;
   await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
 
-  // Skasuj badge i odśwież kartę zawodnika na liście
+  // Skasuj flagę "brak logu" i odśwież kartę zawodnika na liście
   const athIdx = _dbAthletes.findIndex(x => x.id === athleteId);
   if (athIdx !== -1) {
     _dbAthletes[athIdx] = { ..._dbAthletes[athIdx], newLogs: 0, hasMissed: false };
-    // Znajdź kartę po data-ath-id — niezawodne
-    const card = document.querySelector(`.ath-card[data-ath-id="${athleteId}"]`);
-    if (card) {
-      const badge = card.querySelector('[data-ath-badge]');
-      if (badge) badge.remove();
-      // Upewnij się że ath-right ma tylko offline-dot + delete button
-      const athRight = card.querySelector('.ath-right');
-      if (athRight) {
-        const deleteBtn = athRight.querySelector('button');
-        athRight.innerHTML = '<div class="ath-dot off"></div>';
-        if (deleteBtn) athRight.appendChild(deleteBtn);
+    // Odśwież tylko tę kartę bez pełnego przeładowania listy
+    const cards = document.querySelectorAll('.ath-card');
+    cards.forEach(card => {
+      if (card.getAttribute('data-athlete-id') === String(athleteId) ||
+          card.getAttribute('onclick')?.includes(athleteId)) {
+        // Znajdź i zamień ath-right content
+        const athRight = card.querySelector('.ath-right') ||
+                         card.querySelector('[style*="flex-direction:column"]');
+        if (athRight) {
+          const deleteBtn = athRight.querySelector('button');
+          athRight.innerHTML = '<div class="ath-dot off"></div>';
+          if (deleteBtn) athRight.appendChild(deleteBtn);
+        }
       }
-    }
+    });
   }
 
   await loadAthleteTrainings(athleteId);
@@ -1333,7 +1397,16 @@ async function logout() {
 
 function toggleMenu() {
   const m = document.getElementById('av-menu');
-  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if (!m) return;
+  const isOpen = m.style.display !== 'none';
+  if (isOpen) { m.style.display = 'none'; return; }
+  // Zamknij panel zawodnika jeśli otwarty — żeby menu było w pełni klikalne
+  const panel = document.getElementById('panel');
+  if (panel && panel.classList.contains('open')) {
+    panel.classList.remove('open');
+    window._selectedAthleteId = null;
+  }
+  m.style.display = 'block';
 }
 
 document.addEventListener('click', e => {
@@ -2982,6 +3055,41 @@ const _tabParam = new URLSearchParams(window.location.search).get('tab');
 if (_tabParam) {
   setTimeout(() => showCoachSection(_tabParam), 900);
 }
+
+// ── FULLSCREEN MODAL BACKGROUNDS ─────────────────────────────────
+const _MODAL_IMGS = 8; // number of images in /img folder (1..8)
+function _modalRandomBg(el) {
+  if (!el) return;
+  const n = Math.floor(Math.random() * _MODAL_IMGS) + 1;
+  el.style.backgroundImage = "url('/img/" + n + ".jpg')";
+}
+// Patch: auto-apply bg whenever a modal becomes visible
+(function() {
+  const _origShow = Element.prototype._modalShow;
+  const _observer = new MutationObserver(mutations => {
+    mutations.forEach(m => {
+      if (m.type === 'attributes') {
+        const el = m.target;
+        const isModal = el.id && el.id.includes('modal');
+        if (!isModal) return;
+        const visible = el.style.display !== 'none' &&
+                        !el.hasAttribute('hidden') &&
+                        (el.classList.contains('open') || el.style.display === 'flex' || el.style.display === 'block');
+        if (visible && !el.dataset.bgSet) {
+          _modalRandomBg(el);
+          el.dataset.bgSet = '1';
+          // Reset on next open
+          setTimeout(() => { delete el.dataset.bgSet; }, 100);
+        }
+      }
+    });
+  });
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[id*="modal"]').forEach(el => {
+      _observer.observe(el, { attributes: true, attributeFilter: ['style','class','hidden'] });
+    });
+  });
+})();
 </script>
 
 <!-- SEKCJA WIADOMOŚCI TRENERA -->
@@ -3111,8 +3219,8 @@ if (_tabParam) {
 </div>
 
 <!-- MODAL STATYSTYK ZAWODNIKA -->
-<div id="athlete-stats-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAthleteStatsModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:32px;transform:translateY(20px);transition:transform 0.25s;" id="athlete-stats-modal-inner">
+<div id="athlete-stats-modal" onclick="if(event.target===this)closeAthleteStatsModal()" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:500;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;max-height:92vh;overflow-y:auto;padding:0;padding:0;" id="athlete-stats-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);">
       <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;" id="asm-avatar">MK</div>
@@ -3148,8 +3256,8 @@ if (_tabParam) {
 </div>
 
 <!-- ADD ATHLETE MODAL -->
-<div id="add-ath-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;" hidden>
-  <div style="background:#16161a;border:1px solid #2a2a32;border-radius:16px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+<div id="add-ath-modal" hidden style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:0;padding:0;">
     <div style="padding:18px 20px;border-bottom:1px solid #2a2a32;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;">Nowy zawodnik</div>
       <button onclick="closeAthModal()" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:20px;">✕</button>
@@ -3296,8 +3404,8 @@ if (_tabParam) {
 </div>
 
 <!-- COACH GIF MODAL -->
-<div id="coach-gif-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeCoachGifModal()">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;width:380px;max-width:94vw;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;">
+<div id="coach-gif-modal" onclick="if(event.target===this)closeCoachGifModal()" style="position:fixed;top:0;left:0;width:100vw;height:100vh;background-color:rgba(0,0,0,0.85);background-size:cover;background-position:center;z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;box-sizing:border-box;">
+  <div style="background:rgba(10,9,18,0.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.10);border-radius:20px;max-width:500px;width:100%;max-height:80vh;overflow:hidden;padding:0;padding:0;">
     <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
       <input type="text" placeholder="Szukaj GIFa (np. great job, running...)" 
         style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 12px;border-radius:8px;outline:none;"
