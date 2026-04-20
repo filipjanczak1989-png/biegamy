@@ -1026,6 +1026,26 @@ body > *{position:relative;z-index:1;}
   border-top:1px solid rgba(255,255,255,0.05);
   padding:8px 10px;gap:2px;
 }
+.react-btn {
+  display:flex;align-items:center;gap:4px;
+  background:transparent;border:1px solid transparent;
+  border-radius:20px;padding:6px 10px;
+  font-size:13px;cursor:pointer;
+  transition:transform 0.15s ease,opacity 0.15s ease var(--ease-spring);
+  color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;
+}
+.react-btn:active{transform:scale(0.9);}
+.react-btn.on{
+  background:rgba(232,86,30,0.12);
+  border-color:rgba(232,86,30,0.3);
+  color:var(--accent);
+}
+.react-btn.on .react-emoji{animation:reactPop 0.35s var(--ease-spring);}
+@keyframes reactPop{
+  0%{transform:scale(1);}
+  50%{transform:scale(1.5);}
+  100%{transform:scale(1);}
+}
 .react-count{font-size:11px;font-family:'DM Mono',monospace;}
 .react-comment-btn{
   margin-left:auto;background:none;border:none;
@@ -3706,15 +3726,14 @@ async function loadLogs() {
       if (ll) ll.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
     }
     // PERF: uruchom wszystko równolegle zamiast sekwencyjnie
+    // FIX: updateWeekProgress wywołana oddzielnie — bez dublowania
     const loadTasks = [
       loadCoachMessage(),
       loadTodayTraining(),
       loadWeekPlan(),
       checkNewMessages(),
-      updateWeekProgress(),
     ];
-    // PERF: checkNotifications równolegle z resztą
-    const allTasks = [...loadTasks, checkNotifications(), loadHomeSocialPreview()];
+    const allTasks = [...loadTasks, checkNotifications(), loadHomeSocialPreview(), updateWeekProgress()];
     Promise.all(allTasks).catch(e => console.error('loadLogs parallel:', e));
     if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
     // Realtime — nowe wiadomości od trenera od razu
@@ -3764,13 +3783,16 @@ async function updateWeekProgress() {
   ]);
 
   const planned = (trainingsThisWeek||[]).filter(t => t.type !== 'Odpoczynek').length;
-  // Zawodnik zaliczył trening jeśli status=done LUB wpisał log
   const doneByStatus = (trainingsThisWeek||[]).filter(t => t.status === 'done').length;
   const logsCount = (logsThisWeek||[]).length;
-  const done = Math.max(doneByStatus, Math.min(logsCount, planned));
+  // FIX: done nigdy nie może przekroczyć planned (brak ujemnych wartości)
+  const done = planned > 0
+    ? Math.min(planned, Math.max(doneByStatus, Math.min(logsCount, planned)))
+    : Math.min(logsCount, 7); // brak planu — pokaż logi (max 7/tydzień)
   const totalKm = (logsThisWeek||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
   const plannedKm = (trainingsThisWeek||[]).reduce((s,t) => s + (parseFloat(t.distance_km)||0), 0);
 
+  // FIX: pct zawsze 0-100, bez migania
   const pct = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : 0;
   const circumference = 138.2;
   const offset = circumference - (circumference * pct / 100);
@@ -3781,11 +3803,12 @@ async function updateWeekProgress() {
   const kmEl = document.getElementById('ws-km');
   const kmLblEl = document.getElementById('ws-km-lbl');
 
-  // Animowane liczniki i ring
+  // FIX: ustaw wartości natychmiast (bez animacji countUp która nakłada się)
+  // Animuj tylko ring — reszta statycznie
   if (arc) Anim.ringArc(arc, offset);
-  if (pctEl) Anim.countUp(pctEl, pct, 800, '%');
-  if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
-  if (kmEl) Anim.countUp(kmEl, totalKm, 900);
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (daysEl) daysEl.textContent = done + ' z ' + (planned||'?') + ' zaplanowanych dni';
+  if (kmEl) kmEl.textContent = totalKm > 0 ? totalKm.toFixed(1) : '0';
   if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + plannedKm.toFixed(0) + ' km' : 'km ten tydzień';
   } catch(e) {
     console.error('updateWeekProgress error:', e);
@@ -3993,6 +4016,23 @@ function editLog(idx) {
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
 let _savingLog = false;
+
+// ── LEKKIE ODŚWIEŻENIE LISTY LOGÓW (bez pełnego loadLogs) ────────
+async function _refreshLogListOnly() {
+  if (!_athleteId) return;
+  try {
+    const { data } = await _sb
+      .from('training_logs')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .order('logged_at', { ascending: false })
+      .limit(10);
+    if (data && data.length > 0) {
+      window._logsData = data;
+      renderLogsDb(data);
+    }
+  } catch(e) { /* silent */ }
+}
 async function saveLog() {
   if (_savingLog) return;
 
@@ -4067,12 +4107,8 @@ async function saveLog() {
     // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
     const updateData = {...logData};
     if (attachmentUrl) updateData.attachment_url = attachmentUrl;
-    const _adminOvr = window._adminEditOverride === _editingLogId;
-    if (_adminOvr) window._adminEditOverride = null;
-    const _updQ = _adminOvr
-      ? _sb.from('training_logs').update(updateData).eq('id', _editingLogId)
-      : _sb.from('training_logs').update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId);
-    const { data: updData, error: updErr } = await _updQ.select('id');
+    const { data: updData, error: updErr } = await _sb.from('training_logs')
+      .update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId).select('id');
     error = updErr;
     if (!updErr && (!updData || updData.length === 0)) {
       error = { message: 'Brak uprawnień do edycji — sprawdź polityki RLS w Supabase' };
@@ -4121,12 +4157,19 @@ async function saveLog() {
   _logType = 'Spokojny';
   _logDate = null;
 
-  // Odśwież listę logów i progress w tle
-  loadLogs();
+  // Unieważnij cache treningu dla tej daty
+  if (logDate && window._trainingCache) delete window._trainingCache[logDate];
+
+  // FIX: nie wywołuj loadLogs() — ciężkie (10 zapytań + DOM rebuild)
+  // Zamiast tego: zaktualizuj tylko listę logów i progress
   updateWeekProgress();
 
-  // Unieważnij cache treningu dla tej daty (status zmienił się na done)
-  if (logDate && window._trainingCache) delete window._trainingCache[logDate];
+  // Odśwież tylko listę logów (1 zapytanie, nie loadLogs)
+  _refreshLogListOnly();
+
+  // Plan dnia — tylko jeśli dziś
+  const _isToday = logDate === new Date().toISOString().split('T')[0];
+  if (_isToday) setTimeout(loadTodayTraining, 300);
   } catch(saveErr) {
     console.error('saveLog:', saveErr);
     toast('Błąd: ' + saveErr.message);
@@ -4520,16 +4563,8 @@ async function loadSocialFeed(compact) {
     const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(' + JSON.stringify(athId) + ')"');
     const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
     const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
-    const _canEdit = !compact && (isOwn || window._isAdmin);
-    const _adminOther = !compact && !isOwn && window._isAdmin;
-    const editBtns = _canEdit
-      ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'
-        +(_adminOther
-          ? '<button onclick="event.stopPropagation();event.preventDefault();adminEditPost(\''+l.id+'\')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.3);color:var(--accent);cursor:pointer;padding:5px 10px;border-radius:8px;font-size:10px;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;">EDYTUJ</button>'
-          : '<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>')
-        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'
-        +'</div>'
-      : '';
+    const editBtns = (isOwn&&!compact)
+      ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'        +'<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'        +'</div>' : '';
     let screensHtml = '';
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
@@ -4537,10 +4572,12 @@ async function loadSocialFeed(compact) {
         +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
     }
     const reactBar = compact ? '' : (
-      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;padding-left:6px;">'
-      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> <span id="cc-'+l.id+'">0</span></button>'
+      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
+      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'fire\')" id="react-fire-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#f06030;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span id="rc-fire-'+l.id+'" style="font-size:11px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'clap\')" id="react-clap-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#e8b840;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> <span id="rc-clap-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-
     // Type-based card gradient
     const typeGradients = {
       'Spokojny':    {accent:'#5090e0', tint:'rgba(80,144,214,0.07)', border:'rgba(80,144,214,0.2)'},
@@ -4561,11 +4598,24 @@ async function loadSocialFeed(compact) {
   }
   const rendered = logs.map(buildCard).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
-  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
+  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
 }
 
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
 
+const _myReactions = {};
+
+async function loadReactionCounts(logIds) {
+  if (!logIds||!logIds.length) return;
+  try {
+    const {data} = await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
+    if (!data) return;
+    const counts={};
+    data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;if(r.athlete_id===_athleteId){if(!_myReactions[r.log_id])_myReactions[r.log_id]=new Set();_myReactions[r.log_id].add(r.reaction_type);}});
+    Object.keys(counts).forEach(function(k){const i=k.lastIndexOf('_');const lid=k.slice(0,i);const tp=k.slice(i+1);const el=document.getElementById('rc-'+tp+'-'+lid);if(el)el.textContent=counts[k];});
+    Object.keys(_myReactions).forEach(function(lid){_myReactions[lid].forEach(function(tp){const btn=document.getElementById('react-'+tp+'-'+lid);if(btn)btn.style.background='rgba(255,255,255,0.08)';});});
+  } catch(e){console.warn('log_reactions:',e.message);}
+}
 
 async function loadCommentCounts(logIds) {
   if (!logIds||!logIds.length) return;
@@ -4577,6 +4627,30 @@ async function loadCommentCounts(logIds) {
   } catch(e){console.warn('log_comments:',e.message);}
 }
 
+async function toggleReact(logId, type) {
+  if (!_athleteId) return;
+  if (!_myReactions[logId]) _myReactions[logId]=new Set();
+  const already=_myReactions[logId].has(type);
+  const btn=document.getElementById('react-'+type+'-'+logId);
+  const countEl=document.getElementById('rc-'+type+'-'+logId);
+  const cur=parseInt((countEl&&countEl.textContent)||'0');
+  try {
+    if (already) {
+      await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
+      _myReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);
+    } else {
+      await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
+      _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
+    }
+  } catch(e){
+    if(e.message && e.message.includes('does not exist')) {
+      toast('Brak tabeli log_reactions — patrz SQL w konsoli');
+      console.error('SQL needed: CREATE TABLE log_reactions (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, log_id uuid NOT NULL REFERENCES training_logs(id) ON DELETE CASCADE, athlete_id uuid NOT NULL REFERENCES athletes(id) ON DELETE CASCADE, reaction_type text NOT NULL, created_at timestamptz DEFAULT now(), UNIQUE(log_id, athlete_id, reaction_type));');
+    } else {
+      toast('Błąd reakcji: '+e.message);
+    }
+  }
+}
 
 async function openComments(logId) {
   document.getElementById('comments-modal')?.remove();
@@ -6285,21 +6359,7 @@ function animateCountUp(el, target, suffix, decimals=0, duration=900){
 }
 
 // Hook into ring/km updates — intercept existing setRingProgress
-const _origSetRing = window.setRingProgress;
-window.setRingProgress = function(pct){
-  if(_origSetRing) _origSetRing(pct);
-  // Animate ring fill
-  const arc = document.getElementById('ring-arc');
-  const pctEl = document.getElementById('ring-pct');
-  if(arc){
-    const circumference = 138.2;
-    const offset = circumference * (1 - Math.min(pct, 1));
-    setTimeout(() => { arc.style.strokeDashoffset = offset; }, 200);
-  }
-  if(pctEl && !isNaN(pct)){
-    setTimeout(() => animateCountUp(pctEl, Math.round(pct * 100), '%'), 300);
-  }
-};
+// setRingProgress intercept usunięty — updateWeekProgress obsługuje ring bezpośrednio
 
 // ── 4. CONFETTI AFTER LOG ─────────────────────────────────────────────
 const _confettiCanvas = document.getElementById('confetti-canvas');
@@ -6502,40 +6562,6 @@ if(_wsKm){
 })();
 
 
-
-// ── ADMIN ────────────────────────────────────────────────────────
-async function adminEditPost(logId) {
-  if (!window._isAdmin) return;
-  const { data: l } = await _sb.from('training_logs').select('*').eq('id', logId).maybeSingle();
-  if (!l) { toast('Brak logu'); return; }
-  if (!window._logsData) window._logsData = [];
-  const idx = window._logsData.findIndex(x => x.id === logId);
-  if (idx !== -1) { editLog(idx); } else { window._logsData.unshift(l); editLog(0); }
-  window._adminEditOverride = logId;
-}
-
-const _origDeleteFeedLog = window.deleteFeedLog;
-async function deleteFeedLog(logId) {
-  if (!window._isAdmin) {
-    if (typeof _origDeleteFeedLog === 'function') return _origDeleteFeedLog(logId);
-  }
-  if (!confirm('Usunąć ten post?')) return;
-  try {
-    const { data: { session } } = await _sb.auth.getSession();
-    if (!session) { toast('Błąd sesji'); return; }
-    const res = await fetch('https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/admin-delete-log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session.access_token },
-      body: JSON.stringify({ logId }),
-    });
-    const result = await res.json();
-    if (!res.ok || !result.success) { toast('Błąd: ' + (result.error || res.status)); return; }
-    if (window._logsData) window._logsData = window._logsData.filter(l => l.id !== logId);
-    toast('Post usunięty ✓');
-    loadSocialFeed(false);
-  } catch(e) { toast('Błąd: ' + e.message); }
-}
-// ─────────────────────────────────────────────────────────────────
 </script>
 
 </body>
