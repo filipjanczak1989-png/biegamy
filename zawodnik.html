@@ -2877,12 +2877,21 @@ function _prefillFromTraining(t) {
 }
 
 // Pobierz z bazy trening dla daty i uzupełnij formularz
+// Cache treningów — żeby nie odpytywać bazy przy każdym shiftLogDate
+const _trainingCache = {};
+
 async function _fetchAndPrefillForDate(date) {
   if (!_athleteId || !date) return;
   try {
-    const { data } = await _sb.from('trainings')
-      .select('*').eq('athlete_id', _athleteId).eq('date', date)
-      .neq('type', 'Odpoczynek').limit(1).maybeSingle();
+    // Użyj cache jeśli mamy
+    let data = _trainingCache[date];
+    if (data === undefined) {
+      const res = await _sb.from('trainings')
+        .select('*').eq('athlete_id', _athleteId).eq('date', date)
+        .neq('type', 'Odpoczynek').limit(1).maybeSingle();
+      data = res.data || null;
+      _trainingCache[date] = data; // null = brak treningu (też cache'ujemy)
+    }
     if (data) {
       _prefillFromTraining(data);
       const dist = data.distance_km ? data.distance_km + ' km · ' : '';
@@ -2890,6 +2899,12 @@ async function _fetchAndPrefillForDate(date) {
       if (modalSub) {
         const dateStr = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
         modalSub.textContent = dateStr + ' · plan: ' + dist + (data.type || '');
+      }
+    } else {
+      // Brak planu — tylko data
+      const modalSub = document.getElementById('modal-sub');
+      if (modalSub) {
+        modalSub.textContent = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
       }
     }
   } catch(e) {}
@@ -2926,8 +2941,9 @@ async function openModal() {
   const now = new Date();
   const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
   _setModalDate(today);
+  // PERF: otwórz modal natychmiast — fetch w tle (modal nie czeka)
   document.getElementById('modal-bg').classList.add('open');
-  await _fetchAndPrefillForDate(today);
+  _fetchAndPrefillForDate(today); // bez await — nie blokuje UI
 }
 
 function closeModal() {
@@ -2938,8 +2954,9 @@ async function openModalForDate(date, e) {
   if (e) e.stopPropagation();
   _resetModalForm();
   _setModalDate(date);
+  // PERF: otwórz modal natychmiast — dane dopełnią się z cache lub background fetch
   document.getElementById('modal-bg').classList.add('open');
-  await _fetchAndPrefillForDate(date);
+  _fetchAndPrefillForDate(date); // bez await
 }
 
 function _updateLogDateDisplay() {
@@ -2968,25 +2985,26 @@ function selFeel(el, val) {
 }
 
 // Przesunięcie daty logu o ±1 dzień
-async function shiftLogDate(delta) {
+function shiftLogDate(delta) {
   const base = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
   base.setDate(base.getDate() + delta);
   const newDate = base.getFullYear() + '-' +
     String(base.getMonth() + 1).padStart(2, '0') + '-' +
     String(base.getDate()).padStart(2, '0');
-  // Wyczyść formularz z danych planu (zachowaj to co wpisał zawodnik)
+  // PERF: zapisz wartości wpisane przez użytkownika
   const distVal = document.getElementById('l-dist')?.value;
   const timeVal = document.getElementById('l-time')?.value;
   const paceVal = document.getElementById('l-pace')?.value;
   const hrVal = document.getElementById('l-hr')?.value;
   _setModalDate(newDate);
-  // Pobierz plan z kalendarza dla nowej daty
-  await _fetchAndPrefillForDate(newDate);
-  // Przywróć to co użytkownik już wpisał (ma priorytet nad planem)
-  if (distVal) { const el = document.getElementById('l-dist'); if(el) el.value = distVal; }
-  if (timeVal) { const el = document.getElementById('l-time'); if(el) el.value = timeVal; }
-  if (paceVal) { const el = document.getElementById('l-pace'); if(el) el.value = paceVal; }
-  if (hrVal) { const el = document.getElementById('l-hr'); if(el) el.value = hrVal; }
+  // Fetch w tle (z cache jeśli był) — nie czekaj
+  _fetchAndPrefillForDate(newDate).then(() => {
+    // Przywróć to co użytkownik wpisał (priorytet nad planem)
+    if (distVal) { const el = document.getElementById('l-dist'); if(el) el.value = distVal; }
+    if (timeVal) { const el = document.getElementById('l-time'); if(el) el.value = timeVal; }
+    if (paceVal) { const el = document.getElementById('l-pace'); if(el) el.value = paceVal; }
+    if (hrVal) { const el = document.getElementById('l-hr'); if(el) el.value = hrVal; }
+  });
 }
 
 // Dodaj wiersz interwału
@@ -3033,7 +3051,7 @@ async function markDone(btn) {
   btn.style.color = 'var(--green)';
   btn.style.borderColor = 'rgba(61,184,112,0.3)';
   toast('Trening zaliczony ✓');
-  await updateWeekProgress();
+  updateWeekProgress(); // w tle
 }
 
 // Rozwiń/zwiń szczegóły dnia w planie tygodnia
@@ -3580,6 +3598,7 @@ async function saveCoachChange() {
 // ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
 async function loadWeekPlan() {
   if (!_athleteId) return;
+  // PERF: ustaw strip natychmiast ze szkieletem (pokazuje się bez opóźnienia)
 
   const now = new Date();
   // Użyj lokalnej daty żeby uniknąć UTC offset
@@ -3602,6 +3621,14 @@ async function loadWeekPlan() {
 
   // Filtruj lokalnie — pokaż od dzisiaj (w razie gdyby wczorajszy był zaciągnięty)
   const data = (rawData || []).filter(t => t.date >= todayStr);
+
+  // PERF: wypełnij cache modalowy — modal otworzy się bez fetcha
+  if (rawData) {
+    rawData.forEach(t => {
+      if (t.type !== 'Odpoczynek') _trainingCache[t.date] = t;
+      else if (!_trainingCache[t.date]) _trainingCache[t.date] = null;
+    });
+  }
 
   if (error || !data || data.length === 0) {
     document.getElementById('week-strip').innerHTML = 
@@ -3689,14 +3716,18 @@ async function loadLogs() {
       const ll = document.getElementById('log-list');
       if (ll) ll.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
     }
-    await loadCoachMessage();
-    await loadTodayTraining();
-    await loadWeekPlan();
-    await checkNewMessages();
+    // PERF: uruchom wszystko równolegle zamiast sekwencyjnie
+    const loadTasks = [
+      loadCoachMessage(),
+      loadTodayTraining(),
+      loadWeekPlan(),
+      checkNewMessages(),
+      updateWeekProgress(),
+    ];
+    Promise.all(loadTasks).catch(e => console.error('loadLogs parallel:', e));
     checkNotifications();
-    if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
-    // Load social preview on homepage
     loadHomeSocialPreview();
+    if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
     // Realtime — nowe wiadomości od trenera od razu
     if (!window._realtimeChannel && _athleteId) {
       window._realtimeChannel = _sb.channel('messages-' + _athleteId)
@@ -3707,7 +3738,6 @@ async function loadLogs() {
           })
         .subscribe();
     }
-    await updateWeekProgress();
   } catch(e) {
     console.error('loadLogs exception:', e);
   } finally {
@@ -3736,15 +3766,13 @@ async function updateWeekProgress() {
   // BUGFIX: użyj lokalnych dat dla training_logs (logged_at jest ISO timestamp, więc OK)
   // ale dla trainings.date (YYYY-MM-DD) użyj lokalnych dat
   const localStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const { data: trainingsThisWeek } = await _sb.from('trainings')
-    .select('*').eq('athlete_id', _athleteId)
-    .gte('date', localStr(weekStart))
-    .lte('date', localStr(weekEnd));
-
-  const { data: logsThisWeek } = await _sb.from('training_logs')
-    .select('distance_km').eq('athlete_id', _athleteId)
-    .gte('logged_at', weekStart.toISOString())
-    .lte('logged_at', weekEnd.toISOString());
+  // PERF: dwie queries równolegle
+  const [{ data: trainingsThisWeek }, { data: logsThisWeek }] = await Promise.all([
+    _sb.from('trainings').select('*').eq('athlete_id', _athleteId)
+       .gte('date', localStr(weekStart)).lte('date', localStr(weekEnd)),
+    _sb.from('training_logs').select('distance_km').eq('athlete_id', _athleteId)
+       .gte('logged_at', weekStart.toISOString()).lte('logged_at', weekEnd.toISOString())
+  ]);
 
   const planned = (trainingsThisWeek||[]).filter(t => t.type !== 'Odpoczynek').length;
   // Zawodnik zaliczył trening jeśli status=done LUB wpisał log
@@ -3924,9 +3952,13 @@ async function deleteLog(logId) {
     console.error('RLS blocked delete: logId', logId, 'athleteId', _athleteId);
     return;
   }
-  if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
+  if (window._logsData) {
+    window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
+    // PERF: optimistic update — renderuj od razu z cache, loadLogs w tle
+    renderLogsDb(window._logsData);
+  }
   toast('Log usunięty ✓');
-  await loadLogs();
+  loadLogs(); // w tle, bez await
   const feedEl = document.getElementById('social-feed-content');
   if (feedEl && feedEl.style.display !== 'none') loadSocialFeed(false);
 }
@@ -4079,23 +4111,23 @@ async function saveLog() {
   btn.disabled = false;
   _savingLog = false;
 
-  await loadLogs();
+  // PERF: zamknij modal i pokaż toast natychmiast — loadLogs w tle
+  const wasEditing = !!_editingLogId;
   closeModal();
-  toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
+  toast(wasEditing ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
 
   // Reset formularza
   _editingLogId = null;
-  document.querySelector('#modal-bg .modal-title').textContent = 'Zaloguj trening';
-  document.getElementById('save-btn').textContent = 'Zapisz log →';
-  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
-  document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
-  document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';
-  document.getElementById('upload-area').style.borderColor = 'var(--border)';
-  const lFile = document.getElementById('l-file'); if(lFile) lFile.value = '';
   feel = '';
   _logType = 'Spokojny';
   _logDate = null;
+
+  // Odśwież listę logów i progress w tle
+  loadLogs();
+  updateWeekProgress();
+
+  // Unieważnij cache treningu dla tej daty (status zmienił się na done)
+  if (logDate && window._trainingCache) delete window._trainingCache[logDate];
   } catch(saveErr) {
     console.error('saveLog:', saveErr);
     toast('Błąd: ' + saveErr.message);
