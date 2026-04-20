@@ -1731,6 +1731,8 @@ input, select, textarea { font-size: 16px !important; }
           <button class="type-pill" onclick="selType(this,'Wybieganie')">🛤️ Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja')">💚 Regeneracja</button>
           <button class="type-pill" onclick="selType(this,'Wzmacniający')">💪 Wzmacniający</button>
+          <button class="type-pill" onclick="selType(this,'Zastępczy')">🔄 Zastępczy</button>
+          <button class="type-pill" onclick="selType(this,'Start')">🏆 Start</button>
         </div>
       </div>
 
@@ -2839,16 +2841,70 @@ let _logType = 'Spokojny';
 let feel = '';
 
 // ── MODAL LOGOWANIA — OTWIERANIE / ZAMYKANIE ─────────────────────
-function openModal() {
-  // Reset do stanu "nowy log"
+
+// Ustaw datę w modalu i wyświetl ją w UI
+function _setModalDate(date) {
+  _logDate = date;
+  const display = document.getElementById('l-date-display');
+  if (display && date) {
+    const d = new Date(date + 'T12:00:00');
+    display.textContent = d.toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
+  }
+  const modalSub = document.getElementById('modal-sub');
+  if (modalSub && date) {
+    modalSub.textContent = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+}
+
+// Wypełnij formularz danymi z zaplanowanego treningu
+function _prefillFromTraining(t) {
+  if (!t) return;
+  const typeMap = {
+    'Spokojny':'\uD83C\uDFC3 Spokojny','Bieg spokojny':'\uD83C\uDFC3 Spokojny',
+    'Interwały':'\u26A1 Interwały','Tempo':'\uD83D\uDD25 Tempo',
+    'Wybieganie':'\uD83D\uDEE4\uFE0F Wybieganie','Regeneracja':'\uD83D\uDC9A Regeneracja',
+    'Wzmacniający':'\uD83D\uDCAA Wzmacniający','Zastępczy':'\uD83D\uDD04 Zastępczy',
+    'Start':'\uD83C\uDFC6 Start'
+  };
+  _logType = t.type || 'Spokojny';
+  document.querySelectorAll('.type-pill').forEach(p => {
+    p.classList.toggle('on', p.textContent.trim().includes(_logType));
+  });
+  if (t.distance_km) { const el = document.getElementById('l-dist'); if(el) el.value = t.distance_km; }
+  if (t.pace) { const el = document.getElementById('l-pace'); if(el) el.value = t.pace; }
+  if (t.heart_rate) { const el = document.getElementById('l-hr'); if(el) el.value = t.heart_rate; }
+  if (t.description) { const el = document.getElementById('l-comment'); if(el) el.placeholder = t.description; }
+}
+
+// Pobierz z bazy trening dla daty i uzupełnij formularz
+async function _fetchAndPrefillForDate(date) {
+  if (!_athleteId || !date) return;
+  try {
+    const { data } = await _sb.from('trainings')
+      .select('*').eq('athlete_id', _athleteId).eq('date', date)
+      .neq('type', 'Odpoczynek').limit(1).maybeSingle();
+    if (data) {
+      _prefillFromTraining(data);
+      const dist = data.distance_km ? data.distance_km + ' km · ' : '';
+      const modalSub = document.getElementById('modal-sub');
+      if (modalSub) {
+        const dateStr = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+        modalSub.textContent = dateStr + ' · plan: ' + dist + (data.type || '');
+      }
+    }
+  } catch(e) {}
+}
+
+// Reset formularza do stanu pustego
+function _resetModalForm() {
   _editingLogId = null;
-  _logDate = null;
   _logType = 'Spokojny';
   feel = '';
-  // Wyczyść formularz
-  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-strava'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const commentEl = document.getElementById('l-comment');
+  if (commentEl) { commentEl.value = ''; commentEl.placeholder = 'Jak poszło? Co czułeś?'; }
   document.querySelectorAll('.feel-btn').forEach(b => b.className = 'feel-btn');
   document.querySelectorAll('.type-pill').forEach((p, i) => p.classList.toggle('on', i === 0));
   const uploadLbl = document.getElementById('upload-label');
@@ -2856,53 +2912,38 @@ function openModal() {
   const uploadArea = document.getElementById('upload-area');
   if (uploadArea) uploadArea.style.borderColor = 'var(--border)';
   const lFile = document.getElementById('l-file'); if (lFile) lFile.value = '';
+  const previewList = document.getElementById('file-preview-list');
+  if (previewList) previewList.innerHTML = '';
   window._pendingFiles = [];
-  // Tytuł i podtytuł
-  const modalTitle = document.querySelector('#modal-bg .modal-title');
-  if (modalTitle) modalTitle.textContent = 'Zaloguj trening';
-  const modalSub = document.getElementById('modal-sub');
-  if (modalSub) {
-    const now = new Date();
-    modalSub.textContent = now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
   const saveBtn = document.getElementById('save-btn');
   if (saveBtn) { saveBtn.textContent = 'Zapisz log →'; saveBtn.disabled = false; }
-  // Otwórz modal
+  const modalTitle = document.querySelector('#modal-bg .modal-title');
+  if (modalTitle) modalTitle.textContent = 'Zaloguj trening';
+}
+
+async function openModal() {
+  _resetModalForm();
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  _setModalDate(today);
   document.getElementById('modal-bg').classList.add('open');
+  await _fetchAndPrefillForDate(today);
 }
 
 function closeModal() {
   document.getElementById('modal-bg').classList.remove('open');
 }
 
-function openModalForDate(date, e) {
+async function openModalForDate(date, e) {
   if (e) e.stopPropagation();
-  openModal();
-  _logDate = date;
-  // Ustaw podtytuł z datą
-  const modalSub = document.getElementById('modal-sub');
-  if (modalSub && date) {
-    modalSub.textContent = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
-  // Wypełnij z planu dnia jeśli dostępny
-  if (window._todayTraining && window._todayTraining.date === date) {
-    const t = window._todayTraining;
-    _logType = t.type || 'Spokojny';
-    document.querySelectorAll('.type-pill').forEach(p => {
-      p.classList.toggle('on', p.textContent.trim().includes(_logType));
-    });
-    if (t.distance_km) {
-      const distEl = document.getElementById('l-dist');
-      if (distEl) distEl.value = t.distance_km;
-    }
-  }
+  _resetModalForm();
+  _setModalDate(date);
+  document.getElementById('modal-bg').classList.add('open');
+  await _fetchAndPrefillForDate(date);
 }
 
 function _updateLogDateDisplay() {
-  const modalSub = document.getElementById('modal-sub');
-  if (modalSub && _logDate) {
-    modalSub.textContent = new Date(_logDate + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
+  if (_logDate) _setModalDate(_logDate);
 }
 
 // ── POMOCNICZE FUNKCJE MODALA ─────────────────────────────────────
@@ -2927,13 +2968,25 @@ function selFeel(el, val) {
 }
 
 // Przesunięcie daty logu o ±1 dzień
-function shiftLogDate(delta) {
+async function shiftLogDate(delta) {
   const base = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
   base.setDate(base.getDate() + delta);
-  _logDate = base.getFullYear() + '-' +
+  const newDate = base.getFullYear() + '-' +
     String(base.getMonth() + 1).padStart(2, '0') + '-' +
     String(base.getDate()).padStart(2, '0');
-  _updateLogDateDisplay();
+  // Wyczyść formularz z danych planu (zachowaj to co wpisał zawodnik)
+  const distVal = document.getElementById('l-dist')?.value;
+  const timeVal = document.getElementById('l-time')?.value;
+  const paceVal = document.getElementById('l-pace')?.value;
+  const hrVal = document.getElementById('l-hr')?.value;
+  _setModalDate(newDate);
+  // Pobierz plan z kalendarza dla nowej daty
+  await _fetchAndPrefillForDate(newDate);
+  // Przywróć to co użytkownik już wpisał (ma priorytet nad planem)
+  if (distVal) { const el = document.getElementById('l-dist'); if(el) el.value = distVal; }
+  if (timeVal) { const el = document.getElementById('l-time'); if(el) el.value = timeVal; }
+  if (paceVal) { const el = document.getElementById('l-pace'); if(el) el.value = paceVal; }
+  if (hrVal) { const el = document.getElementById('l-hr'); if(el) el.value = hrVal; }
 }
 
 // Dodaj wiersz interwału
