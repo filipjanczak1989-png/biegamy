@@ -1072,8 +1072,8 @@ function openModal(ds, idx) {
   if(fComment) fComment.value='';
   if(fCommentWrap) fCommentWrap.style.display = _urlRole === 'athlete' ? 'block' : 'none';
   const fDescEl = document.getElementById('f-desc');
-  if(fDescEl) fDescEl.readOnly = _urlRole === 'athlete';
-  if(fDescEl && _urlRole === 'athlete') { fDescEl.style.opacity='0.6'; fDescEl.style.cursor='default'; }
+  if(fDescEl) fDescEl.readOnly = false;
+  if(fDescEl) { fDescEl.style.opacity=''; fDescEl.style.cursor=''; }
   const fLogDist = document.getElementById('f-log-dist');
   const fLogPace = document.getElementById('f-log-pace');
   const fLogStrava = document.getElementById('f-log-strava');
@@ -1271,49 +1271,67 @@ async function saveTraining() {
     if (insErr) { notify('Błąd zapisu: ' + insErr.message); return; }
   }
 
-  // Jeśli status=done — zapisz też log zawodnika
-  if (status === 'done') {
-    const { data: athRow2 } = await _sbKal.from('athletes')
-      .select('id').eq('user_id', session.user.id).maybeSingle();
-    if (athRow2) {
-      const logFiles = document.getElementById('f-log-files');
-      const allFiles = document.getElementById('f-all-files');
-      const logStrava = document.getElementById('f-log-strava')?.value || null;
-      const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
-      const logPace = document.getElementById('f-log-pace')?.value || pace || null;
-      let attachmentUrl = null;
+  // Zawsze przetwarzaj screenshoty (niezależnie od statusu)
+  const { data: athRow2 } = await _sbKal.from('athletes')
+    .select('id').eq('user_id', session.user.id).maybeSingle();
+  if (athRow2) {
+    const logFiles = document.getElementById('f-log-files');
+    const allFiles = document.getElementById('f-all-files');
+    const logStrava = document.getElementById('f-log-strava')?.value || null;
+    const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
+    const logPace = document.getElementById('f-log-pace')?.value || pace || null;
+    let attachmentUrl = null;
 
-      // Collect files from both pickers
-      const fileSources = [];
-      if (allFiles && allFiles.files.length > 0) for (let f of allFiles.files) fileSources.push(f);
-      if (logFiles && logFiles.files.length > 0) for (let f of logFiles.files) fileSources.push(f);
+    // Collect files from both pickers
+    const fileSources = [];
+    if (allFiles && allFiles.files.length > 0) for (let f of allFiles.files) fileSources.push(f);
+    if (logFiles && logFiles.files.length > 0) for (let f of logFiles.files) fileSources.push(f);
 
-      if (fileSources.length > 0) {
-        const urls = [];
-        const base = Date.now();
-        for (let fi = 0; fi < fileSources.length; fi++) {
-          const file = fileSources[fi];
-          const path = athRow2.id + '/log_' + base + '_' + fi + '.' + (file.name.split('.').pop()||'jpg');
-          const { error: upErr } = await _sbKal.storage
-            .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
-          if (!upErr) {
-            const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
-            urls.push(urlData.publicUrl);
-          }
+    if (fileSources.length > 0) {
+      const urls = [];
+      const base = Date.now();
+      for (let fi = 0; fi < fileSources.length; fi++) {
+        const file = fileSources[fi];
+        const path = athRow2.id + '/log_' + base + '_' + fi + '.' + (file.name.split('.').pop()||'jpg');
+        const { error: upErr } = await _sbKal.storage
+          .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+        if (!upErr) {
+          const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
+          urls.push(urlData.publicUrl);
         }
-        if (urls.length) attachmentUrl = urls.join(',');
       }
+      if (urls.length) attachmentUrl = urls.join(',');
+    }
 
-      await _sbKal.from('training_logs').insert({
-        athlete_id: athRow2.id,
-        training_type: selectedType,
-        distance_km: logDist,
-        pace: logPace,
-        strava_link: logStrava,
-        attachment_url: attachmentUrl,
-        comment: document.getElementById('f-comment')?.value || null,
-        logged_at: new Date(editingDate + 'T12:00:00').toISOString()
-      });
+    // Jeśli status=done LUB są pliki — zapisz log z wynikiem
+    if (status === 'done' || attachmentUrl) {
+      // Sprawdź czy log już istnieje dla tej daty
+      const { data: existingLog } = await _sbKal.from('training_logs')
+        .select('id').eq('athlete_id', athRow2.id)
+        .gte('logged_at', editingDate + 'T00:00:00')
+        .lte('logged_at', editingDate + 'T23:59:59')
+        .maybeSingle();
+
+      if (existingLog) {
+        // UPDATE istniejącego logu — dołącz nowe zdjęcia
+        const upd = {};
+        if (attachmentUrl) upd.attachment_url = attachmentUrl;
+        if (logStrava) upd.strava_link = logStrava;
+        if (document.getElementById('f-comment')?.value) upd.comment = document.getElementById('f-comment').value;
+        if (Object.keys(upd).length) await _sbKal.from('training_logs').update(upd).eq('id', existingLog.id);
+      } else {
+        // INSERT nowego logu
+        await _sbKal.from('training_logs').insert({
+          athlete_id: athRow2.id,
+          training_type: selectedType,
+          distance_km: logDist,
+          pace: logPace,
+          strava_link: logStrava,
+          attachment_url: attachmentUrl,
+          comment: document.getElementById('f-comment')?.value || null,
+          logged_at: new Date(editingDate + 'T12:00:00').toISOString()
+        });
+      }
     }
   }
 
@@ -1393,7 +1411,7 @@ async function initRole() {
   if (_urlRoleFromUrl) return; // URL ma rolę — ufamy jej
   // Brak roli w URL — sprawdź w sesji
   const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) { window.location.href = 'index.html'; return; }
+  if (!session) { window.location.href = 'login.html'; return; }
   const role = session.user.user_metadata?.role || 'athlete';
   if (role === 'coach') {
     // Coach bez roli w URL — przekieruj z rolą
@@ -2414,7 +2432,8 @@ function renderMobile() {
           }).join('') + '</div>'
         : '';
 
-      return '<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + borderLeft + ';cursor:pointer;" onclick="openModal(\'' + ds + '\',' + i + ')">'
+      return '<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + borderLeft + ';cursor:pointer;position:relative;" onclick="openModal(\'' + ds + '\',' + i + ')">'
+        + '<button onclick="event.stopPropagation();deleteTraining(event,\'' + ds + '\',' + i + ')" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.06);border:none;color:var(--muted);width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;z-index:2;touch-action:manipulation;">✕</button>'
         + '<div style="padding:11px 13px;">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (km||desc?'4':'0') + 'px;">'
         + '<span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:' + tc + ';font-family:\'DM Mono\',monospace;font-weight:500;">' + t.type.toUpperCase() + '</span>'
@@ -2760,13 +2779,8 @@ loadAthletesSelect();
 loadGoals();
 loadTrainingsFromDB().then(() => setView(_calView));
 
-if (_urlRole === 'athlete') {
-  // Zawodnik — ukryj przyciski dodawania/usuwania
-  window.addEventListener('load', () => {
-    document.querySelectorAll('.card-delete, .card-approve, #btn-new-training').forEach(el => el.style.display = 'none');
-  });
-  // Zawodnik może przeglądać i dodawać własne treningi
-}
+// Zawodnik może edytować, usuwać i dodawać własne treningi
+// (card-delete i btn-new-training widoczne dla wszystkich ról)
 </script>
 <nav class="bottom-nav" id="bottom-nav-cal">
   <a id="bnav-home" class="nav-it">
@@ -2822,14 +2836,6 @@ document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=setti
       .observe(body, {childList:true});
   }
 })();
-
-// ── FADE-OUT NAVIGATION ──────────────────────────────────────────
-function _fadeNavigate(url, delay) {
-  delay = delay || 80;
-  document.body.style.transition = 'opacity 0.15s ease';
-  document.body.style.opacity = '0';
-  setTimeout(function() { window.location.href = url; }, delay);
-}
 </script>
 </body>
 </html>
