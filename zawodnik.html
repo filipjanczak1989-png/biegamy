@@ -3855,10 +3855,20 @@ async function loadTodayTraining() {
 }
 
 async function loadCoachMessage() {
-  // Show coach section only if athlete has coach (coach_id cached from initAuth, no extra SELECT)
-  const coachSection = document.getElementById('coach-msg-section');
-  if (coachSection) coachSection.style.display = window._athleteCoachId ? 'block' : 'none';
-  if (!_athleteId || !window._athleteCoachId) return;
+  // Show coach section only if athlete has coach
+  if (_athleteId) {
+    // Użyj cache z initAuth jeśli dostępny, inaczej pobierz z bazy
+    let coachId = window._athleteCoachId;
+    if (coachId === undefined) {
+      const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
+      coachId = ath?.coach_id || null;
+      window._athleteCoachId = coachId;
+    }
+    const coachSection = document.getElementById('coach-msg-section');
+    if (coachSection) coachSection.style.display = coachId ? 'block' : 'none';
+    if (!coachId) return;
+  }
+  if (!_athleteId) return;
   // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
   const { data: msgs } = await _sb
     .from('messages')
@@ -4503,8 +4513,10 @@ async function loadSocialFeed(compact) {
   (publicAthletes||[]).forEach(function(a){ athMap[a.id] = a; });
   // BUGFIX: dociągnij własne dane jeśli nie ma ich w publicAthletes (profil prywatny)
   if (_athleteId && !athMap[_athleteId]) {
-    // Użyj danych z cache zamiast extra SELECT
-    athMap[_athleteId] = { id: _athleteId, full_name: document.getElementById('topbar-name')?.textContent || 'Ja', is_public: false };
+    try {
+      const { data: ownAth } = await _sb.from('athletes').select('id,full_name,is_public').eq('id',_athleteId).maybeSingle();
+      if (ownAth) athMap[_athleteId] = ownAth;
+    } catch(e) {}
   }
 
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
@@ -5787,12 +5799,12 @@ const Anim = {
 // Inicjalizuj przy starcie
 Anim.initSound();
 
-// BUGFIX: dodaj guard żeby initAuth nie odpaliło się dwukrotnie
-window._authInitDone = false;
-window._authInitDone = true;
-initAuth().then(() => checkStravaStatus());
+// Inicjalizuj przy starcie
+Anim.initSound();
 
-// Obsłuż token z linku aktywacyjnego (OAuth callback — Supabase może odpalić SIGNED_IN)
+initAuth();
+// Obsłuż token z linku aktywacyjnego ZANIM initAuth
+// Supabase SDK przetwarza #access_token z URL asynchronicznie
 _sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
@@ -5800,7 +5812,14 @@ _sb.auth.onAuthStateChange((event, session) => {
   }
 });
 
-// Fallback usunięty — już nie potrzebny (initAuth odpala się natychmiast z guardem)
+// Fallback — jeśli sesja już istnieje (normalne logowanie, brak tokenu w URL)
+// BUGFIX: zwiększono z 500ms do 1500ms — na wolnych połączeniach sesja może nie być gotowa
+setTimeout(() => {
+  if (!window._authInitDone) {
+    window._authInitDone = true;
+    initAuth().then(() => checkStravaStatus());
+  }
+}, 1500);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
