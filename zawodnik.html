@@ -3157,7 +3157,7 @@ async function initAuth() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) {
     // Poczekaj chwilę (OAuth callback lub email confirmation może być w toku)
-    await new Promise(r => setTimeout(r, 1200));
+    await new Promise(r => setTimeout(r, 100)); // PERF: SDK gotowy w <50ms
     const { data: { session: s2 } } = await _sb.auth.getSession();
     if (!s2) { window.location.href = 'login.html'; return; }
     // Kontynuuj z s2 jako sesją
@@ -3178,7 +3178,7 @@ async function initAuth() {
       setAvBtn(i2);
       if(tn2){ tn2.innerHTML = n2.split(' ')[0] + ' <span>' + (n2.split(' ')[1]?.[0]||'') + '.</span>'; }
       if (_isOnboarding) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
-      await loadLogs();
+      loadLogs() // PERF: async;
     } else {
       showOnboarding();
     }
@@ -3213,7 +3213,7 @@ async function initAuth() {
 
     // Nowy zawodnik z ?onboarding=1 — pokaż onboarding
     if (_isOnboarding) {
-      await loadLogs();
+      loadLogs() // PERF: async;
       showOnboarding();
       window.history.replaceState({}, '', 'zawodnik.html');
       return;
@@ -3242,8 +3242,9 @@ async function initAuth() {
         }
       }
     } catch(e){}
-    await loadLogs();
-    checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
+    // PERF: nie blokuj initAuth — renderuj UI od razu, dane załadują się async
+    loadLogs();
+    checkStravaStatus();
     loadAvatarTopbar(_athleteId);
   } else {
     // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
@@ -3262,7 +3263,7 @@ async function initAuth() {
       
       if (created?.id) {
         _athleteId = created.id;
-        await loadLogs();
+        loadLogs(); // PERF: w tle — nie blokuj inicjalizacji
         loadAvatarTopbar(_athleteId);
         toast('Profil zawodnika utworzony ✓');
       } else {
@@ -3270,7 +3271,7 @@ async function initAuth() {
         const { data: fetched } = await _sb.from('athletes').select('id').eq('user_id', user.id).maybeSingle();
         if (fetched?.id) {
           _athleteId = fetched.id;
-          await loadLogs();
+          loadLogs(); // PERF: w tle
           loadAvatarTopbar(_athleteId);
         } else {
           showOnboarding();
@@ -5826,27 +5827,23 @@ const Anim = {
 // Inicjalizuj przy starcie
 Anim.initSound();
 
-// Inicjalizuj przy starcie
-Anim.initSound();
-
-initAuth();
-// Obsłuż token z linku aktywacyjnego ZANIM initAuth
-// Supabase SDK przetwarza #access_token z URL asynchronicznie
+// ── STARTUP AUTH — jedna ścieżka, zero duplikatów ────────────────
+// Obsłuż token z linku OAuth/email ZANIM sprawdzimy sesję
 _sb.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session && !window._authInitDone) {
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !window._authInitDone) {
     window._authInitDone = true;
     initAuth().then(() => checkStravaStatus());
   }
 });
 
-// Fallback — jeśli sesja już istnieje (normalne logowanie, brak tokenu w URL)
-// BUGFIX: zwiększono z 500ms do 1500ms — na wolnych połączeniach sesja może nie być gotowa
+// Fallback dla normalnego logowania (sesja już istnieje, event nie odpali)
+// Skrócono z 1500ms → 300ms: sesja Supabase jest synchronicznie dostępna przy normalnym reload
 setTimeout(() => {
   if (!window._authInitDone) {
     window._authInitDone = true;
     initAuth().then(() => checkStravaStatus());
   }
-}, 1500);
+}, 300);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
