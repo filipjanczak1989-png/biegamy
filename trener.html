@@ -259,7 +259,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div class="topbar-av" onclick="toggleMenu()" id="av-btn">F</div>
 <div id="av-menu" style="display:none;position:fixed;top:58px;right:16px;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px;z-index:10000;min-width:180px;box-shadow:0 8px 32px rgba(0,0,0,0.6);">
   <div style="padding:8px 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);margin-bottom:6px;" id="menu-email">...</div>
-  <a href="zawodnik.html?from=trener" onclick="event.preventDefault();_fadeNavigate('zawodnik.html?from=trener')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--fg);cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-decoration:none;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='transparent'">
+  <a href="zawodnik.html?from=trener" style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:var(--fg);cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-decoration:none;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='transparent'">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
     Widok zawodnika
   </a>
@@ -511,7 +511,7 @@ async function closePanel(){
   await loadAthletes();
 }
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
-function goToAthleteCalendar(){const id=window._selectedAthleteId;_fadeNavigate('kalendarz.html?role=coach'+(id?'&athlete='+id:''));}
+function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
 function ptab(n,el){
   ['ov','pl','lg','ms','cl','pb','st','str'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
@@ -911,7 +911,7 @@ async function initAuth() {
   if (!session) {
     await new Promise(r => setTimeout(r, 800));
     const { data: { session: s2 } } = await _sb.auth.getSession();
-    if (!s2) { window.location.href = 'index.html'; return; }
+    if (!s2) { window.location.href = 'login.html'; return; }
     _coachId = s2.user.id;
     // Sprawdź rolę — tylko trener może tu wejść
     const role2 = s2.user.user_metadata?.role;
@@ -989,6 +989,10 @@ async function renderDbAthletes(list) {
     const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
       .is('read_by_coach', null);
+    // FIX: jeśli trener już widział logi (seenLogs w localStorage), nie pokazuj badge
+    // dopóki nie pojawią się nowe (sprawdzamy czy seenLogs > ostatni log)
+    const _seenTs = parseInt(localStorage.getItem('seenLogs_' + a.id) || '0');
+    const _effectiveCount = (_seenTs > 0 && count > 0) ? 0 : (count || 0);
 
     // Sprawdź czy zawodnik miał zaplanowany trening 2+ dni temu bez logu
     // ORAZ nie zalogował żadnego treningu w ciągu ostatnich 2 dni
@@ -1012,7 +1016,7 @@ async function renderDbAthletes(list) {
       hasMissed = missedTrainings && missedTrainings.length > 0;
     }
 
-    return { ...a, newLogs: count || 0, hasMissed };
+    return { ...a, newLogs: _effectiveCount, hasMissed };
   }));
 
   const totalNewLogs = withLogs.reduce((s,a) => s + a.newLogs, 0);
@@ -1096,6 +1100,12 @@ async function selA_db(athleteId) {
   
   window._selectedAthleteId = athleteId;
   await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
+
+  // FIX: zapamiętaj lokalnie że logi były widziane — badge nie wróci po reloadzie
+  localStorage.setItem('seenLogs_' + athleteId, Date.now().toString());
+  // FIX: usuń flagę newLog jeśli była ustawiona (kompatybilność wsteczna)
+  localStorage.removeItem('newLog');
+  localStorage.removeItem('newLog_' + athleteId);
 
   // Skasuj flagę "brak logu" i odśwież kartę zawodnika na liście
   const athIdx = _dbAthletes.findIndex(x => x.id === athleteId);
@@ -1330,7 +1340,7 @@ async function saveSend_db() {
 async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear(); sessionStorage.clear();
-  _fadeNavigate('index.html', 300);
+  window.location.href = 'login.html';
 }
 
 function toggleMenu() {
@@ -1914,6 +1924,21 @@ function _renderAppStatsBar(el) {
 
 function initRealtimeNotifications() {
   try {
+    // FIX: gdy zawodnik doda nowy log — wyczyść seenLogs cache dla niego
+    // żeby badge znowu się pojawił u trenera
+    _sb.channel('new-training-logs')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'training_logs' },
+        function(payload) {
+          const athId = payload.new?.athlete_id;
+          if (athId) {
+            // Usuń cache — nowy log powinien pokazać badge
+            localStorage.removeItem('seenLogs_' + athId);
+          }
+          // Odśwież listę zawodników żeby pokazać badge
+          if (typeof loadAthletes === 'function') loadAthletes();
+        })
+      .subscribe();
+
     _sb.channel('new-athletes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'athletes' },
         function(payload) {
@@ -2994,13 +3019,22 @@ if (_tabParam) {
   setTimeout(() => showCoachSection(_tabParam), 900);
 }
 
-// ── FADE-OUT NAVIGATION ──────────────────────────────────────────
-function _fadeNavigate(url, delay) {
-  delay = delay || 80;
-  document.body.style.transition = 'opacity 0.15s ease';
-  document.body.style.opacity = '0';
-  setTimeout(function() { window.location.href = url; }, delay);
-}
+// ── SEENLOGS CACHE CLEANUP ───────────────────────────────────────
+// Czyść stare wpisy seenLogs starsze niż 24h przy każdym załadowaniu
+(function _cleanSeenLogsCache() {
+  const MAX_AGE = 24 * 60 * 60 * 1000; // 24h
+  const now = Date.now();
+  Object.keys(localStorage).forEach(function(key) {
+    if (key.startsWith('seenLogs_')) {
+      const ts = parseInt(localStorage.getItem(key) || '0');
+      if (now - ts > MAX_AGE) {
+        localStorage.removeItem(key);
+      }
+    }
+  });
+  // Usuń stare klucze newLog (kompatybilność wsteczna)
+  localStorage.removeItem('newLog');
+})();
 </script>
 
 <!-- SEKCJA WIADOMOŚCI TRENERA -->
