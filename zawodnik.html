@@ -2085,7 +2085,14 @@ function showSection(name) {
   } else if (name === 'msgs' || name === 'messages' || name === 'czat') {
     document.getElementById('section-msgs').style.display = 'flex';
     loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
-    if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
+    // PERF: użyj cache coach_id z initAuth zamiast odpytywać bazę
+    if (_athleteId && window._athleteCoachId) {
+      _sb.from('profiles').select('full_name').eq('id', window._athleteCoachId).maybeSingle().then(({data:p})=>{
+        if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); }
+      });
+    } else if (_athleteId) {
+      _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ window._athleteCoachId=a.coach_id; _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } });
+    }
 
   } else if (name === 'profile') {
     document.getElementById('section-profile').style.display = 'block';
@@ -3151,13 +3158,18 @@ function loadAvatarTopbar(athleteId) {
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────
-async function initAuth() {
+async function initAuth(sessionFromEvent) {
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
-  const { data: { session } } = await _sb.auth.getSession();
+  // PERF: użyj session z eventu jeśli dostępna — zero dodatkowego network call
+  let session = sessionFromEvent || null;
   if (!session) {
-    // Poczekaj chwilę (OAuth callback lub email confirmation może być w toku)
-    await new Promise(r => setTimeout(r, 100)); // PERF: SDK gotowy w <50ms
+    const { data } = await _sb.auth.getSession();
+    session = data?.session || null;
+  }
+  if (!session) {
+    // Jeden retry dla OAuth callback (token w URL)
+    await new Promise(r => setTimeout(r, 80));
     const { data: { session: s2 } } = await _sb.auth.getSession();
     if (!s2) { window.location.href = 'login.html'; return; }
     // Kontynuuj z s2 jako sesją
@@ -3462,7 +3474,7 @@ async function obFinish() {
     toast('Witaj w BiegaMy! 🏃');
 
     if (_athleteId) {
-      await loadLogs();
+      loadLogs(); // PERF: w tle, nie blokuj
     } else {
       setTimeout(() => window.location.reload(), 800);
     }
@@ -5832,18 +5844,22 @@ Anim.initSound();
 _sb.auth.onAuthStateChange((event, session) => {
   if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !window._authInitDone) {
     window._authInitDone = true;
-    initAuth().then(() => checkStravaStatus());
+    // PERF: przekaż session — nie rób drugiego getSession() w initAuth
+    initAuth(session).then(() => checkStravaStatus());
+  } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !session && !window._authInitDone) {
+    // Brak sesji — od razu redirect bez czekania
+    window._authInitDone = true;
+    window.location.href = 'login.html';
   }
 });
 
-// Fallback dla normalnego logowania (sesja już istnieje, event nie odpali)
-// Skrócono z 1500ms → 300ms: sesja Supabase jest synchronicznie dostępna przy normalnym reload
+// Fallback: jeśli onAuthStateChange nie odpali w 800ms (np. brak internetu)
 setTimeout(() => {
   if (!window._authInitDone) {
     window._authInitDone = true;
     initAuth().then(() => checkStravaStatus());
   }
-}, 300);
+}, 800);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
