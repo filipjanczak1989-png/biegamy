@@ -2054,7 +2054,10 @@ function showSection(name) {
   }
 
   if (name === 'home') {
-    document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
+    document.querySelectorAll('.today-hero,.week-sum,.coach-box,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
+    // BUGFIX: log-list ma display:flex w CSS — przywróć poprawną wartość
+    const logListEl = document.getElementById('log-list');
+    if (logListEl) logListEl.style.display = 'flex';
     document.querySelectorAll('.fade-in').forEach(el => el.style.display = '');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = '');
     document.getElementById('daily-motivation')?.style.setProperty('display','');
@@ -6171,7 +6174,8 @@ window.showSection = function(name){
 // ── 7. SKELETON LOADING for log list ─────────────────────────────────
 function showLogSkeleton(){
   const list = document.getElementById('log-list');
-  if(!list) return;
+  // BUGFIX: nie nadpisuj jeśli logi już zostały załadowane
+  if(!list || list.dataset.loaded) return;
   list.innerHTML = Array.from({length:3}, () => `
     <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--tile-radius);padding:16px 18px;">
       <div class="skeleton skeleton-line wide"></div>
@@ -6180,7 +6184,7 @@ function showLogSkeleton(){
     </div>
   `).join('');
 }
-// Show skeleton immediately while DB loads
+// Show skeleton immediately while DB loads (only if not already loaded)
 showLogSkeleton();
 
 // ── 8. INTERCEPT LOG SAVE — trigger confetti + premium toast ──────────
@@ -6191,10 +6195,24 @@ window.closeModal = function(){
 };
 
 // Intercept saveLog to fire confetti
-// Delay to ensure saveLog (defined as async function in main script) is available on window
+// BUGFIX: zwiększono timeout — saveLog musi być dostępny na window po initAuth
 setTimeout(function(){
   const _origSaveLog = window.saveLog;
-  if (!_origSaveLog) return; // safety
+  if (!_origSaveLog) {
+    // Retry once more if not yet available
+    setTimeout(function(){
+      const _origSaveLog2 = window.saveLog;
+      if (!_origSaveLog2) return;
+      window.saveLog = async function(){
+        await _origSaveLog2.apply(this, arguments);
+        setTimeout(() => {
+          launchConfetti();
+          showPremiumToast('Trening zapisany! 🔥', '💪');
+        }, 400);
+      };
+    }, 500);
+    return;
+  }
   window.saveLog = async function(){
     await _origSaveLog.apply(this, arguments);
     setTimeout(() => {
@@ -6202,7 +6220,7 @@ setTimeout(function(){
       showPremiumToast('Trening zapisany! 🔥', '💪');
     }, 400);
   };
-}, 0);
+}, 100);
 
 // ── 9. HERO IMAGE TILT on touch ───────────────────────────────────────
 (function initHeroTilt(){
