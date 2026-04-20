@@ -4264,7 +4264,7 @@ async function loadStravaActivities() {
   }).join('');
 }
 
-async async function checkStravaStatus() {
+async function checkStravaStatus() {
   if (!_athleteId) return;
   const { data } = await _sb.from('athletes')
     .select('strava_athlete_id, strava_connected_at')
