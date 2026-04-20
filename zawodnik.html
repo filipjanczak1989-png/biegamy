@@ -2833,6 +2833,166 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); con
 const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 let _athleteId = null;
 
+// ── ZMIENNE GLOBALNE MODALA LOGOWANIA ─────────────────────────────
+let _logDate = null;
+let _logType = 'Spokojny';
+let feel = '';
+
+// ── MODAL LOGOWANIA — OTWIERANIE / ZAMYKANIE ─────────────────────
+function openModal() {
+  // Reset do stanu "nowy log"
+  _editingLogId = null;
+  _logDate = null;
+  _logType = 'Spokojny';
+  feel = '';
+  // Wyczyść formularz
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.querySelectorAll('.feel-btn').forEach(b => b.className = 'feel-btn');
+  document.querySelectorAll('.type-pill').forEach((p, i) => p.classList.toggle('on', i === 0));
+  const uploadLbl = document.getElementById('upload-label');
+  if (uploadLbl) uploadLbl.textContent = 'Kliknij aby dodać zdjęcie';
+  const uploadArea = document.getElementById('upload-area');
+  if (uploadArea) uploadArea.style.borderColor = 'var(--border)';
+  const lFile = document.getElementById('l-file'); if (lFile) lFile.value = '';
+  window._pendingFiles = [];
+  // Tytuł i podtytuł
+  const modalTitle = document.querySelector('#modal-bg .modal-title');
+  if (modalTitle) modalTitle.textContent = 'Zaloguj trening';
+  const modalSub = document.getElementById('modal-sub');
+  if (modalSub) {
+    const now = new Date();
+    modalSub.textContent = now.toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  const saveBtn = document.getElementById('save-btn');
+  if (saveBtn) { saveBtn.textContent = 'Zapisz log →'; saveBtn.disabled = false; }
+  // Otwórz modal
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').classList.remove('open');
+}
+
+function openModalForDate(date, e) {
+  if (e) e.stopPropagation();
+  openModal();
+  _logDate = date;
+  // Ustaw podtytuł z datą
+  const modalSub = document.getElementById('modal-sub');
+  if (modalSub && date) {
+    modalSub.textContent = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  // Wypełnij z planu dnia jeśli dostępny
+  if (window._todayTraining && window._todayTraining.date === date) {
+    const t = window._todayTraining;
+    _logType = t.type || 'Spokojny';
+    document.querySelectorAll('.type-pill').forEach(p => {
+      p.classList.toggle('on', p.textContent.trim().includes(_logType));
+    });
+    if (t.distance_km) {
+      const distEl = document.getElementById('l-dist');
+      if (distEl) distEl.value = t.distance_km;
+    }
+  }
+}
+
+function _updateLogDateDisplay() {
+  const modalSub = document.getElementById('modal-sub');
+  if (modalSub && _logDate) {
+    modalSub.textContent = new Date(_logDate + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+}
+
+// ── POMOCNICZE FUNKCJE MODALA ─────────────────────────────────────
+
+// Zamknij modal po kliknięciu w tło
+function closeMBg(e) {
+  if (e.target === document.getElementById('modal-bg')) closeModal();
+}
+
+// Wybór typu treningu
+function selType(el, type) {
+  _logType = type;
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// Wybór samopoczucia
+function selFeel(el, val) {
+  feel = val;
+  document.querySelectorAll('.feel-btn').forEach(b => b.className = 'feel-btn');
+  el.classList.add('sel-' + val);
+}
+
+// Przesunięcie daty logu o ±1 dzień
+function shiftLogDate(delta) {
+  const base = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
+  base.setDate(base.getDate() + delta);
+  _logDate = base.getFullYear() + '-' +
+    String(base.getMonth() + 1).padStart(2, '0') + '-' +
+    String(base.getDate()).padStart(2, '0');
+  _updateLogDateDisplay();
+}
+
+// Dodaj wiersz interwału
+function addInterval(e) {
+  e.stopPropagation();
+  const container = document.getElementById('intervals-container');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
+  row.innerHTML = `
+    <input type="text" placeholder="np. 400m w 1:45" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;outline:none;" />
+    <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>
+  `;
+  container.appendChild(row);
+}
+
+// Usuń wiersz interwału
+function removeInterval(btn) {
+  const row = btn.closest('div');
+  if (row) row.remove();
+}
+
+// Oznacz trening jako wykonany (bez logowania)
+async function markDone(btn) {
+  if (!_athleteId || !window._todayTraining) {
+    toast('Brak zaplanowanego treningu na dziś');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '...';
+  const { error } = await _sb.from('trainings')
+    .update({ status: 'done' })
+    .eq('id', window._todayTraining.id)
+    .eq('athlete_id', _athleteId);
+  if (error) {
+    toast('Błąd: ' + error.message);
+    btn.disabled = false;
+    btn.textContent = '✓ Wykonany';
+    return;
+  }
+  window._todayTraining.status = 'done';
+  btn.textContent = '✓ Zaliczony!';
+  btn.style.background = 'rgba(61,184,112,0.15)';
+  btn.style.color = 'var(--green)';
+  btn.style.borderColor = 'rgba(61,184,112,0.3)';
+  toast('Trening zaliczony ✓');
+  await updateWeekProgress();
+}
+
+// Rozwiń/zwiń szczegóły dnia w planie tygodnia
+function toggleDayDetail(i) {
+  const detail = document.getElementById('detail-' + i);
+  const arr = document.getElementById('arr-' + i);
+  if (!detail) return;
+  const isOpen = detail.style.display !== 'none';
+  detail.style.display = isOpen ? 'none' : 'block';
+  if (arr) arr.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+
 
 // ── MOTYWACJA DNIA ────────────────────────────────────────────────
 const _QUOTES = [
@@ -3718,7 +3878,6 @@ async function deleteLog(logId) {
   if (feedEl && feedEl.style.display !== 'none') loadSocialFeed(false);
 }
 
-let _editingLogId = null;
 function editLog(idx) {
   const l = window._logsData?.[idx];
   if (!l) return;
