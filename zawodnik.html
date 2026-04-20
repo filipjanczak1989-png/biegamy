@@ -1026,26 +1026,6 @@ body > *{position:relative;z-index:1;}
   border-top:1px solid rgba(255,255,255,0.05);
   padding:8px 10px;gap:2px;
 }
-.react-btn {
-  display:flex;align-items:center;gap:4px;
-  background:transparent;border:1px solid transparent;
-  border-radius:20px;padding:6px 10px;
-  font-size:13px;cursor:pointer;
-  transition:transform 0.15s ease,opacity 0.15s ease var(--ease-spring);
-  color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;
-}
-.react-btn:active{transform:scale(0.9);}
-.react-btn.on{
-  background:rgba(232,86,30,0.12);
-  border-color:rgba(232,86,30,0.3);
-  color:var(--accent);
-}
-.react-btn.on .react-emoji{animation:reactPop 0.35s var(--ease-spring);}
-@keyframes reactPop{
-  0%{transform:scale(1);}
-  50%{transform:scale(1.5);}
-  100%{transform:scale(1);}
-}
 .react-count{font-size:11px;font-family:'DM Mono',monospace;}
 .react-comment-btn{
   margin-left:auto;background:none;border:none;
@@ -3205,7 +3185,9 @@ async function initAuth() {
 
   if (ath) {
     _athleteId = ath.id;
-    window._athleteCoachId = ath.coach_id || null; // cache dla loadCoachMessage
+    window._athleteCoachId = ath.coach_id || null;
+    // Admin: email zawiera 'filip'
+    window._isAdmin = !!(user.email && user.email.toLowerCase().includes('filip')); // cache dla loadCoachMessage
     const name = ath.full_name || nameFromMeta;
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
@@ -3725,20 +3707,17 @@ async function loadLogs() {
       const ll = document.getElementById('log-list');
       if (ll) ll.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
     }
-    // PERF: podziel na krytyczne i opcjonalne
-    const _isRefreshOnly = arguments[0] === 'refresh'; // background refresh po zapisie
-    const criticalTasks = [loadTodayTraining(), loadWeekPlan()];
-    Promise.all(criticalTasks).catch(e => console.error('loadLogs critical:', e));
-
-    // Cięższe zadania — tylko przy pełnym załadowaniu (nie po zapisie)
-    if (!_isRefreshOnly) {
-      setTimeout(function() {
-        Promise.all([
-          loadCoachMessage(), checkNewMessages(),
-          updateWeekProgress(), checkNotifications(), loadHomeSocialPreview()
-        ]).catch(e => console.error('loadLogs deferred:', e));
-      }, 100);
-    }
+    // PERF: uruchom wszystko równolegle zamiast sekwencyjnie
+    const loadTasks = [
+      loadCoachMessage(),
+      loadTodayTraining(),
+      loadWeekPlan(),
+      checkNewMessages(),
+      updateWeekProgress(),
+    ];
+    // PERF: checkNotifications równolegle z resztą
+    const allTasks = [...loadTasks, checkNotifications(), loadHomeSocialPreview()];
+    Promise.all(allTasks).catch(e => console.error('loadLogs parallel:', e));
     if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
     // Realtime — nowe wiadomości od trenera od razu
     if (!window._realtimeChannel && _athleteId) {
@@ -4016,43 +3995,6 @@ function editLog(idx) {
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
 let _savingLog = false;
-
-// ── OPTIMISTIC LOG INSERT ─────────────────────────────────────────
-// Dodaje nowy log na początek listy bez zapytania do bazy
-function _insertLogOptimistic(logData, attachmentUrl, wasEditing) {
-  try {
-    // Build a fake log object matching Supabase shape
-    const fakeLog = {
-      id: 'optimistic-' + Date.now(),
-      training_type: logData.training_type,
-      distance_km: logData.distance_km,
-      pace: logData.pace,
-      heart_rate: logData.heart_rate,
-      feel: logData.feel,
-      comment: logData.comment,
-      strava_link: logData.strava_link,
-      logged_at: logData.logged_at,
-      attachment_url: attachmentUrl || null,
-    };
-
-    // Update global cache
-    if (!window._logsData) window._logsData = [];
-    if (wasEditing && _editingLogId) {
-      // Replace edited log
-      const idx = window._logsData.findIndex(l => l.id === _editingLogId);
-      if (idx !== -1) window._logsData[idx] = {...window._logsData[idx], ...fakeLog};
-    } else {
-      window._logsData.unshift(fakeLog);
-      if (window._logsData.length > 10) window._logsData.pop();
-    }
-
-    // Re-render list from cache (no network call)
-    if (window._logsData.length > 0) renderLogsDb(window._logsData);
-  } catch(e) {
-    // Fallback — silent fail, background reload will fix it
-    console.warn('optimistic insert failed:', e);
-  }
-}
 async function saveLog() {
   if (_savingLog) return;
 
@@ -4177,23 +4119,12 @@ async function saveLog() {
   _logType = 'Spokojny';
   _logDate = null;
 
-  // PERF: optymistyczna aktualizacja — nie przeładowuj całości
+  // Odśwież listę logów i progress w tle
+  loadLogs();
   updateWeekProgress();
 
   // Unieważnij cache treningu dla tej daty (status zmienił się na done)
   if (logDate && window._trainingCache) delete window._trainingCache[logDate];
-
-  // Dodaj nowy log do listy natychmiast (bez query do bazy)
-  _insertLogOptimistic(logData, attachmentUrl, wasEditing);
-
-  // Plan trenera na dziś — odśwież tylko jeśli dzisiaj
-  const _isToday = logDate === new Date().toISOString().split('T')[0];
-  if (_isToday) setTimeout(loadTodayTraining, 200);
-
-  // Lekki reload w tle po 4s — tylko logi i plan (bez social/coach)
-  setTimeout(function() {
-    if (!window._loadLogsRunning) loadLogs('refresh');
-  }, 4000);
   } catch(saveErr) {
     console.error('saveLog:', saveErr);
     toast('Błąd: ' + saveErr.message);
@@ -4523,17 +4454,7 @@ function switchSocialTab(tab) {
   if (tab==='find') loadSuggestedProfiles();
 }
 
-async let _socialFeedTimer = null;
-function loadSocialFeed(compact) {
-  if (!_athleteId) return;
-  // Debounce — prevent multiple simultaneous calls
-  if (_socialFeedTimer) { clearTimeout(_socialFeedTimer); }
-  _socialFeedTimer = setTimeout(function() {
-    _socialFeedTimer = null;
-    _doLoadSocialFeed(compact);
-  }, compact ? 0 : 300);
-}
-function _doLoadSocialFeed(compact) {
+async function loadSocialFeed(compact) {
   if (!_athleteId) return;
   const feedEl = document.getElementById(compact ? 'home-social-preview' : 'social-feed-content');
   if (!feedEl) return;
@@ -4597,21 +4518,31 @@ function _doLoadSocialFeed(compact) {
     const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(' + JSON.stringify(athId) + ')"');
     const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
     const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
-    const editBtns = (isOwn&&!compact)
-      ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'        +'<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'        +'</div>' : '';
+    // Admin widzi przyciski na każdym poście; właściciel — tylko na swoim
+    const _showEditBtns = !compact && (isOwn || window._isAdmin);
+    const _isAdminPost = !compact && !isOwn && window._isAdmin;
+    const editBtns = _showEditBtns
+      ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'
+        // Przycisk edycji
+        +(_isAdminPost
+          ? '<button onclick="event.stopPropagation();event.preventDefault();adminEditPost(\''+l.id+'\')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.3);color:var(--accent);cursor:pointer;padding:5px 10px;border-radius:8px;font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;min-height:36px;touch-action:manipulation;">EDYTUJ</button>'
+          : '<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>')
+        // Przycisk usuwania
+        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'
+        +'</div>'
+      : '';
     let screensHtml = '';
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
       if (urls.length) screensHtml = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'
         +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
     }
+    // Pasek akcji — tylko komentarze (reakcje usunięte)
     const reactBar = compact ? '' : (
-      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
-      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'fire\')" id="react-fire-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#f06030;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span id="rc-fire-'+l.id+'" style="font-size:11px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
-      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'clap\')" id="react-clap-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#e8b840;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> <span id="rc-clap-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
-      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
-      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
+      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;padding-left:6px;">'
+      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(''+l.id+'')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> <span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
+
     // Type-based card gradient
     const typeGradients = {
       'Spokojny':    {accent:'#5090e0', tint:'rgba(80,144,214,0.07)', border:'rgba(80,144,214,0.2)'},
@@ -4632,24 +4563,11 @@ function _doLoadSocialFeed(compact) {
   }
   const rendered = logs.map(buildCard).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
-  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
+  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
 
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
 
-const _myReactions = {};
-
-async function loadReactionCounts(logIds) {
-  if (!logIds||!logIds.length) return;
-  try {
-    const {data} = await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
-    if (!data) return;
-    const counts={};
-    data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;if(r.athlete_id===_athleteId){if(!_myReactions[r.log_id])_myReactions[r.log_id]=new Set();_myReactions[r.log_id].add(r.reaction_type);}});
-    Object.keys(counts).forEach(function(k){const i=k.lastIndexOf('_');const lid=k.slice(0,i);const tp=k.slice(i+1);const el=document.getElementById('rc-'+tp+'-'+lid);if(el)el.textContent=counts[k];});
-    Object.keys(_myReactions).forEach(function(lid){_myReactions[lid].forEach(function(tp){const btn=document.getElementById('react-'+tp+'-'+lid);if(btn)btn.style.background='rgba(255,255,255,0.08)';});});
-  } catch(e){console.warn('log_reactions:',e.message);}
-}
 
 async function loadCommentCounts(logIds) {
   if (!logIds||!logIds.length) return;
@@ -4661,30 +4579,6 @@ async function loadCommentCounts(logIds) {
   } catch(e){console.warn('log_comments:',e.message);}
 }
 
-async function toggleReact(logId, type) {
-  if (!_athleteId) return;
-  if (!_myReactions[logId]) _myReactions[logId]=new Set();
-  const already=_myReactions[logId].has(type);
-  const btn=document.getElementById('react-'+type+'-'+logId);
-  const countEl=document.getElementById('rc-'+type+'-'+logId);
-  const cur=parseInt((countEl&&countEl.textContent)||'0');
-  try {
-    if (already) {
-      await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
-      _myReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);
-    } else {
-      await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
-      _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
-    }
-  } catch(e){
-    if(e.message && e.message.includes('does not exist')) {
-      toast('Brak tabeli log_reactions — patrz SQL w konsoli');
-      console.error('SQL needed: CREATE TABLE log_reactions (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, log_id uuid NOT NULL REFERENCES training_logs(id) ON DELETE CASCADE, athlete_id uuid NOT NULL REFERENCES athletes(id) ON DELETE CASCADE, reaction_type text NOT NULL, created_at timestamptz DEFAULT now(), UNIQUE(log_id, athlete_id, reaction_type));');
-    } else {
-      toast('Błąd reakcji: '+e.message);
-    }
-  }
-}
 
 async function openComments(logId) {
   document.getElementById('comments-modal')?.remove();
