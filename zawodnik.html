@@ -3175,7 +3175,7 @@ async function loadWeekPlan() {
       : (isRest ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--muted2);flex-shrink:0;"></div>`
       : `<div style="width:8px;height:8px;border-radius:50%;border:1px solid var(--muted2);flex-shrink:0;"></div>`);
 
-    return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
+    return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;position:relative;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
       <div style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i)});background-size:cover;background-position:center top;opacity:${isRest?'0.06':'0.20'};pointer-events:none;border-radius:14px;"></div>
       <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.68':'0.78'}),rgba(7,5,12,${isToday?'0.52':'0.65'}));pointer-events:none;border-radius:14px;"></div>
       <div style="position:relative;z-index:1;">
