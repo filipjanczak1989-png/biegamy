@@ -731,7 +731,7 @@ body > *{position:relative;z-index:1;}
 .today-hero::after{content:'';position:absolute;inset:0;border-radius:inherit;
   background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg');
   background-size:cover;background-position:center 30%;
-  opacity:0.18;pointer-events:none;z-index:0;}
+  opacity:0.25;pointer-events:none;z-index:0;}
 .today-hero-top,.today-hero-inner{position:relative;z-index:1;}
 
 #daily-motivation{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg');
@@ -795,7 +795,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in">
+<div class="today-hero fade-in"><div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 30%;opacity:0.2;pointer-events:none;z-index:0;border-radius:inherit;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -953,8 +953,11 @@ body > *{position:relative;z-index:1;}
 <!-- SEKCJA: PROFIL -->
 <div id="section-profile" style="display:none;padding:0 0 100px;">
 
+<!-- Profil hero baner -->
+<div style="position:relative;height:140px;overflow:hidden;margin-bottom:0;"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.3) 0%,rgba(7,5,12,0.92) 100%);"></div><div style="position:absolute;bottom:16px;left:20px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;">BiegaMy</div><div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;line-height:1;">Mój profil</div></div></div>
+
   <!-- Topbar -->
-  <div style="padding:52px 20px 0;display:flex;align-items:center;justify-content:space-between;">
+  <div style="padding:16px 20px 0;display:flex;align-items:center;justify-content:space-between;">
     <div>
       <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">BiegaMy</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;margin-top:2px;">Mój profil</div>
@@ -3965,8 +3968,25 @@ async function loadSocialFeed(compact) {
     const _logDate = l.logged_at ? new Date(l.logged_at) : null;
     const date = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
     const type = l.training_type || 'Trening';
-    const _bgMap = {'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg'};
-    const _cardBg = _bgMap[type] || 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg';
+    const _bgMap = {
+    'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
+    'Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
+    'Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
+    'Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
+    'Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',
+    'Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
+    'Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
+    'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
+    'Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg','Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',
+    'Zastępczy':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg','Zastępczy':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',
+  };
+  const _allCardImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
+  function _cardImgFor(type,id){
+    if(_bgMap[type])return _bgMap[type];
+    let h=0,s=(id||'')+type;
+    for(let i=0;i<s.length;i++)h=((h<<5)-h+s.charCodeAt(i))|0;
+    return _allCardImgs[Math.abs(h)%_allCardImgs.length];
+  }    const _cardBg = _cardImgFor(type, l.id);
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
@@ -3988,7 +4008,7 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background-image:linear-gradient(135deg,rgba(7,5,12,0.78),rgba(7,5,12,0.55)),url('+_cardBg+');background-size:cover;background-position:center;">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background-image:linear-gradient(135deg,rgba(7,5,12,0.80),rgba(7,5,12,0.58)),url('+_cardBg+');background-size:cover;background-position:center top;">'
       +'<div style="position:relative;z-index:1;padding:14px 16px;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
@@ -5393,8 +5413,11 @@ const _socialBanners = [
   'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg',
   'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg',
   'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg',
-];
-let _socialBannerIdx = 0;
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg',
+];let _socialBannerIdx = 0;
 let _socialBannerTimer = null;
 function _startSocialBannerRotation() {
   if (_socialBannerTimer) return;
@@ -5418,7 +5441,7 @@ function _stopSocialBannerRotation() {
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:160px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 40%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:190px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 30%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
