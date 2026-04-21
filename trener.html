@@ -989,10 +989,6 @@ async function renderDbAthletes(list) {
     const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
       .is('read_by_coach', null);
-    // FIX: jeśli trener już widział logi (seenLogs w localStorage), nie pokazuj badge
-    // dopóki nie pojawią się nowe (sprawdzamy czy seenLogs > ostatni log)
-    const _seenTs = parseInt(localStorage.getItem('seenLogs_' + a.id) || '0');
-    const _effectiveCount = (_seenTs > 0 && count > 0) ? 0 : (count || 0);
 
     // Sprawdź czy zawodnik miał zaplanowany trening 2+ dni temu bez logu
     // ORAZ nie zalogował żadnego treningu w ciągu ostatnich 2 dni
@@ -1016,7 +1012,7 @@ async function renderDbAthletes(list) {
       hasMissed = missedTrainings && missedTrainings.length > 0;
     }
 
-    return { ...a, newLogs: _effectiveCount, hasMissed };
+    return { ...a, newLogs: count || 0, hasMissed };
   }));
 
   const totalNewLogs = withLogs.reduce((s,a) => s + a.newLogs, 0);
@@ -1100,12 +1096,6 @@ async function selA_db(athleteId) {
   
   window._selectedAthleteId = athleteId;
   await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
-
-  // FIX: zapamiętaj lokalnie że logi były widziane — badge nie wróci po reloadzie
-  localStorage.setItem('seenLogs_' + athleteId, Date.now().toString());
-  // FIX: usuń flagę newLog jeśli była ustawiona (kompatybilność wsteczna)
-  localStorage.removeItem('newLog');
-  localStorage.removeItem('newLog_' + athleteId);
 
   // Skasuj flagę "brak logu" i odśwież kartę zawodnika na liście
   const athIdx = _dbAthletes.findIndex(x => x.id === athleteId);
@@ -1924,21 +1914,6 @@ function _renderAppStatsBar(el) {
 
 function initRealtimeNotifications() {
   try {
-    // FIX: gdy zawodnik doda nowy log — wyczyść seenLogs cache dla niego
-    // żeby badge znowu się pojawił u trenera
-    _sb.channel('new-training-logs')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'training_logs' },
-        function(payload) {
-          const athId = payload.new?.athlete_id;
-          if (athId) {
-            // Usuń cache — nowy log powinien pokazać badge
-            localStorage.removeItem('seenLogs_' + athId);
-          }
-          // Odśwież listę zawodników żeby pokazać badge
-          if (typeof loadAthletes === 'function') loadAthletes();
-        })
-      .subscribe();
-
     _sb.channel('new-athletes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'athletes' },
         function(payload) {
@@ -2138,7 +2113,7 @@ async function loadCoachSocialFeed() {
   }
   const tc = { Spokojny:'#5090e0','Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840',Tempo:'#f06030',Wybieganie:'#3db870',Regeneracja:'#9a6fe8' };
   function buildCard(l) {
-    if (l.athletes && l.athletes.is_public === false) return '';
+    // Trener widzi wszystkich zawodników niezależnie od is_public
     const name = (l.athletes && l.athletes.full_name) || 'Biegacz';
     const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
@@ -3018,23 +2993,6 @@ const _tabParam = new URLSearchParams(window.location.search).get('tab');
 if (_tabParam) {
   setTimeout(() => showCoachSection(_tabParam), 900);
 }
-
-// ── SEENLOGS CACHE CLEANUP ───────────────────────────────────────
-// Czyść stare wpisy seenLogs starsze niż 24h przy każdym załadowaniu
-(function _cleanSeenLogsCache() {
-  const MAX_AGE = 24 * 60 * 60 * 1000; // 24h
-  const now = Date.now();
-  Object.keys(localStorage).forEach(function(key) {
-    if (key.startsWith('seenLogs_')) {
-      const ts = parseInt(localStorage.getItem(key) || '0');
-      if (now - ts > MAX_AGE) {
-        localStorage.removeItem(key);
-      }
-    }
-  });
-  // Usuń stare klucze newLog (kompatybilność wsteczna)
-  localStorage.removeItem('newLog');
-})();
 </script>
 
 <!-- SEKCJA WIADOMOŚCI TRENERA -->
