@@ -208,16 +208,7 @@ body > *{position:relative;z-index:1;}
   box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
 }
 /* Subtle runner illustration inside hero */
-.today-hero::after{
-  content:'';
-  position:absolute;
-  bottom:0;right:0;
-  width:140px;height:140px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='rgba(232,86,30,0.08)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='80' cy='22' r='11'/%3E%3Cpath d='M80 33 l-6 28 l-14 32'/%3E%3Cpath d='M74 61 l24 -2'/%3E%3Cpath d='M60 93 l-10 36'/%3E%3Cpath d='M66 93 l2 24 l12 20'/%3E%3Cpath d='M98 59 l10 34 l14 28'/%3E%3Cpath d='M76 52 l-20 16 l-12 24'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:contain;background-repeat:no-repeat;
-  pointer-events:none;opacity:1;
-  border-radius:0 0 var(--tile-radius-lg) 0;
-}
+
 .today-hero-inner{padding:20px 22px 22px;position:relative;z-index:1;}
 .today-label{font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px;display:flex;align-items:center;gap:7px;opacity:0.9;}
 .pulse{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulseAnim 2s ease-in-out infinite;box-shadow:0 0 6px var(--accent);}
@@ -794,7 +785,7 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- MOTYWACJA DNIA -->
-<div id="daily-motivation" class="fade-in">
+<div id="daily-motivation" class="fade-in"><div style="position:absolute;inset:0;border-radius:inherit;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg);background-size:cover;background-position:center;opacity:1;pointer-events:none;z-index:0;"></div><div style="position:absolute;inset:0;border-radius:inherit;background:rgba(7,5,12,0.78);pointer-events:none;z-index:0;"></div><div style="position:absolute;inset:0;border-radius:inherit;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg);background-size:cover;background-position:center;opacity:1;pointer-events:none;z-index:0;"></div><div style="position:absolute;inset:0;border-radius:inherit;background:rgba(7,5,12,0.78);pointer-events:none;z-index:0;"></div>
   <div id="motiv-content" style="display:flex;align-items:flex-start;gap:14px;">
     <div id="motiv-icon" style="flex-shrink:0;line-height:0;overflow:visible;margin-left:-16px;"><svg width="126" height="44" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="#e8561e">My</tspan></text></svg></div>
     <div style="flex:1;">
@@ -804,7 +795,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in">
+<div class="today-hero fade-in"><div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 30%;opacity:0.18;pointer-events:none;z-index:0;border-radius:inherit;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -3988,7 +3979,7 @@ async function loadSocialFeed(compact) {
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
       if (urls.length) screensHtml = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'
-        +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>'+'</div>';
+        +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>'+'</div>'+'</div>';
     }
     const reactBar = compact ? '' : (
       '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
@@ -3998,6 +3989,10 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
     return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;">'
+      +'<div style="position:absolute;inset:0;border-radius:14px;background-image:url('+_cardBg+');background-size:cover;background-position:center;opacity:0.13;pointer-events:none;"></div>'
+      +'<div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,rgba(7,5,12,0.82),rgba(7,5,12,0.62));pointer-events:none;"></div>'
+      +'<div style="position:relative;z-index:1;padding:14px 16px;">'
+      +
       +'<div style="position:absolute;inset:0;border-radius:14px;background-image:url('+_cardBg+');background-size:cover;background-position:center;opacity:0.13;pointer-events:none;"></div>'
       +'<div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,rgba(7,5,12,0.82),rgba(7,5,12,0.60));pointer-events:none;"></div>'
       +'<div style="position:relative;z-index:1;padding:14px 16px;">'
