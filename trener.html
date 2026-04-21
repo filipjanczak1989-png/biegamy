@@ -1034,9 +1034,9 @@ async function renderDbAthletes(list) {
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         ${a.hasMissed
-          ? `<div style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;" title="Brak logu 2+ dni przy zaplanowanym treningu" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="cursor:pointer;">⚠ brak logu</div>`
+          ? `<div data-badge="missed" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
           : a.newLogs > 0
-            ? `<div onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🆕 ${a.newLogs} log</div>`
+            ? `<div data-badge="new" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🆕 ${a.newLogs} log</div>`
             : '<div class="ath-dot off"></div>'}
         <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
@@ -1071,19 +1071,24 @@ async function selA_db_logs(athleteId) {
   await selA_db(athleteId);
   const lgTab = document.querySelectorAll('.ptab')[2];
   if (lgTab) ptab('lg', lgTab);
-  // Resetuj badge po wejściu w logi
-  const athIdx = _dbAthletes ? _dbAthletes.findIndex(x => x.id === athleteId) : -1;
+
+  // Resetuj badge w danych
+  const athIdx = (_dbAthletes||[]).findIndex(x => x.id === athleteId);
   if (athIdx !== -1) {
     _dbAthletes[athIdx] = { ..._dbAthletes[athIdx], newLogs: 0, hasMissed: false };
-    // Zaktualizuj wizualnie kartę zawodnika
-    document.querySelectorAll('.ath-card').forEach(card => {
-      const cid = card.getAttribute('data-athlete-id');
-      if (cid === String(athleteId) || card.getAttribute('onclick')?.includes(athleteId)) {
-        const badge = card.querySelector('[style*="green"], [style*="red"], [title*="Brak logu"]');
-        if (badge) badge.style.display = 'none';
-      }
-    });
   }
+
+  // Ukryj badge wizualnie - szukaj po data-badge w karcie tego zawodnika
+  document.querySelectorAll('[data-athlete-id]').forEach(card => {
+    if (card.getAttribute('data-athlete-id') === String(athleteId)) {
+      card.querySelectorAll('[data-badge]').forEach(b => b.style.display = 'none');
+    }
+  });
+
+  // Zaktualizuj licznik 'Nowe logi' u góry
+  const totalNew = (_dbAthletes||[]).reduce((s,a) => s + (a.newLogs||0), 0);
+  const statEl = document.getElementById('stat-logs');
+  if (statEl) statEl.textContent = totalNew || '0';
 }
 
 async function selA_db(athleteId) {
@@ -2117,23 +2122,8 @@ async function loadCoachSocialFeed() {
   const feedEl = document.getElementById('coach-feed-content');
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
-  // Pobierz ID zawodników tego trenera (wszyscy - publiczni i prywatni)
-  // _dbAthletes jest już załadowane przy starcie - używamy go
-  let _feedAthleteIds = (_dbAthletes || []).map(a => a.id);
-  if (!_feedAthleteIds.length) {
-    // Fallback: pobierz bezpośrednio z bazy
-    const { data: _fa } = await _sb.from('athletes')
-      .select('id').eq('coach_id', _coachId).eq('active', true).limit(100);
-    _feedAthleteIds = (_fa || []).map(a => a.id);
-  }
-  if (!_feedAthleteIds.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak zawodnik\u00f3w.</div>';
-    return;
-  }
-  // Filtruj po athlete_id - omija RLS który blokuje prywatnych zawodników
   const { data: logs } = await _sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public)')
-    .in('athlete_id', _feedAthleteIds)
     .order('logged_at', { ascending: false }).limit(30);
   if (!logs || !logs.length) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
