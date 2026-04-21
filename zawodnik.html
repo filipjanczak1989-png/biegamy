@@ -736,27 +736,29 @@ body > *{position:relative;z-index:1;}
 @keyframes navTap{0%{transform:translateX(-50%) scaleX(0);opacity:0;}50%{transform:translateX(-50%) scaleX(1);opacity:1;}100%{transform:translateX(-50%) scaleX(0.6);opacity:0.6;}}
 
 
-#daily-motivation{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg');
-  background-size:cover;background-position:center;
-  position:relative;
-}
-#daily-motivation::before{
-  content:'';position:absolute;inset:0;
-  background:rgba(7,5,12,0.75);
-  border-radius:inherit;pointer-events:none;z-index:0;
-}
-#daily-motivation>*{position:relative;z-index:1;}
-
 .today-hero{position:relative;overflow:hidden;}
-.today-hero::after{
-  content:'';position:absolute;inset:0;
-  border-radius:inherit;
+.today-hero::after{content:'';position:absolute;inset:0;border-radius:inherit;
   background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg');
   background-size:cover;background-position:center 30%;
-  opacity:0.18;pointer-events:none;z-index:0;
-}
+  opacity:0.18;pointer-events:none;z-index:0;}
 .today-hero-top,.today-hero-inner{position:relative;z-index:1;}
+
+#daily-motivation{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg');
+  background-size:cover;background-position:center;position:relative;}
+#daily-motivation::before{content:'';position:absolute;inset:0;
+  background:rgba(7,5,12,0.75);border-radius:inherit;pointer-events:none;z-index:0;}
+#daily-motivation>*{position:relative;z-index:1;}
+
+.ob-hero{position:relative;overflow:hidden;}
+#ob-s1 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg');background-size:cover;background-position:center top;}
+#ob-s2 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg');background-size:cover;background-position:center top;}
+#ob-s3 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg');background-size:cover;background-position:center top;}
+#ob-s4 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg');background-size:cover;background-position:center top;}
+#ob-s5 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg');background-size:cover;background-position:center top;}
+.ob-hero::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,rgba(7,5,12,0.3) 0%,rgba(7,5,12,0.80) 100%);
+  pointer-events:none;z-index:0;}
+.ob-hero>*{position:relative;z-index:1;}
 </style>
 </head>
 <body>
@@ -1793,7 +1795,6 @@ function calcTimeAuto() {
   if(timeLbl) timeLbl.textContent = '← auto';
 }
 function showSection(name) {
-  // Rotacja banera — start/stop przy wejściu/wyjściu z social
   if (name === 'social') _startSocialBannerRotation();
   else _stopSocialBannerRotation();
   // Reset all nav items
@@ -3170,15 +3171,11 @@ async function loadWeekPlan() {
 
   const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
   const typeBgMap = {
-    'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
-    'Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
-    'Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
-    'Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
+    'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
+    'Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
     'Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
-    'Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
-    'Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
-    'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
-    'Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
+    'Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
+    'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
   };
   const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
@@ -3203,9 +3200,9 @@ async function loadWeekPlan() {
       : (isRest ? `<div style="width:8px;height:8px;border-radius:50%;background:var(--muted2);flex-shrink:0;"></div>`
       : `<div style="width:8px;height:8px;border-radius:50%;border:1px solid var(--muted2);flex-shrink:0;"></div>`);
 
-    return `<div style="position:relative;background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
-      <div style="position:absolute;inset:0;background-image:url('${typeBgMap[t.type]||'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg'}');background-size:cover;background-position:center;opacity:${isRest?'0.05':'0.11'};pointer-events:none;border-radius:14px;"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.70':'0.78'}),rgba(7,5,12,${isToday?'0.55':'0.65'}));pointer-events:none;border-radius:14px;"></div>
+    return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
+      <div style="position:absolute;inset:0;background-image:url(${typeBgMap[t.type]||'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg'});background-size:cover;background-position:center;opacity:${isRest?'0.05':'0.11'};pointer-events:none;border-radius:14px;"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.68':'0.78'}),rgba(7,5,12,${isToday?'0.52':'0.65'}));pointer-events:none;border-radius:14px;"></div>
       <div style="position:relative;z-index:1;">
       <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
         <div style="width:44px;height:44px;border-radius:12px;background:${isToday?'var(--accent)':'rgba(255,255,255,0.04)'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
@@ -3323,8 +3320,8 @@ async function updateWeekProgress() {
   if (arc) Anim.ringArc(arc, offset);
   if (pctEl) Anim.countUp(pctEl, pct, 800, '%');
   if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
-  if (kmEl) Anim.countUp(kmEl, totalKm, 900);
-  if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + plannedKm.toFixed(0) + ' km' : 'km ten tydzień';
+  if (kmEl) { const safeKm = isNaN(totalKm) ? 0 : totalKm; Anim.countUp(kmEl, safeKm, 900); }
+  if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + (isNaN(plannedKm) ? 0 : plannedKm).toFixed(0) + ' km' : 'km ten tydzień';
 }
 
 async function loadTodayTraining() {
@@ -5432,7 +5429,7 @@ function _stopSocialBannerRotation() {
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:160px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 40%;transition:opacity 0.6s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:160px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 40%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
