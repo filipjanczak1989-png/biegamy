@@ -208,16 +208,7 @@ body > *{position:relative;z-index:1;}
   box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
 }
 /* Subtle runner illustration inside hero */
-.today-hero::after{
-  content:'';
-  position:absolute;
-  bottom:0;right:0;
-  width:140px;height:140px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='rgba(232,86,30,0.08)' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='80' cy='22' r='11'/%3E%3Cpath d='M80 33 l-6 28 l-14 32'/%3E%3Cpath d='M74 61 l24 -2'/%3E%3Cpath d='M60 93 l-10 36'/%3E%3Cpath d='M66 93 l2 24 l12 20'/%3E%3Cpath d='M98 59 l10 34 l14 28'/%3E%3Cpath d='M76 52 l-20 16 l-12 24'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:contain;background-repeat:no-repeat;
-  pointer-events:none;opacity:1;
-  border-radius:0 0 var(--tile-radius-lg) 0;
-}
+
 .today-hero-inner{padding:20px 22px 22px;position:relative;z-index:1;}
 .today-label{font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px;display:flex;align-items:center;gap:7px;opacity:0.9;}
 .pulse{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulseAnim 2s ease-in-out infinite;box-shadow:0 0 6px var(--accent);}
