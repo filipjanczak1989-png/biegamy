@@ -4,10 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BiegaMy — Mój Plan</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"></noscript>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ══ BIEGAMY — PREMIUM UI v3 ══════════════════════════════════════════ */
 :root{
@@ -52,27 +49,6 @@
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{background:var(--bg);}
-/* ── DESKTOP CENTERING ─────────────────────────────────────────────── */
-@media (min-width: 520px) {
-  body {
-    max-width: 480px;
-    margin: 0 auto;
-    box-shadow: 0 0 60px rgba(0,0,0,0.8);
-    min-height: 100vh;
-    position: relative;
-  }
-  /* Fix fixed elements na desktop */
-  #main-bottom-nav, .toast-wrap, #modal-bg, #onboarding-modal {
-    max-width: 480px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  #modal-bg, #onboarding-modal {
-    transform: none;
-    left: calc(50% - 240px);
-    width: 480px;
-  }
-}
 
 /* ── BODY + RUNNER BG ───────────────────────────────────────────────── */
 body{
@@ -94,7 +70,7 @@ body{
 /* Atmospheric runner silhouette in background */
 body::before{
   content:'';
-  position:absolute;
+  position:fixed;
   bottom:80px;
   right:-20px;
   width:220px;
@@ -108,7 +84,7 @@ body::before{
 }
 body::after{
   content:'';
-  position:absolute;
+  position:fixed;
   top:160px;
   left:-30px;
   width:180px;
@@ -147,9 +123,10 @@ body > *{position:relative;z-index:1;}
 .log-card::before,.profile-card::before{
   content:'';
   position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,0.025) 0%,transparent 60%);
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
   pointer-events:none;
   border-radius:inherit;
+  mix-blend-mode:overlay;
   z-index:0;
 }
 /* Ensure card children sit above noise */
@@ -166,7 +143,7 @@ body > *{position:relative;z-index:1;}
   width:38px;height:38px;border-radius:50%;
   background:rgba(255,255,255,0.04);border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
-  position:relative;transition:transform 0.2s ease,opacity 0.2s ease;
+  position:relative;transition:all 0.2s;
 }
 .notif-bell-z:hover{border-color:var(--border2);background:rgba(255,255,255,0.07);}
 .topbar-avatar{
@@ -176,7 +153,7 @@ body > *{position:relative;z-index:1;}
   display:flex;align-items:center;justify-content:center;
   font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--accent);
   box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);
-  transition:transform 0.2s ease,opacity 0.2s ease;cursor:pointer;
+  transition:all 0.2s;cursor:pointer;
 }
 .topbar-avatar:hover{box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.12);}
 
@@ -194,38 +171,22 @@ body > *{position:relative;z-index:1;}
 /* ── MOTIVACJA ──────────────────────────────────────────────────────── */
 #daily-motivation{
   margin:0 16px 16px;
-  background:linear-gradient(145deg,rgba(15,10,8,0.92) 0%,rgba(20,12,8,0.85) 100%);
-  border:1px solid rgba(232,86,30,0.25);
+  background:linear-gradient(145deg,rgba(232,86,30,0.1) 0%,rgba(232,86,30,0.04) 50%,rgba(78,140,214,0.03) 100%);
+  border:1px solid rgba(232,86,30,0.2);
   border-radius:var(--tile-radius);
   padding:var(--tile-pad);
   position:relative;overflow:hidden;
-  box-shadow:0 4px 28px rgba(232,86,30,0.15);
+  box-shadow:0 4px 20px rgba(232,86,30,0.08);
 }
-/* Photo background */
-#daily-motivation .motiv-bg{
-  position:absolute;inset:0;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg');
-  background-size:cover;
-  background-position:center center;
-  background-size:120%;
-  opacity:0.30;
-  border-radius:var(--tile-radius);
-  pointer-events:none;
-  transition:opacity 0.6s ease;
-}
-#daily-motivation:hover .motiv-bg{ opacity:0.42; }
 #daily-motivation::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(232,86,30,0.8),rgba(255,160,80,0.4),transparent);
-  z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(232,86,30,0.65),rgba(78,140,214,0.3),transparent);
 }
 #daily-motivation::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(to bottom, rgba(7,7,10,0.2) 0%, rgba(7,7,10,0.55) 100%);
+  content:'';position:absolute;top:-50px;right:-25px;width:140px;height:140px;
+  background:radial-gradient(circle,rgba(232,86,30,0.08),transparent 70%);
   pointer-events:none;
-  z-index:1;
 }
-#daily-motivation > *{ position:relative;z-index:3; }
 #motiv-icon{flex-shrink:0;line-height:0;padding-top:2px;}
 #motiv-text{font-size:13px;line-height:1.7;color:var(--fg);font-style:italic;font-weight:300;}
 #motiv-source{font-size:9px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;opacity:0.85;}
@@ -237,24 +198,6 @@ body > *{position:relative;z-index:1;}
   border-radius:var(--tile-radius-lg);
   border:1px solid rgba(255,255,255,0.08);
   overflow:visible;
-  position:relative;
-}
-
-/* Hero background image */
-.today-hero::after{
-  content:'';
-  position:absolute;
-  inset:0;
-  border-radius:var(--tile-radius-lg);
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg');
-  background-size:cover;
-  background-position:center 30%;
-  opacity:0.22;
-  z-index:0;
-  pointer-events:none;
-  transition:opacity 0.6s ease;
-}
-.today-hero:hover::after{ opacity:0.30; }
   box-shadow:var(--tile-shadow-lg);
 }
 /* Orange top accent line */
@@ -265,7 +208,7 @@ body > *{position:relative;z-index:1;}
   box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
 }
 /* Subtle runner illustration inside hero */
-.today-hero::before{
+.today-hero::after{
   content:'';
   position:absolute;
   bottom:0;right:0;
@@ -425,7 +368,6 @@ body > *{position:relative;z-index:1;}
 .log-card{
   background:linear-gradient(135deg,rgba(18,16,24,0.92),rgba(12,11,18,0.96));
   border-radius:var(--tile-radius);
-  contain:layout paint style;
   border:1px solid rgba(255,255,255,0.07);
   overflow:hidden;position:relative;
   transition:transform var(--dur-fast) var(--ease-out),border-color 0.18s,box-shadow 0.18s;
@@ -465,12 +407,11 @@ body > *{position:relative;z-index:1;}
   position:fixed;bottom:0;left:50%;transform:translateX(-50%);
   width:100%;max-width:420px;
   background:rgba(7,7,11,0.92);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
   border-top:1px solid rgba(255,255,255,0.07);
   border-radius:28px 28px 0 0;
   display:flex;padding:10px 6px 22px;z-index:50;
   box-shadow:0 -8px 40px rgba(0,0,0,0.5);
-  will-change:transform;
 }
 .nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}
 /* Unified nav label sizes */
@@ -535,13 +476,13 @@ body > *{position:relative;z-index:1;}
   background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
   color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;
   letter-spacing:0.06em;padding:8px 14px;border-radius:20px;cursor:pointer;
-  transition:transform 0.15s ease,opacity 0.15s ease;
+  transition:all 0.15s;
 }
 .type-pill.on{background:rgba(232,86,30,0.13);border-color:rgba(232,86,30,0.4);color:var(--accent);}
 
 /* Feel buttons */
 .feel-grid{display:flex;flex-direction:row;gap:8px;}
-.feel-btn{flex:1;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);font-size:20px;cursor:pointer;transition:transform 0.15s ease,opacity 0.15s ease;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;gap:4px;}
+.feel-btn{flex:1;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);font-size:20px;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;gap:4px;}
 .feel-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;}
 .feel-btn:hover{transform:scale(1.06);}
 .feel-btn.sel-good{border-color:var(--green);background:rgba(61,184,112,0.12);}
@@ -600,16 +541,16 @@ body > *{position:relative;z-index:1;}
   position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
   background:rgba(12,12,18,0.96);border:1px solid rgba(255,255,255,0.1);
   color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;
-  padding:10px 20px;border-radius:22px;opacity:0;transition:transform 0.25s ease,opacity 0.25s ease;
-  white-space:nowrap;z-index:9999;backdrop-filter:blur(8px);
+  padding:10px 20px;border-radius:22px;opacity:0;transition:all 0.25s;
+  white-space:nowrap;z-index:9999;backdrop-filter:blur(16px);
   box-shadow:0 8px 32px rgba(0,0,0,0.6);
 }
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── VOICE / EMOJI / GIF ────────────────────────────────────────────── */
-.voice-btn,.voice-btn-t{transition:transform 0.15s ease,opacity 0.15s ease;}
+.voice-btn,.voice-btn-t{transition:all 0.15s;}
 .voice-btn.recording,.voice-btn-t.recording{background:rgba(224,80,80,0.15);border-color:rgba(224,80,80,0.4);color:var(--red);animation:recPulse 1s infinite;}
-@keyframes recPulse{0%,100%{transform:scale(1);opacity:0.9;}50%{transform:scale(1.08);opacity:0.6;}}
+@keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,80,80,0.4);}50%{box-shadow:0 0 0 8px rgba(224,80,80,0);}}
 .emoji-picker{position:absolute;bottom:calc(100% + 8px);left:0;background:var(--card2);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:12px;display:none;flex-wrap:wrap;gap:5px;width:282px;max-height:180px;overflow-y:auto;z-index:200;box-shadow:0 8px 40px rgba(0,0,0,0.6);}
 .emoji-picker.open{display:flex;}
 .emoji-btn{font-size:20px;background:none;border:none;cursor:pointer;padding:3px;border-radius:8px;transition:background 0.1s;line-height:1;}
@@ -648,7 +589,7 @@ body > *{position:relative;z-index:1;}
 .pchat-badge{background:var(--accent);color:#fff;font-size:10px;border-radius:10px;min-width:20px;padding:2px 6px;font-family:'DM Mono',monospace;font-weight:700;text-align:center;box-shadow:0 2px 8px var(--glow-o);}
 .pchat-new-tag{background:rgba(232,86,30,0.15);color:var(--accent);font-size:9px;border-radius:4px;padding:2px 6px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;}
 .pchat-view{display:none;position:fixed;inset:0;background:var(--bg);z-index:56;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);}
-.pchat-view-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(7,7,10,0.98);backdrop-filter:blur(8px);flex-shrink:0;}
+.pchat-view-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(7,7,10,0.98);backdrop-filter:blur(12px);flex-shrink:0;}
 .pchat-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:26px;padding:0 4px;line-height:1;transition:color 0.15s;}
 .pchat-back:hover{color:var(--fg);}
 .pchat-view-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;flex-shrink:0;box-shadow:0 0 12px var(--glow-o);}
@@ -665,15 +606,15 @@ body > *{position:relative;z-index:1;}
 .pchat-bubble img,.pchat-bubble video{max-width:100%;border-radius:10px;display:block;margin:2px 0;}
 .pchat-msg-row.them .pchat-bubble{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:18px 18px 18px 4px;}
 .pchat-time-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 4px;}
-.pchat-input-area{flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;box-sizing:border-box;}
+.pchat-input-area{flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
 .pchat-input-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:24px;padding:5px 5px 5px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
 .pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;padding:4px 0;}
 .pchat-input-row input::placeholder{color:var(--muted);}
-.pchat-act{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:5px;border-radius:50%;transition:transform 0.15s ease,opacity 0.15s ease;flex-shrink:0;}
+.pchat-act{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:5px;border-radius:50%;transition:all 0.15s;flex-shrink:0;}
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
-.pchat-send{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.2s ease,opacity 0.2s ease;box-shadow:0 2px 10px var(--glow-o);}
+.pchat-send{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;box-shadow:0 2px 10px var(--glow-o);}
 .pchat-send:hover{transform:scale(1.08);box-shadow:0 4px 16px var(--glow-o);}
 
 /* ── NOTIF ──────────────────────────────────────────────────────────── */
@@ -694,40 +635,6 @@ body > *{position:relative;z-index:1;}
   flex-shrink:0;
   background:linear-gradient(180deg,rgba(232,86,30,0.1) 0%,transparent 100%);
   padding:max(52px,env(safe-area-inset-top,0px)) 24px 24px;
-  position:relative;overflow:hidden;
-}
-/* Tła graficzne dla każdego ekranu onboardingu */
-.ob-hero::before{
-  content:'';position:absolute;inset:0;
-  background-size:cover;background-position:center 30%;
-  opacity:0.12;z-index:0;pointer-events:none;
-  transition:opacity 0.5s ease;
-}
-.ob-hero > *{position:relative;z-index:1;}
-/* Ekran 1 — but na bieżni */
-#ob-s1 .ob-hero::before{
-  /* bg-lazy */
-  opacity:0.15;
-}
-/* Ekran 2 — para na bieżni */
-#ob-s2 .ob-hero::before{
-  /* bg-lazy */
-  background-position:center top;
-}
-/* Ekran 3 — zegarek Garmin */
-#ob-s3 .ob-hero::before{
-  /* bg-lazy */
-  background-position:center 40%;
-}
-/* Ekran 4 — para w parku */
-#ob-s4 .ob-hero::before{
-  /* bg-lazy */
-  background-position:center 60%;
-}
-/* Ekran 5 — kolaż biegaczy */
-#ob-s5 .ob-hero::before{
-  /* bg-lazy */
-  background-position:center;
 }
 .ob-progress{display:flex;gap:5px;margin-bottom:24px;}
 .ob-pip{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 0.3s;}
@@ -741,7 +648,7 @@ body > *{position:relative;z-index:1;}
   width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
   border-radius:14px;padding:16px;font-family:'Bebas Neue',sans-serif;
   font-size:20px;letter-spacing:0.08em;cursor:pointer;
-  transition:transform 0.15s ease,opacity 0.15s ease;box-shadow:0 4px 24px rgba(232,86,30,0.35);
+  transition:all 0.15s;box-shadow:0 4px 24px rgba(232,86,30,0.35);
 }
 .ob-btn:active{transform:scale(0.98);}
 .ob-btn-ghost{
@@ -753,7 +660,7 @@ body > *{position:relative;z-index:1;}
   background:linear-gradient(145deg,rgba(20,18,28,0.9),rgba(12,11,18,0.95));
   border:1px solid rgba(255,255,255,0.09);
   border-radius:var(--tile-radius);padding:15px 16px;margin-bottom:10px;
-  cursor:pointer;transition:transform 0.18s ease,opacity 0.18s ease;display:flex;align-items:center;gap:14px;
+  cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:14px;
   box-shadow:0 4px 16px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.03) inset;
 }
 .ob-card:active,.ob-card.sel{
@@ -767,7 +674,7 @@ body > *{position:relative;z-index:1;}
 .ob-card-icon{font-size:28px;flex-shrink:0;width:42px;text-align:center;}
 .ob-card-name{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:2px;}
 .ob-card-sub{font-size:12px;color:var(--muted);line-height:1.4;}
-.ob-check{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:transform 0.18s ease,opacity 0.18s ease;}
+.ob-check{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all 0.18s;}
 .ob-card.sel .ob-check{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(232,86,30,0.35);}
 .ob-field{margin-bottom:14px;}
 .ob-label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
@@ -790,13 +697,13 @@ body > *{position:relative;z-index:1;}
   background:rgba(232,86,30,0.07);
   display:flex;align-items:center;justify-content:center;
   font-size:40px;margin:0 auto 14px;cursor:pointer;
-  transition:transform 0.2s ease,opacity 0.2s ease;overflow:hidden;position:relative;
+  transition:all 0.2s;overflow:hidden;position:relative;
 }
 .ob-avatar-circle:hover{border-color:var(--accent);box-shadow:0 0 24px rgba(232,86,30,0.25);}
 .ob-coach-card{
   display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.03);
   border:1px solid rgba(255,255,255,0.08);border-radius:13px;
-  padding:14px;margin-bottom:8px;cursor:pointer;transition:transform 0.15s ease,opacity 0.15s ease;
+  padding:14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;
 }
 .ob-coach-card.selected{background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.38);}
 
@@ -818,11 +725,10 @@ body > *{position:relative;z-index:1;}
 @keyframes successBounce{0%{opacity:0;transform:scale(0.5);}60%{transform:scale(1.15);}80%{transform:scale(0.95);}100%{opacity:1;transform:scale(1);}}
 .success-pop{animation:successBounce 0.4s var(--ease-spring) both;}
 .count-up{transition:none;}
-.progress-bar-fill{transition:width 0.6s var(--ease-out);}
-.ring-arc-animated{transition:stroke-dashoffset 0.8s var(--ease-out);}
-@keyframes shimmer{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
-.skeleton{background:var(--card2);border-radius:6px;overflow:hidden;position:relative;}
-.skeleton::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.07) 50%,transparent 100%);animation:shimmer 1.4s ease-in-out infinite;will-change:transform;}
+.progress-bar-fill{transition:width 0.6s var(--ease-out);will-change:width;}
+.ring-arc-animated{transition:stroke-dashoffset 0.8s var(--ease-out);will-change:stroke-dashoffset;}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+.skeleton{background:linear-gradient(90deg,var(--card2) 25%,rgba(255,255,255,0.06) 50%,var(--card2) 75%);background-size:200% 100%;animation:shimmer 1.4s ease-in-out infinite;border-radius:6px;}
 @keyframes sectionIn{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
 .section-in{animation:sectionIn var(--dur-normal) var(--ease-out) both;}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.92);}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}}
@@ -830,447 +736,118 @@ body > *{position:relative;z-index:1;}
 @keyframes navTap{0%{transform:translateX(-50%) scaleX(0);opacity:0;}50%{transform:translateX(-50%) scaleX(1);opacity:1;}100%{transform:translateX(-50%) scaleX(0.6);opacity:0.6;}}
 
 
+/* ══ GRAFIKI Z SUPABASE STORAGE ══════════════════════════════════ */
 
-/* ── SOCIAL SECTION BG IMAGE ─────────────────────────────────────── */
-#section-social .social-hero-bg,
-#home-social-preview .social-hero-bg {
-  position:absolute;inset:0;
-  /* bg: lazy */
-  background-size:cover;
-  background-position:center 40%;
-  opacity:0.20;
-  border-radius:inherit;
-  pointer-events:none;
-  transition:opacity 0.6s ease;
-}
-/* Home preview ma inną grafikę */
-#home-social-preview .social-hero-bg {
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/social-bg-main.jpg');
-}
-
-
-/* ══ SOCIAL SECTION PREMIUM ══════════════════════════════════════════ */
-.social-hero-banner {
-  position:relative;
-  height:220px;
-  overflow:hidden;
-  border-radius:0 0 24px 24px;
-  margin-bottom:16px;
-}
-.social-hero-banner::before {
-  content:'';
-  position:absolute;inset:0;
-  /* bg: lazy */
-  background-size:cover;
-  background-position:center 60%;
-  opacity:0;
-  transition:opacity 1.2s ease;
-}
-.social-hero-banner::after {
-  content:'';
-  position:absolute;inset:0;
-  /* bg: lazy */
-  background-size:cover;
-  background-position:center 55%;
-  opacity:0;
-  transition:opacity 1.2s ease;
-  z-index:0;
-}
-.social-hero-banner .social-hero-inner {
-  z-index:2;
-}
-.social-hero-banner.bg-1::before { opacity:0.70; }
-.social-hero-banner.bg-2::after  { opacity:0.70; }
-/* bg-3 — kolaż biegaczy */
-.social-hero-banner.bg-3::before {
-  /* bg: lazy */
-  background-size:cover;background-position:center top;
-  opacity:0.70;
-}
-.social-hero-banner.bg-3::after {
-  /* bg: lazy */
-  background-size:cover;background-position:center;
-  opacity:0.70;
-}
-/* overlay gradient stays on top */
-.social-hero-overlay {
-  position:absolute;inset:0;z-index:1;
-  background:linear-gradient(to bottom, rgba(7,7,10,0.05) 0%, rgba(7,7,10,0.78) 100%);
-}
-.social-hero-banner::after {
-  content:'';
-  position:absolute;inset:0;
-  background:linear-gradient(to bottom, rgba(7,7,10,0.1) 0%, rgba(7,7,10,0.75) 100%);
-}
-.social-hero-inner {
-  position:relative;z-index:1;
-  height:100%;display:flex;flex-direction:column;justify-content:flex-end;
-  padding:16px 20px;
-}
-.social-hero-title {
-  font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:0.04em;
-  line-height:1;margin-bottom:2px;
-}
-.social-hero-sub {
-  font-size:10px;letter-spacing:0.2em;text-transform:uppercase;
-  color:rgba(240,237,232,0.6);font-family:'DM Mono',monospace;
-}
-
-/* Krąg / Stories row */
-.social-circle-row {
-  display:flex;gap:12px;padding:0 16px 4px;
-  overflow-x:auto;scrollbar-width:none;margin-bottom:4px;
-}
-.social-circle-row::-webkit-scrollbar{display:none;}
-.social-circle-item {
-  display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;
-  cursor:pointer;
-}
-.social-circle-av {
-  width:52px;height:52px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Bebas Neue',sans-serif;font-size:18px;
-  border:2px solid transparent;
-  background-clip:padding-box;
-  position:relative;
-}
-.social-circle-av.has-activity::before {
-  content:'';position:absolute;inset:-3px;
-  border-radius:50%;
-  background:linear-gradient(135deg,var(--accent),#ff9060,var(--accent2));
-  z-index:-1;
-}
-.social-circle-av.coach::before {
-  background:linear-gradient(135deg,#3db870,#5090e0);
-}
-.social-circle-lbl {
-  font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;
-  letter-spacing:0.05em;white-space:nowrap;max-width:54px;
-  overflow:hidden;text-overflow:ellipsis;text-align:center;
-}
-
-/* Feed card upgrade */
-.social-card {
-  background:var(--card);
-  border:1px solid var(--card-border, var(--border));
-  border-radius:16px;margin-bottom:10px;overflow:hidden;
-  position:relative;
-  transition:transform 0.2s var(--ease-out), border-color 0.2s, box-shadow 0.2s;
-}
-/* Type-colored left accent bar */
-.social-card::before {
-  content:'';
-  position:absolute;top:0;left:0;bottom:0;width:3px;
-  background:var(--card-accent, var(--accent));
-  border-radius:16px 0 0 16px;
-}
-/* Subtle gradient background tinted by type */
-.social-card::after {
-  content:'';
-  position:absolute;inset:0;
-  background:linear-gradient(135deg, var(--card-tint, rgba(232,86,30,0.05)) 0%, transparent 55%);
-  pointer-events:none;
-  border-radius:16px;
-}
-.social-card:hover{
-  border-color:var(--card-border-hover, rgba(255,255,255,0.13));
-  transform:translateY(-2px);
-  box-shadow:0 8px 28px rgba(0,0,0,0.45);
-}
-.social-card-header {
-  display:flex;align-items:center;gap:10px;padding:12px 14px 8px;
-}
-.social-card-av {
-  width:38px;height:38px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-family:'Bebas Neue',sans-serif;font-size:14px;
-  flex-shrink:0;
-}
-.social-card-name {font-size:13px;font-weight:600;}
-.social-card-time {font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
-.social-card-type {
-  margin-left:auto;font-size:9px;font-family:'DM Mono',monospace;
-  letter-spacing:0.1em;text-transform:uppercase;
-  padding:3px 8px;border-radius:20px;flex-shrink:0;
-}
-.social-card-stats {
-  display:flex;gap:0;padding:4px 14px 10px;
-}
-.social-stat {flex:1;text-align:center;}
-.social-stat-val {
-  font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;
-}
-.social-stat-lbl {
-  font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;
-  letter-spacing:0.1em;text-transform:uppercase;margin-top:1px;
-}
-.social-card-img {
-  width:100%;max-height:160px;object-fit:cover;display:block;
-  cursor:pointer;
-}
-.social-card-comment {
-  font-size:12px;color:rgba(240,237,232,0.65);font-style:italic;
-  padding:6px 14px 8px;line-height:1.5;
-}
-.social-badge-pb {
-  display:inline-flex;align-items:center;gap:5px;
-  background:rgba(232,184,64,0.15);border:1px solid rgba(232,184,64,0.4);
-  color:#e8b840;font-family:'DM Mono',monospace;font-size:9px;
-  letter-spacing:0.1em;text-transform:uppercase;
-  padding:4px 10px;border-radius:20px;margin:0 14px 8px;
-}
-
-/* Reaction bar */
-.social-reactions {
-  display:flex;align-items:center;
-  border-top:1px solid rgba(255,255,255,0.05);
-  padding:8px 10px;gap:2px;
-}
-.react-btn {
-  display:flex;align-items:center;gap:4px;
-  background:transparent;border:1px solid transparent;
-  border-radius:20px;padding:6px 10px;
-  font-size:13px;cursor:pointer;
-  transition:transform 0.15s ease,opacity 0.15s ease var(--ease-spring);
-  color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;
-}
-.react-btn:active{transform:scale(0.9);}
-.react-btn.on{
-  background:rgba(232,86,30,0.12);
-  border-color:rgba(232,86,30,0.3);
-  color:var(--accent);
-}
-.react-btn.on .react-emoji{animation:reactPop 0.35s var(--ease-spring);}
-@keyframes reactPop{
-  0%{transform:scale(1);}
-  50%{transform:scale(1.5);}
-  100%{transform:scale(1);}
-}
-.react-count{font-size:11px;font-family:'DM Mono',monospace;}
-.react-comment-btn{
-  margin-left:auto;background:none;border:none;
-  color:var(--muted);cursor:pointer;font-size:11px;
-  font-family:'DM Mono',monospace;letter-spacing:0.06em;
-  display:flex;align-items:center;gap:4px;padding:6px 8px;
-  border-radius:8px;transition:color 0.15s;
-}
-.react-comment-btn:hover{color:var(--fg);}
-
-/* Slide in for social cards */
-.social-card{
-  opacity:0;transform:translateY(20px) translateZ(0);
-  animation:socialCardIn 0.4s var(--ease-out) forwards;
-  will-change:transform,opacity;
-  contain:layout paint style;
-}
-/* Tła graficzne na kartach logów — per typ treningu */
-.social-card{position:relative;overflow:hidden;}
-.social-card::before{
+/* today-hero — hero-bg.jpg */
+.today-hero::after{
   content:'';position:absolute;inset:0;
-  /* bg: lazy */
+  border-radius:inherit;
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg');
+  background-size:cover;background-position:center 30%;
+  opacity:0.18;pointer-events:none;z-index:0;
+}
+.today-hero{position:relative;overflow:hidden;}
+.today-hero-top,.today-hero-inner{position:relative;z-index:1;}
+
+/* daily-motivation — motiv-bg.jpg */
+#daily-motivation{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg');
   background-size:cover;background-position:center;
-  opacity:0.06;pointer-events:none;z-index:0;
-  transition:opacity 0.4s ease;
-}
-.social-card:hover::before{opacity:0.10;}
-/* Interwały — zegarek/tempo */
-.social-card[data-type="Interwały"]::before,
-.social-card[data-type="Tempo"]::before{
-  /* bg: lazy */
-}
-/* Spokojny / Regeneracja — para park */
-.social-card[data-type="Spokojny"]::before,
-.social-card[data-type="Regeneracja"]::before{
-  /* bg: lazy */
-}
-/* Wybieganie — droga+butelka */
-.social-card[data-type="Wybieganie"]::before{
-  /* bg: lazy */
-}
-.social-card > *{position:relative;z-index:1;}
-.social-card > *{position:relative;z-index:1;}
-@keyframes socialCardIn{
-  to{opacity:1;transform:translateY(0);}
-}
-
-/* ══ PREMIUM ANIMATIONS ══════════════════════════════════════════════ */
-
-/* ── 1. SKELETON LOADING ─────────────────────────────────────────── */
-.skeleton{
-  background:rgba(255,255,255,0.04);
-  border-radius:6px;
-  overflow:hidden;
   position:relative;
 }
-.skeleton::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.09) 50%,transparent 100%);animation:shimmer 1.6s infinite;will-change:transform;}
-@keyframes shimmer{
-  0%{transform:translateX(-100%);}
-  100%{transform:translateX(100%);}
+#daily-motivation::before{
+  content:'';position:absolute;inset:0;
+  background:rgba(7,5,12,0.75);
+  border-radius:inherit;pointer-events:none;z-index:0;
 }
-.skeleton-line{height:12px;margin-bottom:8px;border-radius:4px;}
-.skeleton-line.wide{width:85%;}
-.skeleton-line.mid{width:55%;}
-.skeleton-line.short{width:35%;}
-.skeleton-hero{height:180px;border-radius:var(--tile-radius-lg);margin:0 16px 16px;}
+#daily-motivation>*{position:relative;z-index:1;}
 
-/* ── 2. SLIDE-IN CARDS ───────────────────────────────────────────── */
-.slide-in{
-  opacity:0;
-  transform:translateY(28px);
-  transition:opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+/* coach-box — banner-1a.jpg */
+.coach-box{position:relative;overflow:hidden;}
+.coach-box::after{
+  content:'';position:absolute;inset:0;
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg');
+  background-size:cover;background-position:center top;
+  opacity:0.08;pointer-events:none;z-index:0;
 }
-.slide-in.visible{
-  opacity:1;
-  transform:translateY(0);
-}
+.coach-hdr,.coach-body{position:relative;z-index:1;}
 
-/* ── 3. COUNT-UP NUMBERS ─────────────────────────────────────────── */
-.count-up{
-  display:inline-block;
-  transition:transform 0.3s var(--ease-spring);
+/* week-sum — banner-3a.jpg */
+.week-sum{position:relative;overflow:hidden;}
+.week-sum::after{
+  content:'';position:absolute;inset:0;
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg');
+  background-size:cover;background-position:center;
+  opacity:0.07;pointer-events:none;z-index:0;
 }
-.count-up.pop{
-  animation:numPop 0.4s var(--ease-spring);
-}
-@keyframes numPop{
-  0%{transform:scale(1);}
-  50%{transform:scale(1.18);}
-  100%{transform:scale(1);}
-}
+.week-sum>*{position:relative;z-index:1;}
 
-/* ── 4. CONFETTI CANVAS ──────────────────────────────────────────── */
-#confetti-canvas{
-  position:fixed;inset:0;pointer-events:none;z-index:9999;
-  opacity:0;transition:opacity 0.3s;
+/* social-card tła wg typu treningu */
+.social-card[data-type="Tempo"]::after,
+.social-card[data-type="Interwały"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg') !important;
 }
-#confetti-canvas.active{opacity:1;}
-
-/* ── 5. SUCCESS FLASH ────────────────────────────────────────────── */
-@keyframes successFlash{
-  0%{box-shadow:0 0 0 0 rgba(61,184,112,0.7);}
-  50%{box-shadow:0 0 0 20px rgba(61,184,112,0);}
-  100%{box-shadow:0 0 0 0 rgba(61,184,112,0);}
+.social-card[data-type="Spokojny"]::after,
+.social-card[data-type="Bieg spokojny"]::after,
+.social-card[data-type="Wybieganie"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg') !important;
 }
-.success-flash{animation:successFlash 0.7s ease-out;}
-
-/* ── 6. SECTION TRANSITIONS ──────────────────────────────────────── */
-.section-enter{
-  animation:sectionIn 0.35s var(--ease-out) forwards;
+.social-card[data-type="Regeneracja"]::after,
+.social-card[data-type="Odpoczynek"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg') !important;
 }
-.section-exit{
-  animation:sectionOut 0.25s ease-in forwards;
+.social-card[data-type="Start"]::after,
+.social-card[data-type="Wzmacniający"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg') !important;
 }
-@keyframes sectionIn{
-  from{opacity:0;transform:translateY(16px);}
-  to{opacity:1;transform:translateY(0);}
+.social-card{position:relative;overflow:hidden;}
+.social-card::after{
+  content:'';position:absolute;inset:0;
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg');
+  background-size:cover;background-position:center;
+  opacity:0.12;pointer-events:none;z-index:0;
+  border-radius:inherit;
 }
-@keyframes sectionOut{
-  from{opacity:1;transform:translateY(0);}
-  to{opacity:0;transform:translateY(-8px);}
+.social-card-header,.social-card-stats,
+.social-card-comment,.social-card-actions{
+  position:relative;z-index:1;
 }
 
-/* ── 7. PARALLAX HERO ────────────────────────────────────────────── */
-.today-hero{transform-style:preserve-3d;}
-.today-hero .hero-bg-layer{
-  position:absolute;inset:-10px;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/strava-bg.jpg');
-  background-size:cover;
-  background-position:center 30%;
-  opacity:0.22;
-  border-radius:var(--tile-radius-lg);
-  pointer-events:none;
-  transition:transform 0.1s linear, opacity 0.6s ease;
-  will-change:transform;
+/* log-item tła wg typu */
+.log-item{position:relative;overflow:hidden;}
+.log-item::after{
+  content:'';position:absolute;inset:0;
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg');
+  background-size:cover;background-position:center;
+  opacity:0.10;pointer-events:none;z-index:0;
+  border-radius:inherit;
 }
+.log-item[data-type="Tempo"]::after,
+.log-item[data-type="Interwały"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg') !important;
+}
+.log-item[data-type="Spokojny"]::after,
+.log-item[data-type="Bieg spokojny"]::after,
+.log-item[data-type="Wybieganie"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg') !important;
+}
+.log-item[data-type="Regeneracja"]::after,
+.log-item[data-type="Odpoczynek"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg') !important;
+}
+.log-item[data-type="Start"]::after,
+.log-item[data-type="Wzmacniający"]::after{
+  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg') !important;
+}
+.log-item>*{position:relative;z-index:1;}
 
-/* ── 8. BUTTON PRESS FEEDBACK ────────────────────────────────────── */
-.btn{transition:transform 0.12s var(--ease-spring), box-shadow 0.12s ease, background 0.15s ease !important;}
-.btn:active{transform:scale(0.96) !important;}
-
-/* ── 9. LOG CARD HOVER ───────────────────────────────────────────── */
-.log-card{
-  transition:transform 0.2s var(--ease-out), box-shadow 0.2s ease, border-color 0.2s ease;
-}
-.log-card:hover{
-  transform:translateY(-2px);
-  box-shadow:0 12px 40px rgba(0,0,0,0.65), 0 1px 0 rgba(255,255,255,0.06) inset;
-  border-color:rgba(255,255,255,0.12);
-}
-
-/* ── 10. GLOW PULSE na topbar avatar ────────────────────────────── */
-@keyframes avatarGlow{
-  0%,100%{box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);}
-  50%{box-shadow:0 0 32px rgba(232,86,30,0.5),0 0 0 6px rgba(232,86,30,0.15);}
-}
-.topbar-avatar{animation:avatarGlow 3.5s ease-in-out infinite;}
-
-/* ── 11. RING ANIMATION ──────────────────────────────────────────── */
-#ring-arc{
-  transition:stroke-dashoffset 1.2s cubic-bezier(0.4,0,0.2,1);
-}
-
-/* ── 12. TOAST PREMIUM ───────────────────────────────────────────── */
-.toast-premium{
-  position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
-  background:linear-gradient(135deg,var(--green),#2a9a5a);
-  color:#fff;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;
-  padding:12px 22px;border-radius:28px;white-space:nowrap;
-  opacity:0;transition:transform 0.35s var(--ease-spring),opacity 0.35s var(--ease-spring);z-index:9998;
-  box-shadow:0 8px 32px rgba(61,184,112,0.4);
-  display:flex;align-items:center;gap:8px;
-}
-.toast-premium.on{opacity:1;transform:translateX(-50%) translateY(0);}
-
-
-/* ══ PERFORMANCE OPTIMIZATIONS ══════════════════════════════════════ */
-/* Zawartość poza viewport — browser skip render */
-#section-social, #section-stats, #section-msgs, #section-profile {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 600px;
-}
-/* Grafiki background — hint GPU */
-.social-hero-banner::before,
-.social-hero-banner::after,
-#section-social .social-hero-bg,
-#home-social-preview .social-hero-bg {
-  will-change: opacity;
-  transform: translateZ(0);
-}
-/* Social cards — redukuj repaint */
-.social-card {
-  contain: layout style;
-}
-
-/* ══ MOBILE CRITICAL FIXES ══════════════════════════════════════════ */
-/* Zapobiegaj horizontal scroll */
-html, body { overflow-x: hidden; max-width: 100vw; }
-/* iOS: zapobiegaj zoom przy focus na input */
-input, select, textarea { font-size: 16px !important; }
-/* Touch targets min 44px */
-.nav-it { min-height: 44px; min-width: 44px; }
-/* Zapobiegaj 300ms tap delay */
-* { touch-action: manipulation; }
-/* Backdrop-filter fallback dla starszych Android */
-@supports not (backdrop-filter: blur(10px)) {
-  .day-col { background: rgba(10,8,18,0.92) !important; }
-  .coach-box { background: rgba(10,8,18,0.92) !important; }
-}
-/* Redukuj animacje dla słabych telefonów */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { 
-    animation-duration: 0.01ms !important; 
-    transition-duration: 0.01ms !important; 
-  }
-}
+/* ════════════════════════════════════════════════════════════════ */
 </style>
 </head>
 <body>
 
 <div class="topbar">
   <div>
-    <a href="o-nas.html" style="display:inline-block;margin-bottom:4px;text-decoration:none;opacity:0.55;transition:opacity 0.15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.55">
-      <svg width="72" height="18" viewBox="0 0 130 32" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="22" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="1" y="22" fill="#f0ede8">Biega</tspan><tspan fill="#e8561e">My</tspan></text></svg>
-    </a>
     <div class="topbar-greeting" id="greeting">Dzień dobry,</div>
     <div class="topbar-name" id="topbar-name" style="opacity:0.3;">—</div>
   </div>
@@ -1292,9 +869,6 @@ input, select, textarea { font-size: 16px !important; }
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
-      <a href="o-nas.html" style="display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;text-decoration:none;">
-        ℹ️ O nas
-      </a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
       </div>
@@ -1304,7 +878,6 @@ input, select, textarea { font-size: 16px !important; }
 
 <!-- MOTYWACJA DNIA -->
 <div id="daily-motivation" class="fade-in">
-  <div class="motiv-bg"></div>
   <div id="motiv-content" style="display:flex;align-items:flex-start;gap:14px;">
     <div id="motiv-icon" style="flex-shrink:0;line-height:0;overflow:visible;margin-left:-16px;"><svg width="126" height="44" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="#e8561e">My</tspan></text></svg></div>
     <div style="flex:1;">
@@ -1315,7 +888,6 @@ input, select, textarea { font-size: 16px !important; }
 </div>
 
 <div class="today-hero fade-in">
-  <div class="hero-bg-layer" id="hero-bg-layer" style="will-change:transform;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -1354,7 +926,7 @@ input, select, textarea { font-size: 16px !important; }
   <div class="sec-title">Społeczność</div>
   <a href="#" onclick="showSection('social');return false;" class="sec-link">Więcej →</a>
 </div>
-<div id="home-social-preview" class="fade-in" style="position:relative;overflow:hidden;margin:0 0 18px;"><div class="social-hero-bg"></div></div>
+<div id="home-social-preview" class="fade-in" style="margin:0 0 18px;"></div>
 
 <div id="coach-msg-section" style="display:none;">
   <div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Wiadomość od trenera</div><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">kliknij →</span></div>
@@ -1445,7 +1017,7 @@ input, select, textarea { font-size: 16px !important; }
 
 
   <!-- Nawigacja wewnątrz czatu -->
-  <nav style="flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(10px);border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:10px 0 max(20px,env(safe-area-inset-bottom,0px));">
+  <nav style="flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:10px 0 max(20px,env(safe-area-inset-bottom,0px));">
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="showSection('home');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Dziś</span>
@@ -1480,7 +1052,7 @@ input, select, textarea { font-size: 16px !important; }
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;margin-top:2px;">Mój profil</div>
     </div>
     <!-- Toggle publiczny/prywatny -->
-    <button id="privacy-toggle-btn" onclick="togglePrivacy()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:transform 0.2s ease,opacity 0.2s ease;">
+    <button id="privacy-toggle-btn" onclick="togglePrivacy()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;">
       <svg id="privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--green);">Publiczny</span>
     </button>
@@ -1505,19 +1077,19 @@ input, select, textarea { font-size: 16px !important; }
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 20px;">
-    <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform 0.15s ease,opacity 0.15s ease;">
+    <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
       <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Dane</span>
     </button>
-    <button id="ptab-msgs" onclick="switchProfileTab('msgs')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform 0.15s ease,opacity 0.15s ease;">
+    <button id="ptab-msgs" onclick="switchProfileTab('msgs')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Czat</span>
     </button>
-    <button id="ptab-stats" onclick="switchProfileTab('stats')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform 0.15s ease,opacity 0.15s ease;">
+    <button id="ptab-stats" onclick="switchProfileTab('stats')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Statystyki</span>
     </button>
-    <button id="ptab-calc" onclick="switchProfileTab('calc')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:transform 0.15s ease,opacity 0.15s ease;">
+    <button id="ptab-calc" onclick="switchProfileTab('calc')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/></svg>
       <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Kalkulator</span>
     </button>
@@ -1737,8 +1309,6 @@ input, select, textarea { font-size: 16px !important; }
           <button class="type-pill" onclick="selType(this,'Wybieganie')">🛤️ Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja')">💚 Regeneracja</button>
           <button class="type-pill" onclick="selType(this,'Wzmacniający')">💪 Wzmacniający</button>
-          <button class="type-pill" onclick="selType(this,'Zastępczy')">🔄 Zastępczy</button>
-          <button class="type-pill" onclick="selType(this,'Start')">🏆 Start</button>
         </div>
       </div>
 
@@ -1808,7 +1378,7 @@ input, select, textarea { font-size: 16px !important; }
       <!-- SCREEN UPLOAD -->
       <div class="field">
         <label>Załącz screen (opcjonalnie)</label>
-        <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:2px dashed var(--accent);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:transform 0.15s ease,opacity 0.15s ease;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
+        <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:2px dashed var(--accent);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all 0.15s;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
           <div style="font-size:22px;margin-bottom:4px;">📎</div>
           <div style="font-size:11px;color:var(--fg);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
           <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">Klikaj wielokrotnie aby dodać kolejne</div>
@@ -1830,54 +1400,333 @@ input, select, textarea { font-size: 16px !important; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  // ── PERF: Debounce utility ──────────────────────────────────────────
-  function debounce(fn, ms) {
-    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
+const weekPlan=[
+  {name:'Pn',num:6,type:'Spokojny',cls:'spokojny',color:'#5090e0',km:10,done:true},
+  {name:'Wt',num:7,type:'Interwały',cls:'interwaly',color:'#e8b840',km:10,done:true},
+  {name:'Śr',num:8,type:'Odpoczynek',cls:'odpoczynek',color:'#44424a',km:0,done:true,rest:true},
+  {name:'Cz',num:9,type:'Tempo',cls:'tempo',color:'#d4501a',km:14,done:false,today:true},
+  {name:'Pt',num:10,type:'Spokojny',cls:'spokojny',color:'#5090e0',km:8,done:false},
+  {name:'Sb',num:11,type:'Wybieganie',cls:'wybieganie',color:'#9a6fe8',km:26,done:false},
+  {name:'Nd',num:12,type:'Odpoczynek',cls:'odpoczynek',color:'#44424a',km:0,done:false,rest:true},
+];
+const logs=[]; // dane z bazy — ładowane przez loadLogs()
+let feel='';
+function init(){
+  const h=new Date().getHours();
+  document.getElementById('greeting').textContent=h<12?'Dzień dobry,':h<18?'Cześć,':'Dobry wieczór,';
+  
+  // Dynamiczna data dzisiejsza
+  const now = new Date();
+  const days = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+  const months = ['Stycznia','Lutego','Marca','Kwietnia','Maja','Czerwca','Lipca','Sierpnia','Września','Października','Listopada','Grudnia'];
+  const dateEl = document.getElementById('today-date');
+  if(dateEl) dateEl.textContent = days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+
+  // Pokaż przycisk powrotu jeśli wejście z panelu trenera
+  // Zachowaj w sessionStorage żeby przeżył replaceState
+  if(new URLSearchParams(window.location.search).get('from')==='trener'){
+    sessionStorage.setItem('_fromTrener','1');
   }
-  function throttle(fn, ms) {
-    let last = 0; return (...args) => { const now = Date.now(); if (now - last > ms) { last = now; fn(...args); } };
+  if(sessionStorage.getItem('_fromTrener')==='1'){
+    const btn=document.getElementById('back-to-trener');
+    if(btn) btn.style.display='block';
   }
-  // iOS viewport height fix (100vh !== window.innerHeight)
-  function setVH() {
-    document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+  // Plan tygodnia ładowany z bazy przez loadWeekPlan() po auth
+  // Skeleton dla planu tygodnia
+  const stripEl = document.getElementById('week-strip');
+  if (stripEl) {
+    stripEl.innerHTML = Array.from({length:5}, () =>
+      `<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border-radius:10px;border:1px solid var(--border);">
+        <div style="display:flex;flex-direction:column;gap:3px;min-width:32px;">
+          <div class="skeleton" style="height:8px;width:24px;border-radius:3px;"></div>
+          <div class="skeleton" style="height:18px;width:24px;border-radius:3px;"></div>
+        </div>
+        <div style="flex:1;">
+          <div class="skeleton" style="height:12px;width:70%;margin-bottom:4px;border-radius:3px;"></div>
+          <div class="skeleton" style="height:9px;width:40%;border-radius:3px;"></div>
+        </div>
+      </div>`
+    ).join('');
   }
-  setVH();
-  window.addEventListener('resize', setVH, {passive:true});
-  // ── PERF: Lazy-load social section images ────────────────────────────
-  window._socialImgsLoaded = false;
-  function _injectSocialImages() {
-    if (window._socialImgsLoaded) return;
-    window._socialImgsLoaded = true;
-    const st = document.createElement('style');
-    st.textContent = `
-/* ── ONBOARDING ───────────────────────────────── */
-#ob-s1 .ob-hero::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg');background-size:cover;background-position:center 60%;}
-#ob-s2 .ob-hero::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg');background-size:cover;background-position:center top;}
-#ob-s3 .ob-hero::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg');background-size:cover;background-position:center 40%;}
-#ob-s4 .ob-hero::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg');background-size:cover;background-position:center 60%;}
-#ob-s5 .ob-hero::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg');background-size:cover;background-position:center;}
-/* ── SOCIAL BG ─────────────────────────────────── */
-#section-social .social-hero-bg{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/social-hero.jpg');}
-#home-social-preview .social-hero-bg{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg');}
-/* ── BANNER ROTACJA bg-1/bg-2/bg-3 ─────────────── */
-.social-hero-banner::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg');background-size:cover;background-position:center top;}
-.social-hero-banner::after{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg');background-size:cover;background-position:center;}
-.social-hero-banner.bg-3::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg');background-size:cover;background-position:center;opacity:.70;}
-.social-hero-banner.bg-3::after{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg');background-size:cover;background-position:center top;opacity:.70;}
-/* ── LOGI AKTYWNOSCI PER TYP ────────────────────── */
-.social-card::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg');background-size:cover;background-position:center top;}
-.social-card[data-type="Interwały"]::before,
-.social-card[data-type="Tempo"]::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg');background-position:center;}
-.social-card[data-type="Spokojny"]::before,
-.social-card[data-type="Regeneracja"]::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg');background-position:center top;}
-.social-card[data-type="Wybieganie"]::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg');background-position:center;}
-.social-card[data-type="Maraton"]::before,
-.social-card[data-type="Zawody"]::before,
-.social-card[data-type="Wyścig"]::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg');background-position:center top;}
-.social-card[data-type="Siła"]::before,
-.social-card[data-type="Gym"]::before{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-gym.jpg');background-position:center;}
-`;
-  document.head.appendChild(st);
+}
+function renderLogs(){
+  // Statyczne dane — pokazuj tylko jeśli nie ma DB
+  document.getElementById('log-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak logów. Zaloguj pierwszy trening!</div>';
+}
+function toggleDayDetail(idx) {
+  const el = document.getElementById('detail-' + idx);
+  const arr = document.getElementById('arr-' + idx);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (arr) arr.style.transform = isOpen ? '' : 'rotate(90deg)';
+}
+async function markDone(btn){
+  if (!_athleteId || !window._todayTraining?.id) {
+    // Brak treningu z bazy — tylko lokalna zmiana
+    btn.textContent='✓ Gotowe!';
+    btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
+    toast('Trening oznaczony jako wykonany ✓');
+    return;
+  }
+  btn.textContent='...';btn.disabled=true;
+  const { error } = await _sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining.id);
+  btn.disabled=false;
+  if (error) { toast('Błąd: ' + error.message); return; }
+  btn.textContent='✓ Gotowe!';
+  btn.style.background='var(--green)';btn.style.color='#0a1a0f';btn.style.borderColor='var(--green)';
+  window._todayTraining.status = 'done';
+  toast('Trening oznaczony jako wykonany ✓');
+  await updateWeekProgress();
+}
+function openModal() {
+  _logDate = null; // brak konkretnej daty — użyj dzisiaj
+  setTimeout(_updateLogDateDisplay, 50);
+  document.getElementById('modal-sub').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('modal-bg').classList.add('open');
+  // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
+  if (window._todayTraining) {
+    const t = window._todayTraining;
+    const typeMap = {'Spokojny':'Spokojny','Bieg spokojny':'Spokojny','Interwały':'Interwały','Tempo':'Tempo','Wybieganie':'Wybieganie','Regeneracja':'Regeneracja','Zastępczy':'Zastępczy'};
+    const typeName = typeMap[t.type] || t.type;
+    document.querySelectorAll('.type-pill').forEach(p => {
+      p.classList.remove('on');
+      if (p.textContent.trim().includes(typeName)) p.classList.add('on');
+    });
+    window._logType = typeName || 'Spokojny';
+    if (t.distance_km) document.getElementById('l-dist').value = t.distance_km;
+    if (t.duration_min) {
+      const h = Math.floor(t.duration_min/60);
+      const m = t.duration_min % 60;
+      document.getElementById('l-time').value = h + ':' + String(m).padStart(2,'0') + ':00';
+    }
+    if (t.pace) document.getElementById('l-pace').value = t.pace;
+    if (t.heart_rate) {
+      const hr = t.heart_rate.toString().split('-')[0];
+      document.getElementById('l-hr').value = hr;
+    }
+  }
+}
+
+let _logDate = null;
+
+function _updateLogDateDisplay() {
+  const el = document.getElementById('l-date-display');
+  if (!el) return;
+  const d = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((new Date(_logDate ? _logDate + 'T12:00:00' : new Date()) - today) / 86400000);
+  const label = diff === 0 ? 'Dziś' : diff === -1 ? 'Wczoraj' : diff === 1 ? 'Jutro' : d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  el.textContent = label;
+  el.style.color = diff === 0 ? 'var(--accent)' : diff < 0 ? 'var(--muted)' : '#3db870';
+}
+
+function shiftLogDate(delta) {
+  const current = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
+  current.setDate(current.getDate() + delta);
+  // Nie pozwól na przyszłość dalej niż dziś
+  const today = new Date(); today.setHours(23,59,59,999);
+  if (current > today) return;
+  _logDate = current.getFullYear() + '-' + String(current.getMonth()+1).padStart(2,'0') + '-' + String(current.getDate()).padStart(2,'0');
+  _updateLogDateDisplay();
+}
+function openModalForDate(dateStr, e) {
+  if(e) e.stopPropagation();
+  _logDate = dateStr;
+  setTimeout(_updateLogDateDisplay, 50);
+  const [y,m,d] = dateStr.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('modal-bg').classList.add('open');
+
+  // Reset pól przed prefillowaniem
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
+  window._logType = 'Spokojny';
+
+  // Prefilluj z treningu dla tej daty (szukaj w week-plan data)
+  _prefillLogFromDate(dateStr);
+}
+
+async function _prefillLogFromDate(dateStr) {
+  // Sprawdź czy to dzisiejszy trening (już załadowany)
+  const today = new Date().toISOString().split('T')[0];
+  let training = null;
+
+  if (dateStr === today && window._todayTraining) {
+    training = window._todayTraining;
+  } else if (_athleteId) {
+    // Pobierz trening dla tej daty z bazy
+    const { data } = await _sb.from('trainings')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .eq('date', dateStr)
+      .neq('type', 'Odpoczynek')
+      .order('created_at')
+      .limit(1)
+      .maybeSingle();
+    training = data;
+  }
+
+  if (!training) return;
+
+  const typeMap = {
+    'Spokojny':'Spokojny','Bieg spokojny':'Spokojny',
+    'Interwały':'Interwały','Tempo':'Tempo',
+    'Wybieganie':'Wybieganie','Regeneracja':'Regeneracja','Zastępczy':'Zastępczy'
+  };
+  const typeName = typeMap[training.type] || training.type;
+  document.querySelectorAll('.type-pill').forEach(p => {
+    p.classList.remove('on');
+    if (p.textContent.trim().includes(typeName)) p.classList.add('on');
+  });
+  window._logType = typeName || 'Spokojny';
+  if (training.distance_km) document.getElementById('l-dist').value = training.distance_km;
+  if (training.pace) document.getElementById('l-pace').value = training.pace;
+  if (training.duration_min) {
+    const h = Math.floor(training.duration_min/60);
+    const m2 = training.duration_min % 60;
+    document.getElementById('l-time').value = h + ':' + String(m2).padStart(2,'0') + ':00';
+  }
+  if (training.heart_rate) {
+    const hr = training.heart_rate.toString().split('-')[0];
+    document.getElementById('l-hr').value = hr;
+  }
+}
+function closeModal(){
+  document.getElementById('modal-bg').classList.remove('open');
+  // Reset timera
+  if (window._timerRunning) stopTimer();
+  // Reset pendingFiles — zapobiegaj wysyłaniu starych plików przy następnym logu
+  window._pendingFiles = [];
+  const previewList = document.getElementById('file-preview-list');
+  if (previewList) previewList.innerHTML = '';
+  const uploadLabel = document.getElementById('upload-label');
+  if (uploadLabel) uploadLabel.textContent = 'Kliknij aby dodać zdjęcie';
+  _editingLogId = null;
+  _savingLog = false;
+  const saveBtn = document.getElementById('save-btn'); if (saveBtn) { saveBtn.textContent = 'Zapisz log →'; saveBtn.disabled = false; }
+}
+function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
+function selFeel(el,t){
+  document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
+  el.classList.add('sel-'+t);feel=t;
+}
+let _logType = 'Spokojny';
+
+function selType(el, type) {
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  _logType = type;
+  // Pokaż sekcję interwałów
+  const ivSec = document.getElementById('intervals-section');
+  if (ivSec) ivSec.style.display = (type === 'Interwały') ? 'block' : 'none';
+  // Sugeruj tętno jeśli pole puste
+  const hrEl = document.getElementById('l-hr');
+  if (hrEl && !hrEl.value) {
+    const hrDefaults = {
+      'Spokojny': 135, 'Bieg spokojny': 135,
+      'Wybieganie': 140,
+      'Regeneracja': 120,
+      'Tempo': 162,
+      'Interwały': 172,
+      '🏁 Start': 168,
+      '🔄 Zastępczy': 135,
+      'Odpoczynek': ''
+    };
+    const suggested = hrDefaults[type];
+    if (suggested) {
+      hrEl.placeholder = 'np. ' + suggested + ' (sugestia)';
+    }
+  }
+}
+
+// ── TIMER ─────────────────────────────────────────────────────────
+let _timerInterval = null;
+let _timerSeconds = 0;
+let _timerPaused = false;
+let _timerRunning = false;
+
+function toggleTimer(btn) {
+  if (_timerRunning) return;
+  _timerRunning = true;
+  _timerSeconds = 0;
+  _timerPaused = false;
+  const startBtn = document.getElementById('start-btn');
+  const pauseBtn = document.getElementById('pause-btn');
+  const stopBtn  = document.getElementById('stop-btn');
+  if (startBtn) startBtn.style.display = 'none';
+  if (pauseBtn) pauseBtn.style.display = 'block';
+  if (stopBtn)  stopBtn.style.display  = 'block';
+  _timerInterval = setInterval(() => {
+    if (!_timerPaused) {
+      _timerSeconds++;
+      const h = String(Math.floor(_timerSeconds / 3600)).padStart(2,'0');
+      const m = String(Math.floor((_timerSeconds % 3600) / 60)).padStart(2,'0');
+      const s = String(_timerSeconds % 60).padStart(2,'0');
+      const disp = document.getElementById('timer-display');
+      if (disp) disp.textContent = h + ':' + m + ':' + s;
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  _timerPaused = !_timerPaused;
+  const btn = document.getElementById('pause-btn');
+  btn.textContent = _timerPaused ? '▶ WZNÓW' : '⏸ PAUZA';
+  btn.style.color = _timerPaused ? 'var(--yellow)' : 'var(--green)';
+}
+
+function stopTimer() {
+  clearInterval(_timerInterval);
+  _timerRunning = false;
+  _timerPaused = false;
+  const startBtn2 = document.getElementById('start-btn');
+  const pauseBtn2 = document.getElementById('pause-btn');
+  const stopBtn2  = document.getElementById('stop-btn');
+  if (startBtn2) startBtn2.style.display = 'block';
+  if (pauseBtn2) pauseBtn2.style.display = 'none';
+  if (stopBtn2)  stopBtn2.style.display  = 'none';
+  const disp2 = document.getElementById('timer-display');
+  if (disp2) disp2.textContent = '00:00:00';
+  // Przelicz czas i wstaw do pola log
+  const h = Math.floor(_timerSeconds / 3600);
+  const m = Math.floor((_timerSeconds % 3600) / 60);
+  const s = _timerSeconds % 60;
+  const timeStr = h + ':' + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  openModal();
+  setTimeout(() => {
+    const t = document.getElementById('l-time');
+    if (t) { t.value = timeStr; calcPaceAuto(); }
+  }, 150);
+}
+
+// ── INTERWAŁY ──────────────────────────────────────────────────────
+function removeInterval(btn) {
+  const row = btn.closest('.interval-row');
+  if (!row) return;
+  // Nie usuwaj jeśli to jedyny wiersz
+  const list = document.getElementById('intervals-list');
+  if (list && list.querySelectorAll('.interval-row').length <= 1) return;
+  row.remove();
+  updateIvSummary();
+}
+
+function addInterval(e) {
+  e.preventDefault();
+  const list = document.getElementById('intervals-list');
+  const row = document.createElement('div');
+  row.className = 'interval-row';
+  row.style.cssText = 'display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:center;margin-top:6px;';
+  row.innerHTML = `<input type="text" class="iv-dist" placeholder="400 m / 1 km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
+    <input type="text" class="iv-time" placeholder="1:45" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
+    <div class="iv-pace" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
+    <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>`;
+  list.appendChild(row);
+  updateIvSummary();
 }
 
 function calcIntervalPace(input) {
@@ -2062,10 +1911,7 @@ function showSection(name) {
   }
 
   if (name === 'home') {
-    document.querySelectorAll('.today-hero,.week-sum,.coach-box,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
-    // BUGFIX: log-list ma display:flex w CSS — przywróć poprawną wartość
-    const logListEl = document.getElementById('log-list');
-    if (logListEl) logListEl.style.display = 'flex';
+    document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     document.querySelectorAll('.fade-in').forEach(el => el.style.display = '');
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = '');
     document.getElementById('daily-motivation')?.style.setProperty('display','');
@@ -2085,14 +1931,7 @@ function showSection(name) {
   } else if (name === 'msgs' || name === 'messages' || name === 'czat') {
     document.getElementById('section-msgs').style.display = 'flex';
     loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
-    // PERF: użyj cache coach_id z initAuth zamiast odpytywać bazę
-    if (_athleteId && window._athleteCoachId) {
-      _sb.from('profiles').select('full_name').eq('id', window._athleteCoachId).maybeSingle().then(({data:p})=>{
-        if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); }
-      });
-    } else if (_athleteId) {
-      _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ window._athleteCoachId=a.coach_id; _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } });
-    }
+    if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
   } else if (name === 'profile') {
     document.getElementById('section-profile').style.display = 'block';
@@ -2111,10 +1950,8 @@ function showSection(name) {
 
   } else if (name === 'social' || name === 'spolecznosc') {
     document.getElementById('section-social').style.display = 'block';
-    _injectSocialImages();
     activateNav('nav-social');
-    // BUGFIX: ensure feed tab is active before loading
-    switchSocialTab('feed');
+    loadSocialFeed();
   }
 }
 
@@ -2154,20 +1991,29 @@ function _mountMsgsInProfile() {
   const panel = document.getElementById('ptab-panel-msgs');
   if (!panel) return;
   panel.style.display = 'block';
-  // BUGFIX: always build/refresh the chat panel (was only built once)
-  panel.innerHTML = `<div style="height:calc(100vh - 280px);display:flex;flex-direction:column;">
-    <div id="profile-msgs-thread" style="flex:1;overflow-y:auto;padding:12px 20px;"></div>
-    <div style="padding:10px 20px 0;display:flex;gap:8px;">
-      <input id="profile-msg-inp" type="text" placeholder="Napisz do trenera..." 
-        style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"
-        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
-        onkeydown="if(event.key==='Enter')sendProfileMsg()">
-      <button onclick="sendProfileMsg()" style="background:var(--accent);border:none;border-radius:10px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-      </button>
-    </div>
-  </div>`;
-  _loadProfileMsgs();
+  // Render inline chat view (reuse messages data)
+  loadMessages().then(() => {
+    const thread = document.getElementById('msgs-thread');
+    if (thread) requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
+  });
+  // Show msgs section content inline
+  const msgsSection = document.getElementById('section-msgs');
+  if (msgsSection && panel.children.length === 0) {
+    // Clone the msgs content into the profile panel
+    panel.innerHTML = `<div style="height:calc(100vh - 280px);display:flex;flex-direction:column;">
+      <div id="profile-msgs-thread" style="flex:1;overflow-y:auto;padding:12px 20px;"></div>
+      <div style="padding:10px 20px 0;display:flex;gap:8px;">
+        <input id="profile-msg-inp" type="text" placeholder="Napisz do trenera..." 
+          style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+          onkeydown="if(event.key==='Enter')sendProfileMsg()">
+        <button onclick="sendProfileMsg()" style="background:var(--accent);border:none;border-radius:10px;width:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>`;
+    _loadProfileMsgs();
+  }
 }
 
 async function _loadProfileMsgs() {
@@ -2848,235 +2694,6 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); con
 const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 let _athleteId = null;
 
-// ── ZMIENNE GLOBALNE MODALA LOGOWANIA ─────────────────────────────
-let _logDate = null;
-let _logType = 'Spokojny';
-let feel = '';
-
-// ── MODAL LOGOWANIA — OTWIERANIE / ZAMYKANIE ─────────────────────
-
-// Ustaw datę w modalu i wyświetl ją w UI
-function _setModalDate(date) {
-  _logDate = date;
-  const display = document.getElementById('l-date-display');
-  if (display && date) {
-    const d = new Date(date + 'T12:00:00');
-    display.textContent = d.toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
-  }
-  const modalSub = document.getElementById('modal-sub');
-  if (modalSub && date) {
-    modalSub.textContent = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
-}
-
-// Wypełnij formularz danymi z zaplanowanego treningu
-function _prefillFromTraining(t) {
-  if (!t) return;
-  const typeMap = {
-    'Spokojny':'\uD83C\uDFC3 Spokojny','Bieg spokojny':'\uD83C\uDFC3 Spokojny',
-    'Interwały':'\u26A1 Interwały','Tempo':'\uD83D\uDD25 Tempo',
-    'Wybieganie':'\uD83D\uDEE4\uFE0F Wybieganie','Regeneracja':'\uD83D\uDC9A Regeneracja',
-    'Wzmacniający':'\uD83D\uDCAA Wzmacniający','Zastępczy':'\uD83D\uDD04 Zastępczy',
-    'Start':'\uD83C\uDFC6 Start'
-  };
-  _logType = t.type || 'Spokojny';
-  document.querySelectorAll('.type-pill').forEach(p => {
-    p.classList.toggle('on', p.textContent.trim().includes(_logType));
-  });
-  if (t.distance_km) { const el = document.getElementById('l-dist'); if(el) el.value = t.distance_km; }
-  if (t.pace) { const el = document.getElementById('l-pace'); if(el) el.value = t.pace; }
-  if (t.heart_rate) { const el = document.getElementById('l-hr'); if(el) el.value = t.heart_rate; }
-  if (t.description) { const el = document.getElementById('l-comment'); if(el) el.placeholder = t.description; }
-}
-
-// Pobierz z bazy trening dla daty i uzupełnij formularz
-// Cache treningów — żeby nie odpytywać bazy przy każdym shiftLogDate
-const _trainingCache = {};
-
-async function _fetchAndPrefillForDate(date) {
-  if (!_athleteId || !date) return;
-  try {
-    // Użyj cache jeśli mamy
-    let data = _trainingCache[date];
-    if (data === undefined) {
-      const res = await _sb.from('trainings')
-        .select('*').eq('athlete_id', _athleteId).eq('date', date)
-        .neq('type', 'Odpoczynek').limit(1).maybeSingle();
-      data = res.data || null;
-      _trainingCache[date] = data; // null = brak treningu (też cache'ujemy)
-    }
-    if (data) {
-      _prefillFromTraining(data);
-      const dist = data.distance_km ? data.distance_km + ' km · ' : '';
-      const modalSub = document.getElementById('modal-sub');
-      if (modalSub) {
-        const dateStr = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-        modalSub.textContent = dateStr + ' · plan: ' + dist + (data.type || '');
-      }
-    } else {
-      // Brak planu — tylko data
-      const modalSub = document.getElementById('modal-sub');
-      if (modalSub) {
-        modalSub.textContent = new Date(date + 'T12:00:00').toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
-      }
-    }
-  } catch(e) {}
-}
-
-// Reset formularza do stanu pustego
-function _resetModalForm() {
-  _editingLogId = null;
-  _logType = 'Spokojny';
-  feel = '';
-  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-strava'].forEach(id => {
-    const el = document.getElementById(id); if (el) el.value = '';
-  });
-  const commentEl = document.getElementById('l-comment');
-  if (commentEl) { commentEl.value = ''; commentEl.placeholder = 'Jak poszło? Co czułeś?'; }
-  document.querySelectorAll('.feel-btn').forEach(b => b.className = 'feel-btn');
-  document.querySelectorAll('.type-pill').forEach((p, i) => p.classList.toggle('on', i === 0));
-  const uploadLbl = document.getElementById('upload-label');
-  if (uploadLbl) uploadLbl.textContent = 'Kliknij aby dodać zdjęcie';
-  const uploadArea = document.getElementById('upload-area');
-  if (uploadArea) uploadArea.style.borderColor = 'var(--border)';
-  const lFile = document.getElementById('l-file'); if (lFile) lFile.value = '';
-  const previewList = document.getElementById('file-preview-list');
-  if (previewList) previewList.innerHTML = '';
-  window._pendingFiles = [];
-  const saveBtn = document.getElementById('save-btn');
-  if (saveBtn) { saveBtn.textContent = 'Zapisz log →'; saveBtn.disabled = false; }
-  const modalTitle = document.querySelector('#modal-bg .modal-title');
-  if (modalTitle) modalTitle.textContent = 'Zaloguj trening';
-}
-
-async function openModal() {
-  _resetModalForm();
-  const now = new Date();
-  const today = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
-  _setModalDate(today);
-  // PERF: otwórz modal natychmiast — fetch w tle (modal nie czeka)
-  document.getElementById('modal-bg').classList.add('open');
-  _fetchAndPrefillForDate(today); // bez await — nie blokuje UI
-}
-
-function closeModal() {
-  document.getElementById('modal-bg').classList.remove('open');
-}
-
-async function openModalForDate(date, e) {
-  if (e) e.stopPropagation();
-  _resetModalForm();
-  _setModalDate(date);
-  // PERF: otwórz modal natychmiast — dane dopełnią się z cache lub background fetch
-  document.getElementById('modal-bg').classList.add('open');
-  _fetchAndPrefillForDate(date); // bez await
-}
-
-function _updateLogDateDisplay() {
-  if (_logDate) _setModalDate(_logDate);
-}
-
-// ── POMOCNICZE FUNKCJE MODALA ─────────────────────────────────────
-
-// Zamknij modal po kliknięciu w tło
-function closeMBg(e) {
-  if (e.target === document.getElementById('modal-bg')) closeModal();
-}
-
-// Wybór typu treningu
-function selType(el, type) {
-  _logType = type;
-  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
-  el.classList.add('on');
-}
-
-// Wybór samopoczucia
-function selFeel(el, val) {
-  feel = val;
-  document.querySelectorAll('.feel-btn').forEach(b => b.className = 'feel-btn');
-  el.classList.add('sel-' + val);
-}
-
-// Przesunięcie daty logu o ±1 dzień
-function shiftLogDate(delta) {
-  const base = _logDate ? new Date(_logDate + 'T12:00:00') : new Date();
-  base.setDate(base.getDate() + delta);
-  const newDate = base.getFullYear() + '-' +
-    String(base.getMonth() + 1).padStart(2, '0') + '-' +
-    String(base.getDate()).padStart(2, '0');
-  // PERF: zapisz wartości wpisane przez użytkownika
-  const distVal = document.getElementById('l-dist')?.value;
-  const timeVal = document.getElementById('l-time')?.value;
-  const paceVal = document.getElementById('l-pace')?.value;
-  const hrVal = document.getElementById('l-hr')?.value;
-  _setModalDate(newDate);
-  // Fetch w tle (z cache jeśli był) — nie czekaj
-  _fetchAndPrefillForDate(newDate).then(() => {
-    // Przywróć to co użytkownik wpisał (priorytet nad planem)
-    if (distVal) { const el = document.getElementById('l-dist'); if(el) el.value = distVal; }
-    if (timeVal) { const el = document.getElementById('l-time'); if(el) el.value = timeVal; }
-    if (paceVal) { const el = document.getElementById('l-pace'); if(el) el.value = paceVal; }
-    if (hrVal) { const el = document.getElementById('l-hr'); if(el) el.value = hrVal; }
-  });
-}
-
-// Dodaj wiersz interwału
-function addInterval(e) {
-  e.stopPropagation();
-  const container = document.getElementById('intervals-container');
-  if (!container) return;
-  const row = document.createElement('div');
-  row.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:6px;';
-  row.innerHTML = `
-    <input type="text" placeholder="np. 400m w 1:45" style="flex:1;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;outline:none;" />
-    <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>
-  `;
-  container.appendChild(row);
-}
-
-// Usuń wiersz interwału
-function removeInterval(btn) {
-  const row = btn.closest('div');
-  if (row) row.remove();
-}
-
-// Oznacz trening jako wykonany (bez logowania)
-async function markDone(btn) {
-  if (!_athleteId || !window._todayTraining) {
-    toast('Brak zaplanowanego treningu na dziś');
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = '...';
-  const { error } = await _sb.from('trainings')
-    .update({ status: 'done' })
-    .eq('id', window._todayTraining.id)
-    .eq('athlete_id', _athleteId);
-  if (error) {
-    toast('Błąd: ' + error.message);
-    btn.disabled = false;
-    btn.textContent = '✓ Wykonany';
-    return;
-  }
-  window._todayTraining.status = 'done';
-  btn.textContent = '✓ Zaliczony!';
-  btn.style.background = 'rgba(61,184,112,0.15)';
-  btn.style.color = 'var(--green)';
-  btn.style.borderColor = 'rgba(61,184,112,0.3)';
-  toast('Trening zaliczony ✓');
-  updateWeekProgress(); // w tle
-}
-
-// Rozwiń/zwiń szczegóły dnia w planie tygodnia
-function toggleDayDetail(i) {
-  const detail = document.getElementById('detail-' + i);
-  const arr = document.getElementById('arr-' + i);
-  if (!detail) return;
-  const isOpen = detail.style.display !== 'none';
-  detail.style.display = isOpen ? 'none' : 'block';
-  if (arr) arr.style.transform = isOpen ? '' : 'rotate(90deg)';
-}
-
 
 // ── MOTYWACJA DNIA ────────────────────────────────────────────────
 const _QUOTES = [
@@ -3158,20 +2775,15 @@ function loadAvatarTopbar(athleteId) {
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────
-async function initAuth(sessionFromEvent) {
+async function initAuth() {
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
-  // PERF: użyj session z eventu jeśli dostępna — zero dodatkowego network call
-  let session = sessionFromEvent || null;
+  const { data: { session } } = await _sb.auth.getSession();
   if (!session) {
-    const { data } = await _sb.auth.getSession();
-    session = data?.session || null;
-  }
-  if (!session) {
-    // Jeden retry dla OAuth callback (token w URL)
-    await new Promise(r => setTimeout(r, 80));
+    // Poczekaj chwilę (OAuth callback lub email confirmation może być w toku)
+    await new Promise(r => setTimeout(r, 1200));
     const { data: { session: s2 } } = await _sb.auth.getSession();
-    if (!s2) { window.location.href = 'login.html'; return; }
+    if (!s2) { window.location.href = 'index.html'; return; }
     // Kontynuuj z s2 jako sesją
     const user2 = s2.user;
     document.getElementById('menu-email').textContent = user2.email;
@@ -3181,16 +2793,15 @@ async function initAuth(sessionFromEvent) {
     const tn2 = document.getElementById('topbar-name');
     if(tn2){ tn2.innerHTML = name2.split(' ')[0]; tn2.style.opacity='1'; }
 
-    const { data: ath2 } = await _sb.from('athletes').select('id,full_name,coach_id').eq('user_id', user2.id).maybeSingle();
+    const { data: ath2 } = await _sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
     if (ath2) {
       _athleteId = ath2.id;
-      window._athleteCoachId = ath2.coach_id || null;
       const n2 = ath2.full_name || name2;
       const i2 = n2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       setAvBtn(i2);
       if(tn2){ tn2.innerHTML = n2.split(' ')[0] + ' <span>' + (n2.split(' ')[1]?.[0]||'') + '.</span>'; }
       if (_isOnboarding) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
-      loadLogs() // PERF: async;
+      await loadLogs();
     } else {
       showOnboarding();
     }
@@ -3208,16 +2819,14 @@ async function initAuth(sessionFromEvent) {
   if(tnEl){ tnEl.innerHTML = nameFromMeta.split(' ')[0]; tnEl.style.opacity='1'; }
 
   // Pobierz dane z athletes
-  // PERF: jeden SELECT zamiast dwóch (id+full_name + target_date+goals+coach_id)
   const { data: ath } = await _sb
     .from('athletes')
-    .select('id, full_name, target_date, goal, race_goals, coach_id')
+    .select('id, full_name')
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (ath) {
     _athleteId = ath.id;
-    window._athleteCoachId = ath.coach_id || null; // cache dla loadCoachMessage
     const name = ath.full_name || nameFromMeta;
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
@@ -3225,17 +2834,17 @@ async function initAuth(sessionFromEvent) {
 
     // Nowy zawodnik z ?onboarding=1 — pokaż onboarding
     if (_isOnboarding) {
-      loadLogs() // PERF: async;
+      await loadLogs();
       showOnboarding();
       window.history.replaceState({}, '', 'zawodnik.html');
       return;
     }
 
-    // Race countdown z danych już pobranych (bez extra SELECT)
-    try {
+    const { data: athFull } = await _sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
+    if (athFull) {
       let goals=[];
-      try{goals=JSON.parse(ath.race_goals||'[]');}catch(e){}
-      if(!goals.length&&ath.goal)goals=[{name:ath.goal,date:ath.target_date||''}];
+      try{goals=JSON.parse(athFull.race_goals||'[]');}catch(e){}
+      if(!goals.length&&athFull.goal)goals=[{name:athFull.goal,date:athFull.target_date||''}];
       const today2=new Date();today2.setHours(0,0,0,0);
       const upcoming=goals.filter(g=>g.date&&new Date(g.date)>=today2).sort((a,b)=>new Date(a.date)-new Date(b.date));
       if(upcoming.length){
@@ -3253,10 +2862,9 @@ async function initAuth(sessionFromEvent) {
           }
         }
       }
-    } catch(e){}
-    // PERF: nie blokuj initAuth — renderuj UI od razu, dane załadują się async
-    loadLogs();
-    checkStravaStatus();
+    }
+    await loadLogs();
+    checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
   } else {
     // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
@@ -3275,7 +2883,7 @@ async function initAuth(sessionFromEvent) {
       
       if (created?.id) {
         _athleteId = created.id;
-        loadLogs(); // PERF: w tle — nie blokuj inicjalizacji
+        await loadLogs();
         loadAvatarTopbar(_athleteId);
         toast('Profil zawodnika utworzony ✓');
       } else {
@@ -3283,7 +2891,7 @@ async function initAuth(sessionFromEvent) {
         const { data: fetched } = await _sb.from('athletes').select('id').eq('user_id', user.id).maybeSingle();
         if (fetched?.id) {
           _athleteId = fetched.id;
-          loadLogs(); // PERF: w tle
+          await loadLogs();
           loadAvatarTopbar(_athleteId);
         } else {
           showOnboarding();
@@ -3474,7 +3082,7 @@ async function obFinish() {
     toast('Witaj w BiegaMy! 🏃');
 
     if (_athleteId) {
-      loadLogs(); // PERF: w tle, nie blokuj
+      await loadLogs();
     } else {
       setTimeout(() => window.location.reload(), 800);
     }
@@ -3620,37 +3228,21 @@ async function saveCoachChange() {
 // ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
 async function loadWeekPlan() {
   if (!_athleteId) return;
-  // PERF: ustaw strip natychmiast ze szkieletem (pokazuje się bez opóźnienia)
 
   const now = new Date();
   // Użyj lokalnej daty żeby uniknąć UTC offset
   const localDateStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const todayStr = localDateStr(now);
-  // BUGFIX: start 1 dzień wstecz żeby złapać dzisiejsze treningi przy różnicach UTC
-  const rangeStart = new Date(now);
-  rangeStart.setDate(now.getDate() - 1);
-  const rangeStartStr = localDateStr(rangeStart);
   const rangeEnd = new Date(now);
   rangeEnd.setDate(now.getDate() + 13);
   const rangeEndStr = localDateStr(rangeEnd);
 
-  const { data: rawData, error } = await _sb.from('trainings')
+  const { data, error } = await _sb.from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
-    .gte('date', rangeStartStr)
+    .gte('date', todayStr)
     .lte('date', rangeEndStr)
     .order('date');
-
-  // Filtruj lokalnie — pokaż od dzisiaj (w razie gdyby wczorajszy był zaciągnięty)
-  const data = (rawData || []).filter(t => t.date >= todayStr);
-
-  // PERF: wypełnij cache modalowy — modal otworzy się bez fetcha
-  if (rawData) {
-    rawData.forEach(t => {
-      if (t.type !== 'Odpoczynek') _trainingCache[t.date] = t;
-      else if (!_trainingCache[t.date]) _trainingCache[t.date] = null;
-    });
-  }
 
   if (error || !data || data.length === 0) {
     document.getElementById('week-strip').innerHTML = 
@@ -3719,60 +3311,43 @@ async function loadWeekPlan() {
 // ── LOAD LOGS Z BAZY ──────────────────────────────────────────────
 async function loadLogs() {
   if (!_athleteId) return;
-  if (window._loadLogsRunning) return; // deduplication
-  window._loadLogsRunning = true;
-  try {
-    // Skeleton loader
-    const logList = document.getElementById('log-list');
-    if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
-    const { data, error: logsErr } = await _sb
-      .from('training_logs')
-      .select('*')
-      .eq('athlete_id', _athleteId)
-      .order('logged_at', { ascending: false })
-      .limit(10);
-    if (logsErr) console.error('loadLogs query error:', logsErr);
-    if (data && data.length > 0) {
-      renderLogsDb(data);
-    } else {
-      const ll = document.getElementById('log-list');
-      if (ll) ll.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
-    }
-    // PERF: uruchom wszystko równolegle zamiast sekwencyjnie
-    // FIX: updateWeekProgress wywołana oddzielnie — bez dublowania
-    const loadTasks = [
-      loadCoachMessage(),
-      loadTodayTraining(),
-      loadWeekPlan(),
-      checkNewMessages(),
-    ];
-    const allTasks = [...loadTasks, checkNotifications(), loadHomeSocialPreview(), updateWeekProgress()];
-    Promise.all(allTasks).catch(e => console.error('loadLogs parallel:', e));
-    if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
-    // Realtime — nowe wiadomości od trenera od razu
-    if (!window._realtimeChannel && _athleteId) {
-      window._realtimeChannel = _sb.channel('messages-' + _athleteId)
-        .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
-          filter:'athlete_id=eq.'+_athleteId}, () => {
-            loadMessages();
-            checkNewMessages();
-          })
-        .subscribe();
-    }
-  } catch(e) {
-    console.error('loadLogs exception:', e);
-  } finally {
-    // BUGFIX: always release the lock — was never released on error
-    window._loadLogsRunning = false;
+  // Skeleton loader
+  const logList = document.getElementById('log-list');
+  if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
+  const { data } = await _sb
+    .from('training_logs')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .order('logged_at', { ascending: false })
+    .limit(5);
+  if (data && data.length > 0) {
+    renderLogsDb(data);
+  } else {
+    document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
   }
+  await loadCoachMessage();
+  await loadTodayTraining();
+  await loadWeekPlan();
+  await checkNewMessages();
+  checkNotifications();
+  if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
+  // Load social preview on homepage
+  loadHomeSocialPreview();
+  // Realtime — nowe wiadomości od trenera od razu
+  if (!window._realtimeChannel && _athleteId) {
+    window._realtimeChannel = _sb.channel('messages-' + _athleteId)
+      .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
+        filter:'athlete_id=eq.'+_athleteId}, () => {
+          loadMessages();
+          checkNewMessages();
+        })
+      .subscribe();
+  }
+  await updateWeekProgress();
 }
 
 async function updateWeekProgress() {
   if (!_athleteId) return;
-  if (window._weekProgressRunning) return;
-  window._weekProgressRunning = true;
-  // BUGFIX: use try/finally to guarantee flag release even on error
-  try {
   
   const now = new Date();
   const day = now.getDay();
@@ -3784,28 +3359,24 @@ async function updateWeekProgress() {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23,59,59,999);
 
-  // BUGFIX: użyj lokalnych dat dla training_logs (logged_at jest ISO timestamp, więc OK)
-  // ale dla trainings.date (YYYY-MM-DD) użyj lokalnych dat
-  const localStr = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  // PERF: dwie queries równolegle
-  const [{ data: trainingsThisWeek }, { data: logsThisWeek }] = await Promise.all([
-    _sb.from('trainings').select('*').eq('athlete_id', _athleteId)
-       .gte('date', localStr(weekStart)).lte('date', localStr(weekEnd)),
-    _sb.from('training_logs').select('distance_km').eq('athlete_id', _athleteId)
-       .gte('logged_at', weekStart.toISOString()).lte('logged_at', weekEnd.toISOString())
-  ]);
+  const { data: trainingsThisWeek } = await _sb.from('trainings')
+    .select('*').eq('athlete_id', _athleteId)
+    .gte('date', weekStart.toISOString().split('T')[0])
+    .lte('date', weekEnd.toISOString().split('T')[0]);
+
+  const { data: logsThisWeek } = await _sb.from('training_logs')
+    .select('distance_km').eq('athlete_id', _athleteId)
+    .gte('logged_at', weekStart.toISOString())
+    .lte('logged_at', weekEnd.toISOString());
 
   const planned = (trainingsThisWeek||[]).filter(t => t.type !== 'Odpoczynek').length;
+  // Zawodnik zaliczył trening jeśli status=done LUB wpisał log
   const doneByStatus = (trainingsThisWeek||[]).filter(t => t.status === 'done').length;
   const logsCount = (logsThisWeek||[]).length;
-  // FIX: done nigdy nie może przekroczyć planned (brak ujemnych wartości)
-  const done = planned > 0
-    ? Math.min(planned, Math.max(doneByStatus, Math.min(logsCount, planned)))
-    : Math.min(logsCount, 7); // brak planu — pokaż logi (max 7/tydzień)
+  const done = Math.max(doneByStatus, Math.min(logsCount, planned));
   const totalKm = (logsThisWeek||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
   const plannedKm = (trainingsThisWeek||[]).reduce((s,t) => s + (parseFloat(t.distance_km)||0), 0);
 
-  // FIX: pct zawsze 0-100, bez migania
   const pct = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : 0;
   const circumference = 138.2;
   const offset = circumference - (circumference * pct / 100);
@@ -3816,25 +3387,17 @@ async function updateWeekProgress() {
   const kmEl = document.getElementById('ws-km');
   const kmLblEl = document.getElementById('ws-km-lbl');
 
-  // FIX: ustaw wartości natychmiast (bez animacji countUp która nakłada się)
-  // Animuj tylko ring — reszta statycznie
+  // Animowane liczniki i ring
   if (arc) Anim.ringArc(arc, offset);
-  if (pctEl) pctEl.textContent = pct + '%';
-  if (daysEl) daysEl.textContent = done + ' z ' + (planned||'?') + ' zaplanowanych dni';
-  if (kmEl) kmEl.textContent = totalKm > 0 ? totalKm.toFixed(1) : '0';
+  if (pctEl) Anim.countUp(pctEl, pct, 800, '%');
+  if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
+  if (kmEl) Anim.countUp(kmEl, totalKm, 900);
   if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + plannedKm.toFixed(0) + ' km' : 'km ten tydzień';
-  } catch(e) {
-    console.error('updateWeekProgress error:', e);
-  } finally {
-    window._weekProgressRunning = false;
-  }
 }
 
 async function loadTodayTraining() {
   if (!_athleteId) return;
-  // BUGFIX: użyj lokalnej daty (toISOString zwraca UTC — może różnić się od lokalnego dnia)
-  const _n = new Date();
-  const today = _n.getFullYear()+'-'+String(_n.getMonth()+1).padStart(2,'0')+'-'+String(_n.getDate()).padStart(2,'0');
+  const today = new Date().toISOString().split('T')[0];
   const { data } = await _sb
     .from('trainings')
     .select('*')
@@ -3873,17 +3436,11 @@ async function loadTodayTraining() {
 async function loadCoachMessage() {
   // Show coach section only if athlete has coach
   if (_athleteId) {
-    // Użyj cache z initAuth jeśli dostępny, inaczej pobierz z bazy
-    let coachId = window._athleteCoachId;
-    if (coachId === undefined) {
-      const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
-      coachId = ath?.coach_id || null;
-      window._athleteCoachId = coachId;
-    }
+    const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
     const coachSection = document.getElementById('coach-msg-section');
-    if (coachSection) coachSection.style.display = coachId ? 'block' : 'none';
-    if (!coachId) return;
+    if (coachSection) coachSection.style.display = ath && ath.coach_id ? 'block' : 'none';
   }
+  
   if (!_athleteId) return;
   // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
   const { data: msgs } = await _sb
@@ -3947,7 +3504,7 @@ function renderLogsDb(data) {
     const borderColors = {spokojny:'rgba(80,144,224,0.15)',interwaly:'rgba(232,184,64,0.15)',tempo:'rgba(224,85,32,0.15)',wybieganie:'rgba(154,111,232,0.15)',regeneracja:'rgba(61,184,112,0.15)'};
     const iconBg = {spokojny:'rgba(80,144,224,0.12)',interwaly:'rgba(232,184,64,0.12)',tempo:'rgba(224,85,32,0.12)',wybieganie:'rgba(154,111,232,0.12)',regeneracja:'rgba(61,184,112,0.12)'};
     const feelEmoji = l.feel==='good'?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':l.feel==='bad'?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
-    return `<div class="log-item ${cls}" style="background:${bgColors[cls]||'var(--card)'};border-color:${borderColors[cls]||'rgba(255,255,255,0.06)'};" onclick="editLog(${idx})">
+    return `<div class="log-item ${cls}" data-type="${rawType}" style="background:${bgColors[cls]||'var(--card)'};border-color:${borderColors[cls]||'rgba(255,255,255,0.06)'};" onclick="editLog(${idx})">
       <div style="width:42px;height:42px;border-radius:12px;background:${iconBg[cls]||'rgba(255,255,255,0.04)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         ${svgIcons[type]||svgIcons['Spokojny']}
       </div>
@@ -3962,7 +3519,7 @@ function renderLogsDb(data) {
       <button onclick="event.stopPropagation();deleteLog('${l.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;" title="Usuń">✕</button>
     </div>
     ${l.attachment_url ? `<div style="padding:0 16px 4px;display:flex;flex-wrap:wrap;gap:6px;">
-      ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'" loading="lazy" decoding="async">`).join('')}
+      ${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}
     </div>` : ''}
     ${l.strava_link ? `<div style="padding:0 16px 8px;"><a href="${l.strava_link}" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}`;
   }).join('');
@@ -3983,17 +3540,14 @@ async function deleteLog(logId) {
     console.error('RLS blocked delete: logId', logId, 'athleteId', _athleteId);
     return;
   }
-  if (window._logsData) {
-    window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
-    // PERF: optimistic update — renderuj od razu z cache, loadLogs w tle
-    renderLogsDb(window._logsData);
-  }
+  if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Log usunięty ✓');
-  loadLogs(); // w tle, bez await
+  await loadLogs();
   const feedEl = document.getElementById('social-feed-content');
   if (feedEl && feedEl.style.display !== 'none') loadSocialFeed(false);
 }
 
+let _editingLogId = null;
 function editLog(idx) {
   const l = window._logsData?.[idx];
   if (!l) return;
@@ -4029,23 +3583,6 @@ function editLog(idx) {
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
 let _savingLog = false;
-
-// ── LEKKIE ODŚWIEŻENIE LISTY LOGÓW (bez pełnego loadLogs) ────────
-async function _refreshLogListOnly() {
-  if (!_athleteId) return;
-  try {
-    const { data } = await _sb
-      .from('training_logs')
-      .select('*')
-      .eq('athlete_id', _athleteId)
-      .order('logged_at', { ascending: false })
-      .limit(10);
-    if (data && data.length > 0) {
-      window._logsData = data;
-      renderLogsDb(data);
-    }
-  } catch(e) { /* silent */ }
-}
 async function saveLog() {
   if (_savingLog) return;
 
@@ -4159,30 +3696,23 @@ async function saveLog() {
   btn.disabled = false;
   _savingLog = false;
 
-  // PERF: zamknij modal i pokaż toast natychmiast — loadLogs w tle
-  const wasEditing = !!_editingLogId;
+  await loadLogs();
   closeModal();
-  toast(wasEditing ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
+  toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
 
   // Reset formularza
   _editingLogId = null;
+  document.querySelector('#modal-bg .modal-title').textContent = 'Zaloguj trening';
+  document.getElementById('save-btn').textContent = 'Zapisz log →';
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
+  document.querySelectorAll('.type-pill').forEach((p,i)=>{ p.classList.toggle('on', i===0); });
+  document.getElementById('upload-label').textContent = 'Kliknij aby dodać zdjęcie';
+  document.getElementById('upload-area').style.borderColor = 'var(--border)';
+  const lFile = document.getElementById('l-file'); if(lFile) lFile.value = '';
   feel = '';
   _logType = 'Spokojny';
   _logDate = null;
-
-  // Unieważnij cache treningu dla tej daty
-  if (logDate && window._trainingCache) delete window._trainingCache[logDate];
-
-  // FIX: nie wywołuj loadLogs() — ciężkie (10 zapytań + DOM rebuild)
-  // Zamiast tego: zaktualizuj tylko listę logów i progress
-  updateWeekProgress();
-
-  // Odśwież tylko listę logów (1 zapytanie, nie loadLogs)
-  _refreshLogListOnly();
-
-  // Plan dnia — tylko jeśli dziś
-  const _isToday = logDate === new Date().toISOString().split('T')[0];
-  if (_isToday) setTimeout(loadTodayTraining, 300);
   } catch(saveErr) {
     console.error('saveLog:', saveErr);
     toast('Błąd: ' + saveErr.message);
@@ -4353,7 +3883,7 @@ async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
   sessionStorage.clear();
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 async function confirmDeleteAccount() {
@@ -4409,7 +3939,7 @@ async function executeDeleteAccount() {
     document.getElementById('delete-account-modal')?.remove();
     // Pokaż potwierdzenie i przekieruj
     document.body.innerHTML = '<div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#07070a;color:#f0ede8;font-family:\'DM Sans\',sans-serif;gap:16px;"><div style="font-family:\'Bebas Neue\',sans-serif;font-size:32px;">Konto usunięte</div><div style="font-size:13px;color:#66636e;">Do zobaczenia na trasie 🏃</div></div>';
-    setTimeout(() => window.location.href = 'login.html', 3000);
+    setTimeout(() => window.location.href = 'index.html', 3000);
   } catch(e) {
     toast('Błąd: ' + e.message);
     if (btn) { btn.textContent = 'Usuń konto'; btn.disabled = false; }
@@ -4452,53 +3982,6 @@ document.addEventListener('click', e => {
 
 // ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
 
-
-// ── TWÓJ KRĄG ────────────────────────────────────────────────────────
-async function loadSocialCircle() {
-  if (!_athleteId) return; // BUGFIX: guard — was missing, caused silent failure before auth
-  const row = document.getElementById('social-circle-row');
-  if (!row || !_athleteId) return;
-
-  // Pobierz trenera i zawodników
-  const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
-  const coachId = ath?.coach_id;
-
-  let circles = [];
-
-  // Trener
-  if (coachId) {
-    const { data: coach } = await _sb.from('coaches').select('id').eq('id', coachId).maybeSingle();
-    if (coach) {
-      const { data: profile } = await _sb.from('profiles').select('full_name').eq('id', coachId).maybeSingle();
-      const name = profile?.full_name || 'Trener';
-      const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      circles.push({ ini, label: 'Trener', color: '#3db870', isCoach: true });
-    }
-  }
-
-  // Inni zawodnicy tego trenera (ostatnio aktywni)
-  if (coachId) {
-    const { data: peers } = await _sb.from('athletes').select('id,full_name').eq('coach_id', coachId).neq('id', _athleteId).limit(8);
-    const avColors2 = ['#d4501a','#5090e0','#e8b840','#9a6fe8','#e05050','#fc8c00','#3db870'];
-    (peers||[]).forEach((p,i) => {
-      const name = p.full_name || 'Biegacz';
-      const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      circles.push({ ini, label: name.split(' ')[0], color: avColors2[i % avColors2.length], hasActivity: true });
-    });
-  }
-
-  if (circles.length === 0) { row.style.display = 'none'; return; }
-
-  row.innerHTML = circles.map(c => `
-    <div class="social-circle-item">
-      <div class="social-circle-av ${c.isCoach ? 'coach' : c.hasActivity ? 'has-activity' : ''}" style="background:${c.color}20;">
-        <span style="color:${c.color};font-family:'Bebas Neue',sans-serif;font-size:16px;">${c.ini}</span>
-      </div>
-      <div class="social-circle-lbl">${c.label}</div>
-    </div>
-  `).join('');
-}
-
 function switchSocialTab(tab) {
   ['feed','challenges','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
@@ -4506,59 +3989,50 @@ function switchSocialTab(tab) {
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
-  if (tab==='feed') { loadSocialFeed(false); loadSocialCircle(); }
+  if (tab==='feed') loadSocialFeed(false);
   if (tab==='challenges') loadChallenges();
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
 }
 
-async function _loadSocialFeedImpl(compact) {
+async function loadSocialFeed(compact) {
   if (!_athleteId) return;
   const feedEl = document.getElementById(compact ? 'home-social-preview' : 'social-feed-content');
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
 
-  // PERF: zrównolegl athletes + follows (nie zależą od siebie)
-  const [publicAthletesRes, followDataRes] = await Promise.all([
-    _sb.from('athletes').select('id,full_name,is_public').eq('is_public', true).limit(100),
-    _sb.from('follows').select('following_id').eq('follower_id', _athleteId)
-  ]);
-  const publicAthletes = publicAthletesRes.data;
-  const followData = followDataRes.data;
+  // Pobierz ID publicznych zawodników
+  const { data: publicAthletes } = await _sb.from('athletes')
+    .select('id,full_name,is_public')
+    .eq('is_public', true)
+    .limit(100);
 
   const publicIds = (publicAthletes||[]).map(function(a){return a.id;});
-
-  // BUGFIX: zawsze dodaj własne ID do feedu (nawet jeśli profil prywatny)
+  // Zawsze dodaj własne ID
   if (_athleteId && !publicIds.includes(_athleteId)) publicIds.push(_athleteId);
 
   if (!publicIds.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności.</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
 
-  // Pobierz logi tych zawodników (teraz już mamy athletes i follows)
+  // Pobierz logi tych zawodników
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,heart_rate,feel,comment,logged_at,athlete_id,attachment_url')
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
     .order('logged_at', { ascending: false })
     .limit(compact ? 3 : 30);
 
   if (!logs || logs.length === 0) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności.</div>';
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
 
   // Buduj mapę athlete_id → dane
   const athMap = {};
   (publicAthletes||[]).forEach(function(a){ athMap[a.id] = a; });
-  // BUGFIX: dociągnij własne dane jeśli nie ma ich w publicAthletes (profil prywatny)
-  if (_athleteId && !athMap[_athleteId]) {
-    try {
-      const { data: ownAth } = await _sb.from('athletes').select('id,full_name,is_public').eq('id',_athleteId).maybeSingle();
-      if (ownAth) athMap[_athleteId] = ownAth;
-    } catch(e) {}
-  }
 
+  const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
   function buildCard(l) {
@@ -4585,55 +4059,29 @@ async function _loadSocialFeedImpl(compact) {
         +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
     }
     const reactBar = compact ? '' : (
-      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
-      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'fire\')" id="react-fire-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#f06030;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span id="rc-fire-'+l.id+'" style="font-size:11px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
-      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'clap\')" id="react-clap-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#e8b840;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> <span id="rc-clap-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
-      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
-      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
+      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;padding-left:6px;">'
+      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> <span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-    // Type-based card gradient
-    const typeGradients = {
-      'Spokojny':    {accent:'#5090e0', tint:'rgba(80,144,214,0.07)', border:'rgba(80,144,214,0.2)'},
-      'Bieg spokojny':{accent:'#5090e0',tint:'rgba(80,144,214,0.07)', border:'rgba(80,144,214,0.2)'},
-      'Interwały':   {accent:'#e8b840', tint:'rgba(232,184,64,0.08)',  border:'rgba(232,184,64,0.22)'},
-      'Tempo':       {accent:'#e8561e', tint:'rgba(232,86,30,0.08)',   border:'rgba(232,86,30,0.25)'},
-      'Wybieganie':  {accent:'#9a6fe8', tint:'rgba(154,111,232,0.07)', border:'rgba(154,111,232,0.2)'},
-      'Regeneracja': {accent:'#3db870', tint:'rgba(61,184,112,0.07)',  border:'rgba(61,184,112,0.2)'},
-      'Odpoczynek':  {accent:'#44424a', tint:'rgba(68,66,74,0.05)',    border:'rgba(68,66,74,0.15)'},
-      'Start':       {accent:'#3db870', tint:'rgba(61,184,112,0.09)',  border:'rgba(61,184,112,0.25)'},
-    };
-    const tg = typeGradients[type] || {accent:'#e8561e', tint:'rgba(232,86,30,0.06)', border:'rgba(232,86,30,0.18)'};
-    const cardStyle = `--card-accent:${tg.accent};--card-tint:${tg.tint};--card-border:${tg.border};--card-border-hover:${tg.accent}44;`;
-        const avColors = ['#d4501a','#5090e0','#3db870','#e8b840','#9a6fe8','#e05050','#fc8c00'];
-    const avColor = isOwn ? 'var(--accent)' : avColors[ini.charCodeAt(0) % avColors.length];
-    const pbBadge = (dist && parseFloat(dist) >= 20) ? '<div class="social-badge-pb"><svg width="12" height="12" viewBox="0 0 24 24" fill="#e8b840"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Długi bieg!</div>' : '';
-    return '<div class="social-card" '+clickAttr+' '+hoverAttrs+' style="animation-delay:'+(Math.random()*0.12).toFixed(2)+'s;'+cardStyle+'">'      +'<div class="social-card-header">'      +'<div class="social-card-av" style="background:'+avColor+'22;border:2px solid '+avColor+'44;"><span style="color:'+avColor+';">'+ini+'</span></div>'      +'<div style="flex:1;min-width:0;"><div class="social-card-name">'+(isOwn?'Ty':name)+followBadge+'</div><div class="social-card-time">'+date+'</div></div>'      +'<span class="social-card-type" style="color:'+col+';background:'+col+'22;border:1px solid '+col+'44;">'+type+'</span>'      +editBtns+'</div>'      +pbBadge      +(dist?'<div class="social-card-stats">'        +'<div class="social-stat"><div class="social-stat-val" style="color:var(--accent);">'+dist+'</div><div class="social-stat-lbl">km</div></div>'        +(l.pace?'<div class="social-stat"><div class="social-stat-val">'+l.pace+'</div><div class="social-stat-lbl">/km</div></div>':'')        +(l.heart_rate?'<div class="social-stat"><div class="social-stat-val" style="color:#e05050;">'+Math.round(l.heart_rate)+'</div><div class="social-stat-lbl">bpm</div></div>':'')        +(feelEmoji?'<div class="social-stat" style="display:flex;align-items:center;justify-content:center;">'+feelEmoji+'</div>':'')+'</div>':'')      +(l.comment?'<div class="social-card-comment">„'+l.comment+'”</div>':'')      +screensHtml+reactBar+'</div>';
+    return '<div '+clickAttr+' '+hoverAttrs+' style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
+      +'<div style="display:flex;align-items:center;gap:10px;">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+type+'</span>'
+      +editBtns+'</div>'
+      +(dist?'<div style="display:flex;gap:16px;align-items:baseline;margin-top:10px;">'
+        +'<div><span style="font-family:Bebas Neue,sans-serif;font-size:28px;line-height:1;">'+dist+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">KM</span></div>'
+        +(l.pace?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:20px;line-height:1;">'+l.pace+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">/KM</span></div>':'')
+        +(feelEmoji?'<div style="margin-left:auto;display:flex;align-items:center;">'+feelEmoji+'</div>':'')+'</div>':'')
+      +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">"'+l.comment+'"</div>':'')
+      +screensHtml+reactBar+'</div>';
   }
   const rendered = logs.map(buildCard).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
-  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
+  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
 
-let _socialDebounceTimer = null;
-function loadSocialFeed(compact) {
-  clearTimeout(_socialDebounceTimer);
-  _socialDebounceTimer = setTimeout(() => _loadSocialFeedImpl(compact), compact ? 0 : 150);
-}
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
 
-const _myReactions = {};
-
-async function loadReactionCounts(logIds) {
-  if (!logIds||!logIds.length) return;
-  try {
-    const {data} = await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
-    if (!data) return;
-    const counts={};
-    data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;if(r.athlete_id===_athleteId){if(!_myReactions[r.log_id])_myReactions[r.log_id]=new Set();_myReactions[r.log_id].add(r.reaction_type);}});
-    Object.keys(counts).forEach(function(k){const i=k.lastIndexOf('_');const lid=k.slice(0,i);const tp=k.slice(i+1);const el=document.getElementById('rc-'+tp+'-'+lid);if(el)el.textContent=counts[k];});
-    Object.keys(_myReactions).forEach(function(lid){_myReactions[lid].forEach(function(tp){const btn=document.getElementById('react-'+tp+'-'+lid);if(btn)btn.style.background='rgba(255,255,255,0.08)';});});
-  } catch(e){console.warn('log_reactions:',e.message);}
-}
 
 async function loadCommentCounts(logIds) {
   if (!logIds||!logIds.length) return;
@@ -4645,30 +4093,6 @@ async function loadCommentCounts(logIds) {
   } catch(e){console.warn('log_comments:',e.message);}
 }
 
-async function toggleReact(logId, type) {
-  if (!_athleteId) return;
-  if (!_myReactions[logId]) _myReactions[logId]=new Set();
-  const already=_myReactions[logId].has(type);
-  const btn=document.getElementById('react-'+type+'-'+logId);
-  const countEl=document.getElementById('rc-'+type+'-'+logId);
-  const cur=parseInt((countEl&&countEl.textContent)||'0');
-  try {
-    if (already) {
-      await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
-      _myReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);
-    } else {
-      await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
-      _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
-    }
-  } catch(e){
-    if(e.message && e.message.includes('does not exist')) {
-      toast('Brak tabeli log_reactions — patrz SQL w konsoli');
-      console.error('SQL needed: CREATE TABLE log_reactions (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, log_id uuid NOT NULL REFERENCES training_logs(id) ON DELETE CASCADE, athlete_id uuid NOT NULL REFERENCES athletes(id) ON DELETE CASCADE, reaction_type text NOT NULL, created_at timestamptz DEFAULT now(), UNIQUE(log_id, athlete_id, reaction_type));');
-    } else {
-      toast('Błąd reakcji: '+e.message);
-    }
-  }
-}
 
 async function openComments(logId) {
   document.getElementById('comments-modal')?.remove();
@@ -4700,8 +4124,8 @@ async function openComments(logId) {
 
     <!-- INPUT ROW -->
     <div style="padding:10px 16px 28px;display:flex;gap:6px;border-top:1px solid var(--border);flex-shrink:0;align-items:center;position:relative;">
-      <button id="cm-emoji-btn" onclick="toggleCmPanel('emoji')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform 0.15s ease,opacity 0.15s ease;">😊</button>
-      <button id="cm-gif-btn" onclick="toggleCmPanel('gif')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--muted);flex-shrink:0;transition:transform 0.15s ease,opacity 0.15s ease;">GIF</button>
+      <button id="cm-emoji-btn" onclick="toggleCmPanel('emoji')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">😊</button>
+      <button id="cm-gif-btn" onclick="toggleCmPanel('gif')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--muted);flex-shrink:0;transition:all 0.15s;">GIF</button>
       <input id="comment-inp" type="text" placeholder="Napisz komentarz..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:12px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='rgba(232,86,30,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'" onkeydown="if(event.key==='Enter')submitComment('${logId}')">
       <button onclick="submitComment('${logId}')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(232,86,30,0.35);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
     </div>
@@ -4861,6 +4285,7 @@ async function deleteFeedLog(logId) {
   if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Usunięto ✓');
   loadSocialFeed(false);
+  loadLogs();
 }
 
 function loadChallenges() {
@@ -5069,7 +4494,7 @@ function _buildAthleteCards(athletes, fSet) {
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isF = fSet.has(a.id);
     const followBtn = '<button id="fb-' + a.id + '" onclick="event.stopPropagation();toggleFollow(\'' + a.id + '\',this,' + isF + ')"'
-      + ' style="background:' + (isF?'transparent':'var(--accent)') + ';border:1px solid ' + (isF?'var(--border)':'var(--accent)') + ';color:' + (isF?'var(--muted)':'#fff') + ';font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:transform 0.15s ease,opacity 0.15s ease;">'
+      + ' style="background:' + (isF?'transparent':'var(--accent)') + ';border:1px solid ' + (isF?'var(--border)':'var(--accent)') + ';color:' + (isF?'var(--muted)':'#fff') + ';font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">'
       + (isF ? 'Obserwujesz' : '+ Obserwuj') + '</button>';
     return '<div onclick="openAthleteProfile(\'' + a.id + '\')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:15px;flex-shrink:0;">' + ini + '</div>'
@@ -5209,7 +4634,7 @@ async function openAthleteProfile(athleteId) {
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;">${name}</div>
       ${ath.goal ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">${ath.goal}</div>` : ''}
       <button id="ap-follow-btn" onclick="_apToggleFollow('${athleteId}', ${isFollowing})"
-        style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:transform 0.15s ease,opacity 0.15s ease;">
+        style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
         ${isFollowing ? '\u2713 Obserwujesz' : '+ Obserwuj'}
       </button>
     </div>`);
@@ -5640,21 +5065,19 @@ const Anim = {
   // 3. COUNT-UP — licznik od 0 do wartości
   countUp(el, target, duration = 900, suffix = '') {
     if (!el || target === null || isNaN(target)) return;
-    // Anuluj poprzednią animację
-    if (el._rafId) { cancelAnimationFrame(el._rafId); el._rafId = null; }
     const start = performance.now();
-    const startVal = parseFloat(el.textContent) || 0;
+    const startVal = 0;
     const isFloat = target % 1 !== 0;
     const step = (now) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
+      // ease-out quad
       const ease = 1 - (1 - progress) * (1 - progress);
       const current = startVal + (target - startVal) * ease;
       el.textContent = (isFloat ? current.toFixed(1) : Math.round(current)) + suffix;
-      if (progress < 1) { el._rafId = requestAnimationFrame(step); }
-      else { el._rafId = null; }
+      if (progress < 1) requestAnimationFrame(step);
     };
-    el._rafId = requestAnimationFrame(step);
+    requestAnimationFrame(step);
   },
 
   // 4. PROGRESS BAR — animuj od 0 do wartości
@@ -5673,23 +5096,13 @@ const Anim = {
   // 4b. RING ARC — animuj dashoffset
   ringArc(el, targetOffset, circumference = 138.2) {
     if (!el) return;
-    clearTimeout(el._animTimer);
-    // Jeśli ring jest pusty (start strony) — animuj od 0
-    // Jeśli już trwa animacja — nie przerywaj, tylko zaktualizuj cel
-    if (!el._animActive) {
-      el._animActive = true;
-      el.style.transition = 'none';
-      el.setAttribute('stroke-dashoffset', circumference);
-      el._animTimer = setTimeout(() => {
-        el.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(0.16,1,0.3,1)';
+    el.setAttribute('stroke-dashoffset', circumference); // start = puste
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        el.style.transition = 'stroke-dashoffset 0.8s cubic-bezier(0.16,1,0.3,1)';
         el.setAttribute('stroke-dashoffset', targetOffset);
-        setTimeout(() => { el._animActive = false; }, 1000);
       }, 60);
-    } else {
-      // Animacja już trwa — tylko zaktualizuj cel (płynnie)
-      el.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(0.16,1,0.3,1)';
-      el.setAttribute('stroke-dashoffset', targetOffset);
-    }
+    });
   },
 
   // 5. TAP FEEDBACK — dodaj klasę na ważne przyciski
@@ -5843,27 +5256,23 @@ const Anim = {
 // Inicjalizuj przy starcie
 Anim.initSound();
 
-// ── STARTUP AUTH — jedna ścieżka, zero duplikatów ────────────────
-// Obsłuż token z linku OAuth/email ZANIM sprawdzimy sesję
+init();
+// Obsłuż token z linku aktywacyjnego ZANIM initAuth
+// Supabase SDK przetwarza #access_token z URL asynchronicznie
 _sb.auth.onAuthStateChange((event, session) => {
-  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !window._authInitDone) {
+  if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
-    // PERF: przekaż session — nie rób drugiego getSession() w initAuth
-    initAuth(session).then(() => checkStravaStatus());
-  } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !session && !window._authInitDone) {
-    // Brak sesji — od razu redirect bez czekania
-    window._authInitDone = true;
-    window.location.href = 'login.html';
+    initAuth().then(() => checkStravaStatus());
   }
 });
 
-// Fallback: jeśli onAuthStateChange nie odpali w 800ms (np. brak internetu)
+// Fallback — jeśli sesja już istnieje (normalne logowanie, brak tokenu w URL)
 setTimeout(() => {
   if (!window._authInitDone) {
     window._authInitDone = true;
     initAuth().then(() => checkStravaStatus());
   }
-}, 800);
+}, 300);
 // Tap feedback na ważne przyciski (delegacja — działa też na dynamiczne)
 document.addEventListener('touchstart', (e) => {
   const btn = e.target.closest('.btn, .day-card, .log-item, .log-card, .coach-box, .feel-btn, .type-pill, .nav-it');
@@ -6014,29 +5423,31 @@ async function toggleVoice(btnId, sender) {
   }
 }
 
+
+// Tła ekranów onboardingu
+const _obBgs = [
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',
+  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg',
+];
+function _setObBg(step) {
+  const box = document.querySelector('#onboarding-modal .ob-box, #onboarding-modal .ob-screen.active, #onboarding-modal');
+  if (box && _obBgs[step]) {
+    box.style.backgroundImage = "url('" + _obBgs[step] + "')";
+    box.style.backgroundSize = 'cover';
+    box.style.backgroundPosition = 'center top';
+  }
+}
 </script>
 <!-- SEKCJA: STATYSTYKI -->
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
-
-  <!-- HERO BANNER -->
-  <div class="social-hero-banner bg-1" id="social-hero-banner">
-    <div class="social-hero-overlay"></div>
-    <div class="social-hero-inner">
-      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;margin-bottom:4px;">Biegacze</div>
-      <div class="social-hero-title">Społecz<span style="color:var(--accent)">ność</span></div>
-      <div class="social-hero-sub">Twój krąg biegaczy</div>
-    </div>
-  </div>
-
-  <!-- TWÓJ KRĄG -->
-  <div class="social-circle-row" id="social-circle-row">
-    <!-- wypełniane przez JS -->
-  </div>
-
-  <!-- TABS -->
-  <div style="padding:8px 16px 0;">
-    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;">
+  <div style="padding:52px 16px 0 16px;">
+    <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Biegacze</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;margin-bottom:16px;">Społeczność</div>
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
@@ -6298,288 +5709,5 @@ async function toggleVoice(btnId, sender) {
 </div>
 
 </div>
-<!-- PREMIUM ANIMATIONS ENGINE -->
-<canvas id="confetti-canvas"></canvas>
-<div class="toast-premium" id="toast-premium"></div>
-
-<script>
-/* ══ BIEGAMY PREMIUM ANIMATIONS ══════════════════════════════════════ */
-
-// ── 1. SLIDE-IN ON SCROLL (Intersection Observer) ─────────────────────
-(function initSlideIn(){
-  // Mark all major content blocks
-  const targets = document.querySelectorAll(
-    '.log-card, .today-hero, .week-sum, .coach-box, #daily-motivation, .sec-hdr, #week-strip, #home-social-preview, #strava-home-banner'
-  );
-  targets.forEach(el => el.classList.add('slide-in'));
-
-  const io = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if(e.isIntersecting){
-        e.target.classList.add('visible');
-        io.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.08, rootMargin: '0px 0px -20px 0px' });
-
-  targets.forEach((el, i) => {
-    // Stagger delay
-    el.style.transitionDelay = (i * 0.04) + 's';
-    io.observe(el);
-  });
-})();
-
-// ── 2. PARALLAX HERO ──────────────────────────────────────────────────
-(function initParallax(){
-  const hero = document.querySelector('.today-hero');
-  const bg = document.getElementById('hero-bg-layer');
-  if(!hero || !bg) return;
-
-  let ticking = false;
-  window.addEventListener('scroll', () => {
-    if(ticking) return;
-    ticking = true;
-    requestAnimationFrame(() => {
-      const rect = hero.getBoundingClientRect();
-      const progress = -rect.top / window.innerHeight;
-      const shift = Math.max(-15, Math.min(15, progress * 30));
-      bg.style.transform = `translateY(${shift}px)`;
-      ticking = false;
-    });
-  }, { passive: true });
-})();
-
-// ── 3. COUNT-UP NUMBERS ───────────────────────────────────────────────
-function animateCountUp(el, target, suffix, decimals=0, duration=900){
-  if(!el) return;
-  const start = performance.now();
-  const from = 0;
-  el.classList.add('count-up');
-
-  function update(now){
-    const elapsed = now - start;
-    const progress = Math.min(elapsed / duration, 1);
-    // Ease out cubic
-    const eased = 1 - Math.pow(1 - progress, 3);
-    const val = from + (target - from) * eased;
-    el.textContent = decimals > 0 ? val.toFixed(decimals) : Math.round(val);
-    if(suffix) el.textContent += suffix;
-    if(progress < 1) requestAnimationFrame(update);
-    else {
-      el.textContent = decimals > 0 ? target.toFixed(decimals) : target;
-      if(suffix) el.textContent += suffix;
-      el.classList.add('pop');
-      setTimeout(() => el.classList.remove('pop'), 400);
-    }
-  }
-  requestAnimationFrame(update);
-}
-
-// Hook into ring/km updates — intercept existing setRingProgress
-// setRingProgress intercept usunięty — updateWeekProgress obsługuje ring bezpośrednio
-
-// ── 4. CONFETTI AFTER LOG ─────────────────────────────────────────────
-const _confettiCanvas = document.getElementById('confetti-canvas');
-const _ctx = _confettiCanvas ? _confettiCanvas.getContext('2d') : null;
-let _confettiParticles = [];
-let _confettiRunning = false;
-
-function launchConfetti(){
-  if(!_confettiCanvas || !_ctx) return;
-  _confettiCanvas.width = window.innerWidth;
-  _confettiCanvas.height = window.innerHeight;
-  _confettiCanvas.classList.add('active');
-
-  const colors = ['#e8561e','#ff7040','#3db870','#f0ede8','#e8b840','#4e8cd6','#ff9060'];
-  _confettiParticles = Array.from({length: 80}, () => ({
-    x: Math.random() * _confettiCanvas.width,
-    y: -10 - Math.random() * 80,
-    w: 6 + Math.random() * 8,
-    h: 3 + Math.random() * 5,
-    color: colors[Math.floor(Math.random() * colors.length)],
-    vx: (Math.random() - 0.5) * 3,
-    vy: 2.5 + Math.random() * 3.5,
-    rot: Math.random() * Math.PI * 2,
-    vr: (Math.random() - 0.5) * 0.18,
-    life: 1,
-    decay: 0.007 + Math.random() * 0.005
-  }));
-
-  _confettiRunning = true;
-  _animateConfetti();
-
-  setTimeout(() => {
-    _confettiRunning = false;
-    _confettiCanvas.classList.remove('active');
-    _ctx.clearRect(0, 0, _confettiCanvas.width, _confettiCanvas.height);
-  }, 3200);
-}
-
-function _animateConfetti(){
-  if(!_confettiRunning) return;
-  _ctx.clearRect(0, 0, _confettiCanvas.width, _confettiCanvas.height);
-  _confettiParticles.forEach(p => {
-    p.x += p.vx; p.y += p.vy; p.rot += p.vr; p.life -= p.decay;
-    if(p.life <= 0) return;
-    _ctx.save();
-    _ctx.globalAlpha = Math.max(0, p.life);
-    _ctx.translate(p.x, p.y);
-    _ctx.rotate(p.rot);
-    _ctx.fillStyle = p.color;
-    _ctx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
-    _ctx.restore();
-  });
-  _confettiParticles = _confettiParticles.filter(p => p.life > 0);
-  if(_confettiParticles.length > 0) requestAnimationFrame(_animateConfetti);
-}
-
-// ── 5. PREMIUM TOAST ──────────────────────────────────────────────────
-function showPremiumToast(msg, icon='✓'){
-  const el = document.getElementById('toast-premium');
-  if(!el) return;
-  el.innerHTML = `<span style="font-size:16px;">${icon}</span> ${msg}`;
-  el.classList.add('on');
-  setTimeout(() => el.classList.remove('on'), 3000);
-}
-
-// ── 6. SECTION TRANSITIONS ────────────────────────────────────────────
-// Intercept showSection to add smooth transitions
-const _origShowSection = window.showSection;
-window.showSection = function(name){
-  const sections = document.querySelectorAll('[id^="section-"]');
-  sections.forEach(s => {
-    if(s.style.display !== 'none'){
-      s.classList.add('section-exit');
-      setTimeout(() => { s.classList.remove('section-exit'); }, 250);
-    }
-  });
-  if(_origShowSection) _origShowSection(name);
-  // Animate new section in
-  setTimeout(() => {
-    const newSec = document.getElementById('section-' + name);
-    if(newSec && newSec.style.display !== 'none'){
-      newSec.classList.add('section-enter');
-      setTimeout(() => newSec.classList.remove('section-enter'), 400);
-    }
-  }, 50);
-};
-
-// ── 7. SKELETON LOADING for log list ─────────────────────────────────
-function showLogSkeleton(){
-  const list = document.getElementById('log-list');
-  // BUGFIX: nie nadpisuj jeśli logi już zostały załadowane
-  if(!list || list.dataset.loaded) return;
-  list.innerHTML = Array.from({length:3}, () => `
-    <div style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--tile-radius);padding:16px 18px;">
-      <div class="skeleton skeleton-line wide"></div>
-      <div class="skeleton skeleton-line mid"></div>
-      <div class="skeleton skeleton-line short" style="margin-bottom:0;"></div>
-    </div>
-  `).join('');
-}
-// Show skeleton immediately while DB loads (only if not already loaded)
-showLogSkeleton();
-
-// ── 8. INTERCEPT LOG SAVE — trigger confetti + premium toast ──────────
-// Hook into the modal close / save success
-const _origCloseModal = window.closeModal;
-window.closeModal = function(){
-  if(_origCloseModal) _origCloseModal();
-};
-
-// Intercept saveLog to fire confetti
-// BUGFIX: zwiększono timeout — saveLog musi być dostępny na window po initAuth
-setTimeout(function(){
-  const _origSaveLog = window.saveLog;
-  if (!_origSaveLog) {
-    // Retry once more if not yet available
-    setTimeout(function(){
-      const _origSaveLog2 = window.saveLog;
-      if (!_origSaveLog2) return;
-      window.saveLog = async function(){
-        await _origSaveLog2.apply(this, arguments);
-        setTimeout(() => {
-          launchConfetti();
-          showPremiumToast('Trening zapisany! 🔥', '💪');
-        }, 400);
-      };
-    }, 500);
-    return;
-  }
-  window.saveLog = async function(){
-    await _origSaveLog.apply(this, arguments);
-    setTimeout(() => {
-      launchConfetti();
-      showPremiumToast('Trening zapisany! 🔥', '💪');
-    }, 400);
-  };
-}, 100);
-
-// ── 9. HERO IMAGE TILT on touch ───────────────────────────────────────
-(function initHeroTilt(){
-  const hero = document.querySelector('.today-hero');
-  if(!hero) return;
-
-  hero.addEventListener('touchmove', (e) => {
-    const touch = e.touches[0];
-    const rect = hero.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = (touch.clientX - cx) / rect.width;
-    const dy = (touch.clientY - cy) / rect.height;
-    hero.style.transform = `perspective(600px) rotateY(${dx * 4}deg) rotateX(${-dy * 3}deg)`;
-  }, { passive: true });
-
-  hero.addEventListener('touchend', () => {
-    hero.style.transform = '';
-    hero.style.transition = 'transform 0.4s var(--ease-out)';
-    setTimeout(() => hero.style.transition = '', 400);
-  }, { passive: true });
-})();
-
-// ── 10. WEEK STRIP COUNT-UP on load ──────────────────────────────────
-// After week strip renders, animate km numbers
-function animateWeekStripNumbers(){
-  document.querySelectorAll('.ws-km, [id="ws-km"]').forEach(el => {
-    const val = parseFloat(el.textContent);
-    if(!isNaN(val) && val > 0) animateCountUp(el, val, '', 0, 700);
-  });
-}
-// Observe ws-km changes
-const _wsKm = document.getElementById('ws-km');
-if(_wsKm){
-  new MutationObserver(() => {
-    const val = parseFloat(_wsKm.textContent);
-    if(!isNaN(val) && val > 0) animateCountUp(_wsKm, val, '', 0, 800);
-  }).observe(_wsKm, { childList: true });
-}
-
-// ── SOCIAL HERO ROTATE ───────────────────────────────────────────────
-(function initSocialRotate(){
-  let current = 1;
-  function rotate(){
-    const banner = document.getElementById('social-hero-banner');
-    if(!banner) return;
-    current = current >= 3 ? 1 : current + 1;
-    banner.classList.toggle('bg-1', current === 1);
-    banner.classList.toggle('bg-2', current === 2);
-    banner.classList.toggle('bg-3', current === 3);
-  }
-  // Start rotating when social section is visible
-  let rotateTimer = null;
-  const origShow = window.showSection;
-  window.showSection = function(name){
-    if(origShow) origShow(name);
-    if(name === 'social'){
-      if(!rotateTimer) rotateTimer = setInterval(rotate, 4000);
-    } else {
-      if(rotateTimer){ clearInterval(rotateTimer); rotateTimer = null; }
-    }
-  };
-})();
-
-
-</script>
-
 </body>
 </html>
