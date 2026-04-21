@@ -1034,9 +1034,9 @@ async function renderDbAthletes(list) {
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         ${a.hasMissed
-          ? `<div style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;" title="Brak logu 2+ dni przy zaplanowanym treningu">⚠ brak logu</div>`
+          ? `<div style="background:rgba(224,80,80,0.15);border:1px solid rgba(224,80,80,0.5);color:var(--red);font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;" title="Brak logu 2+ dni przy zaplanowanym treningu" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="cursor:pointer;">⚠ brak logu</div>`
           : a.newLogs > 0
-            ? `<div style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;">🆕 ${a.newLogs} log</div>`
+            ? `<div onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🆕 ${a.newLogs} log</div>`
             : '<div class="ath-dot off"></div>'}
         <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
@@ -1071,6 +1071,19 @@ async function selA_db_logs(athleteId) {
   await selA_db(athleteId);
   const lgTab = document.querySelectorAll('.ptab')[2];
   if (lgTab) ptab('lg', lgTab);
+  // Resetuj badge po wejściu w logi
+  const athIdx = _dbAthletes ? _dbAthletes.findIndex(x => x.id === athleteId) : -1;
+  if (athIdx !== -1) {
+    _dbAthletes[athIdx] = { ..._dbAthletes[athIdx], newLogs: 0, hasMissed: false };
+    // Zaktualizuj wizualnie kartę zawodnika
+    document.querySelectorAll('.ath-card').forEach(card => {
+      const cid = card.getAttribute('data-athlete-id');
+      if (cid === String(athleteId) || card.getAttribute('onclick')?.includes(athleteId)) {
+        const badge = card.querySelector('[style*="green"], [style*="red"], [title*="Brak logu"]');
+        if (badge) badge.style.display = 'none';
+      }
+    });
+  }
 }
 
 async function selA_db(athleteId) {
@@ -1097,7 +1110,7 @@ async function selA_db(athleteId) {
   window._selectedAthleteId = athleteId;
   await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
 
-  // Skasuj flagę "brak logu" i odśwież kartę zawodnika na liście
+  // Skasuj badge 'nowy log' i 'brak logu' — odśwież kartę
   const athIdx = _dbAthletes.findIndex(x => x.id === athleteId);
   if (athIdx !== -1) {
     _dbAthletes[athIdx] = { ..._dbAthletes[athIdx], newLogs: 0, hasMissed: false };
