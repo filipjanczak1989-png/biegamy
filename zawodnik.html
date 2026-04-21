@@ -728,10 +728,10 @@ body > *{position:relative;z-index:1;}
   pointer-events:none;z-index:0;}
 .ob-hero>*{position:relative;z-index:1;}
 
-#daily-motivation{margin:0 16px 16px;background:rgba(10,6,3,0.97)!important;background-image:none!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 4px 28px rgba(232,86,30,0.25);}
+#daily-motivation{margin:0 16px 16px;background:rgba(10,6,3,0.97)!important;background-image:none!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
 #daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>*{position:relative;z-index:1;}
-#motiv-text{font-size:13px;line-height:1.7;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,1);}
+#motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
 #motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
 </style>
 </head>
@@ -3145,13 +3145,19 @@ async function loadWeekPlan() {
 
   const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
   const typeBgMap = {
-    'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
-    'Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
-    'Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
-    'Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
-    'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
+    'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
+    'Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
+    'Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
+    'Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
+    'Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',
+    'Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
+    'Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
+    'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
+    'Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',
+    'Zastępczy':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',
   };
-  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+  const _allDayImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
+  function _dayImgFor(type,idx){return typeBgMap[type]||_allDayImgs[idx%_allDayImgs.length];}  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
 
   document.getElementById('week-strip').innerHTML = data.map((t, i) => {
@@ -3175,7 +3181,7 @@ async function loadWeekPlan() {
       : `<div style="width:8px;height:8px;border-radius:50%;border:1px solid var(--muted2);flex-shrink:0;"></div>`);
 
     return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
-      <div style="position:absolute;inset:0;background-image:url(${typeBgMap[t.type]||'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg'});background-size:cover;background-position:center;opacity:${isRest?'0.05':'0.11'};pointer-events:none;border-radius:14px;"></div>
+      <div style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i)});background-size:cover;background-position:center top;opacity:${isRest?'0.06':'0.18'};pointer-events:none;border-radius:14px;"></div>
       <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.68':'0.78'}),rgba(7,5,12,${isToday?'0.52':'0.65'}));pointer-events:none;border-radius:14px;"></div>
       <div style="position:relative;z-index:1;">
       <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
@@ -3938,7 +3944,7 @@ async function loadSocialFeed(compact) {
   const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
-  function buildCard(l) {
+  function buildCard(l, _cardIdx) {
     const athId = l.athlete_id;
     const ath = athMap[athId] || {};
     const name = ath.full_name || 'Biegacz';
@@ -3954,15 +3960,12 @@ async function loadSocialFeed(compact) {
     'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
   };
   const _allCardImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
-  function _cardImgFor(type,id,loggedAt){
+  function _cardImgFor(type, cardIdx){
     // Typy z dedykowaną grafiką
     if(_bgMap[type])return _bgMap[type];
-    // Reszta — rotacja po dniu (ten sam dzień = ta sama grafika, różne dni = różne)
-    const day=loggedAt?new Date(loggedAt).getDate():0;
-    const typeHash={'Spokojny':0,'Bieg spokojny':1,'Wybieganie':2,'Regeneracja':3,'Odpoczynek':4,'Wzmacniający':5,'Zastępczy':6};
-    const tOff=typeHash[type]||0;
-    return _allCardImgs[(day+tOff)%_allCardImgs.length];
-  }    const _cardBg = _cardImgFor(type, l.id, l.logged_at);
+    // Rotacja po pozycji karty — każda kolejna karta ma inną grafikę
+    return _allCardImgs[(cardIdx||0)%_allCardImgs.length];
+  }    const _cardBg = _cardImgFor(type, _cardIdx);
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
@@ -3984,7 +3987,7 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background-image:linear-gradient(rgba(7,5,12,0.65),rgba(7,5,12,0.65)),url('+_cardBg+');background-size:cover;background-position:center center;">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background-image:linear-gradient(rgba(7,5,12,0.62),rgba(7,5,12,0.62)),url('+_cardBg+');background-size:cover;background-position:center center;">'
       +'<div style="position:relative;z-index:1;padding:14px 16px;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
@@ -3998,7 +4001,7 @@ async function loadSocialFeed(compact) {
       +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">"'+l.comment+'"</div>':'')
       +screensHtml+reactBar+'</div>';
   }
-  const rendered = logs.map(buildCard).filter(Boolean).join('');
+  const rendered = logs.map((l,i) => buildCard(l,i)).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
 }
@@ -5393,7 +5396,8 @@ const _socialBanners = [
   'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg',
   'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg',
   'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg',
-];let _socialBannerIdx = 0;
+]
+let _socialBannerIdx = 0;
 let _socialBannerTimer = null;
 function _startSocialBannerRotation() {
   if (_socialBannerTimer) return;
