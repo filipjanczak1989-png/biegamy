@@ -735,113 +735,6 @@ body > *{position:relative;z-index:1;}
 @keyframes toastOut{from{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}to{opacity:0;transform:translateX(-50%) translateY(-10px) scale(0.94);}}
 @keyframes navTap{0%{transform:translateX(-50%) scaleX(0);opacity:0;}50%{transform:translateX(-50%) scaleX(1);opacity:1;}100%{transform:translateX(-50%) scaleX(0.6);opacity:0.6;}}
 
-
-/* ══ GRAFIKI Z SUPABASE STORAGE ══════════════════════════════════ */
-
-/* today-hero — hero-bg.jpg */
-.today-hero::after{
-  content:'';position:absolute;inset:0;
-  border-radius:inherit;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg');
-  background-size:cover;background-position:center 30%;
-  opacity:0.18;pointer-events:none;z-index:0;
-}
-.today-hero{position:relative;overflow:hidden;}
-.today-hero-top,.today-hero-inner{position:relative;z-index:1;}
-
-/* daily-motivation — motiv-bg.jpg */
-#daily-motivation{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg');
-  background-size:cover;background-position:center;
-  position:relative;
-}
-#daily-motivation::before{
-  content:'';position:absolute;inset:0;
-  background:rgba(7,5,12,0.75);
-  border-radius:inherit;pointer-events:none;z-index:0;
-}
-#daily-motivation>*{position:relative;z-index:1;}
-
-/* coach-box — banner-1a.jpg */
-.coach-box{position:relative;overflow:hidden;}
-.coach-box::after{
-  content:'';position:absolute;inset:0;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg');
-  background-size:cover;background-position:center top;
-  opacity:0.08;pointer-events:none;z-index:0;
-}
-.coach-hdr,.coach-body{position:relative;z-index:1;}
-
-/* week-sum — banner-3a.jpg */
-.week-sum{position:relative;overflow:hidden;}
-.week-sum::after{
-  content:'';position:absolute;inset:0;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg');
-  background-size:cover;background-position:center;
-  opacity:0.07;pointer-events:none;z-index:0;
-}
-.week-sum>*{position:relative;z-index:1;}
-
-/* social-card tła wg typu treningu */
-.social-card[data-type="Tempo"]::after,
-.social-card[data-type="Interwały"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg') !important;
-}
-.social-card[data-type="Spokojny"]::after,
-.social-card[data-type="Bieg spokojny"]::after,
-.social-card[data-type="Wybieganie"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg') !important;
-}
-.social-card[data-type="Regeneracja"]::after,
-.social-card[data-type="Odpoczynek"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg') !important;
-}
-.social-card[data-type="Start"]::after,
-.social-card[data-type="Wzmacniający"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg') !important;
-}
-.social-card{position:relative;overflow:hidden;}
-.social-card::after{
-  content:'';position:absolute;inset:0;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg');
-  background-size:cover;background-position:center;
-  opacity:0.12;pointer-events:none;z-index:0;
-  border-radius:inherit;
-}
-.social-card-header,.social-card-stats,
-.social-card-comment,.social-card-actions{
-  position:relative;z-index:1;
-}
-
-/* log-item tła wg typu */
-.log-item{position:relative;overflow:hidden;}
-.log-item::after{
-  content:'';position:absolute;inset:0;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg');
-  background-size:cover;background-position:center;
-  opacity:0.10;pointer-events:none;z-index:0;
-  border-radius:inherit;
-}
-.log-item[data-type="Tempo"]::after,
-.log-item[data-type="Interwały"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg') !important;
-}
-.log-item[data-type="Spokojny"]::after,
-.log-item[data-type="Bieg spokojny"]::after,
-.log-item[data-type="Wybieganie"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg') !important;
-}
-.log-item[data-type="Regeneracja"]::after,
-.log-item[data-type="Odpoczynek"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg') !important;
-}
-.log-item[data-type="Start"]::after,
-.log-item[data-type="Wzmacniający"]::after{
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg') !important;
-}
-.log-item>*{position:relative;z-index:1;}
-
-/* ════════════════════════════════════════════════════════════════ */
 </style>
 </head>
 <body>
@@ -3504,7 +3397,7 @@ function renderLogsDb(data) {
     const borderColors = {spokojny:'rgba(80,144,224,0.15)',interwaly:'rgba(232,184,64,0.15)',tempo:'rgba(224,85,32,0.15)',wybieganie:'rgba(154,111,232,0.15)',regeneracja:'rgba(61,184,112,0.15)'};
     const iconBg = {spokojny:'rgba(80,144,224,0.12)',interwaly:'rgba(232,184,64,0.12)',tempo:'rgba(224,85,32,0.12)',wybieganie:'rgba(154,111,232,0.12)',regeneracja:'rgba(61,184,112,0.12)'};
     const feelEmoji = l.feel==='good'?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':l.feel==='bad'?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
-    return `<div class="log-item ${cls}" data-type="${rawType}" style="background:${bgColors[cls]||'var(--card)'};border-color:${borderColors[cls]||'rgba(255,255,255,0.06)'};" onclick="editLog(${idx})">
+    return `<div class="log-item ${cls}" style="background:${bgColors[cls]||'var(--card)'};border-color:${borderColors[cls]||'rgba(255,255,255,0.06)'};" onclick="editLog(${idx})">
       <div style="width:42px;height:42px;border-radius:12px;background:${iconBg[cls]||'rgba(255,255,255,0.04)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         ${svgIcons[type]||svgIcons['Spokojny']}
       </div>
@@ -4044,6 +3937,8 @@ async function loadSocialFeed(compact) {
     const isFollowed = followingSet.has(athId);
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
     const type = l.training_type || 'Trening';
+    const _bgMap = {'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg'};
+    const _cardBg = _bgMap[type] || 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-default.jpg';
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
@@ -4056,13 +3951,20 @@ async function loadSocialFeed(compact) {
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
       if (urls.length) screensHtml = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'
-        +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
+        +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>'+'</div>';
     }
     const reactBar = compact ? '' : (
-      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;padding-left:6px;">'
-      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> <span id="cc-'+l.id+'">0</span></button>'
+      '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
+      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'fire\')" id="react-fire-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#f06030;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg> <span id="rc-fire-'+l.id+'" style="font-size:11px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'clap\')" id="react-clap-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:#e8b840;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> <span id="rc-clap-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
+      +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-    return '<div '+clickAttr+' '+hoverAttrs+' style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;">'
+      +'<div style="position:absolute;inset:0;border-radius:14px;background-image:url('+JSON.stringify(_cardBg)+');background-size:cover;background-position:center;opacity:0.13;pointer-events:none;"></div>'
+      +'<div style="position:absolute;inset:0;border-radius:14px;background:linear-gradient(135deg,rgba(7,5,12,0.82),rgba(7,5,12,0.60));pointer-events:none;"></div>'
+      +'<div style="position:relative;z-index:1;padding:14px 16px;">'
+      +
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
       +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
@@ -4077,11 +3979,24 @@ async function loadSocialFeed(compact) {
   }
   const rendered = logs.map(buildCard).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
-  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
+  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
 }
 
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
 
+const _myReactions = {};
+
+async function loadReactionCounts(logIds) {
+  if (!logIds||!logIds.length) return;
+  try {
+    const {data} = await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
+    if (!data) return;
+    const counts={};
+    data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;if(r.athlete_id===_athleteId){if(!_myReactions[r.log_id])_myReactions[r.log_id]=new Set();_myReactions[r.log_id].add(r.reaction_type);}});
+    Object.keys(counts).forEach(function(k){const i=k.lastIndexOf('_');const lid=k.slice(0,i);const tp=k.slice(i+1);const el=document.getElementById('rc-'+tp+'-'+lid);if(el)el.textContent=counts[k];});
+    Object.keys(_myReactions).forEach(function(lid){_myReactions[lid].forEach(function(tp){const btn=document.getElementById('react-'+tp+'-'+lid);if(btn)btn.style.background='rgba(255,255,255,0.08)';});});
+  } catch(e){console.warn('log_reactions:',e.message);}
+}
 
 async function loadCommentCounts(logIds) {
   if (!logIds||!logIds.length) return;
@@ -4093,6 +4008,30 @@ async function loadCommentCounts(logIds) {
   } catch(e){console.warn('log_comments:',e.message);}
 }
 
+async function toggleReact(logId, type) {
+  if (!_athleteId) return;
+  if (!_myReactions[logId]) _myReactions[logId]=new Set();
+  const already=_myReactions[logId].has(type);
+  const btn=document.getElementById('react-'+type+'-'+logId);
+  const countEl=document.getElementById('rc-'+type+'-'+logId);
+  const cur=parseInt((countEl&&countEl.textContent)||'0');
+  try {
+    if (already) {
+      await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
+      _myReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);
+    } else {
+      await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
+      _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
+    }
+  } catch(e){
+    if(e.message && e.message.includes('does not exist')) {
+      toast('Brak tabeli log_reactions — patrz SQL w konsoli');
+      console.error('SQL needed: CREATE TABLE log_reactions (id uuid DEFAULT gen_random_uuid() PRIMARY KEY, log_id uuid NOT NULL REFERENCES training_logs(id) ON DELETE CASCADE, athlete_id uuid NOT NULL REFERENCES athletes(id) ON DELETE CASCADE, reaction_type text NOT NULL, created_at timestamptz DEFAULT now(), UNIQUE(log_id, athlete_id, reaction_type));');
+    } else {
+      toast('Błąd reakcji: '+e.message);
+    }
+  }
+}
 
 async function openComments(logId) {
   document.getElementById('comments-modal')?.remove();
@@ -5423,30 +5362,12 @@ async function toggleVoice(btnId, sender) {
   }
 }
 
-
-// Tła ekranów onboardingu
-const _obBgs = [
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg',
-];
-function _setObBg(step) {
-  const box = document.querySelector('#onboarding-modal .ob-box, #onboarding-modal .ob-screen.active, #onboarding-modal');
-  if (box && _obBgs[step]) {
-    box.style.backgroundImage = "url('" + _obBgs[step] + "')";
-    box.style.backgroundSize = 'cover';
-    box.style.backgroundPosition = 'center top';
-  }
-}
 </script>
 <!-- SEKCJA: STATYSTYKI -->
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Biegacze</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;margin-bottom:16px;">Społeczność</div>
+    <div style="position:relative;height:160px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 40%;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
