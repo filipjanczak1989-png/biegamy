@@ -265,7 +265,7 @@ body > *{position:relative;z-index:1;}
   box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
 }
 /* Subtle runner illustration inside hero */
-.today-hero::after{
+.today-hero::before{
   content:'';
   position:absolute;
   bottom:0;right:0;
@@ -4512,7 +4512,7 @@ function switchSocialTab(tab) {
   if (tab==='find') loadSuggestedProfiles();
 }
 
-async function loadSocialFeed(compact) {
+async function _loadSocialFeedImpl(compact) {
   if (!_athleteId) return;
   const feedEl = document.getElementById(compact ? 'home-social-preview' : 'social-feed-content');
   if (!feedEl) return;
@@ -4614,6 +4614,11 @@ async function loadSocialFeed(compact) {
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
 }
 
+let _socialDebounceTimer = null;
+function loadSocialFeed(compact) {
+  clearTimeout(_socialDebounceTimer);
+  _socialDebounceTimer = setTimeout(() => _loadSocialFeedImpl(compact), compact ? 0 : 150);
+}
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
 
 const _myReactions = {};
@@ -4856,7 +4861,6 @@ async function deleteFeedLog(logId) {
   if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Usunięto ✓');
   loadSocialFeed(false);
-  loadLogs();
 }
 
 function loadChallenges() {
