@@ -728,30 +728,11 @@ body > *{position:relative;z-index:1;}
   pointer-events:none;z-index:0;}
 .ob-hero>*{position:relative;z-index:1;}
 
-/* ── DAILY MOTIVATION ───────────────────────────────────────────── */
-#daily-motivation{
-  margin:0 16px 16px;
-  background:rgba(10,6,3,0.97) !important;
-  background-image:none !important;
-  border:1px solid rgba(232,86,30,0.45) !important;
-  border-radius:var(--tile-radius);
-  padding:var(--tile-pad);
-  position:relative;overflow:hidden;
-  box-shadow:0 4px 28px rgba(232,86,30,0.2),0 0 0 1px rgba(232,86,30,0.1);
-}
-#daily-motivation::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);
-  z-index:1;
-}
-#daily-motivation::after{
-  content:'';position:absolute;top:-40px;right:-20px;width:120px;height:120px;
-  background:radial-gradient(circle,rgba(232,86,30,0.15),transparent 70%);
-  pointer-events:none;
-}
+#daily-motivation{margin:0 16px 16px;background:rgba(10,6,3,0.97)!important;background-image:none!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 4px 28px rgba(232,86,30,0.25);}
+#daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>*{position:relative;z-index:1;}
-#motiv-text{font-size:13px;line-height:1.7;color:#ffffff !important;font-style:italic;font-weight:500;text-shadow:0 1px 8px rgba(0,0,0,0.9);}
-#motiv-source{font-size:9px;color:#ff8855 !important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
+#motiv-text{font-size:13px;line-height:1.7;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,1);}
+#motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
 </style>
 </head>
 <body>
@@ -3970,22 +3951,18 @@ async function loadSocialFeed(compact) {
     const _bgMap = {
     'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
     'Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',
-    'Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
-    'Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg',
-    'Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',
-    'Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
-    'Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',
     'Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',
-    'Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',
-    'Zastępczy':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',
   };
   const _allCardImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
-  function _cardImgFor(type,id){
+  function _cardImgFor(type,id,loggedAt){
+    // Typy z dedykowaną grafiką
     if(_bgMap[type])return _bgMap[type];
-    let h=0,s=(id||'')+type;
-    for(let i=0;i<s.length;i++)h=((h<<5)-h+s.charCodeAt(i))|0;
-    return _allCardImgs[Math.abs(h)%_allCardImgs.length];
-  }    const _cardBg = _cardImgFor(type, l.id);
+    // Reszta — rotacja po dniu (ten sam dzień = ta sama grafika, różne dni = różne)
+    const day=loggedAt?new Date(loggedAt).getDate():0;
+    const typeHash={'Spokojny':0,'Bieg spokojny':1,'Wybieganie':2,'Regeneracja':3,'Odpoczynek':4,'Wzmacniający':5,'Zastępczy':6};
+    const tOff=typeHash[type]||0;
+    return _allCardImgs[(day+tOff)%_allCardImgs.length];
+  }    const _cardBg = _cardImgFor(type, l.id, l.logged_at);
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
@@ -4007,7 +3984,7 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();toggleReact(\''+l.id+'\',\'run\')" id="react-run-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:6px 10px;border-radius:8px;display:flex;align-items:center;gap:4px;min-height:36px;touch-action:manipulation;color:var(--accent);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> <span id="rc-run-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background-image:linear-gradient(160deg,rgba(7,5,12,0.72),rgba(7,5,12,0.45)),url('+_cardBg+');background-size:cover;background-position:center top;">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:10px;background-image:linear-gradient(rgba(7,5,12,0.65),rgba(7,5,12,0.65)),url('+_cardBg+');background-size:cover;background-position:center center;">'
       +'<div style="position:relative;z-index:1;padding:14px 16px;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
