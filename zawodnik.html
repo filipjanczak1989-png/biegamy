@@ -740,7 +740,7 @@ body > *{position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
 #motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
 
-#daily-motivation{position:relative;overflow:hidden;margin:0 16px 16px;background:rgba(10,6,3,0.88)!important;background-size:cover;background-position:center center;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
+#daily-motivation{position:relative;margin:0 16px 16px;background:rgba(10,6,3,0.88)!important;background-size:cover;background-position:center center;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
 #daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>*{position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
@@ -782,7 +782,7 @@ body > *{position:relative;z-index:1;}
 <!-- MOTYWACJA DNIA -->
 <div id="daily-motivation" class="fade-in">
   <div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg);background-size:cover;background-position:center;opacity:0.30;border-radius:inherit;pointer-events:none;z-index:0;"></div>
-  <div id="motiv-content" style="display:flex;align-items:flex-start;gap:14px;position:relative;overflow:hidden;"><div style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);font-size:80px;opacity:0.08;filter:blur(2px);pointer-events:none;z-index:0;line-height:1;">⌚</div>
+  <div id="motiv-content" style="display:flex;align-items:flex-start;gap:14px;position:relative;"><div style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);font-size:80px;opacity:0.08;filter:blur(2px);pointer-events:none;z-index:0;line-height:1;">⌚</div>
     <div id="motiv-icon" style="flex-shrink:0;line-height:0;overflow:visible;margin-left:-16px;"><svg width="126" height="44" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="#e8561e">My</tspan></text></svg></div>
     <div style="flex:1;">
       <div id="motiv-text">&nbsp;</div>
@@ -2682,7 +2682,7 @@ function loadAvatarTopbar(athleteId) {
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
-  try { const _hbg=document.getElementById('today-hero-bg'); if(_hbg&&typeof _todayHeroImg!=='undefined') _hbg.style.backgroundImage='url('+_todayHeroImg+')'; } catch(e) {}
+  try { const _hbg=document.getElementById('today-hero-bg'); if(_hbg&&typeof _todayHeroImg!=='undefined'&&_todayHeroImg) _hbg.style.backgroundImage='url('+_todayHeroImg+')'; } catch(e) {}
 
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
