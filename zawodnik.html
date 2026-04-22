@@ -724,11 +724,11 @@ body > *{position:relative;z-index:1;}
 
 
 .ob-hero{position:relative;overflow:hidden;}
-#ob-s1 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg');background-size:cover;background-position:center top;}
-#ob-s2 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg');background-size:cover;background-position:center top;}
-#ob-s3 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg');background-size:cover;background-position:center top;}
-#ob-s4 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg');background-size:cover;background-position:center top;}
-#ob-s5 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg');background-size:cover;background-position:center top;}
+#ob-s1 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg');background-size:cover;background-position:center 35%;}
+#ob-s2 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg');background-size:cover;background-position:center 20%;}
+#ob-s3 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg');background-size:cover;background-position:center 15%;}
+#ob-s4 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg');background-size:cover;background-position:center 15%;}
+#ob-s5 .ob-hero{background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg');background-size:cover;background-position:center 25%;}
 .ob-hero::before{content:'';position:absolute;inset:0;
   background:linear-gradient(to bottom,rgba(7,5,12,0.3) 0%,rgba(7,5,12,0.80) 100%);
   pointer-events:none;z-index:0;}
@@ -740,7 +740,7 @@ body > *{position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
 #motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
 
-#daily-motivation{margin:0 16px 16px;background:rgba(10,6,3,0.97)!important;background-image:none!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
+#daily-motivation{margin:0 16px 16px;background:rgba(10,6,3,0.88)!important;background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/motiv-bg.jpg')!important;background-size:cover;background-position:center center;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);position:relative;overflow:hidden;box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
 #daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>*{position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
@@ -790,7 +790,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in"><div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 30%;opacity:0.22;pointer-events:none;z-index:0;border-radius:inherit;"></div>
+<div class="today-hero fade-in"><div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 20%;opacity:0.22;pointer-events:none;z-index:0;border-radius:inherit;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -3131,38 +3131,6 @@ async function saveCoachChange() {
 
 
 // ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
-// ── Run image pool — only confirmed uploads ──────────────────────────────
-var _runImgs=(function(){
-  const B='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
-  // Per-image focal point: 'x% y%' — tuned so head+legs are visible
-  const imgs=[
-    {u:B+'run1.webp',  p:'center 15%'},
-    {u:B+'run2.webp',  p:'center 18%'},
-    {u:B+'run3.webp',  p:'center 20%'},
-    {u:B+'run4.webp',  p:'center 12%'},
-    {u:B+'run5.webp',  p:'center 15%'},
-    {u:B+'run6.webp',  p:'center 20%'},
-    {u:B+'run7.webp',  p:'center 10%'},
-    {u:B+'run8.webp',  p:'center 18%'},
-    {u:B+'run9.webp',  p:'center 12%'},
-    {u:B+'run10.webp', p:'center 15%'},
-    {u:B+'run11.webp', p:'center 20%'},
-    {u:B+'run12.webp', p:'center 12%'},
-    {u:B+'run13.webp', p:'center 18%'},
-    {u:B+'run14.webp', p:'center 10%'},
-    {u:B+'run15.webp', p:'center 15%'},
-    // run16-run30: uncomment when uploaded to Supabase Storage
-    // {u:B+'run16.webp', p:'center 15%'},
-    // {u:B+'run17.webp', p:'center 15%'},
-    // {u:B+'run18.webp', p:'center 15%'},
-    // {u:B+'run19.webp', p:'center 15%'},
-    // {u:B+'run20.webp', p:'center 15%'},
-  ];
-  // Fisher-Yates shuffle so order is random each page load
-  for(let i=imgs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[imgs[i],imgs[j]]=[imgs[j],imgs[i]];}
-  return imgs;
-})();
-
 async function loadWeekPlan() {
   if (!_athleteId) return;
 
@@ -3188,14 +3156,23 @@ async function loadWeekPlan() {
   }
 
   const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
-  // _runImgs defined globally above
+  const typeBgMap={
+    'Tempo':        {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',      p:'center 30%'},
+    'Interwały':    {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',      p:'center 30%'},
+    'Spokojny':     {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg', p:'center 15%'},
+    'Bieg spokojny':{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg', p:'center 15%'},
+    'Wybieganie':   {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',           p:'center 15%'},
+    'Regeneracja':  {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',p:'center 20%'},
+    'Odpoczynek':   {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',p:'center 20%'},
+    'Start':        {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',     p:'center 30%'},
+    'Wzmacniający': {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',           p:'center 35%'},
+    'Zastępczy':    {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',           p:'center 15%'},
+  };
+  const _allDayImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
   function _dayImgFor(type,i){
-    const B='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
-    const typeBgMap2={'Tempo':B+'card-tempo.jpg','Interwały':B+'card-tempo.jpg','Spokojny':B+'card-wybieganie.jpg','Bieg spokojny':B+'card-wybieganie.jpg','Wybieganie':B+'ob-s3.jpg','Regeneracja':B+'card-regeneracja.jpg','Odpoczynek':B+'card-regeneracja.jpg','Start':B+'card-wyscig.jpg','Wzmacniający':B+'ob-s1.jpg','Zastępczy':B+'ob-s4.jpg'};
-    if(typeBgMap2[type])return {u:typeBgMap2[type],p:'center 20%'};
+    if(typeBgMap[type]) return typeBgMap[type];
     return _runImgs[i%_runImgs.length];
-  }
-  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+  }  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
 
   document.getElementById('week-strip').innerHTML = data.map((t, i) => {
@@ -4017,18 +3994,24 @@ async function loadSocialFeed(compact) {
     const _logDate = l.logged_at ? new Date(l.logged_at) : null;
     const date = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
     const type = l.training_type || 'Trening';
-    const _bgMap={'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg'};
-  // Card images: pick randomly from same shuffled pool
+    const _bgMap={
+      'Tempo':        {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',      p:'center 30%'},
+      'Interwały':    {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',      p:'center 30%'},
+      'Spokojny':     {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg', p:'center 15%'},
+      'Bieg spokojny':{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg', p:'center 15%'},
+      'Wybieganie':   {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',           p:'center 15%'},
+      'Regeneracja':  {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',p:'center 20%'},
+      'Odpoczynek':   {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',p:'center 20%'},
+      'Start':        {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',     p:'center 30%'},
+    };
+  const _allCardImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
   function _cardImgFor(type,idx){
-    const B='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
-    const _bgMap2={'Tempo':B+'card-tempo.jpg','Interwały':B+'card-tempo.jpg','Start':B+'card-wyscig.jpg'};
-    if(_bgMap2[type])return {u:_bgMap2[type],p:'center 20%'};
-    return _runImgs[idx%_runImgs.length];
+    if(_bgMap[type])return _bgMap[type];
+    return _runImgs[(idx||0)%_runImgs.length];
   }
   const _cardBgObj = _cardImgFor(type, _cardIdx);
   const _cardBg = _cardBgObj.u;
   const _cardBgPos = _cardBgObj.p;
-
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
@@ -5451,7 +5434,7 @@ async function toggleVoice(btnId, sender) {
 
 
 // ── ROTACJA BANERA SPOŁECZNOŚCI ───────────────────────────────────
-const _socialBanners=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg']
+const _socialBanners=[{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg',p:'center 30%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg',p:'center 25%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg',p:'center 25%'}]
 let _socialBannerIdx = 0;
 let _socialBannerTimer = null;
 function _startSocialBannerRotation() {
@@ -5462,7 +5445,8 @@ function _startSocialBannerRotation() {
     _socialBannerIdx = (_socialBannerIdx + 1) % _socialBanners.length;
     img.style.opacity = '0';
     setTimeout(function() {
-      img.src = _socialBanners[_socialBannerIdx];
+      const b = _socialBanners[_socialBannerIdx];
+      img.src = b.u; img.style.objectPosition = b.p;
       img.style.opacity = '1';
     }, 300);
   }, 4000);
@@ -5476,7 +5460,7 @@ function _stopSocialBannerRotation() {
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center center;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
