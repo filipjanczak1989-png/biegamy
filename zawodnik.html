@@ -790,7 +790,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in"><div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 20%;opacity:0.22;pointer-events:none;z-index:0;border-radius:inherit;"></div>
+<div class="today-hero fade-in"><div id="today-hero-bg" style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 25%;opacity:0.28;pointer-events:none;z-index:0;border-radius:inherit;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -826,7 +826,7 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <div class="sec-hdr fade-in" style="margin-top:4px;">
-  <div class="sec-title">Społeczność</div>
+  <div class="sec-title"><span style="color:var(--accent)">SPOŁE</span><span>CZNOŚĆ</span></div>
   <a href="#" onclick="showSection('social');return false;" class="sec-link">Więcej →</a>
 </div>
 <div id="home-social-preview" class="fade-in" style="margin:0 0 18px;"></div>
@@ -3135,28 +3135,177 @@ async function saveCoachChange() {
 // Global image pool — add run16.webp etc. here as you upload them
 const _runImgs = (function() {
   const imgs = [
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp',
-  'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp'
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run31.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run32.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run33.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run34.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run35.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run36.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run37.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run38.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run39.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run40.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run41.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run42.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run43.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run44.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run45.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run46.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run47.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run48.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run49.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run50.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run51.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run52.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run53.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run54.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run55.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run56.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run57.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run58.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run59.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run60.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run61.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run62.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run63.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run64.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run65.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run66.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run67.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run68.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run69.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run70.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run71.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run72.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run73.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run74.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run75.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run76.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run77.webp'
   ];
-  // Fisher-Yates shuffle for random order each page load
+  // Fisher-Yates shuffle — random order every page load
   for (let i = imgs.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [imgs[i], imgs[j]] = [imgs[j], imgs[i]];
   }
   return imgs;
+})();
+
+// Today's hero image — changes daily, deterministic per date
+const _todayHeroImg = (function() {
+  const today = new Date();
+  const dayIndex = today.getFullYear() * 10000 + (today.getMonth()+1) * 100 + today.getDate();
+  const idx = dayIndex % 77;
+  return imgs_for_hero()[idx];
+  function imgs_for_hero() {
+    return ['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run31.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run32.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run33.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run34.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run35.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run36.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run37.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run38.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run39.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run40.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run41.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run42.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run43.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run44.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run45.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run46.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run47.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run48.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run49.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run50.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run51.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run52.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run53.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run54.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run55.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run56.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run57.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run58.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run59.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run60.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run61.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run62.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run63.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run64.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run65.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run66.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run67.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run68.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run69.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run70.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run71.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run72.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run73.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run74.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run75.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run76.webp',
+    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run77.webp'];
+  }
 })();
 
 async function loadWeekPlan() {
@@ -4870,7 +5019,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in"><div style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 20%;opacity:0.22;pointer-events:none;z-index:0;border-radius:inherit;"></div>
+<div class="today-hero fade-in"><div id="today-hero-bg" style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 25%;opacity:0.28;pointer-events:none;z-index:0;border-radius:inherit;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -4906,7 +5055,7 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <div class="sec-hdr fade-in" style="margin-top:4px;">
-  <div class="sec-title">Społeczność</div>
+  <div class="sec-title"><span style="color:var(--accent)">SPOŁE</span><span>CZNOŚĆ</span></div>
   <a href="#" onclick="showSection('social');return false;" class="sec-link">Więcej →</a>
 </div>
 <div id="home-social-preview" class="fade-in" style="margin:0 0 18px;"></div>
@@ -9568,7 +9717,7 @@ function _stopSocialBannerRotation() {
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;"><span style="color:var(--accent)">SPOŁE</span><span style="color:#f0ede8">CZNOŚĆ</span></div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
