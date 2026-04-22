@@ -4004,21 +4004,21 @@ async function loadSocialFeed(compact) {
       '<div style="display:flex;align-items:center;border-top:1px solid rgba(255,255,255,0.07);margin-top:10px;padding-top:8px;">'
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-color:var(--card);">'
-      +'<div style="position:absolute;inset:0;background-image:url('+_cardBg+');background-size:cover;background-position:center center;opacity:0.38;pointer-events:none;"></div>'
-      +'<div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(7,5,12,0.78) 0%,rgba(7,5,12,0.55) 50%,rgba(7,5,12,0.78) 100%);pointer-events:none;"></div>'
-      +'<div style="position:relative;z-index:1;padding:14px 16px;">'
-      +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<div style="width:36px;height:36px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.08)')+';border:'+(isOwn?'none':'1px solid var(--border)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
-      +'<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+type+'</span>'
+    const cardH = (l.comment || screensHtml) ? '200px' : '160px';
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;height:'+cardH+';background-image:url('+_cardBg+');background-size:cover;background-position:center;">'
+      +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.25) 0%,rgba(7,5,12,0.50) 45%,rgba(7,5,12,0.92) 100%);pointer-events:none;"></div>'
+      +'<div style="position:absolute;bottom:0;left:0;right:0;z-index:1;padding:12px 14px;">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.15)')+';border:'+(isOwn?'none':'1px solid rgba(255,255,255,0.25)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:13px;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,0.8);">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:rgba(0,0,0,0.45);padding:3px 7px;border-radius:6px;border:1px solid '+col+'44;flex-shrink:0;">'+type+'</span>'
       +editBtns+'</div>'
-      +(dist?'<div style="display:flex;gap:16px;align-items:center;margin-top:10px;">'
-        +'<div><span style="font-family:Bebas Neue,sans-serif;font-size:28px;line-height:1;">'+dist+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">KM</span></div>'
-        +(l.pace?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:20px;line-height:1;">'+l.pace+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">/KM</span></div>':'')
+      +(dist?'<div style="display:flex;gap:12px;align-items:center;">'
+        +'<span style="font-family:Bebas Neue,sans-serif;font-size:26px;line-height:1;text-shadow:0 1px 4px rgba(0,0,0,0.9);">'+dist+'<span style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;margin-left:2px;">KM</span></span>'
+        +(l.pace?'<span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;text-shadow:0 1px 4px rgba(0,0,0,0.9);">'+l.pace+'<span style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;margin-left:2px;">/KM</span></span>':'')
         +(feelEmoji?'<div style="margin-left:auto;">'+feelEmoji+'</div>':'')+'</div>':'')
-      +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.65);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">&quot;'+l.comment+'&quot;</div>':'')
-      +screensHtml+commentBtn+'</div></div>';
+      +(l.comment?'<div style="font-size:11px;color:rgba(255,255,255,0.7);font-family:DM Sans,sans-serif;font-style:italic;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"'+l.comment+'"</div>':'')
+      +commentBtn+'</div></div>';
   }
   const rendered = logs.map((l,i) => buildCard(l,i)).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
