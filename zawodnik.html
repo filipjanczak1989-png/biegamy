@@ -3131,6 +3131,38 @@ async function saveCoachChange() {
 
 
 // ── LOAD WEEK PLAN Z BAZY ─────────────────────────────────────────
+// ── Run image pool — only confirmed uploads ──────────────────────────────
+var _runImgs=(function(){
+  const B='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+  // Per-image focal point: 'x% y%' — tuned so head+legs are visible
+  const imgs=[
+    {u:B+'run1.webp',  p:'center 15%'},
+    {u:B+'run2.webp',  p:'center 18%'},
+    {u:B+'run3.webp',  p:'center 20%'},
+    {u:B+'run4.webp',  p:'center 12%'},
+    {u:B+'run5.webp',  p:'center 15%'},
+    {u:B+'run6.webp',  p:'center 20%'},
+    {u:B+'run7.webp',  p:'center 10%'},
+    {u:B+'run8.webp',  p:'center 18%'},
+    {u:B+'run9.webp',  p:'center 12%'},
+    {u:B+'run10.webp', p:'center 15%'},
+    {u:B+'run11.webp', p:'center 20%'},
+    {u:B+'run12.webp', p:'center 12%'},
+    {u:B+'run13.webp', p:'center 18%'},
+    {u:B+'run14.webp', p:'center 10%'},
+    {u:B+'run15.webp', p:'center 15%'},
+    // run16-run30: uncomment when uploaded to Supabase Storage
+    // {u:B+'run16.webp', p:'center 15%'},
+    // {u:B+'run17.webp', p:'center 15%'},
+    // {u:B+'run18.webp', p:'center 15%'},
+    // {u:B+'run19.webp', p:'center 15%'},
+    // {u:B+'run20.webp', p:'center 15%'},
+  ];
+  // Fisher-Yates shuffle so order is random each page load
+  for(let i=imgs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[imgs[i],imgs[j]]=[imgs[j],imgs[i]];}
+  return imgs;
+})();
+
 async function loadWeekPlan() {
   if (!_athleteId) return;
 
@@ -3156,9 +3188,14 @@ async function loadWeekPlan() {
   }
 
   const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
-  const typeBgMap={'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Bieg spokojny':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','Wybieganie':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg','Regeneracja':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Odpoczynek':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','Wzmacniający':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg','Zastępczy':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg'};
-  const _allDayImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
-  function _dayImgFor(type,i){return typeBgMap[type]||_allDayImgs[i%_allDayImgs.length];}  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+  // _runImgs defined globally above
+  function _dayImgFor(type,i){
+    const B='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+    const typeBgMap2={'Tempo':B+'card-tempo.jpg','Interwały':B+'card-tempo.jpg','Spokojny':B+'card-wybieganie.jpg','Bieg spokojny':B+'card-wybieganie.jpg','Wybieganie':B+'ob-s3.jpg','Regeneracja':B+'card-regeneracja.jpg','Odpoczynek':B+'card-regeneracja.jpg','Start':B+'card-wyscig.jpg','Wzmacniający':B+'ob-s1.jpg','Zastępczy':B+'ob-s4.jpg'};
+    if(typeBgMap2[type])return {u:typeBgMap2[type],p:'center 20%'};
+    return _runImgs[i%_runImgs.length];
+  }
+  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
 
   document.getElementById('week-strip').innerHTML = data.map((t, i) => {
@@ -3182,7 +3219,7 @@ async function loadWeekPlan() {
       : `<div style="width:8px;height:8px;border-radius:50%;border:1px solid var(--muted2);flex-shrink:0;"></div>`);
 
     return `<div style="background:${isToday?'rgba(224,85,32,0.08)':'rgba(255,255,255,0.02)'};border:1px solid ${isToday?'rgba(224,85,32,0.3)':'rgba(255,255,255,0.06)'};border-radius:14px;margin:0 16px 8px;overflow:hidden;position:relative;min-height:90px;${isToday?'box-shadow:0 0 20px rgba(224,85,32,0.1);':''}" onclick="toggleDayDetail(${i})">
-      <div style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i)});background-size:cover;background-position:center 20%;opacity:${isRest?'0.06':'0.28'};filter:blur(1px);pointer-events:none;border-radius:14px;"></div>
+      <div style="position:absolute;inset:0;background-image:url(${_dayImgFor(t.type,i).u});background-size:cover;background-position:${_dayImgFor(t.type,i).p};opacity:${isRest?'0.06':'0.28'};filter:blur(1px);pointer-events:none;border-radius:14px;"></div>
       <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(7,5,12,${isToday?'0.68':'0.78'}),rgba(7,5,12,${isToday?'0.52':'0.65'}));pointer-events:none;border-radius:14px;"></div>
       <div style="position:relative;z-index:1;">
       <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
@@ -3981,11 +4018,17 @@ async function loadSocialFeed(compact) {
     const date = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
     const type = l.training_type || 'Trening';
     const _bgMap={'Tempo':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Interwały':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','Start':'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg'};
-  const _allCardImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
+  // Card images: pick randomly from same shuffled pool
   function _cardImgFor(type,idx){
-    if(_bgMap[type])return _bgMap[type];
-    return _allCardImgs[(idx||0)%_allCardImgs.length];
-  }    const _cardBg = _cardImgFor(type, _cardIdx);
+    const B='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+    const _bgMap2={'Tempo':B+'card-tempo.jpg','Interwały':B+'card-tempo.jpg','Start':B+'card-wyscig.jpg'};
+    if(_bgMap2[type])return {u:_bgMap2[type],p:'center 20%'};
+    return _runImgs[idx%_runImgs.length];
+  }
+  const _cardBgObj = _cardImgFor(type, _cardIdx);
+  const _cardBg = _cardBgObj.u;
+  const _cardBgPos = _cardBgObj.p;
+
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
@@ -4005,7 +4048,7 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
     const cardH = (l.comment || screensHtml) ? '200px' : '160px';
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:center 20%;">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:'+_cardBgPos+';">'
       +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.0) 0%,rgba(7,5,12,0.45) 40%,rgba(7,5,12,0.97) 100%);pointer-events:none;"></div>'
       +'<div style="height:90px;"></div>'
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
