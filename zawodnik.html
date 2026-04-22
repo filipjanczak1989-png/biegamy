@@ -4005,12 +4005,9 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
     const cardH = (l.comment || screensHtml) ? '200px' : '160px';
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:center;">'
-      // gradient overlay
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:center 30%;">'
       +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.0) 0%,rgba(7,5,12,0.45) 40%,rgba(7,5,12,0.97) 100%);pointer-events:none;"></div>'
-      // spacer pushes content down, revealing bg image at top
-      +'<div style="height:70px;"></div>'
-      // content — position:relative, lives inside outer, card grows with content
+      +'<div style="height:90px;"></div>'
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
       +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;">'+ini+'</div>'
@@ -4808,7 +4805,6 @@ async function openNotifications() {
         </div>`;
       }).join('');
 
-      // Oznacz wszystkie jako przeczytane
       await _sb.from('notifications').update({ read: true }).eq('athlete_id', _athleteId).eq('read', false);
       const dot = document.getElementById('zawodnik-bell-dot');
       if (dot) dot.style.display = 'none';
@@ -5061,7 +5057,6 @@ const Anim = {
     const step = (now) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out quad
       const ease = 1 - (1 - progress) * (1 - progress);
       const current = startVal + (target - startVal) * ease;
       el.textContent = (isFloat ? current.toFixed(1) : Math.round(current)) + suffix;
@@ -5196,7 +5191,6 @@ const Anim = {
     const ctx = this._getCtx();
     if (!ctx) return;
     try {
-      // Soft "pop" — krótki ton zanikający
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -5216,7 +5210,6 @@ const Anim = {
     const ctx = this._getCtx();
     if (!ctx) return;
     try {
-      // Bardzo delikatny klik — noise burst
       const buf = ctx.createBuffer(1, ctx.sampleRate * 0.04, ctx.sampleRate);
       const data = buf.getChannelData(0);
       for (let i = 0; i < data.length; i++) {
@@ -5440,7 +5433,7 @@ function _stopSocialBannerRotation() {
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:160px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 40%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center center;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;">Społeczność</div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
