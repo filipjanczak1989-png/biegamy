@@ -4000,6 +4000,7 @@ async function loadSocialFeed(compact) {
     let screensHtml = '';
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
+      if (urls.length) screensHtml = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'
         +urls.map(function(url){return '<img src="'+url+'" onclick="event.stopPropagation();window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
     }
     const commentBtn = compact ? '' : (
@@ -4007,7 +4008,7 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
     return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-color:var(--card);">'
-      +'<div style="position:absolute;inset:0;background-image:url('+JSON.stringify(_cardBg)+');background-size:cover;background-position:center center;opacity:0.38;pointer-events:none;"></div>'
+      +'<div style="position:absolute;inset:0;background-image:url('+_cardBg+');background-size:cover;background-position:center center;opacity:0.38;pointer-events:none;"></div>'
       +'<div style="position:absolute;inset:0;background:linear-gradient(160deg,rgba(7,5,12,0.78) 0%,rgba(7,5,12,0.55) 50%,rgba(7,5,12,0.78) 100%);pointer-events:none;"></div>'
       +'<div style="position:relative;z-index:1;padding:14px 16px;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
@@ -4024,7 +4025,7 @@ async function loadSocialFeed(compact) {
   }
   const rendered = logs.map((l,i) => buildCard(l,i)).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
-  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadReactionCounts(ids); loadCommentCounts(ids); }
+  if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
 
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
