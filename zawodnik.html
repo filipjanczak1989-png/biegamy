@@ -182,7 +182,8 @@ body > *{position:relative;z-index:1;}
   background:linear-gradient(160deg,#181220 0%,#0f0e16 55%,#0b0b12 100%);
   border-radius:var(--tile-radius-lg);
   border:1px solid rgba(255,255,255,0.08);
-  overflow:visible;
+  overflow:hidden;
+  position:relative;
   box-shadow:var(--tile-shadow-lg);
 }
 /* Orange top accent line */
@@ -4170,13 +4171,11 @@ async function loadSocialFeed(compact) {
     const date = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
     const type = l.training_type || 'Trening';
     const _bgMap={'Odpoczynek':{u:'',p:'center 25%'},'Regeneracja':{u:'',p:'center 25%'}};
-  const _allCardImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
   function _cardImgFor(type,idx){
     // Use idx directly — already shuffled in _runImgs, so naturally varied
     var isRest = (type==='Odpoczynek'||type==='Regeneracja');
     var url = _runImgs[(idx||0) % _runImgs.length];
     return {u:url, p:'center 25%', rest:isRest};
-  };
   }
   const _cardBgObj = _cardImgFor(type, _cardIdx);
   const _cardBg = _cardBgObj.u;
