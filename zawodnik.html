@@ -714,10 +714,7 @@ body > *{position:relative;z-index:1;}
 
 
 .today-hero{position:relative;overflow:hidden;}
-.today-hero::after{content:'';position:absolute;inset:0;border-radius:inherit;
-  background-image:url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg');
-  background-size:cover;background-position:center 30%;
-  opacity:0.18;pointer-events:none;z-index:0;}
+/* today-hero::after removed — use #today-hero-bg div instead */
 .today-hero-top,.today-hero-inner{position:relative;z-index:1;}
 
 
@@ -792,7 +789,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in"><div id="today-hero-bg" style="position:absolute;inset:0;background-image:url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-bg.jpg);background-size:cover;background-position:center 25%;opacity:0.28;pointer-events:none;z-index:0;border-radius:inherit;"></div>
+<div class="today-hero fade-in"><div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 25%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.6s ease;"></div>
   <div class="today-hero-top"></div>
   <div class="today-hero-inner">
     <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
@@ -1302,7 +1299,7 @@ body > *{position:relative;z-index:1;}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
 <script>
 const weekPlan=[
@@ -2683,7 +2680,7 @@ function loadAvatarTopbar(athleteId) {
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
-  try { const _hbg=document.getElementById('today-hero-bg'); if(_hbg&&typeof _todayHeroImg!=='undefined'&&_todayHeroImg) _hbg.style.backgroundImage='url('+_todayHeroImg+')'; } catch(e) {}
+  try { const _hbg=document.getElementById('today-hero-bg'); if(_hbg) { if(typeof _todayHeroImg!=='undefined'&&_todayHeroImg) { _hbg.style.backgroundImage='url('+_todayHeroImg+')'; } else { _hbg.style.backgroundImage='url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp)'; } requestAnimationFrame(()=>{ setTimeout(()=>{ _hbg.style.opacity='0.22'; },50); }); } } catch(e) {}
 
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
@@ -3411,6 +3408,8 @@ async function loadWeekPlan() {
 // ── LOAD LOGS Z BAZY ──────────────────────────────────────────────
 async function loadLogs() {
   if (!_athleteId) return;
+  if (window._loadLogsRunning) return;
+  window._loadLogsRunning = true;
   // Skeleton loader
   const logList = document.getElementById('log-list');
   if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
@@ -3443,11 +3442,16 @@ async function loadLogs() {
         })
       .subscribe();
   }
+  window._loadLogsRunning = false;
   await updateWeekProgress();
 }
 
 async function updateWeekProgress() {
   if (!_athleteId) return;
+  if (window._weekProgressRunning) return;
+  window._weekProgressRunning = true;
+  clearTimeout(window._weekProgressTimer);
+  window._weekProgressTimer = setTimeout(() => { window._weekProgressRunning = false; }, 1500);
   
   const now = new Date();
   const day = now.getDay();
@@ -5275,13 +5279,20 @@ const Anim = {
   // 4b. RING ARC — animuj dashoffset
   ringArc(el, targetOffset, circumference = 138.2) {
     if (!el) return;
-    el.setAttribute('stroke-dashoffset', circumference); // start = puste
-    requestAnimationFrame(() => {
-      setTimeout(() => {
-        el.style.transition = 'stroke-dashoffset 0.8s cubic-bezier(0.16,1,0.3,1)';
+    clearTimeout(el._animTimer);
+    if (!el._animActive) {
+      el._animActive = true;
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', circumference);
+      el._animTimer = setTimeout(() => {
+        el.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(0.16,1,0.3,1)';
         el.setAttribute('stroke-dashoffset', targetOffset);
+        setTimeout(() => { el._animActive = false; }, 1000);
       }, 60);
-    });
+    } else {
+      el.style.transition = 'stroke-dashoffset 0.9s cubic-bezier(0.16,1,0.3,1)';
+      el.setAttribute('stroke-dashoffset', targetOffset);
+    }
   },
 
   // 5. TAP FEEDBACK — dodaj klasę na ważne przyciski
