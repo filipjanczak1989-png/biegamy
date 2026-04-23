@@ -185,7 +185,7 @@ body > *{position:relative;z-index:1;}
   overflow:hidden;
   position:relative;
   box-shadow:var(--tile-shadow-lg);
-  min-height:220px;
+  
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -763,6 +763,17 @@ body > *{position:relative;z-index:1;}
 .hero-dot:hover { background: rgba(255,255,255,0.65); }
 /* Przyciski nav slideshow */
 .today-hero .today-actions .btn { width: 100%; }
+
+/* ── TODAY HERO — obrazkowa karta ───────────────────────────────── */
+.today-hero {
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.today-actions-wrap {
+  margin: 0 16px 16px;
+}
 </style>
 </head>
 <body>
@@ -810,37 +821,36 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <div class="today-hero fade-in">
-  <!-- Tło — slideshow kart -->
-  <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.4s ease;"></div>
-  <!-- Gradient overlay — treść jest czytelna -->
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.18) 0%,rgba(7,5,12,0.55) 55%,rgba(7,5,12,0.88) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
-  <!-- Pomarańczowa linia top -->
-  <div class="today-hero-top" style="position:relative;z-index:2;"></div>
-  <!-- Kontrolki slajdów — dots + strzałki -->
-  <div style="position:absolute;top:14px;right:14px;z-index:3;display:flex;align-items:center;gap:10px;">
-    <button onclick="_heroPrev()" style="background:rgba(0,0,0,0.4);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">‹</button>
-    <div id="hero-dots" style="display:flex;gap:5px;align-items:center;"></div>
-    <button onclick="_heroNext()" style="background:rgba(0,0,0,0.4);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">›</button>
+  <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.45) 0%,rgba(7,5,12,0.05) 40%,rgba(7,5,12,0.05) 60%,rgba(7,5,12,0.55) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
+  <div class="today-hero-top" style="position:relative;z-index:3;"></div>
+  <!-- Górny pasek: label + strzałki + dots -->
+  <div style="position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:10px 14px 0;">
+    <div class="today-label" style="margin-bottom:0;"><div class="pulse"></div>Dzisiejszy trening</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <button onclick="_heroPrev()" style="background:rgba(0,0,0,0.45);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">‹</button>
+      <div id="hero-dots" style="display:flex;gap:4px;align-items:center;"></div>
+      <button onclick="_heroNext()" style="background:rgba(0,0,0,0.45);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">›</button>
+    </div>
   </div>
-  <!-- Treść -->
-  <div class="today-hero-inner" style="position:relative;z-index:2;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-      <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
-      <div class="today-date" id="today-date" style="font-size:11px;color:rgba(240,237,232,0.55);font-family:'DM Mono',monospace;letter-spacing:0.03em;"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+  <!-- Dolny pasek: badge + dystans + data -->
+  <div style="position:relative;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px 12px;margin-top:auto;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <div class="today-badge" id="today-badge" style="display:none;"></div>
-      <div class="today-dist" id="today-dist" style="display:none;"></div>
+      <div class="today-dist" id="today-dist" style="display:none;font-size:13px;color:rgba(240,237,232,0.8);font-weight:600;"></div>
     </div>
-    <div class="today-meta" id="today-meta" style="display:none;margin-bottom:10px;"></div>
-    <div class="today-desc" id="today-desc" style="margin-bottom:16px;"></div>
-    <div class="today-actions">
-      <button class="btn btn-primary" onclick="openModal()">🔥 Zaloguj wynik</button>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn btn-done" onclick="markDone(this)" id="done-btn" style="flex:1;">✓ Wykonany</button>
-        <a href="kalendarz.html?role=athlete" class="btn btn-ghost" style="flex:1;text-align:center;">📅 Kalendarz</a>
-      </div>
-    </div>
+    <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:right;"></div>
+  </div>
+</div>
+
+<!-- Akcje pod kartą -->
+<div class="today-actions-wrap fade-in">
+  <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
+  <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
+  <button class="btn btn-primary" onclick="openModal()" style="width:100%;margin-bottom:8px;">🔥 Zaloguj wynik</button>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-done" onclick="markDone(this)" id="done-btn" style="flex:1;">✓ Wykonany</button>
+    <a href="kalendarz.html?role=athlete" class="btn btn-ghost" style="flex:1;text-align:center;">📅 Kalendarz</a>
   </div>
 </div>
 
