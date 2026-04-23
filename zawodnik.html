@@ -1299,7 +1299,7 @@ body > *{position:relative;z-index:1;}
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
 const weekPlan=[
@@ -5615,7 +5615,7 @@ async function toggleVoice(btnId, sender) {
 // ── ROTACJA BANERA SPOŁECZNOŚCI ───────────────────────────────────
 const _socialBanners=[{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg',p:'center 30%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg',p:'center 25%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s2.jpg',p:'center 20%'},{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s5.jpg',p:'center 25%'}]
 let _socialBannerIdx = 0;
-let _socialBannerTimer = null;
+var _socialBannerTimer = null;
 function _startSocialBannerRotation() {
   if (_socialBannerTimer) return;
   _socialBannerTimer = setInterval(function() {
