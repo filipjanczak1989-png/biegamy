@@ -743,6 +743,25 @@ body > *{position:relative;z-index:1;}
 #daily-motivation>:not([style*="position:absolute"]){position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
 #motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
+
+/* ── HERO SLIDESHOW ──────────────────────────────────────────────── */
+.hero-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  border: none;
+}
+.hero-dot.active {
+  background: var(--accent);
+  width: 18px;
+  border-radius: 3px;
+  box-shadow: 0 0 6px rgba(232,86,30,0.6);
+}
+.hero-dot:hover { background: rgba(255,255,255,0.65); }
+/* Przyciski nav slideshow */
+.today-hero .today-actions .btn { width: 100%; }
 </style>
 </head>
 <body>
@@ -789,21 +808,37 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div class="today-hero fade-in"><div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 25%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.6s ease;"></div>
-  <div class="today-hero-top"></div>
-  <div class="today-hero-inner">
-    <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
-    <div class="today-date" id="today-date">Ładowanie...</div>
-    <div class="today-badge" id="today-badge" style="display:none;"></div>
-    <div class="today-dist" id="today-dist" style="display:none;"></div>
-    <div class="today-meta" id="today-meta" style="display:none;"></div>
-    <div class="divider" id="today-divider" style="display:none;"></div>
-    <div class="today-desc" id="today-desc"></div>
+<div class="today-hero fade-in">
+  <!-- Tło — slideshow kart -->
+  <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.4s ease;"></div>
+  <!-- Gradient overlay — treść jest czytelna -->
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.18) 0%,rgba(7,5,12,0.55) 55%,rgba(7,5,12,0.88) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
+  <!-- Pomarańczowa linia top -->
+  <div class="today-hero-top" style="position:relative;z-index:2;"></div>
+  <!-- Kontrolki slajdów — dots + strzałki -->
+  <div style="position:absolute;top:14px;right:14px;z-index:3;display:flex;align-items:center;gap:10px;">
+    <button onclick="_heroPrev()" style="background:rgba(0,0,0,0.4);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">‹</button>
+    <div id="hero-dots" style="display:flex;gap:5px;align-items:center;"></div>
+    <button onclick="_heroNext()" style="background:rgba(0,0,0,0.4);border:none;color:#fff;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">›</button>
+  </div>
+  <!-- Treść -->
+  <div class="today-hero-inner" style="position:relative;z-index:2;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div class="today-label"><div class="pulse"></div>Dzisiejszy trening</div>
+      <div class="today-date" id="today-date" style="font-size:11px;color:rgba(240,237,232,0.55);font-family:'DM Mono',monospace;letter-spacing:0.03em;"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+      <div class="today-badge" id="today-badge" style="display:none;"></div>
+      <div class="today-dist" id="today-dist" style="display:none;"></div>
+    </div>
+    <div class="today-meta" id="today-meta" style="display:none;margin-bottom:10px;"></div>
+    <div class="today-desc" id="today-desc" style="margin-bottom:16px;"></div>
     <div class="today-actions">
-
       <button class="btn btn-primary" onclick="openModal()">🔥 Zaloguj wynik</button>
-      <button class="btn btn-done" onclick="markDone(this)" id="done-btn">✓ Wykonany</button>
-      <a href="kalendarz.html?role=athlete" class="btn btn-ghost">📅 Kalendarz</a>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-done" onclick="markDone(this)" id="done-btn" style="flex:1;">✓ Wykonany</button>
+        <a href="kalendarz.html?role=athlete" class="btn btn-ghost" style="flex:1;text-align:center;">📅 Kalendarz</a>
+      </div>
     </div>
   </div>
 </div>
@@ -2680,7 +2715,8 @@ function loadAvatarTopbar(athleteId) {
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
-  try { const _hbg=document.getElementById('today-hero-bg'); if(_hbg) { if(typeof _todayHeroImg!=='undefined'&&_todayHeroImg) { _hbg.style.backgroundImage='url('+_todayHeroImg+')'; } else { _hbg.style.backgroundImage='url(https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp)'; } requestAnimationFrame(()=>{ setTimeout(()=>{ _hbg.style.opacity='0.22'; },50); }); } } catch(e) {}
+  try { // hero init po załadowaniu auth
+try { _heroInit(); } catch(e) {}
 
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
@@ -3221,88 +3257,70 @@ const _runImgs = (function() {
   return imgs;
 })();
 
-const _todayHeroImg = (function() {
-  const d = new Date();
-  const seed = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
-  const pool = ['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run31.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run32.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run33.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run34.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run35.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run36.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run37.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run38.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run39.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run40.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run41.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run42.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run43.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run44.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run45.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run46.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run47.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run48.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run49.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run50.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run51.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run52.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run53.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run54.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run55.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run56.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run57.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run58.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run59.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run60.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run61.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run62.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run63.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run64.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run65.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run66.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run67.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run68.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run69.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run70.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run71.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run72.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run73.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run74.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run75.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run76.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run77.webp'];
-  return pool[seed % pool.length];
-})();
+// ── ROTACJA KART HERO (7 zestawów × 5-6 slajdów) ──────────────────
+const BASE_ASSETS = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+// Zestawy kart per dzień tygodnia (0=Nd,1=Pn,...,6=So)
+const _heroSets = [
+  ['ag1','ag2','ag3','ag4','ag5'],           // Niedziela
+  ['aa1','aa2','aa3','aa4','aa5'],           // Poniedziałek
+  ['ab1','ab2','ab3','ab4','ab5'],           // Wtorek
+  ['ac1','ac2','ac3','ac4','ac5'],           // Środa
+  ['ad1','ad2','ad3','ad4','ad5'],           // Czwartek
+  ['ae1','ae2','ae3','ae4','ae5'],           // Piątek
+  ['af1','af2','af3','af4','af5'],           // Sobota
+];
+const _heroDay = new Date().getDay(); // 0-6
+const _heroCards = _heroSets[_heroDay].map(n => BASE_ASSETS + n + '.webp');
+let _heroIdx = 0;
+let _heroTimer = null;
+
+function _heroNext() {
+  _heroIdx = (_heroIdx + 1) % _heroCards.length;
+  _heroShow(_heroIdx);
+}
+function _heroPrev() {
+  _heroIdx = (_heroIdx - 1 + _heroCards.length) % _heroCards.length;
+  _heroShow(_heroIdx);
+}
+function _heroShow(i) {
+  const bg = document.getElementById('today-hero-bg');
+  if (!bg) return;
+  bg.style.opacity = '0';
+  setTimeout(() => {
+    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')';
+    bg.style.opacity = '0.32';
+  }, 220);
+  // Zaktualizuj paginację
+  document.querySelectorAll('.hero-dot').forEach((d, idx) => {
+    d.classList.toggle('active', idx === i);
+  });
+}
+function _heroStartRotation() {
+  if (_heroTimer) return;
+  _heroTimer = setInterval(_heroNext, 5000);
+}
+function _heroStopRotation() {
+  clearInterval(_heroTimer); _heroTimer = null;
+}
+// Inicjalizacja — pokaż pierwszą kartę
+function _heroInit() {
+  const bg = document.getElementById('today-hero-bg');
+  if (!bg || !_heroCards.length) return;
+  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')';
+  bg.style.opacity = '0';
+  // Buduj paginację
+  const dotsEl = document.getElementById('hero-dots');
+  if (dotsEl) {
+    dotsEl.innerHTML = _heroCards.map((_, i) =>
+      `<span class="hero-dot${i===0?' active':''}" onclick="_heroShow(${i});_heroIdx=${i};"></span>`
+    ).join('');
+  }
+  // Fade-in
+  requestAnimationFrame(() => setTimeout(() => { bg.style.opacity = '0.32'; }, 60));
+  // Auto-rotate
+  _heroStartRotation();
+}
+
 
 async function loadWeekPlan() {
   if (!_athleteId) return;
