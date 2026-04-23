@@ -185,6 +185,7 @@ body > *{position:relative;z-index:1;}
   overflow:hidden;
   position:relative;
   box-shadow:var(--tile-shadow-lg);
+  min-height:220px;
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -2715,8 +2716,7 @@ function loadAvatarTopbar(athleteId) {
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
-  try { // hero init po załadowaniu auth
-try { _heroInit(); } catch(e) {}
+  try { _heroInit(); } catch(e) {}
 
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
@@ -3278,10 +3278,12 @@ function _heroNext() {
   _heroIdx = (_heroIdx + 1) % _heroCards.length;
   _heroShow(_heroIdx);
 }
+window._heroNext = _heroNext;
 function _heroPrev() {
   _heroIdx = (_heroIdx - 1 + _heroCards.length) % _heroCards.length;
   _heroShow(_heroIdx);
 }
+window._heroPrev = _heroPrev;
 function _heroShow(i) {
   const bg = document.getElementById('today-hero-bg');
   if (!bg) return;
@@ -3320,6 +3322,7 @@ function _heroInit() {
   // Auto-rotate
   _heroStartRotation();
 }
+window._heroInit = _heroInit;
 
 
 async function loadWeekPlan() {
@@ -4094,6 +4097,7 @@ function toggleMenu() {
   const m = document.getElementById('av-menu');
   if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
 }
+window.toggleMenu = toggleMenu;
 
 document.addEventListener('click', e => {
   if (!e.target.closest('#av-btn') && !e.target.closest('#av-menu')) {
