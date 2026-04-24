@@ -2438,13 +2438,11 @@ async function copyTraining() {
 // ── VIEW SWITCHER ──────────────────────────────────────────────────
 const _calViewKey = 'calendarView_' + _urlRole;
 let _calViewStored = localStorage.getItem(_calViewKey);
-// Zawodnik: tylko 'tiles' lub 'mobile' — nigdy 'classic'
-if (_urlRole === 'athlete' && _calViewStored === 'classic') _calViewStored = 'tiles';
+// Domyślny widok dla zawodnika: tiles
+if (_urlRole === 'athlete' && _calViewStored === null) _calViewStored = 'tiles';
 let _calView = _calViewStored || (_urlRole === 'athlete' ? 'tiles' : 'classic');
 
 function setView(v) {
-  // Zawodnik nie ma dostępu do widoku klasycznego
-  if (_urlRole === 'athlete' && v === 'classic') v = 'tiles';
   _calView = v;
   localStorage.setItem(_calViewKey, v);
   const classic = document.getElementById('classic-view');
@@ -2463,8 +2461,6 @@ function setView(v) {
   if(_sh) _sh.style.minHeight = '';
   if(mBtn)    mBtn.style.display    = 'none';
   [btnC, btnM, btnT].forEach(b => { if(b){ b.style.background='transparent'; b.style.color='var(--muted)'; }});
-  // Zawodnik: ukryj przycisk Tabela
-  if(_urlRole === 'athlete' && btnC) btnC.style.display = 'none';
 
   if (v === 'mobile') {
     if(mobile) mobile.style.display = 'block';
@@ -3113,6 +3109,7 @@ function renderTiles() {
 
     const items = trainings[ds] || [];
     const logs  = (window._calLogs && window._calLogs[ds]) || [];
+    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
 
     // Status
     const hasDone    = items.some(t => t.status==='done') || logs.length > 0;
@@ -3141,7 +3138,6 @@ function renderTiles() {
     const onclick = `_tileClick('${ds}')`;
 
     // Cel/start na ten dzień
-    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
 
     // Typ treningu do info bara
     const tileTypeName = raceGoal ? 'Start'

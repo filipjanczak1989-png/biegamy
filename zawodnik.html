@@ -739,7 +739,7 @@ body > *{position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
 #motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
 
-#daily-motivation{position:relative;margin:0 16px 16px;background:rgba(10,6,3,0.75)!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
+#daily-motivation{position:relative;margin:0 16px 16px;background:rgba(10,6,3,0.96)!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
 #daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>:not([style*="position:absolute"]){position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
@@ -2683,16 +2683,56 @@ let _athleteId = null;
 
 // ── MOTYWACJA DNIA ────────────────────────────────────────────────
 const _QUOTES = [
-  {icon:'🔥', text:'"Nie ma złej pogody na trening, są tylko złe usprawiedliwienia."', source:'— zasada biegaczy'},
+  {icon:'🔥', text:'"Nie ma złej pogody na trening, są tylko złe usprawiedliwienia."', source:'— zasada sportu'},
   {icon:'💪', text:'"Każdy kilometr na treningu to inwestycja w dzień startu."', source:'— BiegaMy'},
   {icon:'🏃', text:'"Ból jest tymczasowy. Duma z ukończenia trwa wiecznie."', source:'— Lance Armstrong'},
-  {icon:'⚡', text:'"Nie porównuj swojego rozdziału 1 z czyimś rozdziałem 20."', source:'— zasada sportu'},
-  {icon:'🎯', text:'"Konsekwencja pokonuje intensywność."', source:'— zasada treningowa'},
-  {icon:'🌟', text:'"Każdy bieg, nawet najkrótszy, przybliża cię do celu."', source:'— BiegaMy'},
-  {icon:'🏆', text:'"Twoje nogi będą robić to, co nakaże im głowa."', source:'— maraton 40. km'},
-  {icon:'❤️', text:'"Biegnij dziś, żeby jutro czuć się wolnym."', source:'— BiegaMy'},
-  {icon:'🚀', text:'"Najgorszy trening to ten, którego nie było."', source:'— zasada biegaczy'},
-  {icon:'💯', text:'"Nie musisz być szybki. Musisz być dalej niż wczoraj."', source:'— BiegaMy'},
+  {icon:'⚡', text:'"Nie zatrzymuj się, gdy jesteś zmęczony. Zatrzymaj się, gdy skończysz."', source:'— Marilyn Monroe'},
+  {icon:'🎯', text:'"Mistrzostwo to nie wypadek. To wynik ciągłego wysiłku."', source:'— Colin Powell'},
+  {icon:'🌅', text:'"Każdy poranek to nowa szansa, żeby być lepszym niż wczoraj."', source:'— BiegaMy'},
+  {icon:'🏅', text:'"Nie licz dni — spraw, żeby dni się liczyły."', source:'— Muhammad Ali'},
+  {icon:'💫', text:'"Twoje ciało może prawie wszystko. To twój umysł musisz przekonać."', source:'— nieznany'},
+  {icon:'🦾', text:'"Im ciężej trenujesz, tym szczęście przychodzi do ciebie częściej."', source:'— Gary Player'},
+  {icon:'🌊', text:'"Jeśli nie walczysz o swój sen, kto to zrobi za ciebie?"', source:'— nieznany'},
+  {icon:'🔑', text:'"Sukces to suma małych wysiłków, powtarzanych każdego dnia."', source:'— Robert Collier'},
+  {icon:'🚀', text:'"Granice są tylko w twojej głowie."', source:'— BiegaMy'},
+  {icon:'💎', text:'"Wstawaj wcześnie, pracuj ciężko, dotrzyj do mety."', source:'— Jesse Owens'},
+  {icon:'🌟', text:'"Jedynym złym treningiem jest ten, którego nie zrobiłeś."', source:'— nieznany'},
+  {icon:'⏱️', text:'"Każda sekunda na torze to historia, którą sam piszesz."', source:'— BiegaMy'},
+  {icon:'🏆', text:'"Nie mam wczoraj. Mam tylko jutro."', source:'— Sifan Hassan'},
+  {icon:'💨', text:'"Bieganie uczy mnie, że mogę robić rzeczy, które wydają się niemożliwe."', source:'— John Bingham'},
+  {icon:'🎽', text:'"To nie nogi biegają maraton. To serce."', source:'— Friedrich Nietzsche'},
+  {icon:'🌄', text:'"Każdy kilometr to bitwa z samym sobą — i wygrana."', source:'— BiegaMy'},
+  {icon:'💡', text:'"Trenuj mądrze. Śpij dobrze. Jedz odpowiednio. Powtarzaj."', source:'— zasada sportowca'},
+  {icon:'🔥', text:'"Ból mija. Chwała trwa wiecznie."', source:'— Eric Liddell'},
+  {icon:'⚡', text:'"Kiedy twoje nogi mówią stop, powiedz im: jeszcze jeden krok."', source:'— BiegaMy'},
+  {icon:'🏃', text:'"Nie ma skrótów do gdziekolwiek, gdzie warto dotrzeć."', source:'— Beverly Sills'},
+  {icon:'💪', text:'"Twoja najlepsza wersja jest o jeden trening od ciebie."', source:'— nieznany'},
+  {icon:'🌟', text:'"Biegaj, kiedy możesz. Chodź, gdy musisz. Czołgaj się, jeśli trzeba. Nigdy się nie poddawaj."', source:'— Dean Karnazes'},
+  {icon:'🎯', text:'"Cel bez planu to tylko życzenie. Masz plan — trzymaj się go."', source:'— Antoine de Saint-Exupéry'},
+  {icon:'🦁', text:'"Każdego ranka gazela budzi się wiedząc, że musi biec szybciej niż lew."', source:'— afrykańskie przysłowie'},
+  {icon:'💫', text:'"Nie jestem najszybszy. Ale jestem silniejszy niż wczoraj."', source:'— BiegaMy'},
+  {icon:'🌅', text:'"Wschody słońca widzą tylko ci, którzy wcześnie wstają na trening."', source:'— BiegaMy'},
+  {icon:'🏅', text:'"Kiedy mówisz sobie że nie możesz — pamiętaj wszystkie razy, kiedy mogłeś."', source:'— nieznany'},
+  {icon:'🔑', text:'"Nie chodzi o to, żeby być lepszym od innych. Chodzi o bycie lepszym od siebie wczoraj."', source:'— BiegaMy'},
+  {icon:'🎽', text:'"Tempo chwil słabości decyduje o tempie na mecie."', source:'— BiegaMy'},
+  {icon:'⏱️', text:'"Każdy trening przybliża cię do celu — nawet te, które bolą."', source:'— BiegaMy'},
+  {icon:'💎', text:'"Dyscyplina to pomost między celami a ich realizacją."', source:'— Jim Rohn'},
+  {icon:'🚀', text:'"Nie czekaj na idealny moment. Zacznij, a moment stanie się idealny."', source:'— BiegaMy'},
+  {icon:'🌊', text:'"Zmęczenie jest iluzją. Granice istnieją tylko w umyśle."', source:'— BiegaMy'},
+  {icon:'🦾', text:'"Trening, który zrobiłeś dziś, jutro da ci przewagę."', source:'— BiegaMy'},
+  {icon:'🔥', text:'"Każdy ma trudne dni. Mistrzowie trenują nawet w te dni."', source:'— BiegaMy'},
+  {icon:'💡', text:'"Spójrz jak daleko zaszedłeś — nie tylko jak daleko musisz dojść."', source:'— BiegaMy'},
+  {icon:'🏆', text:'"Wygrywasz nie na mecie — wygrywasz każdego dnia na treningu."', source:'— BiegaMy'},
+  {icon:'🌄', text:'"Bieganie to medytacja w ruchu."', source:'— BiegaMy'},
+  {icon:'💨', text:'"Szybkość przychodzi do tych, którzy są cierpliwi i konsekwentni."', source:'— BiegaMy'},
+  {icon:'⚡', text:'"Twoje ciało jest najlepszą inwestycją, jaką możesz zrobić."', source:'— BiegaMy'},
+  {icon:'🏃', text:'"Liczy się każdy krok. Nawet te, gdy chcesz się zatrzymać."', source:'— BiegaMy'},
+  {icon:'🎯', text:'"Marzenia bez działania to tylko sny. Działaj dziś."', source:'— BiegaMy'},
+  {icon:'🌟', text:'"Jesteś silniejszy niż myślisz, szybszy niż czujesz, lepszy niż wierzysz."', source:'— BiegaMy'},
+  {icon:'💪', text:'"Jedna decyzja każdego ranka zmienia wszystko: wstać i biec."', source:'— BiegaMy'},
+  {icon:'🦁', text:'"Każdy trening to cegiełka w budowie lepszej wersji siebie."', source:'— BiegaMy'},
+  {icon:'🔑', text:'"Zaufaj procesowi. Wyniki przyjdą."', source:'— BiegaMy'},
+  {icon:'💫', text:'"Bieganie nie jest ucieczką od życia — to powrót do siebie."', source:'— BiegaMy'},
 ];
 
 async function loadDailyMotivation() {
@@ -5841,7 +5881,7 @@ function _stopSocialBannerRotation() {
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
-      <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
+      
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
       <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
     </div>
