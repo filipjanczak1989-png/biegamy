@@ -477,6 +477,100 @@ body > *{position:relative;z-index:1;}
   text-shadow:0 0 20px rgba(232,86,30,0.5);
 }
 
+/* ── TILES VIEW ─────────────────────────────────────── */
+.tile-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.tile-day {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--surface2);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.tile-day:active { transform: scale(0.96); }
+.tile-day.tile-today {
+  box-shadow: 0 0 0 2px var(--accent), 0 0 14px rgba(212,80,26,0.35);
+}
+.tile-day.tile-empty { cursor: default; opacity: 0.25; }
+.tile-day.tile-other-month { opacity: 0.35; }
+.tile-bg {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center 25%;
+  transition: transform 0.3s ease;
+}
+.tile-day:active .tile-bg { transform: scale(1.06); }
+.tile-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(170deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.62) 100%);
+}
+.tile-overlay-plain {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45);
+}
+/* Gradient fallback per type */
+.tile-grad-spokojny   { background: linear-gradient(135deg,#0d1a2e,#1a3a5c); }
+.tile-grad-interwaly  { background: linear-gradient(135deg,#1a1500,#3a2800); }
+.tile-grad-tempo      { background: linear-gradient(135deg,#1a0a00,#3a1500); }
+.tile-grad-wybieganie { background: linear-gradient(135deg,#001a0d,#003320); }
+.tile-grad-regeneracja{ background: linear-gradient(135deg,#110018,#22003a); }
+.tile-grad-rest       { background: linear-gradient(135deg,#0e0e10,#16151a); }
+.tile-grad-planned    { background: linear-gradient(135deg,#1a0e00,#2e1800); }
+.tile-grad-default    { background: linear-gradient(135deg,#0e0d14,#1a1828); }
+/* Elementy na kafelku */
+.tile-date {
+  position: absolute; top: 5px; left: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  color: rgba(255,255,255,0.75);
+  line-height: 1; z-index: 2;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+}
+.tile-status {
+  position: absolute; top: 5px; right: 5px;
+  width: 8px; height: 8px; border-radius: 50%; z-index: 2;
+  box-shadow: 0 0 6px currentColor;
+}
+.tile-status.done    { background: #2ECC71; color: #2ECC71; }
+.tile-status.planned { background: #FF6B2C; color: #FF6B2C; }
+.tile-km {
+  position: absolute; bottom: 5px; left: 0; right: 0;
+  text-align: center; z-index: 2;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(13px, 3.5vw, 20px);
+  line-height: 1; color: #fff;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+}
+.tile-km-unit {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px; color: rgba(255,255,255,0.6);
+  letter-spacing: 0.05em; display: block;
+  margin-top: 1px;
+}
+.tile-badge-more {
+  position: absolute; bottom: 5px; right: 5px; z-index: 2;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 5px; padding: 1px 4px;
+  font-size: 7px; font-family: 'DM Mono', monospace;
+  color: rgba(255,255,255,0.7);
+}
+/* Progress bar miesiąca */
+.tiles-month-bar {
+  background: rgba(255,255,255,0.05);
+  border-radius: 3px; height: 3px; overflow: hidden;
+  margin-top: 6px;
+}
+.tiles-month-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2,#f06030));
+  transition: width 0.8s ease;
+}
+
 </style>
 </head>
 <body>
@@ -517,10 +611,29 @@ body > *{position:relative;z-index:1;}
   <div style="display:flex;gap:0;border:1px solid var(--border);overflow:hidden;flex-shrink:0;">
     <button id="btn-classic-view" onclick="setView('classic')" style="background:transparent;color:var(--muted);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">☰ Tabela</button>
     <button id="btn-mobile-view" onclick="setView('mobile')" style="background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">≡ Mobilny</button>
+    <button id="btn-tiles-view" onclick="setView('tiles')" style="background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">⊞ Kafelki</button>
   </div>
   <div class="week-km-badge" style="display:none;" id="week-km-wrap">Km: <span id="week-total-km">0</span></div>
 </div>
 
+
+<!-- TILES VIEW -->
+<div id="tiles-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 72px);">
+  <!-- Progres miesiąca -->
+  <div id="tiles-month-progress" style="margin-bottom:14px;"></div>
+  <!-- Nagłówki dni tygodnia -->
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;" id="tiles-dow-header">
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">PN</div>
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">WT</div>
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">ŚR</div>
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">CZ</div>
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">PT</div>
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">SB</div>
+    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">ND</div>
+  </div>
+  <!-- Grid kafelków -->
+  <div id="tiles-grid"></div>
+</div>
 
 <!-- GOAL MODAL -->
 <div id="goal-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeGoalModal()">
@@ -1034,11 +1147,15 @@ function render() {
 // ── WEEK NAV ──────────────────────────────────────────────────────────────────
 function changeWeek(dir) {
   currentWeekStart = addDays(currentWeekStart, dir*7);
-  render();
+  if (_calView === "mobile") renderMobile();
+  else if (_calView === "tiles") renderTiles();
+  else render();
 }
 function goToday() {
   currentWeekStart = getWeekStart(new Date());
-  render();
+  if (_calView === "mobile") renderMobile();
+  else if (_calView === "tiles") renderTiles();
+  else render();
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
@@ -2185,6 +2302,7 @@ async function executeMoveScreen(logId, url, currentDs) {
     document.getElementById('move-screen-modal')?.remove();
     showKalToast('Screenshot przeniesiony ✓');
     await renderWeek(currentWeekStart);
+    if (typeof _calView !== "undefined" && _calView === "tiles") renderTiles();
   } catch(e) {
     showKalToast('Błąd: ' + e.message);
     if (btn) { btn.textContent = 'Przenieś →'; btn.disabled = false; }
@@ -2293,29 +2411,39 @@ async function copyTraining() {
 
 // ── VIEW SWITCHER ──────────────────────────────────────────────────
 const _calViewKey = 'calendarView_' + _urlRole;
-let _calView = localStorage.getItem(_calViewKey) || (_urlRole === 'athlete' ? 'mobile' : 'classic');
+let _calView = localStorage.getItem(_calViewKey) || (_urlRole === 'athlete' ? 'tiles' : 'classic');
 
 function setView(v) {
   _calView = v;
   localStorage.setItem(_calViewKey, v);
   const classic = document.getElementById('classic-view');
   const mobile  = document.getElementById('mobile-view');
+  const tiles   = document.getElementById('tiles-view');
   const mBtn    = document.getElementById('mobile-new-btn');
   const btnC    = document.getElementById('btn-classic-view');
   const btnM    = document.getElementById('btn-mobile-view');
+  const btnT    = document.getElementById('btn-tiles-view');
+
+  // Ukryj wszystko
+  if(classic) classic.style.display = 'none';
+  if(mobile)  mobile.style.display  = 'none';
+  if(tiles)   tiles.style.display   = 'none';
+  if(mBtn)    mBtn.style.display    = 'none';
+  [btnC, btnM, btnT].forEach(b => { if(b){ b.style.background='transparent'; b.style.color='var(--muted)'; }});
+
   if (v === 'mobile') {
-    if(classic) classic.style.display = 'none';
-    if(mobile)  mobile.style.display  = 'block';
+    if(mobile) mobile.style.display = 'block';
     if(mBtn && _urlRole !== 'athlete') mBtn.style.display = 'block';
-    if(btnC){ btnC.style.background='transparent'; btnC.style.color='var(--muted)'; }
     if(btnM){ btnM.style.background='rgba(212,80,26,0.12)'; btnM.style.color='var(--accent)'; }
     renderMobile();
+  } else if (v === 'tiles') {
+    if(tiles) tiles.style.display = 'block';
+    if(btnT){ btnT.style.background='rgba(212,80,26,0.12)'; btnT.style.color='var(--accent)'; }
+    renderTiles();
   } else {
     if(classic) classic.style.display = '';
-    if(mobile)  mobile.style.display  = 'none';
-    if(mBtn)    mBtn.style.display    = 'none';
     if(btnC){ btnC.style.background='rgba(212,80,26,0.12)'; btnC.style.color='var(--accent)'; }
-    if(btnM){ btnM.style.background='transparent'; btnM.style.color='var(--muted)'; }
+    render();
   }
 }
 
@@ -2836,6 +2964,203 @@ document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=setti
       .observe(body, {childList:true});
   }
 })();
+
+// ══════════════════════════════════════════════════════
+// TILES VIEW — miesięczny widok kafelkowy
+// ══════════════════════════════════════════════════════
+const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/day-heroes/spring/';
+const HERO_COUNT = 136;  // łączna liczba obrazków wiosennych
+
+function _heroUrl(dateStr) {
+  // Rotacja: każdy dzień w historii dostaje unikalny obrazek
+  // Używamy liczby dni od epoki jako indeksu (deterministyczne)
+  const d = new Date(dateStr + 'T00:00:00');
+  const epoch = new Date('2020-01-01');
+  const daysSinceEpoch = Math.floor((d - epoch) / 86400000);
+  const idx = ((daysSinceEpoch % HERO_COUNT) + HERO_COUNT) % HERO_COUNT + 1;
+  return HERO_BASE + 'spring_' + String(idx).padStart(3, '0') + '.webp';
+}
+
+function _tileGradClass(items, logs) {
+  const typeMap = {
+    'Bieg spokojny':'spokojny','Spokojny':'spokojny',
+    'Interwały':'interwaly','Tempo':'tempo',
+    'Wybieganie':'wybieganie','Regeneracja':'regeneracja',
+    'Odpoczynek':'rest'
+  };
+  if (items && items.length) {
+    const t = items[0].type || '';
+    return 'tile-grad-' + (typeMap[t] || (items[0].status==='done'?'spokojny':'planned'));
+  }
+  if (logs && logs.length) {
+    const t = logs[0].training_type || '';
+    return 'tile-grad-' + (typeMap[t] || 'default');
+  }
+  return 'tile-grad-default';
+}
+
+function renderTiles() {
+  const grid = document.getElementById('tiles-grid');
+  const progressEl = document.getElementById('tiles-month-progress');
+  if (!grid) return;
+
+  // Wyznacz widoczny miesiąc na podstawie currentWeekStart
+  const ref = new Date(currentWeekStart);
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  // Nagłówek miesiąca w toolbar
+  const mnPL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
+                 'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+  const monthLabel = document.getElementById('week-label');
+  if (monthLabel) monthLabel.textContent = mnPL[month] + ' ' + year;
+
+  // Offset: poniedziałek = 0
+  const startDow = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+
+  // Progres miesiąca
+  const totalDays = lastDay.getDate();
+  let activeDays = 0;
+  for (let d = 1; d <= totalDays; d++) {
+    const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const items = trainings[ds] || [];
+    const logs  = (window._calLogs && window._calLogs[ds]) || [];
+    const hasDone = items.some(t => t.status==='done') || logs.length > 0;
+    if (hasDone) activeDays++;
+  }
+  const pct = Math.round(activeDays / totalDays * 100);
+  if (progressEl) {
+    progressEl.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">${mnPL[month]} ${year}</div>
+        <div style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);">${activeDays} / ${totalDays} dni aktywnych</div>
+      </div>
+      <div class="tiles-month-bar"><div class="tiles-month-bar-fill" style="width:${pct}%"></div></div>`;
+  }
+
+  // Buduj kafelki
+  let html = '<div class="tile-grid">';
+
+  // Puste kafelki przed 1-szym dniem
+  for (let i = 0; i < startDow; i++) {
+    html += '<div class="tile-day tile-empty"></div>';
+  }
+
+  // Dni miesiąca
+  for (let d = 1; d <= totalDays; d++) {
+    const ds = year + '-' + String(month+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const dt = new Date(year, month, d);
+    const isToday = dt.getTime() === today.getTime();
+
+    const items = trainings[ds] || [];
+    const logs  = (window._calLogs && window._calLogs[ds]) || [];
+
+    // Status
+    const hasDone    = items.some(t => t.status==='done') || logs.length > 0;
+    const hasPlanned = items.some(t => !t.status || t.status==='planned');
+    const statusCls  = hasDone ? 'done' : hasPlanned ? 'planned' : '';
+
+    // Dystans
+    let km = 0;
+    if (hasDone) {
+      const doneLogs = logs.length ? logs : items.filter(t => t.status==='done');
+      km = doneLogs.reduce((s, t) => s + (parseFloat(t.distance_km || t.dist) || 0), 0);
+    } else if (hasPlanned) {
+      km = items.reduce((s, t) => s + (parseFloat(t.dist) || 0), 0);
+    }
+
+    // Screen badge
+    const screens = logs.flatMap(l => l.attachment_url ? l.attachment_url.split(',').filter(Boolean) : []);
+    const badgeMore = screens.length > 1 ? `<div class="tile-badge-more">+${screens.length - 1}</div>` : '';
+
+    // Tło — hero lub screen lub gradient
+    const heroUrl  = _heroUrl(ds);
+    const screenUrl = screens[0] || '';
+    const gradCls  = _tileGradClass(items, logs);
+
+    // Zdarzenie kliknięcia — przejdź do tygodnia z tym dniem
+    const onclick = `_tileClick('${ds}')`;
+
+    html += `<div class="tile-day${isToday?' tile-today':''}${!hasDone&&!hasPlanned?' tile-empty':''}"
+      onclick="${onclick}" data-date="${ds}">
+      <div class="tile-bg ${gradCls}" id="tbg-${ds}"
+        data-hero="${heroUrl}" data-screen="${screenUrl}"
+        style="background-size:cover;background-position:center 25%;"></div>
+      <div class="tile-overlay"></div>
+      <div class="tile-date">${d}</div>
+      ${statusCls ? `<div class="tile-status ${statusCls}"></div>` : ''}
+      ${km > 0 ? `<div class="tile-km">${km.toFixed(1)}<span class="tile-km-unit">km</span></div>` : ''}
+      ${badgeMore}
+    </div>`;
+  }
+
+  // Uzupełnij do pełnych tygodni
+  const totalCells = startDow + totalDays;
+  const remainder = totalCells % 7;
+  if (remainder > 0) {
+    for (let i = 0; i < 7 - remainder; i++) {
+      html += '<div class="tile-day tile-empty tile-other-month"></div>';
+    }
+  }
+
+  html += '</div>';
+  grid.innerHTML = html;
+
+  // Lazy load tła kafelków
+  _loadTileBgs();
+}
+
+function _loadTileBgs() {
+  // Ładuj obrazy kafelków z priorytetem dla widocznych
+  const bgs = document.querySelectorAll('.tile-bg[data-hero]');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(el => {
+      if (!el.isIntersecting) return;
+      const div = el.target;
+      const hero = div.dataset.hero;
+      const screen = div.dataset.screen;
+      // Sprawdź hero najpierw, fallback do screena, potem zostaw gradient
+      if (hero) {
+        const img = new Image();
+        img.onload = () => { div.style.backgroundImage = `url(${hero})`; };
+        img.onerror = () => {
+          if (screen) {
+            const img2 = new Image();
+            img2.onload = () => { div.style.backgroundImage = `url(${screen})`; };
+            img2.src = screen;
+          }
+        };
+        img.src = hero;
+      } else if (screen) {
+        div.style.backgroundImage = `url(${screen})`;
+      }
+      observer.unobserve(div);
+    });
+  }, { rootMargin: '100px' });
+
+  bgs.forEach(bg => observer.observe(bg));
+}
+
+function _tileClick(ds) {
+  // Przejdź do tygodnia zawierającego kliknięty dzień i przełącz na widok mobilny
+  const d = new Date(ds + 'T12:00:00');
+  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  const weekStart = new Date(d);
+  weekStart.setDate(d.getDate() - dow);
+  weekStart.setHours(0,0,0,0);
+  currentWeekStart = weekStart;
+  setView('mobile');
+  // Scroll do dnia
+  setTimeout(() => {
+    const el = document.querySelector(`[data-day="${ds}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 150);
+}
+
 </script>
 </body>
 </html>
