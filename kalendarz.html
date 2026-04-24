@@ -3005,17 +3005,35 @@ document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=setti
 // ══════════════════════════════════════════════════════
 // TILES VIEW — miesięczny widok kafelkowy
 // ══════════════════════════════════════════════════════
-const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/day-heroes/';
-const HERO_COUNT = 136;  // łączna liczba obrazków wiosennych
+const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/assets/';
+
+// Zakresy per sezon
+const HERO_SEASONS = {
+  w: 95,   // wiosna: w1–w95
+  l: 121,  // lato:   l1–l121
+  j: 171,  // jesień: j1–j171
+  z: 126   // zima:   z1–z126
+};
 
 function _heroUrl(dateStr) {
-  // Rotacja: każdy dzień w historii dostaje unikalny obrazek
-  // Używamy liczby dni od epoki jako indeksu (deterministyczne)
   const d = new Date(dateStr + 'T00:00:00');
+  const month = d.getMonth() + 1; // 1–12
+
+  // Przydział sezonów: meteorologiczny
+  let prefix;
+  if (month >= 3 && month <= 5)       prefix = 'w'; // wiosna
+  else if (month >= 6 && month <= 8)  prefix = 'l'; // lato
+  else if (month >= 9 && month <= 11) prefix = 'j'; // jesień
+  else                                 prefix = 'z'; // zima (12, 1, 2)
+
+  const count = HERO_SEASONS[prefix];
+
+  // Deterministyczny indeks per dzień
   const epoch = new Date('2020-01-01');
   const daysSinceEpoch = Math.floor((d - epoch) / 86400000);
-  const idx = ((daysSinceEpoch % HERO_COUNT) + HERO_COUNT) % HERO_COUNT + 1;
-  return HERO_BASE + 'spring_' + String(idx).padStart(3, '0') + '.webp';
+  const idx = ((daysSinceEpoch % count) + count) % count + 1;
+
+  return HERO_BASE + prefix + '_(' + idx + ').webp';
 }
 
 function _tileGradClass(items, logs) {
