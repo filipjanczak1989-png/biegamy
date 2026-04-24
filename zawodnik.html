@@ -1028,7 +1028,7 @@ body > *{position:relative;z-index:1;}
   </div>
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 20px;">
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 20px;">
     <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
       <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Dane</span>
@@ -1044,6 +1044,10 @@ body > *{position:relative;z-index:1;}
     <button id="ptab-calc" onclick="switchProfileTab('calc')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/></svg>
       <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Kalkulator</span>
+    </button>
+    <button id="ptab-badges" onclick="switchProfileTab('badges')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/></svg>
+      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Odznaki</span>
     </button>
   </div>
 
@@ -1130,6 +1134,13 @@ body > *{position:relative;z-index:1;}
   </div>
 
   <!-- TAB: WIADOMOŚCI -->
+  <!-- TAB: ODZNAKI -->
+  <div id="ptab-panel-badges" style="display:none;margin:0 -20px;">
+    <div id="badges-section-content">
+      <div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie odznak...</div>
+    </div>
+  </div>
+
   <div id="ptab-panel-msgs" style="display:none;margin:-16px -20px 0;"></div>
 
   <!-- TAB: STATYSTYKI -->
@@ -1930,17 +1941,18 @@ let _profileTab = 'info';
 function switchProfileTab(tab) {
   _profileTab = tab;
   const svgColors = {
-    info:  { svg: 'var(--accent)', bg: 'rgba(232,86,30,0.12)', border: 'rgba(232,86,30,0.4)', text: 'var(--accent)' },
-    msgs:  { svg: '#5090e0',       bg: 'rgba(80,144,224,0.12)', border: 'rgba(80,144,224,0.4)', text: '#5090e0' },
-    stats: { svg: '#3db870',       bg: 'rgba(61,184,112,0.12)', border: 'rgba(61,184,112,0.4)', text: '#3db870' },
-    calc:  { svg: '#9a6fe8',       bg: 'rgba(154,111,232,0.12)', border: 'rgba(154,111,232,0.4)', text: '#9a6fe8' },
+    info:   { svg: 'var(--accent)', bg: 'rgba(232,86,30,0.12)', border: 'rgba(232,86,30,0.4)', text: 'var(--accent)' },
+    msgs:   { svg: '#5090e0',       bg: 'rgba(80,144,224,0.12)', border: 'rgba(80,144,224,0.4)', text: '#5090e0' },
+    stats:  { svg: '#3db870',       bg: 'rgba(61,184,112,0.12)', border: 'rgba(61,184,112,0.4)', text: '#3db870' },
+    calc:   { svg: '#9a6fe8',       bg: 'rgba(154,111,232,0.12)', border: 'rgba(154,111,232,0.4)', text: '#9a6fe8' },
+    badges: { svg: '#e8b840',       bg: 'rgba(232,184,64,0.12)',  border: 'rgba(232,184,64,0.4)',  text: '#e8b840' },
   };
-  ['info','msgs','stats','calc'].forEach(t => {
+  ['info','msgs','stats','calc','badges'].forEach(t => {
     const btn = document.getElementById('ptab-' + t);
     const panel = document.getElementById('ptab-panel-' + t);
     if (btn) {
       const isActive = t === tab;
-      const col = svgColors[t];
+      const col = svgColors[t] || svgColors.info;
       btn.style.background = isActive ? col.bg : 'transparent';
       btn.style.borderColor = isActive ? col.border : 'var(--border)';
       const svg = btn.querySelector('svg');
@@ -1950,9 +1962,10 @@ function switchProfileTab(tab) {
     }
     if (panel) panel.style.display = t === tab ? 'block' : 'none';
   });
-  if (tab === 'msgs') _mountMsgsInProfile();
-  if (tab === 'stats') _loadStatsInProfile();
-  if (tab === 'calc') _initCalcFromPBs();
+  if (tab === 'msgs')   _mountMsgsInProfile();
+  if (tab === 'stats')  _loadStatsInProfile();
+  if (tab === 'calc')   _initCalcFromPBs();
+  if (tab === 'badges') { loadAchievements().then(() => renderBadgesSection()); }
 }
 
 function _mountMsgsInProfile() {
@@ -2303,6 +2316,9 @@ function calcPaceCalc() {
 }
 
 async function loadProfile() {
+  // Załaduj odznaki i wyrenderuj sekcję
+  await loadAchievements();
+  renderBadgesSection();
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   const name = session.user.user_metadata?.full_name || '—';
@@ -3472,6 +3488,7 @@ async function loadLogs() {
       .limit(5);
     if (data && data.length > 0) {
       try { renderLogsDb(data); } catch(e) { console.error('renderLogsDb error:', e); }
+      try { checkBadges(data); } catch(e) { console.error('checkBadges error:', e); }
     } else {
       document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
     }
@@ -4274,6 +4291,9 @@ async function loadSocialFeed(compact) {
     const isFollowed = followingSet.has(athId);
     const _logDate = l.logged_at ? new Date(l.logged_at) : null;
     const date = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
+    if (l.training_type === '__badge__') {
+      return window._renderBadgeEvent ? window._renderBadgeEvent(l, ath) : '';
+    }
     const type = l.training_type || 'Trening';
     const _bgMap={'Odpoczynek':{u:'',p:'center 25%'},'Regeneracja':{u:'',p:'center 25%'}};
   function _cardImgFor(type,idx){
@@ -4574,103 +4594,158 @@ async function deleteFeedLog(logId) {
 }
 
 function loadChallenges() {
-  const el=document.getElementById('challenges-content');if(!el)return;
-  const now=new Date();const dow=now.getDay()===0?7:now.getDay();
-  const wS=new Date(now);wS.setDate(now.getDate()-dow+1);wS.setHours(0,0,0,0);
-  const mS=new Date(now.getFullYear(),now.getMonth(),1);
-
-  // Tygodniowy numer — rotacja co tydzień
+  const el = document.getElementById('challenges-content');
+  if (!el) return;
+  const now = new Date();
+  const dow = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=pn
+  const wS = new Date(now); wS.setDate(now.getDate() - dow); wS.setHours(0,0,0,0);
+  const mS = new Date(now.getFullYear(), now.getMonth(), 1);
   const weekNum = Math.floor((wS - new Date(wS.getFullYear(),0,1)) / 604800000);
 
-  // Wszystkie możliwe wyzwania tygodniowe
-  const allWeekly = [
-    {id:'week50',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',title:'50 km w tygodniu',desc:'Suma km od poniedziałku',target:50,unit:'km',color:'#3db870',kind:'km'},
-    {id:'week5runs',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="5" r="2"/><path d="M5 18l3-6 2 3 2-5 3 8"/><path d="M3 18h18"/></svg>',title:'5 treningów w tygodniu',desc:'5 sesji od poniedziałku',target:5,unit:'sesji',color:'#5090e0',kind:'sessions'},
-    {id:'week3days',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',title:'3 dni z rzędu',desc:'Trenuj 3 kolejne dni',target:3,unit:'dni',color:'#e8b840',kind:'streak'},
-    {id:'week30',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0"/><path d="M12 8v4l3 3"/></svg>',title:'30 km w tygodniu',desc:'Suma km od poniedziałku',target:30,unit:'km',color:'#9a6fe8',kind:'km'},
-    {id:'pace600',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>',title:'Tempo < 6:00/km',desc:'Jeden trening szybszy niż 6:00',target:360,unit:'/km',color:'#FC4C02',kind:'pace'},
-    {id:'longrun15',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 17l4-8 4 4 4-6 4 4"/><path d="M3 20h18"/></svg>',title:'Długi wybieg 15+ km',desc:'Jeden trening 15 km lub więcej',target:15,unit:'km',color:'#3db870',kind:'long'},
+  const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/';
+
+  // Wyzwania tygodniowe — każde powiązane z odznakę
+  const WEEKLY = [
+    {id:'tydzien_mocy',   badge:'tydzien_mocy',   title:'Tydzień mocy',       desc:'3 treningi w tym tygodniu',   target:3,  unit:'treningi', kind:'sessions',color:'#e8a040'},
+    {id:'5_dni_ruchu',    badge:'5_dni_ruchu',     title:'5 dni ruchu',        desc:'5 treningów w tym tygodniu',  target:5,  unit:'treningi', kind:'sessions',color:'#5090e0'},
+    {id:'weekend_runner', badge:'weekend_runner',  title:'Weekend runner',     desc:'2 treningi w weekend',        target:2,  unit:'sesje',    kind:'weekend', color:'#9a6fe8'},
+    {id:'20km_tydzien',   badge:'20km_tydzien',    title:'20 km / tydzień',    desc:'20 km od poniedziałku',       target:20, unit:'km',       kind:'km',      color:'#3db870'},
+    {id:'40km_tydzien',   badge:'40km_tydzien',    title:'40 km / tydzień',    desc:'40 km od poniedziałku',       target:40, unit:'km',       kind:'km',      color:'#e8b840'},
+    {id:'60km_tydzien',   badge:'60km_tydzien',    title:'60 km / tydzień',    desc:'60 km od poniedziałku',       target:60, unit:'km',       kind:'km',      color:'#FC4C02'},
+    {id:'80km_tydzien',   badge:'80km_tydzien',    title:'80+ km / tydzień',   desc:'80 km od poniedziałku',       target:80, unit:'km',       kind:'km',      color:'#ff4444'},
+    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Szybki tydzień',     desc:'2 treningi tempowe',          target:2,  unit:'tempo',    kind:'tempo',   color:'#FC4C02'},
+    {id:'3_dni_pod_rzad', badge:'3_dni_pod_rzad',  title:'3 dni pod rząd',     desc:'3 kolejne dni treningów',     target:3,  unit:'dni',      kind:'streak',  color:'#e8b840'},
+    {id:'forma_rosnie',   badge:'forma_rosnie',    title:'Forma rośnie',       desc:'4 treningi w tym tygodniu',   target:4,  unit:'treningi', kind:'sessions',color:'#3db870'},
+    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'Trening co drugi dzień',      target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
+    {id:'mieszany_ogien', badge:'mieszany_ogien',  title:'Mieszany ogień',     desc:'Easy + Tempo + Interwały',    target:3,  unit:'typy',     kind:'mix',     color:'#FC4C02'},
   ];
 
-  // Miesięczne — stałe
-  const monthlyAll = [
-    {id:'month150',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',title:'150 km w miesiącu',desc:'Suma km w tym miesiącu',target:150,unit:'km',color:'#e8b840',kind:'mkm'},
-    {id:'month200',svg:'<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>',title:'200 km w miesiącu',desc:'Suma km w tym miesiącu',target:200,unit:'km',color:'#FC4C02',kind:'mkm'},
+  // Wyzwania miesięczne — powiązane z odznakami
+  const MONTHLY = [
+    {id:'50km_miesiaca',  badge:'50km_miesiaca',  title:'50 km miesiąca',    desc:'50 km w tym miesiącu',       target:50,  unit:'km',       kind:'mkm',     color:'#3db870'},
+    {id:'100km_miesiaca', badge:'100km_miesiaca', title:'100 km miesiąca',   desc:'100 km w tym miesiącu',      target:100, unit:'km',       kind:'mkm',     color:'#e8b840'},
+    {id:'200km_miesiaca', badge:'200km_miesiaca', title:'200 km miesiąca',   desc:'200 km w tym miesiącu',      target:200, unit:'km',       kind:'mkm',     color:'#FC4C02'},
+    {id:'15_treningow',   badge:'15_treningow',   title:'15 treningów',      desc:'15 treningów w miesiącu',    target:15,  unit:'treningi', kind:'msess',   color:'#5090e0'},
+    {id:'20_treningow',   badge:'20_treningow',   title:'20 treningów',      desc:'20 treningów w miesiącu',    target:20,  unit:'treningi', kind:'msess',   color:'#9a6fe8'},
+    {id:'maraton_m',      badge:'maraton_m',      title:'Maraton miesiąca',  desc:'42 km łącznie w miesiącu',   target:42,  unit:'km',       kind:'mkm',     color:'#e8a040'},
   ];
 
-  // Wybierz 2 tygodniowe na ten tydzień (rotacja)
-  const w1 = allWeekly[weekNum % allWeekly.length];
-  const w2 = allWeekly[(weekNum + 1) % allWeekly.length];
-  // Miesięczne — naprzemiennie
-  const monthly = monthlyAll[Math.floor(weekNum / 4) % monthlyAll.length];
+  // Wybierz 3 tygodniowe (rotacja) + 2 miesięczne (rotacja)
+  const w1 = WEEKLY[weekNum % WEEKLY.length];
+  const w2 = WEEKLY[(weekNum + 3) % WEEKLY.length];
+  const w3 = WEEKLY[(weekNum + 7) % WEEKLY.length];
+  const m1 = MONTHLY[Math.floor(weekNum/4) % MONTHLY.length];
+  const m2 = MONTHLY[(Math.floor(weekNum/4)+1) % MONTHLY.length];
 
-  const chs = [w1, w2, monthly];
-
-  function bCh(ch, prog, ach) {
-    const isMonthly = ch.kind === 'mkm';
-    const spec = typeof ch.target === 'string';
-    const pct = spec ? (ach?100:0) : Math.min(100, Math.round((prog||0)/ch.target*100));
-    const pd = spec ? (ach?'TAK':'NIE') : (typeof prog==='number' ? prog.toFixed(prog>=10||prog===Math.floor(prog)?0:1) : '0');
-    const labelTag = isMonthly
-      ? '<span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;margin-left:6px;">MIESIĄC</span>'
-      : '<span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;margin-left:6px;">TYDZIEŃ</span>';
-    return '<div style="background:var(--card);border:1px solid '+(ach?ch.color:'var(--border)')+';border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
-      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">'
-      +'<div style="width:44px;height:44px;border-radius:12px;background:'+ch.color+'18;border:1px solid '+ch.color+'44;display:flex;align-items:center;justify-content:center;color:'+ch.color+';flex-shrink:0;">'+ch.svg+'</div>'
-      +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:14px;font-weight:600;display:flex;align-items:center;flex-wrap:wrap;gap:4px;">'+ch.title+(ach?' <span style="color:#3db870;">✓</span>':'')+labelTag+'</div>'
-      +'<div style="font-size:11px;color:var(--muted);margin-top:2px;">'+ch.desc+'</div>'
-      +'</div>'
-      +'<div style="text-align:right;flex-shrink:0;">'
-      +'<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:'+ch.color+';">'+pd+'</div>'
-      +'<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">'+ch.unit+'</div>'
-      +'</div></div>'
-      +'<div style="background:var(--card2);border-radius:4px;height:3px;">'
-      +'<div style="background:'+ch.color+';height:3px;width:'+pct+'%;border-radius:4px;transition:width 0.6s;"></div>'
-      +'</div></div>';
+  function buildCard(ch, prog, earned, isMonthly) {
+    const pct = Math.min(100, Math.round((prog||0) / ch.target * 100));
+    const col = ch.color;
+    const almostLabel = (!earned && pct >= 60)
+      ? `<div style="font-size:10px;color:${col};font-family:'DM Mono',monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
+      : '';
+    return `<div style="background:var(--card);border:1px solid ${earned?col:'var(--border)'};border-radius:16px;padding:14px 16px;margin-bottom:10px;${earned?'box-shadow:0 0 16px '+col+'22;':''}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <img src="${BASE}${ch.badge}.webp" style="width:48px;height:48px;border-radius:10px;flex-shrink:0;${earned?'box-shadow:0 0 12px '+col+'55;':'filter:grayscale(0.4) brightness(0.7);'}" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div style="font-size:14px;font-weight:600;">${ch.title}</div>
+            ${earned ? `<span style="color:#3db870;font-size:13px;">✓</span>` : ''}
+            <span style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">${isMonthly?'MIESIĄC':'TYDZIEŃ'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ch.desc}</div>
+          ${almostLabel}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:${col};">${typeof prog==='number'?prog.toFixed(ch.unit==='km'?1:0):'0'}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">/ ${ch.target} ${ch.unit}</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:4px;height:4px;overflow:hidden;">
+        <div style="background:${col};height:4px;width:${pct}%;border-radius:4px;transition:width 0.8s ease;${pct>=100?'box-shadow:0 0 8px '+col+'88;':''}"></div>
+      </div>
+    </div>`;
   }
 
-  const resetLabel = '<div style="text-align:center;padding:8px 0 0;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;">Tygodniowe resetują się w poniedziałek</div>';
-  el.innerHTML = chs.map(function(ch){return bCh(ch,0,false);}).join('') + resetLabel;
+  // Render z zerowym postępem najpierw
+  function render(progMap, earnedSet) {
+    let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
+    [w1,w2,w3].forEach(ch => {
+      html += buildCard(ch, progMap[ch.kind]?.[ch.id]||progMap[ch.kind]||0, earnedSet.has(ch.badge), false);
+    });
+    html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
+    [m1,m2].forEach(ch => {
+      html += buildCard(ch, progMap['m_'+ch.id]||0, earnedSet.has(ch.badge), true);
+    });
+    html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
+    el.innerHTML = html;
+  }
 
-  if (_athleteId) {
-    _sb.from('training_logs').select('distance_km,logged_at,pace').eq('athlete_id',_athleteId)
-      .gte('logged_at', mS.toISOString()).then(function(res) {
-        const all = res.data||[];
-        const wl = all.filter(function(l){return new Date(l.logged_at)>=wS;});
-        const km = wl.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
-        const mkm = all.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);},0);
-        const ses = wl.length;
-        const mx = wl.reduce(function(m,l){return Math.max(m,parseFloat(l.distance_km)||0);},0);
-        const pcs = wl.filter(function(l){return l.pace;}).map(function(l){const p=l.pace.split(':');return p.length===2?parseInt(p[0])*60+parseInt(p[1]):999;});
-        const bp = pcs.length?Math.min.apply(null,pcs):999;
+  render({}, new Set());
 
-        function prog(ch) {
-          if(ch.kind==='km') return km;
-          if(ch.kind==='sessions') return ses;
-          if(ch.kind==='mkm') return mkm;
-          if(ch.kind==='long') return mx;
-          if(ch.kind==='pace') return bp;
-          if(ch.kind==='streak') {
-            // count consecutive days
-            const dates = [...new Set(wl.map(function(l){return l.logged_at.split('T')[0];}))].sort();
-            let streak=0,prev=null;
-            dates.forEach(function(d){
-              if(!prev){streak=1;}
-              else{const diff=Math.round((new Date(d)-new Date(prev))/86400000);streak=diff===1?streak+1:1;}
-              prev=d;
-            });
-            return streak;
-          }
-          return 0;
-        }
-        function ach(ch,p) {
-          if(ch.kind==='pace') return p<=ch.target && p<999;
-          return typeof ch.target==='number' && p>=ch.target;
-        }
-        el.innerHTML = chs.map(function(ch){const p=prog(ch);return bCh(ch,p,ach(ch,p));}).join('') + resetLabel;
+  if (!_athleteId) return;
+
+  Promise.all([
+    _sb.from('training_logs').select('distance_km,logged_at,training_type,pace')
+       .eq('athlete_id', _athleteId).gte('logged_at', mS.toISOString()),
+    _sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
+  ]).then(([logsRes, achRes]) => {
+    const all = logsRes.data || [];
+    const wl = all.filter(l => new Date(l.logged_at) >= wS);
+    const earnedSet = new Set((achRes.data||[]).map(r => r.badge_id));
+
+    // Oblicz postępy
+    const wkm = wl.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+    const mkm = all.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+    const wsess = wl.length;
+    const msess = all.length;
+    const wknd = wl.filter(l => { const d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
+    const wTempo = wl.filter(l => l.training_type==='Tempo').length;
+    const wDays = [...new Set(wl.map(l=>l.logged_at.slice(0,10)))].sort();
+
+    // streak
+    let streak = 0, prev = null;
+    wDays.forEach(d => {
+      if (!prev) { streak=1; } 
+      else { streak = Math.round((new Date(d)-new Date(prev))/86400000)===1 ? streak+1 : 1; }
+      prev = d;
+    });
+
+    // Dla każdego wyzwania tygodniowego oblicz progress
+    function wProg(ch) {
+      if (ch.kind==='km')      return wkm;
+      if (ch.kind==='sessions')return wsess;
+      if (ch.kind==='weekend') return wknd;
+      if (ch.kind==='streak')  return streak;
+      if (ch.kind==='tempo')   return wTempo;
+      if (ch.kind==='altdays') return Math.floor(wDays.length);
+      if (ch.kind==='mix') {
+        const types = new Set(wl.map(l=>l.training_type));
+        return [types.has('Spokojny'),types.has('Tempo'),types.has('Interwały')].filter(Boolean).length;
+      }
+      return 0;
+    }
+
+    const progMap = {};
+    [w1,w2,w3].forEach(ch => { progMap[ch.id] = wProg(ch); });
+    [m1,m2].forEach(ch => {
+      progMap['m_'+ch.id] = ch.kind==='mkm' ? mkm : msess;
+    });
+
+    // Specjalna mapa dla render
+    function renderWithData() {
+      let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
+      [w1,w2,w3].forEach(ch => {
+        html += buildCard(ch, progMap[ch.id]||0, earnedSet.has(ch.badge), false);
       });
-  }
+      html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
+      [m1,m2].forEach(ch => {
+        html += buildCard(ch, progMap['m_'+ch.id]||0, earnedSet.has(ch.badge), true);
+      });
+      html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
+      el.innerHTML = html;
+    }
+    renderWithData();
+  });
 }
 
 
@@ -6003,4 +6078,382 @@ function _stopSocialBannerRotation() {
 
 </div>
 </body>
-</html>
+</html><!-- ═══════════════════════════════════════════════════════════════════
+     SYSTEM ODZNAK — wstrzyknięty po section-social
+     ═══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Badge pop-up ── */
+#badge-popup{position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-120%);z-index:9999;
+  background:linear-gradient(160deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));
+  border:1px solid var(--accent);border-radius:20px;padding:20px 24px 18px;
+  box-shadow:0 0 40px rgba(232,86,30,0.5),0 8px 40px rgba(0,0,0,0.8);
+  display:flex;gap:14px;align-items:center;min-width:280px;max-width:340px;
+  transition:transform 0.45s cubic-bezier(0.34,1.56,0.64,1);width:90%;
+}
+#badge-popup.show{transform:translateX(-50%) translateY(16px);}
+#badge-popup img{width:64px;height:64px;border-radius:12px;flex-shrink:0;box-shadow:0 0 20px rgba(232,86,30,0.4);}
+#badge-popup-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);line-height:1;}
+#badge-popup-name{font-size:12px;color:var(--accent);font-family:'DM Mono',monospace;font-weight:700;margin:4px 0 2px;letter-spacing:0.08em;}
+#badge-popup-desc{font-size:11px;color:var(--fg2);line-height:1.4;}
+#badge-popup-rarity{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-top:6px;padding:3px 8px;border-radius:8px;display:inline-block;}
+/* ── Badge grid w profilu ── */
+.badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px 16px;}
+.badge-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;
+  background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
+  border-radius:14px;cursor:default;transition:all 0.2s;position:relative;}
+.badge-item.earned{border-color:rgba(232,86,30,0.3);background:rgba(232,86,30,0.05);}
+.badge-item.earned:hover{border-color:rgba(232,86,30,0.5);transform:translateY(-2px);box-shadow:0 4px 20px rgba(232,86,30,0.2);}
+.badge-item img{width:52px;height:52px;border-radius:8px;}
+.badge-item.locked img{filter:grayscale(1) brightness(0.35);}
+.badge-item-name{font-size:9px;font-family:'DM Mono',monospace;text-align:center;color:var(--muted);line-height:1.2;letter-spacing:0.03em;}
+.badge-item.earned .badge-item-name{color:var(--fg2);}
+.badge-new-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(232,86,30,0.8);animation:pulseAnim 1.5s infinite;}
+/* ── Rarity colors ── */
+.r-common{color:#e8a040;}
+.r-rare{color:#aac8ff;}
+.r-epic{color:#c87ef0;}
+.r-legendary{color:#ffcc00;}
+</style>
+
+<!-- Badge pop-up DOM -->
+<div id="badge-popup">
+  <img id="badge-popup-img" src="" alt="">
+  <div>
+    <div id="badge-popup-title">NOWA ODZNAKA!</div>
+    <div id="badge-popup-name"></div>
+    <div id="badge-popup-desc"></div>
+    <span id="badge-popup-rarity" class="r-common"></span>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+// DEFINICJE ODZNAK
+// ══════════════════════════════════════════════════════════════════
+const BASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/';
+
+const BADGES = [
+  // PODSTAWOWE
+  {id:'pierwszy_krok',   name:'Pierwszy krok',      desc:'Zapisz pierwszy trening',         rarity:'common',   cat:'Podstawowe'},
+  {id:'wracam_do_gry',   name:'Wracam do gry',       desc:'Powrót po 7 dniach przerwy',      rarity:'common',   cat:'Podstawowe'},
+  {id:'3_z_rzedu',       name:'3 z rzędu',           desc:'3 dni treningów z rzędu',         rarity:'common',   cat:'Podstawowe'},
+  {id:'pierwsze_10km',   name:'Pierwsze 10 km',      desc:'10 km łącznie',                   rarity:'common',   cat:'Podstawowe'},
+  {id:'plan_ukonczony',  name:'Plan ukończony',      desc:'Ukończ swój pierwszy plan',       rarity:'common',   cat:'Podstawowe'},
+  // KONSYSTENCJA
+  {id:'streak_7',        name:'Streak 7',            desc:'7 dni treningów z rzędu',         rarity:'rare',     cat:'Konsystencja'},
+  {id:'streak_30',       name:'Streak 30',           desc:'30 dni treningów z rzędu',        rarity:'epic',     cat:'Konsystencja'},
+  {id:'streak_100',      name:'Streak 100',          desc:'100 dni treningów z rzędu',       rarity:'legendary',cat:'Konsystencja'},
+  {id:'nie_zatrzymuje',  name:'Nie zatrzymuję się',  desc:'10 treningów pod rząd',           rarity:'rare',     cat:'Konsystencja'},
+  {id:'rutyna_mistrza',  name:'Rutyna mistrza',      desc:'4 treningi/tydzień przez 4 tygodnie',rarity:'epic', cat:'Konsystencja'},
+  // DYSTANS
+  {id:'dystans_50',      name:'50 km',               desc:'50 km łącznie',                   rarity:'common',   cat:'Dystans'},
+  {id:'dystans_100',     name:'100 km',              desc:'100 km łącznie',                  rarity:'common',   cat:'Dystans'},
+  {id:'dystans_250',     name:'250 km',              desc:'250 km łącznie',                  rarity:'rare',     cat:'Dystans'},
+  {id:'dystans_500',     name:'500 km',              desc:'500 km łącznie',                  rarity:'rare',     cat:'Dystans'},
+  {id:'dystans_1000',    name:'1000 km',             desc:'1000 km łącznie',                 rarity:'epic',     cat:'Dystans'},
+  {id:'dystans_2000',    name:'2000 km',             desc:'2000 km łącznie',                 rarity:'legendary',cat:'Dystans'},
+  {id:'dystans_5000',    name:'5000 km — LEGEND',    desc:'5000 km łącznie',                 rarity:'legendary',cat:'Dystans'},
+  // PERFORMANCE
+  {id:'tempo_killer',    name:'Tempo killer',        desc:'Ukończ trening tempowy',          rarity:'rare',     cat:'Performance'},
+  {id:'interwalowiec',   name:'Interwałowiec',       desc:'5 treningów interwałowych',       rarity:'rare',     cat:'Performance'},
+  {id:'nowy_rekord',     name:'Nowy rekord',         desc:'Pobij rekord życiowy',            rarity:'epic',     cat:'Performance'},
+  {id:'negative_split',  name:'Negative split',      desc:'Druga połowa szybciej',           rarity:'epic',     cat:'Performance'},
+  // KLIMAT
+  {id:'nocny_wojownik',  name:'Nocny wojownik',      desc:'Trening po 22:00',                rarity:'rare',     cat:'Klimat'},
+  {id:'early_bird',      name:'Early bird',          desc:'Trening przed 6:00',              rarity:'rare',     cat:'Klimat'},
+  {id:'nie_ma_wymowek',  name:'Nie ma wymówek',      desc:'Trening w deszczu',               rarity:'rare',     cat:'Klimat'},
+  {id:'lodowy_biegacz',  name:'Lodowy biegacz',      desc:'Trening poniżej 0°C',             rarity:'epic',     cat:'Klimat'},
+  // MENTAL
+  {id:'silna_glowa',     name:'Silna głowa',         desc:'Trening mimo zmęczenia',          rarity:'rare',     cat:'Mental'},
+  {id:'bez_wymowek',     name:'Bez wymówek',         desc:'5 dni bez pominięcia',            rarity:'rare',     cat:'Mental'},
+  {id:'powrot_silniejszy',name:'Powrót silniejszy',  desc:'Comeback po przerwie',            rarity:'rare',     cat:'Mental'},
+  // TYGODNIOWE
+  {id:'tydzien_mocy',    name:'Tydzień mocy',        desc:'3 treningi w tygodniu',           rarity:'common',   cat:'Tygodniowe'},
+  {id:'5_dni_ruchu',     name:'5 dni ruchu',         desc:'5 aktywności w tygodniu',         rarity:'rare',     cat:'Tygodniowe'},
+  {id:'weekend_runner',  name:'Weekend runner',      desc:'2 treningi w weekend',            rarity:'common',   cat:'Tygodniowe'},
+  {id:'szybki_tydzien',  name:'Szybki tydzień',      desc:'2 treningi tempowe',              rarity:'rare',     cat:'Tygodniowe'},
+  {id:'interwalowy_tydz',name:'Interwałowy tydzień', desc:'2 treningi interwałowe',          rarity:'rare',     cat:'Tygodniowe'},
+  {id:'mieszany_ogien',  name:'Mieszany ogień',      desc:'Easy + tempo + interwał',         rarity:'rare',     cat:'Tygodniowe'},
+  {id:'20km_tydzien',    name:'20 km / tydzień',     desc:'20 km w jednym tygodniu',         rarity:'common',   cat:'Tygodniowe'},
+  {id:'40km_tydzien',    name:'40 km / tydzień',     desc:'40 km w jednym tygodniu',         rarity:'rare',     cat:'Tygodniowe'},
+  {id:'60km_tydzien',    name:'60 km / tydzień',     desc:'60 km w jednym tygodniu',         rarity:'epic',     cat:'Tygodniowe'},
+  {id:'80km_tydzien',    name:'80+ km / tydzień',    desc:'80 km w jednym tygodniu',         rarity:'legendary',cat:'Tygodniowe'},
+  {id:'bez_skipa',       name:'Bez skipa',           desc:'Trening co drugi dzień',          rarity:'rare',     cat:'Tygodniowe'},
+  {id:'3_dni_pod_rzad',  name:'3 dni pod rząd',      desc:'3 dni treningów z rzędu',         rarity:'common',   cat:'Tygodniowe'},
+  {id:'forma_rosnie',    name:'Forma rośnie',        desc:'4 treningi w tygodniu',           rarity:'rare',     cat:'Tygodniowe'},
+  // MIESIĘCZNE
+  {id:'50km_miesiaca',   name:'50 km miesiąca',      desc:'50 km w jednym miesiącu',         rarity:'common',   cat:'Miesięczne'},
+  {id:'100km_miesiaca',  name:'100 km miesiąca',     desc:'100 km w jednym miesiącu',        rarity:'rare',     cat:'Miesięczne'},
+  {id:'200km_miesiaca',  name:'200 km miesiąca',     desc:'200 km w jednym miesiącu',        rarity:'epic',     cat:'Miesięczne'},
+  {id:'300km_miesiaca',  name:'300+ km miesiąca',    desc:'300 km w jednym miesiącu',        rarity:'legendary',cat:'Miesięczne'},
+  {id:'15_treningow',    name:'15 treningów',        desc:'15 treningów w miesiącu',         rarity:'rare',     cat:'Miesięczne'},
+  {id:'20_treningow',    name:'20 treningów',        desc:'20 treningów w miesiącu',         rarity:'epic',     cat:'Miesięczne'},
+  {id:'25_treningow',    name:'25 treningów',        desc:'25 treningów w miesiącu',         rarity:'legendary',cat:'Miesięczne'},
+  {id:'maraton_m',       name:'Maraton miesiąca',    desc:'42 km łącznie w miesiącu',        rarity:'rare',     cat:'Miesięczne'},
+  {id:'ultra_m',         name:'Ultra miesiąca',      desc:'100 km+ w miesiącu',              rarity:'epic',     cat:'Miesięczne'},
+  // SPOŁECZNOŚĆ
+  {id:'pierwszy_koment', name:'Pierwszy komentarz',  desc:'Napisz swój pierwszy komentarz',  rarity:'common',   cat:'Społeczność'},
+  {id:'motywator',       name:'Motywator',           desc:'10 reakcji od innych',            rarity:'rare',     cat:'Społeczność'},
+  {id:'lider',           name:'Lider',               desc:'Top tygodnia',                    rarity:'epic',     cat:'Społeczność'},
+  {id:'wsparcie',        name:'Wsparcie',            desc:'20 lajków od innych',             rarity:'rare',     cat:'Społeczność'},
+  // HARDCORE
+  {id:'bez_dnia_przerwy',name:'Bez dnia przerwy 30', desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Hardcore'},
+  {id:'ultra_mindset',   name:'Ultra mindset',       desc:'6h biegu / ultra',                rarity:'legendary',cat:'Hardcore'},
+  {id:'granice',         name:'Granice nie istnieją',desc:'100 km w miesiącu',               rarity:'legendary',cat:'Hardcore'},
+  // SEZONOWE
+  {id:'swiateczny',      name:'Świąteczny biegacz',  desc:'Trening w Święta',                rarity:'rare',     cat:'Sezonowe'},
+  {id:'nowy_rok',        name:'Nowy rok — nowy ja',  desc:'Trening 1 stycznia',              rarity:'rare',     cat:'Sezonowe'},
+  {id:'letnia_forma',    name:'Letnia forma',        desc:'Trening w lecie',                 rarity:'common',   cat:'Sezonowe'},
+  {id:'zimowy_wojownik', name:'Zimowy wojownik',     desc:'Trening zimą',                    rarity:'rare',     cat:'Sezonowe'},
+  {id:'7_dni_challenge', name:'7 dni challenge',     desc:'7 dni bez przerwy',               rarity:'rare',     cat:'Sezonowe'},
+  {id:'14_dni_challenge',name:'14 dni challenge',    desc:'14 dni bez przerwy',              rarity:'epic',     cat:'Sezonowe'},
+  {id:'30_dni_challenge',name:'30 dni challenge',    desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Sezonowe'},
+];
+
+const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
+const RARITY_COLOR = {common:'#e8a040',rare:'#aac8ff',epic:'#c87ef0',legendary:'#ffcc00'};
+const RARITY_BG    = {common:'rgba(232,160,64,0.12)',rare:'rgba(170,200,255,0.12)',epic:'rgba(200,126,240,0.12)',legendary:'rgba(255,204,0,0.12)'};
+
+window._earnedBadges = new Set();
+
+// ── Pokaż pop-up odznaki ───────────────────────────────────────────
+function showBadgePopup(badge) {
+  const popup = document.getElementById('badge-popup');
+  document.getElementById('badge-popup-img').src = BASE_URL + badge.id + '.webp';
+  document.getElementById('badge-popup-name').textContent = badge.name;
+  document.getElementById('badge-popup-desc').textContent = badge.desc;
+  const rarEl = document.getElementById('badge-popup-rarity');
+  rarEl.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
+  rarEl.className = 'r-' + badge.rarity;
+  rarEl.style.background = RARITY_BG[badge.rarity] || '';
+  rarEl.style.color = RARITY_COLOR[badge.rarity] || '#fff';
+  popup.classList.add('show');
+  setTimeout(() => popup.classList.remove('show'), 3800);
+}
+
+// ── Zapisz odznakę w Supabase + wyświetl pop-up ───────────────────
+async function awardBadge(badgeId) {
+  if (window._earnedBadges.has(badgeId)) return;
+  if (!_athleteId) return;
+  // Sprawdź czy już ma
+  const { data: existing } = await _sb.from('achievements')
+    .select('id').eq('athlete_id', _athleteId).eq('badge_id', badgeId).maybeSingle();
+  if (existing) { window._earnedBadges.add(badgeId); return; }
+  // Zapisz
+  await _sb.from('achievements').insert({ athlete_id: _athleteId, badge_id: badgeId });
+  window._earnedBadges.add(badgeId);
+  // Wyświetl pop-up
+  const badge = BADGES.find(b => b.id === badgeId);
+  if (badge) setTimeout(() => showBadgePopup(badge), 400);
+  // Wpisz do social feed jako event
+  await _sb.from('training_logs').insert({
+    athlete_id: _athleteId,
+    training_type: '__badge__',
+    comment: badgeId,
+    logged_at: new Date().toISOString(),
+    distance_km: null
+  });
+}
+
+// ── Załaduj posiadane odznaki ─────────────────────────────────────
+async function loadAchievements() {
+  if (!_athleteId) return;
+  const { data } = await _sb.from('achievements')
+    .select('badge_id').eq('athlete_id', _athleteId);
+  if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
+}
+
+// ── Sprawdź warunki po każdym logu ───────────────────────────────
+async function checkBadges(logs) {
+  if (!_athleteId || !logs) return;
+  await loadAchievements();
+
+  const total = logs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  const count = logs.length;
+
+  // PODSTAWOWE
+  if (count >= 1)  awardBadge('pierwszy_krok');
+
+  // DYSTANS
+  if (total >= 10)   awardBadge('pierwsze_10km');
+  if (total >= 50)   awardBadge('dystans_50');
+  if (total >= 100)  awardBadge('dystans_100');
+  if (total >= 250)  awardBadge('dystans_250');
+  if (total >= 500)  awardBadge('dystans_500');
+  if (total >= 1000) awardBadge('dystans_1000');
+  if (total >= 2000) awardBadge('dystans_2000');
+  if (total >= 5000) awardBadge('dystans_5000');
+
+  // PERFORMANCE
+  const tempoCount = logs.filter(l => l.training_type === 'Tempo').length;
+  const intCount   = logs.filter(l => l.training_type === 'Interwały').length;
+  if (tempoCount >= 1) awardBadge('tempo_killer');
+  if (intCount >= 5)   awardBadge('interwalowiec');
+
+  // STREAK — licz max ciąg dni kalendarzowych
+  const days = [...new Set(logs.map(l => l.logged_at.slice(0, 10)))].sort();
+  let maxStreak = 1, curStreak = 1;
+  for (let i = 1; i < days.length; i++) {
+    const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
+    if (diff === 1) { curStreak++; maxStreak = Math.max(maxStreak, curStreak); }
+    else if (diff > 1) curStreak = 1;
+  }
+  if (maxStreak >= 3)   awardBadge('3_z_rzedu');
+  if (maxStreak >= 7)   awardBadge('streak_7');
+  if (maxStreak >= 30)  awardBadge('streak_30');
+  if (maxStreak >= 100) awardBadge('streak_100');
+  if (count >= 10)      awardBadge('nie_zatrzymuje');
+
+  // TYGODNIOWE — bieżący tydzień (pn..nd)
+  const now = new Date();
+  const dow = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=pn
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - dow); weekStart.setHours(0,0,0,0);
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
+  const weekLogs = logs.filter(l => {
+    const d = new Date(l.logged_at);
+    return d >= weekStart && d < weekEnd;
+  });
+  const weekKm   = weekLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  const weekDays = new Set(weekLogs.map(l => l.logged_at.slice(0,10))).size;
+  const wknd = weekLogs.filter(l => { const d = new Date(l.logged_at); return d.getDay()===6||d.getDay()===0; }).length;
+  const wkTempo = weekLogs.filter(l => l.training_type==='Tempo').length;
+  const wkInt   = weekLogs.filter(l => l.training_type==='Interwały').length;
+
+  if (weekLogs.length >= 3)  awardBadge('tydzien_mocy');
+  if (weekLogs.length >= 5)  awardBadge('5_dni_ruchu');
+  if (weekLogs.length >= 4)  awardBadge('forma_rosnie');
+  if (wknd >= 2)             awardBadge('weekend_runner');
+  if (wkTempo >= 2)          awardBadge('szybki_tydzien');
+  if (wkInt >= 2)            awardBadge('interwalowy_tydz');
+  if (wkTempo >= 1 && wkInt >= 1 && weekLogs.some(l=>l.training_type==='Spokojny')) awardBadge('mieszany_ogien');
+  if (weekKm >= 20)  awardBadge('20km_tydzien');
+  if (weekKm >= 40)  awardBadge('40km_tydzien');
+  if (weekKm >= 60)  awardBadge('60km_tydzien');
+  if (weekKm >= 80)  awardBadge('80km_tydzien');
+  if (weekDays >= 3) awardBadge('3_dni_pod_rzad');
+
+  // MIESIĘCZNE — bieżący miesiąc
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const mLogs = logs.filter(l => new Date(l.logged_at) >= monthStart);
+  const mKm = mLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  if (mKm >= 42)   awardBadge('maraton_m');
+  if (mKm >= 50)   awardBadge('50km_miesiaca');
+  if (mKm >= 100)  { awardBadge('100km_miesiaca'); awardBadge('ultra_m'); awardBadge('granice'); }
+  if (mKm >= 200)  awardBadge('200km_miesiaca');
+  if (mKm >= 300)  awardBadge('300km_miesiaca');
+  if (mLogs.length >= 15) awardBadge('15_treningow');
+  if (mLogs.length >= 20) awardBadge('20_treningow');
+  if (mLogs.length >= 25) awardBadge('25_treningow');
+
+  // KLIMAT — pora dnia
+  const nightLog = logs.find(l => { const h = new Date(l.logged_at).getHours(); return h >= 22 || h < 2; });
+  const earlyLog = logs.find(l => { const h = new Date(l.logged_at).getHours(); return h < 6; });
+  if (nightLog) awardBadge('nocny_wojownik');
+  if (earlyLog) awardBadge('early_bird');
+
+  // POWRÓT — przerwa > 7 dni
+  for (let i = 1; i < days.length; i++) {
+    const gap = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
+    if (gap > 7) { awardBadge('wracam_do_gry'); awardBadge('powrot_silniejszy'); break; }
+  }
+
+  // HARDCORE
+  if (maxStreak >= 30) awardBadge('bez_dnia_przerwy');
+
+  // SEZONOWE
+  const month = now.getMonth();
+  if (month === 11 || month === 0) { awardBadge('swiateczny'); awardBadge('zimowy_wojownik'); }
+  if (month >= 5 && month <= 7) awardBadge('letnia_forma');
+  if (now.getMonth() === 0 && now.getDate() === 1) awardBadge('nowy_rok');
+
+  // CHALLANGE
+  if (maxStreak >= 7)  awardBadge('7_dni_challenge');
+  if (maxStreak >= 14) awardBadge('14_dni_challenge');
+  if (maxStreak >= 30) awardBadge('30_dni_challenge');
+
+  // SPOŁECZNOŚĆ — sprawdź komentarze
+  const { count: cCount } = await _sb.from('comments')
+    .select('id', {count:'exact',head:true}).eq('author_id', _athleteId);
+  if (cCount >= 1) awardBadge('pierwszy_koment');
+}
+
+// ── Render sekcji odznak w Profilu ────────────────────────────────
+function renderBadgesSection() {
+  const container = document.getElementById('badges-section-content');
+  if (!container) return;
+
+  const cats = [...new Set(BADGES.map(b => b.cat))];
+  let html = '';
+  for (const cat of cats) {
+    const catBadges = BADGES.filter(b => b.cat === cat);
+    const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
+    html += `<div style="padding:0 16px 4px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">${cat}</div>
+      <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--accent);">${earnedInCat}/${catBadges.length}</div>
+    </div>
+    <div class="badge-grid">`;
+    for (const b of catBadges) {
+      const earned = window._earnedBadges.has(b.id);
+      const col = RARITY_COLOR[b.rarity] || '#fff';
+      html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
+        ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
+        <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy">
+        <div class="badge-item-name">${b.name}</div>
+        ${earned ? `<div style="font-size:8px;font-family:'DM Mono',monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  const earned = window._earnedBadges.size;
+  container.innerHTML = `
+    <div style="padding:0 16px 8px;display:flex;align-items:center;gap:10px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${earned}</div>
+      <div><div style="font-size:11px;font-weight:600;">zdobyte odznaki</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${BADGES.length - earned} pozostało</div>
+      </div>
+      <div style="margin-left:auto;background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:10px;padding:6px 12px;text-align:center;">
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.12em;">PROGRES</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/BADGES.length*100)}%</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 10px;">
+      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${Math.round(earned/BADGES.length*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.8s ease;"></div>
+      </div>
+    </div>
+    ${html}`;
+}
+
+// ── Social feed — renderuj badge eventy ──────────────────────────
+function _renderBadgeEvent(l, ath) {
+  const badgeId = l.comment;
+  const badge = BADGES.find(b => b.id === badgeId);
+  if (!badge) return '';
+  const name = ath?.full_name || 'Biegacz';
+  const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  const col = RARITY_COLOR[badge.rarity] || '#fff';
+  const date = l.logged_at ? new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
+  return `<div style="position:relative;overflow:hidden;border:1px solid ${col}33;border-radius:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${col},${col}44);"></div>
+    <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;">${name}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;">zdobył odznakę · ${date}</div>
+      </div>
+      <img src="${BASE_URL}${badge.id}.webp" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;box-shadow:0 0 12px ${col}55;" loading="lazy">
+    </div>
+    <div style="padding:0 14px 12px;display:flex;align-items:center;gap:8px;">
+      <div style="font-size:13px;font-weight:700;color:${col};">${badge.name}</div>
+      <span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:${col};background:${col}18;padding:2px 7px;border-radius:6px;border:1px solid ${col}44;">${RARITY_LABEL[badge.rarity]}</span>
+    </div>
+  </div>`;
+}
+
+// Eksportuj do globalnego scope
+window._renderBadgeEvent = _renderBadgeEvent;
+window.checkBadges = checkBadges;
+window.loadAchievements = loadAchievements;
+window.renderBadgesSection = renderBadgesSection;
+</script>
