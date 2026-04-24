@@ -852,9 +852,10 @@ body > *{position:relative;z-index:1;}
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
   <button class="btn btn-primary" onclick="openModal()" style="width:100%;margin-bottom:8px;">🔥 Zaloguj wynik</button>
-  <div style="display:flex;gap:8px;">
-    <button class="btn btn-done" onclick="markDone(this)" id="done-btn" style="flex:1;">✓ Wykonany</button>
-    <a href="kalendarz.html?role=athlete" class="btn btn-ghost" style="flex:1;text-align:center;">📅 Kalendarz</a>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+    <button class="btn btn-done" onclick="markDone(this)" id="done-btn">✓ Wykonany</button>
+    <button class="btn btn-ghost" onclick="showSection('social');switchSocialTab('challenges')" style="font-size:11px;">🏆 Wyzwania</button>
+    <a href="kalendarz.html?role=athlete" class="btn btn-ghost" style="text-align:center;">📅 Kalendarz</a>
   </div>
 </div>
 
@@ -4213,6 +4214,28 @@ function switchSocialTab(tab) {
   });
   if (tab==='feed') loadSocialFeed(false);
   if (tab==='challenges') loadChallenges();
+  if (tab==='badges-s') {
+    const bc = document.getElementById('badges-s-content');
+    if (bc) { bc.style.display='block'; }
+    // Pokaż tę samą siatkę odznak co w profilu
+    const tmp = document.getElementById('badges-section-content');
+    const target = document.getElementById('badges-s-content');
+    if (target && target.innerHTML.trim()==='') {
+      loadAchievements().then(()=>{
+        if(typeof renderBadgesSection==='function'){
+          // Tymczasowo podmień kontener, wyrenderuj, przywróć
+          const orig = document.getElementById('badges-section-content');
+          const placeholder = document.createElement('div');
+          placeholder.id='badges-section-content';
+          if(orig){ orig.parentNode.replaceChild(placeholder, orig); }
+          renderBadgesSection();
+          target.innerHTML = placeholder.innerHTML;
+          if(orig){ placeholder.parentNode.replaceChild(orig, placeholder); }
+          else { placeholder.id='badges-section-content-hidden'; }
+        }
+      });
+    }
+  }
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
 }
@@ -5818,6 +5841,7 @@ function _stopSocialBannerRotation() {
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
+      <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
       <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
     </div>
@@ -5827,6 +5851,7 @@ function _stopSocialBannerRotation() {
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
+    <div id="badges-s-content" style="display:none;"></div>
   </div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
