@@ -3005,7 +3005,7 @@ document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=setti
 // ══════════════════════════════════════════════════════
 // TILES VIEW — miesięczny widok kafelkowy
 // ══════════════════════════════════════════════════════
-const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/assets/';
+const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
 
 // Zakresy per sezon
 const HERO_SEASONS = {
@@ -3033,7 +3033,7 @@ function _heroUrl(dateStr) {
   const daysSinceEpoch = Math.floor((d - epoch) / 86400000);
   const idx = ((daysSinceEpoch % count) + count) % count + 1;
 
-  return HERO_BASE + prefix + '_(' + idx + ').webp';
+  return HERO_BASE + prefix + '%20(' + idx + ').jpg';
 }
 
 function _tileGradClass(items, logs) {
