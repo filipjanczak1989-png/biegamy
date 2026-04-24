@@ -3201,17 +3201,17 @@ function _loadTileBgs() {
       // Sprawdź hero najpierw, fallback do screena, potem zostaw gradient
       if (hero) {
         const img = new Image();
-        img.onload = () => { div.style.backgroundImage = `url(${hero})`; };
+        img.onload = () => { div.style.backgroundImage = `url("${hero}")`; };
         img.onerror = () => {
           if (screen) {
             const img2 = new Image();
-            img2.onload = () => { div.style.backgroundImage = `url(${screen})`; };
+            img2.onload = () => { div.style.backgroundImage = `url("${screen}")`; };
             img2.src = screen;
           }
         };
         img.src = hero;
       } else if (screen) {
-        div.style.backgroundImage = `url(${screen})`;
+        div.style.backgroundImage = `url("${screen}")`;
       }
       observer.unobserve(div);
     });
@@ -3252,9 +3252,9 @@ function _openDayScreen(ds) {
   heroDiv.style.backgroundImage = '';
   heroDiv.style.opacity = '0';
   const tryHero = new Image();
-  tryHero.onload = () => { heroDiv.style.backgroundImage = `url(${heroUrl})`; heroDiv.style.opacity = '1'; };
+  tryHero.onload = () => { heroDiv.style.backgroundImage = `url("${heroUrl}")`; heroDiv.style.opacity = '1'; };
   tryHero.onerror = () => {
-    if (screens[0]) { heroDiv.style.backgroundImage = `url(${screens[0]})`; heroDiv.style.opacity = '1'; }
+    if (screens[0]) { heroDiv.style.backgroundImage = `url("${screens[0]}")`; heroDiv.style.opacity = '1'; }
     else { heroDiv.style.background = 'linear-gradient(160deg,#0e0d14,#1a1828)'; heroDiv.style.opacity = '1'; }
   };
   tryHero.src = heroUrl;
