@@ -3640,7 +3640,7 @@ function renderLogsDb(data) {
     const iconBg = {spokojny:'rgba(80,144,224,0.12)',interwaly:'rgba(232,184,64,0.12)',tempo:'rgba(224,85,32,0.12)',wybieganie:'rgba(154,111,232,0.12)',regeneracja:'rgba(61,184,112,0.12)'};
     const feelEmoji = l.feel==='good'?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':l.feel==='bad'?'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>':'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
     return `<div class="log-item ${cls}" style="background:${bgColors[cls]||'var(--card)'};border-color:${borderColors[cls]||'rgba(255,255,255,0.06)'};" onclick="editLog(${idx})">
-      <div style="width:42px;height:42px;border-radius:12px;background:${iconBg[cls]||'rgba(255,255,255,0.04)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div class="log-icon-wrap ${cls}">
         ${svgIcons[type]||svgIcons['Spokojny']}
       </div>
       <div style="flex:1;min-width:0;">
@@ -3649,7 +3649,7 @@ function renderLogsDb(data) {
         ${det!=='—'?`<div style="font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;margin-top:1px;">${det}</div>`:''}
       </div>
       <div style="text-align:right;flex-shrink:0;">
-        ${dist?`<div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;">${dist}</div><div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">km</div>`:''}
+        ${dist?`<div style="display:flex;align-items:baseline;gap:3px;justify-content:flex-end;"><span style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;">${dist}</span><span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">km</span></div>`:''}
       </div>
       <button onclick="event.stopPropagation();deleteLog('${l.id}')" style="background:none;border:none;color:var(--muted2);cursor:pointer;font-size:16px;padding:4px;flex-shrink:0;" title="Usuń">✕</button>
     </div>
