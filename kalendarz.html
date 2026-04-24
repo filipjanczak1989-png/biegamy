@@ -40,7 +40,7 @@ body{
 }
 
 /* ── SHELL ──────────────────────────────────────────────────────────── */
-.shell{display:flex;flex-direction:column;min-height:100vh;}
+.shell{display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;}
 nav{backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
 
 /* ── NAV ────────────────────────────────────────────────────────────── */
@@ -481,7 +481,7 @@ body > *{position:relative;z-index:1;}
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  gap: 3px;
 }
 .tile-day {
   position: relative;
@@ -618,11 +618,11 @@ body > *{position:relative;z-index:1;}
 
 
 <!-- TILES VIEW -->
-<div id="tiles-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 72px);">
+<div id="tiles-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 80px);min-height:unset;">
   <!-- Progres miesiąca -->
-  <div id="tiles-month-progress" style="margin-bottom:14px;"></div>
+  <div id="tiles-month-progress" style="margin-bottom:8px;"></div>
   <!-- Nagłówki dni tygodnia -->
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px;" id="tiles-dow-header">
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;" id="tiles-dow-header">
     <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">PN</div>
     <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">WT</div>
     <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">ŚR</div>
@@ -2428,6 +2428,8 @@ function setView(v) {
   if(classic) classic.style.display = 'none';
   if(mobile)  mobile.style.display  = 'none';
   if(tiles)   tiles.style.display   = 'none';
+  const _sh = document.querySelector('.shell');
+  if(_sh) _sh.style.minHeight = '';
   if(mBtn)    mBtn.style.display    = 'none';
   [btnC, btnM, btnT].forEach(b => { if(b){ b.style.background='transparent'; b.style.color='var(--muted)'; }});
 
@@ -2439,6 +2441,8 @@ function setView(v) {
   } else if (v === 'tiles') {
     if(tiles) tiles.style.display = 'block';
     if(btnT){ btnT.style.background='rgba(212,80,26,0.12)'; btnT.style.color='var(--accent)'; }
+    const sh = document.querySelector('.shell');
+    if(sh) sh.style.minHeight = 'unset';
     renderTiles();
   } else {
     if(classic) classic.style.display = '';
