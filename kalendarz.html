@@ -2302,7 +2302,12 @@ async function executeMoveScreen(logId, url, currentDs) {
     document.getElementById('move-screen-modal')?.remove();
     showKalToast('Screenshot przeniesiony ✓');
     await renderWeek(currentWeekStart);
-    if (typeof _calView !== "undefined" && _calView === "tiles") renderTiles();
+    // Dla zawodnika: przełącz na właściwy widok po załadowaniu danych
+    if (_urlRole === 'athlete') {
+      setView(_calView === 'mobile' ? 'mobile' : 'tiles');
+    } else if (typeof _calView !== "undefined" && _calView === "tiles") {
+      renderTiles();
+    }
   } catch(e) {
     showKalToast('Błąd: ' + e.message);
     if (btn) { btn.textContent = 'Przenieś →'; btn.disabled = false; }
@@ -2411,9 +2416,14 @@ async function copyTraining() {
 
 // ── VIEW SWITCHER ──────────────────────────────────────────────────
 const _calViewKey = 'calendarView_' + _urlRole;
-let _calView = localStorage.getItem(_calViewKey) || (_urlRole === 'athlete' ? 'tiles' : 'classic');
+let _calViewStored = localStorage.getItem(_calViewKey);
+// Zawodnik: tylko 'tiles' lub 'mobile' — nigdy 'classic'
+if (_urlRole === 'athlete' && _calViewStored === 'classic') _calViewStored = 'tiles';
+let _calView = _calViewStored || (_urlRole === 'athlete' ? 'tiles' : 'classic');
 
 function setView(v) {
+  // Zawodnik nie ma dostępu do widoku klasycznego
+  if (_urlRole === 'athlete' && v === 'classic') v = 'tiles';
   _calView = v;
   localStorage.setItem(_calViewKey, v);
   const classic = document.getElementById('classic-view');
@@ -2432,6 +2442,8 @@ function setView(v) {
   if(_sh) _sh.style.minHeight = '';
   if(mBtn)    mBtn.style.display    = 'none';
   [btnC, btnM, btnT].forEach(b => { if(b){ b.style.background='transparent'; b.style.color='var(--muted)'; }});
+  // Zawodnik: ukryj przycisk Tabela
+  if(_urlRole === 'athlete' && btnC) btnC.style.display = 'none';
 
   if (v === 'mobile') {
     if(mobile) mobile.style.display = 'block';
