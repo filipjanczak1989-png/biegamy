@@ -3150,21 +3150,300 @@ function _loadTileBgs() {
 }
 
 function _tileClick(ds) {
-  // Przejdź do tygodnia zawierającego kliknięty dzień i przełącz na widok mobilny
-  const d = new Date(ds + 'T12:00:00');
-  const dow = d.getDay() === 0 ? 6 : d.getDay() - 1;
-  const weekStart = new Date(d);
-  weekStart.setDate(d.getDate() - dow);
-  weekStart.setHours(0,0,0,0);
-  currentWeekStart = weekStart;
-  setView('mobile');
-  // Scroll do dnia
-  setTimeout(() => {
-    const el = document.querySelector(`[data-day="${ds}"]`);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 150);
+  // Otwórz ekran dnia
+  _openDayScreen(ds);
 }
 
+
+// ══════════════════════════════════════════════════════════════════
+// EKRAN DNIA
+// ══════════════════════════════════════════════════════════════════
+const MONTH_PL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
+                  'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+const DOW_PL   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+
+function _openDayScreen(ds) {
+  const screen = document.getElementById('day-screen');
+  if (!screen) return;
+
+  const d = new Date(ds + 'T12:00:00');
+  const items  = trainings[ds] || [];
+  const logs   = (window._calLogs && window._calLogs[ds]) || [];
+  const raceGoal = window._goals && window._goals.find(g => g.date === ds);
+
+  // ── Hero BG ──────────────────────────────────────────────────────
+  const heroDiv = document.getElementById('ds-hero-bg');
+  const screens = logs.flatMap(l => l.attachment_url ? l.attachment_url.split(',').filter(Boolean) : []);
+  const heroUrl = _heroUrl(ds);
+  heroDiv.style.backgroundImage = '';
+  heroDiv.style.opacity = '0';
+  const tryHero = new Image();
+  tryHero.onload = () => { heroDiv.style.backgroundImage = `url(${heroUrl})`; heroDiv.style.opacity='1'; };
+  tryHero.onerror = () => {
+    if (screens[0]) { heroDiv.style.backgroundImage = `url(${screens[0]})`; heroDiv.style.opacity='1'; }
+    else { heroDiv.style.background='linear-gradient(160deg,#0e0d14,#1a1828)'; heroDiv.style.opacity='1'; }
+  };
+  tryHero.src = heroUrl;
+
+  // ── Data ─────────────────────────────────────────────────────────
+  document.getElementById('ds-date').textContent = DOW_PL[d.getDay()] + ', ' + d.getDate() + ' ' + MONTH_PL[d.getMonth()].slice(0,3).toUpperCase() + ' ' + d.getFullYear();
+
+  // ── KM + hero meta ───────────────────────────────────────────────
+  const hasDone = items.some(t=>t.status==='done') || logs.length > 0;
+  let km = 0, pace = '', hr = '', dur = '';
+  if (logs.length) {
+    km   = logs.reduce((s,l)=>s+(parseFloat(l.distance_km)||0),0);
+    pace = logs[0].pace || '';
+    hr   = logs[0].heart_rate || '';
+    dur  = logs[0].duration || '';
+  } else if (items.length) {
+    km   = items.reduce((s,t)=>s+(parseFloat(t.dist||t.distance_km)||0),0);
+    pace = items[0].pace || '';
+    hr   = items[0].hr || '';
+    dur  = items[0].time || items[0].duration_min || '';
+  }
+
+  const kmEl = document.getElementById('ds-km');
+  const kmUnit = document.getElementById('ds-km-unit');
+  if (km > 0) {
+    kmEl.textContent = km.toFixed(1);
+    kmUnit.textContent = 'km';
+  } else {
+    kmEl.textContent = raceGoal ? '🏁' : '—';
+    kmUnit.textContent = '';
+  }
+
+  const heroMeta = document.getElementById('ds-hero-meta');
+  const metaParts = [];
+  if (pace) metaParts.push(`<span style="color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-size:11px;">⏱ ${pace}/km</span>`);
+  if (hr)   metaParts.push(`<span style="color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-size:11px;">♥ ${hr} bpm</span>`);
+  heroMeta.innerHTML = metaParts.join('');
+
+  // ── Karta Typ ────────────────────────────────────────────────────
+  const typeCard = document.getElementById('ds-type-card');
+  const typeColors = {'Bieg spokojny':'#5090e0','Spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#f06030','Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Wzmacniający':'#f0a830','Odpoczynek':'#44424a','Start':'#3db870'};
+  let typeName = 'Dzień wolny', typeCol = '#66636e', statusHtml = '';
+  if (raceGoal) {
+    typeName = '🏁 ' + (raceGoal.name || 'Start');
+    typeCol = '#3db870';
+  } else if (logs.length) {
+    typeName = logs[0].training_type || 'Trening';
+    typeCol = typeColors[typeName] || '#5090e0';
+    statusHtml = `<span style="font-size:9px;font-family:'DM Mono',monospace;color:#3db870;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:3px 10px;border-radius:8px;letter-spacing:0.1em;">✓ LOG</span>`;
+  } else if (items.length) {
+    typeName = items[0].type || 'Trening';
+    typeCol = typeColors[typeName] || '#5090e0';
+    const s = items[0].status;
+    if (s === 'done') statusHtml = `<span style="font-size:9px;font-family:'DM Mono',monospace;color:#3db870;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:3px 10px;border-radius:8px;">✓ Wykonany</span>`;
+    else if (!s || s === 'planned') statusHtml = `<span style="font-size:9px;font-family:'DM Mono',monospace;color:#FF6B2C;background:rgba(255,107,44,0.1);border:1px solid rgba(255,107,44,0.3);padding:3px 10px;border-radius:8px;">Plan</span>`;
+  }
+  typeCard.innerHTML = `
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#fff;">${typeName}</div>
+      <div style="font-size:10px;font-family:'DM Mono',monospace;color:${typeCol};letter-spacing:0.1em;margin-top:3px;text-transform:uppercase;">${d.getDate()} ${MONTH_PL[d.getMonth()]} ${d.getFullYear()}</div>
+    </div>
+    ${statusHtml}`;
+
+  // ── Karta Dane liczbowe ───────────────────────────────────────────
+  const statsCard = document.getElementById('ds-stats-card');
+  const statsGrid = document.getElementById('ds-stats-grid');
+  const statItems = [];
+  if (dur) statItems.push({icon:'⏱',label:'Czas',val:dur});
+  if (pace) statItems.push({icon:'🏃',label:'Tempo',val:pace+'/km'});
+  if (hr)  statItems.push({icon:'♥',label:'Tętno',val:hr+' bpm'});
+  // elevation
+  const elev = logs[0] && logs[0].elevation_gain ? logs[0].elevation_gain : (items[0] && items[0].elevation_gain);
+  if (elev) statItems.push({icon:'▲',label:'Przewyższenie',val:elev+'m'});
+  // calories
+  const cal = logs[0] && logs[0].calories;
+  if (cal) statItems.push({icon:'🔥',label:'Kalorie',val:cal+' kcal'});
+
+  if (statItems.length) {
+    statsCard.style.display = 'block';
+    statsGrid.innerHTML = statItems.map(s =>
+      `<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;">
+        <div style="font-size:10px;color:var(--muted,rgba(240,237,232,0.45));font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">${s.icon} ${s.label}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;line-height:1;">${s.val}</div>
+      </div>`
+    ).join('');
+  } else {
+    statsCard.style.display = 'none';
+  }
+
+  // ── Karta Wskazówka trenera ───────────────────────────────────────
+  const coachCard = document.getElementById('ds-coach-card');
+  const coachText = document.getElementById('ds-coach-text');
+  const planItem = items.find(t => t.type !== 'Odpoczynek');
+  if (planItem && (planItem.desc || planItem.description || planItem.dist)) {
+    coachCard.style.display = 'block';
+    const desc = planItem.desc || planItem.description || '';
+    const planned = planItem.dist ? `${planItem.dist} km` : '';
+    const pType = planItem.type || '';
+    coachText.innerHTML = [
+      planned && pType ? `<strong style="color:#fff;">${pType}</strong> — ${planned}` : '',
+      planItem.pace ? `Tempo: ${planItem.pace}` : '',
+      desc ? `<span style="color:rgba(240,237,232,0.65);">${desc}</span>` : ''
+    ].filter(Boolean).join('<br>');
+  } else {
+    coachCard.style.display = 'none';
+  }
+
+  // ── Karta Screeny ─────────────────────────────────────────────────
+  const screensCard = document.getElementById('ds-screens-card');
+  const screensScroll = document.getElementById('ds-screens-scroll');
+  if (screens.length) {
+    screensCard.style.display = 'block';
+    screensScroll.innerHTML = screens.map(url =>
+      `<img src="${url}" onclick="_openDsPhoto('${url}')"
+        style="height:130px;width:130px;object-fit:cover;border-radius:12px;flex-shrink:0;cursor:pointer;border:1px solid rgba(255,255,255,0.08);"
+        onerror="this.style.display='none'">`
+    ).join('');
+  } else {
+    screensCard.style.display = 'none';
+  }
+
+  // ── Karta Notatka ─────────────────────────────────────────────────
+  const noteCard = document.getElementById('ds-note-card');
+  const noteText = document.getElementById('ds-note-text');
+  const comment = logs[0] && logs[0].comment;
+  if (comment) {
+    noteCard.style.display = 'block';
+    noteText.textContent = '"' + comment + '"';
+  } else {
+    noteCard.style.display = 'none';
+  }
+
+  // ── Strava ────────────────────────────────────────────────────────
+  const stravaCard = document.getElementById('ds-strava-card');
+  const stravaLink = document.getElementById('ds-strava-link');
+  const sv = logs[0] && logs[0].strava_link;
+  if (sv) {
+    stravaCard.style.display = 'block';
+    stravaLink.href = sv;
+  } else {
+    stravaCard.style.display = 'none';
+  }
+
+  // ── Akcje ─────────────────────────────────────────────────────────
+  const actions = document.getElementById('ds-actions');
+  if (_urlRole === 'athlete') {
+    actions.innerHTML = `
+      <button onclick="_closeDayScreen()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.8);border-radius:12px;padding:13px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Zamknij</button>`;
+  } else {
+    actions.innerHTML = `
+      <button onclick="_closeDayScreen()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.8);border-radius:12px;padding:13px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Zamknij</button>`;
+  }
+
+  // ── Pokaż ekran ───────────────────────────────────────────────────
+  screen.style.display = 'block';
+  requestAnimationFrame(() => { screen.style.opacity = '1'; });
+
+  // Zablokuj scroll body
+  document.body.style.overflow = 'hidden';
+}
+
+function _closeDayScreen() {
+  const screen = document.getElementById('day-screen');
+  if (!screen) return;
+  screen.style.opacity = '0';
+  setTimeout(() => {
+    screen.style.display = 'none';
+    screen.scrollTop = 0;
+  }, 220);
+  document.body.style.overflow = '';
+}
+
+function _openDsPhoto(url) {
+  const modal = document.getElementById('ds-photo-modal');
+  const img   = document.getElementById('ds-photo-img');
+  if (!modal || !img) return;
+  img.src = url;
+  modal.style.display = 'flex';
+}
+
+function _closeDsPhoto() {
+  const modal = document.getElementById('ds-photo-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Zamknij ekran na Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    _closeDsPhoto();
+    _closeDayScreen();
+  }
+});
+
 </script>
+
+<!-- ═══════════════ EKRAN DNIA ═══════════════ -->
+<div id="day-screen" style="display:none;position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity 0.22s ease;">
+
+  <!-- HERO -->
+  <div id="ds-hero" style="position:relative;width:100%;height:42vh;min-height:220px;max-height:340px;overflow:hidden;flex-shrink:0;">
+    <div id="ds-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 25%;transition:opacity 0.4s;"></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.15) 0%,rgba(0,0,0,0) 35%,rgba(0,0,0,0) 50%,rgba(0,0,0,0.75) 100%);"></div>
+    <!-- Powrót -->
+    <button onclick="_closeDayScreen()" style="position:absolute;top:env(safe-area-inset-top,12px);left:12px;z-index:3;background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.18);color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;">‹</button>
+    <!-- Data -->
+    <div id="ds-date" style="position:absolute;top:calc(env(safe-area-inset-top,12px) + 4px);right:14px;z-index:3;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:0.12em;text-transform:uppercase;background:rgba(0,0,0,0.45);padding:4px 10px;border-radius:10px;backdrop-filter:blur(6px);"></div>
+    <!-- KM + meta na hero -->
+    <div style="position:absolute;bottom:16px;left:16px;right:16px;z-index:3;">
+      <div style="display:flex;align-items:flex-end;gap:6px;margin-bottom:4px;">
+        <span id="ds-km" style="font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,0.9);"></span>
+        <span id="ds-km-unit" style="font-size:14px;color:rgba(255,255,255,0.7);font-family:'DM Mono',monospace;margin-bottom:8px;"></span>
+      </div>
+      <div id="ds-hero-meta" style="display:flex;gap:14px;flex-wrap:wrap;"></div>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div style="padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 80px);">
+
+    <!-- KARTA: Typ + status -->
+    <div id="ds-type-card" style="background:var(--surface2,rgba(255,255,255,0.04));border:1px solid var(--border,rgba(255,255,255,0.09));border-radius:16px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;"></div>
+
+    <!-- KARTA: Dane liczbowe -->
+    <div id="ds-stats-card" style="background:var(--surface2,rgba(255,255,255,0.04));border:1px solid var(--border,rgba(255,255,255,0.09));border-radius:16px;padding:14px 16px;margin-bottom:12px;display:none;">
+      <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted,rgba(240,237,232,0.45));margin-bottom:12px;">Dane</div>
+      <div id="ds-stats-grid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;"></div>
+    </div>
+
+    <!-- KARTA: Wskazówka trenera -->
+    <div id="ds-coach-card" style="background:var(--surface2,rgba(255,255,255,0.04));border:1px solid rgba(212,80,26,0.25);border-radius:16px;padding:14px 16px;margin-bottom:12px;display:none;">
+      <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--accent,#d4501a);margin-bottom:8px;">Trening zaplanowany</div>
+      <div id="ds-coach-text" style="font-size:13px;color:var(--fg2,rgba(240,237,232,0.8));line-height:1.6;"></div>
+    </div>
+
+    <!-- KARTA: Screeny -->
+    <div id="ds-screens-card" style="margin-bottom:12px;display:none;">
+      <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted,rgba(240,237,232,0.45));margin-bottom:8px;padding:0 2px;">Screeny</div>
+      <div id="ds-screens-scroll" style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;">
+      </div>
+    </div>
+
+    <!-- KARTA: Notatka zawodnika -->
+    <div id="ds-note-card" style="background:var(--surface2,rgba(255,255,255,0.04));border:1px solid var(--border,rgba(255,255,255,0.09));border-radius:16px;padding:14px 16px;margin-bottom:12px;display:none;">
+      <div style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted,rgba(240,237,232,0.45));margin-bottom:8px;">Notatka</div>
+      <div id="ds-note-text" style="font-size:13px;color:var(--fg2,rgba(240,237,232,0.8));line-height:1.6;font-style:italic;"></div>
+    </div>
+
+    <!-- KARTA: Strava -->
+    <div id="ds-strava-card" style="margin-bottom:12px;display:none;">
+      <a id="ds-strava-link" href="#" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent,#d4501a);text-decoration:none;letter-spacing:0.1em;border:1px solid rgba(212,80,26,0.35);padding:8px 16px;border-radius:10px;background:rgba(212,80,26,0.06);">↗ Zobacz na Strava / Garmin</a>
+    </div>
+
+    <!-- Akcje -->
+    <div id="ds-actions" style="display:flex;gap:8px;margin-top:4px;"></div>
+
+  </div>
+</div>
+
+<!-- Fullscreen photo modal -->
+<div id="ds-photo-modal" onclick="_closeDsPhoto()" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.95);align-items:center;justify-content:center;cursor:zoom-out;">
+  <img id="ds-photo-img" src="" style="max-width:100%;max-height:100%;object-fit:contain;" onclick="event.stopPropagation()">
+  <button onclick="_closeDsPhoto()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;">✕</button>
+</div>
+
 </body>
 </html>
