@@ -3005,8 +3005,8 @@ const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/pu
 
 // Zakresy per sezon
 const HERO_SEASONS = {
-  w: 95,   // wiosna: w1–w95
-  l: 121,  // lato:   l1–l121
+  w: 95,   // wiosna: w1–w95 (.webp)
+  l: 126,  // lato:   l1–l126
   j: 171,  // jesień: j1–j171
   z: 126   // zima:   z1–z126
 };
@@ -3029,7 +3029,8 @@ function _heroUrl(dateStr) {
   const daysSinceEpoch = Math.floor((d - epoch) / 86400000);
   const idx = ((daysSinceEpoch % count) + count) % count + 1;
 
-  return HERO_BASE + prefix + '%20(' + idx + ').jpg';
+  const ext = prefix === 'w' ? '.webp' : '.jpg';
+  return HERO_BASE + prefix + '%20(' + idx + ')' + ext;
 }
 
 function _tileGradClass(items, logs) {
@@ -3109,7 +3110,6 @@ function renderTiles() {
 
     const items = trainings[ds] || [];
     const logs  = (window._calLogs && window._calLogs[ds]) || [];
-    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
 
     // Status
     const hasDone    = items.some(t => t.status==='done') || logs.length > 0;
@@ -3138,6 +3138,7 @@ function renderTiles() {
     const onclick = `_tileClick('${ds}')`;
 
     // Cel/start na ten dzień
+    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
 
     // Typ treningu do info bara
     const tileTypeName = raceGoal ? 'Start'

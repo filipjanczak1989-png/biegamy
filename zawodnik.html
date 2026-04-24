@@ -4796,7 +4796,7 @@ async function loadSocialFeed(compact) {
     // Sprawdź czy user jest trenerem
     const { data: coachRow } = await _sb.from('coaches')
       .select('id')
-      .eq('user_id', (await _sb.auth.getSession()).data.session?.user?.id)
+      .eq('id', (await _sb.auth.getSession()).data.session?.user?.id)
       .maybeSingle();
     if (coachRow?.id) {
       const { data: myAthletes } = await _sb.from('athletes')
@@ -6933,8 +6933,8 @@ async function checkBadges(logs) {
   if (maxStreak >= 30) awardBadge('30_dni_challenge');
 
   // SPOŁECZNOŚĆ — sprawdź komentarze
-  const { count: cCount } = await _sb.from('comments')
-    .select('id', {count:'exact',head:true}).eq('author_id', _athleteId);
+  const { count: cCount } = await _sb.from('log_comments')
+    .select('id', {count:'exact',head:true}).eq('athlete_id', _athleteId);
   if (cCount >= 1) awardBadge('pierwszy_koment');
 }
 
