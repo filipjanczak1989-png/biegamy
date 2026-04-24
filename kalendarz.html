@@ -3140,6 +3140,9 @@ function renderTiles() {
     // Zdarzenie kliknięcia — przejdź do tygodnia z tym dniem
     const onclick = `_tileClick('${ds}')`;
 
+    // Cel/start na ten dzień
+    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
+
     // Typ treningu do info bara
     const tileTypeName = raceGoal ? 'Start'
       : (hasDone && logs.length ? (logs[0].training_type||'') : (hasPlanned && items.length ? (items[0].type||'') : ''));
