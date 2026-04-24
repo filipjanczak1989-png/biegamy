@@ -822,9 +822,10 @@ body > *{position:relative;z-index:1;}
 
 <div class="today-hero fade-in">
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.22) 0%,rgba(7,5,12,0.0) 35%,rgba(7,5,12,0.0) 55%,rgba(7,5,12,0.42) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
+  <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
-  <!-- Górny pasek: tylko strzałki + dots (bez labela) -->
+  <!-- Tylko strzałki + dots na grafice -->
   <div style="position:relative;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding:10px 14px 0;">
     <div style="display:flex;align-items:center;gap:6px;">
       <button onclick="_heroPrev()" style="background:rgba(0,0,0,0.45);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">‹</button>
@@ -832,17 +833,18 @@ body > *{position:relative;z-index:1;}
       <button onclick="_heroNext()" style="background:rgba(0,0,0,0.45);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">›</button>
     </div>
   </div>
-  <!-- Dolny pasek: label + badge + dystans + data — wszystko razem na dole -->
-  <div style="position:relative;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px 12px;margin-top:auto;">
-    <div style="display:flex;flex-direction:column;gap:6px;">
-      <div class="today-label" style="margin-bottom:0;"><div class="pulse"></div>Dzisiejszy trening</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-        <div class="today-badge" id="today-badge" style="display:none;"></div>
-        <div class="today-dist" id="today-dist" style="display:none;font-size:13px;color:rgba(240,237,232,0.8);font-weight:600;"></div>
-      </div>
-    </div>
-    <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:right;align-self:flex-end;"></div>
+  <!-- spacer żeby karta miała wysokość -->
+  <div style="flex:1;"></div>
+</div>
+
+<!-- Info pod kartą: label + badge + dystans + data -->
+<div class="fade-in" style="padding:10px 16px 4px;display:flex;align-items:center;justify-content:space-between;">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <div class="today-label" style="margin-bottom:0;"><div class="pulse"></div>Dzisiejszy trening</div>
+    <div class="today-badge" id="today-badge" style="display:none;"></div>
+    <div class="today-dist" id="today-dist" style="display:none;font-size:13px;color:rgba(240,237,232,0.8);font-weight:600;"></div>
   </div>
+  <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:right;"></div>
 </div>
 
 <!-- Akcje pod kartą -->
@@ -3302,7 +3304,7 @@ function _heroShow(i) {
   bg.style.opacity = '0';
   setTimeout(() => {
     bg.style.backgroundImage = 'url(' + _heroCards[i] + ')';
-    bg.style.opacity = '0.32';
+    bg.style.opacity = '0.72';
   }, 220);
   // Zaktualizuj paginację
   document.querySelectorAll('.hero-dot').forEach((d, idx) => {
@@ -3330,7 +3332,7 @@ function _heroInit() {
     ).join('');
   }
   // Fade-in
-  requestAnimationFrame(() => setTimeout(() => { bg.style.opacity = '0.32'; }, 60));
+  requestAnimationFrame(() => setTimeout(() => { bg.style.opacity = '0.72'; }, 60));
   // Auto-rotate
   _heroStartRotation();
 }
