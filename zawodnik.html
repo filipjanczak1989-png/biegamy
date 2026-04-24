@@ -3587,7 +3587,7 @@ async function loadTodayTraining() {
     data.duration_min ? `<div class="today-meta-item"><div class="today-meta-lbl">Czas</div><div class="today-meta-val">~${data.duration_min} min</div></div>` : '',
   ].filter(Boolean).join('');
   
-  if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; divider.style.display='block'; }
+  if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; if(divider) divider.style.display='block'; }
   if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
 }
 
