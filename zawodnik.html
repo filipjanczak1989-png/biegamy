@@ -1866,17 +1866,25 @@ function showSection(name) {
 
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
-    document.querySelectorAll('.fade-in').forEach(el => el.style.display = '');
-    document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = '');
+    document.querySelectorAll('.fade-in').forEach(el => {
+      el.style.display = '';
+      // Reset animacji CSS żeby element był widoczny po powrocie
+      el.style.animation = 'none';
+      el.style.opacity = '1';
+      el.style.transform = 'none';
+    });
+    document.querySelectorAll('.sec-hdr').forEach(el => {
+      el.style.display = '';
+      el.style.animation = 'none';
+      el.style.opacity = '1';
+    });
     document.getElementById('daily-motivation')?.style.setProperty('display','');
     document.getElementById('week-strip')?.style.setProperty('display','');
     activateNav('nav-home');
-    // Przeładuj sekcje które mogły nie załadować się przy pierwszym wejściu
+    // Zawsze przeładuj przy powrocie na home
     if (_athleteId) {
-      const ws = document.getElementById('week-strip');
-      if (!ws || !ws.innerHTML || ws.innerHTML.trim() === '') loadWeekPlan();
-      const sp = document.getElementById('home-social-preview');
-      if (!sp || !sp.innerHTML || sp.innerHTML.trim() === '') loadHomeSocialPreview();
+      loadWeekPlan();
+      loadHomeSocialPreview();
     }
     requestAnimationFrame(() => {
       document.querySelectorAll('.today-hero,.week-sum,.coach-box').forEach((el,i) => {
@@ -3452,40 +3460,44 @@ async function loadLogs() {
   if (!_athleteId) return;
   if (window._loadLogsRunning) return;
   window._loadLogsRunning = true;
-  // Skeleton loader
-  const logList = document.getElementById('log-list');
-  if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
-  const { data } = await _sb
-    .from('training_logs')
-    .select('*')
-    .eq('athlete_id', _athleteId)
-    .order('logged_at', { ascending: false })
-    .limit(5);
-  if (data && data.length > 0) {
-    renderLogsDb(data);
-  } else {
-    document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
+  try {
+    // Skeleton loader
+    const logList = document.getElementById('log-list');
+    if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
+    const { data } = await _sb
+      .from('training_logs')
+      .select('*')
+      .eq('athlete_id', _athleteId)
+      .order('logged_at', { ascending: false })
+      .limit(5);
+    if (data && data.length > 0) {
+      try { renderLogsDb(data); } catch(e) { console.error('renderLogsDb error:', e); }
+    } else {
+      document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
+    }
+    await loadCoachMessage();
+    await loadTodayTraining();
+    await loadWeekPlan();
+    loadHomeSocialPreview();
+    await updateWeekProgress();
+    await checkNewMessages();
+    checkNotifications();
+    if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
+    // Realtime — nowe wiadomości od trenera od razu
+    if (!window._realtimeChannel && _athleteId) {
+      window._realtimeChannel = _sb.channel('messages-' + _athleteId)
+        .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
+          filter:'athlete_id=eq.'+_athleteId}, () => {
+            loadMessages();
+            checkNewMessages();
+          })
+        .subscribe();
+    }
+  } catch(e) {
+    console.error('loadLogs error:', e);
+  } finally {
+    window._loadLogsRunning = false;
   }
-  await loadCoachMessage();
-  await loadTodayTraining();
-  await loadWeekPlan();
-  await checkNewMessages();
-  checkNotifications();
-  if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
-  // Load social preview on homepage
-  loadHomeSocialPreview();
-  // Realtime — nowe wiadomości od trenera od razu
-  if (!window._realtimeChannel && _athleteId) {
-    window._realtimeChannel = _sb.channel('messages-' + _athleteId)
-      .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
-        filter:'athlete_id=eq.'+_athleteId}, () => {
-          loadMessages();
-          checkNewMessages();
-        })
-      .subscribe();
-  }
-  window._loadLogsRunning = false;
-  await updateWeekProgress();
 }
 
 async function updateWeekProgress() {
