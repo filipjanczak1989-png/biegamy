@@ -566,13 +566,17 @@ body > *{position:relative;z-index:1;}
 }
 /* Info bar pod zdjęciem */
 .tile-info {
-  padding: 3px 5px 4px;
-  background: #161A20;
+  padding: 4px 5px 5px;
+  background: #0e0d14;
   flex-shrink: 0;
+  min-height: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .tile-km {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(11px, 2.8vw, 16px);
+  font-size: clamp(12px, 3vw, 17px);
   line-height: 1;
   color: #fff;
   white-space: nowrap;
@@ -586,14 +590,22 @@ body > *{position:relative;z-index:1;}
 }
 .tile-type {
   font-family: 'DM Mono', monospace;
-  font-size: 6px;
-  color: rgba(255,255,255,0.38);
+  font-size: clamp(5px, 1.4vw, 7px);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 1px;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.tile-type-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
 }
 /* Progress bar miesiąca */
 .tiles-month-bar {
@@ -654,21 +666,17 @@ body > *{position:relative;z-index:1;}
 
 
 <!-- TILES VIEW -->
-<div id="tiles-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom,0px) + 80px);min-height:unset;">
-  <!-- Progres miesiąca -->
-  <div id="tiles-month-progress" style="margin-bottom:8px;"></div>
-  <!-- Nagłówki dni tygodnia -->
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px;" id="tiles-dow-header">
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">PN</div>
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">WT</div>
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">ŚR</div>
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">CZ</div>
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">PT</div>
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">SB</div>
-    <div style="text-align:center;font-size:8px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:4px 0;">ND</div>
+<div id="tiles-view" style="display:none;min-height:unset;">
+  <!-- Tabs: Mój plan / Trener / Grupa -->
+  <div style="display:flex;gap:0;padding:10px 12px 6px;position:sticky;top:48px;z-index:10;background:var(--bg);">
+    <button id="cal-tab-mine" onclick="_calTabSwitch('mine')" style="flex:1;padding:8px 4px;border-radius:10px 0 0 10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">Mój plan</button>
+    <button id="cal-tab-coach" onclick="_calTabSwitch('coach')" style="flex:1;padding:8px 4px;border-radius:0;border:1px solid var(--border);border-left:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Trener</button>
+    <button id="cal-tab-group" onclick="_calTabSwitch('group')" style="flex:1;padding:8px 4px;border-radius:0 10px 10px 0;border:1px solid var(--border);border-left:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Grupa</button>
   </div>
+  <!-- Progres miesiąca -->
+  <div id="tiles-month-progress" style="margin:0 12px 6px;"></div>
   <!-- Grid kafelków -->
-  <div id="tiles-grid"></div>
+  <div id="tiles-grid" style="padding:0 12px calc(env(safe-area-inset-bottom,0px) + 80px);"></div>
 </div>
 
 <!-- GOAL MODAL -->
@@ -3066,6 +3074,22 @@ function _tileGradClass(items, logs) {
   return 'tile-grad-default';
 }
 
+// ── TABS: Mój plan / Trener / Grupa ─────────────────────────────
+let _calTab = 'mine';
+function _calTabSwitch(tab) {
+  _calTab = tab;
+  ['mine','coach','group'].forEach(t => {
+    const btn = document.getElementById('cal-tab-' + t);
+    if (!btn) return;
+    const active = t === tab;
+    btn.style.background = active ? 'var(--accent)' : 'transparent';
+    btn.style.color = active ? '#fff' : 'var(--muted)';
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    btn.style.fontWeight = active ? '700' : '400';
+  });
+  renderTiles();
+}
+
 function renderTiles() {
   const grid = document.getElementById('tiles-grid');
   const progressEl = document.getElementById('tiles-month-progress');
@@ -3111,7 +3135,7 @@ function renderTiles() {
 
   // Buduj kafelki
   const dayNames = ['PN','WT','ŚR','CZ','PT','SO','ND'];
-  let html = '<div class="tile-weekdays">' + dayNames.map(d => `<div class="tile-weekday-label">${d}</div>`).join('') + '</div>';
+  let html = '<div class="tile-weekdays">' + dayNames.map(d => '<div class="tile-weekday-label">'+d+'</div>').join('') + '</div>';
   html += '<div class="tile-grid">';
 
   // Puste kafelki przed 1-szym dniem
@@ -3162,9 +3186,8 @@ function renderTiles() {
       : (hasDone && logs.length ? (logs[0].training_type||'') : (hasPlanned && items.length ? (items[0].type||'') : ''));
     const typeShort = {'Bieg spokojny':'Spokojny','Interwały':'Interw.','Wybieganie':'Wyb.','Regeneracja':'Regen.','Wzmacniający':'Wzmacn.'}[tileTypeName] || (tileTypeName.startsWith('__badge__') ? '' : tileTypeName);
 
-    const dowShort = ['ND','PN','WT','ŚR','CZ','PT','SO'][dt.getDay()];
-    const typeLabel = {'Spokojny':'EASY','Bieg spokojny':'EASY','Interwały':'INTER','Tempo':'TEMPO','Wybieganie':'LONG','Regeneracja':'REST','Wzmacniający':'GYM'}[tileTypeName] || (typeShort ? typeShort.toUpperCase() : '');
-    const typeColor = {'EASY':'#5090e0','INTER':'#e8b840','TEMPO':'#f06030','LONG':'#3db870','REST':'#9a6fe8','GYM':'#f0a830'}[typeLabel] || 'rgba(255,255,255,0.5)';
+    const typeLabel = {'Spokojny':'EASY','Bieg spokojny':'EASY','Interwały':'INTERW','Tempo':'TEMPO','Wybieganie':'LONG','Regeneracja':'REST','Wzmacniający':'GYM','Odpoczynek':'REST'}[tileTypeName] || (typeShort ? typeShort.toUpperCase() : '');
+    const typeColor = {'EASY':'#3db870','INTERW':'#e8b840','TEMPO':'#f06030','LONG':'#f06030','REST':'#666','GYM':'#9a6fe8'}[typeLabel] || 'rgba(255,255,255,0.4)';
     const hasPhoto = screens.length > 0;
 
     html += `<div class="tile-day${isToday?' tile-today':''}${!hasDone&&!hasPlanned?' tile-empty':''}"
@@ -3174,20 +3197,17 @@ function renderTiles() {
           data-hero="${heroUrl}"
           style="background-size:cover;background-position:center 30%;"></div>
         <div class="tile-overlay"></div>
-        <div style="position:absolute;top:4px;left:5px;z-index:2;">
-          <div style="font-size:clamp(8px,2vw,10px);font-weight:700;line-height:1;color:rgba(255,255,255,0.95);font-family:'DM Mono',monospace;">${dt.getDate()}</div>
-        </div>
-        ${statusCls ? `<div class="tile-status ${statusCls}"></div>` : ''}
-        ${hasPhoto ? `<div style="position:absolute;bottom:4px;right:4px;z-index:2;font-size:9px;">📷</div>` : ''}
+        <div style="position:absolute;top:3px;left:4px;z-index:2;font-size:clamp(8px,2vw,11px);font-weight:700;color:rgba(255,255,255,0.95);font-family:'DM Mono',monospace;text-shadow:0 1px 3px rgba(0,0,0,0.9);">${dt.getDate()}</div>
+        ${hasPhoto ? `<div style="position:absolute;top:3px;right:4px;z-index:2;font-size:8px;opacity:0.85;">📷</div>` : (statusCls ? `<div class="tile-status ${statusCls}"></div>` : '')}
       </div>
       <div class="tile-info">
         ${km > 0
           ? `<div class="tile-km">${km % 1 === 0 ? km.toFixed(0) : km.toFixed(1)}<span class="tile-km-unit"> km</span></div>
-             ${typeLabel ? `<div class="tile-type" style="color:${typeColor};">${typeLabel}</div>` : ''}`
+             <div class="tile-type"><span class="tile-type-dot" style="background:${typeColor};"></span><span style="color:${typeColor};">${typeLabel||''}</span></div>`
           : (hasPlanned
-              ? `<div class="tile-km" style="color:rgba(255,107,44,0.7);font-size:clamp(8px,2.2vw,11px);">PLAN</div>
-                 ${typeLabel ? `<div class="tile-type" style="color:${typeColor};">${typeLabel}</div>` : ''}`
-              : `<div style="height:28px;"></div>`)
+              ? `<div class="tile-km" style="font-size:clamp(8px,2vw,10px);color:rgba(255,107,44,0.8);">—</div>
+                 <div class="tile-type"><span class="tile-type-dot" style="background:${typeColor};"></span><span style="color:${typeColor};">${typeLabel||''}</span></div>`
+              : `<div class="tile-km" style="color:rgba(255,255,255,0.12);">—</div><div class="tile-type"><span style="color:rgba(255,255,255,0.15);">REST</span></div>`)
         }
       </div>
     </div>`;
