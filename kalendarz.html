@@ -1249,9 +1249,10 @@ function render() {
   const today = new Date(); today.setHours(0,0,0,0);
 
   // Week label
-  const s = days[0], e = days[6];
+  const sDate = new Date(days[0] + 'T00:00:00');
+  const eDate = new Date(days[6] + 'T00:00:00');
   document.getElementById('week-label').textContent =
-    `${s.getDate()} ${monthNames[s.getMonth()]} — ${e.getDate()} ${monthNames[e.getMonth()]} ${e.getFullYear()}`;
+    `${sDate.getDate()} ${monthNames[sDate.getMonth()]} — ${eDate.getDate()} ${monthNames[eDate.getMonth()]} ${eDate.getFullYear()}`;
 
   // Total km
   let totalKm = 0;
@@ -1263,21 +1264,22 @@ function render() {
 
   // Header
   document.getElementById('week-header').innerHTML = days.map(d => {
-    const ds = dateStr(d);
-    const isToday = d.getTime() === today.getTime();
+    const ds = typeof d === 'string' ? d : dateStr(d);
+    const dObj = new Date(ds + 'T00:00:00');
+    const isToday = ds === dateStr(new Date());
     const ts = trainings[ds] || [];
     const km = ts.reduce((s,t)=>s+(t.dist||0),0);
     return `<div class="day-header ${isToday?'today':''}">
-      <div class="day-name">${dayNames[d.getDay()===0?6:d.getDay()-1]}</div>
-      <div class="day-num">${d.getDate()} ${monthNames[d.getMonth()]}</div>
+      <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
+      <div class="day-num">${dObj.getDate()} ${monthNames[dObj.getMonth()]}</div>
       ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
     </div>`;
   }).join('');
 
   // Body
   document.getElementById('week-body').innerHTML = days.map(d => {
-    const ds = dateStr(d);
-    const isToday = d.getTime() === today.getTime();
+    const ds = typeof d === 'string' ? d : dateStr(d);
+    const isToday = ds === dateStr(new Date());
     const ts = trainings[ds] || [];
 
     // Sprawdź czy to dzień startu — dla trenera tylko gdy wybrany zawodnik
