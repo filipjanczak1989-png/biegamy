@@ -4250,6 +4250,27 @@ function renderLogsDb(data) {
   logListEl.dataset.loaded = '1';
   logListEl.innerHTML = data.map((l, idx) => {
     const rawType = l.training_type || 'Spokojny';
+    // Odznaka — badge event w logu
+    if (rawType && rawType.startsWith('__badge__')) {
+      const badgeId = rawType.replace('__badge__', '');
+      const badge = typeof BADGES !== 'undefined' && BADGES.find(b => b.id === badgeId);
+      const col = badge ? (RARITY_COLOR[badge.rarity] || '#e8a040') : '#e8a040';
+      const badgeName = badge ? badge.name : badgeId;
+      const badgeDesc = badge ? badge.desc : '';
+      const badgeImg = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/' + (badge ? badge.id : badgeId) + '.webp';
+      const dateStr = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+      return `<div style="position:relative;overflow:hidden;border:1px solid ${col}44;border-radius:14px;margin-bottom:10px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at top right,${col}18 0%,transparent 65%);pointer-events:none;"></div>
+        <div style="position:relative;z-index:1;padding:14px 16px;display:flex;align-items:center;gap:14px;">
+          <img src="${badgeImg}" alt="${badgeName}" style="width:56px;height:56px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;margin-bottom:3px;">Odznaka zdobyta · ${dateStr}</div>
+            <div style="font-size:15px;font-weight:700;color:#fff;">${badgeName}</div>
+            ${badgeDesc ? `<div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">${badgeDesc}</div>` : ''}
+          </div>
+        </div>
+      </div>`;
+    }
     const type = displayName[rawType] || rawType;
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : null;
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});

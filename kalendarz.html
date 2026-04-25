@@ -3143,7 +3143,8 @@ function renderTiles() {
     // Typ treningu do info bara
     const tileTypeName = raceGoal ? 'Start'
       : (hasDone && logs.length ? (logs[0].training_type||'') : (hasPlanned && items.length ? (items[0].type||'') : ''));
-    const typeShort = {'Bieg spokojny':'Spokojny','Interwały':'Interw.','Wybieganie':'Wyb.','Regeneracja':'Regen.','Wzmacniający':'Wzmacn.'}[tileTypeName] || tileTypeName;
+    const _tsMap = {'Bieg spokojny':'Spokojny','Interwały':'Interw.','Wybieganie':'Wyb.','Regeneracja':'Regen.','Wzmacniający':'Wzmacn.'};
+    const typeShort = tileTypeName.startsWith('__badge__') ? '' : (_tsMap[tileTypeName] || tileTypeName);
 
     html += `<div class="tile-day${isToday?' tile-today':''}${!hasDone&&!hasPlanned?' tile-empty':''}"
       onclick="${onclick}" data-date="${ds}">
@@ -3152,17 +3153,19 @@ function renderTiles() {
           data-hero="${heroUrl}" data-screen="${screenUrl}"
           style="background-size:cover;background-position:center 30%;"></div>
         <div class="tile-overlay"></div>
-        <div class="tile-date">${d}</div>
+        <div class="tile-date" style="display:flex;flex-direction:column;align-items:flex-start;gap:0;"><span style="font-size:clamp(7px,1.8vw,9px);opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">${d.toLocaleDateString('pl-PL',{weekday:'short'})}</span><span style="font-size:clamp(11px,2.8vw,16px);font-weight:700;line-height:1;">${d.getDate()}</span></div>
         ${statusCls ? `<div class="tile-status ${statusCls}"></div>` : ''}
         ${badgeMore}
       </div>
       <div class="tile-info">
         ${km > 0
           ? `<div class="tile-km">${km.toFixed(1)}<span class="tile-km-unit"> km</span></div>
-             ${typeShort ? `<div class="tile-type">${typeShort}</div>` : ''}`
+             ${typeShort ? `<div class="tile-type">${typeShort}</div>` : ''}
+             ${badgeIcons}`
           : (hasPlanned
               ? `<div class="tile-km" style="color:rgba(255,107,44,0.8);">Plan</div>
-                 ${typeShort ? `<div class="tile-type">${typeShort}</div>` : ''}`
+                 ${typeShort ? `<div class="tile-type">${typeShort}</div>` : ''}
+             ${badgeIcons}`
               : `<div class="tile-km" style="color:rgba(255,255,255,0.18);">&nbsp;</div>`
             )
         }
@@ -3199,6 +3202,18 @@ function _loadTileBgs() {
       if (hero) {
         const img = new Image();
         img.onload = () => { div.style.backgroundImage = `url("${hero}")`; };
+    // Odznaki zdobyte tego dnia
+    const badgeLogs = logs.filter(l => l.training_type && l.training_type.startsWith('__badge__'));
+    const badgeIcons = badgeLogs.length > 0
+      ? '<div style="display:flex;gap:2px;flex-wrap:wrap;margin-top:2px;">'
+        + badgeLogs.slice(0,3).map(bl => {
+            const bId = bl.training_type.replace('__badge__','');
+            return `<img src="${'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/'}${bId}.webp" style="width:16px;height:16px;object-fit:contain;" title="${bId}" onerror="this.style.display='none'">`;
+          }).join('')
+        + (badgeLogs.length > 3 ? `<span style="font-size:8px;color:var(--accent);font-family:'DM Mono',monospace;">+${badgeLogs.length-3}</span>` : '')
+        + '</div>'
+      : '';
+
         img.onerror = () => {
           if (screen) {
             const img2 = new Image();
