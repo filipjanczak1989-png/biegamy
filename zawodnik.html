@@ -4791,7 +4791,7 @@ function switchSocialTab(tab) {
           target.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak zdobytych odznak</div>';
           return;
         }
-        let html = '<div style="padding:14px 16px 6px;font-size:11px;font-weight:700;letter-spacing:0.05em;">OSTATNIO ZDOBYTE</div>';
+        let html = '<div style="padding:14px 16px 6px;display:flex;align-items:center;justify-content:space-between;">'          + '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;">OSTATNIO ZDOBYTE</div>'          + '<button onclick="showSection(\'profile\');switchProfileTab(\'badges\')" style="background:rgba(232,86,30,0.12);border:1px solid var(--accent);color:var(--accent);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.12em;padding:5px 12px;border-radius:8px;cursor:pointer;">🏅 MOJE ODZNAKI</button>'          + '</div>';
         for (const a of ach) {
           const badge = typeof BADGES !== 'undefined' && BADGES.find(b => b.id === a.badge_id);
           if (!badge) continue;
@@ -4811,9 +4811,6 @@ function switchSocialTab(tab) {
             + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;white-space:nowrap;">' + dateStr + '</div>'
             + '</div>';
         }
-        html += '<div style="padding:14px 16px;">'
-          + '<button onclick="showSection(\'profile\');switchProfileTab(\'badges\')" style="width:100%;padding:12px;background:rgba(232,86,30,0.1);border:1px solid var(--accent);color:var(--accent);font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.15em;border-radius:10px;cursor:pointer;">🏅 MOJE ODZNAKI</button>'
-          + '</div>';
         target.innerHTML = html;
       })();
     }
@@ -6434,8 +6431,8 @@ function _stopSocialBannerRotation() {
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
+    <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
   </div>
-  <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
   </div>
