@@ -478,10 +478,25 @@ body > *{position:relative;z-index:1;}
 }
 
 /* ── TILES VIEW ─────────────────────────────────────── */
+.tile-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  padding: 8px 12px 4px;
+  gap: 4px;
+}
+.tile-weekday-label {
+  text-align: center;
+  font-size: 9px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 3px;
+  gap: 4px;
+  padding: 0 12px 80px;
 }
 .tile-day {
   position: relative;
@@ -514,7 +529,7 @@ body > *{position:relative;z-index:1;}
 .tile-day:active .tile-bg { transform: scale(1.05); }
 .tile-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0) 45%, rgba(0,0,0,0.45) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.72) 100%);
 }
 /* Gradient fallback per type */
 .tile-grad-spokojny   { background: linear-gradient(135deg,#0d1a2e,#1a3a5c); }
@@ -3095,7 +3110,9 @@ function renderTiles() {
   }
 
   // Buduj kafelki
-  let html = '<div class="tile-grid">';
+  const dayNames = ['PN','WT','ŚR','CZ','PT','SO','ND'];
+  let html = '<div class="tile-weekdays">' + dayNames.map(d => `<div class="tile-weekday-label">${d}</div>`).join('') + '</div>';
+  html += '<div class="tile-grid">';
 
   // Puste kafelki przed 1-szym dniem
   for (let i = 0; i < startDow; i++) {
@@ -3145,28 +3162,32 @@ function renderTiles() {
       : (hasDone && logs.length ? (logs[0].training_type||'') : (hasPlanned && items.length ? (items[0].type||'') : ''));
     const typeShort = {'Bieg spokojny':'Spokojny','Interwały':'Interw.','Wybieganie':'Wyb.','Regeneracja':'Regen.','Wzmacniający':'Wzmacn.'}[tileTypeName] || (tileTypeName.startsWith('__badge__') ? '' : tileTypeName);
 
+    const dowShort = ['ND','PN','WT','ŚR','CZ','PT','SO'][dt.getDay()];
+    const typeLabel = {'Spokojny':'EASY','Bieg spokojny':'EASY','Interwały':'INTER','Tempo':'TEMPO','Wybieganie':'LONG','Regeneracja':'REST','Wzmacniający':'GYM'}[tileTypeName] || (typeShort ? typeShort.toUpperCase() : '');
+    const typeColor = {'EASY':'#5090e0','INTER':'#e8b840','TEMPO':'#f06030','LONG':'#3db870','REST':'#9a6fe8','GYM':'#f0a830'}[typeLabel] || 'rgba(255,255,255,0.5)';
+    const hasPhoto = screens.length > 0;
+
     html += `<div class="tile-day${isToday?' tile-today':''}${!hasDone&&!hasPlanned?' tile-empty':''}"
       onclick="${onclick}" data-date="${ds}">
       <div class="tile-photo">
         <div class="tile-bg ${gradCls}" id="tbg-${ds}"
-          data-hero="${heroUrl}" data-screen="${screenUrl}"
+          data-hero="${heroUrl}"
           style="background-size:cover;background-position:center 30%;"></div>
         <div class="tile-overlay"></div>
-        <div class="tile-date" style="display:flex;flex-direction:column;align-items:flex-start;gap:0;"><span style="font-size:clamp(7px,1.8vw,9px);opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">${d.toLocaleDateString('pl-PL',{weekday:'short'})}</span><span style="font-size:clamp(11px,2.8vw,16px);font-weight:700;line-height:1;">${d.getDate()}</span></div>
+        <div style="position:absolute;top:4px;left:5px;z-index:2;">
+          <div style="font-size:clamp(8px,2vw,10px);font-weight:700;line-height:1;color:rgba(255,255,255,0.95);font-family:'DM Mono',monospace;">${dt.getDate()}</div>
+        </div>
         ${statusCls ? `<div class="tile-status ${statusCls}"></div>` : ''}
-        ${badgeMore}
+        ${hasPhoto ? `<div style="position:absolute;bottom:4px;right:4px;z-index:2;font-size:9px;">📷</div>` : ''}
       </div>
       <div class="tile-info">
         ${km > 0
-          ? `<div class="tile-km">${km.toFixed(1)}<span class="tile-km-unit"> km</span></div>
-             ${typeShort ? `<div class="tile-type">${typeShort}</div>` : ''}
-             `
+          ? `<div class="tile-km">${km % 1 === 0 ? km.toFixed(0) : km.toFixed(1)}<span class="tile-km-unit"> km</span></div>
+             ${typeLabel ? `<div class="tile-type" style="color:${typeColor};">${typeLabel}</div>` : ''}`
           : (hasPlanned
-              ? `<div class="tile-km" style="color:rgba(255,107,44,0.8);">Plan</div>
-                 ${typeShort ? `<div class="tile-type">${typeShort}</div>` : ''}
-             `
-              : `<div class="tile-km" style="color:rgba(255,255,255,0.18);">&nbsp;</div>`
-            )
+              ? `<div class="tile-km" style="color:rgba(255,107,44,0.7);font-size:clamp(8px,2.2vw,11px);">PLAN</div>
+                 ${typeLabel ? `<div class="tile-type" style="color:${typeColor};">${typeLabel}</div>` : ''}`
+              : `<div style="height:28px;"></div>`)
         }
       </div>
     </div>`;
@@ -3390,18 +3411,19 @@ function _openDayScreen(ds) {
   const closeBtn = `<button onclick="_closeDayScreen()" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:rgba(240,237,232,0.7);border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Zamknij</button>`;
 
   if (_urlRole === 'athlete') {
+    const logId = logs[0] && logs[0].id;
     if (hasLog) {
       // Ma log — "Edytuj"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="_closeDayScreen()" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
+        `<button onclick="_closeDayScreen();setTimeout(()=>{ const el=document.querySelector('[data-log-id=\"${logId}\"]'); if(el) el.click(); else openLogModal('${ds}'); },200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
     } else if (hasPlan) {
       // Ma plan, brak logu — "Zaloguj wynik"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="_closeDayScreen()" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
+        `<button onclick="_closeDayScreen();setTimeout(()=>openLogModal({stopPropagation:()=>{}}, '${ds}', 0),200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
     } else {
       // Brak planu i logu — "Dodaj trening"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="_closeDayScreen()" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Dodaj trening</button>`;
+        `<button onclick="_closeDayScreen();setTimeout(()=>openLogModal({stopPropagation:()=>{}}, '${ds}', 0),200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Dodaj trening</button>`;
     }
   } else {
     ctaInner.innerHTML = closeBtn;
