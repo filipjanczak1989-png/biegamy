@@ -1220,7 +1220,11 @@ function getWeekStart(date) {
   const diff = (day === 0) ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   d.setHours(0,0,0,0);
-  return d;
+  // Zwróć string YYYY-MM-DD żeby currentWeekStart był zawsze stringiem
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
 }
 
 function dateStr(date) {
@@ -1231,9 +1235,12 @@ function dateStr(date) {
 }
 
 function addDays(date, n) {
-  const d = new Date(date);
+  const d = new Date(typeof date === 'string' ? date + 'T00:00:00' : date);
   d.setDate(d.getDate() + n);
-  return d;
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
@@ -2727,7 +2734,7 @@ function renderMobile() {
   const container = document.getElementById('mobile-days-container');
   if (!container) return;
   const days = [];
-  for (let i = 0; i < 7; i++) days.push(dateStr(addDays(currentWeekStart, i)));
+  for (let i = 0; i < 7; i++) days.push(addDays(currentWeekStart, i));
   const today = dateStr(new Date());
 
   const dayAbbrPL = ['ND','PN','WT','\u015aR','CZ','PT','SB'];
