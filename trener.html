@@ -1115,25 +1115,16 @@ async function selA_db(athleteId) {
   window._selectedAthleteId = athleteId;
   await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
 
-  // Skasuj badge 'nowy log' i 'brak logu' — odśwież kartę
+  // Skasuj badge 'nowy log' i 'brak logu'
   const athIdx = _dbAthletes.findIndex(x => x.id === athleteId);
   if (athIdx !== -1) {
     _dbAthletes[athIdx] = { ..._dbAthletes[athIdx], newLogs: 0, hasMissed: false };
-    // Odśwież tylko tę kartę bez pełnego przeładowania listy
-    const cards = document.querySelectorAll('.ath-card');
-    cards.forEach(card => {
-      if (card.getAttribute('data-athlete-id') === String(athleteId) ||
-          card.getAttribute('onclick')?.includes(athleteId)) {
-        // Znajdź i zamień ath-right content
-        const athRight = card.querySelector('.ath-right') ||
-                         card.querySelector('[style*="flex-direction:column"]');
-        if (athRight) {
-          const deleteBtn = athRight.querySelector('button');
-          athRight.innerHTML = '<div class="ath-dot off"></div>';
-          if (deleteBtn) athRight.appendChild(deleteBtn);
-        }
-      }
+    document.querySelectorAll('[data-athlete-id="'+athleteId+'"] [data-badge]').forEach(b => {
+      b.style.display = 'none';
     });
+    const totalNew = (_dbAthletes||[]).reduce((s,a) => s + (a.newLogs||0), 0);
+    const statEl = document.getElementById('stat-logs');
+    if (statEl) statEl.textContent = totalNew || '0';
   }
 
   await loadAthleteTrainings(athleteId);
