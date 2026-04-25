@@ -481,8 +481,8 @@ body > *{position:relative;z-index:1;}
 .tile-weekdays {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  padding: 8px 12px 4px;
-  gap: 4px;
+  padding: 8px 16px 4px;
+  gap: 8px;
 }
 .tile-weekday-label {
   text-align: center;
@@ -495,15 +495,16 @@ body > *{position:relative;z-index:1;}
 .tile-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-  padding: 0 12px 80px;
+  gap: 8px;
+  padding: 0 16px 80px;
 }
 .tile-day {
   position: relative;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
   background: #161A20;
+  border: 1px solid rgba(255,255,255,0.04);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   display: flex;
   flex-direction: column;
@@ -529,7 +530,7 @@ body > *{position:relative;z-index:1;}
 .tile-day:active .tile-bg { transform: scale(1.05); }
 .tile-overlay {
   position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.72) 100%);
+  background: linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.3) 40%, rgba(0,0,0,0.78) 100%);
 }
 /* Gradient fallback per type */
 .tile-grad-spokojny   { background: linear-gradient(135deg,#0d1a2e,#1a3a5c); }
@@ -566,10 +567,11 @@ body > *{position:relative;z-index:1;}
 }
 /* Info bar pod zdjęciem */
 .tile-info {
-  padding: 4px 5px 5px;
-  background: #0e0d14;
+  padding: 5px 6px 6px;
+  background: #0c0b12;
   flex-shrink: 0;
-  min-height: 32px;
+  min-height: 34px;
+  border-top: 1px solid rgba(255,255,255,0.04);
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -619,6 +621,123 @@ body > *{position:relative;z-index:1;}
   transition: width 0.8s ease;
 }
 
+
+/* ═══════════════ ETAP 3.5 — MIKROINTERAKCJE ═══════════════ */
+
+/* Smooth scroll globalne */
+html { scroll-behavior: smooth; }
+* { -webkit-tap-highlight-color: transparent; }
+
+/* Kafelki — tap/hover */
+.tile-day {
+  transition: transform 0.18s ease-out, box-shadow 0.18s ease-out, opacity 0.18s ease-out;
+  will-change: transform;
+}
+.tile-day:hover { transform: scale(1.03); box-shadow: 0 4px 16px rgba(0,0,0,0.4); }
+.tile-day:active { transform: scale(0.97); }
+.tile-day.tile-empty:hover { transform: none; box-shadow: none; }
+
+/* Tile overlay ciemnieje przy hover */
+.tile-day:hover .tile-overlay {
+  background: linear-gradient(180deg, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.35) 40%, rgba(0,0,0,0.85) 100%);
+  transition: background 0.18s ease-out;
+}
+.tile-day:hover .tile-km { color: #fff; text-shadow: 0 0 12px rgba(255,255,255,0.3); }
+
+/* Tile — animacja kliknięcia (zoom-out przed przejściem) */
+.tile-day.tile-clicking {
+  transform: scale(1.05);
+  transition: transform 0.12s ease-out;
+}
+
+/* Ekran dnia — fade+slide in */
+#day-screen {
+  transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+  transform: translateY(12px);
+}
+#day-screen.ds-open {
+  opacity: 1 !important;
+  transform: translateY(0);
+}
+#day-screen.ds-closing {
+  opacity: 0 !important;
+  transform: translateY(8px);
+  transition: opacity 0.18s ease-in, transform 0.18s ease-in;
+}
+
+/* Hero parallax wrapper */
+#ds-hero-wrap {
+  overflow: hidden;
+  position: relative;
+}
+#ds-hero-bg {
+  transition: opacity 0.4s ease-out, transform 0.1s linear;
+  will-change: transform;
+}
+
+/* Sekcje ekranu dnia — fade-in przy wejściu */
+.ds-card {
+  animation: dsFadeUp 0.28s ease-out both;
+}
+.ds-card:nth-child(1) { animation-delay: 0.05s; }
+.ds-card:nth-child(2) { animation-delay: 0.10s; }
+.ds-card:nth-child(3) { animation-delay: 0.15s; }
+.ds-card:nth-child(4) { animation-delay: 0.20s; }
+.ds-card:nth-child(5) { animation-delay: 0.25s; }
+@keyframes dsFadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* CTA przyciski — scale feedback */
+#ds-cta-inner button {
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out, background 0.15s ease;
+  will-change: transform;
+}
+#ds-cta-inner button:active { transform: scale(0.97); }
+#ds-cta-inner button[style*="FF6B2C"]:hover {
+  box-shadow: 0 0 18px rgba(255,107,44,0.35);
+}
+
+/* Tabs — płynne przejście activestate */
+#cal-tab-tiles, #cal-tab-mobile, #cal-tab-classic,
+#btn-classic-view, #btn-mobile-view, #btn-tiles-view {
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+/* Screeny — smooth scroll + animacja fullscreen */
+#ds-screens-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+#ds-screens-scroll img {
+  transition: transform 0.2s ease-out, opacity 0.2s ease;
+}
+#ds-screens-scroll img:active { transform: scale(0.97); opacity: 0.85; }
+
+/* Fullscreen foto */
+#ds-photo-overlay {
+  transition: opacity 0.22s ease-out;
+}
+#ds-photo-overlay img {
+  transition: transform 0.28s ease-out;
+  transform: scale(0.92);
+}
+#ds-photo-overlay.open img { transform: scale(1); }
+
+/* Fade-in dla kafelków przy zmianie miesiąca */
+.tile-grid {
+  animation: gridFadeIn 0.22s ease-out both;
+}
+@keyframes gridFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Progres bar animacja */
+.tiles-month-bar-fill {
+  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
 </style>
 </head>
 <body>
@@ -3458,19 +3577,36 @@ function _openDayScreen(ds) {
   // ── Pokaż ─────────────────────────────────────────────────────────
   screen.style.display = 'block';
   screen.scrollTop = 0;
-  requestAnimationFrame(() => { screen.style.opacity = '1'; });
+  screen.classList.remove('ds-closing');
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      screen.style.opacity = '1';
+      screen.classList.add('ds-open');
+    });
+  });
   document.body.style.overflow = 'hidden';
+  // Parallax przy scrollu
+  screen.onscroll = function() {
+    const heroDiv = document.getElementById('ds-hero-bg');
+    if (heroDiv) heroDiv.style.transform = 'translateY(' + (screen.scrollTop * 0.3) + 'px)';
+  };
 }
 
 function _closeDayScreen() {
   const screen = document.getElementById('day-screen');
   if (!screen) return;
-  screen.style.opacity = '0';
+  screen.classList.add('ds-closing');
+  screen.classList.remove('ds-open');
+  screen.onscroll = null;
   setTimeout(() => {
-    screen.style.display = 'none';
-    screen.scrollTop = 0;
-  }, 220);
-  document.body.style.overflow = '';
+    screen.style.opacity = '0';
+    screen.classList.remove('ds-closing');
+    document.body.style.overflow = '';
+    setTimeout(() => {
+      screen.style.display = 'none';
+      screen.scrollTop = 0;
+    }, 200);
+  }, 180);
 }
 
 function _openDsPhoto(url) {
