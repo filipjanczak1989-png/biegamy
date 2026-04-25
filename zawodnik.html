@@ -4883,6 +4883,7 @@ async function loadSocialFeed(compact) {
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
   function buildCard(l, _cardIdx) {
     const athId = l.athlete_id;
+    console.log('[buildCard] id:', l.id?.slice(0,8), 'isOwn:', l.athlete_id===_athleteId, 'type:', l.training_type);
     const ath = athMap[athId] || {};
     const name = ath.full_name || 'Biegacz';
     const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
