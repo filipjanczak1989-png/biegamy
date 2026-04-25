@@ -2667,8 +2667,8 @@ async function copyTraining() {
 const _calViewKey = 'calendarView_' + _urlRole;
 let _calViewStored = localStorage.getItem(_calViewKey);
 // Domyślny widok dla zawodnika: tiles
-if (_urlRole === 'athlete' && _calViewStored === null) _calViewStored = 'tiles';
-let _calView = _calViewStored || (_urlRole === 'athlete' ? 'tiles' : 'classic');
+if (_urlRole === 'athlete' && (_calViewStored === null || _calViewStored === 'classic')) _calViewStored = 'mobile';
+let _calView = _calViewStored || (_urlRole === 'athlete' ? 'mobile' : 'classic');
 
 function setView(v) {
   if (v === 'classic' && _urlRole === 'athlete') v = 'tiles';
