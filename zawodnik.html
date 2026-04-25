@@ -4778,24 +4778,34 @@ function switchSocialTab(tab) {
   if (tab==='feed') loadSocialFeed(false);
   if (tab==='challenges') loadChallenges();
   if (tab==='badges-s') {
-    const bc = document.getElementById('badges-s-content');
-    if (bc) { bc.style.display='block'; }
-    // Pokaż tę samą siatkę odznak co w profilu
-    const tmp = document.getElementById('badges-section-content');
     const target = document.getElementById('badges-s-content');
-    if (target && target.innerHTML.trim()==='') {
-      loadAchievements().then(()=>{
-        if(typeof renderBadgesSection==='function'){
-          // Tymczasowo podmień kontener, wyrenderuj, przywróć
-          const orig = document.getElementById('badges-section-content');
-          const placeholder = document.createElement('div');
-          placeholder.id='badges-section-content';
-          if(orig){ orig.parentNode.replaceChild(placeholder, orig); }
-          renderBadgesSection();
-          target.innerHTML = placeholder.innerHTML;
-          if(orig){ placeholder.parentNode.replaceChild(orig, placeholder); }
-          else { placeholder.id='badges-section-content-hidden'; }
+    if (target) {
+      target.style.display = 'block';
+      loadAchievements().then(() => {
+        if (typeof BADGES === 'undefined' || !BADGES.length) {
+          target.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak odznak</div>';
+          return;
         }
+        const cats = [...new Set(BADGES.map(b => b.cat))];
+        let html = '<div style="padding:12px 16px 4px;display:flex;align-items:center;gap:10px;">'
+          + '<div style="font-family:Bebas Neue,sans-serif;font-size:26px;color:var(--accent);">' + window._earnedBadges.size + '</div>'
+          + '<div style="font-size:11px;font-weight:600;">zdobyte odznaki</div></div>';
+        for (const cat of cats) {
+          const catBadges = BADGES.filter(b => b.cat === cat);
+          html += '<div style="padding:6px 16px 2px;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);">' + cat + '</div>';
+          html += '<div class="badge-grid">';
+          for (const b of catBadges) {
+            const earned = window._earnedBadges.has(b.id);
+            const col = (RARITY_COLOR && RARITY_COLOR[b.rarity]) || '#fff';
+            html += '<div class="badge-item' + (earned ? ' earned' : ' locked') + '" title="' + b.desc + '">'
+              + '<img src="' + BASE_URL + b.id + '.webp" alt="' + b.name + '" loading="lazy">'
+              + '<div class="badge-item-name">' + b.name + '</div>'
+              + (earned ? '<div style="font-size:8px;font-family:DM Mono,monospace;color:' + col + ';letter-spacing:0.1em;">' + ((RARITY_LABEL && RARITY_LABEL[b.rarity]) || '') + '</div>' : '')
+              + '</div>';
+          }
+          html += '</div>';
+        }
+        target.innerHTML = html;
       });
     }
   }
@@ -4897,7 +4907,7 @@ async function loadSocialFeed(compact) {
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
-    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(' + JSON.stringify(athId) + ')"');
+    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(\'' + athId + '\')"');
     const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
     const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
     const editBtns = (isOwn&&!compact)
