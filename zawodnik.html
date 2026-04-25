@@ -4861,10 +4861,11 @@ async function loadSocialFeed(compact) {
     return;
   }
 
-  // Pobierz logi tych zawodników
+  // Pobierz logi tych zawodników (bez badge eventów)
   const { data: logs } = await _sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
+    .not('training_type', 'like', '__badge__%')
     .order('logged_at', { ascending: false })
     .limit(compact ? 3 : 30);
 
