@@ -841,8 +841,8 @@ html { scroll-behavior: smooth; }
 <!-- TILES VIEW -->
 <div id="tiles-view" style="display:none;min-height:unset;">
   <div class="view-tabs">
-    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">⊞ Kafelki</button>
-    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">≡ Mobilny</button>
+    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">📅 Miesięczny</button>
+    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">📆 Tygodniowy</button>
     <button class="view-tab-btn" id="vtab-classic" onclick="setView('classic')">☰ Tabela</button>
   </div>
   <!-- Progres miesiąca -->
@@ -961,8 +961,8 @@ html { scroll-behavior: smooth; }
 <!-- CLASSIC VIEW -->
 <div id="classic-view">
   <div class="view-tabs">
-    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">⊞ Kafelki</button>
-    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">≡ Mobilny</button>
+    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">📅 Miesięczny</button>
+    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">📆 Tygodniowy</button>
     <button class="view-tab-btn" id="vtab-classic" onclick="setView('classic')">☰ Tabela</button>
   </div>
 <div class="week-wrap">
@@ -974,8 +974,8 @@ html { scroll-behavior: smooth; }
 <!-- MOBILE VIEW -->
 <div id="mobile-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom, 0px) + 72px);">
   <div class="view-tabs">
-    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">⊞ Kafelki</button>
-    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">≡ Mobilny</button>
+    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">📅 Miesięczny</button>
+    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">📆 Tygodniowy</button>
     <button class="view-tab-btn" id="vtab-classic" onclick="setView('classic')">☰ Tabela</button>
   </div>
 
@@ -1374,18 +1374,18 @@ function render() {
 // ── WEEK NAV ──────────────────────────────────────────────────────────────────
 function changeWeek(dir) {
   if (_calView === 'tiles') {
-    // W widoku kafelkowym nawiguj po miesiącach
     _tileMonthNav(dir);
     return;
   }
-  currentWeekStart = addDays(currentWeekStart, dir*7);
-  if (_calView === "mobile") renderMobile();
+  currentWeekStart = addDays(currentWeekStart, dir * 7);
+  if (_calView === 'mobile') renderMobile();
   else render();
 }
 function goToday() {
   currentWeekStart = getWeekStart(new Date());
-  if (_calView === "mobile") renderMobile();
-  else if (_calView === "tiles") renderTiles();
+  _tileMonth = null; // reset miesiąca
+  if (_calView === 'mobile') renderMobile();
+  else if (_calView === 'tiles') renderTiles();
   else render();
 }
 
@@ -2662,10 +2662,15 @@ if (_urlRole === 'athlete' && _calViewStored === null) _calViewStored = 'tiles';
 let _calView = _calViewStored || (_urlRole === 'athlete' ? 'tiles' : 'classic');
 
 function setView(v) {
+  if (v === 'classic' && _urlRole === 'athlete') v = 'tiles';
   _calView = v;
   // Podświetl aktywne taby (wszystkie instancje)
   ['tiles','mobile','classic'].forEach(t => {
     const active = t === v;
+    // Ukryj Tabelę dla zawodnika
+    document.querySelectorAll('#vtab-classic').forEach(btn => {
+      btn.style.display = _urlRole === 'athlete' ? 'none' : '';
+    });
     // Nowe duże taby
     document.querySelectorAll('#vtab-' + t).forEach(btn => {
       btn.classList.toggle('active', active);
@@ -3289,12 +3294,17 @@ function _tileGradClass(items, logs) {
 }
 
 // ── NAWIGACJA MIESIĘCY ───────────────────────────────────────────
+let _tileMonth = null; // osobny stan dla widoku miesięcznego
+
 function _tileMonthNav(dir) {
-  // Przesuń currentWeekStart o miesiąc
-  const ref = new Date(currentWeekStart);
-  ref.setMonth(ref.getMonth() + dir);
-  ref.setDate(1);
-  currentWeekStart = ref.toISOString().slice(0,10);
+  // Własny stan miesiąca żeby nie psuć currentWeekStart
+  if (!_tileMonth) {
+    const ref = new Date(currentWeekStart + 'T00:00:00');
+    _tileMonth = { year: ref.getFullYear(), month: ref.getMonth() };
+  }
+  _tileMonth.month += dir;
+  if (_tileMonth.month > 11) { _tileMonth.month = 0; _tileMonth.year++; }
+  if (_tileMonth.month < 0)  { _tileMonth.month = 11; _tileMonth.year--; }
   renderTiles();
 }
 
@@ -3353,6 +3363,59 @@ const DAILY_QUOTES = [
   { text: "Nie liczy się to, jak szybko biegniesz. Liczy się, że biegniesz.", author: "BiegaMy" },
 ];
 
+
+const DAY_SCREEN_QUOTES = [
+  { text: "Dziś jest dobry dzień żeby być lepszym niż wczoraj.", author: "BiegaMy" },
+  { text: "Każdy trening to rozmowa z samym sobą.", author: "BiegaMy" },
+  { text: "Nie musisz być idealny. Musisz być konsekwentny.", author: "BiegaMy" },
+  { text: "Zmęczenie jest tymczasowe. Duma z ukończonego treningu — wieczna.", author: "BiegaMy" },
+  { text: "Twoje ciało wie jak biegać. Pozwól mu.", author: "BiegaMy" },
+  { text: "Bieganie zaczyna się w głowie. Reszta to technikalia.", author: "BiegaMy" },
+  { text: "Jeden krok na raz. Jeden trening na raz.", author: "BiegaMy" },
+  { text: "Nie ma złego treningu. Jest tylko ten, którego nie zrobiłeś.", author: "BiegaMy" },
+  { text: "Silniejszy nie znaczy szybszy. Szybszy znaczy mądrzejszy.", author: "BiegaMy" },
+  { text: "Każde wyjście na trening to inwestycja w jutrzejszego siebie.", author: "BiegaMy" },
+  { text: "Pokonujesz bariery, których inni nigdy nie postawili.", author: "BiegaMy" },
+  { text: "Rytm oddechu to twoja muzyka.", author: "BiegaMy" },
+  { text: "Nie biegasz po nagrodę. Biegasz bo to kim jesteś.", author: "BiegaMy" },
+  { text: "Każdy pot jest dowodem twojej pracy.", author: "BiegaMy" },
+  { text: "Trening który planujesz to cel. Trening który robisz — to charakter.", author: "BiegaMy" },
+  { text: "Twoje nogi pamiętają każdy kilometr. Doceniaj je.", author: "BiegaMy" },
+  { text: "Najpierw ból. Potem moc. Potem uzależnienie.", author: "BiegaMy" },
+  { text: "Nie porównuj swojego tempa. Porównuj swoją determinację.", author: "BiegaMy" },
+  { text: "Biegasz by żyć lepiej. Żyjesz by biegać dalej.", author: "BiegaMy" },
+  { text: "Dziś możesz. Jutro będziesz chciał móc więcej.", author: "BiegaMy" },
+  { text: "Każdy maraton zaczął się od kogoś, kto powiedział: spróbuję.", author: "BiegaMy" },
+  { text: "Tempo mija. Wspomnienia zostają.", author: "BiegaMy" },
+  { text: "Słuchaj swojego ciała. Ale nie słuchaj swojego lenistwa.", author: "BiegaMy" },
+  { text: "Świt najlepiej smakuje po nocnym treningu.", author: "BiegaMy" },
+  { text: "Twój największy rywal biegnie w twoich butach.", author: "BiegaMy" },
+  { text: "Nie wszystkie bitwy są widoczne. Ta wewnętrzna jest najważniejsza.", author: "BiegaMy" },
+  { text: "Robisz to co inni tylko planują.", author: "BiegaMy" },
+  { text: "Kiedy nogi mówią stop — serce mówi jeszcze jeden krok.", author: "BiegaMy" },
+  { text: "Każdy wymagający trening zbliża cię do wersji, którą chcesz być.", author: "BiegaMy" },
+  { text: "Bieganie to wolność. Cele to kierunek.", author: "BiegaMy" },
+  { text: "Nie biegniesz by uciec. Biegniesz by dotrzeć.", author: "BiegaMy" },
+  { text: "Twoje ciało jest silniejsze niż twój umysł myśli.", author: "BiegaMy" },
+  { text: "Każdy dzień treningu to cegiełka do twojego najlepszego wyniku.", author: "BiegaMy" },
+  { text: "Pasja bez dyscypliny to marzenie. Dyscyplina bez pasji to więzienie.", author: "BiegaMy" },
+  { text: "Zrób dziś coś, z czego jutrzejsze ja będzie dumne.", author: "BiegaMy" },
+  { text: "Nie liczy się meta. Liczy się droga do niej.", author: "BiegaMy" },
+  { text: "Każde wyjście na trening to zwycięstwo nad kanapą.", author: "BiegaMy" },
+  { text: "Twój rekord czeka na ciebie gdzieś za horyzontem.", author: "BiegaMy" },
+  { text: "Biegasz. To już wystarczy.", author: "BiegaMy" },
+  { text: "Dziś zmęczony. Jutro silniejszy.", author: "BiegaMy" },
+  { text: "Nie ma złej pogody — są tylko za dobre wymówki.", author: "BiegaMy" },
+  { text: "Spokojny bieg to też bieg. I jest potrzebny.", author: "BiegaMy" },
+  { text: "Twój plan jest mądrzejszy od twojego nastroju.", author: "BiegaMy" },
+  { text: "Zaufaj treningowi. Zaufaj sobie.", author: "BiegaMy" },
+  { text: "Ciało adaptuje się do tego, co mu dajesz. Dawaj mu wszystko.", author: "BiegaMy" },
+  { text: "Każdy kilometr ma swój sens, nawet jeśli go nie widzisz.", author: "BiegaMy" },
+  { text: "Bieganie to nie kara. To nagroda dla tych, którzy tego chcą.", author: "BiegaMy" },
+  { text: "Idziesz powoli? Wyprzedzasz każdego, kto siedzi.", author: "BiegaMy" },
+  { text: "Twoje nogi zaniosą cię tam, gdzie marzenia mówią idź.", author: "BiegaMy" },
+  { text: "Po drugiej stronie wysiłku jest to, czego szukasz.", author: "BiegaMy" },
+];
 function _showDailyQuote() {
   const wrap = document.getElementById('daily-quote-wrap');
   const textEl = document.getElementById('daily-quote-text');
@@ -3370,10 +3433,17 @@ function renderTiles() {
   const progressEl = document.getElementById('tiles-month-progress');
   if (!grid) return;
 
-  // Wyznacz widoczny miesiąc na podstawie currentWeekStart
-  const ref = new Date(currentWeekStart);
-  const year = ref.getFullYear();
-  const month = ref.getMonth();
+  // Wyznacz widoczny miesiąc - osobny stan dla miesięcznego
+  let year, month;
+  if (_tileMonth) {
+    year = _tileMonth.year;
+    month = _tileMonth.month;
+  } else {
+    const ref = new Date(currentWeekStart + 'T00:00:00');
+    year = ref.getFullYear();
+    month = ref.getMonth();
+  }
+  const _ignoreMonth = true; // już zdefiniowane wyżej
 
   const firstDay = new Date(year, month, 1);
   const lastDay  = new Date(year, month + 1, 0);
@@ -3655,7 +3725,7 @@ function _openDayScreen(ds) {
   }
 
   // ── KARTA: Cytat dnia
-  const _dayQ = DAILY_QUOTES[Math.floor((new Date(ds + 'T00:00:00') - new Date('2020-01-01')) / 86400000) % DAILY_QUOTES.length];
+  const _dayQ = DAY_SCREEN_QUOTES[Math.floor((new Date(ds + 'T00:00:00') - new Date('2020-01-01')) / 86400000) % DAY_SCREEN_QUOTES.length];
   const dsQuoteEl = document.getElementById('ds-quote-card');
   if (dsQuoteEl) {
     dsQuoteEl.querySelector('.ds-quote-text').textContent = '„' + _dayQ.text + '”';
