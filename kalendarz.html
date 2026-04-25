@@ -1633,7 +1633,7 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = _sbKal.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type').order('logged_at');
+  let logsQuery = _sbKal.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type').not('training_type', 'like', '__badge__%').order('logged_at');
   if (_urlRole === 'athlete') {
     const { data: ath2 } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
@@ -3152,7 +3152,7 @@ function renderTiles() {
           data-hero="${heroUrl}" data-screen="${screenUrl}"
           style="background-size:cover;background-position:center 30%;"></div>
         <div class="tile-overlay"></div>
-        <div class="tile-date" style="display:flex;flex-direction:column;align-items:flex-start;gap:0;"><span style="font-size:clamp(7px,1.8vw,9px);opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">${dt.toLocaleDateString('pl-PL',{weekday:'short'})}</span><span style="font-size:clamp(11px,2.8vw,16px);font-weight:700;line-height:1;">${dt.getDate()}</span></div>
+        <div class="tile-date" style="display:flex;flex-direction:column;align-items:flex-start;gap:0;"><span style="font-size:clamp(7px,1.8vw,9px);opacity:0.7;text-transform:uppercase;letter-spacing:0.05em;">${d.toLocaleDateString('pl-PL',{weekday:'short'})}</span><span style="font-size:clamp(11px,2.8vw,16px);font-weight:700;line-height:1;">${d.getDate()}</span></div>
         ${statusCls ? `<div class="tile-status ${statusCls}"></div>` : ''}
         ${badgeMore}
       </div>

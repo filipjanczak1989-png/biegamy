@@ -4248,7 +4248,7 @@ function renderLogsDb(data) {
   window._logsData = data;
   const logListEl = document.getElementById('log-list');
   logListEl.dataset.loaded = '1';
-  logListEl.innerHTML = data.map((l, idx) => {
+  logListEl.innerHTML = data.filter(l => !l.training_type || !l.training_type.startsWith('__badge__')).map((l, idx) => {
     const rawType = l.training_type || 'Spokojny';
     // Odznaka — badge event w logu
     if (rawType && rawType.startsWith('__badge__')) {
@@ -4763,63 +4763,34 @@ document.addEventListener('click', e => {
 // ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
 
 function switchSocialTab(tab) {
-  ['feed','challenges','badges-s','following','find'].forEach(function(t) {
+  ['feed','challenges','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
+    const panel = document.getElementById('social-' + t);
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
-    {
-      const panel = document.getElementById('social-' + t);
-      if (panel) panel.style.display = t===tab?'block':'none';
-    }
+    if (panel) panel.style.display = t===tab?'block':'none';
   });
   if (tab==='feed') loadSocialFeed(false);
   if (tab==='challenges') loadChallenges();
   if (tab==='badges-s') {
+    const bc = document.getElementById('badges-s-content');
+    if (bc) { bc.style.display='block'; }
+    // Pokaż tę samą siatkę odznak co w profilu
+    const tmp = document.getElementById('badges-section-content');
     const target = document.getElementById('badges-s-content');
-    if (target) {
-      target.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
-      (async function() {
-        const { data: pubAthletes } = await _sb.from('athletes').select('id,full_name').eq('is_public', true).limit(50);
-        const athIds = (pubAthletes||[]).map(a=>a.id);
-        if (_athleteId && !athIds.includes(_athleteId)) athIds.push(_athleteId);
-        const athMap = {};
-        (pubAthletes||[]).forEach(a => { athMap[a.id] = a.full_name || 'Zawodnik'; });
-        const { data: ach } = await _sb.from('achievements')
-          .select('athlete_id,badge_id,earned_at')
-          .in('athlete_id', athIds)
-          .order('earned_at', { ascending: false })
-          .limit(40);
-        if (!ach || !ach.length) {
-          target.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak zdobytych odznak</div>';
-          return;
+    if (target && target.innerHTML.trim()==='') {
+      loadAchievements().then(()=>{
+        if(typeof renderBadgesSection==='function'){
+          // Tymczasowo podmień kontener, wyrenderuj, przywróć
+          const orig = document.getElementById('badges-section-content');
+          const placeholder = document.createElement('div');
+          placeholder.id='badges-section-content';
+          if(orig){ orig.parentNode.replaceChild(placeholder, orig); }
+          renderBadgesSection();
+          target.innerHTML = placeholder.innerHTML;
+          if(orig){ placeholder.parentNode.replaceChild(orig, placeholder); }
+          else { placeholder.id='badges-section-content-hidden'; }
         }
-        let html = '<div style="padding:14px 16px 6px;display:flex;align-items:center;justify-content:space-between;">'
-          + '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;">OSTATNIO ZDOBYTE</div>'
-          + '</div>';
-        for (const a of ach) {
-          const badge = typeof BADGES !== 'undefined' && BADGES.find(b => b.id === a.badge_id);
-          if (!badge) continue;
-          const name = athMap[a.athlete_id] || 'Zawodnik';
-          const isMe = a.athlete_id === _athleteId;
-          const col = (RARITY_COLOR && RARITY_COLOR[badge.rarity]) || '#e8a040';
-          const label = (RARITY_LABEL && RARITY_LABEL[badge.rarity]) || '';
-          const dt = new Date(a.earned_at);
-          const dateStr = dt.toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
-          html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">'
-            + '<div style="width:48px;height:48px;flex-shrink:0;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid ' + col + '44;">'
-            + '<img src="' + BASE_URL + badge.id + '.webp" style="width:100%;height:100%;object-fit:cover;" loading="lazy"></div>'
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + badge.name + '</div>'
-            + '<div style="font-size:10px;color:var(--muted);margin-top:1px;">' + (isMe ? 'Ty' : name) + '</div>'
-            + '<div style="font-size:8px;font-family:DM Mono,monospace;color:' + col + ';letter-spacing:0.1em;margin-top:2px;">' + label + '</div>'
-            + '</div>'
-            + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;white-space:nowrap;">' + dateStr + '</div>'
-            + '</div>';
-        }
-        html += '<div style="padding:14px 16px;">'
-          + '<button onclick="showSection(&quot;profile&quot;);switchProfileTab(&quot;badges&quot;)" style="width:100%;padding:12px;background:rgba(232,86,30,0.1);border:1px solid var(--accent);color:var(--accent);font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.15em;border-radius:10px;cursor:pointer;">🏅 MOJE ODZNAKI</button>'
-          + '</div>';
-        target.innerHTML = html;
-      })();
+      });
     }
   }
   if (tab==='following') loadFollowing();
@@ -4842,22 +4813,20 @@ async function loadSocialFeed(compact) {
 
   // Pobierz zawodników trenera (coach_id = własne ID) - omijamy filtr is_public
   let coachAthletes = [];
-  try {
-    if (_athleteId) {
-      const sess = await _sb.auth.getSession();
-      const uid = sess?.data?.session?.user?.id;
-      if (uid) {
-        const { data: coachRow } = await _sb.from('coaches')
-          .select('id').eq('id', uid).maybeSingle();
-        if (coachRow?.id) {
-          const { data: myAthletes } = await _sb.from('athletes')
-            .select('id,full_name,is_public')
-            .eq('coach_id', coachRow.id).limit(100);
-          coachAthletes = myAthletes || [];
-        }
-      }
+  if (_athleteId) {
+    // Sprawdź czy user jest trenerem
+    const { data: coachRow } = await _sb.from('coaches')
+      .select('id')
+      .eq('id', (await _sb.auth.getSession()).data.session?.user?.id)
+      .maybeSingle();
+    if (coachRow?.id) {
+      const { data: myAthletes } = await _sb.from('athletes')
+        .select('id,full_name,is_public')
+        .eq('coach_id', coachRow.id)
+        .limit(100);
+      coachAthletes = myAthletes || [];
     }
-  } catch(e) { console.warn('coaches query skipped:', e.message); }
+  }
 
   // Połącz listy (bez duplikatów)
   const allVisibleAthletes = [...(publicAthletes||[])];
@@ -4874,15 +4843,13 @@ async function loadSocialFeed(compact) {
     return;
   }
 
-  // Pobierz logi tych zawodników (bez badge eventów)
+  // Pobierz logi tych zawodników
   const { data: logs } = await _sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
-    .not('training_type', 'like', '__badge__%')
     .order('logged_at', { ascending: false })
     .limit(compact ? 3 : 30);
 
-  console.log('[socialFeed] logs count:', logs && logs.length, 'publicIds:', publicIds.length);
   if (!logs || logs.length === 0) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
@@ -4897,7 +4864,6 @@ async function loadSocialFeed(compact) {
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
   function buildCard(l, _cardIdx) {
     const athId = l.athlete_id;
-    console.log('[buildCard] id:', l.id?.slice(0,8), 'isOwn:', l.athlete_id===_athleteId, 'type:', l.training_type);
     const ath = athMap[athId] || {};
     const name = ath.full_name || 'Biegacz';
     const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
@@ -4921,9 +4887,9 @@ async function loadSocialFeed(compact) {
   const _cardBgPos = _cardBgObj.p;
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
-    const feelEmoji = {good:'😊',mid:'😐',bad:'😓'}[l.feel]||'';
-    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(\'' + athId + '\')"');
-    const hoverAttrs = '';
+    const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
+    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(' + JSON.stringify(athId) + ')"');
+    const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
     const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
     const editBtns = (isOwn&&!compact)
       ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'        +'<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'        +'</div>' : '';
@@ -4937,8 +4903,7 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
     const cardH = (l.comment || screensHtml) ? '200px' : '160px';
-    const _cardBgSafe = _cardBg.replace(/\(/g,'%28').replace(/\)/g,'%29');
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBgSafe+');background-size:cover;background-position:'+_cardBgPos+';">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:'+_cardBgPos+';">'
       +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.0) 0%,rgba(7,5,12,0.45) 40%,rgba(7,5,12,0.97) 100%);pointer-events:none;"></div>'
       +'<div style="height:90px;"></div>'
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
@@ -4958,16 +4923,7 @@ async function loadSocialFeed(compact) {
       +'</div>'
     +'</div>'
   }
-  const rendered = logs.map((l,i) => {
-    try { return buildCard(l,i); }
-    catch(e) { console.error('buildCard error log['+i+']:', e.message, e.stack); return ''; }
-  }).filter(Boolean).join('');
-  console.log('[socialFeed] rendered cards:', rendered.length);
-  // Count div onclick in raw HTML
-  const _divCount = (rendered.match(/<div onclick/g)||[]).length;
-  const _divClose = (rendered.match(/<\/div>/g)||[]).length;
-  const _cardCount = (rendered.match(/position:relative;overflow:hidden/g)||[]).length;
-  console.log('[socialFeed] div onclick count:', _divCount, 'close divs:', _divClose, 'total cards:', _cardCount);
+  const rendered = logs.map((l,i) => buildCard(l,i)).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
@@ -6452,8 +6408,8 @@ function _stopSocialBannerRotation() {
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
+    <div id="badges-s-content" style="display:none;"></div>
   </div>
-  <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
   </div>
