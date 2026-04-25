@@ -738,6 +738,40 @@ html { scroll-behavior: smooth; }
 .tiles-month-bar-fill {
   transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* ── Duże taby widoków ── */
+.view-tabs {
+  display: flex;
+  gap: 0;
+  padding: 8px 16px 6px;
+  position: sticky;
+  top: 48px;
+  z-index: 10;
+  background: var(--bg);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.view-tab-btn {
+  flex: 1;
+  padding: 10px 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+.view-tab-btn:first-child { border-radius: 10px 0 0 10px; }
+.view-tab-btn:last-child  { border-radius: 0 10px 10px 0; }
+.view-tab-btn + .view-tab-btn { border-left: none; }
+.view-tab-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-weight: 700;
+}
 </style>
 </head>
 <body>
@@ -774,23 +808,17 @@ html { scroll-behavior: smooth; }
   </div>
   <button class="today-btn" onclick="goToday()">Dziś</button>
   <div class="toolbar-spacer"></div>
-  <!-- VIEW TOGGLE -->
-  <div style="display:flex;gap:0;border:1px solid var(--border);overflow:hidden;flex-shrink:0;">
-    <button id="btn-classic-view" onclick="setView('classic')" style="background:transparent;color:var(--muted);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">☰ Tabela</button>
-    <button id="btn-mobile-view" onclick="setView('mobile')" style="background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">≡ Mobilny</button>
-    <button id="btn-tiles-view" onclick="setView('tiles')" style="background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;padding:6px 12px;cursor:pointer;transition:all 0.15s;">⊞ Kafelki</button>
-  </div>
+
   <div class="week-km-badge" style="display:none;" id="week-km-wrap">Km: <span id="week-total-km">0</span></div>
 </div>
 
 
 <!-- TILES VIEW -->
 <div id="tiles-view" style="display:none;min-height:unset;">
-  <!-- Przełącznik widoków -->
-  <div style="display:flex;gap:0;padding:8px 12px 4px;position:sticky;top:48px;z-index:10;background:var(--bg);">
-    <button id="cal-tab-tiles" onclick="setView('tiles')" style="flex:1;padding:9px 4px;border-radius:10px 0 0 10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:700;">⊞ Kafelki</button>
-    <button id="cal-tab-mobile" onclick="setView('mobile')" style="flex:1;padding:9px 4px;border-radius:0;border:1px solid var(--border);border-left:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">📱 Mobilny</button>
-    <button id="cal-tab-classic" onclick="setView('classic')" style="flex:1;padding:9px 4px;border-radius:0 10px 10px 0;border:1px solid var(--border);border-left:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">☰ Tabela</button>
+  <div class="view-tabs">
+    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">⊞ Kafelki</button>
+    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">≡ Mobilny</button>
+    <button class="view-tab-btn" id="vtab-classic" onclick="setView('classic')">☰ Tabela</button>
   </div>
   <!-- Progres miesiąca -->
   <div id="tiles-month-progress" style="margin:0 12px 6px;"></div>
@@ -906,6 +934,11 @@ html { scroll-behavior: smooth; }
 
 <!-- CLASSIC VIEW -->
 <div id="classic-view">
+  <div class="view-tabs">
+    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">⊞ Kafelki</button>
+    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">≡ Mobilny</button>
+    <button class="view-tab-btn" id="vtab-classic" onclick="setView('classic')">☰ Tabela</button>
+  </div>
 <div class="week-wrap">
   <div class="week-header" id="week-header"></div>
   <div class="week-body" id="week-body"></div>
@@ -914,6 +947,11 @@ html { scroll-behavior: smooth; }
 
 <!-- MOBILE VIEW -->
 <div id="mobile-view" style="display:none;padding:8px 12px calc(env(safe-area-inset-bottom, 0px) + 72px);">
+  <div class="view-tabs">
+    <button class="view-tab-btn" id="vtab-tiles" onclick="setView('tiles')">⊞ Kafelki</button>
+    <button class="view-tab-btn" id="vtab-mobile" onclick="setView('mobile')">≡ Mobilny</button>
+    <button class="view-tab-btn" id="vtab-classic" onclick="setView('classic')">☰ Tabela</button>
+  </div>
 
   <div id="mobile-days-container"></div>
   <button id="mobile-new-btn" onclick="openModal(null)" style="display:none;position:fixed;bottom:80px;right:20px;background:var(--accent);color:var(--fg);border:none;border-radius:50%;width:52px;height:52px;font-size:24px;cursor:pointer;z-index:90;box-shadow:0 4px 16px rgba(212,80,26,0.5);">+</button>
@@ -2586,15 +2624,24 @@ let _calView = _calViewStored || (_urlRole === 'athlete' ? 'tiles' : 'classic');
 
 function setView(v) {
   _calView = v;
-  // Podświetl aktywny tab
+  // Podświetl aktywne taby (wszystkie instancje)
   ['tiles','mobile','classic'].forEach(t => {
-    const btn = document.getElementById('cal-tab-' + t);
-    if (!btn) return;
     const active = t === v;
-    btn.style.background = active ? 'var(--accent)' : 'transparent';
-    btn.style.color = active ? '#fff' : 'var(--muted)';
-    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
-    btn.style.fontWeight = active ? '700' : '400';
+    // Nowe duże taby
+    document.querySelectorAll('#vtab-' + t).forEach(btn => {
+      btn.classList.toggle('active', active);
+    });
+    // Stare małe taby (fallback)
+    const old = document.getElementById('cal-tab-' + t);
+    if (old) {
+      old.style.background = active ? 'var(--accent)' : 'transparent';
+      old.style.color = active ? '#fff' : 'var(--muted)';
+    }
+    const btnOld = document.getElementById('btn-' + t + '-view');
+    if (btnOld) {
+      btnOld.style.color = active ? 'var(--accent)' : 'var(--muted)';
+      btnOld.style.fontWeight = active ? '700' : '400';
+    }
   });
   localStorage.setItem(_calViewKey, v);
   const classic = document.getElementById('classic-view');
