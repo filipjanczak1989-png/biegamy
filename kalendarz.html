@@ -1388,6 +1388,9 @@ function changeWeek(dir) {
     return;
   }
   currentWeekStart = addDays(currentWeekStart, dir * 7);
+  // Synchronizuj _tileMonth z aktualnym tygodniem
+  const ref = new Date(currentWeekStart + 'T00:00:00');
+  _tileMonth = { year: ref.getFullYear(), month: ref.getMonth() };
   if (_calView === 'mobile') renderMobile();
   else render();
 }
@@ -2672,7 +2675,7 @@ if (_urlRole === 'athlete' && (_calViewStored === null || _calViewStored === 'cl
 let _calView = _calViewStored || (_urlRole === 'athlete' ? 'mobile' : 'classic');
 
 function setView(v) {
-  if (v === 'classic' && _urlRole === 'athlete') v = 'tiles';
+  if (v === 'classic' && _urlRole === 'athlete') v = 'mobile';
   _calView = v;
   // Podświetl aktywne taby (wszystkie instancje)
   ['tiles','mobile','classic'].forEach(t => {
@@ -2739,6 +2742,24 @@ function renderMobile() {
   const days = [];
   for (let i = 0; i < 7; i++) days.push(addDays(currentWeekStart, i));
   const today = dateStr(new Date());
+
+  // Aktualizuj week-label - pokaż miesiąc środkowego dnia tygodnia
+  const midDay = new Date(days[3] + 'T00:00:00');
+  const mnPLm = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
+                 'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+  const weekLbl = document.getElementById('week-label');
+  if (weekLbl) {
+    const s = new Date(days[0] + 'T00:00:00');
+    const e = new Date(days[6] + 'T00:00:00');
+    const mNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+    if (s.getMonth() === e.getMonth()) {
+      weekLbl.textContent = s.getDate() + ' — ' + e.getDate() + ' ' + mNames[s.getMonth()] + ' ' + s.getFullYear();
+    } else {
+      weekLbl.textContent = s.getDate() + ' ' + mNames[s.getMonth()] + ' — ' + e.getDate() + ' ' + mNames[e.getMonth()] + ' ' + e.getFullYear();
+    }
+  }
+  // Synchronizuj _tileMonth z środkowym dniem tygodnia
+  _tileMonth = { year: midDay.getFullYear(), month: midDay.getMonth() };
 
   const dayAbbrPL = ['ND','PN','WT','\u015aR','CZ','PT','SB'];
   const monthNamesM = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PA\u017b','LIS','GRU'];
