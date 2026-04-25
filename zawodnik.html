@@ -4847,8 +4847,9 @@ async function loadSocialFeed(compact) {
   const { data: logs } = await _sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
+    .not('training_type', 'like', '__badge__%')
     .order('logged_at', { ascending: false })
-    .limit(compact ? 3 : 30);
+    .limit(compact ? 5 : 50);
 
   if (!logs || logs.length === 0) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
