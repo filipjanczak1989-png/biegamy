@@ -848,10 +848,6 @@ html { scroll-behavior: smooth; }
   <!-- Progres miesiąca -->
   <div id="tiles-month-progress" style="margin:0 12px 6px;"></div>
   <!-- Cytat dnia -->
-  <div id="daily-quote-wrap" class="daily-quote" style="display:none;">
-    <div class="daily-quote-text" id="daily-quote-text"></div>
-    <div class="daily-quote-author" id="daily-quote-author"></div>
-  </div>
   <!-- Grid kafelków -->
   <div id="tiles-grid" style="padding:0 12px calc(env(safe-area-inset-bottom,0px) + 80px);"></div>
 </div>
@@ -3505,8 +3501,6 @@ function renderTiles() {
 
   html += '</div>';
   grid.innerHTML = html;
-  _showDailyQuote();
-
   // Lazy load tła kafelków
   _loadTileBgs();
 }
@@ -3658,6 +3652,15 @@ function _openDayScreen(ds) {
     ).join('');
   } else {
     statsCard.style.display = 'none';
+  }
+
+  // ── KARTA: Cytat dnia
+  const _dayQ = DAILY_QUOTES[Math.floor((new Date(ds + 'T00:00:00') - new Date('2020-01-01')) / 86400000) % DAILY_QUOTES.length];
+  const dsQuoteEl = document.getElementById('ds-quote-card');
+  if (dsQuoteEl) {
+    dsQuoteEl.querySelector('.ds-quote-text').textContent = '„' + _dayQ.text + '”';
+    dsQuoteEl.querySelector('.ds-quote-author').textContent = '— ' + _dayQ.author;
+    dsQuoteEl.style.display = 'block';
   }
 
   // ── KARTA: Plan trenera ───────────────────────────────────────────
@@ -3867,7 +3870,11 @@ document.addEventListener('keydown', e => {
     </div>
 
     <!-- KARTA: Plan trenera -->
-    <div id="ds-coach-card" class="ds-card" style="display:none;border-color:rgba(212,80,26,0.3);">
+    <div id="ds-quote-card" class="ds-card" style="display:none;margin:0 16px 12px;padding:12px 16px;background:linear-gradient(135deg,rgba(212,80,26,0.08),rgba(212,80,26,0.03));border-left:3px solid var(--accent);border-radius:0 12px 12px 0;">
+    <div class="ds-quote-text" style="font-family:'DM Sans',sans-serif;font-size:13px;font-style:italic;color:rgba(240,237,232,0.88);line-height:1.55;margin-bottom:4px;"></div>
+    <div class="ds-quote-author" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);opacity:0.8;"></div>
+  </div>
+  <div id="ds-coach-card" class="ds-card" style="display:none;border-color:rgba(212,80,26,0.3);">
       <div class="ds-label" style="color:#FF6B2C;">Plan trenera</div>
       <div id="ds-coach-text" style="font-size:14px;color:rgba(240,237,232,0.85);line-height:1.65;"></div>
     </div>
