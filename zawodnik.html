@@ -4932,7 +4932,11 @@ async function loadSocialFeed(compact) {
       +'</div>'
     +'</div>'
   }
-  const rendered = logs.map((l,i) => buildCard(l,i)).filter(Boolean).join('');
+  const rendered = logs.map((l,i) => {
+    try { return buildCard(l,i); }
+    catch(e) { console.error('buildCard error log['+i+']:', e.message, e.stack); return ''; }
+  }).filter(Boolean).join('');
+  console.log('[socialFeed] rendered cards:', rendered.length);
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
