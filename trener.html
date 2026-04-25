@@ -74,7 +74,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .ath-badge.pd{background:rgba(232,184,64,0.15);color:var(--yellow);border:1px solid rgba(232,184,64,0.3);}
 .panel-overlay{position:fixed;inset:0;z-index:300;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);}
 .panel-overlay.open{display:flex;}
-.panel-inner{background:var(--card2);border-radius:24px 24px 0 0;border-top:2px solid var(--accent);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:32px;box-shadow:0 -8px 40px rgba(0,0,0,0.6);}
+.panel-inner{background:var(--card2);border-radius:24px 24px 0 0;border-top:2px solid var(--accent);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:32px;box-shadow:0 -8px 40px rgba(0,0,0,0.6);}
 .panel-hdr{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
 .panel-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);flex-shrink:0;}
 .panel-name{font-family:'Bebas Neue',sans-serif;font-size:22px;}
@@ -1757,7 +1757,7 @@ function openDrillEditor(drill) {
   modal.id = 'drill-editor-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;padding:20px 20px 32px;max-height:92vh;overflow-y:auto;">
+    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;padding:20px 20px 32px;max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);">
       <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;"></div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:16px;">${drill.id ? 'Edytuj ćwiczenie' : 'Nowe ćwiczenie'}</div>
 
@@ -3134,7 +3134,7 @@ if (_tabParam) {
 
 <!-- MODAL STATYSTYK ZAWODNIKA -->
 <div id="athlete-stats-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAthleteStatsModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:32px;transform:translateY(20px);transition:transform 0.25s;" id="athlete-stats-modal-inner">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:32px;transform:translateY(20px);transition:transform 0.25s;" id="athlete-stats-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);">
       <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;" id="asm-avatar">MK</div>
@@ -3256,7 +3256,7 @@ if (_tabParam) {
 
 <!-- MODAL STATYSTYK ZAWODNIKA -->
 <div id="athlete-stats-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAthleteStatsModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:32px;transform:translateY(20px);transition:transform 0.25s;" id="athlete-stats-modal-inner">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:32px;transform:translateY(20px);transition:transform 0.25s;" id="athlete-stats-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);">
       <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;" id="asm-avatar">MK</div>

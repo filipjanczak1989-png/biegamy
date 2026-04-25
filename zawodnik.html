@@ -5508,7 +5508,7 @@ async function openAthleteProfile(athleteId) {
   modal.id = 'athlete-profile-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);';
   modal.innerHTML = `
-    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:32px;">
+    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:32px;">
       <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
       <div id="ap-content" style="padding:0 20px;">
         <div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>
