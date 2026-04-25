@@ -4212,7 +4212,7 @@ function _makeScreensCarousel(urls, carouselId) {
     + '<button onclick="event.stopPropagation();_scPrev(\''+id+'\')" style="position:absolute;left:-8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.15);color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">\u2039</button>'
     + '<button onclick="event.stopPropagation();_scNext(\''+id+'\')" style="position:absolute;right:-8px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.7);border:1px solid rgba(255,255,255,0.15);color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">\u203a</button>'
     + '<div style="position:absolute;bottom:4px;right:6px;font-size:9px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.6);background:rgba(0,0,0,0.55);padding:2px 6px;border-radius:8px;" id="sc-cnt-'+id+'">1\u20132/'+urls.length+'</div>'
-    + '</div></div>';
+    + '</div>';
 }
 window._scState = {};
 function _scNext(id) {
@@ -4951,7 +4951,8 @@ async function loadSocialFeed(compact) {
   // Count div onclick in raw HTML
   const _divCount = (rendered.match(/<div onclick/g)||[]).length;
   const _divClose = (rendered.match(/<\/div>/g)||[]).length;
-  console.log('[socialFeed] div onclick count:', _divCount, 'close divs:', _divClose);
+  const _cardCount = (rendered.match(/position:relative;overflow:hidden/g)||[]).length;
+  console.log('[socialFeed] div onclick count:', _divCount, 'close divs:', _divClose, 'total cards:', _cardCount);
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
