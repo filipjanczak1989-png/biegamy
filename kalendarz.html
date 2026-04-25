@@ -667,11 +667,11 @@ body > *{position:relative;z-index:1;}
 
 <!-- TILES VIEW -->
 <div id="tiles-view" style="display:none;min-height:unset;">
-  <!-- Nawigacja miesięcy -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px 4px;position:sticky;top:48px;z-index:10;background:var(--bg);">
-    <button onclick="_tileMonthNav(-1)" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:34px;height:34px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
-    <div id="tiles-month-label" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.06em;color:var(--fg);"></div>
-    <button onclick="_tileMonthNav(1)" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:34px;height:34px;border-radius:10px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;">›</button>
+  <!-- Przełącznik widoków -->
+  <div style="display:flex;gap:0;padding:8px 12px 4px;position:sticky;top:48px;z-index:10;background:var(--bg);">
+    <button id="cal-tab-tiles" onclick="setView('tiles')" style="flex:1;padding:9px 4px;border-radius:10px 0 0 10px;border:1px solid var(--accent);background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:700;">⊞ Kafelki</button>
+    <button id="cal-tab-mobile" onclick="setView('mobile')" style="flex:1;padding:9px 4px;border-radius:0;border:1px solid var(--border);border-left:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">📱 Mobilny</button>
+    <button id="cal-tab-classic" onclick="setView('classic')" style="flex:1;padding:9px 4px;border-radius:0 10px 10px 0;border:1px solid var(--border);border-left:none;background:transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">☰ Tabela</button>
   </div>
   <!-- Progres miesiąca -->
   <div id="tiles-month-progress" style="margin:0 12px 6px;"></div>
@@ -2467,6 +2467,16 @@ let _calView = _calViewStored || (_urlRole === 'athlete' ? 'tiles' : 'classic');
 
 function setView(v) {
   _calView = v;
+  // Podświetl aktywny tab
+  ['tiles','mobile','classic'].forEach(t => {
+    const btn = document.getElementById('cal-tab-' + t);
+    if (!btn) return;
+    const active = t === v;
+    btn.style.background = active ? 'var(--accent)' : 'transparent';
+    btn.style.color = active ? '#fff' : 'var(--muted)';
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    btn.style.fontWeight = active ? '700' : '400';
+  });
   localStorage.setItem(_calViewKey, v);
   const classic = document.getElementById('classic-view');
   const mobile  = document.getElementById('mobile-view');
