@@ -4871,7 +4871,7 @@ async function loadSocialFeed(compact) {
     const isFollowed = followingSet.has(athId);
     const _logDate = l.logged_at ? new Date(l.logged_at) : null;
     const date = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
-    if (l.training_type === '__badge__') {
+    if (l.training_type && l.training_type.startsWith('__badge__')) {
       return window._renderBadgeEvent ? window._renderBadgeEvent(l, ath) : '';
     }
     const type = l.training_type || 'Trening';
@@ -7009,7 +7009,7 @@ function renderBadgesSection() {
 
 // ── Social feed — renderuj badge eventy ──────────────────────────
 function _renderBadgeEvent(l, ath) {
-  const badgeId = l.comment;
+  const badgeId = (l.training_type && l.training_type.startsWith('__badge__')) ? l.training_type.replace('__badge__','') : l.comment;
   const badge = BADGES.find(b => b.id === badgeId);
   if (!badge) return '';
   const name = ath?.full_name || 'Biegacz';
