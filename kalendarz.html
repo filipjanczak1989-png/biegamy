@@ -2451,9 +2451,19 @@ async function saveLog() {
       }
     }
   }
+  const _prsKal = {
+    dist: String(dist || ''),
+    pace: pace || '',
+    time: time || '',
+    feel: _logFeel || '',
+    streak: null,
+    badge: null,
+  };
   closeLogModal();
   await loadTrainingsFromDB();
   notify('Log zapisany ✓');
+  // Post-Run Story
+  setTimeout(() => { if (typeof PRS !== 'undefined' && PRS.launch) PRS.launch(_prsKal); }, 500);
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────

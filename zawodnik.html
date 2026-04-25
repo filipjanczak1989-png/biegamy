@@ -4477,19 +4477,22 @@ async function saveLog() {
   _savingLog = false;
 
   await loadLogs();
+  // Grab form values BEFORE closeModal clears them
+  const _prsCapture = !_editingLogId ? {
+    dist: document.getElementById('l-dist')?.value || '',
+    pace: document.getElementById('l-pace')?.value || '',
+    time: document.getElementById('l-time')?.value || '',
+    feel: feel || '',
+    streak: null,
+    badge: null,
+  } : null;
+
   closeModal();
   toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
 
   // Post-Run Story - tylko dla nowych logów (nie edycji)
   if (!_editingLogId) {
-    const _prsData = {
-      dist: document.getElementById('l-dist')?.value,
-      pace: document.getElementById('l-pace')?.value,
-      time: document.getElementById('l-time')?.value,
-      feel: feel || '',
-      streak: null,
-      badge: null,
-    };
+    const _prsData = _prsCapture;
     // Streak z załadowanych logów
     if (window._loadedLogs) {
       let s = 1;
@@ -7267,6 +7270,9 @@ const PRS = {
       'prs_B01.webp','prs_B02.webp','prs_B03.webp','prs_B04.webp','prs_B05.webp','prs_B06.webp',
       'prs_C01.webp','prs_C02.webp','prs_C03.webp','prs_C04.webp','prs_C05.webp',
       'prs_D01.webp','prs_D02.webp','prs_D03.webp','prs_D04.webp','prs_D05.webp',
+      'prs_E01.webp','prs_E02.webp','prs_E03.webp','prs_E04.webp','prs_E05.webp',
+      'prs_F01.webp','prs_F02.webp','prs_F03.webp','prs_F04.webp','prs_F05.webp','prs_F06.webp',
+      'prs_G01.webp','prs_G02.webp','prs_G03.webp','prs_G04.webp','prs_G05.webp','prs_G06.webp',
     ];
     return slides.map(s => BASE + s);
   })(),
@@ -7274,6 +7280,25 @@ const PRS = {
   randImg(seed) {
     const idx = ((seed * 2654435761) >>> 0) % this.heroImgs.length;
     return this.heroImgs[idx];
+  },
+  getStorySet(seed) {
+    const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
+    const sets = [
+      ['prs_A01.webp','prs_A02.webp','prs_A03.webp','prs_A04.webp','prs_A05.webp','prs_A06.webp'],
+      ['prs_B01.webp','prs_B02.webp','prs_B03.webp','prs_B04.webp','prs_B05.webp','prs_B06.webp'],
+      ['prs_C01.webp','prs_C02.webp','prs_C03.webp','prs_C04.webp','prs_C05.webp'],
+      ['prs_D01.webp','prs_D02.webp','prs_D03.webp','prs_D04.webp','prs_D05.webp'],
+      ['prs_E01.webp','prs_E02.webp','prs_E03.webp','prs_E04.webp','prs_E05.webp'],
+      ['prs_F01.webp','prs_F02.webp','prs_F03.webp','prs_F04.webp','prs_F05.webp','prs_F06.webp'],
+      ['prs_G01.webp','prs_G02.webp','prs_G03.webp','prs_G04.webp','prs_G05.webp','prs_G06.webp'],
+      ['prs_H01.webp','prs_H02.webp','prs_H03.webp','prs_H04.webp','prs_H05.webp'],
+      ['prs_I01.webp','prs_I02.webp','prs_I03.webp','prs_I04.webp','prs_I05.webp'],
+      ['prs_J01.webp','prs_J02.webp','prs_J03.webp','prs_J04.webp','prs_J05.webp'],
+      ['prs_K01.webp','prs_K02.webp','prs_K03.webp','prs_K04.webp','prs_K05.webp'],
+      ['prs_L01.webp','prs_L02.webp','prs_L03.webp','prs_L04.webp','prs_L05.webp'],
+    ];
+    const setIdx = ((seed * 1234567) >>> 0) % sets.length;
+    return sets[setIdx].map(s => BASE + s);
   },
 
   // Generuj slajdy na podstawie danych treningu
