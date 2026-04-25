@@ -4819,20 +4819,22 @@ async function loadSocialFeed(compact) {
 
   // Pobierz zawodników trenera (coach_id = własne ID) - omijamy filtr is_public
   let coachAthletes = [];
-  if (_athleteId) {
-    // Sprawdź czy user jest trenerem
-    const { data: coachRow } = await _sb.from('coaches')
-      .select('id')
-      .eq('id', (await _sb.auth.getSession()).data.session?.user?.id)
-      .maybeSingle();
-    if (coachRow?.id) {
-      const { data: myAthletes } = await _sb.from('athletes')
-        .select('id,full_name,is_public')
-        .eq('coach_id', coachRow.id)
-        .limit(100);
-      coachAthletes = myAthletes || [];
+  try {
+    if (_athleteId) {
+      const sess = await _sb.auth.getSession();
+      const uid = sess?.data?.session?.user?.id;
+      if (uid) {
+        const { data: coachRow } = await _sb.from('coaches')
+          .select('id').eq('id', uid).maybeSingle();
+        if (coachRow?.id) {
+          const { data: myAthletes } = await _sb.from('athletes')
+            .select('id,full_name,is_public')
+            .eq('coach_id', coachRow.id).limit(100);
+          coachAthletes = myAthletes || [];
+        }
+      }
     }
-  }
+  } catch(e) { console.warn('coaches query skipped:', e.message); }
 
   // Połącz listy (bez duplikatów)
   const allVisibleAthletes = [...(publicAthletes||[])];
@@ -4856,6 +4858,7 @@ async function loadSocialFeed(compact) {
     .order('logged_at', { ascending: false })
     .limit(compact ? 3 : 30);
 
+  console.log('[socialFeed] logs count:', logs && logs.length, 'publicIds:', publicIds.length);
   if (!logs || logs.length === 0) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
