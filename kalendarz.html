@@ -275,7 +275,7 @@ nav{
   border-top:2px solid var(--accent);
   border-radius:20px;
   width:480px;max-width:92vw;
-  max-height:88vh;overflow-y:auto;
+  max-height:92vh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px);
   transform:translateY(10px);transition:transform 0.25s cubic-bezier(0.16,1,0.3,1);
   box-shadow:0 24px 80px rgba(0,0,0,0.8);
 }
@@ -867,7 +867,7 @@ html { scroll-behavior: smooth; }
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;" id="log-modal-title">Log treningu</div>
       <button onclick="closeLogModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
-    <div style="padding:0 20px 24px;">
+    <div style="padding:0 20px calc(env(safe-area-inset-bottom,0px) + 80px);">
       <!-- Upload screena — NA GÓRZE, główny element -->
       <div id="ocr-upload-area" onclick="document.getElementById('ocr-file').click()" style="border:2px dashed var(--accent);border-radius:14px;padding:24px 16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all 0.15s;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
         <div style="font-size:32px;margin-bottom:6px;">📱</div>
@@ -1661,15 +1661,8 @@ async function saveTraining() {
 async function approveTraining(e, ds, idx, dbId) {
   e.stopPropagation();
   if (!trainings[ds] || !trainings[ds][idx]) return;
-  trainings[ds][idx].status = 'done';
-  
-  // Zapisz do Supabase jeśli mamy id
-  if (dbId && typeof _sbKal !== 'undefined') {
-    await _sbKal.from('trainings').update({status:'done'}).eq('id', dbId);
-  }
-  
-  render();
-  notify('Trening zatwierdzony ✓');
+  // Otwórz log modal z prefillowanymi danymi z planu
+  openLogModal(e, ds, idx);
 }
 
 async function deleteTraining(e, ds, idx) {
@@ -2288,6 +2281,22 @@ function openLogModal(e, ds, idx) {
   ['lm-dist','lm-time','lm-pace','lm-hr','lm-strava','lm-comment'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
+  // Prefill z planu trenera
+  if (t) {
+    const distEl = document.getElementById('lm-dist');
+    const paceEl = document.getElementById('lm-pace');
+    const timeEl = document.getElementById('lm-time');
+    if (distEl && (t.dist || t.distance_km)) distEl.value = t.dist || t.distance_km;
+    if (paceEl && t.pace) paceEl.value = t.pace;
+    if (timeEl && (t.time || t.duration_min)) timeEl.value = t.time || t.duration_min;
+  }
+  // Zaznacz typ na pillsach
+  document.querySelectorAll('.type-pill').forEach(b => {
+    const active = b.textContent.trim().includes(_logType2) || b.onclick?.toString().includes("'" + _logType2 + "'");
+    b.style.background = active ? 'rgba(212,80,26,0.25)' : '';
+    b.style.borderColor = active ? 'var(--accent)' : '';
+    b.style.color = active ? 'var(--accent)' : '';
+  });
   _logFeel = 'mid';
   document.querySelectorAll('.feel-log-btn').forEach(b => {
     b.style.borderColor = b.dataset.feel === 'mid' ? 'rgba(232,184,64,0.4)' : 'var(--border)';
@@ -2691,7 +2700,7 @@ function renderMobile() {
   const typeColorsM = {
     'Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840','Tempo':'#f06030',
     'Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Wzmacniaj\u0105cy':'#f0a830','Odpoczynek':'#44424a',
-    'Start':'#3db870','Zast\u0119pczy':'#66636e','Spokojny':'#5090e0'
+    'Start':'#3db870','Zast\u0119pczy':'#9a6fe8','Spokojny':'#5090e0','Bieg tempo':'#f06030'
   };
 
   const defaultOpen = days.includes(today) ? today : days[0];
@@ -2809,6 +2818,9 @@ function renderMobile() {
           + '</div>' : '')
         + (statusBadge ? '<div style="margin-top:6px;">' + statusBadge + '</div>' : '')
         + planThumbs
+        + (!isDone && _urlRole === 'athlete' && t.type !== 'Odpoczynek'
+          ? '<div style="padding:0 13px 11px;"><button onclick="event.stopPropagation();openLogModal(event,\'' + ds + '\',' + i + ')" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;touch-action:manipulation;">\ud83d\udd25 Zaloguj wynik</button></div>'
+          : '')
         + '</div></div>';
     }).join('');
 
