@@ -4766,11 +4766,7 @@ function switchSocialTab(tab) {
   ['feed','challenges','badges-s','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
-    // dla badges-s panel ma inne id
-    if (t === 'badges-s') {
-      const panel = document.getElementById('badges-s-content');
-      if (panel) panel.style.display = t===tab?'block':'none';
-    } else {
+    {
       const panel = document.getElementById('social-' + t);
       if (panel) panel.style.display = t===tab?'block':'none';
     }
@@ -6439,8 +6435,8 @@ function _stopSocialBannerRotation() {
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
-    <div id="badges-s-content" style="display:none;"></div>
   </div>
+  <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
   </div>
