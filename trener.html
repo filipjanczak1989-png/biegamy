@@ -508,7 +508,9 @@ function selA(id){
 async function closePanel(){
   document.getElementById('panel').classList.remove('open');
   selAth=null; window._selectedAthleteId=null;
-  await loadAthletes();
+  // Nie przeładowuj całej listy - używaj lokalnego stanu
+  // Tylko odśwież renderowanie z aktualnym _dbAthletes (już zzerowanym)
+  renderDbAthletes(_dbAthletes);
 }
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
