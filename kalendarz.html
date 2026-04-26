@@ -3997,7 +3997,7 @@ document.addEventListener('keydown', e => {
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:3;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:4;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
-  <div id="prs-slide" style="width:100%;height:100%;background-size:contain;background-position:center;background-repeat:no-repeat;transition:opacity 0.35s ease;"></div>
+  <div id="prs-slide" style="position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center top;background-repeat:no-repeat;transition:opacity 0.35s ease;"></div>
 </div>
 <style>
 
@@ -4092,7 +4092,8 @@ const PRS = (() => {
 
     slide.style.opacity = '0';
     const s = slides[idx];
-    slide.style.backgroundImage = `url('${s.bg || s}')`;
+    const bgUrl = (typeof s === 'object' ? s.bg : s) || '';
+    slide.style.backgroundImage = bgUrl ? `url('${bgUrl}')` : '';
     // Overlay z danymi
     let overlayEl = document.getElementById('prs-data-overlay');
     if (!overlayEl) {
@@ -4148,7 +4149,7 @@ const PRS = (() => {
   function open(data) {
     _launchData = data;
     slides = getSlides(_launchData);
-    preload(slides.map(s=>s.bg));
+    preload(slides.map(s => typeof s === "string" ? s : s.bg));
     buildBars();
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
