@@ -2462,6 +2462,7 @@ async function saveLog() {
   closeLogModal();
   await loadTrainingsFromDB();
   notify('Log zapisany ✓');
+  if (typeof PRS !== 'undefined') setTimeout(()=>PRS.launch({}), 600);
   // Post-Run Story
   setTimeout(() => { if (typeof PRS !== 'undefined' && PRS.launch) PRS.launch(_prsKal); }, 500);
 }
@@ -4025,6 +4026,153 @@ document.addEventListener('keydown', e => {
   <img id="ds-photo-img" src="" style="max-width:100%;max-height:100%;object-fit:contain;" onclick="event.stopPropagation()">
   <button onclick="_closeDsPhoto()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;">✕</button>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
+<div id="prs-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
+  <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
+  <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:3;"></div>
+  <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:4;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+  <div id="prs-slide" style="position:absolute;inset:0;z-index:1;background-size:cover;background-position:center;transition:opacity 0.35s ease;"></div>
+</div>
+<style>
+#prs-overlay.prs-active { display:flex !important; }
+#prs-bars .prs-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden; }
+#prs-bars .prs-bar-fill { height:100%;width:0%;background:#fff;border-radius:2px;transition:none; }
+</style>
+<script>
+const PRS = (() => {
+  const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
+  const FINAL = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/prs_final.webp';
+  const SETS = [
+    ['prs_A01.webp','prs_A02.webp','prs_A03.webp','prs_A04.webp','prs_A05.webp','prs_A06.webp'],
+    ['prs_B01.webp','prs_B02.webp','prs_B03.webp','prs_B04.webp','prs_B05.webp','prs_B06.webp'],
+    ['prs_C01.webp','prs_C02.webp','prs_C03.webp','prs_C04.webp','prs_C05.webp'],
+    ['prs_D01.webp','prs_D02.webp','prs_D03.webp','prs_D04.webp','prs_D05.webp'],
+    ['prs_E01.webp','prs_E02.webp','prs_E03.webp','prs_E04.webp','prs_E05.webp'],
+    ['prs_F01.webp','prs_F02.webp','prs_F03.webp','prs_F04.webp','prs_F05.webp','prs_F06.webp'],
+    ['prs_G01.webp','prs_G02.webp','prs_G03.webp','prs_G04.webp','prs_G05.webp','prs_G06.webp'],
+    ['prs_H01.webp','prs_H02.webp','prs_H03.webp','prs_H04.webp','prs_H05.webp'],
+    ['prs_I01.webp','prs_I02.webp','prs_I03.webp','prs_I04.webp','prs_I05.webp'],
+    ['prs_J01.webp','prs_J02.webp','prs_J03.webp','prs_J04.webp','prs_J05.webp'],
+    ['prs_K01.webp','prs_K02.webp','prs_K03.webp','prs_K04.webp','prs_K05.webp'],
+    ['prs_L01.webp','prs_L02.webp','prs_L03.webp','prs_L04.webp','prs_L05.webp'],
+  ];
+
+  let slides=[], cur=0, timer=null, barAnim=null, holdTimer=null, touchX=0;
+
+  function getSlides() {
+    const seed = Math.floor(Date.now()/86400000);
+    const set = SETS[((seed*1234567)>>>0) % SETS.length];
+    const mid = set[Math.floor(set.length/2)];
+    // środkowy + triumf z zestawu + final logo
+    return [mid, set[set.length-1], FINAL].map(s => s.startsWith('http') ? s : BASE+s);
+  }
+
+  function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }
+
+  function buildBars() {
+    const el = document.getElementById('prs-bars');
+    el.innerHTML = slides.map(()=>`<div class="prs-bar-wrap"><div class="prs-bar-fill"></div></div>`).join('');
+  }
+
+  function animBar(idx, duration, cb) {
+    clearInterval(barAnim);
+    const fill = document.querySelectorAll('#prs-bars .prs-bar-fill')[idx];
+    if (!fill) return;
+    // Zakończone bary = 100%
+    document.querySelectorAll('#prs-bars .prs-bar-fill').forEach((f,i)=>{ if(i<idx) f.style.width='100%'; if(i>idx) f.style.width='0%'; });
+    fill.style.width = '0%';
+    const step = 100 / (duration/50);
+    barAnim = setInterval(()=>{
+      const w = parseFloat(fill.style.width||0) + step;
+      fill.style.width = Math.min(w,100)+'%';
+      if (w>=100) { clearInterval(barAnim); if(cb) cb(); }
+    }, 50);
+  }
+
+  function show(idx) {
+    if (idx >= slides.length) { close(); return; }
+    cur = idx;
+    const slide = document.getElementById('prs-slide');
+    const isFinal = slides[idx] === FINAL;
+
+    slide.style.opacity = '0';
+    slide.style.backgroundImage = `url('${slides[idx]}')`;
+    setTimeout(()=>{ slide.style.opacity='1'; }, 30);
+
+    const dur = isFinal ? 3500 : 3000;
+    if (isFinal) confetti();
+    animBar(idx, dur, ()=> show(idx+1));
+  }
+
+  function confetti() {
+    const canvas = document.getElementById('prs-confetti');
+    const W = canvas.width = window.innerWidth;
+    const H = canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
+    const colors = ['#e8561e','#ff8c42','#ffffff','#ffd700','#ff4444'];
+    const particles = Array.from({length:120},()=>({
+      x: Math.random()*W, y: -20,
+      vx: (Math.random()-0.5)*4, vy: Math.random()*4+2,
+      w: Math.random()*10+4, h: Math.random()*6+3,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      rot: Math.random()*360, rv: (Math.random()-0.5)*8,
+    }));
+    let frame;
+    function draw() {
+      ctx.clearRect(0,0,W,H);
+      particles.forEach(p=>{
+        p.x+=p.vx; p.y+=p.vy; p.rot+=p.rv;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+        ctx.fillStyle=p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+      });
+      if (particles.some(p=>p.y<H)) frame=requestAnimationFrame(draw);
+      else ctx.clearRect(0,0,W,H);
+    }
+    draw();
+    setTimeout(()=>{ cancelAnimationFrame(frame); ctx.clearRect(0,0,W,H); }, 4000);
+  }
+
+  function open() {
+    slides = getSlides();
+    preload(slides);
+    buildBars();
+    const ov = document.getElementById('prs-overlay');
+    ov.classList.add('prs-active');
+    document.body.style.overflow='hidden';
+    show(0);
+    // Touch/tap nawigacja
+    ov.ontouchstart = e=>{ touchX=e.touches[0].clientX; holdTimer=setTimeout(()=>pause(),200); };
+    ov.ontouchend = e=>{
+      clearTimeout(holdTimer); resume();
+      const dx = e.changedTouches[0].clientX - touchX;
+      if (Math.abs(dx)<30) { e.clientX>window.innerWidth/2 ? next() : prev(); }
+    };
+    ov.onclick = e=>{
+      if (e.target.closest('button')) return;
+      e.clientX>window.innerWidth/2 ? next() : prev();
+    };
+  }
+
+  function close() {
+    clearInterval(barAnim); clearTimeout(timer);
+    const ov = document.getElementById('prs-overlay');
+    const slide = document.getElementById('prs-slide');
+    slide.style.opacity='0';
+    setTimeout(()=>{ ov.classList.remove('prs-active'); document.body.style.overflow=''; }, 350);
+  }
+
+  function next() { clearInterval(barAnim); show(cur+1); }
+  function prev() { clearInterval(barAnim); show(Math.max(0,cur-1)); }
+  function pause() { clearInterval(barAnim); }
+  function resume() { animBar(cur, 3000, ()=>show(cur+1)); }
+
+  return { launch: open, close };
+})();
+
+function PRSclose() { PRS.close(); }
+window.PRS = PRS;
+</script>
 
 </body>
 </html>
