@@ -6727,11 +6727,7 @@ const PRS = (() => {
   let slides=[], cur=0, timer=null, barAnim=null, holdTimer=null, touchX=0;
 
   function getSlides() {
-    const seed = Math.floor(Date.now()/86400000);
-    const set = SETS[((seed*1234567)>>>0) % SETS.length];
-    const mid = set[Math.floor(set.length/2)];
-    // środkowy + triumf z zestawu + final logo
-    return [mid, set[set.length-1], FINAL].map(s => s.startsWith('http') ? s : BASE+s);
+    return [FINAL];
   }
 
   function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }

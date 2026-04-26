@@ -4030,12 +4030,7 @@ const PRS = (() => {
   let slides=[], cur=0, timer=null, barAnim=null, holdTimer=null, touchX=0;
 
   function getSlides() {
-    const seed = Math.floor(Date.now()/86400000);
-    const set = SETS[((seed*1234567)>>>0) % SETS.length];
-    // Slajd 1: drugi z zestawu (akcja), Slajd 2: przedostatni (kulminacja), Slajd 3: final logo
-    const s1 = BASE + set[1 % set.length];
-    const s2 = BASE + set[set.length - 1];
-    return [s1, s2, FINAL];
+    return [FINAL];
   }
 
   function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }
