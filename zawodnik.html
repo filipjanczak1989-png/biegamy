@@ -6790,10 +6790,9 @@ const PRS = (() => {
     }
     if (s.overlay) {
       overlayEl.innerHTML = `
-        <div style="background:rgba(0,0,0,0.55);border-radius:20px;padding:18px 32px;text-align:center;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.1);">
-          <div style="font-size:38px;margin-bottom:6px;">${s.overlay.icon}</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:80px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,0.9);">${s.overlay.value}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.3em;color:#e8561e;margin-top:6px;text-transform:uppercase;">${s.overlay.label}</div>
+        <div style="background:rgba(0,0,0,0.72);border-radius:20px;padding:16px 36px;text-align:center;backdrop-filter:blur(8px);">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:86px;color:#fff;line-height:1;letter-spacing:0.02em;">${s.overlay.value}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.3em;color:#e8561e;margin-top:4px;text-transform:uppercase;">${s.overlay.label}</div>
         </div>`;
     } else {
       overlayEl.innerHTML = '';
