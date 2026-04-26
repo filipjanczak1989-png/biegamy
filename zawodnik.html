@@ -6825,7 +6825,12 @@ const PRS = (() => {
     const ov = document.getElementById('prs-overlay');
     const slide = document.getElementById('prs-slide');
     slide.style.opacity='0';
-    setTimeout(()=>{ ov.classList.remove('prs-active'); document.body.style.overflow=''; }, 350);
+    setTimeout(()=>{
+      ov.classList.remove('prs-active');
+      document.body.style.overflow='';
+      slide.style.opacity='1';
+      slide.style.backgroundImage='';
+    }, 350);
   }
 
   function next() { clearInterval(barAnim); show(cur+1); }

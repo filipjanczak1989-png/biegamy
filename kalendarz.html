@@ -890,7 +890,7 @@ html { scroll-behavior: smooth; }
 </div>
 
 <!-- LOG MODAL (zawodnik — OCR) -->
-<div id="log-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeLogModal()">
+<div id="log-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:none;align-items:flex-end;justify-content:center;transition:opacity 0.2s;" onclick="if(event.target===this)closeLogModal()">
   <div style="background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;" id="log-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between;">
@@ -2385,13 +2385,17 @@ function openLogModal(e, ds, idx) {
   window._logType2 = 'Bieg spokojny';
   document.getElementById('log-modal-title').textContent = '📝 Log: ' + (_logType2 || 'Trening');
   const modal = document.getElementById('log-modal-bg');
-  modal.style.opacity = '1'; modal.style.pointerEvents = 'all';
-  document.getElementById('log-modal-inner').style.transform = 'translateY(0)';
+  modal.style.display = 'flex';
+  requestAnimationFrame(() => {
+    modal.style.opacity = '1';
+    document.getElementById('log-modal-inner').style.transform = 'translateY(0)';
+  });
 }
 
 function closeLogModal() {
   const modal = document.getElementById('log-modal-bg');
-  modal.style.opacity = '0'; modal.style.pointerEvents = 'none';
+  modal.style.opacity = '0';
+  setTimeout(() => { modal.style.display = 'none'; }, 200);
 }
 
 function selectFeel(btn) {
@@ -4207,7 +4211,13 @@ const PRS = (() => {
     const ov = document.getElementById('prs-overlay');
     const slide = document.getElementById('prs-slide');
     slide.style.opacity='0';
-    setTimeout(()=>{ ov.classList.remove('prs-active'); document.body.style.overflow=''; }, 350);
+    setTimeout(()=>{
+      ov.classList.remove('prs-active');
+      document.body.style.overflow='';
+      // Reset dla następnego uruchomienia
+      slide.style.opacity='1';
+      slide.style.backgroundImage='';
+    }, 350);
   }
 
   function next() { clearInterval(barAnim); show(cur+1); }
