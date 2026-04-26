@@ -6740,10 +6740,24 @@ const PRS = (() => {
     const seed = Math.floor(Date.now() / 86400000);
     const setNum = ((seed * 1234567) >>> 0) % 8 + 1;
     const s = `set${setNum}`;
+    // Oblicz czas z tempa i dystansu jeśli nie podano
+    let displayTime = time;
+    if (!displayTime && pace && dist > 0) {
+      const [pm, ps] = pace.split(':').map(Number);
+      if (!isNaN(pm) && !isNaN(ps)) {
+        const totalSec = Math.round((pm * 60 + ps) * dist);
+        const th = Math.floor(totalSec / 3600);
+        const tm = Math.floor((totalSec % 3600) / 60);
+        const ts = totalSec % 60;
+        displayTime = th > 0
+          ? `${th}:${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`
+          : `${tm}:${String(ts).padStart(2,'0')}`;
+      }
+    }
     const slides = [];
-    if (dist > 0) slides.push({ bg: BASE + `prs_v2/prs_${s}_dystans.webp`, overlay: { label: 'DYSTANS', value: dist.toFixed(2) + ' km' }});
-    if (pace)    slides.push({ bg: BASE + `prs_v2/prs_${s}_tempo.webp`,   overlay: { label: 'ŚREDNIE TEMPO', value: pace + ' /km' }});
-    if (time)    slides.push({ bg: BASE + `prs_v2/prs_${s}_czas.webp`,    overlay: { label: 'CZAS TRENINGU', value: time }});
+    if (dist > 0)    slides.push({ bg: BASE + `prs_v2/prs_${s}_dystans.webp`, overlay: { label: 'DYSTANS', value: dist.toFixed(2) + ' km' }});
+    if (pace)        slides.push({ bg: BASE + `prs_v2/prs_${s}_tempo.webp`,   overlay: { label: 'ŚREDNIE TEMPO', value: pace + ' /km' }});
+    if (displayTime) slides.push({ bg: BASE + `prs_v2/prs_${s}_czas.webp`,    overlay: { label: 'CZAS TRENINGU', value: displayTime }});
     slides.push({ bg: FINAL, overlay: null });
     return slides;
   }
