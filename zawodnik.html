@@ -6793,14 +6793,16 @@ const PRS = (() => {
     if (!overlayEl) {
       overlayEl = document.createElement('div');
       overlayEl.id = 'prs-data-overlay';
-      overlayEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:5;padding:0 0 60px;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
+      overlayEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:5;padding:0 24px 80px;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
       slide.parentElement.appendChild(overlayEl);
     }
     if (s.overlay) {
       overlayEl.innerHTML = `
-        <div style="font-size:52px;margin-bottom:4px;">${s.overlay.icon}</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:72px;color:#fff;line-height:1;text-shadow:0 2px 20px rgba(0,0,0,0.8);">${s.overlay.value}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.25em;color:#e8561e;margin-top:4px;">${s.overlay.label}</div>`;
+        <div style="background:rgba(0,0,0,0.55);border-radius:20px;padding:18px 32px;text-align:center;backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.1);">
+          <div style="font-size:38px;margin-bottom:6px;">${s.overlay.icon}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:80px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,0.9);">${s.overlay.value}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.3em;color:#e8561e;margin-top:6px;text-transform:uppercase;">${s.overlay.label}</div>
+        </div>`;
     } else {
       overlayEl.innerHTML = '';
     }
