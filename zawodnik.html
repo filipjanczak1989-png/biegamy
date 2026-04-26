@@ -4798,17 +4798,20 @@ function switchSocialTab(tab) {
         let html = '<div style="padding:14px 16px 6px;display:flex;align-items:center;justify-content:space-between;">'          + '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;">OSTATNIO ZDOBYTE</div>'          + '<button onclick="showSection(\'profile\');switchProfileTab(\'badges\')" style="background:rgba(232,86,30,0.12);border:1px solid var(--accent);color:var(--accent);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.12em;padding:5px 12px;border-radius:8px;cursor:pointer;">🏅 MOJE ODZNAKI</button>'          + '</div>';
         for (const a of ach) {
           const badge = typeof BADGES !== 'undefined' && BADGES.find(b => b.id === a.badge_id);
-          if (!badge) continue;
+          // Pokaż nawet nieznane odznaki
+          const badgeId = a.badge_id || '';
+          const badgeName = badge ? badge.name : badgeId.replace(/_/g,' ');
+          const badgeRarity = badge ? badge.rarity : 'common';
           const name = athMap[a.athlete_id] || 'Zawodnik';
           const isMe = a.athlete_id === _athleteId;
-          const col = (typeof RARITY_COLOR !== 'undefined' && RARITY_COLOR[badge.rarity]) || '#e8a040';
-          const label = (typeof RARITY_LABEL !== 'undefined' && RARITY_LABEL[badge.rarity]) || '';
+          const col = (typeof RARITY_COLOR !== 'undefined' && RARITY_COLOR[badgeRarity]) || '#e8a040';
+          const label = (typeof RARITY_LABEL !== 'undefined' && RARITY_LABEL[badgeRarity]) || '';
           const dateStr = new Date(a.earned_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
           html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">'
             + '<div style="width:48px;height:48px;flex-shrink:0;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid ' + col + '44;">'
-            + '<img src="' + BASE_URL + badge.id + '.webp" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.opacity=0.2"></div>'
+            + '<img src="' + BASE_URL + badgeId + '.webp" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.opacity=0.15"></div>'
             + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + badge.name + '</div>'
+            + '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + badgeName + '</div>'
             + '<div style="font-size:10px;color:var(--muted);margin-top:1px;">' + (isMe ? 'Ty' : name) + '</div>'
             + '<div style="font-size:8px;font-family:DM Mono,monospace;color:' + col + ';letter-spacing:0.1em;margin-top:2px;">' + label + '</div>'
             + '</div>'
@@ -7153,7 +7156,7 @@ function renderBadgesSection() {
       const col = RARITY_COLOR[b.rarity] || '#fff';
       html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
         ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
-        <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.15';this.src='data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><text y=\"80\" font-size=\"80\">🏅</text></svg>'">
+        <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
         <div class="badge-item-name">${b.name}</div>
         ${earned ? `<div style="font-size:8px;font-family:'DM Mono',monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
       </div>`;
