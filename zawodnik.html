@@ -1273,6 +1273,8 @@ body > *{position:relative;z-index:1;}
           <button class="type-pill" onclick="selType(this,'Wybieganie')">🛤️ Wybieganie</button>
           <button class="type-pill" onclick="selType(this,'Regeneracja')">💚 Regeneracja</button>
           <button class="type-pill" onclick="selType(this,'Wzmacniający')">💪 Wzmacniający</button>
+          <button class="type-pill" onclick="selType(this,'Start')">🏁 Start</button>
+          <button class="type-pill" onclick="selType(this,'Zastępczy')">🔄 Zastępczy</button>
         </div>
       </div>
 
@@ -6802,7 +6804,7 @@ const PRS = (() => {
     const ov = document.getElementById('prs-overlay');
     ov.classList.add('prs-active');
     document.body.style.overflow='hidden';
-    show(0);
+    setTimeout(() => show(0), 80);
     // Touch/tap nawigacja
     ov.ontouchstart = e=>{ touchX=e.touches[0].clientX; holdTimer=setTimeout(()=>pause(),200); };
     ov.ontouchend = e=>{

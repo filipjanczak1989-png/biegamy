@@ -899,14 +899,11 @@ html { scroll-behavior: smooth; }
     </div>
     <div style="padding:0 20px calc(env(safe-area-inset-bottom,0px) + 100px);">
       <!-- Upload screena — NA GÓRZE, główny element -->
-      <div id="ocr-upload-area" onclick="document.getElementById('ocr-file').click()" style="border:2px dashed var(--accent);border-radius:14px;padding:24px 16px;text-align:center;cursor:pointer;margin-bottom:16px;transition:all 0.15s;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
-        <div style="font-size:32px;margin-bottom:6px;">📱</div>
-        <div style="font-size:14px;font-weight:500;color:var(--fg);margin-bottom:4px;">Wgraj screen z Garmin / Strava</div>
-        <div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.08em;" id="ocr-file-label">AI odczyta dane automatycznie</div>
+      <div onclick="document.getElementById('ocr-file').click()" style="border:1px dashed var(--border);border-radius:12px;padding:14px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:13px;color:var(--muted);">📎 Dodaj załącznik (screen Garmin / Strava)</div>
       </div>
       <div id="ocr-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-      <input type="file" id="ocr-file" accept="image/*" multiple style="display:none" onchange="runOCR(this)">
-      <div id="ocr-spinner" style="display:none;text-align:center;padding:8px 0 12px;font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">⏳ Analizuję screen...</div>
+      <input type="file" id="ocr-file" accept="image/*" multiple style="display:none" onchange="addOCRThumbs(this)">
 
       <!-- Pola do potwierdzenia -->
       <div id="log-confirm-fields">
@@ -2369,6 +2366,18 @@ function selectFeel(btn) {
   btn.classList.add('active-' + _logFeel);
 }
 
+function addOCRThumbs(input) {
+  const thumbs = document.getElementById('ocr-thumbs');
+  if (!thumbs) return;
+  Array.from(input.files).forEach(f => {
+    const url = URL.createObjectURL(f);
+    const img = document.createElement('img');
+    img.src = url; img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+    thumbs.appendChild(img);
+  });
+  // Zapisz pliki do późniejszego uploadu
+  window._ocrFiles = (window._ocrFiles||[]).concat(Array.from(input.files));
+}
 async function runOCR(input) {
   if (!input.files.length) return;
   const files = input.files;
@@ -4036,6 +4045,7 @@ document.addEventListener('keydown', e => {
 <style>
 #prs-overlay { display:none; }
 #prs-overlay.prs-active { display:flex !important; }
+#prs-slide { opacity:1; }
 #prs-bars .prs-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden; }
 #prs-bars .prs-bar-fill { height:100%;width:0%;background:#fff;border-radius:2px;transition:none; }
 </style>
@@ -4141,7 +4151,7 @@ const PRS = (() => {
     const ov = document.getElementById('prs-overlay');
     ov.classList.add('prs-active');
     document.body.style.overflow='hidden';
-    show(0);
+    setTimeout(() => show(0), 80);
     // Touch/tap nawigacja
     ov.ontouchstart = e=>{ touchX=e.touches[0].clientX; holdTimer=setTimeout(()=>pause(),200); };
     ov.ontouchend = e=>{
