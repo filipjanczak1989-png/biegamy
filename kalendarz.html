@@ -2372,15 +2372,17 @@ function openLogModal(e, ds, idx) {
   document.querySelectorAll('.feel-log-btn').forEach(b => {
     b.style.borderColor = b.dataset.feel === 'mid' ? 'rgba(232,184,64,0.4)' : 'var(--border)';
   });
-  document.getElementById('ocr-file-label').textContent = 'AI odczyta dane automatycznie';
-  document.getElementById('ocr-upload-area').style.borderColor = 'var(--border)';
+  const ocrLabel = document.getElementById('ocr-file-label');
+  if (ocrLabel) ocrLabel.textContent = 'AI odczyta dane automatycznie';
+  const ocrArea = document.getElementById('ocr-upload-area');
+  if (ocrArea) ocrArea.style.borderColor = 'var(--border)';
   // Resetuj type pills do domyślnego
   document.querySelectorAll('.lm-type-pill').forEach((b,i) => {
     b.style.background = i===0 ? 'rgba(80,144,224,0.12)' : 'transparent';
     b.style.borderColor = i===0 ? 'rgba(80,144,224,0.4)' : 'var(--border)';
     b.style.color = i===0 ? '#5090e0' : 'var(--muted)';
   });
-  if (!window._logType2) window._logType2 = 'Bieg spokojny';
+  window._logType2 = 'Bieg spokojny';
   document.getElementById('log-modal-title').textContent = '📝 Log: ' + (_logType2 || 'Trening');
   const modal = document.getElementById('log-modal-bg');
   modal.style.opacity = '1'; modal.style.pointerEvents = 'all';
@@ -2423,9 +2425,10 @@ async function runOCR(input) {
     const url = URL.createObjectURL(f);
     thumbsEl.innerHTML += `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:8px;">`;
   });
-  document.getElementById('ocr-file-label').textContent = files.length === 1 ? '✓ ' + file.name : '✓ ' + files.length + ' pliki';
-  document.getElementById('ocr-upload-area').style.background = 'rgba(61,184,112,0.08)';
-  document.getElementById('ocr-upload-area').style.borderColor = 'var(--green)';
+  const lbl = document.getElementById('ocr-file-label');
+  if (lbl) lbl.textContent = files.length === 1 ? '✓ ' + file.name : '✓ ' + files.length + ' pliki';
+  const area = document.getElementById('ocr-upload-area');
+  if (area) { area.style.background = 'rgba(61,184,112,0.08)'; area.style.borderColor = 'var(--green)'; }
   document.getElementById('ocr-spinner').style.display = 'block';
   // Konwertuj do base64
   const base64 = await new Promise(res => {

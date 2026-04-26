@@ -6692,14 +6692,16 @@ function _stopSocialBannerRotation() {
 
 </div>
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
+<div id="prs-overlay" style="position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:3;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:4;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
   <div id="prs-slide" style="position:absolute;inset:0;z-index:1;background-size:cover;background-position:center;transition:opacity 0.35s ease;"></div>
 </div>
 <style>
+#prs-overlay { display:none; }
 #prs-overlay.prs-active { display:flex !important; }
+#prs-slide { opacity:1; }
 #prs-bars .prs-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden; }
 #prs-bars .prs-bar-fill { height:100%;width:0%;background:#fff;border-radius:2px;transition:none; }
 </style>
