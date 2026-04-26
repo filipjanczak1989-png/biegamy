@@ -890,7 +890,7 @@ html { scroll-behavior: smooth; }
 </div>
 
 <!-- LOG MODAL (zawodnik — OCR) -->
-<div id="log-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:400;display:none;align-items:flex-end;justify-content:center;transition:opacity 0.2s;" onclick="if(event.target===this)closeLogModal()">
+<div id="log-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:none;align-items:flex-end;justify-content:center;transition:opacity 0.2s;" onclick="if(event.target===this)closeLogModal()">
   <div style="background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;" id="log-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between;">
@@ -2390,7 +2390,7 @@ function openLogModal(e, ds, idx) {
   setTimeout(() => {
     modal.style.opacity = '1';
     document.getElementById('log-modal-inner').style.transform = 'translateY(0)';
-  }, 50);
+  }, 20);
 }
 
 function closeLogModal() {
@@ -4005,9 +4005,10 @@ document.addEventListener('keydown', e => {
 #ds-screens-scroll::-webkit-scrollbar { display: none; }
 </style>
 
-<div id="day-screen" style="display:none;position:fixed;inset:0;z-index:200;background:#0F1115;overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity 0.22s ease;">
+<div id="day-screen" style="display:none;position:fixed;inset:0;z-index:200;background:#0F1115;overflow:hidden;opacity:0;transition:opacity 0.22s ease;">
 
   <!-- HERO -->
+  <div id="ds-scroll-inner" style="height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;">
   <div id="ds-hero" style="position:relative;width:100%;height:40vh;min-height:210px;max-height:320px;overflow:hidden;flex-shrink:0;">
     <div id="ds-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 25%;transition:opacity 0.4s;"></div>
     <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.22) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,0) 50%,rgba(0,0,0,0.82) 100%);"></div>
@@ -4076,16 +4077,16 @@ document.addEventListener('keydown', e => {
   <img id="ds-photo-img" src="" style="max-width:100%;max-height:100%;object-fit:contain;" onclick="event.stopPropagation()">
   <button onclick="_closeDsPhoto()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;">✕</button>
 </div>
+</div><!-- /ds-scroll-inner -->
 
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="display:flex;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
+<div id="prs-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:3;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:4;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
-  <div id="prs-slide" style="position:absolute;top:0;left:0;right:0;bottom:0;width:100%;height:100%;z-index:1;background-size:cover;background-position:center;transition:opacity 0.35s ease;"></div>
+  <div id="prs-slide" style="position:absolute;inset:0;z-index:1;background-size:cover;background-position:center;transition:opacity 0.35s ease;"></div>
 </div>
 <style>
-/* PRS overlay kontrolowany przez JS */
 #prs-slide { opacity:1; }
 #prs-bars .prs-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden; }
 #prs-bars .prs-bar-fill { height:100%;width:0%;background:#fff;border-radius:2px;transition:none; }
@@ -4191,8 +4192,7 @@ const PRS = (() => {
     buildBars();
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
-    ov.style.visibility = 'visible';
-    document.body.style.overflow='hidden';
+    document.body.style.overflow = 'hidden';
     setTimeout(() => show(0), 120);
     // Touch/tap nawigacja
     ov.ontouchstart = e=>{ touchX=e.touches[0].clientX; holdTimer=setTimeout(()=>pause(),200); };
@@ -4214,10 +4214,9 @@ const PRS = (() => {
     slide.style.opacity='0';
     setTimeout(()=>{
       ov.style.display = 'none';
-      ov.style.visibility = 'hidden';
-      document.body.style.overflow='';
-      slide.style.opacity='1';
-      slide.style.backgroundImage='';
+      document.body.style.overflow = '';
+      slide.style.opacity = '1';
+      slide.style.backgroundImage = '';
     }, 350);
   }
 
