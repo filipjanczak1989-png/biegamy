@@ -4031,30 +4031,22 @@ const PRS = (() => {
   function getSlides(data) {
     const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
     const dist = parseFloat(data && data.dist) || 0;
-    const pace = data && data.pace || '';
-    const time = data && data.time || '';
-    const type = data && data.type || '';
-
-    // Typy bez dystansu
+    const pace = (data && data.pace) || '';
+    const time = (data && data.time) || '';
+    const type = (data && data.type) || '';
     const noDistTypes = ['Regeneracja','Wzmacniający','Zastępczy'];
-    const noDist = noDistTypes.includes(type);
-
-    if (noDist || dist === 0) {
-      // Tylko final gdy brak dystansu
-      return [{ bg: FINAL, overlay: null }];
-    }
-
+    if (noDistTypes.includes(type) || dist === 0) return [{ bg: FINAL, overlay: null }];
+    const seed = Math.floor(Date.now() / 86400000);
+    const setNum = ((seed * 1234567) >>> 0) % 8 + 1;
+    const s = `set${setNum}`;
     const slides = [];
-    // Slajd 1: dystans
-    if (dist > 0) slides.push({ bg: BASE + 'prs_dystans.webp', overlay: { label: 'DYSTANS', value: dist.toFixed(2) + ' km', icon: '📍' }});
-    // Slajd 2: tempo
-    if (pace) slides.push({ bg: BASE + 'prs_tempo.webp', overlay: { label: 'ŚREDNIE TEMPO', value: pace + ' /km', icon: '⏱' }});
-    // Slajd 3: czas
-    if (time) slides.push({ bg: BASE + 'prs_czas.webp', overlay: { label: 'CZAS TRENINGU', value: time, icon: '🕐' }});
-    // Final zawsze na końcu
+    if (dist > 0) slides.push({ bg: BASE + `prs_v2/prs_${s}_dystans.webp`, overlay: { label: 'DYSTANS', value: dist.toFixed(2) + ' km' }});
+    if (pace)    slides.push({ bg: BASE + `prs_v2/prs_${s}_tempo.webp`,   overlay: { label: 'ŚREDNIE TEMPO', value: pace + ' /km' }});
+    if (time)    slides.push({ bg: BASE + `prs_v2/prs_${s}_czas.webp`,    overlay: { label: 'CZAS TRENINGU', value: time }});
     slides.push({ bg: FINAL, overlay: null });
     return slides;
   }
+
 
   function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }
 
@@ -4092,7 +4084,7 @@ const PRS = (() => {
     if (!overlayEl) {
       overlayEl = document.createElement('div');
       overlayEl.id = 'prs-data-overlay';
-      overlayEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:5;padding:0 24px 80px;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
+      overlayEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:5;padding:0 24px 22%;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
       slide.parentElement.appendChild(overlayEl);
     }
     if (s.overlay) {
