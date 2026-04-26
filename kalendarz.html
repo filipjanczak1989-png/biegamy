@@ -2462,9 +2462,7 @@ async function saveLog() {
   closeLogModal();
   await loadTrainingsFromDB();
   notify('Log zapisany ✓');
-  if (typeof PRS !== 'undefined') setTimeout(()=>PRS.launch({}), 600);
-  // Post-Run Story
-  setTimeout(() => { if (typeof PRS !== 'undefined' && PRS.launch) PRS.launch(_prsKal); }, 500);
+  if (typeof PRS !== 'undefined') setTimeout(()=>PRS.launch({}), 700);
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
