@@ -2385,11 +2385,12 @@ function openLogModal(e, ds, idx) {
   window._logType2 = 'Bieg spokojny';
   document.getElementById('log-modal-title').textContent = '📝 Log: ' + (_logType2 || 'Trening');
   const modal = document.getElementById('log-modal-bg');
+  modal.style.opacity = '0';
   modal.style.display = 'flex';
-  requestAnimationFrame(() => {
+  setTimeout(() => {
     modal.style.opacity = '1';
     document.getElementById('log-modal-inner').style.transform = 'translateY(0)';
-  });
+  }, 20);
 }
 
 function closeLogModal() {
@@ -4077,15 +4078,15 @@ document.addEventListener('keydown', e => {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
+<div id="prs-overlay" style="display:flex;position:fixed;inset:0;z-index:9999;background:#000;flex-direction:column;align-items:center;justify-content:center;touch-action:none;">
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:3;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:4;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
   <div id="prs-slide" style="position:absolute;inset:0;z-index:1;background-size:cover;background-position:center;transition:opacity 0.35s ease;"></div>
 </div>
 <style>
-#prs-overlay { display:none; }
-#prs-overlay.prs-active { display:flex !important; }
+#prs-overlay { visibility:hidden; opacity:0; pointer-events:none; transition:opacity 0.2s; }
+#prs-overlay.prs-active { display:flex; visibility:visible; opacity:1; pointer-events:all; }
 #prs-slide { opacity:1; }
 #prs-bars .prs-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden; }
 #prs-bars .prs-bar-fill { height:100%;width:0%;background:#fff;border-radius:2px;transition:none; }
@@ -4150,7 +4151,7 @@ const PRS = (() => {
 
     slide.style.opacity = '0';
     slide.style.backgroundImage = `url('${slides[idx]}')`;
-    setTimeout(()=>{ slide.style.opacity='1'; }, 30);
+    setTimeout(()=>{ slide.style.opacity='1'; }, 60);
 
     const dur = isFinal ? 3500 : 3000;
     if (isFinal) confetti();
@@ -4192,7 +4193,7 @@ const PRS = (() => {
     const ov = document.getElementById('prs-overlay');
     ov.classList.add('prs-active');
     document.body.style.overflow='hidden';
-    setTimeout(() => show(0), 80);
+    setTimeout(() => show(0), 120);
     // Touch/tap nawigacja
     ov.ontouchstart = e=>{ touchX=e.touches[0].clientX; holdTimer=setTimeout(()=>pause(),200); };
     ov.ontouchend = e=>{
