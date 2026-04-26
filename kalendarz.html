@@ -4063,9 +4063,10 @@ const PRS = (() => {
   function getSlides() {
     const seed = Math.floor(Date.now()/86400000);
     const set = SETS[((seed*1234567)>>>0) % SETS.length];
-    const mid = set[Math.floor(set.length/2)];
-    // środkowy + triumf z zestawu + final logo
-    return [mid, set[set.length-1], FINAL].map(s => s.startsWith('http') ? s : BASE+s);
+    // Slajd 1: drugi z zestawu (akcja), Slajd 2: przedostatni (kulminacja), Slajd 3: final logo
+    const s1 = BASE + set[1 % set.length];
+    const s2 = BASE + set[set.length - 1];
+    return [s1, s2, FINAL];
   }
 
   function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }
@@ -4094,7 +4095,7 @@ const PRS = (() => {
     if (idx >= slides.length) { close(); return; }
     cur = idx;
     const slide = document.getElementById('prs-slide');
-    const isFinal = slides[idx] === FINAL;
+    const isFinal = idx === slides.length - 1;
 
     slide.style.opacity = '0';
     slide.style.backgroundImage = `url('${slides[idx]}')`;
