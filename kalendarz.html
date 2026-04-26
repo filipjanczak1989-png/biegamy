@@ -2420,17 +2420,15 @@ async function saveLog() {
     }
   }
   const _prsKal = {
-    dist: String(dist || ''),
+    dist: dist || 0,
     pace: pace || '',
     time: time || '',
-    feel: _logFeel || '',
-    streak: null,
-    badge: null,
+    type: _logType2 || '',
   };
   closeLogModal();
   await loadTrainingsFromDB();
   notify('Log zapisany ✓');
-  if (typeof PRS !== 'undefined') setTimeout(()=>PRS.launch({}), 700);
+  if (typeof PRS !== 'undefined') setTimeout(()=>PRS.launch(_prsKal), 700);
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
@@ -4010,6 +4008,7 @@ document.addEventListener('keydown', e => {
 </style>
 <script>
 const PRS = (() => {
+  let _launchData = {};
   const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
   const FINAL = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/prs_final.webp';
   const SETS = [
@@ -4029,8 +4028,32 @@ const PRS = (() => {
 
   let slides=[], cur=0, timer=null, barAnim=null, holdTimer=null, touchX=0;
 
-  function getSlides() {
-    return [FINAL];
+  function getSlides(data) {
+    const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
+    const dist = parseFloat(data && data.dist) || 0;
+    const pace = data && data.pace || '';
+    const time = data && data.time || '';
+    const type = data && data.type || '';
+
+    // Typy bez dystansu
+    const noDistTypes = ['Regeneracja','Wzmacniający','Zastępczy'];
+    const noDist = noDistTypes.includes(type);
+
+    if (noDist || dist === 0) {
+      // Tylko final gdy brak dystansu
+      return [{ bg: FINAL, overlay: null }];
+    }
+
+    const slides = [];
+    // Slajd 1: dystans
+    if (dist > 0) slides.push({ bg: BASE + 'prs_dystans.webp', overlay: { label: 'DYSTANS', value: dist.toFixed(2) + ' km', icon: '📍' }});
+    // Slajd 2: tempo
+    if (pace) slides.push({ bg: BASE + 'prs_tempo.webp', overlay: { label: 'ŚREDNIE TEMPO', value: pace + ' /km', icon: '⏱' }});
+    // Slajd 3: czas
+    if (time) slides.push({ bg: BASE + 'prs_czas.webp', overlay: { label: 'CZAS TRENINGU', value: time, icon: '🕐' }});
+    // Final zawsze na końcu
+    slides.push({ bg: FINAL, overlay: null });
+    return slides;
   }
 
   function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }
@@ -4062,7 +4085,24 @@ const PRS = (() => {
     const isFinal = idx === slides.length - 1;
 
     slide.style.opacity = '0';
-    slide.style.backgroundImage = `url('${slides[idx]}')`;
+    const s = slides[idx];
+    slide.style.backgroundImage = `url('${s.bg || s}')`;
+    // Overlay z danymi
+    let overlayEl = document.getElementById('prs-data-overlay');
+    if (!overlayEl) {
+      overlayEl = document.createElement('div');
+      overlayEl.id = 'prs-data-overlay';
+      overlayEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:5;padding:0 0 60px;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
+      slide.parentElement.appendChild(overlayEl);
+    }
+    if (s.overlay) {
+      overlayEl.innerHTML = `
+        <div style="font-size:52px;margin-bottom:4px;">${s.overlay.icon}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:72px;color:#fff;line-height:1;text-shadow:0 2px 20px rgba(0,0,0,0.8);">${s.overlay.value}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.25em;color:#e8561e;margin-top:4px;">${s.overlay.label}</div>`;
+    } else {
+      overlayEl.innerHTML = '';
+    }
     setTimeout(()=>{ slide.style.opacity='1'; }, 60);
 
     const dur = isFinal ? 3500 : 3000;
@@ -4098,9 +4138,10 @@ const PRS = (() => {
     setTimeout(()=>{ cancelAnimationFrame(frame); ctx.clearRect(0,0,W,H); }, 4000);
   }
 
-  function open() {
-    slides = getSlides();
-    preload(slides);
+  function open(data) {
+    _launchData = data;
+    slides = getSlides(_launchData);
+    preload(slides.map(s=>s.bg));
     buildBars();
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
