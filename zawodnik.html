@@ -1011,6 +1011,23 @@ body > *{position:relative;z-index:1;}
     </button>
   </div>
 
+
+  <!-- Profile Banner Slides -->
+  <div style="position:relative;width:100%;height:200px;overflow:hidden;margin-bottom:0;">
+    <img id="profile-banner-img" src="" alt="" 
+      style="width:100%;height:100%;object-fit:cover;object-position:center;transition:opacity 0.4s ease;"
+      onerror="this.style.display='none'">
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0) 40%,rgba(7,5,12,0.85) 100%);pointer-events:none;"></div>
+    <!-- Dots -->
+    <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+    </div>
+  </div>
+
   <!-- Avatar + imię -->
   <div style="text-align:center;padding:16px 0 20px;">
     <div style="position:relative;width:96px;margin:0 auto 12px;">
@@ -1924,6 +1941,7 @@ function showSection(name) {
     if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
   } else if (name === 'profile') {
+    setTimeout(_startProfileBanner, 100);
     document.getElementById('section-profile').style.display = 'block';
     activateNav('nav-profile');
     loadProfile();
@@ -3316,13 +3334,14 @@ const _runImgs = (function() {
 const BASE_ASSETS = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
 // Zestawy kart per dzień tygodnia (0=Nd,1=Pn,...,6=So)
 const _heroSets = [
-  ['ag1','ag2','ag3','ag4','ag5'],           // Niedziela
-  ['aa1','aa2','aa3','aa4','aa5'],           // Poniedziałek
-  ['ab1','ab2','ab3','ab4','ab5'],           // Wtorek
-  ['ac1','ac2','ac3','ac4','ac5'],           // Środa
-  ['ad1','ad2','ad3','ad4','ad5'],           // Czwartek
-  ['ae1','ae2','ae3','ae4','ae5'],           // Piątek
-  ['af1','af2','af3','af4','af5'],           // Sobota
+  ['ba1','ba2','ba3','ba4','ba5'],           // Niedziela
+  ['bb1','bb2','bb3','bb4','bb5'],           // Poniedziałek
+  ['bc1','bc2','bc3','bc4','bc5'],           // Wtorek
+  ['bd1','bd2','bd3','bd4','bd5'],           // Środa
+  ['be1','be2','be3','be4','be5'],           // Czwartek
+  ['bf1','bf2','bf3','bf4','bf5'],           // Piątek
+  ['bg1','bg2','bg3','bg4','bg5'],           // Sobota
+  // bh–bm dostępne jako alternatywne zestawy (rotacja co tydzień)
 ];
 const _heroDay = new Date().getDay(); // 0-6
 const _heroCards = _heroSets[_heroDay].map(n => BASE_ASSETS + n + '.webp');
@@ -3915,6 +3934,57 @@ const _todayHeroImg = (function() {
   const seed = d.getFullYear() * 10000 + m * 100 + d.getDate();
   return pool[seed % pool.length];
 })();
+
+
+// ── PROFILE BANNER SLIDES ────────────────────────────────────────────────
+const _PROFILE_BANNER_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const _PROFILE_BANNER_SETS = ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag'];// ba, bb, ... bm
+const _PROFILE_BANNER_COUNT = 5; // ba1.webp ... ba5.webp
+
+// Pick today's set deterministically
+const _profileBannerSet = (function() {
+  const d = new Date();
+  const seed = d.getFullYear() * 10000 + (d.getMonth()+1) * 100 + d.getDate();
+  return _PROFILE_BANNER_SETS[seed % _PROFILE_BANNER_SETS.length];
+})();
+
+// Get slide URLs for current set
+function _profileBannerSlides() {
+  const urls = [];
+  for (let i = 1; i <= _PROFILE_BANNER_COUNT; i++) {
+    urls.push(_PROFILE_BANNER_BASE + _profileBannerSet + i + '.webp');
+  }
+  return urls;
+}
+
+// Start banner rotation
+function _startProfileBanner() {
+  const el = document.getElementById('profile-banner-img');
+  if (!el) return;
+  const slides = _profileBannerSlides();
+  let idx = 0;
+  el.src = slides[0];
+  el.style.opacity = '1';
+  
+  // Update dots
+  function _updateDots(i) {
+    const dots = document.querySelectorAll('.pb-dot');
+    dots.forEach((d, di) => d.style.opacity = di === i ? '1' : '0.35');
+  }
+  _updateDots(0);
+  
+  const interval = setInterval(() => {
+    el.style.opacity = '0';
+    setTimeout(() => {
+      idx = (idx + 1) % slides.length;
+      el.src = slides[idx];
+      el.style.opacity = '1';
+      _updateDots(idx);
+    }, 400);
+  }, 4000);
+  
+  el._bannerInterval = interval;
+}
 
 async function loadWeekPlan() {
   if (!_athleteId) return;
