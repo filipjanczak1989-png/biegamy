@@ -4494,9 +4494,10 @@ async function saveLog() {
   const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
+  console.log('PRS check: isNewLog='+_isNewLog+' PRS='+!!window.PRS+' data='+JSON.stringify(_prsData));
   if (_isNewLog && window.PRS) {
-    // Poczekaj aż modal skończy animację zamknięcia (0.25s transition)
-    setTimeout(() => window.PRS.launch(_prsData), 350);
+    console.log('PRS launching in 350ms...');
+    setTimeout(() => { console.log('PRS.launch NOW'); window.PRS.launch(_prsData); }, 350);
   }
   await loadLogs();
 
@@ -6850,7 +6851,6 @@ const PRS = (() => {
   }
 
   function show(idx) {
-    console.log('PRS show('+idx+') slides='+slides.length+' allSlides='+document.querySelectorAll('#prs-slides-container .prs-s').length+' overlay='+document.getElementById('prs-overlay').style.display);
     if (idx >= slides.length) { close(); return; }
     cur = idx;
     const allSlides = document.querySelectorAll('#prs-slides-container .prs-s');
@@ -6859,9 +6859,8 @@ const PRS = (() => {
       el.style.display = i === idx ? 'flex' : 'none';
     });
     const current = allSlides[idx];
-    if (!current) { console.log('PRS: no current slide at idx='+idx); return; }
+    if (!current) return;
     current.style.display = 'flex';
-    console.log('PRS slide display='+current.style.display+' opacity='+current.style.opacity+' type='+slides[idx].type);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => { current.style.opacity = '1'; });
     });
@@ -6898,6 +6897,7 @@ const PRS = (() => {
   }
 
   function open(data) {
+    console.log('PRS open() called, data='+JSON.stringify(data));
     // Reset — wyczyść poprzednią sesję PRS całkowicie
     clearInterval(barAnim);
     barAnim = null;
@@ -6917,7 +6917,8 @@ const PRS = (() => {
     if (nav) nav.style.display = 'none';
     renderSlides();
     buildBars();
-    setTimeout(() => show(0), 150);
+    console.log('PRS slides built: '+slides.length+' container children: '+document.getElementById('prs-slides-container').children.length);
+    setTimeout(() => { console.log('PRS show(0) firing'); show(0); }, 150);
     ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
     ov.ontouchend = e => {
       clearTimeout(holdTimer);
