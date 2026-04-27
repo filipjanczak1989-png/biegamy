@@ -6750,11 +6750,11 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:20px 20px 0;" data-bg="${bgUrl||''}">
+      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:20px 20px 80px;" data-bg="${bgUrl||''}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
-        <div style="padding:20px 4px 28px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#000;">
+        <div style="padding:16px 4px 16px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#000;">
           <div class="prs-s-label">${label}</div>
           <div class="prs-s-num" style="color:${st.accent};">${num}</div>
           ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
@@ -6765,7 +6765,7 @@ const PRS = (() => {
 
   function buildFinalHTML() {
     return `
-      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:20px;" data-bg="${FINAL}">
+      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:20px 20px 80px;" data-bg="${FINAL}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
