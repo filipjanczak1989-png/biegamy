@@ -6746,16 +6746,17 @@ const PRS = (() => {
 
   function buildSlideHTML(type, value, label, bgUrl) {
     const st = SLIDE_STYLES[type] || SLIDE_STYLES.dystans;
-    // Rozbij wartość na liczbę i jednostkę
     const parts = value.match(/^([\d:.,]+)\s*(.*)$/);
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
+    // Cyfry na dole slajdu — widoczne zawsze; label+unit chowane gdy jest grafika
     return `
-      <div class="prs-s" style="background-color:#000;background-size:cover;background-position:center top;" data-bg="${bgUrl||''}"><div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.5s;"></div>
+      <div class="prs-s" style="background-color:#000;background-size:cover;background-position:center top;" data-bg="${bgUrl||''}">
+        <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.5s;"></div>
         <div class="prs-s-glow" style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 80%,${st.accent}22 0%,transparent 70%);z-index:1;pointer-events:none;"></div>
-        <div class="prs-s-content">
-          <div class="prs-s-label">${label}</div>
-          <div class="prs-s-num" style="color:${st.accent};">${num}</div>
+        <div class="prs-s-data" style="position:absolute;bottom:48px;left:0;right:0;z-index:3;text-align:center;padding:0 24px;">
+          <div class="prs-s-label" style="margin-bottom:8px;">${label}</div>
+          <div class="prs-s-num" style="color:${st.accent};text-shadow:0 2px 24px rgba(0,0,0,0.8);">${num}</div>
           ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
         </div>
         <div class="prs-s-bar-line" style="background:${st.accent};"></div>
@@ -6763,12 +6764,9 @@ const PRS = (() => {
   }
 
   function buildFinalHTML() {
+    // Sama grafika — żadnego tekstu HTML (jest już w grafice prs_final.webp)
     return `
       <div class="prs-s prs-s-final" data-bg="${FINAL}">
-        <div class="prs-s-final-inner">
-          <div class="prs-s-final-logo">BiegaMy<span>.run</span></div>
-          <div class="prs-s-final-tagline">Dziś wygrałeś.</div>
-        </div>
       </div>`;
   }
 
@@ -6804,18 +6802,24 @@ const PRS = (() => {
       if (s.type === 'final') return buildFinalHTML();
       return buildSlideHTML(s.type, s.value, s.label, s.bg);
     }).join('');
-    // Async: próbuj załadować grafiki jako tło
+    // Async: ładuj grafiki jako tło; gdy załadowana → ukryj label+unit
     container.querySelectorAll('.prs-s[data-bg]').forEach(el => {
       const bgUrl = el.getAttribute('data-bg');
       if (!bgUrl) return;
       const img = new Image();
       img.onload = () => {
-          el.style.backgroundImage = `url('${bgUrl}')`;
-          el.style.backgroundSize = 'cover';
-          el.style.backgroundPosition = 'center top';
-          const fg = el.querySelector('.prs-s-fallback-grad');
-          if (fg) fg.style.opacity = '0';
-        };
+        el.style.backgroundImage = `url('${bgUrl}')`;
+        el.style.backgroundSize = 'cover';
+        el.style.backgroundPosition = 'center top';
+        const fg = el.querySelector('.prs-s-fallback-grad');
+        if (fg) fg.style.opacity = '0';
+        // Chowamy label i unit — cyfra zostaje na dole pod grafiką
+        const label = el.querySelector('.prs-s-label');
+        const unit  = el.querySelector('.prs-s-unit');
+        if (label) label.style.opacity = '0';
+        if (unit)  unit.style.opacity  = '0';
+      };
+      img.onerror = () => {}; // zostaje gradient fallback
       img.src = bgUrl;
     });
   }
