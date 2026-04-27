@@ -4485,15 +4485,15 @@ async function saveLog() {
   btn.disabled = false;
   _savingLog = false;
 
-  await loadLogs();
-  // Zapisz dane PRZED closeModal (które czyści formularz)
+  // Zapisz dane i stan PRZED jakimkolwiek await (czyści formularz i stan)
   const _prsData = { dist: (isNaN(dist) ? 0 : dist), pace, time, type: _logType };
   const _isNewLog = !_editingLogId;
   closeModal();
   toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog && typeof PRS !== 'undefined') {
-    setTimeout(() => PRS.launch(_prsData), 600);
+    setTimeout(() => PRS.launch(_prsData), 400);
   }
+  await loadLogs();
 
   // Reset formularza
   _editingLogId = null;
@@ -6751,7 +6751,7 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 80px;" data-bg="${bgUrl||''}">
+      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 80px;" data-bg="${bgUrl||''}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
@@ -6766,7 +6766,7 @@ const PRS = (() => {
   
   function buildFinalHTML() {
     return `
-      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 80px;" data-bg="${FINAL}">
+      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 80px;" data-bg="${FINAL}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>

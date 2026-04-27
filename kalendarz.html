@@ -4080,11 +4080,11 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px 80px;" data-bg="${bgUrl||''}">
+      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 40px;" data-bg="${bgUrl||''}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
-        <div style="padding:16px 4px 0;display:flex;flex-direction:column;align-items:center;gap:2px;background:#000;">
+        <div style="padding:16px 4px 32px;display:flex;flex-direction:column;align-items:center;gap:2px;background:#000;">
           <div class="prs-s-num" style="color:${st.accent};">${num}</div>
           ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
         </div>
