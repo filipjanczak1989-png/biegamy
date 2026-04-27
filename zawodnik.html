@@ -4495,12 +4495,7 @@ async function saveLog() {
   toast('Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog) {
     const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
-    console.log('PRS launch data:', JSON.stringify(_prsData), 'PRS exists:', !!window.PRS);
-    if (window.PRS) {
-      window.PRS.launch(_prsData);
-    } else {
-      console.error('PRS not found on window!');
-    }
+    if (window.PRS) window.PRS.launch(_prsData);
   }
   await loadLogs();
 
@@ -6936,6 +6931,7 @@ const PRS = (() => {
   return { launch: open, close };
 })();
 window.PRS = PRS;
+window.PRSclose = PRS.close;
 </script>
 
 </body>
