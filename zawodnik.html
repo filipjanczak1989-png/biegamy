@@ -4495,8 +4495,8 @@ async function saveLog() {
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog && window.PRS) {
-      setTimeout(() => {
- window.PRS.launch(_prsData); }, 350);
+    // Poczekaj aż modal skończy animację zamknięcia (0.25s transition)
+    setTimeout(() => window.PRS.launch(_prsData), 350);
   }
   await loadLogs();
 
@@ -6706,7 +6706,7 @@ function _stopSocialBannerRotation() {
 
 </div>
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;touch-action:none;transition:opacity 0.3s ease;background:#000;isolation:isolate;will-change:transform;">
+<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;touch-action:none;transition:opacity 0.3s ease;background:#000;">
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:6;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:5;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:7;background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
@@ -6852,17 +6852,25 @@ const PRS = (() => {
   function show(idx) {
     if (idx >= slides.length) { close(); return; }
     cur = idx;
-    const allSlides = document.querySelectorAll('#prs-slides-container .prs-s');
-    allSlides.forEach((el,i) => {
-      el.style.opacity = i === idx ? '0' : '0';
-      el.style.display = i === idx ? 'flex' : 'none';
+    const container = document.getElementById('prs-slides-container');
+    const allSlides = container.querySelectorAll('.prs-s');
+    // Ukryj wszystkie
+    allSlides.forEach(el => {
+      el.style.cssText = el.style.cssText.replace(/display:[^;]+;?/g, '');
+      el.style.display = 'none';
+      el.style.opacity = '0';
     });
     const current = allSlides[idx];
     if (!current) return;
+    // Pokaż aktywny — nadpisz wszystko inline
     current.style.display = 'flex';
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => { current.style.opacity = '1'; });
-    });
+    current.style.flexDirection = 'column';
+    current.style.position = 'absolute';
+    current.style.inset = '0';
+    current.style.opacity = '0';
+    current.style.background = '#000';
+    current.style.zIndex = '2';
+    setTimeout(() => { current.style.opacity = '1'; }, 30);
     if (slides[idx].type === 'final') confetti();
     const dur = slides[idx].type === 'final' ? 3500 : 3000;
     animBar(idx, dur, () => show(idx + 1));
@@ -6896,7 +6904,7 @@ const PRS = (() => {
   }
 
   function open(data) {
-      // Reset — wyczyść poprzednią sesję PRS całkowicie
+    // Reset — wyczyść poprzednią sesję PRS całkowicie
     clearInterval(barAnim);
     barAnim = null;
     cur = 0;
@@ -6913,13 +6921,9 @@ const PRS = (() => {
     document.body.style.overflow = 'hidden';
     const nav = document.getElementById('main-bottom-nav');
     if (nav) nav.style.display = 'none';
-    // Wyłącz backdrop-filter na modal który może przykrywać PRS
-    const modalBg = document.getElementById('modal-bg');
-    if (modalBg) { modalBg.style.backdropFilter = 'none'; modalBg.style.webkitBackdropFilter = 'none'; }
     renderSlides();
     buildBars();
-      setTimeout(() => {
- show(0); }, 150);
+    setTimeout(() => show(0), 150);
     ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
     ov.ontouchend = e => {
       clearTimeout(holdTimer);
@@ -6942,8 +6946,6 @@ const PRS = (() => {
       document.getElementById('prs-slides-container').innerHTML = '';
       const nav = document.getElementById('main-bottom-nav');
       if (nav) nav.style.display = '';
-      const modalBg = document.getElementById('modal-bg');
-      if (modalBg) { modalBg.style.backdropFilter = ''; modalBg.style.webkitBackdropFilter = ''; }
     }, 300);
   }
 
