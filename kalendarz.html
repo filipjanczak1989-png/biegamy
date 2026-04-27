@@ -4030,7 +4030,7 @@ document.addEventListener('keydown', e => {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;touch-action:none;transition:opacity 0.3s ease;">
+<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;touch-action:none;transition:opacity 0.3s ease;background:#000;">
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:6;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:5;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:7;background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
@@ -4080,7 +4080,7 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:20px 20px 80px;" data-bg="${bgUrl||''}">
+      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 52px) 20px 80px;" data-bg="${bgUrl||''}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
@@ -4095,7 +4095,7 @@ const PRS = (() => {
 
   function buildFinalHTML() {
     return `
-      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:20px 20px 80px;" data-bg="${FINAL}">
+      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:calc(env(safe-area-inset-top,0px) + 52px) 20px 80px;" data-bg="${FINAL}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
@@ -4107,9 +4107,9 @@ const PRS = (() => {
     const pace = (data && data.pace) || '';
     const time = (data && data.time) || '';
     const type = (data && data.type) || '';
-    const noDistTypes = ['Regeneracja','Wzmacniający','Zastępczy','Odpoczynek'];
     const result = [];
-    if (!noDistTypes.includes(type) && dist > 0) {
+    const hasAnyData = dist > 0 || pace || time;
+    if (hasAnyData) {
       const s = pickSet();
       let displayTime = time;
       if (!displayTime && pace && dist > 0) {

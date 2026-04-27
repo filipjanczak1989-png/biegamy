@@ -6777,10 +6777,7 @@ const PRS = (() => {
     const pace = (data && data.pace) || '';
     const time = (data && data.time) || '';
     const type = (data && data.type) || '';
-    const noDistTypes = ['Regeneracja','Wzmacniający','Zastępczy','Odpoczynek'];
     const result = [];
-    // Dla Regeneracja/Odpoczynek/Zastępczy/Wzmacniający — slajdy tylko gdy są dane
-    // Dla pozostałych — slajdy gdy jest dystans lub pace lub czas
     const hasAnyData = dist > 0 || pace || time;
     if (hasAnyData) {
       const s = pickSet();
