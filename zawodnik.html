@@ -4485,13 +4485,22 @@ async function saveLog() {
   btn.disabled = false;
   _savingLog = false;
 
-  // Zapisz dane i stan PRZED jakimkolwiek await (czyści formularz i stan)
-  const _prsData = { dist: (isNaN(dist) ? 0 : dist), pace, time, type: _logType };
+  // PRS — przygotuj dane i odpal PRZED await i closeModal
+  const _prsDistVal = isNaN(dist) ? 0 : (dist || 0);
+  const _prsPaceVal = pace || '';
+  const _prsTimeVal = time || '';
+  const _prsTypeVal = _logType || '';
   const _isNewLog = !_editingLogId;
   closeModal();
-  toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
+  toast('Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog) {
-    setTimeout(() => { if (window.PRS) window.PRS.launch(_prsData); }, 400);
+    const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
+    console.log('PRS launch data:', JSON.stringify(_prsData), 'PRS exists:', !!window.PRS);
+    if (window.PRS) {
+      window.PRS.launch(_prsData);
+    } else {
+      console.error('PRS not found on window!');
+    }
   }
   await loadLogs();
 
@@ -6741,7 +6750,8 @@ const PRS = (() => {
   let barAnim = null, holdTimer = null, touchX = 0;
 
   function pickSet() {
-    return SETS[Math.floor(Math.random() * SETS.length)];
+    const seed = Math.floor(Date.now() / 86400000);
+    return SETS[((seed * 1234567) >>> 0) % SETS.length];
   }
 
   function buildSlideHTML(type, value, label, bgUrl) {
@@ -6749,24 +6759,23 @@ const PRS = (() => {
     const parts = value.match(/^([\d:.,]+)\s*(.*)$/);
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
-    // Grafika pełny ekran, cyfry w pasku na dole
     return `
-      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:12px 12px 0;" data-bg="${bgUrl||''}">
+      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 80px;" data-bg="${bgUrl||''}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
-        <div style="height:90px;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:16px;background:#000;padding:0 16px 0;">
-          <div class="prs-s-num" style="color:${st.accent};line-height:1;">${num}</div>
-          ${unit ? `<div class="prs-s-unit" style="align-self:flex-end;padding-bottom:8px;">${unit}</div>` : ''}
+        <div style="padding:14px 4px 0;display:flex;flex-direction:column;align-items:center;gap:2px;background:#000;">
+          <div class="prs-s-num" style="color:${st.accent};">${num}</div>
+          ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
         </div>
-        <div class="prs-s-bar-line" style="background:${st.accent};margin-bottom:env(safe-area-inset-bottom,0px);"></div>
+        <div class="prs-s-bar-line" style="background:${st.accent};"></div>
       </div>`;
   }
 
   
   function buildFinalHTML() {
     return `
-      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:12px 12px 0;" data-bg="${FINAL}">
+      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 80px;" data-bg="${FINAL}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
