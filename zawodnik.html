@@ -98,7 +98,7 @@ body::after{
 }
 
 /* Ensure content sits above bg decorations */
-body > *{position:relative;z-index:1;}
+/* body > * z-index removed - caused PRS stacking issues */
 
 /* ── UNIFIED CARD BASE ──────────────────────────────────────────────── */
 /* All interactive tiles share these properties for visual consistency */
@@ -6908,16 +6908,16 @@ const PRS = (() => {
 
     _launchData = data || {};
     slides = getSlides(_launchData);
-    const ov = document.getElementById('prs-overlay');
-    ov.style.display = 'flex';
+    // Przenieś overlay do <html> żeby uciec z body stacking context
+    let ov = document.getElementById('prs-overlay');
+    if (ov && ov.parentElement !== document.documentElement) {
+      document.documentElement.appendChild(ov);
+    }
+    ov = document.getElementById('prs-overlay');
+    ov.style.cssText = 'display:flex;position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;touch-action:none;background:#000;';
     document.body.style.overflow = 'hidden';
     const nav = document.getElementById('main-bottom-nav');
     if (nav) nav.style.display = 'none';
-    // Ukryj wszystkie sekcje które mogą być nad overlay
-    ['section-social','section-msgs','section-profile','section-stats'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.dataset.prsHidden = el.style.display || ''; el.style.display = 'none'; }
-    });
     renderSlides();
     buildBars();
     setTimeout(() => show(0), 150);
@@ -6943,10 +6943,6 @@ const PRS = (() => {
       document.getElementById('prs-slides-container').innerHTML = '';
       const nav = document.getElementById('main-bottom-nav');
       if (nav) nav.style.display = '';
-      ['section-social','section-msgs','section-profile','section-stats'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && el.dataset.prsHidden !== undefined) { el.style.display = el.dataset.prsHidden; delete el.dataset.prsHidden; }
-      });
     }, 300);
   }
 
