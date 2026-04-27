@@ -4489,11 +4489,11 @@ async function saveLog() {
   const _prsData = { dist: (isNaN(dist) ? 0 : dist), pace, time, type: _logType };
   const _isNewLog = !_editingLogId;
   closeModal();
-  toast(_editingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany! Trener widzi Twój wynik ✓');
-  if (_isNewLog) {
-    setTimeout(() => { if (window.PRS) window.PRS.launch(_prsData); }, 300);
-  }
+  toast('Log zapisany! Trener widzi Twój wynik ✓');
   await loadLogs();
+  if (_isNewLog && window.PRS) {
+    window.PRS.launch(_prsData);
+  }
 
   // Reset formularza
   _editingLogId = null;
@@ -6891,29 +6891,14 @@ const PRS = (() => {
   }
 
   function open(data) {
-    // Reset — usuń pozostałości poprzednich sesji
-    clearInterval(barAnim);
-    barAnim = null;
-    cur = 0;
-    slides = [];
-    const container = document.getElementById('prs-slides-container');
-    if (container) container.innerHTML = '';
-    const barsEl = document.getElementById('prs-bars');
-    if (barsEl) barsEl.innerHTML = '';
-
     _launchData = data || {};
     slides = getSlides(_launchData);
-
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    // Ukryj navbar
-    const nav = document.getElementById('main-bottom-nav');
-    if (nav) nav.style.display = 'none';
-
     renderSlides();
     buildBars();
-    setTimeout(() => show(0), 150);
+    setTimeout(() => show(0), 80);
     ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
     ov.ontouchend = e => {
       clearTimeout(holdTimer);
@@ -6933,8 +6918,6 @@ const PRS = (() => {
       ov.style.opacity = '1';
       document.body.style.overflow = '';
       document.getElementById('prs-slides-container').innerHTML = '';
-      const nav2 = document.getElementById('main-bottom-nav');
-      if (nav2) nav2.style.display = '';
     }, 300);
   }
 
@@ -6944,7 +6927,7 @@ const PRS = (() => {
   return { launch: open, close };
 })();
 window.PRS = PRS;
-window.PRSclose = function() { PRS.close(); };
+window.PRSclose = function() { if(window.PRS) window.PRS.close(); };
 </script>
 
 </body>
