@@ -3186,6 +3186,43 @@ if (_urlRole === 'coach') {
 }
 
 function autoColonPace(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=2)v=v.slice(0,1)+":"+v.slice(1);el.value=v.slice(0,4);}
+function kalAutoColonTime(el){
+  let v=el.value.replace(/[^0-9]/g,'');
+  if(v.length<=4){if(v.length>=3)v=v.slice(0,2)+':'+v.slice(2);}
+  else if(v.length===5)v=v.slice(0,1)+':'+v.slice(1,3)+':'+v.slice(3);
+  else v=v.slice(0,2)+':'+v.slice(2,4)+':'+v.slice(4);
+  el.value=v.slice(0,7);
+}
+function kalCalcPaceAuto(){
+  const dist=parseFloat(document.getElementById('lm-dist').value);
+  const timeVal=document.getElementById('lm-time').value;
+  if(!dist||!timeVal||timeVal.length<4)return;
+  const parts=timeVal.split(':').map(Number);
+  let secs=parts.length===3?parts[0]*3600+parts[1]*60+parts[2]:parts.length===2?parts[0]*60+parts[1]:0;
+  if(!secs||!dist)return;
+  const pm=Math.floor(secs/dist/60);
+  const ps=String(Math.round((secs/dist)%60)).padStart(2,'0');
+  document.getElementById('lm-pace').value=pm+':'+ps;
+}
+function kalCalcTimeAuto(){
+  const dist=parseFloat(document.getElementById('lm-dist').value);
+  const paceVal=document.getElementById('lm-pace').value;
+  if(!dist||!paceVal||paceVal.length<3)return;
+  const parts=paceVal.split(':').map(Number);
+  if(parts.length<2)return;
+  const paceSecs=parts[0]*60+(parts[1]||0);
+  const totalSecs=Math.round(paceSecs*dist);
+  const h=Math.floor(totalSecs/3600);
+  const m=String(Math.floor((totalSecs%3600)/60)).padStart(2,'0');
+  const s=String(totalSecs%60).padStart(2,'0');
+  document.getElementById('lm-time').value=h+':'+m+':'+s;
+}
+function kalCalcBothAuto(){
+  const paceVal=document.getElementById('lm-pace').value;
+  const timeVal=document.getElementById('lm-time').value;
+  if(paceVal&&paceVal.length>=3)kalCalcTimeAuto();
+  else if(timeVal&&timeVal.length>=4)kalCalcPaceAuto();
+}
 
 render();
 loadAthletesSelect();
@@ -4231,17 +4268,17 @@ window.PRS = PRS;
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
           <div>
             <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;">Dystans (km)</label>
-            <input id="lm-dist" type="number" step="0.01" placeholder="—" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
+            <input id="lm-dist" type="number" step="0.01" placeholder="—" oninput="kalCalcBothAuto()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
           </div>
           <div>
             <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;">Czas</label>
-            <input id="lm-time" type="text" placeholder="np. 1:02:30" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
+            <input id="lm-time" type="text" placeholder="np. 1:02:30" inputmode="numeric" oninput="kalAutoColonTime(this);kalCalcPaceAuto()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
           <div>
             <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;">Tempo (min/km)</label>
-            <input id="lm-pace" type="text" placeholder="np. 5:10" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
+            <input id="lm-pace" type="text" placeholder="np. 5:10" inputmode="numeric" oninput="autoColonPace(this);kalCalcTimeAuto()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 12px;outline:none;border-radius:4px;">
           </div>
           <div>
             <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;font-family:'DM Mono',monospace;">Tętno śr. (bpm)</label>
