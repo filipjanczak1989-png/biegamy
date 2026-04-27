@@ -6737,12 +6737,10 @@ window._prsBar = null;
 window.PRSclose = function() {
   clearInterval(window._prsBar);
   const ov = document.getElementById('prs-overlay');
-  if (ov) ov.style.display = 'none';
+  if (ov) ov.remove();
   const nav = document.getElementById('main-bottom-nav');
   if (nav) nav.style.display = '';
   document.body.style.overflow = '';
-  const cont = document.getElementById('prs-slides-container');
-  if (cont) cont.innerHTML = '';
 };
 
 window.PRS = {
@@ -6768,10 +6766,25 @@ window.PRS = {
     if (nav) nav.style.display = 'none';
     document.body.style.overflow = 'hidden';
 
-    // Zbuduj overlay od zera
-    const ov = document.getElementById('prs-overlay');
-    ov.innerHTML = '';
-    ov.style.cssText = 'display:block;position:fixed;top:0;left:0;width:100vw;height:100vh;background:#000;z-index:999999;';
+    // Usuń stary overlay jeśli istnieje, stwórz nowy POZA body > * { z-index:1 }
+    const oldOv = document.getElementById('prs-overlay');
+    if (oldOv) oldOv.remove();
+    const ov = document.createElement('div');
+    ov.id = 'prs-overlay';
+    // Ustaw style bezpośrednio - position:fixed musi być viewport-relative
+    ov.setAttribute('style', [
+      'position:fixed',
+      'top:0',
+      'left:0', 
+      'width:100vw',
+      'height:100vh',
+      'background:#000',
+      'z-index:2147483647',
+      'display:block',
+      'touch-action:none'
+    ].join('!important;') + '!important');
+    // Dodaj do html (nie body) żeby uniknąć body > * { z-index:1 }
+    document.documentElement.appendChild(ov);
 
     // Przycisk zamknij
     const closeBtn = document.createElement('button');
