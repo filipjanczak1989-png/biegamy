@@ -4485,9 +4485,13 @@ async function saveLog() {
   btn.disabled = false;
   _savingLog = false;
 
-  // Zapisz dane i stan PRZED jakimkolwiek await (czyści formularz i stan)
-  const _prsData = { dist: (isNaN(dist) ? 0 : dist), pace, time, type: _logType };
+  // PRS — zapisz dane i odpal PRZED await loadLogs (nie po!)
+  const _prsDistVal = isNaN(dist) ? 0 : (dist || 0);
+  const _prsPaceVal = pace || '';
+  const _prsTimeVal = time || '';
+  const _prsTypeVal = _logType || '';
   const _isNewLog = !_editingLogId;
+  const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog && window.PRS) {
@@ -6891,21 +6895,14 @@ const PRS = (() => {
   }
 
   function open(data) {
-    clearInterval(barAnim); barAnim = null; cur = 0; slides = [];
-    const _cont = document.getElementById('prs-slides-container');
-    if (_cont) _cont.innerHTML = '';
-    const _barsEl = document.getElementById('prs-bars');
-    if (_barsEl) _barsEl.innerHTML = '';
     _launchData = data || {};
     slides = getSlides(_launchData);
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    const _nav = document.getElementById('main-bottom-nav');
-    if (_nav) _nav.style.display = 'none';
     renderSlides();
     buildBars();
-    setTimeout(() => show(0), 150);
+    setTimeout(() => show(0), 80);
     ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
     ov.ontouchend = e => {
       clearTimeout(holdTimer);
@@ -6925,7 +6922,6 @@ const PRS = (() => {
       ov.style.opacity = '1';
       document.body.style.overflow = '';
       document.getElementById('prs-slides-container').innerHTML = '';
-      const _navR = document.getElementById('main-bottom-nav'); if (_navR) _navR.style.display = '';
     }, 300);
   }
 
