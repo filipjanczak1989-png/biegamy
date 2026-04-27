@@ -6895,14 +6895,26 @@ const PRS = (() => {
   }
 
   function open(data) {
+    // Reset — wyczyść poprzednią sesję PRS całkowicie
+    clearInterval(barAnim);
+    barAnim = null;
+    cur = 0;
+    slides = [];
+    const prevCont = document.getElementById('prs-slides-container');
+    if (prevCont) prevCont.innerHTML = '';
+    const prevBars = document.getElementById('prs-bars');
+    if (prevBars) prevBars.innerHTML = '';
+
     _launchData = data || {};
     slides = getSlides(_launchData);
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    const nav = document.getElementById('main-bottom-nav');
+    if (nav) nav.style.display = 'none';
     renderSlides();
     buildBars();
-    setTimeout(() => show(0), 80);
+    setTimeout(() => show(0), 150);
     ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
     ov.ontouchend = e => {
       clearTimeout(holdTimer);
@@ -6915,6 +6927,7 @@ const PRS = (() => {
 
   function close() {
     clearInterval(barAnim);
+    barAnim = null;
     const ov = document.getElementById('prs-overlay');
     ov.style.opacity = '0';
     setTimeout(() => {
@@ -6922,6 +6935,8 @@ const PRS = (() => {
       ov.style.opacity = '1';
       document.body.style.overflow = '';
       document.getElementById('prs-slides-container').innerHTML = '';
+      const nav = document.getElementById('main-bottom-nav');
+      if (nav) nav.style.display = '';
     }, 300);
   }
 
