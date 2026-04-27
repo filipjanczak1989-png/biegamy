@@ -6756,7 +6756,7 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background:#000;flex-direction:column;padding:16px 16px 80px;" data-bg="${bgUrl||''}">
+      <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 80px;" data-bg="${bgUrl||''}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
@@ -6771,7 +6771,7 @@ const PRS = (() => {
   
   function buildFinalHTML() {
     return `
-      <div class="prs-s prs-s-final" style="background:#000;flex-direction:column;padding:16px 16px 80px;" data-bg="${FINAL}">
+      <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:16px 16px 80px;" data-bg="${FINAL}">
         <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
@@ -6850,6 +6850,7 @@ const PRS = (() => {
   }
 
   function show(idx) {
+    console.log('PRS show('+idx+') slides='+slides.length+' allSlides='+document.querySelectorAll('#prs-slides-container .prs-s').length+' overlay='+document.getElementById('prs-overlay').style.display);
     if (idx >= slides.length) { close(); return; }
     cur = idx;
     const allSlides = document.querySelectorAll('#prs-slides-container .prs-s');
@@ -6858,8 +6859,9 @@ const PRS = (() => {
       el.style.display = i === idx ? 'flex' : 'none';
     });
     const current = allSlides[idx];
-    if (!current) return;
+    if (!current) { console.log('PRS: no current slide at idx='+idx); return; }
     current.style.display = 'flex';
+    console.log('PRS slide display='+current.style.display+' opacity='+current.style.opacity+' type='+slides[idx].type);
     requestAnimationFrame(() => {
       requestAnimationFrame(() => { current.style.opacity = '1'; });
     });
