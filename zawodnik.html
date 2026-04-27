@@ -98,7 +98,7 @@ body::after{
 }
 
 /* Ensure content sits above bg decorations */
-/* body > * z-index removed - caused PRS stacking issues */
+body > *{position:relative;z-index:1;}
 
 /* ── UNIFIED CARD BASE ──────────────────────────────────────────────── */
 /* All interactive tiles share these properties for visual consistency */
@@ -4494,9 +4494,12 @@ async function saveLog() {
   const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
-  if (_isNewLog && window.PRS) {
-    // Poczekaj aż modal skończy animację zamknięcia (0.25s transition)
-    setTimeout(() => window.PRS.launch(_prsData), 350);
+  if (_isNewLog) {
+    const _p = new URLSearchParams();
+    if (_prsData.dist > 0) _p.set('dist', _prsData.dist);
+    if (_prsData.pace) _p.set('pace', _prsData.pace);
+    if (_prsData.time) _p.set('time', _prsData.time);
+    setTimeout(() => { window.location.href = 'prs.html?' + _p.toString(); }, 200);
   }
   await loadLogs();
 
@@ -6908,13 +6911,8 @@ const PRS = (() => {
 
     _launchData = data || {};
     slides = getSlides(_launchData);
-    // Przenieś overlay do <html> żeby uciec z body stacking context
-    let ov = document.getElementById('prs-overlay');
-    if (ov && ov.parentElement !== document.documentElement) {
-      document.documentElement.appendChild(ov);
-    }
-    ov = document.getElementById('prs-overlay');
-    ov.style.cssText = 'display:flex;position:fixed;top:0;left:0;width:100%;height:100%;z-index:2147483647;touch-action:none;background:#000;';
+    const ov = document.getElementById('prs-overlay');
+    ov.style.display = 'flex';
     document.body.style.overflow = 'hidden';
     const nav = document.getElementById('main-bottom-nav');
     if (nav) nav.style.display = 'none';

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BiegaMy — Wynik</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;}
+#slide{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  background:#000;display:flex;flex-direction:column;
+  padding:52px 16px 80px;
+}
+#img{
+  flex:1;min-height:0;border-radius:16px;background:#111;
+  background-size:cover;background-position:center top;
+}
+#info{padding:16px 0 0;text-align:center;}
+#num{
+  font-family:'Bebas Neue',monospace,sans-serif;
+  font-size:clamp(56px,18vw,100px);line-height:1;
+}
+#bars{
+  position:fixed;top:14px;left:14px;right:54px;
+  display:flex;gap:4px;
+}
+.bar{flex:1;height:3px;background:rgba(255,255,255,0.3);border-radius:2px;overflow:hidden;}
+.fill{height:100%;width:0%;background:#fff;border-radius:2px;}
+#close{
+  position:fixed;top:10px;right:12px;
+  background:rgba(0,0,0,0.5);border:none;color:#fff;
+  font-size:18px;width:36px;height:36px;border-radius:50%;cursor:pointer;
+}
+#confetti{position:fixed;inset:0;pointer-events:none;}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+</head>
+<body>
+<canvas id="confetti"></canvas>
+<div id="bars"></div>
+<button id="close" onclick="goBack()">✕</button>
+<div id="slide">
+  <div id="img"></div>
+  <div id="info"><div id="num"></div></div>
+</div>
+<script>
+const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
+const COLORS = {'dystans':'#e8561e','tempo':'#5b8cff','czas':'#3db870','final':'#e8561e'};
+
+// Pobierz dane z URL
+const params = new URLSearchParams(location.search);
+const dist = parseFloat(params.get('dist')) || 0;
+const pace = params.get('pace') || '';
+const time = params.get('time') || '';
+const SETS = ['set1','set2','set3','set4','set5','set6','set7','set8'];
+const s = SETS[Math.floor(Math.random()*SETS.length)];
+
+// Zbuduj slajdy
+const slides = [];
+if (dist > 0) slides.push({type:'dystans', val:dist.toFixed(1)+' km', bg:BASE+'prs_'+s+'_dystans.webp'});
+if (pace)     slides.push({type:'tempo',   val:pace+' /km',            bg:BASE+'prs_'+s+'_tempo.webp'});
+if (time)     slides.push({type:'czas',    val:time,                   bg:BASE+'prs_'+s+'_czas.webp'});
+slides.push({type:'final', val:'', bg:BASE+'prs_final.webp'});
+
+// Buduj paski
+const barsEl = document.getElementById('bars');
+slides.forEach(() => {
+  const b = document.createElement('div'); b.className='bar';
+  const f = document.createElement('div'); f.className='fill';
+  b.appendChild(f); barsEl.appendChild(b);
+});
+
+let cur = 0, timer = null;
+
+function show(idx) {
+  if (idx >= slides.length) { goBack(); return; }
+  cur = idx;
+  const s = slides[idx];
+  
+  // Grafika
+  document.getElementById('img').style.backgroundImage = s.bg ? "url('"+s.bg+"')" : '';
+  
+  // Cyfry
+  const info = document.getElementById('info');
+  const num = document.getElementById('num');
+  if (s.type === 'final') {
+    info.style.display = 'none';
+    confetti();
+  } else {
+    info.style.display = 'block';
+    num.textContent = s.val;
+    num.style.color = COLORS[s.type] || '#fff';
+  }
+  
+  // Pasek
+  clearInterval(timer);
+  const fills = document.querySelectorAll('.fill');
+  fills.forEach((f,i) => f.style.width = i < idx ? '100%' : '0%');
+  const dur = s.type === 'final' ? 3500 : 3000;
+  const step = 100/(dur/50);
+  timer = setInterval(() => {
+    const w = parseFloat(fills[idx].style.width||0) + step;
+    fills[idx].style.width = Math.min(w,100)+'%';
+    if (w >= 100) { clearInterval(timer); show(idx+1); }
+  }, 50);
+}
+
+document.getElementById('slide').onclick = () => {
+  clearInterval(timer);
+  show(cur+1);
+};
+
+function goBack() {
+  clearInterval(timer);
+  history.back();
+}
+
+function confetti() {
+  const canvas = document.getElementById('confetti');
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  const ctx = canvas.getContext('2d');
+  const colors = ['#e8561e','#ff8c42','#fff','#ffd700','#3db870','#5b8cff'];
+  const parts = Array.from({length:100}, () => ({
+    x:Math.random()*innerWidth, y:-20,
+    vx:(Math.random()-0.5)*4, vy:Math.random()*4+2,
+    w:Math.random()*10+4, h:Math.random()*6+3,
+    c:colors[Math.floor(Math.random()*colors.length)],
+    r:Math.random()*360, rv:(Math.random()-0.5)*8
+  }));
+  let frame;
+  (function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    parts.forEach(p => {
+      p.x+=p.vx; p.y+=p.vy; p.r+=p.rv;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r*Math.PI/180);
+      ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+    });
+    if (parts.some(p=>p.y<canvas.height)) frame=requestAnimationFrame(draw);
+  })();
+  setTimeout(()=>cancelAnimationFrame(frame), 4000);
+}
+
+show(0);
+</script>
+</body>
+</html>
