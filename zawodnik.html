@@ -6749,22 +6749,22 @@ const PRS = (() => {
     const parts = value.match(/^([\d:.,]+)\s*(.*)$/);
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
-    // Cyfry na dole slajdu — widoczne zawsze; label+unit chowane gdy jest grafika
+    // Cyfry na dole ekranu (8vh od dołu), label+unit chowane gdy załaduje się grafika
     return `
       <div class="prs-s" style="background-color:#000;background-size:cover;background-position:center top;" data-bg="${bgUrl||''}">
         <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.5s;"></div>
         <div class="prs-s-glow" style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 80%,${st.accent}22 0%,transparent 70%);z-index:1;pointer-events:none;"></div>
-        <div class="prs-s-data" style="position:absolute;bottom:48px;left:0;right:0;z-index:3;text-align:center;padding:0 24px;">
-          <div class="prs-s-label" style="margin-bottom:8px;">${label}</div>
-          <div class="prs-s-num" style="color:${st.accent};text-shadow:0 2px 24px rgba(0,0,0,0.8);">${num}</div>
-          ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
+        <div class="prs-s-data" style="position:absolute;bottom:8vh;left:0;right:0;z-index:3;text-align:center;padding:0 24px;transition:opacity 0.3s;">
+          <div class="prs-s-label" style="transition:opacity 0.3s;">${label}</div>
+          <div class="prs-s-num" style="color:${st.accent};text-shadow:0 2px 32px rgba(0,0,0,0.9);">${num}</div>
+          ${unit ? `<div class="prs-s-unit" style="transition:opacity 0.3s;">${unit}</div>` : ''}
         </div>
         <div class="prs-s-bar-line" style="background:${st.accent};"></div>
       </div>`;
   }
 
   function buildFinalHTML() {
-    // Sama grafika — żadnego tekstu HTML (jest już w grafice prs_final.webp)
+    // Czysta grafika prs_final.webp — napisy są wbudowane w grafikę
     return `
       <div class="prs-s prs-s-final" data-bg="${FINAL}">
       </div>`;
@@ -6802,7 +6802,7 @@ const PRS = (() => {
       if (s.type === 'final') return buildFinalHTML();
       return buildSlideHTML(s.type, s.value, s.label, s.bg);
     }).join('');
-    // Async: ładuj grafiki jako tło; gdy załadowana → ukryj label+unit
+    // Async: ładuj grafiki; gdy załadowana → pokaż jako tło, ukryj label+unit
     container.querySelectorAll('.prs-s[data-bg]').forEach(el => {
       const bgUrl = el.getAttribute('data-bg');
       if (!bgUrl) return;
@@ -6813,13 +6813,13 @@ const PRS = (() => {
         el.style.backgroundPosition = 'center top';
         const fg = el.querySelector('.prs-s-fallback-grad');
         if (fg) fg.style.opacity = '0';
-        // Chowamy label i unit — cyfra zostaje na dole pod grafiką
+        // Chowamy etykiety — zostaje tylko duża cyfra pod grafiką
         const label = el.querySelector('.prs-s-label');
         const unit  = el.querySelector('.prs-s-unit');
         if (label) label.style.opacity = '0';
         if (unit)  unit.style.opacity  = '0';
       };
-      img.onerror = () => {}; // zostaje gradient fallback
+      img.onerror = () => {};
       img.src = bgUrl;
     });
   }
