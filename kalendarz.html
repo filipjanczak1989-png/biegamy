@@ -4030,129 +4030,155 @@ document.addEventListener('keydown', e => {
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:#000;align-items:center;justify-content:center;flex-direction:column;touch-action:none;">
-  <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:2;"></canvas>
-  <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:3;"></div>
-  <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:4;background:rgba(0,0,0,0.4);border:none;color:#fff;font-size:20px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
-  <div id="prs-slide" style="position:absolute;top:0;left:0;width:100%;height:100%;background-size:cover;background-position:center top;background-repeat:no-repeat;transition:opacity 0.35s ease;"></div>
+<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;touch-action:none;transition:opacity 0.3s ease;">
+  <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:6;"></canvas>
+  <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:5;"></div>
+  <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:7;background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
+  <div id="prs-slides-container" style="position:absolute;inset:0;z-index:1;"></div>
 </div>
 <style>
-
-
-#prs-slide { opacity:1; }
-#prs-bars .prs-bar-wrap { flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden; }
-#prs-bars .prs-bar-fill { height:100%;width:0%;background:#fff;border-radius:2px;transition:none; }
+#prs-bars .prs-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden;}
+#prs-bars .prs-bar-fill{height:100%;width:0%;background:#fff;border-radius:2px;transition:none;}
+.prs-s{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.35s ease;overflow:hidden;}
+.prs-s-glow{position:absolute;inset:0;pointer-events:none;}
+.prs-s-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;}
+.prs-s-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:16px;}
+.prs-s-num{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(72px,22vw,130px);line-height:0.9;letter-spacing:0.02em;}
+.prs-s-unit{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.2em;color:rgba(255,255,255,0.7);margin-top:10px;text-transform:uppercase;}
+.prs-s-bar-line{position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0.6;}
+.prs-s-final{background:#0a0a0a;}
+.prs-s-final-inner{position:relative;z-index:2;text-align:center;}
+.prs-s-final-logo{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.08em;}
+.prs-s-final-logo span{color:#e8561e;}
+.prs-s-final-tagline{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(48px,15vw,80px);color:#fff;letter-spacing:0.04em;line-height:1;margin-top:12px;}
 </style>
 <script>
 const PRS = (() => {
-  let _launchData = {};
   const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
-  const FINAL = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/prs_final.webp';
-  const SETS = [
-    ['prs_A01.webp','prs_A02.webp','prs_A03.webp','prs_A04.webp','prs_A05.webp','prs_A06.webp'],
-    ['prs_B01.webp','prs_B02.webp','prs_B03.webp','prs_B04.webp','prs_B05.webp','prs_B06.webp'],
-    ['prs_C01.webp','prs_C02.webp','prs_C03.webp','prs_C04.webp','prs_C05.webp'],
-    ['prs_D01.webp','prs_D02.webp','prs_D03.webp','prs_D04.webp','prs_D05.webp'],
-    ['prs_E01.webp','prs_E02.webp','prs_E03.webp','prs_E04.webp','prs_E05.webp'],
-    ['prs_F01.webp','prs_F02.webp','prs_F03.webp','prs_F04.webp','prs_F05.webp','prs_F06.webp'],
-    ['prs_G01.webp','prs_G02.webp','prs_G03.webp','prs_G04.webp','prs_G05.webp','prs_G06.webp'],
-    ['prs_H01.webp','prs_H02.webp','prs_H03.webp','prs_H04.webp','prs_H05.webp'],
-    ['prs_I01.webp','prs_I02.webp','prs_I03.webp','prs_I04.webp','prs_I05.webp'],
-    ['prs_J01.webp','prs_J02.webp','prs_J03.webp','prs_J04.webp','prs_J05.webp'],
-    ['prs_K01.webp','prs_K02.webp','prs_K03.webp','prs_K04.webp','prs_K05.webp'],
-    ['prs_L01.webp','prs_L02.webp','prs_L03.webp','prs_L04.webp','prs_L05.webp'],
-  ];
+  const FINAL = BASE + 'prs_final.webp';
+  const SETS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const SLIDE_TYPES = ['dystans','tempo','czas'];
 
-  let slides=[], cur=0, timer=null, barAnim=null, holdTimer=null, touchX=0;
+  // Piękne gradienty CSS dla każdego typu slajdu
+  const SLIDE_STYLES = {
+    dystans: { grad: 'linear-gradient(160deg,#0f0f0f 0%,#1a0a00 40%,#2d1000 100%)', accent: '#e8561e', icon: '⟶' },
+    tempo:   { grad: 'linear-gradient(160deg,#080810 0%,#0a0a1a 40%,#101028 100%)', accent: '#5b8cff', icon: '⏱' },
+    czas:    { grad: 'linear-gradient(160deg,#080f08 0%,#0a1a0a 40%,#0f280f 100%)', accent: '#3db870', icon: '◷' },
+  };
+
+  let _launchData = {}, slides = [], cur = 0;
+  let barAnim = null, holdTimer = null, touchX = 0;
+
+  function pickSet() {
+    const seed = Math.floor(Date.now() / 86400000);
+    return SETS[((seed * 1234567) >>> 0) % SETS.length];
+  }
+
+  function buildSlideHTML(type, value, label, bgUrl) {
+    const st = SLIDE_STYLES[type] || SLIDE_STYLES.dystans;
+    // Rozbij wartość na liczbę i jednostkę
+    const parts = value.match(/^([\d:.,]+)\s*(.*)$/);
+    const num   = parts ? parts[1] : value;
+    const unit  = parts ? parts[2] : '';
+    return `
+      <div class="prs-s" style="background:${st.grad};" data-bg="${bgUrl||''}">
+        <div class="prs-s-glow" style="background:radial-gradient(ellipse 60% 40% at 50% 80%,${st.accent}22 0%,transparent 70%);"></div>
+        <div class="prs-s-content">
+          <div class="prs-s-label">${label}</div>
+          <div class="prs-s-num" style="color:${st.accent};">${num}</div>
+          ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
+        </div>
+        <div class="prs-s-bar-line" style="background:${st.accent};"></div>
+      </div>`;
+  }
+
+  function buildFinalHTML() {
+    return `
+      <div class="prs-s prs-s-final" data-bg="${FINAL}">
+        <div class="prs-s-final-inner">
+          <div class="prs-s-final-logo">BiegaMy<span>.run</span></div>
+          <div class="prs-s-final-tagline">Dziś wygrałeś.</div>
+        </div>
+      </div>`;
+  }
 
   function getSlides(data) {
-    const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
     const dist = parseFloat(data && data.dist) || 0;
     const pace = (data && data.pace) || '';
     const time = (data && data.time) || '';
     const type = (data && data.type) || '';
-    const noDistTypes = ['Regeneracja','Wzmacniający','Zastępczy'];
-    if (noDistTypes.includes(type) || dist === 0) return [{ bg: FINAL, overlay: null }];
-    const seed = Math.floor(Date.now() / 86400000);
-    const setNum = ((seed * 1234567) >>> 0) % 8 + 1;
-    const s = `set${setNum}`;
-    // Oblicz czas z tempa i dystansu jeśli nie podano
-    let displayTime = time;
-    if (!displayTime && pace && dist > 0) {
-      const [pm, ps] = pace.split(':').map(Number);
-      if (!isNaN(pm) && !isNaN(ps)) {
-        const totalSec = Math.round((pm * 60 + ps) * dist);
-        const th = Math.floor(totalSec / 3600);
-        const tm = Math.floor((totalSec % 3600) / 60);
-        const ts = totalSec % 60;
-        displayTime = th > 0
-          ? `${th}:${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`
-          : `${tm}:${String(ts).padStart(2,'0')}`;
+    const noDistTypes = ['Regeneracja','Wzmacniający','Zastępczy','Odpoczynek'];
+    const result = [];
+    if (!noDistTypes.includes(type) && dist > 0) {
+      const s = pickSet();
+      let displayTime = time;
+      if (!displayTime && pace && dist > 0) {
+        const [pm,ps] = pace.split(':').map(Number);
+        if (!isNaN(pm) && !isNaN(ps)) {
+          const tot = Math.round((pm*60+ps)*dist);
+          const th=Math.floor(tot/3600), tm=Math.floor((tot%3600)/60), ts=tot%60;
+          displayTime = th>0 ? `${th}:${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}` : `${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`;
+        }
       }
+      if (dist > 0)    result.push({ type:'dystans', value: dist.toFixed(1)+' km',   label:'DYSTANS',        bg: BASE+`prs_v2/prs_${s}_dystans.webp` });
+      if (pace)        result.push({ type:'tempo',   value: pace+' /km',              label:'ŚREDNIE TEMPO',  bg: BASE+`prs_v2/prs_${s}_tempo.webp`   });
+      if (displayTime) result.push({ type:'czas',    value: displayTime,              label:'CZAS TRENINGU',  bg: BASE+`prs_v2/prs_${s}_czas.webp`    });
     }
-    const slides = [];
-    if (dist > 0)    slides.push({ bg: BASE + `prs_v2/prs_${s}_dystans.webp`, overlay: { label: 'DYSTANS', value: dist.toFixed(2) + ' km' }});
-    if (pace)        slides.push({ bg: BASE + `prs_v2/prs_${s}_tempo.webp`,   overlay: { label: 'ŚREDNIE TEMPO', value: pace + ' /km' }});
-    if (displayTime) slides.push({ bg: BASE + `prs_v2/prs_${s}_czas.webp`,    overlay: { label: 'CZAS TRENINGU', value: displayTime }});
-    slides.push({ bg: FINAL, overlay: null });
-    return slides;
+    result.push({ type:'final', value:'', label:'', bg: FINAL });
+    return result;
   }
 
-
-  function preload(imgs) { imgs.forEach(src=>{ const i=new Image(); i.src=src; }); }
+  function renderSlides() {
+    const container = document.getElementById('prs-slides-container');
+    container.innerHTML = slides.map((s,i) => {
+      if (s.type === 'final') return buildFinalHTML();
+      return buildSlideHTML(s.type, s.value, s.label, s.bg);
+    }).join('');
+    // Async: próbuj załadować grafiki jako tło
+    container.querySelectorAll('.prs-s[data-bg]').forEach(el => {
+      const bgUrl = el.getAttribute('data-bg');
+      if (!bgUrl) return;
+      const img = new Image();
+      img.onload = () => { el.style.backgroundImage = `url('${bgUrl}')`; el.style.backgroundSize='cover'; el.style.backgroundPosition='center top'; };
+      img.src = bgUrl;
+    });
+  }
 
   function buildBars() {
-    const el = document.getElementById('prs-bars');
-    el.innerHTML = slides.map(()=>`<div class="prs-bar-wrap"><div class="prs-bar-fill"></div></div>`).join('');
+    document.getElementById('prs-bars').innerHTML = slides.map(()=>`<div class="prs-bar-wrap"><div class="prs-bar-fill"></div></div>`).join('');
   }
 
   function animBar(idx, duration, cb) {
     clearInterval(barAnim);
-    const fill = document.querySelectorAll('#prs-bars .prs-bar-fill')[idx];
+    const fills = document.querySelectorAll('#prs-bars .prs-bar-fill');
+    fills.forEach((f,i) => { f.style.width = i < idx ? '100%' : '0%'; });
+    const fill = fills[idx];
     if (!fill) return;
-    // Zakończone bary = 100%
-    document.querySelectorAll('#prs-bars .prs-bar-fill').forEach((f,i)=>{ if(i<idx) f.style.width='100%'; if(i>idx) f.style.width='0%'; });
-    fill.style.width = '0%';
-    const step = 100 / (duration/50);
-    barAnim = setInterval(()=>{
+    const step = 100 / (duration / 50);
+    barAnim = setInterval(() => {
       const w = parseFloat(fill.style.width||0) + step;
-      fill.style.width = Math.min(w,100)+'%';
-      if (w>=100) { clearInterval(barAnim); if(cb) cb(); }
+      fill.style.width = Math.min(w,100) + '%';
+      if (w >= 100) { clearInterval(barAnim); if (cb) cb(); }
     }, 50);
   }
 
   function show(idx) {
     if (idx >= slides.length) { close(); return; }
     cur = idx;
-    const slide = document.getElementById('prs-slide');
-    const isFinal = idx === slides.length - 1;
-
-    slide.style.opacity = '0';
-    const s = slides[idx];
-    const bgUrl = (typeof s === 'object' ? s.bg : s) || '';
-    slide.style.backgroundImage = bgUrl ? `url('${bgUrl}')` : '';
-    // Overlay z danymi
-    let overlayEl = document.getElementById('prs-data-overlay');
-    if (!overlayEl) {
-      overlayEl = document.createElement('div');
-      overlayEl.id = 'prs-data-overlay';
-      overlayEl.style.cssText = 'position:absolute;bottom:0;left:0;right:0;z-index:5;padding:0 24px 22%;display:flex;flex-direction:column;align-items:center;pointer-events:none;';
-      slide.parentElement.appendChild(overlayEl);
-    }
-    if (s.overlay) {
-      overlayEl.innerHTML = `
-        <div style="background:rgba(0,0,0,0.72);border-radius:20px;padding:16px 36px;text-align:center;backdrop-filter:blur(8px);">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:86px;color:#fff;line-height:1;letter-spacing:0.02em;">${s.overlay.value}</div>
-          <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.3em;color:#e8561e;margin-top:4px;text-transform:uppercase;">${s.overlay.label}</div>
-        </div>`;
-    } else {
-      overlayEl.innerHTML = '';
-    }
-    setTimeout(()=>{ slide.style.opacity='1'; }, 60);
-
-    const dur = isFinal ? 3500 : 3000;
-    if (isFinal) confetti();
-    animBar(idx, dur, ()=> show(idx+1));
+    const allSlides = document.querySelectorAll('#prs-slides-container .prs-s');
+    allSlides.forEach((el,i) => {
+      el.style.opacity = i === idx ? '0' : '0';
+      el.style.display = i === idx ? 'flex' : 'none';
+    });
+    const current = allSlides[idx];
+    if (!current) return;
+    current.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => { current.style.opacity = '1'; });
+    });
+    if (slides[idx].type === 'final') confetti();
+    const dur = slides[idx].type === 'final' ? 3500 : 3000;
+    animBar(idx, dur, () => show(idx + 1));
   }
 
   function confetti() {
@@ -4160,16 +4186,16 @@ const PRS = (() => {
     const W = canvas.width = window.innerWidth;
     const H = canvas.height = window.innerHeight;
     const ctx = canvas.getContext('2d');
-    const colors = ['#e8561e','#ff8c42','#ffffff','#ffd700','#ff4444'];
-    const particles = Array.from({length:120},()=>({
-      x: Math.random()*W, y: -20,
-      vx: (Math.random()-0.5)*4, vy: Math.random()*4+2,
-      w: Math.random()*10+4, h: Math.random()*6+3,
-      color: colors[Math.floor(Math.random()*colors.length)],
-      rot: Math.random()*360, rv: (Math.random()-0.5)*8,
+    const colors = ['#e8561e','#ff8c42','#ffffff','#ffd700','#ff4444','#3db870','#5b8cff'];
+    const particles = Array.from({length:130},()=>({
+      x:Math.random()*W, y:-20,
+      vx:(Math.random()-0.5)*5, vy:Math.random()*5+2,
+      w:Math.random()*12+4, h:Math.random()*7+3,
+      color:colors[Math.floor(Math.random()*colors.length)],
+      rot:Math.random()*360, rv:(Math.random()-0.5)*9,
     }));
     let frame;
-    function draw() {
+    (function draw() {
       ctx.clearRect(0,0,W,H);
       particles.forEach(p=>{
         p.x+=p.vx; p.y+=p.vy; p.rot+=p.rv;
@@ -4178,56 +4204,46 @@ const PRS = (() => {
       });
       if (particles.some(p=>p.y<H)) frame=requestAnimationFrame(draw);
       else ctx.clearRect(0,0,W,H);
-    }
-    draw();
+    })();
     setTimeout(()=>{ cancelAnimationFrame(frame); ctx.clearRect(0,0,W,H); }, 4000);
   }
 
   function open(data) {
-    _launchData = data;
+    _launchData = data || {};
     slides = getSlides(_launchData);
-    preload(slides.map(s => typeof s === "string" ? s : s.bg));
-    buildBars();
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
-    document.body.style.overflow='hidden';
-    setTimeout(() => show(0), 120);
-    // Touch/tap nawigacja
-    ov.ontouchstart = e=>{ touchX=e.touches[0].clientX; holdTimer=setTimeout(()=>pause(),200); };
-    ov.ontouchend = e=>{
-      clearTimeout(holdTimer); resume();
+    document.body.style.overflow = 'hidden';
+    renderSlides();
+    buildBars();
+    setTimeout(() => show(0), 80);
+    ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
+    ov.ontouchend = e => {
+      clearTimeout(holdTimer);
       const dx = e.changedTouches[0].clientX - touchX;
-      if (Math.abs(dx)<30) { e.clientX>window.innerWidth/2 ? next() : prev(); }
+      if (Math.abs(dx) < 30) { e.clientX > window.innerWidth/2 ? next() : prev(); }
+      else { animBar(cur, 3000, ()=>show(cur+1)); }
     };
-    ov.onclick = e=>{
-      if (e.target.closest('button')) return;
-      e.clientX>window.innerWidth/2 ? next() : prev();
-    };
+    ov.onclick = e => { if (e.target.closest('button')) return; e.clientX > window.innerWidth/2 ? next() : prev(); };
   }
 
   function close() {
-    clearInterval(barAnim); clearTimeout(timer);
+    clearInterval(barAnim);
     const ov = document.getElementById('prs-overlay');
-    const slide = document.getElementById('prs-slide');
-    slide.style.opacity='0';
-    setTimeout(()=>{
+    ov.style.opacity = '0';
+    setTimeout(() => {
       ov.style.display = 'none';
-      document.body.style.overflow='';
-      // Reset dla następnego uruchomienia
-      slide.style.opacity='1';
-      slide.style.backgroundImage='';
-    }, 350);
+      ov.style.opacity = '1';
+      document.body.style.overflow = '';
+      document.getElementById('prs-slides-container').innerHTML = '';
+    }, 300);
   }
 
   function next() { clearInterval(barAnim); show(cur+1); }
   function prev() { clearInterval(barAnim); show(Math.max(0,cur-1)); }
-  function pause() { clearInterval(barAnim); }
-  function resume() { animBar(cur, 3000, ()=>show(cur+1)); }
 
   return { launch: open, close };
 })();
-
-function PRSclose() { PRS.close(); }
 window.PRS = PRS;
 </script>
 
