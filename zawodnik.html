@@ -4494,10 +4494,9 @@ async function saveLog() {
   const _prsData = { dist: _prsDistVal, pace: _prsPaceVal, time: _prsTimeVal, type: _prsTypeVal };
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
-  console.log('PRS check: isNewLog='+_isNewLog+' PRS='+!!window.PRS+' data='+JSON.stringify(_prsData));
   if (_isNewLog && window.PRS) {
-    console.log('PRS launching in 350ms...');
-    setTimeout(() => { console.log('PRS.launch NOW'); window.PRS.launch(_prsData); }, 350);
+      setTimeout(() => {
+ window.PRS.launch(_prsData); }, 350);
   }
   await loadLogs();
 
@@ -6707,7 +6706,7 @@ function _stopSocialBannerRotation() {
 
 </div>
 <!-- ═══════════════════════════════════════════════════════════════ PRS ══ -->
-<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;touch-action:none;transition:opacity 0.3s ease;background:#000;">
+<div id="prs-overlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;touch-action:none;transition:opacity 0.3s ease;background:#000;isolation:isolate;will-change:transform;">
   <canvas id="prs-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:6;"></canvas>
   <div id="prs-bars" style="position:absolute;top:env(safe-area-inset-top,0px);left:0;right:0;display:flex;gap:4px;padding:14px 14px 0;z-index:5;"></div>
   <button onclick="PRSclose()" style="position:absolute;top:calc(env(safe-area-inset-top,0px)+14px);right:16px;z-index:7;background:rgba(0,0,0,0.5);border:none;color:#fff;font-size:18px;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>
@@ -6897,8 +6896,7 @@ const PRS = (() => {
   }
 
   function open(data) {
-    console.log('PRS open() called, data='+JSON.stringify(data));
-    // Reset — wyczyść poprzednią sesję PRS całkowicie
+      // Reset — wyczyść poprzednią sesję PRS całkowicie
     clearInterval(barAnim);
     barAnim = null;
     cur = 0;
@@ -6915,10 +6913,13 @@ const PRS = (() => {
     document.body.style.overflow = 'hidden';
     const nav = document.getElementById('main-bottom-nav');
     if (nav) nav.style.display = 'none';
+    // Wyłącz backdrop-filter na modal który może przykrywać PRS
+    const modalBg = document.getElementById('modal-bg');
+    if (modalBg) { modalBg.style.backdropFilter = 'none'; modalBg.style.webkitBackdropFilter = 'none'; }
     renderSlides();
     buildBars();
-    console.log('PRS slides built: '+slides.length+' container children: '+document.getElementById('prs-slides-container').children.length);
-    setTimeout(() => { console.log('PRS show(0) firing'); show(0); }, 150);
+      setTimeout(() => {
+ show(0); }, 150);
     ov.ontouchstart = e => { touchX = e.touches[0].clientX; holdTimer = setTimeout(()=>{ clearInterval(barAnim); }, 200); };
     ov.ontouchend = e => {
       clearTimeout(holdTimer);
@@ -6941,6 +6942,8 @@ const PRS = (() => {
       document.getElementById('prs-slides-container').innerHTML = '';
       const nav = document.getElementById('main-bottom-nav');
       if (nav) nav.style.display = '';
+      const modalBg = document.getElementById('modal-bg');
+      if (modalBg) { modalBg.style.backdropFilter = ''; modalBg.style.webkitBackdropFilter = ''; }
     }, 300);
   }
 
