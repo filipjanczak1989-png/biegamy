@@ -4039,7 +4039,7 @@ document.addEventListener('keydown', e => {
 <style>
 #prs-bars .prs-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden;}
 #prs-bars .prs-bar-fill{height:100%;width:0%;background:#fff;border-radius:2px;transition:none;}
-.prs-s{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.35s ease;overflow:hidden;}
+.prs-s{position:absolute;inset:0;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start;opacity:0;transition:opacity 0.35s ease;overflow:hidden;background:#000;}
 .prs-s-glow{position:absolute;inset:0;pointer-events:none;}
 .prs-s-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;}
 .prs-s-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:16px;}
@@ -4080,12 +4080,12 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background-color:#000;background-size:cover;background-position:center top;" data-bg="${bgUrl||''}">
-        <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.5s;"></div>
-        <div class="prs-s-glow" style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 80%,${st.accent}22 0%,transparent 70%);z-index:1;pointer-events:none;"></div>
-        <div class="prs-s-data" style="position:absolute;bottom:48px;left:0;right:0;z-index:3;text-align:center;padding:0 24px;">
-          <div class="prs-s-label" style="margin-bottom:8px;">${label}</div>
-          <div class="prs-s-num" style="color:${st.accent};text-shadow:0 2px 24px rgba(0,0,0,0.8);">${num}</div>
+      <div class="prs-s" data-bg="${bgUrl||''}">
+        <div class="prs-s-img" style="flex:0 0 62%;position:relative;overflow:hidden;background:#111;">
+          <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;gap:4px;">
+          <div class="prs-s-num" style="color:${st.accent};">${num}</div>
           ${unit ? `<div class="prs-s-unit">${unit}</div>` : ''}
         </div>
         <div class="prs-s-bar-line" style="background:${st.accent};"></div>
@@ -4095,6 +4095,13 @@ const PRS = (() => {
   function buildFinalHTML() {
     return `
       <div class="prs-s prs-s-final" data-bg="${FINAL}">
+        <div class="prs-s-img" style="flex:0 0 62%;position:relative;overflow:hidden;background:#111;">
+          <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;gap:8px;">
+          <div class="prs-s-final-logo">BiegaMy<span>.run</span></div>
+          <div class="prs-s-final-tagline">Dziś wygrałeś.</div>
+        </div>
       </div>`;
   }
 
@@ -4130,21 +4137,19 @@ const PRS = (() => {
       if (s.type === 'final') return buildFinalHTML();
       return buildSlideHTML(s.type, s.value, s.label, s.bg);
     }).join('');
-    // Async: ładuj grafiki jako tło; gdy załadowana → ukryj label+unit
+    // Grafika ładuje się do górnej sekcji .prs-s-img
     container.querySelectorAll('.prs-s[data-bg]').forEach(el => {
       const bgUrl = el.getAttribute('data-bg');
       if (!bgUrl) return;
+      const imgEl = el.querySelector('.prs-s-img');
+      if (!imgEl) return;
       const img = new Image();
       img.onload = () => {
-        el.style.backgroundImage = `url('${bgUrl}')`;
-        el.style.backgroundSize = 'cover';
-        el.style.backgroundPosition = 'center top';
-        const fg = el.querySelector('.prs-s-fallback-grad');
+        imgEl.style.backgroundImage = `url('${bgUrl}')`;
+        imgEl.style.backgroundSize = 'cover';
+        imgEl.style.backgroundPosition = 'center top';
+        const fg = imgEl.querySelector('.prs-s-fallback-grad');
         if (fg) fg.style.opacity = '0';
-        const label = el.querySelector('.prs-s-label');
-        const unit  = el.querySelector('.prs-s-unit');
-        if (label) label.style.opacity = '0';
-        if (unit)  unit.style.opacity  = '0';
       };
       img.onerror = () => {};
       img.src = bgUrl;
