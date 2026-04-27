@@ -4039,7 +4039,7 @@ document.addEventListener('keydown', e => {
 <style>
 #prs-bars .prs-bar-wrap{flex:1;height:3px;background:rgba(255,255,255,0.25);border-radius:2px;overflow:hidden;}
 #prs-bars .prs-bar-fill{height:100%;width:0%;background:#fff;border-radius:2px;transition:none;}
-.prs-s{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity 0.35s ease;overflow:hidden;}
+.prs-s{position:absolute;inset:0;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start;opacity:0;transition:opacity 0.35s ease;overflow:hidden;background:#000;height:100%;box-sizing:border-box;}
 .prs-s-glow{position:absolute;inset:0;pointer-events:none;}
 .prs-s-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;}
 .prs-s-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:16px;}
@@ -4081,7 +4081,7 @@ const PRS = (() => {
     const unit  = parts ? parts[2] : '';
     return `
       <div class="prs-s" style="background:#000;display:flex;flex-direction:column;padding:20px 20px 0;" data-bg="${bgUrl||''}">
-        <div class="prs-s-img" style="flex:1;position:relative;overflow:hidden;border-radius:16px;background:#111;">
+        <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
         <div style="padding:20px 4px 28px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#000;">
@@ -4096,7 +4096,7 @@ const PRS = (() => {
   function buildFinalHTML() {
     return `
       <div class="prs-s prs-s-final" style="background:#000;display:flex;flex-direction:column;padding:20px;" data-bg="${FINAL}">
-        <div class="prs-s-img" style="flex:1;position:relative;overflow:hidden;border-radius:16px;background:#111;">
+        <div class="prs-s-img" style="flex:1;min-height:0;position:relative;overflow:hidden;border-radius:16px;background:#111;">
           <div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:linear-gradient(160deg,#0a0a0a,#1a0800);z-index:0;transition:opacity 0.4s;border-radius:16px;"></div>
         </div>
       </div>`;
@@ -4134,17 +4134,19 @@ const PRS = (() => {
       if (s.type === 'final') return buildFinalHTML();
       return buildSlideHTML(s.type, s.value, s.label, s.bg);
     }).join('');
-    // Grafika ładuje się do .prs-s-img (zaokrąglona ramka)
+    // Ustaw grafikę od razu jako background .prs-s-img; img.onload dla fade efektu
     container.querySelectorAll('.prs-s[data-bg]').forEach(el => {
       const bgUrl = el.getAttribute('data-bg');
       if (!bgUrl) return;
       const imgEl = el.querySelector('.prs-s-img');
       if (!imgEl) return;
+      // Ustaw od razu — nie czekaj na onload (rozwiązuje problem z cachem)
+      imgEl.style.backgroundImage = `url('${bgUrl}')`;
+      imgEl.style.backgroundSize = 'cover';
+      imgEl.style.backgroundPosition = 'center top';
+      // Fade out gradient gdy obraz załadowany
       const img = new Image();
       img.onload = () => {
-        imgEl.style.backgroundImage = `url('${bgUrl}')`;
-        imgEl.style.backgroundSize = 'cover';
-        imgEl.style.backgroundPosition = 'center top';
         const fg = imgEl.querySelector('.prs-s-fallback-grad');
         if (fg) fg.style.opacity = '0';
       };
