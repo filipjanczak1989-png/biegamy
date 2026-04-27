@@ -4046,7 +4046,7 @@ document.addEventListener('keydown', e => {
 .prs-s-num{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(72px,22vw,130px);line-height:0.9;letter-spacing:0.02em;}
 .prs-s-unit{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.2em;color:rgba(255,255,255,0.7);margin-top:10px;text-transform:uppercase;}
 .prs-s-bar-line{position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0.6;}
-.prs-s-final{background:#0a0a0a;}
+.prs-s-final{background-color:#0a0a0a;background-size:cover;background-position:center top;}
 .prs-s-final-inner{position:relative;z-index:2;text-align:center;}
 .prs-s-final-logo{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.08em;}
 .prs-s-final-logo span{color:#e8561e;}
@@ -4056,7 +4056,7 @@ document.addEventListener('keydown', e => {
 const PRS = (() => {
   const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
   const FINAL = BASE + 'prs_final.webp';
-  const SETS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
+  const SETS = ['set1','set2','set3','set4','set5','set6','set7','set8'];
   const SLIDE_TYPES = ['dystans','tempo','czas'];
 
   // Piękne gradienty CSS dla każdego typu slajdu
@@ -4081,8 +4081,8 @@ const PRS = (() => {
     const num   = parts ? parts[1] : value;
     const unit  = parts ? parts[2] : '';
     return `
-      <div class="prs-s" style="background:${st.grad};" data-bg="${bgUrl||''}">
-        <div class="prs-s-glow" style="background:radial-gradient(ellipse 60% 40% at 50% 80%,${st.accent}22 0%,transparent 70%);"></div>
+      <div class="prs-s" style="background-color:#000;background-size:cover;background-position:center top;" data-bg="${bgUrl||''}"><div class="prs-s-fallback-grad" style="position:absolute;inset:0;background:${st.grad};z-index:0;transition:opacity 0.5s;"></div>
+        <div class="prs-s-glow" style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 80%,${st.accent}22 0%,transparent 70%);z-index:1;pointer-events:none;"></div>
         <div class="prs-s-content">
           <div class="prs-s-label">${label}</div>
           <div class="prs-s-num" style="color:${st.accent};">${num}</div>
@@ -4120,9 +4120,9 @@ const PRS = (() => {
           displayTime = th>0 ? `${th}:${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}` : `${String(tm).padStart(2,'0')}:${String(ts).padStart(2,'0')}`;
         }
       }
-      if (dist > 0)    result.push({ type:'dystans', value: dist.toFixed(1)+' km',   label:'DYSTANS',        bg: BASE+`prs_v2/prs_${s}_dystans.webp` });
-      if (pace)        result.push({ type:'tempo',   value: pace+' /km',              label:'ŚREDNIE TEMPO',  bg: BASE+`prs_v2/prs_${s}_tempo.webp`   });
-      if (displayTime) result.push({ type:'czas',    value: displayTime,              label:'CZAS TRENINGU',  bg: BASE+`prs_v2/prs_${s}_czas.webp`    });
+      if (dist > 0)    result.push({ type:'dystans', value: dist.toFixed(1)+' km',   label:'DYSTANS',        bg: BASE+`prs_${s}_dystans.webp` });
+      if (pace)        result.push({ type:'tempo',   value: pace+' /km',              label:'ŚREDNIE TEMPO',  bg: BASE+`prs_${s}_tempo.webp`   });
+      if (displayTime) result.push({ type:'czas',    value: displayTime,              label:'CZAS TRENINGU',  bg: BASE+`prs_${s}_czas.webp`    });
     }
     result.push({ type:'final', value:'', label:'', bg: FINAL });
     return result;
@@ -4139,7 +4139,13 @@ const PRS = (() => {
       const bgUrl = el.getAttribute('data-bg');
       if (!bgUrl) return;
       const img = new Image();
-      img.onload = () => { el.style.backgroundImage = `url('${bgUrl}')`; el.style.backgroundSize='cover'; el.style.backgroundPosition='center top'; };
+      img.onload = () => {
+          el.style.backgroundImage = `url('${bgUrl}')`;
+          el.style.backgroundSize = 'cover';
+          el.style.backgroundPosition = 'center top';
+          const fg = el.querySelector('.prs-s-fallback-grad');
+          if (fg) fg.style.opacity = '0';
+        };
       img.src = bgUrl;
     });
   }
