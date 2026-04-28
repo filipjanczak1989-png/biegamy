@@ -1947,6 +1947,53 @@ function initRealtimeNotifications() {
         })
       .subscribe();
   } catch(e) { console.warn('Realtime:', e.message); }
+
+  // Nasłuch na wiadomości od zawodników
+  _startCoachMsgWatch();
+}
+
+let _coachMsgInterval = null;
+let _prevCoachMsgCount = 0;
+
+async function _checkCoachMessages() {
+  try {
+    const { data: { session } } = await _sb.auth.getSession();
+    if (!session) return;
+    // Pobierz liczbę nieprzeczytanych wiadomości od zawodników
+    const { data: athletes } = await _sb.from('athletes').select('id').eq('coach_id', session.user.id);
+    if (!athletes || !athletes.length) return;
+    const ids = athletes.map(a => a.id);
+    const { count } = await _sb.from('messages')
+      .select('*', {count: 'exact', head: true})
+      .in('athlete_id', ids)
+      .eq('sender', 'athlete')
+      .eq('read', false);
+    const dot = document.getElementById('notif-dot');
+    if (dot) {
+      if (count > 0) {
+        dot.style.display = 'flex';
+        dot.style.background = '#5b8cff';
+        dot.textContent = count > 9 ? '9+' : count;
+        dot.style.cssText += ';min-width:16px;height:16px;border-radius:8px;font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;position:absolute;top:-4px;right:-4px;border:2px solid var(--bg);';
+      } else {
+        dot.style.display = 'none';
+      }
+    }
+    // Toast gdy nowa
+    if (count > _prevCoachMsgCount && _prevCoachMsgCount === 0 && count > 0) {
+      showToast('💬 Zawodnik napisał wiadomość');
+    } else if (count > _prevCoachMsgCount && _prevCoachMsgCount > 0) {
+      showToast('💬 Nowa wiadomość od zawodnika');
+    }
+    _prevCoachMsgCount = count || 0;
+  } catch(e) {}
+}
+
+function _startCoachMsgWatch() {
+  _checkCoachMessages();
+  if (!_coachMsgInterval) {
+    _coachMsgInterval = setInterval(_checkCoachMessages, 30000);
+  }
 }
 
 async function openCoachNotifications() {

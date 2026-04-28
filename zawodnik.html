@@ -788,7 +788,7 @@ body > *{position:relative;z-index:1;}
     <a id="back-to-trener" href="trener.html" onclick="sessionStorage.removeItem('_fromTrener')" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
     <div onclick="openNotifications()" class="notif-bell-z" id="zawodnik-bell">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:#3db870;"></div>
+      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#e8561e;border-radius:9px;border:2px solid var(--bg);font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;"></div></div>
     </div>
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
       <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">—</span>
@@ -2559,7 +2559,30 @@ async function checkNewMessages() {
   const { count } = await _sb.from('messages').select('*',{count:'exact',head:true})
     .eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   const dot = document.getElementById('zawodnik-bell-dot');
-  if (dot) dot.style.display = (count && count > 0) ? 'block' : 'none';
+  if (dot) {
+    dot.style.display = (count && count > 0) ? 'flex' : 'none';
+    dot.textContent = count > 0 ? (count > 9 ? '9+' : count) : '';
+  }
+  // Jeśli poprzednio nie było a teraz są — pokaż toast
+  const prev = window._prevMsgCount || 0;
+  if (count > prev && prev === 0 && count > 0) {
+    _showMsgToast('💬 Masz ' + count + ' nową wiadomość' + (count > 1 ? 'i' : '') + ' od trenera');
+  } else if (count > prev && prev > 0) {
+    _showMsgToast('💬 Nowa wiadomość od trenera');
+  }
+  window._prevMsgCount = count || 0;
+}
+
+function _showMsgToast(msg) {
+  // Nie pokazuj jeśli czat jest otwarty
+  const msgs = document.getElementById('section-msgs');
+  if (msgs && msgs.style.display === 'flex') return;
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1a2e;border:1px solid rgba(91,140,255,0.5);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;z-index:9999;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,0.5);display:flex;align-items:center;gap:10px;max-width:90vw;white-space:nowrap;';
+  t.innerHTML = msg + '<span style="font-size:11px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">kliknij →</span>';
+  t.onclick = () => { t.remove(); showSection('msgs'); };
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 6000);
 }
 
 async function loadMessages() {
@@ -4136,9 +4159,12 @@ async function loadLogs() {
     if (!window._realtimeChannel && _athleteId) {
       window._realtimeChannel = _sb.channel('messages-' + _athleteId)
         .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
-          filter:'athlete_id=eq.'+_athleteId}, () => {
-            loadMessages();
-            checkNewMessages();
+          filter:'athlete_id=eq.'+_athleteId}, (payload) => {
+            // Tylko wiadomości od trenera
+            if (payload.new && payload.new.sender === 'coach') {
+              loadMessages();
+              checkNewMessages();
+            }
           })
         .subscribe();
     }
@@ -6554,7 +6580,7 @@ function _stopSocialBannerRotation() {
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
-
+      <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
       <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
     </div>
