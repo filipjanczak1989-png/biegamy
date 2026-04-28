@@ -821,8 +821,8 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div id="home-quick-tiles" class="fade-in" style="display:flex;gap:10px;margin:0 16px 6px;">
-<div class="today-hero" style="flex:1;margin:0;">
+<div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
+<div class="today-hero fade-in" style="flex:1;margin:0;">
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
@@ -832,15 +832,15 @@ body > *{position:relative;z-index:1;}
 </div><!-- koniec today-hero -->
 <!-- Kafelki po prawej -->
 <div style="display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0;">
-  <button onclick="(function(){showSection('social');var nav=document.getElementById('nav-social');if(nav){nav.classList.add('active');nav.querySelectorAll('svg').forEach(s=>s.setAttribute('stroke','var(--accent)'));var l=nav.querySelector('.nav-lbl');if(l)l.style.color='var(--accent)';}setTimeout(()=>switchSocialTab('challenges'),150);})()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="openQuickModal('challenges')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Wyzwania</span>
   </button>
-  <button onclick="showSection('profile');setTimeout(()=>switchProfileTab('chat'),100)" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="openQuickModal('badges')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b8cff" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Czat</span>
   </button>
-  <button onclick="(function(){showSection('profile');var nav=document.getElementById('nav-profile');if(nav){nav.classList.add('active');nav.querySelectorAll('svg').forEach(s=>s.setAttribute('stroke','var(--accent)'));var l=nav.querySelector('.nav-lbl');if(l)l.style.color='var(--accent)';}setTimeout(()=>switchProfileTab('badges'),150);})()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="showSection('profile');setTimeout(()=>switchProfileTab('badges'),100)" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Odznaki</span>
   </button>
@@ -848,7 +848,7 @@ body > *{position:relative;z-index:1;}
 </div><!-- koniec flex hero+kafelki -->
 
 <!-- Dots pod kartą -->
-<div id="home-hero-dots" class="fade-in" style="display:flex;align-items:center;gap:6px;padding:6px 16px 4px;">
+<div id="home-dots-row" style="display:flex;align-items:center;gap:6px;padding:6px 16px 4px;">
   <button onclick="_heroPrev()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
   <div id="hero-dots" style="display:flex;gap:4px;align-items:center;"></div>
   <button onclick="_heroNext()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">›</button>
@@ -1902,10 +1902,7 @@ function showSection(name) {
 
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
-    const qt = document.getElementById('home-quick-tiles');
-    if (qt) qt.style.display = 'none';
-    const hd = document.getElementById('home-hero-dots');
-    if (hd) hd.style.display = 'none';
+    ['home-tiles-row','home-dots-row'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none';});
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('daily-motivation')?.style.setProperty('display','none');
     document.getElementById('week-strip')?.style.setProperty('display','none');
@@ -1924,6 +1921,8 @@ function showSection(name) {
 
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
+    const _htr=document.getElementById('home-tiles-row');if(_htr)_htr.style.display='flex';
+    const _hdr=document.getElementById('home-dots-row');if(_hdr)_hdr.style.display='flex';
     document.querySelectorAll('.fade-in').forEach(el => {
       el.style.display = '';
       // Reset animacji CSS żeby element był widoczny po powrocie
@@ -7041,6 +7040,52 @@ const PRS = (() => {
 })();
 window.PRS = PRS;
 window.PRSclose = function() { if(window.PRS) window.PRS.close(); };
+</script>
+
+
+<!-- Quick Modals -->
+<div id="qm-overlay" onclick="if(event.target===this)closeQuickModal()" style="display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
+  <div id="qm-sheet" style="position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:#0f0e16;border-radius:24px 24px 0 0;max-height:85vh;display:flex;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid rgba(255,255,255,0.07);">
+      <div id="qm-title" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;color:#f0ede8;"></div>
+      <button onclick="closeQuickModal()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;">✕</button>
+    </div>
+    <div id="qm-body" style="flex:1;overflow-y:auto;padding:16px 20px 32px;-webkit-overflow-scrolling:touch;"></div>
+  </div>
+</div>
+<script>
+function openQuickModal(type) {
+  if (type === 'chat') { showSection('msgs'); return; }
+  const ov = document.getElementById('qm-overlay');
+  const title = document.getElementById('qm-title');
+  const body = document.getElementById('qm-body');
+  body.innerHTML = '<div style="text-align:center;padding:40px 0;color:rgba(240,237,232,0.4);">Ładowanie...</div>';
+  ov.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  if (type === 'badges') {
+    title.textContent = 'ODZNAKI';
+    loadAchievements().then(() => {
+      renderBadgesSection();
+      const p = document.getElementById('ptab-panel-badges');
+      body.innerHTML = p ? p.innerHTML : '<p style="color:rgba(240,237,232,0.4);text-align:center;padding:40px 0;">Brak odznak</p>';
+    }).catch(() => { body.innerHTML = '<p style="color:#e8561e;text-align:center;padding:40px 0;">Błąd ładowania</p>'; });
+  } else if (type === 'challenges') {
+    title.textContent = 'WYZWANIA';
+    if (typeof loadChallenges === 'function') {
+      loadChallenges().then(() => {
+        const p = document.getElementById('social-challenges');
+        body.innerHTML = p ? p.innerHTML : '<p style="color:rgba(240,237,232,0.4);text-align:center;padding:40px 0;">Brak wyzwań</p>';
+      }).catch(() => { body.innerHTML = '<p style="color:#e8561e;text-align:center;padding:40px 0;">Błąd ładowania</p>'; });
+    } else {
+      const p = document.getElementById('social-challenges');
+      body.innerHTML = p && p.innerHTML.trim().length > 50 ? p.innerHTML : '<p style="color:rgba(240,237,232,0.4);text-align:center;padding:40px 0;">Brak wyzwań</p>';
+    }
+  }
+}
+function closeQuickModal() {
+  document.getElementById('qm-overlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
 </script>
 
 </body>
