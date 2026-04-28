@@ -137,75 +137,61 @@ function renderBadgesSection() {
   const container = document.getElementById('badges-section-content');
   if (!container) return;
 
+  const earned = window._earnedBadges.size;
   const cats = [...new Set(BADGES.map(b => b.cat))];
-  let html = '';
+
+  let html = `
+    <div style="display:flex;align-items:center;gap:12px;padding:0 0 16px;border-bottom:1px solid rgba(255,255,255,0.07);margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:48px;line-height:1;color:var(--accent);">${earned}</div>
+      <div>
+        <div style="font-size:13px;font-weight:600;">zdobyte odznaki</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${BADGES.length - earned} jeszcze do zdobycia</div>
+      </div>
+    </div>`;
+
   for (const cat of cats) {
     const catBadges = BADGES.filter(b => b.cat === cat);
     const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
-    html += `<div style="padding:0 16px 4px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">${cat}</div>
-      <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--accent);">${earnedInCat}/${catBadges.length}</div>
-    </div>
-    <div class="badge-grid">`;
+    if (earnedInCat === 0) continue; // Pokaż kategorie tylko ze zdobytymi
+
+    html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:10px;">${cat} <span style="color:var(--accent);">${earnedInCat}/${catBadges.length}</span></div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;">`;
+
     for (const b of catBadges) {
-      const earned = window._earnedBadges.has(b.id);
+      const isEarned = window._earnedBadges.has(b.id);
+      if (!isEarned) continue; // Tylko zdobyte
       const col = RARITY_COLOR[b.rarity] || '#fff';
-      html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
-        ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
-        <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
-        <div class="badge-item-name">${b.name}</div>
-        ${earned ? `<div style="font-size:8px;font-family:'DM Mono',monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
-      </div>`;
+      html += `
+        <div style="background:#13111f;border:1px solid ${col}55;border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 0 16px ${col}18;">
+          <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy"
+            style="width:56px;height:56px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px ${col}44;"
+            onerror="this.style.opacity='0.2'">
+          <div style="font-size:11px;font-weight:600;line-height:1.2;">${b.name}</div>
+          <span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;color:${col};background:${col}18;padding:2px 6px;border-radius:4px;">${RARITY_LABEL[b.rarity]}</span>
+        </div>`;
     }
-    html += '</div>';
+    html += `</div>`;
   }
 
-  const earned = window._earnedBadges.size;
-  container.innerHTML = `
-    <div style="padding:0 16px 8px;display:flex;align-items:center;gap:10px;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${earned}</div>
-      <div><div style="font-size:11px;font-weight:600;">zdobyte odznaki</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${BADGES.length - earned} pozostało</div>
-      </div>
-      <div style="margin-left:auto;background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:10px;padding:6px 12px;text-align:center;">
-        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.12em;">PROGRES</div>
-        <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/BADGES.length*100)}%</div>
-      </div>
-    </div>
-    <div style="padding:0 16px 10px;">
-      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-        <div style="height:100%;width:${Math.round(earned/BADGES.length*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.8s ease;"></div>
-      </div>
-    </div>
-    ${html}`;
-}
+  // Niezdobyte — mała szara siatka na dole
+  const locked = BADGES.filter(b => !window._earnedBadges.has(b.id));
+  if (locked.length > 0) {
+    html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.2);margin-bottom:10px;">Do zdobycia (${locked.length})</div>`;
+    html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">`;
+    for (const b of locked) {
+      html += `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;opacity:0.3;" title="${b.desc}">
+          <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy"
+            style="width:40px;height:40px;border-radius:8px;object-fit:cover;filter:grayscale(1) brightness(0.4);"
+            onerror="this.style.opacity='0.1'">
+          <div style="font-size:8px;color:var(--muted);line-height:1.2;">${b.name}</div>
+        </div>`;
+    }
+    html += `</div>`;
+  }
 
-// ── Social feed — renderuj badge eventy ──────────────────────────
-function _renderBadgeEvent(l, ath) {
-  const badgeId = (l.training_type && l.training_type.startsWith('__badge__')) ? l.training_type.replace('__badge__','') : l.comment;
-  const badge = BADGES.find(b => b.id === badgeId);
-  if (!badge) return '';
-  const name = ath?.full_name || 'Biegacz';
-  const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-  const col = RARITY_COLOR[badge.rarity] || '#fff';
-  const date = l.logged_at ? new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
-  return `<div style="position:relative;overflow:hidden;border:1px solid ${col}33;border-radius:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));">
-    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${col},${col}44);"></div>
-    <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
-      <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${ini}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:600;">${name}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;">zdobył odznakę · ${date}</div>
-      </div>
-      <img src="${BASE_URL}${badge.id}.webp" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;box-shadow:0 0 12px ${col}55;" loading="lazy">
-    </div>
-    <div style="padding:0 14px 12px;display:flex;align-items:center;gap:8px;">
-      <div style="font-size:13px;font-weight:700;color:${col};">${badge.name}</div>
-      <span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:${col};background:${col}18;padding:2px 7px;border-radius:6px;border:1px solid ${col}44;">${RARITY_LABEL[badge.rarity]}</span>
-    </div>
-  </div>`;
+  container.innerHTML = html;
 }
-
 
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
