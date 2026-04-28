@@ -824,6 +824,7 @@ html { scroll-behavior: smooth; }
     </div>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Nowy trening</button>
     <button class="btn btn-ghost" id="btn-templates" onclick="openTemplatesModal()" style="display:none;">Szablony</button>
+    <button class="btn btn-ghost" id="btn-copy-week" onclick="openCopyWeekModal()" style="display:none;">📋 Kopiuj tydzień</button>
     <button class="btn btn-ghost" id="btn-week-template" onclick="openWeekTemplateModal()" style="display:none;">Tydzień</button>
   </div>
 </nav>
@@ -3048,6 +3049,8 @@ function renderTemplatesList() {
 if (_urlRole === 'coach') {
   const tBtn = document.getElementById('btn-templates');
   if (tBtn) tBtn.style.display = '';
+  const cwBtn = document.getElementById('btn-copy-week');
+  if (cwBtn) cwBtn.style.display = '';
 }
 
 // ── SZABLON TYGODNIA ──────────────────────────────────────────────
@@ -3255,10 +3258,8 @@ loadTrainingsFromDB().then(() => setView(_calView));
     <span class="nav-lbl" style="color:var(--accent);">Plan</span>
   </a>
   <a id="bnav-log" class="nav-it">
-    <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;margin-top:-16px;box-shadow:0 0 18px rgba(232,86,30,0.6);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;">
-    </div>
-    <span class="nav-lbl" style="margin-top:2px;">Log</span>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    <span class="nav-lbl">Log</span>
   </a>
   <a id="bnav-social" class="nav-it">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -4268,6 +4269,87 @@ const PRS = (() => {
   return { launch: open, close };
 })();
 window.PRS = PRS;
+
+// ── KOPIOWANIE TYGODNIA ────────────────────────────────────────────
+async function openCopyWeekModal() {
+  const days = [];
+  for (let i = 0; i < 7; i++) days.push(addDays(currentWeekStart, i));
+  const trainCount = days.reduce((s, ds) => s + ((trainings[ds]||[]).length), 0);
+  const s = new Date(days[0]+'T00:00:00'), e = new Date(days[6]+'T00:00:00');
+  const mn = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+  document.getElementById('cw-source-label').textContent =
+    s.getDate()+' '+mn[s.getMonth()]+' — '+e.getDate()+' '+mn[e.getMonth()]+' ('+trainCount+' treningów)';
+  // Podgląd
+  const items = [];
+  days.forEach(ds => {
+    (trainings[ds]||[]).forEach(t => {
+      const d = new Date(ds+'T00:00:00');
+      const dn=['Nd','Pn','Wt','Śr','Cz','Pt','Sb'][d.getDay()];
+      items.push(dn+': '+(t.type||'')+(t.dist?' '+t.dist+' km':''));
+    });
+  });
+  document.getElementById('cw-preview').textContent = items.length ? items.join(' · ') : 'Brak treningów';
+  // Data docelowa — następny tydzień
+  const next = new Date(s); next.setDate(next.getDate()+7);
+  document.getElementById('cw-date').value = dateStr(next);
+  // Zawodnicy
+  const sel = document.getElementById('cw-athlete');
+  sel.innerHTML = '<option value="">— wybierz zawodnika —</option>';
+  const {data:{session}} = await _sbKal.auth.getSession();
+  if (session) {
+    const {data} = await _sbKal.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
+    (data||[]).forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.id; o.textContent = a.full_name||a.id;
+      if (window._calSelectedAthleteId && a.id===window._calSelectedAthleteId) o.selected=true;
+      sel.appendChild(o);
+    });
+  }
+  const modal = document.getElementById('copy-week-modal-bg');
+  modal.style.display = 'flex';
+}
+
+function closeCopyWeekModal() {
+  document.getElementById('copy-week-modal-bg').style.display = 'none';
+}
+
+async function doCopyWeek() {
+  const athleteId = document.getElementById('cw-athlete').value;
+  const targetDateStr = document.getElementById('cw-date').value;
+  if (!athleteId) { notify('Wybierz zawodnika'); return; }
+  if (!targetDateStr) { notify('Podaj datę docelową'); return; }
+  const targetStart = new Date(targetDateStr+'T00:00:00');
+  const dow = targetStart.getDay()===0?6:targetStart.getDay()-1;
+  targetStart.setDate(targetStart.getDate()-dow);
+  const days = [];
+  for (let i=0;i<7;i++) days.push(addDays(currentWeekStart,i));
+  const toInsert = [];
+  const {data:{session}} = await _sbKal.auth.getSession();
+  if (!session) return;
+  days.forEach((ds,di) => {
+    (trainings[ds]||[]).forEach(t => {
+      const td = new Date(targetStart); td.setDate(targetStart.getDate()+di);
+      toInsert.push({
+        coach_id: session.user.id,
+        athlete_id: athleteId,
+        date: dateStr(td),
+        type: t.type,
+        distance_km: t.dist||t.distance_km||null,
+        duration_min: t.time||t.duration_min||null,
+        pace: t.pace||null,
+        heart_rate: t.hr||t.heart_rate||null,
+        description: t.desc||t.description||null,
+        status: 'planned'
+      });
+    });
+  });
+  if (!toInsert.length) { notify('Brak treningów do skopiowania'); return; }
+  const {error} = await _sbKal.from('trainings').insert(toInsert);
+  if (error) { notify('Błąd: '+error.message); return; }
+  closeCopyWeekModal();
+  notify('Skopiowano '+toInsert.length+' treningów ✓');
+  await loadTrainingsFromDB();
+}
 </script>
 
 
@@ -4355,5 +4437,27 @@ window.PRS = PRS;
     </div>
   </div>
 </div>
+
+<!-- COPY WEEK MODAL -->
+<div id="copy-week-modal-bg" onclick="if(event.target===this)closeCopyWeekModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;align-items:center;justify-content:center;">
+  <div style="background:var(--surface,#13111f);border:1px solid var(--border,rgba(255,255,255,0.1));width:340px;max-width:92vw;border-radius:16px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;">Kopiuj tydzień</div>
+      <button onclick="closeCopyWeekModal()" style="background:none;border:none;color:var(--muted,#888);cursor:pointer;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <div style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">TYDZIEŃ ŹRÓDŁOWY</div>
+    <div id="cw-source-label" style="font-size:14px;font-weight:600;color:var(--accent,#e8561e);margin-bottom:14px;font-family:'Bebas Neue',sans-serif;"></div>
+    <div id="cw-preview" style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;margin-bottom:14px;line-height:1.6;"></div>
+    <div style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">ZAWODNIK</div>
+    <select id="cw-athlete" style="width:100%;background:var(--bg,#07050c);border:1px solid var(--border,rgba(255,255,255,0.1));color:var(--fg,#f0ede8);font-family:'DM Mono',monospace;font-size:12px;padding:10px;border-radius:8px;margin-bottom:14px;"></select>
+    <div style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">KOPIUJ DO TYGODNIA OD (poniedziałek)</div>
+    <input type="date" id="cw-date" style="width:100%;background:var(--bg,#07050c);border:1px solid var(--border,rgba(255,255,255,0.1));color:var(--fg,#f0ede8);font-family:'DM Mono',monospace;font-size:12px;padding:10px;border-radius:8px;margin-bottom:18px;">
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeCopyWeekModal()" style="flex:1;background:transparent;color:var(--muted,#888);border:1px solid var(--border,rgba(255,255,255,0.1));font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;border-radius:8px;cursor:pointer;">Anuluj</button>
+      <button onclick="doCopyWeek()" style="flex:2;background:var(--accent,#e8561e);color:#fff;border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;border-radius:8px;cursor:pointer;">Kopiuj →</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
