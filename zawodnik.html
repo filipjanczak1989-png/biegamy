@@ -4417,8 +4417,6 @@ async function deleteLog(logId) {
   if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== logId; });
   toast('Log usunięty ✓');
   await loadLogs();
-  // Cofnij odznaki które nie są już zasłużone
-  if (window._logsData) await revokeInvalidBadges(window._logsData);
   const feedEl = document.getElementById('social-feed-content');
   if (feedEl && feedEl.style.display !== 'none') loadSocialFeed(false);
 }
@@ -4982,7 +4980,6 @@ async function loadSocialFeed(compact) {
   const { data: logs } = await _sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
     .in('athlete_id', publicIds.slice(0, 50))
-    .not('training_type', 'like', '__badge__%')
     .order('logged_at', { ascending: false })
     .limit(compact ? 5 : 50);
 
@@ -7227,114 +7224,6 @@ async function loadAchievements() {
 }
 
 // ── Sprawdź warunki po każdym logu ───────────────────────────────
-async // ── Cofanie odznak po usunięciu logu ─────────────────────────────
-async function revokeInvalidBadges(logs) {
-  if (!_athleteId || !logs) return;
-
-  const total    = logs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
-  const count    = logs.length;
-  const days     = [...new Set(logs.map(l => l.logged_at.slice(0, 10)))].sort();
-
-  // Streak
-  let maxStreak = days.length > 0 ? 1 : 0, cur = 1;
-  for (let i = 1; i < days.length; i++) {
-    const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
-    if (diff === 1) { cur++; maxStreak = Math.max(maxStreak, cur); }
-    else if (diff > 1) cur = 1;
-  }
-
-  // Tydzień
-  const now = new Date();
-  const dow = now.getDay() === 0 ? 6 : now.getDay() - 1;
-  const weekStart = new Date(now); weekStart.setDate(now.getDate() - dow); weekStart.setHours(0,0,0,0);
-  const weekEnd = new Date(weekStart); weekEnd.setDate(weekStart.getDate() + 7);
-  const weekLogs = logs.filter(l => { const d = new Date(l.logged_at); return d >= weekStart && d < weekEnd; });
-  const weekKm   = weekLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
-  const wknd = weekLogs.filter(l => { const d = new Date(l.logged_at); return d.getDay()===6||d.getDay()===0; }).length;
-  const wkTempo = weekLogs.filter(l => l.training_type==='Tempo').length;
-  const wkInt   = weekLogs.filter(l => l.training_type==='Interwały').length;
-  const weekDays = new Set(weekLogs.map(l => l.logged_at.slice(0,10))).size;
-
-  // Miesiąc
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const mLogs = logs.filter(l => new Date(l.logged_at) >= monthStart);
-  const mKm = mLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
-
-  const tempoCount = logs.filter(l => l.training_type === 'Tempo').length;
-  const intCount   = logs.filter(l => l.training_type === 'Interwały').length;
-  const nightLog   = logs.find(l => { const h = new Date(l.logged_at).getHours(); return h >= 22 || h < 2; });
-  const earlyLog   = logs.find(l => { const h = new Date(l.logged_at).getHours(); return h < 6; });
-
-  // Mapa: badge_id → warunek który MUSI być spełniony
-  const conditions = {
-    'pierwszy_krok':    count >= 1,
-    'pierwsze_10km':    total >= 10,
-    'dystans_50':       total >= 50,
-    'dystans_100':      total >= 100,
-    'dystans_250':      total >= 250,
-    'dystans_500':      total >= 500,
-    'dystans_1000':     total >= 1000,
-    'dystans_2000':     total >= 2000,
-    'dystans_5000':     total >= 5000,
-    'tempo_killer':     tempoCount >= 1,
-    'interwalowiec':    intCount >= 5,
-    '3_z_rzedu':        maxStreak >= 3,
-    'streak_7':         maxStreak >= 7,
-    'streak_30':        maxStreak >= 30,
-    'streak_100':       maxStreak >= 100,
-    'nie_zatrzymuje':   count >= 10,
-    'tydzien_mocy':     weekLogs.length >= 3,
-    '5_dni_ruchu':      weekLogs.length >= 5,
-    'forma_rosnie':     weekLogs.length >= 4,
-    'weekend_runner':   wknd >= 2,
-    'szybki_tydzien':   wkTempo >= 2,
-    'interwalowy_tydz': wkInt >= 2,
-    'mieszany_ogien':   wkTempo >= 1 && wkInt >= 1 && weekLogs.some(l=>l.training_type==='Spokojny'),
-    '20km_tydzien':     weekKm >= 20,
-    '40km_tydzien':     weekKm >= 40,
-    '60km_tydzien':     weekKm >= 60,
-    '80km_tydzien':     weekKm >= 80,
-    '3_dni_pod_rzad':   weekDays >= 3,
-    'maraton_m':        mKm >= 42,
-    '50km_miesiaca':    mKm >= 50,
-    '100km_miesiaca':   mKm >= 100,
-    'ultra_m':          mKm >= 100,
-    'granice':          mKm >= 100,
-    '200km_miesiaca':   mKm >= 200,
-    '300km_miesiaca':   mKm >= 300,
-    '15_treningow':     mLogs.length >= 15,
-    '20_treningow':     mLogs.length >= 20,
-    '25_treningow':     mLogs.length >= 25,
-    'nocny_wojownik':   !!nightLog,
-    'early_bird':       !!earlyLog,
-    'bez_dnia_przerwy': maxStreak >= 30,
-    '7_dni_challenge':  maxStreak >= 7,
-    '14_dni_challenge': maxStreak >= 14,
-    '30_dni_challenge': maxStreak >= 30,
-  };
-
-  // Sprawdź które zdobyte odznaki nie spełniają już warunków
-  const toRevoke = [];
-  for (const [badgeId, ok] of Object.entries(conditions)) {
-    if (!ok && window._earnedBadges.has(badgeId)) {
-      toRevoke.push(badgeId);
-    }
-  }
-
-  if (toRevoke.length === 0) return;
-
-  // Usuń z Supabase
-  const { error } = await _sb.from('achievements')
-    .delete()
-    .eq('athlete_id', _athleteId)
-    .in('badge_id', toRevoke);
-
-  if (!error) {
-    toRevoke.forEach(id => window._earnedBadges.delete(id));
-    console.log('Cofnięte odznaki:', toRevoke);
-  }
-}
-
 async function checkBadges(logs) {
   if (!_athleteId || !logs) return;
   await loadAchievements();
