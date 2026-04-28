@@ -185,8 +185,7 @@ body > *{position:relative;z-index:1;}
   overflow:hidden;
   position:relative;
   box-shadow:var(--tile-shadow-lg);
-  height:56vw;
-  max-height:280px;
+  
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -1031,10 +1030,10 @@ body > *{position:relative;z-index:1;}
   </div>
 
   <!-- Profile Banner Slides — pod avatarem -->
-  <div style="position:relative;width:100%;overflow:hidden;border-radius:16px;margin:0 0 20px;">
+  <div id="profile-banner-wrap" style="position:relative;width:100%;overflow:hidden;border-radius:16px;margin:0 16px 20px;width:calc(100% - 32px);min-height:200px;background:#111;">
     <img id="profile-banner-img" src="" alt="" 
-      style="width:100%;aspect-ratio:9/16;max-height:420px;object-fit:cover;object-position:center top;transition:opacity 0.4s ease;display:block;border-radius:16px;"
-      onerror="this.style.display='none'">
+      style="width:100%;height:100%;object-fit:cover;object-position:center top;position:absolute;inset:0;transition:opacity 0.4s ease;display:block;"
+      onerror="this.style.opacity=0;">
     <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0) 60%,rgba(7,5,12,0.7) 100%);pointer-events:none;border-radius:16px;"></div>
     <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
       <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
@@ -2347,7 +2346,6 @@ async function loadProfile() {
   // Załaduj odznaki i wyrenderuj sekcję
   await loadAchievements();
   renderBadgesSection();
-  setTimeout(_startProfileBanner, 50);
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   const name = session.user.user_metadata?.full_name || '—';
@@ -3364,8 +3362,7 @@ function _heroShow(i) {
   if (!bg) return;
   bg.style.opacity = '0';
   setTimeout(() => {
-    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')';
-    bg.style.backgroundPosition = 'center top'; bg.style.backgroundPosition = 'center top';
+    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundPosition = 'center top';
     bg.style.opacity = '0.72';
   }, 220);
   // Zaktualizuj paginację
@@ -3384,8 +3381,7 @@ function _heroStopRotation() {
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) return;
-  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')';
-  bg.style.backgroundPosition = 'center top'; bg.style.backgroundPosition = 'center top';
+  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundPosition = 'center top';
   bg.style.opacity = '0';
   // Buduj paginację
   const dotsEl = document.getElementById('hero-dots');
@@ -3964,8 +3960,15 @@ function _profileBannerSlides() {
 function _startProfileBanner() {
   const el = document.getElementById('profile-banner-img');
   if (!el) return;
+  const wrap = document.getElementById('profile-banner-wrap');
   const slides = _profileBannerSlides();
   let idx = 0;
+  // Ustaw height kontenera na podstawie proporcji grafiki (9:16 portrait)
+  if (wrap) {
+    const w = wrap.offsetWidth || (window.innerWidth - 32);
+    wrap.style.height = Math.round(w * 16/9) + 'px';
+    wrap.style.maxHeight = '420px';
+  }
   el.src = slides[0];
   el.style.opacity = '1';
   
