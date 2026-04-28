@@ -821,7 +821,7 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
+<div style="display:flex;gap:10px;margin:0 16px 6px;">
 <div class="today-hero fade-in" style="flex:1;margin:0;">
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
@@ -832,7 +832,7 @@ body > *{position:relative;z-index:1;}
 </div><!-- koniec today-hero -->
 <!-- Kafelki po prawej -->
 <div style="display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0;">
-  <button onclick="window.location.href='quick-challenges.html'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="location.href='wyzwania.html'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Wyzwania</span>
   </button>
@@ -840,14 +840,14 @@ body > *{position:relative;z-index:1;}
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b8cff" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Czat</span>
   </button>
-  <button onclick="window.location.href='quick-badges.html'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="location.href='odznaki.html'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Odznaki</span>
   </button>
 </div>
 </div><!-- koniec flex hero+kafelki -->
 
-<!ted);">Odznaki</span>
+<!o',monospace;color:var(--muted);">Odznaki</span>
   </button>
 </div>
 </div><!-- koniec flex hero+kafelki -->
@@ -1907,7 +1907,6 @@ function showSection(name) {
 
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
-    const _htr=document.getElementById('home-tiles-row');if(_htr)_htr.style.display='none';
     document.querySelectorAll('.sec-hdr').forEach(el => el.style.display = 'none');
     document.getElementById('daily-motivation')?.style.setProperty('display','none');
     document.getElementById('week-strip')?.style.setProperty('display','none');
@@ -1926,7 +1925,6 @@ function showSection(name) {
 
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
-    const _htr2=document.getElementById('home-tiles-row');if(_htr2)_htr2.style.display='flex';
     document.querySelectorAll('.fade-in').forEach(el => {
       el.style.display = '';
       // Reset animacji CSS żeby element był widoczny po powrocie
