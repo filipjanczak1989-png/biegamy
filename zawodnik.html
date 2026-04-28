@@ -826,14 +826,7 @@ body > *{position:relative;z-index:1;}
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
-  <!-- Tylko strzałki + dots na grafice -->
-  <div style="position:relative;z-index:3;display:flex;align-items:center;justify-content:flex-end;padding:10px 14px 0;">
-    <div style="display:flex;align-items:center;gap:6px;">
-      <button onclick="_heroPrev()" style="background:rgba(0,0,0,0.45);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">‹</button>
-      <div id="hero-dots" style="display:flex;gap:4px;align-items:center;"></div>
-      <button onclick="_heroNext()" style="background:rgba(0,0,0,0.45);border:none;color:#fff;width:26px;height:26px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">›</button>
-    </div>
-  </div>
+
   <!-- spacer żeby karta miała wysokość -->
   <div style="flex:1;"></div>
 </div>
@@ -848,11 +841,18 @@ body > *{position:relative;z-index:1;}
   <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:right;"></div>
 </div>
 
+<!-- Nawigacja slajdów pod kartą -->
+<div style="display:flex;align-items:center;justify-content:center;gap:8px;margin:0 16px 8px;">
+  <button onclick="_heroPrev()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
+  <div id="hero-dots" style="display:flex;gap:5px;align-items:center;"></div>
+  <button onclick="_heroNext()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">›</button>
+</div>
+
 <!-- Akcje pod kartą -->
 <div class="today-actions-wrap fade-in">
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
-  <button class="btn btn-primary" onclick="openModal()" style="width:100%;margin-bottom:8px;">🔥 Zaloguj wynik</button>
+  <button class="btn btn-primary" onclick="openModal()" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:10px;"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/logo-b.webp" style="width:22px;height:22px;object-fit:contain;filter:brightness(0) invert(1);" onerror="this.style.display='none'"> Zaloguj wynik</button>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
     <button class="btn btn-done" onclick="markDone(this)" id="done-btn">✓ Wykonany</button>
     <button class="btn btn-ghost" onclick="showSection('social');switchSocialTab('challenges')" style="font-size:11px;">🏆 Wyzwania</button>
@@ -921,9 +921,11 @@ body > *{position:relative;z-index:1;}
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     <div class="nav-lbl">Plan</div>
   </a>
-  <a class="nav-it" href="#" onclick="openModal();return false;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    <div class="nav-lbl">Log</div>
+  <a class="nav-it" href="#" onclick="openModal();return false;" style="position:relative;">
+    <div style="width:46px;height:46px;border-radius:50%;background:var(--accent);box-shadow:0 0 20px rgba(232,86,30,0.5);display:flex;align-items:center;justify-content:center;margin-top:-18px;border:2px solid rgba(255,255,255,0.15);">
+      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/logo-b.webp" style="width:28px;height:28px;object-fit:contain;" onerror="this.style.display='none'">
+    </div>
+    <div class="nav-lbl" style="margin-top:2px;">Log</div>
   </a>
   <a class="nav-it" href="#" onclick="showSection('social');return false;" id="nav-social">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
