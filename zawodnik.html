@@ -186,7 +186,6 @@ body > *{position:relative;z-index:1;}
   position:relative;
   box-shadow:var(--tile-shadow-lg);
   aspect-ratio:3/4;
-  min-height:unset;
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -767,6 +766,7 @@ body > *{position:relative;z-index:1;}
 
 /* ── TODAY HERO — obrazkowa karta ───────────────────────────────── */
 .today-hero {
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1032,8 +1032,8 @@ body > *{position:relative;z-index:1;}
   <!-- Profile Banner Slides — pod avatarem -->
   <div style="position:relative;width:100%;overflow:hidden;border-radius:16px;margin:0 0 20px;">
     <img id="profile-banner-img" src="" alt="" 
-      style="width:100%;aspect-ratio:9/16;max-height:420px;object-fit:cover;object-position:center top;transition:opacity 0.4s ease;display:block;border-radius:16px;"
-      onerror="this.style.background='#111';this.style.opacity='0';">
+      style="width:100%;aspect-ratio:3/4;max-height:360px;object-fit:cover;object-position:center top;transition:opacity 0.4s ease;display:block;border-radius:16px;"
+      onerror="this.style.display='none'">
     <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0) 60%,rgba(7,5,12,0.7) 100%);pointer-events:none;border-radius:16px;"></div>
     <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
       <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
@@ -3363,7 +3363,7 @@ function _heroShow(i) {
   bg.style.opacity = '0';
   setTimeout(() => {
     bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundPosition = 'center top';
-    bg.style.opacity = '0.85';
+    bg.style.opacity = '0.72';
   }, 220);
   // Zaktualizuj paginację
   document.querySelectorAll('.hero-dot').forEach((d, idx) => {
@@ -3391,7 +3391,7 @@ function _heroInit() {
     ).join('');
   }
   // Fade-in
-  requestAnimationFrame(() => setTimeout(() => { bg.style.opacity = '0.85'; }, 60));
+  requestAnimationFrame(() => setTimeout(() => { bg.style.opacity = '0.72'; }, 60));
   // Auto-rotate
   _heroStartRotation();
 }
@@ -3937,7 +3937,7 @@ const _todayHeroImg = (function() {
 
 // ── PROFILE BANNER SLIDES ────────────────────────────────────────────────
 const _PROFILE_BANNER_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
-const _PROFILE_BANNER_SETS = ['ba', 'bb', 'bc', 'bd', 'be', 'bf', 'bg', 'bh', 'bi', 'bj', 'bk', 'bl', 'bm'];
+const _PROFILE_BANNER_SETS = ['aa', 'ab', 'ac', 'ad', 'ae', 'af', 'ag'];// ba, bb, ... bm
 const _PROFILE_BANNER_COUNT = 5; // ba1.webp ... ba5.webp
 
 // Pick today's set deterministically
