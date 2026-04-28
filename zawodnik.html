@@ -178,8 +178,7 @@ body > *{position:relative;z-index:1;}
 
 /* ── TODAY HERO — main training card ───────────────────────────────── */
 .today-hero{
-  margin:0 auto 16px;
-  width:calc(100% - 32px);
+  margin:0 16px 16px;
   background:#000;
   border-radius:var(--tile-radius-lg);
   border:1px solid rgba(255,255,255,0.08);
@@ -187,7 +186,7 @@ body > *{position:relative;z-index:1;}
   position:relative;
   box-shadow:var(--tile-shadow-lg);
   aspect-ratio:9/16;
-  max-height:55vh;
+  max-height:60vh;
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -3362,8 +3361,8 @@ function _heroShow(i) {
   if (!bg) return;
   bg.style.opacity = '0';
   setTimeout(() => {
-    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundPosition = 'center top';
-    bg.style.opacity = '0.72';
+    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
+    bg.style.opacity = '1';
   }, 220);
   // Zaktualizuj paginację
   document.querySelectorAll('.hero-dot').forEach((d, idx) => {
@@ -3381,7 +3380,7 @@ function _heroStopRotation() {
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) return;
-  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundPosition = 'center top';
+  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
   bg.style.opacity = '0';
   // Buduj paginację
   const dotsEl = document.getElementById('hero-dots');
