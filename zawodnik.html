@@ -832,22 +832,17 @@ body > *{position:relative;z-index:1;}
 </div><!-- koniec today-hero -->
 <!-- Kafelki po prawej -->
 <div style="display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0;">
-  <button onclick="location.href='wyzwania.html'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="showSection('social');switchSocialTab('challenges')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Wyzwania</span>
   </button>
-  <button onclick="showSection('msgs')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="showSection('profile');setTimeout(()=>switchProfileTab('chat'),100)" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5b8cff" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Czat</span>
   </button>
-  <button onclick="location.href='odznaki.html'" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
+  <button onclick="showSection('profile');setTimeout(()=>switchProfileTab('badges'),100)" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
     <span style="font-size:8px;letter-spacing:0.05em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Odznaki</span>
-  </button>
-</div>
-</div><!-- koniec flex hero+kafelki -->
-
-<!o',monospace;color:var(--muted);">Odznaki</span>
   </button>
 </div>
 </div><!-- koniec flex hero+kafelki -->
@@ -943,8 +938,8 @@ body > *{position:relative;z-index:1;}
     <div class="nav-lbl">Plan</div>
   </a>
   <a class="nav-it" href="#" onclick="openModal();return false;">
-    <div style="width:44px;height:44px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px rgba(232,86,30,0.55);display:flex;align-items:center;justify-content:center;margin-top:-16px;border:2px solid rgba(255,255,255,0.15);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/logo-b.webp" style="width:26px;height:26px;object-fit:contain;" onerror="this.parentElement.innerHTML='+'">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
+      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <div class="nav-lbl" style="margin-top:2px;">Log</div>
   </a>
