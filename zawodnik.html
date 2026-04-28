@@ -185,7 +185,8 @@ body > *{position:relative;z-index:1;}
   overflow:hidden;
   position:relative;
   box-shadow:var(--tile-shadow-lg);
-  aspect-ratio:16/9;
+  height:56vw;
+  max-height:280px;
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -2346,6 +2347,7 @@ async function loadProfile() {
   // Załaduj odznaki i wyrenderuj sekcję
   await loadAchievements();
   renderBadgesSection();
+  setTimeout(_startProfileBanner, 50);
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) return;
   const name = session.user.user_metadata?.full_name || '—';
@@ -2357,7 +2359,6 @@ async function loadProfile() {
   if (_editingPBs) toggleEditPBs();
   if (_athleteId) checkStravaStatus();
   if (_athleteId) loadAvatarTopbar(_athleteId);
-  setTimeout(_startProfileBanner, 100);
   
   if (_athleteId) {
     // Avatar
@@ -3363,7 +3364,8 @@ function _heroShow(i) {
   if (!bg) return;
   bg.style.opacity = '0';
   setTimeout(() => {
-    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundPosition = 'center top';
+    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')';
+    bg.style.backgroundPosition = 'center top'; bg.style.backgroundPosition = 'center top';
     bg.style.opacity = '0.72';
   }, 220);
   // Zaktualizuj paginację
@@ -3382,7 +3384,8 @@ function _heroStopRotation() {
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) return;
-  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundPosition = 'center top';
+  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')';
+  bg.style.backgroundPosition = 'center top'; bg.style.backgroundPosition = 'center top';
   bg.style.opacity = '0';
   // Buduj paginację
   const dotsEl = document.getElementById('hero-dots');
