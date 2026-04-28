@@ -1643,17 +1643,30 @@ async function approveTraining(e, ds, idx, dbId) {
 
 async function deleteTraining(e, ds, idx) {
   e.stopPropagation();
-  if(!confirm('Usunąć ten trening?')) return;
   const t = trainings[ds] && trainings[ds][idx];
-  const dbId = t ? t._id : null;
-  // Najpierw usuń z DB, potem odśwież — unikamy race condition
+  if (!t) return;
+  const dbId = t._id || null;
+
+  // Potwierdzenie z nazwą treningu
+  const label = (t.type || 'Trening') + (t.date ? ' · ' + t.date : '');
+  if (!confirm('Usunąć: ' + label + '?')) return;
+
   if (dbId) {
     const { error } = await _sbKal.from('trainings').delete().eq('id', dbId);
-    if (error) { notify('Błąd usuwania: ' + error.message); return; }
+    if (error) {
+      if (error.code === '42501' || error.message?.includes('policy')) {
+        notify('Brak uprawnień do usunięcia tego treningu');
+      } else {
+        notify('Błąd usuwania: ' + error.message);
+      }
+      return;
+    }
+  } else {
+    // Lokalny trening (bez ID w DB)
+    if (trainings[ds]) trainings[ds].splice(idx, 1);
   }
-  // Przeładuj z bazy — świeży stan po DELETE
   await loadTrainingsFromDB();
-  notify('Trening usunięty');
+  notify('Trening usunięty ✓');
 }
 
 // ── NOTIF ─────────────────────────────────────────────────────────────────────
