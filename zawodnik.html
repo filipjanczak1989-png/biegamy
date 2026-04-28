@@ -830,27 +830,25 @@ body > *{position:relative;z-index:1;}
   <div style="flex:1;"></div>
 </div>
 
-<!-- Nawigacja + szybkie akcje -->
-<div style="display:flex;align-items:center;gap:8px;padding:8px 16px 4px;">
-  <!-- Dots i strzałki -->
-  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+<!-- Dots + kafelki akcji -->
+<div style="padding:10px 16px 6px;">
+  <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
     <button onclick="_heroPrev()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
     <div id="hero-dots" style="display:flex;gap:4px;align-items:center;"></div>
     <button onclick="_heroNext()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:24px;height:24px;border-radius:50%;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;">›</button>
   </div>
-  <!-- Szybkie akcje po prawej -->
-  <div style="display:flex;gap:6px;margin-left:auto;align-items:center;">
-    <button onclick="showSection('social');switchSocialTab('challenges')" title="Wyzwania" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:5px 10px;color:var(--fg);font-size:10px;letter-spacing:0.05em;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
-      Wyzwania
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+    <button onclick="showSection('social');switchSocialTab('challenges')" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+      <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Wyzwania</span>
     </button>
-    <button onclick="switchProfileTab('chat')" title="Czat z trenerem" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:5px 10px;color:var(--fg);font-size:10px;letter-spacing:0.05em;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#5b8cff" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      Czat
+    <button onclick="showSection('profile');setTimeout(()=>switchProfileTab('chat'),100)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b8cff" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Czat</span>
     </button>
-    <button onclick="showSection('profile');switchProfileTab('badges')" title="Odznaki" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:5px 10px;color:var(--fg);font-size:10px;letter-spacing:0.05em;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
-      Odznaki
+    <button onclick="showSection('profile');setTimeout(()=>switchProfileTab('badges'),100)" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ffd700" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>
+      <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">Odznaki</span>
     </button>
   </div>
 </div>
@@ -869,7 +867,7 @@ body > *{position:relative;z-index:1;}
 <div class="today-actions-wrap fade-in">
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
-  <button class="btn btn-primary" onclick="openModal()" style="width:100%;margin-bottom:8px;"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/logo-b.webp" style="width:20px;height:20px;object-fit:contain;filter:brightness(0) invert(1);vertical-align:middle;margin-right:8px;" onerror="this.style.display=\'none\'"> Zaloguj wynik</button>
+  <button class="btn btn-primary" onclick="openModal()" style="width:100%;margin-bottom:8px;"><span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;margin-right:6px;">B</span> Zaloguj wynik</button>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
     <button class="btn btn-done" onclick="markDone(this)" id="done-btn">✓ Wykonany</button>
     <button class="btn btn-ghost" onclick="showSection('social');switchSocialTab('challenges')" style="font-size:11px;">🏆 Wyzwania</button>
@@ -939,8 +937,8 @@ body > *{position:relative;z-index:1;}
     <div class="nav-lbl">Plan</div>
   </a>
   <a class="nav-it" href="#" onclick="openModal();return false;">
-    <div style="width:44px;height:44px;border-radius:50%;background:var(--accent);box-shadow:0 0 18px rgba(232,86,30,0.55);display:flex;align-items:center;justify-content:center;margin-top:-16px;border:2px solid rgba(255,255,255,0.15);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/logo-b.webp" style="width:26px;height:26px;object-fit:contain;" onerror="this.parentElement.innerHTML='+'">
+    <div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#ff8c42);box-shadow:0 0 18px rgba(232,86,30,0.6);display:flex;align-items:center;justify-content:center;margin-top:-16px;border:2px solid rgba(255,255,255,0.2);">
+      <span style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;line-height:1;">B</span>
     </div>
     <div class="nav-lbl" style="margin-top:2px;">Log</div>
   </a>
