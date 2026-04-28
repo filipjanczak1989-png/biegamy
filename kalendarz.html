@@ -2877,7 +2877,7 @@ function renderMobile() {
         + (statusBadge ? '<div style="margin-top:6px;">' + statusBadge + '</div>' : '')
         + planThumbs
         + (!isDone && _urlRole === 'athlete' && t.type !== 'Odpoczynek'
-          ? '<div style="padding:0 13px 11px;"><button onclick="event.stopPropagation();openLogModal(event,\'' + ds + '\',' + i + ')" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;touch-action:manipulation;">🏃 Zaloguj wynik</button></div>'
+          ? '<div style="padding:0 13px 11px;"><button onclick="event.stopPropagation();openLogModal(event,\'' + ds + '\',' + i + ')" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;touch-action:manipulation;"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:20px;height:20px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:5px;">Zaloguj wynik</button></div>'
           : '')
         + '</div></div>';
     }).join('');
@@ -3855,7 +3855,7 @@ function _openDayScreen(ds) {
     } else if (hasPlan) {
       // Ma plan, brak logu — "Zaloguj wynik"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🏃 Zaloguj wynik</button>`;
+        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:20px;height:20px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:5px;">Zaloguj wynik</button>`;
     } else {
       // Brak planu i logu — "Dodaj trening"
       ctaInner.innerHTML = closeBtn +
