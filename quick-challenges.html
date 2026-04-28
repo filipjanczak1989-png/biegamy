@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiegaMy — Wyzwania</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#07050c;--bg2:#0f0e16;--card:#13111f;--border:rgba(255,255,255,0.08);--fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--muted:rgba(240,237,232,0.45);--accent:#e8561e;}
+html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;height:100%;}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap');
+#topbar{display:flex;align-items:center;gap:12px;padding:54px 20px 16px;background:var(--bg);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);}
+#topbar button{background:rgba(255,255,255,0.08);border:none;color:var(--fg);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#topbar h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;}
+#content{padding:16px 16px 40px;}
+#challenges-content{}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <button onclick="history.back()">←</button>
+  <h1>Wyzwania</h1>
+</div>
+<div id="content">
+  <div id="challenges-content">
+    <div style="text-align:center;padding:48px 0;color:var(--muted);font-size:13px;">Ładowanie...</div>
+  </div>
+</div>
+<script>
+const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+let _athleteId = null;
+
+async function init() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { history.back(); return; }
+  const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).single();
+  if (ath) _athleteId = ath.id;
+  loadChallenges();
+}
+
+function loadChallenges() {
+  const el = document.getElementById('challenges-content');
+  if (!el) return;
+  const now = new Date();
+  const dow = now.getDay() === 0 ? 6 : now.getDay() - 1; // 0=pn
+  const wS = new Date(now); wS.setDate(now.getDate() - dow); wS.setHours(0,0,0,0);
+  const mS = new Date(now.getFullYear(), now.getMonth(), 1);
+  const weekNum = Math.floor((wS - new Date(wS.getFullYear(),0,1)) / 604800000);
+
+  const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/';
+
+  // Wyzwania tygodniowe — każde powiązane z odznakę
+  const WEEKLY = [
+    {id:'tydzien_mocy',   badge:'tydzien_mocy',   title:'Tydzień mocy',       desc:'3 treningi w tym tygodniu',   target:3,  unit:'treningi', kind:'sessions',color:'#e8a040'},
+    {id:'5_dni_ruchu',    badge:'5_dni_ruchu',     title:'5 dni ruchu',        desc:'5 treningów w tym tygodniu',  target:5,  unit:'treningi', kind:'sessions',color:'#5090e0'},
+    {id:'weekend_runner', badge:'weekend_runner',  title:'Weekend runner',     desc:'2 treningi w weekend',        target:2,  unit:'sesje',    kind:'weekend', color:'#9a6fe8'},
+    {id:'20km_tydzien',   badge:'20km_tydzien',    title:'20 km / tydzień',    desc:'20 km od poniedziałku',       target:20, unit:'km',       kind:'km',      color:'#3db870'},
+    {id:'40km_tydzien',   badge:'40km_tydzien',    title:'40 km / tydzień',    desc:'40 km od poniedziałku',       target:40, unit:'km',       kind:'km',      color:'#e8b840'},
+    {id:'60km_tydzien',   badge:'60km_tydzien',    title:'60 km / tydzień',    desc:'60 km od poniedziałku',       target:60, unit:'km',       kind:'km',      color:'#FC4C02'},
+    {id:'80km_tydzien',   badge:'80km_tydzien',    title:'80+ km / tydzień',   desc:'80 km od poniedziałku',       target:80, unit:'km',       kind:'km',      color:'#ff4444'},
+    {id:'szybki_tydzien', badge:'szybki_tydzien',  title:'Szybki tydzień',     desc:'2 treningi tempowe',          target:2,  unit:'tempo',    kind:'tempo',   color:'#FC4C02'},
+    {id:'3_dni_pod_rzad', badge:'3_dni_pod_rzad',  title:'3 dni pod rząd',     desc:'3 kolejne dni treningów',     target:3,  unit:'dni',      kind:'streak',  color:'#e8b840'},
+    {id:'forma_rosnie',   badge:'forma_rosnie',    title:'Forma rośnie',       desc:'4 treningi w tym tygodniu',   target:4,  unit:'treningi', kind:'sessions',color:'#3db870'},
+    {id:'bez_skipa',      badge:'bez_skipa',       title:'Bez skipa',          desc:'Trening co drugi dzień',      target:4,  unit:'dni',      kind:'altdays', color:'#aac8ff'},
+    {id:'mieszany_ogien', badge:'mieszany_ogien',  title:'Mieszany ogień',     desc:'Easy + Tempo + Interwały',    target:3,  unit:'typy',     kind:'mix',     color:'#FC4C02'},
+  ];
+
+  // Wyzwania miesięczne — powiązane z odznakami
+  const MONTHLY = [
+    {id:'50km_miesiaca',  badge:'50km_miesiaca',  title:'50 km miesiąca',    desc:'50 km w tym miesiącu',       target:50,  unit:'km',       kind:'mkm',     color:'#3db870'},
+    {id:'100km_miesiaca', badge:'100km_miesiaca', title:'100 km miesiąca',   desc:'100 km w tym miesiącu',      target:100, unit:'km',       kind:'mkm',     color:'#e8b840'},
+    {id:'200km_miesiaca', badge:'200km_miesiaca', title:'200 km miesiąca',   desc:'200 km w tym miesiącu',      target:200, unit:'km',       kind:'mkm',     color:'#FC4C02'},
+    {id:'15_treningow',   badge:'15_treningow',   title:'15 treningów',      desc:'15 treningów w miesiącu',    target:15,  unit:'treningi', kind:'msess',   color:'#5090e0'},
+    {id:'20_treningow',   badge:'20_treningow',   title:'20 treningów',      desc:'20 treningów w miesiącu',    target:20,  unit:'treningi', kind:'msess',   color:'#9a6fe8'},
+    {id:'maraton_m',      badge:'maraton_m',      title:'Maraton miesiąca',  desc:'42 km łącznie w miesiącu',   target:42,  unit:'km',       kind:'mkm',     color:'#e8a040'},
+  ];
+
+  // Wybierz 3 tygodniowe (rotacja) + 2 miesięczne (rotacja)
+  const w1 = WEEKLY[weekNum % WEEKLY.length];
+  const w2 = WEEKLY[(weekNum + 3) % WEEKLY.length];
+  const w3 = WEEKLY[(weekNum + 7) % WEEKLY.length];
+  const m1 = MONTHLY[Math.floor(weekNum/4) % MONTHLY.length];
+  const m2 = MONTHLY[(Math.floor(weekNum/4)+1) % MONTHLY.length];
+
+  function buildCard(ch, prog, earned, isMonthly) {
+    const pct = Math.min(100, Math.round((prog||0) / ch.target * 100));
+    const col = ch.color;
+    const almostLabel = (!earned && pct >= 60)
+      ? `<div style="font-size:10px;color:${col};font-family:'DM Mono',monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
+      : '';
+    return `<div style="background:var(--card);border:1px solid ${earned?col:'var(--border)'};border-radius:16px;padding:14px 16px;margin-bottom:10px;${earned?'box-shadow:0 0 16px '+col+'22;':''}">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <img src="${BASE}${ch.badge}.webp" style="width:48px;height:48px;border-radius:10px;flex-shrink:0;${earned?'box-shadow:0 0 12px '+col+'55;':'filter:grayscale(0.4) brightness(0.7);'}" onerror="this.style.display='none'">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <div style="font-size:14px;font-weight:600;">${ch.title}</div>
+            ${earned ? `<span style="color:#3db870;font-size:13px;">✓</span>` : ''}
+            <span style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">${isMonthly?'MIESIĄC':'TYDZIEŃ'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ch.desc}</div>
+          ${almostLabel}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:${col};">${typeof prog==='number'?prog.toFixed(ch.unit==='km'?1:0):'0'}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">/ ${ch.target} ${ch.unit}</div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:4px;height:4px;overflow:hidden;">
+        <div style="background:${col};height:4px;width:${pct}%;border-radius:4px;transition:width 0.8s ease;${pct>=100?'box-shadow:0 0 8px '+col+'88;':''}"></div>
+      </div>
+    </div>`;
+  }
+
+  // Render z zerowym postępem najpierw
+  function render(progMap, earnedSet) {
+    let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
+    [w1,w2,w3].forEach(ch => {
+      html += buildCard(ch, progMap[ch.kind]?.[ch.id]||progMap[ch.kind]||0, earnedSet.has(ch.badge), false);
+    });
+    html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
+    [m1,m2].forEach(ch => {
+      html += buildCard(ch, progMap['m_'+ch.id]||0, earnedSet.has(ch.badge), true);
+    });
+    html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
+    el.innerHTML = html;
+  }
+
+  render({}, new Set());
+
+  if (!_athleteId) return;
+
+  Promise.all([
+    _sb.from('training_logs').select('distance_km,logged_at,training_type,pace')
+       .eq('athlete_id', _athleteId).gte('logged_at', mS.toISOString()),
+    _sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
+  ]).then(([logsRes, achRes]) => {
+    const all = logsRes.data || [];
+    const wl = all.filter(l => new Date(l.logged_at) >= wS);
+    const earnedSet = new Set((achRes.data||[]).map(r => r.badge_id));
+
+    // Oblicz postępy
+    const wkm = wl.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+    const mkm = all.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+    const wsess = wl.length;
+    const msess = all.length;
+    const wknd = wl.filter(l => { const d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
+    const wTempo = wl.filter(l => l.training_type==='Tempo').length;
+    const wDays = [...new Set(wl.map(l=>l.logged_at.slice(0,10)))].sort();
+
+    // streak
+    let streak = 0, prev = null;
+    wDays.forEach(d => {
+      if (!prev) { streak=1; } 
+      else { streak = Math.round((new Date(d)-new Date(prev))/86400000)===1 ? streak+1 : 1; }
+      prev = d;
+    });
+
+    // Dla każdego wyzwania tygodniowego oblicz progress
+    function wProg(ch) {
+      if (ch.kind==='km')      return wkm;
+      if (ch.kind==='sessions')return wsess;
+      if (ch.kind==='weekend') return wknd;
+      if (ch.kind==='streak')  return streak;
+      if (ch.kind==='tempo')   return wTempo;
+      if (ch.kind==='altdays') return Math.floor(wDays.length);
+      if (ch.kind==='mix') {
+        const types = new Set(wl.map(l=>l.training_type));
+        return [types.has('Spokojny'),types.has('Tempo'),types.has('Interwały')].filter(Boolean).length;
+      }
+      return 0;
+    }
+
+    const progMap = {};
+    [w1,w2,w3].forEach(ch => { progMap[ch.id] = wProg(ch); });
+    [m1,m2].forEach(ch => {
+      progMap['m_'+ch.id] = ch.kind==='mkm' ? mkm : msess;
+    });
+
+    // Specjalna mapa dla render
+    function renderWithData() {
+      let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
+      [w1,w2,w3].forEach(ch => {
+        html += buildCard(ch, progMap[ch.id]||0, earnedSet.has(ch.badge), false);
+      });
+      html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
+      [m1,m2].forEach(ch => {
+        html += buildCard(ch, progMap['m_'+ch.id]||0, earnedSet.has(ch.badge), true);
+      });
+      html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
+      el.innerHTML = html;
+    }
+    renderWithData();
+  });
+}
+
+
+
+init();
+</script>
+</body>
+</html>

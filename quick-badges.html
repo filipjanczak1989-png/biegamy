@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BiegaMy — Odznaki</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#07050c;--bg2:#0f0e16;--card:#13111f;--border:rgba(255,255,255,0.08);--fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--muted:rgba(240,237,232,0.45);--accent:#e8561e;}
+html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;height:100%;}
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap');
+#topbar{display:flex;align-items:center;gap:12px;padding:54px 20px 16px;background:var(--bg);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--border);}
+#topbar button{background:rgba(255,255,255,0.08);border:none;color:var(--fg);width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#topbar h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;}
+#content{padding:16px 16px 40px;}
+.badge-row{display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;}
+.badge-row img{width:52px;height:52px;border-radius:10px;flex-shrink:0;}
+.badge-row.earned{border-color:rgba(232,184,64,0.4);box-shadow:0 0 16px rgba(232,184,64,0.1);}
+.badge-row.locked img{filter:grayscale(0.8) brightness(0.5);}
+.cat-header{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:16px 0 8px;}
+</style>
+</head>
+<body>
+<div id="topbar">
+  <button onclick="history.back()">←</button>
+  <h1>Odznaki</h1>
+</div>
+<div id="content">
+  <div id="badges-section-content">
+    <div style="text-align:center;padding:48px 0;color:var(--muted);">Ładowanie...</div>
+  </div>
+</div>
+<script>
+const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
+let _athleteId = null;
+window._earnedBadges = new Set();
+
+const BADGES = [
+  // PODSTAWOWE
+  {id:'pierwszy_krok',   name:'Pierwszy krok',      desc:'Zapisz pierwszy trening',         rarity:'common',   cat:'Podstawowe'},
+  {id:'wracam_do_gry',   name:'Wracam do gry',       desc:'Powrót po 7 dniach przerwy',      rarity:'common',   cat:'Podstawowe'},
+  {id:'3_z_rzedu',       name:'3 z rzędu',           desc:'3 dni treningów z rzędu',         rarity:'common',   cat:'Podstawowe'},
+  {id:'pierwsze_10km',   name:'Pierwsze 10 km',      desc:'10 km łącznie',                   rarity:'common',   cat:'Podstawowe'},
+  {id:'plan_ukonczony',  name:'Plan ukończony',      desc:'Ukończ swój pierwszy plan',       rarity:'common',   cat:'Podstawowe'},
+  // KONSYSTENCJA
+  {id:'streak_7',        name:'Streak 7',            desc:'7 dni treningów z rzędu',         rarity:'rare',     cat:'Konsystencja'},
+  {id:'streak_30',       name:'Streak 30',           desc:'30 dni treningów z rzędu',        rarity:'epic',     cat:'Konsystencja'},
+  {id:'streak_100',      name:'Streak 100',          desc:'100 dni treningów z rzędu',       rarity:'legendary',cat:'Konsystencja'},
+  {id:'nie_zatrzymuje',  name:'Nie zatrzymuję się',  desc:'10 treningów pod rząd',           rarity:'rare',     cat:'Konsystencja'},
+  {id:'rutyna_mistrza',  name:'Rutyna mistrza',      desc:'4 treningi/tydzień przez 4 tygodnie',rarity:'epic', cat:'Konsystencja'},
+  // DYSTANS
+  {id:'dystans_50',      name:'50 km',               desc:'50 km łącznie',                   rarity:'common',   cat:'Dystans'},
+  {id:'dystans_100',     name:'100 km',              desc:'100 km łącznie',                  rarity:'common',   cat:'Dystans'},
+  {id:'dystans_250',     name:'250 km',              desc:'250 km łącznie',                  rarity:'rare',     cat:'Dystans'},
+  {id:'dystans_500',     name:'500 km',              desc:'500 km łącznie',                  rarity:'rare',     cat:'Dystans'},
+  {id:'dystans_1000',    name:'1000 km',             desc:'1000 km łącznie',                 rarity:'epic',     cat:'Dystans'},
+  {id:'dystans_2000',    name:'2000 km',             desc:'2000 km łącznie',                 rarity:'legendary',cat:'Dystans'},
+  {id:'dystans_5000',    name:'5000 km — LEGEND',    desc:'5000 km łącznie',                 rarity:'legendary',cat:'Dystans'},
+  // PERFORMANCE
+  {id:'tempo_killer',    name:'Tempo killer',        desc:'Ukończ trening tempowy',          rarity:'rare',     cat:'Performance'},
+  {id:'interwalowiec',   name:'Interwałowiec',       desc:'5 treningów interwałowych',       rarity:'rare',     cat:'Performance'},
+  {id:'nowy_rekord',     name:'Nowy rekord',         desc:'Pobij rekord życiowy',            rarity:'epic',     cat:'Performance'},
+  {id:'negative_split',  name:'Negative split',      desc:'Druga połowa szybciej',           rarity:'epic',     cat:'Performance'},
+  // KLIMAT
+  {id:'nocny_wojownik',  name:'Nocny wojownik',      desc:'Trening po 22:00',                rarity:'rare',     cat:'Klimat'},
+  {id:'early_bird',      name:'Early bird',          desc:'Trening przed 6:00',              rarity:'rare',     cat:'Klimat'},
+  {id:'nie_ma_wymowek',  name:'Nie ma wymówek',      desc:'Trening w deszczu',               rarity:'rare',     cat:'Klimat'},
+  {id:'lodowy_biegacz',  name:'Lodowy biegacz',      desc:'Trening poniżej 0°C',             rarity:'epic',     cat:'Klimat'},
+  // MENTAL
+  {id:'silna_glowa',     name:'Silna głowa',         desc:'Trening mimo zmęczenia',          rarity:'rare',     cat:'Mental'},
+  {id:'bez_wymowek',     name:'Bez wymówek',         desc:'5 dni bez pominięcia',            rarity:'rare',     cat:'Mental'},
+  {id:'powrot_silniejszy',name:'Powrót silniejszy',  desc:'Comeback po przerwie',            rarity:'rare',     cat:'Mental'},
+  // TYGODNIOWE
+  {id:'tydzien_mocy',    name:'Tydzień mocy',        desc:'3 treningi w tygodniu',           rarity:'common',   cat:'Tygodniowe'},
+  {id:'5_dni_ruchu',     name:'5 dni ruchu',         desc:'5 aktywności w tygodniu',         rarity:'rare',     cat:'Tygodniowe'},
+  {id:'weekend_runner',  name:'Weekend runner',      desc:'2 treningi w weekend',            rarity:'common',   cat:'Tygodniowe'},
+  {id:'szybki_tydzien',  name:'Szybki tydzień',      desc:'2 treningi tempowe',              rarity:'rare',     cat:'Tygodniowe'},
+  {id:'interwalowy_tydz',name:'Interwałowy tydzień', desc:'2 treningi interwałowe',          rarity:'rare',     cat:'Tygodniowe'},
+  {id:'mieszany_ogien',  name:'Mieszany ogień',      desc:'Easy + tempo + interwał',         rarity:'rare',     cat:'Tygodniowe'},
+  {id:'20km_tydzien',    name:'20 km / tydzień',     desc:'20 km w jednym tygodniu',         rarity:'common',   cat:'Tygodniowe'},
+  {id:'40km_tydzien',    name:'40 km / tydzień',     desc:'40 km w jednym tygodniu',         rarity:'rare',     cat:'Tygodniowe'},
+  {id:'60km_tydzien',    name:'60 km / tydzień',     desc:'60 km w jednym tygodniu',         rarity:'epic',     cat:'Tygodniowe'},
+  {id:'80km_tydzien',    name:'80+ km / tydzień',    desc:'80 km w jednym tygodniu',         rarity:'legendary',cat:'Tygodniowe'},
+  {id:'bez_skipa',       name:'Bez skipa',           desc:'Trening co drugi dzień',          rarity:'rare',     cat:'Tygodniowe'},
+  {id:'3_dni_pod_rzad',  name:'3 dni pod rząd',      desc:'3 dni treningów z rzędu',         rarity:'common',   cat:'Tygodniowe'},
+  {id:'forma_rosnie',    name:'Forma rośnie',        desc:'4 treningi w tygodniu',           rarity:'rare',     cat:'Tygodniowe'},
+  // MIESIĘCZNE
+  {id:'50km_miesiaca',   name:'50 km miesiąca',      desc:'50 km w jednym miesiącu',         rarity:'common',   cat:'Miesięczne'},
+  {id:'100km_miesiaca',  name:'100 km miesiąca',     desc:'100 km w jednym miesiącu',        rarity:'rare',     cat:'Miesięczne'},
+  {id:'200km_miesiaca',  name:'200 km miesiąca',     desc:'200 km w jednym miesiącu',        rarity:'epic',     cat:'Miesięczne'},
+  {id:'300km_miesiaca',  name:'300+ km miesiąca',    desc:'300 km w jednym miesiącu',        rarity:'legendary',cat:'Miesięczne'},
+  {id:'15_treningow',    name:'15 treningów',        desc:'15 treningów w miesiącu',         rarity:'rare',     cat:'Miesięczne'},
+  {id:'20_treningow',    name:'20 treningów',        desc:'20 treningów w miesiącu',         rarity:'epic',     cat:'Miesięczne'},
+  {id:'25_treningow',    name:'25 treningów',        desc:'25 treningów w miesiącu',         rarity:'legendary',cat:'Miesięczne'},
+  {id:'maraton_m',       name:'Maraton miesiąca',    desc:'42 km łącznie w miesiącu',        rarity:'rare',     cat:'Miesięczne'},
+  {id:'ultra_m',         name:'Ultra miesiąca',      desc:'100 km+ w miesiącu',              rarity:'epic',     cat:'Miesięczne'},
+  // SPOŁECZNOŚĆ
+  {id:'pierwszy_koment', name:'Pierwszy komentarz',  desc:'Napisz swój pierwszy komentarz',  rarity:'common',   cat:'Społeczność'},
+  {id:'motywator',       name:'Motywator',           desc:'10 reakcji od innych',            rarity:'rare',     cat:'Społeczność'},
+  {id:'lider',           name:'Lider',               desc:'Top tygodnia',                    rarity:'epic',     cat:'Społeczność'},
+  {id:'wsparcie',        name:'Wsparcie',            desc:'20 lajków od innych',             rarity:'rare',     cat:'Społeczność'},
+  // HARDCORE
+  {id:'bez_dnia_przerwy',name:'Bez dnia przerwy 30', desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Hardcore'},
+  {id:'ultra_mindset',   name:'Ultra mindset',       desc:'6h biegu / ultra',                rarity:'legendary',cat:'Hardcore'},
+  {id:'granice',         name:'Granice nie istnieją',desc:'100 km w miesiącu',               rarity:'legendary',cat:'Hardcore'},
+  // SEZONOWE
+  {id:'swiateczny',      name:'Świąteczny biegacz',  desc:'Trening w Święta',                rarity:'rare',     cat:'Sezonowe'},
+  {id:'nowy_rok',        name:'Nowy rok — nowy ja',  desc:'Trening 1 stycznia',              rarity:'rare',     cat:'Sezonowe'},
+  {id:'letnia_forma',    name:'Letnia forma',        desc:'Trening w lecie',                 rarity:'common',   cat:'Sezonowe'},
+  {id:'zimowy_wojownik', name:'Zimowy wojownik',     desc:'Trening zimą',                    rarity:'rare',     cat:'Sezonowe'},
+  {id:'7_dni_challenge', name:'7 dni challenge',     desc:'7 dni bez przerwy',               rarity:'rare',     cat:'Sezonowe'},
+  {id:'14_dni_challenge',name:'14 dni challenge',    desc:'14 dni bez przerwy',              rarity:'epic',     cat:'Sezonowe'},
+  {id:'30_dni_challenge',name:'30 dni challenge',    desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Sezonowe'},
+];
+
+
+function renderBadgesSection() {
+  const container = document.getElementById('badges-section-content');
+  if (!container) return;
+
+  const cats = [...new Set(BADGES.map(b => b.cat))];
+  let html = '';
+  for (const cat of cats) {
+    const catBadges = BADGES.filter(b => b.cat === cat);
+    const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
+    html += `<div style="padding:0 16px 4px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">${cat}</div>
+      <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--accent);">${earnedInCat}/${catBadges.length}</div>
+    </div>
+    <div class="badge-grid">`;
+    for (const b of catBadges) {
+      const earned = window._earnedBadges.has(b.id);
+      const col = RARITY_COLOR[b.rarity] || '#fff';
+      html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
+        ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
+        <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
+        <div class="badge-item-name">${b.name}</div>
+        ${earned ? `<div style="font-size:8px;font-family:'DM Mono',monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  const earned = window._earnedBadges.size;
+  container.innerHTML = `
+    <div style="padding:0 16px 8px;display:flex;align-items:center;gap:10px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${earned}</div>
+      <div><div style="font-size:11px;font-weight:600;">zdobyte odznaki</div>
+        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${BADGES.length - earned} pozostało</div>
+      </div>
+      <div style="margin-left:auto;background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:10px;padding:6px 12px;text-align:center;">
+        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.12em;">PROGRES</div>
+        <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/BADGES.length*100)}%</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 10px;">
+      <div style="height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+        <div style="height:100%;width:${Math.round(earned/BADGES.length*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:2px;transition:width 0.8s ease;"></div>
+      </div>
+    </div>
+    ${html}`;
+}
+
+// ── Social feed — renderuj badge eventy ──────────────────────────
+function _renderBadgeEvent(l, ath) {
+  const badgeId = (l.training_type && l.training_type.startsWith('__badge__')) ? l.training_type.replace('__badge__','') : l.comment;
+  const badge = BADGES.find(b => b.id === badgeId);
+  if (!badge) return '';
+  const name = ath?.full_name || 'Biegacz';
+  const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  const col = RARITY_COLOR[badge.rarity] || '#fff';
+  const date = l.logged_at ? new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
+  return `<div style="position:relative;overflow:hidden;border:1px solid ${col}33;border-radius:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${col},${col}44);"></div>
+    <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;">${name}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;">zdobył odznakę · ${date}</div>
+      </div>
+      <img src="${BASE_URL}${badge.id}.webp" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;box-shadow:0 0 12px ${col}55;" loading="lazy">
+    </div>
+    <div style="padding:0 14px 12px;display:flex;align-items:center;gap:8px;">
+      <div style="font-size:13px;font-weight:700;color:${col};">${badge.name}</div>
+      <span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:${col};background:${col}18;padding:2px 7px;border-radius:6px;border:1px solid ${col}44;">${RARITY_LABEL[badge.rarity]}</span>
+    </div>
+  </div>`;
+}
+
+// Eksportuj do globalnego scope
+window._renderBadgeEvent = _renderBadgeEvent;
+window.checkBadges = checkBadges;
+window.loadAchievements = loadAchievements;
+window.renderBadgesSection = renderBadgesSection;
+</script>
+
+async function init() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { history.back(); return; }
+  const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).single();
+  if (ath) {
+    _athleteId = ath.id;
+    const { data } = await _sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId);
+    if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
+  }
+  renderBadgesSection();
+}
+
+init();
+</script>
+</body>
+</html>
