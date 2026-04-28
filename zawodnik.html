@@ -766,7 +766,7 @@ body > *{position:relative;z-index:1;}
 
 /* ── TODAY HERO — obrazkowa karta ───────────────────────────────── */
 .today-hero {
-  min-height: 200px;
+  min-height: 320px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1012,22 +1012,6 @@ body > *{position:relative;z-index:1;}
   </div>
 
 
-  <!-- Profile Banner Slides -->
-  <div style="position:relative;width:100%;height:200px;overflow:hidden;margin-bottom:0;">
-    <img id="profile-banner-img" src="" alt="" 
-      style="width:100%;height:100%;object-fit:cover;object-position:center;transition:opacity 0.4s ease;"
-      onerror="this.style.display='none'">
-    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0) 40%,rgba(7,5,12,0.85) 100%);pointer-events:none;"></div>
-    <!-- Dots -->
-    <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
-      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
-      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
-      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
-      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
-      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
-    </div>
-  </div>
-
   <!-- Avatar + imię -->
   <div style="text-align:center;padding:16px 0 20px;">
     <div style="position:relative;width:96px;margin:0 auto 12px;">
@@ -1043,6 +1027,21 @@ body > *{position:relative;z-index:1;}
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
     <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
+  </div>
+
+  <!-- Profile Banner Slides — pod avatarem -->
+  <div style="position:relative;width:100%;overflow:hidden;border-radius:16px;margin:0 0 20px;">
+    <img id="profile-banner-img" src="" alt="" 
+      style="width:100%;aspect-ratio:9/16;max-height:420px;object-fit:cover;object-position:center top;transition:opacity 0.4s ease;display:block;border-radius:16px;"
+      onerror="this.style.display='none'">
+    <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0) 60%,rgba(7,5,12,0.7) 100%);pointer-events:none;border-radius:16px;"></div>
+    <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+      <div class="pb-dot" style="width:5px;height:5px;border-radius:50%;background:#fff;opacity:0.35;transition:opacity 0.3s;"></div>
+    </div>
   </div>
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
@@ -3363,7 +3362,7 @@ function _heroShow(i) {
   if (!bg) return;
   bg.style.opacity = '0';
   setTimeout(() => {
-    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')';
+    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundPosition = 'center top';
     bg.style.opacity = '0.72';
   }, 220);
   // Zaktualizuj paginację
@@ -3382,7 +3381,7 @@ function _heroStopRotation() {
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
   if (!bg || !_heroCards.length) return;
-  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')';
+  bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundPosition = 'center top';
   bg.style.opacity = '0';
   // Buduj paginację
   const dotsEl = document.getElementById('hero-dots');
