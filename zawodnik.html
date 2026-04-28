@@ -185,7 +185,7 @@ body > *{position:relative;z-index:1;}
   overflow:hidden;
   position:relative;
   box-shadow:var(--tile-shadow-lg);
-  aspect-ratio:3/4;
+  aspect-ratio:16/9;
 }
 /* Orange top accent line */
 .today-hero-top{
@@ -1032,7 +1032,7 @@ body > *{position:relative;z-index:1;}
   <!-- Profile Banner Slides — pod avatarem -->
   <div style="position:relative;width:100%;overflow:hidden;border-radius:16px;margin:0 0 20px;">
     <img id="profile-banner-img" src="" alt="" 
-      style="width:100%;aspect-ratio:3/4;max-height:360px;object-fit:cover;object-position:center top;transition:opacity 0.4s ease;display:block;border-radius:16px;"
+      style="width:100%;aspect-ratio:9/16;max-height:420px;object-fit:cover;object-position:center top;transition:opacity 0.4s ease;display:block;border-radius:16px;"
       onerror="this.style.display='none'">
     <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0) 60%,rgba(7,5,12,0.7) 100%);pointer-events:none;border-radius:16px;"></div>
     <div style="position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:5px;">
@@ -2357,6 +2357,7 @@ async function loadProfile() {
   if (_editingPBs) toggleEditPBs();
   if (_athleteId) checkStravaStatus();
   if (_athleteId) loadAvatarTopbar(_athleteId);
+  setTimeout(_startProfileBanner, 100);
   
   if (_athleteId) {
     // Avatar
