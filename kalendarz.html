@@ -3258,8 +3258,10 @@ loadTrainingsFromDB().then(() => setView(_calView));
     <span class="nav-lbl" style="color:var(--accent);">Plan</span>
   </a>
   <a id="bnav-log" class="nav-it">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    <span class="nav-lbl">Log</span>
+    <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;margin-top:-16px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
+      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    </div>
+    <span class="nav-lbl" style="margin-top:2px;">Log</span>
   </a>
   <a id="bnav-social" class="nav-it">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>

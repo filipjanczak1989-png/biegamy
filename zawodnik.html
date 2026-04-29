@@ -4982,7 +4982,6 @@ function switchSocialTab(tab) {
     }
   }
   if (tab==='friends') loadFriends();
-  if (tab==='friends') loadFriends();
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
 }
@@ -5041,25 +5040,11 @@ async function loadSocialFeed(compact) {
       .not('training_type', 'like', '__badge__%')
       .order('logged_at', { ascending: false })
       .limit(compact ? 5 : 50),
-    _sb.from('achievements')
-      .select('badge_id,athlete_id,earned_at')
-      .in('athlete_id', publicIds.slice(0, 50))
-      .order('earned_at', { ascending: false })
-      .limit(compact ? 3 : 30)
+    Promise.resolve({ data: [] })
   ]);
 
-  // Przekształć achievements na pseudo-logi
-  const badgeLogs = (achRes.data || []).map(a => ({
-    id: 'badge_' + a.badge_id + '_' + a.athlete_id,
-    training_type: '__badge__' + a.badge_id,
-    comment: a.badge_id,
-    logged_at: a.earned_at,
-    athlete_id: a.athlete_id,
-    distance_km: null, pace: null, feel: null, attachment_url: null
-  }));
-
-  // Połącz i posortuj
-  const logs = [...(logsRes.data || []), ...badgeLogs]
+  // Tylko treningi w feedzie (odznaki są w zakładce Odznaki)
+  const logs = (logsRes.data || [])
     .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at))
     .slice(0, compact ? 8 : 60);
 
