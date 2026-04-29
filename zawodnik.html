@@ -802,6 +802,7 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
+      <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
       </div>
@@ -840,6 +841,9 @@ body > *{position:relative;z-index:1;}
   </button>
   <button onclick="location.href='odznaki.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
     <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+  </button>
+  <button onclick="location.href='races.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+    <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ChatGPT_Image_29_kwi_2026__07_28_12.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
 </div>
 </div>ex hero+kafelki -->
@@ -2973,13 +2977,11 @@ function showOnboarding() {
   _obGoal = 'improve';
   _obAvatarFile = null;
   // Przenieś modal do body żeby position:fixed działało poprawnie
-  const _obModal = document.getElementById('onboarding-modal');
-  if (_obModal && _obModal.parentElement !== document.body) {
-    document.body.appendChild(_obModal);
-  }
-  _obModal.classList.add('show');
-  const _obNavEl = document.getElementById('main-bottom-nav');
-  if (_obNavEl) _obNavEl.style.display = 'none';
+  const _obM = document.getElementById('onboarding-modal');
+  if (_obM && _obM.parentElement !== document.body) document.body.appendChild(_obM);
+  _obM.classList.add('show');
+  const _obNav = document.getElementById('main-bottom-nav');
+  if (_obNav) _obNav.style.display = 'none';
 
   // Pre-fill name from auth
   _sb.auth.getSession().then(({ data: { session } }) => {
