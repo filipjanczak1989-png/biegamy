@@ -5749,8 +5749,8 @@ async function loadFriends() {
     return;
   }
 
-  var pending_in  = rows.filter(function(r){return r.status==='pending' && r.addressee_id===_athleteId;});
-  var pending_out = rows.filter(function(r){return r.status==='pending' && r.requester_id===_athleteId;});
+  var pending_in  = rows.filter(function(r){return r.status==='pending'&&r.addressee_id===_athleteId;});
+  var pending_out = rows.filter(function(r){return r.status==='pending'&&r.requester_id===_athleteId;});
   var accepted    = rows.filter(function(r){return r.status==='accepted';});
   var allIds = rows.map(function(r){return r.requester_id===_athleteId?r.addressee_id:r.requester_id;});
   allIds = allIds.filter(function(v,i,a){return a.indexOf(v)===i;});
@@ -5774,26 +5774,27 @@ async function loadFriends() {
   if (pending_in.length) {
     html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;">Zaproszenia ('+pending_in.length+')</div>';
     html += pending_in.map(function(r){
-      return card(r.requester_id,
-        '<button onclick="acceptFriendFromSearch(\''+r.requester_id+'\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">\u2713 Akceptuj</button>'
-        +'<button onclick="rejectFriend(\''+r.requester_id+'\')" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;margin-left:4px;">\u2715</button>');
+      var rid = r.requester_id;
+      return card(rid,
+        '<button onclick="acceptFriendFromSearch(\"'+rid+'\",this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">&#10003; Akceptuj</button>'
+        +'<button onclick="rejectFriend(\"'+rid+'\")" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;margin-left:4px;">&#10005;</button>');
     }).join('');
   }
   if (accepted.length) {
     html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Znajomi ('+accepted.length+')</div>';
     html += accepted.map(function(r){
-      var otherId = r.requester_id===_athleteId?r.addressee_id:r.requester_id;
-      return card(otherId,'<svg onclick="location.href=\"profil.html?id='+otherId+'\"" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="cursor:pointer;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>');
+      var oid = r.requester_id===_athleteId?r.addressee_id:r.requester_id;
+      return card(oid,'<svg onclick="location.href=\"profil.html?id='+oid+'\"" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="cursor:pointer;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>');
     }).join('');
   }
   if (pending_out.length) {
     html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Wysłane</div>';
-    html += pending_out.map(function(r){return card(r.addressee_id,'<span style="font-size:9px;color:var(--accent);">\u23f3 Oczekuje</span>');}).join('');
+    html += pending_out.map(function(r){return card(r.addressee_id,'<span style="font-size:9px;color:var(--accent);">&#x23F3; Oczekuje</span>');}).join('');
   }
   el.innerHTML = html;
-  // Oznacz powiadomienia friend_request jako przeczytane
   _sb.from('notifications').update({read:true}).eq('athlete_id',_athleteId).eq('type','friend_request').then(function(){checkFriendRequests();});
 }
+
 
 async function toggleFollow(targetId, btn, isFollowing) {
   if (!_athleteId) { toast('Zaloguj się jako zawodnik aby obserwować'); return; }
@@ -5818,61 +5819,7 @@ async function toggleFollow(targetId, btn, isFollowing) {
 }
 
 // ── SYSTEM ZNAJOMYCH ─────────────────────────────────────────────
-async function loadFriends() {
-  if (!_athleteId) return;
-  const el = document.getElementById('social-friends-content');
-  if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Ładowanie...</div>';
 
-  const { data: rows } = await _sb.from('friendships')
-    .select('id,status,requester_id,addressee_id')
-    .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
-
-  if (!rows?.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:12px;line-height:1.9;">Nie masz jeszcze znajomych.<br>Użyj zakładki <b>Znajdź</b> żeby dodać!</div>';
-    return;
-  }
-
-  const pending_in = rows.filter(r => r.status === 'pending' && r.addressee_id === _athleteId);
-  const pending_out = rows.filter(r => r.status === 'pending' && r.requester_id === _athleteId);
-  const accepted = rows.filter(r => r.status === 'accepted');
-
-  const allIds = [...new Set(rows.map(r => r.requester_id === _athleteId ? r.addressee_id : r.requester_id))];
-  const { data: athletes } = await _sb.from('athletes').select('id,full_name,avatar_url').in('id', allIds);
-  const athMap = {};
-  (athletes||[]).forEach(a => { athMap[a.id] = a; });
-
-  function athCard(otherId, extra='') {
-    const a = athMap[otherId] || {};
-    const ini = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">
-      <div onclick="location.href='profil.html?id=${otherId}'" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">${ini}</div>
-      <div onclick="location.href='profil.html?id=${otherId}'" style="flex:1;cursor:pointer;"><div style="font-size:13px;font-weight:500;">${(a.full_name||'Biegacz').replace(/</g,'&lt;')}</div></div>
-      ${extra}
-    </div>`;
-  }
-
-  let html = '';
-  if (pending_in.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;margin-top:4px;">Zaproszenia (' + pending_in.length + ')</div>';
-    html += pending_in.map(r => athCard(r.requester_id,
-      `<button onclick="acceptFriendFromSearch('${r.requester_id}',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">✓ Akceptuj</button>
-       <button onclick="rejectFriend('${r.requester_id}')" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;">✕</button>`
-    )).join('');
-  }
-  if (accepted.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Znajomi (' + accepted.length + ')</div>';
-    html += accepted.map(r => {
-      const otherId = r.requester_id === _athleteId ? r.addressee_id : r.requester_id;
-      return athCard(otherId, '<svg onclick="location.href='profil.html?id=' + otherId + ''" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="cursor:pointer;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>');
-    }).join('');
-  }
-  if (pending_out.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Wysłane</div>';
-    html += pending_out.map(r => athCard(r.addressee_id, '<span style="font-size:9px;color:var(--accent);">⏳ Oczekuje</span>')).join('');
-  }
-  el.innerHTML = html;
-}
 
 async function rejectFriend(requesterId) {
   await _sb.from('friendships').delete().eq('requester_id', requesterId).eq('addressee_id', _athleteId);
