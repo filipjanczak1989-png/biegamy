@@ -3277,7 +3277,18 @@ document.getElementById('bnav-home-lbl').textContent = _isCoach ? 'Zawodnicy' : 
 document.getElementById('bnav-log').href = _isCoach ? 'trener.html' : 'zawodnik.html?tab=msgs';
 document.getElementById('bnav-log').querySelector('.nav-lbl').textContent = _isCoach ? 'Trener' : 'Log';
 document.getElementById('bnav-social').href = _isCoach ? 'trener.html?tab=analytics' : 'zawodnik.html?tab=social';
-document.getElementById('bnav-profile').href = _isCoach ? 'trener.html?tab=settings' : 'zawodnik.html?tab=profile';
+if (_isCoach) {
+  document.getElementById('bnav-profile').href = 'trener.html?tab=settings';
+} else {
+  // Pobierz athlete ID i przekieruj na nowy profil
+  (async function() {
+    const { data: { session } } = await _sbKal.auth.getSession();
+    if (session) {
+      const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      document.getElementById('bnav-profile').href = ath ? 'profil.html?id=' + ath.id : 'profil.html';
+    }
+  })();
+}
 </script>
 
 <script>
