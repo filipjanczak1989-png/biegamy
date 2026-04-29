@@ -802,9 +802,7 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
-      <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">
-        📋 Regulamin
-      </a>
+      <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
       </div>
@@ -2849,15 +2847,15 @@ async function initAuth() {
     const tn2 = document.getElementById('topbar-name');
     if(tn2){ tn2.innerHTML = name2.split(' ')[0]; tn2.style.opacity='1'; }
 
-    const { data: ath2 } = await _sb.from('athletes').select('id,full_name,onboarding_done').eq('user_id', user2.id).maybeSingle();
+    const { data: ath2 } = await _sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
     if (ath2) {
       _athleteId = ath2.id;
       const n2 = ath2.full_name || name2;
       const i2 = n2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       setAvBtn(i2);
       if(tn2){ tn2.innerHTML = n2.split(' ')[0] + ' <span>' + (n2.split(' ')[1]?.[0]||'') + '.</span>'; }
-      const _lsOb2 = localStorage.getItem('biegamy_needs_onboarding') === '1';
-      if (_isOnboarding || _lsOb2 || !ath2.onboarding_done) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
+      const _needsOb2 = _isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1';
+      if (_needsOb2) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
       await loadLogs();
     } else {
       showOnboarding();
@@ -2889,12 +2887,11 @@ async function initAuth() {
     setAvBtn(initials);
     if(tnEl){ tnEl.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
 
-    // Pokaż onboarding jeśli:
-    // 1. Flaga w localStorage (ustawiona przy rejestracji, przeżywa redirect)
-    // 2. onboarding_done = null/false w bazie (fallback)
-    // 3. ?onboarding=1 w URL (stara ścieżka, zostawiamy dla kompatybilności)
-    const _lsOnboarding = localStorage.getItem('biegamy_needs_onboarding') === '1';
-    if (_isOnboarding || _lsOnboarding || !ath.onboarding_done) {
+    // Pokaż onboarding: URL param LUB flaga localStorage (przeżywa Supabase redirect) LUB onboarding_done=null
+    const _needsOb = _isOnboarding
+      || localStorage.getItem('biegamy_needs_onboarding') === '1'
+      || ath.onboarding_done == null || ath.onboarding_done === false;
+    if (_needsOb) {
       await loadLogs();
       showOnboarding();
       window.history.replaceState({}, '', 'zawodnik.html');
@@ -2980,24 +2977,17 @@ function showOnboarding() {
   _obGoal = 'improve';
   _obAvatarFile = null;
   document.getElementById('onboarding-modal').classList.add('show');
-  // Ukryj nav żeby nie zasłaniał przycisku Dalej
-  const nav = document.getElementById('main-bottom-nav');
-  if (nav) nav.style.display = 'none';
+  const _onbNav = document.getElementById('main-bottom-nav');
+  if (_onbNav) _onbNav.style.display = 'none';
 
-  // Pre-fill name: najpierw z localStorage (ustawione przy rejestracji), potem z auth
-  const _savedName = localStorage.getItem('biegamy_reg_name');
-  if (_savedName) {
+  // Pre-fill name from auth
+  _sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) return;
+    const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '';
+    const firstName = name.split(' ')[0];
     const inp = document.getElementById('ob-name-input');
-    if (inp) inp.value = _savedName.split(' ')[0];
-  } else {
-    _sb.auth.getSession().then(({ data: { session } }) => {
-      if (!session) return;
-      const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '';
-      const firstName = name.split(' ')[0];
-      const inp = document.getElementById('ob-name-input');
-      if (inp && firstName) inp.value = firstName;
-    });
-  }
+    if (inp && firstName) inp.value = firstName;
+  });
 }
 
 function obSelectMode(mode) {
@@ -3079,13 +3069,6 @@ function obNext(step) {
   if (next) next.style.display = 'flex';
 }
 
-function _obRestoreNav() {
-  const nav = document.getElementById('main-bottom-nav');
-  if (nav) nav.style.display = '';
-  localStorage.removeItem('biegamy_needs_onboarding');
-  localStorage.removeItem('biegamy_reg_name');
-}
-
 async function obFinish() {
   const btn = document.getElementById('ob-finish-btn');
   const errEl = document.getElementById('ob-error');
@@ -3155,7 +3138,9 @@ async function obFinish() {
 
     // Zamknij i idź dalej — nawet jeśli update się nie udał (dane są w bazie)
     document.getElementById('onboarding-modal').classList.remove('show');
-    _obRestoreNav();
+    const _onbNav2 = document.getElementById('main-bottom-nav');
+    if (_onbNav2) _onbNav2.style.display = '';
+    localStorage.removeItem('biegamy_needs_onboarding');
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
@@ -3174,7 +3159,9 @@ async function obFinish() {
 
 function skipOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('show');
-  _obRestoreNav();
+  const _onbNav3 = document.getElementById('main-bottom-nav');
+  if (_onbNav3) _onbNav3.style.display = '';
+  localStorage.removeItem('biegamy_needs_onboarding');
 }
 
 // ── LOAD COACHES ──────────────────────────────────────────────────
