@@ -356,6 +356,14 @@ let _profileData = null;
     return;
   }
 
+  // Pokaż przyciski edycji od razu — nie czekaj na loadProfile()
+  if (_isOwnProfile) {
+    const addBtn = document.getElementById('add-post-btn');
+    if (addBtn) addBtn.style.display = 'block';
+    const avEdit = document.getElementById('av-edit-btn');
+    if (avEdit) avEdit.style.display = 'flex';
+  }
+
   await Promise.all([
     loadProfile(),
     loadStats(),
