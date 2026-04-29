@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kalendarz Startów · BiegaMy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+  --bg:#07070a;
+  --card:rgba(18,15,24,0.95);
+  --card2:rgba(22,18,30,0.98);
+  --border:rgba(255,255,255,0.08);
+  --fg:#f0ede8;
+  --fg2:rgba(240,237,232,0.7);
+  --fg3:rgba(240,237,232,0.45);
+  --accent:#e8561e;
+  --accent2:#ff7a45;
+  --muted:rgba(240,237,232,0.38);
+  --tile-radius:18px;
+  --tile-shadow:0 8px 32px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.04) inset;
+  --green:#3db870;
+  --blue:#5b8cff;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;overflow-x:hidden;}
+
+/* ── HEADER ── */
+.races-header{
+  position:sticky;top:0;z-index:100;
+  background:rgba(7,7,10,0.92);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,0px) 16px 0;
+}
+.races-header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;}
+.back-btn{
+  background:rgba(255,255,255,0.07);border:1px solid var(--border);
+  color:var(--fg2);border-radius:50%;width:36px;height:36px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+  font-size:18px;line-height:1;
+}
+.races-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;color:var(--fg);}
+.races-title span{color:var(--accent);}
+.add-race-btn{
+  margin-left:auto;
+  background:var(--accent);border:none;color:#fff;
+  border-radius:12px;padding:8px 14px;font-size:12px;font-weight:600;
+  letter-spacing:0.04em;cursor:pointer;display:flex;align-items:center;gap:6px;
+  white-space:nowrap;
+}
+
+/* ── FILTER CHIPS ── */
+.filter-row{
+  display:flex;gap:8px;padding:10px 16px 12px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.filter-row::-webkit-scrollbar{display:none;}
+.chip{
+  flex-shrink:0;
+  background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  color:var(--fg2);border-radius:20px;padding:6px 14px;
+  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;
+}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* ── SEARCH ── */
+.search-wrap{padding:0 16px 12px;}
+.search-input{
+  width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  color:var(--fg);border-radius:12px;padding:10px 14px 10px 38px;
+  font-size:14px;font-family:'Inter',sans-serif;outline:none;
+  transition:border-color 0.15s;
+}
+.search-input:focus{border-color:rgba(232,86,30,0.5);}
+.search-input::placeholder{color:var(--fg3);}
+.search-wrap{position:relative;}
+.search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--fg3);pointer-events:none;}
+
+/* ── RACES LIST ── */
+.races-list{padding:0 16px 100px;display:flex;flex-direction:column;gap:12px;}
+
+.race-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--tile-radius);overflow:hidden;
+  box-shadow:var(--tile-shadow);cursor:pointer;
+  transition:border-color 0.18s,transform 0.12s;
+  position:relative;
+}
+.race-card:active{transform:scale(0.985);}
+.race-card:hover{border-color:rgba(232,86,30,0.3);}
+
+.race-card-inner{padding:16px 18px;}
+.race-top{display:flex;align-items:flex-start;gap:12px;}
+.race-dist-badge{
+  flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;border-radius:10px;padding:6px 10px;text-align:center;
+  min-width:56px;
+}
+.race-dist-badge .dist-num{font-family:'Bebas Neue',sans-serif;font-size:22px;line-height:1;}
+.race-dist-badge .dist-unit{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.85;font-family:'DM Mono',monospace;}
+.race-info{flex:1;min-width:0;}
+.race-name{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:4px;line-height:1.3;}
+.race-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.race-meta-item{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;}
+.race-meta-item svg{flex-shrink:0;}
+
+.race-footer{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 18px 12px;border-top:1px solid rgba(255,255,255,0.05);
+  margin-top:10px;
+}
+.signup-btn{
+  background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);
+  color:var(--accent);border-radius:10px;padding:7px 14px;
+  font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;
+  cursor:pointer;transition:all 0.15s;
+}
+.signup-btn:hover,.signup-btn:active{background:var(--accent);color:#fff;}
+.signup-btn.signed{background:rgba(61,184,112,0.15);border-color:rgba(61,184,112,0.4);color:var(--green);}
+.signup-btn.signed:hover{background:var(--green);color:#fff;}
+
+.signups-count{font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  text-align:center;padding:60px 30px;
+  color:var(--fg3);
+}
+.empty-state svg{margin-bottom:16px;opacity:0.3;}
+.empty-state p{font-size:14px;line-height:1.6;}
+
+/* ── MONTH DIVIDER ── */
+.month-divider{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.25em;
+  text-transform:uppercase;color:var(--muted);
+  padding:8px 0 4px;display:flex;align-items:center;gap:10px;
+}
+.month-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+/* ── RACE DETAIL MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-sheet{
+  width:100%;max-width:480px;max-height:90vh;overflow-y:auto;
+  background:var(--card2);border-radius:24px 24px 0 0;
+  padding:0 0 env(safe-area-inset-bottom,20px);
+  transform:translateY(40px);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.modal-overlay.open .modal-sheet{transform:translateY(0);}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.15);margin:12px auto 0;}
+.modal-head{padding:20px 20px 16px;}
+.modal-dist{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.15em;color:var(--accent);margin-bottom:6px;}
+.modal-name{font-size:20px;font-weight:700;color:var(--fg);line-height:1.2;margin-bottom:14px;}
+.modal-meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.modal-meta-cell{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;padding:10px 12px;}
+.modal-meta-label{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.modal-meta-value{font-size:13px;font-weight:600;color:var(--fg);}
+.modal-desc{font-size:13px;color:var(--fg2);line-height:1.7;padding:0 20px;margin-bottom:18px;}
+.modal-links{padding:0 20px;display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.modal-link-btn{
+  display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  color:var(--fg2);border-radius:12px;padding:12px 16px;
+  font-size:13px;cursor:pointer;text-decoration:none;
+  transition:border-color 0.15s;
+}
+.modal-link-btn:hover{border-color:rgba(232,86,30,0.4);}
+.modal-link-btn span{flex:1;}
+.modal-actions{padding:0 20px;}
+.modal-signup-btn{
+  width:100%;background:var(--accent);border:none;color:#fff;
+  border-radius:14px;padding:15px;font-size:15px;font-weight:600;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:opacity 0.15s;
+}
+.modal-signup-btn:active{opacity:0.85;}
+.modal-signup-btn.signed{background:rgba(61,184,112,0.2);color:var(--green);border:1px solid rgba(61,184,112,0.4);}
+.modal-close{
+  position:absolute;top:16px;right:16px;
+  background:rgba(255,255,255,0.08);border:none;color:var(--fg3);
+  width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+
+/* ── ADD RACE MODAL ── */
+.add-overlay{
+  position:fixed;inset:0;z-index:300;
+  background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);
+  display:flex;align-items:flex-end;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.25s;
+}
+.add-overlay.open{opacity:1;pointer-events:all;}
+.add-sheet{
+  width:100%;max-width:480px;max-height:94vh;overflow-y:auto;
+  background:var(--card2);border-radius:24px 24px 0 0;
+  padding:0 20px env(safe-area-inset-bottom,24px);
+  transform:translateY(60px);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.add-overlay.open .add-sheet{transform:translateY(0);}
+.add-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;padding:20px 0 16px;}
+.add-title span{color:var(--accent);}
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
+.field input,.field select,.field textarea{
+  width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  color:var(--fg);border-radius:12px;padding:11px 14px;font-size:14px;
+  font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(232,86,30,0.5);}
+.field select option{background:#1a1525;color:var(--fg);}
+.field textarea{resize:vertical;min-height:80px;}
+.submit-btn{
+  width:100%;background:var(--accent);border:none;color:#fff;
+  border-radius:14px;padding:15px;font-size:15px;font-weight:600;
+  cursor:pointer;margin-top:8px;
+}
+.cancel-btn{
+  width:100%;background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  color:var(--fg2);border-radius:14px;padding:14px;font-size:14px;
+  cursor:pointer;margin-top:8px;
+}
+
+/* ── PENDING BADGE ── */
+.pending-notice{
+  margin:12px 16px;
+  background:rgba(91,140,255,0.1);border:1px solid rgba(91,140,255,0.3);
+  border-radius:12px;padding:10px 14px;
+  font-size:12px;color:var(--blue);
+  display:flex;align-items:center;gap:8px;
+}
+
+/* ── LOADING ── */
+.skeleton{
+  background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);
+  background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:10px;
+}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── BACK NAV ── */
+.bottom-back{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(7,7,10,0.96);border-top:1px solid var(--border);
+  padding:12px 20px env(safe-area-inset-bottom,12px);
+  display:flex;justify-content:center;
+}
+.bottom-back-btn{
+  background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  color:var(--fg2);border-radius:12px;padding:11px 32px;font-size:13px;
+  cursor:pointer;display:flex;align-items:center;gap:8px;
+}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:rgba(22,18,30,0.97);border:1px solid rgba(255,255,255,0.1);
+  color:var(--fg);border-radius:14px;padding:11px 20px;font-size:13px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.6);z-index:9999;
+  opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="races-header">
+  <div class="races-header-inner">
+    <button class="back-btn" onclick="history.back()">‹</button>
+    <div class="races-title">Kalendarz <span>Startów</span></div>
+    <button class="add-race-btn" onclick="openAddRace()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Dodaj start
+    </button>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="search-wrap">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="search-input" type="text" placeholder="Szukaj zawodów..." id="search-input" oninput="filterRaces()">
+  </div>
+
+  <!-- FILTER CHIPS -->
+  <div class="filter-row" id="filter-row">
+    <div class="chip active" data-dist="all" onclick="selectChip(this)">Wszystkie</div>
+    <div class="chip" data-dist="5" onclick="selectChip(this)">5 km</div>
+    <div class="chip" data-dist="10" onclick="selectChip(this)">10 km</div>
+    <div class="chip" data-dist="21.097" onclick="selectChip(this)">Półmaraton</div>
+    <div class="chip" data-dist="42.195" onclick="selectChip(this)">Maraton</div>
+    <div class="chip" data-dist="ultra" onclick="selectChip(this)">Ultra</div>
+    <div class="chip" data-dist="other" onclick="selectChip(this)">Inne</div>
+  </div>
+</div>
+
+<!-- PENDING NOTICE (ukryte domyślnie) -->
+<div class="pending-notice" id="pending-notice" style="display:none;">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+  <span id="pending-text">Twoje propozycje czekają na akceptację trenera</span>
+</div>
+
+<!-- RACES LIST -->
+<div class="races-list" id="races-list">
+  <!-- skeleton loader -->
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;">
+    <div class="skeleton" style="height:20px;width:60%;margin-bottom:12px;"></div>
+    <div class="skeleton" style="height:14px;width:40%;margin-bottom:8px;"></div>
+    <div class="skeleton" style="height:14px;width:30%;"></div>
+  </div>
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;">
+    <div class="skeleton" style="height:20px;width:70%;margin-bottom:12px;"></div>
+    <div class="skeleton" style="height:14px;width:45%;margin-bottom:8px;"></div>
+    <div class="skeleton" style="height:14px;width:35%;"></div>
+  </div>
+</div>
+
+<!-- RACE DETAIL MODAL -->
+<div class="modal-overlay" id="race-modal" onclick="handleModalOverlayClick(event)">
+  <div class="modal-sheet" id="modal-sheet">
+    <div class="modal-handle"></div>
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-head">
+      <div class="modal-dist" id="m-dist"></div>
+      <div class="modal-name" id="m-name"></div>
+      <div class="modal-meta-grid">
+        <div class="modal-meta-cell">
+          <div class="modal-meta-label">📅 Data</div>
+          <div class="modal-meta-value" id="m-date"></div>
+        </div>
+        <div class="modal-meta-cell">
+          <div class="modal-meta-label">📍 Miejsce</div>
+          <div class="modal-meta-value" id="m-city"></div>
+        </div>
+        <div class="modal-meta-cell">
+          <div class="modal-meta-label">🏃 Dystans</div>
+          <div class="modal-meta-value" id="m-dist2"></div>
+        </div>
+        <div class="modal-meta-cell">
+          <div class="modal-meta-label">👥 Zapisanych</div>
+          <div class="modal-meta-value" id="m-count"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-desc" id="m-desc" style="display:none;"></div>
+    <div class="modal-links" id="m-links"></div>
+    <div class="modal-actions">
+      <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
+    </div>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- ADD RACE MODAL -->
+<div class="add-overlay" id="add-overlay" onclick="handleAddOverlayClick(event)">
+  <div class="add-sheet">
+    <div class="add-title">Dodaj <span>Start</span></div>
+    <p style="font-size:12px;color:var(--fg3);margin-bottom:20px;line-height:1.6;">Twoja propozycja trafi do trenera. Po akceptacji pojawi się w kalendarzu dla wszystkich.</p>
+
+    <div class="field">
+      <label>Nazwa zawodów</label>
+      <input type="text" id="f-name" placeholder="np. Wrocław Maraton 2026">
+    </div>
+    <div class="field">
+      <label>Data</label>
+      <input type="date" id="f-date">
+    </div>
+    <div class="field">
+      <label>Dystans</label>
+      <select id="f-dist">
+        <option value="5">5 km</option>
+        <option value="10">10 km</option>
+        <option value="21.097">Półmaraton (21,1 km)</option>
+        <option value="42.195">Maraton (42,2 km)</option>
+        <option value="ultra">Ultra</option>
+        <option value="other">Inny dystans</option>
+      </select>
+    </div>
+    <div class="field" id="custom-dist-field" style="display:none;">
+      <label>Podaj dystans (km)</label>
+      <input type="number" id="f-dist-custom" placeholder="np. 15.5" step="0.1" min="0.1">
+    </div>
+    <div class="field">
+      <label>Miasto</label>
+      <input type="text" id="f-city" placeholder="np. Wrocław">
+    </div>
+    <div class="field">
+      <label>Link do regulaminu (opcjonalnie)</label>
+      <input type="url" id="f-rules" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>Strona organizatora (opcjonalnie)</label>
+      <input type="url" id="f-organizer" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label>Opis / uwagi (opcjonalnie)</label>
+      <textarea id="f-desc" placeholder="Dodatkowe informacje..."></textarea>
+    </div>
+
+    <button class="submit-btn" onclick="submitRace()">Wyślij do trenera →</button>
+    <button class="cancel-btn" onclick="closeAddRace()">Anuluj</button>
+    <div style="height:20px;"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const _sb = supabase.createClient(
+  'https://afqojgkaveykxbltxzwm.supabase.co',
+  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
+);
+
+let _user = null, _athleteId = null, _athleteGoals = [];
+let _allRaces = [], _mySignups = new Set();
+let _activeDist = 'all', _searchVal = '';
+let _currentRace = null;
+
+// ── INIT ──────────────────────────────────────────────────────────
+(async () => {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { location.href = 'index.html'; return; }
+  _user = session.user;
+
+  // Pobierz athlete
+  const { data: ath } = await _sb.from('athletes')
+    .select('id,race_goals')
+    .eq('user_id', _user.id)
+    .maybeSingle();
+  if (ath) {
+    _athleteId = ath.id;
+    try { _athleteGoals = JSON.parse(ath.race_goals || '[]'); } catch(e) { _athleteGoals = []; }
+  }
+
+  await loadRaces();
+  await loadMySignups();
+})();
+
+// ── LOAD RACES ────────────────────────────────────────────────────
+async function loadRaces() {
+  const { data, error } = await _sb.from('races')
+    .select('*')
+    .eq('status', 'approved')
+    .gte('date', new Date().toISOString().slice(0,10))
+    .order('date', { ascending: true });
+
+  if (error) { showToast('Błąd ładowania: ' + error.message); return; }
+  _allRaces = data || [];
+  renderRaces();
+
+  // Sprawdź pending
+  if (_athleteId) {
+    const { data: pending } = await _sb.from('races')
+      .select('id')
+      .eq('added_by', _athleteId)
+      .eq('status', 'pending');
+    if (pending?.length) {
+      document.getElementById('pending-notice').style.display = 'flex';
+      document.getElementById('pending-text').textContent =
+        `${pending.length === 1 ? 'Twoja propozycja czeka' : `${pending.length} propozycje czekają`} na akceptację trenera`;
+    }
+  }
+}
+
+async function loadMySignups() {
+  if (!_athleteId) return;
+  const { data } = await _sb.from('race_signups')
+    .select('race_id')
+    .eq('athlete_id', _athleteId);
+  _mySignups = new Set((data || []).map(r => r.race_id));
+}
+
+// ── RENDER ────────────────────────────────────────────────────────
+function renderRaces() {
+  const list = document.getElementById('races-list');
+  const filtered = getFiltered();
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <p>Brak zawodów w tym filtrze.<br>Możesz zaproponować nowe!</p>
+    </div>`;
+    return;
+  }
+
+  // Grupuj po miesiącu
+  let currentMonth = '';
+  let html = '';
+  for (const race of filtered) {
+    const month = formatMonth(race.date);
+    if (month !== currentMonth) {
+      currentMonth = month;
+      html += `<div class="month-divider">${month}</div>`;
+    }
+    html += renderRaceCard(race);
+  }
+  list.innerHTML = html;
+}
+
+function renderRaceCard(race) {
+  const signed = _mySignups.has(race.id);
+  const distLabel = distanceLabel(race.distance_km);
+  const distNum = formatDistNum(race.distance_km);
+  const distUnit = formatDistUnit(race.distance_km);
+  const dateStr = formatDate(race.date);
+  const countLabel = race.signup_count > 0 ? `${race.signup_count} zapisanych` : 'Bądź pierwszy!';
+
+  return `<div class="race-card" onclick="openRace('${race.id}')">
+    <div class="race-card-inner">
+      <div class="race-top">
+        <div class="race-dist-badge">
+          <div class="dist-num">${distNum}</div>
+          <div class="dist-unit">${distUnit}</div>
+        </div>
+        <div class="race-info">
+          <div class="race-name">${escHtml(race.name)}</div>
+          <div class="race-meta">
+            <div class="race-meta-item">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              ${dateStr}
+            </div>
+            <div class="race-meta-item">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${escHtml(race.city || '—')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="race-footer">
+      <div class="signups-count">${countLabel}</div>
+      <button class="signup-btn${signed ? ' signed' : ''}" onclick="event.stopPropagation();quickSignup(event,'${race.id}')">
+        ${signed ? '✓ Zapisany' : '+ Wezmę udział'}
+      </button>
+    </div>
+  </div>`;
+}
+
+// ── FILTER ────────────────────────────────────────────────────────
+function getFiltered() {
+  return _allRaces.filter(r => {
+    const matchDist = matchesDistFilter(r.distance_km, _activeDist);
+    const q = _searchVal.toLowerCase();
+    const matchSearch = !q ||
+      r.name?.toLowerCase().includes(q) ||
+      r.city?.toLowerCase().includes(q);
+    return matchDist && matchSearch;
+  });
+}
+
+function matchesDistFilter(km, filter) {
+  if (filter === 'all') return true;
+  if (filter === 'ultra') return km > 42.195;
+  if (filter === 'other') return ![5,10,21.097,42.195].some(d => Math.abs(km - d) < 0.2) && km <= 42.195;
+  return Math.abs(km - parseFloat(filter)) < 0.2;
+}
+
+function selectChip(el) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  _activeDist = el.dataset.dist;
+  renderRaces();
+}
+
+function filterRaces() {
+  _searchVal = document.getElementById('search-input').value;
+  renderRaces();
+}
+
+// ── OPEN RACE MODAL ───────────────────────────────────────────────
+function openRace(id) {
+  const race = _allRaces.find(r => r.id === id);
+  if (!race) return;
+  _currentRace = race;
+
+  const signed = _mySignups.has(race.id);
+  document.getElementById('m-dist').textContent = distanceLabel(race.distance_km).toUpperCase();
+  document.getElementById('m-name').textContent = race.name;
+  document.getElementById('m-date').textContent = formatDate(race.date);
+  document.getElementById('m-city').textContent = race.city || '—';
+  document.getElementById('m-dist2').textContent = formatDistFull(race.distance_km);
+  document.getElementById('m-count').textContent = race.signup_count > 0 ? `${race.signup_count} os.` : '0 os.';
+
+  // Opis
+  const descEl = document.getElementById('m-desc');
+  if (race.description) {
+    descEl.textContent = race.description;
+    descEl.style.display = 'block';
+  } else {
+    descEl.style.display = 'none';
+  }
+
+  // Linki
+  const linksEl = document.getElementById('m-links');
+  let linksHtml = '';
+  if (race.url_regulamin) {
+    linksHtml += `<a href="${escAttr(race.url_regulamin)}" target="_blank" rel="noopener" class="modal-link-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>Regulamin zawodów</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>`;
+  }
+  if (race.url_organizer) {
+    linksHtml += `<a href="${escAttr(race.url_organizer)}" target="_blank" rel="noopener" class="modal-link-btn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span>Strona organizatora</span>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    </a>`;
+  }
+  linksEl.innerHTML = linksHtml;
+
+  // Przycisk zapisu
+  updateModalSignupBtn(signed);
+
+  document.getElementById('race-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateModalSignupBtn(signed) {
+  const btn = document.getElementById('m-signup-btn');
+  if (signed) {
+    btn.className = 'modal-signup-btn signed';
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Zapisany — Usuń zapis`;
+  } else {
+    btn.className = 'modal-signup-btn';
+    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Wezmę udział!`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('race-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleModalOverlayClick(e) {
+  if (e.target === document.getElementById('race-modal')) closeModal();
+}
+
+// ── SIGNUP / UNSIGNUP ─────────────────────────────────────────────
+async function toggleSignup() {
+  if (!_currentRace) return;
+  const id = _currentRace.id;
+  const signed = _mySignups.has(id);
+  if (signed) {
+    await doUnsignup(id);
+  } else {
+    await doSignup(id);
+  }
+}
+
+async function quickSignup(e, id) {
+  const signed = _mySignups.has(id);
+  if (signed) { await doUnsignup(id); }
+  else { await doSignup(id); }
+}
+
+async function doSignup(raceId) {
+  if (!_athleteId) { showToast('Musisz być zalogowany'); return; }
+  const race = _allRaces.find(r => r.id === raceId);
+  if (!race) return;
+
+  const { error } = await _sb.from('race_signups').upsert({
+    race_id: raceId,
+    athlete_id: _athleteId
+  }, { onConflict: 'race_id,athlete_id' });
+
+  if (error) { showToast('Błąd: ' + error.message); return; }
+
+  _mySignups.add(raceId);
+
+  // Aktualizuj licznik lokalnie
+  const r = _allRaces.find(r => r.id === raceId);
+  if (r) r.signup_count = (r.signup_count || 0) + 1;
+
+  // Dodaj do celów zawodnika
+  await addToGoals(race);
+
+  showToast('Zapisano! Cel dodany do Twojego profilu ✓');
+  updateModalSignupBtn(true);
+  renderRaces();
+}
+
+async function doUnsignup(raceId) {
+  if (!_athleteId) return;
+  const { error } = await _sb.from('race_signups')
+    .delete()
+    .eq('race_id', raceId)
+    .eq('athlete_id', _athleteId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+
+  _mySignups.delete(raceId);
+  const r = _allRaces.find(r => r.id === raceId);
+  if (r) r.signup_count = Math.max(0, (r.signup_count || 1) - 1);
+
+  showToast('Zapis usunięty');
+  updateModalSignupBtn(false);
+  renderRaces();
+}
+
+async function addToGoals(race) {
+  if (!_athleteId) return;
+  // Sprawdź czy cel już istnieje
+  const alreadyExists = _athleteGoals.some(g =>
+    g.name?.toLowerCase().includes(race.name.toLowerCase())
+  );
+  if (alreadyExists) return;
+
+  const newGoal = { name: race.name, date: race.date };
+  _athleteGoals.push(newGoal);
+
+  await _sb.from('athletes').update({
+    race_goals: JSON.stringify(_athleteGoals),
+    goal: _athleteGoals[0]?.name || null,
+    target_date: _athleteGoals[0]?.date || null
+  }).eq('id', _athleteId);
+}
+
+// ── ADD RACE ──────────────────────────────────────────────────────
+function openAddRace() {
+  document.getElementById('add-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Ustaw min date na dziś
+  document.getElementById('f-date').min = new Date().toISOString().slice(0,10);
+}
+
+function closeAddRace() {
+  document.getElementById('add-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function handleAddOverlayClick(e) {
+  if (e.target === document.getElementById('add-overlay')) closeAddRace();
+}
+
+document.getElementById('f-dist').addEventListener('change', function() {
+  document.getElementById('custom-dist-field').style.display =
+    this.value === 'other' ? 'block' : 'none';
+});
+
+async function submitRace() {
+  const name = document.getElementById('f-name').value.trim();
+  const date = document.getElementById('f-date').value;
+  const distSel = document.getElementById('f-dist').value;
+  const city = document.getElementById('f-city').value.trim();
+  const rules = document.getElementById('f-rules').value.trim();
+  const organizer = document.getElementById('f-organizer').value.trim();
+  const desc = document.getElementById('f-desc').value.trim();
+
+  if (!name || !date || !city) {
+    showToast('Wypełnij nazwę, datę i miasto');
+    return;
+  }
+
+  let dist_km;
+  if (distSel === 'other') {
+    dist_km = parseFloat(document.getElementById('f-dist-custom').value);
+    if (isNaN(dist_km) || dist_km <= 0) { showToast('Podaj poprawny dystans'); return; }
+  } else if (distSel === 'ultra') {
+    dist_km = 100; // placeholder
+  } else {
+    dist_km = parseFloat(distSel);
+  }
+
+  const payload = {
+    name,
+    date,
+    distance_km: dist_km,
+    city,
+    url_regulamin: rules || null,
+    url_organizer: organizer || null,
+    description: desc || null,
+    status: 'pending',
+    added_by: _athleteId,
+    signup_count: 0,
+  };
+
+  const { error } = await _sb.from('races').insert(payload);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+
+  showToast('Propozycja wysłana do trenera ✓');
+  closeAddRace();
+  // Reset formularza
+  ['f-name','f-date','f-city','f-rules','f-organizer','f-desc'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('f-dist').value = '5';
+  document.getElementById('custom-dist-field').style.display = 'none';
+
+  // Pokaż pending notice
+  document.getElementById('pending-notice').style.display = 'flex';
+  document.getElementById('pending-text').textContent = 'Twoja propozycja czeka na akceptację trenera';
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────
+function distanceLabel(km) {
+  if (km === 5) return '5 km';
+  if (km === 10) return '10 km';
+  if (Math.abs(km - 21.097) < 0.2) return 'Półmaraton';
+  if (Math.abs(km - 42.195) < 0.2) return 'Maraton';
+  if (km > 42.195) return 'Ultra';
+  return `${km} km`;
+}
+
+function formatDistNum(km) {
+  if (Math.abs(km - 21.097) < 0.2) return '21';
+  if (Math.abs(km - 42.195) < 0.2) return '42';
+  if (km > 42.195) return `${Math.round(km)}`;
+  return km % 1 === 0 ? String(km) : km.toFixed(1);
+}
+
+function formatDistUnit(km) {
+  if (Math.abs(km - 21.097) < 0.2) return '1 km';
+  if (Math.abs(km - 42.195) < 0.2) return '2 km';
+  return 'km';
+}
+
+function formatDistFull(km) {
+  if (Math.abs(km - 21.097) < 0.2) return '21,097 km';
+  if (Math.abs(km - 42.195) < 0.2) return '42,195 km';
+  return `${km} km`;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('pl-PL', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function formatMonth(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  return d.toLocaleDateString('pl-PL', { month:'long', year:'numeric' });
+}
+
+function escHtml(str) {
+  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(str) {
+  return (str || '').replace(/"/g, '&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

@@ -841,6 +841,9 @@ body > *{position:relative;z-index:1;}
   <button onclick="location.href='odznaki.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
     <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
+  <button onclick="location.href='races.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;" title="Kalendarz Startów">
+    <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.src='https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ChatGPT_Image_29_kwi_2026__07_28_12.webp'">
+  </button>
 </div>
 </div>ex hero+kafelki -->
 
@@ -4606,7 +4609,11 @@ async function saveLog() {
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog) {
-    setTimeout(() => { if (window.PRS) window.PRS.launch(_prsData); }, 400);
+    const _p = new URLSearchParams();
+    if (_prsData.dist > 0) _p.set('dist', _prsData.dist);
+    if (_prsData.pace) _p.set('pace', _prsData.pace);
+    if (_prsData.time) _p.set('time', _prsData.time);
+    setTimeout(() => { window.location.href = 'prs.html?' + _p.toString(); }, 200);
   }
   await loadLogs();
 
