@@ -4606,11 +4606,7 @@ async function saveLog() {
   closeModal();
   toast('Log zapisany! Trener widzi Twój wynik ✓');
   if (_isNewLog) {
-    const _p = new URLSearchParams();
-    if (_prsData.dist > 0) _p.set('dist', _prsData.dist);
-    if (_prsData.pace) _p.set('pace', _prsData.pace);
-    if (_prsData.time) _p.set('time', _prsData.time);
-    setTimeout(() => { window.location.href = 'prs.html?' + _p.toString(); }, 200);
+    setTimeout(() => { if (window.PRS) window.PRS.launch(_prsData); }, 400);
   }
   await loadLogs();
 
