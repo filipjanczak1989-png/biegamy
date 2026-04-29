@@ -4912,7 +4912,7 @@ document.addEventListener('click', e => {
 // ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
 
 function switchSocialTab(tab) {
-  ['feed','challenges','badges-s','following','find'].forEach(function(t) {
+  ['feed','challenges','badges-s','friends','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
     const panel = document.getElementById('social-' + t);
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
@@ -4966,6 +4966,7 @@ function switchSocialTab(tab) {
       })();
     }
   }
+  if (tab==='friends') loadFriends();
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
 }
@@ -5629,6 +5630,7 @@ function _buildAthleteCards(athletes, fSet) {
     const name = a.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isF = fSet.has(a.id);
+    const profileBtn = '<a href="profil.html?id=' + a.id + '" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:\'DM Mono\',monospace;color:var(--muted);text-decoration:none;padding:4px 8px;border:1px solid var(--border);border-radius:6px;margin-right:6px;">👤 Profil</a>';
     const followBtn = '<button id="fb-' + a.id + '" onclick="event.stopPropagation();toggleFollow(\'' + a.id + '\',this,' + isF + ')"'
       + ' style="background:' + (isF?'transparent':'var(--accent)') + ';border:1px solid ' + (isF?'var(--border)':'var(--accent)') + ';color:' + (isF?'var(--muted)':'#fff') + ';font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">'
       + (isF ? 'Obserwujesz' : '+ Obserwuj') + '</button>';
@@ -5637,7 +5639,7 @@ function _buildAthleteCards(athletes, fSet) {
       + '<div style="flex:1;"><div style="font-size:14px;font-weight:600;">' + name + '</div>'
       + (a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:1px;">M: ' + a.pb_marathon + '</div>' : '')
       + (a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:1px;">' + a.goal + '</div>' : '')
-      + '</div>' + followBtn + '</div>';
+      + '</div>' + profileBtn + followBtn + '</div>';
   }).join('');
 }
 
@@ -5662,6 +5664,100 @@ async function toggleFollow(targetId, btn, isFollowing) {
   }
   btn.disabled = false;
 }
+
+// ── SYSTEM ZNAJOMYCH ─────────────────────────────────────────────
+async function loadFriends() {
+  if (!_athleteId) return;
+  const el = document.getElementById('social-friends-content');
+  el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>';
+
+  const { data: rows } = await _sb.from('friendships')
+    .select('id,status,requester_id,addressee_id')
+    .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
+  if (!rows?.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;line-height:1.8;">Nie masz jeszcze znajomych.<br>Znajdź biegaczy w zakładce <b>Znajdź</b>!</div>';
+    return;
+  }
+
+  // Zbierz ID wszystkich
+  const pending_in = rows.filter(r => r.status === 'pending' && r.addressee_id === _athleteId);
+  const pending_out = rows.filter(r => r.status === 'pending' && r.requester_id === _athleteId);
+  const accepted = rows.filter(r => r.status === 'accepted');
+
+  // Pobierz dane zawodników
+  const allIds = [...new Set(rows.map(r => r.requester_id === _athleteId ? r.addressee_id : r.requester_id))];
+  const { data: athletes } = await _sb.from('athletes').select('id,full_name,avatar_url,pb_5k,pb_10k').in('id', allIds);
+  const athMap = {};
+  (athletes||[]).forEach(a => { athMap[a.id] = a; });
+
+  let html = '';
+
+  if (pending_in.length) {
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:4px;">Zaproszenia do Ciebie</div>';
+    html += pending_in.map(r => {
+      const a = athMap[r.requester_id] || {};
+      const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:12px;margin-bottom:8px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div></div>
+        <button onclick="acceptFriend('${r.requester_id}')" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;margin-right:4px;">✓ Akceptuj</button>
+        <button onclick="rejectFriend('${r.requester_id}')" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  if (accepted.length) {
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:8px;">Znajomi (' + accepted.length + ')</div>';
+    html += accepted.map(r => {
+      const otherId = r.requester_id === _athleteId ? r.addressee_id : r.requester_id;
+      const a = athMap[otherId] || {};
+      const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;" onclick="location.href='profil.html?id=${otherId}'">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Znajomy</div></div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    }).join('');
+  }
+
+  if (pending_out.length) {
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:8px;">Wysłane zaproszenia</div>';
+    html += pending_out.map(r => {
+      const a = athMap[r.addressee_id] || {};
+      const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;opacity:0.7;">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;">⏳ Oczekuje</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  el.innerHTML = html || '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Brak znajomych</div>';
+}
+
+async function acceptFriend(requesterId) {
+  await _sb.from('friendships').update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .eq('requester_id', requesterId).eq('addressee_id', _athleteId);
+  showNotif('Zaakceptowano zaproszenie! 🎉');
+  checkFriendRequests();
+  loadFriends();
+}
+
+async function rejectFriend(requesterId) {
+  await _sb.from('friendships').delete()
+    .eq('requester_id', requesterId).eq('addressee_id', _athleteId);
+  loadFriends();
+}
+
+async function checkFriendRequests() {
+  if (!_athleteId) return;
+  const { data } = await _sb.from('friendships')
+    .select('id').eq('status','pending').eq('addressee_id', _athleteId);
+  const badge = document.getElementById('friends-badge');
+  if (badge) badge.style.display = (data?.length > 0) ? 'block' : 'none';
+}
+
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 async function unfollowAthlete(targetId, cardEl) {
   if (!confirm('Przestać obserwować?')) return;
@@ -6401,7 +6497,7 @@ init();
 _sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
-    initAuth().then(() => checkStravaStatus());
+    initAuth().then(() => { checkStravaStatus(); setTimeout(() => { if (_athleteId) checkFriendRequests(); }, 1500); });
   }
 });
 
@@ -6595,6 +6691,7 @@ function _stopSocialBannerRotation() {
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
       <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
+      <button id="stab-friends" onclick="switchSocialTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Znajomi<span id="friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
       <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
     </div>
@@ -6605,6 +6702,9 @@ function _stopSocialBannerRotation() {
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
     <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
+  </div>
+  <div id="social-friends" style="display:none;padding:0 16px;">
+    <div id="social-friends-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div></div>
   </div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>

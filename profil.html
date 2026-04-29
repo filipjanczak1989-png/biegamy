@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Profil Biegacza · BiegaMy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.97);--card2:rgba(24,20,32,0.98);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.05);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.42);
+  --accent:#e8561e;--accent2:#ff7a45;--muted:rgba(240,237,232,0.38);
+  --green:#3db870;--blue:#5b8cff;--yellow:#e8b840;--red:#e05050;
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
+
+/* ── HERO ── */
+.hero{position:relative;height:260px;overflow:hidden;}
+.hero-img{width:100%;height:100%;object-fit:cover;object-position:center 30%;}
+.hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,7,10,0.15) 0%,rgba(7,7,10,0.97) 100%);}
+.hero-back{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;background:rgba(0,0,0,0.4);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--fg);text-decoration:none;}
+
+/* ── AVATAR SECTION ── */
+.profile-head{padding:0 20px;margin-top:-56px;position:relative;z-index:2;}
+.avatar-row{display:flex;align-items:flex-end;gap:14px;margin-bottom:12px;}
+.avatar-wrap{position:relative;flex-shrink:0;}
+.avatar{width:88px;height:88px;border-radius:50%;border:3px solid var(--bg);object-fit:cover;background:rgba(232,86,30,0.2);}
+.avatar-initials{width:88px;height:88px;border-radius:50%;border:3px solid var(--bg);background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;letter-spacing:0.05em;}
+.avatar-edit{position:absolute;bottom:2px;right:2px;background:var(--accent);border:2px solid var(--bg);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;}
+.action-btns{flex:1;display:flex;flex-direction:column;gap:7px;align-items:flex-end;padding-bottom:4px;}
+
+/* Friend / Follow buttons */
+.btn-friend{border-radius:10px;padding:8px 16px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid;transition:all 0.15s;white-space:nowrap;}
+.btn-friend.add{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-friend.pending{background:rgba(232,86,30,0.1);border-color:rgba(232,86,30,0.3);color:var(--accent);}
+.btn-friend.friends{background:rgba(61,184,112,0.12);border-color:rgba(61,184,112,0.35);color:var(--green);}
+.btn-follow{border-radius:10px;padding:7px 14px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;}
+.btn-follow.following{border-color:rgba(91,140,255,0.4);color:var(--blue);background:rgba(91,140,255,0.08);}
+.btn-msg{border-radius:10px;padding:7px 14px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;display:flex;align-items:center;gap:5px;}
+.btn-msg:hover{border-color:rgba(232,86,30,0.4);}
+
+.profile-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;line-height:1;margin-bottom:4px;}
+.profile-quote{font-size:13px;color:var(--fg3);line-height:1.5;font-style:italic;margin-bottom:10px;}
+
+/* Stats row */
+.profile-stats{display:flex;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.ps-item{flex:1;text-align:center;padding:10px 6px;border-right:1px solid var(--border);}
+.ps-item:last-child{border-right:none;}
+.ps-val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);line-height:1;}
+.ps-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+
+/* ── SECTIONS ── */
+.section{padding:0 20px;margin-bottom:20px;}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);}
+.section-title span{color:var(--accent);}
+.section-add{background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;padding:4px 10px;cursor:pointer;}
+.section-add:hover{border-color:var(--accent);color:var(--accent);}
+
+/* PBs grid */
+.pbs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;position:relative;overflow:hidden;}
+.pb-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);}
+.pb-dist{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.pb-time{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);line-height:1;}
+.pb-empty{color:var(--fg3);font-size:18px;}
+.pb-pace{font-size:10px;color:var(--fg3);font-family:'DM Mono',monospace;margin-top:2px;}
+
+/* Goals */
+.goal-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;}
+.goal-date-badge{flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;padding:5px 8px;text-align:center;min-width:42px;}
+.goal-date-day{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:#fff;}
+.goal-date-mon{font-size:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.8);}
+.goal-name{font-size:13px;font-weight:500;color:var(--fg);flex:1;}
+.goal-days{font-size:10px;font-family:'DM Mono',monospace;color:var(--fg3);}
+
+/* Badges */
+.badges-row{display:flex;flex-wrap:wrap;gap:8px;}
+.badge-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px 10px;display:flex;align-items:center;gap:6px;font-size:11px;color:var(--fg2);}
+.badge-icon{font-size:16px;}
+
+/* Posts grid */
+.posts-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.post-photo{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1;cursor:pointer;}
+.post-photo img{width:100%;height:100%;object-fit:cover;transition:transform 0.3s;}
+.post-photo:hover img{transform:scale(1.03);}
+.post-photo-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 50%);opacity:0;transition:opacity 0.2s;}
+.post-photo:hover .post-photo-overlay{opacity:1;}
+.post-photo-del{position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:6px;color:#fff;font-size:10px;padding:3px 7px;cursor:pointer;display:none;}
+.post-photo:hover .post-photo-del{display:block;}
+
+.post-quote{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;grid-column:span 2;}
+.post-quote-text{font-size:15px;line-height:1.7;color:var(--fg);font-style:italic;}
+.post-quote-text::before{content:'"';font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--accent);line-height:0.5;display:block;margin-bottom:8px;}
+.post-quote-del{position:absolute;top:8px;right:8px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--fg3);font-size:10px;padding:2px 7px;cursor:pointer;}
+.post-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);margin-top:8px;}
+
+/* ── ADD POST SHEET ── */
+.add-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s;}
+.add-overlay.open{opacity:1;pointer-events:all;}
+.add-sheet{width:100%;max-width:480px;background:var(--card2);border-radius:24px 24px 0 0;padding:0 20px env(safe-area-inset-bottom,24px);transform:translateY(60px);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+.add-overlay.open .add-sheet{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.15);margin:12px auto 16px;}
+.sheet-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:16px;}
+.sheet-title span{color:var(--accent);}
+.type-tabs{display:flex;gap:8px;margin-bottom:16px;}
+.type-tab{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--fg3);transition:all 0.15s;}
+.type-tab.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.5);color:var(--accent);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.field textarea,.field input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:11px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;}
+.field textarea{min-height:90px;}
+.field textarea:focus,.field input:focus{border-color:rgba(232,86,30,0.5);}
+.upload-area{border:1px dashed rgba(232,86,30,0.4);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--fg3);font-size:13px;transition:border-color 0.15s;}
+.upload-area:hover{border-color:var(--accent);}
+.upload-preview{width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:10px;display:none;}
+.sheet-submit{width:100%;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
+.sheet-cancel{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg3);border-radius:12px;padding:12px;font-size:13px;cursor:pointer;margin-top:8px;}
+
+/* Toast */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:rgba(22,18,30,0.97);border:1px solid rgba(255,255,255,0.1);color:var(--fg);border-radius:14px;padding:11px 20px;font-size:13px;box-shadow:0 8px 32px rgba(0,0,0,0.6);z-index:9999;opacity:0;transition:all 0.3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* Loader */
+.skeleton{background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.08) 50%,rgba(255,255,255,0.04) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:10px;}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Empty state */
+.empty{text-align:center;padding:32px 20px;color:var(--fg3);font-size:13px;font-family:'DM Mono',monospace;line-height:1.8;}
+.empty svg{opacity:0.25;margin-bottom:12px;}
+
+.bottom-pad{height:env(safe-area-inset-bottom,20px);height:calc(env(safe-area-inset-bottom,0px) + 20px);}
+
+/* Lightbox */
+.lightbox{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.95);display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;}
+.lightbox.open{opacity:1;pointer-events:all;}
+.lightbox img{max-width:95vw;max-height:90vh;object-fit:contain;border-radius:8px;}
+.lightbox-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <img class="hero-img" id="hero-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-default.jpg" alt="" onerror="this.style.display='none'">
+  <div class="hero-overlay"></div>
+  <a class="hero-back" href="javascript:history.back()">‹</a>
+</div>
+
+<!-- PROFILE HEAD -->
+<div class="profile-head">
+  <div class="avatar-row">
+    <div class="avatar-wrap">
+      <div class="avatar-initials" id="av-initials">?</div>
+      <img class="avatar" id="av-img" style="display:none;position:absolute;inset:0;" alt="">
+      <div class="avatar-edit" id="av-edit-btn" style="display:none;" onclick="document.getElementById('av-upload').click()">✎</div>
+      <input type="file" id="av-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+    </div>
+    <div class="action-btns" id="action-btns">
+      <!-- Wypełniane przez JS -->
+    </div>
+  </div>
+
+  <div class="profile-name" id="profile-name">—</div>
+  <div class="profile-quote" id="profile-quote" style="display:none;"></div>
+
+  <!-- Statystyki -->
+  <div class="profile-stats">
+    <div class="ps-item">
+      <div class="ps-val" id="ps-friends">—</div>
+      <div class="ps-lbl">Znajomi</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-val" id="ps-followers">—</div>
+      <div class="ps-lbl">Obserwuje</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-val" id="ps-logs">—</div>
+      <div class="ps-lbl">Treningi</div>
+    </div>
+    <div class="ps-item">
+      <div class="ps-val" id="ps-km">—</div>
+      <div class="ps-lbl">km łącznie</div>
+    </div>
+  </div>
+</div>
+
+<!-- ZYCIÓWKI -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-title">Życ<span>iówki</span></div>
+  </div>
+  <div class="pbs-grid" id="pbs-grid">
+    <div class="pb-card skeleton" style="height:70px;"></div>
+    <div class="pb-card skeleton" style="height:70px;"></div>
+    <div class="pb-card skeleton" style="height:70px;"></div>
+    <div class="pb-card skeleton" style="height:70px;"></div>
+  </div>
+</div>
+
+<!-- CELE / STARTY -->
+<div class="section" id="goals-section">
+  <div class="section-hdr">
+    <div class="section-title">Cele i <span>Starty</span></div>
+  </div>
+  <div id="goals-list"><div class="skeleton" style="height:56px;border-radius:12px;margin-bottom:8px;"></div></div>
+</div>
+
+<!-- ODZNAKI -->
+<div class="section" id="badges-section" style="display:none;">
+  <div class="section-hdr">
+    <div class="section-title">Odzna<span>ki</span></div>
+  </div>
+  <div class="badges-row" id="badges-list"></div>
+</div>
+
+<!-- POSTY (zdjęcia + cytaty) -->
+<div class="section">
+  <div class="section-hdr">
+    <div class="section-title">Post<span>y</span></div>
+    <button class="section-add" id="add-post-btn" style="display:none;" onclick="openAddPost()">+ Dodaj</button>
+  </div>
+  <div id="posts-container">
+    <div class="skeleton" style="height:160px;border-radius:12px;"></div>
+  </div>
+</div>
+
+<div class="bottom-pad"></div>
+
+<!-- ADD POST SHEET -->
+<div class="add-overlay" id="add-overlay" onclick="handleAddClick(event)">
+  <div class="add-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Nowy <span>Post</span></div>
+    <div class="type-tabs">
+      <div class="type-tab active" id="tab-photo" onclick="switchPostType('photo')">📷 Zdjęcie</div>
+      <div class="type-tab" id="tab-quote" onclick="switchPostType('quote')">" Cytat</div>
+    </div>
+
+    <!-- Photo form -->
+    <div id="form-photo">
+      <div class="upload-area" onclick="document.getElementById('post-img-input').click()">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:8px;opacity:0.4;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+        <div>Kliknij żeby dodać zdjęcie</div>
+        <input type="file" id="post-img-input" accept="image/*" style="display:none" onchange="previewPostImg(this)">
+      </div>
+      <img id="post-img-preview" class="upload-preview" alt="">
+      <div class="field" style="margin-top:12px;">
+        <label>Opis (opcjonalnie)</label>
+        <textarea id="post-photo-desc" placeholder="Co to za bieg?"></textarea>
+      </div>
+    </div>
+
+    <!-- Quote form -->
+    <div id="form-quote" style="display:none;">
+      <div class="field">
+        <label>Twój cytat motywacyjny</label>
+        <textarea id="post-quote-text" placeholder="Np. Każdy kilometr to krok bliżej do siebie..." style="min-height:120px;"></textarea>
+      </div>
+    </div>
+
+    <button class="sheet-submit" onclick="submitPost()">Opublikuj →</button>
+    <button class="sheet-cancel" onclick="closeAddPost()">Anuluj</button>
+    <div style="height:8px;"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+const _sb = supabase.createClient(
+  'https://afqojgkaveykxbltxzwm.supabase.co',
+  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
+);
+
+let _myId = null;       // mój athlete ID
+let _targetId = null;   // oglądany profil (może być mój)
+let _isOwnProfile = false;
+let _isCoach = false;
+let _friendStatus = null; // null | 'pending_sent' | 'pending_received' | 'accepted'
+let _isFollowing = false;
+let _postType = 'photo';
+let _postImgFile = null;
+let _profileData = null;
+
+// ── INIT ──────────────────────────────────────────────────────────
+(async () => {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { location.href = 'index.html'; return; }
+
+  // Sprawdź czy trener
+  const { data: coachRow } = await _sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
+  _isCoach = !!coachRow;
+
+  // Mój athlete ID
+  const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  _myId = me?.id || null;
+
+  // Target: ?id=UUID lub własny profil
+  const params = new URLSearchParams(location.search);
+  const targetUserId = params.get('id');
+
+  if (targetUserId && targetUserId !== me?.id) {
+    // Cudzý profil — id to athlete_id
+    _targetId = targetUserId;
+    _isOwnProfile = false;
+  } else {
+    _targetId = _myId;
+    _isOwnProfile = true;
+  }
+
+  if (!_targetId) {
+    document.getElementById('profile-name').textContent = 'Brak profilu';
+    return;
+  }
+
+  await Promise.all([
+    loadProfile(),
+    loadStats(),
+    loadFriendStatus(),
+    loadPosts(),
+  ]);
+
+  renderActionBtns();
+})();
+
+// ── LOAD PROFILE ─────────────────────────────────────────────────
+async function loadProfile() {
+  const { data: ath } = await _sb.from('athletes')
+    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,onboarding_done')
+    .eq('id', _targetId)
+    .maybeSingle();
+  if (!ath) return;
+  _profileData = ath;
+
+  // Imię
+  const name = ath.full_name || 'Biegacz';
+  document.getElementById('profile-name').textContent = name;
+  document.title = name + ' · BiegaMy';
+
+  // Inicjały / avatar
+  const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('av-initials').textContent = initials;
+  if (ath.avatar_url) {
+    const img = document.getElementById('av-img');
+    img.src = ath.avatar_url;
+    img.style.display = 'block';
+    document.getElementById('av-initials').style.display = 'none';
+  }
+
+  // Edit avatar tylko dla własnego profilu
+  if (_isOwnProfile) {
+    document.getElementById('av-edit-btn').style.display = 'flex';
+    document.getElementById('add-post-btn').style.display = 'block';
+  }
+
+  // PBs
+  renderPBs(ath);
+
+  // Cele
+  renderGoals(ath);
+
+  // Odznaki (z training_logs)
+  loadBadges();
+}
+
+function renderPBs(ath) {
+  const pbs = [
+    { dist: '5 KM', val: ath.pb_5k },
+    { dist: '10 KM', val: ath.pb_10k },
+    { dist: 'PÓŁMARATON', val: ath.pb_half },
+    { dist: 'MARATON', val: ath.pb_marathon },
+  ];
+  document.getElementById('pbs-grid').innerHTML = pbs.map(pb => `
+    <div class="pb-card">
+      <div class="pb-dist">${pb.dist}</div>
+      ${pb.val
+        ? `<div class="pb-time">${pb.val}</div>`
+        : `<div class="pb-empty">—</div>`}
+    </div>
+  `).join('');
+}
+
+function renderGoals(ath) {
+  let goals = [];
+  try { goals = JSON.parse(ath.race_goals || '[]'); } catch(e) {}
+  if (ath.goal && ath.target_date) {
+    if (!goals.some(g => g.name === ath.goal)) {
+      goals.unshift({ name: ath.goal, date: ath.target_date });
+    }
+  }
+  const upcoming = goals.filter(g => g.date && new Date(g.date + 'T00:00:00') >= new Date()).sort((a,b) => new Date(a.date) - new Date(b.date));
+  const el = document.getElementById('goals-list');
+  if (!upcoming.length) {
+    el.innerHTML = '<div class="empty">Brak nadchodzących startów</div>';
+    return;
+  }
+  el.innerHTML = upcoming.slice(0,5).map(g => {
+    const d = new Date(g.date + 'T00:00:00');
+    const day = d.getDate();
+    const mon = d.toLocaleDateString('pl-PL', { month: 'short' }).replace('.','').toUpperCase();
+    const daysLeft = Math.ceil((d - new Date()) / 86400000);
+    return `<div class="goal-item">
+      <div class="goal-date-badge">
+        <div class="goal-date-day">${day}</div>
+        <div class="goal-date-mon">${mon}</div>
+      </div>
+      <div class="goal-name">${escHtml(g.name)}</div>
+      <div class="goal-days">${daysLeft > 0 ? 'za ' + daysLeft + ' dni' : 'dziś!'}</div>
+    </div>`;
+  }).join('');
+}
+
+async function loadBadges() {
+  const { data: logs } = await _sb.from('training_logs')
+    .select('training_type')
+    .like('training_type', '__badge__%')
+    .eq('athlete_id', _targetId);
+  if (!logs?.length) return;
+  const badgeSect = document.getElementById('badges-section');
+  badgeSect.style.display = 'block';
+  const badgeMap = {
+    '__badge__first_log': { icon: '🏃', label: 'Pierwsza trasa' },
+    '__badge__10_logs':   { icon: '🔟', label: '10 treningów' },
+    '__badge__100km':     { icon: '💯', label: '100 km' },
+    '__badge__marathon':  { icon: '🏅', label: 'Maratończyk' },
+    '__badge__streak_7':  { icon: '🔥', label: 'Tydzień z rzędu' },
+  };
+  const badgesList = document.getElementById('badges-list');
+  badgesList.innerHTML = logs.map(l => {
+    const b = badgeMap[l.training_type] || { icon: '⭐', label: l.training_type.replace('__badge__','') };
+    return `<div class="badge-item"><span class="badge-icon">${b.icon}</span>${b.label}</div>`;
+  }).join('');
+}
+
+// ── STATS ─────────────────────────────────────────────────────────
+async function loadStats() {
+  // Znajomi
+  const { data: fr } = await _sb.from('friendships')
+    .select('id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${_targetId},addressee_id.eq.${_targetId}`);
+  document.getElementById('ps-friends').textContent = fr?.length || 0;
+
+  // Obserwujący (follows)
+  const { data: fol } = await _sb.from('follows').select('id').eq('following_id', _targetId);
+  document.getElementById('ps-followers').textContent = fol?.length || 0;
+
+  // Treningi + km
+  const { data: logs } = await _sb.from('training_logs')
+    .select('distance_km')
+    .eq('athlete_id', _targetId)
+    .not('training_type', 'like', '__badge__%');
+  const totalKm = (logs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  document.getElementById('ps-logs').textContent = logs?.length || 0;
+  document.getElementById('ps-km').textContent = totalKm > 0 ? Math.round(totalKm) : '0';
+}
+
+// ── FRIEND STATUS ─────────────────────────────────────────────────
+async function loadFriendStatus() {
+  if (!_myId || _isOwnProfile) return;
+  const { data } = await _sb.from('friendships')
+    .select('id,status,requester_id')
+    .or(`and(requester_id.eq.${_myId},addressee_id.eq.${_targetId}),and(requester_id.eq.${_targetId},addressee_id.eq.${_myId})`)
+    .maybeSingle();
+
+  if (!data) { _friendStatus = null; }
+  else if (data.status === 'accepted') { _friendStatus = 'accepted'; }
+  else if (data.status === 'pending') {
+    _friendStatus = data.requester_id === _myId ? 'pending_sent' : 'pending_received';
+  }
+
+  // Follow status
+  const { data: fol } = await _sb.from('follows')
+    .select('id')
+    .eq('follower_id', _myId)
+    .eq('following_id', _targetId)
+    .maybeSingle();
+  _isFollowing = !!fol;
+}
+
+// ── ACTION BUTTONS ─────────────────────────────────────────────────
+function renderActionBtns() {
+  const el = document.getElementById('action-btns');
+  if (_isOwnProfile) { el.innerHTML = ''; return; }
+
+  let friendBtn = '';
+  if (_friendStatus === null) {
+    friendBtn = `<button class="btn-friend add" onclick="sendFriendRequest()">+ Dodaj do znajomych</button>`;
+  } else if (_friendStatus === 'pending_sent') {
+    friendBtn = `<button class="btn-friend pending" onclick="cancelFriendRequest()">⏳ Wysłano zaproszenie</button>`;
+  } else if (_friendStatus === 'pending_received') {
+    friendBtn = `<button class="btn-friend add" onclick="acceptFriendRequest()">✓ Akceptuj zaproszenie</button>`;
+  } else if (_friendStatus === 'accepted') {
+    friendBtn = `<button class="btn-friend friends" onclick="removeFriend()">✓ Znajomi</button>`;
+  }
+
+  const followBtn = `<button class="btn-follow${_isFollowing ? ' following' : ''}" onclick="toggleFollow()">
+    ${_isFollowing ? '✓ Obserwujesz' : '+ Obserwuj'}
+  </button>`;
+
+  const msgBtn = _friendStatus === 'accepted'
+    ? `<button class="btn-msg" onclick="openChat()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Napisz
+      </button>` : '';
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">${friendBtn}${followBtn}${msgBtn}</div>`;
+}
+
+// ── FRIEND ACTIONS ─────────────────────────────────────────────────
+async function sendFriendRequest() {
+  if (!_myId) return;
+  const { error } = await _sb.from('friendships').insert({ requester_id: _myId, addressee_id: _targetId });
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  _friendStatus = 'pending_sent';
+  renderActionBtns();
+  showToast('Zaproszenie wysłane ✓');
+}
+
+async function cancelFriendRequest() {
+  const { error } = await _sb.from('friendships').delete()
+    .eq('requester_id', _myId).eq('addressee_id', _targetId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  _friendStatus = null;
+  renderActionBtns();
+  showToast('Zaproszenie anulowane');
+}
+
+async function acceptFriendRequest() {
+  const { error } = await _sb.from('friendships').update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .eq('requester_id', _targetId).eq('addressee_id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  _friendStatus = 'accepted';
+  renderActionBtns();
+  document.getElementById('ps-friends').textContent = parseInt(document.getElementById('ps-friends').textContent || 0) + 1;
+  showToast('Jesteście znajomymi! 🎉');
+}
+
+async function removeFriend() {
+  if (!confirm('Usunąć z znajomych?')) return;
+  const { error } = await _sb.from('friendships').delete()
+    .or(`and(requester_id.eq.${_myId},addressee_id.eq.${_targetId}),and(requester_id.eq.${_targetId},addressee_id.eq.${_myId})`);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  _friendStatus = null;
+  renderActionBtns();
+  showToast('Usunięto z znajomych');
+}
+
+async function toggleFollow() {
+  if (!_myId) return;
+  if (_isFollowing) {
+    await _sb.from('follows').delete().eq('follower_id', _myId).eq('following_id', _targetId);
+    _isFollowing = false;
+  } else {
+    await _sb.from('follows').insert({ follower_id: _myId, following_id: _targetId });
+    _isFollowing = true;
+  }
+  renderActionBtns();
+}
+
+function openChat() {
+  // Przekieruj do czatu z tym zawodnikiem
+  location.href = `zawodnik.html?chat=${_targetId}`;
+}
+
+// ── AVATAR UPLOAD ─────────────────────────────────────────────────
+async function uploadAvatar(input) {
+  if (!input.files[0] || !_myId) return;
+  const file = input.files[0];
+  const ext = file.name.split('.').pop();
+  const path = `avatars/${_myId}.${ext}`;
+  const { error: upErr } = await _sb.storage.from('biegamy-assets').upload(path, file, { upsert: true });
+  if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
+  const { data: urlData } = _sb.storage.from('biegamy-assets').getPublicUrl(path);
+  const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+  await _sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _myId);
+  const img = document.getElementById('av-img');
+  img.src = avatarUrl;
+  img.style.display = 'block';
+  document.getElementById('av-initials').style.display = 'none';
+  showToast('Zdjęcie profilowe zaktualizowane ✓');
+}
+
+// ── POSTS ─────────────────────────────────────────────────────────
+async function loadPosts() {
+  const { data: posts } = await _sb.from('profile_posts')
+    .select('*')
+    .eq('athlete_id', _targetId)
+    .order('created_at', { ascending: false });
+
+  const el = document.getElementById('posts-container');
+  if (!posts?.length) {
+    el.innerHTML = `<div class="empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      <div>${_isOwnProfile ? 'Dodaj swoje pierwsze zdjęcie lub cytat!' : 'Brak postów'}</div>
+    </div>`;
+    return;
+  }
+
+  // Renderuj: photo w gridzie 2-col, quote full-width
+  let html = '<div class="posts-grid">';
+  for (const p of posts) {
+    const dateStr = new Date(p.created_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+    const delBtn = _isOwnProfile ? `<button class="post-quote-del" onclick="deletePost('${p.id}',event)">🗑</button>` : '';
+    if (p.type === 'photo' && p.image_url) {
+      html += `<div class="post-photo" onclick="openLightbox('${escAttr(p.image_url)}')">
+        <img src="${escAttr(p.image_url)}" alt="${escAttr(p.content||'')}">
+        <div class="post-photo-overlay"></div>
+        ${_isOwnProfile ? `<button class="post-photo-del" onclick="event.stopPropagation();deletePost('${p.id}',event)">🗑</button>` : ''}
+      </div>`;
+    } else if (p.type === 'quote' && p.content) {
+      html += `<div class="post-quote" style="grid-column:span 2;">
+        ${delBtn}
+        <div class="post-quote-text">${escHtml(p.content)}</div>
+        <div class="post-date">${dateStr}</div>
+      </div>`;
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function deletePost(postId, e) {
+  if (e) e.stopPropagation();
+  if (!confirm('Usunąć post?')) return;
+  const { error } = await _sb.from('profile_posts').delete().eq('id', postId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  showToast('Post usunięty');
+  loadPosts();
+}
+
+// ── ADD POST ─────────────────────────────────────────────────────
+function openAddPost() {
+  document.getElementById('add-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeAddPost() {
+  document.getElementById('add-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function handleAddClick(e) {
+  if (e.target === document.getElementById('add-overlay')) closeAddPost();
+}
+
+function switchPostType(type) {
+  _postType = type;
+  document.getElementById('tab-photo').classList.toggle('active', type === 'photo');
+  document.getElementById('tab-quote').classList.toggle('active', type === 'quote');
+  document.getElementById('form-photo').style.display = type === 'photo' ? 'block' : 'none';
+  document.getElementById('form-quote').style.display = type === 'quote' ? 'block' : 'none';
+}
+
+function previewPostImg(input) {
+  if (!input.files[0]) return;
+  _postImgFile = input.files[0];
+  const prev = document.getElementById('post-img-preview');
+  prev.src = URL.createObjectURL(_postImgFile);
+  prev.style.display = 'block';
+}
+
+async function submitPost() {
+  if (!_myId) return;
+  if (_postType === 'photo') {
+    if (!_postImgFile) { showToast('Wybierz zdjęcie'); return; }
+    const ext = _postImgFile.name.split('.').pop();
+    const path = `profile-posts/${_myId}/${Date.now()}.${ext}`;
+    const { error: upErr } = await _sb.storage.from('profile-posts').upload(path, _postImgFile);
+    if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
+    const { data: urlData } = _sb.storage.from('profile-posts').getPublicUrl(path);
+    const desc = document.getElementById('post-photo-desc').value.trim();
+    await _sb.from('profile_posts').insert({ athlete_id: _myId, type: 'photo', image_url: urlData.publicUrl, content: desc || null });
+  } else {
+    const text = document.getElementById('post-quote-text').value.trim();
+    if (!text) { showToast('Wpisz cytat'); return; }
+    await _sb.from('profile_posts').insert({ athlete_id: _myId, type: 'quote', content: text });
+  }
+  showToast('Post dodany ✓');
+  closeAddPost();
+  _postImgFile = null;
+  document.getElementById('post-img-preview').style.display = 'none';
+  document.getElementById('post-img-preview').src = '';
+  document.getElementById('post-photo-desc').value = '';
+  document.getElementById('post-quote-text').value = '';
+  loadPosts();
+}
+
+// ── LIGHTBOX ─────────────────────────────────────────────────────
+function openLightbox(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
