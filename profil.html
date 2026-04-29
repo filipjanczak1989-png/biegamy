@@ -141,15 +141,65 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .lightbox.open{opacity:1;pointer-events:all;}
 .lightbox img{max-width:95vw;max-height:90vh;object-fit:contain;border-radius:8px;}
 .lightbox-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.1);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* ── HERO SLIDESHOW ─────────────────────────────────── */
+.p-hero-wrap{position:relative;margin:0 16px 0;border-radius:18px;overflow:hidden;}
+.p-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;transition:opacity 0.5s ease;z-index:0;border-radius:inherit;}
+.p-hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.1) 0%,rgba(7,5,12,0.0) 40%,rgba(7,5,12,0.55) 100%);z-index:1;border-radius:inherit;}
+.p-hero-inner{position:relative;z-index:2;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;}
+.p-hero-dots{display:flex;gap:4px;align-items:center;}
+.p-hero-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.35);cursor:pointer;transition:all 0.25s;border:none;}
+.p-hero-dot.active{background:var(--accent);width:18px;border-radius:3px;}
+
+/* ── TILES ──────────────────────────────────────────── */
+.p-tiles-row{display:flex;gap:10px;margin:8px 16px 4px;}
+.p-hero-tile{flex:1;border-radius:18px;overflow:hidden;position:relative;min-height:200px;}
+.p-tiles-right{display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0;}
+.p-tile-btn{flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* ── BOTTOM NAV ─────────────────────────── */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);}
+.nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}
+.nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}
+.nav-it.active .nav-lbl{color:var(--accent);}
 </style>
 </head>
 <body>
 
-<!-- HERO -->
-<div class="hero">
-  <img class="hero-img" id="hero-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-default.jpg" alt="" onerror="this.style.display='none'">
-  <div class="hero-overlay"></div>
-  <a class="hero-back" href="javascript:history.back()">‹</a>
+<!-- HERO + KAFELKI -->
+<div style="padding-top:calc(env(safe-area-inset-top,0px) + 8px);position:relative;">
+  <a class="hero-back" style="position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;z-index:10;background:rgba(0,0,0,0.4);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--fg);text-decoration:none;" href="javascript:history.back()">‹</a>
+
+  <div class="p-tiles-row">
+    <!-- Hero karta z slideshow -->
+    <div class="p-hero-tile">
+      <div class="p-hero-bg" id="p-hero-bg"></div>
+      <div class="p-hero-overlay"></div>
+      <div class="p-hero-inner">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button onclick="_pHeroPrev()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
+          <div id="p-hero-dots" class="p-hero-dots"></div>
+          <button onclick="_pHeroNext()" style="background:rgba(255,255,255,0.12);border:none;color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Kafelki po prawej -->
+    <div class="p-tiles-right">
+      <button class="p-tile-btn" onclick="location.href='zawodnik.html'" title="Wyzwania">
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+      </button>
+      <button class="p-tile-btn" onclick="location.href='zawodnik.html'" title="Czat">
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+      </button>
+      <button class="p-tile-btn" onclick="location.href='odznaki.html'" title="Odznaki">
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+      </button>
+      <button class="p-tile-btn" onclick="location.href='races.html'" title="Starty">
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- PROFILE HEAD -->
@@ -233,9 +283,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
 <!-- POSTY (zdjęcia + cytaty) -->
 <div class="section">
-  <div class="section-hdr">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
     <div class="section-title">Post<span>y</span></div>
-    <button class="section-add" id="add-post-btn" style="display:none;" onclick="openAddPost()">+ Dodaj</button>
+    <button id="add-post-btn" style="display:none;background:var(--accent);border:none;color:#fff;border-radius:10px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;" onclick="openAddPost()">+ Dodaj post</button>
   </div>
   <div id="posts-container">
     <div class="skeleton" style="height:160px;border-radius:12px;"></div>
@@ -260,7 +310,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
   <div id="profile-search-results"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Wpisz imię żeby szukać</div></div>
 </div>
 
-<div class="bottom-pad"></div>
+<div style="height:80px;"></div>
 
 <!-- ADD POST SHEET -->
 <div class="add-overlay" id="add-overlay" onclick="handleAddClick(event)">
@@ -356,12 +406,12 @@ let _profileData = null;
     return;
   }
 
-  // Pokaż przyciski edycji od razu — nie czekaj na loadProfile()
+  // Pokaż przyciski edycji od razu
   if (_isOwnProfile) {
-    const addBtn = document.getElementById('add-post-btn');
-    if (addBtn) addBtn.style.display = 'block';
-    const avEdit = document.getElementById('av-edit-btn');
-    if (avEdit) avEdit.style.display = 'flex';
+    const ab = document.getElementById('add-post-btn');
+    if (ab) ab.style.display = 'block';
+    const ae = document.getElementById('av-edit-btn');
+    if (ae) ae.style.display = 'flex';
   }
 
   await Promise.all([
@@ -922,7 +972,57 @@ async function quickFollow(targetId, btn, isFollowing) {
   }
 }
 
-// ── HELPERS ─────────────────────────────────────────────────────────
+// ── HERO SLIDESHOW ───────────────────────────────────────────────
+const BASE_ASSETS = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const _pHeroSets = [
+  ['aa1','aa2','aa3','aa4','aa5'],
+  ['ab1','ab2','ab3','ab4','ab5'],
+  ['ac1','ac2','ac3','ac4','ac5'],
+  ['ad1','ad2','ad3','ad4','ad5'],
+  ['ae1','ae2','ae3','ae4','ae5'],
+  ['af1','af2','af3','af4','af5'],
+  ['ag1','ag2','ag3','ag4','ag5'],
+];
+const _pHeroDay = new Date().getDay();
+const _pHeroCards = _pHeroSets[_pHeroDay].map(n => BASE_ASSETS + n + '.webp');
+let _pHeroIdx = 0;
+let _pHeroTimer = null;
+
+function _pHeroShow(i) {
+  const bg = document.getElementById('p-hero-bg');
+  if (!bg) return;
+  bg.style.opacity = '0';
+  setTimeout(() => {
+    bg.style.backgroundImage = 'url(' + _pHeroCards[i] + ')';
+    bg.style.opacity = '1';
+  }, 200);
+  document.querySelectorAll('.p-hero-dot').forEach((d, idx) => {
+    d.classList.toggle('active', idx === i);
+  });
+}
+function _pHeroNext() {
+  _pHeroIdx = (_pHeroIdx + 1) % _pHeroCards.length;
+  _pHeroShow(_pHeroIdx);
+}
+function _pHeroPrev() {
+  _pHeroIdx = (_pHeroIdx - 1 + _pHeroCards.length) % _pHeroCards.length;
+  _pHeroShow(_pHeroIdx);
+}
+function _pHeroInit() {
+  const dotsEl = document.getElementById('p-hero-dots');
+  if (dotsEl) {
+    dotsEl.innerHTML = _pHeroCards.map((_, i) =>
+      '<span class="p-hero-dot' + (i===0?' active':'') + '" onclick="_pHeroShow('+i+');_pHeroIdx='+i+';"></span>'
+    ).join('');
+  }
+  _pHeroShow(0);
+  _pHeroTimer = setInterval(_pHeroNext, 5000);
+}
+// Uruchom od razu
+document.addEventListener('DOMContentLoaded', _pHeroInit);
+setTimeout(_pHeroInit, 100);
+
+// ── HELPERS ─────────────────────────────────────────────────────────────
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
 function showToast(msg) {
@@ -932,5 +1032,29 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 </script>
+<nav class="bottom-nav">
+  <a class="nav-it" href="zawodnik.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <div class="nav-lbl">Dziś</div>
+  </a>
+  <a class="nav-it" href="kalendarz.html?role=athlete">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <div class="nav-lbl">Plan</div>
+  </a>
+  <a class="nav-it" href="zawodnik.html">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
+      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    </div>
+    <div class="nav-lbl" style="margin-top:2px;">Log</div>
+  </a>
+  <a class="nav-it" href="zawodnik.html#social">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <div class="nav-lbl">Społeczność</div>
+  </a>
+  <a class="nav-it active" href="#">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    <div class="nav-lbl" style="color:var(--accent);">Profil</div>
+  </a>
+</nav>
 </body>
 </html>
