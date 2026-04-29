@@ -2972,7 +2972,12 @@ function showOnboarding() {
   _obMode = 'solo';
   _obGoal = 'improve';
   _obAvatarFile = null;
-  document.getElementById('onboarding-modal').classList.add('show');
+  // Przenieś modal do body żeby position:fixed działało poprawnie
+  const _obModal = document.getElementById('onboarding-modal');
+  if (_obModal && _obModal.parentElement !== document.body) {
+    document.body.appendChild(_obModal);
+  }
+  _obModal.classList.add('show');
   const _obNavEl = document.getElementById('main-bottom-nav');
   if (_obNavEl) _obNavEl.style.display = 'none';
 
@@ -3134,8 +3139,8 @@ async function obFinish() {
 
     // Zamknij i idź dalej — nawet jeśli update się nie udał (dane są w bazie)
     document.getElementById('onboarding-modal').classList.remove('show');
-    const _obNavEl2 = document.getElementById('main-bottom-nav');
-    if (_obNavEl2) _obNavEl2.style.display = '';
+    const _obNavR = document.getElementById('main-bottom-nav');
+    if (_obNavR) _obNavR.style.display = '';
     localStorage.removeItem('biegamy_needs_onboarding');
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
@@ -3155,8 +3160,8 @@ async function obFinish() {
 
 function skipOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('show');
-  const _obNavEl3 = document.getElementById('main-bottom-nav');
-  if (_obNavEl3) _obNavEl3.style.display = '';
+  const _obNavS = document.getElementById('main-bottom-nav');
+  if (_obNavS) _obNavS.style.display = '';
   localStorage.removeItem('biegamy_needs_onboarding');
 }
 
