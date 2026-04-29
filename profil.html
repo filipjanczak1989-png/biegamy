@@ -492,7 +492,7 @@ function renderPBs(ath) {
   ];
   var canEdit = _isOwnProfile;
   document.getElementById('pbs-grid').innerHTML = pbs.map(function(pb) {
-    return '<div class="pb-card"' + (canEdit ? ' data-key="'+pb.key+'" data-dist="'+pb.dist+'" data-val="'+(pb.val||'')+'" onclick="editPB(this.dataset.key,this.dataset.dist,this.dataset.val)" style="cursor:pointer;"' : '') + '>'
+    return '<div class="pb-card"' + (canEdit ? ' onclick="editPB(\''+pb.key+'\',\''+pb.dist+'\',\''+( pb.val||'')+'\')" style="cursor:pointer;"' : '') + '>'
       + '<div class="pb-dist">' + pb.dist + '</div>'
       + (pb.val ? '<div class="pb-time">' + pb.val + '</div>'
                 : '<div class="pb-empty">' + (canEdit ? '<span style="font-size:11px;color:var(--accent);">+ Dodaj</span>' : '—') + '</div>')
@@ -556,6 +556,7 @@ async function loadBadges() {
     .eq('athlete_id', _targetId);
   if (!logs?.length) return;
   const badgeSect = document.getElementById('badges-section');
+  if (!badgeSect) return;
   badgeSect.style.display = 'block';
   const badgeMap = {
     '__badge__first_log': { icon: '🏃', label: 'Pierwsza trasa' },
