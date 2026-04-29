@@ -398,6 +398,39 @@ let _profileData = null;
     return;
   }
 
+  // Pokaż przyciski edycji od razu (własny profil)
+  if (_isOwnProfile) {
+    ['add-post-btn','add-goal-btn'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='block';});
+    var ae=document.getElementById('av-edit-btn');if(ae)ae.style.display='flex';
+    var pr=document.getElementById('privacy-row');if(pr)pr.style.display='block';
+  }
+
+  // Sprawdź prywatność cudzego profilu przed załadowaniem
+  if (!_isOwnProfile) {
+    const { data: privCheck } = await _sb.from('athletes')
+      .select('is_public,full_name')
+      .eq('id', _targetId)
+      .maybeSingle();
+    if (privCheck && !privCheck.is_public) {
+      const initials = (privCheck.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      document.getElementById('profile-name').textContent = privCheck.full_name || 'Biegacz';
+      document.getElementById('av-initials').textContent = initials;
+      document.querySelector('.profile-head').insertAdjacentHTML('beforeend',
+        '<div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;line-height:1.8;">'+
+        '<div style="font-size:36px;margin-bottom:12px;">🔒</div>'+
+        '<div style="font-weight:600;color:var(--fg2);margin-bottom:6px;">Profil prywatny</div>'+
+        '<div>Ten zawodnik ma prywatny profil.</div></div>'
+      );
+      ['tab-profile','tab-friends','tab-find'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='none';});
+      var tr=document.querySelector('.p-tiles-row');if(tr)tr.style.display='none';
+      var tabs=document.querySelector('[id^="ptab"]');
+      document.querySelectorAll('[id^="ptab"]').forEach(function(b){b.style.display='none';});
+      await loadFriendStatus();
+      renderActionBtns();
+      return;
+    }
+  }
+
   await Promise.all([
     loadProfile(),
     loadStats(),
@@ -504,11 +537,14 @@ function renderGoals(ath) {
     const day = d.getDate();
     const mon = d.toLocaleDateString('pl-PL', { month: 'short' }).replace('.','').toUpperCase();
     const daysLeft = Math.ceil((d - new Date()) / 86400000);
-    return '<div class="goal-item">'
+    var raceName = encodeURIComponent(g.name);
+    return '<div class="goal-item" onclick="openRaceDetails(\'' + escHtml(g.name) + '\')" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div class="goal-date-badge"><div class="goal-date-day">'+day+'</div><div class="goal-date-mon">'+mon+'</div></div>'
-      + '<div class="goal-name">'+escHtml(g.name)+'</div>'
+      + '<div class="goal-name">'+escHtml(g.name)+'<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;">👥 Kto bierze udział?</div></div>'
+      + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
       + '<div class="goal-days">'+(daysLeft > 0 ? 'za '+daysLeft+' dni' : 'dziś!')+'</div>'
-      + (_isOwnProfile ? '<button onclick="removeGoal('+i+')" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;">×</button>' : '')
+      + (_isOwnProfile ? '<button onclick="event.stopPropagation();removeGoal('+i+')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;">×</button>' : '')
+      + '</div>'
       + '</div>';
   }).join('');
 }
@@ -1067,13 +1103,15 @@ function updatePrivacyBtn(isPublic) {
   const btn = document.getElementById('privacy-btn');
   if (!btn) return;
   if (isPublic) {
-    btn.innerHTML = '🌍 Profil publiczny';
+    btn.innerHTML = '🌍 Profil publiczny — kliknij aby ukryć';
     btn.style.borderColor = 'rgba(61,184,112,0.4)';
     btn.style.color = 'var(--green)';
+    btn.style.background = 'rgba(61,184,112,0.08)';
   } else {
-    btn.innerHTML = '🔒 Profil prywatny';
-    btn.style.borderColor = 'var(--border)';
-    btn.style.color = 'var(--fg3)';
+    btn.innerHTML = '🔒 Profil prywatny — kliknij aby upublicznić';
+    btn.style.borderColor = 'rgba(255,80,80,0.4)';
+    btn.style.color = '#ff6060';
+    btn.style.background = 'rgba(255,80,80,0.08)';
   }
 }
 
@@ -1118,6 +1156,73 @@ async function removeGoal(idx) {
   if (error) { showToast('Błąd: ' + error.message); return; }
   if (_profileData) _profileData.race_goals = JSON.stringify(goals);
   renderGoals(_profileData);
+}
+
+// ── RACE PARTICIPANTS MODAL ──────────────────────────────────────
+async function openRaceDetails(raceName) {
+  // Znajdź race w bazie po nazwie
+  const { data: races } = await _sb.from('races')
+    .select('id,name,date,city,distance_km,url_regulamin,url_organizer,signup_count')
+    .ilike('name', '%' + raceName + '%')
+    .limit(1);
+  const race = races?.[0];
+
+  // Pobierz uczestników (przez race_signups lub przez race_goals zawodników)
+  let participants = [];
+  if (race) {
+    const { data: signups } = await _sb.from('race_signups')
+      .select('athlete_id')
+      .eq('race_id', race.id)
+      .limit(50);
+    if (signups?.length) {
+      const ids = signups.map(s => s.athlete_id);
+      const { data: aths } = await _sb.from('athletes')
+        .select('id,full_name,avatar_url,is_public')
+        .in('id', ids);
+      participants = (aths||[]).filter(a => a.is_public || a.id === _myId);
+    }
+  }
+
+  // Zbuduj modal
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  let html = '<div style="width:100%;max-width:480px;background:rgba(22,18,30,0.99);border-radius:24px 24px 0 0;padding:0 0 env(safe-area-inset-bottom,24px);max-height:80vh;overflow-y:auto;">';
+  html += '<div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 16px;"></div>';
+  html += '<div style="padding:0 20px 16px;">';
+  html += '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:0.04em;color:var(--fg);margin-bottom:4px;">'+raceName+'</div>';
+
+  if (race) {
+    html += '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:12px;">'
+      + (race.city||'') + (race.city?' · ':'') + new Date(race.date+'T12:00:00').toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'})
+      + '</div>';
+    var links = '';
+    if (race.url_regulamin) links += '<a href="'+race.url_regulamin+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--accent);text-decoration:none;border:1px solid rgba(232,86,30,0.3);border-radius:6px;padding:4px 10px;margin-right:6px;">📋 Regulamin</a>';
+    if (race.url_organizer) links += '<a href="'+race.url_organizer+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--fg2);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;">🌐 Organizator</a>';
+    if (links) html += '<div style="margin-bottom:14px;">'+links+'</div>';
+  }
+
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--muted);margin-bottom:10px;">BIEGNĄ ('+participants.length+')</div>';
+
+  if (!participants.length) {
+    html += '<div style="text-align:center;padding:24px;color:var(--muted);font-size:13px;">Brak publicznych uczestników</div>';
+  } else {
+    html += participants.map(function(a) {
+      var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+      var av = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' : ini;
+      var isMe = a.id === _myId;
+      return '<div onclick="location.href=\'profil.html?id='+a.id+'\'" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
+        + '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
+        + '<div style="flex:1;font-size:13px;font-weight:500;">' + (a.full_name||'Biegacz').replace(/</g,'&lt;') + (isMe ? ' <span style="font-size:10px;color:var(--accent);">(Ty)</span>' : '') + '</div>'
+        + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
+        + '</div>';
+    }).join('');
+  }
+
+  html += '</div></div>';
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
 }
 
 // ── HELPERS ─────────────────────────────────────────────────────────────
