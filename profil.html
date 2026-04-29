@@ -830,7 +830,7 @@ async function loadProfileFriends() {
   }
 
   var ids = rows.map(function(r){ return r.requester_id === _targetId ? r.addressee_id : r.requester_id; });
-  var athRes = await _sb.from('athletes').select('id,full_name,pb_5k,pb_10k,goal').in('id', ids);
+  var athRes = await _sb.from('athletes').select('id,full_name,pb_5k,pb_10k,goal,avatar_url').in('id', ids);
   var athletes = athRes.data || [];
 
   // Statusy znajomości z moim kontem
@@ -859,8 +859,9 @@ async function loadProfileFriends() {
       else if (fs === 'pending_received') actionBtn = '<button onclick="quickAccept(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;">✓ Akceptuj</button>';
       else actionBtn = '<button onclick="quickAddFriend(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
     }
+    var avImg = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' : ini;
     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);">'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">' + ini + '</div>'
+      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + avImg + '</div>'
       + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;cursor:pointer;">'
       + '<div style="font-size:13px;font-weight:600;">' + nm + '</div>'
       + (a.goal ? '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + a.goal.replace(/</g,'&lt;') + '</div>' : '')
@@ -885,7 +886,7 @@ function profileSearch(q) {
 async function _doProfileSearch(q) {
   var el = document.getElementById('profile-search-results');
   var res = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,pb_5k,goal')
+    .select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
     .eq('is_public', true)
     .ilike('full_name', '%' + q + '%')
     .limit(20);
@@ -930,8 +931,9 @@ async function _doProfileSearch(q) {
 
     var followBtn = _myId ? '<button onclick="quickFollow(\'' + a.id + '\',this,' + isF + ')" style="background:' + (isF?'transparent':'rgba(91,140,255,0.1)') + ';border:1px solid ' + (isF?'var(--border)':'rgba(91,140,255,0.35)') + ';color:' + (isF?'var(--muted)':'#5b8cff') + ';font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;">' + (isF?'✓ Obserwujesz':'+ Obserwuj') + '</button>' : '';
 
+    var av2 = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' : ini;
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);">'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">' + ini + '</div>'
+      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + av2 + '</div>'
       + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;min-width:0;cursor:pointer;">'
       + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nm + '</div>'
       + (a.goal ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal.replace(/</g,'&lt;') + '</div>' : '')
