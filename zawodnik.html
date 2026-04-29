@@ -802,9 +802,6 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
-      <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;text-decoration:none;" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'">
-        📋 Regulamin
-      </a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
       </div>
@@ -2856,8 +2853,7 @@ async function initAuth() {
       const i2 = n2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       setAvBtn(i2);
       if(tn2){ tn2.innerHTML = n2.split(' ')[0] + ' <span>' + (n2.split(' ')[1]?.[0]||'') + '.</span>'; }
-      const _needsOb2 = _isOnboarding || (ath2.onboarding_done === false || ath2.onboarding_done === null);
-      if (_needsOb2) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
+      if (_isOnboarding || !ath2.onboarding_done) { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
       await loadLogs();
     } else {
       showOnboarding();
@@ -2890,10 +2886,9 @@ async function initAuth() {
     if(tnEl){ tnEl.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
 
     // Pokaż onboarding jeśli:
-    // 1. URL ma ?onboarding=1 (auto-login po rejestracji)
-    // 2. onboarding_done = false/null (po email confirmation bez ?onboarding=1)
-    const _needsOnboarding = _isOnboarding || (ath.onboarding_done === false || ath.onboarding_done === null);
-    if (_needsOnboarding) {
+    // 1. URL ma ?onboarding=1 (przekierowanie po rejestracji)
+    // 2. onboarding_done = false/null (email confirmation bez ?onboarding=1 w URL)
+    if (_isOnboarding || !ath.onboarding_done) {
       await loadLogs();
       showOnboarding();
       window.history.replaceState({}, '', 'zawodnik.html');
@@ -2979,6 +2974,9 @@ function showOnboarding() {
   _obGoal = 'improve';
   _obAvatarFile = null;
   document.getElementById('onboarding-modal').classList.add('show');
+  // Ukryj nav żeby nie zasłaniał przycisku "Dalej"
+  const nav = document.getElementById('main-bottom-nav');
+  if (nav) nav.style.display = 'none';
 
   // Pre-fill name from auth
   _sb.auth.getSession().then(({ data: { session } }) => {
@@ -3069,6 +3067,11 @@ function obNext(step) {
   if (next) next.style.display = 'flex';
 }
 
+function _obRestoreNav() {
+  const nav = document.getElementById('main-bottom-nav');
+  if (nav) nav.style.display = '';
+}
+
 async function obFinish() {
   const btn = document.getElementById('ob-finish-btn');
   const errEl = document.getElementById('ob-error');
@@ -3138,6 +3141,7 @@ async function obFinish() {
 
     // Zamknij i idź dalej — nawet jeśli update się nie udał (dane są w bazie)
     document.getElementById('onboarding-modal').classList.remove('show');
+    _obRestoreNav();
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
@@ -3156,6 +3160,7 @@ async function obFinish() {
 
 function skipOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('show');
+  _obRestoreNav();
 }
 
 // ── LOAD COACHES ──────────────────────────────────────────────────
