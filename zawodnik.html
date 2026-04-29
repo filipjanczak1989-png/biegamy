@@ -843,10 +843,10 @@ body > *{position:relative;z-index:1;}
     <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
   <button onclick="location.href='races.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ChatGPT_Image_29_kwi_2026__07_28_12.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+    <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
 </div>
-</div>ex hero+kafelki -->
+</div>
 
 <!-- Dots pod kartą -->
 <div style="display:flex;align-items:center;gap:6px;padding:6px 16px 4px;">
@@ -2889,7 +2889,6 @@ async function initAuth() {
     setAvBtn(initials);
     if(tnEl){ tnEl.innerHTML = name.split(' ')[0] + ' <span>' + (name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
 
-    // Pokaż onboarding jeśli URL param LUB flaga localStorage
     const _needsOb = _isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1';
     if (_needsOb) {
       await loadLogs();
@@ -2976,7 +2975,6 @@ function showOnboarding() {
   _obMode = 'solo';
   _obGoal = 'improve';
   _obAvatarFile = null;
-  // Przenieś modal do body żeby position:fixed działało poprawnie
   const _obM = document.getElementById('onboarding-modal');
   if (_obM && _obM.parentElement !== document.body) document.body.appendChild(_obM);
   _obM.classList.add('show');
