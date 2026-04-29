@@ -190,6 +190,18 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
   </div>
 </div>
 
+<!-- TABS -->
+<div style="padding:0 20px;margin-bottom:16px;">
+  <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+    <button id="ptab-profile" onclick="switchProfileTab('profile')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Profil</button>
+    <button id="ptab-friends" onclick="switchProfileTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajomi</button>
+    <button id="ptab-find" onclick="switchProfileTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
+  </div>
+</div>
+
+<!-- TAB: PROFIL -->
+<div id="tab-profile">
+
 <!-- ZYCIÓWKI -->
 <div class="section">
   <div class="section-hdr">
@@ -228,6 +240,24 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
   <div id="posts-container">
     <div class="skeleton" style="height:160px;border-radius:12px;"></div>
   </div>
+</div>
+
+</div><!-- /tab-profile -->
+
+<!-- TAB: ZNAJOMI -->
+<div id="tab-friends" style="display:none;padding:0 20px;">
+  <div id="profile-friends-content" style="padding-top:4px;"></div>
+</div>
+
+<!-- TAB: ZNAJDŹ -->
+<div id="tab-find" style="display:none;padding:0 20px;">
+  <div style="position:relative;margin-bottom:12px;margin-top:4px;">
+    <input id="profile-search-inp" type="text" placeholder="Szukaj biegaczy po imieniu..." oninput="profileSearch(this.value)"
+      style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:11px 14px 11px 40px;border-radius:10px;outline:none;box-sizing:border-box;"
+      onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+    <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  </div>
+  <div id="profile-search-results"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Wpisz imię żeby szukać</div></div>
 </div>
 
 <div class="bottom-pad"></div>
@@ -706,7 +736,185 @@ function closeLightbox() {
   document.getElementById('lightbox').classList.remove('open');
 }
 
-// ── HELPERS ─────────────────────────────────────────────────────
+// ── TABS ─────────────────────────────────────────────────────────
+function switchProfileTab(tab) {
+  ['profile','friends','find'].forEach(function(t) {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    var btn = document.getElementById('ptab-' + t);
+    if (btn) {
+      btn.style.background = t === tab ? 'rgba(232,86,30,0.12)' : 'transparent';
+      btn.style.color = t === tab ? 'var(--accent)' : 'var(--muted)';
+    }
+  });
+  if (tab === 'friends') loadProfileFriends();
+  if (tab === 'find') {
+    document.getElementById('profile-search-inp').focus();
+  }
+}
+
+async function loadProfileFriends() {
+  var el = document.getElementById('profile-friends-content');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+
+  // Znajomi danego profilu (accepted)
+  var res = await _sb.from('friendships')
+    .select('requester_id,addressee_id')
+    .eq('status','accepted')
+    .or('requester_id.eq.' + _targetId + ',addressee_id.eq.' + _targetId);
+  var rows = res.data || [];
+
+  if (!rows.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:13px;line-height:2;">Brak znajomych</div>';
+    return;
+  }
+
+  var ids = rows.map(function(r){ return r.requester_id === _targetId ? r.addressee_id : r.requester_id; });
+  var athRes = await _sb.from('athletes').select('id,full_name,pb_5k,pb_10k,goal').in('id', ids);
+  var athletes = athRes.data || [];
+
+  // Statusy znajomości z moim kontem
+  var myStatuses = {};
+  if (_myId) {
+    var fsRes = await _sb.from('friendships')
+      .select('requester_id,addressee_id,status')
+      .or(ids.map(function(id){
+        return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+id+'),and(requester_id.eq.'+id+',addressee_id.eq.'+_myId+')';
+      }).join(','));
+    (fsRes.data||[]).forEach(function(r){
+      var other = r.requester_id===_myId?r.addressee_id:r.requester_id;
+      myStatuses[other] = r.status==='accepted'?'accepted':(r.requester_id===_myId?'pending_sent':'pending_received');
+    });
+  }
+
+  el.innerHTML = athletes.map(function(a) {
+    var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+    var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
+    var isSelf = a.id === _myId;
+    var fs = myStatuses[a.id];
+    var actionBtn = '';
+    if (!isSelf && _myId) {
+      if (fs === 'accepted') actionBtn = '<span style="font-size:10px;color:var(--green);padding:5px 8px;">✓ Znajomi</span>';
+      else if (fs === 'pending_sent') actionBtn = '<span style="font-size:10px;color:var(--accent);">⏳</span>';
+      else if (fs === 'pending_received') actionBtn = '<button onclick="quickAccept(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;">✓ Akceptuj</button>';
+      else actionBtn = '<button onclick="quickAddFriend(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
+    }
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);">'
+      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">' + ini + '</div>'
+      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;cursor:pointer;">'
+      + '<div style="font-size:13px;font-weight:600;">' + nm + '</div>'
+      + (a.goal ? '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + a.goal.replace(/</g,'&lt;') + '</div>' : '')
+      + '</div>'
+      + '<div style="flex-shrink:0;">' + actionBtn + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+let _searchTimer = null;
+function profileSearch(q) {
+  clearTimeout(_searchTimer);
+  var el = document.getElementById('profile-search-results');
+  if (!q || q.length < 2) {
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Wpisz imię żeby szukać</div>';
+    return;
+  }
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Szukam...</div>';
+  _searchTimer = setTimeout(function(){ _doProfileSearch(q); }, 350);
+}
+
+async function _doProfileSearch(q) {
+  var el = document.getElementById('profile-search-results');
+  var res = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon,pb_5k,goal')
+    .eq('is_public', true)
+    .ilike('full_name', '%' + q + '%')
+    .limit(20);
+  var results = (res.data||[]).filter(function(a){ return a.id !== _myId; });
+
+  if (!results.length) {
+    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Brak wyników</div>';
+    return;
+  }
+
+  // Statusy znajomości
+  var myStatuses = {};
+  if (_myId && results.length) {
+    var orStr = results.map(function(a){
+      return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+a.id+'),and(requester_id.eq.'+a.id+',addressee_id.eq.'+_myId+')';
+    }).join(',');
+    var fsRes = await _sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
+    (fsRes.data||[]).forEach(function(r){
+      var other = r.requester_id===_myId?r.addressee_id:r.requester_id;
+      myStatuses[other] = r.status==='accepted'?'accepted':(r.requester_id===_myId?'pending_sent':'pending_received');
+    });
+  }
+
+  // Follow statuses
+  var followSet = new Set();
+  if (_myId) {
+    var folRes = await _sb.from('follows').select('following_id').eq('follower_id', _myId);
+    (folRes.data||[]).forEach(function(f){ followSet.add(f.following_id); });
+  }
+
+  el.innerHTML = results.map(function(a) {
+    var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+    var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
+    var fs = myStatuses[a.id];
+    var isF = followSet.has(a.id);
+
+    var friendBtn = '';
+    if (fs === 'accepted') friendBtn = '<span style="font-size:9px;color:var(--green);padding:3px 6px;">✓ Znajomi</span>';
+    else if (fs === 'pending_sent') friendBtn = '<span style="font-size:9px;color:var(--accent);">⏳ Wysłano</span>';
+    else if (fs === 'pending_received') friendBtn = '<button onclick="quickAccept(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;">✓ Akceptuj</button>';
+    else if (_myId) friendBtn = '<button onclick="quickAddFriend(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
+
+    var followBtn = _myId ? '<button onclick="quickFollow(\'' + a.id + '\',this,' + isF + ')" style="background:' + (isF?'transparent':'rgba(91,140,255,0.1)') + ';border:1px solid ' + (isF?'var(--border)':'rgba(91,140,255,0.35)') + ';color:' + (isF?'var(--muted)':'#5b8cff') + ';font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;">' + (isF?'✓ Obserwujesz':'+ Obserwuj') + '</button>' : '';
+
+    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);">'
+      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">' + ini + '</div>'
+      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;min-width:0;cursor:pointer;">'
+      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nm + '</div>'
+      + (a.goal ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal.replace(/</g,'&lt;') + '</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">' + friendBtn + followBtn + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+async function quickAddFriend(targetId, btn) {
+  if (!_myId) { showToast('Zaloguj się'); return; }
+  var res = await _sb.from('friendships').insert({requester_id:_myId, addressee_id:targetId});
+  if (res.error) { showToast('Błąd: ' + res.error.message); return; }
+  btn.textContent = '⏳ Wysłano'; btn.disabled = true; btn.style.opacity = '0.6';
+  showToast('Zaproszenie wysłane ✓');
+  // Powiadomienie
+  var me = await _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
+  var myName = me.data?.full_name || 'Ktoś';
+  _sb.from('notifications').insert({athlete_id:targetId,type:'friend_request',from_athlete_id:_myId,message:myName+' chce zostać Twoim znajomym',read:false,created_at:new Date().toISOString()}).then(function(){});
+}
+
+async function quickAccept(requesterId, btn) {
+  if (!_myId) return;
+  var res = await _sb.from('friendships').update({status:'accepted',updated_at:new Date().toISOString()})
+    .eq('requester_id',requesterId).eq('addressee_id',_myId);
+  if (res.error) { showToast('Błąd: ' + res.error.message); return; }
+  btn.outerHTML = '<span style="font-size:10px;color:var(--green);">✓ Znajomi</span>';
+  showToast('Jesteście znajomymi! 🎉');
+  document.getElementById('ps-friends').textContent = parseInt(document.getElementById('ps-friends').textContent||0)+1;
+}
+
+async function quickFollow(targetId, btn, isFollowing) {
+  if (!_myId) return;
+  if (isFollowing) {
+    await _sb.from('follows').delete().eq('follower_id',_myId).eq('following_id',targetId);
+    btn.textContent='+ Obserwuj'; btn.style.color='#5b8cff'; btn.onclick=function(){quickFollow(targetId,btn,false);};
+  } else {
+    await _sb.from('follows').insert({follower_id:_myId, following_id:targetId});
+    btn.textContent='✓ Obserwujesz'; btn.style.color='var(--muted)'; btn.onclick=function(){quickFollow(targetId,btn,true);};
+  }
+}
+
+// ── HELPERS ─────────────────────────────────────────────────────────
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
 function showToast(msg) {
