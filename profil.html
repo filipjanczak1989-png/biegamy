@@ -439,6 +439,11 @@ let _profileData = null;
   ]);
 
   renderActionBtns();
+  if (_isOwnProfile) checkProfilFriendRequests();
+
+  // Otwórz konkretną zakładkę jeśli podana w URL (?tab=friends)
+  var tabParam = new URLSearchParams(location.search).get('tab');
+  if (tabParam) setTimeout(function(){ switchProfileTab(tabParam); }, 300);
 })();
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
@@ -556,7 +561,6 @@ async function loadBadges() {
     .eq('athlete_id', _targetId);
   if (!logs?.length) return;
   const badgeSect = document.getElementById('badges-section');
-  if (!badgeSect) return;
   badgeSect.style.display = 'block';
   const badgeMap = {
     '__badge__first_log': { icon: '🏃', label: 'Pierwsza trasa' },
@@ -999,6 +1003,7 @@ async function quickAccept(requesterId, btn) {
   if (res.error) { showToast('Błąd: ' + res.error.message); return; }
   btn.outerHTML = '<span style="font-size:10px;color:var(--green);">✓ Znajomi</span>';
   showToast('Jesteście znajomymi! 🎉');
+  checkProfilFriendRequests();
   document.getElementById('ps-friends').textContent = parseInt(document.getElementById('ps-friends').textContent||0)+1;
 }
 
@@ -1224,6 +1229,23 @@ async function openRaceDetails(raceName) {
   html += '</div></div>';
   overlay.innerHTML = html;
   document.body.appendChild(overlay);
+}
+
+// ── BADGE ZAPROSZEŃ NA PROFILU ───────────────────────────────────
+async function checkProfilFriendRequests() {
+  if (!_myId) return;
+  try {
+    var res = await _sb.from('friendships')
+      .select('id').eq('status','pending').eq('addressee_id', _myId);
+    var count = res.data ? res.data.length : 0;
+    var badge = document.getElementById('profil-friends-badge');
+    if (badge) badge.style.display = count > 0 ? 'block' : 'none';
+    // Też sprawdź powiadomienia o friend_request
+    var nRes = await _sb.from('notifications')
+      .select('id').eq('athlete_id',_myId).eq('type','friend_request').eq('read',false);
+    var nCount = nRes.data ? nRes.data.length : 0;
+    if (badge) badge.style.display = (count > 0 || nCount > 0) ? 'block' : 'none';
+  } catch(e) {}
 }
 
 // ── HELPERS ─────────────────────────────────────────────────────────────

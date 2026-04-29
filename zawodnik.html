@@ -4983,7 +4983,7 @@ function switchSocialTab(tab) {
   }
   if (tab==='friends') loadFriends();
   if (tab==='following') loadFollowing();
-  if (tab==='find') { loadSuggestedProfiles(); loadFriendsOfFriends(); }
+  if (tab==='find') loadSuggestedProfiles();
 }
 
 async function loadSocialFeed(compact) {
@@ -5588,119 +5588,43 @@ function socialSearch(q) {
 async function loadSuggestedProfiles() {
   const el = document.getElementById('social-search-results');
   if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz imię żeby szukać</div>';
-}
+  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:10px;">Sugerowane profile</div>';
 
-async function loadFriendsOfFriends() {
-  if (!_athleteId) return;
-  const el = document.getElementById('friends-of-friends-section');
-  if (!el) return;
-
-  // Pobierz moich znajomych
-  const fsRes = await _sb.from('friendships')
-    .select('requester_id,addressee_id')
-    .eq('status','accepted')
-    .or('requester_id.eq.'+_athleteId+',addressee_id.eq.'+_athleteId);
-  const myFriendIds = (fsRes.data||[]).map(r => r.requester_id===_athleteId?r.addressee_id:r.requester_id);
-
-  if (!myFriendIds.length) {
-    el.innerHTML = '';
-    return;
-  }
-
-  // Pobierz znajomych moich znajomych
-  const fof2Res = await _sb.from('friendships')
-    .select('requester_id,addressee_id')
-    .eq('status','accepted')
-    .or(myFriendIds.map(id=>'requester_id.eq.'+id+',addressee_id.eq.'+id).join(','));
-
-  const fofIds = new Set();
-  (fof2Res.data||[]).forEach(r => {
-    [r.requester_id, r.addressee_id].forEach(id => {
-      if (id !== _athleteId && !myFriendIds.includes(id)) fofIds.add(id);
-    });
-  });
-
-  if (!fofIds.size) {
-    el.innerHTML = '';
-    return;
-  }
-
-  // Pobierz dane tych osób (tylko publiczne)
-  const athRes = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,goal,avatar_url,is_public')
-    .in('id', [...fofIds])
+  const { data } = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon,goal')
     .eq('is_public', true)
-    .limit(10);
+    .neq('id', _athleteId)
+    .limit(6);
 
-  const suggestions = (athRes.data||[]);
-  if (!suggestions.length) { el.innerHTML = ''; return; }
-
+  if (!data || data.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz imię żeby szukać</div>';
+    return;
+  }
   const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
-  await loadFriendStatusesForSearch(suggestions.map(a=>a.id));
-
-  // Policz wspólnych znajomych
-  const mutualMap = {};
-  (fof2Res.data||[]).forEach(r => {
-    [r.requester_id, r.addressee_id].forEach(id => {
-      if (fofIds.has(id)) {
-        const common = [r.requester_id,r.addressee_id].find(x=>myFriendIds.includes(x));
-        if (!mutualMap[id]) mutualMap[id] = new Set();
-        if (common) mutualMap[id].add(common);
-      }
-    });
-  });
-
-  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;display:flex;align-items:center;gap:6px;">'
-    + '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>'
-    + 'Może znasz (' + suggestions.length + ')</div>'
-    + suggestions.map(a => {
-      const mutual = mutualMap[a.id] ? mutualMap[a.id].size : 0;
-      const mutualLabel = mutual > 0 ? mutual + ' wspólny' + (mutual>1?'ch':'') + ' znajom' + (mutual>1?'ych':'y') : '';
-      const originalGoal = a.goal;
-      a.goal = mutualLabel || a.goal; // tymczasowo podmień goal na info o wspólnych
-      const card = _buildAthleteCards([a], fSet);
-      a.goal = originalGoal;
-      return card;
-    }).join('');
+  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:10px;">Sugerowane profile</div>'
+    + _buildAthleteCards(data, fSet);
 }
 
 async function _doSearch(q) {
   const el = document.getElementById('social-search-results');
   if (!el) return;
-
-  // Szukaj w publicznych + wśród znajomych (nawet prywatnych)
-  const fsRes = await _sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
-    .or('requester_id.eq.'+_athleteId+',addressee_id.eq.'+_athleteId);
-  const myFriendIds = (fsRes.data||[]).map(r=>r.requester_id===_athleteId?r.addressee_id:r.requester_id);
-
-  const promises = [
-    _sb.from('athletes').select('id,full_name,pb_marathon,goal,avatar_url,is_public')
-       .eq('is_public', true).ilike('full_name', '%'+q+'%').limit(20)
-  ];
-  if (myFriendIds.length) {
-    promises.push(
-      _sb.from('athletes').select('id,full_name,pb_marathon,goal,avatar_url,is_public')
-         .eq('is_public', false).ilike('full_name', '%'+q+'%').in('id', myFriendIds).limit(10)
-    );
-  }
-  const [pubRes, privRes] = await Promise.all(promises);
-
-  const seen = new Set([_athleteId]);
-  const results = [...(pubRes.data||[]), ...(privRes?.data||[])].filter(a => {
-    if (seen.has(a.id)) return false;
-    seen.add(a.id); return true;
-  });
-
+  // Tylko publiczne profile
+  const { data, error } = await _sb.from('athletes')
+    .select('id,full_name,pb_marathon,goal')
+    .eq('is_public', true)
+    .ilike('full_name', '%' + q + '%')
+    .limit(20);
+  console.log('Search:', q, data, error);
+  const results = (data || []).filter(a => a.id !== _athleteId);
   if (!results.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + q.replace(/</g,'&lt;') + '"</div>';
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników dla "' + q + '"</div>';
     return;
   }
-
   const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
-  await loadFriendStatusesForSearch(results.map(a=>a.id));
+  await loadFriendStatusesForSearch(results.map(a => a.id));
+  await loadFriendStatusesForSearch(results.map(function(a){return a.id;}));
   el.innerHTML = _buildAthleteCards(results, fSet);
 }
 
@@ -6019,7 +5943,7 @@ async function openNotifications() {
         if ((n.type==='follow'||n.type==='friend_accepted') && n.from_athlete_id)
           notifClick = 'location.href=\"profil.html?id='+n.from_athlete_id+'\";document.getElementById(\'notif-panel\')?.remove();';
         else if (n.type==='friend_request')
-          notifClick = 'switchSocialTab(\'friends\');document.getElementById(\'notif-panel\')?.remove();';
+          notifClick = (_athleteId?'location.href=\'profil.html?id='+_athleteId+'&tab=friends\'':'switchSocialTab(\'friends\')') + ';document.getElementById(\'notif-panel\')?.remove();';
         else if (n.type==='chat' && n.from_athlete_id)
           notifClick = 'showSection(\'msgs\');document.getElementById(\'notif-panel\')?.remove();';
         return `<div onclick="${notifClick}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifClick?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
@@ -6701,8 +6625,6 @@ function _stopSocialBannerRotation() {
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
       <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </div>
-    <!-- Znajomi znajomych -->
-    <div id="friends-of-friends-section" style="margin-bottom:8px;"></div>
     <div id="social-search-results"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wpisz imię żeby szukać</div></div>
   </div>
 </div>
