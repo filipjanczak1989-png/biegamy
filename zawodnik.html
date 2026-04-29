@@ -948,7 +948,7 @@ body > *{position:relative;z-index:1;}
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <div class="nav-lbl">Spo&#x142;eczno&#x15B;&#x107;</div>
   </a>
-  <a class="nav-it" href="#" onclick="showSection('profile');return false;" id="nav-profile">
+  <a class="nav-it" href="#" onclick="goToMyProfile();return false;" id="nav-profile">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
     <div class="nav-lbl">Profil</div>
   </a>
@@ -1884,6 +1884,14 @@ function calcTimeAuto() {
   document.getElementById('l-time').value = h+':'+m+':'+s;
   if(timeLbl) timeLbl.textContent = '← auto';
 }
+function goToMyProfile() {
+  if (_athleteId) {
+    location.href = 'profil.html?id=' + _athleteId;
+  } else {
+    showSection('profile');
+  }
+}
+
 function showSection(name) {
   if (name === 'social') _startSocialBannerRotation();
   else _stopSocialBannerRotation();
@@ -5622,25 +5630,83 @@ async function _doSearch(q) {
   }
   const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
+  await loadFriendStatusesForSearch(results.map(a => a.id));
   el.innerHTML = _buildAthleteCards(results, fSet);
 }
 
 function _buildAthleteCards(athletes, fSet) {
+  // Pobierz statusy znajomych dla wszystkich wyników
   return athletes.map(a => {
     const name = a.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const isF = fSet.has(a.id);
-    const profileBtn = '<a href="profil.html?id=' + a.id + '" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:\'DM Mono\',monospace;color:var(--muted);text-decoration:none;padding:4px 8px;border:1px solid var(--border);border-radius:6px;margin-right:6px;">👤 Profil</a>';
+    const fsKey = 'fs_' + a.id;
+    const fsStatus = window._friendStatuses ? (window._friendStatuses[a.id] || null) : null;
+
     const followBtn = '<button id="fb-' + a.id + '" onclick="event.stopPropagation();toggleFollow(\'' + a.id + '\',this,' + isF + ')"'
-      + ' style="background:' + (isF?'transparent':'var(--accent)') + ';border:1px solid ' + (isF?'var(--border)':'var(--accent)') + ';color:' + (isF?'var(--muted)':'#fff') + ';font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:6px 10px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:all 0.15s;">'
-      + (isF ? 'Obserwujesz' : '+ Obserwuj') + '</button>';
-    return '<div onclick="openAthleteProfile(\'' + a.id + '\')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-      + '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:\'Bebas Neue\',sans-serif;font-size:15px;flex-shrink:0;">' + ini + '</div>'
-      + '<div style="flex:1;"><div style="font-size:14px;font-weight:600;">' + name + '</div>'
-      + (a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:1px;">M: ' + a.pb_marathon + '</div>' : '')
-      + (a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:1px;">' + a.goal + '</div>' : '')
-      + '</div>' + profileBtn + followBtn + '</div>';
+      + ' style="background:' + (isF?'transparent':'rgba(91,140,255,0.12)') + ';border:1px solid ' + (isF?'var(--border)':'rgba(91,140,255,0.35)') + ';color:' + (isF?'var(--muted)':'#5b8cff') + ';font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;">'
+      + (isF ? '✓ Obserwujesz' : '+ Obserwuj') + '</button>';
+
+    let friendBtn = '';
+    if (fsStatus === 'accepted') {
+      friendBtn = '<span style="font-size:9px;color:var(--green);font-family:DM Mono,monospace;padding:5px 8px;">✓ Znajomi</span>';
+    } else if (fsStatus === 'pending_sent') {
+      friendBtn = '<span style="font-size:9px;color:var(--accent);font-family:DM Mono,monospace;padding:5px 8px;">⏳ Wysłano</span>';
+    } else if (fsStatus === 'pending_received') {
+      friendBtn = '<button onclick="event.stopPropagation();acceptFriendFromSearch(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;">✓ Akceptuj</button>';
+    } else {
+      friendBtn = '<button id="fr-' + a.id + '" onclick="event.stopPropagation();sendFriendFromSearch(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
+    }
+
+    const profileBtn = '<a href="profil.html?id=' + a.id + '" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;font-size:9px;color:var(--muted);text-decoration:none;padding:5px 8px;border:1px solid var(--border);border-radius:7px;">👤</a>';
+
+    return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'      + '<div onclick="location.href=\'profil.html?id=' + a.id + '\'" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;cursor:pointer;color:#fff;font-weight:700;">' + ini + '</div>'      + '<div onclick="location.href=\'profil.html?id=' + a.id + '\'" style="flex:1;min-width:0;cursor:pointer;">'      + '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + '</div>'      + (a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;">M: ' + a.pb_marathon + '</div>' : '')      + (a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal + '</div>' : '')      + '</div>'      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">' + friendBtn + followBtn + '</div>'      + '</div>';
   }).join('');
+}
+async function sendFriendFromSearch(targetId, btn) {
+  if (!_athleteId) return;
+  const { error } = await _sb.from('friendships').insert({ requester_id: _athleteId, addressee_id: targetId });
+  if (error) { toast('Błąd: ' + error.message); return; }
+  if (!window._friendStatuses) window._friendStatuses = {};
+  window._friendStatuses[targetId] = 'pending_sent';
+  btn.textContent = '⏳ Wysłano';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  toast('Zaproszenie wysłane ✓');
+  // Powiadomienie dla odbiorcy
+  const { data: me } = await _sb.from('athletes').select('full_name').eq('id', _athleteId).maybeSingle();
+  const myName = me?.full_name || 'Ktoś';
+  await _sendNotification(targetId, 'friend_request', `${myName} chce zostać Twoim znajomym`);
+}
+
+async function acceptFriendFromSearch(targetId, btn) {
+  if (!_athleteId) return;
+  const { error } = await _sb.from('friendships').update({ status: 'accepted', updated_at: new Date().toISOString() })
+    .eq('requester_id', targetId).eq('addressee_id', _athleteId);
+  if (error) { toast('Błąd: ' + error.message); return; }
+  if (!window._friendStatuses) window._friendStatuses = {};
+  window._friendStatuses[targetId] = 'accepted';
+  btn.outerHTML = '<span style="font-size:9px;color:var(--green);font-family:DM Mono,monospace;padding:5px 8px;">✓ Znajomi</span>';
+  toast('Jesteście znajomymi! 🎉');
+  checkFriendRequests();
+  // Powiadomienie dla requestera że zaakceptowano
+  const { data: me } = await _sb.from('athletes').select('full_name').eq('id', _athleteId).maybeSingle();
+  const myName = me?.full_name || 'Ktoś';
+  await _sendNotification(targetId, 'friend_accepted', `${myName} zaakceptował(a) Twoje zaproszenie do znajomych`);
+}
+
+async function loadFriendStatusesForSearch(athleteIds) {
+  if (!_athleteId || !athleteIds.length) return;
+  const { data } = await _sb.from('friendships')
+    .select('requester_id,addressee_id,status')
+    .or(athleteIds.map(id => `and(requester_id.eq.${_athleteId},addressee_id.eq.${id}),and(requester_id.eq.${id},addressee_id.eq.${_athleteId})`).join(','));
+  window._friendStatuses = {};
+  (data||[]).forEach(r => {
+    const otherId = r.requester_id === _athleteId ? r.addressee_id : r.requester_id;
+    if (r.status === 'accepted') window._friendStatuses[otherId] = 'accepted';
+    else if (r.status === 'pending' && r.requester_id === _athleteId) window._friendStatuses[otherId] = 'pending_sent';
+    else if (r.status === 'pending' && r.addressee_id === _athleteId) window._friendStatuses[otherId] = 'pending_received';
+  });
 }
 
 async function toggleFollow(targetId, btn, isFollowing) {
@@ -5669,95 +5735,70 @@ async function toggleFollow(targetId, btn, isFollowing) {
 async function loadFriends() {
   if (!_athleteId) return;
   const el = document.getElementById('social-friends-content');
-  el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Ładowanie...</div>';
 
   const { data: rows } = await _sb.from('friendships')
     .select('id,status,requester_id,addressee_id')
     .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
+
   if (!rows?.length) {
-    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.8;">Nie masz jeszcze znajomych.<br>Znajdź biegaczy w zakładce <b>Znajdź</b>!</div>';
+    el.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:12px;line-height:1.9;">Nie masz jeszcze znajomych.<br>Użyj zakładki <b>Znajdź</b> żeby dodać!</div>';
     return;
   }
 
-  // Zbierz ID wszystkich
   const pending_in = rows.filter(r => r.status === 'pending' && r.addressee_id === _athleteId);
   const pending_out = rows.filter(r => r.status === 'pending' && r.requester_id === _athleteId);
   const accepted = rows.filter(r => r.status === 'accepted');
 
-  // Pobierz dane zawodników
   const allIds = [...new Set(rows.map(r => r.requester_id === _athleteId ? r.addressee_id : r.requester_id))];
-  const { data: athletes } = await _sb.from('athletes').select('id,full_name,avatar_url,pb_5k,pb_10k').in('id', allIds);
+  const { data: athletes } = await _sb.from('athletes').select('id,full_name,avatar_url').in('id', allIds);
   const athMap = {};
   (athletes||[]).forEach(a => { athMap[a.id] = a; });
 
-  let html = '';
-
-  if (pending_in.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin-bottom:10px;margin-top:4px;">Zaproszenia do Ciebie</div>';
-    html += pending_in.map(r => {
-      const a = athMap[r.requester_id] || {};
-      const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:12px;margin-bottom:8px;">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div></div>
-        <button onclick="acceptFriend('${r.requester_id}')" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:10px;font-family:DM Mono,monospace;cursor:pointer;margin-right:4px;">✓ Akceptuj</button>
-        <button onclick="rejectFriend('${r.requester_id}')" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;">✕</button>
-      </div>`;
-    }).join('');
+  function athCard(otherId, extra='') {
+    const a = athMap[otherId] || {};
+    const ini = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">
+      <div onclick="location.href='profil.html?id=${otherId}'" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">${ini}</div>
+      <div onclick="location.href='profil.html?id=${otherId}'" style="flex:1;cursor:pointer;"><div style="font-size:13px;font-weight:500;">${(a.full_name||'Biegacz').replace(/</g,'&lt;')}</div></div>
+      ${extra}
+    </div>`;
   }
 
+  let html = '';
+  if (pending_in.length) {
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;margin-top:4px;">Zaproszenia (' + pending_in.length + ')</div>';
+    html += pending_in.map(r => athCard(r.requester_id,
+      `<button onclick="acceptFriendFromSearch('${r.requester_id}',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">✓ Akceptuj</button>
+       <button onclick="rejectFriend('${r.requester_id}')" style="background:none;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:8px;cursor:pointer;">✕</button>`
+    )).join('');
+  }
   if (accepted.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;margin-top:8px;">Znajomi (' + accepted.length + ')</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Znajomi (' + accepted.length + ')</div>';
     html += accepted.map(r => {
       const otherId = r.requester_id === _athleteId ? r.addressee_id : r.requester_id;
-      const a = athMap[otherId] || {};
-      const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;" onclick="location.href='profil.html?id=${otherId}'">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">Znajomy</div></div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>`;
+      return athCard(otherId, '<svg onclick="location.href='profil.html?id=' + otherId + ''" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="cursor:pointer;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>');
     }).join('');
   }
-
   if (pending_out.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;margin-top:8px;">Wysłane zaproszenia</div>';
-    html += pending_out.map(r => {
-      const a = athMap[r.addressee_id] || {};
-      const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-      return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;opacity:0.7;">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;">⏳ Oczekuje</div></div>
-      </div>`;
-    }).join('');
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Wysłane</div>';
+    html += pending_out.map(r => athCard(r.addressee_id, '<span style="font-size:9px;color:var(--accent);">⏳ Oczekuje</span>')).join('');
   }
-
-  el.innerHTML = html || '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Brak znajomych</div>';
-}
-
-async function acceptFriend(requesterId) {
-  await _sb.from('friendships').update({ status: 'accepted', updated_at: new Date().toISOString() })
-    .eq('requester_id', requesterId).eq('addressee_id', _athleteId);
-  showNotif('Zaakceptowano zaproszenie! 🎉');
-  checkFriendRequests();
-  loadFriends();
+  el.innerHTML = html;
 }
 
 async function rejectFriend(requesterId) {
-  await _sb.from('friendships').delete()
-    .eq('requester_id', requesterId).eq('addressee_id', _athleteId);
+  await _sb.from('friendships').delete().eq('requester_id', requesterId).eq('addressee_id', _athleteId);
   loadFriends();
 }
 
 async function checkFriendRequests() {
   if (!_athleteId) return;
-  const { data } = await _sb.from('friendships')
-    .select('id').eq('status','pending').eq('addressee_id', _athleteId);
+  const { data } = await _sb.from('friendships').select('id').eq('status','pending').eq('addressee_id', _athleteId);
   const badge = document.getElementById('friends-badge');
   if (badge) badge.style.display = (data?.length > 0) ? 'block' : 'none';
 }
-
-function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 async function unfollowAthlete(targetId, cardEl) {
   if (!confirm('Przestać obserwować?')) return;
@@ -5770,167 +5811,7 @@ async function unfollowAthlete(targetId, cardEl) {
 // ── PROFIL PUBLICZNY ZAWODNIKA ────────────────────────────────────
 
 async function openAthleteProfile(athleteId) {
-  // Usuń stary modal jeśli istnieje
-  document.getElementById('athlete-profile-modal')?.remove();
-
-  const modal = document.createElement('div');
-  modal.id = 'athlete-profile-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);';
-  modal.innerHTML = `
-    <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:92vh;overflow-y:auto;padding-bottom:32px;">
-      <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
-      <div id="ap-content" style="padding:0 20px;">
-        <div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>
-      </div>
-    </div>`;
-  modal.onclick = e => { if (e.target === modal) modal.remove(); };
-  document.body.appendChild(modal);
-
-  // Pobierz dane zawodnika
-  const { data: ath } = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,is_public,race_goals,target_date,link_strava,link_garmin,link_instagram,link_facebook')
-    .eq('id', athleteId).maybeSingle();
-
-  if (!ath) {
-    document.getElementById('ap-content').innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Nie znaleziono profilu.</div>';
-    return;
-  }
-
-  // Sprawdź czy profil prywatny
-  if (ath.is_public === false) {
-    document.getElementById('ap-content').innerHTML = `
-      <div style="text-align:center;padding:40px 0;">
-        <div style="font-size:36px;margin-bottom:12px;">🔒</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;margin-bottom:8px;">${ath.full_name||'Biegacz'}</div>
-        <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Profil prywatny</div>
-      </div>`;
-    return;
-  }
-
-  // Sprawdź czy obserwujemy
-  const { data: followCheck } = await _sb.from('follows').select('id')
-    .eq('follower_id', _athleteId).eq('following_id', athleteId).maybeSingle();
-  const isFollowing = !!followCheck;
-
-  // Pobierz ostatnie treningi
-  const { data: logs } = await _sb.from('training_logs')
-    .select('training_type,distance_km,pace,logged_at,feel')
-    .eq('athlete_id', athleteId)
-    .order('logged_at', { ascending: false })
-    .limit(5);
-
-  const name = ath.full_name || 'Biegacz';
-  const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-  const typeColors = { Spokojny:'#5090e0', Interwa\u0142y:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
-
-  const pbs = [
-    { label: 'Maraton', val: ath.pb_marathon },
-    { label: 'P\u00f3\u0142maraton', val: ath.pb_half },
-    { label: '10 km', val: ath.pb_10k },
-    { label: '5 km', val: ath.pb_5k },
-  ].filter(p => p.val);
-
-  // Parse goals
-  let goals = [];
-  try { const p = JSON.parse(ath.race_goals || '[]'); if (Array.isArray(p)) goals = p; } catch(e2) {}
-  if (!goals.length && ath.goal) goals = [{ name: ath.goal, date: ath.target_date || '' }];
-  const nowDate = new Date();
-  const upcomingGoals = goals.filter(g => !g.date || new Date(g.date + (g.date.length === 7 ? '-01' : '')) >= new Date(nowDate.getFullYear(), 0, 1));
-
-  function _goalCard(g) {
-    const hasDate = g.date && g.date.length >= 7;
-    let daysLeft = null, dateStr = '', isPast = false;
-    if (hasDate) {
-      const d = new Date(g.date + (g.date.length === 7 ? '-01' : ''));
-      isPast = d < nowDate;
-      daysLeft = Math.ceil((d - nowDate) / 86400000);
-      dateStr = d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    const urgency = !hasDate ? '' : daysLeft <= 14 ? '#e8b840' : daysLeft <= 60 ? '#f06030' : '#3db870';
-    const badge = !hasDate ? ''
-      : isPast ? '<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;background:rgba(255,255,255,0.06);padding:2px 7px;border-radius:4px;">uko\u0144czony</span>'
-      : daysLeft <= 0 ? '<span style="font-size:9px;color:#e8b840;font-family:DM Mono,monospace;background:rgba(232,184,64,0.1);padding:2px 7px;border-radius:4px;">DZI\u015a</span>'
-      : '<span style="font-size:9px;font-family:DM Mono,monospace;color:' + urgency + ';background:' + urgency + '18;padding:2px 7px;border-radius:4px;">' + daysLeft + ' dni</span>';
-    return '<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px;">'
-      + '<div style="font-size:22px;flex-shrink:0;">&#x1F3C1;</div>'
-      + '<div style="flex:1;min-width:0;">'
-      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (g.name || 'Start') + '</div>'
-      + (dateStr ? '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">' + dateStr + '</div>' : '')
-      + '</div>'
-      + badge
-      + '</div>';
-  }
-  const _apHtml = [];
-  _apHtml.push(`<div style="text-align:center;padding:20px 0 16px;">
-      <div style="width:80px;height:80px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;margin:0 auto 12px;box-shadow:0 0 24px rgba(232,86,30,0.3);" id="ap-avatar">${ini}</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;">${name}</div>
-      ${ath.goal ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:4px;">${ath.goal}</div>` : ''}
-      <button id="ap-follow-btn" onclick="_apToggleFollow('${athleteId}', ${isFollowing})"
-        style="margin-top:14px;background:${isFollowing?'transparent':'var(--accent)'};border:1px solid ${isFollowing?'var(--border)':'var(--accent)'};color:${isFollowing?'var(--muted)':'#fff'};font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 20px;border-radius:20px;cursor:pointer;transition:all 0.15s;">
-        ${isFollowing ? '\u2713 Obserwujesz' : '+ Obserwuj'}
-      </button>
-    </div>`);
-
-  if (pbs.length) {
-    _apHtml.push('<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">\u017byci\u00f3wki</div>');
-    _apHtml.push('<div style="display:grid;grid-template-columns:repeat(' + Math.min(pbs.length,2) + ',1fr);gap:8px;margin-bottom:20px;">');
-    pbs.forEach(function(p) {
-      _apHtml.push('<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center;">'
-        + '<div style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">' + p.label + '</div>'
-        + '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--accent);">' + p.val + '</div>'
-        + '</div>');
-    });
-    _apHtml.push('</div>');
-  }
-
-  if (upcomingGoals.length) {
-    _apHtml.push('<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Cele startowe</div>');
-    _apHtml.push('<div style="margin-bottom:20px;">');
-    upcomingGoals.slice(0,4).forEach(function(g) { _apHtml.push(_goalCard(g)); });
-    _apHtml.push('</div>');
-  }
-
-  if (logs && logs.length) {
-    _apHtml.push('<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Ostatnie treningi</div>');
-    _apHtml.push('<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">');
-    logs.forEach(function(l) {
-      const type = l.training_type || 'Trening';
-      const col = typeColors[type] || 'var(--muted)';
-      const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
-      const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
-      const feel = {good:'\uD83D\uDE0A', mid:'\uD83D\uDE10', bad:'\uD83D\uDE13'}[l.feel] || '';
-      _apHtml.push('<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">'
-        + '<div style="width:3px;height:32px;background:' + col + ';border-radius:2px;flex-shrink:0;"></div>'
-        + '<div style="flex:1;"><div style="font-size:13px;">' + type + '</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">' + date + '</div></div>'
-        + (dist ? '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">' + dist + '</div>' : '')
-        + (l.pace ? '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">' + l.pace + '/km</div>' : '')
-        + (feel ? '<div>' + feel + '</div>' : '')
-        + '</div>');
-    });
-    _apHtml.push('</div>');
-  } else {
-    _apHtml.push('<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak publicznych trening\u00f3w.</div>');
-  }
-
-  _apHtml.push(_renderSocialLinks(ath));
-
-  _apHtml.push('<div style="display:flex;gap:8px;margin-top:4px;">'
-    + '<button onclick="document.getElementById(\'athlete-profile-modal\').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Zamknij</button>'
-    + '<button onclick="blockUser(\'' + athleteId + '\',\'' + name.replace(/'/g,'_') + '\');document.getElementById(\'athlete-profile-modal\')?.remove()" style="background:transparent;color:rgba(224,80,80,0.5);border:1px solid rgba(224,80,80,0.2);border-radius:10px;padding:12px 14px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">Zablokuj</button>'
-    + '</div>');
-
-  document.getElementById('ap-content').innerHTML = _apHtml.join('');
-
-  // Spróbuj załadować avatar
-  const { data: avUrl } = _sb.storage.from('training-screenshots').getPublicUrl(athleteId + '/avatar.jpg');
-  if (avUrl?.publicUrl) {
-    const avEl = document.getElementById('ap-avatar');
-    if (avEl) {
-      const img = new Image();
-      img.onload = () => { avEl.innerHTML = ''; avEl.style.overflow = 'hidden'; avEl.style.padding = '0'; const i = document.createElement('img'); i.src = avUrl.publicUrl; i.style.cssText = 'width:100%;height:100%;object-fit:cover;'; avEl.appendChild(i); };
-      img.src = avUrl.publicUrl + '?t=' + Date.now();
-    }
-  }
+  location.href = 'profil.html?id=' + athleteId;
 }
 
 async function _apToggleFollow(targetId, isFollowing) {
@@ -5963,37 +5844,47 @@ async function _apToggleFollow(targetId, isFollowing) {
 
 // ── POWIADOMIENIA ─────────────────────────────────────────────────
 
-async function _sendFollowNotification(targetAthleteId) {
+async function _sendNotification(targetAthleteId, type, message) {
   if (!_athleteId) return;
-  // Pobierz imię obserwującego
-  const { data: me } = await _sb.from('athletes').select('full_name').eq('id', _athleteId).maybeSingle();
-  const myName = me?.full_name || 'Ktoś';
   try {
     await _sb.from('notifications').insert({
       athlete_id: targetAthleteId,
-      type: 'follow',
+      type,
       from_athlete_id: _athleteId,
-      message: `${myName} zaczął(a) Cię obserwować`,
+      message,
       read: false,
       created_at: new Date().toISOString()
     });
   } catch(e) {
-    console.warn('Notification insert failed (tabela może nie istnieć):', e.message);
+    console.warn('Notification insert failed:', e.message);
   }
+}
+
+async function _sendFollowNotification(targetAthleteId) {
+  if (!_athleteId) return;
+  const { data: me } = await _sb.from('athletes').select('full_name').eq('id', _athleteId).maybeSingle();
+  const myName = me?.full_name || 'Ktoś';
+  await _sendNotification(targetAthleteId, 'follow', `${myName} zaczął(a) Cię obserwować`);
 }
 
 async function checkNotifications() {
   if (!_athleteId) return;
   try {
-    const { count } = await _sb.from('notifications')
-      .select('*', { count: 'exact', head: true })
+    const { data: notifs } = await _sb.from('notifications')
+      .select('type')
       .eq('athlete_id', _athleteId)
       .eq('read', false);
+    const count = notifs?.length || 0;
     const dot = document.getElementById('zawodnik-bell-dot');
-    if (dot) dot.style.display = (count && count > 0) ? 'block' : 'none';
-    // Zmień kolor kropki na inny niż wiadomości
-    if (dot && count > 0) dot.style.background = '#3db870';
-  } catch(e) {} // tabela może nie istnieć
+    if (dot) {
+      dot.style.display = count > 0 ? 'block' : 'none';
+      dot.style.background = '#3db870';
+    }
+    // Osobny badge dla zaproszeń do znajomych
+    const friendReqs = (notifs||[]).filter(n => n.type === 'friend_request').length;
+    const friendBadge = document.getElementById('friends-badge');
+    if (friendBadge) friendBadge.style.display = friendReqs > 0 ? 'block' : 'none';
+  } catch(e) {}
 }
 
 async function openNotifications() {
@@ -6037,10 +5928,19 @@ async function openNotifications() {
     if (!notifs || notifs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak powiadomień</div>';
     } else {
-      const icons = { follow: '👤', message: '💬', like: '🔥' };
+      const icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬' };
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
-        return `<div onclick="${n.type==='follow' && n.from_athlete_id ? `openAthleteProfile('${n.from_athlete_id}');document.getElementById('notif-panel')?.remove();` : ''}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${n.from_athlete_id?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
+        const notifAction = n.type==='follow' && n.from_athlete_id
+          ? `location.href='profil.html?id=${n.from_athlete_id}';document.getElementById('notif-panel')?.remove();`
+          : n.type==='friend_request' && n.from_athlete_id
+          ? `switchSocialTab('friends');document.getElementById('notif-panel')?.remove();`
+          : n.type==='friend_accepted' && n.from_athlete_id
+          ? `location.href='profil.html?id=${n.from_athlete_id}';document.getElementById('notif-panel')?.remove();`
+          : n.type==='chat' && n.from_athlete_id
+          ? `showSection('msgs');document.getElementById('notif-panel')?.remove();`
+          : '';
+        return `<div onclick="${notifAction}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifAction?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
           <span style="font-size:18px;flex-shrink:0;">${icons[n.type]||'🔔'}</span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:12px;line-height:1.4;">${n.message}</div>
@@ -6704,7 +6604,7 @@ function _stopSocialBannerRotation() {
     <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
   </div>
   <div id="social-friends" style="display:none;padding:0 16px;">
-    <div id="social-friends-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div></div>
+    <div id="social-friends-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Ładowanie...</div></div>
   </div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
