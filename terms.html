@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Regulamin · BiegaMy.run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.45);
+  --accent:#e8561e;--muted:rgba(240,237,232,0.38);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;min-height:100%;}
+
+.header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,0) 16px 0;
+}
+.header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;}
+.back-btn{background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--fg2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;text-decoration:none;flex-shrink:0;}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;}
+.header-title span{color:var(--accent);}
+
+.content{max-width:680px;margin:0 auto;padding:32px 20px 80px;}
+
+.toc{
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:16px;padding:20px 24px;margin-bottom:32px;
+}
+.toc-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.toc a{display:block;color:var(--fg2);text-decoration:none;font-size:13px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.toc a:last-child{border-bottom:none;}
+.toc a:hover{color:var(--accent);}
+
+.section{margin-bottom:40px;}
+.section-num{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;margin-bottom:16px;color:var(--fg);}
+.section p{font-size:14px;line-height:1.8;color:var(--fg2);margin-bottom:12px;}
+.section ul{padding-left:20px;margin-bottom:12px;}
+.section ul li{font-size:14px;line-height:1.8;color:var(--fg2);margin-bottom:4px;}
+.section h4{font-size:13px;font-weight:600;color:var(--fg);margin:18px 0 8px;letter-spacing:0.02em;}
+
+.highlight{background:rgba(232,86,30,0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;}
+.highlight p{margin-bottom:0;color:var(--fg);}
+
+.meta-bar{display:flex;gap:16px;margin-bottom:32px;flex-wrap:wrap;}
+.meta-item{font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;letter-spacing:0.08em;display:flex;align-items:center;gap:6px;}
+
+hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
+
+.contact-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px 24px;text-align:center;}
+.contact-card p{font-size:13px;color:var(--fg2);margin-bottom:8px;}
+.contact-card a{color:var(--accent);text-decoration:none;font-weight:600;}
+
+.back-home{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:32px;padding:12px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:12px;color:var(--fg2);text-decoration:none;font-size:13px;
+}
+.back-home:hover{border-color:rgba(232,86,30,0.3);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a class="back-btn" href="javascript:history.back()">‹</a>
+    <div class="header-title">Regulamin <span>BiegaMy</span></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="meta-bar">
+    <div class="meta-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Obowiązuje od: 1 maja 2026
+    </div>
+    <div class="meta-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+      Wersja 1.0
+    </div>
+  </div>
+
+  <!-- SPIS TREŚCI -->
+  <div class="toc">
+    <div class="toc-title">Spis treści</div>
+    <a href="#ogolne">1. Postanowienia ogólne</a>
+    <a href="#konto">2. Rejestracja i konto</a>
+    <a href="#uslugi">3. Zakres usług</a>
+    <a href="#obowiazki">4. Obowiązki użytkownika</a>
+    <a href="#trener">5. Relacja trener–zawodnik</a>
+    <a href="#platnosci">6. Płatności</a>
+    <a href="#privacy" id="privacy">7. Polityka prywatności i RODO</a>
+    <a href="#dane">8. Przetwarzanie danych</a>
+    <a href="#odpowiedzialnosc">9. Ograniczenie odpowiedzialności</a>
+    <a href="#zmiany">10. Zmiany regulaminu</a>
+    <a href="#kontakt">11. Kontakt</a>
+  </div>
+
+  <!-- 1 -->
+  <div class="section" id="ogolne">
+    <div class="section-num">§ 1</div>
+    <div class="section-title">Postanowienia ogólne</div>
+    <p>Niniejszy Regulamin określa zasady korzystania z aplikacji BiegaMy.run (dalej: „Aplikacja"), dostępnej pod adresem <strong>biegamy.run</strong>, prowadzonej przez BiegaMy (dalej: „Operator").</p>
+    <p>Korzystanie z Aplikacji jest dobrowolne i oznacza akceptację niniejszego Regulaminu oraz Polityki Prywatności. Jeżeli nie akceptujesz tych warunków — nie rejestruj się ani nie korzystaj z Aplikacji.</p>
+    <div class="highlight">
+      <p>BiegaMy to platforma wspierająca biegaczy i trenerów w planowaniu, monitorowaniu i analizowaniu treningów. Nie zastępuje porady medycznej ani fizjoterapeutycznej.</p>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="konto">
+    <div class="section-num">§ 2</div>
+    <div class="section-title">Rejestracja i konto</div>
+    <p>Aby korzystać z pełnej funkcjonalności Aplikacji, wymagana jest rejestracja. Możesz zarejestrować się jako:</p>
+    <ul>
+      <li><strong>Zawodnik</strong> — bezpłatne konto umożliwiające śledzenie treningów i komunikację z trenerem</li>
+      <li><strong>Trener</strong> — konto wymagające kodu dostępu, umożliwiające zarządzanie grupą zawodników</li>
+    </ul>
+    <p>Podczas rejestracji zobowiązujesz się podać prawdziwe dane. Jedno konto może być powiązane z jednym adresem e-mail. Jesteś odpowiedzialny za bezpieczeństwo swojego hasła.</p>
+    <h4>Usunięcie konta</h4>
+    <p>Możesz poprosić o usunięcie konta w dowolnym momencie, pisząc na adres kontaktowy. Dane zostaną usunięte w ciągu 30 dni roboczych, z wyjątkiem danych wymaganych przez prawo.</p>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="uslugi">
+    <div class="section-num">§ 3</div>
+    <div class="section-title">Zakres usług</div>
+    <p>Aplikacja BiegaMy oferuje m.in.:</p>
+    <ul>
+      <li>Planowanie i rejestrowanie treningów biegowych</li>
+      <li>Komunikację między zawodnikiem a trenerem (czat, komentarze)</li>
+      <li>Analizę wyników i statystyk treningowych</li>
+      <li>Integrację ze Stravą (po autoryzacji)</li>
+      <li>Kalendarz startów i zawodów</li>
+      <li>System wyzwań, odznak i celów</li>
+    </ul>
+    <p>Operator zastrzega prawo do modyfikowania zakresu usług, dodawania nowych funkcji lub ograniczania dostępu do niektórych funkcji bez wcześniejszego powiadomienia.</p>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="obowiazki">
+    <div class="section-num">§ 4</div>
+    <div class="section-title">Obowiązki użytkownika</div>
+    <p>Korzystając z Aplikacji, zobowiązujesz się do:</p>
+    <ul>
+      <li>Nieprzekazywania treści obraźliwych, wulgarnych lub niezgodnych z prawem</li>
+      <li>Nienaruszania praw innych użytkowników</li>
+      <li>Nieprób obejścia zabezpieczeń systemu</li>
+      <li>Nieudzielania dostępu do swojego konta osobom trzecim</li>
+      <li>Rzetelnego wprowadzania danych treningowych</li>
+    </ul>
+    <p>Naruszenie powyższych zasad może skutkować zawieszeniem lub usunięciem konta bez wcześniejszego ostrzeżenia.</p>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="trener">
+    <div class="section-num">§ 5</div>
+    <div class="section-title">Relacja trener–zawodnik</div>
+    <p>BiegaMy jest jedynie platformą komunikacyjną. Operator nie ponosi odpowiedzialności za jakość i skutki planów treningowych tworzonych przez trenerów, ani za decyzje podejmowane przez zawodników na ich podstawie.</p>
+    <div class="highlight">
+      <p>Przed rozpoczęciem intensywnych treningów zalecamy konsultację z lekarzem. Trening biegowy niesie ryzyko kontuzji — słuchaj swojego ciała.</p>
+    </div>
+    <p>Trener może przeglądać dane treningowe podłączonych zawodników wyłącznie w celach coachingowych, zgodnie z Polityką Prywatności.</p>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="platnosci">
+    <div class="section-num">§ 6</div>
+    <div class="section-title">Płatności</div>
+    <p>Aktualnie Aplikacja BiegaMy jest dostępna bezpłatnie w wersji beta. Operator zastrzega prawo do wprowadzenia planów płatnych w przyszłości, z odpowiednim wyprzedzeniem informując użytkowników.</p>
+    <p>Ewentualne rozliczenia między trenerem a zawodnikiem odbywają się poza Aplikacją i Operator nie jest stroną takich transakcji.</p>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="privacy">
+    <div class="section-num">§ 7</div>
+    <div class="section-title">Polityka prywatności i RODO</div>
+    <p>Administratorem Twoich danych osobowych jest Operator. Dane przetwarzane są zgodnie z Rozporządzeniem Parlamentu Europejskiego i Rady (UE) 2016/679 (RODO).</p>
+    <h4>Podstawa prawna przetwarzania</h4>
+    <ul>
+      <li>Wykonanie umowy (art. 6 ust. 1 lit. b RODO) — świadczenie usług Aplikacji</li>
+      <li>Uzasadniony interes (art. 6 ust. 1 lit. f RODO) — bezpieczeństwo i analityka</li>
+      <li>Zgoda (art. 6 ust. 1 lit. a RODO) — powiadomienia push, marketing</li>
+    </ul>
+    <h4>Twoje prawa</h4>
+    <p>Przysługuje Ci prawo do: dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych oraz wniesienia sprzeciwu. Możesz też wnieść skargę do Prezesa UODO.</p>
+  </div>
+
+  <!-- 8 -->
+  <div class="section" id="dane">
+    <div class="section-num">§ 8</div>
+    <div class="section-title">Przetwarzanie danych</div>
+    <p>Zbieramy i przetwarzamy następujące kategorie danych:</p>
+    <ul>
+      <li><strong>Dane konta:</strong> adres e-mail, imię, rola (zawodnik/trener)</li>
+      <li><strong>Dane treningowe:</strong> dystans, tempo, tętno, komentarze, zdjęcia</li>
+      <li><strong>Dane Stravy:</strong> aktywności, tokeny OAuth (przechowywane zaszyfrowane)</li>
+      <li><strong>Dane techniczne:</strong> adres IP, typ przeglądarki (logi systemowe)</li>
+    </ul>
+    <h4>Podmioty trzecie</h4>
+    <p>Dane przechowywane są na serwerach Supabase (UE). Integracja ze Stravą odbywa się zgodnie z ich polityką prywatności. Nie sprzedajemy danych reklamodawcom.</p>
+    <h4>Okres przechowywania</h4>
+    <p>Dane przechowywane są przez czas trwania konta + 30 dni po jego usunięciu, chyba że przepisy prawa wymagają dłuższego okresu.</p>
+  </div>
+
+  <!-- 9 -->
+  <div class="section" id="odpowiedzialnosc">
+    <div class="section-num">§ 9</div>
+    <div class="section-title">Ograniczenie odpowiedzialności</div>
+    <p>Aplikacja dostarczana jest w stanie „takim, jaki jest" (as-is). Operator nie gwarantuje nieprzerwanego działania systemu ani braku błędów.</p>
+    <p>Operator nie ponosi odpowiedzialności za: utratę danych, kontuzje wynikające z realizacji planów treningowych, decyzje podejmowane na podstawie danych w Aplikacji, ani za działania innych użytkowników.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="zmiany">
+    <div class="section-num">§ 10</div>
+    <div class="section-title">Zmiany regulaminu</div>
+    <p>Operator może zmieniać niniejszy Regulamin. O istotnych zmianach poinformujemy użytkowników z co najmniej 14-dniowym wyprzedzeniem — poprzez powiadomienie w Aplikacji lub e-mail.</p>
+    <p>Dalsze korzystanie z Aplikacji po wejściu w życie zmian oznacza ich akceptację. W razie braku akceptacji masz prawo usunąć konto.</p>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="kontakt">
+    <div class="section-num">§ 11</div>
+    <div class="section-title">Kontakt</div>
+  </div>
+
+  <div class="contact-card">
+    <p>Pytania dotyczące Regulaminu lub Twoich danych osobowych kieruj na:</p>
+    <a href="mailto:kontakt@biegamy.run">kontakt@biegamy.run</a>
+    <p style="margin-top:12px;font-size:12px;color:var(--fg3);">BiegaMy.run · biegamy.run</p>
+  </div>
+
+  <a class="back-home" href="index.html">
+    ← Wróć do strony głównej
+  </a>
+
+</div>
+</body>
+</html>
