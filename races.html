@@ -351,9 +351,16 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
     <div class="modal-desc" id="m-desc" style="display:none;"></div>
     <div class="modal-links" id="m-links"></div>
     <div class="modal-actions">
-      <div id="m-coach-actions" style="display:none;margin-bottom:10px;gap:8px;">
-        <button onclick="approveRace()" style="flex:1;background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:#3db870;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✓ Zatwierdź</button>
-        <button onclick="rejectRace()" style="flex:1;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✕ Odrzuć</button>
+      <!-- Trener: przyciski akcji -->
+      <div id="m-coach-pending" style="display:none;margin-bottom:10px;gap:8px;flex-direction:column;">
+        <div style="display:flex;gap:8px;">
+          <button onclick="approveRace()" style="flex:1;background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:#3db870;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✓ Zatwierdź</button>
+          <button onclick="rejectRace()" style="flex:1;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✕ Odrzuć</button>
+        </div>
+        <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">🗑 Usuń zawody z kalendarza</button>
+      </div>
+      <div id="m-coach-approved" style="display:none;margin-bottom:10px;">
+        <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">🗑 Usuń zawody z kalendarza</button>
       </div>
       <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
     </div>
@@ -648,14 +655,23 @@ function openRace(id) {
   // Przycisk zapisu
   updateModalSignupBtn(signed);
 
-  // Trener: pokaż przyciski approve/reject dla pending
-  const coachActionsEl = document.getElementById('m-coach-actions');
-  if (_isCoach && race.status === 'pending') {
-    coachActionsEl.style.display = 'flex';
-    document.getElementById('m-signup-btn').style.display = 'none';
+  // Trener: pokaż odpowiednie przyciski, ukryj "Wezmę udział"
+  const pendingEl = document.getElementById('m-coach-pending');
+  const approvedEl = document.getElementById('m-coach-approved');
+  const signupBtn = document.getElementById('m-signup-btn');
+  if (_isCoach) {
+    signupBtn.style.display = 'none';
+    if (race.status === 'pending') {
+      pendingEl.style.display = 'flex';
+      approvedEl.style.display = 'none';
+    } else {
+      pendingEl.style.display = 'none';
+      approvedEl.style.display = 'block';
+    }
   } else {
-    coachActionsEl.style.display = 'none';
-    document.getElementById('m-signup-btn').style.display = 'flex';
+    if (pendingEl) pendingEl.style.display = 'none';
+    if (approvedEl) approvedEl.style.display = 'none';
+    signupBtn.style.display = 'flex';
   }
 
   document.getElementById('race-modal').classList.add('open');
@@ -695,6 +711,18 @@ async function rejectRace() {
   const r = _allRaces.find(r => r.id === _currentRace.id);
   if (r) r.status = 'rejected';
   showToast('Propozycja odrzucona');
+  closeModal();
+  renderRaces();
+}
+
+async function deleteRace() {
+  if (!_currentRace) return;
+  const name = _currentRace.name;
+  if (!confirm(`Usunąć "${name}" z kalendarza? Tej operacji nie można cofnąć.`)) return;
+  const { error } = await _sb.from('races').delete().eq('id', _currentRace.id);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  _allRaces = _allRaces.filter(r => r.id !== _currentRace.id);
+  showToast(`"${name}" usunięte ✓`);
   closeModal();
   renderRaces();
 }
