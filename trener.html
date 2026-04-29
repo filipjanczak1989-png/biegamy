@@ -1339,6 +1339,9 @@ async function saveTr_db() {
   if (error) { showToast('Błąd: '+error.message); return; }
   
   showToast('Trening zapisany ✓');
+  // Wyślij powiadomienie do zawodnika
+  _sendTrainingNotif(window._selectedAthleteId, 'training_added',
+    'Trener dodał nowy trening na ' + date);
   ['fdist','ftime','fpace','fhr','fdesc'].forEach(id => document.getElementById(id).value='');
   await loadAthleteTrainings(window._selectedAthleteId);
 }
@@ -1893,6 +1896,10 @@ async function sendTemplate() {
   if (errors > 0) {
     showToast(`Wysłano ${sent}, błędy: ${errors}`);
   } else {
+    // Wyślij powiadomienia do wszystkich zawodników
+    for (const athleteId of targets) {
+      _sendTrainingNotif(athleteId, 'training_added', 'Trener dodał nowy plan treningowy');
+    }
     const msg = athleteVal === '__ALL__'
       ? `Plan wysłany do ${targets.length} zawodników ✓${skipped>0?' ('+skipped+' już istniało)':''}`
       : `Plan tygodnia wysłany ✓`;
@@ -3079,6 +3086,21 @@ init();
 const _tabParam = new URLSearchParams(window.location.search).get('tab');
 if (_tabParam) {
   setTimeout(() => showCoachSection(_tabParam), 900);
+}
+
+
+async function _sendTrainingNotif(athleteId, type, message) {
+  if (!athleteId) return;
+  try {
+    await _sb.from('notifications').insert({
+      athlete_id: athleteId,
+      type: type,
+      from_athlete_id: null,
+      message: message,
+      read: false,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) { console.warn('Notif failed:', e.message); }
 }
 </script>
 
