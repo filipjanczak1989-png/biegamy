@@ -5669,13 +5669,13 @@ async function toggleFollow(targetId, btn, isFollowing) {
 async function loadFriends() {
   if (!_athleteId) return;
   const el = document.getElementById('social-friends-content');
-  el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
 
   const { data: rows } = await _sb.from('friendships')
     .select('id,status,requester_id,addressee_id')
     .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
   if (!rows?.length) {
-    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;line-height:1.8;">Nie masz jeszcze znajomych.<br>Znajdź biegaczy w zakładce <b>Znajdź</b>!</div>';
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.8;">Nie masz jeszcze znajomych.<br>Znajdź biegaczy w zakładce <b>Znajdź</b>!</div>';
     return;
   }
 
@@ -5693,41 +5693,41 @@ async function loadFriends() {
   let html = '';
 
   if (pending_in.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:4px;">Zaproszenia do Ciebie</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin-bottom:10px;margin-top:4px;">Zaproszenia do Ciebie</div>';
     html += pending_in.map(r => {
       const a = athMap[r.requester_id] || {};
       const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:12px;margin-bottom:8px;">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
         <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div></div>
-        <button onclick="acceptFriend('${r.requester_id}')" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;margin-right:4px;">✓ Akceptuj</button>
+        <button onclick="acceptFriend('${r.requester_id}')" style="background:var(--green);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:10px;font-family:DM Mono,monospace;cursor:pointer;margin-right:4px;">✓ Akceptuj</button>
         <button onclick="rejectFriend('${r.requester_id}')" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:6px 10px;font-size:10px;cursor:pointer;">✕</button>
       </div>`;
     }).join('');
   }
 
   if (accepted.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:8px;">Znajomi (' + accepted.length + ')</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;margin-top:8px;">Znajomi (' + accepted.length + ')</div>';
     html += accepted.map(r => {
       const otherId = r.requester_id === _athleteId ? r.addressee_id : r.requester_id;
       const a = athMap[otherId] || {};
       const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;cursor:pointer;" onclick="location.href='profil.html?id=${otherId}'">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Znajomy</div></div>
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">Znajomy</div></div>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>`;
     }).join('');
   }
 
   if (pending_out.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;margin-top:8px;">Wysłane zaproszenia</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;margin-top:8px;">Wysłane zaproszenia</div>';
     html += pending_out.map(r => {
       const a = athMap[r.addressee_id] || {};
       const initials = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;opacity:0.7;">
-        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
-        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;">⏳ Oczekuje</div></div>
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#3a3050,#5a4070);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:16px;color:#fff;flex-shrink:0;">${initials}</div>
+        <div style="flex:1;"><div style="font-size:13px;font-weight:500;">${escHtml(a.full_name||'Biegacz')}</div><div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;">⏳ Oczekuje</div></div>
       </div>`;
     }).join('');
   }
