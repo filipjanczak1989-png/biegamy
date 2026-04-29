@@ -5651,14 +5651,14 @@ function _buildAthleteCards(athletes, fSet) {
       friendBtn = '<button data-aid="'+a.id+'" onclick="event.stopPropagation();var r=this.dataset.aid;sendFriendFromSearch(r,this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
     }
 
-    return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;">'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + av + '</div>'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;min-width:0;cursor:pointer;">'
+    return '<div data-pid="'+a.id+'" onclick="openAthleteProfile(this.dataset.pid)" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
+      + '<div style="flex:1;min-width:0;">'
       + '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + '</div>'
       + (a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;">M: ' + a.pb_marathon + '</div>' : '')
       + (a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal + '</div>' : '')
       + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">' + friendBtn + followBtn + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;" onclick="event.stopPropagation();">' + friendBtn + followBtn + '</div>'
       + '</div>';
   }).join('');
 }
@@ -5943,7 +5943,7 @@ async function openNotifications() {
         if ((n.type==='follow'||n.type==='friend_accepted') && n.from_athlete_id)
           notifClick = 'location.href=\"profil.html?id='+n.from_athlete_id+'\";document.getElementById(\'notif-panel\')?.remove();';
         else if (n.type==='friend_request')
-          notifClick = (_athleteId?'location.href=\'profil.html?id='+_athleteId+'&tab=friends\'':'switchSocialTab(\'friends\')') + ';document.getElementById(\'notif-panel\')?.remove();';
+          notifClick = 'switchSocialTab(\'friends\');document.getElementById(\'notif-panel\')?.remove();';
         else if (n.type==='chat' && n.from_athlete_id)
           notifClick = 'showSection(\'msgs\');document.getElementById(\'notif-panel\')?.remove();';
         return `<div onclick="${notifClick}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifClick?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
