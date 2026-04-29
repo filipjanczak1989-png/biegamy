@@ -654,6 +654,15 @@ async function sendFriendRequest() {
   _friendStatus = 'pending_sent';
   renderActionBtns();
   showToast('Zaproszenie wysłane ✓');
+  // Powiadomienie
+  const me = await _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
+  const myName = me.data?.full_name || 'Ktoś';
+  _sb.from('notifications').insert({
+    athlete_id: _targetId, type: 'friend_request',
+    from_athlete_id: _myId,
+    message: myName + ' chce zostać Twoim znajomym',
+    read: false, created_at: new Date().toISOString()
+  }).then(function(){});
 }
 
 async function cancelFriendRequest() {
@@ -671,8 +680,17 @@ async function acceptFriendRequest() {
   if (error) { showToast('Błąd: ' + error.message); return; }
   _friendStatus = 'accepted';
   renderActionBtns();
-  document.getElementById('ps-friends').textContent = parseInt(document.getElementById('ps-friends').textContent || 0) + 1;
+  const psf = document.getElementById('ps-friends');
+  if (psf) psf.textContent = parseInt(psf.textContent || 0) + 1;
   showToast('Jesteście znajomymi! 🎉');
+  const me = await _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
+  const myName = me.data?.full_name || 'Ktoś';
+  _sb.from('notifications').insert({
+    athlete_id: _targetId, type: 'friend_accepted',
+    from_athlete_id: _myId,
+    message: myName + ' zaakceptował(a) Twoje zaproszenie',
+    read: false, created_at: new Date().toISOString()
+  }).then(function(){});
 }
 
 async function removeFriend() {
@@ -698,8 +716,110 @@ async function toggleFollow() {
 }
 
 function openChat() {
-  // Przekieruj do czatu z tym zawodnikiem
-  location.href = `zawodnik.html?chat=${_targetId}`;
+  // Otwórz mini-czat jako overlay
+  const existing = document.getElementById('peer-chat-overlay');
+  if (existing) { existing.remove(); return; }
+  _openPeerChat(_targetId, _profileData?.full_name || 'Znajomy');
+}
+
+async function _openPeerChat(targetId, targetName) {
+  // Pobierz historię wiadomości
+  const overlay = document.createElement('div');
+  overlay.id = 'peer-chat-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  overlay.onclick = function(e){ if(e.target===overlay) overlay.remove(); };
+
+  overlay.innerHTML =
+    '<div style="width:100%;max-width:480px;height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;">'
+    + '<div style="padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;">'
+    + '<button onclick="document.getElementById('peer-chat-overlay').remove()" style="background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;">‹</button>'
+    + '<div style="flex:1;font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:0.04em;">' + targetName + '</div>'
+    + '</div>'
+    + '<div id="peer-msgs-list" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:8px;">'
+    + '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Ładowanie...</div>'
+    + '</div>'
+    + '<div style="padding:10px 16px 24px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:8px;">'
+    + '<input id="peer-msg-inp" type="text" placeholder="Napisz wiadomość..." maxlength="500"'
+    + ' style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"'
+    + ' onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"'
+    + ' onkeydown="if(event.key==='Enter')_sendPeerMsg(''+targetId+'')">'
+    + '<button onclick="_sendPeerMsg(''+targetId+'')" style="background:var(--accent);border:none;border-radius:10px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+    + '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>'
+    + '</button>'
+    + '</div>'
+    + '</div>';
+
+  document.body.appendChild(overlay);
+  await _loadPeerMsgs(targetId);
+}
+
+async function _loadPeerMsgs(targetId) {
+  if (!_myId) return;
+  const listEl = document.getElementById('peer-msgs-list');
+  if (!listEl) return;
+
+  const { data: msgs, error } = await _sb.from('peer_messages')
+    .select('id,from_id,to_id,body,sent_at,read')
+    .or('and(from_id.eq.'+_myId+',to_id.eq.'+targetId+'),and(from_id.eq.'+targetId+',to_id.eq.'+_myId+')')
+    .order('sent_at', { ascending: true })
+    .limit(100);
+
+  if (error) { listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Błąd: '+error.message+'</div>'; return; }
+
+  if (!msgs || !msgs.length) {
+    listEl.innerHTML = '<div style="text-align:center;padding:32px 20px;color:var(--muted);font-size:13px;line-height:1.8;">Brak wiadomości<br>Napisz pierwszą! 👋</div>';
+    return;
+  }
+
+  listEl.innerHTML = msgs.map(function(m) {
+    const isMe = m.from_id === _myId;
+    const d = new Date(m.sent_at);
+    const time = d.toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-bottom:2px;">'
+      + '<div style="max-width:75%;background:'+(isMe?'var(--accent)':'rgba(255,255,255,0.08)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'
+      + escHtml(m.body)
+      + '<div style="font-size:9px;opacity:0.6;margin-top:3px;text-align:right;font-family:DM Mono,monospace;">' + time + '</div>'
+      + '</div></div>';
+  }).join('');
+
+  listEl.scrollTop = listEl.scrollHeight;
+
+  // Oznacz jako przeczytane
+  _sb.from('peer_messages').update({read:true}).eq('to_id',_myId).eq('from_id',targetId).eq('read',false).then(function(){});
+}
+
+async function _sendPeerMsg(targetId) {
+  if (!_myId) return;
+  const inp = document.getElementById('peer-msg-inp');
+  if (!inp) return;
+  const body = inp.value.trim();
+  if (!body) return;
+  inp.value = '';
+
+  const { error } = await _sb.from('peer_messages').insert({
+    from_id: _myId,
+    to_id: targetId,
+    body: body,
+    sent_at: new Date().toISOString(),
+    read: false
+  });
+
+  if (error) { showToast('Błąd: ' + error.message); inp.value = body; return; }
+
+  // Odśwież wiadomości
+  await _loadPeerMsgs(targetId);
+
+  // Wyślij powiadomienie
+  try {
+    await _sb.from('notifications').insert({
+      athlete_id: targetId,
+      type: 'chat',
+      from_athlete_id: _myId,
+      message: (_profileData?.full_name || 'Znajomy') + ' wysłał(a) Ci wiadomość',
+      read: false,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) {}
 }
 
 // ── AVATAR UPLOAD ─────────────────────────────────────────────────
