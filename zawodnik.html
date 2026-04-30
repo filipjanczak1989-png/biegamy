@@ -161,11 +161,11 @@ body > *{position:relative;z-index:1;}
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:10px;margin-top:8px;}
 .sec-title{
   font-size:9px;letter-spacing:0.32em;text-transform:uppercase;
-  color:var(--muted);font-family:'DM Mono',monospace;
+  color:var(--muted);font-family:DM Mono,monospace;
   display:flex;align-items:center;gap:8px;
 }
 .sec-title::before{content:'';width:18px;height:1px;background:var(--muted);opacity:0.5;}
-.sec-link{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;text-decoration:none;opacity:0.8;transition:opacity 0.15s;}
+.sec-link{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;text-decoration:none;opacity:0.8;transition:opacity 0.15s;}
 .sec-link:hover{opacity:1;}
 
 /* ── MOTIVACJA ──────────────────────────────────────────────────────── */
@@ -174,7 +174,7 @@ body > *{position:relative;z-index:1;}
 
 #motiv-icon{flex-shrink:0;line-height:0;padding-top:2px;}
 #motiv-text{font-size:13px;line-height:1.7;color:var(--fg);font-style:italic;font-weight:300;}
-#motiv-source{font-size:9px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;opacity:0.85;}
+#motiv-source{font-size:9px;color:var(--accent);font-family:DM Mono,monospace;margin-top:8px;letter-spacing:0.14em;opacity:0.85;}
 
 /* ── TODAY HERO — main training card ───────────────────────────────── */
 .today-hero{
@@ -198,7 +198,7 @@ body > *{position:relative;z-index:1;}
 /* Subtle runner illustration inside hero */
 
 .today-hero-inner{padding:20px 22px 22px;position:relative;z-index:1;}
-.today-label{font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px;display:flex;align-items:center;gap:7px;opacity:0.9;}
+.today-label{font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin-bottom:6px;display:flex;align-items:center;gap:7px;opacity:0.9;}
 .pulse{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulseAnim 2s ease-in-out infinite;box-shadow:0 0 6px var(--accent);}
 @keyframes pulseAnim{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.3;transform:scale(0.65);}}
 .today-date{font-size:11px;color:var(--fg3);margin-bottom:10px;font-weight:300;letter-spacing:0.04em;}
@@ -206,7 +206,7 @@ body > *{position:relative;z-index:1;}
   display:inline-flex;align-items:center;gap:7px;
   background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.28);
   color:var(--green);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;
-  font-family:'DM Mono',monospace;padding:4px 12px;border-radius:20px;margin-bottom:14px;
+  font-family:DM Mono,monospace;padding:4px 12px;border-radius:20px;margin-bottom:14px;
   box-shadow:0 0 12px rgba(61,184,112,0.1);
 }
 .today-dist{
@@ -218,20 +218,20 @@ body > *{position:relative;z-index:1;}
 .today-dist span{font-size:14px;-webkit-text-fill-color:rgba(240,237,232,0.6);font-family:'DM Sans',sans-serif;font-weight:300;letter-spacing:0;margin-left:2px;vertical-align:middle;}
 .today-meta{display:flex;gap:8px;margin:14px 0 0;}
 .today-meta-item{display:flex;flex-direction:column;gap:3px;flex:1;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:12px;border:1px solid rgba(255,255,255,0.05);}
-.today-meta-lbl{font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
-.today-meta-val{font-family:'DM Mono',monospace;font-size:16px;color:var(--fg);font-weight:500;}
+.today-meta-lbl{font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;}
+.today-meta-val{font-family:DM Mono,monospace;font-size:16px;color:var(--fg);font-weight:500;}
 /* Alias for old class names */
 .meta-item{display:flex;flex-direction:column;gap:3px;flex:1;padding:10px 12px;background:rgba(255,255,255,0.03);border-radius:12px;margin-right:8px;}
 .meta-item:last-child{margin-right:0;}
-.meta-lbl{font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
-.meta-val{font-family:'DM Mono',monospace;font-size:16px;color:var(--fg);font-weight:500;}
+.meta-lbl{font-size:8px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;}
+.meta-val{font-family:DM Mono,monospace;font-size:16px;color:var(--fg);font-weight:500;}
 .divider{height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);margin:16px 0;}
 .today-desc{font-size:12px;line-height:1.8;color:var(--fg2);margin-bottom:18px;font-weight:300;}
 .today-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 
 /* ── BUTTONS — unified sizes ────────────────────────────────────────── */
 .btn{
-  font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
+  font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
   padding:13px 16px;border:none;border-radius:13px;cursor:pointer;
   transition:transform var(--dur-fast) var(--ease-out),box-shadow var(--dur-fast) var(--ease-out);
   text-align:center;text-decoration:none;
@@ -281,19 +281,19 @@ body > *{position:relative;z-index:1;}
 .day-card.rest{opacity:0.45;}
 .dc-stripe{position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 2px 2px 0;}
 .dc-date{display:flex;flex-direction:column;align-items:center;min-width:40px;}
-.dc-name{font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;}
+.dc-name{font-size:8px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;}
 .dc-num{font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1.1;}
 .day-card.today .dc-num{color:var(--accent);}
 .dc-info{flex:1;}
 .dc-type{font-size:13px;font-weight:500;color:var(--fg);}
-.dc-km{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.dc-km{font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;}
 .dc-check{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--green),#2a9a58);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;flex-shrink:0;box-shadow:0 0 10px var(--glow-g);}
 .dc-arrow{font-size:16px;color:var(--muted);flex-shrink:0;transition:transform 0.2s;}
 .day-detail{background:rgba(255,255,255,0.02);border-top:1px solid rgba(255,255,255,0.06);padding:12px 14px;display:none;}
 .day-detail.open{display:block;}
 .dd-title{font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--accent);margin-bottom:7px;letter-spacing:0.06em;}
 .dd-meta{display:flex;gap:8px;margin-bottom:9px;flex-wrap:wrap;}
-.dd-m{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);background:rgba(255,255,255,0.04);padding:4px 9px;border-radius:7px;}
+.dd-m{font-size:10px;font-family:DM Mono,monospace;color:var(--muted);background:rgba(255,255,255,0.04);padding:4px 9px;border-radius:7px;}
 .dd-m span{color:var(--fg);}
 .dd-desc{font-size:12px;line-height:1.7;color:var(--fg2);}
 
@@ -311,9 +311,9 @@ body > *{position:relative;z-index:1;}
 .ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--accent);}
 .ws-info{flex:1;}
 .ws-title{font-size:13px;font-weight:500;color:var(--fg);margin-bottom:3px;}
-.ws-sub{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ws-sub{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;}
 .ws-km{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;text-align:right;color:var(--fg);}
-.ws-km-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;text-align:right;letter-spacing:0.1em;}
+.ws-km-lbl{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;text-align:right;letter-spacing:0.1em;}
 
 /* ── COACH BOX ─────────────────────────────────────────────────────── */
 .coach-box{
@@ -339,7 +339,7 @@ body > *{position:relative;z-index:1;}
   box-shadow:0 0 16px var(--glow-o);
 }
 .coach-nm{font-size:13px;font-weight:600;color:var(--fg);}
-.coach-ts{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:auto;}
+.coach-ts{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;}
 .coach-body{padding:14px 16px;font-size:13px;line-height:1.75;color:var(--fg2);font-weight:300;}
 
 /* ── LOG CARDS ─────────────────────────────────────────────────────── */
@@ -371,11 +371,11 @@ body > *{position:relative;z-index:1;}
 .log-icon-svg{width:22px;height:22px;}
 .log-cnt{flex:1;min-width:0;}
 .log-type{font-size:13px;font-weight:600;margin-bottom:3px;letter-spacing:0.01em;}
-.log-det{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.03em;}
-.log-dt{font-size:9px;color:var(--muted2);margin-top:3px;font-family:'DM Mono',monospace;}
+.log-det{font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.03em;}
+.log-dt{font-size:9px;color:var(--muted2);margin-top:3px;font-family:DM Mono,monospace;}
 .log-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;}
 .log-dist{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;color:var(--fg);}
-.log-dist-lbl{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;}
+.log-dist-lbl{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;}
 .log-feel-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 .log-feel-dot.good{background:var(--green);box-shadow:0 0 6px var(--glow-g);}
 .log-feel-dot.mid{background:var(--yellow);}
@@ -394,7 +394,7 @@ body > *{position:relative;z-index:1;}
 }
 .nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}
 /* Unified nav label sizes */
-.nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}
+.nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;white-space:nowrap;transition:color 0.15s;}
 .nav-it.active .nav-lbl{color:var(--accent);}
 .nav-it.active::before{
   content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);
@@ -419,7 +419,7 @@ body > *{position:relative;z-index:1;}
 .modal-bg.open .modal{transform:translateY(0);}
 .modal-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);margin:14px auto 0;}
 .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;padding:14px 22px 4px;color:var(--fg);}
-.modal-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 22px 16px;letter-spacing:0.05em;}
+.modal-sub{font-size:11px;color:var(--muted);font-family:DM Mono,monospace;padding:0 22px 16px;letter-spacing:0.05em;}
 .modal-body{padding:0 22px;}
 .modal-footer{padding:16px 22px 0;}
 
@@ -430,12 +430,12 @@ body > *{position:relative;z-index:1;}
 .msg-row{display:flex;flex-direction:column;gap:2px;}
 .msg-row.athlete{align-items:flex-end;}
 .msg-row.coach{align-items:flex-start;}
-.msg-meta{font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 4px;}
+.msg-meta{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;padding:0 4px;}
 .msg-recall{font-size:11px;color:var(--muted2);font-style:italic;}
 
 /* Form fields */
 .field{margin-bottom:16px;}
-.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:7px;}
+.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:7px;}
 .field input,.field textarea,.field select{
   width:100%;background:rgba(255,255,255,0.04);
   border:1px solid rgba(255,255,255,0.09);
@@ -453,7 +453,7 @@ body > *{position:relative;z-index:1;}
 /* Type pills */
 .type-pill{
   background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);
-  color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;
+  color:var(--muted);font-family:DM Mono,monospace;font-size:10px;
   letter-spacing:0.06em;padding:8px 14px;border-radius:20px;cursor:pointer;
   transition:all 0.15s;
 }
@@ -462,7 +462,7 @@ body > *{position:relative;z-index:1;}
 /* Feel buttons */
 .feel-grid{display:flex;flex-direction:row;gap:8px;}
 .feel-btn{flex:1;border-radius:12px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);font-size:20px;cursor:pointer;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;gap:4px;}
-.feel-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;}
+.feel-lbl{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.04em;}
 .feel-btn:hover{transform:scale(1.06);}
 .feel-btn.sel-good{border-color:var(--green);background:rgba(61,184,112,0.12);}
 .feel-btn.sel-mid{border-color:var(--yellow);background:rgba(232,184,64,0.12);}
@@ -486,25 +486,25 @@ body > *{position:relative;z-index:1;}
 /* ── INTERVALS ──────────────────────────────────────────────────────── */
 .interval-row input{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:10px;outline:none;}
 .interval-row input:focus{border-color:var(--accent);}
-.iv-pace{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);text-align:center;}
+.iv-pace{font-family:DM Mono,monospace;font-size:12px;color:var(--accent);text-align:center;}
 
 /* ── PROFILE ────────────────────────────────────────────────────────── */
 .pb-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:var(--tile-radius);padding:16px;box-shadow:var(--tile-shadow);}
 .profile-card{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:var(--tile-radius);padding:18px 18px;margin:0 0 12px;box-shadow:var(--tile-shadow);}
-.profile-card-title{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;}
+.profile-card-title{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:14px;}
 .pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .pb-item{background:rgba(255,255,255,0.03);border-radius:11px;padding:11px 13px;}
-.pb-lbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.pb-lbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;}
 .pb-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1;}
 .profile-avatar-wrap{text-align:center;padding:28px 20px 22px;}
 .profile-avatar{width:90px;height:90px;border-radius:50%;border:2px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);margin:0 auto 12px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.08);}
 .profile-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;}
-.profile-email{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
+.profile-email{font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;}
 .goals-list{display:flex;flex-direction:column;gap:8px;}
 .goal-item{background:rgba(61,184,112,0.07);border:1px solid rgba(61,184,112,0.2);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(61,184,112,0.06);}
 .goal-icon{font-size:18px;}
 .goal-name{font-size:13px;font-weight:500;}
-.goal-date{font-size:11px;color:var(--green);font-family:'DM Mono',monospace;margin-top:2px;}
+.goal-date{font-size:11px;color:var(--green);font-family:DM Mono,monospace;margin-top:2px;}
 
 /* ── STATS SECTION ──────────────────────────────────────────────────── */
 #stats-content .stat-card{background:linear-gradient(145deg,rgba(22,18,30,0.9),rgba(12,12,18,0.95));border:1px solid var(--border);border-radius:var(--tile-radius);padding:16px 18px;margin-bottom:11px;box-shadow:var(--tile-shadow);}
@@ -519,7 +519,7 @@ body > *{position:relative;z-index:1;}
 #toast{
   position:fixed;bottom:100px;left:50%;transform:translateX(-50%) translateY(20px);
   background:rgba(12,12,18,0.96);border:1px solid rgba(255,255,255,0.1);
-  color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;
+  color:var(--fg);font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;
   padding:10px 20px;border-radius:22px;opacity:0;transition:all 0.25s;
   white-space:nowrap;z-index:9999;backdrop-filter:blur(16px);
   box-shadow:0 8px 32px rgba(0,0,0,0.6);
@@ -541,14 +541,14 @@ body > *{position:relative;z-index:1;}
 .gif-item:hover{opacity:0.8;}
 .voice-msg{display:flex;align-items:center;gap:8px;padding:4px 0;}
 .voice-play{background:none;border:none;cursor:pointer;font-size:18px;color:inherit;}
-.voice-duration{font-size:11px;font-family:'DM Mono',monospace;opacity:0.7;}
+.voice-duration{font-size:11px;font-family:DM Mono,monospace;opacity:0.7;}
 .msg-recall{font-size:11px;color:var(--muted);font-style:italic;opacity:0.5;}
 
 /* ── PCHAT ──────────────────────────────────────────────────────────── */
 .pchat-list-header{padding:24px 20px 8px;}
 .pchat-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.03em;line-height:1;}
 .pchat-title em{color:var(--accent);font-style:normal;}
-.pchat-sub{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;}
+.pchat-sub{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;}
 .pchat-search-wrap{margin:10px 16px 4px;position:relative;}
 .pchat-search{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 12px 10px 36px;outline:none;box-sizing:border-box;transition:border-color 0.2s;}
 .pchat-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
@@ -564,9 +564,9 @@ body > *{position:relative;z-index:1;}
 .pchat-name{font-size:14px;font-weight:600;display:flex;align-items:center;gap:7px;color:var(--fg);}
 .pchat-preview{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;}
 .pchat-meta{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
-.pchat-time{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
-.pchat-badge{background:var(--accent);color:#fff;font-size:10px;border-radius:10px;min-width:20px;padding:2px 6px;font-family:'DM Mono',monospace;font-weight:700;text-align:center;box-shadow:0 2px 8px var(--glow-o);}
-.pchat-new-tag{background:rgba(232,86,30,0.15);color:var(--accent);font-size:9px;border-radius:4px;padding:2px 6px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;}
+.pchat-time{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;}
+.pchat-badge{background:var(--accent);color:#fff;font-size:10px;border-radius:10px;min-width:20px;padding:2px 6px;font-family:DM Mono,monospace;font-weight:700;text-align:center;box-shadow:0 2px 8px var(--glow-o);}
+.pchat-new-tag{background:rgba(232,86,30,0.15);color:var(--accent);font-size:9px;border-radius:4px;padding:2px 6px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;}
 .pchat-view{display:none;position:fixed;inset:0;background:var(--bg);z-index:56;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);}
 .pchat-view-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(7,7,10,0.98);backdrop-filter:blur(12px);flex-shrink:0;}
 .pchat-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:26px;padding:0 4px;line-height:1;transition:color 0.15s;}
@@ -584,7 +584,7 @@ body > *{position:relative;z-index:1;}
 .pchat-msg-row.me .pchat-bubble{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 3px 16px var(--glow-o);}
 .pchat-bubble img,.pchat-bubble video{max-width:100%;border-radius:10px;display:block;margin:2px 0;}
 .pchat-msg-row.them .pchat-bubble{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:18px 18px 18px 4px;}
-.pchat-time-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;padding:0 4px;}
+.pchat-time-lbl{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;padding:0 4px;}
 .pchat-input-area{flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
 .pchat-input-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:24px;padding:5px 5px 5px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
@@ -618,7 +618,7 @@ body > *{position:relative;z-index:1;}
 .ob-progress{display:flex;gap:5px;margin-bottom:24px;}
 .ob-pip{height:3px;flex:1;border-radius:2px;background:rgba(255,255,255,0.1);transition:background 0.3s;}
 .ob-pip.done{background:var(--accent);}
-.ob-step-lbl{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;}
+.ob-step-lbl{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin-bottom:8px;}
 .ob-h1{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:1;letter-spacing:0.02em;margin-bottom:8px;}
 .ob-h1 em{color:var(--accent);font-style:normal;}
 .ob-body{flex:1;overflow-y:auto;padding:0 24px 24px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;}
@@ -632,7 +632,7 @@ body > *{position:relative;z-index:1;}
 .ob-btn:active{transform:scale(0.98);}
 .ob-btn-ghost{
   width:100%;background:transparent;color:rgba(240,237,232,0.35);border:none;
-  padding:12px;font-family:'DM Mono',monospace;font-size:11px;
+  padding:12px;font-family:DM Mono,monospace;font-size:11px;
   letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;margin-top:8px;
 }
 .ob-card{
@@ -656,17 +656,17 @@ body > *{position:relative;z-index:1;}
 .ob-check{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all 0.18s;}
 .ob-card.sel .ob-check{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(232,86,30,0.35);}
 .ob-field{margin-bottom:14px;}
-.ob-label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.ob-label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .ob-input{
   width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);
-  color:var(--fg);font-family:'DM Mono',monospace;font-size:15px;
+  color:var(--fg);font-family:DM Mono,monospace;font-size:15px;
   padding:12px 14px;border-radius:12px;outline:none;box-sizing:border-box;
   transition:border-color 0.2s;
 }
 .ob-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
 .ob-pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
 .ob-pb-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;}
-.ob-pb-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.ob-pb-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .ob-pb-input{width:100%;background:transparent;border:none;color:var(--fg);font-family:'Bebas Neue',sans-serif;font-size:26px;outline:none;padding:0;}
 .ob-pb-input::placeholder{color:rgba(240,237,232,0.15);}
 .ob-avatar-wrap{text-align:center;padding:8px 0 20px;}
@@ -738,13 +738,13 @@ body > *{position:relative;z-index:1;}
 
 
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
-#motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
+#motiv-source{font-size:9px;color:#ff8855!important;font-family:DM Mono,monospace;margin-top:8px;letter-spacing:0.14em;}
 
 #daily-motivation{position:relative;margin:0 16px 16px;background:rgba(10,6,3,0.75)!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
 #daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>:not([style*="position:absolute"]){position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
-#motiv-source{font-size:9px;color:#ff8855!important;font-family:'DM Mono',monospace;margin-top:8px;letter-spacing:0.14em;}
+#motiv-source{font-size:9px;color:#ff8855!important;font-family:DM Mono,monospace;margin-top:8px;letter-spacing:0.14em;}
 
 /* ── HERO SLIDESHOW ──────────────────────────────────────────────── */
 .hero-dot {
@@ -785,7 +785,7 @@ body > *{position:relative;z-index:1;}
     <div class="topbar-name" id="topbar-name" style="opacity:0.3;">—</div>
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;z-index:201;">
-    <a id="back-to-trener" href="trener.html" onclick="sessionStorage.removeItem('_fromTrener')" style="display:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
+    <a id="back-to-trener" href="trener.html" onclick="sessionStorage.removeItem('_fromTrener')" style="display:none;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
     <div onclick="openNotifications()" class="notif-bell-z" id="zawodnik-bell">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#e8561e;border-radius:9px;border:2px solid var(--bg);font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;"></div></div>
@@ -795,15 +795,15 @@ body > *{position:relative;z-index:1;}
       <img id="av-photo" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%;">
     </div>
     <div id="av-menu" style="display:none;position:absolute;top:52px;right:0;background:#1a1a22;border:1px solid rgba(212,80,26,0.6);border-radius:14px;padding:8px;z-index:10000;min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.95),0 0 0 1px rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
-      <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:'DM Mono',monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
-      <div onclick="showSection('profile');toggleMenu();" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
+      <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:DM Mono,monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
+      <div onclick="showSection('profile');toggleMenu();" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         👤 Mój profil
       </div>
-      <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
+      <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
-      <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
-      <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">
+      <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
+      <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
       </div>
     </div>
@@ -862,7 +862,7 @@ body > *{position:relative;z-index:1;}
     <div class="today-badge" id="today-badge" style="display:none;"></div>
     <div class="today-dist" id="today-dist" style="display:none;font-size:13px;color:rgba(240,237,232,0.8);font-weight:600;"></div>
   </div>
-  <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:right;"></div>
+  <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:DM Mono,monospace;text-align:right;"></div>
 </div>
 
 <!-- Akcje pod kartą -->
@@ -900,7 +900,7 @@ body > *{position:relative;z-index:1;}
 <div id="home-social-preview" class="fade-in" style="margin:0 0 18px;"></div>
 
 <div id="coach-msg-section" style="display:none;">
-  <div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Wiadomość od trenera</div><span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;">kliknij →</span></div>
+  <div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Wiadomość od trenera</div><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;">kliknij →</span></div>
   <div class="coach-box fade-in" id="coach-box" onclick="showSection('msgs')">
     <div class="coach-hdr">
       <div class="coach-av" id="coach-av">F</div>
@@ -923,9 +923,9 @@ body > *{position:relative;z-index:1;}
     </div>
     <div style="flex:1;">
       <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:2px;">Połącz ze Stravą</div>
-      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">Trener zobaczy Twoje biegi automatycznie</div>
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Trener zobaczy Twoje biegi automatycznie</div>
     </div>
-    <button onclick="showSection('profile');setTimeout(()=>connectStrava(),300)" style="background:#FC4C02;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0;">Połącz →</button>
+    <button onclick="showSection('profile');setTimeout(()=>connectStrava(),300)" style="background:#FC4C02;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;flex-shrink:0;">Połącz →</button>
   </div>
 </div>
 
@@ -972,7 +972,7 @@ body > *{position:relative;z-index:1;}
       <div class="pchat-view-av" id="z-coach-av" style="cursor:pointer;" onclick="chatThreadProfileClick()">F</div>
       <div style="flex:1;cursor:pointer;" onclick="chatThreadProfileClick()">
         <div class="pchat-view-name" id="z-coach-name">Trener</div>
-        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;" id="chat-thread-sub">wiadomości</div>
+        <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;" id="chat-thread-sub">wiadomości</div>
       </div>
     </div>
     <!-- Thread -->
@@ -990,7 +990,7 @@ body > *{position:relative;z-index:1;}
       <input id="msg-file" type="file" accept="image/*" multiple style="display:none" onchange="sendFileMessage(this)">
       <button class="pchat-act" onclick="document.getElementById('msg-file').click()">📎</button>
       <button class="pchat-act" onclick="toggleEmojiPicker('z-emoji-picker')">😊</button>
-      <button class="pchat-act" onclick="toggleGifPicker('z-gif-picker')" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.05em;">GIF</button>
+      <button class="pchat-act" onclick="toggleGifPicker('z-gif-picker')" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:0.05em;">GIF</button>
       <button id="z-voice-btn" class="pchat-act voice-btn" onclick="toggleVoice('z-voice-btn','athlete')">🎤</button>
       <input id="msg-input" type="text" placeholder="Napisz do trenera..." onkeydown="if(event.key==='Enter')sendMessage()">
       <button class="pchat-send" onclick="sendMessage()">↑</button>
@@ -1005,24 +1005,24 @@ body > *{position:relative;z-index:1;}
   <nav style="flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:10px 0 max(20px,env(safe-area-inset-bottom,0px));">
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="showSection('home');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Dziś</span>
+      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Dziś</span>
     </a>
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;" href="kalendarz.html?role=athlete">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Plan</span>
+      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Plan</span>
     </a>
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="openModal();return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Log</span>
+      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Log</span>
     </a>
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;position:relative;" href="#">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;">Wiadomości</span>
+      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;">Wiadomości</span>
       <span style="position:absolute;top:2px;left:50%;margin-left:6px;width:28px;height:2px;background:var(--accent);border-radius:0 0 3px 3px;box-shadow:0 0 8px rgba(232,86,30,0.6);"></span>
     </a>
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="showSection('stats');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Statystyki</span>
+      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Statystyki</span>
     </a>
   </nav>
 </div>
@@ -1033,13 +1033,13 @@ body > *{position:relative;z-index:1;}
   <!-- Topbar -->
   <div style="padding:52px 20px 0;display:flex;align-items:center;justify-content:space-between;">
     <div>
-      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">BiegaMy</div>
+      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">BiegaMy</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;margin-top:2px;">Mój profil</div>
     </div>
     <!-- Toggle publiczny/prywatny -->
     <button id="privacy-toggle-btn" onclick="togglePrivacy()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;">
       <svg id="privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--green);">Publiczny</span>
+      <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--green);">Publiczny</span>
     </button>
   </div>
 
@@ -1058,7 +1058,7 @@ body > *{position:relative;z-index:1;}
     </div>
     <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;" id="profile-name">—</div>
-    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="profile-email">—</div>
+    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;" id="profile-email">—</div>
   </div>
 
   <!-- Profile Banner Slides — pod avatarem -->
@@ -1078,23 +1078,23 @@ body > *{position:relative;z-index:1;}
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 20px;">
     <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Dane</span>
+      <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Dane</span>
     </button>
     <button id="ptab-msgs" onclick="switchProfileTab('msgs')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Czat</span>
+      <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Czat</span>
     </button>
     <button id="ptab-stats" onclick="switchProfileTab('stats')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Statystyki</span>
+      <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Statystyki</span>
     </button>
     <button id="ptab-calc" onclick="switchProfileTab('calc')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="11" y2="14"/></svg>
-      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Kalkulator</span>
+      <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Kalkulator</span>
     </button>
     <button id="ptab-badges" onclick="switchProfileTab('badges')" style="background:transparent;border:1px solid var(--border);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="6"/><path d="M8.21 13.89L7 23l5-3 5 3-1.21-9.12"/></svg>
-      <span style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Odznaki</span>
+      <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);">Odznaki</span>
     </button>
   </div>
 
@@ -1102,89 +1102,89 @@ body > *{position:relative;z-index:1;}
   <div id="ptab-panel-info">
     <!-- Życiówki -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Życiówki</div>
-      <button onclick="toggleEditPBs()" id="edit-pbs-btn" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
+      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Życiówki</div>
+      <button onclick="toggleEditPBs()" id="edit-pbs-btn" style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Edytuj</button>
     </div>
     <div id="pbs-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Maraton</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Maraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-mar">—</div>
-        <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-mar-input" type="text" placeholder="3:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Półmaraton</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">Półmaraton</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-half">—</div>
-        <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-half-input" type="text" placeholder="1:45:00" maxlength="7" oninput="autoColonTime(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">10 km</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">10 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-10k">—</div>
-        <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-10k-input" type="text" placeholder="45:30" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
       </div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">5 km</div>
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;">5 km</div>
         <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent);" id="pb-5k">—</div>
-        <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
+        <input id="pb-5k-input" type="text" placeholder="22:00" maxlength="5" oninput="autoColonResult(this)" style="display:none;width:100%;background:var(--card2);border:1px solid var(--accent);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:6px 8px;border-radius:6px;outline:none;margin-top:4px;">
       </div>
     </div>
     <div id="save-pbs-row" style="display:none;margin-bottom:20px;">
-      <button onclick="savePBs()" style="width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz Życiówki →</button>
+      <button onclick="savePBs()" style="width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz Życiówki →</button>
     </div>
 
     <!-- Cele startowe -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Cele startowe</div>
-      <button onclick="openAddGoal()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--green);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">+ Dodaj</button>
+      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Cele startowe</div>
+      <button onclick="openAddGoal()" style="font-size:10px;font-family:DM Mono,monospace;color:var(--green);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">+ Dodaj</button>
     </div>
     <div id="goals-list" style="margin-bottom:20px;display:flex;flex-direction:column;gap:8px;"></div>
 
     <!-- Trener -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Trener</div>
-      <button onclick="openChangeCoach()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Zmień</button>
+      <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Trener</div>
+      <button onclick="openChangeCoach()" style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Zmień</button>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
       <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;" id="coach-avatar-lbl">F</div>
       <div>
         <div style="font-size:13px;font-weight:500;" id="profile-coach-name">BiegaMy Coaching</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;">biegamy.run</div>
+        <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">biegamy.run</div>
       </div>
     </div>
 
     <!-- Strava -->
-    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strava</div>
+    <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Strava</div>
     <div id="strava-section">
       <div id="strava-connected" style="display:none;background:rgba(252,76,2,0.08);border:1px solid rgba(252,76,2,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;align-items:center;gap:12px;">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="#FC4C02"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:500;color:var(--fg);">Połączono ze Stravą</div>
-          <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;" id="strava-athlete-name">—</div>
+          <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;" id="strava-athlete-name">—</div>
         </div>
-        <button onclick="disconnectStrava()" style="font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
+        <button onclick="disconnectStrava()" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
       </div>
-      <button id="strava-sync-btn" onclick="syncStrava()" style="display:none;width:100%;background:rgba(252,76,2,0.12);color:#FC4C02;border:1px solid rgba(252,76,2,0.3);border-radius:12px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;">↻ Synchronizuj aktywności</button>
+      <button id="strava-sync-btn" onclick="syncStrava()" style="display:none;width:100%;background:rgba(252,76,2,0.12);color:#FC4C02;border:1px solid rgba(252,76,2,0.3);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:12px;">↻ Synchronizuj aktywności</button>
       <div id="strava-activities" style="display:none;margin-bottom:20px;">
-        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Ostatnie biegi ze Stravy</div>
+        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Ostatnie biegi ze Stravy</div>
         <div id="strava-activities-list" style="display:flex;flex-direction:column;gap:6px;"></div>
       </div>
-      <button id="strava-connect-btn" onclick="connectStrava()" style="width:100%;background:#FC4C02;color:#fff;border:none;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;">
+      <button id="strava-connect-btn" onclick="connectStrava()" style="width:100%;background:#FC4C02;color:#fff;border:none;border-radius:12px;padding:14px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:20px;">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
         Połącz ze Stravą
       </button>
     </div>
 
     <!-- Wyloguj -->
-    <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
+    <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
 
     <!-- Usuń konto -->
-    <button onclick="confirmDeleteAccount()" style="width:100%;background:transparent;color:rgba(224,80,80,0.4);border:none;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;margin-top:4px;">Usuń konto</button>
+    <button onclick="confirmDeleteAccount()" style="width:100%;background:transparent;color:rgba(224,80,80,0.4);border:none;padding:10px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;margin-top:4px;">Usuń konto</button>
   </div>
 
   <!-- TAB: WIADOMOŚCI -->
   <!-- TAB: ODZNAKI -->
   <div id="ptab-panel-badges" style="display:none;margin:0 -20px;">
     <div id="badges-section-content">
-      <div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie odznak...</div>
+      <div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie odznak...</div>
     </div>
   </div>
 
@@ -1192,38 +1192,38 @@ body > *{position:relative;z-index:1;}
 
   <!-- TAB: STATYSTYKI -->
   <div id="ptab-panel-stats" style="display:none;">
-    <div id="stats-content-profile"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div></div>
+    <div id="stats-content-profile"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div></div>
   </div>
 
   <!-- TAB: KALKULATOR -->
   <div id="ptab-panel-calc" style="display:none;">
 
     <!-- Kalkulator stref tętna -->
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Strefy tętna (Karvonen)</div>
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Strefy tętna (Karvonen)</div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Wiek</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Wiek</label>
           <input id="calc-age" type="number" placeholder="30" min="10" max="80" oninput="calcZones()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">HR spoczynkowe</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">HR spoczynkowe</label>
           <input id="calc-rhr" type="number" placeholder="60" min="30" max="100" oninput="calcZones()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
       </div>
       <div id="zones-result"></div>
     </div>
 
     <!-- Prognoza czasów (Riegel) -->
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Prognoza czasów (Riegel)</div>
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Prognoza czasów (Riegel)</div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans bazowy</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Dystans bazowy</label>
           <select id="calc-riegel-dist" onchange="calcRiegel()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:13px;padding:9px 10px;border-radius:8px;outline:none;cursor:pointer;">
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:13px;padding:9px 10px;border-radius:8px;outline:none;cursor:pointer;">
             <option value="5">5 km</option>
             <option value="10" selected>10 km</option>
             <option value="21.097">Półmaraton</option>
@@ -1231,36 +1231,36 @@ body > *{position:relative;z-index:1;}
           </select>
         </div>
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Twój czas</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Twój czas</label>
           <input id="calc-riegel-time" type="text" placeholder="45:00" maxlength="7" oninput="autoColonTime(this);calcRiegel()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
       </div>
       <div id="riegel-result"></div>
     </div>
 
     <!-- Kalkulator tempa -->
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kalkulator tempa</div>
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Kalkulator tempa</div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:20px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans km</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Dystans km</label>
           <input id="calc-pace-dist" type="number" placeholder="10" step="0.1" oninput="calcPaceCalc()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Czas</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Czas</label>
           <input id="calc-pace-time" type="text" placeholder="1:00:00" maxlength="7" oninput="autoColonTime(this);calcPaceCalc()"
-            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
+            style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
         <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Tempo /km</label>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Tempo /km</label>
           <input id="calc-pace-result" type="text" placeholder="6:00" readonly
             style="width:100%;background:var(--card2);border:1px solid rgba(232,86,30,0.3);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;cursor:default;">
         </div>
       </div>
       <div id="pace-splits" style="display:none;">
-        <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Splity (co 5 km)</div>
+        <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Splity (co 5 km)</div>
         <div id="pace-splits-content" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
       </div>
     </div>
@@ -1274,11 +1274,11 @@ body > *{position:relative;z-index:1;}
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:6px;">Zmień trenera</div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:18px;">Wybierz trenera, z którym chcesz pracować.</div>
     <div id="change-coaches-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
-      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Ładuję...</div>
+      <div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Ładuję...</div>
     </div>
     <div style="display:flex;gap:8px;">
-      <button onclick="closeChangeCoach()" style="flex:1;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
-      <button onclick="saveCoachChange()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
+      <button onclick="closeChangeCoach()" style="flex:1;background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+      <button onclick="saveCoachChange()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
     </div>
   </div>
 </div>
@@ -1288,16 +1288,16 @@ body > *{position:relative;z-index:1;}
   <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">🏁 Cel startowy</div>
     <div style="margin-bottom:12px;">
-      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Nazwa biegu</label>
+      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Nazwa biegu</label>
       <input id="goal-name-input" type="text" placeholder="np. Maraton Warszawski 2026" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
     </div>
     <div style="margin-bottom:20px;">
-      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Data startu</label>
-      <input id="goal-date-input" type="date" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
+      <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Data startu</label>
+      <input id="goal-date-input" type="date" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;">
     </div>
     <div style="display:flex;gap:8px;">
-      <button onclick="closeAddGoal()" style="flex:1;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
-      <button onclick="saveGoal()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
+      <button onclick="closeAddGoal()" style="flex:1;background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+      <button onclick="saveGoal()" style="flex:2;background:var(--accent);color:var(--fg);border:none;border-radius:10px;padding:12px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Zapisz →</button>
     </div>
   </div>
 </div>
@@ -1331,13 +1331,13 @@ body > *{position:relative;z-index:1;}
           <div class="interval-row" style="display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:center;">
             <input type="text" class="iv-dist" placeholder="400 m / 1 km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
             <input type="text" class="iv-time" placeholder="1:45" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
-            <div class="iv-pace" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
+            <div class="iv-pace" style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
             <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>
           </div>
         </div>
         <div style="display:flex;gap:6px;margin-top:6px;">
-          <button onclick="addInterval(event)" style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;">+ Dodaj interwał</button>
-          <div style="flex:1;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;display:flex;align-items:center;padding-left:4px;" id="iv-summary">—</div>
+          <button onclick="addInterval(event)" style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.08em;padding:7px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--muted);cursor:pointer;">+ Dodaj interwał</button>
+          <div style="flex:1;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;display:flex;align-items:center;padding-left:4px;" id="iv-summary">—</div>
         </div>
       </div>
 
@@ -1353,7 +1353,7 @@ body > *{position:relative;z-index:1;}
           <span>Data treningu</span>
           <div style="display:flex;align-items:center;gap:6px;">
             <button type="button" onclick="shiftLogDate(-1)" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">‹</button>
-            <span id="l-date-display" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:80px;text-align:center;"></span>
+            <span id="l-date-display" style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);min-width:80px;text-align:center;"></span>
             <button type="button" onclick="shiftLogDate(1)" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;">›</button>
           </div>
         </label>
@@ -1392,8 +1392,8 @@ body > *{position:relative;z-index:1;}
         <label>Załącz screen (opcjonalnie)</label>
         <div id="upload-area" onclick="document.getElementById('l-file').click()" style="border:2px dashed var(--accent);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:all 0.15s;background:rgba(212,80,26,0.04);" onmouseover="this.style.background='rgba(212,80,26,0.08)'" onmouseout="this.style.background='rgba(212,80,26,0.04)'">
           <div style="font-size:22px;margin-bottom:4px;">📎</div>
-          <div style="font-size:11px;color:var(--fg);font-family:'DM Mono',monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
-          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">Klikaj wielokrotnie aby dodać kolejne</div>
+          <div style="font-size:11px;color:var(--fg);font-family:DM Mono,monospace;" id="upload-label">Kliknij aby dodać zdjęcie</div>
+          <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Klikaj wielokrotnie aby dodać kolejne</div>
         </div>
         <input type="file" id="l-file" accept="image/*,video/*" style="display:none" onchange="appendFile(this)">
         <div id="file-preview-list" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
@@ -1736,7 +1736,7 @@ function addInterval(e) {
   row.style.cssText = 'display:grid;grid-template-columns:2fr 2fr 1fr auto;gap:6px;align-items:center;margin-top:6px;';
   row.innerHTML = `<input type="text" class="iv-dist" placeholder="400 m / 1 km" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
     <input type="text" class="iv-time" placeholder="1:45" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 11px;border-radius:8px;outline:none;" oninput="calcIntervalPace(this)">
-    <div class="iv-pace" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
+    <div class="iv-pace" style="font-family:DM Mono,monospace;font-size:11px;color:var(--accent);text-align:center;">—/km</div>
     <button onclick="removeInterval(this)" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;line-height:1;" title="Usuń">✕</button>`;
   list.appendChild(row);
   updateIvSummary();
@@ -2084,7 +2084,7 @@ async function _loadProfileMsgs() {
     return `<div style="display:flex;justify-content:${isAthlete?'flex-end':'flex-start'};margin-bottom:8px;">
       <div style="max-width:80%;background:${isAthlete?'var(--accent)':'var(--card2)'};border-radius:${isAthlete?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:10px 13px;">
         <div style="font-size:13px;line-height:1.5;">${m.body}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:'DM Mono',monospace;">${time}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:DM Mono,monospace;">${time}</div>
       </div>
     </div>`;
   }).join('');
@@ -2103,7 +2103,7 @@ async function sendProfileMsg() {
 async function _loadStatsInProfile() {
   const el = document.getElementById('stats-content-profile');
   if (!el || !_athleteId) return;
-  el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;padding:20px 0;text-align:center;">Ładowanie statystyk...</div>';
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;text-align:center;">Ładowanie statystyk...</div>';
 
   const since90 = new Date(); since90.setDate(since90.getDate() - 90);
   const since30 = new Date(); since30.setDate(since30.getDate() - 30);
@@ -2136,42 +2136,42 @@ async function _loadStatsInProfile() {
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);line-height:1;">${km7.toFixed(0)}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / tydzień</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / tydzień</div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--green);line-height:1;">${sessions30}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji / 30 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji / 30 dni</div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#5090e0;line-height:1;">${bestPace}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">najl. tempo</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">najl. tempo</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km30.toFixed(0)}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 30 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 30 dni</div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km90.toFixed(0)}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 90 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 90 dni</div>
     </div>
   </div>
   ${elev90 > 0 ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
     <div style="background:var(--card);border:1px solid rgba(61,184,112,0.3);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#3db870;line-height:1;">▲${elev30}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">m wzn. / 30 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">m wzn. / 30 dni</div>
     </div>
     <div style="background:var(--card);border:1px solid rgba(61,184,112,0.3);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#3db870;line-height:1;">▲${elev90}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">m wzn. / 90 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">m wzn. / 90 dni</div>
     </div>
   </div>` : ''}
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
     <canvas id="chart-weekly-profile" height="120"></canvas>
   </div>
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;">
     ${Object.keys(typeCount).length===0?'<div style="color:var(--muted);font-size:12px;">Brak danych</div>':
       Object.entries(typeCount).sort((a,b)=>b[1]-a[1]).map(([type,count])=>{
@@ -2180,7 +2180,7 @@ async function _loadStatsInProfile() {
         return `<div style="margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
             <span style="font-size:12px;">${type}</span>
-            <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${count}× · ${pct}%</span>
+            <span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${count}× · ${pct}%</span>
           </div>
           <div style="background:var(--card2);border-radius:3px;height:3px;">
             <div style="background:${color};height:3px;border-radius:3px;width:${pct}%;transition:width 0.5s;"></div>
@@ -2188,7 +2188,7 @@ async function _loadStatsInProfile() {
         </div>`;
       }).join('')}
   </div>
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Ostatnie treningi</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Ostatnie treningi</div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
     ${[...all].reverse().slice(0,10).map(l=>{
       const type=l.training_type||'Trening';const color=typeColors2[type]||'#66636e';
@@ -2197,8 +2197,8 @@ async function _loadStatsInProfile() {
       const feel=l.feel==='good'?'😊':l.feel==='bad'?'😓':'😐';
       return `<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;">
         <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${type}</div><div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div></div>
-        <div style="text-align:right;flex-shrink:0;"><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${dist}</div>${l.pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${l.pace}/km</div>`:''}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;">${type}</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${date}</div></div>
+        <div style="text-align:right;flex-shrink:0;"><div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${dist}</div>${l.pace?`<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">${l.pace}/km</div>`:''}</div>
         <div style="font-size:16px;">${feel}</div>
       </div>`;
     }).join('')}
@@ -2271,7 +2271,7 @@ function calcZones() {
   const el = document.getElementById('zones-result');
   if (!el) return;
   if (!age || !rhr || age < 10 || age > 90 || rhr < 30 || rhr > 120) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz wiek i HR spoczynkowe</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz wiek i HR spoczynkowe</div>';
     return;
   }
   const hrMax = 220 - age;
@@ -2289,12 +2289,12 @@ function calcZones() {
     return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
       <div style="width:3px;height:40px;background:${z.color};border-radius:2px;flex-shrink:0;"></div>
       <div style="flex:1;">
-        <div style="font-size:11px;font-weight:600;margin-bottom:1px;">${z.name} <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${z.color};">${lo}–${hi}</span> <span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">bpm</span></div>
+        <div style="font-size:11px;font-weight:600;margin-bottom:1px;">${z.name} <span style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${z.color};">${lo}–${hi}</span> <span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">bpm</span></div>
         <div style="font-size:10px;color:var(--muted);">${z.desc}</div>
       </div>
     </div>`;
   }).join('');
-  el.innerHTML = `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">${hrMax}</strong> bpm · Rezerwa: <strong style="color:var(--fg);">${hrr}</strong> bpm</div>${zoneRows}`;
+  el.innerHTML = `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">${hrMax}</strong> bpm · Rezerwa: <strong style="color:var(--fg);">${hrr}</strong> bpm</div>${zoneRows}`;
 }
 
 function _parseTimeToSecs(t) {
@@ -2323,7 +2323,7 @@ function calcRiegel() {
 
   const secsA = _parseTimeToSecs(timeStr);
   if (!secsA || !distA) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz czas dla wybranego dystansu</div>';
+    el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz czas dla wybranego dystansu</div>';
     return;
   }
 
@@ -2344,12 +2344,12 @@ function calcRiegel() {
       <div style="font-size:13px;">${t.name}</div>
       <div style="text-align:right;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;">${_secsToTime(secsB)}</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${paceStr}</div>
+        <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">${paceStr}</div>
       </div>
     </div>`;
   }).join('');
 
-  el.innerHTML = `<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Na podstawie ${_secsToTime(secsA)} na ${distA} km · tempo ${_secsToTime(paceA)}/km</div>${rows}`;
+  el.innerHTML = `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Na podstawie ${_secsToTime(secsA)} na ${distA} km · tempo ${_secsToTime(paceA)}/km</div>${rows}`;
 }
 
 function calcPaceCalc() {
@@ -2377,7 +2377,7 @@ function calcPaceCalc() {
     let html = '';
     for (let i = 1; i <= numSplits; i++) {
       const splitSecs = paceSecs * interval * i;
-      html += `<div style="background:var(--card2);border-radius:8px;padding:6px 10px;font-family:'DM Mono',monospace;font-size:10px;text-align:center;">
+      html += `<div style="background:var(--card2);border-radius:8px;padding:6px 10px;font-family:DM Mono,monospace;font-size:10px;text-align:center;">
         <div style="color:var(--muted);font-size:8px;margin-bottom:2px;">${i * interval} km</div>
         <div style="color:var(--fg);">${_secsToTime(splitSecs)}</div>
       </div>`;
@@ -2481,7 +2481,7 @@ function renderGoals(goals) {
       <div style="font-size:20px;">🏁</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:500;">${g.name||'—'}</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${dateStr}${days !== null && days >= 0 ? ' · ' + days + ' dni' : ''}</div>
+        <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${dateStr}${days !== null && days >= 0 ? ' · ' + days + ' dni' : ''}</div>
       </div>
       <button onclick="deleteGoal(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;">🗑</button>
     </div>`;
@@ -2631,7 +2631,7 @@ async function loadMessages() {
   if (error) { console.error(error); return; }
 
   const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
-    <button onclick="clearAllMessages()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
+    <button onclick="clearAllMessages()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
   </div>`;
 
   if (!data || data.length === 0) {
@@ -2665,8 +2665,8 @@ async function deleteMsgPrompt(e, msgId, isAthlete) {
   menu.style.cssText = 'position:fixed;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:500;box-shadow:0 8px 24px rgba(0,0,0,0.5);';
   menu.style.left = e.clientX + 'px';
   menu.style.top = (e.clientY - 80) + 'px';
-  menu.innerHTML = `<button onclick="recallMsg('${msgId}')" style="display:block;width:100%;background:none;border:none;color:var(--red);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:8px 14px;cursor:pointer;text-align:left;border-radius:6px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">↩ Cofnij wiadomość</button>
-  <button onclick="document.getElementById('msg-ctx-menu').remove()" style="display:block;width:100%;background:none;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:11px;padding:8px 14px;cursor:pointer;text-align:left;border-radius:6px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">Anuluj</button>`;
+  menu.innerHTML = `<button onclick="recallMsg('${msgId}')" style="display:block;width:100%;background:none;border:none;color:var(--red);font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:8px 14px;cursor:pointer;text-align:left;border-radius:6px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">↩ Cofnij wiadomość</button>
+  <button onclick="document.getElementById('msg-ctx-menu').remove()" style="display:block;width:100%;background:none;border:none;color:var(--muted);font-family:DM Mono,monospace;font-size:11px;padding:8px 14px;cursor:pointer;text-align:left;border-radius:6px;" onmouseover="this.style.background='var(--card2)'" onmouseout="this.style.background='none'">Anuluj</button>`;
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', () => menu.remove(), {once:true}), 50);
 }
@@ -3222,7 +3222,7 @@ async function loadCoaches() {
       <div style="width:40px;height:40px;border-radius:50%;background:${isSel?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;transition:background 0.15s;">${initials}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
-        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${c.specialization}</div>`:''}
+        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${c.specialization}</div>`:''}
       </div>
       <div class="ob-check" style="${isSel?'background:var(--accent);border-color:var(--accent);':''}">${isSel?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
     </div>`;
@@ -3278,7 +3278,7 @@ async function openChangeCoach() {
       <div style="width:38px;height:38px;border-radius:50%;background:${isSelected?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${initials}</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name}</div>
-        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${c.specialization}</div>`:''}
+        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${c.specialization}</div>`:''}
       </div>
       <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isSelected?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;">${isSelected?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
     </div>`;
@@ -4136,12 +4136,12 @@ async function loadWeekPlan() {
       <div style="position:relative;z-index:1;">
       <div style="display:flex;align-items:center;padding:12px 14px;gap:14px;cursor:pointer;">
         <div style="width:44px;height:44px;border-radius:12px;background:${isToday?'var(--accent)':'rgba(255,255,255,0.04)'};display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">
-          <div style="font-size:9px;letter-spacing:0.1em;color:${isToday?'rgba(255,255,255,0.7)':'var(--muted)'};font-family:'DM Mono',monospace;">${dayName}</div>
+          <div style="font-size:9px;letter-spacing:0.1em;color:${isToday?'rgba(255,255,255,0.7)':'var(--muted)'};font-family:DM Mono,monospace;">${dayName}</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:${isToday?'#fff':'var(--fg)'};">${dayNum}</div>
         </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:${isToday?'700':'500'};color:${isRest?'var(--muted)':'var(--fg)'};">${isRest?'Odpoczynek':t.type}</div>
-          ${dist>0?`<div style="font-size:11px;color:var(--accent);font-family:'DM Mono',monospace;margin-top:2px;font-weight:600;">${dist} km</div>`:''}
+          ${dist>0?`<div style="font-size:11px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;font-weight:600;">${dist} km</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           ${statusDot}
@@ -4152,16 +4152,16 @@ async function loadWeekPlan() {
         <div style="height:8px;"></div>
         ${dist>0?`<div style="display:flex;gap:12px;margin-bottom:10px;">
           <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;">
-            <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Dystans</div>
+            <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Dystans</div>
             <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--fg);margin-top:2px;">${dist} <span style="font-size:14px;color:var(--muted);font-family:'DM Sans',sans-serif;">km</span></div>
           </div>
           ${t.pace?`<div style="flex:1;background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;">
-            <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Tempo</div>
-            <div style="font-size:18px;font-family:'DM Mono',monospace;color:var(--fg);margin-top:2px;">${t.pace}</div>
+            <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Tempo</div>
+            <div style="font-size:18px;font-family:DM Mono,monospace;color:var(--fg);margin-top:2px;">${t.pace}</div>
           </div>`:''}
         </div>`:''}
         ${descDisplay!=='<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>'?`<div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.65;font-family:'DM Sans',sans-serif;">${descDisplay}</div>`:''}
-        ${!isDone&&!isRest?`<button onclick="openModalForDate('${t.date}',event)" style="margin-top:12px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(224,85,32,0.35);">↓ Zaloguj wynik</button>`:''}
+        ${!isDone&&!isRest?`<button onclick="openModalForDate('${t.date}',event)" style="margin-top:12px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(224,85,32,0.35);">↓ Zaloguj wynik</button>`:''}
       </div>
     </div></div>`;
   }).join('');
@@ -4427,7 +4427,7 @@ function renderLogsDb(data) {
         <div style="position:relative;z-index:1;padding:14px 16px;display:flex;align-items:center;gap:14px;">
           <img src="${badgeImg}" alt="${badgeName}" style="width:56px;height:56px;object-fit:contain;flex-shrink:0;" onerror="this.style.display='none'">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;margin-bottom:3px;">Odznaka zdobyta · ${dateStr}</div>
+            <div style="font-size:8px;letter-spacing:0.2em;text-transform:uppercase;color:${col};font-family:DM Mono,monospace;margin-bottom:3px;">Odznaka zdobyta · ${dateStr}</div>
             <div style="font-size:15px;font-weight:700;color:#fff;">${badgeName}</div>
             ${badgeDesc ? `<div style="font-size:11px;color:rgba(255,255,255,0.55);margin-top:2px;">${badgeDesc}</div>` : ''}
           </div>
@@ -4449,19 +4449,19 @@ function renderLogsDb(data) {
       <div style="height:70px;"></div>
       <div style="position:relative;z-index:1;padding:8px 14px 12px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:'DM Mono',monospace;background:rgba(0,0,0,0.55);padding:3px 8px;border-radius:6px;border:1px solid ${col}55;">${type}</span>
-          <span style="font-size:9px;color:rgba(255,255,255,0.45);font-family:'DM Mono',monospace;margin-left:auto;">${date}</span>
+          <span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 8px;border-radius:6px;border:1px solid ${col}55;">${type}</span>
+          <span style="font-size:9px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;margin-left:auto;">${date}</span>
           ${feelEmoji ? '<div style="margin-left:4px;">'+feelEmoji+'</div>' : ''}
           <button onclick="event.stopPropagation();deleteLog('${l.id}')" style="background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);cursor:pointer;font-size:11px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
         </div>
         ${dist ? `<div style="display:flex;align-items:baseline;gap:4px;margin-bottom:2px;">
           <span style="font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">${dist}</span>
-          <span style="font-size:11px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;">km</span>
+          <span style="font-size:11px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">km</span>
           ${detParts.length ? '<span style="font-size:10px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;margin-left:6px;">'+detParts.join(' · ')+'</span>' : ''}
         </div>` : ''}
         ${l.comment ? `<div style="font-size:11px;color:rgba(255,255,255,0.7);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"${l.comment}"</div>` : ''}
         ${screensHtml}
-        ${l.strava_link ? `<div style="margin-top:6px;"><a href="${l.strava_link}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}
+        ${l.strava_link ? `<div style="margin-top:6px;"><a href="${l.strava_link}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:DM Mono,monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -4783,7 +4783,7 @@ async function loadStravaActivities() {
       <svg width="16" height="16" viewBox="0 0 24 24" fill="#FC4C02" style="flex-shrink:0;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
-        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${date} · ${km} km · ${pace}/km</div>
+        <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${date} · ${km} km · ${pace}/km</div>
       </div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#FC4C02;flex-shrink:0;">${km}<span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;"> km</span></div>
     </div>`;
@@ -4855,13 +4855,13 @@ async function confirmDeleteAccount() {
         Spowoduje to <strong style="color:var(--fg);">trwałe usunięcie</strong> Twojego konta, wszystkich treningów i danych. Tej operacji nie można cofnąć.
       </div>
       <div style="margin-bottom:16px;">
-        <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Wpisz USUŃ aby potwierdzić</label>
+        <label style="display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Wpisz USUŃ aby potwierdzić</label>
         <input id="delete-confirm-input" type="text" placeholder="USUŃ"
-          style="width:100%;background:var(--card2);border:1px solid var(--red);color:var(--fg);font-family:'DM Mono',monospace;font-size:16px;padding:12px;border-radius:8px;outline:none;box-sizing:border-box;letter-spacing:0.1em;">
+          style="width:100%;background:var(--card2);border:1px solid var(--red);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:12px;border-radius:8px;outline:none;box-sizing:border-box;letter-spacing:0.1em;">
       </div>
       <div style="display:flex;gap:8px;">
-        <button onclick="document.getElementById('delete-account-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Anuluj</button>
-        <button onclick="executeDeleteAccount()" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:10px;padding:13px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;" id="delete-confirm-btn">Usuń konto</button>
+        <button onclick="document.getElementById('delete-account-modal').remove()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:10px;padding:13px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;">Anuluj</button>
+        <button onclick="executeDeleteAccount()" style="flex:1;background:var(--red);color:#fff;border:none;border-radius:10px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;" id="delete-confirm-btn">Usuń konto</button>
       </div>
     </div>`;
   document.body.appendChild(modal);
@@ -5221,7 +5221,7 @@ async function openComments(logId) {
     <!-- INPUT ROW -->
     <div style="padding:10px 16px 28px;display:flex;gap:6px;border-top:1px solid var(--border);flex-shrink:0;align-items:center;position:relative;">
       <button id="cm-emoji-btn" onclick="toggleCmPanel('emoji')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">😊</button>
-      <button id="cm-gif-btn" onclick="toggleCmPanel('gif')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--muted);flex-shrink:0;transition:all 0.15s;">GIF</button>
+      <button id="cm-gif-btn" onclick="toggleCmPanel('gif')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;color:var(--muted);flex-shrink:0;transition:all 0.15s;">GIF</button>
       <input id="comment-inp" type="text" placeholder="Napisz komentarz..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:12px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='rgba(232,86,30,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'" onkeydown="if(event.key==='Enter')submitComment('${logId}')">
       <button onclick="submitComment('${logId}')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(232,86,30,0.35);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
     </div>
@@ -5432,7 +5432,7 @@ function loadChallenges() {
     const pct = Math.min(100, Math.round((prog||0) / ch.target * 100));
     const col = ch.color;
     const almostLabel = (!earned && pct >= 60)
-      ? `<div style="font-size:10px;color:${col};font-family:'DM Mono',monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
+      ? `<div style="font-size:10px;color:${col};font-family:DM Mono,monospace;margin-top:6px;">Zostało ${(ch.target - (prog||0)).toFixed(ch.unit==='km'?1:0)} ${ch.unit} do odznaki 🔥</div>`
       : '';
     return `<div style="background:var(--card);border:1px solid ${earned?col:'var(--border)'};border-radius:16px;padding:14px 16px;margin-bottom:10px;${earned?'box-shadow:0 0 16px '+col+'22;':''}">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
@@ -5441,14 +5441,14 @@ function loadChallenges() {
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <div style="font-size:14px;font-weight:600;">${ch.title}</div>
             ${earned ? `<span style="color:#3db870;font-size:13px;">✓</span>` : ''}
-            <span style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">${isMonthly?'MIESIĄC':'TYDZIEŃ'}</span>
+            <span style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">${isMonthly?'MIESIĄC':'TYDZIEŃ'}</span>
           </div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px;">${ch.desc}</div>
           ${almostLabel}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:${col};">${typeof prog==='number'?prog.toFixed(ch.unit==='km'?1:0):'0'}</div>
-          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">/ ${ch.target} ${ch.unit}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">/ ${ch.target} ${ch.unit}</div>
         </div>
       </div>
       <div style="background:rgba(255,255,255,0.06);border-radius:4px;height:4px;overflow:hidden;">
@@ -5459,15 +5459,15 @@ function loadChallenges() {
 
   // Render z zerowym postępem najpierw
   function render(progMap, earnedSet) {
-    let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
+    let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
     [w1,w2,w3].forEach(ch => {
       html += buildCard(ch, progMap[ch.kind]?.[ch.id]||progMap[ch.kind]||0, earnedSet.has(ch.badge), false);
     });
-    html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
+    html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
     [m1,m2].forEach(ch => {
       html += buildCard(ch, progMap['m_'+ch.id]||0, earnedSet.has(ch.badge), true);
     });
-    html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
+    html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
     el.innerHTML = html;
   }
 
@@ -5524,15 +5524,15 @@ function loadChallenges() {
 
     // Specjalna mapa dla render
     function renderWithData() {
-      let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
+      let html = `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);padding:0 0 8px;">Ten tydzień</div>`;
       [w1,w2,w3].forEach(ch => {
         html += buildCard(ch, progMap[ch.id]||0, earnedSet.has(ch.badge), false);
       });
-      html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
+      html += `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);padding:8px 0 8px;">Ten miesiąc</div>`;
       [m1,m2].forEach(ch => {
         html += buildCard(ch, progMap['m_'+ch.id]||0, earnedSet.has(ch.badge), true);
       });
-      html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
+      html += `<div style="text-align:center;padding:10px 0 0;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">🔄 Tygodniowe resetują się w poniedziałek</div>`;
       el.innerHTML = html;
     }
     renderWithData();
@@ -5544,7 +5544,7 @@ async function loadFollowing() {
   if (!_athleteId) return;
   const el = document.getElementById('social-following-content');
   if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Ładowanie...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
 
   // Krok 1: pobierz listę obserwowanych ID
   const { data: followRows, error: fErr } = await _sb.from('follows')
@@ -5554,7 +5554,7 @@ async function loadFollowing() {
   console.log('follows rows:', followRows, fErr);
 
   if (!followRows || followRows.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Nie obserwujesz jeszcze nikogo.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Nie obserwujesz jeszcze nikogo.</div>';
     return;
   }
 
@@ -5565,7 +5565,7 @@ async function loadFollowing() {
     .in('id', ids);
 
   if (!athletes || athletes.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak danych obserwowanych.</div>';
+    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych obserwowanych.</div>';
     return;
   }
 
@@ -5576,11 +5576,11 @@ async function loadFollowing() {
       <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
       <div style="flex:1;">
         <div style="font-size:14px;font-weight:600;">${name}</div>
-        ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${a.goal}</div>` : ''}
+        ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">${a.goal}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">M: ${a.pb_marathon}</div>` : ''}
-        <button onclick="event.stopPropagation();unfollowAthlete('${a.id}',this.closest('[onclick]'))" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;cursor:pointer;">Przestań</button>
+        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">M: ${a.pb_marathon}</div>` : ''}
+        <button onclick="event.stopPropagation();unfollowAthlete('${a.id}',this.closest('[onclick]'))" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;cursor:pointer;">Przestań</button>
       </div>
     </div>`;
   }).join('');
@@ -5594,14 +5594,14 @@ function socialSearch(q) {
     loadSuggestedProfiles();
     return;
   }
-  el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Szukam...</div>';
+  el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Szukam...</div>';
   _searchTimer = setTimeout(()=>_doSearch(q), 400);
 }
 
 async function loadSuggestedProfiles() {
   const el = document.getElementById('social-search-results');
   if (!el) return;
-  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:10px;">Sugerowane profile</div>';
+  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Sugerowane profile</div>';
 
   const { data } = await _sb.from('athletes')
     .select('id,full_name,pb_marathon,goal')
@@ -5610,12 +5610,12 @@ async function loadSuggestedProfiles() {
     .limit(6);
 
   if (!data || data.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Wpisz imię żeby szukać</div>';
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz imię żeby szukać</div>';
     return;
   }
   const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
-  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:\'DM Mono\',monospace;margin-bottom:10px;">Sugerowane profile</div>'
+  el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Sugerowane profile</div>'
     + _buildAthleteCards(data, fSet);
 }
 
@@ -5631,7 +5631,7 @@ async function _doSearch(q) {
   console.log('Search:', q, data, error);
   const results = (data || []).filter(a => a.id !== _athleteId);
   if (!results.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak wyników dla "' + q + '"</div>';
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + q + '"</div>';
     return;
   }
   const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
@@ -5922,7 +5922,7 @@ async function openNotifications() {
       <button onclick="document.getElementById('notif-panel').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
     </div>
     <div id="notif-list" style="max-height:320px;overflow-y:auto;padding:8px;">
-      <div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Ładowanie...</div>
+      <div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
     </div>`;
   document.body.appendChild(panel);
 
@@ -5947,7 +5947,7 @@ async function openNotifications() {
     if (!listEl) return;
 
     if (!notifs || notifs.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Brak powiadomień</div>';
+      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak powiadomień</div>';
     } else {
       var icons = { follow: '\ud83d\udc64', message: '\ud83d\udcac', like: '\ud83d\udd25', friend_request: '\ud83e\udd1d', friend_accepted: '\u2705', chat: '\ud83d\udcac' };
       listEl.innerHTML = notifs.map(n => {
@@ -5963,7 +5963,7 @@ async function openNotifications() {
           <span style="font-size:18px;flex-shrink:0;">${icons[n.type]||'🔔'}</span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:12px;line-height:1.4;">${n.message}</div>
-            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">${time}</div>
+            <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">${time}</div>
           </div>
           ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#3db870;flex-shrink:0;margin-top:4px;"></div>' : ''}
         </div>`;
@@ -5975,7 +5975,7 @@ async function openNotifications() {
     }
   } catch(e) {
     const listEl = document.getElementById('notif-list');
-    if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:\'DM Mono\',monospace;">Utwórz tabelę notifications w Supabase</div>';
+    if (listEl) listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Utwórz tabelę notifications w Supabase</div>';
   }
 }
 
@@ -6069,24 +6069,41 @@ async function loadChatConvList() {
 }
 
 function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoach) {
-  var avContent = avatarUrl
-    ? '<img src="'+avatarUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.opacity=0">'
-    : ini;
+  var div = document.createElement('div');
+  div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);';
+  div.addEventListener('mouseenter', function(){ div.style.background='rgba(255,255,255,0.03)'; });
+  div.addEventListener('mouseleave', function(){ div.style.background='transparent'; });
+  div.addEventListener('click', function(){ openChatThread(mode, pid||null, name); });
+
   var avBg = isCoach ? 'var(--accent)' : 'linear-gradient(135deg,var(--accent),#ff7a45)';
-  var onclick = mode==='coach'
-    ? 'openChatThread(\'coach\',null,\'Trener\')'
-    : 'openChatThread(\'peer\',\''+pid+'\',\''+name.replace(/'/g,'\\'')+'\')';
-  return '<div onclick="'+onclick+'" style="display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">'
-    +'<div style="width:50px;height:50px;border-radius:50%;background:'+avBg+';display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+avContent+'</div>'
-    +'<div style="flex:1;min-width:0;">'
-    +'<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'+name.replace(/</g,'&lt;')+(unread>0?'<span style="background:var(--accent);color:#fff;font-size:9px;border-radius:8px;padding:1px 6px;">'+unread+'</span>':'')+'</div>'
-    +'<div style="font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+preview.replace(/</g,'&lt;')+'</div>'
-    +'</div>'
-    +(time?'<div style="font-size:10px;color:var(--muted);flex-shrink:0;">'+time+'</div>':'')
-    +'</div>';
+  var av = document.createElement('div');
+  av.style.cssText = 'width:50px;height:50px;border-radius:50%;background:'+avBg+';display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
+  if (avatarUrl) {
+    var img = document.createElement('img'); img.src=avatarUrl;
+    img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;';
+    img.onerror=function(){this.style.opacity=0;}; av.appendChild(img);
+  } else { av.textContent = ini; }
+
+  var info = document.createElement('div'); info.style.cssText='flex:1;min-width:0;';
+  var nameRow = document.createElement('div'); nameRow.style.cssText='font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;';
+  nameRow.textContent = name;
+  if (unread > 0) {
+    var badge = document.createElement('span');
+    badge.style.cssText='background:var(--accent);color:#fff;font-size:9px;border-radius:8px;padding:1px 6px;';
+    badge.textContent = unread; nameRow.appendChild(badge);
+  }
+  var prev = document.createElement('div'); prev.style.cssText='font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'; prev.textContent=preview;
+  info.appendChild(nameRow); info.appendChild(prev);
+
+  div.appendChild(av); div.appendChild(info);
+  if (time) { var t=document.createElement('div'); t.style.cssText='font-size:10px;color:var(--muted);flex-shrink:0;'; t.textContent=time; div.appendChild(t); }
+  return div.outerHTML;
 }
 
+
 async function openChatThread(mode, pid, name) {
+  if (!mode) return;
+  pid = pid || null;
   _chatMode = mode;
   _chatPeerId = pid;
 
@@ -6240,42 +6257,42 @@ async function loadStats() {
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--accent);line-height:1;">${km7.toFixed(0)}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / tydzień</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / tydzień</div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--green);line-height:1;">${sessions30}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji / 30 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji / 30 dni</div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--blue);line-height:1;">${bestPace}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">najlepsze tempo</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">najlepsze tempo</div>
     </div>
   </div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--accent);line-height:1;">${km30.toFixed(0)}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 30 dni</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">km / 30 dni</div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--purple);line-height:1;">${avgPace}</div>
-      <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">śr. tempo /km</div>
+      <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">śr. tempo /km</div>
     </div>
   </div>
 
   <!-- WYKRES: km tygodniowo -->
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Kilometry tygodniowo</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
     <canvas id="chart-weekly" height="140"></canvas>
   </div>
 
   <!-- WYKRES: aktywność 30 dni -->
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Aktywność ostatnie 30 dni</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Aktywność ostatnie 30 dni</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;">
     <canvas id="chart-daily" height="100"></canvas>
   </div>
 
   <!-- TYPY TRENINGÓW -->
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Typy treningów (30 dni)</div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;display:flex;gap:16px;align-items:center;">
     <div style="flex-shrink:0;"><canvas id="chart-types" width="100" height="100"></canvas></div>
     <div style="flex:1;">
@@ -6286,7 +6303,7 @@ async function loadStats() {
           return `<div style="margin-bottom:8px;">
             <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
               <div style="font-size:11px;">${type}</div>
-              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${count}× · ${pct}%</div>
+              <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${count}× · ${pct}%</div>
             </div>
             <div style="background:var(--card2);border-radius:3px;height:3px;">
               <div style="background:${color};height:3px;border-radius:3px;width:${pct}%;"></div>
@@ -6298,7 +6315,7 @@ async function loadStats() {
   </div>
 
   <!-- OSTATNIE TRENINGI -->
-  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Ostatnie treningi</div>
+  <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Ostatnie treningi</div>
   <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
     ${[...all].reverse().slice(0,8).map(l=>{
       const type=l.training_type||'Trening';
@@ -6311,11 +6328,11 @@ async function loadStats() {
         <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:500;">${type}</div>
-          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}${l.comment?'  ·  <span style="font-style:italic;">'+l.comment.slice(0,30)+'...</span>':''}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${date}${l.comment?'  ·  <span style="font-style:italic;">'+l.comment.slice(0,30)+'...</span>':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${dist}</div>
-          ${pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${pace}</div>`:''}
+          ${pace?`<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">${pace}</div>`:''}
         </div>
         <div style="font-size:16px;">${feel}</div>
       </div>`;
@@ -6477,7 +6494,7 @@ const Anim = {
       <div style="
         position:fixed;bottom:96px;left:50%;transform:translateX(-50%) translateY(16px) scale(0.92);
         background:linear-gradient(135deg,var(--green),#2da85f);
-        color:#061a0e;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;
+        color:#061a0e;font-family:DM Mono,monospace;font-size:13px;font-weight:600;
         letter-spacing:0.08em;padding:12px 22px;border-radius:28px;
         white-space:nowrap;z-index:9999;
         box-shadow:0 8px 32px rgba(61,184,112,0.4);
@@ -6801,18 +6818,18 @@ function _stopSocialBannerRotation() {
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;"><span style="color:var(--accent)">SPOŁE</span><span style="color:#f0ede8">CZNOŚĆ</span></div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;"><span style="color:var(--accent)">SPOŁE</span><span style="color:#f0ede8">CZNOŚĆ</span></div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
-      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
-      <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
-      <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
-      <button id="stab-friends" onclick="switchSocialTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Znajomi<span id="friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
-      <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
-      <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
+      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
+      <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
+      <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
+      <button id="stab-friends" onclick="switchSocialTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Znajomi<span id="friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
+      <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
+      <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
     </div>
   </div>
   <div id="social-feed" style="padding:0 16px;">
-    <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;line-height:1.8;">Zaobserwuj innych bieg aczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
+    <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.8;">Zaobserwuj innych bieg aczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
@@ -6825,7 +6842,7 @@ function _stopSocialBannerRotation() {
     <div id="social-friends-content"></div>
   </div>
   <div id="social-following" style="display:none;padding:0 16px;">
-    <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
+    <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
   </div>
   <div id="social-find" style="display:none;padding:0 16px;">
     <div style="position:relative;margin-bottom:12px;">
@@ -6834,14 +6851,14 @@ function _stopSocialBannerRotation() {
         onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
       <svg style="position:absolute;left:13px;top:50%;transform:translateY(-50%);" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     </div>
-    <div id="social-search-results"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wpisz imię żeby szukać</div></div>
+    <div id="social-search-results"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz imię żeby szukać</div></div>
   </div>
 </div>
 
 <div id="section-stats" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;">
     <div>
-      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">Statystyki</div>
+      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Statystyki</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin-top:2px;">Moje dane</div>
     </div>
   </div>
@@ -6907,7 +6924,7 @@ function _stopSocialBannerRotation() {
     <!-- Wybór trenera (pokazuje się gdy mode=coach lub find) -->
     <div id="ob-coach-section" style="display:none;margin-top:16px;">
       <div class="ob-label">Wybierz trenera</div>
-      <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;padding:8px 0;">&#x23F3; Ładuję listę trenerów...</div>
+      <div id="ob-coach-loading" style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;padding:8px 0;">&#x23F3; Ładuję listę trenerów...</div>
       <div id="ob-coaches" style="display:none;"></div>
     </div>
   </div>
@@ -6935,13 +6952,13 @@ function _stopSocialBannerRotation() {
         <img id="ob-avatar-preview" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;" />
       </div>
       <input type="file" id="ob-avatar-input" accept="image/*" style="display:none" onchange="obPreviewAvatar(this)">
-      <div style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;">Kliknij aby dodać zdjęcie</div>
+      <div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Kliknij aby dodać zdjęcie</div>
     </div>
     <div class="ob-field" style="margin-top:8px;">
       <label class="ob-label">Twoje imię</label>
       <input class="ob-input" id="ob-name-input" type="text" placeholder="np. Filip" autocomplete="given-name">
     </div>
-    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;margin-top:8px;">Inni biegacze zobaczą Twój profil</div>
+    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;margin-top:8px;">Inni biegacze zobaczą Twój profil</div>
   </div>
   <div class="ob-footer">
     <button class="ob-btn" onclick="obNext(2)">Dalej &#x2192;</button>
@@ -6981,7 +6998,7 @@ function _stopSocialBannerRotation() {
         <input class="ob-pb-input" id="ob-pb-mar" type="text" placeholder="3:30:00" maxlength="7" inputmode="numeric" oninput="autoColonTime(this)">
       </div>
     </div>
-    <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;margin-top:16px;">Możesz uzupełnić później w profilu</div>
+    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;margin-top:16px;">Możesz uzupełnić później w profilu</div>
   </div>
   <div class="ob-footer">
     <button class="ob-btn" onclick="obNext(3)">Dalej &#x2192;</button>
@@ -7030,7 +7047,7 @@ function _stopSocialBannerRotation() {
       <div><div class="ob-card-name">Przygotowanie do startu</div><div class="ob-card-sub">Mam zaplanowany wyścig i chcę się do niego przygotować</div></div>
       <div class="ob-check"></div>
     </div>
-    <div id="ob-error" style="display:none;margin-top:12px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:#f08080;border-radius:8px;padding:10px 14px;font-size:12px;font-family:'DM Mono',monospace;"></div>
+    <div id="ob-error" style="display:none;margin-top:12px;background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:#f08080;border-radius:8px;padding:10px 14px;font-size:12px;font-family:DM Mono,monospace;"></div>
   </div>
   <div class="ob-footer">
     <button class="ob-btn" onclick="obNext(4)" id="ob-s4-next-btn">Dalej →</button>
@@ -7086,13 +7103,13 @@ function _stopSocialBannerRotation() {
 .prs-s{position:absolute;inset:0;display:none;flex-direction:column;align-items:stretch;justify-content:flex-start;opacity:0;transition:opacity 0.35s ease;overflow:hidden;background:#000;height:100%;box-sizing:border-box;}
 .prs-s-glow{position:absolute;inset:0;pointer-events:none;}
 .prs-s-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 24px;}
-.prs-s-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:16px;}
+.prs-s-label{font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.35em;text-transform:uppercase;color:rgba(255,255,255,0.55);margin-bottom:16px;}
 .prs-s-num{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(72px,22vw,130px);line-height:0.9;letter-spacing:0.02em;}
-.prs-s-unit{font-family:'DM Mono',monospace;font-size:14px;letter-spacing:0.2em;color:rgba(255,255,255,0.7);margin-top:10px;text-transform:uppercase;}
+.prs-s-unit{font-family:DM Mono,monospace;font-size:14px;letter-spacing:0.2em;color:rgba(255,255,255,0.7);margin-top:10px;text-transform:uppercase;}
 .prs-s-bar-line{position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0.6;}
 .prs-s-final{background-color:#0a0a0a;background-size:cover;background-position:center top;}
 .prs-s-final-inner{position:relative;z-index:2;text-align:center;}
-.prs-s-final-logo{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.08em;}
+.prs-s-final-logo{font-family:DM Mono,monospace;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.08em;}
 .prs-s-final-logo span{color:#e8561e;}
 .prs-s-final-tagline{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(48px,15vw,80px);color:#fff;letter-spacing:0.04em;line-height:1;margin-top:12px;}
 </style>
@@ -7334,9 +7351,9 @@ window.PRSclose = function() { if(window.PRS) window.PRS.close(); };
 #badge-popup.show{transform:translateX(-50%) translateY(16px);}
 #badge-popup img{width:64px;height:64px;border-radius:12px;flex-shrink:0;box-shadow:0 0 20px rgba(232,86,30,0.4);}
 #badge-popup-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);line-height:1;}
-#badge-popup-name{font-size:12px;color:var(--accent);font-family:'DM Mono',monospace;font-weight:700;margin:4px 0 2px;letter-spacing:0.08em;}
+#badge-popup-name{font-size:12px;color:var(--accent);font-family:DM Mono,monospace;font-weight:700;margin:4px 0 2px;letter-spacing:0.08em;}
 #badge-popup-desc{font-size:11px;color:var(--fg2);line-height:1.4;}
-#badge-popup-rarity{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;margin-top:6px;padding:3px 8px;border-radius:8px;display:inline-block;}
+#badge-popup-rarity{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;margin-top:6px;padding:3px 8px;border-radius:8px;display:inline-block;}
 /* ── Badge grid w profilu ── */
 .badge-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px 16px;}
 .badge-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;
@@ -7346,7 +7363,7 @@ window.PRSclose = function() { if(window.PRS) window.PRS.close(); };
 .badge-item.earned:hover{border-color:rgba(232,86,30,0.5);transform:translateY(-2px);box-shadow:0 4px 20px rgba(232,86,30,0.2);}
 .badge-item img{width:52px;height:52px;border-radius:8px;}
 .badge-item.locked img{filter:grayscale(1) brightness(0.35);}
-.badge-item-name{font-size:9px;font-family:'DM Mono',monospace;text-align:center;color:var(--muted);line-height:1.2;letter-spacing:0.03em;}
+.badge-item-name{font-size:9px;font-family:DM Mono,monospace;text-align:center;color:var(--muted);line-height:1.2;letter-spacing:0.03em;}
 .badge-item.earned .badge-item-name{color:var(--fg2);}
 .badge-new-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(232,86,30,0.8);animation:pulseAnim 1.5s infinite;}
 /* ── Rarity colors ── */
@@ -7629,8 +7646,8 @@ function renderBadgesSection() {
     const catBadges = BADGES.filter(b => b.cat === cat);
     const earnedInCat = catBadges.filter(b => window._earnedBadges.has(b.id)).length;
     html += `<div style="padding:0 16px 4px;margin-top:16px;display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);">${cat}</div>
-      <div style="font-size:9px;font-family:'DM Mono',monospace;color:var(--accent);">${earnedInCat}/${catBadges.length}</div>
+      <div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);">${cat}</div>
+      <div style="font-size:9px;font-family:DM Mono,monospace;color:var(--accent);">${earnedInCat}/${catBadges.length}</div>
     </div>
     <div class="badge-grid">`;
     for (const b of catBadges) {
@@ -7640,7 +7657,7 @@ function renderBadgesSection() {
         ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
         <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
         <div class="badge-item-name">${b.name}</div>
-        ${earned ? `<div style="font-size:8px;font-family:'DM Mono',monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
+        ${earned ? `<div style="font-size:8px;font-family:DM Mono,monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
       </div>`;
     }
     html += '</div>';
@@ -7651,10 +7668,10 @@ function renderBadgesSection() {
     <div style="padding:0 16px 8px;display:flex;align-items:center;gap:10px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);">${earned}</div>
       <div><div style="font-size:11px;font-weight:600;">zdobyte odznaki</div>
-        <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${BADGES.length - earned} pozostało</div>
+        <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">${BADGES.length - earned} pozostało</div>
       </div>
       <div style="margin-left:auto;background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:10px;padding:6px 12px;text-align:center;">
-        <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.12em;">PROGRES</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.12em;">PROGRES</div>
         <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/BADGES.length*100)}%</div>
       </div>
     </div>
@@ -7681,13 +7698,13 @@ function _renderBadgeEvent(l, ath) {
       <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${ini}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:600;">${name}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;">zdobył odznakę · ${date}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">zdobył odznakę · ${date}</div>
       </div>
       <img src="${BASE_URL}${badge.id}.webp" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;box-shadow:0 0 12px ${col}55;" loading="lazy">
     </div>
     <div style="padding:0 14px 12px;display:flex;align-items:center;gap:8px;">
       <div style="font-size:13px;font-weight:700;color:${col};">${badge.name}</div>
-      <span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;font-family:'DM Mono',monospace;color:${col};background:${col}18;padding:2px 7px;border-radius:6px;border:1px solid ${col}44;">${RARITY_LABEL[badge.rarity]}</span>
+      <span style="font-size:8px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:${col};background:${col}18;padding:2px 7px;border-radius:6px;border:1px solid ${col}44;">${RARITY_LABEL[badge.rarity]}</span>
     </div>
   </div>`;
 }
