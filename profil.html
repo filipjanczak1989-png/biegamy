@@ -439,8 +439,8 @@ let _profileData = null;
   ]);
 
   renderActionBtns();
-  if (_isOwnProfile) checkProfilFriendRequests();
-  var tabP=new URLSearchParams(location.search).get('tab');if(tabP)setTimeout(function(){switchProfileTab(tabP);},300);
+  if(_isOwnProfile)checkProfilFriendRequests();
+  var _tp=new URLSearchParams(location.search).get('tab');if(_tp)setTimeout(function(){switchProfileTab(_tp);},300);
 })();
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
@@ -653,11 +653,12 @@ async function sendFriendRequest() {
   if (!_myId) return;
   const { error } = await _sb.from('friendships').insert({ requester_id: _myId, addressee_id: _targetId });
   if (error) { showToast('Błąd: ' + error.message); return; }
-  _friendStatus = 'pending_sent';
+  _friendStatus='pending_sent';
   renderActionBtns();
   showToast('Zaproszenie wysłane ✓');
-  var _me=await _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
-  _sb.from('notifications').insert({athlete_id:_targetId,type:'friend_request',from_athlete_id:_myId,message:(_me.data&&_me.data.full_name?_me.data.full_name:'Ktoś')+' chce zostać Twoim znajomym',read:false,created_at:new Date().toISOString()}).then(function(){});
+  _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle().then(function(r){
+    _sb.from('notifications').insert({athlete_id:_targetId,type:'friend_request',from_athlete_id:_myId,message:(r.data&&r.data.full_name?r.data.full_name:'Ktoś')+' chce zostać Twoim znajomym',read:false,created_at:new Date().toISOString()}).then(function(){});
+  });
 }
 
 async function cancelFriendRequest() {
@@ -701,53 +702,7 @@ async function toggleFollow() {
   renderActionBtns();
 }
 
-function openChat() {
-  var ex=document.getElementById('peer-chat-overlay');
-  if(ex){ex.remove();return;}
-  _openPeerChat(_targetId, _profileData?_profileData.full_name||'Znajomy':'Znajomy');
-}
-async function _openPeerChat(targetId, targetName) {
-  var ov=document.createElement('div');ov.id='peer-chat-overlay';
-  ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
-  ov.onclick=function(e){if(e.target===ov)ov.remove();};
-  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
-  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;flex-shrink:0;';
-  var bb=document.createElement('button');bb.textContent='‹';bb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;';
-  bb.onclick=function(){ov.remove();};
-  var td=document.createElement('div');td.style.cssText='flex:1;font-family:Bebas Neue,sans-serif;font-size:18px;';td.textContent=targetName;
-  hd.appendChild(bb);hd.appendChild(td);
-  var thr=document.createElement('div');thr.id='peer-msgs-list';thr.style.cssText='flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;';
-  thr.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
-  var ia=document.createElement('div');ia.style.cssText='padding:10px 16px 24px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:8px;flex-shrink:0;';
-  var inp=document.createElement('input');inp.id='peer-msg-inp';inp.type='text';inp.placeholder='Napisz wiadomość...';inp.maxLength=500;
-  inp.style.cssText='flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;';
-  inp.addEventListener('focus',function(){inp.style.borderColor='var(--accent)';});
-  inp.addEventListener('blur',function(){inp.style.borderColor='rgba(255,255,255,0.1)';});
-  inp.addEventListener('keydown',function(e){if(e.key==='Enter')_sendPeerMsg(targetId);});
-  var sb2=document.createElement('button');sb2.style.cssText='background:var(--accent);border:none;border-radius:10px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
-  sb2.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
-  sb2.onclick=function(){_sendPeerMsg(targetId);};
-  ia.appendChild(inp);ia.appendChild(sb2);
-  sh.appendChild(hd);sh.appendChild(thr);sh.appendChild(ia);ov.appendChild(sh);document.body.appendChild(ov);
-  await _loadPeerMsgs(targetId);
-}
-async function _loadPeerMsgs(targetId) {
-  if(!_myId)return;var el=document.getElementById('peer-msgs-list');if(!el)return;
-  var res=await _sb.from('peer_messages').select('id,from_id,body,sent_at').or('and(from_id.eq.'+_myId+',to_id.eq.'+targetId+'),and(from_id.eq.'+targetId+',to_id.eq.'+_myId+')').order('sent_at',{ascending:true}).limit(100);
-  if(!res.data||!res.data.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Napisz pierwszą wiadomość! 👋</div>';return;}
-  el.innerHTML=res.data.map(function(m){var isMe=m.from_id===_myId;var t=new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-  return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';"><div style="max-width:75%;background:'+(isMe?'var(--accent)':'rgba(255,255,255,0.08)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'+escHtml(m.body)+'<div style="font-size:9px;opacity:0.6;margin-top:3px;text-align:right;">'+t+'</div></div></div>';}).join('');
-  el.scrollTop=el.scrollHeight;
-  _sb.from('peer_messages').update({read:true}).eq('to_id',_myId).eq('from_id',targetId).eq('read',false).then(function(){});
-}
-async function _sendPeerMsg(targetId) {
-  if(!_myId)return;var inp=document.getElementById('peer-msg-inp');if(!inp)return;
-  var body=inp.value.trim();if(!body)return;inp.value='';
-  var res=await _sb.from('peer_messages').insert({from_id:_myId,to_id:targetId,body:body,sent_at:new Date().toISOString(),read:false});
-  if(res.error){showToast('Błąd: '+res.error.message);inp.value=body;return;}
-  await _loadPeerMsgs(targetId);
-  _sb.from('notifications').insert({athlete_id:targetId,type:'chat',from_athlete_id:_myId,message:(_profileData&&_profileData.full_name?_profileData.full_name:'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
-}
+function openChat() { _openPeerChat(_targetId,_profileData&&_profileData.full_name?_profileData.full_name:'Znajomy'); }
 
 // ── AVATAR UPLOAD ─────────────────────────────────────────────────
 async function uploadAvatar(input) {
@@ -1282,23 +1237,63 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
-// ── LISTA OBSERWUJĄCYCH ───────────────────────────────────────────
-async function openFollowersList() {
-  if(document.getElementById('followers-overlay')){document.getElementById('followers-overlay').remove();return;}
-  var ov=document.createElement('div');ov.id='followers-overlay';
+// ── PEER CHAT ─────────────────────────────────────────────────────
+async function _openPeerChat(targetId,targetName){
+  if(document.getElementById('peer-chat-overlay'))return;
+  var ov=document.createElement('div');ov.id='peer-chat-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
+  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;flex-shrink:0;';
+  var bb=document.createElement('button');bb.textContent='‹';bb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;';bb.onclick=function(){ov.remove();};
+  var td=document.createElement('div');td.style.cssText='flex:1;font-family:Bebas Neue,sans-serif;font-size:18px;';td.textContent=targetName;
+  hd.appendChild(bb);hd.appendChild(td);
+  var thr=document.createElement('div');thr.id='peer-msgs-list';thr.style.cssText='flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;';
+  thr.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  var ia=document.createElement('div');ia.style.cssText='padding:10px 16px 24px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:8px;flex-shrink:0;';
+  var inp=document.createElement('input');inp.id='peer-msg-inp';inp.type='text';inp.placeholder='Napisz wiadomość...';inp.maxLength=500;
+  inp.style.cssText='flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;';
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')_sendPeerMsg(targetId);});
+  var sb=document.createElement('button');sb.style.cssText='background:var(--accent);border:none;border-radius:10px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+  sb.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+  sb.onclick=function(){_sendPeerMsg(targetId);};
+  ia.appendChild(inp);ia.appendChild(sb);sh.appendChild(hd);sh.appendChild(thr);sh.appendChild(ia);ov.appendChild(sh);document.body.appendChild(ov);
+  await _loadPeerMsgs(targetId);
+}
+async function _loadPeerMsgs(t){
+  if(!_myId)return;var el=document.getElementById('peer-msgs-list');if(!el)return;
+  var r=await _sb.from('peer_messages').select('from_id,body,sent_at').or('and(from_id.eq.'+_myId+',to_id.eq.'+t+'),and(from_id.eq.'+t+',to_id.eq.'+_myId+')').order('sent_at',{ascending:true}).limit(100);
+  var msgs=r.data||[];
+  if(!msgs.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Napisz pierwszą wiadomość! 👋</div>';return;}
+  el.innerHTML=msgs.map(function(m){var isMe=m.from_id===_myId;var tm=new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+'"><div style="max-width:75%;background:'+(isMe?'var(--accent)':'rgba(255,255,255,0.08)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'+escHtml(m.body)+'<div style="font-size:9px;opacity:0.6;margin-top:3px;text-align:right;">'+tm+'</div></div></div>';
+  }).join('');el.scrollTop=el.scrollHeight;
+}
+async function _sendPeerMsg(t){
+  if(!_myId)return;var inp=document.getElementById('peer-msg-inp');if(!inp)return;
+  var b=inp.value.trim();if(!b)return;inp.value='';
+  var r=await _sb.from('peer_messages').insert({from_id:_myId,to_id:t,body:b,sent_at:new Date().toISOString(),read:false});
+  if(r.error){showToast('Błąd: '+r.error.message);inp.value=b;return;}
+  await _loadPeerMsgs(t);
+}
+
+// ── OBSERWUJĄCY ───────────────────────────────────────────────────
+async function openFollowersList(){
+  if(document.getElementById('fol-ov')){document.getElementById('fol-ov').remove();return;}
+  var ov=document.createElement('div');ov.id='fol-ov';
   ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
   var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
-  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">Obserwujący</div><button onclick="document.getElementById('followers-overlay').remove()" style="background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>';
-  var list=document.createElement('div');list.style.cssText='overflow-y:auto;padding:8px 16px 24px;';
-  list.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
-  sh.appendChild(hd);sh.appendChild(list);ov.appendChild(sh);document.body.appendChild(ov);
-  var res=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
-  var ids=(res.data||[]).map(function(r){return r.follower_id;});
-  if(!ids.length){list.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Brak obserwujących</div>';return;}
+  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">Obserwujący</div>';
+  var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
+  var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
+  var r=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
+  var ids=(r.data||[]).map(function(x){return x.follower_id;});
+  if(!ids.length){li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Brak obserwujących</div>';return;}
   var ar=await _sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
-  list.innerHTML=(ar.data||[]).map(function(a){
+  li.innerHTML=(ar.data||[]).map(function(a){
     var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     var av=a.avatar_url?'<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">':ini;
     return '<div data-pid="'+a.id+'" onclick="location.href='profil.html?id='+this.dataset.pid" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
@@ -1308,37 +1303,35 @@ async function openFollowersList() {
   }).join('');
 }
 
-// ── LISTA TRENINGÓW ───────────────────────────────────────────────
+// ── TRENINGI ──────────────────────────────────────────────────────
 var _allTrainings=[];
-async function openTrainingsList() {
-  if(document.getElementById('trainings-overlay')){document.getElementById('trainings-overlay').remove();return;}
-  var TC={Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8',Marsz:'#aac8ff'};
+async function openTrainingsList(){
+  if(document.getElementById('tr-ov')){document.getElementById('tr-ov').remove();return;}
   var TYPES=['Wszystkie','Spokojny','Tempo','Interwały','Długi','Odpoczynek'];
-  var ov=document.createElement('div');ov.id='trainings-overlay';
+  var ov=document.createElement('div');ov.id='tr-ov';
   ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
   ov.onclick=function(e){if(e.target===ov)ov.remove();};
   var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;height:85vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
   var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
-  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:20px;">Historia <span style="color:var(--accent);">Treningów</span></div><button onclick="document.getElementById('trainings-overlay').remove()" style="background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>';
-  var fb=document.createElement('div');fb.style.cssText='display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;';
-  fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTrainings(this)" style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
-  var li=document.createElement('div');li.id='trainings-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';
-  li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:20px;">Historia <span style="color:var(--accent);">Treningów</span></div>';
+  var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
+  var fb=document.createElement('div');fb.style.cssText='display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.05);';
+  fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTr(this)" style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
+  var li=document.createElement('div');li.id='tr-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(fb);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  var res=await _sb.from('training_logs').select('id,training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
-  _allTrainings=res.data||[];
-  renderTrainingsList('');
+  var r=await _sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
+  _allTrainings=r.data||[];renderTr('');
 }
-function filterTrainings(btn) {
-  document.querySelectorAll('#trainings-overlay button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});
+function filterTr(btn){
+  document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});
   btn.style.background='rgba(232,86,30,0.15)';btn.style.borderColor='rgba(232,86,30,0.4)';btn.style.color='var(--accent)';
-  renderTrainingsList(btn.dataset.type||'');
+  renderTr(btn.dataset.type||'');
 }
-function renderTrainingsList(filter) {
-  var li=document.getElementById('trainings-list');if(!li)return;
-  var logs=_allTrainings;if(filter)logs=logs.filter(function(l){return l.training_type===filter;});
+function renderTr(filter){
+  var li=document.getElementById('tr-list');if(!li)return;
+  var logs=filter?_allTrainings.filter(function(l){return l.training_type===filter;}):_allTrainings;
   if(!logs.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak treningów'+(filter?' — '+filter:'')+'</div>';return;}
-  var TC={Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8',Marsz:'#aac8ff'};
+  var TC={Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8'};
   var FL={good:'😊',mid:'😐',bad:'😓'};
   var months={},mk=[];
   logs.forEach(function(l){var d=new Date(l.logged_at);var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
@@ -1346,16 +1339,15 @@ function renderTrainingsList(filter) {
     months[k].items.push(l);months[k].km+=parseFloat(l.distance_km)||0;});
   var html='';
   mk.forEach(function(k){var m=months[k];
-    html+='<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;padding:12px 0 6px;display:flex;justify-content:space-between;"><span>'+m.label+'</span>'+(m.km>0?'<span style="color:var(--accent);">'+m.km.toFixed(1)+' km</span>':'')+'</div>';
+    html+='<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);padding:12px 0 6px;display:flex;justify-content:space-between;"><span>'+m.label+'</span>'+(m.km>0?'<span style="color:var(--accent);">'+m.km.toFixed(1)+' km</span>':'')+'</div>';
     m.items.forEach(function(l){var d=new Date(l.logged_at);var day=d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
       var km=parseFloat(l.distance_km)||0;var col=TC[l.training_type]||'#66636e';
       var imgs=l.attachment_url?l.attachment_url.split(',').filter(Boolean):[];
       html+='<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+col+';border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(km||l.comment||imgs.length?'5':'0')+'px;">'
-        +'<span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'
-        +(FL[l.feel]?'<span style="font-size:12px;">'+FL[l.feel]+'</span>':'')
-        +'<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">'+day+'</span></div>';
-      if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:DM Sans,sans-serif;">'+l.pace+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
+        +'<span style="font-size:9px;text-transform:uppercase;color:'+col+';font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'
+        +(FL[l.feel]||'')+'<span style="font-size:10px;color:var(--muted);margin-left:auto;">'+day+'</span></div>';
+      if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;">'+l.pace+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
       if(l.comment)html+='<div style="font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.5;">'+escHtml(l.comment)+'</div>';
       if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){html+='<img src="'+u+'" onclick="openLightbox(''+u+'')" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.display='none'">';});html+='</div>';}
       html+='</div>';});});
@@ -1363,16 +1355,13 @@ function renderTrainingsList(filter) {
 }
 
 // ── BADGE ZAPROSZEŃ ───────────────────────────────────────────────
-async function checkProfilFriendRequests() {
+async function checkProfilFriendRequests(){
   if(!_myId)return;
-  try {
-    var r1=await _sb.from('friendships').select('id').eq('status','pending').eq('addressee_id',_myId);
-    var r2=await _sb.from('notifications').select('id').eq('athlete_id',_myId).eq('type','friend_request').eq('read',false);
-    var total=(r1.data?r1.data.length:0)+(r2.data?r2.data.length:0);
-    var b=document.getElementById('profil-friends-badge');if(b)b.style.display=total>0?'block':'none';
+  try{
+    var r=await _sb.from('friendships').select('id',{count:'exact',head:true}).eq('status','pending').eq('addressee_id',_myId);
+    var b=document.getElementById('profil-friends-badge');if(b)b.style.display=((r.count||0)>0?'block':'none');
   }catch(e){}
 }
-
 </script>
 
 <nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
