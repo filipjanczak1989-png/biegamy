@@ -180,10 +180,10 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- Kafelki po prawej -->
     <div class="p-tiles-right">
-      <button class="p-tile-btn" onclick="location.href='zawodnik.html'" title="Wyzwania">
+      <button class="p-tile-btn" onclick="location.href='wyzwania.html'" title="Wyzwania">
         <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
-      <button class="p-tile-btn" onclick="location.href='zawodnik.html'" title="Czat">
+      <button class="p-tile-btn" onclick="_tileCzat()" title="Czat">
         <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="location.href='odznaki.html'" title="Odznaki">
@@ -725,6 +725,15 @@ async function toggleFollow() {
 }
 
 function openChat() { _openPeerChat(_targetId,_profileData&&_profileData.full_name?_profileData.full_name:'Znajomy'); }
+function _tileCzat() {
+  if (_friendStatus === 'accepted') {
+    openChat();
+  } else if (_isOwnProfile) {
+    location.href = 'zawodnik.html';
+  } else {
+    showToast('Dodaj do znajomych aby pisać wiadomości');
+  }
+}
 
 // ── AVATAR UPLOAD ─────────────────────────────────────────────────
 async function uploadAvatar(input) {
