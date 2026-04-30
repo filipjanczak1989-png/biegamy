@@ -6035,14 +6035,14 @@ async function loadChatConvList() {
     convMap[other].push(m);
   });
 
-  var html = '';
+  el.innerHTML = '';
 
   // Rząd: Trener
   var coachPreview = coachLast ? (coachLast.body.length>45?coachLast.body.slice(0,45)+'…':coachLast.body) : 'Napisz do trenera...';
   var coachTime = coachLast ? _chatFmt(coachLast.sent_at) : '';
   var coachAv = document.getElementById('z-coach-av');
   var coachIni = coachAv ? coachAv.textContent : 'T';
-  html += _convRow('coach', null, 'Trener', coachIni, null, coachPreview, coachTime, 0, true);
+  el.appendChild(_convRow('coach', null, 'Trener', coachIni, null, coachPreview, coachTime, 0, true));
 
   // Rzędy: Znajomi
   var allFriends = friendIds.map(function(id){
@@ -6050,7 +6050,6 @@ async function loadChatConvList() {
     var last = msgs[0];
     return { id:id, a:athMap[id]||{}, last:last, unread:msgs.filter(function(m){return !m.read&&m.to_id===_athleteId;}).length };
   });
-  // Sortuj: najpierw z ostatnią wiadomością, potem bez
   allFriends.sort(function(a,b){
     if(!a.last&&!b.last) return 0;
     if(!a.last) return 1; if(!b.last) return -1;
@@ -6062,10 +6061,12 @@ async function loadChatConvList() {
     var ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     var preview = f.last?(f.last.body.length>45?f.last.body.slice(0,45)+'…':f.last.body):'Zacznij rozmowę';
     var time = f.last?_chatFmt(f.last.sent_at):'';
-    html += _convRow('peer', f.id, name, ini, f.a.avatar_url, preview, time, f.unread, false);
+    el.appendChild(_convRow('peer', f.id, name, ini, f.a.avatar_url, preview, time, f.unread, false));
   });
 
-  el.innerHTML = html || '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak konwersacji</div>';
+  if (!el.children.length) {
+    el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak konwersacji</div>';
+  }
 }
 
 function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoach) {
@@ -6097,7 +6098,7 @@ function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoac
 
   div.appendChild(av); div.appendChild(info);
   if (time) { var t=document.createElement('div'); t.style.cssText='font-size:10px;color:var(--muted);flex-shrink:0;'; t.textContent=time; div.appendChild(t); }
-  return div.outerHTML;
+  return div;
 }
 
 
