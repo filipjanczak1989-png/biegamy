@@ -1493,9 +1493,12 @@ async function markDone(btn){
 }
 function openModal() {
   _editingLogId = null;
-  _logDate = null; // brak konkretnej daty — użyj dzisiaj
+  // Ustaw jawnie datę na dziś (unikaj problemów z timezone)
+  const _todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD locale-safe
+  _logDate = _todayStr;
   setTimeout(_updateLogDateDisplay, 50);
   document.getElementById('modal-sub').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
+  _updateLogDateDisplay();
   document.getElementById('modal-bg').classList.add('open');
   // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
   if (window._todayTraining) {
