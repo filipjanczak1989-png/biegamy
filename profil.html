@@ -894,7 +894,7 @@ async function loadProfileFriends() {
       else if (fs === 'pending_received') actionBtn = '<button onclick="quickAccept(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;">✓ Akceptuj</button>';
       else actionBtn = '<button onclick="quickAddFriend(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
     }
-    var avImg = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' : ini;
+    var avImg = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
     return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);">'
       + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + avImg + '</div>'
       + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;cursor:pointer;">'
@@ -966,7 +966,7 @@ async function _doProfileSearch(q) {
 
     var followBtn = _myId ? '<button onclick="quickFollow(\'' + a.id + '\',this,' + isF + ')" style="background:' + (isF?'transparent':'rgba(91,140,255,0.1)') + ';border:1px solid ' + (isF?'var(--border)':'rgba(91,140,255,0.35)') + ';color:' + (isF?'var(--muted)':'#5b8cff') + ';font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;">' + (isF?'✓ Obserwujesz':'+ Obserwuj') + '</button>' : '';
 
-    var av2 = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' : ini;
+    var av2 = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);">'
       + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + av2 + '</div>'
       + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;min-width:0;cursor:pointer;">'
@@ -1147,7 +1147,7 @@ async function openRaceDetails(raceName) {
   } else {
     html += participants.map(function(a) {
       var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-      var av = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">' : ini;
+      var av = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
       var isMe = a.id === _myId;
       return '<div onclick="location.href=\'profil.html?id='+a.id+'\'" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
         + '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
@@ -1211,7 +1211,7 @@ async function openFollowersList(){
   var r=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);var ids=(r.data||[]).map(function(x){return x.follower_id;});
   if(!ids.length){li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Brak obserwujących</div>';return;}
   var ar=await _sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
-  li.innerHTML=(ar.data||[]).map(function(a){var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);var av=a.avatar_url?'<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">':ini;return '<div data-pid="'+a.id+'" onclick="location.href='profil.html?id='+this.dataset.pid" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+av+'</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+escHtml(a.full_name||'Biegacz')+'</div>'+(a.goal?'<div style="font-size:10px;color:var(--muted);">'+escHtml(a.goal)+'</div>':'')+'</div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';}).join('');
+  li.innerHTML=(ar.data||[]).map(function(a){var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);var av=a.avatar_url?'<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">':ini;return '<div data-pid="'+a.id+'" onclick="location.href='profil.html?id='+this.dataset.pid" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+av+'</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+escHtml(a.full_name||'Biegacz')+'</div>'+(a.goal?'<div style="font-size:10px;color:var(--muted);">'+escHtml(a.goal)+'</div>':'')+'</div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';}).join('');
 }
 // ── TRENINGI ──────────────────────────────────────────────────────
 var _allTr=[];
@@ -1243,7 +1243,7 @@ function renderTr(filter){
       html+='<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+col+';border-radius:10px;padding:11px 13px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(km||l.comment||imgs.length?'5':'0')+'px;"><span style="font-size:9px;text-transform:uppercase;color:'+col+';font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'+(FL[l.feel]||'')+'<span style="font-size:10px;color:var(--muted);margin-left:auto;">'+day+'</span></div>';
       if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;">'+l.pace+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
       if(l.comment)html+='<div style="font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.5;">'+escHtml(l.comment)+'</div>';
-      if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){html+='<img src="'+u+'" onclick="openLightbox(''+u+'')" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.display='none'">';});html+='</div>';}
+      if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){html+='<img src="'+u+'" onclick="openLightbox(''+u+'')" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.opacity=0">';});html+='</div>';}
       html+='</div>';});});
   li.innerHTML=html;
 }
