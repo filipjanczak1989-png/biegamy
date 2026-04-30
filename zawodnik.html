@@ -956,28 +956,27 @@ body > *{position:relative;z-index:1;}
 
 <!-- SEKCJA: WIADOMOŚCI -->
 <div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;width:100%;left:50%;transform:translateX(-50%);overflow:hidden;">
-  <!-- Header czatu -->
-  <!-- Zakładki Trener/Znajomi -->
-  <div style="flex-shrink:0;padding-top:max(12px,env(safe-area-inset-top));border-bottom:1px solid rgba(255,255,255,0.06);">
-    <div style="display:flex;align-items:center;padding:0 16px;">
-      <div style="flex:1;display:flex;">
-        <button id="msgtab-coach" onclick="switchMsgsTab('coach')" style="flex:1;background:transparent;border:none;border-bottom:2px solid var(--accent);color:var(--fg);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:12px 4px;cursor:pointer;">Trener</button>
-        <button id="msgtab-friends" onclick="switchMsgsTab('friends')" style="flex:1;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:12px 4px;cursor:pointer;position:relative;">Znajomi<span id="peer-badge" style="display:none;position:absolute;top:8px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--accent);"></span></button>
+  <!-- CZAT: lista konwersacji (trener + znajomi) -->
+  <div id="chat-list-view" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+    <div style="flex-shrink:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">Wiadomości</div>
+      <button onclick="showSection('home')" style="background:rgba(255,255,255,0.07);border:none;color:var(--muted);width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>
+    </div>
+    <div id="chat-conv-list" style="flex:1;overflow-y:auto;"></div>
+  </div>
+
+  <!-- CZAT: aktywny wątek (coach lub peer) -->
+  <div id="chat-thread-view" style="flex:1;display:none;flex-direction:column;min-height:0;">
+    <div class="pchat-view-hdr" style="flex-shrink:0;padding-top:max(12px,env(safe-area-inset-top));display:flex;align-items:center;">
+      <button id="chat-back-btn" onclick="closeChatThread()" style="background:rgba(255,255,255,0.07);border:none;color:var(--fg2);width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;flex-shrink:0;margin-right:8px;">‹</button>
+      <div class="pchat-view-av" id="z-coach-av" style="cursor:pointer;" onclick="chatThreadProfileClick()">F</div>
+      <div style="flex:1;cursor:pointer;" onclick="chatThreadProfileClick()">
+        <div class="pchat-view-name" id="z-coach-name">Trener</div>
+        <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;" id="chat-thread-sub">wiadomości</div>
       </div>
-      <button onclick="showSection('home')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);flex-shrink:0;margin-left:8px;">✕</button>
     </div>
-  </div>
-  <!-- Panel: Trener -->
-  <div id="msgpanel-coach" style="flex:1;display:flex;flex-direction:column;min-height:0;">
-  <div class="pchat-view-hdr" style="flex-shrink:0;display:flex;align-items:center;padding:8px 16px;">
-    <div class="pchat-view-av" id="z-coach-av">F</div>
-    <div style="flex:1;">
-      <div class="pchat-view-name" id="z-coach-name">Trener</div>
-      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;">wiadomości</div>
-    </div>
-  </div>
-  <!-- Thread -->
-  <div id="msgs-thread" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;width:100%;box-sizing:border-box;"></div>
+    <!-- Thread -->
+    <div id="msgs-thread" style="flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 14px;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;scrollbar-color:var(--border) transparent;width:100%;box-sizing:border-box;"></div>
   <!-- Input -->
   <div class="pchat-input-area">
     <div class="pchat-pickers" style="position:relative;">
@@ -1000,30 +999,7 @@ body > *{position:relative;z-index:1;}
 
 
 
-  </div><!-- /msgpanel-coach -->
-
-  <!-- Panel: Znajomi -->
-  <div id="msgpanel-friends" style="flex:1;display:none;flex-direction:column;min-height:0;overflow:hidden;">
-    <div id="peer-convlist" style="flex:1;overflow-y:auto;">
-      <div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;">Ładowanie...</div>
-    </div>
-    <div id="peer-convactive" style="display:none;flex-direction:column;height:100%;">
-      <div style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;gap:10px;flex-shrink:0;">
-        <button onclick="closePeerConv()" style="background:rgba(255,255,255,0.07);border:none;color:var(--fg2);width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;">‹</button>
-        <div id="peer-convname" style="flex:1;font-size:15px;font-weight:600;"></div>
-      </div>
-      <div id="peer-thread" style="flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;"></div>
-      <div style="padding:10px 16px 12px;border-top:1px solid rgba(255,255,255,0.06);display:flex;gap:8px;flex-shrink:0;">
-        <input id="peer-inp" type="text" placeholder="Napisz wiadomość..." maxlength="500"
-          style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"
-          onkeydown="if(event.key==='Enter')sendPeerMsg()">
-        <button onclick="sendPeerMsg()" style="background:var(--accent);border:none;border-radius:10px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-        </button>
-      </div>
-    </div>
-  </div>
+  </div><!-- /chat-thread-view -->
 
   <!-- Nawigacja wewnątrz czatu -->
   <nav style="flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:10px 0 max(20px,env(safe-area-inset-bottom,0px));">
@@ -2005,6 +1981,7 @@ function showSection(name) {
 
   } else if (name === 'msgs' || name === 'messages' || name === 'czat') {
     document.getElementById('section-msgs').style.display = 'flex';
+  showSection_msgs_init();
     loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
     if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
@@ -2761,7 +2738,7 @@ async function sendFileMessage(input) {
   await loadMessages();
 }
 
-async function sendMessage() {
+async function _origSendMessageFn() {
   const input = document.getElementById('msg-input');
   const body = input?.value?.trim();
   if (!body) return;
@@ -6006,147 +5983,202 @@ async function openNotifications() {
 
 
 
-// ── PEER CHAT (czat ze znajomymi) ────────────────────────────────
-var _peerCurrentId = null;
+// ── CZAT UNIFIED ─────────────────────────────────────────────────
+var _chatMode = null; // 'coach' | 'peer'
+var _chatPeerId = null;
 
-function switchMsgsTab(tab) {
-  var cp = document.getElementById('msgpanel-coach');
-  var fp = document.getElementById('msgpanel-friends');
-  var tc = document.getElementById('msgtab-coach');
-  var tf = document.getElementById('msgtab-friends');
-  if (tab === 'coach') {
-    if(cp) cp.style.display='flex'; if(fp) fp.style.display='none';
-    if(tc){tc.style.borderBottomColor='var(--accent)';tc.style.color='var(--fg)';}
-    if(tf){tf.style.borderBottomColor='transparent';tf.style.color='var(--muted)';}
-  } else {
-    if(cp) cp.style.display='none'; if(fp) fp.style.display='flex';
-    if(tc){tc.style.borderBottomColor='transparent';tc.style.color='var(--muted)';}
-    if(tf){tf.style.borderBottomColor='var(--accent)';tf.style.color='var(--fg)';}
-    loadPeerConvList();
-  }
+async function showSection_msgs_init() {
+  // Pokaż listę konwersacji
+  var listView = document.getElementById('chat-list-view');
+  var threadView = document.getElementById('chat-thread-view');
+  if(listView) listView.style.display='flex';
+  if(threadView) threadView.style.display='none';
+  await loadChatConvList();
 }
 
-async function loadPeerConvList() {
-  if (!_athleteId) return;
-  var el = document.getElementById('peer-convlist');
+async function loadChatConvList() {
+  var el = document.getElementById('chat-conv-list');
   if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+
+  // Trener — ostatnia wiadomość
+  var coachRow = await _sb.from('messages').select('body,sent_at,sender')
+    .eq('athlete_id',_athleteId).order('sent_at',{ascending:false}).limit(1);
+  var coachLast = coachRow.data && coachRow.data[0];
+
+  // Znajomi — pobierz konwersacje
   var fsRes = await _sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
     .or('requester_id.eq.'+_athleteId+',addressee_id.eq.'+_athleteId);
-  var rows = fsRes.data || [];
-  if (!rows.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;line-height:1.8;">Brak znajomych<br><span style="font-size:11px;">Dodaj znajomych w zakładce Społeczność</span></div>';
-    return;
-  }
-  var ids = rows.map(function(r){ return r.requester_id===_athleteId ? r.addressee_id : r.requester_id; });
-  var athRes = await _sb.from('athletes').select('id,full_name,avatar_url').in('id', ids);
-  var msgRes = await _sb.from('peer_messages').select('from_id,to_id,body,sent_at,read')
-    .or(ids.map(function(id){ return 'and(from_id.eq.'+_athleteId+',to_id.eq.'+id+'),and(from_id.eq.'+id+',to_id.eq.'+_athleteId+')'; }).join(','))
-    .order('sent_at',{ascending:false}).limit(200);
+  var friendIds = (fsRes.data||[]).map(function(r){ return r.requester_id===_athleteId?r.addressee_id:r.requester_id; });
 
   var athMap = {};
-  (athRes.data||[]).forEach(function(a){ athMap[a.id]=a; });
+  if (friendIds.length) {
+    var ar = await _sb.from('athletes').select('id,full_name,avatar_url').in('id',friendIds);
+    (ar.data||[]).forEach(function(a){ athMap[a.id]=a; });
+  }
+
+  var peerMsgs = [];
+  if (friendIds.length) {
+    var orStr = friendIds.map(function(id){
+      return 'and(from_id.eq.'+_athleteId+',to_id.eq.'+id+'),and(from_id.eq.'+id+',to_id.eq.'+_athleteId+')';
+    }).join(',');
+    var pm = await _sb.from('peer_messages').select('from_id,to_id,body,sent_at,read').or(orStr)
+      .order('sent_at',{ascending:false}).limit(300);
+    peerMsgs = pm.data||[];
+  }
+
+  // Grupuj peer wiadomości per znajomy
   var convMap = {};
-  (msgRes.data||[]).forEach(function(m){
-    var other = m.from_id===_athleteId ? m.to_id : m.from_id;
-    if (!convMap[other]) convMap[other] = [];
+  peerMsgs.forEach(function(m){
+    var other = m.from_id===_athleteId?m.to_id:m.from_id;
+    if(!convMap[other]) convMap[other]=[];
     convMap[other].push(m);
   });
 
-  var totalUnread = 0;
-  el.innerHTML = ids.map(function(id) {
-    var a = athMap[id]||{}; var name = a.full_name||'Biegacz';
+  var html = '';
+
+  // Rząd: Trener
+  var coachPreview = coachLast ? (coachLast.body.length>45?coachLast.body.slice(0,45)+'…':coachLast.body) : 'Napisz do trenera...';
+  var coachTime = coachLast ? _chatFmt(coachLast.sent_at) : '';
+  var coachAv = document.getElementById('z-coach-av');
+  var coachIni = coachAv ? coachAv.textContent : 'T';
+  html += _convRow('coach', null, 'Trener', coachIni, null, coachPreview, coachTime, 0, true);
+
+  // Rzędy: Znajomi
+  var allFriends = friendIds.map(function(id){
+    var msgs = convMap[id]||[];
+    var last = msgs[0];
+    return { id:id, a:athMap[id]||{}, last:last, unread:msgs.filter(function(m){return !m.read&&m.to_id===_athleteId;}).length };
+  });
+  // Sortuj: najpierw z ostatnią wiadomością, potem bez
+  allFriends.sort(function(a,b){
+    if(!a.last&&!b.last) return 0;
+    if(!a.last) return 1; if(!b.last) return -1;
+    return new Date(b.last.sent_at)-new Date(a.last.sent_at);
+  });
+
+  allFriends.forEach(function(f){
+    var name = f.a.full_name||'Znajomy';
     var ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    var av = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.opacity=0">' : ini;
-    var msgs = convMap[id]||[]; var last = msgs[0];
-    var unread = msgs.filter(function(m){return !m.read&&m.to_id===_athleteId;}).length;
-    totalUnread += unread;
-    var preview = last ? (last.body.length>40?last.body.slice(0,40)+'…':last.body) : 'Zacznij rozmowę';
-    var time = last ? _pFmt(last.sent_at) : '';
-    return '<div data-pid="'+id+'" data-name="'+name.replace(/"/g,'&quot;')+'" onclick="openPeerConv(this.dataset.pid,this.dataset.name)" style="display:flex;align-items:center;gap:12px;padding:13px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">'
-      +'<div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+av+'</div>'
-      +'<div style="flex:1;min-width:0;">'
-      +'<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'+name.replace(/</g,'&lt;')+(unread?'<span style="background:var(--accent);color:#fff;font-size:9px;border-radius:8px;padding:1px 6px;">'+unread+'</span>':'')+'</div>'
-      +'<div style="font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+preview.replace(/</g,'&lt;')+'</div>'
-      +'</div>'+(time?'<div style="font-size:10px;color:var(--muted);">'+time+'</div>':'')+'</div>';
-  }).join('');
+    var preview = f.last?(f.last.body.length>45?f.last.body.slice(0,45)+'…':f.last.body):'Zacznij rozmowę';
+    var time = f.last?_chatFmt(f.last.sent_at):'';
+    html += _convRow('peer', f.id, name, ini, f.a.avatar_url, preview, time, f.unread, false);
+  });
 
-  var badge = document.getElementById('peer-badge');
-  if (badge) badge.style.display = totalUnread > 0 ? 'block' : 'none';
+  el.innerHTML = html || '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak konwersacji</div>';
 }
 
-async function openPeerConv(tid, name) {
-  _peerCurrentId = tid;
-  var listEl = document.getElementById('peer-convlist');
-  var activeEl = document.getElementById('peer-convactive');
-  var nameEl = document.getElementById('peer-convname');
-  if(listEl) listEl.style.display='none';
-  if(activeEl) activeEl.style.display='flex';
-  if(nameEl) nameEl.textContent=name;
-  await loadPeerThread(tid);
+function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoach) {
+  var avContent = avatarUrl
+    ? '<img src="'+avatarUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.style.opacity=0">'
+    : ini;
+  var avBg = isCoach ? 'var(--accent)' : 'linear-gradient(135deg,var(--accent),#ff7a45)';
+  var onclick = mode==='coach'
+    ? 'openChatThread(\'coach\',null,\'Trener\')'
+    : 'openChatThread(\'peer\',\''+pid+'\',\''+name.replace(/'/g,'\\'')+'\')';
+  return '<div onclick="'+onclick+'" style="display:flex;align-items:center;gap:12px;padding:14px 20px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.04);" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">'
+    +'<div style="width:50px;height:50px;border-radius:50%;background:'+avBg+';display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+avContent+'</div>'
+    +'<div style="flex:1;min-width:0;">'
+    +'<div style="font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;">'+name.replace(/</g,'&lt;')+(unread>0?'<span style="background:var(--accent);color:#fff;font-size:9px;border-radius:8px;padding:1px 6px;">'+unread+'</span>':'')+'</div>'
+    +'<div style="font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+preview.replace(/</g,'&lt;')+'</div>'
+    +'</div>'
+    +(time?'<div style="font-size:10px;color:var(--muted);flex-shrink:0;">'+time+'</div>':'')
+    +'</div>';
 }
 
-function closePeerConv() {
-  _peerCurrentId = null;
-  var listEl = document.getElementById('peer-convlist');
-  var activeEl = document.getElementById('peer-convactive');
-  if(listEl) listEl.style.display='block';
-  if(activeEl) activeEl.style.display='none';
-  loadPeerConvList();
+async function openChatThread(mode, pid, name) {
+  _chatMode = mode;
+  _chatPeerId = pid;
+
+  var listView = document.getElementById('chat-list-view');
+  var threadView = document.getElementById('chat-thread-view');
+  if(listView) listView.style.display='none';
+  if(threadView) threadView.style.display='flex';
+
+  var nameEl = document.getElementById('z-coach-name');
+  var subEl = document.getElementById('chat-thread-sub');
+  if(nameEl) nameEl.textContent = name;
+  if(subEl) subEl.textContent = mode==='coach' ? 'trener' : 'znajomy';
+
+  // Input placeholder
+  var inp = document.getElementById('msg-input');
+  if(inp) inp.placeholder = mode==='coach' ? 'Napisz do trenera...' : 'Napisz wiadomość...';
+
+  // Ukryj voice/gif/emoji dla peer (tylko proste wiadomości)
+  var actions = document.querySelector('.pchat-pickers');
+  if(actions) actions.style.display = mode==='coach' ? '' : 'none';
+
+  if (mode==='coach') {
+    await loadMessages();
+  } else {
+    await _loadPeerThreadZ(pid);
+  }
 }
 
-async function loadPeerThread(tid) {
+function closeChatThread() {
+  _chatMode = null;
+  _chatPeerId = null;
+  var listView = document.getElementById('chat-list-view');
+  var threadView = document.getElementById('chat-thread-view');
+  if(listView) listView.style.display='flex';
+  if(threadView) threadView.style.display='none';
+  loadChatConvList();
+}
+
+function chatThreadProfileClick() {
+  if (_chatMode==='peer' && _chatPeerId) {
+    location.href = 'profil.html?id=' + _chatPeerId;
+  }
+}
+
+async function _loadPeerThreadZ(tid) {
   if (!_athleteId) return;
-  var el = document.getElementById('peer-thread');
+  var el = document.getElementById('msgs-thread');
   if (!el) return;
   var res = await _sb.from('peer_messages').select('from_id,body,sent_at')
     .or('and(from_id.eq.'+_athleteId+',to_id.eq.'+tid+'),and(from_id.eq.'+tid+',to_id.eq.'+_athleteId+')')
     .order('sent_at',{ascending:true}).limit(100);
   var msgs = res.data||[];
-  if (!msgs.length) {
-    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Napisz pierwszą wiadomość! 👋</div>';
-    return;
-  }
+  if(!msgs.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Napisz pierwszą wiadomość! 👋</div>';return;}
   el.innerHTML = msgs.map(function(m){
-    var isMe = m.from_id===_athleteId;
-    var t = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';">'
-      +'<div style="max-width:75%;background:'+(isMe?'var(--accent)':'rgba(255,255,255,0.08)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'+m.body.replace(/</g,'&lt;')+'<div style="font-size:9px;opacity:0.6;margin-top:3px;text-align:right;">'+t+'</div></div></div>';
+    var isMe=m.from_id===_athleteId;
+    var t=new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-bottom:6px;">'
+      +'<div style="max-width:75%;background:'+(isMe?'var(--accent)':'var(--card2)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'
+      +m.body.replace(/</g,'&lt;')+'<div style="font-size:9px;opacity:0.55;margin-top:3px;text-align:right;font-family:DM Mono,monospace;">'+t+'</div></div></div>';
   }).join('');
-  el.scrollTop = el.scrollHeight;
+  el.scrollTop=el.scrollHeight;
   _sb.from('peer_messages').update({read:true}).eq('to_id',_athleteId).eq('from_id',tid).eq('read',false).then(function(){});
 }
 
-async function sendPeerMsg() {
-  if (!_peerCurrentId || !_athleteId) return;
-  var inp = document.getElementById('peer-inp');
-  if (!inp) return;
-  var body = inp.value.trim();
-  if (!body) return;
-  inp.value = '';
-  var res = await _sb.from('peer_messages').insert({from_id:_athleteId,to_id:_peerCurrentId,body:body,sent_at:new Date().toISOString(),read:false});
-  if (res.error) { toast('Błąd: '+res.error.message); inp.value=body; return; }
-  await loadPeerThread(_peerCurrentId);
-  var me = await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
-  _sb.from('notifications').insert({athlete_id:_peerCurrentId,type:'chat',from_athlete_id:_athleteId,message:(me.data&&me.data.full_name?me.data.full_name:'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
+// Override sendMessage — delegate to peer if in peer mode
+var _origSendMessage = null;
+function sendMessage() {
+  if (_chatMode==='peer' && _chatPeerId) {
+    _sendPeerMsgZ();
+  } else {
+    _origSendMessageFn();
+  }
 }
 
-// Otwórz czat z konkretnym ID z URL ?chat=ID
-(function(){
-  var chatId = new URLSearchParams(location.search).get('chat');
-  if (chatId) setTimeout(async function(){
-    showSection('msgs');
-    setTimeout(function(){ switchMsgsTab('friends'); }, 200);
-    var r = await _sb.from('athletes').select('full_name').eq('id',chatId).maybeSingle();
-    setTimeout(function(){ openPeerConv(chatId, r.data&&r.data.full_name?r.data.full_name:'Znajomy'); }, 400);
-  }, 800);
-})();
+async function _sendPeerMsgZ() {
+  if(!_chatPeerId||!_athleteId) return;
+  var inp=document.getElementById('msg-input');
+  if(!inp) return;
+  var body=inp.value.trim();if(!body)return;inp.value='';
+  await _sb.from('peer_messages').insert({from_id:_athleteId,to_id:_chatPeerId,body:body,sent_at:new Date().toISOString(),read:false});
+  await _loadPeerThreadZ(_chatPeerId);
+  var me=await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+  _sb.from('notifications').insert({athlete_id:_chatPeerId,type:'chat',from_athlete_id:_athleteId,message:(me.data&&me.data.full_name||'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
+}
 
-function _pFmt(ts) {
+function _chatFmt(ts) {
   if(!ts)return'';var d=new Date(ts),now=new Date(),diff=Math.floor((now-d)/60000);
   if(diff<60)return diff+'m';if(diff<1440)return Math.floor(diff/60)+'h';
   return d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
 }
 
+// ── STATS ─────────────────────────────────────────────────────────
 async function loadStats() {
   if (!_athleteId) return;
   const el = document.getElementById('stats-content');
@@ -6827,10 +6859,8 @@ function _stopSocialBannerRotation() {
       <div class="nav-lbl">Plan</div>
     </a>
     <a class="nav-it" href="#" onclick="openModal();return false;">
-      <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
-      </div>
-      <div class="nav-lbl" style="margin-top:2px;">Log</div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <div class="nav-lbl">Log</div>
     </a>
     <a class="nav-it" href="#" onclick="showSection('msgs');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
