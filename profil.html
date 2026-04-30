@@ -850,60 +850,83 @@ function switchProfileTab(tab) {
 async function loadProfileFriends() {
   var el = document.getElementById('profile-friends-content');
   if (!el) return;
-  el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  el.innerHTML = '';
+  var load = document.createElement('div');
+  load.style.cssText = 'text-align:center;padding:32px;color:var(--muted);font-size:12px;';
+  load.textContent = 'Ładowanie...';
+  el.appendChild(load);
 
-  // Znajomi danego profilu (accepted)
-  var res = await _sb.from('friendships')
-    .select('requester_id,addressee_id')
-    .eq('status','accepted')
+  var res = await _sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
     .or('requester_id.eq.' + _targetId + ',addressee_id.eq.' + _targetId);
   var rows = res.data || [];
+  el.innerHTML = '';
 
   if (!rows.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:13px;line-height:2;">Brak znajomych</div>';
+    var empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:40px 16px;color:var(--muted);font-size:13px;';
+    empty.textContent = 'Brak znajomych';
+    el.appendChild(empty);
     return;
   }
 
   var ids = rows.map(function(r){ return r.requester_id === _targetId ? r.addressee_id : r.requester_id; });
-  var athRes = await _sb.from('athletes').select('id,full_name,pb_5k,pb_10k,goal,avatar_url').in('id', ids);
-  var athletes = athRes.data || [];
+  var athRes = await _sb.from('athletes').select('id,full_name,pb_5k,goal,avatar_url').in('id', ids);
 
-  // Statusy znajomości z moim kontem
   var myStatuses = {};
-  if (_myId) {
-    var fsRes = await _sb.from('friendships')
-      .select('requester_id,addressee_id,status')
-      .or(ids.map(function(id){
-        return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+id+'),and(requester_id.eq.'+id+',addressee_id.eq.'+_myId+')';
-      }).join(','));
+  if (_myId && ids.length) {
+    var orStr = ids.map(function(id){
+      return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+id+'),and(requester_id.eq.'+id+',addressee_id.eq.'+_myId+')';
+    }).join(',');
+    var fsRes = await _sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
     (fsRes.data||[]).forEach(function(r){
-      var other = r.requester_id===_myId?r.addressee_id:r.requester_id;
-      myStatuses[other] = r.status==='accepted'?'accepted':(r.requester_id===_myId?'pending_sent':'pending_received');
+      var other = r.requester_id===_myId ? r.addressee_id : r.requester_id;
+      myStatuses[other] = r.status==='accepted' ? 'accepted' : (r.requester_id===_myId ? 'pending_sent' : 'pending_received');
     });
   }
 
-  el.innerHTML = athletes.map(function(a) {
-    var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
-    var isSelf = a.id === _myId;
-    var fs = myStatuses[a.id];
-    var actionBtn = '';
-    if (!isSelf && _myId) {
-      if (fs === 'accepted') actionBtn = '<span style="font-size:10px;color:var(--green);padding:5px 8px;">✓ Znajomi</span>';
-      else if (fs === 'pending_sent') actionBtn = '<span style="font-size:10px;color:var(--accent);">⏳</span>';
-      else if (fs === 'pending_received') actionBtn = '<button onclick="quickAccept(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;">✓ Akceptuj</button>';
-      else actionBtn = '<button onclick="quickAddFriend(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
+  (athRes.data||[]).forEach(function(a) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);';
+
+    var avWrap = document.createElement('div');
+    avWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
+    avWrap.addEventListener('click', function(){ openAthleteProfile(a.id); });
+    if (a.avatar_url) {
+      var img = document.createElement('img');
+      img.src = a.avatar_url; img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+      img.onerror = function(){ this.style.opacity = 0; };
+      avWrap.appendChild(img);
+    } else {
+      avWrap.textContent = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     }
-    var avImg = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
-    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);">'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + avImg + '</div>'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;cursor:pointer;">'
-      + '<div style="font-size:13px;font-weight:600;">' + nm + '</div>'
-      + (a.goal ? '<div style="font-size:10px;color:var(--muted);margin-top:2px;">' + a.goal.replace(/</g,'&lt;') + '</div>' : '')
-      + '</div>'
-      + '<div style="flex-shrink:0;">' + actionBtn + '</div>'
-      + '</div>';
-  }).join('');
+
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1;cursor:pointer;';
+    info.addEventListener('click', function(){ openAthleteProfile(a.id); });
+    var nm = document.createElement('div');
+    nm.style.cssText = 'font-size:13px;font-weight:600;';
+    nm.textContent = a.full_name || 'Biegacz';
+    info.appendChild(nm);
+    if (a.goal) { var g = document.createElement('div'); g.style.cssText='font-size:10px;color:var(--muted);margin-top:2px;'; g.textContent=a.goal; info.appendChild(g); }
+
+    var fs = myStatuses[a.id];
+    var actionEl = document.createElement('div');
+    actionEl.style.cssText = 'flex-shrink:0;';
+    if (!a.id === _myId && _myId) {
+      if (fs === 'accepted') { actionEl.innerHTML = '<span style="font-size:10px;color:var(--green);padding:5px 8px;">✓ Znajomi</span>'; }
+      else if (fs === 'pending_sent') { actionEl.innerHTML = '<span style="font-size:10px;color:var(--accent);">⏳</span>'; }
+      else {
+        var btn = document.createElement('button');
+        btn.style.cssText = 'background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;';
+        btn.textContent = '+ Znajomy';
+        btn.addEventListener('click', function(e){ e.stopPropagation(); quickAddFriend(a.id, btn); });
+        actionEl.appendChild(btn);
+      }
+    }
+
+    row.appendChild(avWrap); row.appendChild(info); row.appendChild(actionEl);
+    el.appendChild(row);
+  });
 }
 
 let _searchTimer = null;
@@ -920,62 +943,71 @@ function profileSearch(q) {
 
 async function _doProfileSearch(q) {
   var el = document.getElementById('profile-search-results');
-  var res = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
-    .eq('is_public', true)
-    .ilike('full_name', '%' + q + '%')
-    .limit(20);
+  var res = await _sb.from('athletes').select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
+    .eq('is_public', true).ilike('full_name', '%' + q + '%').limit(20);
   var results = (res.data||[]).filter(function(a){ return a.id !== _myId; });
+  el.innerHTML = '';
 
   if (!results.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Brak wyników</div>';
+    var empty = document.createElement('div');
+    empty.style.cssText = 'text-align:center;padding:24px;color:var(--muted);font-size:12px;';
+    empty.textContent = 'Brak wyników';
+    el.appendChild(empty);
     return;
   }
 
-  // Statusy znajomości
   var myStatuses = {};
-  if (_myId && results.length) {
+  var followSet = new Set();
+  if (_myId) {
     var orStr = results.map(function(a){
       return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+a.id+'),and(requester_id.eq.'+a.id+',addressee_id.eq.'+_myId+')';
     }).join(',');
     var fsRes = await _sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
     (fsRes.data||[]).forEach(function(r){
-      var other = r.requester_id===_myId?r.addressee_id:r.requester_id;
-      myStatuses[other] = r.status==='accepted'?'accepted':(r.requester_id===_myId?'pending_sent':'pending_received');
+      var o = r.requester_id===_myId ? r.addressee_id : r.requester_id;
+      myStatuses[o] = r.status==='accepted' ? 'accepted' : (r.requester_id===_myId ? 'pending_sent' : 'pending_received');
     });
-  }
-
-  // Follow statuses
-  var followSet = new Set();
-  if (_myId) {
     var folRes = await _sb.from('follows').select('following_id').eq('follower_id', _myId);
     (folRes.data||[]).forEach(function(f){ followSet.add(f.following_id); });
   }
 
-  el.innerHTML = results.map(function(a) {
-    var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
-    var fs = myStatuses[a.id];
-    var isF = followSet.has(a.id);
+  results.forEach(function(a) {
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);';
 
-    var friendBtn = '';
-    if (fs === 'accepted') friendBtn = '<span style="font-size:9px;color:var(--green);padding:3px 6px;">✓ Znajomi</span>';
-    else if (fs === 'pending_sent') friendBtn = '<span style="font-size:9px;color:var(--accent);">⏳ Wysłano</span>';
-    else if (fs === 'pending_received') friendBtn = '<button onclick="quickAccept(\'' + a.id + '\',this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;">✓ Akceptuj</button>';
-    else if (_myId) friendBtn = '<button onclick="quickAddFriend(\'' + a.id + '\',this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
+    var avWrap = document.createElement('div');
+    avWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
+    avWrap.addEventListener('click', function(){ openAthleteProfile(a.id); });
+    if (a.avatar_url) {
+      var img = document.createElement('img'); img.src=a.avatar_url; img.style.cssText='width:100%;height:100%;object-fit:cover;'; img.onerror=function(){this.style.opacity=0;}; avWrap.appendChild(img);
+    } else {
+      avWrap.textContent = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+    }
 
-    var followBtn = _myId ? '<button onclick="quickFollow(\'' + a.id + '\',this,' + isF + ')" style="background:' + (isF?'transparent':'rgba(91,140,255,0.1)') + ';border:1px solid ' + (isF?'var(--border)':'rgba(91,140,255,0.35)') + ';color:' + (isF?'var(--muted)':'#5b8cff') + ';font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;">' + (isF?'✓ Obserwujesz':'+ Obserwuj') + '</button>' : '';
+    var info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+    info.addEventListener('click', function(){ openAthleteProfile(a.id); });
+    var nm = document.createElement('div'); nm.style.cssText='font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'; nm.textContent=a.full_name||'Biegacz'; info.appendChild(nm);
+    if (a.goal) { var g=document.createElement('div'); g.style.cssText='font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'; g.textContent=a.goal; info.appendChild(g); }
 
-    var av2 = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
-    return '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);">'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + av2 + '</div>'
-      + '<div onclick="location.href=\"profil.html?id='+a.id+'\"" style="flex:1;min-width:0;cursor:pointer;">'
-      + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + nm + '</div>'
-      + (a.goal ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal.replace(/</g,'&lt;') + '</div>' : '')
-      + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;">' + friendBtn + followBtn + '</div>'
-      + '</div>';
-  }).join('');
+    var btns = document.createElement('div');
+    btns.style.cssText = 'display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;';
+    var fs = myStatuses[a.id]; var isF = followSet.has(a.id);
+    if (_myId) {
+      var fb = document.createElement('button');
+      if (fs==='accepted') { fb.style.cssText='font-size:9px;color:var(--green);padding:4px 8px;background:none;border:none;'; fb.textContent='✓ Znajomi'; }
+      else if (fs==='pending_sent') { fb.style.cssText='font-size:9px;color:var(--accent);background:none;border:none;'; fb.textContent='⏳ Wysłano'; }
+      else { fb.style.cssText='background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;'; fb.textContent='+ Znajomy'; fb.addEventListener('click',function(){quickAddFriend(a.id,fb);}); }
+      var flb = document.createElement('button');
+      flb.style.cssText='background:'+(isF?'transparent':'rgba(91,140,255,0.1)')+';border:1px solid '+(isF?'var(--border)':'rgba(91,140,255,0.35)')+';color:'+(isF?'var(--muted)':'#5b8cff')+';font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;';
+      flb.textContent = isF ? '✓ Obserwujesz' : '+ Obserwuj';
+      flb.addEventListener('click', function(){ quickFollow(a.id, flb, isF); });
+      btns.appendChild(fb); btns.appendChild(flb);
+    }
+
+    row.appendChild(avWrap); row.appendChild(info); row.appendChild(btns);
+    el.appendChild(row);
+  });
 }
 
 async function quickAddFriend(targetId, btn) {
@@ -1149,7 +1181,7 @@ async function openRaceDetails(raceName) {
       var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
       var av = a.avatar_url ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">' : ini;
       var isMe = a.id === _myId;
-      return '<div onclick="location.href=\'profil.html?id='+a.id+'\'" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
+      return '<div data-rid="'+a.id+'" onclick="openAthleteProfile(this.dataset.rid)" style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
         + '<div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
         + '<div style="flex:1;font-size:13px;font-weight:500;">' + (a.full_name||'Biegacz').replace(/</g,'&lt;') + (isMe ? ' <span style="font-size:10px;color:var(--accent);">(Ty)</span>' : '') + '</div>'
         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
@@ -1162,6 +1194,7 @@ async function openRaceDetails(raceName) {
   document.body.appendChild(overlay);
 }
 
+function openAthleteProfile(id) { if(id) location.href = 'profil.html?id=' + id; }
 // ── HELPERS ─────────────────────────────────────────────────────────────
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
@@ -1202,16 +1235,45 @@ async function _pcSend(t){
 // ── OBSERWUJĄCY ───────────────────────────────────────────────────
 async function openFollowersList(){
   if(document.getElementById('fol-ov')){document.getElementById('fol-ov').remove();return;}
-  var ov=document.createElement('div');ov.id='fol-ov';ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var ov=document.createElement('div');ov.id='fol-ov';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
   var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
-  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">Obserwujący</div>';
-  var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
-  var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+  var title=document.createElement('div');title.style.cssText='font-family:Bebas Neue,sans-serif;font-size:18px;';title.textContent='Obserwujący';
+  var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};
+  hd.appendChild(title);hd.appendChild(xb);
+  var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';
+  var loading=document.createElement('div');loading.style.cssText='text-align:center;padding:24px;color:var(--muted);font-size:12px;';loading.textContent='Ładowanie...';li.appendChild(loading);
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  var r=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);var ids=(r.data||[]).map(function(x){return x.follower_id;});
-  if(!ids.length){li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Brak obserwujących</div>';return;}
+
+  var r=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
+  var ids=(r.data||[]).map(function(x){return x.follower_id;});
+  li.innerHTML='';
+  if(!ids.length){
+    var empty=document.createElement('div');empty.style.cssText='text-align:center;padding:24px;color:var(--muted);';empty.textContent='Brak obserwujących';li.appendChild(empty);return;
+  }
   var ar=await _sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
-  li.innerHTML=(ar.data||[]).map(function(a){var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);var av=a.avatar_url?'<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.opacity=0">':ini;return '<div data-pid="'+a.id+'" onclick="location.href='profil.html?id='+this.dataset.pid" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;"><div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+av+'</div><div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+escHtml(a.full_name||'Biegacz')+'</div>'+(a.goal?'<div style="font-size:10px;color:var(--muted);">'+escHtml(a.goal)+'</div>':'')+'</div><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';}).join('');
+  (ar.data||[]).forEach(function(a){
+    var row=document.createElement('div');
+    row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';
+    row.addEventListener('click',function(){location.href='profil.html?id='+a.id;});
+
+    var av=document.createElement('div');
+    av.style.cssText='width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
+    if(a.avatar_url){var img=document.createElement('img');img.src=a.avatar_url;img.style.cssText='width:100%;height:100%;object-fit:cover;';img.onerror=function(){this.style.opacity=0;};av.appendChild(img);}
+    else{av.textContent=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);}
+
+    var info=document.createElement('div');info.style.cssText='flex:1;';
+    var name=document.createElement('div');name.style.cssText='font-size:13px;font-weight:600;';name.textContent=a.full_name||'Biegacz';
+    info.appendChild(name);
+    if(a.goal){var goal=document.createElement('div');goal.style.cssText='font-size:10px;color:var(--muted);';goal.textContent=a.goal;info.appendChild(goal);}
+
+    var arr=document.createElement('div');arr.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>';
+
+    row.appendChild(av);row.appendChild(info);row.appendChild(arr);li.appendChild(row);
+  });
+}
 }
 // ── TRENINGI ──────────────────────────────────────────────────────
 var _allTr=[];
