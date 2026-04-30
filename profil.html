@@ -1313,6 +1313,33 @@ async function checkProfilFriendRequests(){
   if(!_myId)return;
   try{var r=await _sb.from('friendships').select('id',{count:'exact',head:true}).eq('status','pending').eq('addressee_id',_myId);var b=document.getElementById('profil-friends-badge');if(b)b.style.display=((r.count||0)>0?'block':'none');}catch(e){}
 }
+
+// ── PRYWATNOŚĆ ───────────────────────────────────────────────────
+var _isPublic = false;
+function updatePrivacyBtn(isPublic) {
+  _isPublic = isPublic;
+  var btn = document.getElementById('privacy-btn');
+  if (!btn) return;
+  if (isPublic) {
+    btn.innerHTML = '🌍 Profil publiczny — kliknij aby ukryć';
+    btn.style.borderColor = 'rgba(61,184,112,0.4)';
+    btn.style.color = 'var(--green)';
+    btn.style.background = 'rgba(61,184,112,0.08)';
+  } else {
+    btn.innerHTML = '🔒 Profil prywatny — kliknij aby upublicznić';
+    btn.style.borderColor = 'rgba(255,80,80,0.4)';
+    btn.style.color = '#ff6060';
+    btn.style.background = 'rgba(255,80,80,0.08)';
+  }
+}
+async function togglePrivacy() {
+  if (!_myId) return;
+  var newVal = !_isPublic;
+  var res = await _sb.from('athletes').update({is_public: newVal}).eq('id', _myId);
+  if (res.error) { showToast('Błąd: ' + res.error.message); return; }
+  updatePrivacyBtn(newVal);
+  showToast(newVal ? 'Profil jest teraz publiczny' : 'Profil jest teraz prywatny');
+}
 </script>
 
 <nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
