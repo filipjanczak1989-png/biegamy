@@ -1304,7 +1304,7 @@ function renderTr(filter){
       html+='<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+col+';border-radius:10px;padding:11px 13px;margin-bottom:8px;"><div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(km||l.comment||imgs.length?'5':'0')+'px;"><span style="font-size:9px;text-transform:uppercase;color:'+col+';font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'+(FL[l.feel]||'')+'<span style="font-size:10px;color:var(--muted);margin-left:auto;">'+day+'</span></div>';
       if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;">'+l.pace+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
       if(l.comment)html+='<div style="font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.5;">'+escHtml(l.comment)+'</div>';
-      if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){html+='<img src="'+u+'" onclick="openLightbox(''+u+'')" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.opacity=0">';});html+='</div>';}
+      if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){html+='<img src="'+u+'" data-lburl="'+u+'" onclick="openLightbox(this.dataset.lburl)" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.opacity=0">';});html+='</div>';}
       html+='</div>';});});
   li.innerHTML=html;
 }
