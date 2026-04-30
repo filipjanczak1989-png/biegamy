@@ -35,13 +35,13 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .action-btns{flex:1;display:flex;flex-direction:column;gap:7px;align-items:flex-end;padding-bottom:4px;}
 
 /* Friend / Follow buttons */
-.btn-friend{border-radius:10px;padding:8px 16px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid;transition:all 0.15s;white-space:nowrap;}
+.btn-friend{border-radius:10px;padding:8px 16px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid;transition:all 0.15s;white-space:nowrap;}
 .btn-friend.add{background:var(--accent);border-color:var(--accent);color:#fff;}
 .btn-friend.pending{background:rgba(232,86,30,0.1);border-color:rgba(232,86,30,0.3);color:var(--accent);}
 .btn-friend.friends{background:rgba(61,184,112,0.12);border-color:rgba(61,184,112,0.35);color:var(--green);}
-.btn-follow{border-radius:10px;padding:7px 14px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;}
+.btn-follow{border-radius:10px;padding:7px 14px;font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;}
 .btn-follow.following{border-color:rgba(91,140,255,0.4);color:var(--blue);background:rgba(91,140,255,0.08);}
-.btn-msg{border-radius:10px;padding:7px 14px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;display:flex;align-items:center;gap:5px;}
+.btn-msg{border-radius:10px;padding:7px 14px;font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;display:flex;align-items:center;gap:5px;}
 .btn-msg:hover{border-color:rgba(232,86,30,0.4);}
 
 .profile-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;line-height:1;margin-bottom:4px;}
@@ -52,32 +52,32 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .ps-item{flex:1;text-align:center;padding:10px 6px;border-right:1px solid var(--border);}
 .ps-item:last-child{border-right:none;}
 .ps-val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);line-height:1;}
-.ps-lbl{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+.ps-lbl{font-size:9px;font-family:DM Mono,monospace;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
 
 /* ── SECTIONS ── */
 .section{padding:0 20px;margin-bottom:20px;}
 .section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .section-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);}
 .section-title span{color:var(--accent);}
-.section-add{background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-family:'DM Mono',monospace;padding:4px 10px;cursor:pointer;}
+.section-add{background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;padding:4px 10px;cursor:pointer;}
 .section-add:hover{border-color:var(--accent);color:var(--accent);}
 
 /* PBs grid */
 .pbs-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .pb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;position:relative;overflow:hidden;}
 .pb-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);}
-.pb-dist{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;}
+.pb-dist{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;}
 .pb-time{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);line-height:1;}
 .pb-empty{color:var(--fg3);font-size:18px;}
-.pb-pace{font-size:10px;color:var(--fg3);font-family:'DM Mono',monospace;margin-top:2px;}
+.pb-pace{font-size:10px;color:var(--fg3);font-family:DM Mono,monospace;margin-top:2px;}
 
 /* Goals */
 .goal-item{display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;}
 .goal-date-badge{flex-shrink:0;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;padding:5px 8px;text-align:center;min-width:42px;}
 .goal-date-day{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:#fff;}
-.goal-date-mon{font-size:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.8);}
+.goal-date-mon{font-size:8px;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.8);}
 .goal-name{font-size:13px;font-weight:500;color:var(--fg);flex:1;}
-.goal-days{font-size:10px;font-family:'DM Mono',monospace;color:var(--fg3);}
+.goal-days{font-size:10px;font-family:DM Mono,monospace;color:var(--fg3);}
 
 /* Badges */
 .badges-row{display:flex;flex-wrap:wrap;gap:8px;}
@@ -98,7 +98,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .post-quote-text{font-size:15px;line-height:1.7;color:var(--fg);font-style:italic;}
 .post-quote-text::before{content:'"';font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--accent);line-height:0.5;display:block;margin-bottom:8px;}
 .post-quote-del{position:absolute;top:8px;right:8px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--fg3);font-size:10px;padding:2px 7px;cursor:pointer;}
-.post-date{font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);margin-top:8px;}
+.post-date{font-size:10px;font-family:DM Mono,monospace;color:var(--muted);margin-top:8px;}
 
 /* ── ADD POST SHEET ── */
 .add-overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.8);backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.25s;}
@@ -109,10 +109,10 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .sheet-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;margin-bottom:16px;}
 .sheet-title span{color:var(--accent);}
 .type-tabs{display:flex;gap:8px;margin-bottom:16px;}
-.type-tab{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;color:var(--fg3);transition:all 0.15s;}
+.type-tab{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.08em;color:var(--fg3);transition:all 0.15s;}
 .type-tab.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.5);color:var(--accent);}
 .field{margin-bottom:14px;}
-.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;}
+.field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .field textarea,.field input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:11px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;}
 .field textarea{min-height:90px;}
 .field textarea:focus,.field input:focus{border-color:rgba(232,86,30,0.5);}
@@ -131,7 +131,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* Empty state */
-.empty{text-align:center;padding:32px 20px;color:var(--fg3);font-size:13px;font-family:'DM Mono',monospace;line-height:1.8;}
+.empty{text-align:center;padding:32px 20px;color:var(--fg3);font-size:13px;font-family:DM Mono,monospace;line-height:1.8;}
 .empty svg{opacity:0.25;margin-bottom:12px;}
 
 .bottom-pad{height:env(safe-area-inset-bottom,20px);height:calc(env(safe-area-inset-bottom,0px) + 20px);}
@@ -215,7 +215,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
   <!-- Prywatność (tylko własny profil) -->
   <div id="privacy-row" style="display:none;margin-bottom:10px;">
-    <button id="privacy-btn" onclick="togglePrivacy()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);border-radius:10px;padding:7px 14px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:6px;"></button>
+    <button id="privacy-btn" onclick="togglePrivacy()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);border-radius:10px;padding:7px 14px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:6px;"></button>
   </div>
 
   <!-- Statystyki -->
@@ -228,7 +228,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       <div class="ps-val" id="ps-followers">—</div>
       <div class="ps-lbl">Obserwuje</div>
     </div>
-    <div class="ps-item" onclick="openTrainingsList()" style="cursor:pointer;" title="Pokaż treningi">
+    <div class="ps-item" onclick="openTrainingsList()" style="cursor:pointer;">
       <div class="ps-val" id="ps-logs">—</div>
       <div class="ps-lbl">Treningi</div>
     </div>
@@ -242,9 +242,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 <!-- TABS -->
 <div style="padding:0 20px;margin-bottom:16px;">
   <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-    <button id="ptab-profile" onclick="switchProfileTab('profile')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Profil</button>
-    <button id="ptab-friends" onclick="switchProfileTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajomi</button>
-    <button id="ptab-find" onclick="switchProfileTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
+    <button id="ptab-profile" onclick="switchProfileTab('profile')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Profil</button>
+    <button id="ptab-friends" onclick="switchProfileTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;" style="position:relative;">Znajomi<span id="profil-friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
+    <button id="ptab-find" onclick="switchProfileTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
   </div>
 </div>
 
@@ -268,7 +268,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 <div class="section" id="goals-section">
   <div class="section-hdr">
     <div class="section-title">Cele i <span>Starty</span></div>
-    <button id="add-goal-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 10px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;" onclick="addGoalPrompt()">+ Cel</button>
+    <button id="add-goal-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 10px;font-size:11px;font-family:DM Mono,monospace;cursor:pointer;" onclick="addGoalPrompt()">+ Cel</button>
   </div>
   <div id="goals-list"><div class="skeleton" style="height:56px;border-radius:12px;margin-bottom:8px;"></div></div>
 </div>
@@ -439,6 +439,8 @@ let _profileData = null;
   ]);
 
   renderActionBtns();
+  if (_isOwnProfile) checkProfilFriendRequests();
+  var tabP=new URLSearchParams(location.search).get('tab');if(tabP)setTimeout(function(){switchProfileTab(tabP);},300);
 })();
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
@@ -654,6 +656,8 @@ async function sendFriendRequest() {
   _friendStatus = 'pending_sent';
   renderActionBtns();
   showToast('Zaproszenie wysłane ✓');
+  var _me=await _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
+  _sb.from('notifications').insert({athlete_id:_targetId,type:'friend_request',from_athlete_id:_myId,message:(_me.data&&_me.data.full_name?_me.data.full_name:'Ktoś')+' chce zostać Twoim znajomym',read:false,created_at:new Date().toISOString()}).then(function(){});
 }
 
 async function cancelFriendRequest() {
@@ -698,8 +702,51 @@ async function toggleFollow() {
 }
 
 function openChat() {
-  // Przekieruj do czatu z tym zawodnikiem
-  location.href = `zawodnik.html?chat=${_targetId}`;
+  var ex=document.getElementById('peer-chat-overlay');
+  if(ex){ex.remove();return;}
+  _openPeerChat(_targetId, _profileData?_profileData.full_name||'Znajomy':'Znajomy');
+}
+async function _openPeerChat(targetId, targetName) {
+  var ov=document.createElement('div');ov.id='peer-chat-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
+  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;flex-shrink:0;';
+  var bb=document.createElement('button');bb.textContent='‹';bb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;';
+  bb.onclick=function(){ov.remove();};
+  var td=document.createElement('div');td.style.cssText='flex:1;font-family:Bebas Neue,sans-serif;font-size:18px;';td.textContent=targetName;
+  hd.appendChild(bb);hd.appendChild(td);
+  var thr=document.createElement('div');thr.id='peer-msgs-list';thr.style.cssText='flex:1;overflow-y:auto;padding:12px 16px;display:flex;flex-direction:column;gap:6px;';
+  thr.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  var ia=document.createElement('div');ia.style.cssText='padding:10px 16px 24px;border-top:1px solid rgba(255,255,255,0.07);display:flex;gap:8px;flex-shrink:0;';
+  var inp=document.createElement('input');inp.id='peer-msg-inp';inp.type='text';inp.placeholder='Napisz wiadomość...';inp.maxLength=500;
+  inp.style.cssText='flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;';
+  inp.addEventListener('focus',function(){inp.style.borderColor='var(--accent)';});
+  inp.addEventListener('blur',function(){inp.style.borderColor='rgba(255,255,255,0.1)';});
+  inp.addEventListener('keydown',function(e){if(e.key==='Enter')_sendPeerMsg(targetId);});
+  var sb2=document.createElement('button');sb2.style.cssText='background:var(--accent);border:none;border-radius:10px;width:44px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+  sb2.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';
+  sb2.onclick=function(){_sendPeerMsg(targetId);};
+  ia.appendChild(inp);ia.appendChild(sb2);
+  sh.appendChild(hd);sh.appendChild(thr);sh.appendChild(ia);ov.appendChild(sh);document.body.appendChild(ov);
+  await _loadPeerMsgs(targetId);
+}
+async function _loadPeerMsgs(targetId) {
+  if(!_myId)return;var el=document.getElementById('peer-msgs-list');if(!el)return;
+  var res=await _sb.from('peer_messages').select('id,from_id,body,sent_at').or('and(from_id.eq.'+_myId+',to_id.eq.'+targetId+'),and(from_id.eq.'+targetId+',to_id.eq.'+_myId+')').order('sent_at',{ascending:true}).limit(100);
+  if(!res.data||!res.data.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Napisz pierwszą wiadomość! 👋</div>';return;}
+  el.innerHTML=res.data.map(function(m){var isMe=m.from_id===_myId;var t=new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';"><div style="max-width:75%;background:'+(isMe?'var(--accent)':'rgba(255,255,255,0.08)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'+escHtml(m.body)+'<div style="font-size:9px;opacity:0.6;margin-top:3px;text-align:right;">'+t+'</div></div></div>';}).join('');
+  el.scrollTop=el.scrollHeight;
+  _sb.from('peer_messages').update({read:true}).eq('to_id',_myId).eq('from_id',targetId).eq('read',false).then(function(){});
+}
+async function _sendPeerMsg(targetId) {
+  if(!_myId)return;var inp=document.getElementById('peer-msg-inp');if(!inp)return;
+  var body=inp.value.trim();if(!body)return;inp.value='';
+  var res=await _sb.from('peer_messages').insert({from_id:_myId,to_id:targetId,body:body,sent_at:new Date().toISOString(),read:false});
+  if(res.error){showToast('Błąd: '+res.error.message);inp.value=body;return;}
+  await _loadPeerMsgs(targetId);
+  _sb.from('notifications').insert({athlete_id:targetId,type:'chat',from_athlete_id:_myId,message:(_profileData&&_profileData.full_name?_profileData.full_name:'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
 }
 
 // ── AVATAR UPLOAD ─────────────────────────────────────────────────
@@ -1225,113 +1272,6 @@ async function openRaceDetails(raceName) {
   document.body.appendChild(overlay);
 }
 
-// ── LISTA TRENINGÓW ──────────────────────────────────────────────
-var _allTrainings = [];
-
-async function openTrainingsList() {
-  if (document.getElementById('trainings-overlay')) {
-    document.getElementById('trainings-overlay').remove(); return;
-  }
-  var TYPE_COLORS = {Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8',Marsz:'#aac8ff'};
-  var TYPES = ['Wszystkie','Spokojny','Tempo','Interwały','Długi','Odpoczynek'];
-
-  var ov = document.createElement('div');
-  ov.id = 'trainings-overlay';
-  ov.style.cssText = 'position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
-  ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
-
-  var sheet = document.createElement('div');
-  sheet.style.cssText = 'width:100%;max-width:480px;height:85vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
-
-  var hdr = document.createElement('div');
-  hdr.style.cssText = 'padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
-  hdr.innerHTML = '<div style="font-family:Bebas Neue,sans-serif;font-size:20px;">Historia <span style="color:var(--accent);">Treningów</span></div>'
-    + '<button onclick="document.getElementById('trainings-overlay').remove()" style="background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>';
-
-  var filterBar = document.createElement('div');
-  filterBar.style.cssText = 'display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;';
-  filterBar.innerHTML = TYPES.map(function(t,i) {
-    return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTrainings(this)"'
-      +' style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;font-family:DM Mono,monospace;cursor:pointer;white-space:nowrap;">'+t+'</button>';
-  }).join('');
-
-  var list = document.createElement('div');
-  list.id = 'trainings-list';
-  list.style.cssText = 'flex:1;overflow-y:auto;padding:4px 16px 24px;';
-  list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
-
-  sheet.appendChild(hdr); sheet.appendChild(filterBar); sheet.appendChild(list);
-  ov.appendChild(sheet); document.body.appendChild(ov);
-
-  var res = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url')
-    .eq('athlete_id', _targetId)
-    .not('training_type','like','__badge__%')
-    .order('logged_at',{ascending:false}).limit(300);
-  _allTrainings = res.data || [];
-  renderTrainingsList('');
-}
-
-function filterTrainings(btn) {
-  document.querySelectorAll('#trainings-overlay button[data-type]').forEach(function(b){
-    b.style.background='rgba(255,255,255,0.05)'; b.style.borderColor='rgba(255,255,255,0.1)'; b.style.color='var(--muted)';
-  });
-  btn.style.background='rgba(232,86,30,0.15)'; btn.style.borderColor='rgba(232,86,30,0.4)'; btn.style.color='var(--accent)';
-  renderTrainingsList(btn.dataset.type||'');
-}
-
-function renderTrainingsList(filter) {
-  var list = document.getElementById('trainings-list');
-  if (!list) return;
-  var logs = _allTrainings;
-  if (filter) logs = logs.filter(function(l){return l.training_type===filter;});
-  if (!logs.length) {
-    list.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak treningów'+(filter?' — '+filter:'')+'</div>';
-    return;
-  }
-  var TC = {Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8',Marsz:'#aac8ff'};
-  var FEEL = {good:'😊',mid:'😐',bad:'😓'};
-  // Grupuj po miesiącu
-  var months = {}, monthKeys = [];
-  logs.forEach(function(l){
-    var d = new Date(l.logged_at);
-    var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-    if (!months[key]) { months[key]={label:d.toLocaleDateString('pl-PL',{month:'long',year:'numeric'}),items:[],km:0}; monthKeys.push(key); }
-    months[key].items.push(l);
-    months[key].km += parseFloat(l.distance_km)||0;
-  });
-  var html = '';
-  monthKeys.forEach(function(key){
-    var m = months[key];
-    html += '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;padding:12px 0 6px;display:flex;justify-content:space-between;">'
-      +'<span>'+m.label+'</span>'+(m.km>0?'<span style="color:var(--accent);">'+m.km.toFixed(1)+' km</span>':'')+'</div>';
-    m.items.forEach(function(l){
-      var d = new Date(l.logged_at);
-      var day = d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-      var km = parseFloat(l.distance_km)||0;
-      var col = TC[l.training_type]||'#66636e';
-      var imgs = l.attachment_url ? l.attachment_url.split(',').filter(Boolean) : [];
-      html += '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+col+';border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(km||l.comment||imgs.length?'5':'0')+'px;">'
-        +'<span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'
-        +(FEEL[l.feel]?'<span style="font-size:12px;">'+FEEL[l.feel]+'</span>':'')
-        +'<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">'+day+'</span>'
-        +'</div>';
-      if (km>0) html += '<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'
-        +(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:DM Sans,sans-serif;">'+l.pace+'/km</span>':'')
-        +(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
-      if (l.comment) html += '<div style="font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.5;">'+escHtml(l.comment)+'</div>';
-      if (imgs.length) {
-        html += '<div style="display:flex;gap:4px;margin-top:8px;">';
-        imgs.forEach(function(url){ html += '<img src="'+url+'" onclick="openLightbox(''+url+'')" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.display='none'">'; });
-        html += '</div>';
-      }
-      html += '</div>';
-    });
-  });
-  list.innerHTML = html;
-}
-
 // ── HELPERS ─────────────────────────────────────────────────────────────
 function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
@@ -1341,30 +1281,122 @@ function showToast(msg) {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
 }
+
+// ── LISTA OBSERWUJĄCYCH ───────────────────────────────────────────
+async function openFollowersList() {
+  if(document.getElementById('followers-overlay')){document.getElementById('followers-overlay').remove();return;}
+  var ov=document.createElement('div');ov.id='followers-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
+  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:18px;">Obserwujący</div><button onclick="document.getElementById('followers-overlay').remove()" style="background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>';
+  var list=document.createElement('div');list.style.cssText='overflow-y:auto;padding:8px 16px 24px;';
+  list.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  sh.appendChild(hd);sh.appendChild(list);ov.appendChild(sh);document.body.appendChild(ov);
+  var res=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
+  var ids=(res.data||[]).map(function(r){return r.follower_id;});
+  if(!ids.length){list.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Brak obserwujących</div>';return;}
+  var ar=await _sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
+  list.innerHTML=(ar.data||[]).map(function(a){
+    var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+    var av=a.avatar_url?'<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none'">':ini;
+    return '<div data-pid="'+a.id+'" onclick="location.href='profil.html?id='+this.dataset.pid" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;">'
+      +'<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">'+av+'</div>'
+      +'<div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+escHtml(a.full_name||'Biegacz')+'</div>'+(a.goal?'<div style="font-size:10px;color:var(--muted);">'+escHtml(a.goal)+'</div>':'')+'</div>'
+      +'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></div>';
+  }).join('');
+}
+
+// ── LISTA TRENINGÓW ───────────────────────────────────────────────
+var _allTrainings=[];
+async function openTrainingsList() {
+  if(document.getElementById('trainings-overlay')){document.getElementById('trainings-overlay').remove();return;}
+  var TC={Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8',Marsz:'#aac8ff'};
+  var TYPES=['Wszystkie','Spokojny','Tempo','Interwały','Długi','Odpoczynek'];
+  var ov=document.createElement('div');ov.id='trainings-overlay';
+  ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick=function(e){if(e.target===ov)ov.remove();};
+  var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;height:85vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
+  var hd=document.createElement('div');hd.style.cssText='padding:14px 20px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;';
+  hd.innerHTML='<div style="font-family:Bebas Neue,sans-serif;font-size:20px;">Historia <span style="color:var(--accent);">Treningów</span></div><button onclick="document.getElementById('trainings-overlay').remove()" style="background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>';
+  var fb=document.createElement('div');fb.style.cssText='display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;';
+  fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTrainings(this)" style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
+  var li=document.createElement('div');li.id='trainings-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';
+  li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
+  sh.appendChild(hd);sh.appendChild(fb);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
+  var res=await _sb.from('training_logs').select('id,training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
+  _allTrainings=res.data||[];
+  renderTrainingsList('');
+}
+function filterTrainings(btn) {
+  document.querySelectorAll('#trainings-overlay button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});
+  btn.style.background='rgba(232,86,30,0.15)';btn.style.borderColor='rgba(232,86,30,0.4)';btn.style.color='var(--accent)';
+  renderTrainingsList(btn.dataset.type||'');
+}
+function renderTrainingsList(filter) {
+  var li=document.getElementById('trainings-list');if(!li)return;
+  var logs=_allTrainings;if(filter)logs=logs.filter(function(l){return l.training_type===filter;});
+  if(!logs.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak treningów'+(filter?' — '+filter:'')+'</div>';return;}
+  var TC={Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8',Marsz:'#aac8ff'};
+  var FL={good:'😊',mid:'😐',bad:'😓'};
+  var months={},mk=[];
+  logs.forEach(function(l){var d=new Date(l.logged_at);var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(!months[k]){months[k]={label:d.toLocaleDateString('pl-PL',{month:'long',year:'numeric'}),items:[],km:0};mk.push(k);}
+    months[k].items.push(l);months[k].km+=parseFloat(l.distance_km)||0;});
+  var html='';
+  mk.forEach(function(k){var m=months[k];
+    html+='<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;padding:12px 0 6px;display:flex;justify-content:space-between;"><span>'+m.label+'</span>'+(m.km>0?'<span style="color:var(--accent);">'+m.km.toFixed(1)+' km</span>':'')+'</div>';
+    m.items.forEach(function(l){var d=new Date(l.logged_at);var day=d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+      var km=parseFloat(l.distance_km)||0;var col=TC[l.training_type]||'#66636e';
+      var imgs=l.attachment_url?l.attachment_url.split(',').filter(Boolean):[];
+      html+='<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-left:3px solid '+col+';border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:'+(km||l.comment||imgs.length?'5':'0')+'px;">'
+        +'<span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;font-weight:600;">'+escHtml(l.training_type||'Trening')+'</span>'
+        +(FL[l.feel]?'<span style="font-size:12px;">'+FL[l.feel]+'</span>':'')
+        +'<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">'+day+'</span></div>';
+      if(km>0)html+='<div style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;color:var(--fg);">'+km.toFixed(1)+' km'+(l.pace?'<span style="font-size:12px;color:var(--muted);margin-left:8px;font-family:DM Sans,sans-serif;">'+l.pace+'/km</span>':'')+(l.heart_rate?'<span style="font-size:12px;color:#e05050;margin-left:8px;">♥ '+l.heart_rate+'</span>':'')+'</div>';
+      if(l.comment)html+='<div style="font-size:12px;color:var(--fg2);margin-top:5px;line-height:1.5;">'+escHtml(l.comment)+'</div>';
+      if(imgs.length){html+='<div style="display:flex;gap:4px;margin-top:8px;">';imgs.forEach(function(u){html+='<img src="'+u+'" onclick="openLightbox(''+u+'')" style="height:60px;width:60px;object-fit:cover;border-radius:6px;cursor:pointer;" onerror="this.style.display='none'">';});html+='</div>';}
+      html+='</div>';});});
+  li.innerHTML=html;
+}
+
+// ── BADGE ZAPROSZEŃ ───────────────────────────────────────────────
+async function checkProfilFriendRequests() {
+  if(!_myId)return;
+  try {
+    var r1=await _sb.from('friendships').select('id').eq('status','pending').eq('addressee_id',_myId);
+    var r2=await _sb.from('notifications').select('id').eq('athlete_id',_myId).eq('type','friend_request').eq('read',false);
+    var total=(r1.data?r1.data.length:0)+(r2.data?r2.data.length:0);
+    var b=document.getElementById('profil-friends-badge');if(b)b.style.display=total>0?'block':'none';
+  }catch(e){}
+}
+
 </script>
 
 <nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Dziś</span>
+    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Dziś</span>
   </a>
   <a href="kalendarz.html?role=athlete" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Plan</span>
+    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Plan</span>
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
       <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;margin-top:2px;">Log</span>
+    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;margin-top:2px;">Log</span>
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Społeczność</span>
+    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Społeczność</span>
   </a>
   <a href="#" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8561e" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:#e8561e;font-family:'DM Mono',monospace;">Profil</span>
+    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:#e8561e;font-family:DM Mono,monospace;">Profil</span>
   </a>
 </nav>
 </body>
