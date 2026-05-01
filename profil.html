@@ -159,7 +159,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
 /* ── HERO SLIDESHOW ─────────────────────────────────── */
 .p-hero-wrap{position:relative;margin:0 16px 0;border-radius:18px;overflow:hidden;}
-.p-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;transition:opacity 0.5s ease;z-index:0;border-radius:inherit;}
+.p-hero-bg{position:absolute;inset:0;z-index:0;border-radius:inherit;overflow:hidden;}
 .p-hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.1) 0%,rgba(7,5,12,0.0) 40%,rgba(7,5,12,0.55) 100%);z-index:1;border-radius:inherit;}
 .p-hero-inner{position:relative;z-index:2;min-height:200px;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;}
 .p-hero-dots{display:flex;gap:4px;align-items:center;}
@@ -253,7 +253,13 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       <div class="ps-lbl">Treningi</div>
     </div>
     <div class="ps-item" onclick="goToStats()" style="cursor:pointer;">
-      <div class="ps-val" id="ps-km">—</div>
+      <div class="ps-val" id="ps-km" style="display:flex;align-items:center;justify-content:center;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6" y1="20" x2="6" y2="14"/>
+        </svg>
+      </div>
       <div class="ps-lbl">Statystyki</div>
     </div>
   </div>
@@ -645,7 +651,7 @@ async function loadStats() {
     .not('training_type', 'like', '__badge__%');
   const totalKm = (logs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
   document.getElementById('ps-logs').textContent = logs?.length || 0;
-  document.getElementById('ps-km').textContent = totalKm > 0 ? Math.round(totalKm) : '0';
+  // ps-km zawiera ikonę statystyk — nie nadpisujemy wartością
 }
 
 // ── FRIEND STATUS ─────────────────────────────────────────────────
@@ -1412,15 +1418,34 @@ const _pHeroDay = new Date().getDay();
 const _pHeroCards = _pHeroSets[_pHeroDay].map(n => BASE_ASSETS + n + '.webp');
 let _pHeroIdx = 0;
 let _pHeroTimer = null;
+let _pHeroLayerActive = 0; // który layer (0 lub 1) jest aktualnie widoczny
+let _pHeroInitDone = false;
+let _pHeroSwitching = false;
 
 function _pHeroShow(i) {
-  const bg = document.getElementById('p-hero-bg');
-  if (!bg) return;
-  bg.style.opacity = '0';
-  setTimeout(() => {
-    bg.style.backgroundImage = 'url(' + _pHeroCards[i] + ')';
-    bg.style.opacity = '1';
-  }, 200);
+  if (_pHeroSwitching) return; // chroni przed double-trigger
+  const wrap = document.getElementById('p-hero-bg');
+  if (!wrap) return;
+  // Pobierz oba layery
+  const layers = wrap.querySelectorAll('.p-hero-layer');
+  if (layers.length < 2) return;
+  const newLayerIdx = 1 - _pHeroLayerActive;
+  const newLayer = layers[newLayerIdx];
+  const oldLayer = layers[_pHeroLayerActive];
+  // Preload obrazu zanim rozpoczniemy crossfade
+  _pHeroSwitching = true;
+  const img = new Image();
+  img.onload = function() {
+    newLayer.style.backgroundImage = 'url(' + _pHeroCards[i] + ')';
+    // crossfade
+    newLayer.style.opacity = '1';
+    oldLayer.style.opacity = '0';
+    _pHeroLayerActive = newLayerIdx;
+    _pHeroSwitching = false;
+  };
+  img.onerror = function(){ _pHeroSwitching = false; };
+  img.src = _pHeroCards[i];
+  // Dots
   document.querySelectorAll('.p-hero-dot').forEach((d, idx) => {
     d.classList.toggle('active', idx === i);
   });
@@ -1434,18 +1459,34 @@ function _pHeroPrev() {
   _pHeroShow(_pHeroIdx);
 }
 function _pHeroInit() {
+  if (_pHeroInitDone) return;
+  const wrap = document.getElementById('p-hero-bg');
+  if (!wrap) return;
+  // Zbuduj DWA layery do crossfade
+  wrap.innerHTML = ''
+    + '<div class="p-hero-layer" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:1;transition:opacity 0.6s ease;background-image:url('+_pHeroCards[0]+');"></div>'
+    + '<div class="p-hero-layer" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;transition:opacity 0.6s ease;"></div>';
+  _pHeroLayerActive = 0;
+  _pHeroInitDone = true;
+
   const dotsEl = document.getElementById('p-hero-dots');
   if (dotsEl) {
     dotsEl.innerHTML = _pHeroCards.map((_, i) =>
       '<span class="p-hero-dot' + (i===0?' active':'') + '" onclick="_pHeroShow('+i+');_pHeroIdx='+i+';"></span>'
     ).join('');
   }
-  _pHeroShow(0);
+  // Preload wszystkich obrazków w tle (żeby kolejne były instant)
+  _pHeroCards.forEach(function(url){ const im = new Image(); im.src = url; });
+
+  if (_pHeroTimer) clearInterval(_pHeroTimer);
   _pHeroTimer = setInterval(_pHeroNext, 5000);
 }
-// Uruchom od razu
-document.addEventListener('DOMContentLoaded', _pHeroInit);
-setTimeout(_pHeroInit, 100);
+// Tylko jedna inicjalizacja
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _pHeroInit);
+} else {
+  _pHeroInit();
+}
 
 // ── EDYCJA CELÓW ─────────────────────────────────────────────────
 async function addGoalPrompt() {
@@ -1901,7 +1942,7 @@ function goToStats(){ if(_targetId) location.href='statystyki.html?id='+_targetI
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;margin-top:2px;">Log</span>
   </a>
-  <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
+  <a href="zawodnik.html?tab=social" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Społeczność</span>
   </a>
