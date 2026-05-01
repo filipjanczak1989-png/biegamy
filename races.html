@@ -309,6 +309,59 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
     </div>
   </div>
 
+  <!-- ADVANCED FILTER PANEL -->
+  <div style="padding:0 16px;margin-top:8px;">
+    <button id="adv-filter-toggle" onclick="toggleAdvFilters()" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg2);border-radius:10px;padding:8px 14px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;justify-content:space-between;">
+      <span style="display:flex;align-items:center;gap:8px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+        <span id="adv-filter-label">Filtry zaawansowane</span>
+      </span>
+      <span id="adv-filter-arrow" style="transition:transform 0.2s;">▾</span>
+    </button>
+
+    <div id="adv-filter-panel" style="display:none;margin-top:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;">
+      <!-- Zakres dat -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Zakres dat</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">OD</label>
+            <input id="adv-date-from" type="date" onchange="updateAdvFilterCount();renderRaces()"
+                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;color-scheme:dark;">
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">DO</label>
+            <input id="adv-date-to" type="date" onchange="updateAdvFilterCount();renderRaces()"
+                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;color-scheme:dark;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Zakres dystansu -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Zakres dystansu (km)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">OD</label>
+            <input id="adv-dist-from" type="number" placeholder="np. 5" min="0" step="0.1"
+                   oninput="updateAdvFilterCount();renderRaces()"
+                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;">
+          </div>
+          <div>
+            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">DO</label>
+            <input id="adv-dist-to" type="number" placeholder="np. 21" min="0" step="0.1"
+                   oninput="updateAdvFilterCount();renderRaces()"
+                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="clearAdvFilters()" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:8px;padding:8px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;">
+        Wyczyść filtry
+      </button>
+    </div>
+  </div>
+
   <!-- FILTER CHIPS -->
   <div class="filter-row" id="filter-row">
     <div class="chip active" data-dist="all" onclick="selectChip(this)">Wszystkie</div>
@@ -495,6 +548,10 @@ async function loadRaces() {
 
   if (error) { showToast('Błąd ładowania: ' + error.message); return; }
   _allRaces = data || [];
+
+  // Pobierz avatary uczestników BiegaMy dla każdego wyścigu (max 5 per race)
+  await loadRaceParticipantsAvatars();
+
   renderRaces();
 
   // Sprawdź pending (tylko dla zawodnika)
@@ -509,6 +566,45 @@ async function loadRaces() {
         `${pending.length === 1 ? 'Twoja propozycja czeka' : `${pending.length} propozycje czekają`} na akceptację trenera`;
     }
   }
+}
+
+// Pobiera avatary do max 5 uczestników per race i zapisuje w _raceParticipants
+let _raceParticipants = {};  // raceId → [{id, full_name, avatar_url}, ...]
+async function loadRaceParticipantsAvatars() {
+  const raceIds = _allRaces.filter(r => (r.signup_count||0) > 0).map(r => r.id);
+  if (!raceIds.length) return;
+
+  // Pobierz wszystkie signups dla widocznych wyścigów
+  const { data: signups } = await _sb.from('race_signups')
+    .select('race_id,athlete_id,signed_at')
+    .in('race_id', raceIds)
+    .order('signed_at', { ascending: false });
+
+  if (!signups || !signups.length) return;
+
+  // Grupuj per race, weź max 5 najnowszych per race
+  const byRace = {};
+  signups.forEach(s => {
+    if (!byRace[s.race_id]) byRace[s.race_id] = [];
+    if (byRace[s.race_id].length < 5) byRace[s.race_id].push(s.athlete_id);
+  });
+
+  // Pobierz dane wszystkich tych zawodników jednym zapytaniem
+  const allAthleteIds = [...new Set(Object.values(byRace).flat())];
+  if (!allAthleteIds.length) return;
+  const { data: athletes } = await _sb.from('athletes')
+    .select('id,full_name,avatar_url')
+    .in('id', allAthleteIds);
+
+  const athMap = {};
+  (athletes||[]).forEach(a => { athMap[a.id] = a; });
+
+  _raceParticipants = {};
+  Object.keys(byRace).forEach(raceId => {
+    _raceParticipants[raceId] = byRace[raceId]
+      .map(id => athMap[id])
+      .filter(Boolean);
+  });
 }
 
 async function loadMySignups() {
@@ -566,7 +662,29 @@ function renderRaceCard(race) {
   const distNum = formatDistNum(race.distance_km);
   const distUnit = formatDistUnit(race.distance_km);
   const dateStr = formatDate(race.date);
-  const countLabel = race.signup_count > 0 ? `${race.signup_count} zapisanych` : 'Bądź pierwszy!';
+
+  // Avatary uczestników BiegaMy (max 5)
+  const parts = _raceParticipants[race.id] || [];
+  const totalCount = race.signup_count || 0;
+  let avatarsHtml = '';
+  if (parts.length > 0) {
+    const avList = parts.map((a, idx) => {
+      const ini = (a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+      const inner = a.avatar_url
+        ? `<img src="${escAttr(a.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${ini}'">`
+        : ini;
+      return `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#ff7a45);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;" title="${escAttr(a.full_name||'')}">${inner}</div>`;
+    }).join('');
+    const moreCount = totalCount - parts.length;
+    const more = moreCount > 0
+      ? `<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg2);border:2px solid #0a0810;margin-left:-8px;font-family:DM Mono,monospace;font-weight:600;flex-shrink:0;">+${moreCount}</div>`
+      : '';
+    avatarsHtml = `<div style="display:flex;align-items:center;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')">${avList}${more}</div>`;
+  }
+
+  const countLabel = totalCount > 0
+    ? `<span onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">${totalCount} z BiegaMy</span>`
+    : 'Bądź pierwszy!';
 
   return `<div class="race-card" onclick="openRace('${race.id}')">
     <div class="race-card-inner">
@@ -591,7 +709,10 @@ function renderRaceCard(race) {
       </div>
     </div>
     <div class="race-footer">
-      <div class="signups-count">${countLabel}</div>
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+        ${avatarsHtml}
+        <div class="signups-count" style="white-space:nowrap;">${countLabel}</div>
+      </div>
       <button class="signup-btn${signed ? ' signed' : ''}" onclick="event.stopPropagation();quickSignup(event,'${race.id}')">
         ${signed ? '✓ Zapisany' : '+ Wezmę udział'}
       </button>
@@ -601,6 +722,14 @@ function renderRaceCard(race) {
 
 // ── FILTER ────────────────────────────────────────────────────────
 function getFiltered() {
+  // Pobierz wartości z advanced filters
+  var dateFrom = document.getElementById('adv-date-from')?.value || '';
+  var dateTo   = document.getElementById('adv-date-to')?.value || '';
+  var distFromEl = document.getElementById('adv-dist-from');
+  var distToEl   = document.getElementById('adv-dist-to');
+  var distFrom = distFromEl && distFromEl.value !== '' ? parseFloat(distFromEl.value) : null;
+  var distTo   = distToEl   && distToEl.value   !== '' ? parseFloat(distToEl.value)   : null;
+
   return _allRaces.filter(r => {
     // Zawodnik widzi tylko approved; trener widzi wszystkie
     if (!_isCoach && r.status !== 'approved') return false;
@@ -609,12 +738,24 @@ function getFiltered() {
       var loc = ((r.region||'') + ' ' + (r.voivodeship||'') + ' ' + (r.city||'')).toLowerCase();
       if (!loc.includes(_activeRegion)) return false;
     }
-    const matchDist = matchesDistFilter(r.distance_km, _activeDist);
+    // Filtr dat z advanced
+    if (dateFrom && r.date && r.date < dateFrom) return false;
+    if (dateTo   && r.date && r.date > dateTo)   return false;
+    // Filtr dystansu z advanced (ma priorytet nad chip jeśli ustawiony)
+    if (distFrom !== null && (r.distance_km == null || r.distance_km < distFrom)) return false;
+    if (distTo   !== null && (r.distance_km == null || r.distance_km > distTo))   return false;
+
+    // Chip dystansu — pomijamy jeśli ustawiony jest zakres advanced
+    if (distFrom === null && distTo === null) {
+      const matchDist = matchesDistFilter(r.distance_km, _activeDist);
+      if (!matchDist) return false;
+    }
+
     const q = _searchVal.toLowerCase();
     const matchSearch = !q ||
       r.name?.toLowerCase().includes(q) ||
       r.city?.toLowerCase().includes(q);
-    return matchDist && matchSearch;
+    return matchSearch;
   });
 }
 
@@ -643,6 +784,47 @@ function setRegion(btn, region) {
 function filterRaces() {
   _searchVal = document.getElementById('search-input').value;
   renderRaces();
+}
+
+// ── ADVANCED FILTERS ──────────────────────────────────────────────
+function toggleAdvFilters() {
+  var panel = document.getElementById('adv-filter-panel');
+  var arrow = document.getElementById('adv-filter-arrow');
+  if (!panel) return;
+  var isOpen = panel.style.display === 'block';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+function clearAdvFilters() {
+  ['adv-date-from','adv-date-to','adv-dist-from','adv-dist-to'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  updateAdvFilterCount();
+  renderRaces();
+}
+
+function updateAdvFilterCount() {
+  var count = 0;
+  ['adv-date-from','adv-date-to','adv-dist-from','adv-dist-to'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el && el.value) count++;
+  });
+  var lbl = document.getElementById('adv-filter-label');
+  if (lbl) {
+    lbl.textContent = count > 0 ? 'Filtry zaawansowane (' + count + ')' : 'Filtry zaawansowane';
+  }
+  var btn = document.getElementById('adv-filter-toggle');
+  if (btn) {
+    if (count > 0) {
+      btn.style.borderColor = 'rgba(232,86,30,0.4)';
+      btn.style.color = 'var(--accent)';
+    } else {
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--fg2)';
+    }
+  }
 }
 
 // ── OPEN RACE MODAL ───────────────────────────────────────────────
