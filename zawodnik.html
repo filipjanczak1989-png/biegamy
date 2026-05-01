@@ -802,6 +802,7 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
+      <a href="o-nas.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📖 O nas</a>
       <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         &#x2192; Wyloguj się
@@ -967,10 +968,10 @@ body > *{position:relative;z-index:1;}
 
   <!-- CZAT: aktywny wątek (coach lub peer) -->
   <div id="chat-thread-view" style="flex:1;display:none;flex-direction:column;min-height:0;">
-    <div class="pchat-view-hdr" style="flex-shrink:0;padding-top:max(12px,env(safe-area-inset-top));display:flex;align-items:center;gap:12px;padding:12px 16px;position:relative;z-index:5;">
-      <button type="button" id="chat-back-btn" onclick="closeChatThread();return false;" style="background:rgba(255,255,255,0.07);border:none;color:var(--fg2);width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;position:relative;z-index:6;">‹</button>
-      <div class="pchat-view-av" id="z-coach-av" style="cursor:pointer;" onclick="chatThreadProfileClick()">F</div>
-      <div style="flex:1;cursor:pointer;min-width:0;" onclick="chatThreadProfileClick()">
+    <div class="pchat-view-hdr" style="flex-shrink:0;padding:max(12px,env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:12px;position:relative;z-index:5;">
+      <button type="button" id="chat-back-btn" style="background:rgba(255,255,255,0.07);border:none;color:var(--fg2);width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;position:relative;z-index:10;-webkit-tap-highlight-color:rgba(255,255,255,0.1);">‹</button>
+      <div class="pchat-view-av" id="z-coach-av" style="cursor:pointer;" title="Otwórz profil">F</div>
+      <div id="chat-thread-name-wrap" style="flex:1;cursor:pointer;min-width:0;" title="Otwórz profil">
         <div class="pchat-view-name" id="z-coach-name">Trener</div>
         <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;" id="chat-thread-sub">wiadomości</div>
       </div>
@@ -7131,6 +7132,42 @@ function _startSocialBannerRotation() {
 function _stopSocialBannerRotation() {
   if (_socialBannerTimer) { clearInterval(_socialBannerTimer); _socialBannerTimer = null; }
 }
+
+// ── CHAT THREAD: button listeners (defensive, multi-method) ─────
+(function attachChatBindings(){
+  function bindBack() {
+    var btn = document.getElementById('chat-back-btn');
+    if (!btn || btn._bound) return;
+    btn._bound = true;
+    var handler = function(ev){
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+      closeChatThread();
+    };
+    btn.addEventListener('click', handler);
+    btn.addEventListener('touchend', handler);
+  }
+  function bindAvatar() {
+    var av = document.getElementById('z-coach-av');
+    var nm = document.getElementById('chat-thread-name-wrap');
+    if (av && !av._bound) {
+      av._bound = true;
+      av.addEventListener('click', function(ev){ ev.stopPropagation(); chatThreadProfileClick(); });
+    }
+    if (nm && !nm._bound) {
+      nm._bound = true;
+      nm.addEventListener('click', function(ev){ ev.stopPropagation(); chatThreadProfileClick(); });
+    }
+  }
+  function bindAll(){ bindBack(); bindAvatar(); }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAll);
+  } else {
+    bindAll();
+  }
+  // Re-bind po krótkim opóźnieniu (na wypadek gdy element pojawi się później)
+  setTimeout(bindAll, 500);
+  setTimeout(bindAll, 2000);
+})();
 // ─────────────────────────────────────────────────────────────────
 </script>
 <!-- SEKCJA: STATYSTYKI -->

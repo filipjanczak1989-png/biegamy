@@ -269,6 +269,13 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .region-btn{flex-shrink:0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--fg3);border-radius:20px;padding:5px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
 .region-btn.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.4);color:var(--accent);}
+/* Distance chips w filter panelu */
+.dchip{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg2);border-radius:14px;padding:6px 12px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.dchip:hover{border-color:rgba(232,86,30,0.3);}
+.dchip.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.4);color:var(--accent);}
+/* Active filter pill (na górze) */
+.afpill{display:inline-flex;align-items:center;gap:5px;background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);border-radius:14px;padding:4px 8px 4px 10px;font-size:11px;font-family:'DM Mono',monospace;}
+.afpill button{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:13px;line-height:1;}
 </style>
 </head>
 <body>
@@ -278,99 +285,93 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   <div class="races-header-inner">
     <button class="back-btn" onclick="history.back()">‹</button>
     <div class="races-title">Kalendarz <span>Startów</span></div>
+    <button id="filter-toggle-btn" onclick="toggleFiltersPanel()" title="Filtry"
+      style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <span id="filter-count-badge" style="display:none;position:absolute;top:-3px;right:-3px;background:var(--accent);color:#fff;font-size:9px;font-family:'DM Mono',monospace;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:none;align-items:center;justify-content:center;padding:0 4px;line-height:1;border:2px solid var(--bg);"></span>
+    </button>
     <button class="add-race-btn" onclick="openAddRace()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Dodaj start
     </button>
   </div>
 
-  <!-- SEARCH -->
-  <div class="search-wrap">
-    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    <input class="search-input" type="text" placeholder="Szukaj zawodów..." id="search-input" oninput="filterRaces()">
-    <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 0;">
-      <button class="region-btn active" data-region="" onclick="setRegion(this,'')">Wszystkie</button>
-      <button class="region-btn" data-region="dolnośląskie" onclick="setRegion(this,'dolnośląskie')">Dolnośląskie</button>
-      <button class="region-btn" data-region="kujawsko-pomorskie" onclick="setRegion(this,'kujawsko-pomorskie')">Kujawsko-pom.</button>
-      <button class="region-btn" data-region="lubelskie" onclick="setRegion(this,'lubelskie')">Lubelskie</button>
-      <button class="region-btn" data-region="lubuskie" onclick="setRegion(this,'lubuskie')">Lubuskie</button>
-      <button class="region-btn" data-region="łódzkie" onclick="setRegion(this,'łódzkie')">Łódzkie</button>
-      <button class="region-btn" data-region="małopolskie" onclick="setRegion(this,'małopolskie')">Małopolskie</button>
-      <button class="region-btn" data-region="mazowieckie" onclick="setRegion(this,'mazowieckie')">Mazowieckie</button>
-      <button class="region-btn" data-region="opolskie" onclick="setRegion(this,'opolskie')">Opolskie</button>
-      <button class="region-btn" data-region="podkarpackie" onclick="setRegion(this,'podkarpackie')">Podkarpackie</button>
-      <button class="region-btn" data-region="podlaskie" onclick="setRegion(this,'podlaskie')">Podlaskie</button>
-      <button class="region-btn" data-region="pomorskie" onclick="setRegion(this,'pomorskie')">Pomorskie</button>
-      <button class="region-btn" data-region="śląskie" onclick="setRegion(this,'śląskie')">Śląskie</button>
-      <button class="region-btn" data-region="świętokrzyskie" onclick="setRegion(this,'świętokrzyskie')">Świętokrzyskie</button>
-      <button class="region-btn" data-region="warmińsko-mazurskie" onclick="setRegion(this,'warmińsko-mazurskie')">Warmińsko-maz.</button>
-      <button class="region-btn" data-region="wielkopolskie" onclick="setRegion(this,'wielkopolskie')">Wielkopolskie</button>
-      <button class="region-btn" data-region="zachodniopomorskie" onclick="setRegion(this,'zachodniopomorskie')">Zachodniopom.</button>
+  <!-- ACTIVE FILTERS BAR (chip-y aktywnych filtrów - zawsze widoczne kiedy coś ustawione) -->
+  <div id="active-filters-bar" style="display:none;padding:8px 16px 0;flex-wrap:wrap;gap:6px;"></div>
+
+  <!-- FILTERS PANEL (rozwijany pod headerem) -->
+  <div id="filters-panel" style="display:none;padding:14px 16px 4px;background:rgba(15,13,24,0.6);border-bottom:1px solid var(--border);">
+    <!-- Pole search -->
+    <div class="search-wrap" style="padding:0 0 12px;">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input class="search-input" type="text" placeholder="Szukaj zawodów (np. wroclaw)..." id="search-input" oninput="filterRaces()">
     </div>
-  </div>
 
-  <!-- ADVANCED FILTER PANEL -->
-  <div style="padding:0 16px;margin-top:8px;">
-    <button id="adv-filter-toggle" onclick="toggleAdvFilters()" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg2);border-radius:10px;padding:8px 14px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;display:flex;align-items:center;gap:8px;width:100%;justify-content:space-between;">
-      <span style="display:flex;align-items:center;gap:8px;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-        <span id="adv-filter-label">Filtry zaawansowane</span>
-      </span>
-      <span id="adv-filter-arrow" style="transition:transform 0.2s;">▾</span>
-    </button>
-
-    <div id="adv-filter-panel" style="display:none;margin-top:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:14px;">
-      <!-- Zakres dat -->
-      <div style="margin-bottom:14px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Zakres dat</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div>
-            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">OD</label>
-            <input id="adv-date-from" type="date" onchange="updateAdvFilterCount();renderRaces()"
-                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;color-scheme:dark;">
-          </div>
-          <div>
-            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">DO</label>
-            <input id="adv-date-to" type="date" onchange="updateAdvFilterCount();renderRaces()"
-                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;color-scheme:dark;">
-          </div>
-        </div>
-      </div>
-
-      <!-- Zakres dystansu -->
-      <div style="margin-bottom:14px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Zakres dystansu (km)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div>
-            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">OD</label>
-            <input id="adv-dist-from" type="number" placeholder="np. 5" min="0" step="0.1"
-                   oninput="updateAdvFilterCount();renderRaces()"
-                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;">
-          </div>
-          <div>
-            <label style="font-size:9px;color:var(--fg3);font-family:'DM Mono',monospace;display:block;margin-bottom:3px;">DO</label>
-            <input id="adv-dist-to" type="number" placeholder="np. 21" min="0" step="0.1"
-                   oninput="updateAdvFilterCount();renderRaces()"
-                   style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:13px;font-family:'DM Mono',monospace;">
-          </div>
-        </div>
-      </div>
-
-      <button onclick="clearAdvFilters()" style="width:100%;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:8px;padding:8px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;">
-        Wyczyść filtry
-      </button>
+    <!-- Województwo -->
+    <div style="margin-bottom:10px;">
+      <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;display:block;margin-bottom:5px;">Województwo</label>
+      <select id="f-voi" onchange="onFilterChange()"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:9px 10px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color-scheme:dark;cursor:pointer;">
+        <option value="">— Wszystkie —</option>
+        <option value="dolnośląskie">Dolnośląskie</option>
+        <option value="kujawsko-pomorskie">Kujawsko-pomorskie</option>
+        <option value="lubelskie">Lubelskie</option>
+        <option value="lubuskie">Lubuskie</option>
+        <option value="łódzkie">Łódzkie</option>
+        <option value="małopolskie">Małopolskie</option>
+        <option value="mazowieckie">Mazowieckie</option>
+        <option value="opolskie">Opolskie</option>
+        <option value="podkarpackie">Podkarpackie</option>
+        <option value="podlaskie">Podlaskie</option>
+        <option value="pomorskie">Pomorskie</option>
+        <option value="śląskie">Śląskie</option>
+        <option value="świętokrzyskie">Świętokrzyskie</option>
+        <option value="warmińsko-mazurskie">Warmińsko-mazurskie</option>
+        <option value="wielkopolskie">Wielkopolskie</option>
+        <option value="zachodniopomorskie">Zachodniopomorskie</option>
+      </select>
     </div>
-  </div>
 
-  <!-- FILTER CHIPS -->
-  <div class="filter-row" id="filter-row">
-    <div class="chip active" data-dist="all" onclick="selectChip(this)">Wszystkie</div>
-    <div class="chip" data-dist="5" onclick="selectChip(this)">5 km</div>
-    <div class="chip" data-dist="10" onclick="selectChip(this)">10 km</div>
-    <div class="chip" data-dist="21.097" onclick="selectChip(this)">Półmaraton</div>
-    <div class="chip" data-dist="42.195" onclick="selectChip(this)">Maraton</div>
-    <div class="chip" data-dist="ultra" onclick="selectChip(this)">Ultra</div>
-    <div class="chip" data-dist="other" onclick="selectChip(this)">Inne</div>
+    <!-- Miesiąc -->
+    <div style="margin-bottom:10px;">
+      <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;display:block;margin-bottom:5px;">Miesiąc</label>
+      <select id="f-month" onchange="onFilterChange()"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:9px 10px;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color-scheme:dark;cursor:pointer;">
+        <option value="">— Dowolny —</option>
+        <!-- generowane JS bo zależne od bieżącej daty -->
+      </select>
+    </div>
+
+    <!-- Dystans (multi-select chip-y) -->
+    <div style="margin-bottom:10px;">
+      <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;display:block;margin-bottom:6px;">Dystans</label>
+      <div id="dist-chips" style="display:flex;flex-wrap:wrap;gap:6px;">
+        <button class="dchip active" data-dist="all" onclick="selectDistChip(this)">Wszystkie</button>
+        <button class="dchip" data-dist="5" onclick="selectDistChip(this)">5 km</button>
+        <button class="dchip" data-dist="10" onclick="selectDistChip(this)">10 km</button>
+        <button class="dchip" data-dist="21.097" onclick="selectDistChip(this)">Półmaraton</button>
+        <button class="dchip" data-dist="42.195" onclick="selectDistChip(this)">Maraton</button>
+        <button class="dchip" data-dist="ultra" onclick="selectDistChip(this)">Ultra</button>
+        <button class="dchip" data-dist="other" onclick="selectDistChip(this)">Inne</button>
+      </div>
+    </div>
+
+    <!-- Zakres dat -->
+    <div style="margin-bottom:10px;">
+      <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;display:block;margin-bottom:5px;">Zakres dat (precyzyjny)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <input id="adv-date-from" type="date" onchange="onFilterChange()"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;color-scheme:dark;">
+        <input id="adv-date-to" type="date" onchange="onFilterChange()"
+          style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px 10px;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;color-scheme:dark;">
+      </div>
+    </div>
+
+    <!-- Akcje -->
+    <div style="display:flex;gap:8px;margin-top:8px;padding-bottom:6px;">
+      <button onclick="clearAllFilters()" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:8px;padding:9px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;">Wyczyść</button>
+      <button onclick="toggleFiltersPanel()" style="flex:2;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:9px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;font-weight:600;">Pokaż wyniki</button>
+    </div>
   </div>
 </div>
 
@@ -745,41 +746,45 @@ function renderRaceCard(race) {
 }
 
 // ── FILTER ────────────────────────────────────────────────────────
+// Normalizacja - usuwa polskie znaki i lowercase
+function _normalize(s) {
+  if (!s) return '';
+  return s.toString().toLowerCase()
+    .replace(/ą/g,'a').replace(/ć/g,'c').replace(/ę/g,'e').replace(/ł/g,'l')
+    .replace(/ń/g,'n').replace(/ó/g,'o').replace(/ś/g,'s').replace(/ź/g,'z').replace(/ż/g,'z');
+}
+
 function getFiltered() {
-  // Pobierz wartości z advanced filters
+  var voi = document.getElementById('f-voi')?.value || '';
+  var month = document.getElementById('f-month')?.value || '';  // YYYY-MM
   var dateFrom = document.getElementById('adv-date-from')?.value || '';
   var dateTo   = document.getElementById('adv-date-to')?.value || '';
-  var distFromEl = document.getElementById('adv-dist-from');
-  var distToEl   = document.getElementById('adv-dist-to');
-  var distFrom = distFromEl && distFromEl.value !== '' ? parseFloat(distFromEl.value) : null;
-  var distTo   = distToEl   && distToEl.value   !== '' ? parseFloat(distToEl.value)   : null;
 
   return _allRaces.filter(r => {
     // Zawodnik widzi tylko approved; trener widzi wszystkie
     if (!_isCoach && r.status !== 'approved') return false;
-    // Filtr województwa
-    if (typeof _activeRegion !== 'undefined' && _activeRegion) {
-      var loc = ((r.region||'') + ' ' + (r.voivodeship||'') + ' ' + (r.city||'')).toLowerCase();
-      if (!loc.includes(_activeRegion)) return false;
+    // Województwo (dropdown)
+    if (voi) {
+      var locN = _normalize((r.voivodeship||'') + ' ' + (r.region||'') + ' ' + (r.city||''));
+      if (!locN.includes(_normalize(voi))) return false;
     }
-    // Filtr dat z advanced
+    // Miesiąc YYYY-MM
+    if (month && r.date) {
+      if (!r.date.startsWith(month)) return false;
+    }
+    // Zakres dat (precyzyjny)
     if (dateFrom && r.date && r.date < dateFrom) return false;
     if (dateTo   && r.date && r.date > dateTo)   return false;
-    // Filtr dystansu z advanced (ma priorytet nad chip jeśli ustawiony)
-    if (distFrom !== null && (r.distance_km == null || r.distance_km < distFrom)) return false;
-    if (distTo   !== null && (r.distance_km == null || r.distance_km > distTo))   return false;
-
-    // Chip dystansu — pomijamy jeśli ustawiony jest zakres advanced
-    if (distFrom === null && distTo === null) {
-      const matchDist = matchesDistFilter(r.distance_km, _activeDist);
-      if (!matchDist) return false;
+    // Dystans
+    const matchDist = matchesDistFilter(r.distance_km, _activeDist);
+    if (!matchDist) return false;
+    // Search - fuzzy bez polskich znaków
+    const qN = _normalize(_searchVal);
+    if (qN) {
+      const hay = _normalize((r.name||'') + ' ' + (r.city||''));
+      if (!hay.includes(qN)) return false;
     }
-
-    const q = _searchVal.toLowerCase();
-    const matchSearch = !q ||
-      r.name?.toLowerCase().includes(q) ||
-      r.city?.toLowerCase().includes(q);
-    return matchSearch;
+    return true;
   });
 }
 
@@ -790,66 +795,141 @@ function matchesDistFilter(km, filter) {
   return Math.abs(km - parseFloat(filter)) < 0.2;
 }
 
-function selectChip(el) {
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+function selectDistChip(el) {
+  document.querySelectorAll('.dchip').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
   _activeDist = el.dataset.dist;
-  renderRaces();
-}
-
-var _activeRegion = '';
-function setRegion(btn, region) {
-  _activeRegion = region;
-  document.querySelectorAll('.region-btn').forEach(function(b){ b.classList.remove('active'); });
-  btn.classList.add('active');
-  filterRaces();
+  onFilterChange();
 }
 
 function filterRaces() {
   _searchVal = document.getElementById('search-input').value;
   renderRaces();
+  updateActiveFiltersBar();
+  updateFilterBadge();
 }
 
-// ── ADVANCED FILTERS ──────────────────────────────────────────────
-function toggleAdvFilters() {
-  var panel = document.getElementById('adv-filter-panel');
-  var arrow = document.getElementById('adv-filter-arrow');
-  if (!panel) return;
-  var isOpen = panel.style.display === 'block';
-  panel.style.display = isOpen ? 'none' : 'block';
-  if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-}
-
-function clearAdvFilters() {
-  ['adv-date-from','adv-date-to','adv-dist-from','adv-dist-to'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-  updateAdvFilterCount();
+function onFilterChange() {
   renderRaces();
+  updateActiveFiltersBar();
+  updateFilterBadge();
 }
 
-function updateAdvFilterCount() {
-  var count = 0;
-  ['adv-date-from','adv-date-to','adv-dist-from','adv-dist-to'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el && el.value) count++;
-  });
-  var lbl = document.getElementById('adv-filter-label');
-  if (lbl) {
-    lbl.textContent = count > 0 ? 'Filtry zaawansowane (' + count + ')' : 'Filtry zaawansowane';
+// ── PANEL FILTRÓW (toggle) ────────────────────────────────────────
+function toggleFiltersPanel() {
+  var panel = document.getElementById('filters-panel');
+  if (!panel) return;
+  panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+}
+
+function clearAllFilters() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('f-voi').value = '';
+  document.getElementById('f-month').value = '';
+  document.getElementById('adv-date-from').value = '';
+  document.getElementById('adv-date-to').value = '';
+  document.querySelectorAll('.dchip').forEach(c => c.classList.remove('active'));
+  document.querySelector('.dchip[data-dist="all"]')?.classList.add('active');
+  _activeDist = 'all';
+  _searchVal = '';
+  filterRaces();
+}
+
+// Wskaźnik aktywnych filtrów (chip-y na górze, klik=usuń)
+function updateActiveFiltersBar() {
+  var bar = document.getElementById('active-filters-bar');
+  if (!bar) return;
+  var pills = [];
+  var voi = document.getElementById('f-voi')?.value;
+  var month = document.getElementById('f-month')?.value;
+  var df = document.getElementById('adv-date-from')?.value;
+  var dt = document.getElementById('adv-date-to')?.value;
+  if (voi) pills.push('<span class="afpill">'+_capitalize(voi)+'<button onclick="clearOneFilter(\'voi\')">×</button></span>');
+  if (month) {
+    var [y,m] = month.split('-');
+    var mNames = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+    pills.push('<span class="afpill">'+mNames[parseInt(m)-1]+' '+y+'<button onclick="clearOneFilter(\'month\')">×</button></span>');
   }
-  var btn = document.getElementById('adv-filter-toggle');
-  if (btn) {
+  if (df || dt) {
+    var label = (df ? df : '...') + ' → ' + (dt ? dt : '...');
+    pills.push('<span class="afpill">'+label+'<button onclick="clearOneFilter(\'dates\')">×</button></span>');
+  }
+  if (_activeDist && _activeDist !== 'all') {
+    var distLbl = ({'5':'5 km','10':'10 km','21.097':'Półmaraton','42.195':'Maraton','ultra':'Ultra','other':'Inne'})[_activeDist] || _activeDist;
+    pills.push('<span class="afpill">'+distLbl+'<button onclick="clearOneFilter(\'dist\')">×</button></span>');
+  }
+  if (_searchVal) {
+    pills.push('<span class="afpill">"'+_searchVal+'"<button onclick="clearOneFilter(\'search\')">×</button></span>');
+  }
+  if (pills.length === 0) {
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+  } else {
+    bar.style.display = 'flex';
+    bar.innerHTML = pills.join('');
+  }
+}
+
+function _capitalize(s) { return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+
+function clearOneFilter(kind) {
+  if (kind === 'voi') document.getElementById('f-voi').value = '';
+  else if (kind === 'month') document.getElementById('f-month').value = '';
+  else if (kind === 'dates') {
+    document.getElementById('adv-date-from').value = '';
+    document.getElementById('adv-date-to').value = '';
+  }
+  else if (kind === 'dist') {
+    document.querySelectorAll('.dchip').forEach(c => c.classList.remove('active'));
+    document.querySelector('.dchip[data-dist="all"]')?.classList.add('active');
+    _activeDist = 'all';
+  }
+  else if (kind === 'search') {
+    document.getElementById('search-input').value = '';
+    _searchVal = '';
+  }
+  filterRaces();
+}
+
+function updateFilterBadge() {
+  var count = 0;
+  if (document.getElementById('f-voi')?.value) count++;
+  if (document.getElementById('f-month')?.value) count++;
+  if (document.getElementById('adv-date-from')?.value || document.getElementById('adv-date-to')?.value) count++;
+  if (_activeDist && _activeDist !== 'all') count++;
+  if (_searchVal) count++;
+  var badge = document.getElementById('filter-count-badge');
+  var btn = document.getElementById('filter-toggle-btn');
+  if (badge) {
     if (count > 0) {
-      btn.style.borderColor = 'rgba(232,86,30,0.4)';
-      btn.style.color = 'var(--accent)';
+      badge.textContent = count;
+      badge.style.display = 'flex';
     } else {
-      btn.style.borderColor = 'var(--border)';
-      btn.style.color = 'var(--fg2)';
+      badge.style.display = 'none';
     }
   }
+  if (btn) {
+    btn.style.borderColor = count > 0 ? 'rgba(232,86,30,0.5)' : 'var(--border)';
+    btn.style.color = count > 0 ? 'var(--accent)' : 'var(--fg2)';
+  }
 }
+
+// Generowanie listy miesięcy (12 najbliższych)
+function _populateMonthOptions() {
+  var sel = document.getElementById('f-month');
+  if (!sel) return;
+  var mNames = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec','Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
+  var now = new Date();
+  var html = '<option value="">— Dowolny —</option>';
+  for (var i=0; i<12; i++) {
+    var d = new Date(now.getFullYear(), now.getMonth()+i, 1);
+    var key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    var label = mNames[d.getMonth()] + ' ' + d.getFullYear();
+    html += '<option value="'+key+'">'+label+'</option>';
+  }
+  sel.innerHTML = html;
+}
+_populateMonthOptions();
 
 // ── OPEN RACE MODAL ───────────────────────────────────────────────
 function openRace(id) {

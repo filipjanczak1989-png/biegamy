@@ -955,7 +955,9 @@ async function loadPosts() {
 
   const posts = postsRes.data || [];
   // Tylko logi które mają zdjęcie LUB komentarz (ten warunek już jest w .or, ale dla pewności filtr)
+  // Plus dodatkowy bezpiecznik: nigdy odznak (`__badge__...`)
   const logs = (logsRes.data || []).filter(function(l) {
+    if (l.training_type && (''+l.training_type).startsWith('__badge__')) return false;
     const hasImg = l.attachment_url && l.attachment_url.trim();
     const hasCmt = l.comment && l.comment.trim();
     return hasImg || hasCmt;
@@ -1037,6 +1039,8 @@ function _renderPostItem(p, idx) {
 }
 
 function _renderTrainingItem(l, idx) {
+  // Bezpiecznik: nigdy nie renderuj wpisów odznak (gdyby przeszły mimo filtra w query)
+  if (l && l.training_type && (''+l.training_type).startsWith('__badge__')) return '';
   const type = l.training_type || 'Trening';
   const col = TRAIN_TYPE_COLORS[type] || '#e8561e';
   const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
