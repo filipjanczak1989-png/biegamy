@@ -6029,6 +6029,21 @@ async function showSection_msgs_init() {
   if(listView) listView.style.display='flex';
   if(threadView) threadView.style.display='none';
   await loadChatConvList();
+  // Auto-refresh listy co 8s
+  if (window._zChatListTimer) clearInterval(window._zChatListTimer);
+  window._zChatListTimer = setInterval(function(){
+    var msgsSection = document.getElementById('section-msgs');
+    if (!msgsSection || msgsSection.style.display === 'none') {
+      clearInterval(window._zChatListTimer);
+      window._zChatListTimer = null;
+      return;
+    }
+    // Refresh tylko jeśli widać listę (nie jesteśmy w wątku)
+    var lv = document.getElementById('chat-list-view');
+    if (lv && lv.style.display !== 'none') {
+      loadChatConvList();
+    }
+  }, 8000);
 }
 
 async function loadChatConvList() {
@@ -6192,12 +6207,29 @@ async function openChatThread(mode, pid, name) {
     await loadMessages();
   } else {
     await _loadPeerThreadZ(pid);
+    // Auto-refresh co 4s dla peer chat
+    if (window._zChatRefreshTimer) clearInterval(window._zChatRefreshTimer);
+    window._zChatRefreshTimer = setInterval(function(){
+      // Sprawdź czy wątek peer jest dalej otwarty
+      var tv = document.getElementById('chat-thread-view');
+      if (!tv || tv.style.display === 'none' || _chatMode !== 'peer' || !_chatPeerId) {
+        clearInterval(window._zChatRefreshTimer);
+        window._zChatRefreshTimer = null;
+        return;
+      }
+      _loadPeerThreadZ(_chatPeerId, true);
+    }, 4000);
   }
 }
 
 function closeChatThread() {
   _chatMode = null;
   _chatPeerId = null;
+  // Cleanup peer auto-refresh
+  if (window._zChatRefreshTimer) {
+    clearInterval(window._zChatRefreshTimer);
+    window._zChatRefreshTimer = null;
+  }
   var listView = document.getElementById('chat-list-view');
   var threadView = document.getElementById('chat-thread-view');
   if(listView) listView.style.display='flex';
@@ -6211,23 +6243,64 @@ function chatThreadProfileClick() {
   }
 }
 
-async function _loadPeerThreadZ(tid) {
+async function _loadPeerThreadZ(tid, silent) {
   if (!_athleteId) return;
   var el = document.getElementById('msgs-thread');
   if (!el) return;
-  var res = await _sb.from('peer_messages').select('from_id,body,sent_at')
+  var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 80;
+
+  var res = await _sb.from('peer_messages').select('id,from_id,body,sent_at')
     .or('and(from_id.eq.'+_athleteId+',to_id.eq.'+tid+'),and(from_id.eq.'+tid+',to_id.eq.'+_athleteId+')')
-    .order('sent_at',{ascending:true}).limit(100);
+    .order('sent_at',{ascending:true}).limit(200);
   var msgs = res.data||[];
-  if(!msgs.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Napisz pierwszą wiadomość! 👋</div>';return;}
-  el.innerHTML = msgs.map(function(m){
-    var isMe=m.from_id===_athleteId;
-    var t=new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    return '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-bottom:6px;">'
-      +'<div style="max-width:75%;background:'+(isMe?'var(--accent)':'var(--card2)')+';border-radius:'+(isMe?'14px 14px 4px 14px':'14px 14px 14px 4px')+';padding:9px 13px;font-size:13px;line-height:1.5;">'
-      +m.body.replace(/</g,'&lt;')+'<div style="font-size:9px;opacity:0.55;margin-top:3px;text-align:right;font-family:DM Mono,monospace;">'+t+'</div></div></div>';
-  }).join('');
-  el.scrollTop=el.scrollHeight;
+
+  if(!msgs.length){
+    if (!silent) el.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;line-height:1.7;font-family:DM Mono,monospace;">'
+      +'<div style="font-size:32px;margin-bottom:10px;">👋</div>'
+      +'Brak wiadomości.<br>Napisz pierwszą!'
+      +'</div>';
+    return;
+  }
+
+  // Group by day
+  var lastDay = '';
+  var html = '';
+  for (var i=0; i<msgs.length; i++) {
+    var m = msgs[i];
+    var d = new Date(m.sent_at);
+    var dayKey = d.toLocaleDateString('pl-PL');
+    if (dayKey !== lastDay) {
+      var today = new Date();
+      var yest = new Date(); yest.setDate(today.getDate()-1);
+      var dayLabel;
+      if (d.toLocaleDateString('pl-PL') === today.toLocaleDateString('pl-PL')) dayLabel = 'Dziś';
+      else if (d.toLocaleDateString('pl-PL') === yest.toLocaleDateString('pl-PL')) dayLabel = 'Wczoraj';
+      else dayLabel = d.toLocaleDateString('pl-PL',{day:'numeric',month:'long'});
+      html += '<div style="text-align:center;margin:12px 0 6px;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;">'+dayLabel+'</div>';
+      lastDay = dayKey;
+    }
+    var isMe = m.from_id === _athleteId;
+    var t = d.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+    var prevSame = i>0 && msgs[i-1].from_id === m.from_id;
+    var nextSame = i<msgs.length-1 && msgs[i+1].from_id === m.from_id;
+    var radius;
+    if (isMe) {
+      radius = (prevSame && nextSame) ? '14px 4px 4px 14px' : nextSame ? '14px 14px 4px 14px' : prevSame ? '14px 4px 14px 14px' : '14px 14px 4px 14px';
+    } else {
+      radius = (prevSame && nextSame) ? '4px 14px 14px 4px' : nextSame ? '14px 14px 14px 4px' : prevSame ? '4px 14px 14px 14px' : '14px 14px 14px 4px';
+    }
+    var marginTop = prevSame ? '2px' : '8px';
+    var bodyHtml = m.body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    html += '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-top:'+marginTop+';">'
+      +'<div style="max-width:78%;background:'+(isMe?'linear-gradient(135deg,var(--accent),#ff7a45)':'var(--card2)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+radius+';padding:9px 13px;font-size:14px;line-height:1.45;word-wrap:break-word;'
+      +(isMe?'box-shadow:0 2px 8px rgba(232,86,30,0.25);':'')+'">'
+      +bodyHtml
+      +(!nextSame?'<div style="font-size:9px;opacity:0.65;margin-top:3px;text-align:'+(isMe?'right':'left')+';font-family:DM Mono,monospace;">'+t+'</div>':'')
+      +'</div></div>';
+  }
+  el.innerHTML = html;
+  if (wasNearBottom || !silent) el.scrollTop = el.scrollHeight;
+
   _sb.from('peer_messages').update({read:true}).eq('to_id',_athleteId).eq('from_id',tid).eq('read',false).then(function(){});
 }
 
@@ -6245,11 +6318,29 @@ async function _sendPeerMsgZ() {
   if(!_chatPeerId||!_athleteId) return;
   var inp=document.getElementById('msg-input');
   if(!inp) return;
-  var body=inp.value.trim();if(!body)return;inp.value='';
-  await _sb.from('peer_messages').insert({from_id:_athleteId,to_id:_chatPeerId,body:body,sent_at:new Date().toISOString(),read:false});
+  var body=inp.value.trim();
+  if(!body) return;
+  inp.value='';
+
+  // Find send button (closest button with paper plane svg in input area)
+  var sendBtn = document.querySelector('.pchat-input-area button[onclick*="sendMessage"]')
+                || document.querySelector('.pchat-input-row button:last-child');
+  if (sendBtn) { sendBtn.style.opacity = '0.5'; sendBtn.disabled = true; }
+
+  var ins = await _sb.from('peer_messages').insert({from_id:_athleteId,to_id:_chatPeerId,body:body,sent_at:new Date().toISOString(),read:false});
+
+  if (sendBtn) { sendBtn.style.opacity = '1'; sendBtn.disabled = false; }
+
+  if (ins.error) {
+    if (typeof toast === 'function') toast('Błąd: '+ins.error.message);
+    inp.value = body;
+    return;
+  }
+
   await _loadPeerThreadZ(_chatPeerId);
   var me=await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
   _sb.from('notifications').insert({athlete_id:_chatPeerId,type:'chat',from_athlete_id:_athleteId,message:(me.data&&me.data.full_name||'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
+  inp.focus();
 }
 
 function _chatFmt(ts) {
