@@ -1041,6 +1041,9 @@ async function doUnsignup(raceId) {
   const r = _allRaces.find(r => r.id === raceId);
   if (r) r.signup_count = Math.max(0, (r.signup_count || 1) - 1);
 
+  // Usuń też cel powiązany z wyścigiem
+  await removeFromGoals(raceId);
+
   showToast('Zapis usunięty');
   updateModalSignupBtn(false);
   renderRaces();
@@ -1048,15 +1051,37 @@ async function doUnsignup(raceId) {
 
 async function addToGoals(race) {
   if (!_athleteId) return;
-  // Sprawdź czy cel już istnieje
+  // Sprawdź czy cel z tym race_id już istnieje (lub po nazwie dla starych celów)
   const alreadyExists = _athleteGoals.some(g =>
-    g.name?.toLowerCase().includes(race.name.toLowerCase())
+    g.race_id === race.id ||
+    (g.name && g.name.toLowerCase() === race.name.toLowerCase())
   );
-  if (alreadyExists) return;
+  if (alreadyExists) {
+    // Zaktualizuj cel — dodaj race_id jeśli go nie ma
+    var existing = _athleteGoals.find(function(g){ return g.name && g.name.toLowerCase() === race.name.toLowerCase(); });
+    if (existing && !existing.race_id) {
+      existing.race_id = race.id;
+      await _sb.from('athletes').update({ race_goals: JSON.stringify(_athleteGoals) }).eq('id', _athleteId);
+    }
+    return;
+  }
 
-  const newGoal = { name: race.name, date: race.date };
+  const newGoal = { name: race.name, date: race.date, race_id: race.id };
   _athleteGoals.push(newGoal);
 
+  await _sb.from('athletes').update({
+    race_goals: JSON.stringify(_athleteGoals),
+    goal: _athleteGoals[0]?.name || null,
+    target_date: _athleteGoals[0]?.date || null
+  }).eq('id', _athleteId);
+}
+
+// Usuń cel powiązany z wyścigiem (gdy zawodnik się wypisuje)
+async function removeFromGoals(raceId) {
+  if (!_athleteId) return;
+  const idx = _athleteGoals.findIndex(g => g.race_id === raceId);
+  if (idx === -1) return;
+  _athleteGoals.splice(idx, 1);
   await _sb.from('athletes').update({
     race_goals: JSON.stringify(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,

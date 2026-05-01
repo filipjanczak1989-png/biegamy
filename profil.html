@@ -597,16 +597,58 @@ function renderGoals(ath) {
     const day = d.getDate();
     const mon = d.toLocaleDateString('pl-PL', { month: 'short' }).replace('.','').toUpperCase();
     const daysLeft = Math.ceil((d - new Date()) / 86400000);
-    var raceName = encodeURIComponent(g.name);
-    return '<div class="goal-item" onclick="openRaceDetails(\'' + escHtml(g.name) + '\')" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+    const linked = !!g.race_id;
+    // Klik: jeśli cel powiązany z race_id → showParticipants po race_id; inaczej openRaceDetails po nazwie
+    const clickHandler = linked
+      ? 'showRaceParticipantsById(\'' + g.race_id + '\')'
+      : 'openRaceDetails(\'' + escHtml(g.name).replace(/'/g,"\\'") + '\')';
+    const ctaLine = linked
+      ? '<div style="font-size:10px;color:#3db870;font-family:DM Mono,monospace;margin-top:2px;display:flex;align-items:center;gap:4px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>z kalendarza · zobacz uczestników</div>'
+      : '<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;">👥 Kto bierze udział?</div>';
+    const linkBtn = (_isOwnProfile && !linked)
+      ? '<button onclick="event.stopPropagation();openLinkGoalModal('+i+')" title="Powiąż z kalendarzem" style="background:none;border:1px solid rgba(91,140,255,0.35);color:#5b8cff;font-size:10px;padding:3px 6px;border-radius:6px;cursor:pointer;font-family:DM Mono,monospace;">🔗</button>'
+      : '';
+    return '<div class="goal-item" onclick="' + clickHandler + '" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div class="goal-date-badge"><div class="goal-date-day">'+day+'</div><div class="goal-date-mon">'+mon+'</div></div>'
-      + '<div class="goal-name">'+escHtml(g.name)+'<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;">👥 Kto bierze udział?</div></div>'
+      + '<div class="goal-name">'+escHtml(g.name)+ctaLine+'</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
       + '<div class="goal-days">'+(daysLeft > 0 ? 'za '+daysLeft+' dni' : 'dziś!')+'</div>'
-      + (_isOwnProfile ? '<button onclick="event.stopPropagation();removeGoal('+i+')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;">×</button>' : '')
+      + (_isOwnProfile ? '<div style="display:flex;gap:4px;">' + linkBtn + '<button onclick="event.stopPropagation();removeGoal('+i+')" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 2px;">×</button></div>' : '')
       + '</div>'
       + '</div>';
   }).join('');
+}
+
+// Otwórz autocomplete modal w trybie "powiąż istniejący cel z wyścigiem"
+let _linkingGoalIdx = -1;
+function openLinkGoalModal(upcomingIdx) {
+  let goals = [];
+  try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
+  const upcoming = goals.filter(function(g){ return g.date && new Date(g.date + 'T00:00:00') >= new Date(); }).sort(function(a,b){ return new Date(a.date)-new Date(b.date); });
+  const target = upcoming[upcomingIdx];
+  if (!target) return;
+  _linkingGoalIdx = goals.findIndex(function(g){ return g.name === target.name && g.date === target.date; });
+
+  // Reset modal i pre-fill nazwą celu
+  _goalSelectedRace = null;
+  document.getElementById('goal-name-inp').value = target.name;
+  document.getElementById('goal-date-inp').value = target.date;
+  document.getElementById('goal-linked-info').style.display = 'none';
+  document.getElementById('goal-propose-section').style.display = 'none';
+  document.getElementById('goal-autocomplete-list').style.display = 'none';
+  document.getElementById('goal-modal').style.display = 'flex';
+  // Pokaż autocomplete od razu
+  goalAutocomplete(target.name);
+  // Override saveGoal żeby zaktualizować istniejący zamiast dodać
+  // (zrobione przez sprawdzenie _linkingGoalIdx w saveGoalFromModal)
+}
+
+// Zmodyfikuj saveGoalFromModal żeby uwzględniała _linkingGoalIdx
+async function showRaceParticipantsById(raceId) {
+  const { data: race } = await _sb.from('races').select('id,name').eq('id', raceId).maybeSingle();
+  if (!race) { showToast('Nie znaleziono wyścigu'); return; }
+  // Pobierz uczestników
+  await openRaceDetails(race.name);
 }
 
 async function loadBadges() {
@@ -1489,29 +1531,233 @@ if (document.readyState === 'loading') {
 }
 
 // ── EDYCJA CELÓW ─────────────────────────────────────────────────
-async function addGoalPrompt() {
-  const name = prompt('Nazwa celu / zawodów:');
-  if (!name) return;
-  const date = prompt('Data (RRRR-MM-DD), np. 2026-09-13:');
-  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('Nieprawidłowa data'); return; }
+let _goalSelectedRace = null;  // jeśli wybrany z autocomplete - cały obiekt race
+
+function addGoalPrompt() {
+  // Reset
+  _goalSelectedRace = null;
+  _linkingGoalIdx = -1;
+  document.getElementById('goal-name-inp').value = '';
+  document.getElementById('goal-date-inp').value = '';
+  document.getElementById('goal-linked-info').style.display = 'none';
+  document.getElementById('goal-propose-section').style.display = 'none';
+  document.getElementById('goal-autocomplete-list').style.display = 'none';
+  document.getElementById('goal-modal').style.display = 'flex';
+  setTimeout(function(){ document.getElementById('goal-name-inp').focus(); }, 100);
+}
+
+function closeGoalModal() {
+  document.getElementById('goal-modal').style.display = 'none';
+  _goalSelectedRace = null;
+  _linkingGoalIdx = -1;
+}
+
+// Cache wyścigów dla autocomplete
+let _racesCache = null;
+let _racesCacheTime = 0;
+
+async function _getRacesCache() {
+  const now = Date.now();
+  // Cache 60s
+  if (_racesCache && (now - _racesCacheTime) < 60000) return _racesCache;
+  const { data } = await _sb.from('races')
+    .select('id,name,date,city,distance_km')
+    .eq('status','approved')
+    .gte('date', new Date().toISOString().slice(0,10))
+    .order('date', { ascending: true })
+    .limit(200);
+  _racesCache = data || [];
+  _racesCacheTime = now;
+  return _racesCache;
+}
+
+// Debounce timer
+let _goalAcTimer = null;
+
+async function goalAutocomplete(q) {
+  // Reset wybranego wyścigu jeśli user edytuje
+  if (_goalSelectedRace && q !== _goalSelectedRace.name) {
+    _goalSelectedRace = null;
+    document.getElementById('goal-linked-info').style.display = 'none';
+  }
+
+  const list = document.getElementById('goal-autocomplete-list');
+  if (!q || q.trim().length < 2) {
+    list.style.display = 'none';
+    document.getElementById('goal-propose-section').style.display = 'none';
+    return;
+  }
+
+  if (_goalAcTimer) clearTimeout(_goalAcTimer);
+  _goalAcTimer = setTimeout(async function() {
+    const races = await _getRacesCache();
+    const ql = q.toLowerCase().trim();
+    const matches = races.filter(function(r) {
+      return (r.name || '').toLowerCase().includes(ql) ||
+             (r.city || '').toLowerCase().includes(ql);
+    }).slice(0, 8);
+
+    if (!matches.length) {
+      list.innerHTML = '<div style="padding:14px;text-align:center;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">Brak wyników w kalendarzu BiegaMy</div>';
+      list.style.display = 'block';
+      // Pokaż propozycję trenerowi
+      document.getElementById('goal-propose-section').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('goal-propose-section').style.display = 'none';
+    list.innerHTML = matches.map(function(r) {
+      const d = new Date(r.date + 'T00:00:00');
+      const dStr = d.toLocaleDateString('pl-PL', { day:'numeric', month:'short', year:'numeric' });
+      const distLbl = r.distance_km ? (r.distance_km < 21 ? r.distance_km+'km' : (Math.abs(r.distance_km-21.097)<0.5 ? 'półmaraton' : Math.abs(r.distance_km-42.195)<0.5 ? 'maraton' : r.distance_km+'km')) : '';
+      return '<div onclick="selectAutocompleteRace(\'' + r.id + '\')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background=\'rgba(232,86,30,0.08)\'" onmouseout="this.style.background=\'\'">'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;color:var(--fg);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(r.name) + '</div>'
+        + '<div style="font-size:10px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">' + dStr + (r.city?' · '+escHtml(r.city):'') + (distLbl?' · '+distLbl:'') + '</div>'
+        + '</div>'
+        + '<div style="background:rgba(232,86,30,0.12);color:var(--accent);font-size:9px;padding:3px 7px;border-radius:5px;font-family:DM Mono,monospace;letter-spacing:0.08em;flex-shrink:0;">+</div>'
+        + '</div>';
+    }).join('');
+    list.style.display = 'block';
+  }, 200);
+}
+
+async function selectAutocompleteRace(raceId) {
+  const races = await _getRacesCache();
+  const r = races.find(function(x){ return x.id === raceId; });
+  if (!r) return;
+  _goalSelectedRace = r;
+  document.getElementById('goal-name-inp').value = r.name;
+  document.getElementById('goal-date-inp').value = r.date;
+  document.getElementById('goal-autocomplete-list').style.display = 'none';
+  document.getElementById('goal-linked-info').style.display = 'block';
+  document.getElementById('goal-propose-section').style.display = 'none';
+}
+
+async function saveGoalFromModal() {
+  const name = document.getElementById('goal-name-inp').value.trim();
+  const date = document.getElementById('goal-date-inp').value;
+  if (!name) { showToast('Podaj nazwę zawodów'); return; }
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) { showToast('Podaj poprawną datę'); return; }
+
   let goals = [];
   try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
-  goals.push({ name: name.trim(), date });
+
+  // Tryb linkowania istniejącego celu
+  if (_linkingGoalIdx >= 0 && goals[_linkingGoalIdx]) {
+    if (!_goalSelectedRace) {
+      showToast('Wybierz wyścig z listy aby powiązać cel');
+      return;
+    }
+    goals[_linkingGoalIdx].race_id = _goalSelectedRace.id;
+    goals[_linkingGoalIdx].name = _goalSelectedRace.name;
+    goals[_linkingGoalIdx].date = _goalSelectedRace.date;
+    const { error } = await _sb.from('athletes').update({
+      race_goals: JSON.stringify(goals),
+      goal: goals[0]?.name || null,
+      target_date: goals[0]?.date || null
+    }).eq('id', _myId);
+    if (error) { showToast('Błąd: ' + error.message); return; }
+    if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+    // Auto-signup
+    await _sb.from('race_signups').upsert({
+      race_id: _goalSelectedRace.id,
+      athlete_id: _myId
+    }, { onConflict: 'race_id,athlete_id' });
+    showToast('Cel powiązany i zapisany ✓');
+    _linkingGoalIdx = -1;
+    closeGoalModal();
+    renderGoals(_profileData);
+    return;
+  }
+
+  // Tryb dodawania nowego celu
+  const newGoal = { name: name, date: date };
+  if (_goalSelectedRace) {
+    newGoal.race_id = _goalSelectedRace.id;
+  }
+
+  // Sprawdź czy taki cel już istnieje
+  const exists = goals.some(function(g) {
+    return (newGoal.race_id && g.race_id === newGoal.race_id) ||
+           (g.name && g.name.toLowerCase() === name.toLowerCase() && g.date === date);
+  });
+  if (exists) {
+    showToast('Taki cel już istnieje');
+    return;
+  }
+
+  goals.push(newGoal);
+
   const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
   }).eq('id', _myId);
+
   if (error) { showToast('Błąd: ' + error.message); return; }
+
+  // Jeśli to wyścig z kalendarza — auto-signup
+  if (_goalSelectedRace) {
+    const sup = await _sb.from('race_signups').upsert({
+      race_id: _goalSelectedRace.id,
+      athlete_id: _myId
+    }, { onConflict: 'race_id,athlete_id' });
+    if (!sup.error) {
+      showToast('Cel dodany i zapisany na wyścig ✓');
+    } else {
+      showToast('Cel dodany ✓');
+    }
+  } else {
+    showToast('Cel dodany ✓');
+  }
+
   if (_profileData) _profileData.race_goals = JSON.stringify(goals);
-  showToast('Cel dodany ✓');
+  closeGoalModal();
   renderGoals(_profileData);
+}
+
+async function proposeGoalAsRace() {
+  const name = document.getElementById('goal-name-inp').value.trim();
+  const date = document.getElementById('goal-date-inp').value;
+  if (!name) { showToast('Wpisz nazwę zawodów'); return; }
+  if (!date) { showToast('Podaj datę'); return; }
+  // Wyślij propozycję jako pending race
+  const { error } = await _sb.from('races').insert({
+    name: name,
+    date: date,
+    distance_km: 10, // placeholder, trener uzupełni
+    city: '—',
+    status: 'pending',
+    added_by: _myId,
+    signup_count: 0
+  });
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  showToast('Propozycja wysłana do trenera ✓');
+  closeGoalModal();
 }
 
 async function removeGoal(idx) {
   let goals = [];
   try { goals = JSON.parse(_profileData?.race_goals || '[]'); } catch(e) {}
-  goals.splice(idx, 1);
+  // Posortowanie w renderGoals jest filter+sort upcoming, więc index w renderze to nie indeks w tablicy raw.
+  // Pobieramy nazwę z renderu i znajdujemy w raw goals.
+  // BUT: removeGoal(i) — i jest indeksem upcoming, więc znajdę cel w upcoming i usunę z goals
+  const upcoming = goals.filter(function(g) {
+    return g.date && new Date(g.date + 'T00:00:00') >= new Date();
+  }).sort(function(a,b){ return new Date(a.date) - new Date(b.date); });
+  const target = upcoming[idx];
+  if (!target) return;
+
+  // Znajdź ten cel w pełnej tablicy
+  const realIdx = goals.findIndex(function(g) {
+    return (target.race_id && g.race_id === target.race_id) ||
+           (!target.race_id && g.name === target.name && g.date === target.date);
+  });
+  if (realIdx === -1) return;
+  const removed = goals[realIdx];
+  goals.splice(realIdx, 1);
+
   const { error } = await _sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
@@ -1519,6 +1765,12 @@ async function removeGoal(idx) {
   }).eq('id', _myId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   if (_profileData) _profileData.race_goals = JSON.stringify(goals);
+
+  // Jeśli cel miał race_id — usuń też signup
+  if (removed.race_id) {
+    await _sb.from('race_signups').delete().eq('race_id', removed.race_id).eq('athlete_id', _myId);
+  }
+
   renderGoals(_profileData);
 }
 
@@ -1951,5 +2203,51 @@ function goToStats(){ if(_targetId) location.href='statystyki.html?id='+_targetI
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:#e8561e;font-family:DM Mono,monospace;">Profil</span>
   </a>
 </nav>
+<!-- ADD GOAL MODAL (autocomplete z races) -->
+<div id="goal-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeGoalModal()">
+  <div style="width:100%;max-width:480px;background:#0f0d18;border-radius:24px 24px 0 0;max-height:88vh;overflow-y:auto;padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 14px;"></div>
+    <div style="padding:0 22px;">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;margin-bottom:4px;">Dodaj cel <span style="color:var(--accent);">·</span></div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:18px;line-height:1.5;">Wpisz nazwę zawodów. Jeśli są w kalendarzu BiegaMy — automatycznie się zapiszesz.</div>
+
+      <!-- Nazwa z autocomplete -->
+      <div style="margin-bottom:14px;position:relative;">
+        <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;display:block;margin-bottom:5px;">Nazwa zawodów</label>
+        <input id="goal-name-inp" type="text" placeholder="np. Maraton Poznań" autocomplete="off"
+               oninput="goalAutocomplete(this.value)"
+               style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;">
+        <div id="goal-autocomplete-list" style="display:none;position:absolute;top:100%;left:0;right:0;background:#16121d;border:1px solid var(--border);border-radius:10px;margin-top:4px;max-height:240px;overflow-y:auto;z-index:10;box-shadow:0 8px 32px rgba(0,0,0,0.6);"></div>
+      </div>
+
+      <!-- Linkowane do wyścigu (info) -->
+      <div id="goal-linked-info" style="display:none;background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:11px;color:#3db870;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Powiązane z wyścigiem w kalendarzu — zostaniesz automatycznie zapisany</span>
+        </div>
+      </div>
+
+      <!-- Data -->
+      <div style="margin-bottom:18px;">
+        <label style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;display:block;margin-bottom:5px;">Data</label>
+        <input id="goal-date-inp" type="date"
+               style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-size:14px;padding:11px 14px;border-radius:10px;outline:none;color-scheme:dark;">
+      </div>
+
+      <!-- Przyciski -->
+      <button onclick="saveGoalFromModal()" style="width:100%;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;">Zapisz cel</button>
+
+      <!-- Propozycja trenerowi (jeśli nie znaleziono) -->
+      <div id="goal-propose-section" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Tych zawodów nie ma w kalendarzu BiegaMy. Możesz wysłać propozycję trenerowi:</div>
+        <button onclick="proposeGoalAsRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:10px;padding:10px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.05em;cursor:pointer;">📤 Wyślij propozycję trenerowi</button>
+      </div>
+
+      <button onclick="closeGoalModal()" style="width:100%;background:transparent;border:none;color:var(--muted);border-radius:10px;padding:11px;font-size:12px;font-family:DM Mono,monospace;cursor:pointer;letter-spacing:0.05em;">Anuluj</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
