@@ -236,9 +236,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       <div class="ps-val" id="ps-logs">—</div>
       <div class="ps-lbl">Treningi</div>
     </div>
-    <div class="ps-item">
+    <div class="ps-item" onclick="goToStats()" style="cursor:pointer;">
       <div class="ps-val" id="ps-km">—</div>
-      <div class="ps-lbl">km łącznie</div>
+      <div class="ps-lbl">Statystyki</div>
     </div>
   </div>
 </div>
@@ -1401,6 +1401,7 @@ async function _openRacesModal() {
       +(dl>0?'<div style="font-size:10px;color:var(--accent);margin-top:3px;">za '+dl+' dni</div>':'')+'</div>';
   }).join('');
 }
+function goToStats(){ if(_targetId) location.href='statystyki.html?id='+_targetId; }
 </script>
 
 <nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">

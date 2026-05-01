@@ -575,6 +575,12 @@ async function register() {
   }
 
   // Zawsze pokaż success — niezależnie czy sesja istnieje (email confirmation może być włączone)
+  // Ustaw flagi dla onboardingu — nie polegaj wyłącznie na URL params (Supabase email redirect je gubi)
+  try {
+    localStorage.setItem('biegamy_needs_onboarding', '1');
+    if (name) localStorage.setItem('biegamy_reg_name', name);
+  } catch(e) {}
+
   document.getElementById('form-register').style.display = 'none';
   document.getElementById('success-state').style.display = 'block';
 

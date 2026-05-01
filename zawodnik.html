@@ -796,7 +796,7 @@ body > *{position:relative;z-index:1;}
     </div>
     <div id="av-menu" style="display:none;position:absolute;top:52px;right:0;background:#1a1a22;border:1px solid rgba(212,80,26,0.6);border-radius:14px;padding:8px;z-index:10000;min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.95),0 0 0 1px rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
       <div style="padding:8px 12px;font-size:11px;color:#66636e;font-family:DM Mono,monospace;border-bottom:1px solid #2a2a32;margin-bottom:6px;" id="menu-email">...</div>
-      <div onclick="showSection('profile');toggleMenu();" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
+      <div onclick="goToMyProfile();toggleMenu();" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         👤 Mój profil
       </div>
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
@@ -2408,18 +2408,19 @@ async function loadProfile() {
   if (_athleteId) loadAvatarTopbar(_athleteId);
   
   if (_athleteId) {
-    // Avatar
-    const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(_athleteId + '/avatar.jpg');
-    if (urlData?.publicUrl) {
-      const img = document.getElementById('avatar-img');
-      img.onerror = () => { img.style.display='none'; document.getElementById('avatar-initials').style.display=''; };
-      img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
-      img.src = urlData.publicUrl + '?t=' + Date.now();
-    }
+    // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
     const { data: ath } = await _sb.from('athletes')
-      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals,is_public')
+      .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals,is_public,avatar_url')
       .eq('id', _athleteId).single();
+    if (ath?.avatar_url) {
+      const img = document.getElementById('avatar-img');
+      if (img) {
+        img.onerror = () => { img.style.display='none'; document.getElementById('avatar-initials').style.display=''; };
+        img.onload = () => { img.style.display='block'; document.getElementById('avatar-initials').style.display='none'; };
+        img.src = ath.avatar_url;
+      }
+    }
     if (ath) {
       document.getElementById('pb-mar').textContent = ath.pb_marathon || '—';
       document.getElementById('pb-half').textContent = ath.pb_half || '—';
@@ -2581,9 +2582,17 @@ async function deleteGoal(idx) {
 async function uploadAvatar(input) {
   if (!input.files[0] || !_athleteId) return;
   const file = input.files[0];
-  const { error } = await _sb.storage.from('training-screenshots').upload(_athleteId+'/avatar.jpg', file, {upsert:true, contentType: file.type});
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = 'avatars/' + _athleteId + '.' + ext;
+  const { error } = await _sb.storage.from('biegamy-assets').upload(path, file, {upsert:true, contentType: file.type});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
+  const { data: urlData } = _sb.storage.from('biegamy-assets').getPublicUrl(path);
+  if (urlData?.publicUrl) {
+    const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+    await _sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _athleteId);
+  }
   toast('Zdjęcie zaktualizowane ✓');
+  loadAvatarTopbar(_athleteId);
   loadProfile();
 }
 
@@ -2841,21 +2850,26 @@ function setAvBtn(initials) {
   if (ini) ini.textContent = initials;
 }
 
-function loadAvatarTopbar(athleteId) {
+async function loadAvatarTopbar(athleteId) {
   if (!athleteId) return;
-  const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(athleteId + '/avatar.jpg');
-  if (!urlData?.publicUrl) return;
   const photo = document.getElementById('av-photo');
   const ini = document.getElementById('av-initials');
   if (!photo) return;
+  // Pobierz avatar_url z bazy (jedna prawda)
+  const { data: ath } = await _sb.from('athletes').select('avatar_url').eq('id', athleteId).maybeSingle();
+  if (!ath?.avatar_url) {
+    photo.style.display = 'none';
+    if (ini) ini.style.display = '';
+    return;
+  }
   const img = new Image();
   img.onload = () => {
-    photo.src = urlData.publicUrl + '?t=' + Date.now();
+    photo.src = ath.avatar_url;
     photo.style.display = 'block';
     if (ini) ini.style.display = 'none';
   };
-  img.onerror = () => {}; // no photo — keep initials
-  img.src = urlData.publicUrl + '?t=' + Date.now();
+  img.onerror = () => { photo.style.display = 'none'; if (ini) ini.style.display = ''; };
+  img.src = ath.avatar_url;
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────
@@ -3158,12 +3172,21 @@ async function obFinish() {
 
     if (_selectedCoachId) COACH_ID = _selectedCoachId;
 
-    // Avatar upload (non-blocking)
+    // Avatar upload — uploaduj do biegamy-assets/avatars i zapisz URL do athletes.avatar_url
     if (_obAvatarFile && _athleteId) {
-      const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
-      _sb.storage.from('training-screenshots')
-        .upload(_athleteId + '/avatar.' + ext, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type })
-        .catch(e => console.warn('Avatar:', e.message));
+      try {
+        const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
+        const path = 'avatars/' + _athleteId + '.' + ext;
+        const { error: upErr } = await _sb.storage.from('biegamy-assets')
+          .upload(path, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
+        if (!upErr) {
+          const { data: urlData } = _sb.storage.from('biegamy-assets').getPublicUrl(path);
+          if (urlData?.publicUrl) {
+            const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
+            await _sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _athleteId);
+          }
+        }
+      } catch(e) { console.warn('Avatar upload:', e); }
     }
 
     // Zamknij i idź dalej — nawet jeśli update się nie udał (dane są w bazie)
@@ -5012,7 +5035,7 @@ async function loadSocialFeed(compact) {
   // 1. Publicznych (is_public = true)
   // 2. Swoich zawodników jeśli jesteśmy trenerem (niezależnie od is_public)
   const { data: publicAthletes } = await _sb.from('athletes')
-    .select('id,full_name,is_public')
+    .select('id,full_name,is_public,avatar_url')
     .eq('is_public', true)
     .limit(100);
 
@@ -5026,7 +5049,7 @@ async function loadSocialFeed(compact) {
       .maybeSingle();
     if (coachRow?.id) {
       const { data: myAthletes } = await _sb.from('athletes')
-        .select('id,full_name,is_public')
+        .select('id,full_name,is_public,avatar_url')
         .eq('coach_id', coachRow.id)
         .limit(100);
       coachAthletes = myAthletes || [];
@@ -5122,7 +5145,7 @@ async function loadSocialFeed(compact) {
       +'<div style="height:90px;"></div>'
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
-      +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;">'+ini+'</div>'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;">'+(ath.avatar_url?('<img src="'+ath.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+ini+'\'">'):ini)+'</div>'
       +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
       +'<span style="font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 7px;border-radius:6px;border:1px solid '+col+'55;flex-shrink:0;">'+type+'</span>'
       +editBtns+'</div>'
@@ -5311,17 +5334,20 @@ async function sendCommentGif(url) {
 async function _loadComments(logId) {
   const el=document.getElementById('comments-list');if(!el)return;
   try {
-    const {data}=await _sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    const {data}=await _sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name,avatar_url)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
     if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>';return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
+      const av=(cm.athletes&&cm.athletes.avatar_url)||'';
       const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
       const own=cm.athlete_id===_athleteId;
       const t=new Date(cm.created_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+      const avInner=av?'<img src="'+av+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+ini+'\'">':ini;
+      const avClick=own?'':' onclick="location.href=\'profil.html?id='+cm.athlete_id+'\'" ';
       return '<div style="display:flex;gap:10px;margin-bottom:12px;">'
-        +'<div style="width:32px;height:32px;border-radius:50%;background:'+(own?'var(--accent)':'rgba(255,255,255,0.08)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;">'+ini+'</div>'
+        +'<div'+avClick+' style="width:32px;height:32px;border-radius:50%;background:'+(own?'var(--accent)':'rgba(255,255,255,0.08)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;'+(own?'':'cursor:pointer;')+'">'+avInner+'</div>'
         +'<div style="flex:1;background:var(--card2);border-radius:10px;padding:8px 12px;">'
-        +'<div style="font-size:12px;font-weight:600;margin-bottom:2px;">'+nm+'</div>'
+        +'<div'+avClick+' style="font-size:12px;font-weight:600;margin-bottom:2px;'+(own?'':'cursor:pointer;')+'">'+nm+'</div>'
         +'<div style="font-size:13px;line-height:1.5;">'+cm.body+'</div>'
         +'<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">'+t+'</div>'
         +'</div>'
@@ -5564,7 +5590,7 @@ async function loadFollowing() {
   // Krok 2: pobierz dane tych zawodników
   const ids = followRows.map(f => f.following_id);
   const { data: athletes } = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal')
+    .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,avatar_url')
     .in('id', ids);
 
   if (!athletes || athletes.length === 0) {
@@ -5575,8 +5601,11 @@ async function loadFollowing() {
   el.innerHTML = athletes.map(a => {
     const name = a.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+    const avInner = a.avatar_url
+      ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+ini+'\'">'
+      : ini;
     return `<div onclick="openAthleteProfile('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;">${ini}</div>
+      <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;overflow:hidden;color:#fff;">${avInner}</div>
       <div style="flex:1;">
         <div style="font-size:14px;font-weight:600;">${name}</div>
         ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">${a.goal}</div>` : ''}
@@ -5607,7 +5636,7 @@ async function loadSuggestedProfiles() {
   el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Sugerowane profile</div>';
 
   const { data } = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,goal')
+    .select('id,full_name,pb_marathon,goal,avatar_url')
     .eq('is_public', true)
     .neq('id', _athleteId)
     .limit(6);
@@ -5627,7 +5656,7 @@ async function _doSearch(q) {
   if (!el) return;
   // Tylko publiczne profile
   const { data, error } = await _sb.from('athletes')
-    .select('id,full_name,pb_marathon,goal')
+    .select('id,full_name,pb_marathon,goal,avatar_url')
     .eq('is_public', true)
     .ilike('full_name', '%' + q + '%')
     .limit(20);
@@ -5757,7 +5786,7 @@ async function loadFriends() {
   var allIds = rows.map(function(r){return r.requester_id===_athleteId?r.addressee_id:r.requester_id;});
   allIds = allIds.filter(function(v,i,a){return a.indexOf(v)===i;});
 
-  var athRes = await _sb.from('athletes').select('id,full_name').in('id',allIds);
+  var athRes = await _sb.from('athletes').select('id,full_name,avatar_url').in('id',allIds);
   var athMap = {};
   (athRes.data||[]).forEach(function(a){athMap[a.id]=a;});
 
@@ -5765,8 +5794,11 @@ async function loadFriends() {
     var a = athMap[id]||{};
     var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
+    var avInner = a.avatar_url
+      ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+ini+'\'">'
+      : ini;
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">'
-      +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;">'+ini+'</div>'
+      +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">'+avInner+'</div>'
       +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="flex:1;cursor:pointer;"><div style="font-size:13px;font-weight:500;">'+nm+'</div></div>'
       +(extra||'')
       +'</div>';
@@ -6081,12 +6113,19 @@ function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoac
 
   var avBg = isCoach ? 'var(--accent)' : 'linear-gradient(135deg,var(--accent),#ff7a45)';
   var av = document.createElement('div');
-  av.style.cssText = 'width:50px;height:50px;border-radius:50%;background:'+avBg+';display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
+  av.style.cssText = 'width:50px;height:50px;border-radius:50%;background:'+avBg+';display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;'+(mode==='peer'?'cursor:pointer;':'');
   if (avatarUrl) {
     var img = document.createElement('img'); img.src=avatarUrl;
     img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;';
     img.onerror=function(){this.style.opacity=0;}; av.appendChild(img);
   } else { av.textContent = ini; }
+  // Klik w avatar znajomego (peer) → profil. Trener — bez akcji.
+  if (mode === 'peer' && pid) {
+    av.addEventListener('click', function(e){
+      e.stopPropagation();
+      location.href = 'profil.html?id=' + pid;
+    });
+  }
 
   var info = document.createElement('div'); info.style.cssText='flex:1;min-width:0;';
   var nameRow = document.createElement('div'); nameRow.style.cssText='font-size:14px;font-weight:600;display:flex;align-items:center;gap:6px;';
@@ -6118,8 +6157,28 @@ async function openChatThread(mode, pid, name) {
 
   var nameEl = document.getElementById('z-coach-name');
   var subEl = document.getElementById('chat-thread-sub');
+  var avEl = document.getElementById('z-coach-av');
   if(nameEl) nameEl.textContent = name;
   if(subEl) subEl.textContent = mode==='coach' ? 'trener' : 'znajomy';
+
+  // Avatar w wątku - dla peer pobierz z bazy
+  if (avEl) {
+    avEl.innerHTML = '';
+    if (mode === 'peer' && pid) {
+      const ini = (name||'').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
+      avEl.textContent = ini;
+      _sb.from('athletes').select('avatar_url').eq('id', pid).maybeSingle().then(({data}) => {
+        if (data?.avatar_url) {
+          avEl.innerHTML = '';
+          var img = document.createElement('img');
+          img.src = data.avatar_url;
+          img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:50%;';
+          img.onerror = function(){ avEl.textContent = ini; };
+          avEl.appendChild(img);
+        }
+      });
+    }
+  }
 
   // Input placeholder
   var inp = document.getElementById('msg-input');
