@@ -215,6 +215,32 @@ nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;c
     </div>
   </div>
 
+  <!-- STREFY TEMPA Z CZASÓW (Daniels) -->
+  <div class="section">
+    <div class="section-title">Strefy tempa z czasów</div>
+    <div class="card">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+        Wpisz swój aktualny czas na jednym dystansie — obliczymy strefy tempa biegowego wg Jacka Daniels'a (VDOT).
+      </div>
+      <div class="calc-grid-2">
+        <div class="calc-field">
+          <label>Dystans</label>
+          <select id="calc-pz-dist" onchange="calcPaceZones()">
+            <option value="5">5 km</option>
+            <option value="10" selected>10 km</option>
+            <option value="21.097">Półmaraton</option>
+            <option value="42.195">Maraton</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>Twój czas</label>
+          <input id="calc-pz-time" type="text" placeholder="45:00" maxlength="7" oninput="autoColonTime(this);calcPaceZones()">
+        </div>
+      </div>
+      <div id="pace-zones-result"><div class="chart-empty">Wpisz czas, aby obliczyć strefy</div></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- BOTTOM NAV -->
@@ -546,6 +572,82 @@ function calcZones() {
       + '</div></div>';
   }).join('');
   el.innerHTML = '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">'+hrMax+'</strong> bpm · Rezerwa: <strong style="color:var(--fg);">'+hrr+'</strong> bpm</div>'+rows;
+}
+
+// ── STREFY TEMPA Z CZASÓW (Jack Daniels VDOT) ─────────────────────
+function calcPaceZones() {
+  const dist = parseFloat(document.getElementById('calc-pz-dist').value);
+  const timeStr = document.getElementById('calc-pz-time').value;
+  const el = document.getElementById('pace-zones-result');
+  const secs = _parseTimeToSecs(timeStr);
+
+  if (!secs || !dist || dist <= 0) {
+    el.innerHTML = '<div class="chart-empty">Wpisz czas, aby obliczyć strefy</div>';
+    return;
+  }
+
+  // Daniels VDOT (uproszczone) — race velocity → VDOT → tempa stref
+  // velocity = m/min
+  const velocityMperMin = (dist * 1000) / (secs / 60);
+  // Daniels equation:
+  // VO2 = -4.60 + 0.182258 * v + 0.000104 * v^2
+  const vo2 = -4.60 + 0.182258 * velocityMperMin + 0.000104 * Math.pow(velocityMperMin, 2);
+  // Race intensity %VO2max — różne dla różnych dystansów
+  // 5km ~ 98%, 10km ~ 92%, HM ~ 85%, M ~ 80%
+  let raceIntensity;
+  if (Math.abs(dist - 5) < 0.5) raceIntensity = 0.98;
+  else if (Math.abs(dist - 10) < 0.5) raceIntensity = 0.92;
+  else if (Math.abs(dist - 21.097) < 0.5) raceIntensity = 0.85;
+  else if (Math.abs(dist - 42.195) < 0.5) raceIntensity = 0.80;
+  else raceIntensity = 0.85;
+  const vdot = vo2 / raceIntensity;
+
+  // Funkcja: %vVDOT → tempo (sec/km)
+  // velocity z procentem VDOT (Daniels): v dla danego %VO2max
+  function paceForPct(pct) {
+    const targetVO2 = vdot * pct;
+    // odwrócenie quadratic: 0.000104 v² + 0.182258 v - (4.60 + targetVO2) = 0
+    const a = 0.000104, b = 0.182258, c = -(4.60 + targetVO2);
+    const disc = b*b - 4*a*c;
+    if (disc < 0) return null;
+    const v = (-b + Math.sqrt(disc)) / (2 * a);  // m/min
+    if (v <= 0) return null;
+    // tempo = czas na 1 km (sec)
+    return 60 * 1000 / v;
+  }
+
+  // Strefy biegowe wg Daniels:
+  // E (Easy)        59-74% VDOT  → najwolniejsze
+  // M (Marathon)    75-84%
+  // T (Threshold)   83-88%
+  // I (Interval)    95-100%
+  // R (Repetition)  ~105% (najszybsze, krótkie)
+  const zones = [
+    { name:'E · Spokojny',    pctLo:0.59, pctHi:0.74, color:'#3db870', desc:'Wybiegania, regeneracja' },
+    { name:'M · Maratoński',  pctLo:0.75, pctHi:0.84, color:'#5090e0', desc:'Tempo na maraton' },
+    { name:'T · Próg LT',     pctLo:0.83, pctHi:0.88, color:'#e8b840', desc:'Tempa, ~30-40 min' },
+    { name:'I · Interwały',   pctLo:0.95, pctHi:1.00, color:'#f06030', desc:'VO2max, 3-5 min' },
+    { name:'R · Repetycje',   pctLo:1.03, pctHi:1.08, color:'#e05050', desc:'Krótkie szybkie odcinki' }
+  ];
+
+  let html = '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">VDOT: <strong style="color:var(--fg);">'+vdot.toFixed(1)+'</strong> · z czasu '+_secsToTime(secs)+' na '+dist+' km</div>';
+
+  zones.forEach(function(z) {
+    const paceLo = paceForPct(z.pctLo);
+    const paceHi = paceForPct(z.pctHi);
+    if (!paceLo || !paceHi) return;
+    // Tempo wolniejsze ma większą wartość sec/km, więc wolniejszy = "od"
+    const slow = Math.max(paceLo, paceHi);
+    const fast = Math.min(paceLo, paceHi);
+    html += '<div class="zone-row">'
+      + '<div class="zone-bar" style="background:'+z.color+';"></div>'
+      + '<div class="zone-info">'
+        + '<div class="zone-name">'+z.name+' <span class="range" style="color:'+z.color+';">'+_secsToTime(fast)+'–'+_secsToTime(slow)+'</span> <span class="bpm">/km</span></div>'
+        + '<div class="zone-desc">'+z.desc+'</div>'
+      + '</div></div>';
+  });
+
+  el.innerHTML = html;
 }
 
 init();

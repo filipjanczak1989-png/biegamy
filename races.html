@@ -432,9 +432,11 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
           <button onclick="approveRace()" style="flex:1;background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:#3db870;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✓ Zatwierdź</button>
           <button onclick="rejectRace()" style="flex:1;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✕ Odrzuć</button>
         </div>
+        <button onclick="openEditRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:12px;padding:10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">✎ Edytuj propozycję</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">🗑 Usuń zawody z kalendarza</button>
       </div>
-      <div id="m-coach-approved" style="display:none;margin-bottom:10px;">
+      <div id="m-coach-approved" style="display:none;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
+        <button onclick="openEditRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✎ Edytuj zawody</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">🗑 Usuń zawody z kalendarza</button>
       </div>
       <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
@@ -475,6 +477,28 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
     <div class="field">
       <label>Miasto</label>
       <input type="text" id="f-city" placeholder="np. Wrocław">
+    </div>
+    <div class="field">
+      <label>Województwo</label>
+      <select id="f-voivodeship">
+        <option value="">— wybierz —</option>
+        <option value="dolnośląskie">Dolnośląskie</option>
+        <option value="kujawsko-pomorskie">Kujawsko-pomorskie</option>
+        <option value="lubelskie">Lubelskie</option>
+        <option value="lubuskie">Lubuskie</option>
+        <option value="łódzkie">Łódzkie</option>
+        <option value="małopolskie">Małopolskie</option>
+        <option value="mazowieckie">Mazowieckie</option>
+        <option value="opolskie">Opolskie</option>
+        <option value="podkarpackie">Podkarpackie</option>
+        <option value="podlaskie">Podlaskie</option>
+        <option value="pomorskie">Pomorskie</option>
+        <option value="śląskie">Śląskie</option>
+        <option value="świętokrzyskie">Świętokrzyskie</option>
+        <option value="warmińsko-mazurskie">Warmińsko-mazurskie</option>
+        <option value="wielkopolskie">Wielkopolskie</option>
+        <option value="zachodniopomorskie">Zachodniopomorskie</option>
+      </select>
     </div>
     <div class="field">
       <label>Link do regulaminu (opcjonalnie)</label>
@@ -1040,26 +1064,97 @@ async function addToGoals(race) {
   }).eq('id', _athleteId);
 }
 
-// ── ADD RACE ──────────────────────────────────────────────────────
+// ── ADD/EDIT RACE ────────────────────────────────────────────────
+let _editingRaceId = null;
+
 function updateAddRaceUI() {
   const btn = document.getElementById('add-submit-btn');
   const desc = document.getElementById('add-desc-text');
-  if (_isCoach) {
+  const title = document.querySelector('.add-title');
+
+  if (_editingRaceId) {
+    if (title) title.innerHTML = 'Edytuj <span>Start</span>';
+    if (btn) btn.textContent = 'Zapisz zmiany ✓';
+    if (desc) desc.textContent = 'Edytujesz istniejące zawody.';
+  } else if (_isCoach) {
+    if (title) title.innerHTML = 'Dodaj <span>Start</span>';
     if (btn) btn.textContent = 'Dodaj do kalendarza →';
     if (desc) desc.textContent = 'Jako trener dodajesz wyścig bezpośrednio do kalendarza.';
+  } else {
+    if (title) title.innerHTML = 'Dodaj <span>Start</span>';
+    if (btn) btn.textContent = 'Wyślij do trenera →';
+    if (desc) desc.textContent = 'Twoja propozycja trafi do trenera. Po akceptacji pojawi się w kalendarzu dla wszystkich.';
   }
 }
 
+function _resetRaceForm() {
+  ['f-name','f-date','f-city','f-rules','f-organizer','f-desc','f-dist-custom'].forEach(id => {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-dist').value = '5';
+  document.getElementById('custom-dist-field').style.display = 'none';
+  var voi = document.getElementById('f-voivodeship');
+  if (voi) voi.value = '';
+}
+
 function openAddRace() {
+  _editingRaceId = null;
+  _resetRaceForm();
+  updateAddRaceUI();
   document.getElementById('add-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
   // Ustaw min date na dziś
   document.getElementById('f-date').min = new Date().toISOString().slice(0,10);
 }
 
+function openEditRace() {
+  if (!_currentRace || !_isCoach) return;
+  const r = _currentRace;
+  _editingRaceId = r.id;
+
+  // Pre-fill formularza
+  document.getElementById('f-name').value = r.name || '';
+  document.getElementById('f-date').value = r.date || '';
+  document.getElementById('f-city').value = r.city || '';
+  document.getElementById('f-rules').value = r.url_regulamin || '';
+  document.getElementById('f-organizer').value = r.url_organizer || '';
+  document.getElementById('f-desc').value = r.description || '';
+
+  var voi = document.getElementById('f-voivodeship');
+  if (voi) voi.value = r.voivodeship || r.region || '';
+
+  // Dystans
+  var distSel = document.getElementById('f-dist');
+  var distCustom = document.getElementById('f-dist-custom');
+  var customField = document.getElementById('custom-dist-field');
+  var d = parseFloat(r.distance_km);
+  if (Math.abs(d - 5) < 0.05) distSel.value = '5';
+  else if (Math.abs(d - 10) < 0.05) distSel.value = '10';
+  else if (Math.abs(d - 21.097) < 0.2) distSel.value = '21.097';
+  else if (Math.abs(d - 42.195) < 0.2) distSel.value = '42.195';
+  else if (d > 42.195) distSel.value = 'ultra';
+  else {
+    distSel.value = 'other';
+    distCustom.value = r.distance_km;
+    customField.style.display = 'block';
+  }
+
+  // Brak min date przy edycji (data może być w przeszłości)
+  document.getElementById('f-date').removeAttribute('min');
+
+  updateAddRaceUI();
+  // Zamknij modal szczegółów + otwórz formularz
+  closeModal();
+  document.getElementById('add-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
 function closeAddRace() {
   document.getElementById('add-overlay').classList.remove('open');
   document.body.style.overflow = '';
+  _editingRaceId = null;
+  updateAddRaceUI();
 }
 
 function handleAddOverlayClick(e) {
@@ -1076,6 +1171,8 @@ async function submitRace() {
   const date = document.getElementById('f-date').value;
   const distSel = document.getElementById('f-dist').value;
   const city = document.getElementById('f-city').value.trim();
+  const voiEl = document.getElementById('f-voivodeship');
+  const voivodeship = voiEl ? voiEl.value : '';
   const rules = document.getElementById('f-rules').value.trim();
   const organizer = document.getElementById('f-organizer').value.trim();
   const desc = document.getElementById('f-desc').value.trim();
@@ -1100,29 +1197,55 @@ async function submitRace() {
     date,
     distance_km: dist_km,
     city,
+    voivodeship: voivodeship || null,
     url_regulamin: rules || null,
     url_organizer: organizer || null,
     description: desc || null,
-    status: _isCoach ? 'approved' : 'pending',
-    added_by: _athleteId || null,
-    signup_count: 0,
   };
 
-  const { error } = await _sb.from('races').insert(payload);
-  if (error) { showToast('Błąd: ' + error.message); return; }
+  let result;
+  if (_editingRaceId) {
+    // EDIT — update istniejący
+    result = await _sb.from('races').update(payload).eq('id', _editingRaceId);
+  } else {
+    // INSERT — nowy
+    payload.status = _isCoach ? 'approved' : 'pending';
+    payload.added_by = _athleteId || null;
+    payload.signup_count = 0;
+    result = await _sb.from('races').insert(payload);
+  }
 
-  showToast(_isCoach ? 'Zawody dodane do kalendarza ✓' : 'Propozycja wysłana do trenera ✓');
+  if (result.error) {
+    // Możliwy błąd: kolumna 'voivodeship' nie istnieje. Spróbuj 'region'.
+    if (result.error.message && result.error.message.toLowerCase().includes('voivodeship')) {
+      delete payload.voivodeship;
+      payload.region = voivodeship || null;
+      if (_editingRaceId) {
+        result = await _sb.from('races').update(payload).eq('id', _editingRaceId);
+      } else {
+        result = await _sb.from('races').insert(payload);
+      }
+    }
+  }
+  if (result.error) { showToast('Błąd: ' + result.error.message); return; }
+
+  if (_editingRaceId) {
+    showToast('Zmiany zapisane ✓');
+  } else {
+    showToast(_isCoach ? 'Zawody dodane do kalendarza ✓' : 'Propozycja wysłana do trenera ✓');
+  }
+
+  const wasEditing = !!_editingRaceId;
   closeAddRace();
-  // Reset formularza
-  ['f-name','f-date','f-city','f-rules','f-organizer','f-desc'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
-  document.getElementById('f-dist').value = '5';
-  document.getElementById('custom-dist-field').style.display = 'none';
+  _resetRaceForm();
 
-  // Pokaż pending notice
-  document.getElementById('pending-notice').style.display = 'flex';
-  document.getElementById('pending-text').textContent = 'Twoja propozycja czeka na akceptację trenera';
+  // Przeładuj listę
+  await loadRaces();
+
+  if (!wasEditing && !_isCoach) {
+    document.getElementById('pending-notice').style.display = 'flex';
+    document.getElementById('pending-text').textContent = 'Twoja propozycja czeka na akceptację trenera';
+  }
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────
