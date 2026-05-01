@@ -85,16 +85,31 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .badge-icon{font-size:16px;}
 
 /* Posts grid */
-.posts-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.post-photo{position:relative;border-radius:12px;overflow:hidden;aspect-ratio:1;cursor:pointer;}
+.posts-grid{display:flex;flex-direction:column;gap:10px;}
+.post-photo{position:relative;border-radius:14px;overflow:hidden;aspect-ratio:4/3;cursor:pointer;background:#0d0d0d;}
 .post-photo img{width:100%;height:100%;object-fit:cover;transition:transform 0.3s;}
 .post-photo:hover img{transform:scale(1.03);}
 .post-photo-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.6) 0%,transparent 50%);opacity:0;transition:opacity 0.2s;}
 .post-photo:hover .post-photo-overlay{opacity:1;}
 .post-photo-del{position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.6);border:none;border-radius:6px;color:#fff;font-size:10px;padding:3px 7px;cursor:pointer;display:none;}
 .post-photo:hover .post-photo-del{display:block;}
+/* Training card — gif feel: duża grafika + dane na dole */
+.training-card{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:#0d0d0d;cursor:pointer;}
+.training-card-img{width:100%;aspect-ratio:4/3;background-size:cover;background-position:center;background-repeat:no-repeat;background-color:#0d0d0d;position:relative;}
+.training-card-img::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(7,5,12,0.55) 65%,rgba(7,5,12,0.92) 100%);}
+.training-card-info{position:absolute;bottom:0;left:0;right:0;padding:10px 14px 12px;z-index:2;}
+.training-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.training-card-type{font-size:9px;letter-spacing:0.12em;text-transform:uppercase;font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);border:1px solid;border-radius:6px;padding:3px 8px;}
+.training-card-date{font-size:10px;font-family:DM Mono,monospace;color:rgba(255,255,255,0.6);}
+.training-card-stats{display:flex;align-items:baseline;gap:14px;}
+.training-card-dist{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.9);}
+.training-card-dist span{font-size:11px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;margin-left:3px;}
+.training-card-pace{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.9);}
+.training-card-pace span{font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;margin-left:2px;}
+.training-card-comment{font-size:12px;color:rgba(255,255,255,0.85);font-style:italic;margin-top:6px;font-family:'DM Sans',sans-serif;line-height:1.4;}
+.training-card-noimg{aspect-ratio:auto;padding:14px 16px;background:linear-gradient(160deg,#0f0f12 0%,#16121d 100%);}
 
-.post-quote{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;position:relative;grid-column:span 2;}
+.post-quote{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;position:relative;}
 .post-quote-text{font-size:15px;line-height:1.7;color:var(--fg);font-style:italic;}
 .post-quote-text::before{content:'"';font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--accent);line-height:0.5;display:block;margin-bottom:8px;}
 .post-quote-del{position:absolute;top:8px;right:8px;background:none;border:1px solid var(--border);border-radius:6px;color:var(--fg3);font-size:10px;padding:2px 7px;cursor:pointer;}
@@ -277,11 +292,18 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
   <div id="goals-list"><div class="skeleton" style="height:56px;border-radius:12px;margin-bottom:8px;"></div></div>
 </div>
 
-<!-- POSTY (zdjęcia + cytaty) -->
+<!-- AKTYWNOŚĆ (treningi + posty wymieszane) -->
 <div class="section">
   <div style="margin-bottom:12px;">
-    <div class="section-title" style="margin-bottom:8px;">Post<span>y</span></div>
-    <button id="add-post-btn" style="display:none;background:var(--accent);border:none;color:#fff;border-radius:10px;padding:8px 18px;font-size:12px;font-weight:600;cursor:pointer;width:100%;" onclick="openAddPost()">+ Dodaj post</button>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+      <div class="section-title">Aktywno<span>ść</span></div>
+      <button id="add-post-btn" style="display:none;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Mono,monospace;letter-spacing:0.05em;" onclick="openAddPost()">+ Post</button>
+    </div>
+    <div id="feed-tabs" style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
+      <button id="ftab-all"      onclick="setFeedFilter('all')"      style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Wszystko</button>
+      <button id="ftab-trainings" onclick="setFeedFilter('trainings')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Treningi</button>
+      <button id="ftab-posts"     onclick="setFeedFilter('posts')"     style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Posty</button>
+    </div>
   </div>
   <div id="posts-container">
     <div class="skeleton" style="height:160px;border-radius:12px;"></div>
@@ -749,46 +771,193 @@ async function uploadAvatar(input) {
 }
 
 // ── POSTS ─────────────────────────────────────────────────────────
-async function loadPosts() {
-  const { data: posts } = await _sb.from('profile_posts')
-    .select('*')
-    .eq('athlete_id', _targetId)
-    .order('created_at', { ascending: false });
+// ── FEED: TRENINGI + POSTY (chronologicznie) ─────────────────────
+let _feedFilter = 'all';
+const TRAIN_TYPE_COLORS = {
+  'Spokojny':'#5090e0','Bieg spokojny':'#5090e0','Tempo':'#f06030','Interwały':'#e8b840',
+  'Długi':'#5b8cff','Wybieganie':'#3db870','Regeneracja':'#9a6fe8','Wzmacniający':'#f0a830',
+  'Zastępczy':'#66c0ff','Odpoczynek':'#888888','Trening':'#e8561e'
+};
 
+function setFeedFilter(f) {
+  _feedFilter = f;
+  ['all','trainings','posts'].forEach(function(k){
+    var btn = document.getElementById('ftab-'+k);
+    if (!btn) return;
+    if (k === f) {
+      btn.style.background = 'rgba(232,86,30,0.12)';
+      btn.style.color = 'var(--accent)';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--muted)';
+    }
+  });
+  loadPosts();
+}
+
+async function loadPosts() {
   const el = document.getElementById('posts-container');
-  if (!posts?.length) {
-    el.innerHTML = `<div class="empty">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      <div>${_isOwnProfile ? 'Dodaj swoje pierwsze zdjęcie lub cytat!' : 'Brak postów'}</div>
-    </div>`;
+  if (!el) return;
+
+  // Pobierz oba źródła równolegle
+  const [postsRes, logsRes] = await Promise.all([
+    _sb.from('profile_posts')
+      .select('*')
+      .eq('athlete_id', _targetId)
+      .order('created_at', { ascending: false })
+      .limit(50),
+    _sb.from('training_logs')
+      .select('id,training_type,distance_km,pace,feel,comment,logged_at,attachment_url')
+      .eq('athlete_id', _targetId)
+      .not('training_type', 'like', '__badge__%')
+      .or('attachment_url.not.is.null,comment.not.is.null')
+      .order('logged_at', { ascending: false })
+      .limit(50)
+  ]);
+
+  const posts = postsRes.data || [];
+  // Tylko logi które mają zdjęcie LUB komentarz (ten warunek już jest w .or, ale dla pewności filtr)
+  const logs = (logsRes.data || []).filter(function(l) {
+    const hasImg = l.attachment_url && l.attachment_url.trim();
+    const hasCmt = l.comment && l.comment.trim();
+    return hasImg || hasCmt;
+  });
+
+  // Wymieszaj chronologicznie
+  let items = [];
+  if (_feedFilter === 'all' || _feedFilter === 'posts') {
+    posts.forEach(function(p) { items.push({ kind:'post', date: p.created_at, data: p }); });
+  }
+  if (_feedFilter === 'all' || _feedFilter === 'trainings') {
+    logs.forEach(function(l) { items.push({ kind:'training', date: l.logged_at, data: l }); });
+  }
+  items.sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+
+  if (!items.length) {
+    let msg;
+    if (_feedFilter === 'trainings') msg = _isOwnProfile ? 'Brak treningów ze zdjęciem lub komentarzem' : 'Brak treningów';
+    else if (_feedFilter === 'posts') msg = _isOwnProfile ? 'Dodaj swoje pierwsze zdjęcie lub cytat!' : 'Brak postów';
+    else msg = _isOwnProfile ? 'Dodaj zdjęcie, cytat lub trening' : 'Brak aktywności';
+    el.innerHTML = '<div class="empty">'
+      + '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>'
+      + '<div>' + msg + '</div></div>';
     return;
   }
 
-  // Renderuj: photo w gridzie 2-col, quote full-width
   let html = '<div class="posts-grid">';
-  for (const p of posts) {
-    const dateStr = new Date(p.created_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
-    const delBtn = _isOwnProfile ? `<button class="post-quote-del" onclick="deletePost('${p.id}',event)">🗑</button>` : '';
-    if (p.type === 'photo' && p.image_url) {
-      html += '<div class="post-photo" onclick="openLightbox(\''+escAttr(p.image_url)+'\')"><img src="'+escAttr(p.image_url)+'" alt="'+escAttr(p.content||'')+'"><div class="post-photo-overlay"></div>'
-        +(_isOwnProfile ? '<div class="post-actions" onclick="event.stopPropagation()">'
-          +'<button class="post-act-btn" onclick="event.stopPropagation();editPost(\''+p.id+'\',\'photo\',\''+escAttr(p.content||'')+'\',\''+escAttr(p.image_url)+'\')">✎</button>'
-          +'<button class="post-act-btn" onclick="event.stopPropagation();deletePost(\''+p.id+'\',event)">🗑</button>'
-          +'</div>' : '')
-        +'</div>';
-    } else if (p.type === 'quote' && p.content) {
-      html += '<div class="post-quote" style="grid-column:span 2;">'
-        +(_isOwnProfile ? '<div class="post-actions">'
-          +'<button class="post-act-btn" onclick="editPost(\''+p.id+'\',\'quote\',\''+escAttr(p.content)+'\',\'\')">✎ Edytuj</button>'
-          +'<button class="post-act-btn" onclick="deletePost(\''+p.id+'\',event)">🗑 Usuń</button>'
-          +'</div>' : '')
-        +'<div class="post-quote-text">'+escHtml(p.content)+'</div>'
-        +'<div class="post-date">'+dateStr+'</div>'
-        +'</div>';
-    }
+  for (const it of items) {
+    if (it.kind === 'post') html += _renderPostItem(it.data);
+    else html += _renderTrainingItem(it.data);
   }
   html += '</div>';
   el.innerHTML = html;
+}
+
+function _renderPostItem(p) {
+  const dateStr = new Date(p.created_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+  if (p.type === 'photo' && p.image_url) {
+    return '<div class="post-photo" onclick="openLightbox(\''+escAttr(p.image_url)+'\')"><img src="'+escAttr(p.image_url)+'" alt="'+escAttr(p.content||'')+'"><div class="post-photo-overlay"></div>'
+      +(_isOwnProfile ? '<div class="post-actions" onclick="event.stopPropagation()">'
+        +'<button class="post-act-btn" onclick="event.stopPropagation();editPost(\''+p.id+'\',\'photo\',\''+escAttr(p.content||'')+'\',\''+escAttr(p.image_url)+'\')">✎</button>'
+        +'<button class="post-act-btn" onclick="event.stopPropagation();deletePost(\''+p.id+'\',event)">🗑</button>'
+        +'</div>' : '')
+      +'</div>';
+  } else if (p.type === 'quote' && p.content) {
+    return '<div class="post-quote">'
+      +(_isOwnProfile ? '<div class="post-actions">'
+        +'<button class="post-act-btn" onclick="editPost(\''+p.id+'\',\'quote\',\''+escAttr(p.content)+'\',\'\')">✎ Edytuj</button>'
+        +'<button class="post-act-btn" onclick="deletePost(\''+p.id+'\',event)">🗑 Usuń</button>'
+        +'</div>' : '')
+      +'<div class="post-quote-text">'+escHtml(p.content)+'</div>'
+      +'<div class="post-date">'+dateStr+'</div>'
+      +'</div>';
+  }
+  return '';
+}
+
+function _renderTrainingItem(l) {
+  const type = l.training_type || 'Trening';
+  const col = TRAIN_TYPE_COLORS[type] || '#e8561e';
+  const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
+  const _logDate = l.logged_at ? new Date(l.logged_at) : null;
+  const dateStr = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
+  // Pierwsze zdjęcie z attachment_url (może być wiele rozdzielonych przecinkami)
+  const urls = (l.attachment_url||'').split(',').filter(function(u){return u && u.trim();});
+  const firstImg = urls[0] || '';
+  const hasImg = !!firstImg;
+
+  let html = '<div class="training-card" onclick="_openTrainingDetail(\''+l.id+'\')">';
+  if (hasImg) {
+    html += '<div class="training-card-img" style="background-image:url(\''+escAttr(firstImg)+'\');">';
+  } else {
+    html += '<div class="training-card-img training-card-noimg">';
+  }
+  html += '<div class="training-card-info">'
+    +'<div class="training-card-top">'
+      +'<span class="training-card-type" style="color:'+col+';border-color:'+col+'55;">'+escHtml(type)+'</span>'
+      +(dateStr?'<span class="training-card-date">'+dateStr+'</span>':'')
+    +'</div>';
+  if (dist) {
+    html += '<div class="training-card-stats">'
+      +'<div class="training-card-dist">'+dist+'<span>KM</span></div>'
+      +(l.pace?'<div class="training-card-pace">'+escHtml(l.pace)+'<span>/KM</span></div>':'')
+      +'</div>';
+  }
+  if (l.comment) {
+    html += '<div class="training-card-comment">"'+escHtml(l.comment)+'"</div>';
+  }
+  html += '</div></div></div>';
+  return html;
+}
+
+// Modal podglądu treningu
+function _openTrainingDetail(logId) {
+  const trainings = (window._lastFeedItems || []);
+  // Pobierz dane logu
+  _sb.from('training_logs').select('*').eq('id', logId).maybeSingle().then(function(r) {
+    if (!r.data) return;
+    const l = r.data;
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';
+    ov.onclick = function(e){ if(e.target===ov) ov.remove(); };
+    const sh = document.createElement('div');
+    sh.style.cssText = 'width:100%;max-width:480px;max-height:90vh;background:#0f0d18;border-radius:24px 24px 0 0;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom,24px);';
+    const type = l.training_type || 'Trening';
+    const col = TRAIN_TYPE_COLORS[type] || '#e8561e';
+    const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
+    const d = l.logged_at ? new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}) : '';
+    const urls = (l.attachment_url||'').split(',').filter(function(u){return u && u.trim();});
+
+    let h = '<div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 14px;"></div>';
+    h += '<div style="padding:0 20px;">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+      +'<span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;font-family:DM Mono,monospace;color:'+col+';border:1px solid '+col+'55;border-radius:6px;padding:3px 8px;">'+escHtml(type)+'</span>'
+      +'<span style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">'+d+'</span>'
+      +'</div>';
+    if (dist) {
+      h += '<div style="display:flex;align-items:baseline;gap:18px;margin:10px 0 14px;">'
+        +'<div style="font-family:Bebas Neue,sans-serif;font-size:48px;line-height:1;">'+dist+'<span style="font-size:14px;color:var(--muted);font-family:DM Mono,monospace;margin-left:4px;">KM</span></div>'
+        +(l.pace?'<div style="font-family:Bebas Neue,sans-serif;font-size:32px;line-height:1;color:var(--accent);">'+escHtml(l.pace)+'<span style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">/KM</span></div>':'')
+        +'</div>';
+    }
+    if (urls.length) {
+      h += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">';
+      urls.forEach(function(u){
+        h += '<img src="'+escAttr(u)+'" onclick="openLightbox(\''+escAttr(u)+'\')" style="width:100%;border-radius:12px;cursor:pointer;display:block;" onerror="this.style.display=\'none\'">';
+      });
+      h += '</div>';
+    }
+    if (l.comment) {
+      h += '<div style="background:var(--card2);border-radius:12px;padding:14px;font-size:14px;line-height:1.6;color:var(--fg);font-style:italic;margin-bottom:14px;">"'+escHtml(l.comment)+'"</div>';
+    }
+    if (_isOwnProfile) {
+      h += '<a href="kalendarz.html?role=athlete" style="display:block;text-align:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);text-decoration:none;border-radius:10px;padding:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;">Edytuj w kalendarzu →</a>';
+    }
+    h += '</div>';
+    sh.innerHTML = h;
+    ov.appendChild(sh);
+    document.body.appendChild(ov);
+  });
 }
 
 async function deletePost(postId, e) {
