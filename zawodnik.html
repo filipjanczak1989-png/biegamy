@@ -780,7 +780,7 @@ body > *{position:relative;z-index:1;}
 <body>
 
 <div class="topbar">
-  <div>
+  <div id="biegamy-logo-easter" style="cursor:default;">
     <div class="topbar-greeting" id="greeting">Dzień dobry,</div>
     <div class="topbar-name" id="topbar-name" style="opacity:0.3;">—</div>
   </div>
@@ -1358,7 +1358,7 @@ body > *{position:relative;z-index:1;}
       </div>
 
       <!-- DYSTANS + CZAS -->
-      <div class="f-row">
+      <div class="f-row" id="log-form">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
         <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
       </div>
@@ -3350,6 +3350,20 @@ async function obFinish() {
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
+    // Sprawdź czy jeden z pierwszych 50 użytkowników (odznaka pierwsza_z_pierwszych)
+    if (_athleteId) {
+      try {
+        const { count: athletesCount } = await _sb.from('athletes')
+          .select('id', {count:'exact',head:true});
+        if (athletesCount && athletesCount <= 50) {
+          // Ta osoba jest jednym z pierwszych 50 — przyznaj odznakę po krótkiej zwłoce
+          setTimeout(() => {
+            if (typeof awardBadge === 'function') awardBadge('pierwsza_z_pierwszych');
+          }, 2000);
+        }
+      } catch(e) { console.warn('First-50 check:', e); }
+    }
+
     if (_athleteId) {
       await loadLogs();
     } else {
@@ -5119,7 +5133,7 @@ document.addEventListener('click', e => {
 // ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
 
 function switchSocialTab(tab) {
-  ['feed','challenges','badges-s','friends','following','find'].forEach(function(t) {
+  ['feed','challenges','clubs','friends','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
     const panel = document.getElementById('social-' + t);
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
@@ -5127,52 +5141,6 @@ function switchSocialTab(tab) {
   });
   if (tab==='feed') loadSocialFeed(false);
   if (tab==='challenges') loadChallenges();
-  if (tab==='badges-s') {
-    const target = document.getElementById('badges-s-content');
-    if (target) {
-      target.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
-      (async function() {
-        const { data: pubAthletes } = await _sb.from('athletes').select('id,full_name').eq('is_public', true).limit(50);
-        const athIds = (pubAthletes||[]).map(a=>a.id);
-        if (_athleteId && !athIds.includes(_athleteId)) athIds.push(_athleteId);
-        const athMap = {};
-        (pubAthletes||[]).forEach(a => { athMap[a.id] = a.full_name || 'Zawodnik'; });
-        const { data: ach } = await _sb.from('achievements')
-          .select('athlete_id,badge_id,earned_at')
-          .in('athlete_id', athIds)
-          .order('earned_at', { ascending: false })
-          .limit(40);
-        if (!ach || !ach.length) {
-          target.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak zdobytych odznak</div>';
-          return;
-        }
-        let html = '<div style="padding:14px 16px 6px;display:flex;align-items:center;justify-content:space-between;">'          + '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;">OSTATNIO ZDOBYTE</div>'          + '<button onclick="showSection(\'profile\');switchProfileTab(\'badges\')" style="background:rgba(232,86,30,0.12);border:1px solid var(--accent);color:var(--accent);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.12em;padding:5px 12px;border-radius:8px;cursor:pointer;">🏅 MOJE ODZNAKI</button>'          + '</div>';
-        for (const a of ach) {
-          const badge = typeof BADGES !== 'undefined' && BADGES.find(b => b.id === a.badge_id);
-          // Pokaż nawet nieznane odznaki
-          const badgeId = a.badge_id || '';
-          const badgeName = badge ? badge.name : badgeId.replace(/_/g,' ');
-          const badgeRarity = badge ? badge.rarity : 'common';
-          const name = athMap[a.athlete_id] || 'Zawodnik';
-          const isMe = a.athlete_id === _athleteId;
-          const col = (typeof RARITY_COLOR !== 'undefined' && RARITY_COLOR[badgeRarity]) || '#e8a040';
-          const label = (typeof RARITY_LABEL !== 'undefined' && RARITY_LABEL[badgeRarity]) || '';
-          const dateStr = new Date(a.earned_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
-          html += '<div style="display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06);">'
-            + '<div style="width:48px;height:48px;flex-shrink:0;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05);border:1px solid ' + col + '44;">'
-            + '<img src="' + BASE_URL + badgeId + '.webp" style="width:100%;height:100%;object-fit:cover;" loading="lazy" onerror="this.style.opacity=0.15"></div>'
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + badgeName + '</div>'
-            + '<div style="font-size:10px;color:var(--muted);margin-top:1px;">' + (isMe ? 'Ty' : name) + '</div>'
-            + '<div style="font-size:8px;font-family:DM Mono,monospace;color:' + col + ';letter-spacing:0.1em;margin-top:2px;">' + label + '</div>'
-            + '</div>'
-            + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;white-space:nowrap;">' + dateStr + '</div>'
-            + '</div>';
-        }
-        target.innerHTML = html;
-      })();
-    }
-  }
   if (tab==='friends') loadFriends();
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
@@ -6143,16 +6111,29 @@ async function openNotifications() {
     if (!notifs || notifs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak powiadomień</div>';
     } else {
-      var icons = { follow: '\ud83d\udc64', message: '\ud83d\udcac', like: '\ud83d\udd25', friend_request: '\ud83e\udd1d', friend_accepted: '\u2705', chat: '\ud83d\udcac' };
+      var icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅' };
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
         var notifClick = '';
-        if ((n.type==='follow'||n.type==='friend_accepted') && n.from_athlete_id)
-          notifClick = 'location.href=\"profil.html?id='+n.from_athlete_id+'\";document.getElementById(\'notif-panel\')?.remove();';
-        else if (n.type==='friend_request')
-          notifClick = 'switchSocialTab(\'friends\');document.getElementById(\'notif-panel\')?.remove();';
-        else if (n.type==='chat' && n.from_athlete_id)
-          notifClick = 'showSection(\'msgs\');document.getElementById(\'notif-panel\')?.remove();';
+        if (n.type==='friend_request' && n.from_athlete_id) {
+          notifClick = "location.href='profil.html?id=" + n.from_athlete_id + "';document.getElementById('notif-panel')?.remove();";
+        } else if ((n.type==='follow'||n.type==='friend_accepted') && n.from_athlete_id) {
+          notifClick = "location.href='profil.html?id=" + n.from_athlete_id + "';document.getElementById('notif-panel')?.remove();";
+        } else if (n.type==='chat' && n.from_athlete_id) {
+          notifClick = "document.getElementById('notif-panel')?.remove();showSection('msgs');setTimeout(function(){if(typeof openChatThread==='function')openChatThread('peer','" + n.from_athlete_id + "',null);},400);";
+        } else if (n.type==='coach_message' || n.type==='coach') {
+          notifClick = "document.getElementById('notif-panel')?.remove();showSection('msgs');setTimeout(function(){if(typeof openChatThread==='function')openChatThread('coach',null,null);},400);";
+        } else if (n.type==='training_change' || n.type==='training_updated') {
+          notifClick = "location.href='kalendarz.html';";
+        } else if (n.type==='comment' || n.type==='log_comment') {
+          notifClick = "document.getElementById('notif-panel')?.remove();showSection('social');setTimeout(function(){switchSocialTab('feed');},400);";
+        } else if (n.type==='duel' && n.from_athlete_id) {
+          notifClick = "document.getElementById('notif-panel')?.remove();showSection('social');setTimeout(function(){switchSocialTab('challenges');},400);";
+        } else if (n.type==='race_signup' || n.type==='race_added') {
+          notifClick = "location.href='races.html';";
+        } else if (n.type==='badge') {
+          notifClick = "location.href='odznaki.html';";
+        }
         return `<div onclick="${notifClick}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifClick?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
           <span style="font-size:18px;flex-shrink:0;">${icons[n.type]||'🔔'}</span>
           <div style="flex:1;min-width:0;">
@@ -6994,6 +6975,22 @@ if (_duelParam) {
   }, 1200);
 }
 
+// Obsługa #log - przewijanie do formularza loga (z kalendarza Plan)
+if (window.location.hash === '#log') {
+  setTimeout(() => {
+    const target = document.getElementById('log-form');
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Auto-focus na pierwszy input
+      setTimeout(() => {
+        const distInput = document.getElementById('l-dist');
+        if (distInput) distInput.focus();
+      }, 600);
+    }
+    history.replaceState({}, '', location.pathname);
+  }, 800);
+}
+
 // ── EMOJI PICKER ──────────────────────────────────────────────────
 function toggleEmojiPicker(pickerId) {
   const p = document.getElementById(pickerId);
@@ -7630,6 +7627,36 @@ window.closeDuelModal = closeDuelModal;
 window.sendDuelChallenge = sendDuelChallenge;
 // ─────────────────────────────────────────────────────────────────
 
+// ── EASTER EGG: klik logo BiegaMy 7× w 5 sekund ──────────────────
+(function attachEasterEgg(){
+  function bind() {
+    const logo = document.getElementById('biegamy-logo-easter');
+    if (!logo || logo._eeBound) return;
+    logo._eeBound = true;
+    let clicks = [];
+    logo.addEventListener('click', function() {
+      const now = Date.now();
+      // Zachowaj tylko kliki z ostatnich 5 sekund
+      clicks = clicks.filter(t => now - t < 5000);
+      clicks.push(now);
+      if (clicks.length >= 7) {
+        clicks = [];
+        if (typeof awardBadge === 'function') {
+          awardBadge('easter_egg').then(() => {
+            if (typeof toast === 'function') toast('🥚 Easter Egg odblokowany!');
+          });
+        }
+      }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bind);
+  } else {
+    bind();
+  }
+  setTimeout(bind, 1000);
+})();
+
 // ── CHAT THREAD: button listeners (defensive, multi-method) ─────
 (function attachChatBindings(){
   function bindBack() {
@@ -7675,7 +7702,7 @@ window.sendDuelChallenge = sendDuelChallenge;
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Wyzwania<span id="duels-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
-      <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
+      <button id="stab-clubs" onclick="switchSocialTab('clubs')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Kluby</button>
       <button id="stab-friends" onclick="switchSocialTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Znajomi<span id="friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
       <button id="stab-find" onclick="switchSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Znajdź</button>
@@ -7686,7 +7713,17 @@ window.sendDuelChallenge = sendDuelChallenge;
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
-    <div id="social-badges-s" style="display:none;"><div id="badges-s-content"></div></div>
+    <div id="social-clubs" style="display:none;padding:14px 16px;">
+      <div style="text-align:center;padding:32px 16px;border:1px dashed var(--border);border-radius:14px;background:rgba(255,255,255,0.02);">
+        <div style="font-size:42px;margin-bottom:14px;">🏃‍♂️</div>
+        <div style="font-size:14px;font-weight:600;color:var(--fg);margin-bottom:8px;">Kluby biegowe</div>
+        <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.7;letter-spacing:0.04em;">
+          Już wkrótce!<br>
+          Twórz kluby, dołączaj do innych,<br>
+          rywalizujcie w klubowych wyzwaniach.
+        </div>
+      </div>
+    </div>
   </div>
   <div id="social-friends" style="display:none;padding:0 16px;">
     <div id="social-friends-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Ładowanie...</div></div>
@@ -8319,6 +8356,49 @@ const BADGES = [
   {id:'7_dni_challenge', name:'7 dni challenge',     desc:'7 dni bez przerwy',               rarity:'rare',     cat:'Sezonowe'},
   {id:'14_dni_challenge',name:'14 dni challenge',    desc:'14 dni bez przerwy',              rarity:'epic',     cat:'Sezonowe'},
   {id:'30_dni_challenge',name:'30 dni challenge',    desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Sezonowe'},
+
+  // ── PERFORMANCE / TEMPO (NOWE) ────────────────────────────────────
+  {id:'gorace_tempo',     name:'Gorące tempo',        desc:'Bieg 5+ km poniżej 5:00/km',         rarity:'rare',     cat:'Tempo'},
+  {id:'sub_25',           name:'Sub-25',              desc:'5 km poniżej 25 minut',              rarity:'rare',     cat:'Tempo'},
+  {id:'sub_50',           name:'Sub-50',              desc:'10 km poniżej 50 minut',             rarity:'epic',     cat:'Tempo'},
+  {id:'sub_2',            name:'Sub-2',               desc:'Półmaraton poniżej 2 godzin',        rarity:'epic',     cat:'Tempo'},
+  {id:'sub_4',            name:'Sub-4',               desc:'Maraton poniżej 4 godzin',           rarity:'epic',     cat:'Tempo'},
+  {id:'maszyna_biegania', name:'Maszyna do biegania', desc:'10 treningów < 5:00/km',             rarity:'epic',     cat:'Tempo'},
+
+  // ── SPOŁECZNOŚCIOWE (NOWE) ────────────────────────────────────────
+  {id:'pierwszy_fan',         name:'Pierwszy fan',         desc:'Pierwszy follow',                       rarity:'common',   cat:'Społecznościowe'},
+  {id:'stary_druh',           name:'Stary druh',           desc:'1 rok obserwacji znajomego',            rarity:'rare',     cat:'Społecznościowe'},
+  {id:'coach_whisperer',      name:'Coach Whisperer',      desc:'50 wiadomości do trenera',              rarity:'rare',     cat:'Społecznościowe'},
+  {id:'spam_friend',          name:'Spam Friend',          desc:'100 wiadomości do znajomego',           rarity:'epic',     cat:'Społecznościowe'},
+  {id:'pliszka',              name:'Pliszka',              desc:'Pierwsza akceptacja zaproszenia',       rarity:'common',   cat:'Społecznościowe'},
+  {id:'pierwszy_pojedynek',   name:'Pierwszy pojedynek',   desc:'Wyzwij znajomego 1v1',                  rarity:'common',   cat:'Społecznościowe'},
+  {id:'zwyciezca_pojedynku',  name:'Zwycięzca pojedynku',  desc:'Wygraj 1v1',                            rarity:'rare',     cat:'Społecznościowe'},
+  {id:'mistrz_pojedynkow',    name:'Mistrz pojedynków',    desc:'Wygraj 10 razy 1v1',                    rarity:'epic',     cat:'Społecznościowe'},
+
+  // ── SPECJALNE / FUN (NOWE) ────────────────────────────────────────
+  {id:'maraton_dni',           name:'Maraton dni',           desc:'1 trening dziennie 26 dni',                  rarity:'epic',     cat:'Specjalne'},
+  {id:'mr_13',                 name:'Mr/Ms 13',              desc:'13 km w piątek 13.',                         rarity:'legendary',cat:'Specjalne', hidden:true},
+  {id:'pi_day',                name:'Pi day',                desc:'3.14 km dokładnie',                          rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'maraton_tygodnia',      name:'Maraton tygodnia',      desc:'42 km w tygodniu',                           rarity:'rare',     cat:'Specjalne'},
+  {id:'polmaraton_tydz',       name:'Półmaratoński tydzień', desc:'21 km w tygodniu',                           rarity:'common',   cat:'Specjalne'},
+  {id:'setka_dokladna',        name:'Setka',                 desc:'Dokładnie 100 km łącznie ±0.5',              rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'easy_rider',            name:'Easy Rider',            desc:'20 treningów typu "Spokojny"',               rarity:'rare',     cat:'Specjalne'},
+  {id:'rakieta',               name:'Rakieta',               desc:'Szybsze tempo niż w poprzednim tygodniu',    rarity:'common',   cat:'Specjalne'},
+  {id:'czterolistna_koniczyna',name:'Czterolistna koniczyna',desc:'4 treningi 4 dni z rzędu',                   rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'solo_artist',           name:'Solo Artist',           desc:'Trening dłuższy niż 2 godziny',              rarity:'rare',     cat:'Specjalne'},
+  {id:'tylko_jeden',           name:'Tylko jeden',           desc:'Trening dokładnie 1 km',                     rarity:'common',   cat:'Specjalne', hidden:true},
+  {id:'dzien_kobiet',          name:'Dzień Kobiet',          desc:'Bieg 8 marca',                               rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'walentynki_solo',       name:'Walentynki solo',       desc:'Bieg 14 lutego',                             rarity:'rare',     cat:'Specjalne', hidden:true},
+  {id:'urodzinowy_run',        name:'Urodzinowy run',        desc:'Bieg w dniu urodzin',                        rarity:'epic',     cat:'Specjalne', hidden:true},
+
+  // ── TRENER-SPECYFICZNE (NOWE) ─────────────────────────────────────
+
+  // ── ULTRA-SEKRETNE (NOWE - hidden) ────────────────────────────────
+  {id:'easter_egg',           name:'Easter Egg',           desc:'Kliknij logo BiegaMy 7 razy w 5 sekund', rarity:'legendary', cat:'Sekretne', hidden:true},
+  {id:'pierwsza_z_pierwszych',name:'Pierwsza z pierwszych',desc:'Jeden z pierwszych 50 użytkowników',     rarity:'legendary', cat:'Sekretne', hidden:true},
+  {id:'wieczny_optymista',    name:'Wieczny optymista',    desc:'10 treningów oznaczonych "good feel"',   rarity:'rare',      cat:'Sekretne', hidden:true},
+  {id:'swiety_mikolaj',       name:'Święty Mikołaj',       desc:'Bieg 6 grudnia',                         rarity:'rare',      cat:'Sekretne', hidden:true},
+  {id:'dzien_biegacza',       name:'Dzień Biegacza',       desc:'Bieg 1 czerwca',                         rarity:'rare',      cat:'Sekretne', hidden:true},
 ];
 
 const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
@@ -8486,6 +8566,208 @@ async function checkBadges(logs) {
   const { count: cCount } = await _sb.from('log_comments')
     .select('id', {count:'exact',head:true}).eq('athlete_id', _athleteId);
   if (cCount >= 1) awardBadge('pierwszy_koment');
+
+  // ═══════════════════════════════════════════════════════════════
+  // NOWE ODZNAKI (42)
+  // ═══════════════════════════════════════════════════════════════
+
+  // Helper: parse pace (mm:ss) → seconds
+  function _paceSec(pace) {
+    if (!pace || !pace.includes(':')) return null;
+    const parts = pace.split(':').map(Number);
+    if (parts.some(isNaN)) return null;
+    if (parts.length === 2) return parts[0]*60 + parts[1];
+    if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+    return null;
+  }
+
+  // ── PERFORMANCE / TEMPO ──
+  // gorace_tempo: 5+ km poniżej 5:00/km
+  if (logs.some(l => (parseFloat(l.distance_km)||0) >= 5 && (_paceSec(l.pace) || 999) < 300)) {
+    awardBadge('gorace_tempo');
+  }
+  // sub_25: 5 km poniżej 25 min (czyli pace < 5:00 na 5 km, lub czas < 25:00 na ≥5 km)
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const ps = _paceSec(l.pace);
+    if (!ps || km < 5) return false;
+    const totalTime = ps * km;
+    return km >= 5 && km < 6 && totalTime < 25*60;
+  })) awardBadge('sub_25');
+  // sub_50: 10 km poniżej 50 min
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const ps = _paceSec(l.pace);
+    if (!ps || km < 10) return false;
+    return km >= 10 && km < 11 && ps * km < 50*60;
+  })) awardBadge('sub_50');
+  // sub_2: półmaraton poniżej 2h
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const ps = _paceSec(l.pace);
+    if (!ps || km < 21) return false;
+    return Math.abs(km - 21.097) < 1 && ps * km < 2*3600;
+  })) awardBadge('sub_2');
+  // sub_4: maraton poniżej 4h
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const ps = _paceSec(l.pace);
+    if (!ps || km < 42) return false;
+    return Math.abs(km - 42.195) < 1.5 && ps * km < 4*3600;
+  })) awardBadge('sub_4');
+  // maszyna_biegania: 10 treningów < 5:00/km
+  const fastTrainings = logs.filter(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const ps = _paceSec(l.pace);
+    return km >= 3 && ps && ps < 300;
+  }).length;
+  if (fastTrainings >= 10) awardBadge('maszyna_biegania');
+
+  // ── SPECJALNE / FUN ──
+  // maraton_dni: 1 trening dziennie 26 dni z rzędu (= streak >= 26)
+  if (maxStreak >= 26) awardBadge('maraton_dni');
+  // mr_13: 13+ km w piątek 13. (jakikolwiek z logów)
+  if (logs.some(l => {
+    const d = new Date(l.logged_at);
+    const km = parseFloat(l.distance_km) || 0;
+    return d.getDay() === 5 && d.getDate() === 13 && km >= 13;
+  })) awardBadge('mr_13');
+  // pi_day: 3.14 km dokładnie (±0.005)
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    return Math.abs(km - 3.14) < 0.005;
+  })) awardBadge('pi_day');
+  // maraton_tygodnia: 42 km w bieżącym tygodniu
+  if (weekKm >= 42) awardBadge('maraton_tygodnia');
+  // polmaraton_tydz: 21 km w bieżącym tygodniu
+  if (weekKm >= 21) awardBadge('polmaraton_tydz');
+  // setka_dokladna: dokładnie 100 km łącznie ±0.5
+  if (Math.abs(total - 100) < 0.5) awardBadge('setka_dokladna');
+  // easy_rider: 20 treningów typu "Spokojny"
+  const spokojnyCount = logs.filter(l => l.training_type === 'Spokojny' || l.training_type === 'Bieg spokojny').length;
+  if (spokojnyCount >= 20) awardBadge('easy_rider');
+  // rakieta: szybsze tempo niż w poprzednim tygodniu
+  // (uproszczone - sprawdzimy średnie tempo bieżącego vs poprzedniego tygodnia)
+  const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+  const prevWeekLogs = logs.filter(l => {
+    const d = new Date(l.logged_at);
+    return d >= prevWeekStart && d < weekStart;
+  });
+  const _avgPace = (lgs) => {
+    let totSec = 0, totKm = 0;
+    lgs.forEach(l => {
+      const km = parseFloat(l.distance_km) || 0;
+      const ps = _paceSec(l.pace);
+      if (km > 0 && ps) { totSec += ps*km; totKm += km; }
+    });
+    return totKm > 0 ? totSec/totKm : null;
+  };
+  const curAvg = _avgPace(weekLogs);
+  const prevAvg = _avgPace(prevWeekLogs);
+  if (curAvg && prevAvg && curAvg < prevAvg && weekLogs.length >= 2) awardBadge('rakieta');
+  // czterolistna_koniczyna: 4 treningi w 4 dniach z rzędu (= streak >= 4)
+  if (maxStreak >= 4) awardBadge('czterolistna_koniczyna');
+  // solo_artist: trening dłuższy niż 2 godziny (dystans i tempo dają czas > 2h)
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    const ps = _paceSec(l.pace);
+    if (!km || !ps) return false;
+    return ps * km > 2*3600;
+  })) awardBadge('solo_artist');
+  // tylko_jeden: trening dokładnie 1 km (0.95-1.05)
+  if (logs.some(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    return km >= 0.95 && km <= 1.05;
+  })) awardBadge('tylko_jeden');
+  // dzien_kobiet: bieg 8 marca
+  if (logs.some(l => {
+    const d = new Date(l.logged_at);
+    return d.getMonth() === 2 && d.getDate() === 8;
+  })) awardBadge('dzien_kobiet');
+  // walentynki_solo: bieg 14 lutego
+  if (logs.some(l => {
+    const d = new Date(l.logged_at);
+    return d.getMonth() === 1 && d.getDate() === 14;
+  })) awardBadge('walentynki_solo');
+  // urodzinowy_run: bieg w dniu urodzin (date_of_birth z athletes)
+  try {
+    const { data: ath } = await _sb.from('athletes').select('date_of_birth').eq('id', _athleteId).maybeSingle();
+    if (ath?.date_of_birth) {
+      const dob = new Date(ath.date_of_birth);
+      if (logs.some(l => {
+        const d = new Date(l.logged_at);
+        return d.getMonth() === dob.getMonth() && d.getDate() === dob.getDate();
+      })) awardBadge('urodzinowy_run');
+    }
+  } catch(e) {}
+
+  // ── ULTRA-SEKRETNE ──
+  // wieczny_optymista: 10 treningów feel='good'
+  const goodFeelCount = logs.filter(l => l.feel === 'good').length;
+  if (goodFeelCount >= 10) awardBadge('wieczny_optymista');
+  // swiety_mikolaj: bieg 6 grudnia
+  if (logs.some(l => {
+    const d = new Date(l.logged_at);
+    return d.getMonth() === 11 && d.getDate() === 6;
+  })) awardBadge('swiety_mikolaj');
+  // dzien_biegacza: bieg 1 czerwca
+  if (logs.some(l => {
+    const d = new Date(l.logged_at);
+    return d.getMonth() === 5 && d.getDate() === 1;
+  })) awardBadge('dzien_biegacza');
+
+  // ─── ODZNAKI SPOŁECZNOŚCIOWE ──────────────────────────────────────
+
+  // pierwszy_fan: pierwszy follow (count z follows gdzie follower_id=ja)
+  try {
+    const { count: followCount } = await _sb.from('follows')
+      .select('id', {count:'exact',head:true})
+      .eq('follower_id', _athleteId);
+    if (followCount && followCount >= 1) awardBadge('pierwszy_fan');
+  } catch(e) {}
+
+  // pliszka: pierwsza akceptacja zaproszenia (friendships gdzie addressee=ja, status=accepted)
+  try {
+    const { count: acceptedCount } = await _sb.from('friendships')
+      .select('id', {count:'exact',head:true})
+      .eq('addressee_id', _athleteId)
+      .eq('status', 'accepted');
+    if (acceptedCount && acceptedCount >= 1) awardBadge('pliszka');
+  } catch(e) {}
+
+  // stary_druh: 1 rok obserwacji znajomego (friendships z created_at < 365 dni temu)
+  try {
+    const yearAgo = new Date(Date.now() - 365*86400000).toISOString();
+    const { count: oldFriendCount } = await _sb.from('friendships')
+      .select('id', {count:'exact',head:true})
+      .eq('status', 'accepted')
+      .lt('created_at', yearAgo)
+      .or('requester_id.eq.' + _athleteId + ',addressee_id.eq.' + _athleteId);
+    if (oldFriendCount && oldFriendCount >= 1) awardBadge('stary_druh');
+  } catch(e) {}
+
+  // coach_whisperer: 50 wiadomości wysłanych do trenera (tabela `messages` lub `peer_messages`)
+  try {
+    // Spróbuj najpierw `messages` (coach-specific) - jeśli istnieje
+    const { count: msgCount, error: msgErr } = await _sb.from('messages')
+      .select('id', {count:'exact',head:true})
+      .eq('athlete_id', _athleteId);
+    if (!msgErr && msgCount && msgCount >= 50) awardBadge('coach_whisperer');
+  } catch(e) {}
+
+  // spam_friend: 100 wiadomości peer do jednego znajomego
+  try {
+    const { data: peerMsgs } = await _sb.from('peer_messages')
+      .select('to_athlete_id')
+      .eq('from_athlete_id', _athleteId);
+    if (peerMsgs && peerMsgs.length) {
+      // Grupuj per recipient i sprawdź czy któryś ma >=100
+      const counts = {};
+      peerMsgs.forEach(m => { counts[m.to_athlete_id] = (counts[m.to_athlete_id] || 0) + 1; });
+      const max = Math.max(...Object.values(counts));
+      if (max >= 100) awardBadge('spam_friend');
+    }
+  } catch(e) {}
 }
 
 // ── Render sekcji odznak w Profilu ────────────────────────────────
@@ -8506,12 +8788,21 @@ function renderBadgesSection() {
     for (const b of catBadges) {
       const earned = window._earnedBadges.has(b.id);
       const col = RARITY_COLOR[b.rarity] || '#fff';
-      html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
-        ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
-        <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
-        <div class="badge-item-name">${b.name}</div>
-        ${earned ? `<div style="font-size:8px;font-family:DM Mono,monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
-      </div>`;
+      const isHidden = b.hidden && !earned;
+      // Ukryte (sekretne) — pokaż "?" zamiast nazwy do zdobycia
+      if (isHidden) {
+        html += `<div class="badge-item locked" title="Sekret — zdobądź żeby się dowiedzieć" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);">
+          <div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:36px;color:var(--muted);opacity:0.6;">?</div>
+          <div class="badge-item-name" style="color:var(--muted);">Sekret</div>
+        </div>`;
+      } else {
+        html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
+          ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
+          <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
+          <div class="badge-item-name">${b.name}</div>
+          ${earned ? `<div style="font-size:8px;font-family:DM Mono,monospace;color:${col};letter-spacing:0.1em;">${RARITY_LABEL[b.rarity]}</div>` : ''}
+        </div>`;
+      }
     }
     html += '</div>';
   }
