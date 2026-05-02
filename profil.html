@@ -26,7 +26,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 .hero-back{position:absolute;top:calc(env(safe-area-inset-top,0px) + 12px);left:16px;background:rgba(0,0,0,0.4);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.12);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--fg);text-decoration:none;}
 
 /* ── AVATAR SECTION ── */
-.profile-head{padding:0 20px;margin-top:-56px;position:relative;z-index:2;}
+.profile-head{padding:0 20px;margin-top:-32px;position:relative;z-index:2;}
 .avatar-row{display:flex;align-items:flex-end;gap:14px;margin-bottom:12px;}
 .avatar-wrap{position:relative;flex-shrink:0;}
 .avatar{width:88px;height:88px;border-radius:50%;border:3px solid var(--bg);object-fit:cover;background:rgba(232,86,30,0.2);}
@@ -730,7 +730,10 @@ function renderActionBtns() {
   } else if (_friendStatus === 'pending_sent') {
     friendBtn = `<button class="btn-friend pending" onclick="cancelFriendRequest()">⏳ Wysłano zaproszenie</button>`;
   } else if (_friendStatus === 'pending_received') {
-    friendBtn = `<button class="btn-friend add" onclick="acceptFriendRequest()">✓ Akceptuj zaproszenie</button>`;
+    friendBtn = `<div style="display:flex;flex-direction:column;gap:4px;">
+        <button class="btn-friend add" onclick="acceptFriendRequest()">✓ Akceptuj zaproszenie</button>
+        <button class="btn-friend" style="background:transparent;color:var(--muted);border:1px solid var(--border);font-size:10px;" onclick="rejectFriendRequest()">✕ Odrzuć</button>
+      </div>`;
   } else if (_friendStatus === 'accepted') {
     friendBtn = `<button class="btn-friend friends" onclick="removeFriend()">✓ Znajomi</button>`;
   }
@@ -793,6 +796,16 @@ async function acceptFriendRequest() {
   renderActionBtns();
   document.getElementById('ps-friends').textContent = parseInt(document.getElementById('ps-friends').textContent || 0) + 1;
   showToast('Jesteście znajomymi! 🎉');
+}
+
+async function rejectFriendRequest() {
+  if (!confirm('Odrzucić zaproszenie?')) return;
+  const { error } = await _sb.from('friendships').delete()
+    .eq('requester_id', _targetId).eq('addressee_id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  _friendStatus = null;
+  renderActionBtns();
+  showToast('Zaproszenie odrzucone');
 }
 
 async function removeFriend() {
