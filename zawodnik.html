@@ -5119,14 +5119,13 @@ document.addEventListener('click', e => {
 // ── SPOŁECZNOŚĆ ────────────────────────────────────────────────────
 
 function switchSocialTab(tab) {
-  ['feed','duels','challenges','badges-s','friends','following','find'].forEach(function(t) {
+  ['feed','challenges','badges-s','friends','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
     const panel = document.getElementById('social-' + t);
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
   if (tab==='feed') loadSocialFeed(false);
-  if (tab==='duels') loadDuels();
   if (tab==='challenges') loadChallenges();
   if (tab==='badges-s') {
     const target = document.getElementById('badges-s-content');
@@ -5655,6 +5654,9 @@ function loadChallenges() {
   }
 
   render({}, new Set());
+
+  // Doklej sekcję pojedynków na górze
+  loadDuelsToContainer();
 
   if (!_athleteId) return;
 
@@ -7155,27 +7157,36 @@ const DUEL_TYPES = {
 };
 
 async function loadDuels() {
-  const el = document.getElementById('duels-content');
-  if (!el || !_athleteId) return;
-  el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+  // Compatibility — wywołanie z innych miejsc redirect to challenges
+  switchSocialTab('challenges');
+}
+
+// Główna funkcja - renderuje sekcję pojedynków do kontenera challenges (na górze)
+async function loadDuelsToContainer() {
+  const target = document.getElementById('challenges-content');
+  if (!target || !_athleteId) return;
 
   // Najpierw spróbuj sfinalizować pojedynki które się skończyły
   await finalizeExpiredDuels();
 
-  const now = new Date().toISOString();
   // Pobierz wszystkie pojedynki gdzie jestem zaangażowany
-  const { data: duels } = await _sb.from('duels')
+  const { data: duels, error } = await _sb.from('duels')
     .select('*')
     .or('challenger_id.eq.' + _athleteId + ',opponent_id.eq.' + _athleteId)
     .order('created_at', { ascending: false })
     .limit(50);
 
+  // Tabela duels może nie istnieć jeszcze — wtedy po prostu nic nie pokazujemy
+  if (error) { console.warn('duels table:', error.message); return; }
+
   if (!duels || !duels.length) {
-    el.innerHTML = '<div style="text-align:center;padding:32px 16px;color:var(--muted);font-size:13px;font-family:DM Mono,monospace;line-height:1.7;">'
-      + '<div style="font-size:36px;margin-bottom:10px;">⚔️</div>'
-      + '<div style="font-size:13px;color:var(--fg2);margin-bottom:6px;">Brak pojedynków</div>'
-      + '<div style="font-size:11px;color:var(--muted);">Wyzwij znajomego z jego profilu!</div>'
+    // Pokaż mini banner zachęcający tylko jeśli nie ma pojedynków
+    const banner = '<div id="duels-banner" style="background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(255,122,69,0.05));border:1px solid rgba(232,86,30,0.25);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">'
+      + '<div style="font-size:28px;flex-shrink:0;">⚔️</div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--fg);">Pojedynki 1v1</div>'
+      + '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">Wyzwij znajomego z jego profilu</div></div>'
       + '</div>';
+    target.insertAdjacentHTML('afterbegin', banner);
     return;
   }
 
@@ -7196,35 +7207,42 @@ async function loadDuels() {
   const incoming = duels.filter(d => d.status === 'pending' && d.opponent_id === _athleteId);
   const outgoing = duels.filter(d => d.status === 'pending' && d.challenger_id === _athleteId);
   const active = duels.filter(d => d.status === 'accepted');
-  const finished = duels.filter(d => d.status === 'finished').slice(0, 10);
+  const finished = duels.filter(d => d.status === 'finished').slice(0, 5);
 
-  let html = '';
+  let html = '<div style="padding:14px 0 4px;display:flex;align-items:center;justify-content:space-between;">'
+    + '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;">⚔️ POJEDYNKI 1v1</div>'
+    + '</div>';
 
   // Przychodzące (czekają na moją decyzję)
   if (incoming.length) {
-    html += '<div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin:14px 0 8px;font-weight:700;">⚡ Wyzwano Cię (' + incoming.length + ')</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin:8px 0 6px;font-weight:700;">⚡ Wyzwano Cię (' + incoming.length + ')</div>';
     for (const d of incoming) html += _duelCardIncoming(d, athMap[d.challenger_id]);
   }
 
   // Aktywne
   if (active.length) {
-    html += '<div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin:14px 0 8px;font-weight:700;">🔥 Aktywne (' + active.length + ')</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin:8px 0 6px;font-weight:700;">🔥 Aktywne (' + active.length + ')</div>';
     for (const d of active) html += _duelCardActive(d, athMap[d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id]);
   }
 
   // Wysłane (czekam na akceptację)
   if (outgoing.length) {
-    html += '<div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:14px 0 8px;font-weight:700;">⏳ Wysłane (' + outgoing.length + ')</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:8px 0 6px;font-weight:700;">⏳ Wysłane (' + outgoing.length + ')</div>';
     for (const d of outgoing) html += _duelCardOutgoing(d, athMap[d.opponent_id]);
   }
 
-  // Historia
+  // Historia (krótka, max 5)
   if (finished.length) {
-    html += '<div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:14px 0 8px;font-weight:700;">🏆 Historia</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:8px 0 6px;font-weight:700;">🏆 Historia</div>';
     for (const d of finished) html += _duelCardFinished(d, athMap[d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id]);
   }
 
-  el.innerHTML = html;
+  // Separator wizualny pomiędzy pojedynkami a wyzwaniami
+  html += '<div style="height:1px;background:var(--border);margin:18px 0 4px;"></div>';
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;padding:6px 0 4px;">🏆 WYZWANIA TYGODNIOWE</div>';
+
+  // Wstaw na początku — wyzwania zostaną pod tym
+  target.insertAdjacentHTML('afterbegin', html);
 
   // Badge przy zakładce — pokazujemy tylko jeśli incoming
   const badge = document.getElementById('duels-badge');
@@ -7656,8 +7674,7 @@ window.sendDuelChallenge = sendDuelChallenge;
     <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;"><span style="color:var(--accent)">SPOŁE</span><span style="color:#f0ede8">CZNOŚĆ</span></div></div></div><div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
-      <button id="stab-duels" onclick="switchSocialTab('duels')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">⚔ Pojedynki<span id="duels-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
-      <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Wyzwania</button>
+      <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Wyzwania<span id="duels-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
       <button id="stab-badges-s" onclick="switchSocialTab('badges-s')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Odznaki</button>
       <button id="stab-friends" onclick="switchSocialTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Znajomi<span id="friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
       <button id="stab-following" onclick="switchSocialTab('following')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Obserwujesz</button>
@@ -7666,9 +7683,6 @@ window.sendDuelChallenge = sendDuelChallenge;
   </div>
   <div id="social-feed" style="padding:0 16px;">
     <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.8;">Zaobserwuj innych bieg aczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
-  </div>
-  <div id="social-duels" style="display:none;padding:0 16px;">
-    <div id="duels-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div></div>
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
