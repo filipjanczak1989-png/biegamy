@@ -745,7 +745,25 @@ function renderActionBtns() {
         Napisz
       </button>` : '';
 
-  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">${friendBtn}${followBtn}${msgBtn}</div>`;
+  const duelBtn = _friendStatus === 'accepted'
+    ? `<button class="btn-msg" style="background:rgba(232,86,30,0.12);border-color:rgba(232,86,30,0.4);color:var(--accent);" onclick="openDuelFromProfile()" title="Wyzwij na pojedynek">
+        ⚔️ Pojedynek
+      </button>` : '';
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end;">${friendBtn}${followBtn}${msgBtn}${duelBtn}</div>`;
+}
+
+// Otwiera modal pojedynku — używa funkcji z zawodnik.html jeśli profil otwarty z zawodnika,
+// w przeciwnym razie redirectuje do zawodnik.html?duel=ID
+function openDuelFromProfile() {
+  // Spróbuj wywołać modal jeśli zawodnik.html jest aktywny w tej samej karcie
+  if (typeof window.parent !== 'undefined' && window.parent.openDuelModal) {
+    window.parent.openDuelModal(_targetId, _profileData?.full_name || 'Znajomy');
+    return;
+  }
+  // W profilu działamy jako standalone — redirect do zawodnik.html z parametrem
+  // który otworzy modal pojedynku po załadowaniu
+  location.href = 'zawodnik.html?duel=' + _targetId + '&duel_name=' + encodeURIComponent(_profileData?.full_name || 'Znajomy');
 }
 
 // ── FRIEND ACTIONS ─────────────────────────────────────────────────
