@@ -802,7 +802,6 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
-      <a href="gra.html" style="padding:10px 12px;font-size:12px;color:#e8561e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">🎮 Mini gra</a>
       <a href="o-nas.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📖 O nas</a>
       <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
@@ -822,6 +821,29 @@ body > *{position:relative;z-index:1;}
       <div id="motiv-source"></div>
     </div>
   </div>
+</div>
+
+
+<!-- BANNER SUGESTII GRY (warm-up mentalny) -->
+<div id="game-suggest-banner" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,rgba(232,86,30,0.18),rgba(232,184,64,0.08));border:1px solid rgba(232,86,30,0.5);border-radius:14px;padding:12px 14px;cursor:pointer;align-items:center;gap:12px;" onclick="goToGameSuggested()">
+  <div style="font-size:28px;flex-shrink:0;" id="gsb-icon">🎮</div>
+  <div style="flex:1;">
+    <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:2px;">Warm-up mentalny</div>
+    <div style="font-size:13px;font-weight:600;color:var(--fg);" id="gsb-title">Aktywuj się przed treningiem</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:1px;" id="gsb-desc">3 min gry przygotuje cię do biegu</div>
+  </div>
+  <div style="font-size:18px;color:var(--accent);" id="gsb-close" onclick="event.stopPropagation();dismissGameSuggest();">✕</div>
+</div>
+
+<!-- BANNER COOLDOWN (po treningu) -->
+<div id="game-cooldown-banner" style="display:none;margin:0 16px 12px;background:linear-gradient(135deg,rgba(80,144,224,0.18),rgba(61,184,112,0.08));border:1px solid rgba(80,144,224,0.5);border-radius:14px;padding:12px 14px;cursor:pointer;align-items:center;gap:12px;" onclick="goToGameCooldown()">
+  <div style="font-size:28px;flex-shrink:0;">🐢</div>
+  <div style="flex:1;">
+    <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--blue);margin-bottom:2px;">Cooldown po treningu</div>
+    <div style="font-size:13px;font-weight:600;color:var(--fg);">Schłodź umysł — tryb SPOKOJNY</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:1px;">90s focusu po wysiłku</div>
+  </div>
+  <div style="font-size:18px;color:var(--blue);" onclick="event.stopPropagation();dismissCooldown();">✕</div>
 </div>
 
 <div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
@@ -2423,6 +2445,24 @@ async function loadProfile() {
   if (_editingPBs) toggleEditPBs();
   if (_athleteId) checkStravaStatus();
   if (_athleteId) loadAvatarTopbar(_athleteId);
+  if (_athleteId) checkGameSuggestion();
+
+  // Auto-open log modal if returned from game with flag
+  if (sessionStorage.getItem('biegamy_open_log_modal') === '1') {
+    sessionStorage.removeItem('biegamy_open_log_modal');
+    setTimeout(() => {
+      try { openModal(); } catch(e) { console.warn('openModal failed:', e); }
+      // Pokaż info o warm-upie
+      const warmupInfo = sessionStorage.getItem('biegamy_warmup_played');
+      if (warmupInfo) {
+        try {
+          const w = JSON.parse(warmupInfo);
+          toast('🎮 Warm-up ' + w.modeName + ' wykonany — będzie zalogowany razem z treningiem');
+          sessionStorage.removeItem('biegamy_warmup_played');
+        } catch(e) {}
+      }
+    }, 500);
+  }
   
   if (_athleteId) {
     // Avatar — czytaj z athletes.avatar_url
@@ -3015,6 +3055,109 @@ function setAvBtn(initials) {
   const ini = document.getElementById('av-initials');
   if (ini) ini.textContent = initials;
 }
+
+// ═════════════════════════════════════════════════
+// GAME SUGGESTIONS — warm-up + cooldown
+// ═════════════════════════════════════════════════
+async function checkGameSuggestion() {
+  if (!_athleteId) return;
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 1. Czy user już dziś grał? (warm-up flag)
+  const todayStart = today + 'T00:00:00';
+  const { data: gamesPlayed } = await _sb.from('game_scores')
+    .select('id, mode, created_at')
+    .eq('athlete_id', _athleteId)
+    .gte('created_at', todayStart)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  const playedToday = (gamesPlayed && gamesPlayed.length > 0);
+
+  // 2. Czy user dziś już zalogował realny trening? (cooldown flag)
+  const { data: trainingsToday } = await _sb.from('training_logs')
+    .select('id, training_type, logged_at')
+    .eq('athlete_id', _athleteId)
+    .gte('logged_at', todayStart)
+    .neq('training_type', 'Warm-up mentalny')
+    .order('logged_at', { ascending: false })
+    .limit(1);
+  const trainedToday = (trainingsToday && trainingsToday.length > 0);
+  const lastTraining = trainedToday ? trainingsToday[0] : null;
+
+  // 3. Zaplanowany trening na dziś
+  const { data: planned } = await _sb.from('trainings')
+    .select('type, description')
+    .eq('athlete_id', _athleteId)
+    .eq('date', today)
+    .maybeSingle();
+
+  // === LOGIKA SUGESTII ===
+  // A) Po treningu (cooldown) — jeśli zalogował trening i potem nie grał cooldownu
+  if (trainedToday) {
+    // Czy gra była PO ostatnim treningu?
+    const lastTrainTime = new Date(lastTraining.logged_at).getTime();
+    const lastGameTime = playedToday ? new Date(gamesPlayed[0].created_at).getTime() : 0;
+    if (lastGameTime < lastTrainTime) {
+      // Trenował i nie grał cooldownu
+      if (!sessionStorage.getItem('biegamy_cooldown_dismissed_' + today)) {
+        document.getElementById('game-cooldown-banner').style.display = 'flex';
+        return;
+      }
+    }
+  }
+
+  // B) Przed treningiem (warm-up) — jeśli ma zaplanowane i jeszcze nie grał warm-upu
+  if (planned && !playedToday && !trainedToday) {
+    if (sessionStorage.getItem('biegamy_warmup_dismissed_' + today)) return;
+
+    const banner = document.getElementById('game-suggest-banner');
+    const t = (planned.type || '').toLowerCase();
+    let suggestedMode = 'calm';
+    let modeName = 'SPOKOJNY';
+    let icon = '🐢';
+    if (t.includes('interw') || t.includes('interval')) {
+      suggestedMode = 'intervals'; modeName = 'INTERWAŁY'; icon = '⚡';
+    } else if (t.includes('tempo')) {
+      suggestedMode = 'tempo'; modeName = 'TEMPO'; icon = '🎯';
+    } else if (t.includes('długi') || t.includes('dlugi') || t.includes('long')) {
+      suggestedMode = 'longrun'; modeName = 'DŁUGI'; icon = '🏔';
+    }
+    document.getElementById('gsb-icon').textContent = icon;
+    document.getElementById('gsb-title').textContent = 'Zagraj tryb ' + modeName;
+    document.getElementById('gsb-desc').textContent = 'Dziś masz: ' + planned.type + ' · aktywuj się 3 min';
+    banner.dataset.mode = suggestedMode;
+    banner.style.display = 'flex';
+  }
+}
+
+function goToGameSuggested() {
+  const mode = document.getElementById('game-suggest-banner').dataset.mode || 'calm';
+  // Przekazujemy tryb przez sessionStorage — gra go odczyta
+  sessionStorage.setItem('biegamy_game_autostart', mode);
+  location.href = 'gra.html';
+}
+
+function goToGameCooldown() {
+  sessionStorage.setItem('biegamy_game_autostart', 'calm');
+  location.href = 'gra.html';
+}
+
+function dismissGameSuggest() {
+  const today = new Date().toISOString().slice(0, 10);
+  sessionStorage.setItem('biegamy_warmup_dismissed_' + today, '1');
+  document.getElementById('game-suggest-banner').style.display = 'none';
+}
+
+function dismissCooldown() {
+  const today = new Date().toISOString().slice(0, 10);
+  sessionStorage.setItem('biegamy_cooldown_dismissed_' + today, '1');
+  document.getElementById('game-cooldown-banner').style.display = 'none';
+}
+
+window.goToGameSuggested = goToGameSuggested;
+window.goToGameCooldown = goToGameCooldown;
+window.dismissGameSuggest = dismissGameSuggest;
+window.dismissCooldown = dismissCooldown;
 
 async function loadAvatarTopbar(athleteId) {
   if (!athleteId) return;
@@ -4799,6 +4942,25 @@ async function saveLog() {
     feel: feel || 'mid',
     logged_at: loggedAtISO
   };
+
+  // ✓ Wykrycie warm-upu mentalnego (gra przed treningiem dziś)
+  if (!_editingLogId && _logType !== 'Warm-up mentalny') {
+    try {
+      const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+      const { data: gamesPlayed } = await _sb.from('game_scores')
+        .select('mode, created_at, finished, reaction_avg_ms')
+        .eq('athlete_id', _athleteId)
+        .gte('created_at', todayStart.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1);
+      if (gamesPlayed && gamesPlayed.length > 0) {
+        const g = gamesPlayed[0];
+        const modeNames = { calm: 'SPOKOJNY', intervals: 'INTERWAŁY', tempo: 'TEMPO', longrun: 'DŁUGI' };
+        const tag = '✓ z warm-upem mentalnym (' + (modeNames[g.mode] || g.mode) + (g.reaction_avg_ms ? ', reakcja ' + g.reaction_avg_ms + 'ms' : '') + ')';
+        logData.comment = (logData.comment ? logData.comment + '\n' : '') + tag;
+      }
+    } catch(e) { console.warn('warm-up check:', e); }
+  }
 
   let error;
   if (_editingLogId) {
