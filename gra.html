@@ -13,43 +13,57 @@
   --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.45);
   --accent:#e8561e;--accent2:#ffb74d;--muted:rgba(240,237,232,0.38);
   --green:#3db870;--red:#e05050;--blue:#5090e0;--gold:#ffd966;--purple:#a868e0;
+  --calm:#5090e0;--interval:#e05050;--tempo:#a868e0;--longrun:#3db870;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;}
 
-/* ── Top bar ─────────────────────────────── */
 .topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:max(12px,env(safe-area-inset-top,12px)) 16px 10px;background:linear-gradient(to bottom,rgba(7,7,10,0.9),transparent);}
 .back-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;text-decoration:none;backdrop-filter:blur(8px);}
-.tb-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);}
+.tb-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;}
 .tb-title span{color:var(--accent);}
-.tb-coins{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:13px;color:var(--gold);background:rgba(255,217,102,0.08);border:1px solid rgba(255,217,102,0.2);padding:6px 12px;border-radius:14px;}
+.tb-spacer{width:36px;}
 
-/* ── Screens ─────────────────────────────── */
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;}
 .screen.hidden{display:none;}
 
-/* ── Home ────────────────────────────────── */
 #screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;}
 .home-content{padding:14px 18px 100px;flex:1;}
-.hero-block{text-align:center;margin-bottom:20px;}
-.hero-title{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:0.04em;line-height:0.95;margin-bottom:4px;}
+.hero-block{text-align:center;margin-bottom:18px;}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:0.04em;line-height:0.95;margin-bottom:4px;}
 .hero-title .accent{color:var(--accent);}
 .hero-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
 
-/* Tabs */
-.tabs{display:flex;gap:4px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:18px;}
-.tab{flex:1;padding:9px 6px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;border:none;background:none;}
-.tab.active{background:var(--accent);color:#fff;}
+/* Suggested mode banner */
+.suggested-banner{background:linear-gradient(135deg,rgba(232,86,30,0.18),rgba(232,184,64,0.08));border:1px solid var(--accent);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
+.sb-icon{font-size:32px;}
+.sb-text{flex:1;}
+.sb-label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:2px;}
+.sb-title{font-size:14px;font-weight:600;color:var(--fg);}
+.sb-desc{font-size:11px;color:var(--fg2);margin-top:2px;}
 
-.tab-pane{display:none;}
-.tab-pane.active{display:block;}
+/* Mode picker */
+.modes-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin:14px 0 10px;text-align:center;}
+.modes-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.mode-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 12px;cursor:pointer;transition:all 0.2s;position:relative;text-align:center;overflow:hidden;}
+.mode-card:active{transform:scale(0.97);}
+.mode-card.suggested{box-shadow:0 0 24px rgba(232,86,30,0.4);border-color:var(--accent);}
+.mode-card[data-mode="calm"]:hover{border-color:var(--calm);}
+.mode-card[data-mode="intervals"]:hover{border-color:var(--interval);}
+.mode-card[data-mode="tempo"]:hover{border-color:var(--tempo);}
+.mode-card[data-mode="longrun"]:hover{border-color:var(--longrun);}
+.mode-emoji{font-size:36px;margin-bottom:6px;}
+.mode-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--fg);}
+.mode-desc{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.05em;color:var(--muted);margin-top:4px;line-height:1.3;min-height:22px;}
+.mode-trains{font-family:'DM Mono',monospace;font-size:9px;color:var(--accent);margin-top:6px;}
+.mode-suggested-tag{position:absolute;top:6px;right:6px;background:var(--accent);color:#fff;font-family:'DM Mono',monospace;font-size:8px;padding:2px 6px;border-radius:6px;letter-spacing:0.1em;}
 
 /* Bonuses card */
-.bonuses-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:14px;}
-.bonuses-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
-.bonuses-icon{font-size:18px;}
-.bonuses-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
-.bonus-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.section-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;}
+.section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.section-icon{font-size:18px;}
+.section-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);}
+.bonus-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
 .bonus-row:last-child{border-bottom:none;}
 .bonus-label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--fg2);}
 .bonus-label b{color:var(--fg);font-weight:500;}
@@ -57,61 +71,23 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
 .bonus-value.green{color:var(--green);}
 .bonus-value.muted{color:var(--muted);}
 
-/* Daily missions */
-.mission-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
-.mission-row:last-child{border-bottom:none;}
-.mission-icon{font-size:22px;width:32px;text-align:center;}
-.mission-info{flex:1;}
-.mission-title{font-size:13px;color:var(--fg);font-weight:500;margin-bottom:4px;}
-.mission-progress-bar{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
-.mission-progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
-.mission-progress-fill.done{background:var(--green);}
-.mission-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:right;min-width:50px;}
-.mission-meta .reward{color:var(--gold);font-size:11px;display:block;margin-top:2px;}
+/* Mental metrics row */
+.metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.metric-cell{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;}
+.metric-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;}
+.metric-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;color:var(--muted);margin-top:3px;line-height:1.3;}
 
-/* Equipment grid */
-.equip-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-.equip-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
-.equip-card:active{transform:scale(0.97);}
-.equip-card.equipped{border-color:var(--accent);box-shadow:0 0 20px rgba(232,86,30,0.3);}
-.equip-card.locked{opacity:0.45;cursor:not-allowed;}
-.equip-emoji{font-size:34px;text-align:center;margin-bottom:6px;}
-.equip-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;text-align:center;color:var(--fg);}
-.equip-desc{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;text-align:center;color:var(--muted);margin-top:4px;line-height:1.3;min-height:24px;}
-.equip-status{position:absolute;top:6px;right:6px;font-family:'DM Mono',monospace;font-size:8px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:6px;letter-spacing:0.1em;}
-.equip-status.locked{background:rgba(255,255,255,0.1);color:var(--muted);}
-.equip-section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
+/* Tabs */
+.tabs{display:flex;gap:4px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:14px;}
+.tab{flex:1;padding:8px 6px;border-radius:8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;border:none;background:none;}
+.tab.active{background:var(--accent);color:#fff;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
 
-/* Badges */
-.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
-.badge-item{aspect-ratio:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;}
-.badge-item.unlocked{border-color:var(--gold);background:linear-gradient(135deg,rgba(255,217,102,0.1),rgba(232,184,64,0.05));}
-.badge-item.unlocked .badge-emoji{filter:none;}
-.badge-emoji{font-size:30px;filter:grayscale(1) opacity(0.3);margin-bottom:4px;}
-.badge-name{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.04em;color:var(--muted);line-height:1.2;}
-.badge-item.unlocked .badge-name{color:var(--fg);}
-.badge-tier{position:absolute;top:4px;right:4px;font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;}
-
-/* Leaderboard */
-.lb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:6px 12px;margin-top:10px;}
-.lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
-.lb-row:last-child{border-bottom:none;}
-.lb-row.me{background:rgba(232,86,30,0.08);margin:0 -8px;padding:9px 8px;border-radius:8px;border-bottom:none;}
-.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;text-align:center;color:var(--muted);}
-.lb-rank.top1{color:var(--gold);}
-.lb-rank.top2{color:#cbd5e1;}
-.lb-rank.top3{color:#cd7f32;}
-.lb-name{flex:1;font-size:13px;color:var(--fg);}
-.lb-score{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;}
-
-/* Play button - sticky bottom */
-.play-bar{position:fixed;left:0;right:0;bottom:0;padding:14px 18px max(14px,env(safe-area-inset-bottom,14px));background:linear-gradient(to top,#07070a 60%,transparent);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:15;}
-.btn-primary{background:linear-gradient(135deg,var(--accent),#d04515);color:#fff;border:none;padding:16px 56px;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.06em;cursor:pointer;box-shadow:0 6px 28px rgba(232,86,30,0.45);transition:transform 0.1s;display:flex;align-items:center;gap:10px;width:100%;max-width:280px;justify-content:center;}
-.btn-primary:active{transform:scale(0.96);}
-.high-score{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;}
+.high-score{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:14px;letter-spacing:0.1em;text-align:center;}
 .high-score b{color:var(--accent);font-size:13px;font-weight:500;}
 
-/* ── In-game ─────────────────────────────── */
+/* In-game */
 #screen-game{padding:0;}
 canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;touch-action:none;}
 
@@ -122,60 +98,78 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .hud-multi{font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,0.8);}
 .hud-multi.pulse{animation:pulse 0.4s ease-in-out;}
 @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.4);color:#fff;}100%{transform:scale(1);}}
+.hud-mode-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-shadow:0 1px 4px rgba(0,0,0,0.8);letter-spacing:0.1em;}
 .hud-distance{font-family:'DM Mono',monospace;font-size:13px;color:var(--fg);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:500;}
 .hud-speed{font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
 .hud-lives{font-family:'DM Mono',monospace;font-size:14px;}
-.hud-coins{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);text-shadow:0 1px 4px rgba(0,0,0,0.8);display:flex;align-items:center;gap:4px;}
 
-/* Active power-ups in HUD */
-.powerup-bar{position:fixed;top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10;pointer-events:none;}
-.pu-active{background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:6px 12px 6px 8px;display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);}
-.pu-active.shield{border-color:var(--blue);}
-.pu-active.magnet{border-color:var(--gold);}
-.pu-active.slowmo{border-color:var(--purple);}
-.pu-active.boost{border-color:var(--accent);}
-.pu-time{font-weight:600;}
+/* Mode-specific UI */
+.mode-target{position:fixed;top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;}
+.mode-target .mt-icon{font-size:14px;}
+.mode-target .mt-bar{width:80px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.mode-target .mt-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
+
+/* Interval phase indicator */
+.phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
+@keyframes phaseIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.7);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+.phase-banner .pb-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.phase-banner .pb-text{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:0.06em;}
+.phase-banner.sprint{border-color:var(--red);}
+.phase-banner.sprint .pb-label,.phase-banner.sprint .pb-text{color:var(--red);}
+.phase-banner.rest{border-color:var(--green);}
+.phase-banner.rest .pb-label,.phase-banner.rest .pb-text{color:var(--green);}
 
 .dash-meter{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:10px;z-index:10;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg2);letter-spacing:0.1em;}
 .dash-pip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);}
 .dash-pip.active{background:var(--accent);box-shadow:0 0 8px var(--accent);}
 
-/* Pause button */
-.pause-btn{position:fixed;top:max(14px,env(safe-area-inset-top,14px));right:50%;transform:translateX(50%);background:rgba(7,7,10,0.6);border:1px solid var(--border);color:var(--fg);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:11;}
-
-/* ── Game Over ───────────────────────────── */
-#screen-end{background:rgba(7,7,10,0.94);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;}
-.end-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px 22px;text-align:center;}
-.end-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:0.04em;margin-bottom:6px;}
-.end-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
-.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:60px;color:var(--accent);line-height:1;}
+/* End screen */
+#screen-end{background:rgba(7,7,10,0.94);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
+.end-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 22px;text-align:center;}
+.end-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.04em;margin-bottom:4px;}
+.end-mode-tag{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;background:rgba(232,86,30,0.15);border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:8px;margin-bottom:14px;}
+.end-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:54px;color:var(--accent);line-height:1;}
 .end-score-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
-.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
 .end-stat{display:flex;flex-direction:column;align-items:center;gap:2px;}
 .end-stat-val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);}
 .end-stat-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+/* Mental metrics in end */
+.mental-stats{background:rgba(80,144,224,0.06);border:1px solid rgba(80,144,224,0.25);border-radius:10px;padding:10px;margin-bottom:14px;}
+.mental-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;}
+.mental-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:11px;}
+.mental-row .ml{color:var(--fg2);}
+.mental-row .mv{font-family:'DM Mono',monospace;color:var(--fg);font-weight:600;}
+.mental-row .mv.good{color:var(--green);}
+.mental-row .mv.improve{color:var(--accent);}
+/* Log to training? */
+.log-prompt{background:linear-gradient(135deg,rgba(61,184,112,0.15),rgba(80,144,224,0.08));border:1px solid var(--green);border-radius:12px;padding:10px 12px;margin-bottom:14px;text-align:left;}
+.log-prompt-title{font-size:11px;color:var(--green);font-weight:600;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.log-prompt-desc{font-size:10px;color:var(--fg2);margin-bottom:8px;}
+.log-prompt-btn{width:100%;background:var(--green);color:#0a1a0f;border:none;padding:9px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:600;cursor:pointer;}
+.log-prompt-btn:disabled{background:rgba(61,184,112,0.3);color:rgba(255,255,255,0.5);cursor:default;}
+
 .new-record{background:linear-gradient(135deg,rgba(232,86,30,0.25),rgba(232,184,64,0.15));border:1px solid var(--accent);border-radius:10px;padding:8px 14px;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-weight:600;}
-.new-badges{background:rgba(255,217,102,0.1);border:1px solid rgba(255,217,102,0.3);border-radius:10px;padding:10px;margin-bottom:14px;}
-.new-badges-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
-.new-badges-list{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
-.new-badge-pill{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);border-radius:8px;padding:4px 8px;font-size:11px;}
+
 .btn-row{display:flex;gap:8px;justify-content:center;}
 .btn-restart{background:var(--accent);color:#fff;border:none;padding:13px 26px;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;flex:1;}
 .btn-home{background:rgba(255,255,255,0.06);color:var(--fg2);border:1px solid var(--border);padding:13px 18px;border-radius:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
 
-/* ── Toast ──────────────────────────────── */
 .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(7,7,10,0.95);backdrop-filter:blur(12px);border:1px solid var(--accent);color:var(--accent);padding:10px 18px;border-radius:24px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;opacity:0;pointer-events:none;transition:all 0.3s;z-index:30;font-weight:600;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
-/* ── Tutorial ─────────────────────────────── */
+/* Tutorial */
 .tutorial{position:fixed;inset:0;background:rgba(7,7,10,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
 .tut-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 22px;max-width:340px;width:100%;text-align:center;}
-.tut-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:12px;}
+.tut-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;margin-bottom:6px;}
+.tut-sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
 .tut-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.05);text-align:left;}
 .tut-row:first-of-type{border-top:none;}
-.tut-icon{font-size:24px;width:34px;text-align:center;}
+.tut-icon{font-size:22px;width:30px;text-align:center;}
 .tut-text{flex:1;font-size:12px;color:var(--fg2);line-height:1.4;}
 .tut-text b{color:var(--fg);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#d04515);color:#fff;border:none;padding:14px 36px;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;cursor:pointer;box-shadow:0 6px 20px rgba(232,86,30,0.4);margin-top:14px;}
 </style>
 </head>
 <body>
@@ -185,84 +179,136 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
   <div class="topbar">
     <a class="back-btn" href="zawodnik.html">‹</a>
     <div class="tb-title">RUNNER<span>RUSH</span></div>
-    <div class="tb-coins" id="tb-coins-total">🪙 <span id="coins-total">0</span></div>
+    <div class="tb-spacer"></div>
   </div>
 
   <div class="home-content">
     <div class="hero-block">
-      <div class="hero-title">Twój trening<br><span class="accent">to twoja broń</span></div>
-      <div class="hero-sub">Endless runner · Skill + Trening</div>
+      <div class="hero-title">Trening<br><span class="accent">mentalny</span></div>
+      <div class="hero-sub">Realny wpływ na biegi · Skill + Focus</div>
     </div>
 
+    <!-- Suggested mode banner (shows if calendar suggests something) -->
+    <div class="suggested-banner" id="suggested-banner" style="display:none;">
+      <div class="sb-icon" id="sb-icon">⚡</div>
+      <div class="sb-text">
+        <div class="sb-label">Sugerowany tryb</div>
+        <div class="sb-title" id="sb-title">Ładowanie...</div>
+        <div class="sb-desc" id="sb-desc"></div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
     <div class="tabs">
-      <button class="tab active" data-tab="play" onclick="switchTab('play')">Graj</button>
-      <button class="tab" data-tab="equip" onclick="switchTab('equip')">Ekwipunek</button>
-      <button class="tab" data-tab="badges" onclick="switchTab('badges')">Odznaki</button>
+      <button class="tab active" data-tab="play" onclick="switchTab('play')">Tryby</button>
+      <button class="tab" data-tab="metrics" onclick="switchTab('metrics')">Metryki</button>
       <button class="tab" data-tab="rank" onclick="switchTab('rank')">Ranking</button>
     </div>
 
     <!-- TAB: PLAY -->
     <div class="tab-pane active" id="tab-play">
-      <div class="bonuses-card">
-        <div class="bonuses-hdr">
-          <div class="bonuses-icon">⚡</div>
-          <div class="bonuses-title">Aktywne bonusy z treningów</div>
+      <div class="modes-title">▸ Wybierz tryb dopasowany do treningu</div>
+      <div class="modes-grid">
+        <div class="mode-card" data-mode="calm" onclick="startGame('calm')">
+          <div class="mode-emoji">🐢</div>
+          <div class="mode-name">SPOKOJNY</div>
+          <div class="mode-desc">90s focus · powolne tempo</div>
+          <div class="mode-trains">↳ regeneracja, Z2</div>
+        </div>
+        <div class="mode-card" data-mode="intervals" onclick="startGame('intervals')">
+          <div class="mode-emoji">⚡</div>
+          <div class="mode-name">INTERWAŁY</div>
+          <div class="mode-desc">sprint 20s / odpoczynek 10s</div>
+          <div class="mode-trains">↳ VO2max</div>
+        </div>
+        <div class="mode-card" data-mode="tempo" onclick="alert('Tryb dostępny w kolejnej wersji 🚧')">
+          <div class="mode-emoji">🎯</div>
+          <div class="mode-name">TEMPO</div>
+          <div class="mode-desc">stały rytm · regularność</div>
+          <div class="mode-trains">↳ próg, tempo run</div>
+        </div>
+        <div class="mode-card" data-mode="longrun" onclick="alert('Tryb dostępny w kolejnej wersji 🚧')">
+          <div class="mode-emoji">🏔</div>
+          <div class="mode-name">DŁUGI</div>
+          <div class="mode-desc">5+ min · wytrwałość</div>
+          <div class="mode-trains">↳ long run</div>
+        </div>
+      </div>
+
+      <div class="section-card">
+        <div class="section-hdr">
+          <div class="section-icon">⚡</div>
+          <div class="section-title">Bonusy z twoich treningów</div>
         </div>
         <div id="bonuses-list">
           <div class="bonus-row"><div class="bonus-label"><span>📊</span><span>Ładowanie...</span></div></div>
         </div>
       </div>
+    </div>
 
-      <div class="bonuses-card">
-        <div class="bonuses-hdr">
-          <div class="bonuses-icon">🎯</div>
-          <div class="bonuses-title">Misje dzienne</div>
+    <!-- TAB: METRICS -->
+    <div class="tab-pane" id="tab-metrics">
+      <div class="section-card">
+        <div class="section-hdr">
+          <div class="section-icon">🧠</div>
+          <div class="section-title">Twój trening mentalny (7 dni)</div>
         </div>
-        <div id="missions-list">
-          <div class="mission-row"><div class="mission-info"><div class="mission-title">Ładowanie...</div></div></div>
+        <div class="metrics-row">
+          <div class="metric-cell">
+            <div class="metric-val" id="m-reaction">—</div>
+            <div class="metric-lbl">Reakcja<br>(ms)</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val" id="m-focus">—</div>
+            <div class="metric-lbl">Focus<br>(s)</div>
+          </div>
+          <div class="metric-cell">
+            <div class="metric-val" id="m-sessions">0</div>
+            <div class="metric-lbl">Sesje<br>tego tyg.</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--fg3);font-family:'DM Mono',monospace;line-height:1.5;margin-top:6px;letter-spacing:0.05em;">
+          <b style="color:var(--blue);">Reakcja</b> — średni czas reakcji na przeszkodę. Niższy = lepszy. <br>
+          <b style="color:var(--green);">Focus</b> — najdłuższa seria bez błędów.<br>
+          Te metryki realnie wpływają na wyniki w terenie i na zakrętach.
         </div>
       </div>
-    </div>
 
-    <!-- TAB: EQUIP -->
-    <div class="tab-pane" id="tab-equip">
-      <div class="equip-section-title">👟 Buty</div>
-      <div class="equip-grid" id="shoes-grid"></div>
-      <div class="equip-section-title">👕 Strój</div>
-      <div class="equip-grid" id="outfits-grid"></div>
-    </div>
-
-    <!-- TAB: BADGES -->
-    <div class="tab-pane" id="tab-badges">
-      <div class="bonuses-title" style="text-align:center;margin-bottom:10px;" id="badges-counter">0 / 15 odznak</div>
-      <div class="badges-grid" id="badges-grid"></div>
+      <div class="section-card">
+        <div class="section-hdr">
+          <div class="section-icon">📈</div>
+          <div class="section-title">Twoje rekordy</div>
+        </div>
+        <div id="records-list">
+          <div class="bonus-row"><div class="bonus-label"><span>🐢</span><span>Spokojny:</span></div><div class="bonus-value muted" id="best-calm">—</div></div>
+          <div class="bonus-row"><div class="bonus-label"><span>⚡</span><span>Interwały:</span></div><div class="bonus-value muted" id="best-intervals">—</div></div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB: RANK -->
     <div class="tab-pane" id="tab-rank">
-      <div class="bonuses-title" style="text-align:center;">Top 10 znajomych</div>
-      <div class="lb-card" id="lb-card">
-        <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>
+      <div class="modes-title">▸ Top 10 znajomych</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:center;">
+        <button class="tab" id="rank-calm-btn" onclick="loadLeaderboard('calm')" style="flex:1;max-width:120px;background:rgba(80,144,224,0.15);color:var(--calm);border-radius:8px;">🐢 Spokojny</button>
+        <button class="tab" id="rank-int-btn" onclick="loadLeaderboard('intervals')" style="flex:1;max-width:120px;background:rgba(224,80,80,0.15);color:var(--interval);border-radius:8px;">⚡ Interwały</button>
+      </div>
+      <div class="section-card" id="lb-card" style="padding:6px 12px;">
+        <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Wybierz tryb...</div>
       </div>
     </div>
-  </div>
 
-  <div class="play-bar">
-    <button class="btn-primary" onclick="startGame()">▶ GRAJ</button>
-    <div class="high-score">Twój rekord: <b id="high-score">0</b></div>
+    <div class="high-score">Najlepszy wynik łącznie: <b id="high-score">0</b></div>
   </div>
 </div>
 
 <!-- ═══════════════ TUTORIAL ═══════════════ -->
 <div class="tutorial" id="tutorial" style="display:none;">
   <div class="tut-card">
-    <div class="tut-title">JAK GRAĆ</div>
-    <div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap / Spacja</b> — skok (przytrzymaj — wyższy)</div></div>
-    <div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓ / strzałka</b> — slide (pod high obstacle)</div></div>
-    <div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik / Shift</b> — dash (przebij wszystko)</div></div>
-    <div class="tut-row"><div class="tut-icon">✨</div><div class="tut-text"><b>Perfect jump</b> — przeskocz tuż nad krawędzią dla bonusu</div></div>
-    <div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Power-upy</b> — zbieraj 🧲 🛡 🐢 ⚡ na trasie</div></div>
-    <button class="btn-primary" style="margin-top:18px;font-size:18px;padding:13px;" onclick="closeTutorial()">START</button>
+    <div class="tut-title" id="tut-title">JAK GRAĆ</div>
+    <div class="tut-sub" id="tut-sub">Tryb: spokojny</div>
+    <div id="tut-body"></div>
+    <button class="btn-primary" onclick="closeTutorial()">START</button>
   </div>
 </div>
 
@@ -271,17 +317,25 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
   <canvas id="game-canvas"></canvas>
   <div class="hud">
     <div class="hud-left">
+      <div class="hud-mode-label" id="hud-mode-label">SPOKOJNY</div>
       <div class="hud-score" id="hud-score">0</div>
       <div class="hud-multi" id="hud-multi">x1.0</div>
     </div>
     <div class="hud-right">
       <div class="hud-distance" id="hud-distance">0 m</div>
-      <div class="hud-coins" id="hud-coins">🪙 0</div>
       <div class="hud-speed" id="hud-speed">0 km/h</div>
       <div class="hud-lives" id="hud-lives">❤❤❤</div>
     </div>
   </div>
-  <div class="powerup-bar" id="powerup-bar"></div>
+  <div class="mode-target" id="mode-target" style="display:none;">
+    <span class="mt-icon" id="mt-icon">🎯</span>
+    <span id="mt-text">Cel: 90s</span>
+    <div class="mt-bar"><div class="mt-fill" id="mt-fill" style="width:0%"></div></div>
+  </div>
+  <div class="phase-banner" id="phase-banner" style="display:none;">
+    <div class="pb-label" id="pb-label">FAZA</div>
+    <div class="pb-text" id="pb-text">SPRINT</div>
+  </div>
   <div class="dash-meter" id="dash-meter">
     <span>DASH</span>
     <div class="dash-pip" id="dash-1"></div>
@@ -290,25 +344,38 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
   </div>
 </div>
 
-<!-- ═══════════════ GAME OVER ═══════════════ -->
+<!-- ═══════════════ END SCREEN ═══════════════ -->
 <div id="screen-end" class="screen hidden">
   <div class="end-card">
-    <div class="end-title">KONIEC</div>
-    <div class="end-sub" id="end-sub">Spróbuj jeszcze raz</div>
+    <div class="end-title" id="end-title">SESJA UKOŃCZONA</div>
+    <div class="end-mode-tag" id="end-mode-tag">🐢 SPOKOJNY</div>
     <div id="new-record-banner" class="new-record" style="display:none;">🔥 NOWY REKORD!</div>
-    <div id="new-badges-section" class="new-badges" style="display:none;">
-      <div class="new-badges-title">🏅 Zdobyte odznaki:</div>
-      <div class="new-badges-list" id="new-badges-list"></div>
-    </div>
     <div class="end-score-big" id="end-score">0</div>
     <div class="end-score-lbl">Punktów</div>
+
     <div class="end-stats">
       <div class="end-stat"><div class="end-stat-val" id="end-distance">0</div><div class="end-stat-lbl">Dystans (m)</div></div>
-      <div class="end-stat"><div class="end-stat-val" id="end-coins">0</div><div class="end-stat-lbl">Monet</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="end-perfects">0</div><div class="end-stat-lbl">Perfect</div></div>
       <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max combo</div></div>
     </div>
+
+    <!-- Mental metrics -->
+    <div class="mental-stats" id="mental-stats">
+      <div class="mental-title">🧠 Twoje metryki mentalne</div>
+      <div class="mental-row"><span class="ml">Średnia reakcja</span><span class="mv" id="ms-reaction">— ms</span></div>
+      <div class="mental-row"><span class="ml">Najdłuższy focus</span><span class="mv" id="ms-focus">— s</span></div>
+      <div class="mental-row" id="ms-extra-row" style="display:none;"><span class="ml" id="ms-extra-label">—</span><span class="mv" id="ms-extra">—</span></div>
+    </div>
+
+    <!-- Log to training prompt -->
+    <div class="log-prompt" id="log-prompt">
+      <div class="log-prompt-title">💪 Aktywacja mentalna ukończona</div>
+      <div class="log-prompt-desc">Dodaj jako warm-up w dzisiejszych logach treningowych?</div>
+      <button class="log-prompt-btn" id="log-btn" onclick="logAsTraining()">+ Dodaj jako warm-up mentalny</button>
+    </div>
+
     <div class="btn-row">
-      <button class="btn-restart" onclick="startGame()">▶ JESZCZE RAZ</button>
+      <button class="btn-restart" onclick="startGameAgain()">▶ JESZCZE RAZ</button>
       <button class="btn-home" onclick="goHome()">DOM</button>
     </div>
   </div>
@@ -329,21 +396,103 @@ const _sb = supabase.createClient(
 
 let _athleteId = null;
 let _athleteName = null;
-let _myFriends = [];
-
-// Bonusy z treningów (mapowanie)
 let _bonuses = {
   startMulti: 1.0,
   maxSpeed: 1.0,
   staminaScale: 1.0,
-  dashCount: 1
+  dashCount: 1,
+  startLives: 3
+};
+let _todayPlanned = null;  // typ dzisiejszego treningu z kalendarza
+
+// ═════════════════════════════════════════════════
+// MODE DEFINITIONS — silnik czyta to żeby skonfigurować rozgrywkę
+// ═════════════════════════════════════════════════
+const MODES = {
+  calm: {
+    id: 'calm',
+    name: 'SPOKOJNY',
+    emoji: '🐢',
+    color: '#5090e0',
+    trains: 'regeneracja, Z2',
+    description: 'Powolne tempo, długi dystans, focus na ominięciu wszystkich przeszkód.',
+    duration: 90,           // sekund
+    targetType: 'time',     // dotrwaj X sekund
+    target: 90,
+    speedScale: 0.7,        // 70% normalnej speed
+    speedRamp: 0.3,         // wolniejszy wzrost
+    obstacleFreq: 1.4,      // mniej przeszkód
+    coinFreq: 1.0,
+    powerups: false,        // bez power-upów
+    lives: 1,               // tylko 1 życie — focus
+    intervalCycles: 0,
+    targetTraining: 'Spokojny'
+  },
+  intervals: {
+    id: 'intervals',
+    name: 'INTERWAŁY',
+    emoji: '⚡',
+    color: '#e05050',
+    trains: 'VO2max, sprint',
+    description: 'Cykle: 20s sprint × 10s odpoczynek. Ukończ 4 cykle.',
+    duration: 120,          // 4 cykle × (20+10) = 120s
+    targetType: 'cycles',
+    target: 4,
+    intervalCycles: 4,
+    sprintLen: 20,
+    restLen: 10,
+    speedScale: 1.0,
+    speedRamp: 0,           // bez ramp — jedziemy interwałami
+    obstacleFreq: 1.0,
+    coinFreq: 1.2,
+    powerups: false,
+    lives: 3,
+    targetTraining: 'Interwały'
+  },
+  // Tryby tempo i longrun są zaplanowane na sesję 2/4
+  tempo: {
+    id: 'tempo',
+    name: 'TEMPO',
+    emoji: '🎯',
+    color: '#a868e0',
+    trains: 'próg, tempo run',
+    description: 'Kliknięcia w stałym rytmie przez 60s. Punkty za consistency.',
+    duration: 60,
+    targetType: 'consistency',
+    target: 80,             // % consistency
+    speedScale: 0.9,
+    speedRamp: 0.5,
+    obstacleFreq: 1.0,
+    coinFreq: 0.8,
+    powerups: false,
+    lives: 3,
+    targetTraining: 'Tempo'
+  },
+  longrun: {
+    id: 'longrun',
+    name: 'DŁUGI BIEG',
+    emoji: '🏔',
+    color: '#3db870',
+    trains: 'long run, wytrwałość',
+    description: '5+ minut wytrzymałości. Power-upy dla przetrwania.',
+    duration: 300,
+    targetType: 'time',
+    target: 300,
+    speedScale: 1.0,
+    speedRamp: 1.0,
+    obstacleFreq: 1.0,
+    coinFreq: 1.0,
+    powerups: true,
+    lives: 5,
+    targetTraining: 'Długi'
+  }
 };
 
-// Stats — z localStorage (skill-based) + DB (training)
+// ═════════════════════════════════════════════════
+// LOCAL STATS
+// ═════════════════════════════════════════════════
 function loadLocalStats() {
-  try {
-    return JSON.parse(localStorage.getItem('biegamy_game_stats') || '{}');
-  } catch(e) { return {}; }
+  try { return JSON.parse(localStorage.getItem('biegamy_game_stats') || '{}'); } catch(e) { return {}; }
 }
 function saveLocalStats(s) {
   try { localStorage.setItem('biegamy_game_stats', JSON.stringify(s)); } catch(e) {}
@@ -362,226 +511,11 @@ function incStat(key, by) {
 }
 
 // ═════════════════════════════════════════════════
-// EQUIPMENT
-// ═════════════════════════════════════════════════
-const SHOES = [
-  { id: 'standard', name: 'Standard', emoji: '👟', desc: 'Bez bonusów', unlock: () => true, effect: { speed: 1.0, control: 1.0, dash: 0, lives: 0 } },
-  { id: 'speed',    name: 'Speed',    emoji: '⚡', desc: '+15% max speed, -10% control', unlock: () => getStat('best_score', 0) >= 500, effect: { speed: 1.15, control: 0.9, dash: 0, lives: 0 } },
-  { id: 'stability',name: 'Stability',emoji: '🛡', desc: '+1 życie na start', unlock: () => getStat('best_score', 0) >= 1500, effect: { speed: 1.0, control: 1.0, dash: 0, lives: 1 } },
-  { id: 'dash',     name: 'Dash',     emoji: '💨', desc: '+1 dash na start', unlock: () => getStat('total_perfect', 0) >= 30, effect: { speed: 1.0, control: 1.0, dash: 1, lives: 0 } },
-];
-
-const OUTFITS = [
-  { id: 'default', name: 'Default', emoji: '🏃', desc: 'Bez bonusów', unlock: () => true, effect: { comboBoost: 1.0, scoreBoost: 1.0 } },
-  { id: 'neon',    name: 'Neon',    emoji: '🌟', desc: 'Combo szybciej rośnie', unlock: () => getStat('total_runs', 0) >= 10, effect: { comboBoost: 1.5, scoreBoost: 1.0 } },
-  { id: 'shadow',  name: 'Shadow',  emoji: '🥷', desc: '+20% punktów', unlock: () => getStat('best_score', 0) >= 3000, effect: { comboBoost: 1.0, scoreBoost: 1.2 } },
-  { id: 'gold',    name: 'Gold',    emoji: '👑', desc: 'Magnet x2 dłużej', unlock: () => getStat('total_coins', 0) >= 500, effect: { comboBoost: 1.0, scoreBoost: 1.0, magnetBoost: 2.0 } },
-];
-
-function getEquippedShoe() {
-  const id = localStorage.getItem('biegamy_game_shoe') || 'standard';
-  return SHOES.find(s => s.id === id) || SHOES[0];
-}
-function getEquippedOutfit() {
-  const id = localStorage.getItem('biegamy_game_outfit') || 'default';
-  return OUTFITS.find(o => o.id === id) || OUTFITS[0];
-}
-function setEquipped(type, id) {
-  if (type === 'shoe') localStorage.setItem('biegamy_game_shoe', id);
-  if (type === 'outfit') localStorage.setItem('biegamy_game_outfit', id);
-  renderEquipment();
-}
-
-function renderEquipment() {
-  const eqShoe = getEquippedShoe();
-  const eqOutfit = getEquippedOutfit();
-
-  document.getElementById('shoes-grid').innerHTML = SHOES.map(s => {
-    const unlocked = s.unlock();
-    const isEq = s.id === eqShoe.id;
-    return `<div class="equip-card ${isEq ? 'equipped' : ''} ${!unlocked ? 'locked' : ''}" data-type="shoe" data-id="${s.id}">
-      <div class="equip-emoji">${s.emoji}</div>
-      <div class="equip-name">${s.name}</div>
-      <div class="equip-desc">${s.desc}</div>
-      ${isEq ? '<div class="equip-status">UŻYWANE</div>' : ''}
-      ${!unlocked && !isEq ? '<div class="equip-status locked">🔒</div>' : ''}
-    </div>`;
-  }).join('');
-
-  document.getElementById('outfits-grid').innerHTML = OUTFITS.map(o => {
-    const unlocked = o.unlock();
-    const isEq = o.id === eqOutfit.id;
-    return `<div class="equip-card ${isEq ? 'equipped' : ''} ${!unlocked ? 'locked' : ''}" data-type="outfit" data-id="${o.id}">
-      <div class="equip-emoji">${o.emoji}</div>
-      <div class="equip-name">${o.name}</div>
-      <div class="equip-desc">${o.desc}</div>
-      ${isEq ? '<div class="equip-status">UŻYWANE</div>' : ''}
-      ${!unlocked && !isEq ? '<div class="equip-status locked">🔒</div>' : ''}
-    </div>`;
-  }).join('');
-
-  // Click handlers
-  document.querySelectorAll('#shoes-grid .equip-card, #outfits-grid .equip-card').forEach(card => {
-    card.addEventListener('click', function() {
-      if (this.classList.contains('locked') && !this.classList.contains('equipped')) {
-        showToast('🔒 Zablokowane');
-        return;
-      }
-      setEquipped(this.dataset.type, this.dataset.id);
-      showToast('✓ Wybrano');
-    });
-  });
-}
-
-// ═════════════════════════════════════════════════
-// BADGES (15 game badges)
-// ═════════════════════════════════════════════════
-const BADGES = [
-  // Skill-based
-  { id: 'first_run', name: 'Pierwszy bieg', emoji: '🏁', tier: 'bronze', cond: () => getStat('total_runs', 0) >= 1 },
-  { id: 'sprinter_500', name: '500m sprint', emoji: '🏃', tier: 'bronze', cond: () => getStat('best_distance', 0) >= 500 },
-  { id: 'kilometer', name: 'Kilometr', emoji: '🥉', tier: 'silver', cond: () => getStat('best_distance', 0) >= 1000 },
-  { id: 'long_runner', name: '3km master', emoji: '🥇', tier: 'gold', cond: () => getStat('best_distance', 0) >= 3000 },
-  { id: 'perfect_10', name: '10 perfectów', emoji: '✨', tier: 'bronze', cond: () => getStat('total_perfect', 0) >= 10 },
-  { id: 'perfect_100', name: '100 perfectów', emoji: '💎', tier: 'silver', cond: () => getStat('total_perfect', 0) >= 100 },
-  { id: 'combo_x3', name: 'x3 combo', emoji: '🔥', tier: 'bronze', cond: () => getStat('best_combo', 1) >= 3 },
-  { id: 'combo_x5', name: 'x5 combo', emoji: '💥', tier: 'gold', cond: () => getStat('best_combo', 1) >= 5 },
-  { id: 'coin_50', name: '50 monet w runie', emoji: '🪙', tier: 'silver', cond: () => getStat('best_coins_run', 0) >= 50 },
-  { id: 'rich', name: '1000 monet razem', emoji: '💰', tier: 'gold', cond: () => getStat('total_coins', 0) >= 1000 },
-  // Hybrid (game + training)
-  { id: 'training_streak_game', name: 'Forma + skill', emoji: '🎯', tier: 'silver', cond: () => _bonuses.startMulti >= 1.5 && getStat('best_score', 0) >= 1000 },
-  { id: 'speed_runner', name: 'Szybki biegacz', emoji: '⚡', tier: 'gold', cond: () => _bonuses.maxSpeed >= 1.2 && getStat('best_distance', 0) >= 2000 },
-  { id: 'endurance_pro', name: 'Wytrzymały', emoji: '🏔', tier: 'gold', cond: () => _bonuses.staminaScale <= 0.85 && getStat('best_distance', 0) >= 2500 },
-  { id: 'interval_master', name: 'Mistrz interwałów', emoji: '💨', tier: 'silver', cond: () => _bonuses.dashCount >= 3 && getStat('best_score', 0) >= 1500 },
-  { id: 'all_in', name: 'Pełna forma', emoji: '🏆', tier: 'platinum', cond: () => _bonuses.startMulti >= 2.0 && _bonuses.maxSpeed >= 1.3 && _bonuses.dashCount >= 3 },
-];
-
-function getUnlockedBadges() {
-  try {
-    return JSON.parse(localStorage.getItem('biegamy_game_badges') || '[]');
-  } catch(e) { return []; }
-}
-function isBadgeUnlocked(id) {
-  return getUnlockedBadges().includes(id);
-}
-function unlockBadge(id) {
-  const list = getUnlockedBadges();
-  if (list.includes(id)) return false;
-  list.push(id);
-  localStorage.setItem('biegamy_game_badges', JSON.stringify(list));
-  return true;
-}
-function checkBadges() {
-  const newOnes = [];
-  for (const b of BADGES) {
-    if (!isBadgeUnlocked(b.id) && b.cond()) {
-      unlockBadge(b.id);
-      newOnes.push(b);
-    }
-  }
-  return newOnes;
-}
-
-function renderBadges() {
-  const unlocked = getUnlockedBadges();
-  document.getElementById('badges-counter').textContent = `${unlocked.length} / ${BADGES.length} odznak`;
-  document.getElementById('badges-grid').innerHTML = BADGES.map(b => {
-    const isUnlocked = unlocked.includes(b.id);
-    const tierEmoji = b.tier === 'platinum' ? '★★★' : b.tier === 'gold' ? '★★' : b.tier === 'silver' ? '★' : '';
-    return `<div class="badge-item ${isUnlocked ? 'unlocked' : ''}">
-      <div class="badge-tier">${tierEmoji}</div>
-      <div class="badge-emoji">${b.emoji}</div>
-      <div class="badge-name">${b.name}</div>
-    </div>`;
-  }).join('');
-}
-
-// ═════════════════════════════════════════════════
-// DAILY MISSIONS
-// ═════════════════════════════════════════════════
-function getTodayKey() {
-  const d = new Date();
-  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-}
-
-const MISSION_POOL = [
-  { id: 'm_coins_30', icon: '🪙', title: 'Zbierz 30 monet', target: 30, key: 'coins', reward: 50 },
-  { id: 'm_coins_50', icon: '🪙', title: 'Zbierz 50 monet', target: 50, key: 'coins', reward: 80 },
-  { id: 'm_dist_500', icon: '🏃', title: 'Przebiegnij 500m', target: 500, key: 'distance', reward: 50 },
-  { id: 'm_dist_1000', icon: '🏔', title: 'Przebiegnij 1000m', target: 1000, key: 'distance', reward: 100 },
-  { id: 'm_combo_3', icon: '🔥', title: 'Osiągnij combo x3', target: 3, key: 'maxCombo', reward: 60 },
-  { id: 'm_combo_5', icon: '💥', title: 'Osiągnij combo x5', target: 5, key: 'maxCombo', reward: 150 },
-  { id: 'm_perfect_5', icon: '✨', title: '5 perfect jumpów', target: 5, key: 'perfects', reward: 70 },
-  { id: 'm_score_500', icon: '🎯', title: 'Zdobądź 500 punktów', target: 500, key: 'score', reward: 80 },
-];
-
-function getDailyMissions() {
-  const today = getTodayKey();
-  let saved;
-  try { saved = JSON.parse(localStorage.getItem('biegamy_game_missions') || '{}'); } catch(e) { saved = {}; }
-
-  if (saved.day !== today) {
-    // Wylosuj 3 nowe misje
-    const shuffled = [...MISSION_POOL].sort(() => Math.random() - 0.5);
-    saved = { day: today, missions: shuffled.slice(0, 3).map(m => ({ ...m, progress: 0, claimed: false })) };
-    localStorage.setItem('biegamy_game_missions', JSON.stringify(saved));
-  }
-  return saved.missions;
-}
-
-function updateMissions(runStats) {
-  const missions = getDailyMissions();
-  const today = getTodayKey();
-  let any = false;
-  missions.forEach(m => {
-    if (m.claimed) return;
-    const val = runStats[m.key] || 0;
-    if (m.key === 'maxCombo' || m.key === 'score') {
-      // Take max
-      if (val > m.progress) { m.progress = Math.min(val, m.target); any = true; }
-    } else {
-      m.progress = Math.min(m.progress + val, m.target);
-      if (val > 0) any = true;
-    }
-    if (m.progress >= m.target && !m.claimed) {
-      m.claimed = true;
-      incStat('total_coins', m.reward);
-      showToast('🎯 ' + m.title + ' +' + m.reward + ' 🪙');
-    }
-  });
-  if (any) {
-    localStorage.setItem('biegamy_game_missions', JSON.stringify({ day: today, missions }));
-  }
-}
-
-function renderMissions() {
-  const missions = getDailyMissions();
-  document.getElementById('missions-list').innerHTML = missions.map(m => {
-    const pct = Math.min(100, (m.progress / m.target) * 100);
-    const done = m.progress >= m.target;
-    return `<div class="mission-row">
-      <div class="mission-icon">${m.icon}</div>
-      <div class="mission-info">
-        <div class="mission-title">${done ? '✓ ' : ''}${m.title}</div>
-        <div class="mission-progress-bar"><div class="mission-progress-fill ${done ? 'done' : ''}" style="width:${pct}%"></div></div>
-      </div>
-      <div class="mission-meta">
-        ${m.progress}/${m.target}
-        <span class="reward">+${m.reward} 🪙</span>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ═════════════════════════════════════════════════
-// USER INIT + BONUSES
+// USER INIT
 // ═════════════════════════════════════════════════
 async function initUser() {
   const { data: { session } } = await _sb.auth.getSession();
-  if (!session) {
-    location.href = 'index.html';
-    return;
-  }
+  if (!session) { location.href = 'index.html'; return; }
   const { data: ath } = await _sb.from('athletes')
     .select('id, full_name')
     .eq('user_id', session.user.id)
@@ -590,32 +524,98 @@ async function initUser() {
   _athleteId = ath.id;
   _athleteName = ath.full_name || 'Biegacz';
 
+  await loadTodayPlanned();
   await loadBonuses();
   await loadHighScore();
-  renderEquipment();
-  renderBadges();
-  renderMissions();
-  document.getElementById('coins-total').textContent = getStat('total_coins', 0);
+  await loadMentalMetrics();
+  showSuggestedMode();
 }
 
+// ═════════════════════════════════════════════════
+// LOAD TODAY'S PLANNED TRAINING (z trainings table — kalendarz)
+// ═════════════════════════════════════════════════
+async function loadTodayPlanned() {
+  if (!_athleteId) return;
+  const today = new Date().toISOString().slice(0, 10);
+  try {
+    const { data } = await _sb.from('trainings')
+      .select('type, description, distance_km')
+      .eq('athlete_id', _athleteId)
+      .eq('date', today)
+      .maybeSingle();
+    if (data) _todayPlanned = data;
+  } catch(e) { console.warn('No planned training:', e); }
+}
+
+// ═════════════════════════════════════════════════
+// SUGGESTION ENGINE
+// ═════════════════════════════════════════════════
+function suggestModeForToday() {
+  // Jeśli jest zaplanowany trening — dopasuj
+  if (_todayPlanned && _todayPlanned.type) {
+    const t = (_todayPlanned.type || '').toLowerCase();
+    if (t.includes('interwał') || t.includes('interval')) return 'intervals';
+    if (t.includes('tempo')) return 'tempo';
+    if (t.includes('długi') || t.includes('dlugi') || t.includes('long')) return 'longrun';
+    if (t.includes('spokojny') || t.includes('regen') || t.includes('z2')) return 'calm';
+  }
+  // Fallback: jeśli ostatnio dużo grałeś calm, zasugeruj coś innego
+  return null;
+}
+
+function showSuggestedMode() {
+  const suggested = suggestModeForToday();
+  const banner = document.getElementById('suggested-banner');
+  if (!suggested) {
+    banner.style.display = 'none';
+    return;
+  }
+  const mode = MODES[suggested];
+  banner.style.display = 'flex';
+  document.getElementById('sb-icon').textContent = mode.emoji;
+  document.getElementById('sb-title').textContent = mode.name + ' — pasuje do twojego treningu';
+  document.getElementById('sb-desc').textContent = _todayPlanned 
+    ? `Dziś masz: ${_todayPlanned.type}. Zagraj jako warm-up mentalny.`
+    : `Tryb idealny dla dzisiejszego planu.`;
+  banner.onclick = () => startGame(suggested);
+  banner.style.cursor = 'pointer';
+
+  // Highlight w mode picker
+  const card = document.querySelector('.mode-card[data-mode="' + suggested + '"]');
+  if (card) {
+    card.classList.add('suggested');
+    if (!card.querySelector('.mode-suggested-tag')) {
+      const tag = document.createElement('div');
+      tag.className = 'mode-suggested-tag';
+      tag.textContent = 'DZIŚ';
+      card.appendChild(tag);
+    }
+  }
+}
+
+// ═════════════════════════════════════════════════
+// BONUSY Z TRENINGÓW
+// ═════════════════════════════════════════════════
 async function loadBonuses() {
   if (!_athleteId) return;
   const wS = new Date(); wS.setDate(wS.getDate() - 7);
   const { data: weekLogs } = await _sb.from('training_logs')
-    .select('distance_km, training_type, pace')
+    .select('distance_km, training_type, pace, logged_at')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', wS.toISOString());
 
-  const weekKm = (weekLogs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
-  const intervalCount = (weekLogs || []).filter(l => l.training_type === 'Interwały').length;
+  const realLogs = (weekLogs || []).filter(l => !(l.training_type || '').startsWith('__badge__') && l.training_type !== 'Warm-up mentalny');
+  const weekKm = realLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  const intervalCount = realLogs.filter(l => (l.training_type || '').toLowerCase().includes('interw')).length;
 
+  // Streak
   const m30 = new Date(); m30.setDate(m30.getDate() - 30);
   const { data: monthLogs } = await _sb.from('training_logs')
     .select('logged_at, training_type')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', m30.toISOString());
-  const realLogs = (monthLogs || []).filter(l => !(l.training_type || '').startsWith('__badge__'));
-  const days = [...new Set(realLogs.map(l => l.logged_at.slice(0, 10)))].sort();
+  const realMonthLogs = (monthLogs || []).filter(l => !(l.training_type || '').startsWith('__badge__') && l.training_type !== 'Warm-up mentalny');
+  const days = [...new Set(realMonthLogs.map(l => l.logged_at.slice(0, 10)))].sort();
   let streak = 0, cur = 1;
   for (let i = 1; i < days.length; i++) {
     const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
@@ -625,7 +625,8 @@ async function loadBonuses() {
   if (days.length === 1) streak = 1;
   if (days.length > 0 && cur > streak) streak = cur;
 
-  const paceLogs = (weekLogs || []).filter(l => l.pace && l.pace.includes(':'));
+  // Tempo
+  const paceLogs = realLogs.filter(l => l.pace && l.pace.includes(':'));
   let avgPaceSec = null;
   if (paceLogs.length) {
     const total = paceLogs.reduce((s, l) => {
@@ -648,20 +649,6 @@ async function loadBonuses() {
   else if (streak >= 1) _bonuses.startMulti = 1.2;
   _bonuses.dashCount = Math.min(3, 1 + intervalCount);
 
-  // Buty modyfikują finalne wartości
-  const shoe = getEquippedShoe();
-  _bonuses.maxSpeed *= shoe.effect.speed;
-  _bonuses.dashCount += shoe.effect.dash;
-  _bonuses.startLives = 3 + shoe.effect.lives;
-  _bonuses.controlScale = shoe.effect.control;
-
-  // Outfit
-  const outfit = getEquippedOutfit();
-  _bonuses.comboBoost = outfit.effect.comboBoost;
-  _bonuses.scoreBoost = outfit.effect.scoreBoost;
-  _bonuses.magnetBoost = outfit.effect.magnetBoost || 1.0;
-
-  // Render UI
   const html = [
     { icon: '🏃', label: 'Tygodniowe km', val: weekKm.toFixed(1) + ' km',
       bonus: _bonuses.staminaScale < 1.0 ? '↓ stamina' : '—',
@@ -677,30 +664,74 @@ async function loadBonuses() {
       bonus: _bonuses.dashCount + 'x dash',
       cls: _bonuses.dashCount > 1 ? 'green' : 'muted' }
   ];
-
   document.getElementById('bonuses-list').innerHTML = html.map(b =>
     '<div class="bonus-row">'
     + '<div class="bonus-label"><span>' + b.icon + '</span>'
     + '<span>' + b.label + ': <b>' + b.val + '</b></span></div>'
-    + '<div class="bonus-value ' + b.cls + '">' + b.bonus + '</div>'
-    + '</div>'
+    + '<div class="bonus-value ' + b.cls + '">' + b.bonus + '</div></div>'
   ).join('');
 }
 
 async function loadHighScore() {
   if (!_athleteId) return;
   const { data } = await _sb.from('game_scores')
-    .select('score')
+    .select('score, mode')
     .eq('athlete_id', _athleteId)
     .order('score', { ascending: false })
-    .limit(1);
-  const hi = data?.[0]?.score || 0;
-  document.getElementById('high-score').textContent = hi;
-  if (hi > getStat('best_score', 0)) setStat('best_score', hi);
+    .limit(20);
+  const all = data || [];
+  const top = all[0]?.score || 0;
+  document.getElementById('high-score').textContent = top;
+  if (top > getStat('best_score', 0)) setStat('best_score', top);
+
+  // Per-mode bests
+  const calmBest = all.filter(s => s.mode === 'calm')[0]?.score || 0;
+  const intBest = all.filter(s => s.mode === 'intervals')[0]?.score || 0;
+  document.getElementById('best-calm').textContent = calmBest > 0 ? calmBest : '—';
+  document.getElementById('best-calm').className = calmBest > 0 ? 'bonus-value green' : 'bonus-value muted';
+  document.getElementById('best-intervals').textContent = intBest > 0 ? intBest : '—';
+  document.getElementById('best-intervals').className = intBest > 0 ? 'bonus-value green' : 'bonus-value muted';
 }
 
-async function loadLeaderboard() {
+// ═════════════════════════════════════════════════
+// MENTAL METRICS (last 7 days)
+// ═════════════════════════════════════════════════
+async function loadMentalMetrics() {
   if (!_athleteId) return;
+  const w7 = new Date(); w7.setDate(w7.getDate() - 7);
+  const { data } = await _sb.from('game_scores')
+    .select('reaction_avg_ms, focus_duration_sec, created_at')
+    .eq('athlete_id', _athleteId)
+    .gte('created_at', w7.toISOString());
+
+  const scores = data || [];
+  const reactScores = scores.filter(s => s.reaction_avg_ms && s.reaction_avg_ms > 0);
+  const focusScores = scores.filter(s => s.focus_duration_sec && s.focus_duration_sec > 0);
+
+  const avgReaction = reactScores.length 
+    ? Math.round(reactScores.reduce((s, x) => s + x.reaction_avg_ms, 0) / reactScores.length)
+    : null;
+  const maxFocus = focusScores.length 
+    ? Math.max(...focusScores.map(x => x.focus_duration_sec))
+    : null;
+
+  document.getElementById('m-reaction').textContent = avgReaction || '—';
+  document.getElementById('m-focus').textContent = maxFocus || '—';
+  document.getElementById('m-sessions').textContent = scores.length;
+}
+
+// ═════════════════════════════════════════════════
+// LEADERBOARD
+// ═════════════════════════════════════════════════
+async function loadLeaderboard(mode) {
+  if (!_athleteId) return;
+  // Highlight active button
+  document.getElementById('rank-calm-btn').style.opacity = mode === 'calm' ? '1' : '0.5';
+  document.getElementById('rank-int-btn').style.opacity = mode === 'intervals' ? '1' : '0.5';
+
+  const card = document.getElementById('lb-card');
+  card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>';
+
   const friendsRes = await _sb.from('friendships')
     .select('requester_id, addressee_id')
     .eq('status', 'accepted')
@@ -713,6 +744,7 @@ async function loadLeaderboard() {
   const ids = [...friendIds];
   const { data: scores } = await _sb.from('game_scores')
     .select('athlete_id, score, athletes(full_name)')
+    .eq('mode', mode)
     .in('athlete_id', ids)
     .order('score', { ascending: false })
     .limit(50);
@@ -724,19 +756,18 @@ async function loadLeaderboard() {
     return true;
   }).slice(0, 10);
 
-  const card = document.getElementById('lb-card');
   if (!top.length) {
-    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Brak wyników. Bądź pierwszy!</div>';
+    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Brak wyników w tym trybie. Bądź pierwszy!</div>';
     return;
   }
   card.innerHTML = top.map((s, i) => {
     const isMe = s.athlete_id === _athleteId;
     const name = s.athletes?.full_name || 'Biegacz';
-    const rankCls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
-    return `<div class="lb-row${isMe ? ' me' : ''}">
-      <div class="lb-rank ${rankCls}">${i+1}</div>
-      <div class="lb-name">${name}${isMe ? ' (Ty)' : ''}</div>
-      <div class="lb-score">${s.score}</div>
+    const rankStyle = i === 0 ? 'color:var(--gold);' : i === 1 ? 'color:#cbd5e1;' : i === 2 ? 'color:#cd7f32;' : 'color:var(--muted);';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);${isMe ? 'background:rgba(232,86,30,0.08);margin:0 -8px;padding:8px;border-radius:8px;border-bottom:none;' : ''}">
+      <div style="font-family:Bebas Neue,sans-serif;font-size:20px;width:24px;text-align:center;${rankStyle}">${i+1}</div>
+      <div style="flex:1;font-size:13px;color:var(--fg);">${name}${isMe ? ' (Ty)' : ''}</div>
+      <div style="font-family:DM Mono,monospace;font-size:13px;color:var(--accent);font-weight:600;">${s.score}</div>
     </div>`;
   }).join('');
 }
@@ -747,17 +778,14 @@ async function loadLeaderboard() {
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  if (name === 'rank') loadLeaderboard();
-  if (name === 'badges') renderBadges();
-  if (name === 'equip') renderEquipment();
+  if (name === 'metrics') loadMentalMetrics();
 }
 
 // ═════════════════════════════════════════════════
-// GAME ENGINE — Canvas, input, update
+// CANVAS ENGINE — adaptuje się do trybu
 // ═════════════════════════════════════════════════
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
-
 let W, H, GROUND_Y, dpr;
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -772,23 +800,34 @@ resize();
 
 let game = null;
 let shakeAmount = 0;
+let _currentMode = null;
+let _lastPlayedMode = null;
 
-function newGame() {
+function newGame(mode) {
+  const M = MODES[mode];
   return {
+    mode: mode,
+    config: M,
     running: false,
     over: false,
-    paused: false,
+    finished: false,         // true jeśli ukończył sesję (nie zginął)
     t: 0,
+    elapsed: 0,              // sekund od startu
     distance: 0,
     score: 0,
     multi: _bonuses.startMulti,
     maxMulti: _bonuses.startMulti,
     coins: 0,
     perfects: 0,
-    speed: 4 * dpr,
-    speedScale: _bonuses.maxSpeed,
-    lives: _bonuses.startLives || 3,
+
+    // Lives — z trybu
+    lives: M.lives,
     invuln: 0,
+
+    // Speed
+    speed: 4 * dpr * M.speedScale,
+    speedScale: M.speedScale * _bonuses.maxSpeed,
+
     // Player
     px: W * 0.18,
     py: GROUND_Y,
@@ -799,24 +838,39 @@ function newGame() {
     sliding: 0,
     dashing: 0,
     dashLeft: _bonuses.dashCount,
-    // Spawning
-    nextObstacleIn: 90,
-    nextCoinIn: 70,
-    nextPowerupIn: 600,  // ~10s na początku
+
+    // Spawn
+    nextObstacleIn: 90 * (M.obstacleFreq || 1),
+    nextCoinIn: 60 * (M.coinFreq || 1),
     obstacles: [],
     coinsArr: [],
-    powerups: [],
     particles: [],
     popups: [],
     trail: [],
-    // Combo / scoring
+
     perfectStreak: 0,
-    // Power-ups active
-    activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0 },
-    // Background parallax
+
+    // Background
     bgFar: 0,
     bgMid: 0,
     bgNear: 0,
+
+    // INTERVAL MODE state
+    intervalPhase: M.intervalCycles > 0 ? 'sprint' : null,  // 'sprint' | 'rest'
+    intervalCycle: 0,         // current cycle number
+    intervalPhaseTimer: 0,    // sekund w aktualnej fazie
+
+    // METRYKI MENTALNE
+    reactionTimes: [],        // [ms, ms, ...] — czas reakcji na każdą przeszkodę
+    focusStartT: 0,           // moment od którego nie było kolizji
+    bestFocusDuration: 0,     // najdłuższa seria w tej grze
+    obstacleAppearTimes: new Map(),  // obstacle.id → t kiedy pojawiła się w "danger zone"
+
+    // Phase banner timer
+    phaseBannerTimer: 0,
+    phaseBannerText: '',
+    phaseBannerLabel: '',
+    phaseBannerType: ''
   };
 }
 
@@ -826,6 +880,29 @@ function newGame() {
 let keys = {};
 let lastTap = 0;
 let touchStartY = null;
+let pendingReactionStart = null;  // dla pomiaru reaction time
+
+function recordReaction() {
+  // Gdy gracz reaguje (skok/slide/dash), zapisz reakcję na NAJBLIŻSZĄ nadchodzącą przeszkodę
+  if (!game) return;
+  const dangerZone = W * 0.5;  // środek ekranu
+  let nearestObs = null;
+  let minDx = Infinity;
+  for (const o of game.obstacles) {
+    if (o.passed || o.reactionLogged) continue;
+    if (o.x > game.px && o.x - game.px < dangerZone) {
+      const dx = o.x - game.px;
+      if (dx < minDx) { minDx = dx; nearestObs = o; }
+    }
+  }
+  if (nearestObs && nearestObs.appearedAt) {
+    const reactionMs = (performance.now() - nearestObs.appearedAt);
+    if (reactionMs < 2000 && reactionMs > 0) {
+      game.reactionTimes.push(Math.round(reactionMs));
+      nearestObs.reactionLogged = true;
+    }
+  }
+}
 
 function onTapDown(e) {
   if (e.cancelable) e.preventDefault();
@@ -833,21 +910,18 @@ function onTapDown(e) {
   const now = performance.now();
   if (now - lastTap < 280) {
     tryDash();
+    recordReaction();
     lastTap = 0;
     return;
   }
   lastTap = now;
-
-  if (game.sliding > 0) {
-    // Anuluj slide → jump
-    game.sliding = 0;
-  }
-
+  if (game.sliding > 0) game.sliding = 0;
   if (game.onGround) {
     game.vy = -16 * dpr;
     game.onGround = false;
     game.canDoubleJump = true;
     game.jumpHold = 1;
+    recordReaction();
   } else if (game.canDoubleJump) {
     game.vy = -13 * dpr;
     game.canDoubleJump = false;
@@ -858,18 +932,16 @@ function onTapUp() {
   if (!game) return;
   game.jumpHold = 0;
 }
-
 function trySlide() {
   if (!game || !game.running || game.sliding > 0) return;
   if (!game.onGround) {
-    // W powietrzu — szybko spadnij
     game.vy = 14 * dpr;
     return;
   }
-  game.sliding = 30;  // klatki
+  game.sliding = 30;
   spawnParticles(game.px, GROUND_Y, '#888', 8);
+  recordReaction();
 }
-
 function tryDash() {
   if (!game || !game.running) return;
   if (game.dashing > 0 || game.dashLeft <= 0) return;
@@ -881,32 +953,21 @@ function tryDash() {
   updateDashUI();
 }
 
-// Touch
 canvas.addEventListener('touchstart', function(e) {
   if (e.cancelable) e.preventDefault();
   if (e.touches.length === 1) touchStartY = e.touches[0].clientY;
   onTapDown(e);
 }, { passive: false });
-
 canvas.addEventListener('touchmove', function(e) {
   if (e.cancelable) e.preventDefault();
   if (touchStartY !== null && e.touches.length === 1) {
     const dy = e.touches[0].clientY - touchStartY;
-    if (dy > 40) {
-      trySlide();
-      touchStartY = null;
-    }
+    if (dy > 40) { trySlide(); touchStartY = null; }
   }
 }, { passive: false });
-
-canvas.addEventListener('touchend', function(e) {
-  touchStartY = null;
-  onTapUp();
-});
-
+canvas.addEventListener('touchend', function() { touchStartY = null; onTapUp(); });
 canvas.addEventListener('mousedown', onTapDown);
 canvas.addEventListener('mouseup', onTapUp);
-
 window.addEventListener('keydown', e => {
   if (!game || !game.running) return;
   if (e.code === 'Space' || e.code === 'ArrowUp') {
@@ -914,14 +975,8 @@ window.addEventListener('keydown', e => {
     keys[e.code] = true;
     e.preventDefault();
   }
-  if (e.code === 'ArrowDown') {
-    trySlide();
-    e.preventDefault();
-  }
-  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-    tryDash();
-    e.preventDefault();
-  }
+  if (e.code === 'ArrowDown') { trySlide(); e.preventDefault(); }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') { tryDash(); e.preventDefault(); }
 });
 window.addEventListener('keyup', e => {
   keys[e.code] = false;
@@ -937,64 +992,36 @@ function spawnObstacle() {
     ? types[1 + Math.floor(Math.random()*2)]
     : types[Math.floor(Math.random()*3)];
   game.obstacles.push({
+    id: game.t + '_' + Math.random(),
     type,
     x: W + 50 * dpr,
     w: type === 'gap' ? (60 + Math.random() * 40) * dpr : 30 * dpr,
     h: type === 'high' ? 40 * dpr : 32 * dpr,
     passed: false,
-    nearMissed: false
+    nearMissed: false,
+    appearedAt: performance.now(),  // do pomiaru reaction time
+    reactionLogged: false
   });
 }
-
 function spawnCoinPattern() {
-  // Wzór: pojedynczo, łuk, linia
   const r = Math.random();
   const yBase = GROUND_Y - (50 + Math.random() * 80) * dpr;
   if (r < 0.4) {
-    // Pojedyncza
-    game.coinsArr.push({
-      x: W + 30 * dpr, y: yBase, r: 11 * dpr,
-      collected: false, bob: Math.random() * Math.PI * 2
-    });
+    game.coinsArr.push({ x: W + 30 * dpr, y: yBase, r: 11 * dpr, collected: false, bob: Math.random() * Math.PI * 2 });
   } else if (r < 0.75) {
-    // Łuk (3-5 monet w łuku nad przeszkodą)
     const count = 3 + Math.floor(Math.random() * 3);
-    const centerX = W + 80 * dpr;
-    const peakY = GROUND_Y - 130 * dpr;
     for (let i = 0; i < count; i++) {
-      const t = i / (count - 1);
-      const x = centerX + (i - (count-1)/2) * 30 * dpr;
+      const t = i / Math.max(1, count - 1);
+      const x = W + 60 * dpr + (i - (count-1)/2) * 30 * dpr;
       const y = GROUND_Y - 60 * dpr - Math.sin(t * Math.PI) * 70 * dpr;
-      game.coinsArr.push({
-        x, y, r: 11 * dpr,
-        collected: false, bob: Math.random() * Math.PI * 2
-      });
+      game.coinsArr.push({ x, y, r: 11 * dpr, collected: false, bob: Math.random() * Math.PI * 2 });
     }
   } else {
-    // Linia (4 monety pozioma)
     for (let i = 0; i < 4; i++) {
-      game.coinsArr.push({
-        x: W + 30 * dpr + i * 30 * dpr,
-        y: yBase, r: 11 * dpr,
-        collected: false, bob: Math.random() * Math.PI * 2
-      });
+      game.coinsArr.push({ x: W + 30 * dpr + i * 30 * dpr, y: yBase, r: 11 * dpr, collected: false, bob: Math.random() * Math.PI * 2 });
     }
   }
 }
-
-function spawnPowerup() {
-  const types = ['magnet', 'shield', 'slowmo', 'boost'];
-  const type = types[Math.floor(Math.random() * types.length)];
-  game.powerups.push({
-    type,
-    x: W + 30 * dpr,
-    y: GROUND_Y - (80 + Math.random() * 70) * dpr,
-    r: 16 * dpr,
-    collected: false,
-    bob: 0
-  });
-}
-
 function spawnParticles(x, y, color, count) {
   for (let i = 0; i < count; i++) {
     game.particles.push({
@@ -1002,32 +1029,86 @@ function spawnParticles(x, y, color, count) {
       vx: (Math.random() - 0.5) * 8 * dpr,
       vy: (Math.random() - 0.5) * 8 * dpr - 2 * dpr,
       r: (Math.random() * 3 + 1) * dpr,
-      color,
-      life: 30
+      color, life: 30
     });
   }
 }
-
 function spawnPopup(x, y, text, color) {
   game.popups.push({ x, y, text, color: color || '#e8561e', life: 50, vy: -1.5 * dpr });
 }
 
 // ═════════════════════════════════════════════════
-// UPDATE LOGIC
+// PHASE BANNER (intervals mode)
+// ═════════════════════════════════════════════════
+function showPhaseBanner(label, text, type) {
+  game.phaseBannerLabel = label;
+  game.phaseBannerText = text;
+  game.phaseBannerType = type;
+  game.phaseBannerTimer = 90;  // klatek = ~1.5s
+  // DOM update
+  const banner = document.getElementById('phase-banner');
+  banner.style.display = 'block';
+  banner.className = 'phase-banner ' + type;
+  document.getElementById('pb-label').textContent = label;
+  document.getElementById('pb-text').textContent = text;
+  setTimeout(() => { banner.style.display = 'none'; }, 1500);
+}
+
+// ═════════════════════════════════════════════════
+// UPDATE
 // ═════════════════════════════════════════════════
 function update() {
-  if (!game.running || game.paused) return;
+  if (!game.running) return;
+  const M = game.config;
 
-  // Slowmo affects time
-  const slowFactor = game.activePU.slowmo > 0 ? 0.55 : 1;
-  game.t += slowFactor;
-  game.distance += game.speed / dpr / 4 * slowFactor;
+  game.t++;
+  game.elapsed = game.t / 60;  // ~60 FPS
+  game.distance += game.speed / dpr / 4;
 
-  // Speed scaling
-  const targetSpeed = (4 + game.t / 600) * dpr * game.speedScale * _bonuses.staminaScale;
-  let curMaxSpeed = 16 * dpr * game.speedScale;
-  if (game.activePU.boost > 0) curMaxSpeed *= 1.5;
-  game.speed = Math.min(targetSpeed, curMaxSpeed) * (game.activePU.boost > 0 ? 1.4 : 1) * slowFactor;
+  // Speed scaling — zależy od trybu
+  let baseSpeed = (4 + game.t * M.speedRamp / 600) * dpr * game.speedScale * _bonuses.staminaScale;
+  let curMaxSpeed = (M.id === 'calm' ? 7 : 16) * dpr * game.speedScale;
+
+  // INTERWAŁY: zmienna prędkość
+  if (M.id === 'intervals') {
+    game.intervalPhaseTimer += 1/60;
+    if (game.intervalPhase === 'sprint') {
+      // SPRINT — wysokie tempo
+      baseSpeed = 14 * dpr;
+      curMaxSpeed = 16 * dpr;
+      if (game.intervalPhaseTimer >= M.sprintLen) {
+        // Koniec sprintu → REST
+        game.intervalPhase = 'rest';
+        game.intervalPhaseTimer = 0;
+        showPhaseBanner('FAZA ' + (game.intervalCycle + 1) + '/' + M.intervalCycles, 'ODPOCZYNEK', 'rest');
+      }
+    } else if (game.intervalPhase === 'rest') {
+      // REST — wolniejsze tempo
+      baseSpeed = 4 * dpr;
+      curMaxSpeed = 5 * dpr;
+      if (game.intervalPhaseTimer >= M.restLen) {
+        game.intervalCycle++;
+        if (game.intervalCycle >= M.intervalCycles) {
+          // Ukończono wszystkie cykle!
+          game.finished = true;
+          endGame();
+          return;
+        }
+        game.intervalPhase = 'sprint';
+        game.intervalPhaseTimer = 0;
+        showPhaseBanner('FAZA ' + (game.intervalCycle + 1) + '/' + M.intervalCycles, 'SPRINT!', 'sprint');
+      }
+    }
+  }
+
+  game.speed = Math.min(baseSpeed, curMaxSpeed);
+
+  // CALM mode: kończymy po time
+  if (M.targetType === 'time' && game.elapsed >= M.target) {
+    game.finished = true;
+    endGame();
+    return;
+  }
 
   // Player physics
   if (game.dashing > 0) {
@@ -1041,7 +1122,7 @@ function update() {
       game.vy = 0;
       game.onGround = true;
     } else if (!game.onGround || game.vy < 0) {
-      const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr * (_bonuses.controlScale || 1);
+      const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr;
       game.vy += gravity;
       game.py += game.vy;
       if (game.py >= GROUND_Y) {
@@ -1055,11 +1136,6 @@ function update() {
 
   if (game.invuln > 0) game.invuln--;
 
-  // Active power-ups countdown
-  ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
-    if (game.activePU[k] > 0) game.activePU[k]--;
-  });
-
   // Trail
   if (game.t % 2 === 0) {
     game.trail.push({ x: game.px, y: game.py - (game.sliding > 0 ? 10 * dpr : 30 * dpr), life: 20 });
@@ -1068,57 +1144,27 @@ function update() {
   game.trail = game.trail.filter(t => t.life > 0);
 
   // Spawn
-  game.nextObstacleIn -= slowFactor;
+  game.nextObstacleIn--;
   if (game.nextObstacleIn <= 0) {
     spawnObstacle();
     const minGap = Math.max(55, 130 - game.t / 30);
-    game.nextObstacleIn = minGap + Math.random() * 70;
+    game.nextObstacleIn = (minGap + Math.random() * 70) * (M.obstacleFreq || 1);
   }
-  game.nextCoinIn -= slowFactor;
+  game.nextCoinIn--;
   if (game.nextCoinIn <= 0) {
     if (Math.random() < 0.7) spawnCoinPattern();
-    game.nextCoinIn = 50 + Math.random() * 80;
-  }
-  game.nextPowerupIn -= slowFactor;
-  if (game.nextPowerupIn <= 0) {
-    spawnPowerup();
-    game.nextPowerupIn = 800 + Math.random() * 600;
+    game.nextCoinIn = (50 + Math.random() * 80) / (M.coinFreq || 1);
   }
 
   // Move
   game.obstacles.forEach(o => o.x -= game.speed);
   game.obstacles = game.obstacles.filter(o => o.x + o.w > -50 * dpr);
-
   game.coinsArr.forEach(c => { c.x -= game.speed; c.bob += 0.1; });
   game.coinsArr = game.coinsArr.filter(c => c.x + c.r > -30 * dpr && !c.collected);
-
-  game.powerups.forEach(p => { p.x -= game.speed; p.bob += 0.05; });
-  game.powerups = game.powerups.filter(p => p.x + p.r > -30 * dpr && !p.collected);
-
-  game.particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    p.vy += 0.3 * dpr;
-    p.life--;
-  });
+  game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
   game.particles = game.particles.filter(p => p.life > 0);
-
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
-
-  // Magnet effect — przyciągaj monety
-  if (game.activePU.magnet > 0) {
-    const magnetR = 120 * dpr;
-    game.coinsArr.forEach(c => {
-      if (c.collected) return;
-      const dx = game.px - c.x;
-      const dy = (game.py - 30 * dpr) - c.y;
-      const d = Math.sqrt(dx*dx + dy*dy);
-      if (d < magnetR) {
-        c.x += dx / d * 8 * dpr;
-        c.y += dy / d * 8 * dpr;
-      }
-    });
-  }
 
   // ── COLLISIONS ──
   const playerR = 18 * dpr;
@@ -1136,14 +1182,10 @@ function update() {
     else if (o.type === 'high') { oy1 = GROUND_Y - 90 * dpr; oy2 = GROUND_Y - 90 * dpr + o.h; isHigh = true; }
     else { oy1 = GROUND_Y; oy2 = GROUND_Y + 50 * dpr; isGap = true; }
 
-    // Slide pod high — można przejść
     const slidesUnder = isHigh && game.sliding > 0;
-    // Dash przebija wszystko (z invuln)
     const dashThrough = game.invuln > 0;
-    // Gap — trzeba mieć wysokie py albo dash
     const overGap = isGap && (game.py < GROUND_Y - 5 || game.dashing > 0);
 
-    // Kolizja
     if (game.invuln <= 0 && !slidesUnder && !overGap &&
         px2 > ox1 && px1 < ox2 && py2 > oy1 && py1 < oy2) {
       hitObstacle();
@@ -1151,53 +1193,46 @@ function update() {
       shakeAmount = 12 * dpr;
     }
 
-    // Near miss bonus (vertical distance < 25)
     if (!o.nearMissed && o.passed === false && o.x < game.px && o.x + o.w > game.px - 50 * dpr) {
       let vDist = 999;
       if (o.type === 'low') vDist = (GROUND_Y - o.h) - py2;
       else if (o.type === 'high') vDist = py1 - (GROUND_Y - 90 * dpr + o.h);
       if (vDist > 0 && vDist < 25 * dpr && game.invuln === 0) {
         o.nearMissed = true;
-        const bonus = Math.floor(15 * game.multi * (_bonuses.scoreBoost || 1));
+        const bonus = Math.floor(15 * game.multi);
         game.score += bonus;
         spawnPopup(o.x, oy1 - 20 * dpr, 'NEAR! +' + bonus, '#5090e0');
       }
     }
 
-    // Passed bonus
     if (!o.passed && o.x + o.w < game.px - playerR) {
       o.passed = true;
       game.perfectStreak++;
-      // Combo wzrasta szybciej z outfit Neon
-      const comboInc = 1 / 3 * (_bonuses.comboBoost || 1);
-      const newMulti = Math.min(5, _bonuses.startMulti + game.perfectStreak * comboInc * 0.2);
+      const newMulti = Math.min(5, _bonuses.startMulti + game.perfectStreak / 3 * 0.2);
       if (newMulti > game.multi + 0.05) {
         game.multi = newMulti;
         game.maxMulti = Math.max(game.maxMulti, game.multi);
-        document.getElementById('hud-multi').classList.remove('pulse');
-        void document.getElementById('hud-multi').offsetWidth;
-        document.getElementById('hud-multi').classList.add('pulse');
+        const mEl = document.getElementById('hud-multi');
+        mEl.classList.remove('pulse');
+        void mEl.offsetWidth;
+        mEl.classList.add('pulse');
       }
-
-      // Perfect jump detection (top of low obstacle, very close)
       if (o.type === 'low' && !isGap) {
         const playerBot = py2;
         const obstacleTop = GROUND_Y - o.h;
         const diff = obstacleTop - playerBot;
         if (diff > -5 * dpr && diff < 15 * dpr) {
           game.perfects++;
-          incStat('total_perfect', 1);
-          const bonus = Math.floor(20 * game.multi * (_bonuses.scoreBoost || 1));
+          const bonus = Math.floor(20 * game.multi);
           game.score += bonus;
           spawnPopup(o.x, oy1 - 30 * dpr, 'PERFECT! +' + bonus, '#ffd966');
         }
       }
-
-      game.score += Math.floor(10 * game.multi * (_bonuses.scoreBoost || 1));
+      game.score += Math.floor(10 * game.multi);
     }
   }
 
-  // Coin collisions
+  // Coins
   for (const c of game.coinsArr) {
     if (c.collected) continue;
     const dx = c.x - game.px;
@@ -1205,94 +1240,69 @@ function update() {
     if (dx * dx + dy * dy < (c.r + playerR) * (c.r + playerR)) {
       c.collected = true;
       game.coins++;
-      game.score += Math.floor(5 * game.multi * (_bonuses.scoreBoost || 1));
+      game.score += Math.floor(5 * game.multi);
       spawnParticles(c.x, c.y, '#ffd966', 6);
     }
   }
 
-  // Powerup collisions
-  for (const p of game.powerups) {
-    if (p.collected) continue;
-    const dx = p.x - game.px;
-    const dy = p.y - (game.py - playerR);
-    if (dx * dx + dy * dy < (p.r + playerR) * (p.r + playerR)) {
-      p.collected = true;
-      activatePowerup(p.type);
-      spawnParticles(p.x, p.y, puColor(p.type), 14);
-    }
-  }
+  // Trickle
+  if (game.t % 6 < 1) game.score += Math.floor(1 * game.multi);
 
-  // Trickle distance
-  if (game.t % 6 < 1) game.score += Math.floor(1 * game.multi * (_bonuses.scoreBoost || 1));
+  // Update best focus duration (czas od ostatniej kolizji)
+  const focusDur = (game.t - game.focusStartT) / 60;
+  if (focusDur > game.bestFocusDuration) game.bestFocusDuration = focusDur;
 
-  // Background parallax
+  // Background
   game.bgFar += game.speed * 0.1;
   game.bgMid += game.speed * 0.3;
   game.bgNear += game.speed * 0.6;
 
-  // Screen shake decay
+  // Shake decay
   if (shakeAmount > 0) shakeAmount *= 0.85;
 
   // HUD
   document.getElementById('hud-score').textContent = Math.floor(game.score);
   document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
   document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
-  document.getElementById('hud-coins').textContent = '🪙 ' + game.coins;
   document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
-  document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, (_bonuses.startLives || 3) - game.lives)) + '</span>';
+  document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, M.lives - game.lives)) + '</span>';
 
-  renderActivePowerups();
+  // Mode-specific target
+  updateModeTarget();
 }
 
-function activatePowerup(type) {
-  const dur = type === 'magnet' ? 360 * (_bonuses.magnetBoost || 1) :
-              type === 'shield' ? 1 :  // shield ma "ładunki" — robimy timer
-              type === 'slowmo' ? 240 :
-              300; // boost
-  // Magnet/shield/slowmo/boost mają osobne effecty
-  if (type === 'shield') {
-    // Shield daje invuln 5s
-    game.activePU.shield = 300;
-    showToast('🛡 SHIELD');
+function updateModeTarget() {
+  const M = game.config;
+  const target = document.getElementById('mode-target');
+  if (M.targetType === 'time') {
+    target.style.display = 'flex';
+    document.getElementById('mt-icon').textContent = '⏱';
+    const remaining = Math.max(0, M.target - Math.floor(game.elapsed));
+    document.getElementById('mt-text').textContent = remaining + 's';
+    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+  } else if (M.targetType === 'cycles') {
+    target.style.display = 'flex';
+    const phaseIcon = game.intervalPhase === 'sprint' ? '⚡' : '🌿';
+    const phaseRemain = Math.ceil((game.intervalPhase === 'sprint' ? M.sprintLen : M.restLen) - game.intervalPhaseTimer);
+    document.getElementById('mt-icon').textContent = phaseIcon;
+    document.getElementById('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
+    document.getElementById('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
   } else {
-    game.activePU[type] = dur;
-    showToast(puIcon(type) + ' ' + type.toUpperCase());
+    target.style.display = 'none';
   }
-}
-
-function puColor(t) {
-  return t === 'magnet' ? '#ffd966' : t === 'shield' ? '#5090e0' : t === 'slowmo' ? '#a868e0' : '#e8561e';
-}
-function puIcon(t) {
-  return t === 'magnet' ? '🧲' : t === 'shield' ? '🛡' : t === 'slowmo' ? '🐢' : '⚡';
-}
-
-function renderActivePowerups() {
-  const bar = document.getElementById('powerup-bar');
-  const items = [];
-  ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
-    if (game.activePU[k] > 0) {
-      items.push(`<div class="pu-active ${k}">${puIcon(k)}<span class="pu-time">${(game.activePU[k]/60).toFixed(1)}s</span></div>`);
-    }
-  });
-  bar.innerHTML = items.join('');
 }
 
 function hitObstacle() {
-  // Shield blokuje
-  if (game.activePU.shield > 0) {
-    game.activePU.shield = 0;
-    game.invuln = 60;
-    spawnParticles(game.px, game.py - 30 * dpr, '#5090e0', 20);
-    showToast('🛡 SHIELD');
-    return;
-  }
   game.lives--;
   game.invuln = 60;
+  // Reset focus streak
+  game.focusStartT = game.t;
+  // W INTERVAL mode kolizja resetuje multi ale nie kończy gry tak łatwo
   game.multi = _bonuses.startMulti;
   game.perfectStreak = 0;
   spawnParticles(game.px, game.py - 30 * dpr, '#e05050', 14);
   if (game.lives <= 0) {
+    game.finished = false;
     endGame();
   } else {
     showToast('-1 ❤');
@@ -1304,23 +1314,35 @@ function hitObstacle() {
 // ═════════════════════════════════════════════════
 function render() {
   if (!game) return;
+  const M = game.config;
 
-  // Screen shake
   ctx.save();
-  if (shakeAmount > 0.5) {
-    ctx.translate((Math.random() - 0.5) * shakeAmount, (Math.random() - 0.5) * shakeAmount);
-  }
+  if (shakeAmount > 0.5) ctx.translate((Math.random() - 0.5) * shakeAmount, (Math.random() - 0.5) * shakeAmount);
 
-  // ── Background ──
+  // Background — kolor zależy od trybu
   const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#0a0a14');
-  grad.addColorStop(0.5, '#0d0a18');
-  grad.addColorStop(0.85, '#15121e');
-  grad.addColorStop(1, '#1a1320');
+  if (M.id === 'calm') {
+    grad.addColorStop(0, '#0a0e18');
+    grad.addColorStop(0.6, '#0a0a14');
+    grad.addColorStop(1, '#15121e');
+  } else if (M.id === 'intervals' && game.intervalPhase === 'sprint') {
+    grad.addColorStop(0, '#1a0a0a');
+    grad.addColorStop(0.6, '#0a0508');
+    grad.addColorStop(1, '#15121e');
+  } else if (M.id === 'intervals' && game.intervalPhase === 'rest') {
+    grad.addColorStop(0, '#0a1a10');
+    grad.addColorStop(0.6, '#070a0a');
+    grad.addColorStop(1, '#0a1218');
+  } else {
+    grad.addColorStop(0, '#0a0a14');
+    grad.addColorStop(0.5, '#0d0a18');
+    grad.addColorStop(0.85, '#15121e');
+    grad.addColorStop(1, '#1a1320');
+  }
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  // Stars (parallax far)
+  // Stars
   ctx.fillStyle = 'rgba(255,255,255,0.3)';
   for (let i = 0; i < 30; i++) {
     const seed = i * 137.5;
@@ -1330,8 +1352,11 @@ function render() {
     ctx.fillRect(x, y, size, size);
   }
 
-  // Mountains (mid)
-  ctx.fillStyle = 'rgba(60,40,80,0.6)';
+  // Mountains
+  const mountainColor = M.id === 'calm' ? 'rgba(50,80,120,0.5)' :
+                       M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(120,40,40,0.5)' :
+                       'rgba(60,40,80,0.6)';
+  ctx.fillStyle = mountainColor;
   ctx.beginPath();
   ctx.moveTo(0, GROUND_Y);
   for (let i = 0; i < 8; i++) {
@@ -1343,14 +1368,16 @@ function render() {
   ctx.lineTo(W, GROUND_Y);
   ctx.fill();
 
-  // Buildings (near)
+  // Buildings
   ctx.fillStyle = 'rgba(20,15,30,0.85)';
   for (let i = 0; i < 12; i++) {
     const baseX = ((i * 120 * dpr - game.bgNear * 0.6) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
     const bH = 60 + (i % 4) * 25;
     ctx.fillRect(baseX, GROUND_Y - bH * dpr, 80 * dpr, bH * dpr);
-    // Windows
-    ctx.fillStyle = 'rgba(232,86,30,0.4)';
+    const winColor = M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(224,80,80,0.4)' :
+                     M.id === 'calm' ? 'rgba(80,144,224,0.3)' :
+                     'rgba(232,86,30,0.4)';
+    ctx.fillStyle = winColor;
     for (let wy = 0; wy < bH; wy += 18) {
       for (let wx = 0; wx < 80; wx += 18) {
         if ((i + wy + wx) % 3 === 0) {
@@ -1361,11 +1388,13 @@ function render() {
     ctx.fillStyle = 'rgba(20,15,30,0.85)';
   }
 
-  // Speed lines effect
-  if (game.speed > 7 * dpr || game.activePU.boost > 0) {
-    ctx.strokeStyle = game.activePU.boost > 0 ? 'rgba(232,86,30,0.4)' : 'rgba(232,86,30,0.15)';
+  // Speed lines (intensywne w sprincie)
+  if (game.speed > 7 * dpr || (M.id === 'intervals' && game.intervalPhase === 'sprint')) {
+    const intensity = M.id === 'intervals' && game.intervalPhase === 'sprint' ? 0.4 : 0.15;
+    ctx.strokeStyle = 'rgba(232,86,30,' + intensity + ')';
     ctx.lineWidth = 1.5 * dpr;
-    for (let i = 0; i < (game.activePU.boost > 0 ? 12 : 6); i++) {
+    const lineCount = M.id === 'intervals' && game.intervalPhase === 'sprint' ? 12 : 6;
+    for (let i = 0; i < lineCount; i++) {
       const y = (Math.sin(game.t * 0.1 + i) * 0.5 + 0.5) * H;
       const len = 80 * dpr + Math.random() * 80 * dpr;
       const x = ((game.t * 6 + i * 100) % (W + 200)) - 100;
@@ -1376,32 +1405,22 @@ function render() {
     }
   }
 
-  // Slowmo effect — purple tint
-  if (game.activePU.slowmo > 0) {
-    ctx.fillStyle = 'rgba(168,104,224,0.08)';
-    ctx.fillRect(0, 0, W, H);
-  }
-
   // Ground
-  ctx.strokeStyle = 'rgba(232,86,30,0.6)';
+  const groundColor = M.color || 'rgba(232,86,30,0.6)';
+  ctx.strokeStyle = M.id === 'calm' ? 'rgba(80,144,224,0.6)' :
+                    M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(224,80,80,0.6)' :
+                    'rgba(232,86,30,0.6)';
   ctx.lineWidth = 2 * dpr;
   ctx.beginPath();
   ctx.moveTo(0, GROUND_Y);
-  // Pomiń przepaści
-  let lastX = 0;
-  game.obstacles.forEach(o => {
-    if (o.type === 'gap') {
-      ctx.lineTo(o.x, GROUND_Y);
-      ctx.moveTo(o.x + o.w, GROUND_Y);
-    }
-  });
   ctx.lineTo(W, GROUND_Y);
   ctx.stroke();
 
   // Ground glow
   const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-  groundGrad.addColorStop(0, 'rgba(232,86,30,0.18)');
-  groundGrad.addColorStop(1, 'rgba(232,86,30,0)');
+  const glowColor = M.id === 'calm' ? '80,144,224' : M.id === 'intervals' && game.intervalPhase === 'sprint' ? '224,80,80' : '232,86,30';
+  groundGrad.addColorStop(0, 'rgba(' + glowColor + ',0.18)');
+  groundGrad.addColorStop(1, 'rgba(' + glowColor + ',0)');
   ctx.fillStyle = groundGrad;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 
@@ -1410,7 +1429,6 @@ function render() {
     if (o.type === 'gap') {
       ctx.fillStyle = '#000';
       ctx.fillRect(o.x, GROUND_Y, o.w, 80 * dpr);
-      // Krawędzie
       ctx.strokeStyle = '#e05050';
       ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
@@ -1424,7 +1442,6 @@ function render() {
     let y1, h;
     if (o.type === 'low') { y1 = GROUND_Y - o.h; h = o.h; }
     else { y1 = GROUND_Y - 90 * dpr; h = o.h; }
-
     const obsGrad = ctx.createLinearGradient(o.x, y1, o.x, y1 + h);
     obsGrad.addColorStop(0, '#e05050');
     obsGrad.addColorStop(1, '#a02020');
@@ -1432,8 +1449,6 @@ function render() {
     ctx.fillRect(o.x, y1, o.w, h);
     ctx.strokeStyle = 'rgba(255,80,80,0.7)';
     ctx.lineWidth = 1 * dpr;
-    ctx.strokeRect(o.x, y1, o.w, h);
-    // Glow
     ctx.shadowColor = '#e05050';
     ctx.shadowBlur = 10 * dpr;
     ctx.strokeRect(o.x, y1, o.w, h);
@@ -1441,9 +1456,9 @@ function render() {
   });
 
   // Trail
-  game.trail.forEach((t, i) => {
+  game.trail.forEach(t => {
     ctx.globalAlpha = (t.life / 20) * 0.4;
-    ctx.fillStyle = '#e8561e';
+    ctx.fillStyle = M.color || '#e8561e';
     ctx.beginPath();
     ctx.arc(t.x, t.y, 14 * dpr * (t.life / 20), 0, Math.PI * 2);
     ctx.fill();
@@ -1467,26 +1482,6 @@ function render() {
     ctx.stroke();
   });
 
-  // Power-ups
-  game.powerups.forEach(p => {
-    if (p.collected) return;
-    const bobY = p.y + Math.sin(p.bob) * 5 * dpr;
-    const color = puColor(p.type);
-    // Glow
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 20 * dpr;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(p.x, bobY, p.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // Icon
-    ctx.font = (18 * dpr) + 'px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(puIcon(p.type), p.x, bobY);
-  });
-
   // Particles
   game.particles.forEach(p => {
     ctx.globalAlpha = p.life / 30;
@@ -1497,7 +1492,7 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
-  // Popups (PERFECT!, NEAR!)
+  // Popups
   game.popups.forEach(p => {
     ctx.globalAlpha = Math.min(1, p.life / 30);
     ctx.font = 'bold ' + (16 * dpr) + 'px "DM Mono", monospace';
@@ -1510,34 +1505,14 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
-  // ── PLAYER ──
+  // Player
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
   if (!blink) {
-    // Shield aura
-    if (game.activePU.shield > 0) {
-      ctx.strokeStyle = 'rgba(80,144,224,0.7)';
-      ctx.lineWidth = 3 * dpr;
-      ctx.beginPath();
-      ctx.arc(game.px, game.py - 25 * dpr, 30 * dpr, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    // Magnet aura
-    if (game.activePU.magnet > 0) {
-      ctx.globalAlpha = 0.3;
-      ctx.strokeStyle = '#ffd966';
-      ctx.lineWidth = 1.5 * dpr;
-      ctx.beginPath();
-      ctx.arc(game.px, game.py - 25 * dpr, 60 * dpr, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-    // Boost glow
-    if (game.activePU.boost > 0 || game.dashing > 0) {
+    if (game.dashing > 0) {
       ctx.shadowColor = '#e8561e';
       ctx.shadowBlur = 25 * dpr;
     }
-    // Postać
-    const playerEmoji = game.sliding > 0 ? '🤸' : (getEquippedOutfit().emoji || '🏃');
+    const playerEmoji = game.sliding > 0 ? '🤸' : '🏃';
     ctx.font = (game.sliding > 0 ? 36 : 42) * dpr + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
@@ -1549,13 +1524,14 @@ function render() {
 }
 
 // ═════════════════════════════════════════════════
-// GAME LOOP
+// LOOP
 // ═════════════════════════════════════════════════
 let lastFrame = 0;
 function loop(t) {
   if (!game || !game.running) return;
   if (t - lastFrame >= 16) {
     update();
+    if (!game.running) return;  // mogło się skończyć w update
     render();
     lastFrame = t;
   }
@@ -1563,94 +1539,174 @@ function loop(t) {
 }
 
 // ═════════════════════════════════════════════════
-// SCREEN MANAGEMENT
+// SCREENS — start, end, log
 // ═════════════════════════════════════════════════
-function startGame() {
-  if (!localStorage.getItem('biegamy_game_tutorial_seen')) {
-    document.getElementById('tutorial').style.display = 'flex';
-    localStorage.setItem('biegamy_game_tutorial_seen', '1');
+function startGame(mode) {
+  _currentMode = mode;
+  _lastPlayedMode = mode;
+  const seenKey = 'biegamy_game_tutorial_' + mode;
+  if (!localStorage.getItem(seenKey)) {
+    showTutorial(mode);
+    localStorage.setItem(seenKey, '1');
     return;
   }
-  realStart();
+  realStart(mode);
+}
+
+function startGameAgain() {
+  if (_lastPlayedMode) realStart(_lastPlayedMode);
+  else goHome();
+}
+
+function showTutorial(mode) {
+  const M = MODES[mode];
+  document.getElementById('tut-title').textContent = M.emoji + ' ' + M.name;
+  document.getElementById('tut-sub').textContent = 'Trenujesz: ' + M.trains;
+
+  const rows = [];
+  rows.push('<div class="tut-row"><div class="tut-icon">📋</div><div class="tut-text">' + M.description + '</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik</b> — dash (przebij wszystko)</div></div>');
+
+  if (mode === 'calm') {
+    rows.push('<div class="tut-row"><div class="tut-icon">⚠️</div><div class="tut-text"><b>1 życie!</b> Skup się.</div></div>');
+  } else if (mode === 'intervals') {
+    rows.push('<div class="tut-row"><div class="tut-icon">🔥</div><div class="tut-text"><b>Sprint 20s + odpoczynek 10s × 4 cykle</b></div></div>');
+  }
+  document.getElementById('tut-body').innerHTML = rows.join('');
+  document.getElementById('tutorial').style.display = 'flex';
 }
 
 function closeTutorial() {
   document.getElementById('tutorial').style.display = 'none';
-  realStart();
+  realStart(_currentMode);
 }
 
-function realStart() {
+function realStart(mode) {
   resize();
-  game = newGame();
+  game = newGame(mode);
   game.running = true;
+  game.focusStartT = 0;
+  document.getElementById('hud-mode-label').textContent = MODES[mode].name;
   document.getElementById('screen-home').classList.add('hidden');
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.remove('hidden');
   updateDashUI();
+
+  // Phase banner dla intervals
+  if (mode === 'intervals') {
+    showPhaseBanner('FAZA 1/' + MODES.intervals.intervalCycles, 'SPRINT!', 'sprint');
+  }
+
   lastFrame = performance.now();
   requestAnimationFrame(loop);
 }
+
+let _lastEndedGameData = null;
+let _lastEndedScoreId = null;
 
 async function endGame() {
   if (!game) return;
   game.running = false;
   game.over = true;
 
-  // Update statystyki lokalnie
+  const M = game.config;
+
+  // Oblicz metryki mentalne
+  const reactionTimes = game.reactionTimes;
+  const avgReaction = reactionTimes.length 
+    ? Math.round(reactionTimes.reduce((s, x) => s + x, 0) / reactionTimes.length)
+    : null;
+  const focusDur = Math.floor(game.bestFocusDuration);
+
+  // Zapisz lokalne stats
   incStat('total_runs', 1);
-  incStat('total_coins', game.coins);
   if (game.score > getStat('best_score', 0)) setStat('best_score', game.score);
-  if (Math.floor(game.distance) > getStat('best_distance', 0)) setStat('best_distance', Math.floor(game.distance));
-  if (game.coins > getStat('best_coins_run', 0)) setStat('best_coins_run', game.coins);
-  if (game.maxMulti > getStat('best_combo', 1)) setStat('best_combo', game.maxMulti);
 
-  // Misje
-  updateMissions({
-    score: game.score,
-    distance: Math.floor(game.distance),
-    coins: game.coins,
-    maxCombo: Math.floor(game.maxMulti),
-    perfects: game.perfects
-  });
+  // Tytuł i sub
+  let title, sub;
+  if (game.finished) {
+    title = M.id === 'calm' ? 'CIERPLIWOŚĆ ✓' : M.id === 'intervals' ? '4/4 CYKLI! 🔥' : 'UKOŃCZONO';
+    sub = 'Trening mentalny zaliczony';
+  } else {
+    title = 'KONIEC';
+    sub = 'Spróbuj jeszcze raz';
+  }
+  document.getElementById('end-title').textContent = title;
+  document.getElementById('end-sub').textContent = sub;
+  document.getElementById('end-mode-tag').textContent = M.emoji + ' ' + M.name;
 
-  // Sprawdź odznaki
-  const newBadges = checkBadges();
-
-  // Render end screen
+  // Score + stats
   document.getElementById('end-score').textContent = Math.floor(game.score);
   document.getElementById('end-distance').textContent = Math.floor(game.distance);
-  document.getElementById('end-coins').textContent = game.coins;
+  document.getElementById('end-perfects').textContent = game.perfects;
   document.getElementById('end-multi').textContent = 'x' + game.maxMulti.toFixed(1);
 
-  const subs = ['Spróbuj jeszcze raz', 'Możesz lepiej!', 'Trenuj — biegaj szybciej', 'Dobry try!'];
-  document.getElementById('end-sub').textContent = subs[Math.floor(Math.random() * subs.length)];
+  // Mental metrics
+  document.getElementById('ms-reaction').textContent = avgReaction ? avgReaction + ' ms' : '—';
+  document.getElementById('ms-reaction').className = 'mv ' + (avgReaction && avgReaction < 400 ? 'good' : avgReaction && avgReaction > 600 ? 'improve' : '');
+  document.getElementById('ms-focus').textContent = focusDur + ' s';
+  document.getElementById('ms-focus').className = 'mv ' + (focusDur > 30 ? 'good' : '');
+
+  // Mode-specific extra metric
+  const extraRow = document.getElementById('ms-extra-row');
+  if (M.id === 'intervals') {
+    extraRow.style.display = 'flex';
+    document.getElementById('ms-extra-label').textContent = 'Cykle ukończone';
+    document.getElementById('ms-extra').textContent = game.intervalCycle + (game.finished ? ' / ' + M.intervalCycles : '');
+    document.getElementById('ms-extra').className = 'mv ' + (game.finished ? 'good' : '');
+  } else if (M.id === 'calm') {
+    extraRow.style.display = 'flex';
+    document.getElementById('ms-extra-label').textContent = 'Czas wytrwały';
+    document.getElementById('ms-extra').textContent = Math.floor(game.elapsed) + ' / ' + M.target + ' s';
+    document.getElementById('ms-extra').className = 'mv ' + (game.finished ? 'good' : '');
+  } else {
+    extraRow.style.display = 'none';
+  }
 
   // Save score do bazy
+  let scoreId = null;
   if (_athleteId && game.score > 0) {
     try {
-      await _sb.from('game_scores').insert({
+      const { data: inserted } = await _sb.from('game_scores').insert({
         athlete_id: _athleteId,
         score: Math.floor(game.score),
         distance: Math.floor(game.distance),
         coins: game.coins,
-        max_multi: game.maxMulti
-      });
-    } catch (e) { console.warn('Score save failed:', e); }
+        max_multi: game.maxMulti,
+        mode: M.id,
+        reaction_avg_ms: avgReaction,
+        focus_duration_sec: focusDur,
+        perfect_count: game.perfects,
+        interval_completed: game.intervalCycle,
+        finished: game.finished
+      }).select('id').single();
+      scoreId = inserted?.id;
+    } catch (e) { console.warn('Score save:', e); }
   }
+
+  // Save data dla "log to training" button
+  _lastEndedGameData = {
+    mode: M.id,
+    modeName: M.name,
+    duration: Math.floor(game.elapsed),
+    score: Math.floor(game.score),
+    distance: Math.floor(game.distance),
+    avgReaction,
+    focusDur,
+    perfects: game.perfects,
+    finished: game.finished
+  };
+  _lastEndedScoreId = scoreId;
 
   // New record?
-  const isNew = game.score > (getStat('best_score', 0) - 1);
-  document.getElementById('new-record-banner').style.display = isNew ? 'block' : 'none';
+  const isNew = game.score > (getStat('best_score', 1) - 1);
+  document.getElementById('new-record-banner').style.display = isNew && game.score > 100 ? 'block' : 'none';
 
-  // New badges?
-  if (newBadges.length > 0) {
-    document.getElementById('new-badges-section').style.display = 'block';
-    document.getElementById('new-badges-list').innerHTML = newBadges.map(b =>
-      `<div class="new-badge-pill">${b.emoji} ${b.name}</div>`
-    ).join('');
-  } else {
-    document.getElementById('new-badges-section').style.display = 'none';
-  }
+  // Reset log button
+  document.getElementById('log-btn').disabled = false;
+  document.getElementById('log-btn').textContent = '+ Dodaj jako warm-up mentalny';
 
   setTimeout(() => {
     document.getElementById('screen-game').classList.add('hidden');
@@ -1658,15 +1714,53 @@ async function endGame() {
   }, 400);
 }
 
+// ═════════════════════════════════════════════════
+// LOG GAME AS TRAINING (warm-up mentalny)
+// ═════════════════════════════════════════════════
+async function logAsTraining() {
+  if (!_athleteId || !_lastEndedGameData) return;
+  const btn = document.getElementById('log-btn');
+  btn.disabled = true;
+  btn.textContent = 'Dodawanie...';
+
+  const d = _lastEndedGameData;
+  const distance_km = (d.distance / 1000).toFixed(2);
+  const minutes = Math.max(1, Math.ceil(d.duration / 60));
+
+  // Build comment
+  const comment = `${MODES[d.mode].emoji} ${d.modeName} · ${d.score} pkt · `
+    + (d.avgReaction ? `reakcja ${d.avgReaction}ms · ` : '')
+    + `focus ${d.focusDur}s`
+    + (d.finished ? ' · UKOŃCZONO ✓' : '');
+
+  try {
+    const { error } = await _sb.from('training_logs').insert({
+      athlete_id: _athleteId,
+      training_type: 'Warm-up mentalny',
+      distance_km: distance_km,
+      pace: null,
+      heart_rate: null,
+      comment: comment,
+      feel: d.finished ? 'great' : 'ok',
+      logged_at: new Date().toISOString()
+    });
+    if (error) throw error;
+    btn.textContent = '✓ Dodano do logów';
+    btn.style.background = 'var(--green)';
+    showToast('✓ Zalogowane jako warm-up');
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = '+ Spróbuj ponownie';
+    showToast('Błąd: ' + (e.message || 'nieznany'));
+  }
+}
+
 function goHome() {
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.add('hidden');
   document.getElementById('screen-home').classList.remove('hidden');
   loadHighScore();
-  document.getElementById('coins-total').textContent = getStat('total_coins', 0);
-  renderEquipment();
-  renderBadges();
-  renderMissions();
+  loadMentalMetrics();
 }
 
 function updateDashUI() {
@@ -1684,19 +1778,21 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(showToast._tm);
-  showToast._tm = setTimeout(() => t.classList.remove('show'), 800);
+  showToast._tm = setTimeout(() => t.classList.remove('show'), 1200);
 }
 
 // ═════════════════════════════════════════════════
-// INIT
+// INIT + EXPOSE
 // ═════════════════════════════════════════════════
 initUser();
 
-// Expose for HTML inline calls
 window.startGame = startGame;
+window.startGameAgain = startGameAgain;
 window.closeTutorial = closeTutorial;
 window.goHome = goHome;
 window.switchTab = switchTab;
+window.loadLeaderboard = loadLeaderboard;
+window.logAsTraining = logAsTraining;
 
 </script>
 </body>
