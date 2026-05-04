@@ -1401,7 +1401,14 @@ body > *{position:relative;z-index:1;}
       <div class="field"><label>Komentarz dla trenera</label><textarea id="l-comment" placeholder="Jak poszło? Co czułeś?"></textarea></div>
 
       <!-- STRAVA LINK -->
-      <div class="field"><label>Link Strava / Garmin (opcjonalnie)</label><input type="url" id="l-strava" placeholder="https://strava.com/activities/..."></div>
+      <div class="field">
+  <label>Link Strava / Garmin (opcjonalnie)</label>
+  <div style="display:flex;gap:6px;">
+    <input type="url" id="l-strava" placeholder="https://strava.com/activities/..." style="flex:1;" oninput="_handleStravaInput()">
+    <button type="button" id="strava-parse-btn" onclick="parseActivityUrl()" style="background:rgba(252,76,2,0.12);border:1px solid rgba(252,76,2,0.3);color:#FC4C02;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;padding:0 12px;border-radius:8px;cursor:pointer;white-space:nowrap;display:none;">⚡ Wczytaj</button>
+  </div>
+  <div id="strava-parse-status" style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'DM Mono',monospace;display:none;"></div>
+</div>
 
       <!-- SCREEN UPLOAD -->
       <div class="field">
@@ -8876,4 +8883,91 @@ window._renderBadgeEvent = _renderBadgeEvent;
 window.checkBadges = checkBadges;
 window.loadAchievements = loadAchievements;
 window.renderBadgesSection = renderBadgesSection;
+
+// ── PARSOWANIE STRAVA / GARMIN ───────────────────────────────────
+function _handleStravaInput() {
+  var inp = document.getElementById('l-strava');
+  var btn = document.getElementById('strava-parse-btn');
+  if (!inp || !btn) return;
+  var url = inp.value.trim();
+  var isValid = /strava\.com\/activities\/\d+|connect\.garmin\.com\/(modern\/)?activity\/\d+/.test(url);
+  btn.style.display = isValid ? 'block' : 'none';
+}
+
+async function parseActivityUrl() {
+  var inp = document.getElementById('l-strava');
+  var btn = document.getElementById('strava-parse-btn');
+  var status = document.getElementById('strava-parse-status');
+  if (!inp || !btn || !status) return;
+  var url = inp.value.trim();
+  if (!url) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Parsuję...';
+  status.style.display = 'block';
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Pobieram dane z aktywności...';
+
+  try {
+    var resp = await fetch('https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/parse-activity', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
+      },
+      body: JSON.stringify({ url: url })
+    });
+    var data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      status.style.color = '#e05050';
+      status.textContent = '✕ ' + (data.error || 'Błąd parsowania');
+      return;
+    }
+
+    // Wypełnij pola
+    var filled = [];
+    if (data.distance_km) {
+      var distEl = document.getElementById('l-dist');
+      if (distEl) { distEl.value = data.distance_km; filled.push('dystans'); }
+    }
+    if (data.duration) {
+      var timeEl = document.getElementById('l-time');
+      if (timeEl) { timeEl.value = data.duration; filled.push('czas'); }
+    }
+    if (data.pace) {
+      var paceEl = document.getElementById('l-pace');
+      if (paceEl) { paceEl.value = data.pace; filled.push('tempo'); }
+    }
+    if (data.elevation) {
+      var elevEl = document.getElementById('l-elevation');
+      if (elevEl) { elevEl.value = data.elevation; filled.push('przewyższenie'); }
+    }
+    if (data.heart_rate) {
+      var hrEl = document.getElementById('l-hr');
+      if (hrEl) { hrEl.value = data.heart_rate; filled.push('tętno'); }
+    }
+    if (data.training_type) {
+      // Zaznacz typ pill
+      var pills = document.querySelectorAll('.type-pill');
+      pills.forEach(function(p) {
+        if (p.textContent.trim() === data.training_type) {
+          pills.forEach(function(x){ x.classList.remove('on'); });
+          p.classList.add('on');
+          window._logType = data.training_type;
+          filled.push('typ');
+        }
+      });
+    }
+
+    status.style.color = 'var(--green, #3db870)';
+    status.textContent = '✓ Wczytano: ' + (filled.length ? filled.join(', ') : 'brak danych');
+  } catch (e) {
+    status.style.color = '#e05050';
+    status.textContent = '✕ Błąd połączenia';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Wczytaj';
+  }
+}
 </script>
