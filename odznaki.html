@@ -141,6 +141,73 @@ const BADGES = [
   {id:'7_dni_challenge', name:'7 dni challenge',     desc:'7 dni bez przerwy',               rarity:'rare',     cat:'Sezonowe'},
   {id:'14_dni_challenge',name:'14 dni challenge',    desc:'14 dni bez przerwy',              rarity:'epic',     cat:'Sezonowe'},
   {id:'30_dni_challenge',name:'30 dni challenge',    desc:'30 dni bez przerwy',              rarity:'legendary',cat:'Sezonowe'},
+
+  // ── Nowe: Tempo ─────────────────────────────────────
+  {id:'sub_5min_km',     name:'Sub 5:00/km',         desc:'Trening ze średnim tempem poniżej 5:00/km', rarity:'rare',     cat:'Performance'},
+  {id:'sub_4min_km',     name:'Sub 4:00/km',         desc:'Trening ze średnim tempem poniżej 4:00/km', rarity:'epic',     cat:'Performance'},
+  {id:'sub_3_30_km',     name:'Sub 3:30/km',         desc:'Trening ze średnim tempem poniżej 3:30/km', rarity:'legendary',cat:'Performance'},
+  {id:'tempo_negatyw',   name:'Negative split',      desc:'Druga połowa szybsza od pierwszej',         rarity:'rare',     cat:'Performance'},
+  {id:'mistrz_tempa',    name:'Mistrz tempa',        desc:'5 treningów tempo w miesiącu',              rarity:'epic',     cat:'Performance'},
+
+  // ── Nowe: Dystansowe ─────────────────────────────────
+  {id:'pierwsza_5tka',   name:'Pierwsza piątka',     desc:'Pierwsze 5 km w jednym treningu',           rarity:'common',   cat:'Dystans'},
+  {id:'dwucyfrowy',      name:'Dwucyfrowy',          desc:'Pierwszy bieg 10 km+',                      rarity:'common',   cat:'Dystans'},
+  {id:'half_marathon',   name:'Półmaratończyk',      desc:'21 km w jednym treningu',                   rarity:'epic',     cat:'Dystans'},
+  {id:'maratończyk',     name:'Maratończyk',         desc:'42 km w jednym treningu',                   rarity:'legendary',cat:'Dystans'},
+  {id:'ultra',           name:'Ultra',               desc:'50 km+ w jednym treningu',                  rarity:'legendary',cat:'Dystans'},
+  {id:'2000km_total',    name:'2000 km',             desc:'2000 km łącznie',                           rarity:'legendary',cat:'Dystans'},
+
+  // ── Nowe: Pora dnia ──────────────────────────────────
+  {id:'wczesny_ptak',    name:'Wczesny ptak',        desc:'Trening przed 6:00',                        rarity:'rare',     cat:'Klimat'},
+  {id:'sowa',            name:'Sowa',                desc:'Trening po 22:00',                          rarity:'rare',     cat:'Klimat'},
+  {id:'poranek_5',       name:'Poranek',             desc:'5 treningów przed 7:00',                    rarity:'epic',     cat:'Klimat'},
+  {id:'noc_marathon',    name:'Nocny maratończyk',   desc:'10 treningów po 22:00',                     rarity:'epic',     cat:'Klimat'},
+
+  // ── Nowe: Pogoda ─────────────────────────────────────
+  {id:'mroz',            name:'Lodowate stopy',      desc:'Trening w temp. poniżej 0°C',               rarity:'rare',     cat:'Klimat'},
+  {id:'upal',            name:'Wojownik upału',      desc:'Trening w temp. powyżej 30°C',              rarity:'rare',     cat:'Klimat'},
+  {id:'deszcz',          name:'Deszczowy bohater',   desc:'Trening w deszczu',                         rarity:'common',   cat:'Klimat'},
+  {id:'snieg',           name:'Śnieżny żołnierz',    desc:'Trening w śniegu',                          rarity:'rare',     cat:'Klimat'},
+
+  // ── Nowe: Społeczność ────────────────────────────────
+  {id:'pierwszy_kumpel', name:'Pierwszy kumpel',     desc:'Pierwsza zaakceptowana znajomość',          rarity:'common',   cat:'Społeczność'},
+  {id:'krag_5',          name:'Krąg 5',              desc:'5 znajomych',                               rarity:'common',   cat:'Społeczność'},
+  {id:'krag_25',         name:'Krąg 25',             desc:'25 znajomych',                              rarity:'rare',     cat:'Społeczność'},
+  {id:'krag_50',         name:'Krąg 50',             desc:'50 znajomych',                              rarity:'epic',     cat:'Społeczność'},
+  {id:'pierwsza_wiad',   name:'Pierwsza wiadomość',  desc:'Pierwsza wiadomość do trenera',             rarity:'common',   cat:'Społeczność'},
+  {id:'gaduła',          name:'Gaduła',              desc:'100 wiadomości łącznie',                    rarity:'rare',     cat:'Społeczność'},
+
+  // ── Nowe: Posty ───────────────────────────────────────
+  {id:'pierwszy_post',   name:'Pierwszy post',       desc:'Dodaj pierwszy post na profilu',            rarity:'common',   cat:'Społeczność'},
+  {id:'10_postow',       name:'10 postów',           desc:'10 postów na profilu',                      rarity:'rare',     cat:'Społeczność'},
+  {id:'cytat_dnia',      name:'Filozof',             desc:'Dodaj 5 cytatów',                           rarity:'rare',     cat:'Społeczność'},
+
+  // ── Nowe: Tygodniowe ─────────────────────────────────
+  {id:'tydzien_50km',    name:'Tydzień 50 km',       desc:'50 km w jednym tygodniu',                   rarity:'rare',     cat:'Tygodniowe'},
+  {id:'tydzien_100km',   name:'Tydzień 100 km',      desc:'100 km w jednym tygodniu',                  rarity:'epic',     cat:'Tygodniowe'},
+  {id:'tydzien_150km',   name:'Tydzień 150 km',      desc:'150 km w jednym tygodniu',                  rarity:'legendary',cat:'Tygodniowe'},
+
+  // ── Nowe: Konsystencja ──────────────────────────────
+  {id:'streak_50',       name:'Streak 50',           desc:'50 dni z rzędu',                            rarity:'epic',     cat:'Konsystencja'},
+  {id:'streak_365',      name:'Rok bez przerwy',     desc:'365 dni z rzędu',                           rarity:'legendary',cat:'Konsystencja'},
+  {id:'4_w_tygodniu',    name:'4 razy w tygodniu',   desc:'4 treningi w jednym tygodniu',              rarity:'common',   cat:'Konsystencja'},
+  {id:'6_w_tygodniu',    name:'6 razy w tygodniu',   desc:'6 treningów w jednym tygodniu',             rarity:'rare',     cat:'Konsystencja'},
+
+  // ── Nowe: Mental ─────────────────────────────────────
+  {id:'po_kontuzji',     name:'Phoenix',             desc:'Powrót po 30 dniach przerwy',               rarity:'rare',     cat:'Mental'},
+  {id:'kiepski_dzien',   name:'Mimo wszystko',       desc:'Trening po oznaczeniu nastroju jako "źle"', rarity:'rare',     cat:'Mental'},
+  {id:'7_usmiechow',     name:'Optymista',           desc:'7 treningów z nastrojem "dobrze"',          rarity:'common',   cat:'Mental'},
+
+  // ── Nowe: Wyzwania ──────────────────────────────────
+  {id:'pierwsze_wyzwanie',name:'Pierwsze wyzwanie',  desc:'Ukończ pierwsze wyzwanie',                  rarity:'common',   cat:'Wyzwania'},
+  {id:'5_wyzwan',        name:'Łowca wyzwań',        desc:'Ukończ 5 wyzwań',                           rarity:'rare',     cat:'Wyzwania'},
+  {id:'10_wyzwan',       name:'Mistrz wyzwań',       desc:'Ukończ 10 wyzwań',                          rarity:'epic',     cat:'Wyzwania'},
+
+  // ── Nowe: Starty ─────────────────────────────────────
+  {id:'pierwszy_start',  name:'Pierwszy start',      desc:'Zapisz się na pierwsze zawody',             rarity:'common',   cat:'Starty'},
+  {id:'5_startow',       name:'Bywalec startów',     desc:'Ukończ 5 zawodów',                          rarity:'rare',     cat:'Starty'},
+  {id:'pb_run',          name:'Nowy rekord',         desc:'Pobicie życiówki',                          rarity:'epic',     cat:'Starty'},
+
 ];
 
 
