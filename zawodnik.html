@@ -3362,6 +3362,11 @@ async function obFinish() {
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
+    // Odśwież avatar w topbarze po onboardingu
+    if (_athleteId) {
+      setTimeout(() => loadAvatarTopbar(_athleteId), 500);
+    }
+
     // Sprawdź czy jeden z pierwszych 50 użytkowników (odznaka pierwsza_z_pierwszych)
     if (_athleteId) {
       try {
@@ -8778,143 +8783,6 @@ async function checkBadges(logs) {
       peerMsgs.forEach(m => { counts[m.to_id] = (counts[m.to_id] || 0) + 1; });
       const max = Math.max(...Object.values(counts));
       if (max >= 100) awardBadge('spam_friend');
-    }
-  } catch(e) {}
-
-  // ═══════════════════════════════════════════════════════════════
-  // NOWE 44 ODZNAKI (tempo, dystans, pora dnia, pogoda, społeczność)
-  // ═══════════════════════════════════════════════════════════════
-
-  // ── PERFORMANCE / TEMPO (5) ──
-  // sub_5min_km: średnie tempo poniżej 5:00/km
-  if (logs.some(l => { const ps = _paceSec(l.pace); return ps && ps < 300 && (parseFloat(l.distance_km)||0) >= 3; })) {
-    awardBadge('sub_5min_km');
-  }
-  // sub_4min_km: poniżej 4:00/km
-  if (logs.some(l => { const ps = _paceSec(l.pace); return ps && ps < 240 && (parseFloat(l.distance_km)||0) >= 3; })) {
-    awardBadge('sub_4min_km');
-  }
-  // sub_3_30_km: poniżej 3:30/km
-  if (logs.some(l => { const ps = _paceSec(l.pace); return ps && ps < 210 && (parseFloat(l.distance_km)||0) >= 3; })) {
-    awardBadge('sub_3_30_km');
-  }
-  // mistrz_tempa: 5+ treningów Tempo w bieżącym miesiącu
-  const mTempoCount = mLogs.filter(l => l.training_type === 'Tempo').length;
-  if (mTempoCount >= 5) awardBadge('mistrz_tempa');
-
-  // ── DYSTANS (6) ──
-  if (logs.some(l => (parseFloat(l.distance_km)||0) >= 5)) awardBadge('pierwsza_5tka');
-  if (logs.some(l => (parseFloat(l.distance_km)||0) >= 10)) awardBadge('dwucyfrowy');
-  if (logs.some(l => (parseFloat(l.distance_km)||0) >= 21)) awardBadge('half_marathon');
-  if (logs.some(l => (parseFloat(l.distance_km)||0) >= 42)) awardBadge('maratończyk');
-  if (logs.some(l => (parseFloat(l.distance_km)||0) >= 50)) awardBadge('ultra');
-  if (total >= 2000) awardBadge('2000km_total');
-
-  // ── PORA DNIA (4) ──
-  if (logs.some(l => new Date(l.logged_at).getHours() < 6)) awardBadge('wczesny_ptak');
-  if (logs.some(l => new Date(l.logged_at).getHours() >= 22)) awardBadge('sowa');
-  const morningCount = logs.filter(l => new Date(l.logged_at).getHours() < 7).length;
-  if (morningCount >= 5) awardBadge('poranek_5');
-  const nightCount = logs.filter(l => new Date(l.logged_at).getHours() >= 22).length;
-  if (nightCount >= 10) awardBadge('noc_marathon');
-
-  // ── POGODA (4) ── (uwaga: brak pola temperatury, więc na razie pomijamy mroz/upal — UI je pokaże jako "do zdobycia")
-  // deszcz/snieg — sprawdzamy comment zawodnika
-  if (logs.some(l => (l.comment||'').toLowerCase().match(/deszcz|pada|mokro/))) awardBadge('deszcz');
-  if (logs.some(l => (l.comment||'').toLowerCase().match(/śnieg|snieg|śniegu|sniegu/))) awardBadge('snieg');
-  if (logs.some(l => (l.comment||'').toLowerCase().match(/mróz|mroz|zimno/))) awardBadge('mroz');
-  if (logs.some(l => (l.comment||'').toLowerCase().match(/upał|upal|gorąco|goraco/))) awardBadge('upal');
-
-  // ── SPOŁECZNOŚĆ (6) ──
-  // pierwszy_kumpel: 1 zaakceptowany znajomy (już mamy pliszka — sprawdzamy z innej strony)
-  try {
-    const { count: friendCount } = await _sb.from('friendships')
-      .select('id', {count:'exact',head:true})
-      .or('requester_id.eq.' + _athleteId + ',addressee_id.eq.' + _athleteId)
-      .eq('status', 'accepted');
-    if (friendCount >= 1) awardBadge('pierwszy_kumpel');
-    if (friendCount >= 5) awardBadge('krag_5');
-    if (friendCount >= 25) awardBadge('krag_25');
-    if (friendCount >= 50) awardBadge('krag_50');
-  } catch(e) {}
-
-  // pierwsza_wiad: 1 wiadomość wysłana do trenera
-  try {
-    const { count: coachMsgCount } = await _sb.from('messages')
-      .select('id', {count:'exact',head:true})
-      .eq('athlete_id', _athleteId)
-      .eq('sender', 'athlete');
-    if (coachMsgCount >= 1) awardBadge('pierwsza_wiad');
-
-    // gaduła: 100 wiadomości łącznie (peer + coach)
-    const { count: peerCount } = await _sb.from('peer_messages')
-      .select('id', {count:'exact',head:true})
-      .eq('from_id', _athleteId);
-    const totalMsgs = (coachMsgCount||0) + (peerCount||0);
-    if (totalMsgs >= 100) awardBadge('gaduła');
-  } catch(e) {}
-
-  // ── POSTY (3) ──
-  try {
-    const { data: posts } = await _sb.from('profile_posts')
-      .select('type, content')
-      .eq('athlete_id', _athleteId);
-    if (posts && posts.length >= 1) awardBadge('pierwszy_post');
-    if (posts && posts.length >= 10) awardBadge('10_postow');
-    const quoteCount = (posts || []).filter(p => p.type === 'quote').length;
-    if (quoteCount >= 5) awardBadge('cytat_dnia');
-  } catch(e) {}
-
-  // ── TYGODNIOWE (3) — używamy weekKm już obliczonego ──
-  if (weekKm >= 50)  awardBadge('tydzien_50km');
-  if (weekKm >= 100) awardBadge('tydzien_100km');
-  if (weekKm >= 150) awardBadge('tydzien_150km');
-
-  // ── KONSYSTENCJA (4) ──
-  if (maxStreak >= 50)  awardBadge('streak_50');
-  if (maxStreak >= 365) awardBadge('streak_365');
-  if (weekLogs.length >= 4) awardBadge('4_w_tygodniu');
-  if (weekLogs.length >= 6) awardBadge('6_w_tygodniu');
-
-  // ── MENTAL (3) ──
-  // po_kontuzji: przerwa > 30 dni
-  for (let i = 1; i < days.length; i++) {
-    const gap = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
-    if (gap > 30) { awardBadge('po_kontuzji'); break; }
-  }
-  // kiepski_dzien: trening po feel='bad' (sprawdzamy czy któryś log po bad był)
-  const badLogs = logs.filter(l => l.feel === 'bad');
-  if (badLogs.length >= 1 && logs.length > badLogs.length) awardBadge('kiepski_dzien');
-  // 7_usmiechow: 7 treningów feel='good'
-  if (goodFeelCount >= 7) awardBadge('7_usmiechow');
-
-  // ── WYZWANIA (3) ──
-  try {
-    const { data: completedChallenges } = await _sb.from('challenge_progress')
-      .select('id, completed')
-      .eq('athlete_id', _athleteId)
-      .eq('completed', true);
-    const cc = (completedChallenges || []).length;
-    if (cc >= 1) awardBadge('pierwsze_wyzwanie');
-    if (cc >= 5) awardBadge('5_wyzwan');
-    if (cc >= 10) awardBadge('10_wyzwan');
-  } catch(e) {}
-
-  // ── STARTY (3) ──
-  try {
-    const { count: signupCount } = await _sb.from('race_signups')
-      .select('id', {count:'exact',head:true})
-      .eq('athlete_id', _athleteId);
-    if (signupCount >= 1) awardBadge('pierwszy_start');
-    if (signupCount >= 5) awardBadge('5_startow');
-  } catch(e) {}
-  // pb_run: pobicie życiówki — sprawdzamy czy są wpisy w pb_5k/10k/half/marathon
-  try {
-    const { data: athPb } = await _sb.from('athletes')
-      .select('pb_5k, pb_10k, pb_half, pb_marathon')
-      .eq('id', _athleteId).maybeSingle();
-    if (athPb && (athPb.pb_5k || athPb.pb_10k || athPb.pb_half || athPb.pb_marathon)) {
-      awardBadge('pb_run');
     }
   } catch(e) {}
 }
