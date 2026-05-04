@@ -15,11 +15,24 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
 #topbar h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;}
 #content{padding:16px 16px 100px;}
 #challenges-content{}
+
+.top-back-btn {
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  color:var(--fg);border-radius:12px;padding:8px 14px;
+  font-size:13px;font-family:'DM Mono',monospace;letter-spacing:0.05em;
+  cursor:pointer;text-decoration:none;
+  position:fixed;top:max(16px,env(safe-area-inset-top,16px));left:16px;
+  z-index:100;backdrop-filter:blur(12px);
+  transition:border-color 0.15s,background 0.15s;
+}
+.top-back-btn:hover{border-color:var(--accent);background:rgba(232,86,30,0.1);}
+
 </style>
 </head>
 <body>
 <div id="topbar">
-  <button onclick="history.back()">←</button>
+  <a class="top-back-btn" href="javascript:history.back()">‹ Wstecz</a>
   <h1>Wyzwania</h1>
 </div>
 <div id="content">

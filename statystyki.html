@@ -94,6 +94,19 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 nav.botnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);}
 nav.botnav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;}
 nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;}
+
+.top-back-btn {
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  color:var(--fg);border-radius:12px;padding:8px 14px;
+  font-size:13px;font-family:'DM Mono',monospace;letter-spacing:0.05em;
+  cursor:pointer;text-decoration:none;
+  position:fixed;top:max(16px,env(safe-area-inset-top,16px));left:16px;
+  z-index:100;backdrop-filter:blur(12px);
+  transition:border-color 0.15s,background 0.15s;
+}
+.top-back-btn:hover{border-color:var(--accent);background:rgba(232,86,30,0.1);}
+
 </style>
 </head>
 <body>
