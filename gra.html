@@ -842,13 +842,24 @@ function newGame(mode) {
     // Spawn
     nextObstacleIn: 90 * (M.obstacleFreq || 1),
     nextCoinIn: 60 * (M.coinFreq || 1),
+    nextHazardIn: 180,        // bananki/kałuże co ~3s (od 15s)
+    nextBirdIn: 360,          // ptaki co ~6s (od 30s)
+    nextWindIn: 600,          // wiatr co ~10s (od 45s)
     obstacles: [],
     coinsArr: [],
+    hazards: [],              // bananki, kałuże
+    birds: [],                // ptaki
+    windZones: [],            // pasy wiatru
     particles: [],
     popups: [],
     trail: [],
 
     perfectStreak: 0,
+
+    // SLOWED state (po banamie/kałuży)
+    slowedTimer: 0,           // klatek pozostałych spowolnienia
+    slowedFactor: 1.0,        // 0.5 = pół prędkości
+    pushX: 0,                 // siła wypychania (od wiatru)
 
     // Background
     bgFar: 0,
@@ -987,6 +998,11 @@ window.addEventListener('keyup', e => {
 // SPAWNING
 // ═════════════════════════════════════════════════
 function spawnObstacle() {
+  // Po 30s gry — szansa na ruszający się kwadrat
+  if (game.elapsed > 30 && Math.random() < 0.25) {
+    spawnMovingSquare();
+    return;
+  }
   const types = ['low', 'high', 'gap'];
   const type = game.speed > 8 * dpr && Math.random() < 0.45
     ? types[1 + Math.floor(Math.random()*2)]
@@ -999,10 +1015,90 @@ function spawnObstacle() {
     h: type === 'high' ? 40 * dpr : 32 * dpr,
     passed: false,
     nearMissed: false,
-    appearedAt: performance.now(),  // do pomiaru reaction time
+    appearedAt: performance.now(),
     reactionLogged: false
   });
 }
+
+// 🟧 RUSZAJĄCY SIĘ KWADRAT — porusza się góra-dół (od 30s)
+function spawnMovingSquare() {
+  const centerY = GROUND_Y - 70 * dpr;  // środek osi ruchu
+  const amplitude = 50 * dpr;            // jak daleko się rusza
+  game.obstacles.push({
+    id: game.t + '_msq_' + Math.random(),
+    type: 'moving',
+    x: W + 50 * dpr,
+    w: 32 * dpr,
+    h: 32 * dpr,
+    centerY: centerY,
+    amplitude: amplitude,
+    phase: Math.random() * Math.PI * 2,  // żeby nie wszystkie ruszały się tak samo
+    passed: false,
+    nearMissed: false,
+    appearedAt: performance.now(),
+    reactionLogged: false
+  });
+}
+
+// 🍌 BANAN — na ziemi, najedziesz = spowolnienie
+function spawnBanana() {
+  game.hazards.push({
+    type: 'banana',
+    x: W + 30 * dpr,
+    y: GROUND_Y - 8 * dpr,
+    w: 28 * dpr,
+    h: 16 * dpr,
+    rot: 0,
+    triggered: false
+  });
+}
+
+// 💧 KAŁUŻA — większa od banana, też spowalnia
+function spawnPuddle() {
+  game.hazards.push({
+    type: 'puddle',
+    x: W + 30 * dpr,
+    y: GROUND_Y - 4 * dpr,
+    w: (50 + Math.random() * 40) * dpr,
+    h: 8 * dpr,
+    bob: 0,
+    triggered: false
+  });
+}
+
+// 🦅 PTAK — leci z prawej po łuku, trzeba zrobić unik (slide lub low jump)
+function spawnBird() {
+  const startY = GROUND_Y - (110 + Math.random() * 30) * dpr;
+  const targetY = GROUND_Y - (40 + Math.random() * 30) * dpr;  // gdzie skończy łuk
+  game.birds.push({
+    x: W + 30 * dpr,
+    y: startY,
+    startY: startY,
+    targetY: targetY,
+    r: 16 * dpr,
+    flapPhase: 0,
+    age: 0,
+    passed: false,
+    nearMissed: false,
+    appearedAt: performance.now(),
+    reactionLogged: false
+  });
+}
+
+// 💨 WIATR — pas zepchnięcia w bok (od 45s)
+function spawnWindZone() {
+  const dir = Math.random() < 0.5 ? -1 : 1;  // back or forward
+  game.windZones.push({
+    x: W + 30 * dpr,
+    y: GROUND_Y - 120 * dpr,
+    w: 80 * dpr,
+    h: 100 * dpr,
+    dir: dir,
+    streamPhase: 0
+  });
+}
+
+
 function spawnCoinPattern() {
   const r = Math.random();
   const yBase = GROUND_Y - (50 + Math.random() * 80) * dpr;
@@ -1101,7 +1197,7 @@ function update() {
     }
   }
 
-  game.speed = Math.min(baseSpeed, curMaxSpeed);
+  game.speed = Math.min(baseSpeed, curMaxSpeed) * game.slowedFactor;
 
   // CALM mode: kończymy po time
   if (M.targetType === 'time' && game.elapsed >= M.target) {
@@ -1156,15 +1252,113 @@ function update() {
     game.nextCoinIn = (50 + Math.random() * 80) / (M.coinFreq || 1);
   }
 
-  // Move
-  game.obstacles.forEach(o => o.x -= game.speed);
+  // 🍌💧 HAZARDS (banany, kałuże) — od 15s
+  if (game.elapsed > 15) {
+    game.nextHazardIn--;
+    if (game.nextHazardIn <= 0) {
+      // Losowo: banan vs kałuża
+      if (Math.random() < 0.6) spawnBanana();
+      else spawnPuddle();
+      game.nextHazardIn = 200 + Math.random() * 200;  // co 3-7s
+    }
+  }
+
+  // 🦅 PTAKI — od 30s
+  if (game.elapsed > 30) {
+    game.nextBirdIn--;
+    if (game.nextBirdIn <= 0) {
+      spawnBird();
+      game.nextBirdIn = 360 + Math.random() * 240;  // co 6-10s
+    }
+  }
+
+  // 💨 WIATR — od 45s
+  if (game.elapsed > 45) {
+    game.nextWindIn--;
+    if (game.nextWindIn <= 0) {
+      spawnWindZone();
+      game.nextWindIn = 600 + Math.random() * 400;  // co 10-17s
+    }
+  }
+
+  // Move base
+  game.obstacles.forEach(o => {
+    o.x -= game.speed;
+    // Ruszający się kwadrat
+    if (o.type === 'moving') {
+      o.phase += 0.05;
+      o.y = o.centerY + Math.sin(o.phase) * o.amplitude;
+    }
+  });
   game.obstacles = game.obstacles.filter(o => o.x + o.w > -50 * dpr);
+
   game.coinsArr.forEach(c => { c.x -= game.speed; c.bob += 0.1; });
   game.coinsArr = game.coinsArr.filter(c => c.x + c.r > -30 * dpr && !c.collected);
+
+  // Hazardy (banany, kałuże)
+  game.hazards.forEach(h => {
+    h.x -= game.speed;
+    if (h.type === 'banana') h.rot += 0.05;
+    else if (h.type === 'puddle') h.bob += 0.1;
+  });
+  game.hazards = game.hazards.filter(h => h.x + h.w > -50 * dpr);
+
+  // Ptaki — łuk: x maleje, y idzie z startY do targetY po krzywej
+  game.birds.forEach(b => {
+    b.x -= game.speed * 1.3;  // ptaki lecą szybciej niż obraz
+    b.age++;
+    b.flapPhase += 0.3;
+    // Łukowa trajektoria (od startY do targetY)
+    const dx = (W + 30 * dpr) - b.x;       // ile przeleciał (od prawej krawędzi)
+    const totalDx = W + 80 * dpr;          // pełna trasa
+    const t = Math.min(1, dx / totalDx);
+    // Sinusoidalny łuk: zaczyna wysoko, w środku schodzi, kończy gdzie targetY
+    const lerpY = b.startY + (b.targetY - b.startY) * t;
+    b.y = lerpY - Math.sin(t * Math.PI) * 20 * dpr;  // dodatkowy bow
+  });
+  game.birds = game.birds.filter(b => b.x + b.r > -50 * dpr);
+
+  // Strefy wiatru
+  game.windZones.forEach(w => {
+    w.x -= game.speed;
+    w.streamPhase += 0.15;
+  });
+  game.windZones = game.windZones.filter(w => w.x + w.w > -50 * dpr);
+
+  // Particles + popups
   game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
   game.particles = game.particles.filter(p => p.life > 0);
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
+
+  // SPOWOLNIENIE — countdown
+  if (game.slowedTimer > 0) {
+    game.slowedTimer--;
+    if (game.slowedTimer <= 0) {
+      game.slowedFactor = 1.0;
+    }
+  }
+
+  // PUSH od wiatru — działa gdy gracz w strefie wiatru
+  game.pushX = 0;
+  for (const w of game.windZones) {
+    if (game.px > w.x && game.px < w.x + w.w &&
+        game.py < GROUND_Y && game.py > GROUND_Y - 130 * dpr) {
+      // W powietrzu, w pasie wiatru — przesuwamy
+      game.pushX += w.dir * 1.2 * dpr;
+    }
+  }
+  // Zastosuj push (ograniczamy zakres)
+  if (game.pushX !== 0) {
+    game.px = Math.max(W * 0.05, Math.min(W * 0.5, game.px + game.pushX));
+  } else {
+    // Powolny powrót do bazowej pozycji
+    const basePx = W * 0.18;
+    if (Math.abs(game.px - basePx) > 1) {
+      game.px += (basePx - game.px) * 0.05;
+    }
+  }
+
 
   // ── COLLISIONS ──
   const playerR = 18 * dpr;
@@ -1177,17 +1371,37 @@ function update() {
   for (const o of game.obstacles) {
     const ox1 = o.x;
     const ox2 = o.x + o.w;
-    let oy1, oy2, isHigh = false, isGap = false;
+    let oy1, oy2, isHigh = false, isGap = false, isMoving = false;
     if (o.type === 'low') { oy1 = GROUND_Y - o.h; oy2 = GROUND_Y; }
     else if (o.type === 'high') { oy1 = GROUND_Y - 90 * dpr; oy2 = GROUND_Y - 90 * dpr + o.h; isHigh = true; }
-    else { oy1 = GROUND_Y; oy2 = GROUND_Y + 50 * dpr; isGap = true; }
+    else if (o.type === 'moving') {
+      // Ruszający się kwadrat — y dynamiczne
+      oy1 = o.y - o.h / 2;
+      oy2 = o.y + o.h / 2;
+      isMoving = true;
+    }
+    else if (o.type === 'gap') {
+      // Przepaść — wyłącznie kolizja z dziurą w ziemi (musi być na ziemi w jej obrębie)
+      oy1 = GROUND_Y - 5 * dpr;  // mała tolerancja
+      oy2 = GROUND_Y + 100 * dpr;
+      isGap = true;
+    }
 
     const slidesUnder = isHigh && game.sliding > 0;
-    const dashThrough = game.invuln > 0;
-    const overGap = isGap && (game.py < GROUND_Y - 5 || game.dashing > 0);
+    // Gap: gracz wpada gdy jest na ziemi LUB nisko nad ziemią w obrębie X przepaści
+    // Naprawione: sprawdzamy czy stopy gracza są w przepaści i nie skacze (vy >= 0 = spada lub stoi)
+    const inGapHorizontal = isGap && px2 > ox1 + 5*dpr && px1 < ox2 - 5*dpr;
+    const overGap = isGap && (game.py < GROUND_Y - 10 * dpr || game.dashing > 0);
 
-    if (game.invuln <= 0 && !slidesUnder && !overGap &&
-        px2 > ox1 && px1 < ox2 && py2 > oy1 && py1 < oy2) {
+    let hit = false;
+    if (game.invuln <= 0 && !slidesUnder && !overGap) {
+      if (isGap && inGapHorizontal && game.py >= GROUND_Y - 5 * dpr) {
+        hit = true;
+      } else if (!isGap && px2 > ox1 && px1 < ox2 && py2 > oy1 && py1 < oy2) {
+        hit = true;
+      }
+    }
+    if (hit) {
       hitObstacle();
       o.passed = true;
       shakeAmount = 12 * dpr;
@@ -1197,11 +1411,15 @@ function update() {
       let vDist = 999;
       if (o.type === 'low') vDist = (GROUND_Y - o.h) - py2;
       else if (o.type === 'high') vDist = py1 - (GROUND_Y - 90 * dpr + o.h);
+      else if (o.type === 'moving') {
+        // Near miss dla moving: minimalna odległość pion
+        vDist = Math.min(Math.abs(py2 - oy1), Math.abs(py1 - oy2));
+      }
       if (vDist > 0 && vDist < 25 * dpr && game.invuln === 0) {
         o.nearMissed = true;
         const bonus = Math.floor(15 * game.multi);
         game.score += bonus;
-        spawnPopup(o.x, oy1 - 20 * dpr, 'NEAR! +' + bonus, '#5090e0');
+        spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'NEAR! +' + bonus, '#5090e0');
       }
     }
 
@@ -1231,6 +1449,60 @@ function update() {
       game.score += Math.floor(10 * game.multi);
     }
   }
+
+  // 🍌💧 KOLIZJE Z HAZARDAMI (banany, kałuże)
+  for (const h of game.hazards) {
+    if (h.triggered) continue;
+    const hx1 = h.x, hx2 = h.x + h.w;
+    const hy1 = h.y - h.h, hy2 = h.y;
+    if (px2 > hx1 && px1 < hx2 && py2 > hy1 && py1 < hy2) {
+      // Kontakt — tylko jeśli na ziemi (bo to obiekty na podłodze)
+      if (game.py >= GROUND_Y - 8 * dpr) {
+        h.triggered = true;
+        // Spowolnienie na 2 sekundy
+        game.slowedTimer = 120;  // 2s przy 60fps
+        game.slowedFactor = h.type === 'banana' ? 0.45 : 0.6;
+        const msg = h.type === 'banana' ? '🍌 SLIP!' : '💧 SPLASH!';
+        const color = h.type === 'banana' ? '#ffd966' : '#5090e0';
+        spawnPopup(h.x + h.w / 2, h.y - 30 * dpr, msg, color);
+        spawnParticles(h.x + h.w / 2, h.y, color, 10);
+        // Reset combo (ale nie kosztuje życia)
+        game.multi = _bonuses.startMulti;
+        game.perfectStreak = 0;
+        showToast(msg);
+      }
+    }
+  }
+  // Usuń trafione hazardy
+  game.hazards = game.hazards.filter(h => !h.triggered || h.x + h.w > -50 * dpr);
+
+  // 🦅 KOLIZJE Z PTAKAMI
+  for (const b of game.birds) {
+    if (b.passed) continue;
+    const dx = b.x - game.px;
+    const dy = b.y - (game.py - playerR);
+    const collisionR = b.r + playerR - 4 * dpr;
+    if (Math.abs(dx) < collisionR && Math.abs(dy) < collisionR) {
+      if (game.invuln <= 0) {
+        hitObstacle();
+        b.passed = true;
+        shakeAmount = 12 * dpr;
+      }
+    }
+    // Near miss
+    if (!b.nearMissed && Math.abs(dx) < 30 * dpr && Math.abs(dy) > collisionR && Math.abs(dy) < collisionR + 20 * dpr) {
+      b.nearMissed = true;
+      const bonus = Math.floor(20 * game.multi);
+      game.score += bonus;
+      spawnPopup(b.x, b.y - 30 * dpr, 'NEAR BIRD! +' + bonus, '#a868e0');
+    }
+    // Passed
+    if (!b.passed && b.x < game.px - 30 * dpr) {
+      b.passed = true;
+      game.score += Math.floor(15 * game.multi);
+    }
+  }
+
 
   // Coins
   for (const c of game.coinsArr) {
@@ -1405,7 +1677,7 @@ function render() {
     }
   }
 
-  // Ground
+  // Ground (przerywa się przy przepaściach)
   const groundColor = M.color || 'rgba(232,86,30,0.6)';
   ctx.strokeStyle = M.id === 'calm' ? 'rgba(80,144,224,0.6)' :
                     M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(224,80,80,0.6)' :
@@ -1413,6 +1685,14 @@ function render() {
   ctx.lineWidth = 2 * dpr;
   ctx.beginPath();
   ctx.moveTo(0, GROUND_Y);
+  // Sortowane przepaście od lewej
+  const gaps = game.obstacles.filter(o => o.type === 'gap').sort((a, b) => a.x - b.x);
+  for (const g of gaps) {
+    if (g.x > 0 && g.x < W) {
+      ctx.lineTo(g.x, GROUND_Y);
+      ctx.moveTo(g.x + g.w, GROUND_Y);
+    }
+  }
   ctx.lineTo(W, GROUND_Y);
   ctx.stroke();
 
@@ -1427,15 +1707,47 @@ function render() {
   // Obstacles
   game.obstacles.forEach(o => {
     if (o.type === 'gap') {
+      // Przepaść — czarna dziura ze świecącymi krawędziami
       ctx.fillStyle = '#000';
-      ctx.fillRect(o.x, GROUND_Y, o.w, 80 * dpr);
-      ctx.strokeStyle = '#e05050';
-      ctx.lineWidth = 2 * dpr;
+      ctx.fillRect(o.x, GROUND_Y, o.w, 100 * dpr);
+      // Górne pomarańczowe wykończenie żeby było widać krawędź
+      ctx.fillStyle = '#e05050';
+      ctx.fillRect(o.x - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 4 * dpr);
+      ctx.fillRect(o.x + o.w - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 4 * dpr);
+      // Strzałki ostrzegawcze nad przepaścią
+      const warnY = GROUND_Y - 30 * dpr;
+      ctx.fillStyle = 'rgba(224,80,80,' + (0.5 + 0.3 * Math.sin(game.t * 0.2)) + ')';
+      ctx.font = (16 * dpr) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠', o.x + o.w / 2, warnY);
+      // Glow w głębi
+      const gapGrad = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + 80 * dpr);
+      gapGrad.addColorStop(0, 'rgba(224,80,80,0.6)');
+      gapGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gapGrad;
+      ctx.fillRect(o.x, GROUND_Y, o.w, 60 * dpr);
+      return;
+    }
+    if (o.type === 'moving') {
+      // 🟧 Ruszający się kwadrat — pomarańczowy z glow
+      const y1 = o.y - o.h / 2;
+      const obsGrad = ctx.createLinearGradient(o.x, y1, o.x, y1 + o.h);
+      obsGrad.addColorStop(0, '#ffb74d');
+      obsGrad.addColorStop(1, '#e8561e');
+      ctx.fillStyle = obsGrad;
+      ctx.shadowColor = '#ffb74d';
+      ctx.shadowBlur = 15 * dpr;
+      ctx.fillRect(o.x, y1, o.w, o.h);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#ffd966';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.strokeRect(o.x, y1, o.w, o.h);
+      // Linie ruchu (żeby było widać że się rusza)
+      ctx.strokeStyle = 'rgba(255,217,102,0.4)';
+      ctx.lineWidth = 1 * dpr;
       ctx.beginPath();
-      ctx.moveTo(o.x, GROUND_Y);
-      ctx.lineTo(o.x, GROUND_Y + 60 * dpr);
-      ctx.moveTo(o.x + o.w, GROUND_Y);
-      ctx.lineTo(o.x + o.w, GROUND_Y + 60 * dpr);
+      ctx.moveTo(o.x + o.w / 2, o.centerY - o.amplitude);
+      ctx.lineTo(o.x + o.w / 2, o.centerY + o.amplitude);
       ctx.stroke();
       return;
     }
@@ -1454,6 +1766,85 @@ function render() {
     ctx.strokeRect(o.x, y1, o.w, h);
     ctx.shadowBlur = 0;
   });
+
+  // 🍌💧 Hazardy (banany, kałuże)
+  game.hazards.forEach(h => {
+    if (h.triggered) {
+      // Splash particles dla trafionych
+      ctx.globalAlpha = 0.5;
+    }
+    if (h.type === 'banana') {
+      ctx.save();
+      ctx.translate(h.x + h.w / 2, h.y - h.h / 2);
+      ctx.rotate(h.rot);
+      ctx.font = (24 * dpr) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('🍌', 0, 0);
+      ctx.restore();
+    } else if (h.type === 'puddle') {
+      // Owalna kałuża
+      const cy = h.y - h.h / 2 + Math.sin(h.bob) * 1 * dpr;
+      const pgrad = ctx.createRadialGradient(h.x + h.w / 2, cy, 0, h.x + h.w / 2, cy, h.w / 2);
+      pgrad.addColorStop(0, 'rgba(120,180,240,0.7)');
+      pgrad.addColorStop(0.7, 'rgba(80,144,224,0.5)');
+      pgrad.addColorStop(1, 'rgba(80,144,224,0.1)');
+      ctx.fillStyle = pgrad;
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w / 2, cy, h.w / 2, h.h, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Refleksy
+      ctx.fillStyle = 'rgba(200,230,255,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w * 0.3, cy - 1 * dpr, h.w * 0.15, h.h * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  // 🦅 Ptaki
+  game.birds.forEach(b => {
+    if (b.passed) {
+      ctx.globalAlpha = 0.5;
+    }
+    ctx.font = (28 * dpr) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    // Lekkie podbijanie skrzydeł — y modyfikowane przez flapPhase
+    const flapOffset = Math.sin(b.flapPhase) * 3 * dpr;
+    ctx.fillText('🦅', b.x, b.y + flapOffset);
+    ctx.globalAlpha = 1;
+    // Cień pod ptakiem
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.beginPath();
+    ctx.ellipse(b.x, GROUND_Y + 2 * dpr, 14 * dpr, 4 * dpr, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // 💨 Strefy wiatru
+  game.windZones.forEach(w => {
+    // Tło strefy
+    ctx.fillStyle = w.dir > 0 ? 'rgba(80,144,224,0.08)' : 'rgba(168,104,224,0.08)';
+    ctx.fillRect(w.x, w.y, w.w, w.h);
+    // Linie wiatru
+    ctx.strokeStyle = w.dir > 0 ? 'rgba(120,180,255,0.4)' : 'rgba(200,150,240,0.4)';
+    ctx.lineWidth = 1.5 * dpr;
+    for (let i = 0; i < 4; i++) {
+      const y = w.y + (i / 4) * w.h + 8 * dpr;
+      const phase = (w.streamPhase + i * 0.5) % 1;
+      const startX = w.x + phase * w.w;
+      ctx.beginPath();
+      ctx.moveTo(startX, y);
+      ctx.lineTo(startX + 30 * dpr * w.dir, y);
+      ctx.stroke();
+    }
+    // Strzałka kierunku
+    ctx.fillStyle = w.dir > 0 ? '#5090e0' : '#a868e0';
+    ctx.font = (20 * dpr) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(w.dir > 0 ? '💨' : '🌬', w.x + w.w / 2, w.y + 25 * dpr);
+  });
+
 
   // Trail
   game.trail.forEach(t => {
@@ -1505,19 +1896,27 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
-  // Player
+  // Player — emoji biegacza domyślnie patrzy w lewo, odbijamy żeby biegł w prawo
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
   if (!blink) {
+    ctx.save();
     if (game.dashing > 0) {
       ctx.shadowColor = '#e8561e';
       ctx.shadowBlur = 25 * dpr;
+    } else if (game.slowedTimer > 0) {
+      // Slowed effect — cyan glow + lekkie kołysanie
+      ctx.shadowColor = '#5090e0';
+      ctx.shadowBlur = 15 * dpr;
     }
     const playerEmoji = game.sliding > 0 ? '🤸' : '🏃';
     ctx.font = (game.sliding > 0 ? 36 : 42) * dpr + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(playerEmoji, game.px, game.py + 4 * dpr);
-    ctx.shadowBlur = 0;
+    // Odbicie horyzontalne — biegacz patrzy w prawo (kierunek ruchu)
+    ctx.translate(game.px, game.py + 4 * dpr);
+    ctx.scale(-1, 1);
+    ctx.fillText(playerEmoji, 0, 0);
+    ctx.restore();
   }
 
   ctx.restore();
@@ -1544,7 +1943,8 @@ function loop(t) {
 function startGame(mode) {
   _currentMode = mode;
   _lastPlayedMode = mode;
-  const seenKey = 'biegamy_game_tutorial_' + mode;
+  // Wersja v2 — nowe przeszkody, pokazujemy tutorial ponownie
+  const seenKey = 'biegamy_game_tutorial_v2_' + mode;
   if (!localStorage.getItem(seenKey)) {
     showTutorial(mode);
     localStorage.setItem(seenKey, '1');
@@ -1568,6 +1968,8 @@ function showTutorial(mode) {
   rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik</b> — dash (przebij wszystko)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🍌</div><div class="tut-text"><b>Banan/kałuża</b> — spowalnia! Przeskocz</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🦅</div><div class="tut-text"><b>Ptak</b> — zrób unik (slide lub niski skok)</div></div>');
 
   if (mode === 'calm') {
     rows.push('<div class="tut-row"><div class="tut-icon">⚠️</div><div class="tut-text"><b>1 życie!</b> Skup się.</div></div>');
