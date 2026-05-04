@@ -1800,8 +1800,25 @@ async function loadTrainingsFromDB() {
   if (_urlRole === 'athlete') {
     const { data: ath2 } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
-  } else if (window._calSelectedAthleteId) {
-    logsQuery = logsQuery.eq('athlete_id', window._calSelectedAthleteId);
+  } else if (_urlRole === 'coach') {
+    // Trener widzi TYLKO logi swoich zawodników
+    const { data: myAthletes } = await _sbKal.from('athletes').select('id').eq('coach_id', session.user.id);
+    const myAthleteIds = (myAthletes || []).map(a => a.id);
+    if (window._calSelectedAthleteId) {
+      // Konkretny zawodnik — ale tylko jeśli jest mój
+      if (myAthleteIds.includes(window._calSelectedAthleteId)) {
+        logsQuery = logsQuery.eq('athlete_id', window._calSelectedAthleteId);
+      } else {
+        logsQuery = logsQuery.eq('athlete_id', '00000000-0000-0000-0000-000000000000'); // brak wyników
+      }
+    } else {
+      // Wszyscy moi zawodnicy
+      if (myAthleteIds.length === 0) {
+        logsQuery = logsQuery.eq('athlete_id', '00000000-0000-0000-0000-000000000000');
+      } else {
+        logsQuery = logsQuery.in('athlete_id', myAthleteIds);
+      }
+    }
   }
   const { data: logsData } = await logsQuery;
   window._calLogs = {};
@@ -3276,7 +3293,7 @@ loadTrainingsFromDB().then(() => setView(_calView));
 const _isCoach = typeof _urlRole !== 'undefined' && _urlRole === 'coach';
 document.getElementById('bnav-home').href = _isCoach ? 'trener.html' : 'zawodnik.html';
 document.getElementById('bnav-home-lbl').textContent = _isCoach ? 'Zawodnicy' : 'Dziś';
-document.getElementById('bnav-log').href = _isCoach ? 'trener.html' : 'zawodnik.html#log';
+document.getElementById('bnav-log').href = _isCoach ? 'trener.html' : 'zawodnik.html?tab=msgs';
 document.getElementById('bnav-log').querySelector('.nav-lbl').textContent = _isCoach ? 'Trener' : 'Log';
 document.getElementById('bnav-social').href = _isCoach ? 'trener.html?tab=analytics' : 'zawodnik.html?tab=social';
 if (_isCoach) {

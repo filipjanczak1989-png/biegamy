@@ -1199,8 +1199,8 @@ async function loadAthleteLogs(athleteId) {
     .select('*')
     .eq('athlete_id', athleteId)
     .order('logged_at', { ascending: false })
-    .limit(20);
-  
+    .limit(30);
+
   if (data) renderLogs_db(data);
 }
 
@@ -1209,9 +1209,41 @@ function renderLogs_db(logs) {
   const bc = {good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
   const typeColors = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870'};
   window._coachLogs = logs;
+
+  // Mapa odznak (nazwa + opis)
+  const badgeMap = {
+    'pierwszy_krok': {n:'Pierwszy krok',d:'Pierwszy zalogowany trening'},
+    'tygodniowy_streak': {n:'Tydzień konsekwencji',d:'7 dni z rzędu'},
+    'miesieczny_streak': {n:'Miesiąc w ruchu',d:'30 dni z rzędu'},
+    '100km': {n:'Setka',d:'100 km łącznie'},
+    '500km': {n:'Pięćset',d:'500 km łącznie'},
+    '1000km': {n:'Tysiąc',d:'1000 km łącznie'},
+    'pierwszy_5k': {n:'Pierwsza piątka',d:'Pierwsze 5 km w jednym treningu'},
+    'pierwszy_10k': {n:'Dziesiątak',d:'Pierwsze 10 km'},
+    'polmaraton': {n:'Półmaraton',d:'21 km w jednym biegu'},
+    'maraton': {n:'Maraton',d:'42 km w jednym biegu'},
+    'pierwszy_z_pierwszych': {n:'Pierwszy z pierwszych',d:'50 pierwszych zarejestrowanych'},
+  };
+
   document.getElementById('lcon').innerHTML = logs.length === 0
     ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px;">Brak logów</div>'
     : logs.map((l, idx) => {
+      // ── Specjalny render dla odznak ───────────────────────
+      if (l.training_type && l.training_type.startsWith('__badge__')) {
+        const badgeId = l.training_type.replace('__badge__','');
+        const badge = badgeMap[badgeId] || {n: badgeId.replace(/_/g,' '), d: 'Zdobyta odznaka'};
+        const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
+        return `<div style="background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,184,64,0.08));border:1px solid rgba(232,86,30,0.25);border-radius:10px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/${badgeId}.webp" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.style.background='rgba(232,86,30,0.2)';this.src='';this.onerror=null;">
+          <div style="flex:1;">
+            <div style="font-size:9px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:2px;">🏅 Zdobyto odznakę</div>
+            <div style="font-size:14px;font-weight:600;">${badge.n}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${badge.d}</div>
+          </div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+        </div>`;
+      }
+      // ── Normalny trening ──────────────────────────────────
       const type = l.training_type || 'Trening';
       const color = typeColors[type] || 'var(--muted)';
       const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {weekday:'short',day:'numeric',month:'short'});
@@ -1255,8 +1287,19 @@ function renderLogs_db(logs) {
         <div id="cgif-preview-${idx}" style="padding:${l.coach_gif?'0 12px 8px':'0'};">
           ${l.coach_gif ? `<div style="display:flex;align-items:center;gap:6px;"><img src="${l.coach_gif}" style="height:36px;border-radius:4px;"><button onclick="removeCoachGif('${l.id}',${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;">✕ usuń GIF</button></div>` : ''}
         </div>
+        <div style="display:flex;justify-content:flex-end;padding:0 12px 8px;">
+          <button onclick="deleteCoachLog('${l.id}')" style="background:rgba(224,80,80,0.08);border:1px solid rgba(224,80,80,0.25);color:#e05050;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.06em;padding:4px 10px;border-radius:6px;cursor:pointer;">🗑 Usuń log</button>
+        </div>
       </div>`;
     }).join('');
+}
+
+async function deleteCoachLog(logId) {
+  if (!confirm('Usunąć log? Tej operacji nie można cofnąć.')) return;
+  const { error } = await _sb.from('training_logs').delete().eq('id', logId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  showToast('Log usunięty ✓');
+  await loadAthleteLogs(window._selectedAthleteId);
 }
 
 async function saveCoachComment(logId, idx) {
