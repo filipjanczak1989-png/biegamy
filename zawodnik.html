@@ -6173,7 +6173,7 @@ async function openNotifications() {
 var _chatMode = null; // 'coach' | 'peer'
 var _chatPeerId = null;
 
-async async function showSection_msgs_init() {
+async function showSection_msgs_init() {
   // Pokaż listę konwersacji
   var listView = document.getElementById('chat-list-view');
   var threadView = document.getElementById('chat-thread-view');
@@ -7777,10 +7777,8 @@ window.sendDuelChallenge = sendDuelChallenge;
       <div class="nav-lbl">Plan</div>
     </a>
     <a class="nav-it" href="#" onclick="openModal();return false;">
-      <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
-      </div>
-      <div class="nav-lbl" style="margin-top:2px;">Log</div>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <div class="nav-lbl">Log</div>
     </a>
     <a class="nav-it" href="#" onclick="showSection('msgs');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
