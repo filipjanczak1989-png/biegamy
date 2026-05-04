@@ -1042,7 +1042,7 @@ async function renderDbAthletes(list) {
     return `
     <div class="ath-card fi" onclick="selA_db('${sid}')" data-athlete-id="${sid}" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
       <div class="ath-stripe" style="background:var(--accent)"></div>
-      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);overflow:hidden;">${a.avatar_url ? `<img src="${a.avatar_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${initials}'">` : initials}</div>
+      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${initials}</div>
       <div class="ath-info">
         <div class="ath-name">${name}</div>
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
@@ -2969,6 +2969,99 @@ async function loadAthleteDetailStats(athleteId, container) {
     s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
     s.onload=renderChart; document.head.appendChild(s);
   } else { setTimeout(renderChart, 50); }
+  
+  // ✓ Sesja 4 — dodaj sekcję mental dashboard pod sportowymi statystykami
+  setTimeout(() => _loadCoachMentalDashboard(athleteId, container), 100);
+}
+
+// ═════════════════════════════════════════════════
+// COACH MENTAL DASHBOARD — widok trenera
+// ═════════════════════════════════════════════════
+async function _loadCoachMentalDashboard(athleteId, container) {
+  if (!athleteId || !container) return;
+  // Append do istniejącego container
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+  const since7 = new Date(); since7.setDate(since7.getDate() - 7);
+
+  const [gamesRes, logsRes] = await Promise.all([
+    _sb.from('game_scores')
+      .select('mode, score, reaction_avg_ms, focus_duration_sec, finished, created_at')
+      .eq('athlete_id', athleteId)
+      .gte('created_at', since30.toISOString())
+      .order('created_at', { ascending: false }),
+    _sb.from('training_logs')
+      .select('training_type, pace, comment, logged_at')
+      .eq('athlete_id', athleteId)
+      .gte('logged_at', since30.toISOString())
+      .not('training_type', 'like', '__badge__%')
+  ]);
+
+  const games = gamesRes.data || [];
+  const logs = logsRes.data || [];
+
+  // Wrapper element
+  const mentalEl = document.createElement('div');
+  mentalEl.style.cssText = 'padding:12px 16px;border-top:1px solid var(--border);';
+
+  if (!games.length) {
+    mentalEl.innerHTML = `
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">🧠 Trening mentalny</div>
+      <div style="background:var(--card2);border-radius:8px;padding:14px;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);">Zawodnik nie korzysta jeszcze z gry mentalnej</div>
+      </div>`;
+    container.appendChild(mentalEl);
+    return;
+  }
+
+  const games7 = games.filter(g => new Date(g.created_at) >= since7);
+  const reactArr7 = games7.filter(g => g.reaction_avg_ms > 0).map(g => g.reaction_avg_ms);
+  const reactArr30 = games.filter(g => g.reaction_avg_ms > 0).map(g => g.reaction_avg_ms);
+  const avgReact7 = reactArr7.length ? Math.round(reactArr7.reduce((s,x)=>s+x,0)/reactArr7.length) : null;
+  const avgReact30 = reactArr30.length ? Math.round(reactArr30.reduce((s,x)=>s+x,0)/reactArr30.length) : null;
+  const bestFocus = Math.max(...games.map(g => g.focus_duration_sec || 0), 0);
+  const finishedCount = games.filter(g => g.finished).length;
+
+  // Wykryj ile treningów było z warm-upem
+  let withWarmup = 0;
+  logs.forEach(log => {
+    if (log.training_type === 'Warm-up mentalny') return;
+    const logTime = new Date(log.logged_at).getTime();
+    const taggedWarmup = log.comment && log.comment.includes('warm-upem mentalnym');
+    const hadGame = games.some(g => {
+      const gt = new Date(g.created_at).getTime();
+      return gt >= logTime - 4*3600*1000 && gt <= logTime;
+    });
+    if (taggedWarmup || hadGame) withWarmup++;
+  });
+
+  const trendBadge = avgReact7 && avgReact30 && avgReact7 < avgReact30 - 20
+    ? '<span style="color:#3db870;font-size:10px;font-family:DM Mono,monospace;">↓ poprawa</span>'
+    : avgReact7 && avgReact30 && avgReact7 > avgReact30 + 20
+    ? '<span style="color:#e05050;font-size:10px;font-family:DM Mono,monospace;">↑ pogorszenie</span>'
+    : '<span style="color:var(--muted);font-size:10px;font-family:DM Mono,monospace;">stabilnie</span>';
+
+  mentalEl.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">🧠 Trening mentalny (30d)</div>
+      ${trendBadge}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#5090e0;line-height:1;">${avgReact7 || '—'}</div>
+        <div style="font-size:7px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">reakcja ms · 7d</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#3db870;line-height:1;">${bestFocus || '—'}</div>
+        <div style="font-size:7px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">focus s · best</div>
+      </div>
+      <div style="background:var(--card2);border-radius:8px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);line-height:1;">${games.length}</div>
+        <div style="font-size:7px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;margin-top:2px;">sesji</div>
+      </div>
+    </div>
+    ${withWarmup > 0 ? `<div style="background:rgba(61,184,112,0.06);border:1px solid rgba(61,184,112,0.2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--fg2);">✓ <b>${withWarmup}</b> treningów z warm-upem mentalnym</div>` : ''}
+  `;
+  container.appendChild(mentalEl);
 }
 
 async function loadPanelChat() {

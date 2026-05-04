@@ -2078,7 +2078,7 @@ function switchProfileTab(tab) {
     if (panel) panel.style.display = t === tab ? 'block' : 'none';
   });
   if (tab === 'msgs')   _mountMsgsInProfile();
-  if (tab === 'stats')  _loadStatsInProfile();
+  if (tab === 'stats')  { _loadStatsInProfile(); setTimeout(_loadMentalDashboard, 600); }
   if (tab === 'calc')   _initCalcFromPBs();
   if (tab === 'badges') { loadAchievements().then(() => renderBadgesSection()); }
 }
@@ -2244,7 +2244,8 @@ async function _loadStatsInProfile() {
         <div style="font-size:16px;">${feel}</div>
       </div>`;
     }).join('')}
-  </div>`;
+  </div>
+  <div id="mental-dashboard-section"></div>`;
 
   // Chart
   const renderChart = () => {
@@ -2258,6 +2259,287 @@ async function _loadStatsInProfile() {
   if (!window.Chart) {
     const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';s.onload=renderChart;document.head.appendChild(s);
   } else { renderChart(); }
+}
+
+// ═════════════════════════════════════════════════
+// MENTAL DASHBOARD — sesja 4/4 (game_scores + korelacja)
+// ═════════════════════════════════════════════════
+async function _loadMentalDashboard() {
+  const el = document.getElementById('mental-dashboard-section');
+  if (!el || !_athleteId) return;
+
+  // Pobierz dane z game_scores (90 dni) + training_logs (do korelacji)
+  const since90 = new Date(); since90.setDate(since90.getDate() - 90);
+  const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+  const since7 = new Date(); since7.setDate(since7.getDate() - 7);
+
+  const [gamesRes, logsRes] = await Promise.all([
+    _sb.from('game_scores')
+      .select('mode, score, reaction_avg_ms, focus_duration_sec, consistency_score, finished, created_at')
+      .eq('athlete_id', _athleteId)
+      .gte('created_at', since90.toISOString())
+      .order('created_at', { ascending: true }),
+    _sb.from('training_logs')
+      .select('training_type, distance_km, pace, comment, logged_at')
+      .eq('athlete_id', _athleteId)
+      .gte('logged_at', since90.toISOString())
+      .not('training_type', 'like', '__badge__%')
+      .order('logged_at', { ascending: true })
+  ]);
+
+  const games = gamesRes.data || [];
+  const logs = logsRes.data || [];
+
+  if (!games.length) {
+    el.innerHTML = `
+      <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:24px 0 10px;">🧠 Trening mentalny</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;text-align:center;">
+        <div style="font-size:36px;margin-bottom:8px;opacity:0.6;">🎮</div>
+        <div style="font-size:13px;color:var(--fg);margin-bottom:4px;">Brak danych z gry</div>
+        <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.5;margin-bottom:14px;">Zagraj w Runner Rush żeby zobaczyć swoje metryki mentalne</div>
+        <a href="gra.html" style="display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-family:DM Mono,monospace;font-size:10px;padding:9px 20px;border-radius:8px;letter-spacing:0.1em;text-transform:uppercase;">▶ Zagraj</a>
+      </div>`;
+    return;
+  }
+
+  // ── METRYKI ──
+  const games7 = games.filter(g => new Date(g.created_at) >= since7);
+  const games30 = games.filter(g => new Date(g.created_at) >= since30);
+
+  // Średnie reaction time (mniejsze = lepsze)
+  const reactArr7 = games7.filter(g => g.reaction_avg_ms > 0).map(g => g.reaction_avg_ms);
+  const reactArr30 = games30.filter(g => g.reaction_avg_ms > 0).map(g => g.reaction_avg_ms);
+  const avgReact7 = reactArr7.length ? Math.round(reactArr7.reduce((s,x)=>s+x,0)/reactArr7.length) : null;
+  const avgReact30 = reactArr30.length ? Math.round(reactArr30.reduce((s,x)=>s+x,0)/reactArr30.length) : null;
+
+  // Trend reakcji — porównanie pierwszej połowy 30 dni z drugą
+  const halfLen = Math.floor(games30.length / 2);
+  const firstHalf = games30.slice(0, halfLen).filter(g => g.reaction_avg_ms > 0).map(g => g.reaction_avg_ms);
+  const secondHalf = games30.slice(halfLen).filter(g => g.reaction_avg_ms > 0).map(g => g.reaction_avg_ms);
+  const avgFirst = firstHalf.length ? firstHalf.reduce((s,x)=>s+x,0)/firstHalf.length : null;
+  const avgSecond = secondHalf.length ? secondHalf.reduce((s,x)=>s+x,0)/secondHalf.length : null;
+  const trendReact = (avgFirst && avgSecond) ? Math.round(((avgFirst - avgSecond) / avgFirst) * 100) : null;
+  // Dodatnie = poprawa (szybsza reakcja), ujemne = gorzej
+
+  // Best focus
+  const bestFocus = games30.length ? Math.max(...games30.map(g => g.focus_duration_sec || 0)) : 0;
+
+  // Sesje per tryb
+  const modeCounts = {};
+  games30.forEach(g => { modeCounts[g.mode] = (modeCounts[g.mode] || 0) + 1; });
+
+  // Sesje ukończone
+  const finishedCount = games30.filter(g => g.finished).length;
+  const finishedPct = games30.length ? Math.round((finishedCount / games30.length) * 100) : 0;
+
+  // ── KORELACJA: gra przed treningiem → wyniki ──
+  // Strategy: dla każdego logu treningowego sprawdź czy gra była w ciągu 4h przed
+  let logsWithWarmup = 0, logsWithoutWarmup = 0;
+  let paceWithWarmup = [], paceWithoutWarmup = [];
+  
+  logs.forEach(log => {
+    if (!log.pace || !log.pace.includes(':')) return;
+    if (log.training_type === 'Warm-up mentalny') return;
+    const logTime = new Date(log.logged_at).getTime();
+    const fourHoursBefore = logTime - 4 * 3600 * 1000;
+    const hadWarmup = games.some(g => {
+      const gt = new Date(g.created_at).getTime();
+      return gt >= fourHoursBefore && gt <= logTime;
+    });
+    // Także sprawdź tag w komentarzu
+    const taggedWarmup = log.comment && log.comment.includes('warm-upem mentalnym');
+    const isWarmup = hadWarmup || taggedWarmup;
+    
+    const paceParts = log.pace.split(':').map(Number);
+    if (paceParts.length !== 2 || isNaN(paceParts[0]) || isNaN(paceParts[1])) return;
+    const paceSec = paceParts[0] * 60 + paceParts[1];
+    
+    if (isWarmup) { logsWithWarmup++; paceWithWarmup.push(paceSec); }
+    else { logsWithoutWarmup++; paceWithoutWarmup.push(paceSec); }
+  });
+  
+  const avgPaceWith = paceWithWarmup.length ? paceWithWarmup.reduce((s,x)=>s+x,0)/paceWithWarmup.length : null;
+  const avgPaceWithout = paceWithoutWarmup.length ? paceWithoutWarmup.reduce((s,x)=>s+x,0)/paceWithoutWarmup.length : null;
+  // Mniejsze pace = szybciej. Procent szybciej z warm-upem:
+  const correlationPct = (avgPaceWith && avgPaceWithout) 
+    ? Math.round(((avgPaceWithout - avgPaceWith) / avgPaceWithout) * 100)
+    : null;
+
+  // ── DAILY chart data — reaction time ostatnie 30 dni ──
+  // Grupuj po tygodniach
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) {
+    const wEnd = new Date(); wEnd.setDate(wEnd.getDate() - i*7);
+    const wStart = new Date(wEnd); wStart.setDate(wStart.getDate() - 6);
+    const wGames = games.filter(g => {
+      const d = new Date(g.created_at);
+      return d >= wStart && d <= wEnd && g.reaction_avg_ms > 0;
+    });
+    const avg = wGames.length ? Math.round(wGames.reduce((s,g)=>s+g.reaction_avg_ms,0)/wGames.length) : null;
+    weeks.push({
+      label: wEnd.getDate() + '.' + String(wEnd.getMonth()+1).padStart(2,'0'),
+      avg: avg
+    });
+  }
+
+  // Mode names with emoji
+  const MODE_INFO = {
+    calm: {emoji:'🐢', name:'Spokojny'},
+    intervals: {emoji:'⚡', name:'Interwały'},
+    tempo: {emoji:'🎯', name:'Tempo'},
+    longrun: {emoji:'🏔', name:'Długi'},
+    classic: {emoji:'🏃', name:'Klasyczny'}
+  };
+
+  // ── RENDER ──
+  let trendBadge = '';
+  if (trendReact !== null) {
+    if (trendReact > 5) trendBadge = '<span style="color:#3db870;font-size:11px;font-family:DM Mono,monospace;">↓ ' + trendReact + '% szybciej</span>';
+    else if (trendReact < -5) trendBadge = '<span style="color:#e05050;font-size:11px;font-family:DM Mono,monospace;">↑ ' + Math.abs(trendReact) + '% wolniej</span>';
+    else trendBadge = '<span style="color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">stabilnie</span>';
+  }
+
+  let html = `
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:24px 0 10px;">🧠 Trening mentalny</div>
+
+    <!-- Top metrics -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+      <div style="background:var(--card);border:1px solid rgba(80,144,224,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#5090e0;line-height:1;">${avgReact7 || '—'}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">reakcja (ms)</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">7 dni</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(61,184,112,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#3db870;line-height:1;">${bestFocus || '—'}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">focus (s)</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">najdłuższy</div>
+      </div>
+      <div style="background:var(--card);border:1px solid rgba(232,86,30,0.3);border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--accent);line-height:1;">${games30.length}</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;letter-spacing:0.1em;text-transform:uppercase;">sesji</div>
+        <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">${finishedPct}% ukończ.</div>
+      </div>
+    </div>
+
+    <!-- Reaction trend chart -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:600;">Reakcja w czasie</div>
+        ${trendBadge}
+      </div>
+      <canvas id="chart-mental-react" height="120"></canvas>
+      <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:6px;letter-spacing:0.05em;">Niżej = szybciej. Trend ostatnich 8 tyg.</div>
+    </div>
+
+    <!-- Sesje per tryb -->
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:600;margin-bottom:10px;">Tryby gry (30 dni)</div>
+      ${Object.keys(modeCounts).length === 0 
+        ? '<div style="font-size:11px;color:var(--muted);">Brak danych</div>'
+        : Object.entries(modeCounts).sort((a,b)=>b[1]-a[1]).map(([mode, count]) => {
+            const info = MODE_INFO[mode] || {emoji:'🎮', name:mode};
+            const pct = Math.round(count / games30.length * 100);
+            return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+              <span style="font-size:16px;">${info.emoji}</span>
+              <span style="font-size:12px;flex:1;">${info.name}</span>
+              <span style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">${count}× · ${pct}%</span>
+            </div>
+            <div style="background:var(--card2);border-radius:3px;height:3px;margin-bottom:8px;">
+              <div style="background:var(--accent);height:3px;border-radius:3px;width:${pct}%;"></div>
+            </div>`;
+          }).join('')
+      }
+    </div>`;
+
+  // Korelacja
+  if (correlationPct !== null && (logsWithWarmup >= 3)) {
+    const isPositive = correlationPct > 1;
+    const isNegative = correlationPct < -1;
+    const color = isPositive ? '#3db870' : isNegative ? '#e05050' : 'var(--muted)';
+    const icon = isPositive ? '🚀' : isNegative ? '🤔' : '➡️';
+    const label = isPositive 
+      ? `${correlationPct}% szybsze tempo`
+      : isNegative 
+        ? `${Math.abs(correlationPct)}% wolniejsze tempo`
+        : 'Brak różnicy';
+    const text = isPositive
+      ? `Twoje treningi z warm-upem mentalnym są szybsze. Mocne narzędzie!`
+      : isNegative
+        ? `Twoje treningi z warm-upem są wolniejsze. To może być przypadek (mała próba) — kontynuuj zbieranie danych.`
+        : `Tempo treningów z i bez warm-upu wygląda podobnie.`;
+    
+    html += `
+      <div style="background:linear-gradient(135deg,rgba(232,86,30,0.06),rgba(80,144,224,0.04));border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+          <span style="font-size:20px;">${icon}</span>
+          <div style="flex:1;">
+            <div style="font-size:11px;font-weight:600;color:${color};">${label}</div>
+            <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">korelacja gra ↔ trening</div>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--fg2);line-height:1.5;margin-bottom:8px;">${text}</div>
+        <div style="display:flex;gap:8px;font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">
+          <span>Z warm-upem: <b style="color:var(--fg);">${logsWithWarmup}</b> tr.</span>
+          <span>·</span>
+          <span>Bez: <b style="color:var(--fg);">${logsWithoutWarmup}</b> tr.</span>
+        </div>
+      </div>`;
+  } else if (logsWithWarmup < 3) {
+    html += `
+      <div style="background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;text-align:center;">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;">📊 Zagraj jako warm-up przed kilkoma treningami żeby zobaczyć korelację gra ↔ wyniki</div>
+        <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">obecnie: ${logsWithWarmup}/3 takich treningów</div>
+      </div>`;
+  }
+
+  // CTA do gry
+  html += `
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <a href="gra.html" style="flex:1;background:var(--accent);color:#fff;text-decoration:none;font-family:DM Mono,monospace;font-size:10px;padding:11px;border-radius:10px;letter-spacing:0.1em;text-transform:uppercase;text-align:center;font-weight:600;">▶ Zagraj sesję</a>
+      <a href="gra.html" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--fg);text-decoration:none;font-family:DM Mono,monospace;font-size:10px;padding:11px;border-radius:10px;letter-spacing:0.1em;text-transform:uppercase;text-align:center;">📊 Pełen ranking</a>
+    </div>`;
+
+  el.innerHTML = html;
+
+  // Render chart
+  const renderMentalChart = () => {
+    const canvas = document.getElementById('chart-mental-react');
+    if (!canvas || !window.Chart) return;
+    new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: weeks.map(w => w.label),
+        datasets: [{
+          data: weeks.map(w => w.avg),
+          borderColor: '#5090e0',
+          backgroundColor: 'rgba(80,144,224,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3,
+          pointBackgroundColor: '#5090e0',
+          spanGaps: true
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(42,42,50,0.5)' }, ticks: { color: '#66636e', font: { size: 9 } } },
+          y: { 
+            grid: { color: 'rgba(42,42,50,0.5)' }, 
+            ticks: { 
+              color: '#66636e', 
+              font: { size: 9 },
+              callback: v => v + 'ms'
+            },
+            // Niższe wartości = lepsze, więc nie reverse — niżej = szybciej
+            beginAtZero: false
+          }
+        }
+      }
+    });
+  };
+  if (window.Chart) renderMentalChart();
+  else setTimeout(renderMentalChart, 800);  // Chart.js ładowane przez stats
 }
 
 // ── PRIVACY TOGGLE ────────────────────────────────────────────────
