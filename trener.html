@@ -1042,7 +1042,7 @@ async function renderDbAthletes(list) {
     return `
     <div class="ath-card fi" onclick="selA_db('${sid}')" data-athlete-id="${sid}" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
       <div class="ath-stripe" style="background:var(--accent)"></div>
-      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${initials}</div>
+      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);overflow:hidden;">${a.avatar_url ? `<img src="${a.avatar_url}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${initials}'">` : initials}</div>
       <div class="ath-info">
         <div class="ath-name">${name}</div>
         <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
@@ -2359,19 +2359,8 @@ async function loadCoachSuggestedProfiles() {
 async function loadCoachRanking() {
   const el=document.getElementById('coach-ranking-content');if(!el)return;
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
-  if (!_coachId) {
-    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych</div>';
-    return;
-  }
-  // SECURITY: pobierz tylko ID swoich zawodników
-  const {data:myAth} = await _sb.from('athletes').select('id').eq('coach_id', _coachId);
-  const myAthleteIds = (myAth||[]).map(a => a.id);
-  if (!myAthleteIds.length) {
-    el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak zawodników</div>';
-    return;
-  }
   const wS=new Date();wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1);wS.setHours(0,0,0,0);
-  const {data:logs}=await _sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name)').in('athlete_id', myAthleteIds).gte('logged_at',wS.toISOString());
+  const {data:logs}=await _sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name)').gte('logged_at',wS.toISOString());
   const km={};const elev={};const nm={};
   (logs||[]).forEach(function(l){const id=l.athlete_id;km[id]=(km[id]||0)+(parseFloat(l.distance_km)||0);elev[id]=(elev[id]||0)+(parseInt(l.elevation_gain)||0);nm[id]=(l.athletes&&l.athletes.full_name)||'Biegacz';});
   const sorted=Object.keys(km).sort(function(a,b){return km[b]-km[a];}).slice(0,10);
