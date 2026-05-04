@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Runner Rush · BiegaMy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.45);
+  --accent:#e8561e;--muted:rgba(240,237,232,0.38);
+  --green:#3db870;--red:#e05050;--blue:#5090e0;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;}
+
+/* ── Top bar ─────────────────────────────── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:max(12px,env(safe-area-inset-top,12px)) 16px 10px;background:linear-gradient(to bottom,rgba(7,7,10,0.9),transparent);}
+.back-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;text-decoration:none;backdrop-filter:blur(8px);}
+.tb-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);}
+.tb-title span{color:var(--accent);}
+.tb-spacer{width:36px;}
+
+/* ── Screens ─────────────────────────────── */
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px 40px;}
+.screen.hidden{display:none;}
+
+/* ── Home / Pre-run ───────────────────────── */
+#screen-home{overflow-y:auto;padding-top:80px;justify-content:flex-start;}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:0.04em;line-height:0.95;text-align:center;margin-bottom:6px;}
+.hero-title .accent{color:var(--accent);}
+.hero-sub{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:30px;}
+
+.bonuses-card{
+  width:100%;max-width:380px;
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:18px 20px;margin-bottom:24px;
+}
+.bonuses-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.bonuses-icon{font-size:22px;}
+.bonuses-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+.bonus-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.bonus-row:last-child{border-bottom:none;}
+.bonus-label{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg2);}
+.bonus-icon{font-size:16px;}
+.bonus-value{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);font-weight:600;}
+.bonus-value.green{color:var(--green);}
+.bonus-value.muted{color:var(--muted);}
+
+.btn-primary{
+  background:var(--accent);color:#fff;border:none;
+  padding:18px 50px;border-radius:14px;
+  font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.06em;
+  cursor:pointer;box-shadow:0 6px 24px rgba(232,86,30,0.4);
+  transition:transform 0.1s,box-shadow 0.1s;
+  display:flex;align-items:center;gap:10px;
+}
+.btn-primary:active{transform:scale(0.96);box-shadow:0 3px 12px rgba(232,86,30,0.3);}
+
+.btn-secondary{
+  background:rgba(255,255,255,0.05);color:var(--fg2);border:1px solid var(--border);
+  padding:10px 22px;border-radius:10px;
+  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
+  cursor:pointer;margin-top:14px;
+}
+
+.high-score{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:18px;letter-spacing:0.1em;}
+.high-score b{color:var(--accent);font-size:14px;font-weight:500;}
+
+/* ── In-game ─────────────────────────────── */
+#screen-game{padding:0;}
+canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;}
+
+.hud{position:fixed;top:0;left:0;right:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;z-index:10;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;}
+.hud-left,.hud-right{display:flex;flex-direction:column;gap:6px;}
+.hud-right{align-items:flex-end;}
+.hud-score{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.8);}
+.hud-multi{font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,0.8);}
+.hud-multi.pulse{animation:pulse 0.5s ease-in-out;}
+@keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.4);color:#fff;}100%{transform:scale(1);}}
+.hud-speed{font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
+.hud-distance{font-family:'DM Mono',monospace;font-size:13px;color:var(--fg);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:500;}
+.hud-lives{font-family:'DM Mono',monospace;font-size:14px;display:flex;gap:3px;}
+
+.dash-meter{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:10px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);}
+.dash-pip{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.15);}
+.dash-pip.active{background:var(--accent);box-shadow:0 0 8px var(--accent);}
+
+/* ── Game Over ───────────────────────────── */
+#screen-end{background:rgba(7,7,10,0.92);backdrop-filter:blur(8px);}
+.end-card{
+  width:100%;max-width:340px;
+  background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:30px 24px;text-align:center;
+}
+.end-title{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.04em;margin-bottom:6px;}
+.end-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;}
+.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:64px;color:var(--accent);line-height:1;margin-bottom:4px;}
+.end-score-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
+.end-stats{display:flex;justify-content:space-around;margin-bottom:22px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.end-stat{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.end-stat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);}
+.end-stat-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+
+.new-record{background:linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,184,64,0.15));border:1px solid var(--accent);border-radius:12px;padding:8px 14px;margin-bottom:18px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+
+.btn-row{display:flex;gap:10px;justify-content:center;}
+.btn-restart{background:var(--accent);color:#fff;border:none;padding:14px 28px;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;}
+.btn-home{background:rgba(255,255,255,0.06);color:var(--fg2);border:1px solid var(--border);padding:14px 22px;border-radius:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
+
+/* ── Leaderboard ──────────────────────────── */
+.lb-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:20px;}
+.lb-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.lb-row:last-child{border-bottom:none;}
+.lb-row.me{background:rgba(232,86,30,0.08);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px;}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:22px;width:28px;text-align:center;color:var(--muted);}
+.lb-rank.top{color:var(--accent);}
+.lb-name{flex:1;font-size:13px;color:var(--fg);}
+.lb-score{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;}
+
+/* ── Toast ──────────────────────────────── */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(7,7,10,0.95);backdrop-filter:blur(12px);border:1px solid var(--accent);color:var(--accent);padding:10px 18px;border-radius:24px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;opacity:0;pointer-events:none;transition:all 0.3s;z-index:30;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ── Tutorial ─────────────────────────────── */
+.tutorial{position:fixed;inset:0;background:rgba(7,7,10,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+.tut-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;}
+.tut-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;margin-bottom:6px;}
+.tut-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.05);text-align:left;}
+.tut-row:first-of-type{border-top:none;}
+.tut-icon{font-size:28px;width:40px;text-align:center;}
+.tut-text{flex:1;font-size:13px;color:var(--fg2);line-height:1.4;}
+.tut-text b{color:var(--fg);}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ HOME / PRE-RUN ═══════════════ -->
+<div id="screen-home" class="screen">
+  <div class="topbar">
+    <a class="back-btn" href="zawodnik.html">‹</a>
+    <div class="tb-title">RUNNER<span>RUSH</span></div>
+    <div class="tb-spacer"></div>
+  </div>
+
+  <div class="hero-title">Twój trening<br><span class="accent">to twoja broń</span></div>
+  <div class="hero-sub">Endless runner · Skill + Trening</div>
+
+  <div class="bonuses-card" id="bonuses-card">
+    <div class="bonuses-hdr">
+      <div class="bonuses-icon">⚡</div>
+      <div class="bonuses-title">Aktywne bonusy z treningów</div>
+    </div>
+    <div id="bonuses-list">
+      <div class="bonus-row">
+        <div class="bonus-label"><span class="bonus-icon">📊</span><span>Ładowanie...</span></div>
+        <div class="bonus-value muted">—</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-primary" onclick="startGame()">▶ GRAJ</button>
+
+  <div class="high-score">Twój rekord: <b id="high-score">0</b></div>
+
+  <button class="btn-secondary" onclick="showLeaderboard()">🏆 Ranking znajomych</button>
+
+  <div id="leaderboard-section" style="display:none;width:100%;max-width:380px;margin-top:24px;">
+    <div class="bonuses-title" style="text-align:center;margin-bottom:10px;">Top 10</div>
+    <div class="lb-card" id="lb-card">
+      <div style="text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">Ładowanie...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TUTORIAL ═══════════════ -->
+<div class="tutorial" id="tutorial" style="display:none;">
+  <div class="tut-card">
+    <div class="tut-title">JAK GRAĆ</div>
+    <div class="tut-row">
+      <div class="tut-icon">👆</div>
+      <div class="tut-text"><b>Tap / Spacja</b> — skok</div>
+    </div>
+    <div class="tut-row">
+      <div class="tut-icon">⏱</div>
+      <div class="tut-text"><b>Przytrzymaj</b> — wyższy skok</div>
+    </div>
+    <div class="tut-row">
+      <div class="tut-icon">⚡</div>
+      <div class="tut-text"><b>Dwuklik</b> — dash (przebij przeszkodę)</div>
+    </div>
+    <div class="tut-row">
+      <div class="tut-icon">🔥</div>
+      <div class="tut-text"><b>Combo</b> — multiplier rośnie za serię ominięć</div>
+    </div>
+    <button class="btn-primary" style="margin-top:18px;" onclick="closeTutorial()">START</button>
+  </div>
+</div>
+
+<!-- ═══════════════ IN-GAME ═══════════════ -->
+<div id="screen-game" class="screen hidden">
+  <canvas id="game-canvas"></canvas>
+  <div class="hud">
+    <div class="hud-left">
+      <div class="hud-score" id="hud-score">0</div>
+      <div class="hud-multi" id="hud-multi">x1.0</div>
+    </div>
+    <div class="hud-right">
+      <div class="hud-distance" id="hud-distance">0 m</div>
+      <div class="hud-speed" id="hud-speed">0 km/h</div>
+      <div class="hud-lives" id="hud-lives">❤❤❤</div>
+    </div>
+  </div>
+  <div class="dash-meter" id="dash-meter">
+    <span>DASH</span>
+    <div class="dash-pip" id="dash-1"></div>
+    <div class="dash-pip" id="dash-2"></div>
+    <div class="dash-pip" id="dash-3"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ GAME OVER ═══════════════ -->
+<div id="screen-end" class="screen hidden">
+  <div class="end-card">
+    <div class="end-title">KONIEC</div>
+    <div class="end-sub" id="end-sub">Spróbuj jeszcze raz</div>
+    <div id="new-record-banner" class="new-record" style="display:none;">🔥 NOWY REKORD!</div>
+    <div class="end-score-big" id="end-score">0</div>
+    <div class="end-score-lbl">Punktów</div>
+    <div class="end-stats">
+      <div class="end-stat">
+        <div class="end-stat-val" id="end-distance">0</div>
+        <div class="end-stat-lbl">Dystans (m)</div>
+      </div>
+      <div class="end-stat">
+        <div class="end-stat-val" id="end-coins">0</div>
+        <div class="end-stat-lbl">Monet</div>
+      </div>
+      <div class="end-stat">
+        <div class="end-stat-val" id="end-multi">x1</div>
+        <div class="end-stat-lbl">Max combo</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-restart" onclick="startGame()">▶ JESZCZE RAZ</button>
+      <button class="btn-home" onclick="goHome()">DOM</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═════════════════════════════════════════════════
+// SUPABASE + USER
+// ═════════════════════════════════════════════════
+const _sb = supabase.createClient(
+  'https://afqojgkaveykxbltxzwm.supabase.co',
+  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
+);
+
+let _athleteId = null;
+let _athleteName = null;
+let _bonuses = {
+  startMulti: 1.0,
+  maxSpeed: 1.0,        // multiplier
+  staminaScale: 1.0,    // wolniejszy speed wzrost = lepiej
+  dashCount: 1
+};
+
+async function initUser() {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) {
+    location.href = 'index.html';
+    return;
+  }
+  const { data: ath } = await _sb.from('athletes')
+    .select('id, full_name')
+    .eq('user_id', session.user.id)
+    .maybeSingle();
+  if (!ath) return;
+  _athleteId = ath.id;
+  _athleteName = ath.full_name || 'Biegacz';
+
+  await loadBonuses();
+  await loadHighScore();
+}
+
+async function loadBonuses() {
+  if (!_athleteId) return;
+  // Tygodniowe km
+  const wS = new Date(); wS.setDate(wS.getDate() - 7);
+  const { data: weekLogs } = await _sb.from('training_logs')
+    .select('distance_km, training_type, pace')
+    .eq('athlete_id', _athleteId)
+    .gte('logged_at', wS.toISOString());
+
+  const weekKm = (weekLogs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  const intervalCount = (weekLogs || []).filter(l => l.training_type === 'Interwały').length;
+
+  // Streak (uproszczone — z ostatnich 30 dni)
+  const m30 = new Date(); m30.setDate(m30.getDate() - 30);
+  const { data: monthLogs } = await _sb.from('training_logs')
+    .select('logged_at')
+    .eq('athlete_id', _athleteId)
+    .gte('logged_at', m30.toISOString())
+    .not('training_type', 'like', '__badge__%');
+  const days = [...new Set((monthLogs || []).map(l => l.logged_at.slice(0, 10)))].sort();
+  let streak = 0, cur = 1;
+  for (let i = 1; i < days.length; i++) {
+    const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
+    if (diff === 1) { cur++; streak = Math.max(streak, cur); }
+    else if (diff > 1) cur = 1;
+  }
+  if (days.length === 1) streak = 1;
+
+  // Średnie tempo
+  const paceLogs = (weekLogs || []).filter(l => l.pace && l.pace.includes(':'));
+  let avgPaceSec = null;
+  if (paceLogs.length) {
+    const total = paceLogs.reduce((s, l) => {
+      const [m, sec] = l.pace.split(':').map(Number);
+      return s + (m * 60 + (sec || 0));
+    }, 0);
+    avgPaceSec = total / paceLogs.length;
+  }
+
+  // ── MAPOWANIE NA GAMEPLAY ──
+  // weekly_distance → staminaScale (im więcej km tym wolniejszy wzrost speed)
+  _bonuses.staminaScale = weekKm >= 50 ? 0.7 : weekKm >= 30 ? 0.85 : weekKm >= 10 ? 0.95 : 1.0;
+
+  // avg_pace → maxSpeed (szybsze tempo = wyższy cap)
+  if (avgPaceSec !== null) {
+    if (avgPaceSec < 270) _bonuses.maxSpeed = 1.3;       // < 4:30/km
+    else if (avgPaceSec < 300) _bonuses.maxSpeed = 1.2;  // < 5:00/km
+    else if (avgPaceSec < 360) _bonuses.maxSpeed = 1.1;  // < 6:00/km
+    else _bonuses.maxSpeed = 1.0;
+  }
+
+  // streak → start_multiplier
+  if (streak >= 7) _bonuses.startMulti = 2.0;
+  else if (streak >= 3) _bonuses.startMulti = 1.5;
+  else if (streak >= 1) _bonuses.startMulti = 1.2;
+
+  // intervals → dash count
+  _bonuses.dashCount = Math.min(3, 1 + intervalCount);
+
+  // Render w UI
+  const html = [
+    {
+      icon: '🏃',
+      label: 'Tygodniowe km',
+      val: weekKm.toFixed(1) + ' km',
+      bonus: _bonuses.staminaScale < 1.0 ? '↓ stamina' : '—',
+      cls: _bonuses.staminaScale < 1.0 ? 'green' : 'muted'
+    },
+    {
+      icon: '⚡',
+      label: 'Średnie tempo',
+      val: avgPaceSec ? Math.floor(avgPaceSec/60) + ':' + String(Math.round(avgPaceSec%60)).padStart(2,'0') : '—',
+      bonus: _bonuses.maxSpeed > 1.0 ? '+' + Math.round((_bonuses.maxSpeed-1)*100) + '% max speed' : '—',
+      cls: _bonuses.maxSpeed > 1.0 ? 'green' : 'muted'
+    },
+    {
+      icon: '🔥',
+      label: 'Streak',
+      val: streak + (streak === 1 ? ' dzień' : ' dni'),
+      bonus: _bonuses.startMulti > 1.0 ? 'x' + _bonuses.startMulti + ' start' : '—',
+      cls: _bonuses.startMulti > 1.0 ? 'green' : 'muted'
+    },
+    {
+      icon: '💨',
+      label: 'Interwały',
+      val: intervalCount + ' w tygodniu',
+      bonus: _bonuses.dashCount + 'x dash',
+      cls: _bonuses.dashCount > 1 ? 'green' : 'muted'
+    }
+  ];
+
+  document.getElementById('bonuses-list').innerHTML = html.map(b =>
+    '<div class="bonus-row">'
+    + '<div class="bonus-label"><span class="bonus-icon">' + b.icon + '</span>'
+    + '<span>' + b.label + ': <b>' + b.val + '</b></span></div>'
+    + '<div class="bonus-value ' + b.cls + '">' + b.bonus + '</div>'
+    + '</div>'
+  ).join('');
+}
+
+async function loadHighScore() {
+  if (!_athleteId) return;
+  const { data } = await _sb.from('game_scores')
+    .select('score')
+    .eq('athlete_id', _athleteId)
+    .order('score', { ascending: false })
+    .limit(1);
+  const hi = data?.[0]?.score || 0;
+  document.getElementById('high-score').textContent = hi;
+  window._highScore = hi;
+}
+
+async function showLeaderboard() {
+  const sec = document.getElementById('leaderboard-section');
+  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+  if (sec.style.display === 'none') return;
+
+  // Pobierz znajomych + siebie
+  const friendsRes = await _sb.from('friendships')
+    .select('requester_id, addressee_id')
+    .eq('status', 'accepted')
+    .or('requester_id.eq.' + _athleteId + ',addressee_id.eq.' + _athleteId);
+  const friendIds = new Set([_athleteId]);
+  (friendsRes.data || []).forEach(f => {
+    friendIds.add(f.requester_id);
+    friendIds.add(f.addressee_id);
+  });
+
+  const ids = [...friendIds];
+  const { data: scores } = await _sb.from('game_scores')
+    .select('athlete_id, score, athletes(full_name, avatar_url)')
+    .in('athlete_id', ids)
+    .order('score', { ascending: false })
+    .limit(20);
+
+  // Top score per athlete
+  const seen = new Set();
+  const top = (scores || []).filter(s => {
+    if (seen.has(s.athlete_id)) return false;
+    seen.add(s.athlete_id);
+    return true;
+  }).slice(0, 10);
+
+  const card = document.getElementById('lb-card');
+  if (!top.length) {
+    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">Brak wyników. Bądź pierwszy!</div>';
+    return;
+  }
+  card.innerHTML = top.map((s, i) => {
+    const isMe = s.athlete_id === _athleteId;
+    const name = s.athletes?.full_name || 'Biegacz';
+    return '<div class="lb-row' + (isMe ? ' me' : '') + '">'
+      + '<div class="lb-rank' + (i < 3 ? ' top' : '') + '">' + (i+1) + '</div>'
+      + '<div class="lb-name">' + name + (isMe ? ' (Ty)' : '') + '</div>'
+      + '<div class="lb-score">' + s.score + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ═════════════════════════════════════════════════
+// GAME ENGINE
+// ═════════════════════════════════════════════════
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+
+let W, H, GROUND_Y;
+function resize() {
+  W = canvas.width = window.innerWidth * (window.devicePixelRatio || 1);
+  H = canvas.height = window.innerHeight * (window.devicePixelRatio || 1);
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+  GROUND_Y = H - H * 0.18;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Game state
+let game = null;
+
+function newGame() {
+  return {
+    running: false,
+    over: false,
+    t: 0,                    // czas w klatkach
+    distance: 0,             // metry
+    score: 0,
+    multi: _bonuses.startMulti,
+    maxMulti: _bonuses.startMulti,
+    coins: 0,
+    speed: 4 * (window.devicePixelRatio || 1),  // px/klatka bazowe
+    speedScale: _bonuses.maxSpeed,
+    lives: 3,
+    invuln: 0,               // klatki nietykalności po kolizji
+    // Player
+    px: W * 0.18,
+    py: GROUND_Y,
+    vy: 0,
+    onGround: true,
+    jumpHold: 0,
+    canDoubleJump: false,
+    dashing: 0,              // klatki dasha
+    dashLeft: _bonuses.dashCount,
+    // Spawning
+    nextObstacleIn: 90,
+    nextCoinIn: 60,
+    obstacles: [],
+    coinsArr: [],
+    particles: [],
+    // Combo
+    lastJump: 0,
+    perfectStreak: 0
+  };
+}
+
+// ── INPUT ──
+let keys = {};
+let lastTap = 0;
+function onTapDown(e) {
+  if (e.cancelable) e.preventDefault();
+  if (!game || !game.running) return;
+  const now = performance.now();
+  if (now - lastTap < 280) {
+    // Double tap → dash
+    tryDash();
+    lastTap = 0;
+    return;
+  }
+  lastTap = now;
+  // Skok
+  if (game.onGround) {
+    game.vy = -16 * (window.devicePixelRatio || 1);
+    game.onGround = false;
+    game.canDoubleJump = true;
+    game.jumpHold = 1;
+  } else if (game.canDoubleJump) {
+    game.vy = -13 * (window.devicePixelRatio || 1);
+    game.canDoubleJump = false;
+    spawnParticles(game.px, game.py, '#5090e0', 8);
+  }
+}
+function onTapUp() {
+  if (!game) return;
+  game.jumpHold = 0;
+}
+function tryDash() {
+  if (!game || game.dashing > 0 || game.dashLeft <= 0) return;
+  game.dashing = 22;
+  game.dashLeft--;
+  game.invuln = 22;
+  spawnParticles(game.px, game.py - 30 * (window.devicePixelRatio || 1), '#e8561e', 16);
+  showToast('DASH!');
+  updateDashUI();
+}
+
+canvas.addEventListener('touchstart', onTapDown, { passive: false });
+canvas.addEventListener('touchend', onTapUp);
+canvas.addEventListener('mousedown', onTapDown);
+canvas.addEventListener('mouseup', onTapUp);
+window.addEventListener('keydown', e => {
+  if (!game || !game.running) return;
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    if (!keys[e.code]) onTapDown(e);
+    keys[e.code] = true;
+    e.preventDefault();
+  }
+  if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
+    tryDash();
+  }
+});
+window.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  if (e.code === 'Space' || e.code === 'ArrowUp') onTapUp();
+});
+
+// ── SPAWNING ──
+function spawnObstacle() {
+  const dpr = window.devicePixelRatio || 1;
+  const types = ['low', 'high', 'gap'];
+  // Im wyższa speed, tym częściej trudniejsze
+  const type = game.speed > 8 * dpr && Math.random() < 0.4
+    ? types[1 + Math.floor(Math.random()*2)]
+    : types[Math.floor(Math.random()*3)];
+  game.obstacles.push({
+    type,
+    x: W + 50 * dpr,
+    w: type === 'gap' ? 80 * dpr : 30 * dpr,
+    h: type === 'high' ? 60 * dpr : 30 * dpr,
+    passed: false
+  });
+}
+
+function spawnCoin() {
+  const dpr = window.devicePixelRatio || 1;
+  const yOffset = Math.random() < 0.5 ? 60 * dpr : 110 * dpr;
+  game.coinsArr.push({
+    x: W + 30 * dpr,
+    y: GROUND_Y - yOffset,
+    r: 12 * dpr,
+    collected: false,
+    bob: Math.random() * Math.PI * 2
+  });
+}
+
+function spawnParticles(x, y, color, count) {
+  const dpr = window.devicePixelRatio || 1;
+  for (let i = 0; i < count; i++) {
+    game.particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 8 * dpr,
+      vy: (Math.random() - 0.5) * 8 * dpr - 2 * dpr,
+      r: (Math.random() * 3 + 1) * dpr,
+      color,
+      life: 30
+    });
+  }
+}
+
+// ── UPDATE ──
+function update() {
+  if (!game.running) return;
+  const dpr = window.devicePixelRatio || 1;
+  game.t++;
+  game.distance += game.speed / dpr / 4;
+
+  // Speed scaling — wolniejszy wzrost przy lepszej staminie
+  const targetSpeed = (4 + game.t / 600) * dpr * game.speedScale * _bonuses.staminaScale;
+  game.speed = Math.min(targetSpeed, 16 * dpr * game.speedScale);
+
+  // Player physics
+  if (game.dashing > 0) {
+    game.dashing--;
+    game.py = GROUND_Y - 50 * dpr;
+    game.vy = 0;
+  } else {
+    if (!game.onGround || game.vy < 0) {
+      // Hold dla wyższego skoku
+      const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr;
+      game.vy += gravity;
+      game.py += game.vy;
+      if (game.py >= GROUND_Y) {
+        game.py = GROUND_Y;
+        game.vy = 0;
+        if (!game.onGround) spawnParticles(game.px, GROUND_Y, '#888', 6);
+        game.onGround = true;
+      }
+    }
+  }
+
+  if (game.invuln > 0) game.invuln--;
+
+  // Spawn
+  game.nextObstacleIn--;
+  if (game.nextObstacleIn <= 0) {
+    spawnObstacle();
+    // Im wyższa speed tym mniejszy odstęp
+    const minGap = Math.max(50, 130 - game.t / 30);
+    game.nextObstacleIn = minGap + Math.random() * 80;
+  }
+  game.nextCoinIn--;
+  if (game.nextCoinIn <= 0) {
+    if (Math.random() < 0.6) spawnCoin();
+    game.nextCoinIn = 40 + Math.random() * 60;
+  }
+
+  // Move obstacles
+  game.obstacles.forEach(o => o.x -= game.speed);
+  game.obstacles = game.obstacles.filter(o => o.x + o.w > -50 * dpr);
+
+  // Move coins
+  game.coinsArr.forEach(c => {
+    c.x -= game.speed;
+    c.bob += 0.1;
+  });
+  game.coinsArr = game.coinsArr.filter(c => c.x + c.r > -30 * dpr && !c.collected);
+
+  // Particles
+  game.particles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.3 * dpr;
+    p.life--;
+  });
+  game.particles = game.particles.filter(p => p.life > 0);
+
+  // Collisions
+  const playerR = 20 * dpr;
+  const px1 = game.px - playerR;
+  const px2 = game.px + playerR;
+  const py1 = game.py - playerR * 2;
+  const py2 = game.py;
+
+  for (const o of game.obstacles) {
+    const ox1 = o.x;
+    const ox2 = o.x + o.w;
+    let oy1, oy2;
+    if (o.type === 'low') { oy1 = GROUND_Y - o.h; oy2 = GROUND_Y; }
+    else if (o.type === 'high') { oy1 = GROUND_Y - 100 * dpr; oy2 = GROUND_Y - 100 * dpr + o.h; }
+    else { oy1 = GROUND_Y; oy2 = GROUND_Y + 50 * dpr; } // gap (dół, podczas dasha)
+
+    // Kolizja
+    if (game.invuln <= 0 && px2 > ox1 && px1 < ox2 && py2 > oy1 && py1 < oy2) {
+      hitObstacle();
+      o.passed = true; // żeby nie liczyć po raz drugi
+    }
+    // Passed bonus
+    if (!o.passed && o.x + o.w < game.px - playerR) {
+      o.passed = true;
+      game.perfectStreak++;
+      // Multiplier wzrasta co 3 ominięte
+      if (game.perfectStreak % 3 === 0) {
+        game.multi = Math.min(5, game.multi + 0.2);
+        game.maxMulti = Math.max(game.maxMulti, game.multi);
+        document.getElementById('hud-multi').classList.remove('pulse');
+        void document.getElementById('hud-multi').offsetWidth;
+        document.getElementById('hud-multi').classList.add('pulse');
+      }
+      game.score += Math.floor(10 * game.multi);
+    }
+  }
+
+  // Coin collisions
+  for (const c of game.coinsArr) {
+    if (c.collected) continue;
+    const dx = c.x - game.px;
+    const dy = c.y - (game.py - playerR);
+    if (dx * dx + dy * dy < (c.r + playerR) * (c.r + playerR)) {
+      c.collected = true;
+      game.coins++;
+      game.score += Math.floor(5 * game.multi);
+      spawnParticles(c.x, c.y, '#e8b840', 6);
+    }
+  }
+
+  // Distance score (slow trickle)
+  if (game.t % 6 === 0) game.score += Math.floor(1 * game.multi);
+
+  // Update HUD
+  document.getElementById('hud-score').textContent = game.score;
+  document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
+  document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
+  document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
+  document.getElementById('hud-lives').textContent = '❤'.repeat(game.lives) + '<span style="opacity:0.2;">' + '❤'.repeat(3 - game.lives) + '</span>';
+  document.getElementById('hud-lives').innerHTML = '<span>' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(3 - game.lives) + '</span>';
+}
+
+function hitObstacle() {
+  game.lives--;
+  game.invuln = 60;
+  game.multi = _bonuses.startMulti;
+  game.perfectStreak = 0;
+  spawnParticles(game.px, game.py - 30, '#e05050', 14);
+  if (game.lives <= 0) {
+    endGame();
+  } else {
+    showToast('-1 ❤');
+  }
+}
+
+// ── RENDER ──
+function render() {
+  if (!game) return;
+  const dpr = window.devicePixelRatio || 1;
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0a0a14');
+  grad.addColorStop(0.7, '#07070a');
+  grad.addColorStop(1, '#15121e');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars/grid background (parallax)
+  ctx.fillStyle = 'rgba(232,86,30,0.03)';
+  for (let i = 0; i < 8; i++) {
+    const x = ((W * 0.1 + i * 200 * dpr - game.t * 0.5) % (W + 200 * dpr)) - 100 * dpr;
+    ctx.fillRect(x, 0, 1, H);
+  }
+
+  // Speed lines (efekt szybkości)
+  if (game.speed > 7 * dpr) {
+    ctx.strokeStyle = 'rgba(232,86,30,0.15)';
+    ctx.lineWidth = 1 * dpr;
+    for (let i = 0; i < 5; i++) {
+      const y = Math.random() * H;
+      const len = 60 * dpr + Math.random() * 60 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * W, y);
+      ctx.lineTo(Math.random() * W - len, y);
+      ctx.stroke();
+    }
+  }
+
+  // Ground line
+  ctx.strokeStyle = 'rgba(232,86,30,0.5)';
+  ctx.lineWidth = 2 * dpr;
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND_Y);
+  ctx.lineTo(W, GROUND_Y);
+  ctx.stroke();
+
+  // Ground glow
+  const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
+  groundGrad.addColorStop(0, 'rgba(232,86,30,0.15)');
+  groundGrad.addColorStop(1, 'rgba(232,86,30,0)');
+  ctx.fillStyle = groundGrad;
+  ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  // Obstacles
+  game.obstacles.forEach(o => {
+    let x1 = o.x, y1, h;
+    if (o.type === 'low') { y1 = GROUND_Y - o.h; h = o.h; }
+    else if (o.type === 'high') { y1 = GROUND_Y - 100 * dpr; h = o.h; }
+    else { y1 = GROUND_Y; h = 4 * dpr; } // gap — pokazujemy linię przerwy
+
+    if (o.type === 'gap') {
+      // Przepaść — czarna dziura w ziemi
+      ctx.fillStyle = '#000';
+      ctx.fillRect(o.x, GROUND_Y, o.w, 60 * dpr);
+      ctx.strokeStyle = '#e05050';
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(o.x, GROUND_Y);
+      ctx.lineTo(o.x + o.w, GROUND_Y);
+      ctx.stroke();
+    } else {
+      // Box
+      const obsGrad = ctx.createLinearGradient(x1, y1, x1, y1 + h);
+      obsGrad.addColorStop(0, '#e05050');
+      obsGrad.addColorStop(1, '#a02020');
+      ctx.fillStyle = obsGrad;
+      ctx.fillRect(x1, y1, o.w, h);
+      // Glow border
+      ctx.strokeStyle = 'rgba(224,80,80,0.6)';
+      ctx.lineWidth = 1 * dpr;
+      ctx.strokeRect(x1, y1, o.w, h);
+    }
+  });
+
+  // Coins
+  game.coinsArr.forEach(c => {
+    if (c.collected) return;
+    const bobY = c.y + Math.sin(c.bob) * 4 * dpr;
+    const grad = ctx.createRadialGradient(c.x, bobY, 0, c.x, bobY, c.r);
+    grad.addColorStop(0, '#ffd966');
+    grad.addColorStop(1, '#e8b840');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(c.x, bobY, c.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,217,102,0.6)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.stroke();
+  });
+
+  // Particles
+  game.particles.forEach(p => {
+    ctx.globalAlpha = p.life / 30;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Player (emoji 🏃)
+  const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
+  if (!blink) {
+    ctx.font = (44 * dpr) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    // Glow podczas dasha
+    if (game.dashing > 0) {
+      ctx.shadowColor = '#e8561e';
+      ctx.shadowBlur = 30 * dpr;
+    }
+    ctx.fillText('🏃', game.px, game.py + 4 * dpr);
+    ctx.shadowBlur = 0;
+  }
+}
+
+// ── GAME LOOP ──
+let lastFrame = 0;
+function loop(t) {
+  if (!game || !game.running) return;
+  if (t - lastFrame >= 16) {  // ~60 FPS
+    update();
+    render();
+    lastFrame = t;
+  }
+  requestAnimationFrame(loop);
+}
+
+// ═════════════════════════════════════════════════
+// SCREENS
+// ═════════════════════════════════════════════════
+function startGame() {
+  // Tutorial przy pierwszym razie
+  if (!localStorage.getItem('biegamy_game_tutorial_seen')) {
+    document.getElementById('tutorial').style.display = 'flex';
+    localStorage.setItem('biegamy_game_tutorial_seen', '1');
+    return;
+  }
+  realStart();
+}
+
+function closeTutorial() {
+  document.getElementById('tutorial').style.display = 'none';
+  realStart();
+}
+
+function realStart() {
+  game = newGame();
+  game.running = true;
+  document.getElementById('screen-home').classList.add('hidden');
+  document.getElementById('screen-end').classList.add('hidden');
+  document.getElementById('screen-game').classList.remove('hidden');
+  updateDashUI();
+  lastFrame = performance.now();
+  requestAnimationFrame(loop);
+}
+
+async function endGame() {
+  if (!game) return;
+  game.running = false;
+  game.over = true;
+
+  // Render end screen
+  document.getElementById('end-score').textContent = game.score;
+  document.getElementById('end-distance').textContent = Math.floor(game.distance);
+  document.getElementById('end-coins').textContent = game.coins;
+  document.getElementById('end-multi').textContent = 'x' + game.maxMulti.toFixed(1);
+
+  // Sub message
+  const subs = ['Spróbuj jeszcze raz', 'Możesz lepiej!', 'Trenuj więcej, biegaj szybciej', 'Przeleciało jak strzała'];
+  document.getElementById('end-sub').textContent = subs[Math.floor(Math.random() * subs.length)];
+
+  // Save score
+  if (_athleteId && game.score > 0) {
+    try {
+      await _sb.from('game_scores').insert({
+        athlete_id: _athleteId,
+        score: game.score,
+        distance: Math.floor(game.distance),
+        coins: game.coins,
+        max_multi: game.maxMulti
+      });
+    } catch (e) { console.warn('Score save failed:', e); }
+  }
+
+  // New record?
+  const isNew = game.score > (window._highScore || 0);
+  document.getElementById('new-record-banner').style.display = isNew ? 'block' : 'none';
+  if (isNew) window._highScore = game.score;
+
+  setTimeout(() => {
+    document.getElementById('screen-game').classList.add('hidden');
+    document.getElementById('screen-end').classList.remove('hidden');
+  }, 400);
+}
+
+function goHome() {
+  document.getElementById('screen-end').classList.add('hidden');
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-home').classList.remove('hidden');
+  loadHighScore();
+}
+
+function updateDashUI() {
+  if (!game) return;
+  for (let i = 1; i <= 3; i++) {
+    const pip = document.getElementById('dash-' + i);
+    if (i <= game.dashLeft) pip.classList.add('active');
+    else pip.classList.remove('active');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tm);
+  showToast._tm = setTimeout(() => t.classList.remove('show'), 800);
+}
+
+// ═════════════════════════════════════════════════
+// INIT
+// ═════════════════════════════════════════════════
+initUser();
+
+</script>
+</body>
+</html>

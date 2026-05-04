@@ -802,6 +802,7 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
+      <a href="gra.html" style="padding:10px 12px;font-size:12px;color:#e8561e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">🎮 Mini gra</a>
       <a href="o-nas.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📖 O nas</a>
       <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
@@ -3361,11 +3362,6 @@ async function obFinish() {
     localStorage.removeItem('biegamy_needs_onboarding');
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
-
-    // Odśwież avatar w topbarze po onboardingu
-    if (_athleteId) {
-      setTimeout(() => loadAvatarTopbar(_athleteId), 500);
-    }
 
     // Sprawdź czy jeden z pierwszych 50 użytkowników (odznaka pierwsza_z_pierwszych)
     if (_athleteId) {
