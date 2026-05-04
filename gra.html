@@ -11,8 +11,8 @@
 :root{
   --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
   --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.45);
-  --accent:#e8561e;--muted:rgba(240,237,232,0.38);
-  --green:#3db870;--red:#e05050;--blue:#5090e0;
+  --accent:#e8561e;--accent2:#ffb74d;--muted:rgba(240,237,232,0.38);
+  --green:#3db870;--red:#e05050;--blue:#5090e0;--gold:#ffd966;--purple:#a868e0;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none;}
@@ -22,157 +22,234 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
 .back-btn{background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;text-decoration:none;backdrop-filter:blur(8px);}
 .tb-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);}
 .tb-title span{color:var(--accent);}
-.tb-spacer{width:36px;}
+.tb-coins{display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:13px;color:var(--gold);background:rgba(255,217,102,0.08);border:1px solid rgba(255,217,102,0.2);padding:6px 12px;border-radius:14px;}
 
 /* ── Screens ─────────────────────────────── */
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px 40px;}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;}
 .screen.hidden{display:none;}
 
-/* ── Home / Pre-run ───────────────────────── */
-#screen-home{overflow-y:auto;padding-top:80px;justify-content:flex-start;}
-.hero-title{font-family:'Bebas Neue',sans-serif;font-size:54px;letter-spacing:0.04em;line-height:0.95;text-align:center;margin-bottom:6px;}
+/* ── Home ────────────────────────────────── */
+#screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;}
+.home-content{padding:14px 18px 100px;flex:1;}
+.hero-block{text-align:center;margin-bottom:20px;}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:0.04em;line-height:0.95;margin-bottom:4px;}
 .hero-title .accent{color:var(--accent);}
-.hero-sub{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:30px;}
+.hero-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
 
-.bonuses-card{
-  width:100%;max-width:380px;
-  background:var(--card);border:1px solid var(--border);border-radius:16px;
-  padding:18px 20px;margin-bottom:24px;
-}
-.bonuses-hdr{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-.bonuses-icon{font-size:22px;}
-.bonuses-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
-.bonus-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+/* Tabs */
+.tabs{display:flex;gap:4px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:18px;}
+.tab{flex:1;padding:9px 6px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;text-align:center;transition:all 0.2s;border:none;background:none;}
+.tab.active{background:var(--accent);color:#fff;}
+
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* Bonuses card */
+.bonuses-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:14px;}
+.bonuses-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.bonuses-icon{font-size:18px;}
+.bonuses-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+.bonus-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
 .bonus-row:last-child{border-bottom:none;}
-.bonus-label{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--fg2);}
-.bonus-icon{font-size:16px;}
-.bonus-value{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);font-weight:600;}
+.bonus-label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--fg2);}
+.bonus-label b{color:var(--fg);font-weight:500;}
+.bonus-value{font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);font-weight:600;}
 .bonus-value.green{color:var(--green);}
 .bonus-value.muted{color:var(--muted);}
 
-.btn-primary{
-  background:var(--accent);color:#fff;border:none;
-  padding:18px 50px;border-radius:14px;
-  font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.06em;
-  cursor:pointer;box-shadow:0 6px 24px rgba(232,86,30,0.4);
-  transition:transform 0.1s,box-shadow 0.1s;
-  display:flex;align-items:center;gap:10px;
-}
-.btn-primary:active{transform:scale(0.96);box-shadow:0 3px 12px rgba(232,86,30,0.3);}
+/* Daily missions */
+.mission-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.mission-row:last-child{border-bottom:none;}
+.mission-icon{font-size:22px;width:32px;text-align:center;}
+.mission-info{flex:1;}
+.mission-title{font-size:13px;color:var(--fg);font-weight:500;margin-bottom:4px;}
+.mission-progress-bar{height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.mission-progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
+.mission-progress-fill.done{background:var(--green);}
+.mission-meta{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-align:right;min-width:50px;}
+.mission-meta .reward{color:var(--gold);font-size:11px;display:block;margin-top:2px;}
 
-.btn-secondary{
-  background:rgba(255,255,255,0.05);color:var(--fg2);border:1px solid var(--border);
-  padding:10px 22px;border-radius:10px;
-  font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;
-  cursor:pointer;margin-top:14px;
-}
+/* Equipment grid */
+.equip-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.equip-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.equip-card:active{transform:scale(0.97);}
+.equip-card.equipped{border-color:var(--accent);box-shadow:0 0 20px rgba(232,86,30,0.3);}
+.equip-card.locked{opacity:0.45;cursor:not-allowed;}
+.equip-emoji{font-size:34px;text-align:center;margin-bottom:6px;}
+.equip-name{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;text-align:center;color:var(--fg);}
+.equip-desc{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;text-align:center;color:var(--muted);margin-top:4px;line-height:1.3;min-height:24px;}
+.equip-status{position:absolute;top:6px;right:6px;font-family:'DM Mono',monospace;font-size:8px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:6px;letter-spacing:0.1em;}
+.equip-status.locked{background:rgba(255,255,255,0.1);color:var(--muted);}
+.equip-section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;}
 
-.high-score{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin-top:18px;letter-spacing:0.1em;}
-.high-score b{color:var(--accent);font-size:14px;font-weight:500;}
+/* Badges */
+.badges-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.badge-item{aspect-ratio:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;position:relative;}
+.badge-item.unlocked{border-color:var(--gold);background:linear-gradient(135deg,rgba(255,217,102,0.1),rgba(232,184,64,0.05));}
+.badge-item.unlocked .badge-emoji{filter:none;}
+.badge-emoji{font-size:30px;filter:grayscale(1) opacity(0.3);margin-bottom:4px;}
+.badge-name{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.04em;color:var(--muted);line-height:1.2;}
+.badge-item.unlocked .badge-name{color:var(--fg);}
+.badge-tier{position:absolute;top:4px;right:4px;font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;}
+
+/* Leaderboard */
+.lb-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:6px 12px;margin-top:10px;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.lb-row:last-child{border-bottom:none;}
+.lb-row.me{background:rgba(232,86,30,0.08);margin:0 -8px;padding:9px 8px;border-radius:8px;border-bottom:none;}
+.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:20px;width:24px;text-align:center;color:var(--muted);}
+.lb-rank.top1{color:var(--gold);}
+.lb-rank.top2{color:#cbd5e1;}
+.lb-rank.top3{color:#cd7f32;}
+.lb-name{flex:1;font-size:13px;color:var(--fg);}
+.lb-score{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;}
+
+/* Play button - sticky bottom */
+.play-bar{position:fixed;left:0;right:0;bottom:0;padding:14px 18px max(14px,env(safe-area-inset-bottom,14px));background:linear-gradient(to top,#07070a 60%,transparent);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:15;}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#d04515);color:#fff;border:none;padding:16px 56px;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.06em;cursor:pointer;box-shadow:0 6px 28px rgba(232,86,30,0.45);transition:transform 0.1s;display:flex;align-items:center;gap:10px;width:100%;max-width:280px;justify-content:center;}
+.btn-primary:active{transform:scale(0.96);}
+.high-score{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;}
+.high-score b{color:var(--accent);font-size:13px;font-weight:500;}
 
 /* ── In-game ─────────────────────────────── */
 #screen-game{padding:0;}
-canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;}
+canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;touch-action:none;}
 
 .hud{position:fixed;top:0;left:0;right:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;z-index:10;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px;}
 .hud-right{align-items:flex-end;}
 .hud-score{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.8);}
 .hud-multi{font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,0.8);}
-.hud-multi.pulse{animation:pulse 0.5s ease-in-out;}
+.hud-multi.pulse{animation:pulse 0.4s ease-in-out;}
 @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.4);color:#fff;}100%{transform:scale(1);}}
-.hud-speed{font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
 .hud-distance{font-family:'DM Mono',monospace;font-size:13px;color:var(--fg);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:500;}
-.hud-lives{font-family:'DM Mono',monospace;font-size:14px;display:flex;gap:3px;}
+.hud-speed{font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
+.hud-lives{font-family:'DM Mono',monospace;font-size:14px;}
+.hud-coins{font-family:'DM Mono',monospace;font-size:12px;color:var(--gold);text-shadow:0 1px 4px rgba(0,0,0,0.8);display:flex;align-items:center;gap:4px;}
 
-.dash-meter{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:10px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);}
-.dash-pip{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.15);}
+/* Active power-ups in HUD */
+.powerup-bar{position:fixed;top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:10;pointer-events:none;}
+.pu-active{background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:20px;padding:6px 12px 6px 8px;display:flex;align-items:center;gap:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);}
+.pu-active.shield{border-color:var(--blue);}
+.pu-active.magnet{border-color:var(--gold);}
+.pu-active.slowmo{border-color:var(--purple);}
+.pu-active.boost{border-color:var(--accent);}
+.pu-time{font-weight:600;}
+
+.dash-meter{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;display:flex;align-items:center;gap:10px;z-index:10;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg2);letter-spacing:0.1em;}
+.dash-pip{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);}
 .dash-pip.active{background:var(--accent);box-shadow:0 0 8px var(--accent);}
 
+/* Pause button */
+.pause-btn{position:fixed;top:max(14px,env(safe-area-inset-top,14px));right:50%;transform:translateX(50%);background:rgba(7,7,10,0.6);border:1px solid var(--border);color:var(--fg);width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;z-index:11;}
+
 /* ── Game Over ───────────────────────────── */
-#screen-end{background:rgba(7,7,10,0.92);backdrop-filter:blur(8px);}
-.end-card{
-  width:100%;max-width:340px;
-  background:var(--card);border:1px solid var(--border);border-radius:20px;
-  padding:30px 24px;text-align:center;
-}
-.end-title{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.04em;margin-bottom:6px;}
-.end-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;}
-.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:64px;color:var(--accent);line-height:1;margin-bottom:4px;}
-.end-score-lbl{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
-.end-stats{display:flex;justify-content:space-around;margin-bottom:22px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
-.end-stat{display:flex;flex-direction:column;align-items:center;gap:4px;}
-.end-stat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);}
-.end-stat-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
-
-.new-record{background:linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,184,64,0.15));border:1px solid var(--accent);border-radius:12px;padding:8px 14px;margin-bottom:18px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);font-weight:600;}
-
-.btn-row{display:flex;gap:10px;justify-content:center;}
-.btn-restart{background:var(--accent);color:#fff;border:none;padding:14px 28px;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;}
-.btn-home{background:rgba(255,255,255,0.06);color:var(--fg2);border:1px solid var(--border);padding:14px 22px;border-radius:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
-
-/* ── Leaderboard ──────────────────────────── */
-.lb-card{width:100%;max-width:380px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 18px;margin-bottom:20px;}
-.lb-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
-.lb-row:last-child{border-bottom:none;}
-.lb-row.me{background:rgba(232,86,30,0.08);margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px;}
-.lb-rank{font-family:'Bebas Neue',sans-serif;font-size:22px;width:28px;text-align:center;color:var(--muted);}
-.lb-rank.top{color:var(--accent);}
-.lb-name{flex:1;font-size:13px;color:var(--fg);}
-.lb-score{font-family:'DM Mono',monospace;font-size:13px;color:var(--accent);font-weight:600;}
+#screen-end{background:rgba(7,7,10,0.94);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;}
+.end-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:26px 22px;text-align:center;}
+.end-title{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:0.04em;margin-bottom:6px;}
+.end-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:18px;}
+.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:60px;color:var(--accent);line-height:1;}
+.end-score-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.end-stat{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.end-stat-val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);}
+.end-stat-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+.new-record{background:linear-gradient(135deg,rgba(232,86,30,0.25),rgba(232,184,64,0.15));border:1px solid var(--accent);border-radius:10px;padding:8px 14px;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-weight:600;}
+.new-badges{background:rgba(255,217,102,0.1);border:1px solid rgba(255,217,102,0.3);border-radius:10px;padding:10px;margin-bottom:14px;}
+.new-badges-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+.new-badges-list{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;}
+.new-badge-pill{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,0.3);border-radius:8px;padding:4px 8px;font-size:11px;}
+.btn-row{display:flex;gap:8px;justify-content:center;}
+.btn-restart{background:var(--accent);color:#fff;border:none;padding:13px 26px;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;flex:1;}
+.btn-home{background:rgba(255,255,255,0.06);color:var(--fg2);border:1px solid var(--border);padding:13px 18px;border-radius:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
 
 /* ── Toast ──────────────────────────────── */
-.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(7,7,10,0.95);backdrop-filter:blur(12px);border:1px solid var(--accent);color:var(--accent);padding:10px 18px;border-radius:24px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;opacity:0;pointer-events:none;transition:all 0.3s;z-index:30;}
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(7,7,10,0.95);backdrop-filter:blur(12px);border:1px solid var(--accent);color:var(--accent);padding:10px 18px;border-radius:24px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;opacity:0;pointer-events:none;transition:all 0.3s;z-index:30;font-weight:600;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── Tutorial ─────────────────────────────── */
-.tutorial{position:fixed;inset:0;background:rgba(7,7,10,0.85);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
-.tut-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;}
-.tut-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;margin-bottom:6px;}
-.tut-row{display:flex;align-items:center;gap:14px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.05);text-align:left;}
+.tutorial{position:fixed;inset:0;background:rgba(7,7,10,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px;}
+.tut-card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 22px;max-width:340px;width:100%;text-align:center;}
+.tut-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.04em;margin-bottom:12px;}
+.tut-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid rgba(255,255,255,0.05);text-align:left;}
 .tut-row:first-of-type{border-top:none;}
-.tut-icon{font-size:28px;width:40px;text-align:center;}
-.tut-text{flex:1;font-size:13px;color:var(--fg2);line-height:1.4;}
+.tut-icon{font-size:24px;width:34px;text-align:center;}
+.tut-text{flex:1;font-size:12px;color:var(--fg2);line-height:1.4;}
 .tut-text b{color:var(--fg);}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════ HOME / PRE-RUN ═══════════════ -->
+<!-- ═══════════════ HOME ═══════════════ -->
 <div id="screen-home" class="screen">
   <div class="topbar">
     <a class="back-btn" href="zawodnik.html">‹</a>
     <div class="tb-title">RUNNER<span>RUSH</span></div>
-    <div class="tb-spacer"></div>
+    <div class="tb-coins" id="tb-coins-total">🪙 <span id="coins-total">0</span></div>
   </div>
 
-  <div class="hero-title">Twój trening<br><span class="accent">to twoja broń</span></div>
-  <div class="hero-sub">Endless runner · Skill + Trening</div>
-
-  <div class="bonuses-card" id="bonuses-card">
-    <div class="bonuses-hdr">
-      <div class="bonuses-icon">⚡</div>
-      <div class="bonuses-title">Aktywne bonusy z treningów</div>
+  <div class="home-content">
+    <div class="hero-block">
+      <div class="hero-title">Twój trening<br><span class="accent">to twoja broń</span></div>
+      <div class="hero-sub">Endless runner · Skill + Trening</div>
     </div>
-    <div id="bonuses-list">
-      <div class="bonus-row">
-        <div class="bonus-label"><span class="bonus-icon">📊</span><span>Ładowanie...</span></div>
-        <div class="bonus-value muted">—</div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="play" onclick="switchTab('play')">Graj</button>
+      <button class="tab" data-tab="equip" onclick="switchTab('equip')">Ekwipunek</button>
+      <button class="tab" data-tab="badges" onclick="switchTab('badges')">Odznaki</button>
+      <button class="tab" data-tab="rank" onclick="switchTab('rank')">Ranking</button>
+    </div>
+
+    <!-- TAB: PLAY -->
+    <div class="tab-pane active" id="tab-play">
+      <div class="bonuses-card">
+        <div class="bonuses-hdr">
+          <div class="bonuses-icon">⚡</div>
+          <div class="bonuses-title">Aktywne bonusy z treningów</div>
+        </div>
+        <div id="bonuses-list">
+          <div class="bonus-row"><div class="bonus-label"><span>📊</span><span>Ładowanie...</span></div></div>
+        </div>
+      </div>
+
+      <div class="bonuses-card">
+        <div class="bonuses-hdr">
+          <div class="bonuses-icon">🎯</div>
+          <div class="bonuses-title">Misje dzienne</div>
+        </div>
+        <div id="missions-list">
+          <div class="mission-row"><div class="mission-info"><div class="mission-title">Ładowanie...</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: EQUIP -->
+    <div class="tab-pane" id="tab-equip">
+      <div class="equip-section-title">👟 Buty</div>
+      <div class="equip-grid" id="shoes-grid"></div>
+      <div class="equip-section-title">👕 Strój</div>
+      <div class="equip-grid" id="outfits-grid"></div>
+    </div>
+
+    <!-- TAB: BADGES -->
+    <div class="tab-pane" id="tab-badges">
+      <div class="bonuses-title" style="text-align:center;margin-bottom:10px;" id="badges-counter">0 / 15 odznak</div>
+      <div class="badges-grid" id="badges-grid"></div>
+    </div>
+
+    <!-- TAB: RANK -->
+    <div class="tab-pane" id="tab-rank">
+      <div class="bonuses-title" style="text-align:center;">Top 10 znajomych</div>
+      <div class="lb-card" id="lb-card">
+        <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>
       </div>
     </div>
   </div>
 
-  <button class="btn-primary" onclick="startGame()">▶ GRAJ</button>
-
-  <div class="high-score">Twój rekord: <b id="high-score">0</b></div>
-
-  <button class="btn-secondary" onclick="showLeaderboard()">🏆 Ranking znajomych</button>
-
-  <div id="leaderboard-section" style="display:none;width:100%;max-width:380px;margin-top:24px;">
-    <div class="bonuses-title" style="text-align:center;margin-bottom:10px;">Top 10</div>
-    <div class="lb-card" id="lb-card">
-      <div style="text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">Ładowanie...</div>
-    </div>
+  <div class="play-bar">
+    <button class="btn-primary" onclick="startGame()">▶ GRAJ</button>
+    <div class="high-score">Twój rekord: <b id="high-score">0</b></div>
   </div>
 </div>
 
@@ -180,23 +257,12 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 <div class="tutorial" id="tutorial" style="display:none;">
   <div class="tut-card">
     <div class="tut-title">JAK GRAĆ</div>
-    <div class="tut-row">
-      <div class="tut-icon">👆</div>
-      <div class="tut-text"><b>Tap / Spacja</b> — skok</div>
-    </div>
-    <div class="tut-row">
-      <div class="tut-icon">⏱</div>
-      <div class="tut-text"><b>Przytrzymaj</b> — wyższy skok</div>
-    </div>
-    <div class="tut-row">
-      <div class="tut-icon">⚡</div>
-      <div class="tut-text"><b>Dwuklik</b> — dash (przebij przeszkodę)</div>
-    </div>
-    <div class="tut-row">
-      <div class="tut-icon">🔥</div>
-      <div class="tut-text"><b>Combo</b> — multiplier rośnie za serię ominięć</div>
-    </div>
-    <button class="btn-primary" style="margin-top:18px;" onclick="closeTutorial()">START</button>
+    <div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap / Spacja</b> — skok (przytrzymaj — wyższy)</div></div>
+    <div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓ / strzałka</b> — slide (pod high obstacle)</div></div>
+    <div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik / Shift</b> — dash (przebij wszystko)</div></div>
+    <div class="tut-row"><div class="tut-icon">✨</div><div class="tut-text"><b>Perfect jump</b> — przeskocz tuż nad krawędzią dla bonusu</div></div>
+    <div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Power-upy</b> — zbieraj 🧲 🛡 🐢 ⚡ na trasie</div></div>
+    <button class="btn-primary" style="margin-top:18px;font-size:18px;padding:13px;" onclick="closeTutorial()">START</button>
   </div>
 </div>
 
@@ -210,10 +276,12 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     </div>
     <div class="hud-right">
       <div class="hud-distance" id="hud-distance">0 m</div>
+      <div class="hud-coins" id="hud-coins">🪙 0</div>
       <div class="hud-speed" id="hud-speed">0 km/h</div>
       <div class="hud-lives" id="hud-lives">❤❤❤</div>
     </div>
   </div>
+  <div class="powerup-bar" id="powerup-bar"></div>
   <div class="dash-meter" id="dash-meter">
     <span>DASH</span>
     <div class="dash-pip" id="dash-1"></div>
@@ -228,21 +296,16 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     <div class="end-title">KONIEC</div>
     <div class="end-sub" id="end-sub">Spróbuj jeszcze raz</div>
     <div id="new-record-banner" class="new-record" style="display:none;">🔥 NOWY REKORD!</div>
+    <div id="new-badges-section" class="new-badges" style="display:none;">
+      <div class="new-badges-title">🏅 Zdobyte odznaki:</div>
+      <div class="new-badges-list" id="new-badges-list"></div>
+    </div>
     <div class="end-score-big" id="end-score">0</div>
     <div class="end-score-lbl">Punktów</div>
     <div class="end-stats">
-      <div class="end-stat">
-        <div class="end-stat-val" id="end-distance">0</div>
-        <div class="end-stat-lbl">Dystans (m)</div>
-      </div>
-      <div class="end-stat">
-        <div class="end-stat-val" id="end-coins">0</div>
-        <div class="end-stat-lbl">Monet</div>
-      </div>
-      <div class="end-stat">
-        <div class="end-stat-val" id="end-multi">x1</div>
-        <div class="end-stat-lbl">Max combo</div>
-      </div>
+      <div class="end-stat"><div class="end-stat-val" id="end-distance">0</div><div class="end-stat-lbl">Dystans (m)</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="end-coins">0</div><div class="end-stat-lbl">Monet</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max combo</div></div>
     </div>
     <div class="btn-row">
       <button class="btn-restart" onclick="startGame()">▶ JESZCZE RAZ</button>
@@ -266,13 +329,253 @@ const _sb = supabase.createClient(
 
 let _athleteId = null;
 let _athleteName = null;
+let _myFriends = [];
+
+// Bonusy z treningów (mapowanie)
 let _bonuses = {
   startMulti: 1.0,
-  maxSpeed: 1.0,        // multiplier
-  staminaScale: 1.0,    // wolniejszy speed wzrost = lepiej
+  maxSpeed: 1.0,
+  staminaScale: 1.0,
   dashCount: 1
 };
 
+// Stats — z localStorage (skill-based) + DB (training)
+function loadLocalStats() {
+  try {
+    return JSON.parse(localStorage.getItem('biegamy_game_stats') || '{}');
+  } catch(e) { return {}; }
+}
+function saveLocalStats(s) {
+  try { localStorage.setItem('biegamy_game_stats', JSON.stringify(s)); } catch(e) {}
+}
+function getStat(key, def) {
+  const s = loadLocalStats();
+  return s[key] !== undefined ? s[key] : (def || 0);
+}
+function setStat(key, val) {
+  const s = loadLocalStats();
+  s[key] = val;
+  saveLocalStats(s);
+}
+function incStat(key, by) {
+  setStat(key, getStat(key, 0) + (by || 1));
+}
+
+// ═════════════════════════════════════════════════
+// EQUIPMENT
+// ═════════════════════════════════════════════════
+const SHOES = [
+  { id: 'standard', name: 'Standard', emoji: '👟', desc: 'Bez bonusów', unlock: () => true, effect: { speed: 1.0, control: 1.0, dash: 0, lives: 0 } },
+  { id: 'speed',    name: 'Speed',    emoji: '⚡', desc: '+15% max speed, -10% control', unlock: () => getStat('best_score', 0) >= 500, effect: { speed: 1.15, control: 0.9, dash: 0, lives: 0 } },
+  { id: 'stability',name: 'Stability',emoji: '🛡', desc: '+1 życie na start', unlock: () => getStat('best_score', 0) >= 1500, effect: { speed: 1.0, control: 1.0, dash: 0, lives: 1 } },
+  { id: 'dash',     name: 'Dash',     emoji: '💨', desc: '+1 dash na start', unlock: () => getStat('total_perfect', 0) >= 30, effect: { speed: 1.0, control: 1.0, dash: 1, lives: 0 } },
+];
+
+const OUTFITS = [
+  { id: 'default', name: 'Default', emoji: '🏃', desc: 'Bez bonusów', unlock: () => true, effect: { comboBoost: 1.0, scoreBoost: 1.0 } },
+  { id: 'neon',    name: 'Neon',    emoji: '🌟', desc: 'Combo szybciej rośnie', unlock: () => getStat('total_runs', 0) >= 10, effect: { comboBoost: 1.5, scoreBoost: 1.0 } },
+  { id: 'shadow',  name: 'Shadow',  emoji: '🥷', desc: '+20% punktów', unlock: () => getStat('best_score', 0) >= 3000, effect: { comboBoost: 1.0, scoreBoost: 1.2 } },
+  { id: 'gold',    name: 'Gold',    emoji: '👑', desc: 'Magnet x2 dłużej', unlock: () => getStat('total_coins', 0) >= 500, effect: { comboBoost: 1.0, scoreBoost: 1.0, magnetBoost: 2.0 } },
+];
+
+function getEquippedShoe() {
+  const id = localStorage.getItem('biegamy_game_shoe') || 'standard';
+  return SHOES.find(s => s.id === id) || SHOES[0];
+}
+function getEquippedOutfit() {
+  const id = localStorage.getItem('biegamy_game_outfit') || 'default';
+  return OUTFITS.find(o => o.id === id) || OUTFITS[0];
+}
+function setEquipped(type, id) {
+  if (type === 'shoe') localStorage.setItem('biegamy_game_shoe', id);
+  if (type === 'outfit') localStorage.setItem('biegamy_game_outfit', id);
+  renderEquipment();
+}
+
+function renderEquipment() {
+  const eqShoe = getEquippedShoe();
+  const eqOutfit = getEquippedOutfit();
+
+  document.getElementById('shoes-grid').innerHTML = SHOES.map(s => {
+    const unlocked = s.unlock();
+    const isEq = s.id === eqShoe.id;
+    return `<div class="equip-card ${isEq ? 'equipped' : ''} ${!unlocked ? 'locked' : ''}" data-type="shoe" data-id="${s.id}">
+      <div class="equip-emoji">${s.emoji}</div>
+      <div class="equip-name">${s.name}</div>
+      <div class="equip-desc">${s.desc}</div>
+      ${isEq ? '<div class="equip-status">UŻYWANE</div>' : ''}
+      ${!unlocked && !isEq ? '<div class="equip-status locked">🔒</div>' : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('outfits-grid').innerHTML = OUTFITS.map(o => {
+    const unlocked = o.unlock();
+    const isEq = o.id === eqOutfit.id;
+    return `<div class="equip-card ${isEq ? 'equipped' : ''} ${!unlocked ? 'locked' : ''}" data-type="outfit" data-id="${o.id}">
+      <div class="equip-emoji">${o.emoji}</div>
+      <div class="equip-name">${o.name}</div>
+      <div class="equip-desc">${o.desc}</div>
+      ${isEq ? '<div class="equip-status">UŻYWANE</div>' : ''}
+      ${!unlocked && !isEq ? '<div class="equip-status locked">🔒</div>' : ''}
+    </div>`;
+  }).join('');
+
+  // Click handlers
+  document.querySelectorAll('#shoes-grid .equip-card, #outfits-grid .equip-card').forEach(card => {
+    card.addEventListener('click', function() {
+      if (this.classList.contains('locked') && !this.classList.contains('equipped')) {
+        showToast('🔒 Zablokowane');
+        return;
+      }
+      setEquipped(this.dataset.type, this.dataset.id);
+      showToast('✓ Wybrano');
+    });
+  });
+}
+
+// ═════════════════════════════════════════════════
+// BADGES (15 game badges)
+// ═════════════════════════════════════════════════
+const BADGES = [
+  // Skill-based
+  { id: 'first_run', name: 'Pierwszy bieg', emoji: '🏁', tier: 'bronze', cond: () => getStat('total_runs', 0) >= 1 },
+  { id: 'sprinter_500', name: '500m sprint', emoji: '🏃', tier: 'bronze', cond: () => getStat('best_distance', 0) >= 500 },
+  { id: 'kilometer', name: 'Kilometr', emoji: '🥉', tier: 'silver', cond: () => getStat('best_distance', 0) >= 1000 },
+  { id: 'long_runner', name: '3km master', emoji: '🥇', tier: 'gold', cond: () => getStat('best_distance', 0) >= 3000 },
+  { id: 'perfect_10', name: '10 perfectów', emoji: '✨', tier: 'bronze', cond: () => getStat('total_perfect', 0) >= 10 },
+  { id: 'perfect_100', name: '100 perfectów', emoji: '💎', tier: 'silver', cond: () => getStat('total_perfect', 0) >= 100 },
+  { id: 'combo_x3', name: 'x3 combo', emoji: '🔥', tier: 'bronze', cond: () => getStat('best_combo', 1) >= 3 },
+  { id: 'combo_x5', name: 'x5 combo', emoji: '💥', tier: 'gold', cond: () => getStat('best_combo', 1) >= 5 },
+  { id: 'coin_50', name: '50 monet w runie', emoji: '🪙', tier: 'silver', cond: () => getStat('best_coins_run', 0) >= 50 },
+  { id: 'rich', name: '1000 monet razem', emoji: '💰', tier: 'gold', cond: () => getStat('total_coins', 0) >= 1000 },
+  // Hybrid (game + training)
+  { id: 'training_streak_game', name: 'Forma + skill', emoji: '🎯', tier: 'silver', cond: () => _bonuses.startMulti >= 1.5 && getStat('best_score', 0) >= 1000 },
+  { id: 'speed_runner', name: 'Szybki biegacz', emoji: '⚡', tier: 'gold', cond: () => _bonuses.maxSpeed >= 1.2 && getStat('best_distance', 0) >= 2000 },
+  { id: 'endurance_pro', name: 'Wytrzymały', emoji: '🏔', tier: 'gold', cond: () => _bonuses.staminaScale <= 0.85 && getStat('best_distance', 0) >= 2500 },
+  { id: 'interval_master', name: 'Mistrz interwałów', emoji: '💨', tier: 'silver', cond: () => _bonuses.dashCount >= 3 && getStat('best_score', 0) >= 1500 },
+  { id: 'all_in', name: 'Pełna forma', emoji: '🏆', tier: 'platinum', cond: () => _bonuses.startMulti >= 2.0 && _bonuses.maxSpeed >= 1.3 && _bonuses.dashCount >= 3 },
+];
+
+function getUnlockedBadges() {
+  try {
+    return JSON.parse(localStorage.getItem('biegamy_game_badges') || '[]');
+  } catch(e) { return []; }
+}
+function isBadgeUnlocked(id) {
+  return getUnlockedBadges().includes(id);
+}
+function unlockBadge(id) {
+  const list = getUnlockedBadges();
+  if (list.includes(id)) return false;
+  list.push(id);
+  localStorage.setItem('biegamy_game_badges', JSON.stringify(list));
+  return true;
+}
+function checkBadges() {
+  const newOnes = [];
+  for (const b of BADGES) {
+    if (!isBadgeUnlocked(b.id) && b.cond()) {
+      unlockBadge(b.id);
+      newOnes.push(b);
+    }
+  }
+  return newOnes;
+}
+
+function renderBadges() {
+  const unlocked = getUnlockedBadges();
+  document.getElementById('badges-counter').textContent = `${unlocked.length} / ${BADGES.length} odznak`;
+  document.getElementById('badges-grid').innerHTML = BADGES.map(b => {
+    const isUnlocked = unlocked.includes(b.id);
+    const tierEmoji = b.tier === 'platinum' ? '★★★' : b.tier === 'gold' ? '★★' : b.tier === 'silver' ? '★' : '';
+    return `<div class="badge-item ${isUnlocked ? 'unlocked' : ''}">
+      <div class="badge-tier">${tierEmoji}</div>
+      <div class="badge-emoji">${b.emoji}</div>
+      <div class="badge-name">${b.name}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═════════════════════════════════════════════════
+// DAILY MISSIONS
+// ═════════════════════════════════════════════════
+function getTodayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+const MISSION_POOL = [
+  { id: 'm_coins_30', icon: '🪙', title: 'Zbierz 30 monet', target: 30, key: 'coins', reward: 50 },
+  { id: 'm_coins_50', icon: '🪙', title: 'Zbierz 50 monet', target: 50, key: 'coins', reward: 80 },
+  { id: 'm_dist_500', icon: '🏃', title: 'Przebiegnij 500m', target: 500, key: 'distance', reward: 50 },
+  { id: 'm_dist_1000', icon: '🏔', title: 'Przebiegnij 1000m', target: 1000, key: 'distance', reward: 100 },
+  { id: 'm_combo_3', icon: '🔥', title: 'Osiągnij combo x3', target: 3, key: 'maxCombo', reward: 60 },
+  { id: 'm_combo_5', icon: '💥', title: 'Osiągnij combo x5', target: 5, key: 'maxCombo', reward: 150 },
+  { id: 'm_perfect_5', icon: '✨', title: '5 perfect jumpów', target: 5, key: 'perfects', reward: 70 },
+  { id: 'm_score_500', icon: '🎯', title: 'Zdobądź 500 punktów', target: 500, key: 'score', reward: 80 },
+];
+
+function getDailyMissions() {
+  const today = getTodayKey();
+  let saved;
+  try { saved = JSON.parse(localStorage.getItem('biegamy_game_missions') || '{}'); } catch(e) { saved = {}; }
+
+  if (saved.day !== today) {
+    // Wylosuj 3 nowe misje
+    const shuffled = [...MISSION_POOL].sort(() => Math.random() - 0.5);
+    saved = { day: today, missions: shuffled.slice(0, 3).map(m => ({ ...m, progress: 0, claimed: false })) };
+    localStorage.setItem('biegamy_game_missions', JSON.stringify(saved));
+  }
+  return saved.missions;
+}
+
+function updateMissions(runStats) {
+  const missions = getDailyMissions();
+  const today = getTodayKey();
+  let any = false;
+  missions.forEach(m => {
+    if (m.claimed) return;
+    const val = runStats[m.key] || 0;
+    if (m.key === 'maxCombo' || m.key === 'score') {
+      // Take max
+      if (val > m.progress) { m.progress = Math.min(val, m.target); any = true; }
+    } else {
+      m.progress = Math.min(m.progress + val, m.target);
+      if (val > 0) any = true;
+    }
+    if (m.progress >= m.target && !m.claimed) {
+      m.claimed = true;
+      incStat('total_coins', m.reward);
+      showToast('🎯 ' + m.title + ' +' + m.reward + ' 🪙');
+    }
+  });
+  if (any) {
+    localStorage.setItem('biegamy_game_missions', JSON.stringify({ day: today, missions }));
+  }
+}
+
+function renderMissions() {
+  const missions = getDailyMissions();
+  document.getElementById('missions-list').innerHTML = missions.map(m => {
+    const pct = Math.min(100, (m.progress / m.target) * 100);
+    const done = m.progress >= m.target;
+    return `<div class="mission-row">
+      <div class="mission-icon">${m.icon}</div>
+      <div class="mission-info">
+        <div class="mission-title">${done ? '✓ ' : ''}${m.title}</div>
+        <div class="mission-progress-bar"><div class="mission-progress-fill ${done ? 'done' : ''}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="mission-meta">
+        ${m.progress}/${m.target}
+        <span class="reward">+${m.reward} 🪙</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═════════════════════════════════════════════════
+// USER INIT + BONUSES
+// ═════════════════════════════════════════════════
 async function initUser() {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) {
@@ -289,11 +592,14 @@ async function initUser() {
 
   await loadBonuses();
   await loadHighScore();
+  renderEquipment();
+  renderBadges();
+  renderMissions();
+  document.getElementById('coins-total').textContent = getStat('total_coins', 0);
 }
 
 async function loadBonuses() {
   if (!_athleteId) return;
-  // Tygodniowe km
   const wS = new Date(); wS.setDate(wS.getDate() - 7);
   const { data: weekLogs } = await _sb.from('training_logs')
     .select('distance_km, training_type, pace')
@@ -303,14 +609,13 @@ async function loadBonuses() {
   const weekKm = (weekLogs || []).reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
   const intervalCount = (weekLogs || []).filter(l => l.training_type === 'Interwały').length;
 
-  // Streak (uproszczone — z ostatnich 30 dni)
   const m30 = new Date(); m30.setDate(m30.getDate() - 30);
   const { data: monthLogs } = await _sb.from('training_logs')
-    .select('logged_at')
+    .select('logged_at, training_type')
     .eq('athlete_id', _athleteId)
-    .gte('logged_at', m30.toISOString())
-    .not('training_type', 'like', '__badge__%');
-  const days = [...new Set((monthLogs || []).map(l => l.logged_at.slice(0, 10)))].sort();
+    .gte('logged_at', m30.toISOString());
+  const realLogs = (monthLogs || []).filter(l => !(l.training_type || '').startsWith('__badge__'));
+  const days = [...new Set(realLogs.map(l => l.logged_at.slice(0, 10)))].sort();
   let streak = 0, cur = 1;
   for (let i = 1; i < days.length; i++) {
     const diff = (new Date(days[i]) - new Date(days[i-1])) / 86400000;
@@ -318,8 +623,8 @@ async function loadBonuses() {
     else if (diff > 1) cur = 1;
   }
   if (days.length === 1) streak = 1;
+  if (days.length > 0 && cur > streak) streak = cur;
 
-  // Średnie tempo
   const paceLogs = (weekLogs || []).filter(l => l.pace && l.pace.includes(':'));
   let avgPaceSec = null;
   if (paceLogs.length) {
@@ -330,61 +635,52 @@ async function loadBonuses() {
     avgPaceSec = total / paceLogs.length;
   }
 
-  // ── MAPOWANIE NA GAMEPLAY ──
-  // weekly_distance → staminaScale (im więcej km tym wolniejszy wzrost speed)
+  // ── MAPOWANIE ──
   _bonuses.staminaScale = weekKm >= 50 ? 0.7 : weekKm >= 30 ? 0.85 : weekKm >= 10 ? 0.95 : 1.0;
-
-  // avg_pace → maxSpeed (szybsze tempo = wyższy cap)
   if (avgPaceSec !== null) {
-    if (avgPaceSec < 270) _bonuses.maxSpeed = 1.3;       // < 4:30/km
-    else if (avgPaceSec < 300) _bonuses.maxSpeed = 1.2;  // < 5:00/km
-    else if (avgPaceSec < 360) _bonuses.maxSpeed = 1.1;  // < 6:00/km
+    if (avgPaceSec < 270) _bonuses.maxSpeed = 1.3;
+    else if (avgPaceSec < 300) _bonuses.maxSpeed = 1.2;
+    else if (avgPaceSec < 360) _bonuses.maxSpeed = 1.1;
     else _bonuses.maxSpeed = 1.0;
   }
-
-  // streak → start_multiplier
   if (streak >= 7) _bonuses.startMulti = 2.0;
   else if (streak >= 3) _bonuses.startMulti = 1.5;
   else if (streak >= 1) _bonuses.startMulti = 1.2;
-
-  // intervals → dash count
   _bonuses.dashCount = Math.min(3, 1 + intervalCount);
 
-  // Render w UI
+  // Buty modyfikują finalne wartości
+  const shoe = getEquippedShoe();
+  _bonuses.maxSpeed *= shoe.effect.speed;
+  _bonuses.dashCount += shoe.effect.dash;
+  _bonuses.startLives = 3 + shoe.effect.lives;
+  _bonuses.controlScale = shoe.effect.control;
+
+  // Outfit
+  const outfit = getEquippedOutfit();
+  _bonuses.comboBoost = outfit.effect.comboBoost;
+  _bonuses.scoreBoost = outfit.effect.scoreBoost;
+  _bonuses.magnetBoost = outfit.effect.magnetBoost || 1.0;
+
+  // Render UI
   const html = [
-    {
-      icon: '🏃',
-      label: 'Tygodniowe km',
-      val: weekKm.toFixed(1) + ' km',
+    { icon: '🏃', label: 'Tygodniowe km', val: weekKm.toFixed(1) + ' km',
       bonus: _bonuses.staminaScale < 1.0 ? '↓ stamina' : '—',
-      cls: _bonuses.staminaScale < 1.0 ? 'green' : 'muted'
-    },
-    {
-      icon: '⚡',
-      label: 'Średnie tempo',
+      cls: _bonuses.staminaScale < 1.0 ? 'green' : 'muted' },
+    { icon: '⚡', label: 'Średnie tempo',
       val: avgPaceSec ? Math.floor(avgPaceSec/60) + ':' + String(Math.round(avgPaceSec%60)).padStart(2,'0') : '—',
-      bonus: _bonuses.maxSpeed > 1.0 ? '+' + Math.round((_bonuses.maxSpeed-1)*100) + '% max speed' : '—',
-      cls: _bonuses.maxSpeed > 1.0 ? 'green' : 'muted'
-    },
-    {
-      icon: '🔥',
-      label: 'Streak',
-      val: streak + (streak === 1 ? ' dzień' : ' dni'),
+      bonus: _bonuses.maxSpeed > 1.0 ? '+' + Math.round((_bonuses.maxSpeed-1)*100) + '% speed' : '—',
+      cls: _bonuses.maxSpeed > 1.0 ? 'green' : 'muted' },
+    { icon: '🔥', label: 'Streak', val: streak + (streak === 1 ? ' dzień' : ' dni'),
       bonus: _bonuses.startMulti > 1.0 ? 'x' + _bonuses.startMulti + ' start' : '—',
-      cls: _bonuses.startMulti > 1.0 ? 'green' : 'muted'
-    },
-    {
-      icon: '💨',
-      label: 'Interwały',
-      val: intervalCount + ' w tygodniu',
+      cls: _bonuses.startMulti > 1.0 ? 'green' : 'muted' },
+    { icon: '💨', label: 'Interwały', val: intervalCount + ' w tyg.',
       bonus: _bonuses.dashCount + 'x dash',
-      cls: _bonuses.dashCount > 1 ? 'green' : 'muted'
-    }
+      cls: _bonuses.dashCount > 1 ? 'green' : 'muted' }
   ];
 
   document.getElementById('bonuses-list').innerHTML = html.map(b =>
     '<div class="bonus-row">'
-    + '<div class="bonus-label"><span class="bonus-icon">' + b.icon + '</span>'
+    + '<div class="bonus-label"><span>' + b.icon + '</span>'
     + '<span>' + b.label + ': <b>' + b.val + '</b></span></div>'
     + '<div class="bonus-value ' + b.cls + '">' + b.bonus + '</div>'
     + '</div>'
@@ -400,15 +696,11 @@ async function loadHighScore() {
     .limit(1);
   const hi = data?.[0]?.score || 0;
   document.getElementById('high-score').textContent = hi;
-  window._highScore = hi;
+  if (hi > getStat('best_score', 0)) setStat('best_score', hi);
 }
 
-async function showLeaderboard() {
-  const sec = document.getElementById('leaderboard-section');
-  sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
-  if (sec.style.display === 'none') return;
-
-  // Pobierz znajomych + siebie
+async function loadLeaderboard() {
+  if (!_athleteId) return;
   const friendsRes = await _sb.from('friendships')
     .select('requester_id, addressee_id')
     .eq('status', 'accepted')
@@ -418,15 +710,13 @@ async function showLeaderboard() {
     friendIds.add(f.requester_id);
     friendIds.add(f.addressee_id);
   });
-
   const ids = [...friendIds];
   const { data: scores } = await _sb.from('game_scores')
-    .select('athlete_id, score, athletes(full_name, avatar_url)')
+    .select('athlete_id, score, athletes(full_name)')
     .in('athlete_id', ids)
     .order('score', { ascending: false })
-    .limit(20);
+    .limit(50);
 
-  // Top score per athlete
   const seen = new Set();
   const top = (scores || []).filter(s => {
     if (seen.has(s.athlete_id)) return false;
@@ -436,30 +726,43 @@ async function showLeaderboard() {
 
   const card = document.getElementById('lb-card');
   if (!top.length) {
-    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:20px 0;">Brak wyników. Bądź pierwszy!</div>';
+    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Brak wyników. Bądź pierwszy!</div>';
     return;
   }
   card.innerHTML = top.map((s, i) => {
     const isMe = s.athlete_id === _athleteId;
     const name = s.athletes?.full_name || 'Biegacz';
-    return '<div class="lb-row' + (isMe ? ' me' : '') + '">'
-      + '<div class="lb-rank' + (i < 3 ? ' top' : '') + '">' + (i+1) + '</div>'
-      + '<div class="lb-name">' + name + (isMe ? ' (Ty)' : '') + '</div>'
-      + '<div class="lb-score">' + s.score + '</div>'
-      + '</div>';
+    const rankCls = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
+    return `<div class="lb-row${isMe ? ' me' : ''}">
+      <div class="lb-rank ${rankCls}">${i+1}</div>
+      <div class="lb-name">${name}${isMe ? ' (Ty)' : ''}</div>
+      <div class="lb-score">${s.score}</div>
+    </div>`;
   }).join('');
 }
 
 // ═════════════════════════════════════════════════
-// GAME ENGINE
+// TABS
+// ═════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+  if (name === 'rank') loadLeaderboard();
+  if (name === 'badges') renderBadges();
+  if (name === 'equip') renderEquipment();
+}
+
+// ═════════════════════════════════════════════════
+// GAME ENGINE — Canvas, input, update
 // ═════════════════════════════════════════════════
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-let W, H, GROUND_Y;
+let W, H, GROUND_Y, dpr;
 function resize() {
-  W = canvas.width = window.innerWidth * (window.devicePixelRatio || 1);
-  H = canvas.height = window.innerHeight * (window.devicePixelRatio || 1);
+  dpr = window.devicePixelRatio || 1;
+  W = canvas.width = window.innerWidth * dpr;
+  H = canvas.height = window.innerHeight * dpr;
   canvas.style.width = window.innerWidth + 'px';
   canvas.style.height = window.innerHeight + 'px';
   GROUND_Y = H - H * 0.18;
@@ -467,23 +770,25 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Game state
 let game = null;
+let shakeAmount = 0;
 
 function newGame() {
   return {
     running: false,
     over: false,
-    t: 0,                    // czas w klatkach
-    distance: 0,             // metry
+    paused: false,
+    t: 0,
+    distance: 0,
     score: 0,
     multi: _bonuses.startMulti,
     maxMulti: _bonuses.startMulti,
     coins: 0,
-    speed: 4 * (window.devicePixelRatio || 1),  // px/klatka bazowe
+    perfects: 0,
+    speed: 4 * dpr,
     speedScale: _bonuses.maxSpeed,
-    lives: 3,
-    invuln: 0,               // klatki nietykalności po kolizji
+    lives: _bonuses.startLives || 3,
+    invuln: 0,
     // Player
     px: W * 0.18,
     py: GROUND_Y,
@@ -491,42 +796,60 @@ function newGame() {
     onGround: true,
     jumpHold: 0,
     canDoubleJump: false,
-    dashing: 0,              // klatki dasha
+    sliding: 0,
+    dashing: 0,
     dashLeft: _bonuses.dashCount,
     // Spawning
     nextObstacleIn: 90,
-    nextCoinIn: 60,
+    nextCoinIn: 70,
+    nextPowerupIn: 600,  // ~10s na początku
     obstacles: [],
     coinsArr: [],
+    powerups: [],
     particles: [],
-    // Combo
-    lastJump: 0,
-    perfectStreak: 0
+    popups: [],
+    trail: [],
+    // Combo / scoring
+    perfectStreak: 0,
+    // Power-ups active
+    activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0 },
+    // Background parallax
+    bgFar: 0,
+    bgMid: 0,
+    bgNear: 0,
   };
 }
 
-// ── INPUT ──
+// ═════════════════════════════════════════════════
+// INPUT
+// ═════════════════════════════════════════════════
 let keys = {};
 let lastTap = 0;
+let touchStartY = null;
+
 function onTapDown(e) {
   if (e.cancelable) e.preventDefault();
   if (!game || !game.running) return;
   const now = performance.now();
   if (now - lastTap < 280) {
-    // Double tap → dash
     tryDash();
     lastTap = 0;
     return;
   }
   lastTap = now;
-  // Skok
+
+  if (game.sliding > 0) {
+    // Anuluj slide → jump
+    game.sliding = 0;
+  }
+
   if (game.onGround) {
-    game.vy = -16 * (window.devicePixelRatio || 1);
+    game.vy = -16 * dpr;
     game.onGround = false;
     game.canDoubleJump = true;
     game.jumpHold = 1;
   } else if (game.canDoubleJump) {
-    game.vy = -13 * (window.devicePixelRatio || 1);
+    game.vy = -13 * dpr;
     game.canDoubleJump = false;
     spawnParticles(game.px, game.py, '#5090e0', 8);
   }
@@ -535,20 +858,55 @@ function onTapUp() {
   if (!game) return;
   game.jumpHold = 0;
 }
+
+function trySlide() {
+  if (!game || !game.running || game.sliding > 0) return;
+  if (!game.onGround) {
+    // W powietrzu — szybko spadnij
+    game.vy = 14 * dpr;
+    return;
+  }
+  game.sliding = 30;  // klatki
+  spawnParticles(game.px, GROUND_Y, '#888', 8);
+}
+
 function tryDash() {
-  if (!game || game.dashing > 0 || game.dashLeft <= 0) return;
+  if (!game || !game.running) return;
+  if (game.dashing > 0 || game.dashLeft <= 0) return;
   game.dashing = 22;
   game.dashLeft--;
   game.invuln = 22;
-  spawnParticles(game.px, game.py - 30 * (window.devicePixelRatio || 1), '#e8561e', 16);
+  spawnParticles(game.px, game.py - 30 * dpr, '#e8561e', 16);
   showToast('DASH!');
   updateDashUI();
 }
 
-canvas.addEventListener('touchstart', onTapDown, { passive: false });
-canvas.addEventListener('touchend', onTapUp);
+// Touch
+canvas.addEventListener('touchstart', function(e) {
+  if (e.cancelable) e.preventDefault();
+  if (e.touches.length === 1) touchStartY = e.touches[0].clientY;
+  onTapDown(e);
+}, { passive: false });
+
+canvas.addEventListener('touchmove', function(e) {
+  if (e.cancelable) e.preventDefault();
+  if (touchStartY !== null && e.touches.length === 1) {
+    const dy = e.touches[0].clientY - touchStartY;
+    if (dy > 40) {
+      trySlide();
+      touchStartY = null;
+    }
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', function(e) {
+  touchStartY = null;
+  onTapUp();
+});
+
 canvas.addEventListener('mousedown', onTapDown);
 canvas.addEventListener('mouseup', onTapUp);
+
 window.addEventListener('keydown', e => {
   if (!game || !game.running) return;
   if (e.code === 'Space' || e.code === 'ArrowUp') {
@@ -556,8 +914,13 @@ window.addEventListener('keydown', e => {
     keys[e.code] = true;
     e.preventDefault();
   }
+  if (e.code === 'ArrowDown') {
+    trySlide();
+    e.preventDefault();
+  }
   if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
     tryDash();
+    e.preventDefault();
   }
 });
 window.addEventListener('keyup', e => {
@@ -565,37 +928,74 @@ window.addEventListener('keyup', e => {
   if (e.code === 'Space' || e.code === 'ArrowUp') onTapUp();
 });
 
-// ── SPAWNING ──
+// ═════════════════════════════════════════════════
+// SPAWNING
+// ═════════════════════════════════════════════════
 function spawnObstacle() {
-  const dpr = window.devicePixelRatio || 1;
   const types = ['low', 'high', 'gap'];
-  // Im wyższa speed, tym częściej trudniejsze
-  const type = game.speed > 8 * dpr && Math.random() < 0.4
+  const type = game.speed > 8 * dpr && Math.random() < 0.45
     ? types[1 + Math.floor(Math.random()*2)]
     : types[Math.floor(Math.random()*3)];
   game.obstacles.push({
     type,
     x: W + 50 * dpr,
-    w: type === 'gap' ? 80 * dpr : 30 * dpr,
-    h: type === 'high' ? 60 * dpr : 30 * dpr,
-    passed: false
+    w: type === 'gap' ? (60 + Math.random() * 40) * dpr : 30 * dpr,
+    h: type === 'high' ? 40 * dpr : 32 * dpr,
+    passed: false,
+    nearMissed: false
   });
 }
 
-function spawnCoin() {
-  const dpr = window.devicePixelRatio || 1;
-  const yOffset = Math.random() < 0.5 ? 60 * dpr : 110 * dpr;
-  game.coinsArr.push({
+function spawnCoinPattern() {
+  // Wzór: pojedynczo, łuk, linia
+  const r = Math.random();
+  const yBase = GROUND_Y - (50 + Math.random() * 80) * dpr;
+  if (r < 0.4) {
+    // Pojedyncza
+    game.coinsArr.push({
+      x: W + 30 * dpr, y: yBase, r: 11 * dpr,
+      collected: false, bob: Math.random() * Math.PI * 2
+    });
+  } else if (r < 0.75) {
+    // Łuk (3-5 monet w łuku nad przeszkodą)
+    const count = 3 + Math.floor(Math.random() * 3);
+    const centerX = W + 80 * dpr;
+    const peakY = GROUND_Y - 130 * dpr;
+    for (let i = 0; i < count; i++) {
+      const t = i / (count - 1);
+      const x = centerX + (i - (count-1)/2) * 30 * dpr;
+      const y = GROUND_Y - 60 * dpr - Math.sin(t * Math.PI) * 70 * dpr;
+      game.coinsArr.push({
+        x, y, r: 11 * dpr,
+        collected: false, bob: Math.random() * Math.PI * 2
+      });
+    }
+  } else {
+    // Linia (4 monety pozioma)
+    for (let i = 0; i < 4; i++) {
+      game.coinsArr.push({
+        x: W + 30 * dpr + i * 30 * dpr,
+        y: yBase, r: 11 * dpr,
+        collected: false, bob: Math.random() * Math.PI * 2
+      });
+    }
+  }
+}
+
+function spawnPowerup() {
+  const types = ['magnet', 'shield', 'slowmo', 'boost'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  game.powerups.push({
+    type,
     x: W + 30 * dpr,
-    y: GROUND_Y - yOffset,
-    r: 12 * dpr,
+    y: GROUND_Y - (80 + Math.random() * 70) * dpr,
+    r: 16 * dpr,
     collected: false,
-    bob: Math.random() * Math.PI * 2
+    bob: 0
   });
 }
 
 function spawnParticles(x, y, color, count) {
-  const dpr = window.devicePixelRatio || 1;
   for (let i = 0; i < count; i++) {
     game.particles.push({
       x, y,
@@ -608,16 +1008,26 @@ function spawnParticles(x, y, color, count) {
   }
 }
 
-// ── UPDATE ──
-function update() {
-  if (!game.running) return;
-  const dpr = window.devicePixelRatio || 1;
-  game.t++;
-  game.distance += game.speed / dpr / 4;
+function spawnPopup(x, y, text, color) {
+  game.popups.push({ x, y, text, color: color || '#e8561e', life: 50, vy: -1.5 * dpr });
+}
 
-  // Speed scaling — wolniejszy wzrost przy lepszej staminie
+// ═════════════════════════════════════════════════
+// UPDATE LOGIC
+// ═════════════════════════════════════════════════
+function update() {
+  if (!game.running || game.paused) return;
+
+  // Slowmo affects time
+  const slowFactor = game.activePU.slowmo > 0 ? 0.55 : 1;
+  game.t += slowFactor;
+  game.distance += game.speed / dpr / 4 * slowFactor;
+
+  // Speed scaling
   const targetSpeed = (4 + game.t / 600) * dpr * game.speedScale * _bonuses.staminaScale;
-  game.speed = Math.min(targetSpeed, 16 * dpr * game.speedScale);
+  let curMaxSpeed = 16 * dpr * game.speedScale;
+  if (game.activePU.boost > 0) curMaxSpeed *= 1.5;
+  game.speed = Math.min(targetSpeed, curMaxSpeed) * (game.activePU.boost > 0 ? 1.4 : 1) * slowFactor;
 
   // Player physics
   if (game.dashing > 0) {
@@ -625,9 +1035,13 @@ function update() {
     game.py = GROUND_Y - 50 * dpr;
     game.vy = 0;
   } else {
-    if (!game.onGround || game.vy < 0) {
-      // Hold dla wyższego skoku
-      const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr;
+    if (game.sliding > 0) {
+      game.sliding--;
+      game.py = GROUND_Y;
+      game.vy = 0;
+      game.onGround = true;
+    } else if (!game.onGround || game.vy < 0) {
+      const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr * (_bonuses.controlScale || 1);
       game.vy += gravity;
       game.py += game.vy;
       if (game.py >= GROUND_Y) {
@@ -641,73 +1055,145 @@ function update() {
 
   if (game.invuln > 0) game.invuln--;
 
+  // Active power-ups countdown
+  ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+    if (game.activePU[k] > 0) game.activePU[k]--;
+  });
+
+  // Trail
+  if (game.t % 2 === 0) {
+    game.trail.push({ x: game.px, y: game.py - (game.sliding > 0 ? 10 * dpr : 30 * dpr), life: 20 });
+  }
+  game.trail.forEach(t => t.life--);
+  game.trail = game.trail.filter(t => t.life > 0);
+
   // Spawn
-  game.nextObstacleIn--;
+  game.nextObstacleIn -= slowFactor;
   if (game.nextObstacleIn <= 0) {
     spawnObstacle();
-    // Im wyższa speed tym mniejszy odstęp
-    const minGap = Math.max(50, 130 - game.t / 30);
-    game.nextObstacleIn = minGap + Math.random() * 80;
+    const minGap = Math.max(55, 130 - game.t / 30);
+    game.nextObstacleIn = minGap + Math.random() * 70;
   }
-  game.nextCoinIn--;
+  game.nextCoinIn -= slowFactor;
   if (game.nextCoinIn <= 0) {
-    if (Math.random() < 0.6) spawnCoin();
-    game.nextCoinIn = 40 + Math.random() * 60;
+    if (Math.random() < 0.7) spawnCoinPattern();
+    game.nextCoinIn = 50 + Math.random() * 80;
+  }
+  game.nextPowerupIn -= slowFactor;
+  if (game.nextPowerupIn <= 0) {
+    spawnPowerup();
+    game.nextPowerupIn = 800 + Math.random() * 600;
   }
 
-  // Move obstacles
+  // Move
   game.obstacles.forEach(o => o.x -= game.speed);
   game.obstacles = game.obstacles.filter(o => o.x + o.w > -50 * dpr);
 
-  // Move coins
-  game.coinsArr.forEach(c => {
-    c.x -= game.speed;
-    c.bob += 0.1;
-  });
+  game.coinsArr.forEach(c => { c.x -= game.speed; c.bob += 0.1; });
   game.coinsArr = game.coinsArr.filter(c => c.x + c.r > -30 * dpr && !c.collected);
 
-  // Particles
+  game.powerups.forEach(p => { p.x -= game.speed; p.bob += 0.05; });
+  game.powerups = game.powerups.filter(p => p.x + p.r > -30 * dpr && !p.collected);
+
   game.particles.forEach(p => {
-    p.x += p.vx;
-    p.y += p.vy;
+    p.x += p.vx; p.y += p.vy;
     p.vy += 0.3 * dpr;
     p.life--;
   });
   game.particles = game.particles.filter(p => p.life > 0);
 
-  // Collisions
-  const playerR = 20 * dpr;
+  game.popups.forEach(p => { p.y += p.vy; p.life--; });
+  game.popups = game.popups.filter(p => p.life > 0);
+
+  // Magnet effect — przyciągaj monety
+  if (game.activePU.magnet > 0) {
+    const magnetR = 120 * dpr;
+    game.coinsArr.forEach(c => {
+      if (c.collected) return;
+      const dx = game.px - c.x;
+      const dy = (game.py - 30 * dpr) - c.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if (d < magnetR) {
+        c.x += dx / d * 8 * dpr;
+        c.y += dy / d * 8 * dpr;
+      }
+    });
+  }
+
+  // ── COLLISIONS ──
+  const playerR = 18 * dpr;
+  const playerH = game.sliding > 0 ? playerR : playerR * 2;
   const px1 = game.px - playerR;
   const px2 = game.px + playerR;
-  const py1 = game.py - playerR * 2;
+  const py1 = game.py - playerH;
   const py2 = game.py;
 
   for (const o of game.obstacles) {
     const ox1 = o.x;
     const ox2 = o.x + o.w;
-    let oy1, oy2;
+    let oy1, oy2, isHigh = false, isGap = false;
     if (o.type === 'low') { oy1 = GROUND_Y - o.h; oy2 = GROUND_Y; }
-    else if (o.type === 'high') { oy1 = GROUND_Y - 100 * dpr; oy2 = GROUND_Y - 100 * dpr + o.h; }
-    else { oy1 = GROUND_Y; oy2 = GROUND_Y + 50 * dpr; } // gap (dół, podczas dasha)
+    else if (o.type === 'high') { oy1 = GROUND_Y - 90 * dpr; oy2 = GROUND_Y - 90 * dpr + o.h; isHigh = true; }
+    else { oy1 = GROUND_Y; oy2 = GROUND_Y + 50 * dpr; isGap = true; }
+
+    // Slide pod high — można przejść
+    const slidesUnder = isHigh && game.sliding > 0;
+    // Dash przebija wszystko (z invuln)
+    const dashThrough = game.invuln > 0;
+    // Gap — trzeba mieć wysokie py albo dash
+    const overGap = isGap && (game.py < GROUND_Y - 5 || game.dashing > 0);
 
     // Kolizja
-    if (game.invuln <= 0 && px2 > ox1 && px1 < ox2 && py2 > oy1 && py1 < oy2) {
+    if (game.invuln <= 0 && !slidesUnder && !overGap &&
+        px2 > ox1 && px1 < ox2 && py2 > oy1 && py1 < oy2) {
       hitObstacle();
-      o.passed = true; // żeby nie liczyć po raz drugi
+      o.passed = true;
+      shakeAmount = 12 * dpr;
     }
+
+    // Near miss bonus (vertical distance < 25)
+    if (!o.nearMissed && o.passed === false && o.x < game.px && o.x + o.w > game.px - 50 * dpr) {
+      let vDist = 999;
+      if (o.type === 'low') vDist = (GROUND_Y - o.h) - py2;
+      else if (o.type === 'high') vDist = py1 - (GROUND_Y - 90 * dpr + o.h);
+      if (vDist > 0 && vDist < 25 * dpr && game.invuln === 0) {
+        o.nearMissed = true;
+        const bonus = Math.floor(15 * game.multi * (_bonuses.scoreBoost || 1));
+        game.score += bonus;
+        spawnPopup(o.x, oy1 - 20 * dpr, 'NEAR! +' + bonus, '#5090e0');
+      }
+    }
+
     // Passed bonus
     if (!o.passed && o.x + o.w < game.px - playerR) {
       o.passed = true;
       game.perfectStreak++;
-      // Multiplier wzrasta co 3 ominięte
-      if (game.perfectStreak % 3 === 0) {
-        game.multi = Math.min(5, game.multi + 0.2);
+      // Combo wzrasta szybciej z outfit Neon
+      const comboInc = 1 / 3 * (_bonuses.comboBoost || 1);
+      const newMulti = Math.min(5, _bonuses.startMulti + game.perfectStreak * comboInc * 0.2);
+      if (newMulti > game.multi + 0.05) {
+        game.multi = newMulti;
         game.maxMulti = Math.max(game.maxMulti, game.multi);
         document.getElementById('hud-multi').classList.remove('pulse');
         void document.getElementById('hud-multi').offsetWidth;
         document.getElementById('hud-multi').classList.add('pulse');
       }
-      game.score += Math.floor(10 * game.multi);
+
+      // Perfect jump detection (top of low obstacle, very close)
+      if (o.type === 'low' && !isGap) {
+        const playerBot = py2;
+        const obstacleTop = GROUND_Y - o.h;
+        const diff = obstacleTop - playerBot;
+        if (diff > -5 * dpr && diff < 15 * dpr) {
+          game.perfects++;
+          incStat('total_perfect', 1);
+          const bonus = Math.floor(20 * game.multi * (_bonuses.scoreBoost || 1));
+          game.score += bonus;
+          spawnPopup(o.x, oy1 - 30 * dpr, 'PERFECT! +' + bonus, '#ffd966');
+        }
+      }
+
+      game.score += Math.floor(10 * game.multi * (_bonuses.scoreBoost || 1));
     }
   }
 
@@ -719,29 +1205,93 @@ function update() {
     if (dx * dx + dy * dy < (c.r + playerR) * (c.r + playerR)) {
       c.collected = true;
       game.coins++;
-      game.score += Math.floor(5 * game.multi);
-      spawnParticles(c.x, c.y, '#e8b840', 6);
+      game.score += Math.floor(5 * game.multi * (_bonuses.scoreBoost || 1));
+      spawnParticles(c.x, c.y, '#ffd966', 6);
     }
   }
 
-  // Distance score (slow trickle)
-  if (game.t % 6 === 0) game.score += Math.floor(1 * game.multi);
+  // Powerup collisions
+  for (const p of game.powerups) {
+    if (p.collected) continue;
+    const dx = p.x - game.px;
+    const dy = p.y - (game.py - playerR);
+    if (dx * dx + dy * dy < (p.r + playerR) * (p.r + playerR)) {
+      p.collected = true;
+      activatePowerup(p.type);
+      spawnParticles(p.x, p.y, puColor(p.type), 14);
+    }
+  }
 
-  // Update HUD
-  document.getElementById('hud-score').textContent = game.score;
+  // Trickle distance
+  if (game.t % 6 < 1) game.score += Math.floor(1 * game.multi * (_bonuses.scoreBoost || 1));
+
+  // Background parallax
+  game.bgFar += game.speed * 0.1;
+  game.bgMid += game.speed * 0.3;
+  game.bgNear += game.speed * 0.6;
+
+  // Screen shake decay
+  if (shakeAmount > 0) shakeAmount *= 0.85;
+
+  // HUD
+  document.getElementById('hud-score').textContent = Math.floor(game.score);
   document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
   document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
+  document.getElementById('hud-coins').textContent = '🪙 ' + game.coins;
   document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
-  document.getElementById('hud-lives').textContent = '❤'.repeat(game.lives) + '<span style="opacity:0.2;">' + '❤'.repeat(3 - game.lives) + '</span>';
-  document.getElementById('hud-lives').innerHTML = '<span>' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(3 - game.lives) + '</span>';
+  document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, (_bonuses.startLives || 3) - game.lives)) + '</span>';
+
+  renderActivePowerups();
+}
+
+function activatePowerup(type) {
+  const dur = type === 'magnet' ? 360 * (_bonuses.magnetBoost || 1) :
+              type === 'shield' ? 1 :  // shield ma "ładunki" — robimy timer
+              type === 'slowmo' ? 240 :
+              300; // boost
+  // Magnet/shield/slowmo/boost mają osobne effecty
+  if (type === 'shield') {
+    // Shield daje invuln 5s
+    game.activePU.shield = 300;
+    showToast('🛡 SHIELD');
+  } else {
+    game.activePU[type] = dur;
+    showToast(puIcon(type) + ' ' + type.toUpperCase());
+  }
+}
+
+function puColor(t) {
+  return t === 'magnet' ? '#ffd966' : t === 'shield' ? '#5090e0' : t === 'slowmo' ? '#a868e0' : '#e8561e';
+}
+function puIcon(t) {
+  return t === 'magnet' ? '🧲' : t === 'shield' ? '🛡' : t === 'slowmo' ? '🐢' : '⚡';
+}
+
+function renderActivePowerups() {
+  const bar = document.getElementById('powerup-bar');
+  const items = [];
+  ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+    if (game.activePU[k] > 0) {
+      items.push(`<div class="pu-active ${k}">${puIcon(k)}<span class="pu-time">${(game.activePU[k]/60).toFixed(1)}s</span></div>`);
+    }
+  });
+  bar.innerHTML = items.join('');
 }
 
 function hitObstacle() {
+  // Shield blokuje
+  if (game.activePU.shield > 0) {
+    game.activePU.shield = 0;
+    game.invuln = 60;
+    spawnParticles(game.px, game.py - 30 * dpr, '#5090e0', 20);
+    showToast('🛡 SHIELD');
+    return;
+  }
   game.lives--;
   game.invuln = 60;
   game.multi = _bonuses.startMulti;
   game.perfectStreak = 0;
-  spawnParticles(game.px, game.py - 30, '#e05050', 14);
+  spawnParticles(game.px, game.py - 30 * dpr, '#e05050', 14);
   if (game.lives <= 0) {
     endGame();
   } else {
@@ -749,100 +1299,192 @@ function hitObstacle() {
   }
 }
 
-// ── RENDER ──
+// ═════════════════════════════════════════════════
+// RENDER
+// ═════════════════════════════════════════════════
 function render() {
   if (!game) return;
-  const dpr = window.devicePixelRatio || 1;
 
-  // Background gradient
+  // Screen shake
+  ctx.save();
+  if (shakeAmount > 0.5) {
+    ctx.translate((Math.random() - 0.5) * shakeAmount, (Math.random() - 0.5) * shakeAmount);
+  }
+
+  // ── Background ──
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, '#0a0a14');
-  grad.addColorStop(0.7, '#07070a');
-  grad.addColorStop(1, '#15121e');
+  grad.addColorStop(0.5, '#0d0a18');
+  grad.addColorStop(0.85, '#15121e');
+  grad.addColorStop(1, '#1a1320');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  // Stars/grid background (parallax)
-  ctx.fillStyle = 'rgba(232,86,30,0.03)';
-  for (let i = 0; i < 8; i++) {
-    const x = ((W * 0.1 + i * 200 * dpr - game.t * 0.5) % (W + 200 * dpr)) - 100 * dpr;
-    ctx.fillRect(x, 0, 1, H);
+  // Stars (parallax far)
+  ctx.fillStyle = 'rgba(255,255,255,0.3)';
+  for (let i = 0; i < 30; i++) {
+    const seed = i * 137.5;
+    const x = ((seed - game.bgFar * 0.1) % W + W) % W;
+    const y = (seed * 0.7) % (GROUND_Y * 0.6);
+    const size = (i % 3 === 0 ? 2 : 1) * dpr;
+    ctx.fillRect(x, y, size, size);
   }
 
-  // Speed lines (efekt szybkości)
-  if (game.speed > 7 * dpr) {
-    ctx.strokeStyle = 'rgba(232,86,30,0.15)';
-    ctx.lineWidth = 1 * dpr;
-    for (let i = 0; i < 5; i++) {
-      const y = Math.random() * H;
-      const len = 60 * dpr + Math.random() * 60 * dpr;
+  // Mountains (mid)
+  ctx.fillStyle = 'rgba(60,40,80,0.6)';
+  ctx.beginPath();
+  ctx.moveTo(0, GROUND_Y);
+  for (let i = 0; i < 8; i++) {
+    const baseX = (i * 200 * dpr - game.bgMid * 0.4) % (W + 200 * dpr) - 100 * dpr;
+    const peakH = 80 + (i % 3) * 40;
+    ctx.lineTo(baseX + 80 * dpr, GROUND_Y - peakH * dpr);
+    ctx.lineTo(baseX + 160 * dpr, GROUND_Y);
+  }
+  ctx.lineTo(W, GROUND_Y);
+  ctx.fill();
+
+  // Buildings (near)
+  ctx.fillStyle = 'rgba(20,15,30,0.85)';
+  for (let i = 0; i < 12; i++) {
+    const baseX = ((i * 120 * dpr - game.bgNear * 0.6) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
+    const bH = 60 + (i % 4) * 25;
+    ctx.fillRect(baseX, GROUND_Y - bH * dpr, 80 * dpr, bH * dpr);
+    // Windows
+    ctx.fillStyle = 'rgba(232,86,30,0.4)';
+    for (let wy = 0; wy < bH; wy += 18) {
+      for (let wx = 0; wx < 80; wx += 18) {
+        if ((i + wy + wx) % 3 === 0) {
+          ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+        }
+      }
+    }
+    ctx.fillStyle = 'rgba(20,15,30,0.85)';
+  }
+
+  // Speed lines effect
+  if (game.speed > 7 * dpr || game.activePU.boost > 0) {
+    ctx.strokeStyle = game.activePU.boost > 0 ? 'rgba(232,86,30,0.4)' : 'rgba(232,86,30,0.15)';
+    ctx.lineWidth = 1.5 * dpr;
+    for (let i = 0; i < (game.activePU.boost > 0 ? 12 : 6); i++) {
+      const y = (Math.sin(game.t * 0.1 + i) * 0.5 + 0.5) * H;
+      const len = 80 * dpr + Math.random() * 80 * dpr;
+      const x = ((game.t * 6 + i * 100) % (W + 200)) - 100;
       ctx.beginPath();
-      ctx.moveTo(Math.random() * W, y);
-      ctx.lineTo(Math.random() * W - len, y);
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - len, y);
       ctx.stroke();
     }
   }
 
-  // Ground line
-  ctx.strokeStyle = 'rgba(232,86,30,0.5)';
+  // Slowmo effect — purple tint
+  if (game.activePU.slowmo > 0) {
+    ctx.fillStyle = 'rgba(168,104,224,0.08)';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  // Ground
+  ctx.strokeStyle = 'rgba(232,86,30,0.6)';
   ctx.lineWidth = 2 * dpr;
   ctx.beginPath();
   ctx.moveTo(0, GROUND_Y);
+  // Pomiń przepaści
+  let lastX = 0;
+  game.obstacles.forEach(o => {
+    if (o.type === 'gap') {
+      ctx.lineTo(o.x, GROUND_Y);
+      ctx.moveTo(o.x + o.w, GROUND_Y);
+    }
+  });
   ctx.lineTo(W, GROUND_Y);
   ctx.stroke();
 
   // Ground glow
   const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-  groundGrad.addColorStop(0, 'rgba(232,86,30,0.15)');
+  groundGrad.addColorStop(0, 'rgba(232,86,30,0.18)');
   groundGrad.addColorStop(1, 'rgba(232,86,30,0)');
   ctx.fillStyle = groundGrad;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 
   // Obstacles
   game.obstacles.forEach(o => {
-    let x1 = o.x, y1, h;
-    if (o.type === 'low') { y1 = GROUND_Y - o.h; h = o.h; }
-    else if (o.type === 'high') { y1 = GROUND_Y - 100 * dpr; h = o.h; }
-    else { y1 = GROUND_Y; h = 4 * dpr; } // gap — pokazujemy linię przerwy
-
     if (o.type === 'gap') {
-      // Przepaść — czarna dziura w ziemi
       ctx.fillStyle = '#000';
-      ctx.fillRect(o.x, GROUND_Y, o.w, 60 * dpr);
+      ctx.fillRect(o.x, GROUND_Y, o.w, 80 * dpr);
+      // Krawędzie
       ctx.strokeStyle = '#e05050';
       ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
       ctx.moveTo(o.x, GROUND_Y);
-      ctx.lineTo(o.x + o.w, GROUND_Y);
+      ctx.lineTo(o.x, GROUND_Y + 60 * dpr);
+      ctx.moveTo(o.x + o.w, GROUND_Y);
+      ctx.lineTo(o.x + o.w, GROUND_Y + 60 * dpr);
       ctx.stroke();
-    } else {
-      // Box
-      const obsGrad = ctx.createLinearGradient(x1, y1, x1, y1 + h);
-      obsGrad.addColorStop(0, '#e05050');
-      obsGrad.addColorStop(1, '#a02020');
-      ctx.fillStyle = obsGrad;
-      ctx.fillRect(x1, y1, o.w, h);
-      // Glow border
-      ctx.strokeStyle = 'rgba(224,80,80,0.6)';
-      ctx.lineWidth = 1 * dpr;
-      ctx.strokeRect(x1, y1, o.w, h);
+      return;
     }
+    let y1, h;
+    if (o.type === 'low') { y1 = GROUND_Y - o.h; h = o.h; }
+    else { y1 = GROUND_Y - 90 * dpr; h = o.h; }
+
+    const obsGrad = ctx.createLinearGradient(o.x, y1, o.x, y1 + h);
+    obsGrad.addColorStop(0, '#e05050');
+    obsGrad.addColorStop(1, '#a02020');
+    ctx.fillStyle = obsGrad;
+    ctx.fillRect(o.x, y1, o.w, h);
+    ctx.strokeStyle = 'rgba(255,80,80,0.7)';
+    ctx.lineWidth = 1 * dpr;
+    ctx.strokeRect(o.x, y1, o.w, h);
+    // Glow
+    ctx.shadowColor = '#e05050';
+    ctx.shadowBlur = 10 * dpr;
+    ctx.strokeRect(o.x, y1, o.w, h);
+    ctx.shadowBlur = 0;
   });
+
+  // Trail
+  game.trail.forEach((t, i) => {
+    ctx.globalAlpha = (t.life / 20) * 0.4;
+    ctx.fillStyle = '#e8561e';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 14 * dpr * (t.life / 20), 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
 
   // Coins
   game.coinsArr.forEach(c => {
     if (c.collected) return;
     const bobY = c.y + Math.sin(c.bob) * 4 * dpr;
-    const grad = ctx.createRadialGradient(c.x, bobY, 0, c.x, bobY, c.r);
-    grad.addColorStop(0, '#ffd966');
-    grad.addColorStop(1, '#e8b840');
-    ctx.fillStyle = grad;
+    const cgrad = ctx.createRadialGradient(c.x, bobY, 0, c.x, bobY, c.r);
+    cgrad.addColorStop(0, '#ffd966');
+    cgrad.addColorStop(0.7, '#e8b840');
+    cgrad.addColorStop(1, '#a8801a');
+    ctx.fillStyle = cgrad;
     ctx.beginPath();
     ctx.arc(c.x, bobY, c.r, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,217,102,0.6)';
+    ctx.strokeStyle = 'rgba(255,217,102,0.7)';
     ctx.lineWidth = 1 * dpr;
     ctx.stroke();
+  });
+
+  // Power-ups
+  game.powerups.forEach(p => {
+    if (p.collected) return;
+    const bobY = p.y + Math.sin(p.bob) * 5 * dpr;
+    const color = puColor(p.type);
+    // Glow
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 20 * dpr;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(p.x, bobY, p.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    // Icon
+    ctx.font = (18 * dpr) + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(puIcon(p.type), p.x, bobY);
   });
 
   // Particles
@@ -855,27 +1497,64 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
-  // Player (emoji 🏃)
+  // Popups (PERFECT!, NEAR!)
+  game.popups.forEach(p => {
+    ctx.globalAlpha = Math.min(1, p.life / 30);
+    ctx.font = 'bold ' + (16 * dpr) + 'px "DM Mono", monospace';
+    ctx.fillStyle = p.color;
+    ctx.textAlign = 'center';
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 6 * dpr;
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.shadowBlur = 0;
+  });
+  ctx.globalAlpha = 1;
+
+  // ── PLAYER ──
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
   if (!blink) {
-    ctx.font = (44 * dpr) + 'px serif';
+    // Shield aura
+    if (game.activePU.shield > 0) {
+      ctx.strokeStyle = 'rgba(80,144,224,0.7)';
+      ctx.lineWidth = 3 * dpr;
+      ctx.beginPath();
+      ctx.arc(game.px, game.py - 25 * dpr, 30 * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    // Magnet aura
+    if (game.activePU.magnet > 0) {
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = '#ffd966';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath();
+      ctx.arc(game.px, game.py - 25 * dpr, 60 * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    // Boost glow
+    if (game.activePU.boost > 0 || game.dashing > 0) {
+      ctx.shadowColor = '#e8561e';
+      ctx.shadowBlur = 25 * dpr;
+    }
+    // Postać
+    const playerEmoji = game.sliding > 0 ? '🤸' : (getEquippedOutfit().emoji || '🏃');
+    ctx.font = (game.sliding > 0 ? 36 : 42) * dpr + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    // Glow podczas dasha
-    if (game.dashing > 0) {
-      ctx.shadowColor = '#e8561e';
-      ctx.shadowBlur = 30 * dpr;
-    }
-    ctx.fillText('🏃', game.px, game.py + 4 * dpr);
+    ctx.fillText(playerEmoji, game.px, game.py + 4 * dpr);
     ctx.shadowBlur = 0;
   }
+
+  ctx.restore();
 }
 
-// ── GAME LOOP ──
+// ═════════════════════════════════════════════════
+// GAME LOOP
+// ═════════════════════════════════════════════════
 let lastFrame = 0;
 function loop(t) {
   if (!game || !game.running) return;
-  if (t - lastFrame >= 16) {  // ~60 FPS
+  if (t - lastFrame >= 16) {
     update();
     render();
     lastFrame = t;
@@ -884,10 +1563,9 @@ function loop(t) {
 }
 
 // ═════════════════════════════════════════════════
-// SCREENS
+// SCREEN MANAGEMENT
 // ═════════════════════════════════════════════════
 function startGame() {
-  // Tutorial przy pierwszym razie
   if (!localStorage.getItem('biegamy_game_tutorial_seen')) {
     document.getElementById('tutorial').style.display = 'flex';
     localStorage.setItem('biegamy_game_tutorial_seen', '1');
@@ -902,6 +1580,7 @@ function closeTutorial() {
 }
 
 function realStart() {
+  resize();
   game = newGame();
   game.running = true;
   document.getElementById('screen-home').classList.add('hidden');
@@ -917,22 +1596,41 @@ async function endGame() {
   game.running = false;
   game.over = true;
 
+  // Update statystyki lokalnie
+  incStat('total_runs', 1);
+  incStat('total_coins', game.coins);
+  if (game.score > getStat('best_score', 0)) setStat('best_score', game.score);
+  if (Math.floor(game.distance) > getStat('best_distance', 0)) setStat('best_distance', Math.floor(game.distance));
+  if (game.coins > getStat('best_coins_run', 0)) setStat('best_coins_run', game.coins);
+  if (game.maxMulti > getStat('best_combo', 1)) setStat('best_combo', game.maxMulti);
+
+  // Misje
+  updateMissions({
+    score: game.score,
+    distance: Math.floor(game.distance),
+    coins: game.coins,
+    maxCombo: Math.floor(game.maxMulti),
+    perfects: game.perfects
+  });
+
+  // Sprawdź odznaki
+  const newBadges = checkBadges();
+
   // Render end screen
-  document.getElementById('end-score').textContent = game.score;
+  document.getElementById('end-score').textContent = Math.floor(game.score);
   document.getElementById('end-distance').textContent = Math.floor(game.distance);
   document.getElementById('end-coins').textContent = game.coins;
   document.getElementById('end-multi').textContent = 'x' + game.maxMulti.toFixed(1);
 
-  // Sub message
-  const subs = ['Spróbuj jeszcze raz', 'Możesz lepiej!', 'Trenuj więcej, biegaj szybciej', 'Przeleciało jak strzała'];
+  const subs = ['Spróbuj jeszcze raz', 'Możesz lepiej!', 'Trenuj — biegaj szybciej', 'Dobry try!'];
   document.getElementById('end-sub').textContent = subs[Math.floor(Math.random() * subs.length)];
 
-  // Save score
+  // Save score do bazy
   if (_athleteId && game.score > 0) {
     try {
       await _sb.from('game_scores').insert({
         athlete_id: _athleteId,
-        score: game.score,
+        score: Math.floor(game.score),
         distance: Math.floor(game.distance),
         coins: game.coins,
         max_multi: game.maxMulti
@@ -941,9 +1639,18 @@ async function endGame() {
   }
 
   // New record?
-  const isNew = game.score > (window._highScore || 0);
+  const isNew = game.score > (getStat('best_score', 0) - 1);
   document.getElementById('new-record-banner').style.display = isNew ? 'block' : 'none';
-  if (isNew) window._highScore = game.score;
+
+  // New badges?
+  if (newBadges.length > 0) {
+    document.getElementById('new-badges-section').style.display = 'block';
+    document.getElementById('new-badges-list').innerHTML = newBadges.map(b =>
+      `<div class="new-badge-pill">${b.emoji} ${b.name}</div>`
+    ).join('');
+  } else {
+    document.getElementById('new-badges-section').style.display = 'none';
+  }
 
   setTimeout(() => {
     document.getElementById('screen-game').classList.add('hidden');
@@ -956,12 +1663,17 @@ function goHome() {
   document.getElementById('screen-game').classList.add('hidden');
   document.getElementById('screen-home').classList.remove('hidden');
   loadHighScore();
+  document.getElementById('coins-total').textContent = getStat('total_coins', 0);
+  renderEquipment();
+  renderBadges();
+  renderMissions();
 }
 
 function updateDashUI() {
   if (!game) return;
   for (let i = 1; i <= 3; i++) {
     const pip = document.getElementById('dash-' + i);
+    if (!pip) continue;
     if (i <= game.dashLeft) pip.classList.add('active');
     else pip.classList.remove('active');
   }
@@ -979,6 +1691,12 @@ function showToast(msg) {
 // INIT
 // ═════════════════════════════════════════════════
 initUser();
+
+// Expose for HTML inline calls
+window.startGame = startGame;
+window.closeTutorial = closeTutorial;
+window.goHome = goHome;
+window.switchTab = switchTab;
 
 </script>
 </body>
