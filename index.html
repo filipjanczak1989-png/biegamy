@@ -31,17 +31,19 @@
   --tile-shadow:0 16px 56px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.07) inset;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
 
 /* ── FULL SCREEN BG WITH RUNNERS ─────────────────────────────────────── */
 body{
   display:flex;align-items:flex-start;justify-content:center;
-  min-height:100vh;padding:16px 16px 24px;
+  min-height:100vh;
+  min-height:100dvh;
+  padding:16px 16px 24px;
   background-image:
     radial-gradient(ellipse 140% 60% at 50% -10%, rgba(232,86,30,0.22) 0%, transparent 58%),
     radial-gradient(ellipse 70% 50% at 95% 70%, rgba(78,140,214,0.10) 0%, transparent 55%),
     radial-gradient(ellipse 60% 40% at 5% 80%, rgba(61,184,112,0.09) 0%, transparent 55%);
-  position:relative;overflow:hidden;
+  position:relative;overflow-x:hidden;
 }
 
 /* Photo: duo runners — right side */
@@ -81,7 +83,7 @@ body::after{
 }
 
 /* ── CONTAINER ──────────────────────────────────────────────────────── */
-.container{width:100%;max-width:480px;position:relative;z-index:1;}
+.container{width:100%;max-width:480px;position:relative;z-index:1;padding-bottom:32px;}
 
 /* ── HERO ─────────────────────────────────────────────────────────────── */
 .hero{
