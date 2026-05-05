@@ -855,7 +855,7 @@ function newGame(mode) {
     invuln: 0,
 
     // Speed
-    speed: 4 * dpr * M.speedScale,
+    speed: 5.5 * dpr * M.speedScale,
     speedScale: M.speedScale * _bonuses.maxSpeed,
 
     // Player
@@ -1897,8 +1897,8 @@ function update() {
   game.elapsed = game.t / 60;  // ~60 FPS
   game.distance += game.speed / dpr / 4;
 
-  // Speed scaling — zależy od trybu
-  let baseSpeed = (4 + game.t * M.speedRamp / 600) * dpr * game.speedScale * _bonuses.staminaScale;
+  // Speed scaling — zależy od trybu (start szybszy, mniej "rozkręcania się")
+  let baseSpeed = (5.5 + game.t * M.speedRamp / 480) * dpr * game.speedScale * _bonuses.staminaScale;
   let curMaxSpeed = (M.id === 'calm' ? 7 : 16) * dpr * game.speedScale;
 
   // INTERWAŁY: zmienna prędkość
@@ -3250,12 +3250,13 @@ function render() {
       grad.addColorStop(0.85, '#1a1545');
       grad.addColorStop(1, '#0a0820');
     } else if (game.endlessScene === 3) {
-      // ŚWIT — soczyste pomarańcze i róże
-      grad.addColorStop(0, '#4a3060');     // fiolet u góry
-      grad.addColorStop(0.3, '#a8506a');   // róż
-      grad.addColorStop(0.6, '#e88060');   // pomarańcz
-      grad.addColorStop(0.85, '#ffb070');  // jasny pomarańcz przy horyzoncie
-      grad.addColorStop(1, '#603020');     // ciemny pas
+      // ŚWIT — bardziej soczyste pomarańcze i róże
+      grad.addColorStop(0, '#3a1a50');     // głęboki fiolet u góry
+      grad.addColorStop(0.2, '#7a3060');   // ciemny róż
+      grad.addColorStop(0.45, '#d04060');  // mocny róż
+      grad.addColorStop(0.65, '#ff7050');  // mocny pomarańcz
+      grad.addColorStop(0.85, '#ffa860');  // złoty pomarańcz przy horyzoncie
+      grad.addColorStop(1, '#502010');     // ciemny pas ziemi
     } else if (game.endlessScene === 4) {
       // GÓRY — chłodny błękit
       grad.addColorStop(0, '#506a8a');
@@ -4410,22 +4411,131 @@ function render() {
       }
     }
     
-    // Planety w KOSMOSIE
+    // Planety w KOSMOSIE — dopracowane
     if (escene === 5) {
       const planets = [
-        { x: 0.2, y: 0.15, r: 30, c: '#ff7a45' },
-        { x: 0.7, y: 0.1, r: 18, c: '#5090e0' },
-        { x: 0.85, y: 0.25, r: 12, c: '#a868e0' }
+        { x: 0.2, y: 0.15, r: 32, c1: '#ff9a55', c2: '#a83a10', type: 'striped', hasRing: true },   // gas giant z pierścieniami
+        { x: 0.7, y: 0.1, r: 20, c1: '#80b0e8', c2: '#2a4070', type: 'cratered' },                  // niebieska księżycowa
+        { x: 0.85, y: 0.25, r: 14, c1: '#c898e8', c2: '#5828a8', type: 'plain' }                    // mała fioletowa
       ];
       for (const p of planets) {
         const px = (p.x * W - game.bgFar * 0.05 % W + W) % W;
         const py = p.y * GROUND_Y;
-        const grad = ctx.createRadialGradient(px - p.r * 0.3 * dpr, py - p.r * 0.3 * dpr, 0, px, py, p.r * dpr);
-        grad.addColorStop(0, p.c);
-        grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+        const r = p.r * dpr;
+        
+        // 🆕 Atmospheric glow (subtle)
+        const glowGrad = ctx.createRadialGradient(px, py, r, px, py, r * 1.5);
+        glowGrad.addColorStop(0, p.c1.replace(/^#/, '').match(/.{2}/g).map(h => parseInt(h, 16)).join(','));
+        glowGrad.addColorStop(1, '0,0,0');
+        const c1rgb = p.c1.replace(/^#/, '').match(/.{2}/g).map(h => parseInt(h, 16));
+        ctx.fillStyle = `rgba(${c1rgb[0]},${c1rgb[1]},${c1rgb[2]},0.25)`;
+        ctx.beginPath();
+        ctx.arc(px, py, r * 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 🆕 Ring system (jeśli ma pierścienie - jak Saturn)
+        if (p.hasRing) {
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(-0.3);  // pochylony pierścień
+          // Tylna część pierścienia (za planetą)
+          ctx.strokeStyle = 'rgba(255,200,140,0.4)';
+          ctx.lineWidth = 2 * dpr;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.7, r * 0.4, 0, Math.PI, Math.PI * 2);
+          ctx.stroke();
+          // Wewnętrzna linia tylnej części
+          ctx.strokeStyle = 'rgba(255,180,100,0.3)';
+          ctx.lineWidth = 1.2 * dpr;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.4, r * 0.32, 0, Math.PI, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // Główna planeta — gradient z ciemniejszą stroną
+        const grad = ctx.createRadialGradient(px - r * 0.3, py - r * 0.3, 0, px, py, r);
+        grad.addColorStop(0, p.c1);
+        grad.addColorStop(0.6, p.c1);
+        grad.addColorStop(1, p.c2);
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(px, py, p.r * dpr, 0, Math.PI * 2);
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Cień terminator (po prawej, side away from "sun")
+        const shadowGrad = ctx.createRadialGradient(px + r * 0.4, py + r * 0.2, 0, px + r * 0.5, py, r * 1.2);
+        shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        shadowGrad.addColorStop(0.5, 'rgba(0,0,0,0.3)');
+        shadowGrad.addColorStop(1, 'rgba(0,0,0,0.7)');
+        ctx.fillStyle = shadowGrad;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 🆕 Surface details zależne od typu
+        ctx.save();
+        // Clip do koła planety
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.clip();
+        
+        if (p.type === 'striped') {
+          // Pasy gas giant'a (jak Jupiter)
+          ctx.fillStyle = 'rgba(0,0,0,0.18)';
+          ctx.fillRect(px - r, py - r * 0.55, r * 2, r * 0.18);
+          ctx.fillRect(px - r, py - r * 0.1, r * 2, r * 0.12);
+          ctx.fillRect(px - r, py + r * 0.3, r * 2, r * 0.16);
+          // Jaśniejszy pas
+          ctx.fillStyle = 'rgba(255,220,180,0.2)';
+          ctx.fillRect(px - r, py - r * 0.35, r * 2, r * 0.1);
+          ctx.fillRect(px - r, py + r * 0.1, r * 2, r * 0.12);
+          // Mała czerwona plama (jak Wielka Czerwona Plama)
+          ctx.fillStyle = 'rgba(180,40,30,0.6)';
+          ctx.beginPath();
+          ctx.ellipse(px + r * 0.3, py + r * 0.15, r * 0.25, r * 0.12, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (p.type === 'cratered') {
+          // Kratery (3-4 ciemne plamki)
+          ctx.fillStyle = 'rgba(0,0,0,0.35)';
+          ctx.beginPath();
+          ctx.arc(px - r * 0.3, py - r * 0.2, r * 0.18, 0, Math.PI * 2);
+          ctx.arc(px + r * 0.1, py + r * 0.3, r * 0.12, 0, Math.PI * 2);
+          ctx.arc(px - r * 0.1, py + r * 0.4, r * 0.08, 0, Math.PI * 2);
+          ctx.arc(px + r * 0.4, py - r * 0.3, r * 0.1, 0, Math.PI * 2);
+          ctx.fill();
+          // Inner highlight kraterów
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.beginPath();
+          ctx.arc(px - r * 0.32, py - r * 0.22, r * 0.08, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        ctx.restore();
+        
+        // 🆕 Front część pierścienia (przed planetą)
+        if (p.hasRing) {
+          ctx.save();
+          ctx.translate(px, py);
+          ctx.rotate(-0.3);
+          ctx.strokeStyle = 'rgba(255,210,150,0.55)';
+          ctx.lineWidth = 2.5 * dpr;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.7, r * 0.4, 0, 0, Math.PI);
+          ctx.stroke();
+          // Wewnętrzny pierścień (przedni)
+          ctx.strokeStyle = 'rgba(255,190,120,0.45)';
+          ctx.lineWidth = 1.4 * dpr;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, r * 1.4, r * 0.32, 0, 0, Math.PI);
+          ctx.stroke();
+          ctx.restore();
+        }
+        
+        // 🆕 Highlight (rim light) na lewo-góra
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        ctx.arc(px - r * 0.5, py - r * 0.5, r * 0.25, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -6858,8 +6968,11 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // SLIDE — postać przykucnięta
   // ═══════════════════════════════════════════════
   if (state === 'slide') {
-    // Tułów (poziomy)
-    ctx.fillStyle = SHIRT_MID;
+    // Tułów (poziomy z gradientem)
+    const slideGrad = ctx.createLinearGradient(0, -16 * s, 0, -2 * s);
+    slideGrad.addColorStop(0, SHIRT_TOP);
+    slideGrad.addColorStop(1, SHIRT_MID);
+    ctx.fillStyle = slideGrad;
     ctx.beginPath();
     if (ctx.roundRect) ctx.roundRect(-22 * s, -16 * s, 38 * s, 14 * s, 6 * s);
     else ctx.rect(-22 * s, -16 * s, 38 * s, 14 * s);
@@ -6867,11 +6980,33 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
     // Highlight na koszulce
     ctx.fillStyle = SHIRT_HIGHLIGHT;
     ctx.fillRect(-20 * s, -15 * s, 34 * s, 2 * s);
+    // Logo B
+    if (!isGhost) {
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = 'bold ' + (8 * s) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('B', 0, -9 * s);
+    }
     
-    // Ręka wyciągnięta do tyłu
+    // 🆕 Druga ręka (z przodu - dołem do ziemi, push gesture)
     ctx.strokeStyle = SKIN;
     ctx.lineWidth = 4 * s;
     ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-8 * s, -8 * s);
+    ctx.lineTo(2 * s, -2 * s);
+    ctx.lineTo(8 * s, 0);
+    ctx.stroke();
+    // Pięść
+    ctx.fillStyle = SKIN;
+    ctx.beginPath();
+    ctx.arc(8 * s, 0, 2.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Ręka wyciągnięta do tyłu (dla balansu)
+    ctx.strokeStyle = SKIN;
+    ctx.lineWidth = 4 * s;
     ctx.beginPath();
     ctx.moveTo(-12 * s, -10 * s);
     ctx.lineTo(-26 * s, -4 * s);
@@ -6887,46 +7022,91 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
     ctx.beginPath();
     ctx.arc(-22 * s, -19 * s, 7 * s, Math.PI, Math.PI * 2);
     ctx.fill();
-    // Kosmyk z przodu (do tyłu w slide)
+    // Kosmyk z tyłu (slide = postać sliduje do prawej, włosy lecą do tyłu czyli w lewo)
+    ctx.beginPath();
+    ctx.moveTo(-25 * s, -18 * s);
+    ctx.quadraticCurveTo(-32 * s, -16 * s, -30 * s, -12 * s);
+    ctx.lineTo(-22 * s, -14 * s);
+    ctx.fill();
+    // Kosmyk z przodu lecący do tyłu
     ctx.beginPath();
     ctx.moveTo(-15 * s, -18 * s);
-    ctx.quadraticCurveTo(-10 * s, -22 * s, -8 * s, -16 * s);
+    ctx.quadraticCurveTo(-22 * s, -22 * s, -28 * s, -18 * s);
     ctx.lineTo(-15 * s, -14 * s);
     ctx.fill();
     
     // Twarz
     if (!isGhost) {
       // Oko
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-18 * s, -16 * s, 1.6 * s, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = '#1a1a1a';
       ctx.beginPath();
-      ctx.arc(-18 * s, -16 * s, 1.4 * s, 0, Math.PI * 2);
+      ctx.arc(-17.5 * s, -16 * s, 1 * s, 0, Math.PI * 2);
       ctx.fill();
-      // Brew
+      // Brew (skupiona)
       ctx.strokeStyle = HAIR;
-      ctx.lineWidth = 1.2 * s;
+      ctx.lineWidth = 1.4 * s;
+      ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(-20 * s, -19 * s);
-      ctx.lineTo(-16 * s, -19 * s);
+      ctx.lineTo(-16 * s, -18 * s);
+      ctx.stroke();
+      // Usta zacięte (wysiłek)
+      ctx.strokeStyle = '#80452a';
+      ctx.lineWidth = 1.2 * s;
+      ctx.beginPath();
+      ctx.moveTo(-19 * s, -13 * s);
+      ctx.lineTo(-15 * s, -13 * s);
       ctx.stroke();
     }
     
-    // Nogi (wyciągnięte)
+    // 🆕 Druga noga (zgięta, bliżej ciała) — pod główną nogą
+    ctx.strokeStyle = SHORTS;
+    ctx.lineWidth = 6 * s;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(8 * s, -6 * s);
+    ctx.lineTo(16 * s, -4 * s);
+    ctx.lineTo(22 * s, 0);
+    ctx.stroke();
+    // But tej nogi (mniejszy, częściowo schowany)
+    ctx.fillStyle = SHOES;
+    ctx.beginPath();
+    ctx.ellipse(22 * s, 1 * s, 5 * s, 2.5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Główna noga (wyciągnięta - to ta która "ślizga się")
     ctx.strokeStyle = SHORTS;
     ctx.lineWidth = 7 * s;
-    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(14 * s, -8 * s);
     ctx.lineTo(28 * s, -4 * s);
     ctx.stroke();
-    // Buty
+    // But (większy, wyraźny)
     ctx.fillStyle = SHOES;
     ctx.beginPath();
     ctx.ellipse(28 * s, -2 * s, 7 * s, 4 * s, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Podeszwa (biała)
+    ctx.fillStyle = SHOE_SOLE;
+    ctx.fillRect(22 * s, 1 * s, 12 * s, 1 * s);
     // Pasek na bucie
     if (!isGhost) {
       ctx.fillStyle = SHOE_ACCENT;
       ctx.fillRect(24 * s, -3 * s, 7 * s, 1.5 * s);
+      // Sznurówki
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.7 * s;
+      ctx.beginPath();
+      ctx.moveTo(25 * s, -1 * s);
+      ctx.lineTo(28 * s, -3 * s);
+      ctx.moveTo(28 * s, -1 * s);
+      ctx.lineTo(31 * s, -3 * s);
+      ctx.stroke();
     }
     
     ctx.restore();
@@ -6955,8 +7135,12 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // Faza rąk - przeciwnie do nóg, większy ruch
   const armCycle = -legCycle;
   
-  // Włosy — kosmyk reaguje na ruch (trzepocze do tyłu podczas biegu)
-  const hairBlow = state === 'run' ? Math.sin(legPhase * 2) * 1.5 : 0;
+  // Włosy — kosmyk reaguje na ruch (trzepocze do tyłu podczas biegu i dasha)
+  let hairBlow = 0;
+  if (state === 'run') hairBlow = Math.sin(legPhase * 2) * 1.5;
+  else if (state === 'dash') hairBlow = -2.5;  // mocno z tyłu (postać jedzie szybko do przodu)
+  else if (state === 'jump_up') hairBlow = -1.2;  // delikatnie z tyłu
+  else if (state === 'jump_down') hairBlow = 0.8;  // do przodu (spada)
   
   // ═══════════════════════════════
   // — NOGI Z TYŁU (rysujemy najpierw, żeby były pod tułowiem) —
