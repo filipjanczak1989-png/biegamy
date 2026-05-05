@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Biegaj i Omijaj · BiegaMy</title>
+<title>BiegaMy: Wyzwanie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -94,10 +94,10 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .hud{position:fixed;top:0;left:0;right:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;z-index:10;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px;}
 .hud-right{align-items:flex-end;}
-.hud-score{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.8);}
-.hud-multi{font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,0.8);}
+.hud-score{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.95),0 0 20px rgba(232,86,30,0.4);letter-spacing:0.02em;}
+.hud-multi{font-family:'DM Mono',monospace;font-size:15px;color:var(--accent);font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.9),0 0 12px rgba(232,86,30,0.6);}
 .hud-multi.pulse{animation:pulse 0.4s ease-in-out;}
-.hud-combo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ff7a45;text-shadow:0 0 12px rgba(255,122,69,0.8),0 2px 8px rgba(0,0,0,0.8);letter-spacing:0.05em;line-height:1;animation:comboBeat 0.5s ease-out;}
+.hud-combo{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#ff7a45;text-shadow:0 0 16px rgba(255,122,69,0.9),0 2px 8px rgba(0,0,0,0.9);letter-spacing:0.06em;line-height:1;animation:comboBeat 0.5s ease-out;font-weight:bold;}
 @keyframes comboBeat{0%{transform:scale(1.5);opacity:0;}40%{transform:scale(1.15);opacity:1;}100%{transform:scale(1);}}
 @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.4);color:#fff;}100%{transform:scale(1);}}
 .hud-mode-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-shadow:0 1px 4px rgba(0,0,0,0.8);letter-spacing:0.1em;}
@@ -183,13 +183,13 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 <div id="screen-home" class="screen">
   <div class="topbar">
     <a class="back-btn" href="zawodnik.html">‹</a>
-    <div class="tb-title">BIEGAJ <span>I OMIJAJ</span></div>
+    <div class="tb-title">BIEGA<span>MY</span></div>
     <div class="tb-spacer"></div>
   </div>
 
   <div class="home-content">
     <div class="hero-block">
-      <div class="hero-title">Biegaj<br><span class="accent">i omijaj</span></div>
+      <div class="hero-title">Biega<br><span class="accent">My</span></div>
       <div class="hero-sub">Biegnij bez końca · Skacz · Zbieraj · Pobij rekord</div>
     </div>
 
@@ -325,7 +325,7 @@ let _todayPlanned = null;  // typ dzisiejszego treningu z kalendarza
 const MODES = {
   endless: {
     id: 'endless',
-    name: 'BIEGAJ I OMIJAJ',
+    name: 'BIEGAMY',
     emoji: '🏃',
     color: '#e8561e',
     trains: 'bieg bez końca',
@@ -2414,17 +2414,22 @@ function render() {
   if (M.id === 'endless') {
     const escene = game.endlessScene;
     
-    // Chmury (ŚWIT, GÓRY)
-    if (escene === 3 || escene === 4) {
-      ctx.fillStyle = escene === 3 ? 'rgba(255,180,150,0.4)' : 'rgba(180,200,220,0.35)';
+    // Chmury (PARK, ŚWIT, GÓRY)
+    if (escene === 0 || escene === 3 || escene === 4) {
+      const cloudColor = escene === 3 ? 'rgba(255,200,170,0.5)' :
+                         escene === 4 ? 'rgba(190,210,230,0.45)' :
+                         'rgba(220,235,255,0.4)';  // PARK - białoniebieskie
+      ctx.fillStyle = cloudColor;
       for (let i = 0; i < 5; i++) {
         const baseX = ((i * 250 * dpr - game.bgFar * 0.2) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
         const cy = (50 + (i * 37) % 80) * dpr;
-        // Chmura = 3 nakładające się okręgi
+        // Chmura — kilka nakładających się okręgów dla puszystości
         ctx.beginPath();
         ctx.arc(baseX, cy, 25 * dpr, 0, Math.PI * 2);
-        ctx.arc(baseX + 30 * dpr, cy + 5 * dpr, 30 * dpr, 0, Math.PI * 2);
-        ctx.arc(baseX + 60 * dpr, cy, 22 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + 25 * dpr, cy - 8 * dpr, 22 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + 45 * dpr, cy + 5 * dpr, 30 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + 70 * dpr, cy - 3 * dpr, 24 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + 90 * dpr, cy + 6 * dpr, 20 * dpr, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -2434,17 +2439,32 @@ function render() {
       for (let i = 0; i < 8; i++) {
         const baseX = ((i * 180 * dpr - game.bgMid * 0.55) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
         const treeH = 80 + (i % 3) * 25;
-        // Pień
-        ctx.fillStyle = 'rgba(60,40,30,0.7)';
-        ctx.fillRect(baseX - 4 * dpr, GROUND_Y - treeH * dpr, 8 * dpr, treeH * dpr);
-        // Korona
-        ctx.fillStyle = 'rgba(40,90,55,0.7)';
+        const sway = Math.sin(game.t * 0.02 + i) * 3;
+        // Cień drzewa
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
-        ctx.arc(baseX, GROUND_Y - treeH * dpr, 28 * dpr, 0, Math.PI * 2);
+        ctx.ellipse(baseX, GROUND_Y - 1 * dpr, 30 * dpr, 5 * dpr, 0, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = 'rgba(60,120,75,0.5)';
+        // Pień
+        ctx.fillStyle = 'rgba(75,50,35,0.85)';
+        ctx.fillRect(baseX - 5 * dpr, GROUND_Y - treeH * dpr, 10 * dpr, treeH * dpr);
+        ctx.strokeStyle = 'rgba(40,25,15,0.6)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.strokeRect(baseX - 5 * dpr, GROUND_Y - treeH * dpr, 10 * dpr, treeH * dpr);
+        // Korona — 3 zielone okręgi z gradient
+        const cgrad = ctx.createRadialGradient(baseX - 5 * dpr, GROUND_Y - (treeH + 5) * dpr, 0, baseX, GROUND_Y - treeH * dpr, 32 * dpr);
+        cgrad.addColorStop(0, 'rgba(80,160,90,0.85)');
+        cgrad.addColorStop(1, 'rgba(30,80,45,0.9)');
+        ctx.fillStyle = cgrad;
         ctx.beginPath();
-        ctx.arc(baseX - 8 * dpr, GROUND_Y - (treeH + 8) * dpr, 18 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + sway, GROUND_Y - treeH * dpr, 30 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(60,140,80,0.7)';
+        ctx.beginPath();
+        ctx.arc(baseX - 12 * dpr + sway, GROUND_Y - (treeH + 12) * dpr, 22 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(baseX + 14 * dpr + sway, GROUND_Y - (treeH + 8) * dpr, 18 * dpr, 0, Math.PI * 2);
         ctx.fill();
       }
     }
@@ -2709,17 +2729,55 @@ function render() {
     let y1, h;
     if (o.type === 'low') { y1 = GROUND_Y - o.h; h = o.h; }
     else { y1 = GROUND_Y - 90 * dpr; h = o.h; }
+    
+    // Cień pod przeszkodą
+    if (o.type === 'low') {
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w/2, GROUND_Y, o.w * 0.6, 4 * dpr, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    
+    // Body z gradientem (jaśniej u góry, ciemniej u dołu)
     const obsGrad = ctx.createLinearGradient(o.x, y1, o.x, y1 + h);
-    obsGrad.addColorStop(0, '#e05050');
-    obsGrad.addColorStop(1, '#a02020');
-    ctx.fillStyle = obsGrad;
-    ctx.fillRect(o.x, y1, o.w, h);
-    ctx.strokeStyle = 'rgba(255,80,80,0.7)';
-    ctx.lineWidth = 1 * dpr;
+    obsGrad.addColorStop(0, '#ff6b6b');
+    obsGrad.addColorStop(0.5, '#e05050');
+    obsGrad.addColorStop(1, '#7a1a1a');
     ctx.shadowColor = '#e05050';
-    ctx.shadowBlur = 10 * dpr;
-    ctx.strokeRect(o.x, y1, o.w, h);
+    ctx.shadowBlur = 12 * dpr;
+    ctx.fillStyle = obsGrad;
+    // Zaokrąglone rogi
+    const r = 4 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(o.x + r, y1);
+    ctx.lineTo(o.x + o.w - r, y1);
+    ctx.quadraticCurveTo(o.x + o.w, y1, o.x + o.w, y1 + r);
+    ctx.lineTo(o.x + o.w, y1 + h - r);
+    ctx.quadraticCurveTo(o.x + o.w, y1 + h, o.x + o.w - r, y1 + h);
+    ctx.lineTo(o.x + r, y1 + h);
+    ctx.quadraticCurveTo(o.x, y1 + h, o.x, y1 + h - r);
+    ctx.lineTo(o.x, y1 + r);
+    ctx.quadraticCurveTo(o.x, y1, o.x + r, y1);
+    ctx.fill();
     ctx.shadowBlur = 0;
+    
+    // Highlight u góry
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(o.x + 3 * dpr, y1 + 2 * dpr, o.w - 6 * dpr, 3 * dpr);
+    
+    // Outline
+    ctx.strokeStyle = 'rgba(255,180,180,0.8)';
+    ctx.lineWidth = 1.5 * dpr;
+    ctx.stroke();
+    
+    // Ikona ostrzegawcza dla high
+    if (o.type === 'high') {
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = 'bold ' + (12 * dpr) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('⚠', o.x + o.w/2, y1 + h/2);
+    }
   });
 
   // 🍌💧 Hazardy (banany, kałuże)
@@ -2879,22 +2937,51 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
-  // 🪄 Power-ups (longrun mode)
-  if (M.id === 'longrun' && game.powerups) {
+  // 🪄 Power-ups (longrun + endless mode)
+  if ((M.id === 'longrun' || M.id === 'endless') && game.powerups) {
     game.powerups.forEach(p => {
       if (p.collected) return;
       const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e' };
       const icons = { magnet: '🧲', shield: '🛡', slowmo: '🐢', boost: '⚡' };
       const bobY = p.y + Math.sin(p.bob) * 5 * dpr;
-      // Glow
+      const pulse = (Math.sin(game.t * 0.15) + 1) / 2;
+      const glowR = p.r + (8 + pulse * 6) * dpr;
+      
+      // Outer glow (pulsująca aura)
+      const glowGrad = ctx.createRadialGradient(p.x, bobY, 0, p.x, bobY, glowR);
+      glowGrad.addColorStop(0, colors[p.type] + 'cc');  // hex with alpha
+      glowGrad.addColorStop(0.5, colors[p.type].replace(')', ',0.3)').replace('#', 'rgba(').replace(/^rgba\((..)(..)(..)/, (m, r, g, b) => 
+        'rgba(' + parseInt(r,16) + ',' + parseInt(g,16) + ',' + parseInt(b,16) + ''));
+      // Simpler approach - radial fade
+      glowGrad.addColorStop(0, colors[p.type]);
+      glowGrad.addColorStop(0.4, 'rgba(255,255,255,0.2)');
+      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.arc(p.x, bobY, glowR, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Body
       ctx.shadowColor = colors[p.type];
       ctx.shadowBlur = 20 * dpr;
-      ctx.fillStyle = colors[p.type];
+      const bodyGrad = ctx.createRadialGradient(p.x - 4 * dpr, bobY - 4 * dpr, 0, p.x, bobY, p.r);
+      bodyGrad.addColorStop(0, '#ffffff');
+      bodyGrad.addColorStop(0.4, colors[p.type]);
+      bodyGrad.addColorStop(1, colors[p.type]);
+      ctx.fillStyle = bodyGrad;
       ctx.beginPath();
       ctx.arc(p.x, bobY, p.r, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.font = (18 * dpr) + 'px serif';
+      
+      // Outline
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2 * dpr;
+      ctx.stroke();
+      
+      // Icon
+      ctx.fillStyle = '#ffffff';
+      ctx.font = (20 * dpr) + 'px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(icons[p.type], p.x, bobY);
@@ -2902,21 +2989,26 @@ function render() {
 
     // Magnet aura around player
     if (game.activePU && game.activePU.magnet > 0) {
-      ctx.globalAlpha = 0.3;
+      const pulse = (Math.sin(game.t * 0.2) + 1) / 2;
+      ctx.globalAlpha = 0.3 + pulse * 0.2;
       ctx.strokeStyle = '#ffd966';
-      ctx.lineWidth = 1.5 * dpr;
+      ctx.lineWidth = 2 * dpr;
       ctx.beginPath();
-      ctx.arc(game.px, game.py - 25 * dpr, 60 * dpr, 0, Math.PI * 2);
+      ctx.arc(game.px, game.py - 25 * dpr, (60 + pulse * 8) * dpr, 0, Math.PI * 2);
       ctx.stroke();
       ctx.globalAlpha = 1;
     }
     // Shield aura
     if (game.activePU && game.activePU.shield > 0) {
-      ctx.strokeStyle = 'rgba(80,144,224,0.7)';
+      const pulse = (Math.sin(game.t * 0.15) + 1) / 2;
+      ctx.strokeStyle = 'rgba(80,144,224,' + (0.6 + pulse * 0.3) + ')';
       ctx.lineWidth = 3 * dpr;
+      ctx.shadowColor = '#5090e0';
+      ctx.shadowBlur = 15 * dpr;
       ctx.beginPath();
-      ctx.arc(game.px, game.py - 25 * dpr, 30 * dpr, 0, Math.PI * 2);
+      ctx.arc(game.px, game.py - 25 * dpr, 32 * dpr, 0, Math.PI * 2);
       ctx.stroke();
+      ctx.shadowBlur = 0;
     }
   }
 
@@ -3092,28 +3184,55 @@ function render() {
   }
   
   if (!blink) {
+    // 🆕 Motion trail (smug ruchu) — ghosty postaci za biegaczem
+    if (!game.playerTrail) game.playerTrail = [];
+    if (game.t % 3 === 0 && (game.speed > 5 * dpr || game.dashing > 0 || !game.onGround)) {
+      game.playerTrail.push({
+        x: game.px, y: game.py, life: 12,
+        rot: game.flipping ? game.flipRotation : 0,
+        sliding: game.sliding > 0
+      });
+    }
+    for (const t of game.playerTrail) {
+      t.life--;
+      if (t.life <= 0) continue;
+      const a = (t.life / 12) * 0.35;
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = ((t.sliding ? 42 : 48) * dpr) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.translate(t.x, t.y + 4 * dpr);
+      ctx.scale(-1, 1);
+      if (t.rot) ctx.rotate(t.rot * Math.PI / 180);
+      ctx.fillText(t.sliding ? '🤸' : '🏃', 0, 0);
+      ctx.restore();
+    }
+    game.playerTrail = game.playerTrail.filter(t => t.life > 0);
+    
     ctx.save();
     if (game.dashing > 0) {
       ctx.shadowColor = '#e8561e';
-      ctx.shadowBlur = 25 * dpr;
+      ctx.shadowBlur = 30 * dpr;
     } else if (game.slowedTimer > 0) {
-      // Slowed effect — cyan glow + lekkie kołysanie
       ctx.shadowColor = '#5090e0';
-      ctx.shadowBlur = 15 * dpr;
+      ctx.shadowBlur = 18 * dpr;
     } else if (game.flipping) {
-      // Salto glow
       ctx.shadowColor = '#ffd966';
-      ctx.shadowBlur = 20 * dpr;
+      ctx.shadowBlur = 25 * dpr;
+    } else {
+      // 🆕 Domyślne delikatne glow dla widoczności
+      ctx.shadowColor = 'rgba(255,255,255,0.5)';
+      ctx.shadowBlur = 8 * dpr;
     }
     const playerEmoji = game.sliding > 0 ? '🤸' : (game.flipping ? '🤸' : '🏃');
-    // 🆕 Większy biegacz
     ctx.font = (game.sliding > 0 ? 42 : 48) * dpr + 'px serif';
+    ctx.fillStyle = '#ffffff';  // explicit żeby nie był przyciemniony przez ostatnie fillStyle
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
-    // Odbicie horyzontalne — biegacz patrzy w prawo (kierunek ruchu)
     ctx.translate(game.px, game.py + 4 * dpr);
     ctx.scale(-1, 1);
-    // 🆕 Rotacja podczas saltо
     if (game.flipping) {
       ctx.rotate(game.flipRotation * Math.PI / 180);
     }
