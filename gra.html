@@ -27,7 +27,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;}
 .screen.hidden{display:none;}
 
-#screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;position:relative;}
+#screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;}
 #screen-home::before{
   content:'';
   position:fixed;
@@ -41,7 +41,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
   0%,100%{filter:hue-rotate(0deg);}
   50%{filter:hue-rotate(20deg);}
 }
-.home-content{padding:14px 18px 100px;flex:1;position:relative;z-index:1;}
+.home-content{padding:14px 18px max(160px,calc(env(safe-area-inset-bottom,0px) + 160px));flex:1;position:relative;z-index:1;}
 .hero-block{text-align:center;margin-bottom:18px;position:relative;}
 .hero-block::after{
   content:'';
@@ -305,6 +305,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 <!-- ═══════════════ IN-GAME ═══════════════ -->
 <div id="screen-game" class="screen hidden">
   <canvas id="game-canvas"></canvas>
+  <button id="music-toggle" onclick="toggleMusic(); this.textContent = this.textContent === '🎵' ? '🔇' : '🎵';" style="position:fixed;top:max(10px,env(safe-area-inset-top,10px));right:10px;width:36px;height:36px;border-radius:50%;background:rgba(7,7,10,0.7);border:1px solid var(--border);color:#fff;font-size:16px;backdrop-filter:blur(8px);z-index:30;cursor:pointer;">🎵</button>
   <div class="hud">
     <div class="hud-left">
       <div class="hud-score" id="hud-score">0</div>
@@ -1829,6 +1830,221 @@ function playCombo(level) {
       osc.stop(start + 0.16);
     });
   } catch(e) {}
+}
+
+// ═════════════════════════════════════════════════
+// 🎵 BACKGROUND MUSIC — chillout lo-fi loop (procedural)
+// ═════════════════════════════════════════════════
+let _musicState = {
+  playing: false,
+  enabled: true,
+  nodes: [],         // master gain + filter
+  scheduled: 0,      // czas (audio time) ostatnio zaplanowanego beata
+  stepIndex: 0,      // 0..15 (16 step pattern)
+  intervalId: null,
+};
+
+// Chord progression: Am - F - C - G (klasyczna I-V-vi-IV w tonacji moll, lofi feel)
+// Częstotliwości w Hz dla bass'u (oktawa C2-C3)
+const _bassChords = [
+  [110.00, 130.81, 164.81],  // Am: A2 C3 E3
+  [87.31, 110.00, 130.81],   // F:  F2 A2 C3
+  [130.81, 164.81, 196.00],  // C:  C3 E3 G3
+  [98.00, 123.47, 146.83]    // G:  G2 B2 D3
+];
+
+// Hi-hat pattern (16 steps, 1=hit, 2=open)
+const _hatPattern = [1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1];
+// Kick pattern (4-on-the-floor base z lofi swing)
+const _kickPattern = [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0];
+// Snare pattern (off-beat)
+const _snarePattern = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
+
+function _playKick(time, vol) {
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(_musicState.masterGain);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, time);
+    osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+    gain.gain.setValueAtTime(vol, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    osc.start(time);
+    osc.stop(time + 0.16);
+  } catch(e) {}
+}
+
+function _playSnare(time, vol) {
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    // Noise burst
+    const bufferSize = ctx.sampleRate * 0.1;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 1000;
+    const gain = ctx.createGain();
+    noise.connect(filter); filter.connect(gain); gain.connect(_musicState.masterGain);
+    gain.gain.setValueAtTime(vol * 0.7, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    noise.start(time);
+    noise.stop(time + 0.1);
+  } catch(e) {}
+}
+
+function _playHat(time, vol, open) {
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const bufferSize = ctx.sampleRate * (open ? 0.15 : 0.04);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 7000;
+    const gain = ctx.createGain();
+    noise.connect(filter); filter.connect(gain); gain.connect(_musicState.masterGain);
+    gain.gain.setValueAtTime(vol * 0.3, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + (open ? 0.12 : 0.04));
+    noise.start(time);
+    noise.stop(time + (open ? 0.16 : 0.05));
+  } catch(e) {}
+}
+
+function _playBass(time, freq, dur, vol) {
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+    osc.connect(filter); filter.connect(gain); gain.connect(_musicState.masterGain);
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq;
+    filter.type = 'lowpass';
+    filter.frequency.value = 800;  // lo-fi feel — bez wysokich
+    filter.Q.value = 2;
+    gain.gain.setValueAtTime(0, time);
+    gain.gain.linearRampToValueAtTime(vol, time + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + dur);
+    osc.start(time);
+    osc.stop(time + dur + 0.05);
+  } catch(e) {}
+}
+
+function _playPad(time, freqs, dur, vol) {
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    for (const freq of freqs) {
+      const osc = ctx.createOscillator();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      osc.connect(filter); filter.connect(gain); gain.connect(_musicState.masterGain);
+      osc.type = 'sine';
+      osc.frequency.value = freq * 4;  // wysoka oktawa dla pad
+      filter.type = 'lowpass';
+      filter.frequency.value = 2000;
+      gain.gain.setValueAtTime(0, time);
+      gain.gain.linearRampToValueAtTime(vol / freqs.length, time + 0.5);
+      gain.gain.linearRampToValueAtTime(0, time + dur);
+      osc.start(time);
+      osc.stop(time + dur + 0.1);
+    }
+  } catch(e) {}
+}
+
+function startMusic() {
+  if (_musicState.playing || !_musicState.enabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  
+  // Master gain (na low — żeby nie zagłuszał SFX)
+  const masterGain = ctx.createGain();
+  masterGain.gain.value = 0.18;
+  masterGain.connect(ctx.destination);
+  _musicState.masterGain = masterGain;
+  _musicState.playing = true;
+  _musicState.stepIndex = 0;
+  _musicState.scheduled = ctx.currentTime + 0.1;
+  
+  // BPM 75 (chillout lofi)
+  const bpm = 75;
+  const stepDur = 60 / bpm / 4;  // 16ths
+  
+  // Scheduler — planuje beat'y do przodu (look-ahead 0.3s)
+  function scheduler() {
+    if (!_musicState.playing) return;
+    const ctx = _getAudio(); if (!ctx) return;
+    while (_musicState.scheduled < ctx.currentTime + 0.3) {
+      const step = _musicState.stepIndex;
+      const time = _musicState.scheduled;
+      const bar = Math.floor(_musicState.stepIndex / 16) % 4;  // który chord (0..3)
+      const chord = _bassChords[bar];
+      
+      // Kick
+      if (_kickPattern[step]) _playKick(time, 0.5);
+      // Snare
+      if (_snarePattern[step]) _playSnare(time, 0.45);
+      // Hat
+      if (_hatPattern[step]) _playHat(time, 0.35, _hatPattern[step] === 2);
+      
+      // Bass — na pierwszym i ósmym kroku każdego bar'u
+      if (step === 0) {
+        _playBass(time, chord[0] / 2, stepDur * 8, 0.3);  // octave down
+      } else if (step === 8) {
+        _playBass(time, chord[1] / 2, stepDur * 8, 0.25);
+      }
+      
+      // Pad — zmienia się raz na bar (16 steps)
+      if (step === 0) {
+        _playPad(time, chord, stepDur * 16, 0.12);
+      }
+      
+      _musicState.scheduled += stepDur;
+      _musicState.stepIndex++;
+      // Reset po 64 step (4 bary = pełen progres)
+      if (_musicState.stepIndex >= 64) _musicState.stepIndex = 0;
+    }
+  }
+  
+  // Pierwszy run + interval
+  scheduler();
+  _musicState.intervalId = setInterval(scheduler, 50);
+}
+
+function stopMusic() {
+  if (!_musicState.playing) return;
+  _musicState.playing = false;
+  if (_musicState.intervalId) clearInterval(_musicState.intervalId);
+  _musicState.intervalId = null;
+  // Fade out master gain (smooth stop)
+  if (_musicState.masterGain) {
+    const ctx = _getAudio();
+    if (ctx) {
+      try {
+        _musicState.masterGain.gain.cancelScheduledValues(ctx.currentTime);
+        _musicState.masterGain.gain.setValueAtTime(_musicState.masterGain.gain.value, ctx.currentTime);
+        _musicState.masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+        setTimeout(() => {
+          try { _musicState.masterGain.disconnect(); } catch(e) {}
+          _musicState.masterGain = null;
+        }, 600);
+      } catch(e) {}
+    }
+  }
+}
+
+function toggleMusic() {
+  _musicState.enabled = !_musicState.enabled;
+  if (!_musicState.enabled) stopMusic();
+  else if (game && game.running) startMusic();
+  return _musicState.enabled;
 }
 
 // ═════════════════════════════════════════════════
@@ -6330,6 +6546,9 @@ function realStart(mode) {
   game.focusStartT = 0;
   _endGameCalled = false;
   
+  // 🆕 Start chillout background music
+  startMusic();
+  
   // 🆕 Apply daily challenge rewards (jeśli odebrane)
   const multiBoost = getStat('next_run_multi_boost', 0);
   const extraLife = getStat('next_run_extra_life', 0);
@@ -6366,6 +6585,9 @@ async function endGame() {
   _endGameCalled = true;
   game.running = false;
   game.over = true;
+  
+  // 🆕 Stop background music
+  stopMusic();
 
   // Natychmiastowy screen swap
   try {
