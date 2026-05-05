@@ -113,18 +113,18 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 
 /* Interval phase indicator */
 .phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
-.powerup-bar{position:fixed;top:max(120px,calc(env(safe-area-inset-top,0px) + 120px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
-.missions-hud{position:fixed;left:12px;bottom:max(70px,calc(env(safe-area-inset-bottom,0px) + 70px));z-index:10;pointer-events:none;display:flex;flex-direction:column;gap:5px;max-width:240px;}
-.mission-row{background:rgba(7,7,10,0.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 8px;display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;transition:all 0.3s;}
-.mission-row.done{background:rgba(255,217,102,0.18);border-color:rgba(255,217,102,0.6);}
-.mission-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;}
-.mission-mid{flex:1;min-width:0;}
-.mission-label{font-size:9px;color:var(--fg2);line-height:1.1;letter-spacing:0.02em;}
-.mission-bar{margin-top:2px;height:2px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
-.mission-fill{height:100%;background:linear-gradient(90deg,#ffd966,#ff7a45);transition:width 0.3s;}
+.powerup-bar{position:fixed;top:max(160px,calc(env(safe-area-inset-top,0px) + 160px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
+.missions-hud{position:fixed;left:0;right:0;top:max(120px,calc(env(safe-area-inset-top,0px) + 120px));z-index:9;pointer-events:none;display:flex;gap:6px;padding:0 12px;justify-content:center;}
+.mission-row{flex:1;max-width:140px;background:rgba(7,7,10,0.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:4px 6px;display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;transition:all 0.3s;}
+.mission-row.done{background:rgba(61,184,112,0.18);border-color:rgba(61,184,112,0.4);}
+.mission-icon{font-size:11px;flex-shrink:0;width:14px;text-align:center;opacity:0.85;}
+.mission-mid{flex:1;min-width:0;overflow:hidden;}
+.mission-label{font-size:8px;color:rgba(240,237,232,0.65);line-height:1.1;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mission-bar{margin-top:2px;height:1.5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.mission-fill{height:100%;background:rgba(232,184,64,0.6);transition:width 0.3s;}
 .mission-row.done .mission-fill{background:#3db870;}
-.mission-val{font-size:9px;color:var(--accent);font-weight:600;flex-shrink:0;}
-.mission-row.done .mission-val{color:#3db870;}
+.mission-val{font-size:8px;color:rgba(240,237,232,0.55);font-weight:500;flex-shrink:0;letter-spacing:0;}
+.mission-row.done .mission-val{color:#3db870;font-weight:600;}
 .pu-pill{background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--accent);border-radius:16px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);display:flex;align-items:center;gap:5px;animation:phaseIn 0.3s ease-out;}
 .pu-pill .pu-time{font-weight:600;color:var(--accent);}
 @keyframes phaseIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.7);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
@@ -743,6 +743,7 @@ async function loadLeaderboard(mode) {
 function switchTab(name) {
   // No-op (zachowane dla kompatybilności wywołań)
 }
+
 
 // ═════════════════════════════════════════════════
 // CANVAS ENGINE — adaptuje się do trybu
@@ -2765,6 +2766,7 @@ function hitObstacle() {
   }
 }
 
+
 // ═════════════════════════════════════════════════
 // RENDER
 // ═════════════════════════════════════════════════
@@ -4107,6 +4109,7 @@ function goLogRealTraining() {
   location.href = 'zawodnik.html';
 }
 window.goLogRealTraining = goLogRealTraining;
+
 
 </script>
 </body>
