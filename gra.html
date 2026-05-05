@@ -1841,7 +1841,13 @@ function flashScreen(color, intensity) {
 }
 
 function spawnPopup(x, y, text, color) {
-  game.popups.push({ x, y, text, color: color || '#e8561e', life: 50, vy: -1.5 * dpr });
+  game.popups.push({ 
+    x, y, text, 
+    color: color || '#e8561e', 
+    life: 50, 
+    maxLife: 50,        // 🆕 dla scale animation
+    vy: -1.5 * dpr 
+  });
 }
 
 // ═════════════════════════════════════════════════
@@ -2839,6 +2845,17 @@ function update() {
           '#ffd966', 1
         );
       }
+      // 🆕 Shockwave ring (expanding particle as ring)
+      game.particles.push({
+        x: c.x, y: c.y,
+        vx: 0, vy: 0,
+        life: 18,
+        color: '#ffd966',
+        size: 0,           // start od 0, rozrasta się
+        gravity: false,
+        ring: true,        // 🆕 flag dla render jako ring
+        ringMax: c.r * 4
+      });
       // Floating "+5" popup
       if (game.multi >= 1.5) {
         spawnPopup(c.x, c.y - 15 * dpr, '+' + coinScore, '#ffd966');
@@ -5506,24 +5523,79 @@ function render() {
 
   // Particles
   game.particles.forEach(p => {
-    ctx.globalAlpha = p.life / 30;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-    ctx.fill();
+    if (p.ring) {
+      // 🆕 Expanding ring (shockwave)
+      const ringMax = p.ringMax || 40;
+      const t = 1 - p.life / 18;  // 0..1
+      const ringR = ringMax * t;
+      const alpha = (1 - t) * 0.8;
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = (3 - t * 2) * dpr;  // line maleje
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.globalAlpha = p.life / 30;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r || p.size || 2 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
   });
   ctx.globalAlpha = 1;
 
   // Popups
   game.popups.forEach(p => {
-    ctx.globalAlpha = Math.min(1, p.life / 30);
+    ctx.save();
+    const maxLife = p.maxLife || 50;
+    const t = 1 - p.life / maxLife;  // 0..1 progress
+    
+    // Scale-in: zaczyna od 0.5, dociąga do 1.2 w 1/4, uspokaja do 1.0
+    let scale;
+    if (t < 0.15) {
+      // Fast pop-in: 0.5 → 1.2
+      scale = 0.5 + (t / 0.15) * 0.7;
+    } else if (t < 0.3) {
+      // Settle: 1.2 → 1.0
+      scale = 1.2 - ((t - 0.15) / 0.15) * 0.2;
+    } else {
+      scale = 1.0;
+    }
+    
+    // Alpha: pełny przez większość, fade out na końcu
+    const alpha = t > 0.7 ? (1 - t) / 0.3 : 1;
+    ctx.globalAlpha = alpha;
+    
+    ctx.translate(p.x, p.y);
+    ctx.scale(scale, scale);
+    
     ctx.font = 'bold ' + (16 * dpr) + 'px "DM Mono", monospace';
-    ctx.fillStyle = p.color;
     ctx.textAlign = 'center';
-    ctx.shadowColor = '#000';
-    ctx.shadowBlur = 6 * dpr;
-    ctx.fillText(p.text, p.x, p.y);
+    ctx.textBaseline = 'middle';
+    
+    // Drop shadow (czarny offset)
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillText(p.text, 1.5 * dpr, 1.5 * dpr);
+    
+    // Outline (mocny kontrast)
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.lineWidth = 3 * dpr;
+    ctx.lineJoin = 'round';
+    ctx.strokeText(p.text, 0, 0);
+    
+    // Główny tekst z glow
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 8 * dpr;
+    ctx.fillStyle = p.color;
+    ctx.fillText(p.text, 0, 0);
     ctx.shadowBlur = 0;
+    
+    // Highlight (jasna warstwa na górze)
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(p.text, 0, -0.5 * dpr);
+    
+    ctx.restore();
   });
   ctx.globalAlpha = 1;
 
