@@ -715,6 +715,7 @@ function newGame(mode) {
     // LONGRUN MODE state
     longrunScene: 0,          // 0..4: park, miasto, noc, świt, meta
     longrunSceneJustChanged: false,
+    endlessScene: 0,          // 0..5: endless mode scenes
 
     // POWER-UPS (tylko longrun)
     nextPowerupIn: M.powerups ? 600 : Infinity,
@@ -952,6 +953,26 @@ const LONGRUN_SCENES = [
   { id: 3, label: 'ŚWIT',     icon: '🌅', bgColor: '#1a0a14', startSec: 180, endSec: 240 },
   { id: 4, label: 'META',     icon: '🏁', bgColor: '#15121e', startSec: 240, endSec: 301 }
 ];
+
+// Endless mode — sceny po dystansie (loop)
+const ENDLESS_SCENES = [
+  { id: 0, label: 'PARK',     icon: '🌳', bgColor: '#0d1612', minDist: 0    },
+  { id: 1, label: 'MIASTO',   icon: '🏙', bgColor: '#0a0a14', minDist: 500  },
+  { id: 2, label: 'NOC',      icon: '🌃', bgColor: '#08070d', minDist: 1200 },
+  { id: 3, label: 'ŚWIT',     icon: '🌅', bgColor: '#1a0a14', minDist: 2200 },
+  { id: 4, label: 'GÓRY',     icon: '🏔', bgColor: '#15121e', minDist: 3500 },
+  { id: 5, label: 'KOSMOS',   icon: '🌌', bgColor: '#06050f', minDist: 5000 }
+];
+
+function getCurrentEndlessScene() {
+  if (!game) return ENDLESS_SCENES[0];
+  const d = game.distance;
+  let scene = ENDLESS_SCENES[0];
+  for (const s of ENDLESS_SCENES) {
+    if (d >= s.minDist) scene = s;
+  }
+  return scene;
+}
 
 function getCurrentLongrunScene() {
   if (!game || game.config.id !== 'longrun') return null;
@@ -1552,6 +1573,29 @@ function update() {
     updatePowerupHUD();
   }
 
+  // ENDLESS MODE: zmiany scen po dystansie + power-upy
+  if (M.id === 'endless') {
+    const scene = getCurrentEndlessScene();
+    if (scene && scene.id !== game.endlessScene) {
+      game.endlessScene = scene.id;
+      // Toast + flash przy zmianie sceny
+      showToast(scene.icon + ' ' + scene.label);
+      flashScreen('rgba(232,86,30,0.15)', 12);
+    }
+    if (M.powerups) {
+      game.nextPowerupIn--;
+      if (game.nextPowerupIn <= 0) {
+        spawnPowerup();
+        game.nextPowerupIn = 700 + Math.random() * 500;
+      }
+    }
+    // Update aktywne power-upy
+    ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+      if (game.activePU[k] > 0) game.activePU[k]--;
+    });
+    updatePowerupHUD();
+  }
+
   // CALM/LONGRUN mode: kończymy po time
   if (M.targetType === 'time' && game.elapsed >= M.target) {
     game.finished = true;
@@ -1781,30 +1825,32 @@ function update() {
       }
       if (vDist > 0 && vDist < 25 * dpr && game.invuln === 0) {
         o.nearMissed = true;
+        // 🆕 NEAR MISS daje combo +2 (większe ryzyko = większa nagroda)
+        game.perfectStreak += 2;
+        updateComboMultiplier();
         const bonus = Math.floor(15 * game.multi);
         game.score += bonus;
-        spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'NEAR! +' + bonus, '#5090e0');
+        spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'NEAR MISS! +' + bonus, '#5090e0');
+        spawnParticles(o.x, (oy1 || GROUND_Y) - 10 * dpr, '#5090e0', 8);
+        // Małe screen flash dla emocji
+        flashScreen('rgba(80,144,224,0.08)', 5);
       }
     }
 
     if (!o.passed && o.x + o.w < game.px - playerR) {
       o.passed = true;
-      game.perfectStreak++;
-      const newMulti = Math.min(5, _bonuses.startMulti + game.perfectStreak / 3 * 0.2);
-      if (newMulti > game.multi + 0.05) {
-        game.multi = newMulti;
-        game.maxMulti = Math.max(game.maxMulti, game.multi);
-        const mEl = document.getElementById('hud-multi');
-        mEl.classList.remove('pulse');
-        void mEl.offsetWidth;
-        mEl.classList.add('pulse');
-      }
+      // 🆕 Zwykły passed (bez near miss/perfect) NIE daje combo — tylko mały score
+      // Combo rośnie TYLKO za perfect jump (poniżej) lub near miss (powyżej)
+      
       if (o.type === 'low' && !isGap) {
         const playerBot = py2;
         const obstacleTop = GROUND_Y - o.h;
         const diff = obstacleTop - playerBot;
         if (diff > -5 * dpr && diff < 15 * dpr) {
           game.perfects++;
+          // 🆕 PERFECT JUMP daje combo +1
+          game.perfectStreak++;
+          updateComboMultiplier();
           const bonus = Math.floor(20 * game.multi);
           game.score += bonus;
           spawnPopup(o.x, oy1 - 30 * dpr, 'PERFECT! +' + bonus, '#ffd966');
@@ -1813,7 +1859,7 @@ function update() {
           // Combo milestone (co 5 perfectów)
           if (game.perfects % 5 === 0) {
             playCombo(game.perfects / 5);
-            spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.perfects + ' COMBO!', '#ff7a45');
+            spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.perfects + ' PERFECT!', '#ff7a45');
             flashScreen('rgba(232,86,30,0.18)', 10);
           }
         }
@@ -1946,15 +1992,29 @@ function update() {
   document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
   document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, M.lives - game.lives)) + '</span>';
 
-  // Combo counter (pokazuje przy >= 3 perfectach z rzędu)
+  // Combo counter — tier-based colors (zaczyna się od 3)
   const comboEl = document.getElementById('hud-combo');
   const comboCount = M.id === 'tempo' ? game.tempoStreak : game.perfectStreak;
   if (comboEl) {
     if (comboCount >= 3) {
-      const newText = '🔥 ' + comboCount + 'x';
+      // Kolor zależy od tier
+      let color, text;
+      if (comboCount >= 10) {
+        color = '#ff3a45';
+        text = '🔥🔥🔥 ' + comboCount + 'x';
+      } else if (comboCount >= 5) {
+        color = '#ff7a45';
+        text = '🔥🔥 ' + comboCount + 'x';
+      } else {
+        color = '#ffb84d';
+        text = '🔥 ' + comboCount + 'x';
+      }
+      const newText = text;
       if (comboEl.textContent !== newText) {
         comboEl.textContent = newText;
         comboEl.style.display = 'block';
+        comboEl.style.color = color;
+        comboEl.style.textShadow = '0 0 16px ' + color + ',0 2px 8px rgba(0,0,0,0.8)';
         // Re-trigger animation
         comboEl.style.animation = 'none';
         void comboEl.offsetWidth;
@@ -2026,6 +2086,38 @@ function updateModeTarget() {
   }
 }
 
+// ═════════════════════════════════════════════════
+// COMBO SYSTEM — multiplier zależy od perfectStreak
+// ═════════════════════════════════════════════════
+function updateComboMultiplier() {
+  if (!game) return;
+  const c = game.perfectStreak;
+  let newMulti;
+  if (c >= 10) newMulti = 3.0;
+  else if (c >= 5) newMulti = 2.0;
+  else if (c >= 3) newMulti = 1.5;
+  else newMulti = _bonuses.startMulti || 1.0;
+  
+  if (newMulti > game.multi + 0.01) {
+    game.multi = newMulti;
+    game.maxMulti = Math.max(game.maxMulti, game.multi);
+    // Pulsująca animacja na zmianie tier
+    const mEl = document.getElementById('hud-multi');
+    if (mEl) {
+      mEl.classList.remove('pulse');
+      void mEl.offsetWidth;
+      mEl.classList.add('pulse');
+    }
+    // Specjalny efekt przy wskoku do nowego tier
+    if (c === 3 || c === 5 || c === 10) {
+      flashScreen('rgba(232,86,30,0.15)', 10);
+      playCombo(c / 3);
+      const tierName = c === 3 ? 'COMBO x1.5' : c === 5 ? 'COMBO x2' : 'COMBO x3 🔥';
+      spawnPopup(game.px, game.py - 130 * dpr, tierName, '#ff7a45');
+    }
+  }
+}
+
 function hitObstacle() {
   // Shield absorbuje pierwsze trafienie
   if (game.activePU && game.activePU.shield > 0) {
@@ -2040,6 +2132,10 @@ function hitObstacle() {
   game.lives--;
   game.invuln = 60;
   game.focusStartT = game.t;
+  // Pokaż popup utraty combo jeśli był jakiś streak
+  if (game.perfectStreak >= 3) {
+    spawnPopup(game.px, game.py - 100 * dpr, 'COMBO STRACONE!', '#e05050');
+  }
   game.multi = _bonuses.startMulti;
   game.perfectStreak = 0;
   spawnParticles(game.px, game.py - 30 * dpr, '#e05050', 18);
@@ -2106,6 +2202,40 @@ function render() {
       grad.addColorStop(0.6, '#1a1424');
       grad.addColorStop(1, '#1f1828');
     }
+  } else if (M.id === 'endless') {
+    // ENDLESS — sceny po dystansie, smooth transition
+    if (game.endlessScene === 0) {
+      // PARK — leśna zieleń, rano
+      grad.addColorStop(0, '#1a2a1c');
+      grad.addColorStop(0.4, '#0e1e14');
+      grad.addColorStop(1, '#0a1610');
+    } else if (game.endlessScene === 1) {
+      // MIASTO — niebieski miejski wieczór
+      grad.addColorStop(0, '#0a1525');
+      grad.addColorStop(0.5, '#080a1a');
+      grad.addColorStop(1, '#15121e');
+    } else if (game.endlessScene === 2) {
+      // NOC — granatowo-fioletowa
+      grad.addColorStop(0, '#0a0820');
+      grad.addColorStop(0.5, '#06051a');
+      grad.addColorStop(1, '#0d0820');
+    } else if (game.endlessScene === 3) {
+      // ŚWIT — róż-pomarańcz nad horyzontem
+      grad.addColorStop(0, '#2a1428');
+      grad.addColorStop(0.5, '#3a1a18');
+      grad.addColorStop(0.85, '#28100a');
+      grad.addColorStop(1, '#15080a');
+    } else if (game.endlessScene === 4) {
+      // GÓRY — szarobłękit
+      grad.addColorStop(0, '#1a2030');
+      grad.addColorStop(0.5, '#101620');
+      grad.addColorStop(1, '#15121e');
+    } else {
+      // KOSMOS — fiolet-czarny + gwiazdy
+      grad.addColorStop(0, '#15082a');
+      grad.addColorStop(0.5, '#08051a');
+      grad.addColorStop(1, '#06050f');
+    }
   } else {
     grad.addColorStop(0, '#0a0a14');
     grad.addColorStop(0.5, '#0d0a18');
@@ -2115,9 +2245,11 @@ function render() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  // Stars
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  for (let i = 0; i < 30; i++) {
+  // Stars — w kosmosie jest gęściej i jaśniej
+  const starCount = (M.id === 'endless' && game.endlessScene === 5) ? 80 : 30;
+  const starAlpha = (M.id === 'endless' && game.endlessScene === 5) ? 0.7 : 0.3;
+  ctx.fillStyle = 'rgba(255,255,255,' + starAlpha + ')';
+  for (let i = 0; i < starCount; i++) {
     const seed = i * 137.5;
     const x = ((seed - game.bgFar * 0.1) % W + W) % W;
     const y = (seed * 0.7) % (GROUND_Y * 0.6);
@@ -2126,9 +2258,22 @@ function render() {
   }
 
   // Mountains
-  const mountainColor = M.id === 'calm' ? 'rgba(50,80,120,0.5)' :
-                       M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(120,40,40,0.5)' :
-                       'rgba(60,40,80,0.6)';
+  let mountainColor;
+  if (M.id === 'endless') {
+    const ESCENE_MOUNTAINS = [
+      'rgba(40,80,50,0.55)',    // PARK — zielony
+      'rgba(50,70,110,0.55)',   // MIASTO — niebieski
+      'rgba(70,40,100,0.6)',    // NOC — fiolet
+      'rgba(180,80,60,0.5)',    // ŚWIT — pomarańcz
+      'rgba(80,90,110,0.55)',   // GÓRY — szarobłękit
+      'rgba(140,60,180,0.5)'    // KOSMOS — magenta
+    ];
+    mountainColor = ESCENE_MOUNTAINS[game.endlessScene] || ESCENE_MOUNTAINS[0];
+  } else {
+    mountainColor = M.id === 'calm' ? 'rgba(50,80,120,0.5)' :
+                   M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(120,40,40,0.5)' :
+                   'rgba(60,40,80,0.6)';
+  }
   ctx.fillStyle = mountainColor;
   ctx.beginPath();
   ctx.moveTo(0, GROUND_Y);
