@@ -2041,16 +2041,47 @@ function update() {
           phase: Math.random() * Math.PI * 2,
           speed: (1.5 + Math.random() * 0.5) * dpr,
           size: (8 + Math.random() * 6) * dpr,
-          flapPhase: Math.random() * Math.PI * 2
+          flapPhase: Math.random() * Math.PI * 2,
+          sparrow: false
         });
       }
     }
+    
+    // 🆕 SPARROWS — wróble zrywają się z krzaków w PARK
+    if (game.endlessScene === 0 && game.t % 380 === 0) {
+      const sparrowCount = 2 + Math.floor(Math.random() * 3);
+      const startX = W + 50 * dpr;  // z prawej strony (z krzaków)
+      const startY = GROUND_Y - 30 * dpr;  // wysokość krzaków
+      const targetY = (50 + Math.random() * 60) * dpr;  // lecą do góry
+      for (let i = 0; i < sparrowCount; i++) {
+        game.ambientBirds.push({
+          x: startX + i * 8 * dpr,
+          y: startY,
+          baseY: targetY + i * 8 * dpr,
+          targetY: targetY + i * 8 * dpr,
+          phase: Math.random() * Math.PI * 2,
+          speed: (3 + Math.random() * 1.5) * dpr,  // szybsze
+          climbSpeed: (1.2 + Math.random() * 0.5) * dpr,  // wzlot
+          size: (6 + Math.random() * 2) * dpr,  // mniejsze
+          flapPhase: Math.random() * Math.PI * 2,
+          flapSpeed: 0.7,  // szybszy flap
+          sparrow: true
+        });
+      }
+    }
+    
     // Update birds
     game.ambientBirds.forEach(b => {
       b.x -= b.speed;
       b.phase += 0.04;
-      b.flapPhase += 0.4;
-      b.y = b.baseY + Math.sin(b.phase) * 3 * dpr;
+      b.flapPhase += b.flapSpeed || 0.4;
+      
+      if (b.sparrow && b.y > b.targetY) {
+        // Wróbel jeszcze wzlatuje
+        b.y -= b.climbSpeed;
+      } else {
+        b.y = b.baseY + Math.sin(b.phase) * 3 * dpr;
+      }
     });
     game.ambientBirds = game.ambientBirds.filter(b => b.x > -50 * dpr);
     
@@ -2389,6 +2420,29 @@ function update() {
         b.life--;
       });
       game.butterflies = game.butterflies.filter(b => b.x > -30 * dpr && b.life > 0);
+      
+      // 🆕 Dodatkowe liście opadające z drzew (cluster gdy mijamy drzewo)
+      // Używamy istniejącej tablicy weather — pojedynczy liść co 50-100 klatek
+      if (game.t % 70 === 0) {
+        const treeX = W * (0.4 + Math.random() * 0.5);  // gdzieś z prawej strony
+        const treeY = (60 + Math.random() * 40) * dpr;  // wysokość korony
+        // 1-3 liście naraz (cluster)
+        const leafCount = 1 + Math.floor(Math.random() * 3);
+        for (let lc = 0; lc < leafCount; lc++) {
+          game.weather.push({
+            type: 'leaf',
+            x: treeX + (Math.random() - 0.5) * 30 * dpr,
+            y: treeY + (Math.random() - 0.5) * 20 * dpr,
+            vx: -(1 + Math.random() * 2) * dpr,  // płynący w lewo (bo my biegniemy w prawo)
+            vy: (0.6 + Math.random() * 0.6) * dpr,
+            rot: Math.random() * Math.PI * 2,
+            rotSpeed: (Math.random() - 0.5) * 0.15,
+            size: (4 + Math.random() * 3) * dpr,
+            color: ['#ff8030', '#ffaa50', '#cc6020', '#aa4010', '#dd9050'][Math.floor(Math.random() * 5)],
+            life: 400
+          });
+        }
+      }
     } else {
       // Wyczyść motyle gdy wyjdziemy z PARK
       if (game.butterflies.length > 0) game.butterflies = [];
@@ -3258,10 +3312,25 @@ function render() {
         ctx.fill();
       }
       ctx.restore();
+      
+      // 🆕 DUST MOTES — pyłki w powietrzu w promieniach słońca
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const moteColor = escene === 3 ? 'rgba(255,200,150,0.55)' : 'rgba(255,240,180,0.4)';
+      ctx.fillStyle = moteColor;
+      for (let m = 0; m < 25; m++) {
+        const seed = m * 137.5;
+        // Powolny ruch pyłków
+        const mx = ((seed - game.bgFar * 0.05 + game.t * 0.15) % W + W) % W;
+        const my = (200 + (m * 23) % 250 + Math.sin(game.t * 0.02 + m) * 8) * dpr;
+        const ms = (0.8 + Math.sin(m + game.t * 0.04) * 0.4) * dpr;
+        ctx.beginPath();
+        ctx.arc(mx, my, ms, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
     }
   }
-
-  // Mountains
   let mountainColor;
   if (M.id === 'endless') {
     const ESCENE_MOUNTAINS = [
@@ -3493,12 +3562,15 @@ function render() {
         ctx.beginPath();
         ctx.arc(baseX + 8 * dpr + sway, GROUND_Y - (treeH + 18) * dpr, 14 * dpr, 0, Math.PI * 2);
         ctx.fill();
-        // Drobne listki - jaśniejsze plamki na koronie (highlights)
-        ctx.fillStyle = isOrange ? 'rgba(255,220,140,0.6)' : 'rgba(140,220,140,0.6)';
-        for (let leaf = 0; leaf < 6; leaf++) {
-          const angle = leaf * Math.PI / 3 + i * 0.7;
-          const lx = baseX + sway + Math.cos(angle) * 24 * dpr;
-          const ly = GROUND_Y - treeH * dpr + Math.sin(angle) * 18 * dpr;
+        // Drobne listki - jaśniejsze plamki na koronie (każdy się rusza osobno)
+        ctx.fillStyle = isOrange ? 'rgba(255,220,140,0.7)' : 'rgba(140,220,140,0.7)';
+        for (let leaf = 0; leaf < 8; leaf++) {
+          const angle = leaf * Math.PI / 4 + i * 0.7;
+          // Per-leaf sway (każdy listek inaczej)
+          const leafSway = Math.sin(game.t * 0.05 + leaf * 1.3 + i) * 2 * dpr;
+          const leafBob = Math.cos(game.t * 0.03 + leaf * 0.7) * 1.5 * dpr;
+          const lx = baseX + sway + Math.cos(angle) * (22 + leaf % 3 * 4) * dpr + leafSway;
+          const ly = GROUND_Y - treeH * dpr + Math.sin(angle) * 16 * dpr + leafBob;
           ctx.beginPath();
           ctx.arc(lx, ly, 2.5 * dpr, 0, Math.PI * 2);
           ctx.fill();
@@ -3564,6 +3636,91 @@ function render() {
         for (let j = 0; j < 5; j++) {
           ctx.fillRect(bx - 24 * dpr + j * 12 * dpr, GROUND_Y - 32 * dpr, 2 * dpr, 14 * dpr);
         }
+        
+        // 🆕 Osoba siedząca na co 2-giej ławce
+        if (i % 2 === 0) {
+          const seatX = bx - 8 * dpr;  // przesunięta w lewo na ławce
+          const seatY = GROUND_Y - 18 * dpr;  // na siedzisku
+          const wavePhase = game.t * 0.06 + i;  // animacja machania
+          const wave = Math.sin(wavePhase) * 0.5;  // -0.5..0.5
+          
+          // Cień osoby
+          ctx.fillStyle = 'rgba(0,0,0,0.2)';
+          ctx.fillRect(seatX - 5 * dpr, seatY - 2 * dpr, 10 * dpr, 2 * dpr);
+          
+          // Tułów (siedzący - kompaktowy)
+          ctx.fillStyle = '#4080c0';  // niebieska bluza
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(seatX - 5 * dpr, seatY - 14 * dpr, 10 * dpr, 12 * dpr, 3 * dpr);
+          else ctx.rect(seatX - 5 * dpr, seatY - 14 * dpr, 10 * dpr, 12 * dpr);
+          ctx.fill();
+          
+          // Nogi siedzące (wystają do przodu)
+          ctx.strokeStyle = '#1a1a25';
+          ctx.lineWidth = 3 * dpr;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(seatX - 2 * dpr, seatY - 2 * dpr);
+          ctx.lineTo(seatX - 4 * dpr, seatY + 4 * dpr);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(seatX + 2 * dpr, seatY - 2 * dpr);
+          ctx.lineTo(seatX + 4 * dpr, seatY + 4 * dpr);
+          ctx.stroke();
+          
+          // Buty
+          ctx.fillStyle = '#3a3a45';
+          ctx.beginPath();
+          ctx.ellipse(seatX - 4 * dpr, seatY + 5 * dpr, 2 * dpr, 1 * dpr, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(seatX + 4 * dpr, seatY + 5 * dpr, 2 * dpr, 1 * dpr, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Ręka stojąca (statyczna, oparta na nodze)
+          ctx.strokeStyle = '#f4c39a';
+          ctx.lineWidth = 2.5 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(seatX - 3 * dpr, seatY - 12 * dpr);
+          ctx.lineTo(seatX - 4 * dpr, seatY - 6 * dpr);
+          ctx.stroke();
+          
+          // 🌊 Ręka machająca (animowana w górę)
+          const wavingArmAngle = -1.2 + wave;  // ~-70° do -40° (w górę)
+          const armX1 = seatX + 3 * dpr;
+          const armY1 = seatY - 12 * dpr;
+          const elbowX = armX1 + Math.sin(wavingArmAngle) * 5 * dpr;
+          const elbowY = armY1 + Math.cos(wavingArmAngle) * 5 * dpr;
+          const handAngle = wavingArmAngle - 0.5 + wave * 1.5;  // dłoń kołysze
+          const handX = elbowX + Math.sin(handAngle) * 5 * dpr;
+          const handY = elbowY + Math.cos(handAngle) * 5 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(armX1, armY1);
+          ctx.lineTo(elbowX, elbowY);
+          ctx.lineTo(handX, handY);
+          ctx.stroke();
+          // Dłoń (otwarta)
+          ctx.fillStyle = '#f4c39a';
+          ctx.beginPath();
+          ctx.arc(handX, handY, 2.5 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Głowa
+          ctx.fillStyle = '#f4c39a';
+          ctx.beginPath();
+          ctx.arc(seatX, seatY - 18 * dpr, 4 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          // Włosy
+          ctx.fillStyle = '#5a3a20';
+          ctx.beginPath();
+          ctx.arc(seatX, seatY - 19 * dpr, 4 * dpr, Math.PI, Math.PI * 2);
+          ctx.fill();
+          // Oko (kropka)
+          ctx.fillStyle = '#1a1a1f';
+          ctx.beginPath();
+          ctx.arc(seatX + 1 * dpr, seatY - 18 * dpr, 0.7 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
     
@@ -3580,15 +3737,33 @@ function render() {
         }
       }
       
-      // Hydranty (czerwone, na chodniku)
+      // Hydranty (czerwone, jeden czasem leje wodę)
       for (let i = 0; i < 4; i++) {
         const hx = ((i * 320 * dpr - game.bgNear * 0.7) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
         if (hx < -30 * dpr || hx > W + 30 * dpr) continue;
-        // Cień
+        
+        // Czy ten hydrant aktualnie leje wodę? (deterministic by index + time)
+        const leakActive = ((i * 7 + Math.floor(game.t / 240)) % 5) === 1;  // ~1/5 latek
+        
+        // Cień (większy gdy leje)
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.beginPath();
-        ctx.ellipse(hx, GROUND_Y - 1 * dpr, 8 * dpr, 2 * dpr, 0, 0, Math.PI * 2);
+        ctx.ellipse(hx, GROUND_Y - 1 * dpr, leakActive ? 14 * dpr : 8 * dpr, 2 * dpr, 0, 0, Math.PI * 2);
         ctx.fill();
+        
+        // Kałuża wodna pod lekiem
+        if (leakActive) {
+          ctx.fillStyle = 'rgba(80,150,220,0.55)';
+          ctx.beginPath();
+          ctx.ellipse(hx + 8 * dpr, GROUND_Y - 1 * dpr, 18 * dpr, 4 * dpr, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // Highlight na kałuży
+          ctx.fillStyle = 'rgba(180,220,255,0.6)';
+          ctx.beginPath();
+          ctx.ellipse(hx + 6 * dpr, GROUND_Y - 2 * dpr, 6 * dpr, 1 * dpr, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
         // Body hydranta
         ctx.fillStyle = '#c83020';
         ctx.fillRect(hx - 4 * dpr, GROUND_Y - 14 * dpr, 8 * dpr, 14 * dpr);
@@ -3605,33 +3780,110 @@ function render() {
         // Górny vent
         ctx.fillStyle = '#5a1a10';
         ctx.fillRect(hx - 1 * dpr, GROUND_Y - 17 * dpr, 2 * dpr, 4 * dpr);
+        
+        // 🆕 STRUMIEŃ WODY z bocznego wylotu (animowany)
+        if (leakActive) {
+          // Strumień (krzywa parabolic)
+          ctx.strokeStyle = 'rgba(120,180,240,0.7)';
+          ctx.lineWidth = 1.5 * dpr;
+          ctx.lineCap = 'round';
+          for (let s = 0; s < 4; s++) {
+            const offset = (game.t * 0.5 + s * 4) % 16;
+            ctx.beginPath();
+            const startX = hx + 7 * dpr;
+            const startY = GROUND_Y - 6 * dpr;
+            const t = offset / 16;  // 0..1 progress
+            const dropX = startX + 12 * dpr * t;
+            const dropY = startY + 6 * dpr * t * t;  // parabola
+            ctx.arc(dropX, dropY, (1.5 - t) * dpr, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(150,200,250,' + (0.8 - t * 0.5) + ')';
+            ctx.fill();
+          }
+          // Główny strumień (linia)
+          ctx.strokeStyle = 'rgba(150,200,250,0.5)';
+          ctx.lineWidth = 1 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(hx + 7 * dpr, GROUND_Y - 6 * dpr);
+          ctx.quadraticCurveTo(hx + 12 * dpr, GROUND_Y - 4 * dpr, hx + 16 * dpr, GROUND_Y - 1 * dpr);
+          ctx.stroke();
+        }
       }
     }
     
-    // Latarnie w MIASTO i NOC
+    // Latarnie w MIASTO i NOC — z snopem światła na ziemi
     if (escene === 1 || escene === 2) {
       for (let i = 0; i < 6; i++) {
         const baseX = ((i * 220 * dpr - game.bgMid * 0.5) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
-        // Słup
-        ctx.fillStyle = 'rgba(40,40,55,0.7)';
-        ctx.fillRect(baseX - 2 * dpr, GROUND_Y - 100 * dpr, 4 * dpr, 100 * dpr);
-        // Lampa
-        ctx.fillStyle = 'rgba(255,220,120,0.85)';
-        ctx.shadowColor = '#ffdc78';
-        ctx.shadowBlur = 20 * dpr;
+        if (baseX < -50 * dpr || baseX > W + 50 * dpr) continue;
+        
+        // Sporadyczne migotanie żarówki (loosely deterministic)
+        const seed = i * 17;
+        const flickerActive = Math.sin(game.t * 0.04 + seed) > 0.94;
+        const lampPower = flickerActive ? 0.5 : 1.0;
+        
+        // 🆕 SNOP ŚWIATŁA NA ZIEMI (eliptyczny pool)
+        const groundLightX = baseX + 15 * dpr;  // przesunięty bo lampa zwisa z ramienia
+        const poolGrad = ctx.createRadialGradient(
+          groundLightX, GROUND_Y, 0,
+          groundLightX, GROUND_Y, 60 * dpr
+        );
+        poolGrad.addColorStop(0, 'rgba(255,220,120,' + (0.35 * lampPower) + ')');
+        poolGrad.addColorStop(0.5, 'rgba(255,220,120,' + (0.15 * lampPower) + ')');
+        poolGrad.addColorStop(1, 'rgba(255,220,120,0)');
+        ctx.fillStyle = poolGrad;
         ctx.beginPath();
-        ctx.arc(baseX, GROUND_Y - 100 * dpr, 5 * dpr, 0, Math.PI * 2);
+        ctx.ellipse(groundLightX, GROUND_Y + 2 * dpr, 60 * dpr, 12 * dpr, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Słup (wysoki, cienki)
+        ctx.fillStyle = 'rgba(40,40,55,0.85)';
+        ctx.fillRect(baseX - 2 * dpr, GROUND_Y - 100 * dpr, 4 * dpr, 100 * dpr);
+        
+        // Podstawa słupa (szersza)
+        ctx.fillRect(baseX - 4 * dpr, GROUND_Y - 4 * dpr, 8 * dpr, 4 * dpr);
+        
+        // Ramię latarni (zakrzywione od słupa)
+        ctx.strokeStyle = 'rgba(40,40,55,0.85)';
+        ctx.lineWidth = 3 * dpr;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(baseX, GROUND_Y - 98 * dpr);
+        ctx.quadraticCurveTo(baseX + 8 * dpr, GROUND_Y - 105 * dpr, baseX + 15 * dpr, GROUND_Y - 100 * dpr);
+        ctx.stroke();
+        
+        // Lampa zwisająca (mała kopułka)
+        ctx.fillStyle = 'rgba(60,55,70,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(baseX + 12 * dpr, GROUND_Y - 100 * dpr);
+        ctx.lineTo(baseX + 18 * dpr, GROUND_Y - 100 * dpr);
+        ctx.lineTo(baseX + 17 * dpr, GROUND_Y - 95 * dpr);
+        ctx.lineTo(baseX + 13 * dpr, GROUND_Y - 95 * dpr);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Żarówka — pulsuje subtle
+        ctx.fillStyle = 'rgba(255,230,150,' + (0.85 * lampPower) + ')';
+        ctx.shadowColor = '#ffdc78';
+        ctx.shadowBlur = (16 + Math.sin(game.t * 0.08 + seed) * 4) * dpr * lampPower;
+        ctx.beginPath();
+        ctx.arc(baseX + 15 * dpr, GROUND_Y - 95 * dpr, 5 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Hot spot wewnątrz
+        ctx.fillStyle = 'rgba(255,255,220,' + lampPower + ')';
+        ctx.beginPath();
+        ctx.arc(baseX + 15 * dpr, GROUND_Y - 95 * dpr, 2.5 * dpr, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
-        // Stożek światła
-        const grad = ctx.createRadialGradient(baseX, GROUND_Y - 100 * dpr, 0, baseX, GROUND_Y - 70 * dpr, 50 * dpr);
-        grad.addColorStop(0, 'rgba(255,220,120,0.18)');
-        grad.addColorStop(1, 'rgba(255,220,120,0)');
-        ctx.fillStyle = grad;
+        
+        // Stożek światła rozchodzący się w dół
+        const coneGrad = ctx.createLinearGradient(baseX + 15 * dpr, GROUND_Y - 95 * dpr, baseX + 15 * dpr, GROUND_Y);
+        coneGrad.addColorStop(0, 'rgba(255,220,120,' + (0.25 * lampPower) + ')');
+        coneGrad.addColorStop(1, 'rgba(255,220,120,0)');
+        ctx.fillStyle = coneGrad;
         ctx.beginPath();
-        ctx.moveTo(baseX, GROUND_Y - 100 * dpr);
-        ctx.lineTo(baseX - 30 * dpr, GROUND_Y - 30 * dpr);
-        ctx.lineTo(baseX + 30 * dpr, GROUND_Y - 30 * dpr);
+        ctx.moveTo(baseX + 15 * dpr, GROUND_Y - 95 * dpr);
+        ctx.lineTo(baseX - 25 * dpr, GROUND_Y);
+        ctx.lineTo(baseX + 55 * dpr, GROUND_Y);
         ctx.closePath();
         ctx.fill();
       }
@@ -3658,27 +3910,109 @@ function render() {
     }
   }
 
-  // Buildings (oryginalna logika — pokazuje się w longrun, intervals, calm)
+  // Buildings (z mrugającymi oknami i witrynami)
   if (M.id !== 'endless' || game.endlessScene === 1 || game.endlessScene === 2) {
-    ctx.fillStyle = 'rgba(20,15,30,0.85)';
     for (let i = 0; i < 12; i++) {
       const baseX = ((i * 120 * dpr - game.bgNear * 0.6) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
       const bH = 60 + (i % 4) * 25;
+      
+      // Building - gradient (jaśniej z lewej strony, jak światło słońca/księżyca)
+      const buildGrad = ctx.createLinearGradient(baseX, 0, baseX + 80 * dpr, 0);
+      const isNight = game.endlessScene === 2;
+      const isCity = game.endlessScene === 1;
+      if (isNight) {
+        buildGrad.addColorStop(0, 'rgba(20,15,40,0.95)');
+        buildGrad.addColorStop(1, 'rgba(10,5,25,0.95)');
+      } else if (isCity) {
+        buildGrad.addColorStop(0, 'rgba(50,55,75,0.9)');
+        buildGrad.addColorStop(1, 'rgba(25,30,50,0.95)');
+      } else {
+        buildGrad.addColorStop(0, 'rgba(30,25,40,0.85)');
+        buildGrad.addColorStop(1, 'rgba(15,10,25,0.85)');
+      }
+      ctx.fillStyle = buildGrad;
       ctx.fillRect(baseX, GROUND_Y - bH * dpr, 80 * dpr, bH * dpr);
+      
+      // Witryna sklepowa na parterze (kolorowe światło, animowane)
+      if (i % 3 === 0 && (isCity || isNight)) {
+        const shopColors = ['rgba(255,180,80,0.7)', 'rgba(80,200,180,0.6)', 'rgba(255,120,180,0.65)', 'rgba(180,140,255,0.6)'];
+        const shopColor = shopColors[i % shopColors.length];
+        ctx.fillStyle = shopColor;
+        // Witryna - prostokąt na parterze
+        ctx.fillRect(baseX + 8 * dpr, GROUND_Y - 18 * dpr, 64 * dpr, 16 * dpr);
+        // Glow nad witryną
+        ctx.shadowColor = shopColor.replace(/[\d.]+\)$/, '0.8)');
+        ctx.shadowBlur = 12 * dpr;
+        ctx.fillRect(baseX + 8 * dpr, GROUND_Y - 18 * dpr, 64 * dpr, 16 * dpr);
+        ctx.shadowBlur = 0;
+        // Drobne detale w witrynie (kratka)
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 0.7 * dpr;
+        for (let dx = 16; dx < 64; dx += 16) {
+          ctx.beginPath();
+          ctx.moveTo(baseX + dx * dpr, GROUND_Y - 18 * dpr);
+          ctx.lineTo(baseX + dx * dpr, GROUND_Y - 2 * dpr);
+          ctx.stroke();
+        }
+      }
+      
+      // Okna - z animowanym twinkling
       const winColor = M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(224,80,80,0.4)' :
                        M.id === 'calm' ? 'rgba(80,144,224,0.3)' :
                        game.endlessScene === 1 ? 'rgba(80,144,224,0.5)' :
-                       game.endlessScene === 2 ? 'rgba(255,180,80,0.4)' :
+                       game.endlessScene === 2 ? 'rgba(255,180,80,0.5)' :
                        'rgba(232,86,30,0.4)';
-      ctx.fillStyle = winColor;
-      for (let wy = 0; wy < bH; wy += 18) {
+      
+      for (let wy = 16; wy < bH; wy += 18) {  // od 16 by ominąć witrynę
         for (let wx = 0; wx < 80; wx += 18) {
           if ((i + wy + wx) % 3 === 0) {
-            ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+            // Okno włączone/wyłączone — losowy migot na podstawie game.t
+            const seed = i * 13 + wy * 7 + wx * 11;
+            const isOn = ((Math.floor(game.t / 90) + seed) % 7) !== 1;  // ~6 z 7 włączone
+            const flicker = Math.sin(game.t * 0.05 + seed) > 0.95;  // sporadyczne mignięcie
+            
+            if (isOn) {
+              ctx.fillStyle = flicker ? 
+                'rgba(255,255,200,0.85)' :
+                winColor;
+              ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+              
+              // Mocniejsze glow w nocy
+              if (isNight && !flicker) {
+                ctx.shadowColor = '#ffb84d';
+                ctx.shadowBlur = 6 * dpr;
+                ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+                ctx.shadowBlur = 0;
+              }
+            } else {
+              // Ciemne okno
+              ctx.fillStyle = 'rgba(40,35,55,0.6)';
+              ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+            }
           }
         }
       }
-      ctx.fillStyle = 'rgba(20,15,30,0.85)';
+      
+      // Antena na dachu co 3-cim budynku
+      if (i % 3 === 1) {
+        ctx.strokeStyle = 'rgba(40,35,55,0.9)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(baseX + 40 * dpr, GROUND_Y - bH * dpr);
+        ctx.lineTo(baseX + 40 * dpr, GROUND_Y - (bH + 12) * dpr);
+        ctx.stroke();
+        // Czerwone światełko na czubku (warning light)
+        const lightOn = (game.t * 0.05 + i) % 2 < 1;
+        if (lightOn) {
+          ctx.fillStyle = '#ff5050';
+          ctx.shadowColor = '#ff5050';
+          ctx.shadowBlur = 6 * dpr;
+          ctx.beginPath();
+          ctx.arc(baseX + 40 * dpr, GROUND_Y - (bH + 12) * dpr, 1.5 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
     }
   }
 
@@ -5832,12 +6166,18 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // Pochyleni do przodu = w prawo (kierunek biegu)
   const torsoLeanX = state === 'run' ? 2 * s : state === 'dash' ? 4 * s : 0;
   
+  // 🆕 ODDECH — szybsze przy biegu/dashu, wolniejsze w jump
+  const breathRate = state === 'dash' ? 0.5 : state === 'run' ? 0.3 : 0.15;
+  const breathScale = 1 + Math.sin(legPhase * breathRate) * 0.04;  // ±4% skali tułowia
+  const torsoExpandX = (breathScale - 1) * 4 * s;  // dodatkowa szerokość gdy klatka piersiowa rozszerzona
+  const torsoExpandY = (breathScale - 1) * 3 * s;
+  
   // Tułów - 2 części dla lepszego wyglądu
-  // Górna - jaśniejsza pomarańczowa
+  // Górna - jaśniejsza pomarańczowa (z oddechem)
   ctx.fillStyle = SHIRT_TOP;
   ctx.beginPath();
   if (ctx.roundRect) {
-    ctx.roundRect(-10 * s + torsoLeanX, -28 * s, 20 * s, 14 * s, 6 * s);
+    ctx.roundRect(-10 * s - torsoExpandX + torsoLeanX, -28 * s - torsoExpandY, 20 * s + torsoExpandX * 2, 14 * s + torsoExpandY, 6 * s);
   } else {
     ctx.rect(-10 * s + torsoLeanX, -28 * s, 20 * s, 14 * s);
   }
