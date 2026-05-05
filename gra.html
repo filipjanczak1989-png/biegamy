@@ -27,12 +27,57 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;}
 .screen.hidden{display:none;}
 
-#screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;}
-.home-content{padding:14px 18px 100px;flex:1;}
-.hero-block{text-align:center;margin-bottom:18px;}
-.hero-title{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:0.04em;line-height:0.95;margin-bottom:4px;}
-.hero-title .accent{color:var(--accent);}
+#screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;position:relative;}
+#screen-home::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:radial-gradient(ellipse at top right,rgba(232,86,30,0.15),transparent 50%),radial-gradient(ellipse at bottom left,rgba(168,104,224,0.12),transparent 50%);
+  pointer-events:none;
+  z-index:-1;
+  animation:bgShift 12s ease-in-out infinite;
+}
+@keyframes bgShift{
+  0%,100%{filter:hue-rotate(0deg);}
+  50%{filter:hue-rotate(20deg);}
+}
+.home-content{padding:14px 18px 100px;flex:1;position:relative;z-index:1;}
+.hero-block{text-align:center;margin-bottom:18px;position:relative;}
+.hero-block::after{
+  content:'';
+  position:absolute;
+  inset:-20px -40px;
+  background:radial-gradient(ellipse at center,rgba(232,86,30,0.2),transparent 60%);
+  z-index:-1;
+  animation:heroGlow 4s ease-in-out infinite;
+}
+@keyframes heroGlow{
+  0%,100%{opacity:0.6;}
+  50%{opacity:1;}
+}
+.hero-title{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:0.04em;line-height:0.95;margin-bottom:4px;text-shadow:0 0 30px rgba(232,86,30,0.4);}
+.hero-title .accent{color:var(--accent);text-shadow:0 0 24px rgba(232,86,30,0.8);}
 .hero-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+
+/* Play button with pulse + shimmer */
+.play-btn{animation:playPulse 2.5s ease-in-out infinite;}
+.play-btn::after{
+  content:'';
+  position:absolute;
+  top:0;left:-100%;
+  width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.25),transparent);
+  animation:shimmer 3s ease-in-out infinite;
+}
+@keyframes playPulse{
+  0%,100%{box-shadow:0 8px 32px rgba(232,86,30,0.4);}
+  50%{box-shadow:0 8px 48px rgba(232,86,30,0.7),0 0 24px rgba(255,122,69,0.5);}
+}
+@keyframes shimmer{
+  0%{left:-100%;}
+  50%{left:100%;}
+  100%{left:100%;}
+}
 
 /* Suggested mode banner */
 .suggested-banner{background:linear-gradient(135deg,rgba(232,86,30,0.18),rgba(232,184,64,0.08));border:1px solid var(--accent);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;}
@@ -219,7 +264,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     <div class="section-card" id="daily-challenge"></div>
 
     <!-- BIG PLAY BUTTON -->
-    <button onclick="startGame('endless')" style="width:100%;background:linear-gradient(135deg,var(--accent),#ff7a45);color:#fff;border:none;border-radius:16px;padding:24px;font-family:Bebas Neue,sans-serif;font-size:36px;letter-spacing:0.08em;cursor:pointer;box-shadow:0 8px 32px rgba(232,86,30,0.4);margin:8px 0 16px;text-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    <button onclick="startGame('endless')" class="play-btn" style="width:100%;background:linear-gradient(135deg,var(--accent),#ff7a45);color:#fff;border:none;border-radius:16px;padding:24px;font-family:Bebas Neue,sans-serif;font-size:36px;letter-spacing:0.08em;cursor:pointer;box-shadow:0 8px 32px rgba(232,86,30,0.4);margin:8px 0 16px;text-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;overflow:hidden;">
       ▶ GRAJ
     </button>
 
@@ -824,6 +869,9 @@ function newGame(mode) {
     birds: [],                // ptaki
     windZones: [],            // pasy wiatru
     particles: [],
+    footprints: [],
+    weather: [],
+    butterflies: [],         // 🆕 motyle latające w PARK
     popups: [],
     trail: [],
 
@@ -2227,6 +2275,125 @@ function update() {
   game.particles = game.particles.filter(p => p.life > 0);
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
+  
+  // 🆕 FOOTPRINTS — ślady stóp gdy biegacz na ziemi
+  if (game.onGround && !game.sliding && !game.flipping && game.speed > 3 * dpr) {
+    if (game.t % 12 === 0) {
+      game.footprints.push({
+        x: game.px - 5 * dpr,
+        y: GROUND_Y,
+        life: 90,
+        size: 5 * dpr,
+        side: (game.t / 12) % 2
+      });
+    }
+  }
+  game.footprints.forEach(f => {
+    f.x -= game.speed;
+    f.life--;
+  });
+  game.footprints = game.footprints.filter(f => f.life > 0 && f.x > -50 * dpr);
+  
+  // 🆕 WEATHER PARTICLES per scena (liście/śnieg/deszcz)
+  if (M.id === 'endless' && game.weather) {
+    const escene = game.endlessScene;
+    let spawnRate = 0;
+    let weatherType = null;
+    
+    if (escene === 0) {  // PARK — opadające liście
+      spawnRate = 0.05;
+      weatherType = 'leaf';
+    } else if (escene === 2) {  // NOC — krople deszczu
+      spawnRate = 0.6;
+      weatherType = 'rain';
+    } else if (escene === 4) {  // GÓRY — śnieg
+      spawnRate = 0.3;
+      weatherType = 'snow';
+    }
+    
+    if (spawnRate > 0 && Math.random() < spawnRate) {
+      if (weatherType === 'leaf') {
+        game.weather.push({
+          type: 'leaf',
+          x: Math.random() * W,
+          y: -10 * dpr,
+          vx: (Math.random() - 0.5) * 1.5 * dpr - 1 * dpr,
+          vy: (0.5 + Math.random() * 0.5) * dpr,
+          rot: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.1,
+          size: (4 + Math.random() * 3) * dpr,
+          color: ['#ff8030', '#ffaa50', '#cc6020', '#aa4010'][Math.floor(Math.random() * 4)],
+          life: 600
+        });
+      } else if (weatherType === 'rain') {
+        game.weather.push({
+          type: 'rain',
+          x: Math.random() * (W + 200 * dpr) - 100 * dpr,
+          y: -20 * dpr,
+          vx: -3 * dpr,  // ukos
+          vy: 16 * dpr,
+          length: (10 + Math.random() * 8) * dpr,
+          life: 60
+        });
+      } else if (weatherType === 'snow') {
+        game.weather.push({
+          type: 'snow',
+          x: Math.random() * W,
+          y: -10 * dpr,
+          vx: (Math.random() - 0.5) * 0.8 * dpr,
+          vy: (0.6 + Math.random() * 0.6) * dpr,
+          size: (1.5 + Math.random() * 2) * dpr,
+          drift: Math.random() * Math.PI * 2,
+          life: 800
+        });
+      }
+    }
+    
+    // Update weather
+    game.weather.forEach(w => {
+      w.x += w.vx;
+      w.y += w.vy;
+      w.life--;
+      if (w.type === 'leaf') {
+        w.rot += w.rotSpeed;
+        w.vx += Math.sin(game.t * 0.05 + w.rot) * 0.05;  // drifting
+      } else if (w.type === 'snow') {
+        w.drift += 0.05;
+        w.x += Math.sin(w.drift) * 0.3;
+      }
+    });
+    game.weather = game.weather.filter(w => w.y < H + 20 * dpr && w.life > 0);
+    
+    // 🆕 BUTTERFLIES w PARK
+    if (escene === 0) {
+      // Spawn raz na ~3-5s
+      if (game.t % 200 === 0 && game.butterflies.length < 4) {
+        game.butterflies.push({
+          x: W + 30 * dpr,
+          y: GROUND_Y - (50 + Math.random() * 80) * dpr,
+          baseY: GROUND_Y - (50 + Math.random() * 80) * dpr,
+          phase: Math.random() * Math.PI * 2,
+          vx: -(2 + Math.random()) * dpr,
+          flapPhase: 0,
+          color: ['#ff7a8c', '#ffd966', '#a868e0', '#5090e0'][Math.floor(Math.random() * 4)],
+          size: (4 + Math.random() * 2) * dpr,
+          life: 600
+        });
+      }
+      // Update butterflies — oscillating motion
+      game.butterflies.forEach(b => {
+        b.x += b.vx;
+        b.phase += 0.08;
+        b.flapPhase += 0.6;  // szybki flap
+        b.y = b.baseY + Math.sin(b.phase) * 8 * dpr;
+        b.life--;
+      });
+      game.butterflies = game.butterflies.filter(b => b.x > -30 * dpr && b.life > 0);
+    } else {
+      // Wyczyść motyle gdy wyjdziemy z PARK
+      if (game.butterflies.length > 0) game.butterflies = [];
+    }
+  }
 
   // SPOWOLNIENIE — countdown
   if (game.slowedTimer > 0) {
@@ -3287,6 +3454,35 @@ function render() {
           ctx.fill();
         }
       }
+      
+      // 🆕 Motyle latające w PARK
+      if (game.butterflies && game.butterflies.length > 0) {
+        for (const b of game.butterflies) {
+          const wingFlap = Math.abs(Math.sin(b.flapPhase));  // 0..1
+          const wingW = b.size * (0.5 + wingFlap * 0.7);
+          // Skrzydła góra (jaśniejsze)
+          ctx.fillStyle = b.color;
+          ctx.beginPath();
+          ctx.ellipse(b.x - wingW, b.y - 1 * dpr, wingW, b.size * 0.8, -0.3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(b.x + wingW, b.y - 1 * dpr, wingW, b.size * 0.8, 0.3, 0, Math.PI * 2);
+          ctx.fill();
+          // Skrzydła dół (ciemniejsze)
+          ctx.fillStyle = b.color.replace(')', ',0.7)').replace('rgb(', 'rgba(').replace(/^#/, '');
+          // Hex → no need; just rim shadow
+          ctx.fillStyle = 'rgba(0,0,0,0.25)';
+          ctx.beginPath();
+          ctx.ellipse(b.x - wingW * 0.7, b.y + 2 * dpr, wingW * 0.6, b.size * 0.5, -0.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(b.x + wingW * 0.7, b.y + 2 * dpr, wingW * 0.6, b.size * 0.5, 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          // Body — ciemny prostokąt
+          ctx.fillStyle = '#1a1a1a';
+          ctx.fillRect(b.x - 0.5 * dpr, b.y - 2 * dpr, 1 * dpr, 4 * dpr);
+        }
+      }
     }
     
     // Latarnie w MIASTO i NOC
@@ -3406,6 +3602,26 @@ function render() {
   groundGrad.addColorStop(1, 'rgba(' + glowColor + ',0)');
   ctx.fillStyle = groundGrad;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+  
+  // 🆕 HORIZON LINE — subtelna linia świetlna na styku nieba i ziemi
+  if (M.id === 'endless') {
+    const escene = game.endlessScene;
+    let lineColor;
+    if (escene === 0) lineColor = 'rgba(255,240,200,0.5)';      // PARK - ciepłe światło rana
+    else if (escene === 1) lineColor = 'rgba(180,200,230,0.4)'; // MIASTO
+    else if (escene === 2) lineColor = 'rgba(120,140,180,0.3)'; // NOC
+    else if (escene === 3) lineColor = 'rgba(255,180,120,0.7)'; // ŚWIT - mocna linia świtu
+    else if (escene === 4) lineColor = 'rgba(220,235,255,0.4)'; // GÓRY
+    else lineColor = 'rgba(180,80,200,0.4)';                    // KOSMOS
+    
+    // Gradient na styku
+    const horiGrad = ctx.createLinearGradient(0, GROUND_Y - 4 * dpr, 0, GROUND_Y + 2 * dpr);
+    horiGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    horiGrad.addColorStop(0.7, lineColor);
+    horiGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = horiGrad;
+    ctx.fillRect(0, GROUND_Y - 4 * dpr, W, 6 * dpr);
+  }
 
   // 🆕 SCENA-SPECYFICZNE TEKSTURY ZIEMI
   if (M.id === 'endless') {
@@ -3545,6 +3761,23 @@ function render() {
       ctx.fill();
     }
     game.dustParticles = game.dustParticles.filter(d => d.life > 0);
+  }
+  
+  // 🆕 FOOTPRINTS — ślady stóp na ziemi
+  if (game.footprints && game.footprints.length > 0) {
+    for (const f of game.footprints) {
+      const alpha = (f.life / 90) * 0.4;
+      ctx.fillStyle = 'rgba(40,30,25,' + alpha + ')';
+      // Owalny ślad stopy z palcem
+      const offset = f.side === 0 ? -3 * dpr : 3 * dpr;
+      ctx.beginPath();
+      ctx.ellipse(f.x + offset, f.y - 1 * dpr, f.size, f.size * 0.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Palec (mała kropka z przodu)
+      ctx.beginPath();
+      ctx.arc(f.x + offset + 4 * dpr, f.y - 2 * dpr, 1.5 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   // Obstacles
@@ -3721,14 +3954,26 @@ function render() {
       ctx.save();
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
-      // Cień pod stopami
-      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      
+      // 🆕 Cień miękki, eliptyczny (większy, bardziej widoczny)
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
       ctx.beginPath();
-      ctx.ellipse(o.x + o.w / 2, GROUND_Y - 2 * dpr, o.w * 0.55, 4 * dpr, 0, 0, Math.PI * 2);
+      ctx.ellipse(o.x + o.w / 2, GROUND_Y - 1 * dpr, o.w * 0.6, 5 * dpr, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Speed lines za pieszym (po prawej, bo idą w lewo)
+      
+      // 🆕 Subtle ground reflection (postać odbija się delikatnie)
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.translate(o.x + o.w / 2, GROUND_Y);
+      ctx.scale(1, -0.4);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = (o.h + 18 * dpr) + 'px serif';
+      ctx.fillText(o.emoji, 0, -2 * dpr);
+      ctx.restore();
+      
+      // Speed lines za pieszym
       if (o.speedBonus > 2 * dpr) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
         ctx.lineWidth = 1.5 * dpr;
         for (let i = 0; i < 3; i++) {
           const lx = o.x + o.w + (10 + i * 8) * dpr;
@@ -3739,11 +3984,14 @@ function render() {
           ctx.stroke();
         }
       }
-      // 🆕 RESET fillStyle do białego żeby emoji nie było przyciemnione
+      
+      // 🆕 Soft glow wokół postaci (subtle)
+      ctx.shadowColor = 'rgba(255,255,255,0.3)';
+      ctx.shadowBlur = 8 * dpr;
       ctx.fillStyle = '#ffffff';
-      // Większa czcionka żeby emoji było wyraźne
       ctx.font = (o.h + 18 * dpr) + 'px serif';
       ctx.fillText(o.emoji, o.x + o.w / 2, GROUND_Y + bobOffset);
+      ctx.shadowBlur = 0;
       ctx.restore();
       return;
     }
@@ -4346,6 +4594,83 @@ function render() {
     ctx.restore();
   }
   ctx.restore();
+  
+  // 🆕 WEATHER PARTICLES (liście/śnieg/deszcz) — nad scenografią ale pod vignette
+  if (game.weather && game.weather.length > 0) {
+    for (const w of game.weather) {
+      if (w.type === 'leaf') {
+        ctx.save();
+        ctx.translate(w.x, w.y);
+        ctx.rotate(w.rot);
+        // Liść jako eliptyczny kształt
+        ctx.fillStyle = w.color;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, w.size, w.size * 0.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Środkowa żyłka
+        ctx.strokeStyle = 'rgba(60,30,15,0.6)';
+        ctx.lineWidth = 0.8 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(-w.size, 0);
+        ctx.lineTo(w.size, 0);
+        ctx.stroke();
+        ctx.restore();
+      } else if (w.type === 'rain') {
+        ctx.strokeStyle = 'rgba(180,200,230,0.6)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(w.x, w.y);
+        ctx.lineTo(w.x + w.vx, w.y + w.length);
+        ctx.stroke();
+      } else if (w.type === 'snow') {
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, w.size, 0, Math.PI * 2);
+        ctx.fill();
+        // Glow
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.beginPath();
+        ctx.arc(w.x, w.y, w.size * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  
+  // 🆕 VIGNETTE — ciemniejsze rogi (cinema feel)
+  const vignette = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+  vignette.addColorStop(0, 'rgba(0,0,0,0)');
+  vignette.addColorStop(0.6, 'rgba(0,0,0,0)');
+  vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = vignette;
+  ctx.fillRect(0, 0, W, H);
+  
+  // 🆕 FILM GRAIN — subtelne szumy (artystyczny feel)
+  if (game._grainCanvas === undefined) {
+    // Stwórz raz cache canvas z grain
+    const gc = document.createElement('canvas');
+    gc.width = 200; gc.height = 200;
+    const gctx = gc.getContext('2d');
+    const imgData = gctx.createImageData(200, 200);
+    for (let i = 0; i < imgData.data.length; i += 4) {
+      const v = Math.floor(Math.random() * 255);
+      imgData.data[i] = v;
+      imgData.data[i+1] = v;
+      imgData.data[i+2] = v;
+      imgData.data[i+3] = 25;  // bardzo subtle
+    }
+    gctx.putImageData(imgData, 0, 0);
+    game._grainCanvas = gc;
+  }
+  // Repeating pattern grain — przesunięcie żeby nie był statyczny
+  ctx.globalAlpha = 0.5;
+  const grainOffsetX = (game.t * 17) % 200;
+  const grainOffsetY = (game.t * 13) % 200;
+  for (let gx = -grainOffsetX; gx < W; gx += 200) {
+    for (let gy = -grainOffsetY; gy < H; gy += 200) {
+      ctx.drawImage(game._grainCanvas, gx, gy);
+    }
+  }
+  ctx.globalAlpha = 1;
 
   // ── SCREEN FLASH (overlay, kolorowy błysk) ──
   if (_screenFlash.life > 0 && _screenFlash.color) {
