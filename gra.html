@@ -223,8 +223,8 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
   .hud-lives{font-size:12px;}
   .hud-left,.hud-right{gap:3px;}
   .dash-meter{padding:6px 12px;font-size:9px;bottom:max(10px,env(safe-area-inset-bottom,10px));}
-  .missions-hud{top:max(60px,calc(env(safe-area-inset-top,0px) + 60px));}
-  .powerup-bar{top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));}
+  .missions-hud{top:max(50px,calc(env(safe-area-inset-top,0px) + 50px));}
+  .powerup-bar{top:max(70px,calc(env(safe-area-inset-top,0px) + 70px));}
 }
 
 /* Mode-specific UI */
@@ -236,16 +236,16 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 /* Interval phase indicator */
 .phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
 .powerup-bar{position:fixed;top:max(160px,calc(env(safe-area-inset-top,0px) + 160px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
-.missions-hud{position:fixed;left:0;right:0;top:max(120px,calc(env(safe-area-inset-top,0px) + 120px));z-index:9;pointer-events:none;display:flex;gap:6px;padding:0 12px;justify-content:center;}
-.mission-row{flex:1;max-width:140px;background:rgba(7,7,10,0.55);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:4px 6px;display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;transition:all 0.3s;}
-.mission-row.done{background:rgba(61,184,112,0.18);border-color:rgba(61,184,112,0.4);}
-.mission-icon{font-size:11px;flex-shrink:0;width:14px;text-align:center;opacity:0.85;}
+.missions-hud{position:fixed;left:0;right:0;top:max(75px,calc(env(safe-area-inset-top,0px) + 75px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;}
+.mission-row{flex:1;max-width:120px;background:rgba(7,7,10,0.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.05);border-radius:5px;padding:2px 5px;display:flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;transition:all 0.3s;}
+.mission-row.done{background:rgba(61,184,112,0.22);border-color:rgba(61,184,112,0.5);opacity:1;}
+.mission-icon{font-size:10px;flex-shrink:0;width:12px;text-align:center;opacity:0.85;}
 .mission-mid{flex:1;min-width:0;overflow:hidden;}
-.mission-label{font-size:8px;color:rgba(240,237,232,0.65);line-height:1.1;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.mission-bar{margin-top:2px;height:1.5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.mission-label{font-size:7px;color:rgba(240,237,232,0.65);line-height:1.1;letter-spacing:0.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mission-bar{margin-top:1px;height:1.5px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
 .mission-fill{height:100%;background:rgba(232,184,64,0.6);transition:width 0.3s;}
 .mission-row.done .mission-fill{background:#3db870;}
-.mission-val{font-size:8px;color:rgba(240,237,232,0.55);font-weight:500;flex-shrink:0;letter-spacing:0;}
+.mission-val{font-size:7px;color:rgba(240,237,232,0.55);font-weight:500;flex-shrink:0;letter-spacing:0;}
 .mission-row.done .mission-val{color:#3db870;font-weight:600;}
 .pu-pill{background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--accent);border-radius:16px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);display:flex;align-items:center;gap:5px;animation:phaseIn 0.3s ease-out;}
 .pu-pill .pu-time{font-weight:600;color:var(--accent);}
