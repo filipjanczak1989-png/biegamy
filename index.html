@@ -35,8 +35,8 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 
 /* ── FULL SCREEN BG WITH RUNNERS ─────────────────────────────────────── */
 body{
-  display:flex;align-items:center;justify-content:center;
-  min-height:100vh;padding:24px 20px;
+  display:flex;align-items:flex-start;justify-content:center;
+  min-height:100vh;padding:16px 16px 24px;
   background-image:
     radial-gradient(ellipse 140% 60% at 50% -10%, rgba(232,86,30,0.22) 0%, transparent 58%),
     radial-gradient(ellipse 70% 50% at 95% 70%, rgba(78,140,214,0.10) 0%, transparent 55%),
@@ -86,7 +86,7 @@ body::after{
 /* ── HERO ─────────────────────────────────────────────────────────────── */
 .hero{
   text-align:center;
-  margin-bottom:32px;
+  margin-bottom:18px;
   padding:0 6px;
 }
 
@@ -100,8 +100,8 @@ body::after{
   letter-spacing:0.32em;
   text-transform:uppercase;
   color:var(--muted);
-  margin-top:18px;
-  margin-bottom:14px;
+  margin-top:10px;
+  margin-bottom:10px;
 }
 .hero-mark::before,.hero-mark::after{
   content:'';
@@ -115,11 +115,11 @@ body::after{
 /* główny manifest */
 .hero-manifest{
   font-family:'Bebas Neue',sans-serif;
-  font-size:42px;
+  font-size:34px;
   letter-spacing:0.005em;
-  line-height:0.98;
+  line-height:1;
   color:var(--fg);
-  margin-bottom:6px;
+  margin-bottom:4px;
 }
 .hero-manifest .accent{
   background:linear-gradient(135deg,var(--accent) 20%,var(--accent2) 100%);
@@ -133,13 +133,13 @@ body::after{
   50%{background-position:100% 50%;}
 }
 .hero-manifest .small{
-  font-size:0.42em;
+  font-size:0.36em;
   letter-spacing:0.18em;
   text-transform:uppercase;
   color:var(--muted);
   font-family:'DM Mono',monospace;
   display:block;
-  margin-top:14px;
+  margin-top:8px;
   font-weight:400;
 }
 
@@ -147,8 +147,8 @@ body::after{
 .coach-portraits{
   display:flex;
   justify-content:center;
-  gap:18px;
-  margin:28px 0 22px 0;
+  gap:14px;
+  margin:0 0 14px 0;
   position:relative;
 }
 .portrait{
@@ -160,21 +160,21 @@ body::after{
   max-width:180px;
 }
 .portrait-frame{
-  width:108px;
-  height:108px;
+  width:84px;
+  height:84px;
   border-radius:50%;
   overflow:hidden;
   position:relative;
   background:linear-gradient(160deg,rgba(232,86,30,0.15),rgba(78,140,214,0.08));
   border:2px solid rgba(232,86,30,0.2);
-  margin-bottom:14px;
-  box-shadow:0 8px 32px rgba(232,86,30,0.18),0 0 0 4px rgba(232,86,30,0.04);
+  margin-bottom:10px;
+  box-shadow:0 6px 24px rgba(232,86,30,0.18),0 0 0 3px rgba(232,86,30,0.04);
   transition:all 0.4s cubic-bezier(0.16,1,0.3,1);
 }
 .portrait-frame:hover{
   transform:translateY(-3px) scale(1.03);
   border-color:rgba(232,86,30,0.45);
-  box-shadow:0 12px 40px rgba(232,86,30,0.32),0 0 0 6px rgba(232,86,30,0.06);
+  box-shadow:0 10px 32px rgba(232,86,30,0.32),0 0 0 5px rgba(232,86,30,0.06);
 }
 .portrait-frame img{
   width:100%;
@@ -182,38 +182,25 @@ body::after{
   object-fit:cover;
   display:block;
 }
-/* placeholder gdy brak zdjęcia */
-.portrait-frame.placeholder{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.portrait-frame.placeholder::after{
-  content:attr(data-initial);
-  font-family:'Bebas Neue',sans-serif;
-  font-size:48px;
-  color:var(--accent);
-  letter-spacing:0.05em;
-}
 .portrait-name{
   font-family:'Bebas Neue',sans-serif;
-  font-size:22px;
+  font-size:19px;
   letter-spacing:0.03em;
   color:var(--fg);
-  margin-bottom:3px;
+  margin-bottom:2px;
   line-height:1;
 }
 .portrait-role{
   font-family:'DM Mono',monospace;
-  font-size:9px;
-  letter-spacing:0.2em;
+  font-size:8.5px;
+  letter-spacing:0.18em;
   text-transform:uppercase;
   color:var(--accent);
-  margin-bottom:8px;
+  margin-bottom:6px;
 }
 .portrait-tagline{
-  font-size:12px;
-  line-height:1.5;
+  font-size:11.5px;
+  line-height:1.45;
   color:var(--fg2);
   font-style:italic;
   font-weight:300;
@@ -221,10 +208,10 @@ body::after{
 
 /* cytat / manifest tekstowy */
 .hero-quote{
-  font-size:15px;
-  line-height:1.65;
+  font-size:13.5px;
+  line-height:1.55;
   color:var(--fg2);
-  margin:24px 0 6px 0;
+  margin:18px 0 4px 0;
   padding:0 8px;
   font-weight:300;
   position:relative;
@@ -232,11 +219,11 @@ body::after{
 .hero-quote::before{
   content:'"';
   font-family:'Bebas Neue',sans-serif;
-  font-size:60px;
+  font-size:48px;
   color:rgba(232,86,30,0.18);
   position:absolute;
-  top:-22px;
-  left:-4px;
+  top:-18px;
+  left:-2px;
   line-height:1;
 }
 .hero-quote strong{
@@ -250,53 +237,22 @@ body::after{
 }
 .hero-quote-attr{
   font-family:'DM Mono',monospace;
-  font-size:10px;
+  font-size:9.5px;
   letter-spacing:0.18em;
   text-transform:uppercase;
   color:var(--muted);
-  margin-top:14px;
+  margin-top:10px;
   display:block;
-}
-
-/* mini fakty - nie korpo tabela, tylko subtelnie */
-.hero-facts{
-  display:flex;
-  justify-content:center;
-  gap:24px;
-  margin:24px 0 8px 0;
-  flex-wrap:wrap;
-}
-.fact{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  min-width:64px;
-}
-.fact-num{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:26px;
-  line-height:1;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  letter-spacing:0.02em;
-  margin-bottom:4px;
-}
-.fact-label{
-  font-family:'DM Mono',monospace;
-  font-size:8px;
-  letter-spacing:0.2em;
-  text-transform:uppercase;
-  color:var(--muted);
 }
 
 /* CTA w hero */
 .hero-cta{
   display:inline-flex;
   align-items:center;
-  gap:10px;
-  margin-top:24px;
-  padding:13px 24px;
-  font-size:11px;
+  gap:8px;
+  margin-top:14px;
+  padding:11px 20px;
+  font-size:10.5px;
   letter-spacing:0.18em;
   text-transform:uppercase;
   font-family:'DM Mono',monospace;
@@ -304,7 +260,7 @@ body::after{
   text-decoration:none;
   background:rgba(232,86,30,0.06);
   border:1px solid rgba(232,86,30,0.28);
-  border-radius:13px;
+  border-radius:12px;
   transition:all 0.25s cubic-bezier(0.16,1,0.3,1);
   -webkit-tap-highlight-color:transparent;
   font-weight:500;
@@ -322,8 +278,8 @@ body::after{
 
 /* sekcyjny separator */
 .section-divider{
-  display:flex;align-items:center;gap:14px;
-  margin:0 0 22px 0;
+  display:flex;align-items:center;gap:12px;
+  margin:0 0 16px 0;
 }
 .section-divider::before,.section-divider::after{
   content:'';flex:1;height:1px;
@@ -337,19 +293,23 @@ body::after{
 
 /* mobilne dopasowania hero */
 @media (max-width:420px){
-  .hero-manifest{font-size:34px;}
-  .portrait-frame{width:90px;height:90px;}
-  .portrait-name{font-size:19px;}
-  .portrait-tagline{font-size:11px;}
-  .coach-portraits{gap:12px;}
-  .hero-facts{gap:18px;}
-  .fact-num{font-size:22px;}
+  .hero-manifest{font-size:28px;}
+  .portrait-frame{width:72px;height:72px;}
+  .portrait-name{font-size:17px;}
+  .portrait-tagline{font-size:10.5px;line-height:1.4;}
+  .portrait-role{font-size:8px;}
+  .coach-portraits{gap:10px;margin:14px 0 10px 0;}
+  .hero-mark{font-size:8.5px;margin-top:6px;margin-bottom:8px;}
+  .hero-quote{font-size:12.5px;margin:14px 0 4px;}
+  .hero-quote::before{font-size:38px;top:-14px;}
+  .hero-cta{padding:10px 18px;font-size:10px;margin-top:10px;}
+  .section-divider{margin-bottom:14px;}
 }
 
 /* ── LOGO ───────────────────────────────────────────────────────────── */
-.logo{text-align:center;margin-bottom:0;}
+.logo{text-align:center;margin-bottom:24px;}
 .logo-text{
-  font-family:'Bebas Neue',sans-serif;font-size:52px;
+  font-family:'Bebas Neue',sans-serif;font-size:42px;
   letter-spacing:0.05em;line-height:1;
   /* gradient text */
   background:linear-gradient(145deg,var(--fg) 30%,rgba(240,237,232,0.6) 100%);
@@ -368,8 +328,8 @@ body::after{
 .card{
   background:linear-gradient(160deg,rgba(18,15,24,0.97) 0%,rgba(10,9,16,0.98) 100%);
   border:1px solid rgba(255,255,255,0.09);
-  border-radius:24px;
-  padding:28px 24px;
+  border-radius:20px;
+  padding:22px 20px;
   box-shadow:var(--tile-shadow);
   position:relative;overflow:hidden;
 }
@@ -388,8 +348,8 @@ body::after{
 /* all children above pseudo-elements */
 .card > *{position:relative;z-index:1;}
 
-.card-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;margin-bottom:4px;}
-.card-sub{font-size:13px;color:var(--muted);margin-bottom:24px;font-weight:300;}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.03em;margin-bottom:4px;}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:18px;font-weight:300;}
 
 /* ── TABS ───────────────────────────────────────────────────────────── */
 .tabs{
@@ -552,14 +512,6 @@ body::before,body::after{contain:strict;}
 
   <!-- HERO: Manifest + portrety + emocja -->
   <div class="hero">
-    <div class="hero-mark">Twój zespół trenerski</div>
-
-    <h1 class="hero-manifest">
-      Bieganie to <span class="accent">droga</span>,<br>
-      nie tylko meta.
-      <span class="small">Pokażemy Ci, jak nią pójść</span>
-    </h1>
-
     <!-- Portrety Filipa i Kasi -->
     <div class="coach-portraits">
       <div class="portrait">
