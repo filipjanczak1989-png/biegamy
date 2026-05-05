@@ -275,32 +275,17 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 <!-- ═══════════════ END SCREEN ═══════════════ -->
 <div id="screen-end" class="screen hidden">
   <div class="end-card">
-    <div class="end-title" id="end-title">SESJA UKOŃCZONA</div>
-    <div class="end-mode-tag" id="end-mode-tag">🐢 SPOKOJNY</div>
+    <div class="end-title" id="end-title">KONIEC</div>
     <div id="new-record-banner" class="new-record" style="display:none;">🔥 NOWY REKORD!</div>
     <div class="end-score-big" id="end-score">0</div>
     <div class="end-score-lbl">Punktów</div>
+    <div class="end-sub" id="end-sub" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:14px;text-align:center;"></div>
 
     <div class="end-stats">
       <div class="end-stat"><div class="end-stat-val" id="end-distance">0</div><div class="end-stat-lbl">Dystans (m)</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="end-coins">0</div><div class="end-stat-lbl">Coiny 🪙</div></div>
       <div class="end-stat"><div class="end-stat-val" id="end-perfects">0</div><div class="end-stat-lbl">Perfect</div></div>
       <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max combo</div></div>
-    </div>
-
-    <!-- Mental metrics -->
-    <div class="mental-stats" id="mental-stats">
-      <div class="mental-title">🧠 Twoje metryki mentalne</div>
-      <div class="mental-row"><span class="ml">Średnia reakcja</span><span class="mv" id="ms-reaction">— ms</span></div>
-      <div class="mental-row"><span class="ml">Najdłuższy focus</span><span class="mv" id="ms-focus">— s</span></div>
-      <div class="mental-row" id="ms-extra-row" style="display:none;"><span class="ml" id="ms-extra-label">—</span><span class="mv" id="ms-extra">—</span></div>
-    </div>
-
-    <!-- Log to training prompt -->
-    <div class="log-prompt" id="log-prompt">
-      <div class="log-prompt-title">💪 Aktywacja mentalna ukończona</div>
-      <div class="log-prompt-desc">Dodaj jako warm-up w dzisiejszych logach treningowych?</div>
-      <button class="log-prompt-btn" id="log-btn" onclick="logAsTraining()">+ Dodaj jako warm-up mentalny</button>
-      <button class="log-prompt-btn" style="background:rgba(232,86,30,0.18);color:var(--accent);border:1px solid rgba(232,86,30,0.5);margin-top:6px;" onclick="goLogRealTraining()">→ Zaloguj rzeczywisty trening</button>
     </div>
 
     <div class="btn-row">
@@ -2707,9 +2692,9 @@ function render() {
       ctx.beginPath();
       ctx.ellipse(o.x + o.w / 2, GROUND_Y - 2 * dpr, o.w * 0.5, 4 * dpr, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Speed lines żeby pokazać że jadą z naprzeciwka
+      // Speed lines za pieszym (po prawej, bo idą w lewo)
       if (o.speedBonus > 2 * dpr) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
         ctx.lineWidth = 1.5 * dpr;
         for (let i = 0; i < 3; i++) {
           const lx = o.x + o.w + (10 + i * 8) * dpr;
@@ -2720,14 +2705,9 @@ function render() {
           ctx.stroke();
         }
       }
-      // Emoji (z odbiciem dla pieszych - patrzą w lewo bo idą do gracza)
-      ctx.translate(o.x + o.w / 2, GROUND_Y + bobOffset);
-      ctx.scale(-1, 1);
-      ctx.fillText(o.emoji, 0, 0);
+      // Emoji bez odbicia — emoji domyślnie patrzy w lewo, czyli idzie w lewo (przeciwnie do gracza)
+      ctx.fillText(o.emoji, o.x + o.w / 2, GROUND_Y + bobOffset);
       ctx.restore();
-      // Czerwone obramowanie strefy kolizji (subtelne)
-      // ctx.strokeStyle = 'rgba(224,80,80,0.2)';
-      // ctx.strokeRect(o.x, GROUND_Y - o.h, o.w, o.h);
       return;
     }
     let y1, h;
@@ -3200,12 +3180,12 @@ let _endGameCalled = false;  // 🆕 zapobiega podwójnemu wywołaniu
 
 async function endGame() {
   if (!game) return;
-  if (_endGameCalled) return;  // 🆕 już wywołane, ignoruj
+  if (_endGameCalled) return;
   _endGameCalled = true;
   game.running = false;
   game.over = true;
 
-  // 🆕 Natychmiastowy screen swap — przed jakąkolwiek logiką która może crashnąć
+  // Natychmiastowy screen swap
   try {
     const sg = document.getElementById('screen-game');
     const se = document.getElementById('screen-end');
@@ -3216,112 +3196,56 @@ async function endGame() {
   try {
     const M = game.config;
 
-    // Oblicz metryki mentalne
-    const reactionTimes = game.reactionTimes || [];
-    const avgReaction = reactionTimes.length 
-      ? Math.round(reactionTimes.reduce((s, x) => s + x, 0) / reactionTimes.length)
-      : null;
-    const focusDur = Math.floor(game.bestFocusDuration || 0);
-
     // Zapisz lokalne stats
     incStat('total_runs', 1);
     if (Math.floor(game.score) > getStat('best_score', 0)) setStat('best_score', Math.floor(game.score));
 
     // Tytuł i sub
     let title, sub;
-    if (M.id === 'endless') {
-      const oldBest = getStat('best_score', 0);
-      if (Math.floor(game.score) >= oldBest && oldBest > 100) {
-        title = 'NOWY REKORD! 🏆';
-        sub = 'Świetnie! Pobiłeś swój wynik';
-      } else {
-        title = 'KONIEC';
-        sub = oldBest > 0 ? 'Twój rekord: ' + oldBest + ' · próbuj dalej!' : 'Spróbuj jeszcze raz';
-      }
-    } else if (game.finished) {
-      title = M.id === 'calm' ? 'CIERPLIWOŚĆ ✓' : M.id === 'intervals' ? '4/4 CYKLI! 🔥' : 'UKOŃCZONO';
-      sub = 'Trening mentalny zaliczony';
+    const oldBest = getStat('best_score', 0);
+    if (Math.floor(game.score) >= oldBest && oldBest > 100) {
+      title = 'NOWY REKORD! 🏆';
+      sub = 'Świetnie! Pobiłeś swój wynik';
     } else {
       title = 'KONIEC';
-      sub = 'Spróbuj jeszcze raz';
+      sub = oldBest > 0 ? 'Twój rekord: ' + oldBest : 'Spróbuj jeszcze raz';
     }
     
     const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
-    const setClass = (id, cls) => { const el = document.getElementById(id); if (el) el.className = cls; };
     
     setText('end-title', title);
     setText('end-sub', sub);
-    setText('end-mode-tag', M.emoji + ' ' + M.name);
     setText('end-score', Math.floor(game.score));
     setText('end-distance', Math.floor(game.distance));
+    setText('end-coins', game.coins || 0);
     setText('end-perfects', game.perfects);
     setText('end-multi', 'x' + game.maxMulti.toFixed(1));
-    setText('ms-reaction', avgReaction ? avgReaction + ' ms' : '—');
-    setClass('ms-reaction', 'mv ' + (avgReaction && avgReaction < 400 ? 'good' : avgReaction && avgReaction > 600 ? 'improve' : ''));
-    setText('ms-focus', focusDur + ' s');
-    setClass('ms-focus', 'mv ' + (focusDur > 30 ? 'good' : ''));
 
-    const extraRow = document.getElementById('ms-extra-row');
-    if (extraRow) {
-      if (M.id === 'endless') {
-        extraRow.style.display = 'flex';
-        setText('ms-extra-label', 'Coiny zebrane');
-        setText('ms-extra', (game.coins || 0) + ' 🪙');
-        setClass('ms-extra', 'mv');
-      } else {
-        extraRow.style.display = 'none';
-      }
-    }
-
-    _lastEndedGameData = {
-      mode: M.id,
-      modeName: M.name,
-      duration: Math.floor(game.elapsed),
-      score: Math.floor(game.score),
-      distance: Math.floor(game.distance),
-      avgReaction,
-      focusDur,
-      perfects: game.perfects,
-      finished: game.finished
-    };
-
-    const isNew = Math.floor(game.score) >= getStat('best_score', 1);
+    const isNew = Math.floor(game.score) >= getStat('best_score', 1) && game.score > 100;
     const recordEl = document.getElementById('new-record-banner');
-    if (recordEl) recordEl.style.display = isNew && game.score > 100 ? 'block' : 'none';
+    if (recordEl) recordEl.style.display = isNew ? 'block' : 'none';
 
-    const logBtn = document.getElementById('log-btn');
-    if (logBtn) {
-      logBtn.disabled = false;
-      logBtn.textContent = '+ Dodaj jako warm-up mentalny';
-    }
-
-    // Save score do bazy w tle (nie blokuje UI)
-    _saveScoreInBackground(M, avgReaction, focusDur);
+    // Save score do bazy w tle
+    _saveScoreInBackground(M);
   } catch (e) {
     console.error('endGame error:', e);
-    // Nawet jeśli logika UI crashuje, screen-end jest już widoczny powyżej
   }
 }
 
 // Tła task: zapis score do bazy
-async function _saveScoreInBackground(M, avgReaction, focusDur) {
+async function _saveScoreInBackground(M) {
   if (!_athleteId || !game || game.score <= 0) return;
   try {
-    const { data: inserted } = await _sb.from('game_scores').insert({
+    await _sb.from('game_scores').insert({
       athlete_id: _athleteId,
       score: Math.floor(game.score),
       distance: Math.floor(game.distance),
       coins: game.coins,
       max_multi: game.maxMulti,
       mode: M.id,
-      reaction_avg_ms: avgReaction,
-      focus_duration_sec: focusDur,
       perfect_count: game.perfects,
-      interval_completed: game.intervalCycle,
-      consistency_score: M.id === 'tempo' ? game.tempoConsistency : null,
       finished: game.finished
-    }).select('id').single();
-    _lastEndedScoreId = inserted?.id || null;
+    });
   } catch (e) {
     console.warn('Score save failed:', e);
   }
