@@ -345,14 +345,14 @@ const MODES = {
     color: '#e8561e',
     trains: 'endless run',
     description: 'Biegnij jak najdalej. 3 życia. Im dalej, tym szybciej.',
-    duration: 99999,         // brak limitu czasu — gra do utraty żyć
+    duration: 99999,
     targetType: 'distance',
     target: 1000,
-    speedScale: 1.0,
-    speedRamp: 0.6,          // umiarkowany wzrost prędkości
-    obstacleFreq: 1.0,
-    coinFreq: 1.0,
-    powerups: true,          // power-upy włączone
+    speedScale: 0.85,        // wolniejszy start (było 1.0)
+    speedRamp: 0.5,          // wolniejszy wzrost (było 0.6)
+    obstacleFreq: 0.85,      // ciaśniej, ale przeszkód więcej (było 1.0 = mniej, niżej = więcej)
+    coinFreq: 0.7,           // więcej coinów (niżej = częściej)
+    powerups: true,
     lives: 3,
     intervalCycles: 0,
     targetTraining: null
@@ -1039,6 +1039,21 @@ function activatePowerup(type) {
   if (!def) return;
   game.activePU[type] = def.dur;
   showToast(def.icon + ' ' + def.msg);
+  // 🆕 Lepszy feel — flash + particles + sound + vibration
+  const colors = { magnet: '#ffb84d', shield: '#5090e0', slowmo: '#3db870', boost: '#e8561e' };
+  const c = colors[type] || '#ffd966';
+  flashScreen('rgba(' + (type === 'shield' ? '80,144,224' : type === 'slowmo' ? '61,184,112' : type === 'boost' ? '232,86,30' : '255,184,77') + ',0.2)', 14);
+  // Aura burst
+  for (let i = 0; i < 16; i++) {
+    const angle = (i / 16) * Math.PI * 2;
+    spawnParticles(
+      game.px + Math.cos(angle) * 25 * dpr,
+      game.py - 30 * dpr + Math.sin(angle) * 25 * dpr,
+      c, 1
+    );
+  }
+  playCombo(2);
+  if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
 }
 
 function updatePowerupHUD() {
@@ -1600,7 +1615,7 @@ function update() {
       game.nextPowerupIn--;
       if (game.nextPowerupIn <= 0) {
         spawnPowerup();
-        game.nextPowerupIn = 700 + Math.random() * 500;
+        game.nextPowerupIn = 400 + Math.random() * 300;  // częściej (było 700-1200)
       }
     }
     // Update aktywne power-upy
@@ -1647,28 +1662,26 @@ function update() {
         if (!game.onGround) spawnParticles(game.px, GROUND_Y, '#888', 6);
         game.onGround = true;
         
-        // 🆕 SALTO LANDING CHECK
+        // 🆕 SALTO LANDING CHECK — bardziej hojne
         if (wasFlipping) {
           game.flipping = false;
-          if (finalRot >= 320 && finalRot <= 400) {
-            // PERFECT FLIP — celebracja
+          // Okno PERFECT: 270-450° (bardzo szerokie)
+          // Poniżej 270° = miss (failed), powyżej 450° = przekręcone (też failed ale rzadkie)
+          if (finalRot >= 270) {
+            // FLIP WYKONANY — celebracja
             game.perfectStreak += 3;
             updateComboMultiplier();
             const bonus = Math.floor(50 * game.multi);
             game.score += bonus;
-            spawnPopup(game.px, game.py - 100 * dpr, 'PERFECT FLIP! +' + bonus, '#ffd966');
+            spawnPopup(game.px, game.py - 100 * dpr, 'FLIP! +' + bonus, '#ffd966');
             spawnParticles(game.px, game.py - 30 * dpr, '#ffd966', 20);
             flashScreen('rgba(255,217,102,0.18)', 12);
             playPerfect();
             playCombo(3);
             if (navigator.vibrate) navigator.vibrate([20, 30, 20, 30, 50]);
           } else {
-            // FAILED FLIP — krótki stun (200ms)
-            game.flipFailStun = 12;
-            spawnPopup(game.px, game.py - 60 * dpr, 'FAIL!', '#e05050');
-            spawnParticles(game.px, game.py - 20 * dpr, '#e05050', 8);
-            shakeAmount = 8 * dpr;
-            playMiss();
+            // Za wcześnie wylądował (rotacja < 270°) — bez kary, tylko bez bonusa
+            spawnPopup(game.px, game.py - 60 * dpr, '...', '#888');
           }
           game.flipRotation = 0;
         }
@@ -1676,17 +1689,23 @@ function update() {
     }
   }
   
-  // 🆕 Update flip rotation (~360° w 400ms = ~6° per klatka @60fps)
+  // 🆕 Update flip rotation — DUŻO szybsze (15° per klatka = 900°/s)
+  // To znaczy że pełen 360° robi się w ~24 klatek = ~400ms
+  // Skok trwa ~600-800ms więc zawsze starczy czasu
   if (game.flipping) {
-    game.flipRotation += 6.5;
+    game.flipRotation += 15;
+    // Auto-complete: jeśli rotacja >= 360 i jeszcze leci w powietrzu, zatrzymaj
+    if (game.flipRotation >= 360 && game.vy > 0) {
+      // Postać schodzi w dół z pełnym flipem — można zostawić rotację na 360 do lądowania
+      game.flipRotation = 360;
+    }
     if (game.flipRotation > 720) {
-      // Bezpiecznik — anuluj flip jeśli przekroczył 2 obroty (powinno wylądować wcześniej)
       game.flipping = false;
       game.flipRotation = 0;
     }
   }
   
-  // Stun po failed flip — spowolnij
+  // Stun po failed flip — usunięty (był frustrujący)
   if (game.flipFailStun > 0) {
     game.flipFailStun--;
   }
@@ -1716,33 +1735,31 @@ function update() {
     game.nextCoinIn = (50 + Math.random() * 80) / (M.coinFreq || 1);
   }
 
-  // 🍌💧 HAZARDS (banany, kałuże) — od 15s
-  // 🍌💧 HAZARDS (banany, kałuże) — od 15s, NIE w tempo
-  if (game.elapsed > 15 && M.id !== 'tempo') {
+  // 🍌💧 HAZARDS (banany, kałuże) — od 8s (było 15s)
+  if (game.elapsed > 8 && M.id !== 'tempo') {
     game.nextHazardIn--;
     if (game.nextHazardIn <= 0) {
-      // Losowo: banan vs kałuża
       if (Math.random() < 0.6) spawnBanana();
       else spawnPuddle();
-      game.nextHazardIn = 200 + Math.random() * 200;  // co 3-7s
+      game.nextHazardIn = 150 + Math.random() * 150;  // co 2.5-5s (było 3-7s)
     }
   }
 
-  // 🦅 PTAKI — od 30s, NIE w tempo
-  if (game.elapsed > 30 && M.id !== 'tempo') {
+  // 🦅 PTAKI — od 18s (było 30s)
+  if (game.elapsed > 18 && M.id !== 'tempo') {
     game.nextBirdIn--;
     if (game.nextBirdIn <= 0) {
       spawnBird();
-      game.nextBirdIn = 360 + Math.random() * 240;  // co 6-10s
+      game.nextBirdIn = 280 + Math.random() * 200;  // co 4.5-8s (było 6-10s)
     }
   }
 
-  // 💨 WIATR — od 45s, NIE w tempo
-  if (game.elapsed > 45 && M.id !== 'tempo') {
+  // 💨 WIATR — od 30s (było 45s)
+  if (game.elapsed > 30 && M.id !== 'tempo') {
     game.nextWindIn--;
     if (game.nextWindIn <= 0) {
       spawnWindZone();
-      game.nextWindIn = 600 + Math.random() * 400;  // co 10-17s
+      game.nextWindIn = 480 + Math.random() * 300;  // co 8-13s (było 10-17s)
     }
   }
 
@@ -1880,7 +1897,7 @@ function update() {
         // Near miss dla moving: minimalna odległość pion
         vDist = Math.min(Math.abs(py2 - oy1), Math.abs(py1 - oy2));
       }
-      if (vDist > 0 && vDist < 25 * dpr && game.invuln === 0) {
+      if (vDist > 0 && vDist < 45 * dpr && game.invuln === 0) {
         o.nearMissed = true;
         // 🆕 NEAR MISS daje combo +2 (większe ryzyko = większa nagroda)
         game.perfectStreak += 2;
@@ -1903,7 +1920,7 @@ function update() {
         const playerBot = py2;
         const obstacleTop = GROUND_Y - o.h;
         const diff = obstacleTop - playerBot;
-        if (diff > -5 * dpr && diff < 15 * dpr) {
+        if (diff > -10 * dpr && diff < 30 * dpr) {
           game.perfects++;
           // 🆕 PERFECT JUMP daje combo +1
           game.perfectStreak++;
@@ -2167,10 +2184,23 @@ function updateComboMultiplier() {
     }
     // Specjalny efekt przy wskoku do nowego tier
     if (c === 3 || c === 5 || c === 10) {
-      flashScreen('rgba(232,86,30,0.15)', 10);
+      const tierColor = c === 3 ? '#ffd966' : c === 5 ? '#ff7a45' : '#ff3a45';
+      const tierLabel = c === 3 ? 'COMBO x1.5!' : c === 5 ? '🔥 COMBO x2!' : '🔥🔥 COMBO x3!';
+      flashScreen('rgba(232,86,30,0.25)', 18);
       playCombo(c / 3);
-      const tierName = c === 3 ? 'COMBO x1.5' : c === 5 ? 'COMBO x2' : 'COMBO x3 🔥';
-      spawnPopup(game.px, game.py - 130 * dpr, tierName, '#ff7a45');
+      // Spawn dużych particles dookoła gracza
+      for (let i = 0; i < 25; i++) {
+        const angle = (i / 25) * Math.PI * 2;
+        spawnParticles(
+          game.px + Math.cos(angle) * 30 * dpr,
+          game.py - 30 * dpr + Math.sin(angle) * 30 * dpr,
+          tierColor, 1
+        );
+      }
+      // Big popup w centrum ekranu (nie nad graczem)
+      spawnPopup(W * 0.5, H * 0.4, tierLabel, tierColor);
+      shakeAmount = 10 * dpr;
+      if (navigator.vibrate) navigator.vibrate([40, 40, 60]);
     }
   }
 }
@@ -2406,6 +2436,66 @@ function render() {
   groundGrad.addColorStop(1, 'rgba(' + glowColor + ',0)');
   ctx.fillStyle = groundGrad;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+
+  // 🆕 Ground pattern — przewijające się linie wzmacniają poczucie szybkości
+  if (M.id === 'endless') {
+    ctx.strokeStyle = 'rgba(' + glowColor + ',0.15)';
+    ctx.lineWidth = 1 * dpr;
+    const lineSpacing = 60 * dpr;
+    const offset = (game.bgFar * 1.5) % lineSpacing;
+    for (let i = 0; i < W / lineSpacing + 2; i++) {
+      const x = (i * lineSpacing - offset);
+      ctx.beginPath();
+      ctx.moveTo(x, GROUND_Y + 5 * dpr);
+      ctx.lineTo(x - 30 * dpr, H);
+      ctx.stroke();
+    }
+  }
+
+  // 🆕 Speed lines — gdy gracz jest szybko (boost lub po dłuższym czasie)
+  if (M.id === 'endless' && (game.activePU?.boost > 0 || game.speed > 8 * dpr)) {
+    const intensity = game.activePU?.boost > 0 ? 1.0 : Math.min(1.0, (game.speed / dpr - 8) / 6);
+    ctx.strokeStyle = 'rgba(255,255,255,' + (0.15 * intensity) + ')';
+    ctx.lineWidth = 1.5 * dpr;
+    for (let i = 0; i < 8; i++) {
+      const seed = (i * 271 + game.t * 5) % 1000;
+      const y = (seed / 1000) * GROUND_Y * 0.85;
+      const len = 30 + (seed % 40);
+      const x = (W - (game.t * 12 + seed) % (W + 200)) * dpr / dpr;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - len * dpr, y);
+      ctx.stroke();
+    }
+  }
+
+  // 🆕 Dust trail za biegaczem (gdy biegnie szybko, na ziemi)
+  if (M.id === 'endless' && game.onGround && game.speed > 5 * dpr) {
+    if (!game.dustParticles) game.dustParticles = [];
+    if (game.t % 4 === 0) {
+      game.dustParticles.push({
+        x: game.px - 18 * dpr,
+        y: GROUND_Y - 2 * dpr,
+        vx: -2 * dpr,
+        vy: -0.5 * dpr,
+        life: 25,
+        size: 3 * dpr
+      });
+    }
+    // Render + update
+    for (const d of game.dustParticles) {
+      d.x += d.vx;
+      d.y += d.vy;
+      d.vy += 0.05 * dpr;
+      d.life--;
+      const a = d.life / 25 * 0.4;
+      ctx.fillStyle = 'rgba(180,160,140,' + a + ')';
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    game.dustParticles = game.dustParticles.filter(d => d.life > 0);
+  }
 
   // Obstacles
   game.obstacles.forEach(o => {
@@ -2785,6 +2875,23 @@ function render() {
   }
   // Player — emoji biegacza domyślnie patrzy w lewo, odbijamy żeby biegł w prawo
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
+  
+  // 🆕 Combo aura — pulsuje wokół gracza, kolor zależy od tier
+  if (game.perfectStreak >= 3) {
+    const c = game.perfectStreak;
+    const auraColor = c >= 10 ? 'rgba(255,58,69,' : c >= 5 ? 'rgba(255,122,69,' : 'rgba(255,217,102,';
+    const pulse = (Math.sin(game.t * 0.3) + 1) / 2;
+    const auraR = (40 + pulse * 15) * dpr;
+    const grad = ctx.createRadialGradient(game.px, game.py - 20 * dpr, 0, game.px, game.py - 20 * dpr, auraR);
+    grad.addColorStop(0, auraColor + (0.3 + pulse * 0.2) + ')');
+    grad.addColorStop(0.6, auraColor + '0.1)');
+    grad.addColorStop(1, auraColor + '0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(game.px, game.py - 20 * dpr, auraR, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
   if (!blink) {
     ctx.save();
     if (game.dashing > 0) {
@@ -2794,6 +2901,10 @@ function render() {
       // Slowed effect — cyan glow + lekkie kołysanie
       ctx.shadowColor = '#5090e0';
       ctx.shadowBlur = 15 * dpr;
+    } else if (game.flipping) {
+      // Salto glow
+      ctx.shadowColor = '#ffd966';
+      ctx.shadowBlur = 20 * dpr;
     }
     const playerEmoji = game.sliding > 0 ? '🤸' : (game.flipping ? '🤸' : '🏃');
     ctx.font = (game.sliding > 0 ? 36 : 42) * dpr + 'px serif';
