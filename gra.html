@@ -139,6 +139,64 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
 #screen-game{padding:0;}
 canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;touch-action:none;}
 
+/* 🆕 Rotate prompt overlay - pokazuje gdy telefon w portret podczas gry */
+#rotate-prompt{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+  background:linear-gradient(135deg,#0a0a14 0%,#15121e 100%);
+  display:none;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:40px 20px;
+  text-align:center;
+  color:#fff;
+}
+#rotate-prompt.visible{display:flex;}
+#rotate-prompt .icon{
+  font-size:80px;
+  margin-bottom:24px;
+  animation:rotateHint 2s ease-in-out infinite;
+}
+@keyframes rotateHint{
+  0%,100%{transform:rotate(0deg);}
+  50%{transform:rotate(90deg);}
+}
+#rotate-prompt h2{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:32px;
+  letter-spacing:0.06em;
+  margin:0 0 12px;
+  color:#e8561e;
+}
+#rotate-prompt p{
+  font-family:'Inter',sans-serif;
+  font-size:15px;
+  color:#aaa;
+  margin:0 0 24px;
+  max-width:300px;
+  line-height:1.5;
+}
+#rotate-prompt button{
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  color:#fff;
+  padding:10px 20px;
+  font-size:13px;
+  border-radius:20px;
+  cursor:pointer;
+  font-family:'Inter',sans-serif;
+}
+
+/* Show only when in portrait + game screen visible */
+@media (orientation: portrait){
+  #screen-game:not(.hidden) ~ #rotate-prompt{display:flex;}
+}
+
+/* User skipped rotate prompt - hide it permanently this session */
+#rotate-prompt.skip-rotate{display:none !important;}
+
 .hud{position:fixed;top:0;left:0;right:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;z-index:10;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px;}
 .hud-right{align-items:flex-end;}
@@ -153,6 +211,21 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .hud-distance{font-family:'DM Mono',monospace;font-size:13px;color:var(--fg);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:500;}
 .hud-speed{font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
 .hud-lives{font-family:'DM Mono',monospace;font-size:14px;}
+
+/* 🆕 Landscape — mniejszy HUD, kompaktowy układ */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud{padding:max(8px,env(safe-area-inset-top,8px)) 12px 0;}
+  .hud-score{font-size:28px;}
+  .hud-multi{font-size:13px;}
+  .hud-combo{font-size:20px;}
+  .hud-distance{font-size:11px;}
+  .hud-speed{font-size:10px;}
+  .hud-lives{font-size:12px;}
+  .hud-left,.hud-right{gap:3px;}
+  .dash-meter{padding:6px 12px;font-size:9px;bottom:max(10px,env(safe-area-inset-bottom,10px));}
+  .missions-hud{top:max(60px,calc(env(safe-area-inset-top,0px) + 60px));}
+  .powerup-bar{top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));}
+}
 
 /* Mode-specific UI */
 .mode-target{position:fixed;top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;}
@@ -366,6 +439,14 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- 🆕 Rotate prompt - pokazuje gdy telefon w portret a gra trwa -->
+<div id="rotate-prompt">
+  <div class="icon">📱</div>
+  <h2>Obróć telefon</h2>
+  <p>Gra najlepiej wygląda w trybie poziomym. Obróć telefon żeby kontynuować.</p>
+  <button onclick="document.getElementById('rotate-prompt').classList.add('skip-rotate');">Graj w pionie i tak</button>
+</div>
 
 <script>
 'use strict';
@@ -830,6 +911,10 @@ function resize() {
   GROUND_Y = H - H * 0.18;
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => {
+  // 🆕 Mała opóźnienie żeby przeglądarka zdążyła zaktualizować innerWidth/Height
+  setTimeout(resize, 100);
+});
 resize();
 
 let game = null;
@@ -6653,6 +6738,15 @@ function realStart(mode) {
   game.focusStartT = 0;
   _endGameCalled = false;
   
+  // 🆕 Próba wymuszenia landscape orientation (Android Chrome wspiera, iOS Safari nie)
+  try {
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(() => {
+        // Cicho - jeśli się nie udało (np. iOS Safari), overlay pokaże prompt
+      });
+    }
+  } catch(e) {}
+  
   // 🆕 Start chillout background music
   startMusic();
   
@@ -6695,6 +6789,13 @@ async function endGame() {
   
   // 🆕 Stop background music
   stopMusic();
+  
+  // 🆕 Odblokuj orientację po zakończeniu gry
+  try {
+    if (screen.orientation && screen.orientation.unlock) {
+      screen.orientation.unlock();
+    }
+  } catch(e) {}
 
   // Natychmiastowy screen swap
   try {
