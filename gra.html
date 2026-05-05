@@ -663,6 +663,12 @@ function newGame(mode) {
     sliding: 0,
     dashing: 0,
     dashLeft: _bonuses.dashCount,
+    
+    // 🆕 SALTO state
+    flipping: false,
+    flipRotation: 0,           // 0..360+
+    flipStartT: 0,
+    flipFailStun: 0,           // klatki stunu po failed flip
 
     // Spawn
     nextObstacleIn: 90 * (M.obstacleFreq || 1),
@@ -789,11 +795,19 @@ function onTapDown(e) {
     game.onGround = false;
     game.canDoubleJump = true;
     game.jumpHold = 1;
+    game.flipping = false;       // reset rotation state
+    game.flipRotation = 0;
     recordReaction();
   } else if (game.canDoubleJump) {
-    game.vy = -13 * dpr;
+    // 🆕 SALTO zamiast double jump
     game.canDoubleJump = false;
-    spawnParticles(game.px, game.py, '#5090e0', 8);
+    game.flipping = true;
+    game.flipRotation = 0;
+    game.flipStartT = game.t;
+    game.vy = -10 * dpr;          // mały dodatkowy hop dla efektu
+    spawnParticles(game.px, game.py, '#ffb84d', 12);
+    spawnPopup(game.px, game.py - 60 * dpr, 'SALTO!', '#ffb84d');
+    playTap();
   }
 }
 function onTapUp() {
@@ -1628,10 +1642,53 @@ function update() {
       if (game.py >= GROUND_Y) {
         game.py = GROUND_Y;
         game.vy = 0;
+        const wasFlipping = game.flipping;
+        const finalRot = game.flipRotation;
         if (!game.onGround) spawnParticles(game.px, GROUND_Y, '#888', 6);
         game.onGround = true;
+        
+        // 🆕 SALTO LANDING CHECK
+        if (wasFlipping) {
+          game.flipping = false;
+          if (finalRot >= 320 && finalRot <= 400) {
+            // PERFECT FLIP — celebracja
+            game.perfectStreak += 3;
+            updateComboMultiplier();
+            const bonus = Math.floor(50 * game.multi);
+            game.score += bonus;
+            spawnPopup(game.px, game.py - 100 * dpr, 'PERFECT FLIP! +' + bonus, '#ffd966');
+            spawnParticles(game.px, game.py - 30 * dpr, '#ffd966', 20);
+            flashScreen('rgba(255,217,102,0.18)', 12);
+            playPerfect();
+            playCombo(3);
+            if (navigator.vibrate) navigator.vibrate([20, 30, 20, 30, 50]);
+          } else {
+            // FAILED FLIP — krótki stun (200ms)
+            game.flipFailStun = 12;
+            spawnPopup(game.px, game.py - 60 * dpr, 'FAIL!', '#e05050');
+            spawnParticles(game.px, game.py - 20 * dpr, '#e05050', 8);
+            shakeAmount = 8 * dpr;
+            playMiss();
+          }
+          game.flipRotation = 0;
+        }
       }
     }
+  }
+  
+  // 🆕 Update flip rotation (~360° w 400ms = ~6° per klatka @60fps)
+  if (game.flipping) {
+    game.flipRotation += 6.5;
+    if (game.flipRotation > 720) {
+      // Bezpiecznik — anuluj flip jeśli przekroczył 2 obroty (powinno wylądować wcześniej)
+      game.flipping = false;
+      game.flipRotation = 0;
+    }
+  }
+  
+  // Stun po failed flip — spowolnij
+  if (game.flipFailStun > 0) {
+    game.flipFailStun--;
   }
 
   if (game.invuln > 0) game.invuln--;
@@ -2738,13 +2795,17 @@ function render() {
       ctx.shadowColor = '#5090e0';
       ctx.shadowBlur = 15 * dpr;
     }
-    const playerEmoji = game.sliding > 0 ? '🤸' : '🏃';
+    const playerEmoji = game.sliding > 0 ? '🤸' : (game.flipping ? '🤸' : '🏃');
     ctx.font = (game.sliding > 0 ? 36 : 42) * dpr + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     // Odbicie horyzontalne — biegacz patrzy w prawo (kierunek ruchu)
     ctx.translate(game.px, game.py + 4 * dpr);
     ctx.scale(-1, 1);
+    // 🆕 Rotacja podczas saltо
+    if (game.flipping) {
+      ctx.rotate(game.flipRotation * Math.PI / 180);
+    }
     ctx.fillText(playerEmoji, 0, 0);
     ctx.restore();
   }
@@ -2782,8 +2843,8 @@ function loop(t) {
 function startGame(mode) {
   _currentMode = mode;
   _lastPlayedMode = mode;
-  // Wersja v2 — nowe przeszkody, pokazujemy tutorial ponownie
-  const seenKey = 'biegamy_game_tutorial_v2_' + mode;
+  // Wersja v3 — salto + combo system
+  const seenKey = 'biegamy_game_tutorial_v3_' + mode;
   if (!localStorage.getItem(seenKey)) {
     showTutorial(mode);
     localStorage.setItem(seenKey, '1');
@@ -2805,10 +2866,11 @@ function showTutorial(mode) {
   const rows = [];
   rows.push('<div class="tut-row"><div class="tut-icon">📋</div><div class="tut-text">' + M.description + '</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🤸</div><div class="tut-text"><b>Tap w powietrzu</b> — SALTO! Wyląduj 360° = +3 combo + bonus</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik</b> — dash (przebij przeszkodę)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik szybko</b> — dash (przebij przeszkodę)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>PERFECT JUMP</b> = +1 combo · <b>NEAR MISS</b> = +2 combo</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Zbieraj coiny</b> — punkty + sklep (wkrótce)</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">🪄</div><div class="tut-text"><b>Power-upy:</b> 🧲 magnet · 🛡 shield · 🐢 slowmo · ⚡ boost</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">❤❤❤</div><div class="tut-text"><b>3 życia</b> — pobij swój rekord!</div></div>');
 
   document.getElementById('tut-body').innerHTML = rows.join('');
@@ -2853,19 +2915,19 @@ async function endGame() {
 
   // Zapisz lokalne stats
   incStat('total_runs', 1);
-  if (game.score > getStat('best_score', 0)) setStat('best_score', game.score);
+  if (Math.floor(game.score) > getStat('best_score', 0)) setStat('best_score', Math.floor(game.score));
 
   // Tytuł i sub
   let title, sub;
   if (M.id === 'endless') {
-    // Endless — zawsze "KONIEC" + porównanie z rekordem
+    // Endless — porównanie z rekordem (best_score już zaktualizowany powyżej)
     const oldBest = getStat('best_score', 0);
-    if (game.score > oldBest) {
+    if (Math.floor(game.score) >= oldBest && oldBest > 100) {
       title = 'NOWY REKORD! 🏆';
-      sub = 'Pobiłeś swój rekord o ' + (game.score - oldBest) + ' pkt';
+      sub = 'Świetnie! Pobiłeś swój wynik';
     } else {
       title = 'KONIEC';
-      sub = 'Rekord: ' + oldBest + ' · próbuj dalej!';
+      sub = oldBest > 0 ? 'Twój rekord: ' + oldBest + ' · próbuj dalej!' : 'Spróbuj jeszcze raz';
     }
   } else if (game.finished) {
     title = M.id === 'calm' ? 'CIERPLIWOŚĆ ✓' : M.id === 'intervals' ? '4/4 CYKLI! 🔥' : 'UKOŃCZONO';
@@ -2892,7 +2954,13 @@ async function endGame() {
 
   // Mode-specific extra metric
   const extraRow = document.getElementById('ms-extra-row');
-  if (M.id === 'intervals') {
+  if (M.id === 'endless') {
+    // Endless: pokazujemy dystans + zebrane coiny
+    extraRow.style.display = 'flex';
+    document.getElementById('ms-extra-label').textContent = 'Coiny zebrane';
+    document.getElementById('ms-extra').textContent = (game.coins || 0) + ' 🪙';
+    document.getElementById('ms-extra').className = 'mv';
+  } else if (M.id === 'intervals') {
     extraRow.style.display = 'flex';
     document.getElementById('ms-extra-label').textContent = 'Cykle ukończone';
     document.getElementById('ms-extra').textContent = game.intervalCycle + (game.finished ? ' / ' + M.intervalCycles : '');
@@ -2907,36 +2975,8 @@ async function endGame() {
     document.getElementById('ms-extra-label').textContent = 'Rytm (consistency)';
     document.getElementById('ms-extra').textContent = game.tempoConsistency + '% (' + game.tempoPerfectTaps + ' perfectów)';
     document.getElementById('ms-extra').className = 'mv ' + (game.tempoConsistency >= 80 ? 'good' : game.tempoConsistency >= 50 ? '' : 'improve');
-  } else if (M.id === 'longrun') {
-    extraRow.style.display = 'flex';
-    document.getElementById('ms-extra-label').textContent = 'Scena dotarł';
-    const sceneName = LONGRUN_SCENES[game.longrunScene] ? LONGRUN_SCENES[game.longrunScene].label : '?';
-    document.getElementById('ms-extra').textContent = sceneName + ' (' + (game.longrunScene + 1) + '/5)';
-    document.getElementById('ms-extra').className = 'mv ' + (game.longrunScene >= 4 ? 'good' : '');
   } else {
     extraRow.style.display = 'none';
-  }
-
-  // Save score do bazy
-  let scoreId = null;
-  if (_athleteId && game.score > 0) {
-    try {
-      const { data: inserted } = await _sb.from('game_scores').insert({
-        athlete_id: _athleteId,
-        score: Math.floor(game.score),
-        distance: Math.floor(game.distance),
-        coins: game.coins,
-        max_multi: game.maxMulti,
-        mode: M.id,
-        reaction_avg_ms: avgReaction,
-        focus_duration_sec: focusDur,
-        perfect_count: game.perfects,
-        interval_completed: game.intervalCycle,
-        consistency_score: M.id === 'tempo' ? game.tempoConsistency : null,
-        finished: game.finished
-      }).select('id').single();
-      scoreId = inserted?.id;
-    } catch (e) { console.warn('Score save:', e); }
   }
 
   // Save data dla "log to training" button
@@ -2951,20 +2991,49 @@ async function endGame() {
     perfects: game.perfects,
     finished: game.finished
   };
-  _lastEndedScoreId = scoreId;
 
   // New record?
-  const isNew = game.score > (getStat('best_score', 1) - 1);
-  document.getElementById('new-record-banner').style.display = isNew && game.score > 100 ? 'block' : 'none';
+  const isNew = Math.floor(game.score) >= getStat('best_score', 1);
+  const recordEl = document.getElementById('new-record-banner');
+  if (recordEl) recordEl.style.display = isNew && game.score > 100 ? 'block' : 'none';
 
   // Reset log button
-  document.getElementById('log-btn').disabled = false;
-  document.getElementById('log-btn').textContent = '+ Dodaj jako warm-up mentalny';
+  const logBtn = document.getElementById('log-btn');
+  if (logBtn) {
+    logBtn.disabled = false;
+    logBtn.textContent = '+ Dodaj jako warm-up mentalny';
+  }
 
-  setTimeout(() => {
-    document.getElementById('screen-game').classList.add('hidden');
-    document.getElementById('screen-end').classList.remove('hidden');
-  }, 400);
+  // 🆕 POKAZUJEMY end screen NATYCHMIAST (bez czekania na save score)
+  document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-end').classList.remove('hidden');
+
+  // Save score do bazy w tle (nie blokuje UI)
+  _saveScoreInBackground(M, avgReaction, focusDur);
+}
+
+// Tła task: zapis score do bazy
+async function _saveScoreInBackground(M, avgReaction, focusDur) {
+  if (!_athleteId || !game || game.score <= 0) return;
+  try {
+    const { data: inserted } = await _sb.from('game_scores').insert({
+      athlete_id: _athleteId,
+      score: Math.floor(game.score),
+      distance: Math.floor(game.distance),
+      coins: game.coins,
+      max_multi: game.maxMulti,
+      mode: M.id,
+      reaction_avg_ms: avgReaction,
+      focus_duration_sec: focusDur,
+      perfect_count: game.perfects,
+      interval_completed: game.intervalCycle,
+      consistency_score: M.id === 'tempo' ? game.tempoConsistency : null,
+      finished: game.finished
+    }).select('id').single();
+    _lastEndedScoreId = inserted?.id || null;
+  } catch (e) {
+    console.warn('Score save failed:', e);
+  }
 }
 
 // ═════════════════════════════════════════════════
