@@ -451,13 +451,23 @@ async function logoutSession() {
   showAlert('Wylogowano pomyślnie.', 'success');
 }
 
-function redirectUser(user) {
-  const role = user.user_metadata?.role || 'athlete';
-  if (role === 'coach' || role === 'trener') {
+async function redirectUser(user) {
+  // 1) Najpierw sprawdź user_metadata (szybko, dla rejestracji email/password)
+  const metaRole = user.user_metadata?.role;
+  if (metaRole === 'coach' || metaRole === 'trener') {
     window.location.href = 'trener.html';
-  } else {
-    window.location.href = 'zawodnik.html';
+    return;
   }
+  // 2) Brak roli w metadata (np. po Google OAuth) — sprawdź w tabeli coaches
+  // to chroni przed sytuacją gdzie trener loguje się Googlem i trafia na zawodnik.html
+  try {
+    const { data: coachRow } = await sb.from('coaches').select('id').eq('id', user.id).maybeSingle();
+    if (coachRow) {
+      window.location.href = 'trener.html';
+      return;
+    }
+  } catch(e) { /* fallback do zawodnika */ }
+  window.location.href = 'zawodnik.html';
 }
 
 // ── TAB SWITCH ────────────────────────────────────────────────────────────────
@@ -498,18 +508,22 @@ function setLoading(btnId, loading) {
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
+let _loggingIn = false;
 async function login() {
+  if (_loggingIn) return;
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
 
   if (!email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
 
   hideAlert();
+  _loggingIn = true;
   setLoading('btn-login', true);
 
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
   setLoading('btn-login', false);
+  _loggingIn = false;
 
   if (error) {
     const msgs = {
@@ -628,7 +642,7 @@ async function loginGoogle() {
   const { error } = await sb.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: window.location.origin + '/login.html'
+      redirectTo: window.location.origin + '/index.html'
     }
   });
   if (error) showAlert('Błąd logowania przez Google: ' + error.message);

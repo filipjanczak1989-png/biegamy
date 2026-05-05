@@ -802,7 +802,7 @@ body > *{position:relative;z-index:1;}
       <div onclick="toggleSoundSetting()" id="sound-menu-item" style="padding:10px 12px;font-size:12px;color:#f0ede8;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
         🔊 Dźwięki: wł.
       </div>
-      <a href="gra.html" style="padding:10px 12px;font-size:12px;color:#f0ede8;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">🎮 Biegaj i omijaj</a>
+      <a href="gra.html" style="padding:10px 12px;font-size:12px;color:#f0ede8;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">🎮 BiegaMy: Wyzwanie</a>
       <a href="o-nas.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📖 O nas</a>
       <a href="terms.html" style="padding:10px 12px;font-size:12px;color:#66636e;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;text-decoration:none;">📋 Regulamin</a>
       <div onclick="logout()" style="padding:10px 12px;font-size:12px;color:#e05050;cursor:pointer;border-radius:8px;font-family:DM Mono,monospace;display:flex;align-items:center;gap:8px;">
@@ -3425,7 +3425,6 @@ async function loadCoaches() {
   if (!coachesEl) return;
 
   const { data: coachList, error } = await _sb.from('coaches').select('id, full_name, specialization').order('full_name');
-  console.log('Coaches loaded:', coachList, error);
   if (loading) loading.style.display = 'none';
   coachesEl.style.display = 'block';
 
@@ -4983,7 +4982,6 @@ async function syncStrava() {
       { headers: { 'Authorization': `Bearer sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY` } }
     );
     const data = await res.json();
-    console.log('Sync result:', data);
 
     if (data.success) {
       toast(`Zsynchronizowano ${data.synced} biegów ze Stravy ✓`);
@@ -5754,8 +5752,6 @@ async function loadFollowing() {
     .select('following_id')
     .eq('follower_id', _athleteId);
 
-  console.log('follows rows:', followRows, fErr);
-
   if (!followRows || followRows.length === 0) {
     el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Nie obserwujesz jeszcze nikogo.</div>';
     return;
@@ -5833,7 +5829,6 @@ async function _doSearch(q) {
     .select('id,full_name,pb_marathon,goal,avatar_url,is_public')
     .ilike('full_name', '%' + q + '%')
     .limit(20);
-  console.log('Search:', q, data, error);
   const results = (data || []).filter(a => a.id !== _athleteId);
   if (!results.length) {
     el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + q + '"</div>';

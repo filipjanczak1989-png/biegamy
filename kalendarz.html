@@ -1712,7 +1712,7 @@ async function initRole() {
   if (_urlRoleFromUrl) return; // URL ma rolę — ufamy jej
   // Brak roli w URL — sprawdź w sesji
   const { data: { session } } = await _sbKal.auth.getSession();
-  if (!session) { window.location.href = 'login.html'; return; }
+  if (!session) { window.location.href = 'index.html'; return; }
   const role = session.user.user_metadata?.role || 'athlete';
   if (role === 'coach') {
     // Coach bez roli w URL — przekieruj z rolą

@@ -459,68 +459,17 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-const athletes=[
-  {id:1,name:'Marek K.',full:'Marek Kowalski',goal:'Maraton Warszawski',pb:'3:42',weekKm:64,active:true,badge:'nl',bt:'Nowy log',color:'#d4501a'},
-  {id:2,name:'Anna W.',full:'Anna Wisniewska',goal:'Polmaraton Poznan',pb:'1:56',weekKm:42,active:true,badge:'nl',bt:'Nowy log',color:'#5090e0'},
-  {id:3,name:'Piotr S.',full:'Piotr Szymanski',goal:'10 km sub 45 min',pb:'47:20',weekKm:38,active:true,badge:'pd',bt:'Bez planu',color:'#e8b840'},
-  {id:4,name:'Kasia B.',full:'Kasia Brzozowska',goal:'Pierwszy maraton',pb:'brak',weekKm:28,active:true,badge:null,color:'#9a6fe8'},
-  {id:5,name:'Tomek R.',full:'Tomek Rutkowski',goal:'Maraton sub 4h',pb:'4:12',weekKm:50,active:true,badge:null,color:'#3db870'},
-  {id:6,name:'Bartek J.',full:'Bartlomiej Jankowski',goal:'Polmaraton sub 1:45',pb:'1:49',weekKm:55,active:true,badge:'nl',bt:'Nowy log',color:'#e05050'},
-  {id:7,name:'Magda P.',full:'Magdalena Pawlak',goal:'5 km sub 25 min',pb:'26:30',weekKm:22,active:true,badge:null,color:'#5090e0'},
-  {id:8,name:'Ewa T.',full:'Ewa Tomaszewska',goal:'Regularnosc 4x/tydz',pb:'brak',weekKm:30,active:true,badge:null,color:'#d4501a'},
-  {id:9,name:'Ola M.',full:'Aleksandra Mroz',goal:'Bieg dobowy 200 km',pb:'2:18 HM',weekKm:0,active:false,badge:null,color:'#9a6fe8'},
-  {id:10,name:'Rafal N.',full:'Rafal Nowicki',goal:'Powrot po kontuzji',pb:'3:58',weekKm:15,active:false,badge:null,color:'#e8b840'},
-];
-const wmData=[
-  {n:'Pn',done:true,color:'#5090e0',km:10},
-  {n:'Wt',done:true,color:'#e8b840',km:10},
-  {n:'Sr',done:true,color:'#44424a',km:0},
-  {n:'Cz',done:false,color:'#d4501a',km:14,today:true},
-  {n:'Pt',done:false,color:'#5090e0',km:8},
-  {n:'Sb',done:false,color:'#9a6fe8',km:26},
-  {n:'Nd',done:false,color:'#44424a',km:0},
-];
-const sLogs=[
-  {type:'Interwaly',date:'02.04',det:'8 km - 44:50 - 5:36/km - 172bpm',feel:'good',cmt:'Czulem sie dobrze'},
-  {type:'Spokojny',date:'01.04',det:'10 km - 61:20 - 6:08/km - 143bpm',feel:'mid',cmt:'Nogi troche ciezkie'},
-  {type:'Wybieganie',date:'30.03',det:'22 km - 2:11:00 - 5:58/km - 147bpm',feel:'mid',cmt:'Po 18 km nogi protestowaly'},
-];
-let selAth=null,selType='Spokojny',selectedType='Spokojny';
+// ── STATE (mocki usunięte — dane ładowane z DB przez loadAthletes) ──
+let selType='Spokojny',selectedType='Spokojny';
 function init(){
   const h=new Date().getHours();
   document.getElementById('greet').textContent=h<12?'Dzien dobry,':h<18?'Czesc,':'Dobry wieczor,';
   document.getElementById('fd').value=(() => { const n=new Date(); return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0'); })();
   // Lista ładowana z DB przez loadAthletes() po auth
 }
-function renderAth(){
-  document.getElementById('ath-list').innerHTML=athletes.map((a,i)=>`
-    <div class="ath-card fi ${selAth&&selAth.id===a.id?'sel':''}" onclick="selA(${a.id})" style="animation-delay:${0.04+i*0.04}s">
-      <div class="ath-stripe" style="background:${a.color}"></div>
-      <div class="ath-av" style="border-color:${a.color};color:${a.color};border:1px solid ${a.color}">${a.name.split(' ').map(x=>x[0]).join('')}</div>
-      <div class="ath-info"><div class="ath-name">${a.name}</div><div class="ath-goal">${a.goal}</div></div>
-      <div class="ath-right">
-        <div class="ath-km">${a.weekKm}<span style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace"> km</span></div>
-        ${a.badge?`<div class="ath-badge ${a.badge}">${a.bt}</div>`:`<div class="ath-dot ${a.active?'':'off'}"></div>`}
-      </div>
-    </div>`).join('');
-}
-function selA(id){
-  selAth=athletes.find(a=>a.id===id);
-  renderAth();
-  const p=document.getElementById('panel');
-  document.getElementById('pav').textContent=selAth.name.split(' ').map(x=>x[0]).join('');
-  document.getElementById('pav').style.background=selAth.color;
-  document.getElementById('pname').textContent=selAth.full;
-  document.getElementById('pmeta').textContent='Cel: '+selAth.goal+' | PB: '+selAth.pb;
-  document.getElementById('msw').textContent=selAth.weekKm;
-  document.getElementById('mspb').textContent=selAth.pb;
-  renderWM();renderPLogs();
-  p.classList.add('open');
-  setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'start'}),50);
-}
 async function closePanel(){
   document.getElementById('panel').classList.remove('open');
-  selAth=null; window._selectedAthleteId=null;
+  window._selectedAthleteId=null;
   // Nie przeładowuj całej listy - używaj lokalnego stanu
   // Tylko odśwież renderowanie z aktualnym _dbAthletes (już zzerowanym)
   renderDbAthletes(_dbAthletes);
@@ -871,36 +820,8 @@ async function savePanelGoal() {
   showToast('Cel zapisany ✓');
   renderPanelGoals(goals);
 }
-function renderWM(){
-  document.getElementById('wmini').innerHTML=wmData.map(d=>`
-    <div class="wm ${d.today?'today':''} ${d.done?'done':''}">
-      <div class="wm-n">${d.n}</div>
-      <div class="wm-d" style="background:${d.done?'var(--green)':d.today?'var(--accent)':d.color};opacity:${d.done||d.today?1:0.35}"></div>
-      <div class="wm-k">${d.km>0?d.km:''}</div>
-    </div>`).join('');
-}
-function renderPLogs(){
-  const fe={good:'&#x1F60A;',mid:'&#x1F610;',bad:'&#x1F613;'};
-  const bc={good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
-  document.getElementById('lcon').innerHTML=sLogs.map(l=>`
-    <div class="plog" style="border-left:3px solid ${bc[l.feel]}">
-      <div class="pl-hdr"><div class="pl-type">${l.type}</div><div style="display:flex;gap:8px;align-items:center"><div class="pl-date">${l.date}</div><span style="font-size:16px">${fe[l.feel]}</span></div></div>
-      <div class="pl-det">${l.det}</div>
-      ${l.cmt?`<div class="pl-cmt">"${l.cmt}"</div>`:''}
-    </div>`).join('');
-}
 function selT(el){document.querySelectorAll('.tp').forEach(p=>p.classList.remove('on'));el.classList.add('on');selType=el.textContent.trim();selectedType=selType;}
-function saveTr(){
-  const dist=document.getElementById('fdist').value;
-  const date=document.getElementById('fd').value;
-  if(!date){showToast('Wybierz date');return;}
-  showToast('Zapisano: '+selType+(dist?' - '+dist+' km':''));
-}
-function saveSend(){
-  if(!selAth){showToast('Wybierz zawodnika');return;}
-  showToast('Plan wyslany do '+selAth.name+' ✓');
-  ['fdist','ftime','fpace','fhr','fdesc'].forEach(id=>document.getElementById(id).value='');
-}
+// saveTr() i saveSend() są zdefiniowane jako wrappery do _db wersji w sekcji "Override static functions"
 function calcP(){
   const ts=document.getElementById('ctime').value.trim();
   const dist=parseFloat(document.getElementById('cdist').value);
@@ -926,7 +847,7 @@ async function initAuth() {
   if (!session) {
     await new Promise(r => setTimeout(r, 800));
     const { data: { session: s2 } } = await _sb.auth.getSession();
-    if (!s2) { window.location.href = 'login.html'; return; }
+    if (!s2) { window.location.href = 'index.html'; return; }
     _coachId = s2.user.id;
     // Sprawdź rolę — tylko trener może tu wejść
     const role2 = s2.user.user_metadata?.role;
@@ -1357,7 +1278,7 @@ async function saveSend_db() {
 async function logout() {
   try { await _sb.auth.signOut(); } catch(e) {}
   localStorage.clear(); sessionStorage.clear();
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 function toggleMenu() {
