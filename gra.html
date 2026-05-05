@@ -1076,8 +1076,13 @@ function updatePowerupHUD() {
 // ═════════════════════════════════════════════════
 function spawnObstacle() {
   // Po 30s gry — szansa na ruszający się kwadrat
-  if (game.elapsed > 30 && Math.random() < 0.25) {
+  if (game.elapsed > 30 && Math.random() < 0.18) {
     spawnMovingSquare();
+    return;
+  }
+  // Po 12s gry — szansa na pieszego (rowerzysta/biegacz/babcia)
+  if (game.elapsed > 12 && Math.random() < 0.30) {
+    spawnPedestrian();
     return;
   }
   const types = ['low', 'high', 'gap'];
@@ -1090,6 +1095,52 @@ function spawnObstacle() {
     x: W + 50 * dpr,
     w: type === 'gap' ? (60 + Math.random() * 40) * dpr : 30 * dpr,
     h: type === 'high' ? 40 * dpr : 32 * dpr,
+    passed: false,
+    nearMissed: false,
+    appearedAt: performance.now(),
+    reactionLogged: false
+  });
+}
+
+// 🚴‍♂️🏃‍♀️👵 PIESZY — rowerzysta / biegacz / babcia z naprzeciwka
+function spawnPedestrian() {
+  const r = Math.random();
+  let kind, emoji, speedBonus, h;
+  if (r < 0.35) {
+    // Rowerzysta — szybki, niski, trzeba przeskoczyć
+    kind = 'cyclist';
+    emoji = '🚴';
+    speedBonus = 5 * dpr;       // jedzie z naprzeciwka, więc dodaje do speed
+    h = 40 * dpr;
+  } else if (r < 0.65) {
+    // Inny biegacz — średnia prędkość
+    kind = 'runner';
+    emoji = '🏃';
+    speedBonus = 2 * dpr;
+    h = 38 * dpr;
+  } else if (r < 0.85) {
+    // Babcia — wolna ale szeroka
+    kind = 'grandma';
+    emoji = '👵';
+    speedBonus = 0.5 * dpr;
+    h = 36 * dpr;
+  } else {
+    // Pies — bardzo szybki, niski
+    kind = 'dog';
+    emoji = '🐕';
+    speedBonus = 4 * dpr;
+    h = 28 * dpr;
+  }
+  game.obstacles.push({
+    id: game.t + '_ped_' + Math.random(),
+    type: 'pedestrian',
+    kind: kind,
+    emoji: emoji,
+    speedBonus: speedBonus,    // dodatkowa prędkość ruchu
+    x: W + 50 * dpr,
+    w: 36 * dpr,
+    h: h,
+    bobPhase: Math.random() * Math.PI * 2,
     passed: false,
     nearMissed: false,
     appearedAt: performance.now(),
@@ -1771,6 +1822,11 @@ function update() {
       o.phase += 0.05;
       o.y = o.centerY + Math.sin(o.phase) * o.amplitude;
     }
+    // 🆕 Pieszy — dodatkowa prędkość (z naprzeciwka), bobbing
+    if (o.type === 'pedestrian') {
+      o.x -= o.speedBonus;
+      o.bobPhase += 0.25;
+    }
   });
   game.obstacles = game.obstacles.filter(o => o.x + o.w > -50 * dpr);
 
@@ -1856,6 +1912,7 @@ function update() {
     let oy1, oy2, isHigh = false, isGap = false, isMoving = false;
     if (o.type === 'low') { oy1 = GROUND_Y - o.h; oy2 = GROUND_Y; }
     else if (o.type === 'high') { oy1 = GROUND_Y - 90 * dpr; oy2 = GROUND_Y - 90 * dpr + o.h; isHigh = true; }
+    else if (o.type === 'pedestrian') { oy1 = GROUND_Y - o.h; oy2 = GROUND_Y; }  // 🆕 jak low
     else if (o.type === 'moving') {
       // Ruszający się kwadrat — y dynamiczne
       oy1 = o.y - o.h / 2;
@@ -1893,6 +1950,7 @@ function update() {
       let vDist = 999;
       if (o.type === 'low') vDist = (GROUND_Y - o.h) - py2;
       else if (o.type === 'high') vDist = py1 - (GROUND_Y - 90 * dpr + o.h);
+      else if (o.type === 'pedestrian') vDist = (GROUND_Y - o.h) - py2;  // 🆕
       else if (o.type === 'moving') {
         // Near miss dla moving: minimalna odległość pion
         vDist = Math.min(Math.abs(py2 - oy1), Math.abs(py1 - oy2));
@@ -1916,7 +1974,7 @@ function update() {
       // 🆕 Zwykły passed (bez near miss/perfect) NIE daje combo — tylko mały score
       // Combo rośnie TYLKO za perfect jump (poniżej) lub near miss (powyżej)
       
-      if (o.type === 'low' && !isGap) {
+      if ((o.type === 'low' || o.type === 'pedestrian') && !isGap) {
         const playerBot = py2;
         const obstacleTop = GROUND_Y - o.h;
         const diff = obstacleTop - playerBot;
@@ -2373,24 +2431,117 @@ function render() {
   ctx.lineTo(W, GROUND_Y);
   ctx.fill();
 
-  // Buildings
-  ctx.fillStyle = 'rgba(20,15,30,0.85)';
-  for (let i = 0; i < 12; i++) {
-    const baseX = ((i * 120 * dpr - game.bgNear * 0.6) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
-    const bH = 60 + (i % 4) * 25;
-    ctx.fillRect(baseX, GROUND_Y - bH * dpr, 80 * dpr, bH * dpr);
-    const winColor = M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(224,80,80,0.4)' :
-                     M.id === 'calm' ? 'rgba(80,144,224,0.3)' :
-                     'rgba(232,86,30,0.4)';
-    ctx.fillStyle = winColor;
-    for (let wy = 0; wy < bH; wy += 18) {
-      for (let wx = 0; wx < 80; wx += 18) {
-        if ((i + wy + wx) % 3 === 0) {
-          ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
-        }
+  // 🆕 ENDLESS — scene-specific dekoracje
+  if (M.id === 'endless') {
+    const escene = game.endlessScene;
+    
+    // Chmury (ŚWIT, GÓRY)
+    if (escene === 3 || escene === 4) {
+      ctx.fillStyle = escene === 3 ? 'rgba(255,180,150,0.4)' : 'rgba(180,200,220,0.35)';
+      for (let i = 0; i < 5; i++) {
+        const baseX = ((i * 250 * dpr - game.bgFar * 0.2) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
+        const cy = (50 + (i * 37) % 80) * dpr;
+        // Chmura = 3 nakładające się okręgi
+        ctx.beginPath();
+        ctx.arc(baseX, cy, 25 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + 30 * dpr, cy + 5 * dpr, 30 * dpr, 0, Math.PI * 2);
+        ctx.arc(baseX + 60 * dpr, cy, 22 * dpr, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
+    
+    // Drzewa w PARK
+    if (escene === 0) {
+      for (let i = 0; i < 8; i++) {
+        const baseX = ((i * 180 * dpr - game.bgMid * 0.55) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
+        const treeH = 80 + (i % 3) * 25;
+        // Pień
+        ctx.fillStyle = 'rgba(60,40,30,0.7)';
+        ctx.fillRect(baseX - 4 * dpr, GROUND_Y - treeH * dpr, 8 * dpr, treeH * dpr);
+        // Korona
+        ctx.fillStyle = 'rgba(40,90,55,0.7)';
+        ctx.beginPath();
+        ctx.arc(baseX, GROUND_Y - treeH * dpr, 28 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(60,120,75,0.5)';
+        ctx.beginPath();
+        ctx.arc(baseX - 8 * dpr, GROUND_Y - (treeH + 8) * dpr, 18 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    
+    // Latarnie w MIASTO i NOC
+    if (escene === 1 || escene === 2) {
+      for (let i = 0; i < 6; i++) {
+        const baseX = ((i * 220 * dpr - game.bgMid * 0.5) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
+        // Słup
+        ctx.fillStyle = 'rgba(40,40,55,0.7)';
+        ctx.fillRect(baseX - 2 * dpr, GROUND_Y - 100 * dpr, 4 * dpr, 100 * dpr);
+        // Lampa
+        ctx.fillStyle = 'rgba(255,220,120,0.85)';
+        ctx.shadowColor = '#ffdc78';
+        ctx.shadowBlur = 20 * dpr;
+        ctx.beginPath();
+        ctx.arc(baseX, GROUND_Y - 100 * dpr, 5 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // Stożek światła
+        const grad = ctx.createRadialGradient(baseX, GROUND_Y - 100 * dpr, 0, baseX, GROUND_Y - 70 * dpr, 50 * dpr);
+        grad.addColorStop(0, 'rgba(255,220,120,0.18)');
+        grad.addColorStop(1, 'rgba(255,220,120,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(baseX, GROUND_Y - 100 * dpr);
+        ctx.lineTo(baseX - 30 * dpr, GROUND_Y - 30 * dpr);
+        ctx.lineTo(baseX + 30 * dpr, GROUND_Y - 30 * dpr);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    
+    // Planety w KOSMOSIE
+    if (escene === 5) {
+      const planets = [
+        { x: 0.2, y: 0.15, r: 30, c: '#ff7a45' },
+        { x: 0.7, y: 0.1, r: 18, c: '#5090e0' },
+        { x: 0.85, y: 0.25, r: 12, c: '#a868e0' }
+      ];
+      for (const p of planets) {
+        const px = (p.x * W - game.bgFar * 0.05 % W + W) % W;
+        const py = p.y * GROUND_Y;
+        const grad = ctx.createRadialGradient(px - p.r * 0.3 * dpr, py - p.r * 0.3 * dpr, 0, px, py, p.r * dpr);
+        grad.addColorStop(0, p.c);
+        grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(px, py, p.r * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // Buildings (oryginalna logika — pokazuje się w longrun, intervals, calm)
+  if (M.id !== 'endless' || game.endlessScene === 1 || game.endlessScene === 2) {
     ctx.fillStyle = 'rgba(20,15,30,0.85)';
+    for (let i = 0; i < 12; i++) {
+      const baseX = ((i * 120 * dpr - game.bgNear * 0.6) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
+      const bH = 60 + (i % 4) * 25;
+      ctx.fillRect(baseX, GROUND_Y - bH * dpr, 80 * dpr, bH * dpr);
+      const winColor = M.id === 'intervals' && game.intervalPhase === 'sprint' ? 'rgba(224,80,80,0.4)' :
+                       M.id === 'calm' ? 'rgba(80,144,224,0.3)' :
+                       game.endlessScene === 1 ? 'rgba(80,144,224,0.5)' :
+                       game.endlessScene === 2 ? 'rgba(255,180,80,0.4)' :
+                       'rgba(232,86,30,0.4)';
+      ctx.fillStyle = winColor;
+      for (let wy = 0; wy < bH; wy += 18) {
+        for (let wx = 0; wx < 80; wx += 18) {
+          if ((i + wy + wx) % 3 === 0) {
+            ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+          }
+        }
+      }
+      ctx.fillStyle = 'rgba(20,15,30,0.85)';
+    }
   }
 
   // Speed lines (intensywne w sprincie)
@@ -2542,6 +2693,41 @@ function render() {
       ctx.moveTo(o.x + o.w / 2, o.centerY - o.amplitude);
       ctx.lineTo(o.x + o.w / 2, o.centerY + o.amplitude);
       ctx.stroke();
+      return;
+    }
+    if (o.type === 'pedestrian') {
+      // 🚴/🏃/👵/🐕 — emoji z bobbingiem
+      const bobOffset = Math.sin(o.bobPhase) * 3 * dpr;
+      ctx.save();
+      ctx.font = (o.h + 8 * dpr) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      // Cień pod stopami
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(o.x + o.w / 2, GROUND_Y - 2 * dpr, o.w * 0.5, 4 * dpr, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Speed lines żeby pokazać że jadą z naprzeciwka
+      if (o.speedBonus > 2 * dpr) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1.5 * dpr;
+        for (let i = 0; i < 3; i++) {
+          const lx = o.x + o.w + (10 + i * 8) * dpr;
+          const ly = GROUND_Y - (o.h * 0.4 + i * 6) * dpr;
+          ctx.beginPath();
+          ctx.moveTo(lx, ly);
+          ctx.lineTo(lx + 14 * dpr, ly);
+          ctx.stroke();
+        }
+      }
+      // Emoji (z odbiciem dla pieszych - patrzą w lewo bo idą do gracza)
+      ctx.translate(o.x + o.w / 2, GROUND_Y + bobOffset);
+      ctx.scale(-1, 1);
+      ctx.fillText(o.emoji, 0, 0);
+      ctx.restore();
+      // Czerwone obramowanie strefy kolizji (subtelne)
+      // ctx.strokeStyle = 'rgba(224,80,80,0.2)';
+      // ctx.strokeRect(o.x, GROUND_Y - o.h, o.w, o.h);
       return;
     }
     let y1, h;
@@ -2998,6 +3184,7 @@ function realStart(mode) {
   game = newGame(mode);
   game.running = true;
   game.focusStartT = 0;
+  _endGameCalled = false;  // 🆕 reset flagi przy każdym nowym secie
   document.getElementById('screen-home').classList.add('hidden');
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.remove('hidden');
@@ -3009,118 +3196,111 @@ function realStart(mode) {
 
 let _lastEndedGameData = null;
 let _lastEndedScoreId = null;
+let _endGameCalled = false;  // 🆕 zapobiega podwójnemu wywołaniu
 
 async function endGame() {
   if (!game) return;
+  if (_endGameCalled) return;  // 🆕 już wywołane, ignoruj
+  _endGameCalled = true;
   game.running = false;
   game.over = true;
 
-  const M = game.config;
+  // 🆕 Natychmiastowy screen swap — przed jakąkolwiek logiką która może crashnąć
+  try {
+    const sg = document.getElementById('screen-game');
+    const se = document.getElementById('screen-end');
+    if (sg) sg.classList.add('hidden');
+    if (se) se.classList.remove('hidden');
+  } catch (e) { console.error('Screen swap error:', e); }
 
-  // Oblicz metryki mentalne
-  const reactionTimes = game.reactionTimes;
-  const avgReaction = reactionTimes.length 
-    ? Math.round(reactionTimes.reduce((s, x) => s + x, 0) / reactionTimes.length)
-    : null;
-  const focusDur = Math.floor(game.bestFocusDuration);
+  try {
+    const M = game.config;
 
-  // Zapisz lokalne stats
-  incStat('total_runs', 1);
-  if (Math.floor(game.score) > getStat('best_score', 0)) setStat('best_score', Math.floor(game.score));
+    // Oblicz metryki mentalne
+    const reactionTimes = game.reactionTimes || [];
+    const avgReaction = reactionTimes.length 
+      ? Math.round(reactionTimes.reduce((s, x) => s + x, 0) / reactionTimes.length)
+      : null;
+    const focusDur = Math.floor(game.bestFocusDuration || 0);
 
-  // Tytuł i sub
-  let title, sub;
-  if (M.id === 'endless') {
-    // Endless — porównanie z rekordem (best_score już zaktualizowany powyżej)
-    const oldBest = getStat('best_score', 0);
-    if (Math.floor(game.score) >= oldBest && oldBest > 100) {
-      title = 'NOWY REKORD! 🏆';
-      sub = 'Świetnie! Pobiłeś swój wynik';
+    // Zapisz lokalne stats
+    incStat('total_runs', 1);
+    if (Math.floor(game.score) > getStat('best_score', 0)) setStat('best_score', Math.floor(game.score));
+
+    // Tytuł i sub
+    let title, sub;
+    if (M.id === 'endless') {
+      const oldBest = getStat('best_score', 0);
+      if (Math.floor(game.score) >= oldBest && oldBest > 100) {
+        title = 'NOWY REKORD! 🏆';
+        sub = 'Świetnie! Pobiłeś swój wynik';
+      } else {
+        title = 'KONIEC';
+        sub = oldBest > 0 ? 'Twój rekord: ' + oldBest + ' · próbuj dalej!' : 'Spróbuj jeszcze raz';
+      }
+    } else if (game.finished) {
+      title = M.id === 'calm' ? 'CIERPLIWOŚĆ ✓' : M.id === 'intervals' ? '4/4 CYKLI! 🔥' : 'UKOŃCZONO';
+      sub = 'Trening mentalny zaliczony';
     } else {
       title = 'KONIEC';
-      sub = oldBest > 0 ? 'Twój rekord: ' + oldBest + ' · próbuj dalej!' : 'Spróbuj jeszcze raz';
+      sub = 'Spróbuj jeszcze raz';
     }
-  } else if (game.finished) {
-    title = M.id === 'calm' ? 'CIERPLIWOŚĆ ✓' : M.id === 'intervals' ? '4/4 CYKLI! 🔥' : 'UKOŃCZONO';
-    sub = 'Trening mentalny zaliczony';
-  } else {
-    title = 'KONIEC';
-    sub = 'Spróbuj jeszcze raz';
+    
+    const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    const setClass = (id, cls) => { const el = document.getElementById(id); if (el) el.className = cls; };
+    
+    setText('end-title', title);
+    setText('end-sub', sub);
+    setText('end-mode-tag', M.emoji + ' ' + M.name);
+    setText('end-score', Math.floor(game.score));
+    setText('end-distance', Math.floor(game.distance));
+    setText('end-perfects', game.perfects);
+    setText('end-multi', 'x' + game.maxMulti.toFixed(1));
+    setText('ms-reaction', avgReaction ? avgReaction + ' ms' : '—');
+    setClass('ms-reaction', 'mv ' + (avgReaction && avgReaction < 400 ? 'good' : avgReaction && avgReaction > 600 ? 'improve' : ''));
+    setText('ms-focus', focusDur + ' s');
+    setClass('ms-focus', 'mv ' + (focusDur > 30 ? 'good' : ''));
+
+    const extraRow = document.getElementById('ms-extra-row');
+    if (extraRow) {
+      if (M.id === 'endless') {
+        extraRow.style.display = 'flex';
+        setText('ms-extra-label', 'Coiny zebrane');
+        setText('ms-extra', (game.coins || 0) + ' 🪙');
+        setClass('ms-extra', 'mv');
+      } else {
+        extraRow.style.display = 'none';
+      }
+    }
+
+    _lastEndedGameData = {
+      mode: M.id,
+      modeName: M.name,
+      duration: Math.floor(game.elapsed),
+      score: Math.floor(game.score),
+      distance: Math.floor(game.distance),
+      avgReaction,
+      focusDur,
+      perfects: game.perfects,
+      finished: game.finished
+    };
+
+    const isNew = Math.floor(game.score) >= getStat('best_score', 1);
+    const recordEl = document.getElementById('new-record-banner');
+    if (recordEl) recordEl.style.display = isNew && game.score > 100 ? 'block' : 'none';
+
+    const logBtn = document.getElementById('log-btn');
+    if (logBtn) {
+      logBtn.disabled = false;
+      logBtn.textContent = '+ Dodaj jako warm-up mentalny';
+    }
+
+    // Save score do bazy w tle (nie blokuje UI)
+    _saveScoreInBackground(M, avgReaction, focusDur);
+  } catch (e) {
+    console.error('endGame error:', e);
+    // Nawet jeśli logika UI crashuje, screen-end jest już widoczny powyżej
   }
-  document.getElementById('end-title').textContent = title;
-  document.getElementById('end-sub').textContent = sub;
-  document.getElementById('end-mode-tag').textContent = M.emoji + ' ' + M.name;
-
-  // Score + stats
-  document.getElementById('end-score').textContent = Math.floor(game.score);
-  document.getElementById('end-distance').textContent = Math.floor(game.distance);
-  document.getElementById('end-perfects').textContent = game.perfects;
-  document.getElementById('end-multi').textContent = 'x' + game.maxMulti.toFixed(1);
-
-  // Mental metrics
-  document.getElementById('ms-reaction').textContent = avgReaction ? avgReaction + ' ms' : '—';
-  document.getElementById('ms-reaction').className = 'mv ' + (avgReaction && avgReaction < 400 ? 'good' : avgReaction && avgReaction > 600 ? 'improve' : '');
-  document.getElementById('ms-focus').textContent = focusDur + ' s';
-  document.getElementById('ms-focus').className = 'mv ' + (focusDur > 30 ? 'good' : '');
-
-  // Mode-specific extra metric
-  const extraRow = document.getElementById('ms-extra-row');
-  if (M.id === 'endless') {
-    // Endless: pokazujemy dystans + zebrane coiny
-    extraRow.style.display = 'flex';
-    document.getElementById('ms-extra-label').textContent = 'Coiny zebrane';
-    document.getElementById('ms-extra').textContent = (game.coins || 0) + ' 🪙';
-    document.getElementById('ms-extra').className = 'mv';
-  } else if (M.id === 'intervals') {
-    extraRow.style.display = 'flex';
-    document.getElementById('ms-extra-label').textContent = 'Cykle ukończone';
-    document.getElementById('ms-extra').textContent = game.intervalCycle + (game.finished ? ' / ' + M.intervalCycles : '');
-    document.getElementById('ms-extra').className = 'mv ' + (game.finished ? 'good' : '');
-  } else if (M.id === 'calm') {
-    extraRow.style.display = 'flex';
-    document.getElementById('ms-extra-label').textContent = 'Czas wytrwały';
-    document.getElementById('ms-extra').textContent = Math.floor(game.elapsed) + ' / ' + M.target + ' s';
-    document.getElementById('ms-extra').className = 'mv ' + (game.finished ? 'good' : '');
-  } else if (M.id === 'tempo') {
-    extraRow.style.display = 'flex';
-    document.getElementById('ms-extra-label').textContent = 'Rytm (consistency)';
-    document.getElementById('ms-extra').textContent = game.tempoConsistency + '% (' + game.tempoPerfectTaps + ' perfectów)';
-    document.getElementById('ms-extra').className = 'mv ' + (game.tempoConsistency >= 80 ? 'good' : game.tempoConsistency >= 50 ? '' : 'improve');
-  } else {
-    extraRow.style.display = 'none';
-  }
-
-  // Save data dla "log to training" button
-  _lastEndedGameData = {
-    mode: M.id,
-    modeName: M.name,
-    duration: Math.floor(game.elapsed),
-    score: Math.floor(game.score),
-    distance: Math.floor(game.distance),
-    avgReaction,
-    focusDur,
-    perfects: game.perfects,
-    finished: game.finished
-  };
-
-  // New record?
-  const isNew = Math.floor(game.score) >= getStat('best_score', 1);
-  const recordEl = document.getElementById('new-record-banner');
-  if (recordEl) recordEl.style.display = isNew && game.score > 100 ? 'block' : 'none';
-
-  // Reset log button
-  const logBtn = document.getElementById('log-btn');
-  if (logBtn) {
-    logBtn.disabled = false;
-    logBtn.textContent = '+ Dodaj jako warm-up mentalny';
-  }
-
-  // 🆕 POKAZUJEMY end screen NATYCHMIAST (bez czekania na save score)
-  document.getElementById('screen-game').classList.add('hidden');
-  document.getElementById('screen-end').classList.remove('hidden');
-
-  // Save score do bazy w tle (nie blokuje UI)
-  _saveScoreInBackground(M, avgReaction, focusDur);
 }
 
 // Tła task: zapis score do bazy
