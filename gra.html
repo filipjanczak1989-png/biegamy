@@ -884,6 +884,18 @@ function switchTab(name) {
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
+// 🆕 Performance: lazy DOM cache dla HUD elementów wołanych co frame
+// Lazy = jeśli element nie istnieje przy starcie, znajdzie później przy pierwszym użyciu
+const _domCache = {};
+function $(id) {
+  let el = _domCache[id];
+  if (!el || !el.isConnected) {
+    el = document.getElementById(id);
+    if (el) _domCache[id] = el;
+  }
+  return el;
+}
+
 // 🆕 Performance: wyłącz shadowBlur w low quality mode (kosztowne renderowanie)
 let _origShadowBlurDesc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowBlur');
 if (!_origShadowBlurDesc) _origShadowBlurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
@@ -910,7 +922,12 @@ function resize() {
   canvas.style.height = window.innerHeight + 'px';
   GROUND_Y = H - H * 0.18;
 }
-window.addEventListener('resize', resize);
+// 🆕 Debounce resize — na mobile (chowanie paska URL) eventy lecą szybko, niepotrzebnie spamują
+let _resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimeout);
+  _resizeTimeout = setTimeout(resize, 100);
+});
 window.addEventListener('orientationchange', () => {
   // 🆕 Mała opóźnienie żeby przeglądarka zdążyła zaktualizować innerWidth/Height
   setTimeout(resize, 100);
@@ -1254,7 +1271,7 @@ function registerTempoTap() {
     if (newMulti > game.multi + 0.05) {
       game.multi = newMulti;
       game.maxMulti = Math.max(game.maxMulti, game.multi);
-      const mEl = document.getElementById('hud-multi');
+      const mEl = $('hud-multi');
       mEl.classList.remove('pulse');
       void mEl.offsetWidth;
       mEl.classList.add('pulse');
@@ -3336,10 +3353,10 @@ function update() {
     game._displayScore += Math.max(1, Math.ceil(Math.abs(diff) / 8)) * Math.sign(diff);
     if (Math.abs(target - game._displayScore) < 1) game._displayScore = target;
   }
-  document.getElementById('hud-score').textContent = Math.floor(game._displayScore);
-  document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
-  document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
-  document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
+  $('hud-score').textContent = Math.floor(game._displayScore);
+  $('hud-multi').textContent = 'x' + game.multi.toFixed(1);
+  $('hud-distance').textContent = Math.floor(game.distance) + ' m';
+  $('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
   // 🆕 Lepsze hearts — z poświatą i animacją utraty
   const maxLives = Math.max(M.lives, game.lives);
   let heartsHtml = '';
@@ -3350,10 +3367,10 @@ function update() {
       heartsHtml += '<span style="color:rgba(255,80,80,0.15);font-size:16px;">♡</span>';
     }
   }
-  document.getElementById('hud-lives').innerHTML = heartsHtml;
+  $('hud-lives').innerHTML = heartsHtml;
 
   // Combo counter — tier-based colors (zaczyna się od 3)
-  const comboEl = document.getElementById('hud-combo');
+  const comboEl = $('hud-combo');
   const comboCount = M.id === 'tempo' ? game.tempoStreak : game.perfectStreak;
   if (comboEl) {
     if (comboCount >= 3) {
@@ -3391,31 +3408,31 @@ function update() {
 
 function updateModeTarget() {
   const M = game.config;
-  const target = document.getElementById('mode-target');
+  const target = $('mode-target');
   if (M.id === 'endless') {
     // Endless — pokaż dystans + porównanie z rekordem
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '🏁';
+    $('mt-icon').textContent = '🏁';
     const best = getStat('best_score', 0);
     const cur = Math.floor(game.score);
     if (best > 0 && cur < best) {
-      document.getElementById('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
-      document.getElementById('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
+      $('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
+      $('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
     } else if (best > 0 && cur >= best) {
-      document.getElementById('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
-      document.getElementById('mt-fill').style.width = '100%';
+      $('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
+      $('mt-fill').style.width = '100%';
     } else {
-      document.getElementById('mt-text').textContent = cur + ' pkt';
-      document.getElementById('mt-fill').style.width = '0%';
+      $('mt-text').textContent = cur + ' pkt';
+      $('mt-fill').style.width = '0%';
     }
     return;
   }
   if (M.id === 'tempo') {
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '🎯';
+    $('mt-icon').textContent = '🎯';
     const remaining = Math.max(0, M.duration - Math.floor(game.elapsed));
-    document.getElementById('mt-text').textContent = remaining + 's · ' + game.tempoConsistency + '%';
-    document.getElementById('mt-fill').style.width = game.tempoConsistency + '%';
+    $('mt-text').textContent = remaining + 's · ' + game.tempoConsistency + '%';
+    $('mt-fill').style.width = game.tempoConsistency + '%';
     return;
   }
   if (M.id === 'longrun') {
@@ -3423,24 +3440,24 @@ function updateModeTarget() {
     const scene = LONGRUN_SCENES[game.longrunScene] || LONGRUN_SCENES[0];
     const min = Math.floor(game.elapsed / 60);
     const sec = Math.floor(game.elapsed % 60);
-    document.getElementById('mt-icon').textContent = scene.icon;
-    document.getElementById('mt-text').textContent = scene.label + ' · ' + min + ':' + String(sec).padStart(2, '0');
-    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+    $('mt-icon').textContent = scene.icon;
+    $('mt-text').textContent = scene.label + ' · ' + min + ':' + String(sec).padStart(2, '0');
+    $('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
     return;
   }
   if (M.targetType === 'time') {
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '⏱';
+    $('mt-icon').textContent = '⏱';
     const remaining = Math.max(0, M.target - Math.floor(game.elapsed));
-    document.getElementById('mt-text').textContent = remaining + 's';
-    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+    $('mt-text').textContent = remaining + 's';
+    $('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
   } else if (M.targetType === 'cycles') {
     target.style.display = 'flex';
     const phaseIcon = game.intervalPhase === 'sprint' ? '⚡' : '🌿';
     const phaseRemain = Math.ceil((game.intervalPhase === 'sprint' ? M.sprintLen : M.restLen) - game.intervalPhaseTimer);
-    document.getElementById('mt-icon').textContent = phaseIcon;
-    document.getElementById('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
-    document.getElementById('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
+    $('mt-icon').textContent = phaseIcon;
+    $('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
+    $('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
   } else {
     target.style.display = 'none';
   }
@@ -3470,7 +3487,7 @@ function updateComboMultiplier() {
       checkMissionProgress('maxComboReached', game.missionTrackers.maxComboReached);
     }
     // Pulsująca animacja na zmianie tier
-    const mEl = document.getElementById('hud-multi');
+    const mEl = $('hud-multi');
     if (mEl) {
       mEl.classList.remove('pulse');
       void mEl.offsetWidth;
@@ -7017,7 +7034,7 @@ function goHome() {
 function updateDashUI() {
   if (!game) return;
   for (let i = 1; i <= 3; i++) {
-    const pip = document.getElementById('dash-' + i);
+    const pip = $('dash-' + i);
     if (!pip) continue;
     if (i <= game.dashLeft) pip.classList.add('active');
     else pip.classList.remove('active');
