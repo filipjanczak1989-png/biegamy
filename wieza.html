@@ -447,6 +447,11 @@ function newGame() {
     flipping: false,
     flipRotation: 0,
     legPhase: 0,
+    breathPhase: 0,        // 🆕 oddech (smooth animation)
+    bouncePhase: 0,        // 🆕 bounce
+    squashAmount: 0,       // 🆕 squash & stretch (anticipation/landing)
+    sliding: 0,            // używane przez state machine drawRunner
+    dashing: 0,            // używane przez state machine drawRunner
     facing: 1,             // 1 prawo, -1 lewo
     
     // Stats
@@ -674,6 +679,7 @@ function onJumpDown() {
     game.jumpHold = 1;
     game.flipping = false;
     game.flipRotation = 0;
+    game.squashAmount = 0.2;  // stretch (rozciąga się w górę)
     playJump();
   } else if (game.onWall !== 0) {
     // Wall jump
@@ -989,6 +995,7 @@ function update() {
           game.flipRotation = 0;
           
           spawnParticles(game.px, p.y, '#a89878', 6);
+          game.squashAmount = -0.25;  // squash (kucha) przy lądowaniu
           playLand(Math.abs(fallVy) > 12 || skippedCount >= 3);
           landedThisFrame = true;
           break;
@@ -1015,6 +1022,14 @@ function update() {
     game.legPhase += Math.abs(game.vx) * 0.05;
   } else {
     game.legPhase += 0.1;
+  }
+  // Breath + bounce phases (smooth animation)
+  game.breathPhase += 0.04;
+  game.bouncePhase += 0.15;
+  // Squash decay back to 0
+  if (game.squashAmount !== 0) {
+    game.squashAmount *= 0.85;
+    if (Math.abs(game.squashAmount) < 0.01) game.squashAmount = 0;
   }
   
   // ── HEIGHT TRACKING ──
@@ -1284,108 +1299,32 @@ function render() {
   ctx.globalAlpha = 1;
 }
 
+// State machine — analogiczna do gra.html getRunnerState
+function getRunnerState() {
+  if (game.flipping) return 'flip';
+  if (game.sliding > 0) return 'slide';
+  if (game.dashing > 0) return 'dash';
+  if (!game.onGround) return game.vy < 0 ? 'jump_up' : 'jump_down';
+  return 'run';
+}
+
 function drawPlayer() {
   const px = game.px * dpr;
-  const py = worldToScreenY(game.py);  // game.py = bottom of player
-  const s = dpr;
-  
-  ctx.save();
-  ctx.translate(px, py);
-  
-  // Flip rotation
-  if (game.flipping) {
-    ctx.rotate((game.flipRotation * Math.PI / 180) * game.facing);
-  }
-  
-  // Cień pod postacią (na poziomie stóp, czyli y=0 w lokalnym frame)
-  if (!game.flipping) {
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
-    ctx.beginPath();
-    ctx.ellipse(0, 0, PLAYER_W * 0.6 * s, 3 * s, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  
-  // Nogi (animacja)
-  const legSwing = Math.sin(game.legPhase) * 6 * s;
-  ctx.strokeStyle = '#1a1a25';
-  ctx.lineWidth = 5 * s;
-  ctx.lineCap = 'round';
-  
-  if (game.onGround) {
-    // Bieganie
-    ctx.beginPath();
-    ctx.moveTo(0, -10 * s);
-    ctx.lineTo(legSwing, -2 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, -10 * s);
-    ctx.lineTo(-legSwing, -2 * s);
-    ctx.stroke();
+  const py = worldToScreenY(game.py);  // game.py = stopy postaci
+  const state = getRunnerState();
+  const rotation = game.flipping ? (game.flipRotation * Math.PI / 180) * game.facing : 0;
+  // Mirror dla facing left (drawRunner z gra.html jest stworzony do biegu w prawo)
+  if (game.facing === -1) {
+    ctx.save();
+    ctx.translate(px, 0);
+    ctx.scale(-1, 1);
+    drawRunner(ctx, 0, py, state, game.legPhase, rotation, false);
+    ctx.restore();
   } else {
-    // Skok - nogi do siebie
-    ctx.beginPath();
-    ctx.moveTo(-3 * s, -10 * s);
-    ctx.lineTo(-4 * s, -2 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(3 * s, -10 * s);
-    ctx.lineTo(4 * s, -2 * s);
-    ctx.stroke();
+    drawRunner(ctx, px, py, state, game.legPhase, rotation, false);
   }
-  
-  // Tułów (pomarańczowa koszulka)
-  const bodyGrad = ctx.createLinearGradient(0, -30 * s, 0, -10 * s);
-  bodyGrad.addColorStop(0, '#ff7a45');
-  bodyGrad.addColorStop(1, '#c0410e');
-  ctx.fillStyle = bodyGrad;
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(-9 * s, -30 * s, 18 * s, 20 * s, 5 * s);
-  else ctx.rect(-9 * s, -30 * s, 18 * s, 20 * s);
-  ctx.fill();
-  
-  // Ręce
-  ctx.strokeStyle = '#f4c39a';
-  ctx.lineWidth = 4 * s;
-  if (game.onGround) {
-    // Bieganie - przeciwnie do nóg
-    ctx.beginPath();
-    ctx.moveTo(-6 * s, -25 * s);
-    ctx.lineTo(-legSwing - 3 * s, -16 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(6 * s, -25 * s);
-    ctx.lineTo(legSwing + 3 * s, -16 * s);
-    ctx.stroke();
-  } else {
-    // Skok - ręce do góry
-    ctx.beginPath();
-    ctx.moveTo(-6 * s, -25 * s);
-    ctx.lineTo(-9 * s, -32 * s);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(6 * s, -25 * s);
-    ctx.lineTo(9 * s, -32 * s);
-    ctx.stroke();
-  }
-  
-  // Głowa
-  ctx.fillStyle = '#f4c39a';
-  ctx.beginPath();
-  ctx.arc(0, -36 * s, 7 * s, 0, Math.PI * 2);
-  ctx.fill();
-  // Włosy
-  ctx.fillStyle = '#1a1a1a';
-  ctx.beginPath();
-  ctx.arc(0, -38 * s, 7 * s, Math.PI, Math.PI * 2);
-  ctx.fill();
-  // Oczko (kierunek facing)
-  ctx.fillStyle = '#1a1a25';
-  ctx.beginPath();
-  ctx.arc(game.facing * 2 * s, -36 * s, 1 * s, 0, Math.PI * 2);
-  ctx.fill();
-  
-  ctx.restore();
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // LOOP
@@ -1475,6 +1414,684 @@ function endGame() {
 function loadBest() {
   const best = parseInt(localStorage.getItem('wieza_best_height') || '0');
   $('hud-best').textContent = best;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// drawRunner — pełna postać (skopiowana z gra.html)
+// ═══════════════════════════════════════════════════════════════
+function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
+  ctx.save();  // 🆕 FIX: parowanie z restore() na końcu funkcji (linia ~8176)
+  const s = dpr;
+  // Kolory
+  const SKIN = '#f4c39a';
+  const SKIN_DARK = '#d99c70';
+  const HAIR = '#1a1a1a';
+  const SHIRT_TOP = '#ff7a45';
+  const SHIRT_MID = '#e8561e';
+  const SHIRT_BOT = '#c0410e';
+  const SHIRT_HIGHLIGHT = '#ffaa70';
+  const SHORTS = '#1a1a25';
+  const SHORTS_HIGHLIGHT = '#2a2a35';
+  const SHOES = '#2a2a35';
+  const SHOE_ACCENT = '#ff7a45';
+  const SHOE_SOLE = '#ffffff';
+  
+  ctx.save();
+  ctx.translate(x, y);
+  // 🆕 SQUASH & STRETCH — postać kucha przy lądowaniu, rozciąga przy starcie skoku
+  const squash = game.squashAmount || 0;
+  if (Math.abs(squash) > 0.01 && state !== 'slide' && state !== 'flip') {
+    const squashY = 1 + squash;             // > 1 = stretched, < 1 = squashed
+    const squashX = 1 - squash * 0.5;        // X przeciwnie (volume preservation)
+    ctx.scale(squashX, squashY);
+  }
+  if (rotation) ctx.rotate(rotation * Math.PI / 180);
+  
+  // ═══════════════════════════════════════════════
+  // SLIDE — postać przykucnięta
+  // ═══════════════════════════════════════════════
+  if (state === 'slide') {
+    // Tułów (poziomy z gradientem)
+    const slideGrad = ctx.createLinearGradient(0, -16 * s, 0, -2 * s);
+    slideGrad.addColorStop(0, SHIRT_TOP);
+    slideGrad.addColorStop(1, SHIRT_MID);
+    ctx.fillStyle = slideGrad;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(-22 * s, -16 * s, 38 * s, 14 * s, 6 * s);
+    else ctx.rect(-22 * s, -16 * s, 38 * s, 14 * s);
+    ctx.fill();
+    // Highlight na koszulce
+    ctx.fillStyle = SHIRT_HIGHLIGHT;
+    ctx.fillRect(-20 * s, -15 * s, 34 * s, 2 * s);
+    // Logo B
+    if (!isGhost) {
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.font = 'bold ' + (8 * s) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('B', 0, -9 * s);
+    }
+    
+    // 🆕 Druga ręka (z przodu - dołem do ziemi, push gesture)
+    ctx.strokeStyle = SKIN;
+    ctx.lineWidth = 4 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-8 * s, -8 * s);
+    ctx.lineTo(2 * s, -2 * s);
+    ctx.lineTo(8 * s, 0);
+    ctx.stroke();
+    // Pięść
+    ctx.fillStyle = SKIN;
+    ctx.beginPath();
+    ctx.arc(8 * s, 0, 2.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Ręka wyciągnięta do tyłu (dla balansu)
+    ctx.strokeStyle = SKIN;
+    ctx.lineWidth = 4 * s;
+    ctx.beginPath();
+    ctx.moveTo(-12 * s, -10 * s);
+    ctx.lineTo(-26 * s, -4 * s);
+    ctx.stroke();
+    
+    // Głowa
+    ctx.fillStyle = SKIN;
+    ctx.beginPath();
+    ctx.arc(-22 * s, -16 * s, 8 * s, 0, Math.PI * 2);
+    ctx.fill();
+    // Włosy
+    ctx.fillStyle = HAIR;
+    ctx.beginPath();
+    ctx.arc(-22 * s, -19 * s, 7 * s, Math.PI, Math.PI * 2);
+    ctx.fill();
+    // Kosmyk z tyłu (slide = postać sliduje do prawej, włosy lecą do tyłu czyli w lewo)
+    ctx.beginPath();
+    ctx.moveTo(-25 * s, -18 * s);
+    ctx.quadraticCurveTo(-32 * s, -16 * s, -30 * s, -12 * s);
+    ctx.lineTo(-22 * s, -14 * s);
+    ctx.fill();
+    // Kosmyk z przodu lecący do tyłu
+    ctx.beginPath();
+    ctx.moveTo(-15 * s, -18 * s);
+    ctx.quadraticCurveTo(-22 * s, -22 * s, -28 * s, -18 * s);
+    ctx.lineTo(-15 * s, -14 * s);
+    ctx.fill();
+    
+    // Twarz
+    if (!isGhost) {
+      // Oko
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(-18 * s, -16 * s, 1.6 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.arc(-17.5 * s, -16 * s, 1 * s, 0, Math.PI * 2);
+      ctx.fill();
+      // Brew (skupiona)
+      ctx.strokeStyle = HAIR;
+      ctx.lineWidth = 1.4 * s;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-20 * s, -19 * s);
+      ctx.lineTo(-16 * s, -18 * s);
+      ctx.stroke();
+      // Usta zacięte (wysiłek)
+      ctx.strokeStyle = '#80452a';
+      ctx.lineWidth = 1.2 * s;
+      ctx.beginPath();
+      ctx.moveTo(-19 * s, -13 * s);
+      ctx.lineTo(-15 * s, -13 * s);
+      ctx.stroke();
+    }
+    
+    // 🆕 Druga noga (zgięta, bliżej ciała) — pod główną nogą
+    ctx.strokeStyle = SHORTS;
+    ctx.lineWidth = 6 * s;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(8 * s, -6 * s);
+    ctx.lineTo(16 * s, -4 * s);
+    ctx.lineTo(22 * s, 0);
+    ctx.stroke();
+    // But tej nogi (mniejszy, częściowo schowany)
+    ctx.fillStyle = SHOES;
+    ctx.beginPath();
+    ctx.ellipse(22 * s, 1 * s, 5 * s, 2.5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Główna noga (wyciągnięta - to ta która "ślizga się")
+    ctx.strokeStyle = SHORTS;
+    ctx.lineWidth = 7 * s;
+    ctx.beginPath();
+    ctx.moveTo(14 * s, -8 * s);
+    ctx.lineTo(28 * s, -4 * s);
+    ctx.stroke();
+    // But (większy, wyraźny)
+    ctx.fillStyle = SHOES;
+    ctx.beginPath();
+    ctx.ellipse(28 * s, -2 * s, 7 * s, 4 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Podeszwa (biała)
+    ctx.fillStyle = SHOE_SOLE;
+    ctx.fillRect(22 * s, 1 * s, 12 * s, 1 * s);
+    // Pasek na bucie
+    if (!isGhost) {
+      ctx.fillStyle = SHOE_ACCENT;
+      ctx.fillRect(24 * s, -3 * s, 7 * s, 1.5 * s);
+      // Sznurówki
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 0.7 * s;
+      ctx.beginPath();
+      ctx.moveTo(25 * s, -1 * s);
+      ctx.lineTo(28 * s, -3 * s);
+      ctx.moveTo(28 * s, -1 * s);
+      ctx.lineTo(31 * s, -3 * s);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+    return;
+  }
+  
+  // ═══════════════════════════════════════════════
+  // RUN / JUMP / DASH / FLIP — postać pionowa
+  // ═══════════════════════════════════════════════
+  
+  // Faza nóg (-1..1)
+  let legCycle;
+  if (state === 'run') {
+    legCycle = Math.sin(legPhase * 1.5);  // 🆕 *2 → *1.5 (mniej "migotania" 4 nóg)
+  } else if (state === 'jump_up') {
+    legCycle = -1;
+  } else if (state === 'jump_down') {
+    legCycle = 0.5;
+  } else if (state === 'dash') {
+    legCycle = 0.8;
+  } else {
+    legCycle = 0;
+  }
+  
+  // 🆕 Większy zakres ruchu rąk (większa amplituda)
+  // Faza rąk - przeciwnie do nóg, większy ruch
+  const armCycle = -legCycle;
+  
+  // Włosy — kosmyk reaguje na ruch (trzepocze do tyłu podczas biegu i dasha)
+  let hairBlow = 0;
+  if (state === 'run') hairBlow = Math.sin(legPhase * 1.5) * 1.5;
+  else if (state === 'dash') hairBlow = -2.5;  // mocno z tyłu (postać jedzie szybko do przodu)
+  else if (state === 'jump_up') hairBlow = -1.2;  // delikatnie z tyłu
+  else if (state === 'jump_down') hairBlow = 0.8;  // do przodu (spada)
+  
+  // ═══════════════════════════════
+  // — NOGI Z TYŁU (rysujemy najpierw, żeby były pod tułowiem) —
+  // ═══════════════════════════════
+  
+  // Biodro — counter-rotation (delikatne kołysanie)
+  const hipShiftX = -legCycle * 1.5 * s;
+  
+  // 🆕 NATURAL LEG KINEMATICS
+  // legCycle: -1..1 (faza animacji nogi)
+  // Lewa noga = legCycle (dodatni = w przód)
+  // Prawa noga = -legCycle (przeciwnie)
+  
+  // Funkcja helper: oblicza pozycję nogi z naturalną kinematyką
+  // phase: -1..1 (gdzie noga w cyklu)
+  // Zwraca {kneeX, kneeY, footX, footY, footRot}
+  function legPos(phase) {
+    // Phase -1 = noga max do tyłu (push-off, stopa wyciągnięta)
+    // Phase 0 = noga przechodzi pod biodrem (środek swing, kolano wysoko)
+    // Phase 1 = noga max do przodu (foot strike, prawie prosta)
+    
+    // Foot X: liniowo z phase, zakres -22..+22
+    const footX = phase * 22 * s;
+    
+    // Knee bend zależne od fazy
+    // Back swing (phase < 0): mocno zgięte (knee high, foot back)
+    // Mid swing (phase ~0): max bend (knee najwyżej)
+    // Forward (phase > 0.5): coraz mniej zgięte (almost straight przy heel strike)
+    let kneeBendFactor;
+    if (phase < 0) {
+      // Tylna pozycja: 0..1 zgięcie zależnie od głębokości
+      kneeBendFactor = 0.3 + Math.abs(phase) * 0.5;  // 0.3..0.8
+    } else if (phase < 0.7) {
+      // Mid-forward: prawie prosta przy max forward
+      kneeBendFactor = 0.7 - phase * 0.5;  // 0.7..0.35
+    } else {
+      // Przy heel strike (phase 0.7-1): bardzo prosta
+      kneeBendFactor = 0.35 - (phase - 0.7) * 0.7;  // 0.35..0.14
+    }
+    
+    // Knee position: w środku między biodrem a stopą + lift do góry
+    const hipX = hipShiftX;
+    const hipY = -8 * s;
+    const footY_ground = 18 * s;
+    
+    // Knee X: między biodrem a stopą (closer to hip when knee is up)
+    const kneeX = hipX + (footX - hipX) * 0.45;
+    
+    // Knee Y: zależy od bend - więcej bend = wyżej knee
+    // Max lift gdy mid-swing (phase ~0): kolano wysoko
+    const kneeLift = kneeBendFactor * 10 * s;
+    const kneeY = (hipY + footY_ground) / 2 - kneeLift;
+    
+    // Foot Y: ground when phase >= 0.7 (foot strike) or phase <= -0.7 (still on ground from push)
+    // W swing (-0.7 < phase < 0.7): unosi się wyżej w środku
+    let footY;
+    if (Math.abs(phase) > 0.7) {
+      footY = footY_ground;  // na ziemi
+    } else {
+      // Mid-swing: stopa wyżej (parabola)
+      const swingProgress = phase / 0.7;  // -1..1 w swing range
+      const liftCurve = 1 - swingProgress * swingProgress;  // parabola, max w środku
+      footY = footY_ground - liftCurve * 8 * s;
+    }
+    
+    // Foot rotation - butt rotates with motion
+    // Push-off: rotuje do przodu (palce w dół)
+    // Heel strike: rotuje do tyłu (pięta najpierw)
+    let footRot;
+    if (phase < -0.5) footRot = 0.3;        // push-off, palce do przodu/dół
+    else if (phase > 0.5) footRot = -0.2;   // heel strike (lekko w górę)
+    else footRot = 0;                        // mid-swing flat
+    
+    return { kneeX, kneeY, footX, footY, footRot };
+  }
+  
+  // Lewa noga (z tyłu)
+  const lLeg = legPos(legCycle);
+  
+  // Udo
+  ctx.strokeStyle = SHORTS;
+  ctx.lineWidth = 7 * s;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(hipShiftX, -8 * s);
+  ctx.lineTo(lLeg.kneeX, lLeg.kneeY);
+  ctx.stroke();
+  
+  // Łydka
+  ctx.strokeStyle = SKIN;
+  ctx.lineWidth = 5 * s;
+  ctx.beginPath();
+  ctx.moveTo(lLeg.kneeX, lLeg.kneeY);
+  ctx.lineTo(lLeg.footX, lLeg.footY);
+  ctx.stroke();
+  
+  // Aliasy dla compat z resztą kodu
+  const lFootX = lLeg.footX;
+  const lFootY = lLeg.footY;
+  const lFootRot = lLeg.footRot;
+  
+  // Sock
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(lFootX + 1 * s, lFootY - 2 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (!isGhost) {
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(lFootX - 2 * s, lFootY - 2.3 * s, 6 * s, 0.6 * s);
+  }
+  
+  // But lewy z rotacją
+  ctx.save();
+  ctx.translate(lFootX + 2 * s, lFootY + 1 * s);
+  ctx.rotate(lFootRot);
+  ctx.fillStyle = SHOES;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 7 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = SHOE_SOLE;
+  ctx.fillRect(-6 * s, 1.5 * s, 12 * s, 1 * s);
+  ctx.restore();
+  // 🆕 Swoosh na bucie (krzywa pomarańczowa)
+  if (!isGhost) {
+    ctx.strokeStyle = SHOE_ACCENT;
+    ctx.lineWidth = 1.2 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lFootX - 2 * s, lFootY + 1.5 * s);
+    ctx.quadraticCurveTo(lFootX + 1 * s, lFootY - 0.5 * s, lFootX + 5 * s, lFootY + 1 * s);
+    ctx.stroke();
+  }
+  
+  // ═══════════════════════════════
+  // — TUŁÓW (koszulka) — z lekkim pochyleniem podczas biegu
+  // ═══════════════════════════════
+  // Pochyleni do przodu = w prawo (kierunek biegu)
+  const torsoLeanX = state === 'run' ? 2 * s : state === 'dash' ? 4 * s : 0;
+  
+  // 🆕 ODDECH — szybsze przy biegu/dashu, wolniejsze w jump
+  // 🆕 ODDECH — używa global game.breathPhase dla płynności
+  const breathScale = 1 + Math.sin(game.breathPhase) * 0.04;  // ±4% skali tułowia
+  const torsoExpandX = (breathScale - 1) * 4 * s;  // dodatkowa szerokość gdy klatka piersiowa rozszerzona
+  const torsoExpandY = (breathScale - 1) * 3 * s;
+  
+  // Tułów - 2 części dla lepszego wyglądu
+  // Górna - jaśniejsza pomarańczowa (z oddechem)
+  ctx.fillStyle = SHIRT_TOP;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(-10 * s - torsoExpandX + torsoLeanX, -28 * s - torsoExpandY, 20 * s + torsoExpandX * 2, 14 * s + torsoExpandY, 6 * s);
+  } else {
+    ctx.rect(-10 * s + torsoLeanX, -28 * s, 20 * s, 14 * s);
+  }
+  ctx.fill();
+  
+  // Dolna część tułowia - ciemniejsza
+  ctx.fillStyle = SHIRT_MID;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(-10 * s, -16 * s, 20 * s, 8 * s, 4 * s);
+  } else {
+    ctx.rect(-10 * s, -16 * s, 20 * s, 8 * s);
+  }
+  ctx.fill();
+  
+  // Pas (najniżej)
+  ctx.fillStyle = SHIRT_BOT;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(-10 * s, -10 * s, 20 * s, 4 * s, 2 * s);
+  } else {
+    ctx.rect(-10 * s, -10 * s, 20 * s, 4 * s);
+  }
+  ctx.fill();
+  
+  // Highlight na ramieniu (subtle)
+  if (!isGhost) {
+    ctx.fillStyle = SHIRT_HIGHLIGHT;
+    ctx.fillRect(-8 * s + torsoLeanX, -27 * s, 5 * s, 2 * s);
+  }
+  
+  // Logo "B" na koszulce
+  if (!isGhost) {
+    // Drobny cień pod logo
+    ctx.fillStyle = 'rgba(60,20,5,0.4)';
+    ctx.font = 'bold ' + (9 * s) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('B', torsoLeanX + 0.5 * s, -19.5 * s);
+    // Logo white
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillText('B', torsoLeanX, -20 * s);
+  }
+  
+  // ═══════════════════════════════
+  // — RĘCE — 🆕 BARDZIEJ DYNAMICZNE
+  // Pelne 90° wychylenie z dwoma jointami (ramię + przedramię)
+  // ═══════════════════════════════
+  ctx.strokeStyle = SKIN;
+  ctx.lineWidth = 4.5 * s;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  // Punkty zaczepienia — od ramienia (góra koszulki)
+  const shoulderL_X = -8 * s + torsoLeanX;
+  const shoulderL_Y = -25 * s;
+  const shoulderR_X = 8 * s + torsoLeanX;
+  const shoulderR_Y = -25 * s;
+  
+  // Bieg: ramiona pendulum w X (przód-tył), przedramię zgięte ~90° do góry
+  // armCycle: -1..1 → przedłożenie ramion w X
+  // legCycle: prawa noga w przód = +X, więc ramię **lewa** w przód = +X (przeciwna strona ciała)
+  // armCycle = -legCycle czyli gdy noga prawa do przodu, ramię z PRZODU (lewe) do tyłu
+  
+  // Prawa ręka (z TYŁU - widoczna z drugiej strony tułowia)
+  // 🆕 NATURAL ARM MOTION: łokieć też się unosi gdy ręka z tyłu (back swing pose)
+  const rArmSwingX = armCycle * 9 * s;  // 8 → 9 (większy zakres)
+  const rElbowX = shoulderR_X + rArmSwingX;
+  // 🆕 Łokieć wyżej gdy ramię z tyłu (back swing) - bardziej naturalny
+  const rElbowY = shoulderR_Y + (9 - Math.max(0, -armCycle) * 2) * s;
+  // Pięść: różnica X i Y zależy od fazy
+  // Back swing (armCycle < 0): pięść nieco z tyłu i wyżej
+  // Forward (armCycle > 0): pięść daleko do przodu i niżej (pionowy push)
+  const rHandX = rElbowX + (4 + armCycle * 4) * s;
+  const rHandY = rElbowY - (7 + armCycle * 3) * s;
+  
+  ctx.beginPath();
+  ctx.moveTo(shoulderR_X, shoulderR_Y);
+  ctx.lineTo(rElbowX, rElbowY);
+  ctx.lineTo(rHandX, rHandY);
+  ctx.stroke();
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.arc(rHandX, rHandY, 3 * s, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Lewa ręka (z PRZODU)
+  const lArmSwingX = -armCycle * 9 * s;
+  const lElbowX = shoulderL_X + lArmSwingX;
+  const lElbowY = shoulderL_Y + (9 - Math.max(0, armCycle) * 2) * s;
+  const lHandX = lElbowX + (4 + (-armCycle) * 4) * s;
+  const lHandY = lElbowY - (7 + (-armCycle) * 3) * s;
+  
+  ctx.beginPath();
+  ctx.moveTo(shoulderL_X, shoulderL_Y);
+  ctx.lineTo(lElbowX, lElbowY);
+  ctx.lineTo(lHandX, lHandY);
+  ctx.stroke();
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.arc(lHandX, lHandY, 3 * s, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // 🆕 BICEP HIGHLIGHT — subtelny rim light na ramieniu z przodu
+  if (!isGhost && state === 'run') {
+    ctx.strokeStyle = 'rgba(255,235,200,0.3)';
+    ctx.lineWidth = 1.2 * s;
+    ctx.lineCap = 'round';
+    // Rim light na lewym ramieniu (z przodu, najbardziej widoczne)
+    const midX = (shoulderL_X + lElbowX) / 2;
+    const midY = (shoulderL_Y + lElbowY) / 2;
+    ctx.beginPath();
+    ctx.moveTo(shoulderL_X - 1 * s, shoulderL_Y);
+    ctx.lineTo(midX - 1 * s, midY);
+    ctx.stroke();
+  }
+  
+  // ═══════════════════════════════
+  // — PRAWA NOGA (z PRZODU, na wierzchu) — używa tej samej helper function
+  // ═══════════════════════════════
+  const rLeg = legPos(-legCycle);  // przeciwna faza
+  const rFootX = rLeg.footX;
+  const rFootY = rLeg.footY;
+  const rFootRot = rLeg.footRot;
+  
+  // Udo
+  ctx.strokeStyle = SHORTS;
+  ctx.lineWidth = 7 * s;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(hipShiftX, -8 * s);
+  ctx.lineTo(rLeg.kneeX, rLeg.kneeY);
+  ctx.stroke();
+  
+  // Łydka
+  ctx.strokeStyle = SKIN;
+  ctx.lineWidth = 5 * s;
+  ctx.beginPath();
+  ctx.moveTo(rLeg.kneeX, rLeg.kneeY);
+  ctx.lineTo(rFootX, rFootY);
+  ctx.stroke();
+  
+  // Sock
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.ellipse(rFootX + 1 * s, rFootY - 2 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  if (!isGhost) {
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(rFootX - 2 * s, rFootY - 2.3 * s, 6 * s, 0.6 * s);
+  }
+  
+  // But prawy z rotacją
+  ctx.save();
+  ctx.translate(rFootX + 2 * s, rFootY + 1 * s);
+  ctx.rotate(rFootRot);
+  ctx.fillStyle = SHOES;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 7 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = SHOE_SOLE;
+  ctx.fillRect(-6 * s, 1.5 * s, 12 * s, 1 * s);
+  // Pasek na bucie + swoosh + sznurówki
+  if (!isGhost) {
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(-3 * s, -1 * s, 7 * s, 1.2 * s);
+    // Swoosh
+    ctx.strokeStyle = SHOE_ACCENT;
+    ctx.lineWidth = 1.2 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-4 * s, 0.5 * s);
+    ctx.quadraticCurveTo(-1 * s, -1.5 * s, 3 * s, 0);
+    ctx.stroke();
+    // Sznurówki — krzyż X
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 0.8 * s;
+    ctx.beginPath();
+    ctx.moveTo(-1 * s, -1.5 * s);
+    ctx.lineTo(2 * s, 0.5 * s);
+    ctx.moveTo(2 * s, -1.5 * s);
+    ctx.lineTo(-1 * s, 0.5 * s);
+    ctx.stroke();
+  }
+  ctx.restore();
+  
+  // ═══════════════════════════════
+  // — GŁOWA — większa, lepsze proporcje, pochylona do przodu
+  // ═══════════════════════════════
+  const headLean = state === 'run' ? 3 * s : state === 'dash' ? 5 * s : 0;
+  const headX = 0 + torsoLeanX * 0.5 + headLean;  // głowa pochylona do przodu
+  const headY = -36 * s;
+  const headR = 7.5 * s;
+  
+  // Cień pod brodą (subtle 3D)
+  ctx.fillStyle = SKIN_DARK;
+  ctx.beginPath();
+  ctx.ellipse(headX, headY + 5 * s, headR * 0.7, 2 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Twarz
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.arc(headX, headY, headR, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Włosy — czapka cienia + kosmyki
+  ctx.fillStyle = HAIR;
+  ctx.beginPath();
+  ctx.arc(headX, headY - 1 * s, headR + 0.5 * s, Math.PI * 1.05, Math.PI * 2 - 0.1);
+  ctx.fill();
+  
+  // Kosmyk z przodu — wystaje z prawej (przód głowy w kierunku biegu) i wieje w lewo (do tyłu)
+  ctx.beginPath();
+  ctx.moveTo(headX + 6 * s, headY - 4 * s);  // mocowanie z przodu (prawa strona głowy)
+  ctx.quadraticCurveTo(
+    headX + 2 * s - hairBlow * s, 
+    headY - 10 * s - Math.abs(hairBlow) * 0.5 * s, 
+    headX - 4 * s - hairBlow * 1.5 * s,   // koniec daleko z tyłu (po lewej)
+    headY - 6 * s
+  );
+  ctx.lineTo(headX + 2 * s, headY - 2 * s);
+  ctx.fill();
+  
+  // Kosmyk dłuższy z tyłu — wieje za biegaczem (mocno w lewo)
+  ctx.beginPath();
+  ctx.moveTo(headX - 5 * s, headY - 2 * s);
+  ctx.quadraticCurveTo(
+    headX - 12 * s - hairBlow * s,
+    headY - 3 * s + hairBlow * 0.5 * s,
+    headX - 14 * s - hairBlow * 2 * s,    // długi kosmyk za głową
+    headY + 2 * s
+  );
+  ctx.lineTo(headX - 7 * s, headY + 4 * s);
+  ctx.fill();
+  
+  // 🆕 Drobny kosmyk środkowy (krótszy, dynamiczny)
+  ctx.beginPath();
+  ctx.moveTo(headX + 2 * s, headY - 6 * s);
+  ctx.quadraticCurveTo(
+    headX - 1 * s - hairBlow * 0.7 * s,
+    headY - 9 * s,
+    headX - 5 * s - hairBlow * 1.2 * s,
+    headY - 5 * s
+  );
+  ctx.lineTo(headX - 1 * s, headY - 4 * s);
+  ctx.fill();
+  
+  // 🆕 Highlight włosów (jaśniejszy brąz dla 3D feel)
+  if (!isGhost) {
+    ctx.fillStyle = 'rgba(80,50,30,0.8)';  // jaśniejszy brąz
+    ctx.beginPath();
+    ctx.arc(headX - 2 * s, headY - 5 * s, headR * 0.6, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.fill();
+  }
+  
+  // ═══════════════════════════════
+  // — TWARZ — oko + brew + uśmiech
+  // ═══════════════════════════════
+  if (!isGhost) {
+    // Oko - większe, lepiej widoczne
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(headX + 3 * s, headY - 1 * s, 1.8 * s, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Źrenica
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.arc(headX + 3.5 * s, headY - 1 * s, 1.1 * s, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Brew - skupiona, sportowa
+    ctx.strokeStyle = HAIR;
+    ctx.lineWidth = 1.4 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(headX + 1 * s, headY - 4 * s);
+    ctx.lineTo(headX + 5.5 * s, headY - 3.5 * s);
+    ctx.stroke();
+    
+    // Usta - skupiony uśmiech (sport)
+    ctx.strokeStyle = '#80452a';
+    ctx.lineWidth = 1.2 * s;
+    ctx.beginPath();
+    ctx.moveTo(headX + 1 * s, headY + 3 * s);
+    ctx.quadraticCurveTo(headX + 3 * s, headY + 4 * s, headX + 5 * s, headY + 3 * s);
+    ctx.stroke();
+    
+    // Lekki rumieniec na policzku (od wysiłku)
+    ctx.fillStyle = 'rgba(255,140,140,0.4)';
+    ctx.beginPath();
+    ctx.arc(headX + 5 * s, headY + 1 * s, 1.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 🆕 Ucho (subtle)
+    ctx.fillStyle = SKIN_DARK;
+    ctx.beginPath();
+    ctx.ellipse(headX - 6 * s, headY + 0.5 * s, 1.8 * s, 2.5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 🆕 Słuchawki bezprzewodowe (mały bonus stylowy)
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(headX - 7 * s, headY + 2 * s, 2 * s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#888';
+    ctx.fillRect(headX - 7.5 * s, headY + 3 * s, 1 * s, 1.5 * s);
+    
+    // 🆕 Szyja (delikatny segment)
+    ctx.fillStyle = SKIN_DARK;
+    ctx.fillRect(headX - 2.5 * s, headY + 6 * s, 5 * s, 3 * s);
+  }
+  
+  ctx.restore();
 }
 
 // Initial load
