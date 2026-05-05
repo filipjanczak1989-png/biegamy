@@ -2450,6 +2450,8 @@ function update() {
   // Particles + popups
   game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
   game.particles = game.particles.filter(p => p.life > 0);
+  // 🆕 Cap particles na 150 (zapobiega lag spike przy explozjach)
+  if (game.particles.length > 150) game.particles = game.particles.slice(-150);
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
   
@@ -5154,26 +5156,104 @@ function render() {
       return;
     }
     if (o.type === 'moving') {
-      // 🟧 Ruszający się kwadrat — pomarańczowy z glow
-      const y1 = o.y - o.h / 2;
-      const obsGrad = ctx.createLinearGradient(o.x, y1, o.x, y1 + o.h);
-      obsGrad.addColorStop(0, '#ffb74d');
-      obsGrad.addColorStop(1, '#e8561e');
-      ctx.fillStyle = obsGrad;
-      ctx.shadowColor = '#ffb74d';
-      ctx.shadowBlur = 15 * dpr;
-      ctx.fillRect(o.x, y1, o.w, o.h);
-      ctx.shadowBlur = 0;
-      ctx.strokeStyle = '#ffd966';
-      ctx.lineWidth = 1.5 * dpr;
-      ctx.strokeRect(o.x, y1, o.w, o.h);
-      // Linie ruchu (żeby było widać że się rusza)
-      ctx.strokeStyle = 'rgba(255,217,102,0.4)';
-      ctx.lineWidth = 1 * dpr;
+      // 🆕 DRON — zamiast pomarańczowego kwadratu
+      const cx = o.x + o.w / 2;
+      const cy = o.y;  // już animowane bobbing przez logikę
+      const droneW = o.w;
+      const droneH = o.h * 0.5;  // dron jest płaski, nie kwadratowy
+      const propPhase = game.t * 0.8;  // szybkie wirowanie propellerów
+      
+      // Cień pod dronem (na ziemi, żeby było widać że lewituje)
+      const shadowGrad = ctx.createRadialGradient(cx, GROUND_Y - 2 * dpr, 0, cx, GROUND_Y - 2 * dpr, droneW * 0.6);
+      shadowGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+      shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = shadowGrad;
       ctx.beginPath();
-      ctx.moveTo(o.x + o.w / 2, o.centerY - o.amplitude);
-      ctx.lineTo(o.x + o.w / 2, o.centerY + o.amplitude);
+      ctx.ellipse(cx, GROUND_Y - 2 * dpr, droneW * 0.6, 4 * dpr, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 4 ramiona propellerów (X shape)
+      const armLen = droneW * 0.45;
+      ctx.strokeStyle = '#3a3a45';
+      ctx.lineWidth = 2.5 * dpr;
+      ctx.lineCap = 'round';
+      // Lewa ręka góra → prawa dół
+      ctx.beginPath();
+      ctx.moveTo(cx - armLen, cy - droneH * 0.4);
+      ctx.lineTo(cx + armLen, cy + droneH * 0.4);
       ctx.stroke();
+      // Lewa ręka dół → prawa góra
+      ctx.beginPath();
+      ctx.moveTo(cx - armLen, cy + droneH * 0.4);
+      ctx.lineTo(cx + armLen, cy - droneH * 0.4);
+      ctx.stroke();
+      
+      // 4 propellery (małe okręgi z motion blur)
+      const propPositions = [
+        [cx - armLen, cy - droneH * 0.4],
+        [cx + armLen, cy + droneH * 0.4],
+        [cx - armLen, cy + droneH * 0.4],
+        [cx + armLen, cy - droneH * 0.4]
+      ];
+      for (const [px, py] of propPositions) {
+        // Motion blur disk
+        ctx.fillStyle = 'rgba(150,150,160,0.35)';
+        ctx.beginPath();
+        ctx.arc(px, py, 6 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Wewnętrzny propeller (kreska, animowany obrót)
+        ctx.strokeStyle = 'rgba(60,60,70,0.7)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(propPhase);
+        ctx.beginPath();
+        ctx.moveTo(-5 * dpr, 0);
+        ctx.lineTo(5 * dpr, 0);
+        ctx.stroke();
+        ctx.restore();
+        // Center hub
+        ctx.fillStyle = '#1a1a1f';
+        ctx.beginPath();
+        ctx.arc(px, py, 1.5 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Body drona (centralny korpus)
+      const bodyGrad = ctx.createLinearGradient(cx, cy - droneH * 0.5, cx, cy + droneH * 0.5);
+      bodyGrad.addColorStop(0, '#5a5a65');
+      bodyGrad.addColorStop(0.5, '#3a3a45');
+      bodyGrad.addColorStop(1, '#1a1a25');
+      ctx.fillStyle = bodyGrad;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(cx - droneW * 0.3, cy - droneH * 0.5, droneW * 0.6, droneH, 3 * dpr);
+      else ctx.rect(cx - droneW * 0.3, cy - droneH * 0.5, droneW * 0.6, droneH);
+      ctx.fill();
+      
+      // Highlight body (top edge)
+      ctx.fillStyle = 'rgba(180,180,200,0.6)';
+      ctx.fillRect(cx - droneW * 0.28, cy - droneH * 0.45, droneW * 0.56, 1.2 * dpr);
+      
+      // Camera lens (front - ciemny okrąg z odbiciem)
+      ctx.fillStyle = '#0a0a10';
+      ctx.beginPath();
+      ctx.arc(cx, cy + droneH * 0.05, 3 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(80,150,255,0.7)';
+      ctx.beginPath();
+      ctx.arc(cx + 0.5 * dpr, cy + droneH * 0.05 - 0.5 * dpr, 1.5 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Migająca czerwona/zielona lampka na górze (LED status)
+      const ledOn = (game.t * 0.15 % 2) < 1;
+      ctx.fillStyle = ledOn ? '#ff3030' : '#30ff60';
+      ctx.shadowColor = ledOn ? '#ff3030' : '#30ff60';
+      ctx.shadowBlur = 5 * dpr;
+      ctx.beginPath();
+      ctx.arc(cx, cy - droneH * 0.5, 1.3 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      
       return;
     }
     if (o.type === 'pedestrian') {
@@ -7158,7 +7238,7 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // Faza nóg (-1..1)
   let legCycle;
   if (state === 'run') {
-    legCycle = Math.sin(legPhase * 2);
+    legCycle = Math.sin(legPhase * 1.5);  // 🆕 *2 → *1.5 (mniej "migotania" 4 nóg)
   } else if (state === 'jump_up') {
     legCycle = -1;
   } else if (state === 'jump_down') {
@@ -7175,7 +7255,7 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   
   // Włosy — kosmyk reaguje na ruch (trzepocze do tyłu podczas biegu i dasha)
   let hairBlow = 0;
-  if (state === 'run') hairBlow = Math.sin(legPhase * 2) * 1.5;
+  if (state === 'run') hairBlow = Math.sin(legPhase * 1.5) * 1.5;
   else if (state === 'dash') hairBlow = -2.5;  // mocno z tyłu (postać jedzie szybko do przodu)
   else if (state === 'jump_up') hairBlow = -1.2;  // delikatnie z tyłu
   else if (state === 'jump_down') hairBlow = 0.8;  // do przodu (spada)
