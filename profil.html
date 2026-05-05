@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sb.js"></script>
 <style>
 :root{
   --bg:#07070a;--card:rgba(18,15,24,0.97);--card2:rgba(24,20,32,0.98);
@@ -405,16 +406,11 @@ function updatePrivacyBtn(isPublic) {
 async function togglePrivacy() {
   if (!_myId) return;
   var newVal = !_isPublic;
-  var res = await _sb.from('athletes').update({is_public: newVal}).eq('id', _myId);
+  var res = await sb.from('athletes').update({is_public: newVal}).eq('id', _myId);
   if (res.error) { showToast('Błąd: ' + res.error.message); return; }
   updatePrivacyBtn(newVal);
   showToast(newVal ? 'Profil jest teraz publiczny' : 'Profil jest teraz prywatny');
 }
-const _sb = supabase.createClient(
-  'https://afqojgkaveykxbltxzwm.supabase.co',
-  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
-);
-
 let _myId = null;       // mój athlete ID
 let _targetId = null;   // oglądany profil (może być mój)
 let _isOwnProfile = false;
@@ -427,15 +423,15 @@ let _profileData = null;
 
 // ── INIT ──────────────────────────────────────────────────────────
 (async () => {
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
 
   // Sprawdź czy trener
-  const { data: coachRow } = await _sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
+  const { data: coachRow } = await sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
   _isCoach = !!coachRow;
 
   // Mój athlete ID
-  const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  const { data: me } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   _myId = me?.id || null;
 
   // Target: ?id=UUID lub własny profil
@@ -465,7 +461,7 @@ let _profileData = null;
 
   // Sprawdź prywatność cudzego profilu przed załadowaniem
   if (!_isOwnProfile) {
-    const { data: privCheck } = await _sb.from('athletes')
+    const { data: privCheck } = await sb.from('athletes')
       .select('is_public,full_name')
       .eq('id', _targetId)
       .maybeSingle();
@@ -503,7 +499,7 @@ let _profileData = null;
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
-  const { data: ath } = await _sb.from('athletes')
+  const { data: ath } = await sb.from('athletes')
     .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public')
     .eq('id', _targetId)
     .maybeSingle();
@@ -571,7 +567,7 @@ async function savePB(key, val) {
   if (!_myId) return;
   const upd = {};
   upd[key] = val || null;
-  const { error } = await _sb.from('athletes').update(upd).eq('id', _myId);
+  const { error } = await sb.from('athletes').update(upd).eq('id', _myId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   if (_profileData) _profileData[key] = val;
   showToast('Zyciówka zapisana ✓');
@@ -645,14 +641,14 @@ function openLinkGoalModal(upcomingIdx) {
 
 // Zmodyfikuj saveGoalFromModal żeby uwzględniała _linkingGoalIdx
 async function showRaceParticipantsById(raceId) {
-  const { data: race } = await _sb.from('races').select('id,name').eq('id', raceId).maybeSingle();
+  const { data: race } = await sb.from('races').select('id,name').eq('id', raceId).maybeSingle();
   if (!race) { showToast('Nie znaleziono wyścigu'); return; }
   // Pobierz uczestników
   await openRaceDetails(race.name);
 }
 
 async function loadBadges() {
-  const { data: logs } = await _sb.from('training_logs')
+  const { data: logs } = await sb.from('training_logs')
     .select('training_type')
     .like('training_type', '__badge__%')
     .eq('athlete_id', _targetId);
@@ -676,18 +672,18 @@ async function loadBadges() {
 // ── STATS ─────────────────────────────────────────────────────────
 async function loadStats() {
   // Znajomi
-  const { data: fr } = await _sb.from('friendships')
+  const { data: fr } = await sb.from('friendships')
     .select('id')
     .eq('status', 'accepted')
     .or(`requester_id.eq.${_targetId},addressee_id.eq.${_targetId}`);
   document.getElementById('ps-friends').textContent = fr?.length || 0;
 
   // Obserwujący (follows)
-  const { data: fol } = await _sb.from('follows').select('id').eq('following_id', _targetId);
+  const { data: fol } = await sb.from('follows').select('id').eq('following_id', _targetId);
   document.getElementById('ps-followers').textContent = fol?.length || 0;
 
   // Treningi + km
-  const { data: logs } = await _sb.from('training_logs')
+  const { data: logs } = await sb.from('training_logs')
     .select('distance_km')
     .eq('athlete_id', _targetId)
     .not('training_type', 'like', '__badge__%');
@@ -699,7 +695,7 @@ async function loadStats() {
 // ── FRIEND STATUS ─────────────────────────────────────────────────
 async function loadFriendStatus() {
   if (!_myId || _isOwnProfile) return;
-  const { data } = await _sb.from('friendships')
+  const { data } = await sb.from('friendships')
     .select('id,status,requester_id')
     .or(`and(requester_id.eq.${_myId},addressee_id.eq.${_targetId}),and(requester_id.eq.${_targetId},addressee_id.eq.${_myId})`)
     .maybeSingle();
@@ -711,7 +707,7 @@ async function loadFriendStatus() {
   }
 
   // Follow status
-  const { data: fol } = await _sb.from('follows')
+  const { data: fol } = await sb.from('follows')
     .select('id')
     .eq('follower_id', _myId)
     .eq('following_id', _targetId)
@@ -772,7 +768,7 @@ function openDuelFromProfile() {
 // ── FRIEND ACTIONS ─────────────────────────────────────────────────
 async function sendFriendRequest() {
   if (!_myId) return;
-  const { error } = await _sb.from('friendships').insert({ requester_id: _myId, addressee_id: _targetId });
+  const { error } = await sb.from('friendships').insert({ requester_id: _myId, addressee_id: _targetId });
   if (error) { showToast('Błąd: ' + error.message); return; }
   _friendStatus = 'pending_sent';
   renderActionBtns();
@@ -780,7 +776,7 @@ async function sendFriendRequest() {
 }
 
 async function cancelFriendRequest() {
-  const { error } = await _sb.from('friendships').delete()
+  const { error } = await sb.from('friendships').delete()
     .eq('requester_id', _myId).eq('addressee_id', _targetId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _friendStatus = null;
@@ -789,7 +785,7 @@ async function cancelFriendRequest() {
 }
 
 async function acceptFriendRequest() {
-  const { error } = await _sb.from('friendships').update({ status: 'accepted', updated_at: new Date().toISOString() })
+  const { error } = await sb.from('friendships').update({ status: 'accepted', updated_at: new Date().toISOString() })
     .eq('requester_id', _targetId).eq('addressee_id', _myId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _friendStatus = 'accepted';
@@ -800,7 +796,7 @@ async function acceptFriendRequest() {
 
 async function rejectFriendRequest() {
   if (!confirm('Odrzucić zaproszenie?')) return;
-  const { error } = await _sb.from('friendships').delete()
+  const { error } = await sb.from('friendships').delete()
     .eq('requester_id', _targetId).eq('addressee_id', _myId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _friendStatus = null;
@@ -810,7 +806,7 @@ async function rejectFriendRequest() {
 
 async function removeFriend() {
   if (!confirm('Usunąć z znajomych?')) return;
-  const { error } = await _sb.from('friendships').delete()
+  const { error } = await sb.from('friendships').delete()
     .or(`and(requester_id.eq.${_myId},addressee_id.eq.${_targetId}),and(requester_id.eq.${_targetId},addressee_id.eq.${_myId})`);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _friendStatus = null;
@@ -821,10 +817,10 @@ async function removeFriend() {
 async function toggleFollow() {
   if (!_myId) return;
   if (_isFollowing) {
-    await _sb.from('follows').delete().eq('follower_id', _myId).eq('following_id', _targetId);
+    await sb.from('follows').delete().eq('follower_id', _myId).eq('following_id', _targetId);
     _isFollowing = false;
   } else {
-    await _sb.from('follows').insert({ follower_id: _myId, following_id: _targetId });
+    await sb.from('follows').insert({ follower_id: _myId, following_id: _targetId });
     _isFollowing = true;
   }
   renderActionBtns();
@@ -838,11 +834,11 @@ async function uploadAvatar(input) {
   const file = input.files[0];
   const ext = file.name.split('.').pop();
   const path = `avatars/${_myId}.${ext}`;
-  const { error: upErr } = await _sb.storage.from('biegamy-assets').upload(path, file, { upsert: true });
+  const { error: upErr } = await sb.storage.from('biegamy-assets').upload(path, file, { upsert: true });
   if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
-  const { data: urlData } = _sb.storage.from('biegamy-assets').getPublicUrl(path);
+  const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
   const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
-  await _sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _myId);
+  await sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _myId);
   const img = document.getElementById('av-img');
   img.src = avatarUrl;
   img.style.display = 'block';
@@ -970,12 +966,12 @@ async function loadPosts() {
 
   // Pobierz oba źródła równolegle
   const [postsRes, logsRes] = await Promise.all([
-    _sb.from('profile_posts')
+    sb.from('profile_posts')
       .select('*')
       .eq('athlete_id', _targetId)
       .order('created_at', { ascending: false })
       .limit(50),
-    _sb.from('training_logs')
+    sb.from('training_logs')
       .select('id,training_type,distance_km,pace,feel,comment,logged_at,attachment_url')
       .eq('athlete_id', _targetId)
       .not('training_type', 'like', '__badge__%')
@@ -1128,7 +1124,7 @@ function _renderTrainingItem(l, idx) {
 function _openTrainingDetail(logId) {
   const trainings = (window._lastFeedItems || []);
   // Pobierz dane logu
-  _sb.from('training_logs').select('*').eq('id', logId).maybeSingle().then(function(r) {
+  sb.from('training_logs').select('*').eq('id', logId).maybeSingle().then(function(r) {
     if (!r.data) return;
     const l = r.data;
     const ov = document.createElement('div');
@@ -1177,7 +1173,7 @@ function _openTrainingDetail(logId) {
 async function deletePost(postId, e) {
   if (e) e.stopPropagation();
   if (!confirm('Usunąć post?')) return;
-  const { error } = await _sb.from('profile_posts').delete().eq('id', postId);
+  const { error } = await sb.from('profile_posts').delete().eq('id', postId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   showToast('Post usunięty');
   loadPosts();
@@ -1187,7 +1183,7 @@ function editPost(postId, type, content, imageUrl) {
   if (type === 'quote') {
     var val = prompt('Edytuj cytat:', content);
     if (val === null) return;
-    _sb.from('profile_posts').update({content: val.trim()}).eq('id', postId).then(function(r) {
+    sb.from('profile_posts').update({content: val.trim()}).eq('id', postId).then(function(r) {
       if (r.error) { showToast('Błąd: '+r.error.message); return; }
       showToast('Post zaktualizowany ✓');
       loadPosts();
@@ -1196,7 +1192,7 @@ function editPost(postId, type, content, imageUrl) {
     // Dla zdjęcia — edytuj opis
     var val = prompt('Edytuj opis zdjęcia:', content);
     if (val === null) return;
-    _sb.from('profile_posts').update({content: val.trim()}).eq('id', postId).then(function(r) {
+    sb.from('profile_posts').update({content: val.trim()}).eq('id', postId).then(function(r) {
       if (r.error) { showToast('Błąd: '+r.error.message); return; }
       showToast('Opis zaktualizowany ✓');
       loadPosts();
@@ -1239,15 +1235,15 @@ async function submitPost() {
     if (!_postImgFile) { showToast('Wybierz zdjęcie'); return; }
     const ext = _postImgFile.name.split('.').pop();
     const path = `profile-posts/${_myId}/${Date.now()}.${ext}`;
-    const { error: upErr } = await _sb.storage.from('profile-posts').upload(path, _postImgFile);
+    const { error: upErr } = await sb.storage.from('profile-posts').upload(path, _postImgFile);
     if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
-    const { data: urlData } = _sb.storage.from('profile-posts').getPublicUrl(path);
+    const { data: urlData } = sb.storage.from('profile-posts').getPublicUrl(path);
     const desc = document.getElementById('post-photo-desc').value.trim();
-    await _sb.from('profile_posts').insert({ athlete_id: _myId, type: 'photo', image_url: urlData.publicUrl, content: desc || null });
+    await sb.from('profile_posts').insert({ athlete_id: _myId, type: 'photo', image_url: urlData.publicUrl, content: desc || null });
   } else {
     const text = document.getElementById('post-quote-text').value.trim();
     if (!text) { showToast('Wpisz cytat'); return; }
-    await _sb.from('profile_posts').insert({ athlete_id: _myId, type: 'quote', content: text });
+    await sb.from('profile_posts').insert({ athlete_id: _myId, type: 'quote', content: text });
   }
   showToast('Post dodany ✓');
   closeAddPost();
@@ -1293,7 +1289,7 @@ async function loadProfileFriends() {
   load.textContent = 'Ładowanie...';
   el.appendChild(load);
 
-  var res = await _sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
+  var res = await sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
     .or('requester_id.eq.' + _targetId + ',addressee_id.eq.' + _targetId);
   var rows = res.data || [];
   el.innerHTML = '';
@@ -1307,14 +1303,14 @@ async function loadProfileFriends() {
   }
 
   var ids = rows.map(function(r){ return r.requester_id === _targetId ? r.addressee_id : r.requester_id; });
-  var athRes = await _sb.from('athletes').select('id,full_name,pb_5k,goal,avatar_url').in('id', ids);
+  var athRes = await sb.from('athletes').select('id,full_name,pb_5k,goal,avatar_url').in('id', ids);
 
   var myStatuses = {};
   if (_myId && ids.length) {
     var orStr = ids.map(function(id){
       return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+id+'),and(requester_id.eq.'+id+',addressee_id.eq.'+_myId+')';
     }).join(',');
-    var fsRes = await _sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
+    var fsRes = await sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
     (fsRes.data||[]).forEach(function(r){
       var other = r.requester_id===_myId ? r.addressee_id : r.requester_id;
       myStatuses[other] = r.status==='accepted' ? 'accepted' : (r.requester_id===_myId ? 'pending_sent' : 'pending_received');
@@ -1380,7 +1376,7 @@ function profileSearch(q) {
 
 async function _doProfileSearch(q) {
   var el = document.getElementById('profile-search-results');
-  var res = await _sb.from('athletes').select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
+  var res = await sb.from('athletes').select('id,full_name,pb_marathon,pb_5k,goal,avatar_url')
     .eq('is_public', true).ilike('full_name', '%' + q + '%').limit(20);
   var results = (res.data||[]).filter(function(a){ return a.id !== _myId; });
   el.innerHTML = '';
@@ -1399,12 +1395,12 @@ async function _doProfileSearch(q) {
     var orStr = results.map(function(a){
       return 'and(requester_id.eq.'+_myId+',addressee_id.eq.'+a.id+'),and(requester_id.eq.'+a.id+',addressee_id.eq.'+_myId+')';
     }).join(',');
-    var fsRes = await _sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
+    var fsRes = await sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
     (fsRes.data||[]).forEach(function(r){
       var o = r.requester_id===_myId ? r.addressee_id : r.requester_id;
       myStatuses[o] = r.status==='accepted' ? 'accepted' : (r.requester_id===_myId ? 'pending_sent' : 'pending_received');
     });
-    var folRes = await _sb.from('follows').select('following_id').eq('follower_id', _myId);
+    var folRes = await sb.from('follows').select('following_id').eq('follower_id', _myId);
     (folRes.data||[]).forEach(function(f){ followSet.add(f.following_id); });
   }
 
@@ -1449,19 +1445,19 @@ async function _doProfileSearch(q) {
 
 async function quickAddFriend(targetId, btn) {
   if (!_myId) { showToast('Zaloguj się'); return; }
-  var res = await _sb.from('friendships').insert({requester_id:_myId, addressee_id:targetId});
+  var res = await sb.from('friendships').insert({requester_id:_myId, addressee_id:targetId});
   if (res.error) { showToast('Błąd: ' + res.error.message); return; }
   btn.textContent = '⏳ Wysłano'; btn.disabled = true; btn.style.opacity = '0.6';
   showToast('Zaproszenie wysłane ✓');
   // Powiadomienie
-  var me = await _sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
+  var me = await sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
   var myName = me.data?.full_name || 'Ktoś';
-  _sb.from('notifications').insert({athlete_id:targetId,type:'friend_request',from_athlete_id:_myId,message:myName+' chce zostać Twoim znajomym',read:false,created_at:new Date().toISOString()}).then(function(){});
+  sb.from('notifications').insert({athlete_id:targetId,type:'friend_request',from_athlete_id:_myId,message:myName+' chce zostać Twoim znajomym',read:false,created_at:new Date().toISOString()}).then(function(){});
 }
 
 async function quickAccept(requesterId, btn) {
   if (!_myId) return;
-  var res = await _sb.from('friendships').update({status:'accepted',updated_at:new Date().toISOString()})
+  var res = await sb.from('friendships').update({status:'accepted',updated_at:new Date().toISOString()})
     .eq('requester_id',requesterId).eq('addressee_id',_myId);
   if (res.error) { showToast('Błąd: ' + res.error.message); return; }
   btn.outerHTML = '<span style="font-size:10px;color:var(--green);">✓ Znajomi</span>';
@@ -1472,10 +1468,10 @@ async function quickAccept(requesterId, btn) {
 async function quickFollow(targetId, btn, isFollowing) {
   if (!_myId) return;
   if (isFollowing) {
-    await _sb.from('follows').delete().eq('follower_id',_myId).eq('following_id',targetId);
+    await sb.from('follows').delete().eq('follower_id',_myId).eq('following_id',targetId);
     btn.textContent='+ Obserwuj'; btn.style.color='#5b8cff'; btn.onclick=function(){quickFollow(targetId,btn,false);};
   } else {
-    await _sb.from('follows').insert({follower_id:_myId, following_id:targetId});
+    await sb.from('follows').insert({follower_id:_myId, following_id:targetId});
     btn.textContent='✓ Obserwujesz'; btn.style.color='var(--muted)'; btn.onclick=function(){quickFollow(targetId,btn,true);};
   }
 }
@@ -1595,7 +1591,7 @@ async function _getRacesCache() {
   const now = Date.now();
   // Cache 60s
   if (_racesCache && (now - _racesCacheTime) < 60000) return _racesCache;
-  const { data } = await _sb.from('races')
+  const { data } = await sb.from('races')
     .select('id,name,date,city,distance_km')
     .eq('status','approved')
     .gte('date', new Date().toISOString().slice(0,10))
@@ -1687,7 +1683,7 @@ async function saveGoalFromModal() {
     goals[_linkingGoalIdx].race_id = _goalSelectedRace.id;
     goals[_linkingGoalIdx].name = _goalSelectedRace.name;
     goals[_linkingGoalIdx].date = _goalSelectedRace.date;
-    const { error } = await _sb.from('athletes').update({
+    const { error } = await sb.from('athletes').update({
       race_goals: JSON.stringify(goals),
       goal: goals[0]?.name || null,
       target_date: goals[0]?.date || null
@@ -1695,7 +1691,7 @@ async function saveGoalFromModal() {
     if (error) { showToast('Błąd: ' + error.message); return; }
     if (_profileData) _profileData.race_goals = JSON.stringify(goals);
     // Auto-signup
-    await _sb.from('race_signups').upsert({
+    await sb.from('race_signups').upsert({
       race_id: _goalSelectedRace.id,
       athlete_id: _myId
     }, { onConflict: 'race_id,athlete_id' });
@@ -1724,7 +1720,7 @@ async function saveGoalFromModal() {
 
   goals.push(newGoal);
 
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -1734,7 +1730,7 @@ async function saveGoalFromModal() {
 
   // Jeśli to wyścig z kalendarza — auto-signup
   if (_goalSelectedRace) {
-    const sup = await _sb.from('race_signups').upsert({
+    const sup = await sb.from('race_signups').upsert({
       race_id: _goalSelectedRace.id,
       athlete_id: _myId
     }, { onConflict: 'race_id,athlete_id' });
@@ -1758,7 +1754,7 @@ async function proposeGoalAsRace() {
   if (!name) { showToast('Wpisz nazwę zawodów'); return; }
   if (!date) { showToast('Podaj datę'); return; }
   // Wyślij propozycję jako pending race
-  const { error } = await _sb.from('races').insert({
+  const { error } = await sb.from('races').insert({
     name: name,
     date: date,
     distance_km: 10, // placeholder, trener uzupełni
@@ -1793,7 +1789,7 @@ async function removeGoal(idx) {
   const removed = goals[realIdx];
   goals.splice(realIdx, 1);
 
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -1803,7 +1799,7 @@ async function removeGoal(idx) {
 
   // Jeśli cel miał race_id — usuń też signup
   if (removed.race_id) {
-    await _sb.from('race_signups').delete().eq('race_id', removed.race_id).eq('athlete_id', _myId);
+    await sb.from('race_signups').delete().eq('race_id', removed.race_id).eq('athlete_id', _myId);
   }
 
   renderGoals(_profileData);
@@ -1812,7 +1808,7 @@ async function removeGoal(idx) {
 // ── RACE PARTICIPANTS MODAL ──────────────────────────────────────
 async function openRaceDetails(raceName) {
   // Znajdź race w bazie po nazwie
-  const { data: races } = await _sb.from('races')
+  const { data: races } = await sb.from('races')
     .select('id,name,date,city,distance_km,url_regulamin,url_organizer,signup_count')
     .ilike('name', '%' + raceName + '%')
     .limit(1);
@@ -1821,13 +1817,13 @@ async function openRaceDetails(raceName) {
   // Pobierz uczestników (przez race_signups lub przez race_goals zawodników)
   let participants = [];
   if (race) {
-    const { data: signups } = await _sb.from('race_signups')
+    const { data: signups } = await sb.from('race_signups')
       .select('athlete_id')
       .eq('race_id', race.id)
       .limit(50);
     if (signups?.length) {
       const ids = signups.map(s => s.athlete_id);
-      const { data: aths } = await _sb.from('athletes')
+      const { data: aths } = await sb.from('athletes')
         .select('id,full_name,avatar_url,is_public')
         .in('id', ids);
       participants = (aths||[]).filter(a => a.is_public || a.id === _myId);
@@ -1891,7 +1887,7 @@ function showToast(msg) {
 async function _openPeerChat(tid,tn){
   if(document.getElementById('pc-ov'))return;
   // Pobierz avatar znajomego
-  var avRes = await _sb.from('athletes').select('avatar_url').eq('id',tid).maybeSingle();
+  var avRes = await sb.from('athletes').select('avatar_url').eq('id',tid).maybeSingle();
   var avUrl = avRes && avRes.data && avRes.data.avatar_url || '';
   var ini = (tn||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
 
@@ -1991,7 +1987,7 @@ async function _openPeerChat(tid,tn){
   }, 4000);
 
   // Mark as read
-  _sb.from('peer_messages').update({read:true}).eq('from_id',tid).eq('to_id',_myId).then(function(){});
+  sb.from('peer_messages').update({read:true}).eq('from_id',tid).eq('to_id',_myId).then(function(){});
 }
 
 function _pcCleanup(){
@@ -2004,7 +2000,7 @@ async function _pcLoad(t, silent){
   if(!el)return;
   var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 80;
 
-  var r=await _sb.from('peer_messages')
+  var r=await sb.from('peer_messages')
     .select('id,from_id,body,sent_at')
     .or('and(from_id.eq.'+_myId+',to_id.eq.'+t+'),and(from_id.eq.'+t+',to_id.eq.'+_myId+')')
     .order('sent_at',{ascending:true})
@@ -2073,7 +2069,7 @@ async function _pcSend(t){
   // disable button briefly
   var btn = document.getElementById('pc-send-btn');
   if (btn) { btn.style.opacity='0.5'; btn.disabled=true; }
-  var r = await _sb.from('peer_messages').insert({from_id:_myId,to_id:t,body:b,sent_at:new Date().toISOString(),read:false});
+  var r = await sb.from('peer_messages').insert({from_id:_myId,to_id:t,body:b,sent_at:new Date().toISOString(),read:false});
   if (btn) { btn.style.opacity='1'; btn.disabled=false; }
   if (r.error) {
     showToast('Błąd: '+r.error.message);
@@ -2081,7 +2077,7 @@ async function _pcSend(t){
     return;
   }
   // Send notification
-  _sb.from('notifications').insert({
+  sb.from('notifications').insert({
     athlete_id: t,
     type: 'chat',
     from_athlete_id: _myId,
@@ -2107,13 +2103,13 @@ async function openFollowersList(){
   var loading=document.createElement('div');loading.style.cssText='text-align:center;padding:24px;color:var(--muted);font-size:12px;';loading.textContent='Ładowanie...';li.appendChild(loading);
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
 
-  var r=await _sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
+  var r=await sb.from('follows').select('follower_id').eq('following_id',_targetId).limit(50);
   var ids=(r.data||[]).map(function(x){return x.follower_id;});
   li.innerHTML='';
   if(!ids.length){
     var empty=document.createElement('div');empty.style.cssText='text-align:center;padding:24px;color:var(--muted);';empty.textContent='Brak obserwujących';li.appendChild(empty);return;
   }
-  var ar=await _sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
+  var ar=await sb.from('athletes').select('id,full_name,avatar_url,goal').in('id',ids);
   (ar.data||[]).forEach(function(a){
     var row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';
@@ -2147,7 +2143,7 @@ async function openTrainingsList(){
   fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTr(this)" style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
   var li=document.createElement('div');li.id='tr-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(fb);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  var r=await _sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
+  var r=await sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
   _allTr=r.data||[];renderTr('');
 }
 function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});btn.style.background='rgba(232,86,30,0.15)';btn.style.borderColor='rgba(232,86,30,0.4)';btn.style.color='var(--accent)';renderTr(btn.dataset.type||'');}
@@ -2171,7 +2167,7 @@ function renderTr(filter){
 // ── BADGE ZAPROSZEŃ ───────────────────────────────────────────────
 async function checkProfilFriendRequests(){
   if(!_myId)return;
-  try{var r=await _sb.from('friendships').select('id',{count:'exact',head:true}).eq('status','pending').eq('addressee_id',_myId);var b=document.getElementById('profil-friends-badge');if(b)b.style.display=((r.count||0)>0?'block':'none');}catch(e){}
+  try{var r=await sb.from('friendships').select('id',{count:'exact',head:true}).eq('status','pending').eq('addressee_id',_myId);var b=document.getElementById('profil-friends-badge');if(b)b.style.display=((r.count||0)>0?'block':'none');}catch(e){}
 }
 
 
@@ -2192,7 +2188,7 @@ function _tileRaces() {
   _openRacesModal();
 }
 async function _openRacesModal() {
-  var res = await _sb.from('race_signups').select('race_id').eq('athlete_id',_targetId).limit(20);
+  var res = await sb.from('race_signups').select('race_id').eq('athlete_id',_targetId).limit(20);
   var ids = (res.data||[]).map(function(r){return r.race_id;});
   var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
   var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:75vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
@@ -2202,7 +2198,7 @@ async function _openRacesModal() {
   var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
   if(!ids.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych startów</div>';return;}
-  var races=await _sb.from('races').select('id,name,date,city,distance_km').in('id',ids).order('date',{ascending:true});
+  var races=await sb.from('races').select('id,name,date,city,distance_km').in('id',ids).order('date',{ascending:true});
   li.innerHTML=(races.data||[]).map(function(r){
     var d=new Date(r.date+'T12:00:00');var dl=Math.ceil((d-new Date())/86400000);
     return '<div style="padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
