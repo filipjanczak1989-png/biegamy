@@ -2154,6 +2154,10 @@ function update() {
       game.prevEndlessScene = game.endlessScene;
       game.sceneTransition = 90;  // 90 klatek = ~1.5s smooth fade
       game.endlessScene = scene.id;
+      // 🆕 Wyczyść weather/butterflies stare (z poprzedniej sceny) żeby uniknąć lag spike
+      if (game.weather) game.weather = game.weather.slice(-15);  // tylko 15 ostatnich
+      if (game.butterflies) game.butterflies = [];
+      if (game.footprints) game.footprints = [];
       showToast(scene.icon + ' ' + scene.label);
       flashScreen('rgba(255,255,255,0.10)', 12);
     }
@@ -2845,16 +2849,16 @@ function update() {
           '#ffd966', 1
         );
       }
-      // 🆕 Shockwave ring (expanding particle as ring)
+      // 🆕 Shockwave ring (mały, szybki, mniej "pomarańczowy")
       game.particles.push({
         x: c.x, y: c.y,
         vx: 0, vy: 0,
-        life: 18,
-        color: '#ffd966',
-        size: 0,           // start od 0, rozrasta się
+        life: 10,             // 18 → 10 (szybciej zanika)
+        color: 'rgba(255,235,140,0.7)',  // 🆕 jasny żółty zamiast soczystego ffd966
+        size: 0,
         gravity: false,
-        ring: true,        // 🆕 flag dla render jako ring
-        ringMax: c.r * 4
+        ring: true,
+        ringMax: c.r * 1.8    // 🆕 4x → 1.8x (dużo mniejszy)
       });
       // Floating "+5" popup
       if (game.multi >= 1.5) {
@@ -5634,14 +5638,15 @@ function render() {
   // Particles
   game.particles.forEach(p => {
     if (p.ring) {
-      // 🆕 Expanding ring (shockwave)
+      // 🆕 Expanding ring (shockwave) — subtelny, szybki
       const ringMax = p.ringMax || 40;
-      const t = 1 - p.life / 18;  // 0..1
+      const maxLife = 10;  // matched z spawnPopup life
+      const t = 1 - p.life / maxLife;
       const ringR = ringMax * t;
-      const alpha = (1 - t) * 0.8;
-      ctx.globalAlpha = alpha;
+      const alpha = (1 - t) * 0.5;  // 🆕 0.8 → 0.5
+      ctx.globalAlpha = Math.max(0, alpha);
       ctx.strokeStyle = p.color;
-      ctx.lineWidth = (3 - t * 2) * dpr;  // line maleje
+      ctx.lineWidth = (1.5 - t) * dpr;  // 🆕 cieńsza linia
       ctx.beginPath();
       ctx.arc(p.x, p.y, ringR, 0, Math.PI * 2);
       ctx.stroke();
@@ -7147,50 +7152,123 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // ═══════════════════════════════
   
   // Biodro — counter-rotation (delikatne kołysanie)
-  const hipShiftX = -legCycle * 1.5 * s;  // przeciwnie do nogi
+  const hipShiftX = -legCycle * 1.5 * s;
   
-  // Lewa noga (z tyłu) - z mięśniem łydki
-  const lThighX = legCycle * 14 * s;
-  const lThighY = 4 * s;
-  const lFootX = legCycle * 22 * s;
-  const lFootY = 18 * s - Math.abs(legCycle) * 8 * s;
+  // 🆕 NATURAL LEG KINEMATICS
+  // legCycle: -1..1 (faza animacji nogi)
+  // Lewa noga = legCycle (dodatni = w przód)
+  // Prawa noga = -legCycle (przeciwnie)
   
-  // Udo - grubsza linia
+  // Funkcja helper: oblicza pozycję nogi z naturalną kinematyką
+  // phase: -1..1 (gdzie noga w cyklu)
+  // Zwraca {kneeX, kneeY, footX, footY, footRot}
+  function legPos(phase) {
+    // Phase -1 = noga max do tyłu (push-off, stopa wyciągnięta)
+    // Phase 0 = noga przechodzi pod biodrem (środek swing, kolano wysoko)
+    // Phase 1 = noga max do przodu (foot strike, prawie prosta)
+    
+    // Foot X: liniowo z phase, zakres -22..+22
+    const footX = phase * 22 * s;
+    
+    // Knee bend zależne od fazy
+    // Back swing (phase < 0): mocno zgięte (knee high, foot back)
+    // Mid swing (phase ~0): max bend (knee najwyżej)
+    // Forward (phase > 0.5): coraz mniej zgięte (almost straight przy heel strike)
+    let kneeBendFactor;
+    if (phase < 0) {
+      // Tylna pozycja: 0..1 zgięcie zależnie od głębokości
+      kneeBendFactor = 0.3 + Math.abs(phase) * 0.5;  // 0.3..0.8
+    } else if (phase < 0.7) {
+      // Mid-forward: prawie prosta przy max forward
+      kneeBendFactor = 0.7 - phase * 0.5;  // 0.7..0.35
+    } else {
+      // Przy heel strike (phase 0.7-1): bardzo prosta
+      kneeBendFactor = 0.35 - (phase - 0.7) * 0.7;  // 0.35..0.14
+    }
+    
+    // Knee position: w środku między biodrem a stopą + lift do góry
+    const hipX = hipShiftX;
+    const hipY = -8 * s;
+    const footY_ground = 18 * s;
+    
+    // Knee X: między biodrem a stopą (closer to hip when knee is up)
+    const kneeX = hipX + (footX - hipX) * 0.45;
+    
+    // Knee Y: zależy od bend - więcej bend = wyżej knee
+    // Max lift gdy mid-swing (phase ~0): kolano wysoko
+    const kneeLift = kneeBendFactor * 10 * s;
+    const kneeY = (hipY + footY_ground) / 2 - kneeLift;
+    
+    // Foot Y: ground when phase >= 0.7 (foot strike) or phase <= -0.7 (still on ground from push)
+    // W swing (-0.7 < phase < 0.7): unosi się wyżej w środku
+    let footY;
+    if (Math.abs(phase) > 0.7) {
+      footY = footY_ground;  // na ziemi
+    } else {
+      // Mid-swing: stopa wyżej (parabola)
+      const swingProgress = phase / 0.7;  // -1..1 w swing range
+      const liftCurve = 1 - swingProgress * swingProgress;  // parabola, max w środku
+      footY = footY_ground - liftCurve * 8 * s;
+    }
+    
+    // Foot rotation - butt rotates with motion
+    // Push-off: rotuje do przodu (palce w dół)
+    // Heel strike: rotuje do tyłu (pięta najpierw)
+    let footRot;
+    if (phase < -0.5) footRot = 0.3;        // push-off, palce do przodu/dół
+    else if (phase > 0.5) footRot = -0.2;   // heel strike (lekko w górę)
+    else footRot = 0;                        // mid-swing flat
+    
+    return { kneeX, kneeY, footX, footY, footRot };
+  }
+  
+  // Lewa noga (z tyłu)
+  const lLeg = legPos(legCycle);
+  
+  // Udo
   ctx.strokeStyle = SHORTS;
   ctx.lineWidth = 7 * s;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(hipShiftX, -8 * s);
-  ctx.lineTo(lThighX, lThighY);
+  ctx.lineTo(lLeg.kneeX, lLeg.kneeY);
   ctx.stroke();
   
-  // Łydka - skin colored
+  // Łydka
   ctx.strokeStyle = SKIN;
   ctx.lineWidth = 5 * s;
   ctx.beginPath();
-  ctx.moveTo(lThighX, lThighY);
-  ctx.lineTo(lFootX, lFootY);
+  ctx.moveTo(lLeg.kneeX, lLeg.kneeY);
+  ctx.lineTo(lLeg.footX, lLeg.footY);
   ctx.stroke();
   
-  // Sock - biała skarpetka u góry buta
+  // Aliasy dla compat z resztą kodu
+  const lFootX = lLeg.footX;
+  const lFootY = lLeg.footY;
+  const lFootRot = lLeg.footRot;
+  
+  // Sock
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.ellipse(lFootX + 1 * s, lFootY - 2 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 🆕 Pasek pomarańczowy na skarpetce (sport)
   if (!isGhost) {
     ctx.fillStyle = SHOE_ACCENT;
     ctx.fillRect(lFootX - 2 * s, lFootY - 2.3 * s, 6 * s, 0.6 * s);
   }
   
-  // But lewy
+  // But lewy z rotacją
+  ctx.save();
+  ctx.translate(lFootX + 2 * s, lFootY + 1 * s);
+  ctx.rotate(lFootRot);
   ctx.fillStyle = SHOES;
   ctx.beginPath();
-  ctx.ellipse(lFootX + 2 * s, lFootY + 1 * s, 7 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 7 * s, 3 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = SHOE_SOLE;
-  ctx.fillRect(lFootX - 4 * s, lFootY + 2.5 * s, 12 * s, 1 * s);
+  ctx.fillRect(-6 * s, 1.5 * s, 12 * s, 1 * s);
+  ctx.restore();
   // 🆕 Swoosh na bucie (krzywa pomarańczowa)
   if (!isGhost) {
     ctx.strokeStyle = SHOE_ACCENT;
@@ -7285,39 +7363,39 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // armCycle = -legCycle czyli gdy noga prawa do przodu, ramię z PRZODU (lewe) do tyłu
   
   // Prawa ręka (z TYŁU - widoczna z drugiej strony tułowia)
-  const rArmSwingX = armCycle * 8 * s;  // -8..8 (pendulum X)
+  // 🆕 NATURAL ARM MOTION: łokieć też się unosi gdy ręka z tyłu (back swing pose)
+  const rArmSwingX = armCycle * 9 * s;  // 8 → 9 (większy zakres)
   const rElbowX = shoulderR_X + rArmSwingX;
-  const rElbowY = shoulderR_Y + 9 * s;  // łokieć ~ na wysokości brzucha
-  // Przedramię — ZGIĘTE w łokciu, dłoń do przodu i lekko do góry
-  // Gdy ramię z tyłu (rArmSwingX ujemne) — dłoń mniej do przodu
-  // Gdy ramię z przodu — dłoń do góry/przodu (push)
-  const rHandX = rElbowX + (5 + armCycle * 3) * s;  // dłoń zawsze do przodu, +3..+8 (zmienne)
-  const rHandY = rElbowY - (8 + armCycle * 2) * s;  // dłoń wyżej gdy z przodu
+  // 🆕 Łokieć wyżej gdy ramię z tyłu (back swing) - bardziej naturalny
+  const rElbowY = shoulderR_Y + (9 - Math.max(0, -armCycle) * 2) * s;
+  // Pięść: różnica X i Y zależy od fazy
+  // Back swing (armCycle < 0): pięść nieco z tyłu i wyżej
+  // Forward (armCycle > 0): pięść daleko do przodu i niżej (pionowy push)
+  const rHandX = rElbowX + (4 + armCycle * 4) * s;
+  const rHandY = rElbowY - (7 + armCycle * 3) * s;
   
   ctx.beginPath();
   ctx.moveTo(shoulderR_X, shoulderR_Y);
   ctx.lineTo(rElbowX, rElbowY);
   ctx.lineTo(rHandX, rHandY);
   ctx.stroke();
-  // Pięść
   ctx.fillStyle = SKIN;
   ctx.beginPath();
   ctx.arc(rHandX, rHandY, 3 * s, 0, Math.PI * 2);
   ctx.fill();
   
   // Lewa ręka (z PRZODU)
-  const lArmSwingX = -armCycle * 8 * s;
+  const lArmSwingX = -armCycle * 9 * s;
   const lElbowX = shoulderL_X + lArmSwingX;
-  const lElbowY = shoulderL_Y + 9 * s;
-  const lHandX = lElbowX + (5 + (-armCycle) * 3) * s;
-  const lHandY = lElbowY - (8 + (-armCycle) * 2) * s;
+  const lElbowY = shoulderL_Y + (9 - Math.max(0, armCycle) * 2) * s;
+  const lHandX = lElbowX + (4 + (-armCycle) * 4) * s;
+  const lHandY = lElbowY - (7 + (-armCycle) * 3) * s;
   
   ctx.beginPath();
   ctx.moveTo(shoulderL_X, shoulderL_Y);
   ctx.lineTo(lElbowX, lElbowY);
   ctx.lineTo(lHandX, lHandY);
   ctx.stroke();
-  // Pięść
   ctx.fillStyle = SKIN;
   ctx.beginPath();
   ctx.arc(lHandX, lHandY, 3 * s, 0, Math.PI * 2);
@@ -7338,12 +7416,12 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   }
   
   // ═══════════════════════════════
-  // — PRAWA NOGA (z PRZODU, na wierzchu) —
+  // — PRAWA NOGA (z PRZODU, na wierzchu) — używa tej samej helper function
   // ═══════════════════════════════
-  const rThighX = -legCycle * 14 * s;
-  const rThighY = 4 * s;
-  const rFootX = -legCycle * 22 * s;
-  const rFootY = 18 * s - Math.abs(legCycle) * 8 * s;
+  const rLeg = legPos(-legCycle);  // przeciwna faza
+  const rFootX = rLeg.footX;
+  const rFootY = rLeg.footY;
+  const rFootRot = rLeg.footRot;
   
   // Udo
   ctx.strokeStyle = SHORTS;
@@ -7352,55 +7430,60 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.lineJoin = 'round';
   ctx.beginPath();
   ctx.moveTo(hipShiftX, -8 * s);
-  ctx.lineTo(rThighX, rThighY);
+  ctx.lineTo(rLeg.kneeX, rLeg.kneeY);
   ctx.stroke();
   
-  // Łydka - skin colored
+  // Łydka
   ctx.strokeStyle = SKIN;
   ctx.lineWidth = 5 * s;
   ctx.beginPath();
-  ctx.moveTo(rThighX, rThighY);
+  ctx.moveTo(rLeg.kneeX, rLeg.kneeY);
   ctx.lineTo(rFootX, rFootY);
   ctx.stroke();
   
-  // Sock - biała skarpetka u góry buta
+  // Sock
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
   ctx.ellipse(rFootX + 1 * s, rFootY - 2 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
-  // 🆕 Pasek pomarańczowy na skarpetce
   if (!isGhost) {
     ctx.fillStyle = SHOE_ACCENT;
     ctx.fillRect(rFootX - 2 * s, rFootY - 2.3 * s, 6 * s, 0.6 * s);
   }
   
-  // But prawy
+  // But prawy z rotacją
+  ctx.save();
+  ctx.translate(rFootX + 2 * s, rFootY + 1 * s);
+  ctx.rotate(rFootRot);
   ctx.fillStyle = SHOES;
   ctx.beginPath();
-  ctx.ellipse(rFootX + 2 * s, rFootY + 1 * s, 7 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.ellipse(0, 0, 7 * s, 3 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = SHOE_SOLE;
-  ctx.fillRect(rFootX - 4 * s, rFootY + 2.5 * s, 12 * s, 1 * s);
+  ctx.fillRect(-6 * s, 1.5 * s, 12 * s, 1 * s);
   // Pasek na bucie + swoosh + sznurówki
   if (!isGhost) {
-    // 🆕 Swoosh na bucie (krzywa pomarańczowa, subtle)
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(-3 * s, -1 * s, 7 * s, 1.2 * s);
+    // Swoosh
     ctx.strokeStyle = SHOE_ACCENT;
     ctx.lineWidth = 1.2 * s;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(rFootX - 2 * s, rFootY + 1.5 * s);
-    ctx.quadraticCurveTo(rFootX + 1 * s, rFootY - 0.5 * s, rFootX + 5 * s, rFootY + 1 * s);
+    ctx.moveTo(-4 * s, 0.5 * s);
+    ctx.quadraticCurveTo(-1 * s, -1.5 * s, 3 * s, 0);
     ctx.stroke();
     // Sznurówki — krzyż X
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 0.8 * s;
     ctx.beginPath();
-    ctx.moveTo(rFootX - 1 * s, rFootY - 1 * s);
-    ctx.lineTo(rFootX + 4 * s, rFootY + 1 * s);
-    ctx.moveTo(rFootX + 4 * s, rFootY - 1 * s);
-    ctx.lineTo(rFootX - 1 * s, rFootY + 1 * s);
+    ctx.moveTo(-1 * s, -1.5 * s);
+    ctx.lineTo(2 * s, 0.5 * s);
+    ctx.moveTo(2 * s, -1.5 * s);
+    ctx.lineTo(-1 * s, 0.5 * s);
     ctx.stroke();
   }
+  ctx.restore();
   
   // ═══════════════════════════════
   // — GŁOWA — większa, lepsze proporcje, pochylona do przodu
