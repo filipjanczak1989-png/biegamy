@@ -896,18 +896,21 @@ function $(id) {
   return el;
 }
 
-// 🆕 Performance: wyłącz shadowBlur w low quality mode (kosztowne renderowanie)
+// 🆕 Performance: globalny clamp shadowBlur
+// - Low quality: blur OFF zawsze (cienie zniknięte)
+// - High quality: blur clamped do 8px max (różnica między 8 a 25 jest minimalna wzrokowo, ale GPU 3x mocniej pracuje)
 let _origShadowBlurDesc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowBlur');
 if (!_origShadowBlurDesc) _origShadowBlurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
 let _shadowBlurValue = 0;
+const _MAX_BLUR = 8;  // 🆕 hard cap
 Object.defineProperty(ctx, 'shadowBlur', {
   set(v) {
     _shadowBlurValue = v;
-    // Wyłącz blur w low quality mode
     if (typeof _lowQuality !== 'undefined' && _lowQuality) {
       _origShadowBlurDesc.set.call(this, 0);
     } else {
-      _origShadowBlurDesc.set.call(this, v);
+      // Clamp w high quality też — 25px blur wygląda tak samo jak 8px, a kosztuje 3x więcej GPU
+      _origShadowBlurDesc.set.call(this, v > _MAX_BLUR ? _MAX_BLUR : v);
     }
   },
   get() { return _shadowBlurValue; },
@@ -1109,7 +1112,7 @@ function onTapDown(e) {
     registerTempoTap();
   }
 
-  if (now - lastTap < 280) {
+  if (now - lastTap < 220) {  // 🆕 220ms (było 280ms) — uniknięcie przypadkowego dasha przy rytmicznym skok+salto
     tryDash();
     recordReaction();
     lastTap = 0;
@@ -1207,6 +1210,9 @@ canvas.addEventListener('touchmove', function(e) {
   }
 }, { passive: false });
 canvas.addEventListener('touchend', function() { touchStartY = null; onTapUp(); });
+// 🆕 Touchcancel — gdy system przerwie touch (notyfikacja, połączenie, alert)
+// Bez tego jumpHold zostałby =1 a gracz "lewitowałby" do końca skoku
+canvas.addEventListener('touchcancel', function() { touchStartY = null; onTapUp(); });
 canvas.addEventListener('mousedown', onTapDown);
 canvas.addEventListener('mouseup', onTapUp);
 window.addEventListener('keydown', e => {
@@ -2752,8 +2758,8 @@ function update() {
 
   if (game.invuln > 0) game.invuln--;
 
-  // Trail
-  if (game.t % 2 === 0) {
+  // Trail — tylko podczas dasha (intensywny ruch). Normalny bieg/skok bez smugi (czyściej, mniej GPU).
+  if (game.dashing > 0 && game.t % 2 === 0) {
     game.trail.push({ x: game.px, y: game.py - (game.sliding > 0 ? 10 * dpr : 30 * dpr), life: 20 });
   }
   game.trail.forEach(t => t.life--);
@@ -2869,8 +2875,9 @@ function update() {
   // Particles + popups
   game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
   game.particles = game.particles.filter(p => p.life > 0);
-  // 🆕 Cap particles na 150 (zapobiega lag spike przy explozjach)
-  if (game.particles.length > 150) game.particles = game.particles.slice(-150);
+  // 🆕 Cap particles — dynamiczny w zależności od jakości (mobile/low = 50, high = 150)
+  const maxParticles = _lowQuality ? 50 : 150;
+  if (game.particles.length > maxParticles) game.particles = game.particles.slice(-maxParticles);
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
   
@@ -2965,8 +2972,8 @@ function update() {
     
     // 🆕 BUTTERFLIES w PARK
     if (escene === 0) {
-      // Spawn raz na ~3-5s
-      if (game.t % 200 === 0 && game.butterflies.length < 4) {
+      // Spawn raz na ~3-5s — pomijamy w low quality
+      if (!_lowQuality && game.t % 200 === 0 && game.butterflies.length < 4) {
         game.butterflies.push({
           x: W + 30 * dpr,
           y: GROUND_Y - (50 + Math.random() * 80) * dpr,
@@ -3413,7 +3420,7 @@ function updateModeTarget() {
     // Endless — pokaż dystans + porównanie z rekordem
     target.style.display = 'flex';
     $('mt-icon').textContent = '🏁';
-    const best = getStat('best_score', 0);
+    const best = game.cachedBestScore;  // 🆕 cached zamiast getStat → unika localStorage read co frame
     const cur = Math.floor(game.score);
     if (best > 0 && cur < best) {
       $('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
@@ -6507,13 +6514,13 @@ function render() {
   }
   
   if (!blink) {
-    // 🆕 Motion trail — TYLKO przy dashie i flippingu (nie przy zwykłym biegu)
+    // 🆕 Motion trail — TYLKO przy dashie (nie przy salcie/skoku/biegu)
+    // Salto ma już własną wizualizację (rotacja + particles + popup), trail dodawał chaos
     if (!game.playerTrail) game.playerTrail = [];
-    // Spawn TYLKO gdy dash lub flip — przy zwykłym biegu trail wyglądał jak "drgająca postać"
-    if (game.t % 3 === 0 && (game.dashing > 0 || game.flipping)) {
+    if (game.t % 3 === 0 && game.dashing > 0) {
       game.playerTrail.push({
         x: game.px, y: game.py, life: 10,  // krótszy trail
-        rot: game.flipping ? game.flipRotation : 0,
+        rot: 0,  // dash = bez rotacji
         state: getRunnerState(),
         legPhase: game.t * 0.35
       });
@@ -6655,7 +6662,14 @@ function render() {
 // ═════════════════════════════════════════════════
 let lastFrame = 0;
 let _fpsHistory = [];
-let _lowQuality = false;
+// 🆕 Auto-detect: mobile = low quality OD STARTU (proaktywnie, nie reaktywnie)
+// Wykrywa: telefony, tablety, urządzenia z touch + małym ekranem
+let _lowQuality = (() => {
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet|webOS|BlackBerry|Windows Phone/i.test(ua);
+  const isTouchSmall = ('ontouchstart' in window) && Math.min(window.innerWidth, window.innerHeight) < 900;
+  return isMobileUA || isTouchSmall;
+})();
 let _accumulator = 0;
 const FIXED_DT = 1000 / 60;  // 16.67ms per logic tick
 const MAX_STEPS = 4;          // max 4 catch-up updates per render
@@ -6672,8 +6686,10 @@ function loop(t) {
     if (_fpsHistory.length > 30) _fpsHistory.shift();
     if (_fpsHistory.length === 30 && game.t % 30 === 0) {
       const avgDt = _fpsHistory.reduce((a, b) => a + b, 0) / _fpsHistory.length;
-      if (avgDt > 22) _lowQuality = true;
-      else if (avgDt < 18) _lowQuality = false;
+      // 🆕 Agresywniejsze progi: szybciej włącza low (>20ms = ~50fps), wolniej wyłącza (<15ms = ~67fps)
+      // Hysteresis 5ms zapobiega flickerowaniu między stanami
+      if (avgDt > 20) _lowQuality = true;
+      else if (avgDt < 15) _lowQuality = false;
     }
   }
   
@@ -6753,6 +6769,8 @@ function realStart(mode) {
   game = newGame(mode);
   game.running = true;
   game.focusStartT = 0;
+  // 🆕 Cache best_score raz na rozpoczęcie gry — używane co frame w updateModeTarget()
+  game.cachedBestScore = getStat('best_score', 0);
   _endGameCalled = false;
   
   // 🆕 Próba wymuszenia landscape orientation (Android Chrome wspiera, iOS Safari nie)
@@ -7503,6 +7521,7 @@ function drawDog(ctx, x, y, bobPhase) {
 }
 
 function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
+  ctx.save();  // 🆕 FIX: parowanie z restore() na końcu funkcji (linia ~8176)
   const s = dpr;
   // Kolory
   const SKIN = '#f4c39a';
