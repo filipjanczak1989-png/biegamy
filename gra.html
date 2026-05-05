@@ -1971,80 +1971,171 @@ function startMusic() {
   if (_musicState.playing || !_musicState.enabled) return;
   const ctx = _getAudio(); if (!ctx) return;
   
-  // Master gain (na low — żeby nie zagłuszał SFX)
+  // Master gain
   const masterGain = ctx.createGain();
-  masterGain.gain.value = 0.18;
+  masterGain.gain.value = 0.22;
   masterGain.connect(ctx.destination);
   _musicState.masterGain = masterGain;
   _musicState.playing = true;
-  _musicState.stepIndex = 0;
-  _musicState.scheduled = ctx.currentTime + 0.1;
   
-  // BPM 75 (chillout lofi)
+  // 🆕 NOWE PODEJŚCIE: pre-render cały loop do AudioBuffer (8 sekund) i loopuj natywnie
+  // To omija problem JS scheduler timera na iOS Safari
   const bpm = 75;
-  const stepDur = 60 / bpm / 4;  // 16ths
+  const beatDur = 60 / bpm;          // 0.8s na beat (4/4)
+  const stepDur = beatDur / 4;       // 16th = 0.2s
+  const loopDur = stepDur * 32;      // 32 step (2 bary) = 6.4s
+  const sampleRate = ctx.sampleRate;
+  const loopSamples = Math.floor(loopDur * sampleRate);
+  const buffer = ctx.createBuffer(2, loopSamples, sampleRate);  // stereo
+  const left = buffer.getChannelData(0);
+  const right = buffer.getChannelData(1);
   
-  // Scheduler — DUŻY look-ahead 2s żeby wytrzymać iOS Safari timer hiccups
-  function scheduler() {
-    if (!_musicState.playing) return;
-    const ctx = _getAudio(); if (!ctx) return;
-    // Wymuszony resume na każdym call
-    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-    
-    // 🆕 Look-ahead 2 sekundy (było 0.5s) — wytrzyma dłuższe pauzy timera
-    while (_musicState.scheduled < ctx.currentTime + 2.0) {
-      const step = _musicState.stepIndex;
-      const time = _musicState.scheduled;
-      const bar = Math.floor(_musicState.stepIndex / 16) % 4;
-      const chord = _bassChords[bar];
-      
-      if (_kickPattern[step]) _playKick(time, 0.5);
-      if (_snarePattern[step]) _playSnare(time, 0.45);
-      if (_hatPattern[step]) _playHat(time, 0.35, _hatPattern[step] === 2);
-      
-      if (step === 0) {
-        _playBass(time, chord[0] / 2, stepDur * 8, 0.3);
-      } else if (step === 8) {
-        _playBass(time, chord[1] / 2, stepDur * 8, 0.25);
-      }
-      
-      if (step === 0) {
-        _playPad(time, chord, stepDur * 16, 0.12);
-      }
-      
-      _musicState.scheduled += stepDur;
-      _musicState.stepIndex++;
-      if (_musicState.stepIndex >= 64) _musicState.stepIndex = 0;
-    }
-    
-    // Catch-up: jeśli scheduled "uciekło" w tył (długa pauza), reset
-    if (_musicState.scheduled < ctx.currentTime - 0.1) {
-      _musicState.scheduled = ctx.currentTime + 0.05;
+  // Helper: generuje kick drum sample
+  function _kick(samples, time, vol) {
+    const dur = 0.15 * sampleRate;
+    const start = Math.floor(time * sampleRate);
+    for (let i = 0; i < dur && start + i < samples.length; i++) {
+      const t = i / sampleRate;
+      const env = Math.exp(-t * 12);
+      const freq = 60 + 60 * Math.exp(-t * 30);  // pitch drop
+      const sample = Math.sin(2 * Math.PI * freq * t) * env * vol;
+      samples[start + i] += sample;
     }
   }
   
-  // 🆕 Pierwszy run + interval co 250ms (look-ahead 2s pokrywa to z naddatkiem)
-  scheduler();
-  _musicState.intervalId = setInterval(scheduler, 250);
+  // Helper: snare (white noise + tonal)
+  function _snare(samples, time, vol) {
+    const dur = 0.1 * sampleRate;
+    const start = Math.floor(time * sampleRate);
+    for (let i = 0; i < dur && start + i < samples.length; i++) {
+      const t = i / sampleRate;
+      const env = Math.exp(-t * 25);
+      const noise = (Math.random() * 2 - 1) * 0.6;
+      const tone = Math.sin(2 * Math.PI * 200 * t) * 0.4;
+      samples[start + i] += (noise + tone) * env * vol;
+    }
+  }
+  
+  // Helper: hi-hat (filtered noise, krótki)
+  function _hat(samples, time, vol, open) {
+    const dur = (open ? 0.18 : 0.05) * sampleRate;
+    const start = Math.floor(time * sampleRate);
+    let lastSample = 0;
+    for (let i = 0; i < dur && start + i < samples.length; i++) {
+      const t = i / sampleRate;
+      const env = Math.exp(-t * (open ? 12 : 50));
+      // Simple highpass: różnica kolejnych próbek (high freq pass)
+      const noise = Math.random() * 2 - 1;
+      const filtered = noise - lastSample * 0.7;
+      lastSample = noise;
+      samples[start + i] += filtered * env * vol * 0.5;
+    }
+  }
+  
+  // Helper: bass (sine + saw, lowpass)
+  function _bass(samples, time, freq, dur, vol) {
+    const durSamples = dur * sampleRate;
+    const start = Math.floor(time * sampleRate);
+    let lpState = 0;
+    for (let i = 0; i < durSamples && start + i < samples.length; i++) {
+      const t = i / sampleRate;
+      const env = Math.min(1, t * 50) * Math.exp(-t * 1.5);  // attack + slow decay
+      // Saw wave
+      const phase = (freq * t) % 1;
+      const saw = phase * 2 - 1;
+      const sine = Math.sin(2 * Math.PI * freq * t);
+      const raw = saw * 0.4 + sine * 0.6;
+      // Lowpass filter (simple one-pole)
+      lpState += (raw - lpState) * 0.15;
+      samples[start + i] += lpState * env * vol;
+    }
+  }
+  
+  // Helper: pad (3 sine fundamentals z delikatnym vibrato)
+  function _pad(samples, time, freqs, dur, vol) {
+    const durSamples = dur * sampleRate;
+    const start = Math.floor(time * sampleRate);
+    for (let i = 0; i < durSamples && start + i < samples.length; i++) {
+      const t = i / sampleRate;
+      const env = Math.min(1, t * 1.5) * Math.min(1, (dur - t) * 1.5);  // ramp in/out
+      let sample = 0;
+      for (const freq of freqs) {
+        const vibrato = Math.sin(2 * Math.PI * 4 * t) * 1.5;  // 4Hz vibrato 1.5Hz depth
+        sample += Math.sin(2 * Math.PI * (freq * 4 + vibrato) * t);
+      }
+      samples[start + i] += (sample / freqs.length) * env * vol;
+    }
+  }
+  
+  // Patterns (32 step = 2 bary)
+  const kickPat = [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0,
+                   1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0];
+  const snarePat = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0,
+                    0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
+  const hatPat = [1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1,
+                  1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1];
+  
+  // 2 chords w 32-step pętli (Am, F)
+  const chord1 = [110.00, 130.81, 164.81];   // Am
+  const chord2 = [87.31, 110.00, 130.81];    // F
+  
+  // Wypełnij oba kanały (mono → stereo)
+  const allSamples = new Float32Array(loopSamples);
+  
+  // Drums + bass + pad
+  for (let step = 0; step < 32; step++) {
+    const t = step * stepDur;
+    if (kickPat[step]) _kick(allSamples, t, 0.7);
+    if (snarePat[step]) _snare(allSamples, t, 0.4);
+    if (hatPat[step]) _hat(allSamples, t, 0.3, hatPat[step] === 2);
+    
+    // Bass na 0 i 8 (każdy bar)
+    if (step === 0) _bass(allSamples, t, chord1[0] / 2, stepDur * 8, 0.5);
+    if (step === 8) _bass(allSamples, t, chord1[1] / 2, stepDur * 8, 0.4);
+    if (step === 16) _bass(allSamples, t, chord2[0] / 2, stepDur * 8, 0.5);
+    if (step === 24) _bass(allSamples, t, chord2[1] / 2, stepDur * 8, 0.4);
+  }
+  
+  // Pad — 2 chordy
+  _pad(allSamples, 0, chord1, stepDur * 16, 0.18);
+  _pad(allSamples, stepDur * 16, chord2, stepDur * 16, 0.18);
+  
+  // Kopiuj do stereo (subtle pan może być dodany później)
+  for (let i = 0; i < loopSamples; i++) {
+    left[i] = allSamples[i];
+    right[i] = allSamples[i];
+  }
+  
+  // Stwórz looping source
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.loop = true;
+  source.connect(masterGain);
+  source.start(0);
+  _musicState.source = source;
 }
 
 function stopMusic() {
   if (!_musicState.playing) return;
   _musicState.playing = false;
-  if (_musicState.intervalId) clearInterval(_musicState.intervalId);
-  _musicState.intervalId = null;
-  // Fade out master gain (smooth stop)
+  // Stop source jeśli istnieje
+  if (_musicState.source) {
+    try { _musicState.source.stop(); } catch(e) {}
+    try { _musicState.source.disconnect(); } catch(e) {}
+    _musicState.source = null;
+  }
+  // Fade out master gain
   if (_musicState.masterGain) {
     const ctx = _getAudio();
     if (ctx) {
       try {
         _musicState.masterGain.gain.cancelScheduledValues(ctx.currentTime);
         _musicState.masterGain.gain.setValueAtTime(_musicState.masterGain.gain.value, ctx.currentTime);
-        _musicState.masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+        _musicState.masterGain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
         setTimeout(() => {
           try { _musicState.masterGain.disconnect(); } catch(e) {}
           _musicState.masterGain = null;
-        }, 600);
+        }, 400);
       } catch(e) {}
     }
   }
@@ -6314,11 +6405,12 @@ function render() {
   }
   
   if (!blink) {
-    // 🆕 Motion trail — ghosty postaci za biegaczem
+    // 🆕 Motion trail — TYLKO przy dashie i flippingu (nie przy zwykłym biegu)
     if (!game.playerTrail) game.playerTrail = [];
-    if (game.t % 3 === 0 && (game.speed > 5 * dpr || game.dashing > 0 || !game.onGround)) {
+    // Spawn TYLKO gdy dash lub flip — przy zwykłym biegu trail wyglądał jak "drgająca postać"
+    if (game.t % 3 === 0 && (game.dashing > 0 || game.flipping)) {
       game.playerTrail.push({
-        x: game.px, y: game.py, life: 14,  // 12 → 14 (dłuższy trail)
+        x: game.px, y: game.py, life: 10,  // krótszy trail
         rot: game.flipping ? game.flipRotation : 0,
         state: getRunnerState(),
         legPhase: game.t * 0.35
@@ -6327,11 +6419,10 @@ function render() {
     for (const t of game.playerTrail) {
       t.life--;
       if (t.life <= 0) continue;
-      const a = (t.life / 14) * 0.4;  // 0.35 → 0.4
+      const a = (t.life / 10) * 0.3;  // mniejszy alfa max (0.3)
       ctx.save();
       ctx.globalAlpha = a;
-      // 🆕 Każdy ghost lekko offsetowany (bardziej dynamic feel)
-      drawRunner(ctx, t.x - (14 - t.life) * 0.5 * dpr, t.y, t.state, t.legPhase, t.rot, true);
+      drawRunner(ctx, t.x - (10 - t.life) * 0.5 * dpr, t.y, t.state, t.legPhase, t.rot, true);
       ctx.restore();
     }
     game.playerTrail = game.playerTrail.filter(t => t.life > 0);
