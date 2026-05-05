@@ -10,7 +10,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="sb.js"></script>
 <style>
 :root{
   --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
@@ -45,7 +44,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
   0%,100%{filter:hue-rotate(0deg);}
   50%{filter:hue-rotate(20deg);}
 }
-.home-content{padding:14px 18px max(160px,calc(env(safe-area-inset-bottom,0px) + 160px));flex:1;position:relative;z-index:1;}
+.home-content{padding:14px 18px max(160px,calc(env(safe-area-inset-bottom,0px) + 160px));position:relative;z-index:1;}
 .hero-block{text-align:center;margin-bottom:18px;position:relative;}
 .hero-block::after{
   content:'';
@@ -200,7 +199,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 
 .hud{position:fixed;top:0;left:0;right:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;z-index:10;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px;}
-.hud-right{align-items:flex-end;}
+.hud-right{align-items:flex-end;padding-right:46px;}  /* 🆕 miejsce pod przycisk muzyki (36px button + 10px right) */
 .hud-score,.hud-multi,.hud-distance,.hud-speed,.hud-lives{padding:3px 10px;background:rgba(15,12,20,0.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:10px;display:inline-block;}
 .hud-score{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.95),0 0 20px rgba(232,86,30,0.4);letter-spacing:0.02em;}
 .hud-multi{font-family:'DM Mono',monospace;font-size:15px;color:var(--accent);font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.9),0 0 12px rgba(232,86,30,0.6);}
@@ -223,21 +222,25 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
   .hud-speed{font-size:10px;}
   .hud-lives{font-size:12px;}
   .hud-left,.hud-right{gap:3px;}
+  .hud-right{padding-right:42px;}  /* mniej miejsca pod button w landscape */
   .dash-meter{padding:6px 12px;font-size:9px;bottom:max(10px,env(safe-area-inset-bottom,10px));}
-  .missions-hud{top:max(50px,calc(env(safe-area-inset-top,0px) + 50px));}
-  .powerup-bar{top:max(70px,calc(env(safe-area-inset-top,0px) + 70px));}
+  .missions-hud{top:max(54px,calc(env(safe-area-inset-top,0px) + 54px));}
+  .mode-target{top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));}
+  .powerup-bar{top:max(112px,calc(env(safe-area-inset-top,0px) + 112px));}
 }
 
 /* Mode-specific UI */
-.mode-target{position:fixed;top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;}
+/* mode-target = pasek "X / Y (rekord)" — przesunięty poniżej misji */
+.mode-target{position:fixed;top:max(108px,calc(env(safe-area-inset-top,0px) + 108px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;}
 .mode-target .mt-icon{font-size:14px;}
 .mode-target .mt-bar{width:80px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
 .mode-target .mt-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
 
 /* Interval phase indicator */
 .phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
-.powerup-bar{position:fixed;top:max(160px,calc(env(safe-area-inset-top,0px) + 160px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
-.missions-hud{position:fixed;left:0;right:0;top:max(75px,calc(env(safe-area-inset-top,0px) + 75px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;}
+/* powerup-bar — pod paskiem rekordu */
+.powerup-bar{position:fixed;top:max(146px,calc(env(safe-area-inset-top,0px) + 146px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
+.missions-hud{position:fixed;left:0;right:0;top:max(78px,calc(env(safe-area-inset-top,0px) + 78px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;}
 .mission-row{flex:1;max-width:120px;background:rgba(7,7,10,0.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.05);border-radius:5px;padding:2px 5px;display:flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;transition:all 0.3s;}
 .mission-row.done{background:rgba(61,184,112,0.22);border-color:rgba(61,184,112,0.5);opacity:1;}
 .mission-icon{font-size:10px;flex-shrink:0;width:12px;text-align:center;opacity:0.85;}
@@ -455,6 +458,11 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 // ═════════════════════════════════════════════════
 // SUPABASE + USER
 // ═════════════════════════════════════════════════
+const _sb = supabase.createClient(
+  'https://afqojgkaveykxbltxzwm.supabase.co',
+  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
+);
+
 let _athleteId = null;
 let _athleteName = null;
 let _bonuses = {
@@ -652,9 +660,9 @@ window.claimDailyAndShow = function() {
 // USER INIT
 // ═════════════════════════════════════════════════
 async function initUser() {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
-  const { data: ath } = await sb.from('athletes')
+  const { data: ath } = await _sb.from('athletes')
     .select('id, full_name')
     .eq('user_id', session.user.id)
     .maybeSingle();
@@ -684,7 +692,7 @@ async function loadTodayPlanned() {
   if (!_athleteId) return;
   const today = new Date().toISOString().slice(0, 10);
   try {
-    const { data } = await sb.from('trainings')
+    const { data } = await _sb.from('trainings')
       .select('type, description, distance_km')
       .eq('athlete_id', _athleteId)
       .eq('date', today)
@@ -721,7 +729,7 @@ function showSuggestedMode() {
 async function loadBonuses() {
   if (!_athleteId) return;
   const wS = new Date(); wS.setDate(wS.getDate() - 7);
-  const { data: weekLogs } = await sb.from('training_logs')
+  const { data: weekLogs } = await _sb.from('training_logs')
     .select('distance_km, training_type, pace, logged_at')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', wS.toISOString());
@@ -732,7 +740,7 @@ async function loadBonuses() {
 
   // Streak
   const m30 = new Date(); m30.setDate(m30.getDate() - 30);
-  const { data: monthLogs } = await sb.from('training_logs')
+  const { data: monthLogs } = await _sb.from('training_logs')
     .select('logged_at, training_type')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', m30.toISOString());
@@ -796,7 +804,7 @@ async function loadBonuses() {
 
 async function loadHighScore() {
   if (!_athleteId) return;
-  const { data } = await sb.from('game_scores')
+  const { data } = await _sb.from('game_scores')
     .select('score, distance')
     .eq('athlete_id', _athleteId)
     .order('score', { ascending: false })
@@ -828,7 +836,7 @@ async function loadLeaderboard(mode) {
   if (!card) return;
   card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>';
 
-  const friendsRes = await sb.from('friendships')
+  const friendsRes = await _sb.from('friendships')
     .select('requester_id, addressee_id')
     .eq('status', 'accepted')
     .or('requester_id.eq.' + _athleteId + ',addressee_id.eq.' + _athleteId);
@@ -838,7 +846,7 @@ async function loadLeaderboard(mode) {
     friendIds.add(f.addressee_id);
   });
   const ids = [...friendIds];
-  const { data: scores } = await sb.from('game_scores')
+  const { data: scores } = await _sb.from('game_scores')
     .select('athlete_id, score, distance, athletes(full_name)')
     .in('athlete_id', ids)
     .order('score', { ascending: false })
@@ -880,18 +888,33 @@ function switchTab(name) {
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-// 🆕 Performance: wyłącz shadowBlur w low quality mode (kosztowne renderowanie)
+// 🆕 Performance: lazy DOM cache dla HUD elementów wołanych co frame
+// Lazy = jeśli element nie istnieje przy starcie, znajdzie później przy pierwszym użyciu
+const _domCache = {};
+function $(id) {
+  let el = _domCache[id];
+  if (!el || !el.isConnected) {
+    el = document.getElementById(id);
+    if (el) _domCache[id] = el;
+  }
+  return el;
+}
+
+// 🆕 Performance: globalny clamp shadowBlur
+// - Low quality: blur OFF zawsze (cienie zniknięte)
+// - High quality: blur clamped do 8px max (różnica między 8 a 25 jest minimalna wzrokowo, ale GPU 3x mocniej pracuje)
 let _origShadowBlurDesc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowBlur');
 if (!_origShadowBlurDesc) _origShadowBlurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
 let _shadowBlurValue = 0;
+const _MAX_BLUR = 8;  // 🆕 hard cap
 Object.defineProperty(ctx, 'shadowBlur', {
   set(v) {
     _shadowBlurValue = v;
-    // Wyłącz blur w low quality mode
     if (typeof _lowQuality !== 'undefined' && _lowQuality) {
       _origShadowBlurDesc.set.call(this, 0);
     } else {
-      _origShadowBlurDesc.set.call(this, v);
+      // Clamp w high quality też — 25px blur wygląda tak samo jak 8px, a kosztuje 3x więcej GPU
+      _origShadowBlurDesc.set.call(this, v > _MAX_BLUR ? _MAX_BLUR : v);
     }
   },
   get() { return _shadowBlurValue; },
@@ -906,7 +929,12 @@ function resize() {
   canvas.style.height = window.innerHeight + 'px';
   GROUND_Y = H - H * 0.18;
 }
-window.addEventListener('resize', resize);
+// 🆕 Debounce resize — na mobile (chowanie paska URL) eventy lecą szybko, niepotrzebnie spamują
+let _resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimeout);
+  _resizeTimeout = setTimeout(resize, 100);
+});
 window.addEventListener('orientationchange', () => {
   // 🆕 Mała opóźnienie żeby przeglądarka zdążyła zaktualizować innerWidth/Height
   setTimeout(resize, 100);
@@ -980,6 +1008,7 @@ function newGame(mode) {
     bouncePhase: 0,          // 🆕 smooth bounce
     squashAmount: 0,         // 🆕 squash & stretch (anticipation/landing)
     popups: [],
+    shockwaves: [],          // 🆕 Pierścienie efektów (np. salto)
     trail: [],
 
     perfectStreak: 0,
@@ -1032,7 +1061,7 @@ function newGame(mode) {
     // POWER-UPS (tylko longrun)
     nextPowerupIn: M.powerups ? 600 : Infinity,
     powerups: [],
-    activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0 },
+    activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0, gel: 0 },
 
     // METRYKI MENTALNE
     reactionTimes: [],
@@ -1088,7 +1117,7 @@ function onTapDown(e) {
     registerTempoTap();
   }
 
-  if (now - lastTap < 280) {
+  if (now - lastTap < 220) {  // 🆕 220ms (było 280ms) — uniknięcie przypadkowego dasha przy rytmicznym skok+salto
     tryDash();
     recordReaction();
     lastTap = 0;
@@ -1116,6 +1145,11 @@ function onTapDown(e) {
     game.flipStartT = game.t;
     game.vy = -10 * dpr;          // mały dodatkowy hop dla efektu
     spawnParticles(game.px, game.py, '#ffb84d', 12);
+    // 🆕 Podwójny shockwave (zamiast ghost-postaci)
+    // Pierwszy: żółty, większy — główny "wybuch"
+    spawnShockwave(game.px, game.py - 20 * dpr, '#ffd966', { maxR: 70, lineWidth: 3 });
+    // Drugi: pomarańczowy, mniejszy, lekko opóźniony przez krótszy maxR (efekt podwójnej fali)
+    spawnShockwave(game.px, game.py - 20 * dpr, '#ff7a45', { maxR: 45, lineWidth: 2 });
     spawnPopup(game.px, game.py - 60 * dpr, 'SALTO!', '#ffb84d');
     if (navigator.vibrate) navigator.vibrate([15, 10, 15]);  // 🆕 podwójny puls
     playTap();
@@ -1186,6 +1220,9 @@ canvas.addEventListener('touchmove', function(e) {
   }
 }, { passive: false });
 canvas.addEventListener('touchend', function() { touchStartY = null; onTapUp(); });
+// 🆕 Touchcancel — gdy system przerwie touch (notyfikacja, połączenie, alert)
+// Bez tego jumpHold zostałby =1 a gracz "lewitowałby" do końca skoku
+canvas.addEventListener('touchcancel', function() { touchStartY = null; onTapUp(); });
 canvas.addEventListener('mousedown', onTapDown);
 canvas.addEventListener('mouseup', onTapUp);
 window.addEventListener('keydown', e => {
@@ -1250,7 +1287,7 @@ function registerTempoTap() {
     if (newMulti > game.multi + 0.05) {
       game.multi = newMulti;
       game.maxMulti = Math.max(game.maxMulti, game.multi);
-      const mEl = document.getElementById('hud-multi');
+      const mEl = $('hud-multi');
       mEl.classList.remove('pulse');
       void mEl.offsetWidth;
       mEl.classList.add('pulse');
@@ -1357,8 +1394,21 @@ function checkLongrunSceneChange() {
 // POWER-UPS (longrun mode)
 // ═════════════════════════════════════════════════
 function spawnPowerup() {
-  const types = ['magnet', 'shield', 'slowmo', 'boost'];
-  const type = types[Math.floor(Math.random() * types.length)];
+  // Ważone losowanie — heart i gel są rzadsze niż standardowe powerupy
+  const pool = [
+    { type: 'magnet', weight: 22 },
+    { type: 'shield', weight: 22 },
+    { type: 'slowmo', weight: 18 },
+    { type: 'boost',  weight: 18 },
+    { type: 'gel',    weight: 12 },  // ~12% — nieśmiertelność jest mocna
+    { type: 'heart',  weight: 8 }    // ~8% — apteczka, najrzadsza
+  ];
+  const totalWeight = pool.reduce((s, p) => s + p.weight, 0);
+  let r = Math.random() * totalWeight;
+  let type = pool[0].type;
+  for (const p of pool) {
+    if ((r -= p.weight) <= 0) { type = p.type; break; }
+  }
   game.powerups.push({
     type,
     x: W + 30 * dpr,
@@ -1472,12 +1522,70 @@ const PU_DEFS = {
   magnet: { icon: '🧲', dur: 360, msg: 'MAGNES' },
   shield: { icon: '🛡', dur: 300, msg: 'TARCZA' },
   slowmo: { icon: '🐢', dur: 240, msg: 'ZWOLNIENIE' },
-  boost:  { icon: '⚡', dur: 300, msg: 'PRZYSPIESZENIE' }
+  boost:  { icon: '⚡', dur: 300, msg: 'PRZYSPIESZENIE' },
+  gel:    { icon: '💪', dur: 300, msg: 'ŻEL — NIEŚMIERTELNOŚĆ' },  // 5s pełnej nietykalności
+  heart:  { icon: '❤', dur: 0,   msg: '+1 ŻYCIE' }                  // instant pickup, nie ma timera
 };
 
 function activatePowerup(type) {
   const def = PU_DEFS[type];
   if (!def) return;
+
+  // ❤ HEART — instant +1 życie (cap 5)
+  if (type === 'heart') {
+    const maxLives = 5;
+    if (game.lives < maxLives) {
+      game.lives++;
+      showToast('❤ +1 ŻYCIE!');
+      spawnPopup(game.px, game.py - 80 * dpr, '+1 ❤', '#e05050');
+      // pulsuj HUD serc
+      const hud = document.getElementById('hud-lives');
+      if (hud) {
+        hud.style.transform = 'scale(1.4)';
+        hud.style.transition = 'transform 0.3s';
+        setTimeout(() => { hud.style.transform = 'scale(1)'; }, 300);
+      }
+    } else {
+      // cap — daj punkty zamiast życia
+      const bonus = 200;
+      game.score += bonus;
+      showToast('❤ MAX ŻYĆ — +' + bonus);
+      spawnPopup(game.px, game.py - 80 * dpr, '+' + bonus, '#e05050');
+    }
+    flashScreen('rgba(224,80,80,0.18)', 14);
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      spawnParticles(
+        game.px + Math.cos(angle) * 25 * dpr,
+        game.py - 30 * dpr + Math.sin(angle) * 25 * dpr,
+        '#e05050', 1
+      );
+    }
+    playCombo(2);
+    if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+    return;
+  }
+
+  // 💪 GEL — pełna nieśmiertelność (5s) przez game.invuln
+  if (type === 'gel') {
+    game.activePU.gel = def.dur;
+    game.invuln = Math.max(game.invuln, def.dur);  // pełen invuln, niezależnie od shield
+    showToast(def.icon + ' ' + def.msg);
+    flashScreen('rgba(255,165,0,0.22)', 16);
+    // złoto-pomarańczowa aura wybuch
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * Math.PI * 2;
+      spawnParticles(
+        game.px + Math.cos(angle) * 28 * dpr,
+        game.py - 30 * dpr + Math.sin(angle) * 28 * dpr,
+        i % 2 === 0 ? '#ffa030' : '#ffd966', 1
+      );
+    }
+    playCombo(3);
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50, 30, 80]);
+    return;
+  }
+
   game.activePU[type] = def.dur;
   showToast(def.icon + ' ' + def.msg);
   // 🆕 Lepszy feel — flash + particles + sound + vibration
@@ -1502,7 +1610,7 @@ function updatePowerupHUD() {
   const bar = document.getElementById('powerup-bar');
   if (!bar) return;
   const items = [];
-  ['boost', 'shield', 'magnet', 'slowmo'].forEach(k => {
+  ['boost', 'shield', 'gel', 'magnet', 'slowmo'].forEach(k => {
     if (game.activePU[k] > 0) {
       const def = PU_DEFS[k];
       const sec = Math.ceil(game.activePU[k] / 60);
@@ -2054,134 +2162,159 @@ function startMusic() {
   
   // Master gain
   const masterGain = ctx.createGain();
-  masterGain.gain.value = 0.22;
+  masterGain.gain.value = 0.18;  // 🆕 0.22 → 0.18 (rap beat z 808 jest mocniejszy w niskich tonach)
   masterGain.connect(ctx.destination);
   _musicState.masterGain = masterGain;
   _musicState.playing = true;
   
   // 🆕 NOWE PODEJŚCIE: pre-render cały loop do AudioBuffer (8 sekund) i loopuj natywnie
   // To omija problem JS scheduler timera na iOS Safari
-  const bpm = 75;
-  const beatDur = 60 / bpm;          // 0.8s na beat (4/4)
-  const stepDur = beatDur / 4;       // 16th = 0.2s
-  const loopDur = stepDur * 32;      // 32 step (2 bary) = 6.4s
+  // 🎤 RAP/HIP-HOP BEAT — boom-bap z trap hi-hats, Cm progression
+  const bpm = 88;                    // 🆕 boom-bap pocket (było lo-fi 75)
+  const beatDur = 60 / bpm;          // 0.682s na beat (4/4)
+  const stepDur = beatDur / 4;       // 16th
+  const loopDur = stepDur * 32;      // 32 step (2 bary)
   const sampleRate = ctx.sampleRate;
   const loopSamples = Math.floor(loopDur * sampleRate);
   const buffer = ctx.createBuffer(2, loopSamples, sampleRate);  // stereo
   const left = buffer.getChannelData(0);
   const right = buffer.getChannelData(1);
   
-  // Helper: generuje kick drum sample
+  // Helper: kick drum — cięższy, niżej, mocniejszy slide (rap style)
   function _kick(samples, time, vol) {
-    const dur = 0.15 * sampleRate;
+    const dur = 0.18 * sampleRate;
     const start = Math.floor(time * sampleRate);
     for (let i = 0; i < dur && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.exp(-t * 12);
-      const freq = 60 + 60 * Math.exp(-t * 30);  // pitch drop
+      const env = Math.exp(-t * 10);
+      // 🆕 Rap kick — głębszy slide z 90 do 35Hz
+      const freq = 35 + 55 * Math.exp(-t * 35);
       const sample = Math.sin(2 * Math.PI * freq * t) * env * vol;
       samples[start + i] += sample;
     }
   }
   
-  // Helper: snare (white noise + tonal)
-  function _snare(samples, time, vol) {
-    const dur = 0.1 * sampleRate;
+  // Helper: clap (rap style — dwa hity razem, mocniejszy backbeat niż snare)
+  function _clap(samples, time, vol) {
+    const dur = 0.12 * sampleRate;
     const start = Math.floor(time * sampleRate);
     for (let i = 0; i < dur && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.exp(-t * 25);
-      const noise = (Math.random() * 2 - 1) * 0.6;
-      const tone = Math.sin(2 * Math.PI * 200 * t) * 0.4;
-      samples[start + i] += (noise + tone) * env * vol;
+      // Multi-hit envelope (3 szybkie peaki = clap effect)
+      let env = 0;
+      env += Math.exp(-Math.abs(t - 0) * 200);
+      env += Math.exp(-Math.abs(t - 0.008) * 200) * 0.7;
+      env += Math.exp(-Math.abs(t - 0.018) * 60) * 0.5;
+      const noise = (Math.random() * 2 - 1);
+      // Highpass approx (różnica)
+      samples[start + i] += noise * env * vol * 0.5;
     }
   }
   
-  // Helper: hi-hat (filtered noise, krótki)
+  // Helper: hi-hat (filtered noise, krótki) — to samo co było, dobre na trap rolls
   function _hat(samples, time, vol, open) {
-    const dur = (open ? 0.18 : 0.05) * sampleRate;
+    const dur = (open ? 0.15 : 0.04) * sampleRate;
     const start = Math.floor(time * sampleRate);
     let lastSample = 0;
     for (let i = 0; i < dur && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.exp(-t * (open ? 12 : 50));
-      // Simple highpass: różnica kolejnych próbek (high freq pass)
+      const env = Math.exp(-t * (open ? 14 : 60));
       const noise = Math.random() * 2 - 1;
       const filtered = noise - lastSample * 0.7;
       lastSample = noise;
-      samples[start + i] += filtered * env * vol * 0.5;
+      samples[start + i] += filtered * env * vol * 0.45;
     }
   }
   
-  // Helper: bass (sine + saw, lowpass)
-  function _bass(samples, time, freq, dur, vol) {
-    const durSamples = dur * sampleRate;
-    const start = Math.floor(time * sampleRate);
-    let lpState = 0;
-    for (let i = 0; i < durSamples && start + i < samples.length; i++) {
-      const t = i / sampleRate;
-      const env = Math.min(1, t * 50) * Math.exp(-t * 1.5);  // attack + slow decay
-      // Saw wave
-      const phase = (freq * t) % 1;
-      const saw = phase * 2 - 1;
-      const sine = Math.sin(2 * Math.PI * freq * t);
-      const raw = saw * 0.4 + sine * 0.6;
-      // Lowpass filter (simple one-pole)
-      lpState += (raw - lpState) * 0.15;
-      samples[start + i] += lpState * env * vol;
-    }
-  }
-  
-  // Helper: pad (3 sine fundamentals z delikatnym vibrato)
-  function _pad(samples, time, freqs, dur, vol) {
+  // Helper: 808 sub-bass — czysty sinus, długi, low-end (rap fundament)
+  function _808(samples, time, freq, dur, vol) {
     const durSamples = dur * sampleRate;
     const start = Math.floor(time * sampleRate);
     for (let i = 0; i < durSamples && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.min(1, t * 1.5) * Math.min(1, (dur - t) * 1.5);  // ramp in/out
-      let sample = 0;
-      for (const freq of freqs) {
-        const vibrato = Math.sin(2 * Math.PI * 4 * t) * 1.5;  // 4Hz vibrato 1.5Hz depth
-        sample += Math.sin(2 * Math.PI * (freq * 4 + vibrato) * t);
+      // Slow attack, dłuższy decay (typowy 808)
+      const env = Math.min(1, t * 30) * Math.exp(-t * 2);
+      // Lekki pitch slide na początku (boom)
+      const slideFactor = 1 + 0.1 * Math.exp(-t * 20);
+      const sine = Math.sin(2 * Math.PI * freq * slideFactor * t);
+      // Trochę soft saturation (drive) dla rap feel
+      const driven = Math.tanh(sine * 1.5) * 0.85;
+      samples[start + i] += driven * env * vol;
+    }
+  }
+  
+  // Helper: vinyl crackle (subtle background noise dla retro-rap vibe)
+  function _vinyl(samples, vol) {
+    for (let i = 0; i < samples.length; i++) {
+      // Sparse crackle: ~0.1% chance per sample
+      if (Math.random() < 0.0008) {
+        samples[i] += (Math.random() * 2 - 1) * vol * 2;
       }
-      samples[start + i] += (sample / freqs.length) * env * vol;
+      // Constant low hiss
+      samples[i] += (Math.random() * 2 - 1) * vol * 0.15;
     }
   }
   
-  // Patterns (32 step = 2 bary)
-  const kickPat = [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0,
-                   1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0];
-  const snarePat = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0,
-                    0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
-  const hatPat = [1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1,
-                  1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1];
+  // 🆕 RAP PATTERNS (32 step = 2 bary)
+  // Kick — boom-bap: 1 i 7 (kick na 1, kick przed snare)
+  const kickPat = [1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0,
+                   1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,1];  // ostatni to ghost kick
+  // Clap zamiast snare — backbeat 5 i 13 (mocniejszy "bujający" feel)
+  const clapPat = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0,
+                   0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
+  // Hi-hat — trap z rolls (2=open, 3=double 1/32 hit, 4=triple roll)
+  const hatPat = [1,0,1,3, 1,0,1,2, 1,0,1,3, 1,0,4,4,
+                  1,0,1,3, 1,0,1,2, 1,0,1,3, 1,3,3,3];  // ostatni bar = hi-hat roll fill
   
-  // 2 chords w 32-step pętli (Am, F)
-  const chord1 = [110.00, 130.81, 164.81];   // Am
-  const chord2 = [87.31, 110.00, 130.81];    // F
+  // 🆕 Cm progression (ciemniejsza, hip-hop sound): Cm - Ab - Eb - G
+  // Tylko bass notes (root) — rap nie potrzebuje kompletnych chordów
+  // Cm=65.41 (C2), Ab=51.91 (Ab1), Eb=77.78 (Eb2), G=49.00 (G1)
+  const bassPat = [
+    {step: 0,  freq: 65.41, dur: 0.6},   // Cm
+    {step: 8,  freq: 51.91, dur: 0.6},   // Ab
+    {step: 16, freq: 77.78, dur: 0.6},   // Eb
+    {step: 24, freq: 49.00, dur: 0.5},   // G
+    // Ghost notes / fills
+    {step: 6,  freq: 65.41, dur: 0.15},  // ghost C
+    {step: 22, freq: 77.78, dur: 0.15},  // ghost Eb
+  ];
   
-  // Wypełnij oba kanały (mono → stereo)
+  // Wypełnij sample buffer (mono, później kopiowane do stereo)
   const allSamples = new Float32Array(loopSamples);
   
-  // Drums + bass + pad
+  // Vinyl crackle background (retro-rap atmosfera)
+  _vinyl(allSamples, 0.04);
+  
+  // Drums
   for (let step = 0; step < 32; step++) {
     const t = step * stepDur;
-    if (kickPat[step]) _kick(allSamples, t, 0.7);
-    if (snarePat[step]) _snare(allSamples, t, 0.4);
-    if (hatPat[step]) _hat(allSamples, t, 0.3, hatPat[step] === 2);
-    
-    // Bass na 0 i 8 (każdy bar)
-    if (step === 0) _bass(allSamples, t, chord1[0] / 2, stepDur * 8, 0.5);
-    if (step === 8) _bass(allSamples, t, chord1[1] / 2, stepDur * 8, 0.4);
-    if (step === 16) _bass(allSamples, t, chord2[0] / 2, stepDur * 8, 0.5);
-    if (step === 24) _bass(allSamples, t, chord2[1] / 2, stepDur * 8, 0.4);
+    if (kickPat[step]) _kick(allSamples, t, kickPat[step] === 1 ? 0.85 : 0.4);  // ghost = quieter
+    if (clapPat[step]) _clap(allSamples, t, 0.55);
+    if (hatPat[step]) {
+      const v = hatPat[step];
+      if (v === 1) {
+        _hat(allSamples, t, 0.35, false);
+      } else if (v === 2) {
+        _hat(allSamples, t, 0.4, true);  // open hat
+      } else if (v === 3) {
+        // Double 1/32 hit (trap roll)
+        _hat(allSamples, t, 0.32, false);
+        _hat(allSamples, t + stepDur * 0.5, 0.28, false);
+      } else if (v === 4) {
+        // Triple 1/32 roll fill
+        _hat(allSamples, t, 0.3, false);
+        _hat(allSamples, t + stepDur * 0.33, 0.28, false);
+        _hat(allSamples, t + stepDur * 0.66, 0.32, false);
+      }
+    }
   }
   
-  // Pad — 2 chordy
-  _pad(allSamples, 0, chord1, stepDur * 16, 0.18);
-  _pad(allSamples, stepDur * 16, chord2, stepDur * 16, 0.18);
+  // 808 bass
+  for (const b of bassPat) {
+    _808(allSamples, b.step * stepDur, b.freq, b.dur, b.step % 8 === 0 ? 0.7 : 0.35);
+  }
   
-  // Kopiuj do stereo (subtle pan może być dodany później)
+  // Kopiuj do stereo
   for (let i = 0; i < loopSamples; i++) {
     left[i] = allSamples[i];
     right[i] = allSamples[i];
@@ -2245,6 +2378,21 @@ function spawnPopup(x, y, text, color) {
     life: 50, 
     maxLife: 50,        // 🆕 dla scale animation
     vy: -1.5 * dpr 
+  });
+}
+
+// 🆕 Pierścień rozszerzający się (shockwave) — efekt wybuchowy w jednym punkcie
+// Używany przy salcie zamiast ghost-postaci (które ciągnęły się i wkurzały)
+function spawnShockwave(x, y, color, opts) {
+  if (!game.shockwaves) game.shockwaves = [];
+  opts = opts || {};
+  game.shockwaves.push({
+    x, y,
+    color: color || '#ffd966',
+    life: 24,
+    maxLife: 24,
+    maxR: (opts.maxR || 60) * dpr,
+    lineWidth: (opts.lineWidth || 3) * dpr
   });
 }
 
@@ -2482,7 +2630,7 @@ function update() {
       }
     }
     // Update aktywne power-upy
-    ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+    ['magnet', 'shield', 'slowmo', 'boost', 'gel'].forEach(k => {
       if (game.activePU[k] > 0) game.activePU[k]--;
     });
     // Update HUD bar
@@ -2568,7 +2716,7 @@ function update() {
       }
     }
     // Update aktywne power-upy
-    ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+    ['magnet', 'shield', 'slowmo', 'boost', 'gel'].forEach(k => {
       if (game.activePU[k] > 0) game.activePU[k]--;
     });
     updatePowerupHUD();
@@ -2669,6 +2817,8 @@ function update() {
             game.score += bonus;
             spawnPopup(game.px, game.py - 100 * dpr, 'SALTO! +' + bonus, '#ffd966');
             spawnParticles(game.px, game.py - 30 * dpr, '#ffd966', 20);
+            // 🆕 Celebracyjna shockwave przy lądowaniu (większa od startowej)
+            spawnShockwave(game.px, GROUND_Y - 5 * dpr, '#ffd966', { maxR: 100, lineWidth: 4 });
             flashScreen('rgba(255,217,102,0.18)', 12);
             playPerfect();
             playCombo(3);
@@ -2731,8 +2881,8 @@ function update() {
 
   if (game.invuln > 0) game.invuln--;
 
-  // Trail
-  if (game.t % 2 === 0) {
+  // Trail — tylko podczas dasha (intensywny ruch). Normalny bieg/skok bez smugi (czyściej, mniej GPU).
+  if (game.dashing > 0 && game.t % 2 === 0) {
     game.trail.push({ x: game.px, y: game.py - (game.sliding > 0 ? 10 * dpr : 30 * dpr), life: 20 });
   }
   game.trail.forEach(t => t.life--);
@@ -2848,10 +2998,16 @@ function update() {
   // Particles + popups
   game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
   game.particles = game.particles.filter(p => p.life > 0);
-  // 🆕 Cap particles na 150 (zapobiega lag spike przy explozjach)
-  if (game.particles.length > 150) game.particles = game.particles.slice(-150);
+  // 🆕 Cap particles — dynamiczny w zależności od jakości (mobile/low = 50, high = 150)
+  const maxParticles = _lowQuality ? 50 : 150;
+  if (game.particles.length > maxParticles) game.particles = game.particles.slice(-maxParticles);
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
+  // 🆕 Shockwaves update (rosną i fade-out)
+  if (game.shockwaves && game.shockwaves.length > 0) {
+    game.shockwaves.forEach(sw => sw.life--);
+    game.shockwaves = game.shockwaves.filter(sw => sw.life > 0);
+  }
   
   // 🆕 FOOTPRINTS — ślady stóp gdy biegacz na ziemi
   if (game.onGround && !game.sliding && !game.flipping && game.speed > 3 * dpr) {
@@ -2944,8 +3100,8 @@ function update() {
     
     // 🆕 BUTTERFLIES w PARK
     if (escene === 0) {
-      // Spawn raz na ~3-5s
-      if (game.t % 200 === 0 && game.butterflies.length < 4) {
+      // Spawn raz na ~3-5s — pomijamy w low quality
+      if (!_lowQuality && game.t % 200 === 0 && game.butterflies.length < 4) {
         game.butterflies.push({
           x: W + 30 * dpr,
           y: GROUND_Y - (50 + Math.random() * 80) * dpr,
@@ -3146,9 +3302,51 @@ function update() {
     if (h.triggered) continue;
     const hx1 = h.x, hx2 = h.x + h.w;
     const hy1 = h.y - h.h, hy2 = h.y;
-    if (px2 > hx1 && px1 < hx2 && py2 > hy1 && py1 < hy2) {
+
+    // 🤸 SALTO KILL — jeśli gracz robi salto i przelatuje NAD hazardem (w powietrzu),
+    // niszczymy go zamiast spowolnienia. Sprawdzamy x-overlap + bycie w powietrzu z flippingiem.
+    const xOverlap = px2 > hx1 && px1 < hx2;
+    const isFlipping = game.flipping && game.flipRotation >= 90;
+    const isAirborne = game.py < GROUND_Y - 8 * dpr;
+    if (xOverlap && isFlipping && isAirborne) {
+      h.triggered = true;
+      // Bonus punktowy + zachowanie combo
+      const bonus = Math.floor(75 * game.multi);
+      game.score += bonus;
+      const msg = h.type === 'banana' ? '🍌 SMASH! +' + bonus : '💧 SPLASH! +' + bonus;
+      const color = h.type === 'banana' ? '#ffd966' : '#5090e0';
+      spawnPopup(h.x + h.w / 2, h.y - 40 * dpr, msg, color);
+      // Wybuch particles — większy
+      for (let i = 0; i < 18; i++) {
+        const angle = (i / 18) * Math.PI * 2;
+        spawnParticles(
+          h.x + h.w / 2 + Math.cos(angle) * 8 * dpr,
+          h.y - h.h / 2 + Math.sin(angle) * 8 * dpr,
+          color, 1
+        );
+      }
+      // Shockwave dla feedbacku
+      spawnShockwave(h.x + h.w / 2, h.y - h.h / 2, color, { maxR: 60, lineWidth: 3 });
+      flashScreen('rgba(255,217,102,0.10)', 8);
+      playCombo(2);
+      if (navigator.vibrate) navigator.vibrate([20, 15, 30]);
+      // Mission tracker — liczy jako trick
+      if (game.missionTrackers) {
+        game.missionTrackers.perfects = (game.missionTrackers.perfects || 0) + 1;
+      }
+      continue;
+    }
+
+    if (xOverlap && py2 > hy1 && py1 < hy2) {
       // Kontakt — tylko jeśli na ziemi (bo to obiekty na podłodze)
       if (game.py >= GROUND_Y - 8 * dpr) {
+        // 💪 Gel — nieśmiertelność, hazard też nas nie złapie
+        if (game.activePU && game.activePU.gel > 0) {
+          h.triggered = true;
+          spawnPopup(h.x + h.w / 2, h.y - 30 * dpr, '💪 IGNORE', '#ffa030');
+          spawnParticles(h.x + h.w / 2, h.y, '#ffa030', 8);
+          continue;
+        }
         h.triggered = true;
         // Spowolnienie na 2 sekundy
         game.slowedTimer = 120;  // 2s przy 60fps
@@ -3222,7 +3420,15 @@ function update() {
       if (dxp * dxp + dyp * dyp < (p.r + playerR) * (p.r + playerR)) {
         p.collected = true;
         activatePowerup(p.type);
-        spawnParticles(p.x, p.y, p.type === 'magnet' ? '#ffd966' : p.type === 'shield' ? '#5090e0' : p.type === 'slowmo' ? '#a868e0' : '#e8561e', 14);
+        const puColors = {
+          magnet: '#ffd966',
+          shield: '#5090e0',
+          slowmo: '#a868e0',
+          boost:  '#e8561e',
+          heart:  '#e05050',
+          gel:    '#ffa030'
+        };
+        spawnParticles(p.x, p.y, puColors[p.type] || '#ffd966', 14);
         // 🎯 Mission tracking
         if (game.missionTrackers) {
           game.missionTrackers.powerupsCollected++;
@@ -3332,10 +3538,10 @@ function update() {
     game._displayScore += Math.max(1, Math.ceil(Math.abs(diff) / 8)) * Math.sign(diff);
     if (Math.abs(target - game._displayScore) < 1) game._displayScore = target;
   }
-  document.getElementById('hud-score').textContent = Math.floor(game._displayScore);
-  document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
-  document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
-  document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
+  $('hud-score').textContent = Math.floor(game._displayScore);
+  $('hud-multi').textContent = 'x' + game.multi.toFixed(1);
+  $('hud-distance').textContent = Math.floor(game.distance) + ' m';
+  $('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
   // 🆕 Lepsze hearts — z poświatą i animacją utraty
   const maxLives = Math.max(M.lives, game.lives);
   let heartsHtml = '';
@@ -3346,10 +3552,10 @@ function update() {
       heartsHtml += '<span style="color:rgba(255,80,80,0.15);font-size:16px;">♡</span>';
     }
   }
-  document.getElementById('hud-lives').innerHTML = heartsHtml;
+  $('hud-lives').innerHTML = heartsHtml;
 
   // Combo counter — tier-based colors (zaczyna się od 3)
-  const comboEl = document.getElementById('hud-combo');
+  const comboEl = $('hud-combo');
   const comboCount = M.id === 'tempo' ? game.tempoStreak : game.perfectStreak;
   if (comboEl) {
     if (comboCount >= 3) {
@@ -3387,31 +3593,31 @@ function update() {
 
 function updateModeTarget() {
   const M = game.config;
-  const target = document.getElementById('mode-target');
+  const target = $('mode-target');
   if (M.id === 'endless') {
     // Endless — pokaż dystans + porównanie z rekordem
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '🏁';
-    const best = getStat('best_score', 0);
+    $('mt-icon').textContent = '🏁';
+    const best = game.cachedBestScore;  // 🆕 cached zamiast getStat → unika localStorage read co frame
     const cur = Math.floor(game.score);
     if (best > 0 && cur < best) {
-      document.getElementById('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
-      document.getElementById('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
+      $('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
+      $('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
     } else if (best > 0 && cur >= best) {
-      document.getElementById('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
-      document.getElementById('mt-fill').style.width = '100%';
+      $('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
+      $('mt-fill').style.width = '100%';
     } else {
-      document.getElementById('mt-text').textContent = cur + ' pkt';
-      document.getElementById('mt-fill').style.width = '0%';
+      $('mt-text').textContent = cur + ' pkt';
+      $('mt-fill').style.width = '0%';
     }
     return;
   }
   if (M.id === 'tempo') {
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '🎯';
+    $('mt-icon').textContent = '🎯';
     const remaining = Math.max(0, M.duration - Math.floor(game.elapsed));
-    document.getElementById('mt-text').textContent = remaining + 's · ' + game.tempoConsistency + '%';
-    document.getElementById('mt-fill').style.width = game.tempoConsistency + '%';
+    $('mt-text').textContent = remaining + 's · ' + game.tempoConsistency + '%';
+    $('mt-fill').style.width = game.tempoConsistency + '%';
     return;
   }
   if (M.id === 'longrun') {
@@ -3419,24 +3625,24 @@ function updateModeTarget() {
     const scene = LONGRUN_SCENES[game.longrunScene] || LONGRUN_SCENES[0];
     const min = Math.floor(game.elapsed / 60);
     const sec = Math.floor(game.elapsed % 60);
-    document.getElementById('mt-icon').textContent = scene.icon;
-    document.getElementById('mt-text').textContent = scene.label + ' · ' + min + ':' + String(sec).padStart(2, '0');
-    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+    $('mt-icon').textContent = scene.icon;
+    $('mt-text').textContent = scene.label + ' · ' + min + ':' + String(sec).padStart(2, '0');
+    $('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
     return;
   }
   if (M.targetType === 'time') {
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '⏱';
+    $('mt-icon').textContent = '⏱';
     const remaining = Math.max(0, M.target - Math.floor(game.elapsed));
-    document.getElementById('mt-text').textContent = remaining + 's';
-    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+    $('mt-text').textContent = remaining + 's';
+    $('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
   } else if (M.targetType === 'cycles') {
     target.style.display = 'flex';
     const phaseIcon = game.intervalPhase === 'sprint' ? '⚡' : '🌿';
     const phaseRemain = Math.ceil((game.intervalPhase === 'sprint' ? M.sprintLen : M.restLen) - game.intervalPhaseTimer);
-    document.getElementById('mt-icon').textContent = phaseIcon;
-    document.getElementById('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
-    document.getElementById('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
+    $('mt-icon').textContent = phaseIcon;
+    $('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
+    $('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
   } else {
     target.style.display = 'none';
   }
@@ -3466,7 +3672,7 @@ function updateComboMultiplier() {
       checkMissionProgress('maxComboReached', game.missionTrackers.maxComboReached);
     }
     // Pulsująca animacja na zmianie tier
-    const mEl = document.getElementById('hud-multi');
+    const mEl = $('hud-multi');
     if (mEl) {
       mEl.classList.remove('pulse');
       void mEl.offsetWidth;
@@ -6176,6 +6382,25 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
+  // 🆕 Shockwaves — rozszerzające się pierścienie (np. przy salcie)
+  if (game.shockwaves && game.shockwaves.length > 0) {
+    game.shockwaves.forEach(sw => {
+      const t = 1 - sw.life / sw.maxLife;  // 0..1 progress
+      // Ease-out curve: rośnie szybko, zwalnia
+      const easeT = 1 - Math.pow(1 - t, 2);
+      const r = easeT * sw.maxR;
+      // Alpha fade-out
+      const alpha = (1 - t) * 0.7;
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = sw.color;
+      ctx.lineWidth = sw.lineWidth * (1 - t * 0.5);  // line cieniuje
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+  }
+
   // Popups
   game.popups.forEach(p => {
     ctx.save();
@@ -6234,8 +6459,8 @@ function render() {
   if ((M.id === 'longrun' || M.id === 'endless') && game.powerups) {
     game.powerups.forEach(p => {
       if (p.collected) return;
-      const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e' };
-      const icons = { magnet: '🧲', shield: '🛡', slowmo: '🐢', boost: '⚡' };
+      const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e', heart: '#e05050', gel: '#ffa030' };
+      const icons  = { magnet: '🧲',     shield: '🛡',      slowmo: '🐢',      boost: '⚡',       heart: '❤',       gel: '💪' };
       const bobY = p.y + Math.sin(p.bob) * 5 * dpr;
       const pulse = (Math.sin(game.t * 0.15) + 1) / 2;
       const glowR = p.r + (8 + pulse * 6) * dpr;
@@ -6296,6 +6521,26 @@ function render() {
       ctx.shadowBlur = 15 * dpr;
       ctx.beginPath();
       ctx.arc(game.px, game.py - 25 * dpr, 32 * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    // 💪 Gel aura — pomarańczowa pulsująca aura (nieśmiertelność)
+    if (game.activePU && game.activePU.gel > 0) {
+      const pulse = (Math.sin(game.t * 0.25) + 1) / 2;
+      const flicker = (Math.sin(game.t * 0.5) + 1) / 2;
+      // Wewnętrzna intensywna aura
+      ctx.strokeStyle = 'rgba(255,160,48,' + (0.7 + pulse * 0.3) + ')';
+      ctx.lineWidth = (3 + flicker * 1.5) * dpr;
+      ctx.shadowColor = '#ffa030';
+      ctx.shadowBlur = (18 + pulse * 10) * dpr;
+      ctx.beginPath();
+      ctx.arc(game.px, game.py - 25 * dpr, (30 + pulse * 4) * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      // Zewnętrzny pierścień złoty
+      ctx.strokeStyle = 'rgba(255,217,102,' + (0.4 + flicker * 0.3) + ')';
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath();
+      ctx.arc(game.px, game.py - 25 * dpr, (40 + pulse * 6) * dpr, 0, Math.PI * 2);
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
@@ -6486,13 +6731,13 @@ function render() {
   }
   
   if (!blink) {
-    // 🆕 Motion trail — TYLKO przy dashie i flippingu (nie przy zwykłym biegu)
+    // 🆕 Motion trail — TYLKO przy dashie (nie przy salcie/skoku/biegu)
+    // Salto ma już własną wizualizację (rotacja + particles + popup), trail dodawał chaos
     if (!game.playerTrail) game.playerTrail = [];
-    // Spawn TYLKO gdy dash lub flip — przy zwykłym biegu trail wyglądał jak "drgająca postać"
-    if (game.t % 3 === 0 && (game.dashing > 0 || game.flipping)) {
+    if (game.t % 3 === 0 && game.dashing > 0) {
       game.playerTrail.push({
         x: game.px, y: game.py, life: 10,  // krótszy trail
-        rot: game.flipping ? game.flipRotation : 0,
+        rot: 0,  // dash = bez rotacji
         state: getRunnerState(),
         legPhase: game.t * 0.35
       });
@@ -6634,7 +6879,14 @@ function render() {
 // ═════════════════════════════════════════════════
 let lastFrame = 0;
 let _fpsHistory = [];
-let _lowQuality = false;
+// 🆕 Auto-detect: mobile = low quality OD STARTU (proaktywnie, nie reaktywnie)
+// Wykrywa: telefony, tablety, urządzenia z touch + małym ekranem
+let _lowQuality = (() => {
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet|webOS|BlackBerry|Windows Phone/i.test(ua);
+  const isTouchSmall = ('ontouchstart' in window) && Math.min(window.innerWidth, window.innerHeight) < 900;
+  return isMobileUA || isTouchSmall;
+})();
 let _accumulator = 0;
 const FIXED_DT = 1000 / 60;  // 16.67ms per logic tick
 const MAX_STEPS = 4;          // max 4 catch-up updates per render
@@ -6651,8 +6903,10 @@ function loop(t) {
     if (_fpsHistory.length > 30) _fpsHistory.shift();
     if (_fpsHistory.length === 30 && game.t % 30 === 0) {
       const avgDt = _fpsHistory.reduce((a, b) => a + b, 0) / _fpsHistory.length;
-      if (avgDt > 22) _lowQuality = true;
-      else if (avgDt < 18) _lowQuality = false;
+      // 🆕 Agresywniejsze progi: szybciej włącza low (>20ms = ~50fps), wolniej wyłącza (<15ms = ~67fps)
+      // Hysteresis 5ms zapobiega flickerowaniu między stanami
+      if (avgDt > 20) _lowQuality = true;
+      else if (avgDt < 15) _lowQuality = false;
     }
   }
   
@@ -6732,6 +6986,8 @@ function realStart(mode) {
   game = newGame(mode);
   game.running = true;
   game.focusStartT = 0;
+  // 🆕 Cache best_score raz na rozpoczęcie gry — używane co frame w updateModeTarget()
+  game.cachedBestScore = getStat('best_score', 0);
   _endGameCalled = false;
   
   // 🆕 Próba wymuszenia landscape orientation (Android Chrome wspiera, iOS Safari nie)
@@ -6946,7 +7202,7 @@ function spawnEndScreenConfetti() {
 async function _saveScoreInBackground(M) {
   if (!_athleteId || !game || game.score <= 0) return;
   try {
-    await sb.from('game_scores').insert({
+    await _sb.from('game_scores').insert({
       athlete_id: _athleteId,
       score: Math.floor(game.score),
       distance: Math.floor(game.distance),
@@ -6981,7 +7237,7 @@ async function logAsTraining() {
     + (d.finished ? ' · UKOŃCZONO ✓' : '');
 
   try {
-    const { error } = await sb.from('training_logs').insert({
+    const { error } = await _sb.from('training_logs').insert({
       athlete_id: _athleteId,
       training_type: 'Warm-up mentalny',
       distance_km: distance_km,
@@ -7013,7 +7269,7 @@ function goHome() {
 function updateDashUI() {
   if (!game) return;
   for (let i = 1; i <= 3; i++) {
-    const pip = document.getElementById('dash-' + i);
+    const pip = $('dash-' + i);
     if (!pip) continue;
     if (i <= game.dashLeft) pip.classList.add('active');
     else pip.classList.remove('active');
@@ -7077,7 +7333,7 @@ function getRunnerState() {
 // isGhost: czy to trail ghost (mniej szczegółów)
 // 🆕 Pedestrian charcters - drawn from primitives, all face LEFT (going opposite to player)
 function drawBird(ctx, x, y, flapPhase) {
-  const s = dpr * 1.2;  // 🆕 +20% scale (mniej niż piesze bo lata daleko)
+  const s = dpr * 1.4;  // 🆕 +40% scale (dopasowane do skali gracza)
   const flap = Math.sin(flapPhase);  // -1..1 dla flapowania skrzydeł
   
   ctx.save();
@@ -7206,7 +7462,7 @@ function drawBird(ctx, x, y, flapPhase) {
 
 // 🆕 Pedestrian charcters
 function drawCyclist(ctx, x, y, bobPhase) {
-  const s = dpr * 1.3;  // 🆕 +30% scale (bardziej proporcjonalny do gracza)
+  const s = dpr * 1.5;  // 🆕 +50% scale (dorosła osoba na rowerze - większa od gracza)
   const wheelSpin = bobPhase * 6;  // szybki spin
   
   ctx.save();
@@ -7319,7 +7575,7 @@ function drawCyclist(ctx, x, y, bobPhase) {
 }
 
 function drawSmallRunner(ctx, x, y, bobPhase) {
-  const s = dpr * 1.3;  // 🆕 +30% scale
+  const s = dpr * 1.5;  // 🆕 +50% scale (proporcjonalny do gracza)
   const cycle = Math.sin(bobPhase * 3);
   
   ctx.save();
@@ -7388,7 +7644,7 @@ function drawSmallRunner(ctx, x, y, bobPhase) {
 }
 
 function drawDog(ctx, x, y, bobPhase) {
-  const s = dpr * 1.3;  // 🆕 +30% scale
+  const s = dpr * 1.5;  // 🆕 +50% scale
   const cycle = Math.sin(bobPhase * 4);
   
   ctx.save();
@@ -7482,6 +7738,7 @@ function drawDog(ctx, x, y, bobPhase) {
 }
 
 function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
+  ctx.save();  // 🆕 FIX: parowanie z restore() na końcu funkcji (linia ~8176)
   const s = dpr;
   // Kolory
   const SKIN = '#f4c39a';
