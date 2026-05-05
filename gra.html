@@ -1237,7 +1237,11 @@ const ENDLESS_SCENES = [
 
 function getCurrentEndlessScene() {
   if (!game) return ENDLESS_SCENES[0];
-  const d = game.distance;
+  // 🆕 Po KOSMOSie (5000m) sceny się zapętlają od początku
+  // Cykl: PARK(0) → MIASTO(500) → NOC(1200) → ŚWIT(2200) → GÓRY(3500) → KOSMOS(5000-6500) → PARK znowu
+  // KOSMOS trwa 1500m (od 5000 do 6500), potem reset
+  const cycleLength = 6500;  // PARK(0-500) + MIASTO(500-1200) + NOC(1200-2200) + ŚWIT(2200-3500) + GÓRY(3500-5000) + KOSMOS(5000-6500)
+  const d = game.distance % cycleLength;
   let scene = ENDLESS_SCENES[0];
   for (const s of ENDLESS_SCENES) {
     if (d >= s.minDist) scene = s;
@@ -1980,15 +1984,15 @@ function startMusic() {
   const bpm = 75;
   const stepDur = 60 / bpm / 4;  // 16ths
   
-  // Scheduler — planuje beat'y do przodu (look-ahead 0.3s)
+  // Scheduler — DUŻY look-ahead 2s żeby wytrzymać iOS Safari timer hiccups
   function scheduler() {
     if (!_musicState.playing) return;
     const ctx = _getAudio(); if (!ctx) return;
-    // 🆕 Wymuszony resume na każdym scheduler call (iOS suspenduje audio często)
+    // Wymuszony resume na każdym call
     if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     
-    // 🆕 Większy look-ahead (0.5s) żeby wytrzymać niespójne timery
-    while (_musicState.scheduled < ctx.currentTime + 0.5) {
+    // 🆕 Look-ahead 2 sekundy (było 0.5s) — wytrzyma dłuższe pauzy timera
+    while (_musicState.scheduled < ctx.currentTime + 2.0) {
       const step = _musicState.stepIndex;
       const time = _musicState.scheduled;
       const bar = Math.floor(_musicState.stepIndex / 16) % 4;
@@ -2013,15 +2017,15 @@ function startMusic() {
       if (_musicState.stepIndex >= 64) _musicState.stepIndex = 0;
     }
     
-    // 🆕 Catch-up: jeśli scheduled "uciekło" w tył (długa pauza), reset do teraźniejszości
+    // Catch-up: jeśli scheduled "uciekło" w tył (długa pauza), reset
     if (_musicState.scheduled < ctx.currentTime - 0.1) {
       _musicState.scheduled = ctx.currentTime + 0.05;
     }
   }
   
-  // 🆕 Pierwszy run + DUŻY interval co 100ms (lepiej niż 50ms — mniej obciążenia, look-ahead 0.5s wystarczy)
+  // 🆕 Pierwszy run + interval co 250ms (look-ahead 2s pokrywa to z naddatkiem)
   scheduler();
-  _musicState.intervalId = setInterval(scheduler, 100);
+  _musicState.intervalId = setInterval(scheduler, 250);
 }
 
 function stopMusic() {
