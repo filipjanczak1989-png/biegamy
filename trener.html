@@ -880,9 +880,19 @@ async function initAuth() {
 
 // ── LOAD ATHLETES FROM DB ─────────────────────────────────────────
 async function loadAthletes() {
+  // Precyzyjna lista kolumn — BEZ tokenów Stravy (security przez SQL grants).
+  // Frontend trenera nie potrzebuje access/refresh token swoich zawodników.
   const { data, error } = await _sb
     .from('athletes')
-    .select('*')
+    .select(`
+      id, user_id, coach_id, full_name, goal, target_race, target_date,
+      pb_5k, pb_10k, pb_half, pb_marathon, active, created_at, race_goals,
+      strava_athlete_id, strava_connected_at,
+      is_public, link_strava, link_garmin, link_instagram, link_facebook,
+      onboarding_done, terms_accepted_at, avatar_url,
+      coach_message, coach_message_at,
+      email, phone
+    `)
     .eq('coach_id', _coachId)
     .order('created_at');
 
