@@ -872,6 +872,10 @@ function newGame(mode) {
     footprints: [],
     weather: [],
     butterflies: [],         // 🆕 motyle latające w PARK
+    legPhase: 0,             // 🆕 smooth animation phase for runner
+    breathPhase: 0,          // 🆕 smooth breath animation
+    bouncePhase: 0,          // 🆕 smooth bounce
+    squashAmount: 0,         // 🆕 squash & stretch (anticipation/landing)
     popups: [],
     trail: [],
 
@@ -889,6 +893,7 @@ function newGame(mode) {
     bgFar: 0,
     bgMid: 0,
     bgNear: 0,
+    bgVeryFar: 0,            // 🆕 najgłębsza warstwa parallax (najdalej, najwolniej)
 
     // INTERVAL MODE state
     intervalPhase: M.intervalCycles > 0 ? 'sprint' : null,  // 'sprint' | 'rest'
@@ -993,6 +998,7 @@ function onTapDown(e) {
     game.jumpHold = 1;
     game.flipping = false;       // reset rotation state
     game.flipRotation = 0;
+    game.squashAmount = 0.2;     // 🆕 stretch (rozciąga się w górę)
     recordReaction();
   } else if (game.canDoubleJump) {
     // 🆕 SALTO zamiast double jump
@@ -2089,10 +2095,10 @@ function update() {
     if (scene && scene.id !== game.endlessScene) {
       // 🆕 Smooth fade transition
       game.prevEndlessScene = game.endlessScene;
-      game.sceneTransition = 60;  // 60 klatek = ~1s
+      game.sceneTransition = 90;  // 90 klatek = ~1.5s smooth fade
       game.endlessScene = scene.id;
       showToast(scene.icon + ' ' + scene.label);
-      flashScreen('rgba(255,255,255,0.18)', 18);
+      flashScreen('rgba(255,255,255,0.10)', 12);
     }
     if (game.sceneTransition > 0) game.sceneTransition--;
     if (M.powerups) {
@@ -2143,7 +2149,27 @@ function update() {
         game.vy = 0;
         const wasFlipping = game.flipping;
         const finalRot = game.flipRotation;
-        if (!game.onGround) spawnParticles(game.px, GROUND_Y, '#888', 6);
+        // 🆕 Wybuch pyłu pod stopami przy lądowaniu (proporcjonalny do wysokości)
+        if (!game.onGround) {
+          spawnParticles(game.px, GROUND_Y, '#a89878', 10);
+          shakeAmount = Math.max(shakeAmount, 3 * dpr);
+          // 🆕 Squash przy lądowaniu - postać kucha
+          game.squashAmount = -0.25;  // squash 25%
+          // Dust expansion 360
+          for (let dp = 0; dp < 6; dp++) {
+            const angle = Math.PI + (dp / 5) * Math.PI;
+            game.particles.push({
+              x: game.px + Math.cos(angle) * 5 * dpr,
+              y: GROUND_Y - 2 * dpr,
+              vx: Math.cos(angle) * (1.5 + Math.random() * 1.5) * dpr,
+              vy: -(0.3 + Math.random() * 0.5) * dpr,
+              life: 25,
+              color: 'rgba(180,170,150,0.5)',
+              size: (2 + Math.random() * 2) * dpr,
+              gravity: false
+            });
+          }
+        }
         game.onGround = true;
         
         // 🆕 SALTO LANDING CHECK — bardziej hojne
@@ -2300,6 +2326,19 @@ function update() {
     w.streamPhase += 0.15;
   });
   game.windZones = game.windZones.filter(w => w.x + w.w > -50 * dpr);
+
+  // 🆕 SMOOTH PLAYER ANIMATION — płynna inkrementacja faz proporcjonalnie do prędkości
+  // Szybszy bieg = szybsze nogi i ręce
+  const speedRatio = Math.min(game.speed / (4 * dpr), 2.5);  // 0..2.5
+  const legSpeed = 0.18 + speedRatio * 0.12;  // bardzo szybkie cycling przy max
+  game.legPhase += legSpeed;
+  game.breathPhase += 0.025 + speedRatio * 0.015;  // szybszy oddech przy max
+  game.bouncePhase += legSpeed;
+  // Squash recovery (smooth ease back to 0)
+  if (game.squashAmount !== 0) {
+    game.squashAmount *= 0.78;  // smooth decay
+    if (Math.abs(game.squashAmount) < 0.01) game.squashAmount = 0;
+  }
 
   // Particles + popups
   game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
@@ -2757,6 +2796,7 @@ function update() {
   }
 
   // Background
+  game.bgVeryFar += game.speed * 0.04;
   game.bgFar += game.speed * 0.1;
   game.bgMid += game.speed * 0.3;
   game.bgNear += game.speed * 0.6;
@@ -3140,19 +3180,29 @@ function render() {
   }
   
   // 🆕 Smooth scene transition - overlay z koloru poprzedniej sceny zanika
+  // Używa ease-out curve dla naturalnego fade
   if (M.id === 'endless' && game.sceneTransition > 0) {
-    const fadeAlpha = (game.sceneTransition / 60);
+    const t = game.sceneTransition / 90;  // 0..1, im bliżej 1 = wcześniej
+    // Ease-out cubic - bardzo płynny zanikanie pod koniec
+    const eased = t * t * t;
+    const fadeAlpha = eased * 0.65;  // max 65% opacity (nie pełne zasłonienie)
+    
     const prevColors = [
-      '#1a2a1c',  // PARK
-      '#0a1525',  // MIASTO
-      '#0a0820',  // NOC
-      '#3a1a18',  // ŚWIT
-      '#101620',  // GÓRY
-      '#08051a'   // KOSMOS
+      ['#7ba8d4', '#5a7a4a'],  // PARK - sky to ground
+      ['#3a4a6a', '#2a2a40'],  // MIASTO
+      ['#08051a', '#0a0820'],  // NOC
+      ['#4a3060', '#603020'],  // ŚWIT
+      ['#506a8a', '#3a4a60'],  // GÓRY
+      ['#15082a', '#06050f']   // KOSMOS
     ];
-    const prevColor = prevColors[game.prevEndlessScene] || prevColors[0];
-    ctx.fillStyle = prevColor;
-    ctx.globalAlpha = fadeAlpha * 0.85;
+    const [topColor, botColor] = prevColors[game.prevEndlessScene] || prevColors[0];
+    
+    // Gradient fade (z koloru nieba do ziemi poprzedniej sceny)
+    const fadeGrad = ctx.createLinearGradient(0, 0, 0, H);
+    fadeGrad.addColorStop(0, topColor);
+    fadeGrad.addColorStop(1, botColor);
+    ctx.fillStyle = fadeGrad;
+    ctx.globalAlpha = fadeAlpha;
     ctx.fillRect(0, 0, W, H);
     ctx.globalAlpha = 1;
   }
@@ -3408,7 +3458,21 @@ function render() {
     ];
     mountainColor = ESCENE_MOUNTAINS[game.endlessScene] || ESCENE_MOUNTAINS[0];
     
-    // 🆕 Tylne pasmo gór (atmospheric, jaśniejsze, dalej)
+    // 🆕 NAJGŁĘBSZE pasmo gór (very far, najjaśniejsze, prawie zlewające z niebem)
+    const veryFarColor = ESCENE_MOUNTAINS[game.endlessScene].replace(/[\d.]+\)$/, '0.18)');
+    ctx.fillStyle = veryFarColor;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    for (let i = 0; i < 5; i++) {
+      const baseX = (i * 380 * dpr - game.bgVeryFar * 0.4) % (W + 300 * dpr) - 150 * dpr;
+      const peakH = 40 + (i % 3) * 22;
+      ctx.lineTo(baseX + 140 * dpr, GROUND_Y - peakH * dpr);
+      ctx.lineTo(baseX + 280 * dpr, GROUND_Y);
+    }
+    ctx.lineTo(W, GROUND_Y);
+    ctx.fill();
+    
+    // 🆕 Tylne pasmo gór (middle layer)
     const farMountainColor = ESCENE_MOUNTAINS[game.endlessScene].replace(/[\d.]+\)$/, '0.35)');
     ctx.fillStyle = farMountainColor;
     ctx.beginPath();
@@ -4360,6 +4424,26 @@ function render() {
         ctx.lineTo(x + (Math.sin(x * 0.5) * 1.5), GROUND_Y - h * dpr);
         ctx.stroke();
       }
+      // 🆕 Drobne kwiatki rozsiane (deterministyczne)
+      const flowerOff = (game.bgNear * 1.2) % (40 * dpr);
+      for (let f = 0; f < 12; f++) {
+        const fx = ((f * 92.7 - flowerOff * 1.5) % W + W) % W;
+        const fy = GROUND_Y + 2 * dpr + (f % 3) * 4 * dpr;
+        const flowerColors = ['#ff90a8', '#ffd966', '#a878d0', '#ffffff'];
+        ctx.fillStyle = flowerColors[f % 4];
+        // 4 płatki + środek
+        ctx.beginPath();
+        ctx.arc(fx - 1.5 * dpr, fy, 1.2 * dpr, 0, Math.PI * 2);
+        ctx.arc(fx + 1.5 * dpr, fy, 1.2 * dpr, 0, Math.PI * 2);
+        ctx.arc(fx, fy - 1.5 * dpr, 1.2 * dpr, 0, Math.PI * 2);
+        ctx.arc(fx, fy + 1.5 * dpr, 1.2 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Środek żółty
+        ctx.fillStyle = '#ffd966';
+        ctx.beginPath();
+        ctx.arc(fx, fy, 0.8 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
     } else if (escene === 1) {
       // MIASTO — kafelki chodnika
       ctx.strokeStyle = 'rgba(120,140,160,0.4)';
@@ -4400,16 +4484,46 @@ function render() {
         ctx.stroke();
       }
     } else if (escene === 4) {
-      // GÓRY — kamienie/żwir
-      ctx.fillStyle = 'rgba(150,160,180,0.4)';
-      for (let i = 0; i < 12; i++) {
+      // GÓRY — kamienie/żwir + zamarznięte kałuże
+      ctx.fillStyle = 'rgba(150,160,180,0.5)';
+      for (let i = 0; i < 14; i++) {
         const seed = i * 137.5;
         const px = ((seed - game.bgFar * 1.2) % W + W) % W;
         const py = GROUND_Y + 5 * dpr + (i % 4) * 6 * dpr;
         const sz = (1 + (i % 3)) * 1.5 * dpr;
         ctx.beginPath();
-        ctx.arc(px, py, sz, 0, Math.PI * 2);
+        ctx.ellipse(px, py, sz * 1.2, sz * 0.8, 0, 0, Math.PI * 2);
         ctx.fill();
+        // Highlight
+        ctx.fillStyle = 'rgba(220,225,235,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(px - sz * 0.3, py - sz * 0.3, sz * 0.5, sz * 0.3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(150,160,180,0.5)';
+      }
+      // 🆕 Zamarznięte kałuże (lód błyskający)
+      const iceOffset = (game.bgFar * 1.5) % (200 * dpr);
+      for (let i = 0; i < 3; i++) {
+        const ix = ((i * 250 * dpr - iceOffset * 1.2) % (W + 100 * dpr) + W + 100 * dpr) % (W + 100 * dpr) - 50 * dpr;
+        if (ix < -30 * dpr || ix > W + 30 * dpr) continue;
+        const iy = GROUND_Y + 14 * dpr;
+        // Ledowa łata
+        const iceGrad = ctx.createRadialGradient(ix, iy, 0, ix, iy, 18 * dpr);
+        iceGrad.addColorStop(0, 'rgba(180,220,240,0.7)');
+        iceGrad.addColorStop(0.5, 'rgba(140,200,230,0.45)');
+        iceGrad.addColorStop(1, 'rgba(140,200,230,0)');
+        ctx.fillStyle = iceGrad;
+        ctx.beginPath();
+        ctx.ellipse(ix, iy, 18 * dpr, 4 * dpr, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Twinkling glint na lodzie
+        const glint = (Math.sin(game.t * 0.06 + i) + 1) / 2;
+        if (glint > 0.7) {
+          ctx.fillStyle = 'rgba(255,255,255,' + ((glint - 0.7) * 2) + ')';
+          ctx.beginPath();
+          ctx.arc(ix - 4 * dpr, iy - 1 * dpr, 0.8 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     } else if (escene === 5) {
       // KOSMOS — gwiezdny pył pod stopami
@@ -4515,6 +4629,13 @@ function render() {
   });
 
   game.obstacles.forEach(o => {
+    // 🆕 Smooth fade-in gdy obstacle wchodzi w widok (od x = W do x = W * 0.92)
+    let entryAlpha = 1;
+    if (o.x > W * 0.92) {
+      entryAlpha = Math.max(0, 1 - (o.x - W * 0.92) / (W * 0.08 + 50 * dpr));
+    }
+    ctx.globalAlpha = entryAlpha;
+    
     if (o.type === 'gap') {
       const gapKind = o.gapKind || 'empty';
       
@@ -4890,6 +5011,7 @@ function render() {
       return;
     }
   });
+  ctx.globalAlpha = 1;  // 🆕 reset po fade-in obstacles
 
   // 🍌💧 Hazardy (banany, kałuże)
   game.hazards.forEach(h => {
@@ -5357,10 +5479,10 @@ function render() {
       ctx.shadowBlur = 25 * dpr;
     }
     
-    // Bouncing podczas biegu
+    // Bouncing podczas biegu - smooth easing (sinusoidalny absolute = bouncing)
     let bounceY = 0;
     if (game.onGround && !game.sliding && !game.flipping && game.dashing === 0 && game.speed > 3 * dpr) {
-      bounceY = Math.abs(Math.sin(game.t * 0.35)) * -2.5 * dpr;
+      bounceY = Math.abs(Math.sin(game.bouncePhase)) * -2.8 * dpr;
     }
     
     drawRunner(
@@ -5368,7 +5490,7 @@ function render() {
       game.px, 
       game.py + bounceY,
       getRunnerState(),
-      game.t * 0.35,
+      game.legPhase,
       game.flipping ? game.flipRotation : 0,
       false
     );
@@ -6273,6 +6395,13 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   
   ctx.save();
   ctx.translate(x, y);
+  // 🆕 SQUASH & STRETCH — postać kucha przy lądowaniu, rozciąga przy starcie skoku
+  const squash = game.squashAmount || 0;
+  if (Math.abs(squash) > 0.01 && state !== 'slide' && state !== 'flip') {
+    const squashY = 1 + squash;             // > 1 = stretched, < 1 = squashed
+    const squashX = 1 - squash * 0.5;        // X przeciwnie (volume preservation)
+    ctx.scale(squashX, squashY);
+  }
   if (rotation) ctx.rotate(rotation * Math.PI / 180);
   
   // ═══════════════════════════════════════════════
@@ -6431,8 +6560,8 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   const torsoLeanX = state === 'run' ? 2 * s : state === 'dash' ? 4 * s : 0;
   
   // 🆕 ODDECH — szybsze przy biegu/dashu, wolniejsze w jump
-  const breathRate = state === 'dash' ? 0.5 : state === 'run' ? 0.3 : 0.15;
-  const breathScale = 1 + Math.sin(legPhase * breathRate) * 0.04;  // ±4% skali tułowia
+  // 🆕 ODDECH — używa global game.breathPhase dla płynności
+  const breathScale = 1 + Math.sin(game.breathPhase) * 0.04;  // ±4% skali tułowia
   const torsoExpandX = (breathScale - 1) * 4 * s;  // dodatkowa szerokość gdy klatka piersiowa rozszerzona
   const torsoExpandY = (breathScale - 1) * 3 * s;
   
