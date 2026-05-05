@@ -1013,7 +1013,7 @@ function onTapDown(e) {
   if (game.sliding > 0) game.sliding = 0;
   // 🆕 Coyote time — pozwól skoczyć przez 6 klatek po opuszczeniu ziemi (forgiving)
   if (game.onGround || game.coyoteTime > 0) {
-    game.vy = -16 * dpr;
+    game.vy = -15 * dpr;
     game.onGround = false;
     game.coyoteTime = 0;  // zużyto coyote
     game.canDoubleJump = true;
@@ -2226,7 +2226,8 @@ function update() {
     } else if (!game.onGround || game.vy < 0) {
       // 🆕 Coyote time: gdy postać spadla z ziemi (nie skoczyła) — daj okno na "spóźniony skok"
       // Jeśli właśnie zaczęła spadać (była na ziemi a teraz nie jest)
-      const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr;
+      // 🆕 Smoother gravity (mniej "skokowe" odczucie)
+      const gravity = (game.jumpHold && game.vy < 0 ? 0.50 : 0.85) * dpr;
       game.vy += gravity;
       game.py += game.vy;
       if (game.py >= GROUND_Y) {
@@ -2297,7 +2298,7 @@ function update() {
   // 🆕 Jump buffer: jeśli mamy buffered jump i właśnie wylądowaliśmy
   if (!wasOnGround && game.onGround && game.jumpBuffer > 0) {
     // Auto-jump from buffer
-    game.vy = -16 * dpr;
+    game.vy = -15 * dpr;
     game.onGround = false;
     game.canDoubleJump = true;
     game.jumpHold = 1;
@@ -2433,15 +2434,16 @@ function update() {
   game.windZones = game.windZones.filter(w => w.x + w.w > -50 * dpr);
 
   // 🆕 SMOOTH PLAYER ANIMATION — płynna inkrementacja faz proporcjonalnie do prędkości
-  // Szybszy bieg = szybsze nogi i ręce
+  // Większy speed = szybsze nogi/ręce, ale phases są bardziej płynne (mniejsze incrementy = mniej "skokowo")
   const speedRatio = Math.min(game.speed / (4 * dpr), 2.5);  // 0..2.5
-  const legSpeed = 0.18 + speedRatio * 0.12;  // bardzo szybkie cycling przy max
+  // Lower base, more gradual scaling = smoother visual cadence
+  const legSpeed = 0.15 + speedRatio * 0.10;  // 0.15..0.40 (było 0.18..0.48)
   game.legPhase += legSpeed;
-  game.breathPhase += 0.025 + speedRatio * 0.015;  // szybszy oddech przy max
+  game.breathPhase += 0.022 + speedRatio * 0.012;
   game.bouncePhase += legSpeed;
   // Squash recovery (smooth ease back to 0)
   if (game.squashAmount !== 0) {
-    game.squashAmount *= 0.78;  // smooth decay
+    game.squashAmount *= 0.82;  // 0.78 → 0.82 (płynniejszy decay = trwa dłużej i jest gładszy)
     if (Math.abs(game.squashAmount) < 0.01) game.squashAmount = 0;
   }
 
@@ -3771,10 +3773,17 @@ function render() {
         const baseX = ((i * 180 * dpr - game.bgMid * 0.55) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
         const treeH = 80 + (i % 3) * 25;
         const sway = Math.sin(game.t * 0.02 + i) * 3;
-        // Cień drzewa
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        // 🆕 Soft cień drzewa (gradient zamiast solid ellipse - bardziej realny)
+        const treeShadowGrad = ctx.createRadialGradient(
+          baseX + 8 * dpr, GROUND_Y - 1 * dpr, 0,
+          baseX + 8 * dpr, GROUND_Y - 1 * dpr, 32 * dpr
+        );
+        treeShadowGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+        treeShadowGrad.addColorStop(0.5, 'rgba(0,0,0,0.2)');
+        treeShadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = treeShadowGrad;
         ctx.beginPath();
-        ctx.ellipse(baseX, GROUND_Y - 1 * dpr, 30 * dpr, 5 * dpr, 0, 0, Math.PI * 2);
+        ctx.ellipse(baseX + 8 * dpr, GROUND_Y - 1 * dpr, 32 * dpr, 6 * dpr, 0, 0, Math.PI * 2);
         ctx.fill();
         // Pień - z gradient (jasniej z lewej, ciemniej z prawej)
         const trunkGrad = ctx.createLinearGradient(baseX - 5 * dpr, 0, baseX + 5 * dpr, 0);
@@ -4136,14 +4145,22 @@ function render() {
         ctx.fillRect(bx - 2 * dpr, billY + 22 * dpr, 4 * dpr, 30 * dpr);
       }
       
-      // Zebra crossing - białe pasy na ziemi
+      // 🆕 Zebra crossing - z gradientem i perspektywą
       const zebraOffset = (game.bgFar * 1.2) % (180 * dpr);
       for (let i = 0; i < 3; i++) {
         const zx = ((i * 380 * dpr - zebraOffset * 2) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
         if (zx < -150 * dpr || zx > W + 50 * dpr) continue;
-        ctx.fillStyle = 'rgba(245,245,250,0.85)';
         for (let j = 0; j < 5; j++) {
+          // Gradient od jasnobiałego u góry do brudnoszarego u dołu (zużyte pasy)
+          const stripeGrad = ctx.createLinearGradient(0, GROUND_Y + 2 * dpr, 0, GROUND_Y + 20 * dpr);
+          stripeGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+          stripeGrad.addColorStop(0.5, 'rgba(235,235,235,0.85)');
+          stripeGrad.addColorStop(1, 'rgba(180,180,185,0.55)');
+          ctx.fillStyle = stripeGrad;
           ctx.fillRect(zx + j * 12 * dpr, GROUND_Y + 2 * dpr, 8 * dpr, 18 * dpr);
+          // Drobne zarysowania (random rękami opon na pasach)
+          ctx.fillStyle = 'rgba(80,80,90,0.2)';
+          ctx.fillRect(zx + j * 12 * dpr + 1 * dpr, GROUND_Y + 6 * dpr + (j % 2) * 4 * dpr, 6 * dpr, 0.6 * dpr);
         }
       }
       
@@ -4605,24 +4622,39 @@ function render() {
             const seed = i * 13 + wy * 7 + wx * 11;
             const isOn = ((Math.floor(game.t / 90) + seed) % 7) !== 1;  // ~6 z 7 włączone
             const flicker = Math.sin(game.t * 0.05 + seed) > 0.95;  // sporadyczne mignięcie
+            const winX = baseX + (wx + 5) * dpr;
+            const winY = GROUND_Y - bH * dpr + (wy + 5) * dpr;
             
             if (isOn) {
               ctx.fillStyle = flicker ? 
                 'rgba(255,255,200,0.85)' :
                 winColor;
-              ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+              ctx.fillRect(winX, winY, 8 * dpr, 8 * dpr);
+              
+              // 🆕 Glass highlight — diagonal jasny pasek (odbicie szyby)
+              ctx.fillStyle = 'rgba(255,255,255,0.35)';
+              ctx.beginPath();
+              ctx.moveTo(winX + 1 * dpr, winY);
+              ctx.lineTo(winX + 4 * dpr, winY);
+              ctx.lineTo(winX, winY + 4 * dpr);
+              ctx.lineTo(winX, winY + 1 * dpr);
+              ctx.closePath();
+              ctx.fill();
               
               // Mocniejsze glow w nocy
               if (isNight && !flicker) {
                 ctx.shadowColor = '#ffb84d';
                 ctx.shadowBlur = 6 * dpr;
-                ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+                ctx.fillRect(winX, winY, 8 * dpr, 8 * dpr);
                 ctx.shadowBlur = 0;
               }
             } else {
-              // Ciemne okno
-              ctx.fillStyle = 'rgba(40,35,55,0.6)';
-              ctx.fillRect(baseX + (wx + 5) * dpr, GROUND_Y - bH * dpr + (wy + 5) * dpr, 8 * dpr, 8 * dpr);
+              // Ciemne okno z subtle reflection
+              ctx.fillStyle = 'rgba(40,35,55,0.7)';
+              ctx.fillRect(winX, winY, 8 * dpr, 8 * dpr);
+              // Subtle highlight nawet wyłączone (szyba wciąż odbija)
+              ctx.fillStyle = 'rgba(80,90,110,0.4)';
+              ctx.fillRect(winX, winY, 1.5 * dpr, 1.5 * dpr);
             }
           }
         }
