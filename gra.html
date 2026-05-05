@@ -114,6 +114,17 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 /* Interval phase indicator */
 .phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
 .powerup-bar{position:fixed;top:max(120px,calc(env(safe-area-inset-top,0px) + 120px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
+.missions-hud{position:fixed;left:12px;bottom:max(70px,calc(env(safe-area-inset-bottom,0px) + 70px));z-index:10;pointer-events:none;display:flex;flex-direction:column;gap:5px;max-width:240px;}
+.mission-row{background:rgba(7,7,10,0.78);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:5px 8px;display:flex;align-items:center;gap:7px;font-family:'DM Mono',monospace;transition:all 0.3s;}
+.mission-row.done{background:rgba(255,217,102,0.18);border-color:rgba(255,217,102,0.6);}
+.mission-icon{font-size:14px;flex-shrink:0;width:18px;text-align:center;}
+.mission-mid{flex:1;min-width:0;}
+.mission-label{font-size:9px;color:var(--fg2);line-height:1.1;letter-spacing:0.02em;}
+.mission-bar{margin-top:2px;height:2px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;}
+.mission-fill{height:100%;background:linear-gradient(90deg,#ffd966,#ff7a45);transition:width 0.3s;}
+.mission-row.done .mission-fill{background:#3db870;}
+.mission-val{font-size:9px;color:var(--accent);font-weight:600;flex-shrink:0;}
+.mission-row.done .mission-val{color:#3db870;}
 .pu-pill{background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--accent);border-radius:16px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);display:flex;align-items:center;gap:5px;animation:phaseIn 0.3s ease-out;}
 .pu-pill .pu-time{font-weight:600;color:var(--accent);}
 @keyframes phaseIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.7);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
@@ -260,6 +271,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     <div class="mt-bar"><div class="mt-fill" id="mt-fill" style="width:0%"></div></div>
   </div>
   <div class="powerup-bar" id="powerup-bar"></div>
+  <div class="missions-hud" id="missions-hud"></div>
   <div class="phase-banner" id="phase-banner" style="display:none;">
     <div class="pb-label" id="pb-label">FAZA</div>
     <div class="pb-text" id="pb-text">SPRINT</div>
@@ -671,6 +683,8 @@ function newGame(mode) {
     trail: [],
 
     perfectStreak: 0,
+    survivalBonus: 0,         // 🆕 0..1.5 dodawane do multi za przeżycie bez kolizji
+    survivalLastTier: 0,      // 🆕 ostatnio osiągnięty tier (do popup)
 
     // SLOWED state (po banamie/kałuży)
     slowedTimer: 0,           // klatek pozostałych spowolnienia
@@ -1014,6 +1028,103 @@ function spawnPowerup() {
     collected: false,
     bob: 0
   });
+}
+
+// ═════════════════════════════════════════════════
+// MISJE — tymczasowe wyzwania w trakcie gry
+// ═════════════════════════════════════════════════
+const MISSION_TYPES = [
+  { id: 'coins',      label: 'Zbierz {N} monet',         track: 'coins',      target: [10, 15, 20, 30],  bonus: 100, icon: '🪙' },
+  { id: 'perfects',   label: 'Wykonaj {N} idealnych skoków', track: 'perfects', target: [3, 5, 8],         bonus: 150, icon: '⭐' },
+  { id: 'flips',      label: 'Wykonaj {N} salt',         track: 'flips',      target: [2, 3, 5],         bonus: 200, icon: '🤸' },
+  { id: 'nearmiss',   label: 'Zaliczone {N} TUŻ TUŻ',    track: 'nearmiss',   target: [3, 5, 8],         bonus: 150, icon: '✨' },
+  { id: 'distance',   label: 'Przebiegnij {N}m bez kolizji', track: 'noHitDist', target: [200, 400, 600], bonus: 200, icon: '🏃' },
+  { id: 'pedestrians',label: 'Wymin {N} pieszych',       track: 'pedestriansPassed', target: [3, 5, 8],   bonus: 150, icon: '👥' },
+  { id: 'powerups',   label: 'Zbierz {N} power-upów',    track: 'powerupsCollected', target: [2, 3, 5],   bonus: 200, icon: '⚡' },
+  { id: 'combo',      label: 'Osiągnij serię x{N}',      track: 'maxComboReached', target: [2, 3], bonus: 200, isThreshold: true, icon: '🔥' }
+];
+
+function generateMission() {
+  const tpl = MISSION_TYPES[Math.floor(Math.random() * MISSION_TYPES.length)];
+  const target = tpl.target[Math.floor(Math.random() * tpl.target.length)];
+  return {
+    id: tpl.id + '_' + Math.random().toString(36).slice(2, 8),
+    track: tpl.track,
+    label: tpl.label.replace('{N}', target),
+    target: target,
+    bonus: tpl.bonus,
+    icon: tpl.icon,
+    progress: 0,
+    completed: false,
+    isThreshold: tpl.isThreshold || false  // dla "osiągnij serię" — sprawdza max wartość zamiast inkrementacji
+  };
+}
+
+function initMissions() {
+  if (!game) return;
+  game.missions = [];
+  game.missionTrackers = {
+    coins: 0,
+    perfects: 0,
+    flips: 0,
+    nearmiss: 0,
+    noHitDist: 0,
+    lastNoHitDist: 0,
+    pedestriansPassed: 0,
+    powerupsCollected: 0,
+    maxComboReached: 1
+  };
+  for (let i = 0; i < 3; i++) game.missions.push(generateMission());
+}
+
+function checkMissionProgress(trackName, value) {
+  if (!game || !game.missions) return;
+  game.missions.forEach((m, i) => {
+    if (m.completed || m.track !== trackName) return;
+    if (m.isThreshold) {
+      // "Osiągnij serię x3" — value to bieżąca seria
+      m.progress = Math.max(m.progress, value);
+    } else {
+      m.progress = value;
+    }
+    if (m.progress >= m.target) {
+      m.completed = true;
+      const bonusScore = Math.floor(m.bonus * game.multi);
+      game.score += bonusScore;
+      spawnPopup(W * 0.5, H * 0.35, '✓ MISJA! +' + bonusScore, '#ffd966');
+      flashScreen('rgba(255,217,102,0.2)', 14);
+      playCombo(2);
+      if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+      // Po 1s wymień misję na nową
+      setTimeout(() => {
+        if (game && game.missions) {
+          game.missions[i] = generateMission();
+          // Reset tracker dla typu noHitDist (żeby liczył od nowa)
+          if (game.missions[i].track === 'noHitDist') {
+            game.missionTrackers.lastNoHitDist = game.missionTrackers.noHitDist;
+          }
+        }
+      }, 1500);
+    }
+  });
+  renderMissionsHUD();
+}
+
+function renderMissionsHUD() {
+  const cont = document.getElementById('missions-hud');
+  if (!cont || !game.missions) return;
+  cont.innerHTML = game.missions.map(m => {
+    const pct = Math.min(100, Math.round(m.progress / m.target * 100));
+    const isComplete = m.completed;
+    return `<div class="mission-row${isComplete ? ' done' : ''}">
+      <span class="mission-icon">${isComplete ? '✓' : m.icon}</span>
+      <div class="mission-mid">
+        <div class="mission-label">${m.label}</div>
+        <div class="mission-bar"><div class="mission-fill" style="width:${pct}%;"></div></div>
+      </div>
+      <span class="mission-val">${m.progress}/${m.target}</span>
+    </div>`;
+  }).join('');
 }
 
 const PU_DEFS = {
@@ -1760,6 +1871,11 @@ function update() {
             playPerfect();
             playCombo(3);
             if (navigator.vibrate) navigator.vibrate([20, 30, 20, 30, 50]);
+            // 🎯 Mission tracking
+            if (game.missionTrackers) {
+              game.missionTrackers.flips++;
+              checkMissionProgress('flips', game.missionTrackers.flips);
+            }
           } else {
             // Za wcześnie wylądował (rotacja < 270°) — bez kary, tylko bez bonusa
             spawnPopup(game.px, game.py - 60 * dpr, '...', '#888');
@@ -1987,22 +2103,29 @@ function update() {
       }
       if (vDist > 0 && vDist < 45 * dpr && game.invuln === 0) {
         o.nearMissed = true;
-        // 🆕 NEAR MISS daje combo +2 (większe ryzyko = większa nagroda)
         game.perfectStreak += 2;
         updateComboMultiplier();
         const bonus = Math.floor(15 * game.multi);
         game.score += bonus;
         spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'TUŻ TUŻ! +' + bonus, '#5090e0');
         spawnParticles(o.x, (oy1 || GROUND_Y) - 10 * dpr, '#5090e0', 8);
-        // Małe screen flash dla emocji
         flashScreen('rgba(80,144,224,0.08)', 5);
+        // 🎯 Mission tracking
+        if (game.missionTrackers) {
+          game.missionTrackers.nearmiss++;
+          checkMissionProgress('nearmiss', game.missionTrackers.nearmiss);
+        }
       }
     }
 
     if (!o.passed && o.x + o.w < game.px - playerR) {
       o.passed = true;
-      // 🆕 Zwykły passed (bez near miss/perfect) NIE daje combo — tylko mały score
-      // Combo rośnie TYLKO za perfect jump (poniżej) lub near miss (powyżej)
+      
+      // 🎯 Mission: zliczaj wyminiętych pieszych
+      if (o.type === 'pedestrian' && game.missionTrackers) {
+        game.missionTrackers.pedestriansPassed++;
+        checkMissionProgress('pedestriansPassed', game.missionTrackers.pedestriansPassed);
+      }
       
       if ((o.type === 'low' || o.type === 'pedestrian') && !isGap) {
         const playerBot = py2;
@@ -2010,7 +2133,6 @@ function update() {
         const diff = obstacleTop - playerBot;
         if (diff > -10 * dpr && diff < 30 * dpr) {
           game.perfects++;
-          // 🆕 PERFECT JUMP daje combo +1
           game.perfectStreak++;
           updateComboMultiplier();
           const bonus = Math.floor(20 * game.multi);
@@ -2018,7 +2140,11 @@ function update() {
           spawnPopup(o.x, oy1 - 30 * dpr, 'IDEALNIE! +' + bonus, '#ffd966');
           playPerfect();
           spawnParticles(o.x, oy1, '#ffd966', 10);
-          // Combo milestone (co 5 perfectów)
+          // 🎯 Mission tracking
+          if (game.missionTrackers) {
+            game.missionTrackers.perfects++;
+            checkMissionProgress('perfects', game.missionTrackers.perfects);
+          }
           if (game.perfects % 5 === 0) {
             playCombo(game.perfects / 5);
             spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.perfects + ' IDEALNYCH!', '#ff7a45');
@@ -2112,6 +2238,11 @@ function update() {
         p.collected = true;
         activatePowerup(p.type);
         spawnParticles(p.x, p.y, p.type === 'magnet' ? '#ffd966' : p.type === 'shield' ? '#5090e0' : p.type === 'slowmo' ? '#a868e0' : '#e8561e', 14);
+        // 🎯 Mission tracking
+        if (game.missionTrackers) {
+          game.missionTrackers.powerupsCollected++;
+          checkMissionProgress('powerupsCollected', game.missionTrackers.powerupsCollected);
+        }
       }
     }
   }
@@ -2127,8 +2258,12 @@ function update() {
       game.score += Math.floor(5 * game.multi);
       spawnParticles(c.x, c.y, '#ffd966', 6);
       playCoin();
-      // Combo coin sound (jeśli w streak)
       if (game.coins % 5 === 0) playCombo(1);
+      // 🎯 Mission tracking
+      if (game.missionTrackers) {
+        game.missionTrackers.coins++;
+        checkMissionProgress('coins', game.missionTrackers.coins);
+      }
     }
   }
 
@@ -2138,6 +2273,38 @@ function update() {
   // Update best focus duration (czas od ostatniej kolizji)
   const focusDur = (game.t - game.focusStartT) / 60;
   if (focusDur > game.bestFocusDuration) game.bestFocusDuration = focusDur;
+  
+  // 🆕 SURVIVAL MULTIPLIER — co 30s bez kolizji +0.5 (max 1.5 = 90s)
+  // Tier 0: 0-30s = 0.0
+  // Tier 1: 30-60s = +0.5
+  // Tier 2: 60-90s = +1.0
+  // Tier 3: 90s+ = +1.5
+  let survivalTier = 0;
+  if (focusDur >= 90) survivalTier = 3;
+  else if (focusDur >= 60) survivalTier = 2;
+  else if (focusDur >= 30) survivalTier = 1;
+  
+  game.survivalBonus = survivalTier * 0.5;
+  
+  // Popup przy nowym tier
+  if (survivalTier > game.survivalLastTier) {
+    game.survivalLastTier = survivalTier;
+    const tierLabels = ['', '+0.5 SURVIVAL', '+1.0 SURVIVAL', '+1.5 SURVIVAL'];
+    const tierColors = ['', '#3db870', '#5090e0', '#a868e0'];
+    spawnPopup(W * 0.5, H * 0.45, tierLabels[survivalTier], tierColors[survivalTier]);
+    flashScreen('rgba(80,200,144,0.15)', 12);
+    playCombo(1.5);
+    if (navigator.vibrate) navigator.vibrate(40);
+    // Wymuś update mnożnika żeby survivalBonus się policzył
+    updateComboMultiplier();
+  }
+  
+  // 🎯 Mission: noHitDist (dystans bez kolizji od resetu)
+  if (game.missionTrackers) {
+    const dist = Math.floor(game.distance) - game.missionTrackers.lastNoHitDist;
+    game.missionTrackers.noHitDist = Math.max(0, dist);
+    checkMissionProgress('noHitDist', game.missionTrackers.noHitDist);
+  }
 
   // Background
   game.bgFar += game.speed * 0.1;
@@ -2254,15 +2421,23 @@ function updateModeTarget() {
 function updateComboMultiplier() {
   if (!game) return;
   const c = game.perfectStreak;
-  let newMulti;
-  if (c >= 10) newMulti = 3.0;
-  else if (c >= 5) newMulti = 2.0;
-  else if (c >= 3) newMulti = 1.5;
-  else newMulti = _bonuses.startMulti || 1.0;
+  let baseMulti;
+  if (c >= 10) baseMulti = 3.0;
+  else if (c >= 5) baseMulti = 2.0;
+  else if (c >= 3) baseMulti = 1.5;
+  else baseMulti = _bonuses.startMulti || 1.0;
+  
+  // 🆕 Dodaj survivalBonus
+  const newMulti = baseMulti + (game.survivalBonus || 0);
   
   if (newMulti > game.multi + 0.01) {
     game.multi = newMulti;
     game.maxMulti = Math.max(game.maxMulti, game.multi);
+    // 🎯 Mission tracking
+    if (game.missionTrackers) {
+      game.missionTrackers.maxComboReached = Math.max(game.missionTrackers.maxComboReached, game.multi);
+      checkMissionProgress('maxComboReached', game.missionTrackers.maxComboReached);
+    }
     // Pulsująca animacja na zmianie tier
     const mEl = document.getElementById('hud-multi');
     if (mEl) {
@@ -2331,6 +2506,16 @@ function hitObstacle() {
   game.lives--;
   game.invuln = 60;
   game.focusStartT = game.t;
+  // 🆕 Reset survival bonus (utrata)
+  if (game.survivalLastTier > 0) {
+    spawnPopup(game.px, game.py - 70 * dpr, 'SURVIVAL UTRACONY', '#888');
+  }
+  game.survivalBonus = 0;
+  game.survivalLastTier = 0;
+  // 🎯 Mission: reset noHit distance counter
+  if (game.missionTrackers) {
+    game.missionTrackers.lastNoHitDist = Math.floor(game.distance);
+  }
   if (game.perfectStreak >= 3) {
     spawnPopup(game.px, game.py - 100 * dpr, 'SERIA UTRACONA!', '#e05050');
   }
@@ -3453,7 +3638,9 @@ function realStart(mode) {
   game = newGame(mode);
   game.running = true;
   game.focusStartT = 0;
-  _endGameCalled = false;  // 🆕 reset flagi przy każdym nowym secie
+  _endGameCalled = false;
+  initMissions();              // 🎯 Init missions
+  renderMissionsHUD();
   document.getElementById('screen-home').classList.add('hidden');
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.remove('hidden');
@@ -3480,6 +3667,9 @@ async function endGame() {
     const se = document.getElementById('screen-end');
     if (sg) sg.classList.add('hidden');
     if (se) se.classList.remove('hidden');
+    // Wyczyść missions HUD
+    const mh = document.getElementById('missions-hud');
+    if (mh) mh.innerHTML = '';
   } catch (e) { console.error('Screen swap error:', e); }
 
   try {
