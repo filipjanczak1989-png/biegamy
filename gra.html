@@ -128,6 +128,10 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .pu-pill{background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--accent);border-radius:16px;padding:4px 10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);display:flex;align-items:center;gap:5px;animation:phaseIn 0.3s ease-out;}
 .pu-pill .pu-time{font-weight:600;color:var(--accent);}
 @keyframes phaseIn{from{opacity:0;transform:translate(-50%,-50%) scale(0.7);}to{opacity:1;transform:translate(-50%,-50%) scale(1);}}
+@keyframes confettiFall{
+  0%{transform:translateY(-20px) translateX(0) rotate(0deg);opacity:1;}
+  100%{transform:translateY(110vh) translateX(var(--drift,0)) rotate(720deg);opacity:0.7;}
+}
 .phase-banner .pb-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
 .phase-banner .pb-text{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:0.06em;}
 .phase-banner.sprint{border-color:var(--red);}
@@ -141,16 +145,15 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 
 /* End screen */
 #screen-end{background:rgba(7,7,10,0.94);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;overflow-y:auto;}
-.end-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px 22px;text-align:center;}
-.end-title{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.04em;margin-bottom:4px;}
-.end-mode-tag{display:inline-block;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;background:rgba(232,86,30,0.15);border:1px solid var(--accent);color:var(--accent);padding:3px 10px;border-radius:8px;margin-bottom:14px;}
+.end-card{width:100%;max-width:340px;background:linear-gradient(180deg,rgba(15,11,20,0.92),rgba(20,16,28,0.95));border:1px solid var(--border);border-radius:20px;padding:24px 22px;text-align:center;box-shadow:0 16px 60px rgba(0,0,0,0.5);}
+.end-title{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:0.04em;margin-bottom:4px;text-shadow:0 0 20px rgba(232,86,30,0.4);}
 .end-sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
-.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:54px;color:var(--accent);line-height:1;}
+.end-score-big{font-family:'Bebas Neue',sans-serif;font-size:78px;color:var(--accent);line-height:1;text-shadow:0 0 24px rgba(232,86,30,0.6),0 4px 12px rgba(0,0,0,0.6);}
 .end-score-lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
-.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;padding:12px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
-.end-stat{display:flex;flex-direction:column;align-items:center;gap:2px;}
-.end-stat-val{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);}
-.end-stat-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+.end-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.end-stat{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.end-stat-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1;}
+.end-stat-lbl{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);line-height:1.2;}
 /* Mental metrics in end */
 .mental-stats{background:rgba(80,144,224,0.06);border:1px solid rgba(80,144,224,0.25);border-radius:10px;padding:10px;margin-bottom:14px;}
 .mental-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--blue);margin-bottom:8px;}
@@ -743,7 +746,6 @@ async function loadLeaderboard(mode) {
 function switchTab(name) {
   // No-op (zachowane dla kompatybilności wywołań)
 }
-
 
 // ═════════════════════════════════════════════════
 // CANVAS ENGINE — adaptuje się do trybu
@@ -2462,11 +2464,23 @@ function update() {
     if (dx * dx + dy * dy < (c.r + playerR) * (c.r + playerR)) {
       c.collected = true;
       game.coins++;
-      game.score += Math.floor(5 * game.multi);
-      spawnParticles(c.x, c.y, '#ffd966', 6);
+      const coinScore = Math.floor(5 * game.multi);
+      game.score += coinScore;
+      // Większa eksplozja particles
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        spawnParticles(
+          c.x + Math.cos(angle) * 5 * dpr,
+          c.y + Math.sin(angle) * 5 * dpr,
+          '#ffd966', 1
+        );
+      }
+      // Floating "+5" popup
+      if (game.multi >= 1.5) {
+        spawnPopup(c.x, c.y - 15 * dpr, '+' + coinScore, '#ffd966');
+      }
       playCoin();
       if (game.coins % 5 === 0) playCombo(1);
-      // 🎯 Mission tracking
       if (game.missionTrackers) {
         game.missionTrackers.coins++;
         checkMissionProgress('coins', game.missionTrackers.coins);
@@ -2522,11 +2536,29 @@ function update() {
   if (shakeAmount > 0) shakeAmount *= 0.85;
 
   // HUD
-  document.getElementById('hud-score').textContent = Math.floor(game.score);
+  // 🆕 Smooth score counter — interpoluje do bieżącej wartości
+  const target = Math.floor(game.score);
+  if (game._displayScore === undefined) game._displayScore = 0;
+  const diff = target - game._displayScore;
+  if (Math.abs(diff) > 0) {
+    game._displayScore += Math.max(1, Math.ceil(Math.abs(diff) / 8)) * Math.sign(diff);
+    if (Math.abs(target - game._displayScore) < 1) game._displayScore = target;
+  }
+  document.getElementById('hud-score').textContent = Math.floor(game._displayScore);
   document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1) + (game.riskModeActive ? ' ⚠' : '');
   document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
   document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
-  document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, M.lives - game.lives)) + '</span>';
+  // 🆕 Lepsze hearts — z poświatą i animacją utraty
+  const maxLives = Math.max(M.lives, game.lives);
+  let heartsHtml = '';
+  for (let h = 0; h < maxLives; h++) {
+    if (h < game.lives) {
+      heartsHtml += '<span style="color:#ff5050;text-shadow:0 0 8px rgba(255,80,80,0.8);font-size:16px;">❤</span>';
+    } else {
+      heartsHtml += '<span style="color:rgba(255,80,80,0.15);font-size:16px;">♡</span>';
+    }
+  }
+  document.getElementById('hud-lives').innerHTML = heartsHtml;
 
   // Combo counter — tier-based colors (zaczyna się od 3)
   const comboEl = document.getElementById('hud-combo');
@@ -2766,7 +2798,6 @@ function hitObstacle() {
   }
 }
 
-
 // ═════════════════════════════════════════════════
 // RENDER
 // ═════════════════════════════════════════════════
@@ -2889,6 +2920,102 @@ function render() {
     const y = (seed * 0.7) % (GROUND_Y * 0.6);
     const size = (i % 3 === 0 ? 2 : 1) * dpr;
     ctx.fillRect(x, y, size, size);
+  }
+
+  // 🆕 SŁOŃCE / KSIĘŻYC zależnie od sceny endless
+  if (M.id === 'endless') {
+    const escene = game.endlessScene;
+    const sunX = W * 0.78 - game.bgFar * 0.03;
+    const sunY = GROUND_Y * 0.32;
+    
+    if (escene === 0) {
+      // PARK — żółte słońce z poświatą
+      const grad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 80 * dpr);
+      grad.addColorStop(0, 'rgba(255,230,120,0.95)');
+      grad.addColorStop(0.4, 'rgba(255,200,80,0.6)');
+      grad.addColorStop(1, 'rgba(255,180,60,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 80 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      // Core
+      ctx.fillStyle = 'rgba(255,245,180,1)';
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 26 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (escene === 1) {
+      // MIASTO — bladożółty zachód
+      const grad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 70 * dpr);
+      grad.addColorStop(0, 'rgba(255,180,100,0.7)');
+      grad.addColorStop(1, 'rgba(255,180,100,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 70 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,210,150,0.9)';
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 22 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (escene === 2) {
+      // NOC — biały księżyc
+      const moonX = W * 0.75;
+      const moonY = GROUND_Y * 0.25;
+      const grad = ctx.createRadialGradient(moonX, moonY, 0, moonX, moonY, 60 * dpr);
+      grad.addColorStop(0, 'rgba(220,220,255,0.6)');
+      grad.addColorStop(1, 'rgba(220,220,255,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 60 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(240,240,255,0.95)';
+      ctx.beginPath();
+      ctx.arc(moonX, moonY, 22 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      // Cienie krateru
+      ctx.fillStyle = 'rgba(180,180,210,0.4)';
+      ctx.beginPath();
+      ctx.arc(moonX - 6 * dpr, moonY - 4 * dpr, 4 * dpr, 0, Math.PI * 2);
+      ctx.arc(moonX + 8 * dpr, moonY + 6 * dpr, 3 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (escene === 3) {
+      // ŚWIT — wielkie pomarańczowe słońce nad horyzontem
+      const horiSunX = W * 0.6 - game.bgFar * 0.03;
+      const horiSunY = GROUND_Y * 0.55;
+      const grad = ctx.createRadialGradient(horiSunX, horiSunY, 0, horiSunX, horiSunY, 130 * dpr);
+      grad.addColorStop(0, 'rgba(255,160,90,0.95)');
+      grad.addColorStop(0.4, 'rgba(255,120,70,0.5)');
+      grad.addColorStop(1, 'rgba(255,80,50,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.arc(horiSunX, horiSunY, 130 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(255,200,140,1)';
+      ctx.beginPath();
+      ctx.arc(horiSunX, horiSunY, 45 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (escene === 5) {
+      // KOSMOS — galaktyka spiralna w tle (już mamy planety)
+      const galX = W * 0.3 - game.bgFar * 0.02;
+      const galY = GROUND_Y * 0.4;
+      ctx.save();
+      ctx.translate(galX, galY);
+      ctx.rotate(game.t * 0.002);
+      const galGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 90 * dpr);
+      galGrad.addColorStop(0, 'rgba(220,180,255,0.4)');
+      galGrad.addColorStop(0.5, 'rgba(150,80,200,0.2)');
+      galGrad.addColorStop(1, 'rgba(80,40,120,0)');
+      ctx.fillStyle = galGrad;
+      // Spiralne ramiona — eliptyczne
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 90 * dpr, 30 * dpr, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Core
+      ctx.fillStyle = 'rgba(255,240,200,0.85)';
+      ctx.beginPath();
+      ctx.arc(0, 0, 12 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   // Mountains
@@ -3113,9 +3240,89 @@ function render() {
   ctx.fillStyle = groundGrad;
   ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
 
-  // 🆕 Ground pattern — przewijające się linie wzmacniają poczucie szybkości
+  // 🆕 SCENA-SPECYFICZNE TEKSTURY ZIEMI
   if (M.id === 'endless') {
-    ctx.strokeStyle = 'rgba(' + glowColor + ',0.15)';
+    const escene = game.endlessScene;
+    const tileOffset = (game.bgFar * 1.2) % (60 * dpr);
+    
+    if (escene === 0) {
+      // PARK — trawa: drobne pionowe kreseczki
+      ctx.strokeStyle = 'rgba(80,160,90,0.5)';
+      ctx.lineWidth = 1.5 * dpr;
+      for (let x = -tileOffset; x < W; x += 8 * dpr) {
+        const h = 4 + (Math.sin(x * 0.3) + 1) * 2;
+        ctx.beginPath();
+        ctx.moveTo(x, GROUND_Y);
+        ctx.lineTo(x + (Math.sin(x * 0.5) * 1.5), GROUND_Y - h * dpr);
+        ctx.stroke();
+      }
+    } else if (escene === 1) {
+      // MIASTO — kafelki chodnika
+      ctx.strokeStyle = 'rgba(120,140,160,0.4)';
+      ctx.lineWidth = 1 * dpr;
+      const tileW = 70 * dpr;
+      const tileOff = (game.bgFar * 1.2) % tileW;
+      for (let x = -tileOff; x < W + tileW; x += tileW) {
+        ctx.beginPath();
+        ctx.moveTo(x, GROUND_Y + 2 * dpr);
+        ctx.lineTo(x, GROUND_Y + 24 * dpr);
+        ctx.stroke();
+      }
+      // Linia oddzielająca chodnik od jezdni
+      ctx.strokeStyle = 'rgba(160,180,200,0.5)';
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(0, GROUND_Y + 24 * dpr);
+      ctx.lineTo(W, GROUND_Y + 24 * dpr);
+      ctx.stroke();
+    } else if (escene === 2) {
+      // NOC — refleksy świateł na asfalcie
+      ctx.strokeStyle = 'rgba(255,220,120,0.18)';
+      ctx.lineWidth = 1 * dpr;
+      for (let x = -tileOffset; x < W; x += 80 * dpr) {
+        ctx.beginPath();
+        ctx.moveTo(x, GROUND_Y + 4 * dpr);
+        ctx.lineTo(x + 30 * dpr, H);
+        ctx.stroke();
+      }
+    } else if (escene === 3) {
+      // ŚWIT — różowe odbicia
+      ctx.strokeStyle = 'rgba(255,180,150,0.25)';
+      ctx.lineWidth = 1 * dpr;
+      for (let x = -tileOffset; x < W; x += 60 * dpr) {
+        ctx.beginPath();
+        ctx.moveTo(x, GROUND_Y + 3 * dpr);
+        ctx.lineTo(x + 25 * dpr, H);
+        ctx.stroke();
+      }
+    } else if (escene === 4) {
+      // GÓRY — kamienie/żwir
+      ctx.fillStyle = 'rgba(150,160,180,0.4)';
+      for (let i = 0; i < 12; i++) {
+        const seed = i * 137.5;
+        const px = ((seed - game.bgFar * 1.2) % W + W) % W;
+        const py = GROUND_Y + 5 * dpr + (i % 4) * 6 * dpr;
+        const sz = (1 + (i % 3)) * 1.5 * dpr;
+        ctx.beginPath();
+        ctx.arc(px, py, sz, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (escene === 5) {
+      // KOSMOS — gwiezdny pył pod stopami
+      for (let i = 0; i < 25; i++) {
+        const seed = i * 173;
+        const px = ((seed - game.bgFar * 1.5) % W + W) % W;
+        const py = GROUND_Y + 4 * dpr + (i * 7) % 30 * dpr;
+        const sz = ((i + game.t * 0.05) % 3) * 0.7 * dpr + 0.5 * dpr;
+        ctx.fillStyle = 'rgba(220,200,255,' + (0.3 + (Math.sin(i + game.t * 0.05) + 1) * 0.2) + ')';
+        ctx.fillRect(px, py, sz, sz);
+      }
+    }
+  }
+
+  // Ground pattern — przewijające się linie (zostaje w innych trybach)
+  if (M.id !== 'endless' || game.endlessScene === 4) {
+    ctx.strokeStyle = 'rgba(' + glowColor + ',0.12)';
     ctx.lineWidth = 1 * dpr;
     const lineSpacing = 60 * dpr;
     const offset = (game.bgFar * 1.5) % lineSpacing;
@@ -3174,6 +3381,18 @@ function render() {
   }
 
   // Obstacles
+  // 🆕 Warning indicator dla high obstacles (na prawej krawędzi)
+  game.obstacles.forEach(o => {
+    if (o.type !== 'high' || o.x < W * 0.7 || o.x > W) return;
+    const fade = (game.t * 0.15) % (Math.PI * 2);
+    const alpha = 0.4 + Math.sin(fade) * 0.3;
+    ctx.fillStyle = 'rgba(224,80,80,' + alpha + ')';
+    ctx.font = 'bold ' + (24 * dpr) + 'px serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('⚠', W - 10 * dpr, GROUND_Y - 90 * dpr + 20 * dpr);
+  });
+
   game.obstacles.forEach(o => {
     if (o.type === 'gap') {
       // Przepaść — czarna dziura ze świecącymi krawędziami
@@ -3727,16 +3946,37 @@ function render() {
     ctx.beginPath();
     ctx.arc(game.px, game.py - 20 * dpr, auraR, 0, Math.PI * 2);
     ctx.fill();
+    
+    // 🆕 Flame particles dla wysokiego combo (>=5)
+    if (c >= 5) {
+      const flameCount = c >= 10 ? 4 : 2;
+      for (let i = 0; i < flameCount; i++) {
+        const phase = (game.t * 0.15 + i * Math.PI / 2) % (Math.PI * 2);
+        const fx = game.px + Math.cos(phase) * 25 * dpr;
+        const fy = game.py - 20 * dpr + Math.sin(phase) * 15 * dpr - 8 * dpr;
+        const flameY = fy + (Math.sin(game.t * 0.4 + i) - 1) * 8 * dpr;
+        // Płomień - czerwono-pomarańczowy gradient
+        const fGrad = ctx.createRadialGradient(fx, flameY, 0, fx, flameY, 10 * dpr);
+        fGrad.addColorStop(0, c >= 10 ? 'rgba(255,200,100,0.9)' : 'rgba(255,180,60,0.85)');
+        fGrad.addColorStop(0.5, c >= 10 ? 'rgba(255,80,30,0.7)' : 'rgba(232,86,30,0.6)');
+        fGrad.addColorStop(1, 'rgba(232,30,30,0)');
+        ctx.fillStyle = fGrad;
+        ctx.beginPath();
+        ctx.arc(fx, flameY, 10 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
   }
   
   if (!blink) {
-    // 🆕 Motion trail (smug ruchu) — ghosty postaci za biegaczem
+    // 🆕 Motion trail — ghosty postaci za biegaczem
     if (!game.playerTrail) game.playerTrail = [];
     if (game.t % 3 === 0 && (game.speed > 5 * dpr || game.dashing > 0 || !game.onGround)) {
       game.playerTrail.push({
         x: game.px, y: game.py, life: 12,
         rot: game.flipping ? game.flipRotation : 0,
-        sliding: game.sliding > 0
+        state: getRunnerState(),
+        legPhase: game.t * 0.35
       });
     }
     for (const t of game.playerTrail) {
@@ -3745,14 +3985,7 @@ function render() {
       const a = (t.life / 12) * 0.35;
       ctx.save();
       ctx.globalAlpha = a;
-      ctx.fillStyle = '#ffffff';
-      ctx.font = ((t.sliding ? 42 : 48) * dpr) + 'px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.translate(t.x, t.y + 4 * dpr);
-      ctx.scale(-1, 1);
-      if (t.rot) ctx.rotate(t.rot * Math.PI / 180);
-      ctx.fillText(t.sliding ? '🤸' : '🏃', 0, 0);
+      drawRunner(ctx, t.x, t.y, t.state, t.legPhase, t.rot, true);
       ctx.restore();
     }
     game.playerTrail = game.playerTrail.filter(t => t.life > 0);
@@ -3767,30 +4000,25 @@ function render() {
     } else if (game.flipping) {
       ctx.shadowColor = '#ffd966';
       ctx.shadowBlur = 25 * dpr;
-    } else {
-      // 🆕 Domyślne delikatne glow dla widoczności
-      ctx.shadowColor = 'rgba(255,255,255,0.5)';
-      ctx.shadowBlur = 8 * dpr;
     }
-    const playerEmoji = game.sliding > 0 ? '🤸' : (game.flipping ? '🤸' : '🏃');
-    ctx.font = (game.sliding > 0 ? 42 : 48) * dpr + 'px serif';
-    ctx.fillStyle = '#ffffff';  // explicit żeby nie był przyciemniony przez ostatnie fillStyle
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    // 🆕 Bouncing podczas biegu (tylko na ziemi, nie skok)
+    
+    // Bouncing podczas biegu
     let bounceY = 0;
     if (game.onGround && !game.sliding && !game.flipping && game.dashing === 0 && game.speed > 3 * dpr) {
       bounceY = Math.abs(Math.sin(game.t * 0.35)) * -2.5 * dpr;
     }
-    ctx.translate(game.px, game.py + 4 * dpr + bounceY);
-    ctx.scale(-1, 1);
-    if (game.flipping) {
-      ctx.rotate(game.flipRotation * Math.PI / 180);
-    }
-    ctx.fillText(playerEmoji, 0, 0);
+    
+    drawRunner(
+      ctx, 
+      game.px, 
+      game.py + bounceY,
+      getRunnerState(),
+      game.t * 0.35,
+      game.flipping ? game.flipRotation : 0,
+      false
+    );
     ctx.restore();
   }
-
   ctx.restore();
 
   // ── SCREEN FLASH (overlay, kolorowy błysk) ──
@@ -3940,7 +4168,27 @@ async function endGame() {
     
     setText('end-title', title);
     setText('end-sub', sub);
-    setText('end-score', Math.floor(game.score));
+    
+    // 🆕 Count-up animation dla score
+    const finalScore = Math.floor(game.score);
+    const scoreEl = document.getElementById('end-score');
+    if (scoreEl) {
+      let cur = 0;
+      const dur = Math.min(1500, 600 + finalScore / 5);  // dłuższe dla większych score
+      const startT = performance.now();
+      const animate = () => {
+        const elapsed = performance.now() - startT;
+        const progress = Math.min(1, elapsed / dur);
+        // Ease-out
+        const eased = 1 - Math.pow(1 - progress, 3);
+        cur = Math.floor(finalScore * eased);
+        scoreEl.textContent = cur;
+        if (progress < 1) requestAnimationFrame(animate);
+        else scoreEl.textContent = finalScore;
+      };
+      animate();
+    }
+    
     setText('end-distance', Math.floor(game.distance));
     setText('end-coins', game.coins || 0);
     setText('end-perfects', game.perfects);
@@ -3949,6 +4197,11 @@ async function endGame() {
     const isNew = Math.floor(game.score) >= getStat('best_score', 1) && game.score > 100;
     const recordEl = document.getElementById('new-record-banner');
     if (recordEl) recordEl.style.display = isNew ? 'block' : 'none';
+    
+    // 🆕 Confetti dla rekordu
+    if (isNew) {
+      spawnEndScreenConfetti();
+    }
 
     // 🆕 Daily challenge — zaktualizuj progress
     const gameStats = {
@@ -3995,7 +4248,43 @@ async function endGame() {
   }
 }
 
-// Tła task: zapis score do bazy
+// 🆕 Confetti dla nowego rekordu na end screen
+function spawnEndScreenConfetti() {
+  const screen = document.getElementById('screen-end');
+  if (!screen) return;
+  // Wyczyść stare jeśli są
+  screen.querySelectorAll('.confetti-particle').forEach(p => p.remove());
+  
+  const colors = ['#ffd966', '#ff7a45', '#3db870', '#5090e0', '#a868e0', '#e05050'];
+  for (let i = 0; i < 60; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'confetti-particle';
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      const left = Math.random() * 100;
+      const rotation = Math.random() * 360;
+      const size = 4 + Math.random() * 6;
+      const horizontalDrift = (Math.random() - 0.5) * 200;
+      const dur = 2 + Math.random() * 2;
+      p.style.cssText = `
+        position:fixed;
+        top:-20px;
+        left:${left}%;
+        width:${size}px;
+        height:${size * 1.5}px;
+        background:${c};
+        z-index:9999;
+        pointer-events:none;
+        transform:rotate(${rotation}deg);
+        animation:confettiFall ${dur}s ease-in forwards;
+        --drift:${horizontalDrift}px;
+      `;
+      screen.appendChild(p);
+      setTimeout(() => p.remove(), dur * 1000 + 100);
+    }, i * 30);
+  }
+}
+
 async function _saveScoreInBackground(M) {
   if (!_athleteId || !game || game.score <= 0) return;
   try {
@@ -4110,6 +4399,217 @@ function goLogRealTraining() {
 }
 window.goLogRealTraining = goLogRealTraining;
 
+// ═════════════════════════════════════════════════
+// PLAYER CHARACTER RENDERING
+// ═════════════════════════════════════════════════
+
+// 🆕 Stan postaci do renderingu
+function getRunnerState() {
+  if (game.flipping) return 'flip';
+  if (game.sliding > 0) return 'slide';
+  if (game.dashing > 0) return 'dash';
+  if (!game.onGround) return game.vy < 0 ? 'jump_up' : 'jump_down';
+  return 'run';
+}
+
+// 🆕 Rysuje biegacza z prymitywów canvas
+// state: 'run' | 'jump_up' | 'jump_down' | 'slide' | 'dash' | 'flip'
+// legPhase: faza animacji nóg (game.t * 0.35)
+// rotation: dla salt
+// isGhost: czy to trail ghost (mniej szczegółów)
+function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
+  const s = dpr;  // skala
+  // Skin colors (podstawowy)
+  const SKIN = '#f4c39a';      // skóra
+  const HAIR = '#1a1a1a';      // włosy
+  const SHIRT_TOP = '#ff7a45'; // pomarańczowa koszulka góra
+  const SHIRT_BOT = '#e8561e'; // ciemniejsza dół
+  const SHORTS = '#1a1a25';    // czarne spodenki
+  const SHOES = '#3a3a45';     // szare buty
+  const SHOE_ACCENT = '#ff7a45'; // pomarańczowy pasek na butach
+  
+  ctx.save();
+  ctx.translate(x, y);
+  if (rotation) ctx.rotate(rotation * Math.PI / 180);
+  
+  // ═══════════════════════════════════════════════
+  // SLIDE — postać przykucnięta
+  // ═══════════════════════════════════════════════
+  if (state === 'slide') {
+    // Tułów (poziomy)
+    ctx.fillStyle = SHIRT_TOP;
+    ctx.beginPath();
+    ctx.roundRect(-22 * s, -14 * s, 36 * s, 12 * s, 5 * s);
+    ctx.fill();
+    // Głowa
+    ctx.fillStyle = SKIN;
+    ctx.beginPath();
+    ctx.arc(-22 * s, -14 * s, 8 * s, 0, Math.PI * 2);
+    ctx.fill();
+    // Włosy
+    ctx.fillStyle = HAIR;
+    ctx.beginPath();
+    ctx.arc(-22 * s, -16 * s, 7 * s, Math.PI, Math.PI * 2);
+    ctx.fill();
+    // Nogi (wyciągnięte)
+    ctx.strokeStyle = SHORTS;
+    ctx.lineWidth = 7 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(14 * s, -8 * s);
+    ctx.lineTo(28 * s, -4 * s);
+    ctx.stroke();
+    // Buty
+    ctx.fillStyle = SHOES;
+    ctx.beginPath();
+    ctx.ellipse(28 * s, -2 * s, 7 * s, 4 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  
+  // ═══════════════════════════════════════════════
+  // RUN / JUMP / DASH / FLIP — postać pionowa
+  // ═══════════════════════════════════════════════
+  
+  // Faza nóg (-1..1)
+  let legCycle;
+  if (state === 'run') {
+    legCycle = Math.sin(legPhase * 2);
+  } else if (state === 'jump_up') {
+    legCycle = -1;  // jedna noga zgięta do przodu
+  } else if (state === 'jump_down') {
+    legCycle = 0.5; // przygotowanie do lądowania
+  } else if (state === 'dash') {
+    legCycle = 0.8;  // wyciągnięte do tyłu
+  } else {
+    legCycle = 0;
+  }
+  
+  const armCycle = -legCycle;  // ręce odwrotnie do nóg
+  
+  // — NOGI —
+  ctx.strokeStyle = SHORTS;
+  ctx.lineWidth = 5 * s;
+  ctx.lineCap = 'round';
+  // Lewa noga (z tyłu)
+  const lThigh = legCycle * 25;  // -25..25
+  const lShin = -Math.abs(legCycle) * 15;
+  ctx.beginPath();
+  ctx.moveTo(0, -10 * s);  // biodro
+  ctx.lineTo(lThigh * 0.4 * s, 5 * s);  // kolano
+  ctx.lineTo(lThigh * 0.5 * s + lShin * 0.3 * s, 18 * s);  // stopa
+  ctx.stroke();
+  // But lewy
+  ctx.fillStyle = SHOES;
+  ctx.beginPath();
+  ctx.ellipse(lThigh * 0.5 * s + lShin * 0.3 * s + 2 * s, 18 * s, 7 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Prawa noga (z przodu)
+  const rThigh = -legCycle * 25;
+  const rShin = -Math.abs(legCycle) * 15 + 5;
+  ctx.strokeStyle = SHORTS;
+  ctx.lineWidth = 5 * s;
+  ctx.beginPath();
+  ctx.moveTo(0, -10 * s);
+  ctx.lineTo(rThigh * 0.4 * s, 5 * s);
+  ctx.lineTo(rThigh * 0.5 * s + rShin * 0.3 * s, 18 * s);
+  ctx.stroke();
+  // But prawy
+  ctx.fillStyle = SHOES;
+  ctx.beginPath();
+  ctx.ellipse(rThigh * 0.5 * s + rShin * 0.3 * s + 2 * s, 18 * s, 7 * s, 3 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Pasek na bucie
+  if (!isGhost) {
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(rThigh * 0.5 * s + rShin * 0.3 * s - 4 * s, 17 * s, 8 * s, 1 * s);
+  }
+  
+  // — TUŁÓW (koszulka) —
+  ctx.fillStyle = SHIRT_TOP;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(-9 * s, -28 * s, 18 * s, 22 * s, 5 * s);
+  } else {
+    ctx.rect(-9 * s, -28 * s, 18 * s, 22 * s);
+  }
+  ctx.fill();
+  // Pas dolny (ciemniejszy)
+  ctx.fillStyle = SHIRT_BOT;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(-9 * s, -14 * s, 18 * s, 8 * s, 3 * s);
+  } else {
+    ctx.rect(-9 * s, -14 * s, 18 * s, 8 * s);
+  }
+  ctx.fill();
+  
+  // Numer / logo na koszulce
+  if (!isGhost) {
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = 'bold ' + (8 * s) + 'px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('B', 0, -20 * s);
+  }
+  
+  // — RĘCE —
+  ctx.strokeStyle = SKIN;
+  ctx.lineWidth = 4 * s;
+  ctx.lineCap = 'round';
+  // Prawa ręka (z tyłu)
+  const rArm = armCycle * 30;
+  ctx.beginPath();
+  ctx.moveTo(-2 * s, -25 * s);  // ramię
+  ctx.lineTo(rArm * 0.3 * s - 2 * s, -10 * s);  // łokieć
+  ctx.lineTo(rArm * 0.5 * s, 0);  // dłoń
+  ctx.stroke();
+  // Lewa ręka (z przodu)
+  const lArm = -armCycle * 30;
+  ctx.beginPath();
+  ctx.moveTo(2 * s, -25 * s);
+  ctx.lineTo(lArm * 0.3 * s + 2 * s, -10 * s);
+  ctx.lineTo(lArm * 0.5 * s, 0);
+  ctx.stroke();
+  
+  // — GŁOWA —
+  ctx.fillStyle = SKIN;
+  ctx.beginPath();
+  ctx.arc(0, -36 * s, 8 * s, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Włosy — ciemne z fryzurą
+  ctx.fillStyle = HAIR;
+  ctx.beginPath();
+  ctx.arc(0, -38 * s, 8 * s, Math.PI, Math.PI * 2);
+  ctx.fill();
+  // Kosmyk z przodu
+  ctx.beginPath();
+  ctx.moveTo(-6 * s, -36 * s);
+  ctx.quadraticCurveTo(-3 * s, -42 * s, 2 * s, -38 * s);
+  ctx.lineTo(-2 * s, -33 * s);
+  ctx.fill();
+  
+  // — TWARZ — (oczy + uśmiech)
+  if (!isGhost) {
+    // Oko
+    ctx.fillStyle = '#1a1a1a';
+    ctx.beginPath();
+    ctx.arc(3 * s, -36 * s, 1.2 * s, 0, Math.PI * 2);
+    ctx.fill();
+    // Usta — delikatny uśmiech
+    ctx.strokeStyle = '#1a1a1a';
+    ctx.lineWidth = 1 * s;
+    ctx.beginPath();
+    ctx.moveTo(0, -32 * s);
+    ctx.quadraticCurveTo(2 * s, -31 * s, 4 * s, -32 * s);
+    ctx.stroke();
+  }
+  
+  ctx.restore();
+}
 
 </script>
 </body>
