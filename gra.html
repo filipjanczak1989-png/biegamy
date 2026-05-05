@@ -898,6 +898,8 @@ function newGame(mode) {
     trail: [],
 
     perfectStreak: 0,
+    coyoteTime: 0,           // 🆕 klatek od opuszczenia ziemi (jump grace window)
+    jumpBuffer: 0,           // 🆕 jump pre-buffered (kiedy gracz naciska tuż przed lądowaniem)
     survivalBonus: 0,
     survivalLastTier: 0,
 
@@ -1009,14 +1011,17 @@ function onTapDown(e) {
   }
   lastTap = now;
   if (game.sliding > 0) game.sliding = 0;
-  if (game.onGround) {
+  // 🆕 Coyote time — pozwól skoczyć przez 6 klatek po opuszczeniu ziemi (forgiving)
+  if (game.onGround || game.coyoteTime > 0) {
     game.vy = -16 * dpr;
     game.onGround = false;
+    game.coyoteTime = 0;  // zużyto coyote
     game.canDoubleJump = true;
     game.jumpHold = 1;
     game.flipping = false;       // reset rotation state
     game.flipRotation = 0;
     game.squashAmount = 0.2;     // 🆕 stretch (rozciąga się w górę)
+    if (navigator.vibrate) navigator.vibrate(8);  // 🆕 subtelny haptic feedback
     recordReaction();
   } else if (game.canDoubleJump) {
     // 🆕 SALTO zamiast double jump
@@ -1027,7 +1032,12 @@ function onTapDown(e) {
     game.vy = -10 * dpr;          // mały dodatkowy hop dla efektu
     spawnParticles(game.px, game.py, '#ffb84d', 12);
     spawnPopup(game.px, game.py - 60 * dpr, 'SALTO!', '#ffb84d');
+    if (navigator.vibrate) navigator.vibrate([15, 10, 15]);  // 🆕 podwójny puls
     playTap();
+  } else {
+    // 🆕 Jump buffer — gracz jest w powietrzu bez salta, ale tap zostanie zachowany na 6 klatek
+    // Jeśli wyląduje w tym czasie, automatycznie skoczy
+    game.jumpBuffer = 6;
   }
 }
 function onTapUp() {
@@ -1037,11 +1047,15 @@ function onTapUp() {
 function trySlide() {
   if (!game || !game.running || game.sliding > 0) return;
   if (!game.onGround) {
+    // Fast-fall (in-air slide pulls player down)
     game.vy = 14 * dpr;
     return;
   }
   game.sliding = 30;
-  spawnParticles(game.px, GROUND_Y, '#888', 8);
+  // Initial burst
+  spawnParticles(game.px, GROUND_Y, '#a89878', 12);
+  // 🆕 Vibration feedback
+  if (navigator.vibrate) navigator.vibrate(20);
   recordReaction();
 }
 function tryDash() {
@@ -1050,9 +1064,28 @@ function tryDash() {
   game.dashing = 22;
   game.dashLeft--;
   game.invuln = 22;
-  spawnParticles(game.px, game.py - 30 * dpr, '#e8561e', 16);
+  // 🆕 Screen shake + flash dla mocnego feel'u
+  shakeAmount = Math.max(shakeAmount, 6 * dpr);
+  flashScreen('rgba(232,86,30,0.15)', 8);
+  // Burst particles (pomarańczowe + żółte mix)
+  spawnParticles(game.px, game.py - 30 * dpr, '#ff7a45', 12);
+  spawnParticles(game.px, game.py - 30 * dpr, '#ffb84d', 8);
+  // 🆕 Speed lines burst za graczem (8 białych kresek)
+  for (let s = 0; s < 8; s++) {
+    game.particles.push({
+      x: game.px - 20 * dpr,
+      y: game.py - (10 + s * 4) * dpr,
+      vx: -(8 + Math.random() * 4) * dpr,
+      vy: 0,
+      life: 18,
+      color: 'rgba(255,255,255,0.7)',
+      size: (1 + Math.random()) * dpr,
+      gravity: false
+    });
+  }
   showToast('DASH!');
   updateDashUI();
+  if (navigator.vibrate) navigator.vibrate(30);
 }
 
 canvas.addEventListener('touchstart', function(e) {
@@ -2147,6 +2180,13 @@ function update() {
     return;
   }
 
+  // 🆕 Coyote time / jump buffer countdown
+  if (game.coyoteTime > 0) game.coyoteTime--;
+  if (game.jumpBuffer > 0) game.jumpBuffer--;
+  
+  // 🆕 Track when player just left ground without jumping (= falling off ledge)
+  const wasOnGround = game.onGround;
+
   // Player physics
   if (game.dashing > 0) {
     game.dashing--;
@@ -2158,7 +2198,24 @@ function update() {
       game.py = GROUND_Y;
       game.vy = 0;
       game.onGround = true;
+      // 🆕 Continuous dust podczas slide (co 4 klatki, malejąco)
+      if (game.sliding % 4 === 0 && game.sliding > 5) {
+        for (let d = 0; d < 3; d++) {
+          game.particles.push({
+            x: game.px - (5 + Math.random() * 10) * dpr,
+            y: GROUND_Y - 1 * dpr,
+            vx: -(2 + Math.random() * 2) * dpr,
+            vy: -(0.3 + Math.random() * 0.5) * dpr,
+            life: 18,
+            color: 'rgba(180,170,150,0.55)',
+            size: (1.5 + Math.random()) * dpr,
+            gravity: false
+          });
+        }
+      }
     } else if (!game.onGround || game.vy < 0) {
+      // 🆕 Coyote time: gdy postać spadla z ziemi (nie skoczyła) — daj okno na "spóźniony skok"
+      // Jeśli właśnie zaczęła spadać (była na ziemi a teraz nie jest)
       const gravity = (game.jumpHold && game.vy < 0 ? 0.55 : 0.95) * dpr;
       game.vy += gravity;
       game.py += game.vy;
@@ -2222,14 +2279,34 @@ function update() {
     }
   }
   
-  // 🆕 Update flip rotation — DUŻO szybsze (15° per klatka = 900°/s)
-  // To znaczy że pełen 360° robi się w ~24 klatek = ~400ms
-  // Skok trwa ~600-800ms więc zawsze starczy czasu
+  // 🆕 Coyote time: jeśli był na ziemi a teraz nie jest i nie skoczył (spada) → daj 6 klatek (~100ms)
+  if (wasOnGround && !game.onGround && game.vy >= 0) {
+    game.coyoteTime = 6;
+  }
+  
+  // 🆕 Jump buffer: jeśli mamy buffered jump i właśnie wylądowaliśmy
+  if (!wasOnGround && game.onGround && game.jumpBuffer > 0) {
+    // Auto-jump from buffer
+    game.vy = -16 * dpr;
+    game.onGround = false;
+    game.canDoubleJump = true;
+    game.jumpHold = 1;
+    game.flipping = false;
+    game.flipRotation = 0;
+    game.squashAmount = 0.2;
+    game.jumpBuffer = 0;
+  }
+  
+  // 🆕 Update flip rotation — ease curve dla naturalnego feel'u
+  // Zamiast liniowego 15°/klatkę, używamy sin curve: wolno→szybko→wolno
   if (game.flipping) {
-    game.flipRotation += 15;
+    // Obliczamy progress (0..1) — bazując na typowym skoku ~24 klatek
+    const flipProgress = Math.min(1, game.flipRotation / 360);
+    // Ease-out-sine: szybkie kręcenie w środku, wolne na końcu
+    const rotSpeed = 12 + Math.sin(flipProgress * Math.PI) * 8;  // 12..20 dynamicznie
+    game.flipRotation += rotSpeed;
     // Auto-complete: jeśli rotacja >= 360 i jeszcze leci w powietrzu, zatrzymaj
     if (game.flipRotation >= 360 && game.vy > 0) {
-      // Postać schodzi w dół z pełnym flipem — można zostawić rotację na 360 do lądowania
       game.flipRotation = 360;
     }
     if (game.flipRotation > 720) {
