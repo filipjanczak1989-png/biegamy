@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>BiegaMy: Wyzwanie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -3545,9 +3548,10 @@ function render() {
     ctx.globalAlpha = 1;
   }
 
-  // Stars — w kosmosie jest gęściej i jaśniej
-  const starCount = (M.id === 'endless' && game.endlessScene === 5) ? 80 : 30;
-  const starAlpha = (M.id === 'endless' && game.endlessScene === 5) ? 0.7 : 0.3;
+  // Stars — w kosmosie jest gęściej i jaśniej (mniej w low quality)
+  const isKosmos = M.id === 'endless' && game.endlessScene === 5;
+  const starCount = isKosmos ? (_lowQuality ? 40 : 80) : 30;
+  const starAlpha = isKosmos ? 0.7 : 0.3;
   ctx.fillStyle = 'rgba(255,255,255,' + starAlpha + ')';
   for (let i = 0; i < starCount; i++) {
     const seed = i * 137.5;
@@ -3732,8 +3736,8 @@ function render() {
       ctx.beginPath();
       ctx.arc(horiSunX, horiSunY, 45 * dpr, 0, Math.PI * 2);
       ctx.fill();
-    } else if (escene === 5) {
-      // KOSMOS — galaktyka spiralna w tle (już mamy planety)
+    } else if (escene === 5 && !_lowQuality) {
+      // KOSMOS — galaktyka spiralna w tle (skip w low quality)
       const galX = W * 0.3 - game.bgFar * 0.02;
       const galY = GROUND_Y * 0.4;
       ctx.save();
