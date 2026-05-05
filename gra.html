@@ -3122,7 +3122,21 @@ function render() {
     const sunY = GROUND_Y * 0.32;
     
     if (escene === 0) {
-      // PARK — żółte słońce z poświatą
+      // PARK — żółte słońce z poświatą + lens flare
+      // Lens flare ring (subtle ring around sun)
+      ctx.save();
+      ctx.globalCompositeOperation = 'screen';
+      const flareGrad = ctx.createRadialGradient(sunX, sunY, 50 * dpr, sunX, sunY, 95 * dpr);
+      flareGrad.addColorStop(0, 'rgba(255,200,100,0)');
+      flareGrad.addColorStop(0.5, 'rgba(255,220,150,0.15)');
+      flareGrad.addColorStop(1, 'rgba(255,180,80,0)');
+      ctx.fillStyle = flareGrad;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, 95 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+      
+      // Glow główny
       const grad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 80 * dpr);
       grad.addColorStop(0, 'rgba(255,230,120,0.95)');
       grad.addColorStop(0.4, 'rgba(255,200,80,0.6)');
@@ -3131,10 +3145,16 @@ function render() {
       ctx.beginPath();
       ctx.arc(sunX, sunY, 80 * dpr, 0, Math.PI * 2);
       ctx.fill();
-      // Core
-      ctx.fillStyle = 'rgba(255,245,180,1)';
+      
+      // Core (jasny środek)
+      ctx.fillStyle = 'rgba(255,250,220,1)';
       ctx.beginPath();
       ctx.arc(sunX, sunY, 26 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      // White hot spot
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      ctx.beginPath();
+      ctx.arc(sunX - 4 * dpr, sunY - 4 * dpr, 12 * dpr, 0, Math.PI * 2);
       ctx.fill();
     } else if (escene === 1) {
       // MIASTO — bladożółty zachód
@@ -3207,6 +3227,36 @@ function render() {
       ctx.beginPath();
       ctx.arc(0, 0, 12 * dpr, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
+    }
+    
+    // 🆕 GOD RAYS — promienie świetlne padające z góry (PARK, ŚWIT)
+    if (escene === 0 || escene === 3) {
+      ctx.save();
+      const sunX = escene === 3 ? W * 0.6 : W * 0.78;
+      const sunY = escene === 3 ? GROUND_Y * 0.55 : GROUND_Y * 0.32;
+      
+      ctx.globalCompositeOperation = 'screen';  // additive blend
+      ctx.fillStyle = escene === 3 ? 'rgba(255,180,100,0.06)' : 'rgba(255,230,150,0.04)';
+      
+      // 8 promieni rozchodzących się z słońca
+      for (let i = 0; i < 8; i++) {
+        const angle = Math.PI / 2 + (i - 4) * 0.12;  // wachlarz w dół
+        const rayLen = 600 * dpr;
+        const rayWidth = 30 * dpr;
+        ctx.beginPath();
+        ctx.moveTo(sunX, sunY);
+        ctx.lineTo(
+          sunX + Math.cos(angle) * rayLen - rayWidth,
+          sunY + Math.sin(angle) * rayLen
+        );
+        ctx.lineTo(
+          sunX + Math.cos(angle) * rayLen + rayWidth,
+          sunY + Math.sin(angle) * rayLen
+        );
+        ctx.closePath();
+        ctx.fill();
+      }
       ctx.restore();
     }
   }
@@ -4661,8 +4711,8 @@ function render() {
     gctx.putImageData(imgData, 0, 0);
     game._grainCanvas = gc;
   }
-  // Repeating pattern grain — przesunięcie żeby nie był statyczny
-  ctx.globalAlpha = 0.5;
+  // Repeating pattern grain — bardzo subtelny, animowany
+  ctx.globalAlpha = 0.18;
   const grainOffsetX = (game.t * 17) % 200;
   const grainOffsetY = (game.t * 13) % 200;
   for (let gx = -grainOffsetX; gx < W; gx += 200) {
@@ -5196,11 +5246,14 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // — NOGI Z TYŁU (rysujemy najpierw, żeby były pod tułowiem) —
   // ═══════════════════════════════
   
+  // Biodro — counter-rotation (delikatne kołysanie)
+  const hipShiftX = -legCycle * 1.5 * s;  // przeciwnie do nogi
+  
   // Lewa noga (z tyłu) - z mięśniem łydki
-  const lThighX = legCycle * 12 * s;
+  const lThighX = legCycle * 14 * s;
   const lThighY = 4 * s;
-  const lFootX = legCycle * 18 * s;
-  const lFootY = 18 * s - Math.abs(legCycle) * 6 * s;
+  const lFootX = legCycle * 22 * s;
+  const lFootY = 18 * s - Math.abs(legCycle) * 8 * s;
   
   // Udo - grubsza linia
   ctx.strokeStyle = SHORTS;
@@ -5208,7 +5261,7 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.moveTo(0, -8 * s);
+  ctx.moveTo(hipShiftX, -8 * s);
   ctx.lineTo(lThighX, lThighY);
   ctx.stroke();
   
@@ -5237,7 +5290,8 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // ═══════════════════════════════
   // — TUŁÓW (koszulka) — z lekkim pochyleniem podczas biegu
   // ═══════════════════════════════
-  const torsoLeanX = state === 'run' ? -1 * s : state === 'dash' ? -3 * s : 0;
+  // Pochyleni do przodu = w prawo (kierunek biegu)
+  const torsoLeanX = state === 'run' ? 2 * s : state === 'dash' ? 4 * s : 0;
   
   // Tułów - 2 części dla lepszego wyglądu
   // Górna - jaśniejsza pomarańczowa
@@ -5300,19 +5354,20 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   const shoulderR_X = 8 * s + torsoLeanX;
   const shoulderR_Y = -25 * s;
   
-  // Bieg: ramiona pendulum 90°, przedramię zgięte ~90°
-  // armCycle: -1..1 → wychyl ramienia: -45..45 stopni
+  // Bieg: ramiona pendulum w X (przód-tył), przedramię zgięte ~90° do góry
+  // armCycle: -1..1 → przedłożenie ramion w X
+  // legCycle: prawa noga w przód = +X, więc ramię **lewa** w przód = +X (przeciwna strona ciała)
+  // armCycle = -legCycle czyli gdy noga prawa do przodu, ramię z PRZODU (lewe) do tyłu
   
-  // Prawa ręka (z TYŁU - mniej widoczna)
-  const rArmAngle = armCycle * Math.PI / 4;  // -45..45 stopni
-  const rUpperLen = 12 * s;
-  const rElbowX = shoulderR_X + Math.sin(rArmAngle) * rUpperLen;
-  const rElbowY = shoulderR_Y + Math.cos(rArmAngle) * rUpperLen;
-  // Przedramię zgięte do przodu (run pose)
-  const rForeAngle = rArmAngle - Math.PI / 2.2;  // ~80 stopni do przodu
-  const rForeLen = 10 * s;
-  const rHandX = rElbowX + Math.sin(rForeAngle) * rForeLen;
-  const rHandY = rElbowY + Math.cos(rForeAngle) * rForeLen;
+  // Prawa ręka (z TYŁU - widoczna z drugiej strony tułowia)
+  const rArmSwingX = armCycle * 8 * s;  // -8..8 (pendulum X)
+  const rElbowX = shoulderR_X + rArmSwingX;
+  const rElbowY = shoulderR_Y + 9 * s;  // łokieć ~ na wysokości brzucha
+  // Przedramię — ZGIĘTE w łokciu, dłoń do przodu i lekko do góry
+  // Gdy ramię z tyłu (rArmSwingX ujemne) — dłoń mniej do przodu
+  // Gdy ramię z przodu — dłoń do góry/przodu (push)
+  const rHandX = rElbowX + (5 + armCycle * 3) * s;  // dłoń zawsze do przodu, +3..+8 (zmienne)
+  const rHandY = rElbowY - (8 + armCycle * 2) * s;  // dłoń wyżej gdy z przodu
   
   ctx.beginPath();
   ctx.moveTo(shoulderR_X, shoulderR_Y);
@@ -5325,15 +5380,12 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.arc(rHandX, rHandY, 3 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Lewa ręka (z PRZODU - więcej widoczna)
-  const lArmAngle = -armCycle * Math.PI / 4;
-  const lUpperLen = 12 * s;
-  const lElbowX = shoulderL_X + Math.sin(lArmAngle) * lUpperLen;
-  const lElbowY = shoulderL_Y + Math.cos(lArmAngle) * lUpperLen;
-  const lForeAngle = lArmAngle - Math.PI / 2.2;
-  const lForeLen = 10 * s;
-  const lHandX = lElbowX + Math.sin(lForeAngle) * lForeLen;
-  const lHandY = lElbowY + Math.cos(lForeAngle) * lForeLen;
+  // Lewa ręka (z PRZODU)
+  const lArmSwingX = -armCycle * 8 * s;
+  const lElbowX = shoulderL_X + lArmSwingX;
+  const lElbowY = shoulderL_Y + 9 * s;
+  const lHandX = lElbowX + (5 + (-armCycle) * 3) * s;
+  const lHandY = lElbowY - (8 + (-armCycle) * 2) * s;
   
   ctx.beginPath();
   ctx.moveTo(shoulderL_X, shoulderL_Y);
@@ -5349,10 +5401,10 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   // ═══════════════════════════════
   // — PRAWA NOGA (z PRZODU, na wierzchu) —
   // ═══════════════════════════════
-  const rThighX = -legCycle * 12 * s;
+  const rThighX = -legCycle * 14 * s;
   const rThighY = 4 * s;
-  const rFootX = -legCycle * 18 * s;
-  const rFootY = 18 * s - Math.abs(legCycle) * 6 * s;
+  const rFootX = -legCycle * 22 * s;
+  const rFootY = 18 * s - Math.abs(legCycle) * 8 * s;
   
   // Udo
   ctx.strokeStyle = SHORTS;
@@ -5360,7 +5412,7 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  ctx.moveTo(0, -8 * s);
+  ctx.moveTo(hipShiftX, -8 * s);
   ctx.lineTo(rThighX, rThighY);
   ctx.stroke();
   
@@ -5401,9 +5453,10 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   }
   
   // ═══════════════════════════════
-  // — GŁOWA — większa, lepsze proporcje
+  // — GŁOWA — większa, lepsze proporcje, pochylona do przodu
   // ═══════════════════════════════
-  const headX = 0 + torsoLeanX * 0.5;
+  const headLean = state === 'run' ? 3 * s : state === 'dash' ? 5 * s : 0;
+  const headX = 0 + torsoLeanX * 0.5 + headLean;  // głowa pochylona do przodu
   const headY = -36 * s;
   const headR = 7.5 * s;
   
@@ -5425,27 +5478,28 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.arc(headX, headY - 1 * s, headR + 0.5 * s, Math.PI * 1.05, Math.PI * 2 - 0.1);
   ctx.fill();
   
-  // Kosmyk z przodu — trzepocze podczas biegu
+  // Kosmyk z przodu — wystaje z prawej (przód głowy w kierunku biegu) i wieje w lewo (do tyłu)
   ctx.beginPath();
-  ctx.moveTo(headX - 6 * s, headY - 4 * s);
+  ctx.moveTo(headX + 6 * s, headY - 4 * s);  // mocowanie z przodu (prawa strona głowy)
   ctx.quadraticCurveTo(
-    headX - 2 * s + hairBlow * s, 
-    headY - 10 * s + hairBlow * 0.5 * s, 
-    headX + 4 * s + hairBlow * s, 
-    headY - 5 * s
+    headX + 2 * s - hairBlow * s, 
+    headY - 10 * s - Math.abs(hairBlow) * 0.5 * s, 
+    headX - 4 * s - hairBlow * 1.5 * s,   // koniec daleko z tyłu (po lewej)
+    headY - 6 * s
   );
-  ctx.lineTo(headX, headY - 2 * s);
+  ctx.lineTo(headX + 2 * s, headY - 2 * s);
   ctx.fill();
   
-  // Kosmyk z tyłu
+  // Kosmyk dłuższy z tyłu — wieje za biegaczem (mocno w lewo)
   ctx.beginPath();
-  ctx.moveTo(headX - 7 * s, headY - 2 * s);
+  ctx.moveTo(headX - 5 * s, headY - 2 * s);
   ctx.quadraticCurveTo(
     headX - 12 * s - hairBlow * s,
-    headY - 1 * s + hairBlow * 0.5 * s,
-    headX - 8 * s - hairBlow * s,
-    headY + 3 * s
+    headY - 3 * s + hairBlow * 0.5 * s,
+    headX - 14 * s - hairBlow * 2 * s,    // długi kosmyk za głową
+    headY + 2 * s
   );
+  ctx.lineTo(headX - 7 * s, headY + 4 * s);
   ctx.fill();
   
   // ═══════════════════════════════
