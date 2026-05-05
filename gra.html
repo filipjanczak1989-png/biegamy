@@ -211,6 +211,9 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
       <div style="font-size:11px;color:var(--fg2);font-family:DM Mono,monospace;margin-top:4px;" id="high-distance">0 m</div>
     </div>
 
+    <!-- DAILY CHALLENGE -->
+    <div class="section-card" id="daily-challenge"></div>
+
     <!-- BIG PLAY BUTTON -->
     <button onclick="startGame('endless')" style="width:100%;background:linear-gradient(135deg,var(--accent),#ff7a45);color:#fff;border:none;border-radius:16px;padding:24px;font-family:Bebas Neue,sans-serif;font-size:36px;letter-spacing:0.08em;cursor:pointer;box-shadow:0 8px 32px rgba(232,86,30,0.4);margin:8px 0 16px;text-shadow:0 2px 8px rgba(0,0,0,0.3);">
       ▶ GRAJ
@@ -300,6 +303,8 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
       <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max seria</div></div>
     </div>
 
+    <div id="end-daily"></div>
+
     <div class="btn-row">
       <button class="btn-restart" onclick="startGameAgain()">▶ JESZCZE RAZ</button>
       <button class="btn-home" onclick="goHome()">DOM</button>
@@ -379,6 +384,141 @@ function incStat(key, by) {
 }
 
 // ═════════════════════════════════════════════════
+// DAILY CHALLENGE — codzienne wyzwanie z nagrodą
+// ═════════════════════════════════════════════════
+const DAILY_CHALLENGES = [
+  { id: 'score_1500',     label: 'Zdobądź 1500 punktów',          target: 1500, track: 'score',     icon: '🎯', reward: 'startMultiBoost' },
+  { id: 'score_3000',     label: 'Zdobądź 3000 punktów',          target: 3000, track: 'score',     icon: '🏆', reward: 'extraLife' },
+  { id: 'distance_500',   label: 'Przebiegnij 500m w jednym biegu', target: 500,  track: 'distance',  icon: '🏃', reward: 'startMultiBoost' },
+  { id: 'distance_1000',  label: 'Przebiegnij 1000m w jednym biegu', target: 1000, track: 'distance', icon: '🏔', reward: 'extraLife' },
+  { id: 'coins_30',       label: 'Zbierz 30 monet w 1 biegu',     target: 30,   track: 'coins',     icon: '🪙', reward: 'startMultiBoost' },
+  { id: 'perfects_15',    label: 'Wykonaj 15 idealnych skoków',   target: 15,   track: 'perfects',  icon: '⭐', reward: 'startMultiBoost' },
+  { id: 'flips_5',        label: 'Wykonaj 5 salt',                target: 5,    track: 'flips',     icon: '🤸', reward: 'startMultiBoost' },
+  { id: 'combo_x3',       label: 'Osiągnij serię x3',             target: 3,    track: 'maxMulti',  icon: '🔥', reward: 'extraLife' }
+];
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);  // 2026-05-05
+}
+
+function getDailyChallenge() {
+  const today = todayKey();
+  const stored = getStat('daily_challenge', null);
+  if (stored && stored.date === today) {
+    return stored;
+  }
+  // Wygeneruj nowy — index zależny od daty (żeby tego samego dnia każdy gracz miał ten sam)
+  const dayIdx = parseInt(today.replaceAll('-', ''), 10) % DAILY_CHALLENGES.length;
+  const tpl = DAILY_CHALLENGES[dayIdx];
+  const newCh = {
+    date: today,
+    id: tpl.id,
+    label: tpl.label,
+    target: tpl.target,
+    track: tpl.track,
+    icon: tpl.icon,
+    reward: tpl.reward,
+    progress: 0,
+    completed: false,
+    rewardClaimed: false
+  };
+  setStat('daily_challenge', newCh);
+  return newCh;
+}
+
+function checkDailyChallenge(gameStats) {
+  // Wywoływane na koniec gry — gameStats to dane z ostatniego biegu
+  const ch = getDailyChallenge();
+  if (ch.completed) return ch;
+  
+  let value = 0;
+  if (ch.track === 'score') value = gameStats.score;
+  else if (ch.track === 'distance') value = gameStats.distance;
+  else if (ch.track === 'coins') value = gameStats.coins;
+  else if (ch.track === 'perfects') value = gameStats.perfects;
+  else if (ch.track === 'flips') value = gameStats.flips || 0;
+  else if (ch.track === 'maxMulti') value = gameStats.maxMulti;
+  
+  ch.progress = Math.max(ch.progress, value);
+  if (ch.progress >= ch.target) {
+    ch.completed = true;
+  }
+  setStat('daily_challenge', ch);
+  return ch;
+}
+
+function claimDailyReward() {
+  const ch = getDailyChallenge();
+  if (!ch.completed || ch.rewardClaimed) return false;
+  ch.rewardClaimed = true;
+  setStat('daily_challenge', ch);
+  // Aktywuj reward
+  if (ch.reward === 'startMultiBoost') {
+    setStat('next_run_multi_boost', 1.5);
+  } else if (ch.reward === 'extraLife') {
+    setStat('next_run_extra_life', 1);
+  }
+  return true;
+}
+
+function renderDailyChallenge() {
+  const ch = getDailyChallenge();
+  const cont = document.getElementById('daily-challenge');
+  if (!cont) return;
+  const pct = Math.min(100, Math.round(ch.progress / ch.target * 100));
+  const rewardLabel = ch.reward === 'startMultiBoost' ? '🎁 Start z x1.5 multi' : '❤ +1 życie na start';
+  
+  if (ch.completed && !ch.rewardClaimed) {
+    cont.innerHTML = `
+      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#3db870;margin-bottom:6px;">✓ Wyzwanie ukończone!</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:24px;">${ch.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--fg);">${ch.label}</div>
+          <div style="font-size:10px;color:var(--muted);">Odbierz nagrodę: ${rewardLabel}</div>
+        </div>
+        <button onclick="claimDailyAndShow()" style="background:#3db870;color:#000;border:none;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;">Odbierz</button>
+      </div>`;
+  } else if (ch.completed && ch.rewardClaimed) {
+    cont.innerHTML = `
+      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">✓ Dzisiejsze wyzwanie</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:24px;opacity:0.5;">${ch.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:12px;color:var(--muted);">${ch.label} — odebrane</div>
+          <div style="font-size:10px;color:var(--muted);">Następne wyzwanie jutro</div>
+        </div>
+      </div>`;
+  } else {
+    cont.innerHTML = `
+      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">⚡ Dzisiejsze wyzwanie</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:24px;">${ch.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px;">${ch.label}</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Nagroda: ${rewardLabel}</div>
+          <div style="background:rgba(255,255,255,0.08);height:4px;border-radius:3px;overflow:hidden;">
+            <div style="background:linear-gradient(90deg,#ffd966,#e8561e);height:100%;width:${pct}%;"></div>
+          </div>
+          <div style="font-size:9px;color:var(--muted);margin-top:3px;font-family:DM Mono,monospace;">${ch.progress} / ${ch.target}</div>
+        </div>
+      </div>`;
+  }
+}
+
+window.claimDailyAndShow = function() {
+  if (claimDailyReward()) {
+    renderDailyChallenge();
+    // Toast/popup
+    const t = document.createElement('div');
+    t.textContent = '🎁 Nagroda aktywowana w następnym biegu!';
+    t.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#3db870;color:#000;padding:14px 24px;border-radius:14px;z-index:9999;font-weight:600;font-family:DM Mono,monospace;font-size:12px;letter-spacing:0.06em;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+  }
+};
+
+// ═════════════════════════════════════════════════
 // USER INIT
 // ═════════════════════════════════════════════════
 async function initUser() {
@@ -397,6 +537,7 @@ async function initUser() {
   await loadHighScore();
   await loadLeaderboard('endless');
   showSuggestedMode();
+  renderDailyChallenge();
 
   // Auto-start jeśli przyszedł z banneru w zawodnik.html (zawsze endless)
   const autoStart = sessionStorage.getItem('biegamy_game_autostart');
@@ -683,8 +824,10 @@ function newGame(mode) {
     trail: [],
 
     perfectStreak: 0,
-    survivalBonus: 0,         // 🆕 0..1.5 dodawane do multi za przeżycie bez kolizji
-    survivalLastTier: 0,      // 🆕 ostatnio osiągnięty tier (do popup)
+    survivalBonus: 0,
+    survivalLastTier: 0,
+    riskModeActive: false,    // 🆕 risk mode włączony
+    riskModeOffered: false,   // 🆕 czy już zaproponowany
 
     // SLOWED state (po banamie/kałuży)
     slowedTimer: 0,           // klatek pozostałych spowolnienia
@@ -1126,6 +1269,62 @@ function renderMissionsHUD() {
     </div>`;
   }).join('');
 }
+
+// ═════════════════════════════════════════════════
+// RISK MODE — po 1km gracz wybiera czy 1.5x speed za 2x score
+// ═════════════════════════════════════════════════
+function offerRiskMode() {
+  // Pokaż modal w grze
+  let modal = document.getElementById('risk-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'risk-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(7,5,12,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:linear-gradient(135deg,rgba(40,15,15,0.95),rgba(60,20,20,0.95));border:2px solid #e05050;border-radius:20px;padding:24px 22px;max-width:340px;text-align:center;box-shadow:0 12px 60px rgba(224,80,80,0.5);">
+      <div style="font-size:42px;margin-bottom:6px;">⚠️</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;letter-spacing:0.06em;margin-bottom:4px;">RISK MODE</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:#e05050;letter-spacing:0.18em;margin-bottom:16px;">PRZEKROCZYŁEŚ 1KM!</div>
+      <div style="font-size:13px;color:#e0d8c0;line-height:1.5;margin-bottom:18px;">
+        Aktywuj <b style="color:#ffb84d;">+50% prędkość</b> za<br>
+        <b style="color:#ffd966;">x2 mnożnik punktów</b>
+      </div>
+      <div style="font-size:11px;color:#888;margin-bottom:18px;font-family:DM Mono,monospace;letter-spacing:0.05em;">
+        Większe ryzyko — większa nagroda
+      </div>
+      <button onclick="acceptRiskMode()" style="display:block;width:100%;background:linear-gradient(135deg,#e05050,#ff7a45);color:#fff;border:none;padding:14px;border-radius:12px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;cursor:pointer;margin-bottom:8px;box-shadow:0 4px 20px rgba(232,86,30,0.4);">▶ TAK, RYZYKUJĘ!</button>
+      <button onclick="declineRiskMode()" style="display:block;width:100%;background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:11px;border-radius:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Nie, gram dalej</button>
+    </div>
+  `;
+  modal.style.display = 'flex';
+}
+
+function acceptRiskMode() {
+  game.riskModeActive = true;
+  game.running = true;
+  // Speed bonus
+  game.speedScale *= 1.5;
+  // Score bonus przez `multi` (mnożnik finalny)
+  spawnPopup(W * 0.5, H * 0.4, '⚠️ RISK MODE!', '#e05050');
+  spawnPopup(W * 0.5, H * 0.5, 'x2 PUNKTY · 1.5x SZYBKO', '#ffb84d');
+  flashScreen('rgba(224,80,80,0.3)', 24);
+  shakeAmount = 18 * dpr;
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+  const modal = document.getElementById('risk-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+function declineRiskMode() {
+  game.running = true;
+  spawnPopup(W * 0.5, H * 0.4, 'BIEGNĘ DALEJ', '#3db870');
+  const modal = document.getElementById('risk-modal');
+  if (modal) modal.style.display = 'none';
+}
+
+window.acceptRiskMode = acceptRiskMode;
+window.declineRiskMode = declineRiskMode;
 
 const PU_DEFS = {
   magnet: { icon: '🧲', dur: 360, msg: 'MAGNES' },
@@ -1768,6 +1967,13 @@ function update() {
 
   // ENDLESS MODE: zmiany scen po dystansie + power-upy + ambient
   if (M.id === 'endless') {
+    // 🆕 RISK MODE — propozycja po 1km
+    if (!game.riskModeOffered && !game.riskModeActive && game.distance >= 1000) {
+      game.riskModeOffered = true;
+      game.running = false;  // pauza gry
+      offerRiskMode();
+      return;
+    }
     // 🆕 Ambient birds - co kilka sekund stadko ptaków przelatuje
     if (game.t % 280 === 0 && (game.endlessScene === 0 || game.endlessScene === 3 || game.endlessScene === 4)) {
       const flockSize = 3 + Math.floor(Math.random() * 4);
@@ -2316,7 +2522,7 @@ function update() {
 
   // HUD
   document.getElementById('hud-score').textContent = Math.floor(game.score);
-  document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
+  document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1) + (game.riskModeActive ? ' ⚠' : '');
   document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
   document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
   document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, M.lives - game.lives)) + '</span>';
@@ -2428,7 +2634,9 @@ function updateComboMultiplier() {
   else baseMulti = _bonuses.startMulti || 1.0;
   
   // 🆕 Dodaj survivalBonus
-  const newMulti = baseMulti + (game.survivalBonus || 0);
+  let newMulti = baseMulti + (game.survivalBonus || 0);
+  // 🆕 Risk mode: x2 do całego mnożnika
+  if (game.riskModeActive) newMulti *= 2;
   
   if (newMulti > game.multi + 0.01) {
     game.multi = newMulti;
@@ -3131,23 +3339,43 @@ function render() {
     ctx.globalAlpha = 1;
   });
 
-  // 🦅 Ptaki
+  // 🦅 Ptaki — przeszkody powietrzne
   game.birds.forEach(b => {
-    if (b.passed) {
-      ctx.globalAlpha = 0.5;
-    }
-    ctx.font = (28 * dpr) + 'px serif';
+    const flapOffset = Math.sin(b.flapPhase) * 4 * dpr;
+    
+    // Cień pod ptakiem (na ziemi, pomaga gracze ocenić pozycję)
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(b.x, GROUND_Y - 1 * dpr, 18 * dpr, 5 * dpr, 0, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Czerwony warning glow wokół ptaka (że to przeszkoda!)
+    ctx.shadowColor = '#e05050';
+    ctx.shadowBlur = 18 * dpr;
+    
+    // Pulsująca aura czerwona
+    const pulse = (Math.sin(game.t * 0.2) + 1) / 2;
+    const auraR = (24 + pulse * 6) * dpr;
+    const auraGrad = ctx.createRadialGradient(b.x, b.y + flapOffset, 0, b.x, b.y + flapOffset, auraR);
+    auraGrad.addColorStop(0, 'rgba(224,80,80,0.4)');
+    auraGrad.addColorStop(0.6, 'rgba(224,80,80,0.15)');
+    auraGrad.addColorStop(1, 'rgba(224,80,80,0)');
+    ctx.fillStyle = auraGrad;
+    ctx.beginPath();
+    ctx.arc(b.x, b.y + flapOffset, auraR, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Ptak emoji - większy, kolorowy
+    ctx.shadowColor = '#e05050';
+    ctx.shadowBlur = 14 * dpr;
+    ctx.fillStyle = '#ffffff';  // explicit żeby emoji nie był przyciemniony
+    ctx.font = 'bold ' + (38 * dpr) + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    // Lekkie podbijanie skrzydeł — y modyfikowane przez flapPhase
-    const flapOffset = Math.sin(b.flapPhase) * 3 * dpr;
+    if (b.passed) ctx.globalAlpha = 0.5;
     ctx.fillText('🦅', b.x, b.y + flapOffset);
     ctx.globalAlpha = 1;
-    // Cień pod ptakiem
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.beginPath();
-    ctx.ellipse(b.x, GROUND_Y + 2 * dpr, 14 * dpr, 4 * dpr, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.shadowBlur = 0;
   });
 
   // 💨 Strefy wiatru
@@ -3639,7 +3867,23 @@ function realStart(mode) {
   game.running = true;
   game.focusStartT = 0;
   _endGameCalled = false;
-  initMissions();              // 🎯 Init missions
+  
+  // 🆕 Apply daily challenge rewards (jeśli odebrane)
+  const multiBoost = getStat('next_run_multi_boost', 0);
+  const extraLife = getStat('next_run_extra_life', 0);
+  if (multiBoost > 0) {
+    game.multi = multiBoost;
+    game.maxMulti = Math.max(game.maxMulti, multiBoost);
+    setStat('next_run_multi_boost', 0);
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.4, '🎁 BOOST MNOŻNIKA!', '#ffd966'), 500);
+  }
+  if (extraLife > 0) {
+    game.lives = (game.config.lives || 3) + extraLife;
+    setStat('next_run_extra_life', 0);
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.5, '❤ +1 ŻYCIE!', '#3db870'), 500);
+  }
+  
+  initMissions();
   renderMissionsHUD();
   document.getElementById('screen-home').classList.add('hidden');
   document.getElementById('screen-end').classList.add('hidden');
@@ -3703,6 +3947,44 @@ async function endGame() {
     const isNew = Math.floor(game.score) >= getStat('best_score', 1) && game.score > 100;
     const recordEl = document.getElementById('new-record-banner');
     if (recordEl) recordEl.style.display = isNew ? 'block' : 'none';
+
+    // 🆕 Daily challenge — zaktualizuj progress
+    const gameStats = {
+      score: Math.floor(game.score),
+      distance: Math.floor(game.distance),
+      coins: game.coins || 0,
+      perfects: game.perfects || 0,
+      flips: (game.missionTrackers && game.missionTrackers.flips) || 0,
+      maxMulti: game.maxMulti || 1
+    };
+    const ch = checkDailyChallenge(gameStats);
+    
+    // Sekcja daily na end screen
+    const endDaily = document.getElementById('end-daily');
+    if (endDaily) {
+      if (ch.completed && !ch.rewardClaimed) {
+        endDaily.innerHTML = `<div style="background:rgba(61,184,112,0.15);border:1px solid #3db870;border-radius:12px;padding:12px;margin:14px 0;text-align:center;">
+          <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;color:#3db870;margin-bottom:4px;">✓ DZIENNE WYZWANIE!</div>
+          <div style="font-size:13px;color:var(--fg);font-weight:600;">${ch.label}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;">Odbierz nagrodę na ekranie głównym</div>
+        </div>`;
+      } else if (!ch.completed) {
+        const pct = Math.min(100, Math.round(ch.progress / ch.target * 100));
+        endDaily.innerHTML = `<div style="background:rgba(232,86,30,0.08);border:1px solid var(--border);border-radius:12px;padding:10px;margin:14px 0;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:20px;">${ch.icon}</div>
+            <div style="flex:1;">
+              <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;">Wyzwanie: ${ch.progress}/${ch.target}</div>
+              <div style="background:rgba(255,255,255,0.08);height:3px;border-radius:2px;margin-top:4px;overflow:hidden;">
+                <div style="background:var(--accent);height:100%;width:${pct}%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      } else {
+        endDaily.innerHTML = '';
+      }
+    }
 
     // Save score do bazy w tle
     _saveScoreInBackground(M);
