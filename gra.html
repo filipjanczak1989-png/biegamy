@@ -1377,12 +1377,10 @@ function updatePowerupHUD() {
 // SPAWNING
 // ═════════════════════════════════════════════════
 function spawnObstacle() {
-  // Po 30s gry — szansa na ruszający się kwadrat
   if (game.elapsed > 30 && Math.random() < 0.18) {
     spawnMovingSquare();
     return;
   }
-  // Po 12s gry — szansa na pieszego (rowerzysta/biegacz/babcia)
   if (game.elapsed > 12 && Math.random() < 0.30) {
     spawnPedestrian();
     return;
@@ -1391,9 +1389,38 @@ function spawnObstacle() {
   const type = game.speed > 8 * dpr && Math.random() < 0.45
     ? types[1 + Math.floor(Math.random()*2)]
     : types[Math.floor(Math.random()*3)];
+  
+  // 🆕 Rodzaj rowu zależny od sceny
+  let gapKind = 'empty';  // domyślnie pusty (przepaść)
+  if (type === 'gap') {
+    const escene = game.endlessScene || 0;
+    const r = Math.random();
+    // PARK / MIASTO — woda/puste
+    if (escene === 0 || escene === 1) {
+      gapKind = r < 0.6 ? 'water' : 'empty';
+    }
+    // NOC — głównie puste, czasem woda (kałuża)
+    else if (escene === 2) {
+      gapKind = r < 0.7 ? 'empty' : 'water';
+    }
+    // ŚWIT — woda/puste
+    else if (escene === 3) {
+      gapKind = r < 0.5 ? 'water' : 'empty';
+    }
+    // GÓRY — głównie puste, lava w 30%
+    else if (escene === 4) {
+      gapKind = r < 0.3 ? 'lava' : 'empty';
+    }
+    // KOSMOS — same czarne dziury
+    else {
+      gapKind = 'empty';
+    }
+  }
+  
   game.obstacles.push({
     id: game.t + '_' + Math.random(),
     type,
+    gapKind,
     x: W + 50 * dpr,
     w: type === 'gap' ? (60 + Math.random() * 40) * dpr : 30 * dpr,
     h: type === 'high' ? 40 * dpr : 32 * dpr,
@@ -1553,6 +1580,46 @@ function spawnParticles(x, y, color, count) {
     });
   }
 }
+
+// 🆕 Splash przy wpadnięciu w rów
+function spawnGapSplash(x, y, gapKind) {
+  let colors, count, flashColor;
+  if (gapKind === 'water') {
+    colors = ['#5090e0', '#80b0ff', '#ffffff', '#3070c0'];
+    count = 30;
+    flashColor = 'rgba(80,144,224,0.4)';
+  } else if (gapKind === 'lava') {
+    colors = ['#ff5020', '#ffb840', '#ff8030', '#ffd966'];
+    count = 35;
+    flashColor = 'rgba(255,80,30,0.5)';
+  } else {
+    // empty — generic dust
+    colors = ['#444', '#666', '#222'];
+    count = 20;
+    flashColor = 'rgba(60,40,40,0.4)';
+  }
+  
+  // Eksplozja particles (więcej + większe)
+  for (let i = 0; i < count; i++) {
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI;
+    const speed = 4 + Math.random() * 8;
+    game.particles.push({
+      x: x + (Math.random() - 0.5) * 20 * dpr,
+      y: y,
+      vx: Math.cos(angle) * speed * dpr,
+      vy: Math.sin(angle) * speed * dpr - 3 * dpr,
+      r: (Math.random() * 4 + 2) * dpr,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      life: 35 + Math.floor(Math.random() * 15)
+    });
+  }
+  
+  flashScreen(flashColor, 22);
+  if (navigator.vibrate) {
+    navigator.vibrate(gapKind === 'lava' ? [60, 40, 100] : [80, 50]);
+  }
+}
+
 // ═════════════════════════════════════════════════
 // AUDIO SYSTEM — Web Audio API (bez zewnętrznych plików)
 // ═════════════════════════════════════════════════
@@ -2296,6 +2363,10 @@ function update() {
       }
     }
     if (hit) {
+      // 🆕 Splash effect zależnie od typu rowu
+      if (isGap && o.gapKind) {
+        spawnGapSplash(game.px, GROUND_Y, o.gapKind);
+      }
       hitObstacle();
       o.passed = true;
       shakeAmount = 12 * dpr;
@@ -3051,23 +3122,36 @@ function render() {
   if (M.id === 'endless') {
     const escene = game.endlessScene;
     
-    // Chmury (PARK, ŚWIT, GÓRY)
+    // Chmury (PARK, ŚWIT, GÓRY) — puszyste z cieniem
     if (escene === 0 || escene === 3 || escene === 4) {
-      const cloudColor = escene === 3 ? 'rgba(255,200,170,0.5)' :
-                         escene === 4 ? 'rgba(190,210,230,0.45)' :
-                         'rgba(220,235,255,0.4)';  // PARK - białoniebieskie
-      ctx.fillStyle = cloudColor;
-      for (let i = 0; i < 5; i++) {
-        const baseX = ((i * 250 * dpr - game.bgFar * 0.2) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
-        const cy = (50 + (i * 37) % 80) * dpr;
-        // Chmura — kilka nakładających się okręgów dla puszystości
-        ctx.beginPath();
-        ctx.arc(baseX, cy, 25 * dpr, 0, Math.PI * 2);
-        ctx.arc(baseX + 25 * dpr, cy - 8 * dpr, 22 * dpr, 0, Math.PI * 2);
-        ctx.arc(baseX + 45 * dpr, cy + 5 * dpr, 30 * dpr, 0, Math.PI * 2);
-        ctx.arc(baseX + 70 * dpr, cy - 3 * dpr, 24 * dpr, 0, Math.PI * 2);
-        ctx.arc(baseX + 90 * dpr, cy + 6 * dpr, 20 * dpr, 0, Math.PI * 2);
-        ctx.fill();
+      const cloudColor = escene === 3 ? 'rgba(255,200,170,0.55)' :
+                         escene === 4 ? 'rgba(210,225,240,0.6)' :
+                         'rgba(245,250,255,0.65)';  // PARK - białe
+      const shadowColor = escene === 3 ? 'rgba(180,100,80,0.25)' :
+                          escene === 4 ? 'rgba(120,140,160,0.25)' :
+                          'rgba(180,200,220,0.3)';
+      
+      // 2 warstwy chmur dla głębi
+      for (let layer = 0; layer < 2; layer++) {
+        const drift = layer === 0 ? 0.15 : 0.25;
+        const cloudCount = layer === 0 ? 4 : 3;
+        const layerColor = layer === 0 ? cloudColor : shadowColor;
+        ctx.fillStyle = layerColor;
+        
+        for (let i = 0; i < cloudCount; i++) {
+          const baseX = ((i * 280 * dpr - game.bgFar * drift) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
+          const cy = (40 + layer * 30 + (i * 47) % 70) * dpr;
+          const sizeMod = layer === 0 ? 1 : 0.85;
+          // Cień u dołu chmury (3D feel)
+          ctx.beginPath();
+          ctx.arc(baseX, cy + 4 * dpr, 25 * dpr * sizeMod, 0, Math.PI * 2);
+          ctx.arc(baseX + 25 * dpr, cy - 4 * dpr, 22 * dpr * sizeMod, 0, Math.PI * 2);
+          ctx.arc(baseX + 50 * dpr, cy + 8 * dpr, 30 * dpr * sizeMod, 0, Math.PI * 2);
+          ctx.arc(baseX + 75 * dpr, cy + 1 * dpr, 24 * dpr * sizeMod, 0, Math.PI * 2);
+          ctx.arc(baseX + 95 * dpr, cy + 9 * dpr, 20 * dpr * sizeMod, 0, Math.PI * 2);
+          ctx.arc(baseX + 110 * dpr, cy + 4 * dpr, 18 * dpr * sizeMod, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
     }
     
@@ -3089,6 +3173,26 @@ function render() {
     
     // Drzewa w PARK
     if (escene === 0) {
+      // Krzaki na pierwszym planie (parallax bliżej)
+      for (let i = 0; i < 6; i++) {
+        const bx = ((i * 220 * dpr - game.bgNear * 0.7) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
+        const bh = 18 + (i % 3) * 6;
+        ctx.fillStyle = 'rgba(40,100,55,0.85)';
+        ctx.beginPath();
+        ctx.arc(bx - 8 * dpr, GROUND_Y - bh * dpr * 0.7, 10 * dpr, 0, Math.PI * 2);
+        ctx.arc(bx + 8 * dpr, GROUND_Y - bh * dpr * 0.7, 10 * dpr, 0, Math.PI * 2);
+        ctx.arc(bx, GROUND_Y - bh * dpr, 12 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Kwiatek na krzaku
+        if (i % 2 === 0) {
+          ctx.fillStyle = ['#ff7a8c', '#ffd966', '#ff5050'][i % 3];
+          ctx.beginPath();
+          ctx.arc(bx + 4 * dpr, GROUND_Y - bh * dpr - 2 * dpr, 2 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      
+      // Drzewa
       for (let i = 0; i < 8; i++) {
         const baseX = ((i * 180 * dpr - game.bgMid * 0.55) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
         const treeH = 80 + (i % 3) * 25;
@@ -3104,15 +3208,21 @@ function render() {
         ctx.strokeStyle = 'rgba(40,25,15,0.6)';
         ctx.lineWidth = 1 * dpr;
         ctx.strokeRect(baseX - 5 * dpr, GROUND_Y - treeH * dpr, 10 * dpr, treeH * dpr);
-        // Korona — 3 zielone okręgi z gradient
+        // Korona — różne kolory dla różnorodności
+        const isOrange = i % 4 === 3;
         const cgrad = ctx.createRadialGradient(baseX - 5 * dpr, GROUND_Y - (treeH + 5) * dpr, 0, baseX, GROUND_Y - treeH * dpr, 32 * dpr);
-        cgrad.addColorStop(0, 'rgba(80,160,90,0.85)');
-        cgrad.addColorStop(1, 'rgba(30,80,45,0.9)');
+        if (isOrange) {
+          cgrad.addColorStop(0, 'rgba(255,180,80,0.85)');
+          cgrad.addColorStop(1, 'rgba(180,90,30,0.9)');
+        } else {
+          cgrad.addColorStop(0, 'rgba(80,160,90,0.85)');
+          cgrad.addColorStop(1, 'rgba(30,80,45,0.9)');
+        }
         ctx.fillStyle = cgrad;
         ctx.beginPath();
         ctx.arc(baseX + sway, GROUND_Y - treeH * dpr, 30 * dpr, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = 'rgba(60,140,80,0.7)';
+        ctx.fillStyle = isOrange ? 'rgba(220,140,60,0.7)' : 'rgba(60,140,80,0.7)';
         ctx.beginPath();
         ctx.arc(baseX - 12 * dpr + sway, GROUND_Y - (treeH + 12) * dpr, 22 * dpr, 0, Math.PI * 2);
         ctx.fill();
@@ -3395,25 +3505,134 @@ function render() {
 
   game.obstacles.forEach(o => {
     if (o.type === 'gap') {
-      // Przepaść — czarna dziura ze świecącymi krawędziami
+      const gapKind = o.gapKind || 'empty';
+      
+      // Czarne tło dziury (zawsze, bo poniżej ziemi)
+      ctx.fillStyle = '#0a0810';
+      ctx.fillRect(o.x, GROUND_Y, o.w, 100 * dpr);
+      
+      if (gapKind === 'water') {
+        // 💧 WODA — animowana powierzchnia
+        const waterTop = GROUND_Y + 4 * dpr;
+        // Tło — gradient niebieski głęboki
+        const waterGrad = ctx.createLinearGradient(0, waterTop, 0, GROUND_Y + 60 * dpr);
+        waterGrad.addColorStop(0, 'rgba(40,100,180,0.92)');
+        waterGrad.addColorStop(0.5, 'rgba(20,60,140,0.85)');
+        waterGrad.addColorStop(1, 'rgba(8,20,60,0.95)');
+        ctx.fillStyle = waterGrad;
+        ctx.fillRect(o.x, waterTop, o.w, 80 * dpr);
+        
+        // Falująca powierzchnia (sin wave)
+        ctx.strokeStyle = 'rgba(150,200,255,0.7)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.beginPath();
+        for (let dx = 0; dx <= o.w; dx += 4 * dpr) {
+          const wy = waterTop + Math.sin((dx + game.t * 4) * 0.04) * 1.5 * dpr;
+          if (dx === 0) ctx.moveTo(o.x + dx, wy);
+          else ctx.lineTo(o.x + dx, wy);
+        }
+        ctx.stroke();
+        
+        // Refleksy (białe smugi)
+        ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+        ctx.lineWidth = 1 * dpr;
+        for (let i = 0; i < 4; i++) {
+          const rx = o.x + 6 * dpr + ((i * 17 + game.t * 0.6) % o.w);
+          ctx.beginPath();
+          ctx.moveTo(rx, waterTop + 3 * dpr);
+          ctx.lineTo(rx + 8 * dpr, waterTop + 3 * dpr);
+          ctx.stroke();
+        }
+        
+        // Krawędzie — niebieskie
+        ctx.fillStyle = '#5090e0';
+        ctx.fillRect(o.x - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 6 * dpr);
+        ctx.fillRect(o.x + o.w - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 6 * dpr);
+        
+        // Ostrzeżenie 💧
+        const warnY = GROUND_Y - 30 * dpr;
+        ctx.fillStyle = 'rgba(80,144,224,' + (0.5 + 0.3 * Math.sin(game.t * 0.2)) + ')';
+        ctx.font = (16 * dpr) + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('💧', o.x + o.w / 2, warnY);
+        return;
+      }
+      
+      if (gapKind === 'lava') {
+        // 🔥 LAVA — bulgocąca, świecąca
+        const lavaTop = GROUND_Y + 4 * dpr;
+        // Tło - gradient pomarańczowo-czerwony
+        const lavaGrad = ctx.createLinearGradient(0, lavaTop, 0, GROUND_Y + 60 * dpr);
+        lavaGrad.addColorStop(0, 'rgba(255,180,40,0.95)');
+        lavaGrad.addColorStop(0.4, 'rgba(255,80,20,0.95)');
+        lavaGrad.addColorStop(1, 'rgba(140,20,10,0.95)');
+        ctx.fillStyle = lavaGrad;
+        ctx.fillRect(o.x, lavaTop, o.w, 80 * dpr);
+        
+        // Glow nad lavą
+        ctx.shadowColor = '#ff5020';
+        ctx.shadowBlur = 25 * dpr;
+        ctx.fillStyle = 'rgba(255,180,60,0.35)';
+        ctx.fillRect(o.x, GROUND_Y - 14 * dpr, o.w, 14 * dpr);
+        ctx.shadowBlur = 0;
+        
+        // Bulgocące bąble
+        for (let i = 0; i < 3; i++) {
+          const bx = o.x + 10 * dpr + ((i * 23 + game.t * 0.3) % (o.w - 20 * dpr));
+          const bphase = (i * 1.7 + game.t * 0.08) % (Math.PI * 2);
+          const br = (3 + Math.sin(bphase) * 1.5) * dpr;
+          const by = lavaTop + 3 * dpr + Math.sin(bphase * 2) * 2 * dpr;
+          ctx.fillStyle = 'rgba(255,230,150,' + (0.7 + Math.sin(bphase) * 0.3) + ')';
+          ctx.beginPath();
+          ctx.arc(bx, by, br, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        
+        // Falująca powierzchnia
+        ctx.strokeStyle = 'rgba(255,220,100,0.85)';
+        ctx.lineWidth = 1.5 * dpr;
+        ctx.beginPath();
+        for (let dx = 0; dx <= o.w; dx += 4 * dpr) {
+          const wy = lavaTop + Math.sin((dx + game.t * 3) * 0.05) * 2 * dpr;
+          if (dx === 0) ctx.moveTo(o.x + dx, wy);
+          else ctx.lineTo(o.x + dx, wy);
+        }
+        ctx.stroke();
+        
+        // Krawędzie — żarzące się
+        ctx.fillStyle = '#ff8030';
+        ctx.fillRect(o.x - 2 * dpr, GROUND_Y - 3 * dpr, 4 * dpr, 8 * dpr);
+        ctx.fillRect(o.x + o.w - 2 * dpr, GROUND_Y - 3 * dpr, 4 * dpr, 8 * dpr);
+        
+        // Ostrzeżenie 🔥
+        const warnY = GROUND_Y - 30 * dpr;
+        ctx.fillStyle = 'rgba(255,80,30,' + (0.6 + 0.3 * Math.sin(game.t * 0.25)) + ')';
+        ctx.font = (16 * dpr) + 'px serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🔥', o.x + o.w / 2, warnY);
+        return;
+      }
+      
+      // 🕳 EMPTY — czarna przepaść (poprzednie zachowanie + lepsze)
       ctx.fillStyle = '#000';
       ctx.fillRect(o.x, GROUND_Y, o.w, 100 * dpr);
-      // Górne pomarańczowe wykończenie żeby było widać krawędź
-      ctx.fillStyle = '#e05050';
-      ctx.fillRect(o.x - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 4 * dpr);
-      ctx.fillRect(o.x + o.w - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 4 * dpr);
-      // Strzałki ostrzegawcze nad przepaścią
-      const warnY = GROUND_Y - 30 * dpr;
-      ctx.fillStyle = 'rgba(224,80,80,' + (0.5 + 0.3 * Math.sin(game.t * 0.2)) + ')';
-      ctx.font = (16 * dpr) + 'px serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('⚠', o.x + o.w / 2, warnY);
-      // Glow w głębi
+      // Krawędzie czerwono pulsują
+      const edgePulse = 0.6 + 0.3 * Math.sin(game.t * 0.2);
+      ctx.fillStyle = 'rgba(224,80,80,' + edgePulse + ')';
+      ctx.fillRect(o.x - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 6 * dpr);
+      ctx.fillRect(o.x + o.w - 2 * dpr, GROUND_Y - 2 * dpr, 4 * dpr, 6 * dpr);
+      // Glow w głębi (blady)
       const gapGrad = ctx.createLinearGradient(0, GROUND_Y, 0, GROUND_Y + 80 * dpr);
-      gapGrad.addColorStop(0, 'rgba(224,80,80,0.6)');
+      gapGrad.addColorStop(0, 'rgba(60,30,30,0.8)');
       gapGrad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = gapGrad;
       ctx.fillRect(o.x, GROUND_Y, o.w, 60 * dpr);
+      // Ostrzeżenie ⚠
+      const warnY = GROUND_Y - 30 * dpr;
+      ctx.fillStyle = 'rgba(224,80,80,' + edgePulse + ')';
+      ctx.font = (16 * dpr) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('⚠', o.x + o.w / 2, warnY);
       return;
     }
     if (o.type === 'moving') {
