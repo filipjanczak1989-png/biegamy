@@ -4662,12 +4662,12 @@ function render() {
         const py = p.y * GROUND_Y;
         const r = p.r * dpr;
         
-        // 🆕 Atmospheric glow (subtle)
-        const glowGrad = ctx.createRadialGradient(px, py, r, px, py, r * 1.5);
-        glowGrad.addColorStop(0, p.c1.replace(/^#/, '').match(/.{2}/g).map(h => parseInt(h, 16)).join(','));
-        glowGrad.addColorStop(1, '0,0,0');
+        // 🆕 Atmospheric glow (subtle) — wymaga RGB z hex
         const c1rgb = p.c1.replace(/^#/, '').match(/.{2}/g).map(h => parseInt(h, 16));
-        ctx.fillStyle = `rgba(${c1rgb[0]},${c1rgb[1]},${c1rgb[2]},0.25)`;
+        const glowGrad = ctx.createRadialGradient(px, py, r, px, py, r * 1.5);
+        glowGrad.addColorStop(0, `rgba(${c1rgb[0]},${c1rgb[1]},${c1rgb[2]},0.25)`);
+        glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = glowGrad;
         ctx.beginPath();
         ctx.arc(px, py, r * 1.5, 0, Math.PI * 2);
         ctx.fill();
@@ -6057,12 +6057,8 @@ function render() {
       const pulse = (Math.sin(game.t * 0.15) + 1) / 2;
       const glowR = p.r + (8 + pulse * 6) * dpr;
       
-      // Outer glow (pulsująca aura)
+      // Outer glow (pulsująca aura) - czysta wersja
       const glowGrad = ctx.createRadialGradient(p.x, bobY, 0, p.x, bobY, glowR);
-      glowGrad.addColorStop(0, colors[p.type] + 'cc');  // hex with alpha
-      glowGrad.addColorStop(0.5, colors[p.type].replace(')', ',0.3)').replace('#', 'rgba(').replace(/^rgba\((..)(..)(..)/, (m, r, g, b) => 
-        'rgba(' + parseInt(r,16) + ',' + parseInt(g,16) + ',' + parseInt(b,16) + ''));
-      // Simpler approach - radial fade
       glowGrad.addColorStop(0, colors[p.type]);
       glowGrad.addColorStop(0.4, 'rgba(255,255,255,0.2)');
       glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
@@ -6482,7 +6478,11 @@ function loop(t) {
   _accumulator += dt;
   let steps = 0;
   while (_accumulator >= FIXED_DT && steps < MAX_STEPS) {
-    update();
+    try {
+      update();
+    } catch(e) {
+      console.error('Update error (continuing):', e);
+    }
     if (!game.running) return;
     _accumulator -= FIXED_DT;
     steps++;
@@ -6490,7 +6490,12 @@ function loop(t) {
   // Jeśli accumulator urósł za bardzo (lag spike), reset
   if (steps === MAX_STEPS) _accumulator = 0;
   
-  render();
+  // 🆕 Try/catch żeby ewentualny crash nie zatrzymał pętli
+  try {
+    render();
+  } catch(e) {
+    console.error('Render error (continuing):', e);
+  }
   requestAnimationFrame(loop);
 }
 
