@@ -333,8 +333,8 @@ const MODES = {
     duration: 99999,
     targetType: 'distance',
     target: 1000,
-    speedScale: 0.85,        // wolniejszy start (było 1.0)
-    speedRamp: 0.5,          // wolniejszy wzrost (było 0.6)
+    speedScale: 0.95,        // delikatnie szybciej (było 0.85)
+    speedRamp: 0.5,
     obstacleFreq: 0.85,      // ciaśniej, ale przeszkód więcej (było 1.0 = mniej, niżej = więcej)
     coinFreq: 0.7,           // więcej coinów (niżej = częściej)
     powerups: true,
@@ -1087,28 +1087,22 @@ function spawnObstacle() {
   });
 }
 
-// 🚴‍♂️🏃‍♀️👵 PIESZY — rowerzysta / biegacz / babcia z naprzeciwka
+// 🚴‍♂️🏃‍♀️🐕 PIESZY — rowerzysta / biegacz / pies z naprzeciwka
 function spawnPedestrian() {
   const r = Math.random();
   let kind, emoji, speedBonus, h;
-  if (r < 0.35) {
-    // Rowerzysta — szybki, niski, trzeba przeskoczyć
+  if (r < 0.45) {
+    // Rowerzysta — szybki, trzeba przeskoczyć
     kind = 'cyclist';
     emoji = '🚴';
-    speedBonus = 5 * dpr;       // jedzie z naprzeciwka, więc dodaje do speed
+    speedBonus = 5 * dpr;
     h = 40 * dpr;
-  } else if (r < 0.65) {
+  } else if (r < 0.80) {
     // Inny biegacz — średnia prędkość
     kind = 'runner';
     emoji = '🏃';
     speedBonus = 2 * dpr;
     h = 38 * dpr;
-  } else if (r < 0.85) {
-    // Babcia — wolna ale szeroka
-    kind = 'grandma';
-    emoji = '👵';
-    speedBonus = 0.5 * dpr;
-    h = 36 * dpr;
   } else {
     // Pies — bardzo szybki, niski
     kind = 'dog';
@@ -1121,7 +1115,7 @@ function spawnPedestrian() {
     type: 'pedestrian',
     kind: kind,
     emoji: emoji,
-    speedBonus: speedBonus,    // dodatkowa prędkość ruchu
+    speedBonus: speedBonus,
     x: W + 50 * dpr,
     w: 36 * dpr,
     h: h,
