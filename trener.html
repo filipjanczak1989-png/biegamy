@@ -2130,15 +2130,25 @@ async function loadCoachSocialFeed() {
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const { data: logs } = await _sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public)')
-    .order('logged_at', { ascending: false }).limit(30);
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)')
+    .order('logged_at', { ascending: false }).limit(60);
   if (!logs || !logs.length) {
+    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    return;
+  }
+  // Filtruj: trener widzi tylko zawodników publicznych LUB swoich
+  const visibleLogs = logs.filter(function(l) {
+    if (!l.athletes) return false;
+    return l.athletes.is_public === true || l.athletes.coach_id === _coachId;
+  }).slice(0, 30);
+  if (!visibleLogs.length) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
   const tc = { Spokojny:'#5090e0','Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840',Tempo:'#f06030',Wybieganie:'#3db870',Regeneracja:'#9a6fe8' };
   function buildCard(l) {
-    // Trener widzi wszystkich zawodników niezależnie od is_public
+    // Filtr widoczności: trener widzi tylko zawodników publicznych LUB swoich
+    // (filtrowanie odbywa się powyżej w visibleLogs)
     const name = (l.athletes && l.athletes.full_name) || 'Biegacz';
     const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
@@ -2173,9 +2183,9 @@ async function loadCoachSocialFeed() {
       +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">"'+l.comment+'"</div>':'')
       +screensHtml+reactBar+'</div>';
   }
-  const rendered = logs.map(buildCard).filter(Boolean).join('');
+  const rendered = visibleLogs.map(buildCard).filter(Boolean).join('');
   feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
-  const ids = logs.map(function(l){return l.id;});
+  const ids = visibleLogs.map(function(l){return l.id;});
   coachLoadReactionCounts(ids); coachLoadCommentCounts(ids);
 }
 
@@ -2267,9 +2277,13 @@ function coachSocialSearch(q) {
 }
 async function _coachDoSearch(q) {
   const el=document.getElementById('coach-search-results');if(!el)return;
-  const {data}=await _sb.from('athletes').select('id,full_name,pb_marathon,goal').ilike('full_name','%'+q+'%').limit(15);
-  if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wynik\u00f3w</div>';return;}
-  el.innerHTML=data.map(function(a){
+  // Pobierz is_public + coach_id, filtruj client-side: publiczni LUB swoi
+  const {data}=await _sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
+  const filtered = (data||[]).filter(function(a){
+    return a.is_public === true || a.coach_id === _coachId;
+  }).slice(0,15);
+  if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wynik\u00f3w</div>';return;}
+  el.innerHTML=filtered.map(function(a){
     const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
       +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>'
@@ -2278,10 +2292,14 @@ async function _coachDoSearch(q) {
 }
 async function loadCoachSuggestedProfiles() {
   const el=document.getElementById('coach-search-results');if(!el)return;
-  const {data}=await _sb.from('athletes').select('id,full_name,pb_marathon').limit(10);
-  if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak profili</div>';return;}
-  el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Wszyscy zawodnicy</div>'
-    +data.map(function(a){const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+  // Pobierz więcej, filtruj client-side: publiczni LUB swoi
+  const {data}=await _sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
+  const filtered = (data||[]).filter(function(a){
+    return a.is_public === true || a.coach_id === _coachId;
+  }).slice(0,10);
+  if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak profili</div>';return;}
+  el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Publiczni i Twoi zawodnicy</div>'
+    +filtered.map(function(a){const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
       +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>'
       +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+nm+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div></div>';
@@ -2291,9 +2309,18 @@ async function loadCoachRanking() {
   const el=document.getElementById('coach-ranking-content');if(!el)return;
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const wS=new Date();wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1);wS.setHours(0,0,0,0);
-  const {data:logs}=await _sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name)').gte('logged_at',wS.toISOString());
+  // Pobierz logi razem z athlete (is_public, coach_id) i odfiltruj — pokazujemy publicznych LUB swoich
+  const {data:logs}=await _sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').gte('logged_at',wS.toISOString());
   const km={};const elev={};const nm={};
-  (logs||[]).forEach(function(l){const id=l.athlete_id;km[id]=(km[id]||0)+(parseFloat(l.distance_km)||0);elev[id]=(elev[id]||0)+(parseInt(l.elevation_gain)||0);nm[id]=(l.athletes&&l.athletes.full_name)||'Biegacz';});
+  (logs||[]).forEach(function(l){
+    if(!l.athletes) return;
+    const visible = l.athletes.is_public === true || l.athletes.coach_id === _coachId;
+    if(!visible) return;
+    const id=l.athlete_id;
+    km[id]=(km[id]||0)+(parseFloat(l.distance_km)||0);
+    elev[id]=(elev[id]||0)+(parseInt(l.elevation_gain)||0);
+    nm[id]=l.athletes.full_name||'Biegacz';
+  });
   const sorted=Object.keys(km).sort(function(a,b){return km[b]-km[a];}).slice(0,10);
   if(!sorted.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych w tym tygodniu</div>';return;}
   const medals=['&#x1F947;','&#x1F948;','&#x1F949;'];
