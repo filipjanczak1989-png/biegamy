@@ -1984,41 +1984,44 @@ function startMusic() {
   function scheduler() {
     if (!_musicState.playing) return;
     const ctx = _getAudio(); if (!ctx) return;
-    while (_musicState.scheduled < ctx.currentTime + 0.3) {
+    // 🆕 Wymuszony resume na każdym scheduler call (iOS suspenduje audio często)
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    
+    // 🆕 Większy look-ahead (0.5s) żeby wytrzymać niespójne timery
+    while (_musicState.scheduled < ctx.currentTime + 0.5) {
       const step = _musicState.stepIndex;
       const time = _musicState.scheduled;
-      const bar = Math.floor(_musicState.stepIndex / 16) % 4;  // który chord (0..3)
+      const bar = Math.floor(_musicState.stepIndex / 16) % 4;
       const chord = _bassChords[bar];
       
-      // Kick
       if (_kickPattern[step]) _playKick(time, 0.5);
-      // Snare
       if (_snarePattern[step]) _playSnare(time, 0.45);
-      // Hat
       if (_hatPattern[step]) _playHat(time, 0.35, _hatPattern[step] === 2);
       
-      // Bass — na pierwszym i ósmym kroku każdego bar'u
       if (step === 0) {
-        _playBass(time, chord[0] / 2, stepDur * 8, 0.3);  // octave down
+        _playBass(time, chord[0] / 2, stepDur * 8, 0.3);
       } else if (step === 8) {
         _playBass(time, chord[1] / 2, stepDur * 8, 0.25);
       }
       
-      // Pad — zmienia się raz na bar (16 steps)
       if (step === 0) {
         _playPad(time, chord, stepDur * 16, 0.12);
       }
       
       _musicState.scheduled += stepDur;
       _musicState.stepIndex++;
-      // Reset po 64 step (4 bary = pełen progres)
       if (_musicState.stepIndex >= 64) _musicState.stepIndex = 0;
+    }
+    
+    // 🆕 Catch-up: jeśli scheduled "uciekło" w tył (długa pauza), reset do teraźniejszości
+    if (_musicState.scheduled < ctx.currentTime - 0.1) {
+      _musicState.scheduled = ctx.currentTime + 0.05;
     }
   }
   
-  // Pierwszy run + interval
+  // 🆕 Pierwszy run + DUŻY interval co 100ms (lepiej niż 50ms — mniej obciążenia, look-ahead 0.5s wystarczy)
   scheduler();
-  _musicState.intervalId = setInterval(scheduler, 50);
+  _musicState.intervalId = setInterval(scheduler, 100);
 }
 
 function stopMusic() {
