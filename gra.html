@@ -189,125 +189,43 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 
   <div class="home-content">
     <div class="hero-block">
-      <div class="hero-title">Trening<br><span class="accent">mentalny</span></div>
-      <div class="hero-sub">Realny wpływ na biegi · Skill + Focus</div>
+      <div class="hero-title">Runner<br><span class="accent">Rush</span></div>
+      <div class="hero-sub">Endless run · Skacz · Zbieraj · Pobij rekord</div>
     </div>
 
-    <!-- Suggested mode banner (shows if calendar suggests something) -->
-    <div class="suggested-banner" id="suggested-banner" style="display:none;">
-      <div class="sb-icon" id="sb-icon">⚡</div>
-      <div class="sb-text">
-        <div class="sb-label">Sugerowany tryb</div>
-        <div class="sb-title" id="sb-title">Ładowanie...</div>
-        <div class="sb-desc" id="sb-desc"></div>
+    <!-- Big high score display -->
+    <div class="section-card" style="text-align:center;padding:20px 16px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(168,104,224,0.06));border-color:rgba(232,86,30,0.3);">
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Twój rekord</div>
+      <div style="font-family:Bebas Neue,sans-serif;font-size:56px;line-height:1;color:var(--accent);" id="high-score">0</div>
+      <div style="font-size:11px;color:var(--fg2);font-family:DM Mono,monospace;margin-top:4px;" id="high-distance">0 m</div>
+    </div>
+
+    <!-- BIG PLAY BUTTON -->
+    <button onclick="startGame('endless')" style="width:100%;background:linear-gradient(135deg,var(--accent),#ff7a45);color:#fff;border:none;border-radius:16px;padding:24px;font-family:Bebas Neue,sans-serif;font-size:36px;letter-spacing:0.08em;cursor:pointer;box-shadow:0 8px 32px rgba(232,86,30,0.4);margin:8px 0 16px;text-shadow:0 2px 8px rgba(0,0,0,0.3);">
+      ▶ GRAJ
+    </button>
+
+    <!-- Bonusy z treningów -->
+    <div class="section-card">
+      <div class="section-hdr">
+        <div class="section-icon">⚡</div>
+        <div class="section-title">Bonusy z twoich treningów</div>
       </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-      <button class="tab active" data-tab="play" onclick="switchTab('play')">Tryby</button>
-      <button class="tab" data-tab="metrics" onclick="switchTab('metrics')">Metryki</button>
-      <button class="tab" data-tab="rank" onclick="switchTab('rank')">Ranking</button>
-    </div>
-
-    <!-- TAB: PLAY -->
-    <div class="tab-pane active" id="tab-play">
-      <div class="modes-title">▸ Wybierz tryb dopasowany do treningu</div>
-      <div class="modes-grid">
-        <div class="mode-card" data-mode="calm" onclick="startGame('calm')">
-          <div class="mode-emoji">🐢</div>
-          <div class="mode-name">SPOKOJNY</div>
-          <div class="mode-desc">90s focus · powolne tempo</div>
-          <div class="mode-trains">↳ regeneracja, Z2</div>
-        </div>
-        <div class="mode-card" data-mode="intervals" onclick="startGame('intervals')">
-          <div class="mode-emoji">⚡</div>
-          <div class="mode-name">INTERWAŁY</div>
-          <div class="mode-desc">sprint 20s / odpoczynek 10s</div>
-          <div class="mode-trains">↳ VO2max</div>
-        </div>
-        <div class="mode-card" data-mode="tempo" onclick="startGame('tempo')">
-          <div class="mode-emoji">🎯</div>
-          <div class="mode-name">TEMPO</div>
-          <div class="mode-desc">stały rytm · regularność</div>
-          <div class="mode-trains">↳ próg, tempo run</div>
-        </div>
-        <div class="mode-card" data-mode="longrun" onclick="startGame('longrun')">
-          <div class="mode-emoji">🏔</div>
-          <div class="mode-name">DŁUGI</div>
-          <div class="mode-desc">5+ min · wytrwałość</div>
-          <div class="mode-trains">↳ long run</div>
-        </div>
-      </div>
-
-      <div class="section-card">
-        <div class="section-hdr">
-          <div class="section-icon">⚡</div>
-          <div class="section-title">Bonusy z twoich treningów</div>
-        </div>
-        <div id="bonuses-list">
-          <div class="bonus-row"><div class="bonus-label"><span>📊</span><span>Ładowanie...</span></div></div>
-        </div>
+      <div id="bonuses-list">
+        <div class="bonus-row"><div class="bonus-label"><span>📊</span><span>Ładowanie...</span></div></div>
       </div>
     </div>
 
-    <!-- TAB: METRICS -->
-    <div class="tab-pane" id="tab-metrics">
-      <div class="section-card">
-        <div class="section-hdr">
-          <div class="section-icon">🧠</div>
-          <div class="section-title">Twój trening mentalny (7 dni)</div>
-        </div>
-        <div class="metrics-row">
-          <div class="metric-cell">
-            <div class="metric-val" id="m-reaction">—</div>
-            <div class="metric-lbl">Reakcja<br>(ms)</div>
-          </div>
-          <div class="metric-cell">
-            <div class="metric-val" id="m-focus">—</div>
-            <div class="metric-lbl">Focus<br>(s)</div>
-          </div>
-          <div class="metric-cell">
-            <div class="metric-val" id="m-sessions">0</div>
-            <div class="metric-lbl">Sesje<br>tego tyg.</div>
-          </div>
-        </div>
-        <div style="font-size:10px;color:var(--fg3);font-family:'DM Mono',monospace;line-height:1.5;margin-top:6px;letter-spacing:0.05em;">
-          <b style="color:var(--blue);">Reakcja</b> — średni czas reakcji na przeszkodę. Niższy = lepszy. <br>
-          <b style="color:var(--green);">Focus</b> — najdłuższa seria bez błędów.<br>
-          Te metryki realnie wpływają na wyniki w terenie i na zakrętach.
-        </div>
+    <!-- Leaderboard -->
+    <div class="section-card">
+      <div class="section-hdr">
+        <div class="section-icon">🏆</div>
+        <div class="section-title">Top 10 znajomych</div>
       </div>
-
-      <div class="section-card">
-        <div class="section-hdr">
-          <div class="section-icon">📈</div>
-          <div class="section-title">Twoje rekordy</div>
-        </div>
-        <div id="records-list">
-          <div class="bonus-row"><div class="bonus-label"><span>🐢</span><span>Spokojny:</span></div><div class="bonus-value muted" id="best-calm">—</div></div>
-          <div class="bonus-row"><div class="bonus-label"><span>⚡</span><span>Interwały:</span></div><div class="bonus-value muted" id="best-intervals">—</div></div>
-          <div class="bonus-row"><div class="bonus-label"><span>🎯</span><span>Tempo:</span></div><div class="bonus-value muted" id="best-tempo">—</div></div>
-          <div class="bonus-row"><div class="bonus-label"><span>🏔</span><span>Długi:</span></div><div class="bonus-value muted" id="best-longrun">—</div></div>
-        </div>
+      <div id="lb-card" style="padding:0;">
+        <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>
       </div>
     </div>
-
-    <!-- TAB: RANK -->
-    <div class="tab-pane" id="tab-rank">
-      <div class="modes-title">▸ Top 10 znajomych</div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;justify-content:center;flex-wrap:wrap;">
-        <button class="tab" id="rank-calm-btn" onclick="loadLeaderboard('calm')" style="flex:1;min-width:90px;max-width:110px;background:rgba(80,144,224,0.15);color:var(--calm);border-radius:8px;">🐢 Spokojny</button>
-        <button class="tab" id="rank-int-btn" onclick="loadLeaderboard('intervals')" style="flex:1;min-width:90px;max-width:110px;background:rgba(224,80,80,0.15);color:var(--interval);border-radius:8px;">⚡ Interwały</button>
-        <button class="tab" id="rank-tempo-btn" onclick="loadLeaderboard('tempo')" style="flex:1;min-width:90px;max-width:110px;background:rgba(168,104,224,0.15);color:var(--tempo);border-radius:8px;">🎯 Tempo</button>
-        <button class="tab" id="rank-long-btn" onclick="loadLeaderboard('longrun')" style="flex:1;min-width:90px;max-width:110px;background:rgba(61,184,112,0.15);color:var(--longrun);border-radius:8px;">🏔 Długi</button>
-      </div>
-      <div class="section-card" id="lb-card" style="padding:6px 12px;">
-        <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Wybierz tryb...</div>
-      </div>
-    </div>
-
-    <div class="high-score">Najlepszy wynik łącznie: <b id="high-score">0</b></div>
   </div>
 </div>
 
@@ -326,7 +244,6 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
   <canvas id="game-canvas"></canvas>
   <div class="hud">
     <div class="hud-left">
-      <div class="hud-mode-label" id="hud-mode-label">SPOKOJNY</div>
       <div class="hud-score" id="hud-score">0</div>
       <div class="hud-multi" id="hud-multi">x1.0</div>
       <div class="hud-combo" id="hud-combo" style="display:none;"></div>
@@ -421,84 +338,24 @@ let _todayPlanned = null;  // typ dzisiejszego treningu z kalendarza
 // MODE DEFINITIONS — silnik czyta to żeby skonfigurować rozgrywkę
 // ═════════════════════════════════════════════════
 const MODES = {
-  calm: {
-    id: 'calm',
-    name: 'SPOKOJNY',
-    emoji: '🐢',
-    color: '#5090e0',
-    trains: 'regeneracja, Z2',
-    description: 'Powolne tempo, długi dystans, focus na ominięciu wszystkich przeszkód.',
-    duration: 90,           // sekund
-    targetType: 'time',     // dotrwaj X sekund
-    target: 90,
-    speedScale: 0.7,        // 70% normalnej speed
-    speedRamp: 0.3,         // wolniejszy wzrost
-    obstacleFreq: 1.4,      // mniej przeszkód
-    coinFreq: 1.0,
-    powerups: false,        // bez power-upów
-    lives: 1,               // tylko 1 życie — focus
-    intervalCycles: 0,
-    targetTraining: 'Spokojny'
-  },
-  intervals: {
-    id: 'intervals',
-    name: 'INTERWAŁY',
-    emoji: '⚡',
-    color: '#e05050',
-    trains: 'VO2max, sprint',
-    description: 'Cykle: 20s sprint × 10s odpoczynek. Ukończ 4 cykle.',
-    duration: 120,          // 4 cykle × (20+10) = 120s
-    targetType: 'cycles',
-    target: 4,
-    intervalCycles: 4,
-    sprintLen: 20,
-    restLen: 10,
+  endless: {
+    id: 'endless',
+    name: 'RUNNER RUSH',
+    emoji: '🏃',
+    color: '#e8561e',
+    trains: 'endless run',
+    description: 'Biegnij jak najdalej. 3 życia. Im dalej, tym szybciej.',
+    duration: 99999,         // brak limitu czasu — gra do utraty żyć
+    targetType: 'distance',
+    target: 1000,
     speedScale: 1.0,
-    speedRamp: 0,           // bez ramp — jedziemy interwałami
+    speedRamp: 0.6,          // umiarkowany wzrost prędkości
     obstacleFreq: 1.0,
-    coinFreq: 1.2,
-    powerups: false,
-    lives: 3,
-    targetTraining: 'Interwały'
-  },
-  // 🎯 TEMPO — trenuje rytm i regulację tempa
-  tempo: {
-    id: 'tempo',
-    name: 'TEMPO',
-    emoji: '🎯',
-    color: '#a868e0',
-    trains: 'próg, tempo run',
-    description: 'Skacz w rytm metronomu — przeszkody pojawiają się synchronicznie z BPM. 60s.',
-    duration: 60,
-    targetType: 'consistency',
-    target: 70,             // % consistency = ukończone (zniżone bo trudniej)
-    speedScale: 0.85,
-    speedRamp: 0.3,
-    obstacleFreq: 1.5,
-    coinFreq: 0.7,
-    powerups: false,
-    lives: 3,
-    bpm: 120,               // 120 BPM = 2 beats/s; co drugi beat = przeszkoda
-    targetTraining: 'Tempo'
-  },
-  // 🏔 DŁUGI BIEG — wytrwałość, sceny zmieniają się co minutę
-  longrun: {
-    id: 'longrun',
-    name: 'DŁUGI BIEG',
-    emoji: '🏔',
-    color: '#3db870',
-    trains: 'long run, wytrwałość',
-    description: '5 minut wytrzymałości. Sceny zmieniają się co minutę. Power-upy.',
-    duration: 300,
-    targetType: 'time',
-    target: 300,
-    speedScale: 0.95,
-    speedRamp: 0.4,
-    obstacleFreq: 1.1,
     coinFreq: 1.0,
-    powerups: true,         // power-upy włączone
-    lives: 5,
-    targetTraining: 'Długi'
+    powerups: true,          // power-upy włączone
+    lives: 3,
+    intervalCycles: 0,
+    targetTraining: null
   }
 };
 
@@ -541,14 +398,14 @@ async function initUser() {
   await loadTodayPlanned();
   await loadBonuses();
   await loadHighScore();
-  await loadMentalMetrics();
+  await loadLeaderboard('endless');
   showSuggestedMode();
 
-  // Auto-start jeśli przyszedł z banneru w zawodnik.html
+  // Auto-start jeśli przyszedł z banneru w zawodnik.html (zawsze endless)
   const autoStart = sessionStorage.getItem('biegamy_game_autostart');
-  if (autoStart && MODES[autoStart]) {
+  if (autoStart) {
     sessionStorage.removeItem('biegamy_game_autostart');
-    setTimeout(() => startGame(autoStart), 200);
+    setTimeout(() => startGame('endless'), 200);
   }
 }
 
@@ -585,33 +442,9 @@ function suggestModeForToday() {
 }
 
 function showSuggestedMode() {
-  const suggested = suggestModeForToday();
+  // W trybie endless nie ma sugestii — banner zawsze ukryty
   const banner = document.getElementById('suggested-banner');
-  if (!suggested) {
-    banner.style.display = 'none';
-    return;
-  }
-  const mode = MODES[suggested];
-  banner.style.display = 'flex';
-  document.getElementById('sb-icon').textContent = mode.emoji;
-  document.getElementById('sb-title').textContent = mode.name + ' — pasuje do twojego treningu';
-  document.getElementById('sb-desc').textContent = _todayPlanned 
-    ? `Dziś masz: ${_todayPlanned.type}. Zagraj jako warm-up mentalny.`
-    : `Tryb idealny dla dzisiejszego planu.`;
-  banner.onclick = () => startGame(suggested);
-  banner.style.cursor = 'pointer';
-
-  // Highlight w mode picker
-  const card = document.querySelector('.mode-card[data-mode="' + suggested + '"]');
-  if (card) {
-    card.classList.add('suggested');
-    if (!card.querySelector('.mode-suggested-tag')) {
-      const tag = document.createElement('div');
-      tag.className = 'mode-suggested-tag';
-      tag.textContent = 'DZIŚ';
-      card.appendChild(tag);
-    }
-  }
+  if (banner) banner.style.display = 'none';
 }
 
 // ═════════════════════════════════════════════════
@@ -696,57 +529,25 @@ async function loadBonuses() {
 async function loadHighScore() {
   if (!_athleteId) return;
   const { data } = await _sb.from('game_scores')
-    .select('score, mode')
+    .select('score, distance')
     .eq('athlete_id', _athleteId)
     .order('score', { ascending: false })
-    .limit(20);
+    .limit(5);
   const all = data || [];
   const top = all[0]?.score || 0;
-  document.getElementById('high-score').textContent = top;
+  const topDist = all[0]?.distance || 0;
+  const hsEl = document.getElementById('high-score');
+  if (hsEl) hsEl.textContent = top;
+  const hdEl = document.getElementById('high-distance');
+  if (hdEl) hdEl.textContent = Math.round(topDist) + ' m';
   if (top > getStat('best_score', 0)) setStat('best_score', top);
-
-  // Per-mode bests
-  const calmBest = all.filter(s => s.mode === 'calm')[0]?.score || 0;
-  const intBest = all.filter(s => s.mode === 'intervals')[0]?.score || 0;
-  const tempoBest = all.filter(s => s.mode === 'tempo')[0]?.score || 0;
-  const longBest = all.filter(s => s.mode === 'longrun')[0]?.score || 0;
-  const setRecord = (id, val) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = val > 0 ? val : '—';
-    el.className = val > 0 ? 'bonus-value green' : 'bonus-value muted';
-  };
-  setRecord('best-calm', calmBest);
-  setRecord('best-intervals', intBest);
-  setRecord('best-tempo', tempoBest);
-  setRecord('best-longrun', longBest);
 }
 
 // ═════════════════════════════════════════════════
-// MENTAL METRICS (last 7 days)
+// MENTAL METRICS — usunięte (endless mode)
 // ═════════════════════════════════════════════════
 async function loadMentalMetrics() {
-  if (!_athleteId) return;
-  const w7 = new Date(); w7.setDate(w7.getDate() - 7);
-  const { data } = await _sb.from('game_scores')
-    .select('reaction_avg_ms, focus_duration_sec, created_at')
-    .eq('athlete_id', _athleteId)
-    .gte('created_at', w7.toISOString());
-
-  const scores = data || [];
-  const reactScores = scores.filter(s => s.reaction_avg_ms && s.reaction_avg_ms > 0);
-  const focusScores = scores.filter(s => s.focus_duration_sec && s.focus_duration_sec > 0);
-
-  const avgReaction = reactScores.length 
-    ? Math.round(reactScores.reduce((s, x) => s + x.reaction_avg_ms, 0) / reactScores.length)
-    : null;
-  const maxFocus = focusScores.length 
-    ? Math.max(...focusScores.map(x => x.focus_duration_sec))
-    : null;
-
-  document.getElementById('m-reaction').textContent = avgReaction || '—';
-  document.getElementById('m-focus').textContent = maxFocus || '—';
-  document.getElementById('m-sessions').textContent = scores.length;
+  // No-op (zachowane dla kompatybilności wywołań)
 }
 
 // ═════════════════════════════════════════════════
@@ -754,17 +555,9 @@ async function loadMentalMetrics() {
 // ═════════════════════════════════════════════════
 async function loadLeaderboard(mode) {
   if (!_athleteId) return;
-  // Highlight active button (4 trybów)
-  const setOp = (id, m) => {
-    const el = document.getElementById(id);
-    if (el) el.style.opacity = mode === m ? '1' : '0.5';
-  };
-  setOp('rank-calm-btn', 'calm');
-  setOp('rank-int-btn', 'intervals');
-  setOp('rank-tempo-btn', 'tempo');
-  setOp('rank-long-btn', 'longrun');
-
+  // W endless mode nie ma wyboru trybu — ignorujemy parametr
   const card = document.getElementById('lb-card');
+  if (!card) return;
   card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>';
 
   const friendsRes = await _sb.from('friendships')
@@ -778,8 +571,7 @@ async function loadLeaderboard(mode) {
   });
   const ids = [...friendIds];
   const { data: scores } = await _sb.from('game_scores')
-    .select('athlete_id, score, athletes(full_name)')
-    .eq('mode', mode)
+    .select('athlete_id, score, distance, athletes(full_name)')
     .in('athlete_id', ids)
     .order('score', { ascending: false })
     .limit(50);
@@ -792,7 +584,7 @@ async function loadLeaderboard(mode) {
   }).slice(0, 10);
 
   if (!top.length) {
-    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Brak wyników w tym trybie. Bądź pierwszy!</div>';
+    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Brak wyników. Bądź pierwszy!</div>';
     return;
   }
   card.innerHTML = top.map((s, i) => {
@@ -808,12 +600,10 @@ async function loadLeaderboard(mode) {
 }
 
 // ═════════════════════════════════════════════════
-// TABS
+// TABS — usunięte (jeden ekran)
 // ═════════════════════════════════════════════════
 function switchTab(name) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
-  if (name === 'metrics') loadMentalMetrics();
+  // No-op (zachowane dla kompatybilności wywołań)
 }
 
 // ═════════════════════════════════════════════════
@@ -2182,6 +1972,24 @@ function update() {
 function updateModeTarget() {
   const M = game.config;
   const target = document.getElementById('mode-target');
+  if (M.id === 'endless') {
+    // Endless — pokaż dystans + porównanie z rekordem
+    target.style.display = 'flex';
+    document.getElementById('mt-icon').textContent = '🏁';
+    const best = getStat('best_score', 0);
+    const cur = Math.floor(game.score);
+    if (best > 0 && cur < best) {
+      document.getElementById('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
+      document.getElementById('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
+    } else if (best > 0 && cur >= best) {
+      document.getElementById('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
+      document.getElementById('mt-fill').style.width = '100%';
+    } else {
+      document.getElementById('mt-text').textContent = cur + ' pkt';
+      document.getElementById('mt-fill').style.width = '0%';
+    }
+    return;
+  }
   if (M.id === 'tempo') {
     target.style.display = 'flex';
     document.getElementById('mt-icon').textContent = '🎯';
@@ -2847,39 +2655,16 @@ function startGameAgain() {
 function showTutorial(mode) {
   const M = MODES[mode];
   document.getElementById('tut-title').textContent = M.emoji + ' ' + M.name;
-  document.getElementById('tut-sub').textContent = 'Trenujesz: ' + M.trains;
+  document.getElementById('tut-sub').textContent = 'Endless run · 3 życia';
 
   const rows = [];
   rows.push('<div class="tut-row"><div class="tut-icon">📋</div><div class="tut-text">' + M.description + '</div></div>');
-
-  if (mode === 'tempo') {
-    // TEMPO — rytmiczne przeszkody synchronizowane z BPM
-    rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>Skacz w rytm</b> ' + M.bpm + ' BPM — przeszkody pojawiają się DOKŁADNIE w rytmie</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🥁</div><div class="tut-text"><b>Słuchaj beatu</b> — każde 2 uderzenie = przeszkoda do przeskoku</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">⭐</div><div class="tut-text"><b>PERFECT</b> &lt;80ms · <b>GOOD</b> &lt;200ms · <b>OK</b> &lt;350ms</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">⚠️</div><div class="tut-text"><b>Wpadka</b> = nie skoczyłeś w porę. Pierwsze 3 missy bez utraty życia, potem -1 ❤</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🏆</div><div class="tut-text"><b>Cel:</b> 80%+ trafień rytmu = ukończone. Trenuje pace consistency.</div></div>');
-  } else if (mode === 'longrun') {
-    rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik</b> — dash (przebij wszystko)</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🌳</div><div class="tut-text"><b>5 scen × 60s:</b> park → miasto → noc → świt → meta</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🪄</div><div class="tut-text"><b>Power-upy:</b> 🧲 magnet · 🛡 shield · 🐢 slowmo · ⚡ boost</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">❤❤❤❤❤</div><div class="tut-text"><b>5 żyć</b> — wytrwaj 5 minut</div></div>');
-  } else {
-    // calm/intervals
-    rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik</b> — dash (przebij wszystko)</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🍌</div><div class="tut-text"><b>Banan/kałuża</b> — spowalnia! Przeskocz</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🦅</div><div class="tut-text"><b>Ptak</b> — zrób unik (slide lub niski skok)</div></div>');
-
-    if (mode === 'calm') {
-      rows.push('<div class="tut-row"><div class="tut-icon">⚠️</div><div class="tut-text"><b>1 życie!</b> Skup się.</div></div>');
-    } else if (mode === 'intervals') {
-      rows.push('<div class="tut-row"><div class="tut-icon">🔥</div><div class="tut-text"><b>Sprint 20s + odpoczynek 10s × 4 cykle</b></div></div>');
-    }
-  }
+  rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik</b> — dash (przebij przeszkodę)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Zbieraj coiny</b> — punkty + sklep (wkrótce)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🪄</div><div class="tut-text"><b>Power-upy:</b> 🧲 magnet · 🛡 shield · 🐢 slowmo · ⚡ boost</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">❤❤❤</div><div class="tut-text"><b>3 życia</b> — pobij swój rekord!</div></div>');
 
   document.getElementById('tut-body').innerHTML = rows.join('');
   document.getElementById('tutorial').style.display = 'flex';
@@ -2895,16 +2680,10 @@ function realStart(mode) {
   game = newGame(mode);
   game.running = true;
   game.focusStartT = 0;
-  document.getElementById('hud-mode-label').textContent = MODES[mode].name;
   document.getElementById('screen-home').classList.add('hidden');
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.remove('hidden');
   updateDashUI();
-
-  // Phase banner dla intervals
-  if (mode === 'intervals') {
-    showPhaseBanner('FAZA 1/' + MODES.intervals.intervalCycles, 'SPRINT!', 'sprint');
-  }
 
   lastFrame = performance.now();
   requestAnimationFrame(loop);
@@ -2933,7 +2712,17 @@ async function endGame() {
 
   // Tytuł i sub
   let title, sub;
-  if (game.finished) {
+  if (M.id === 'endless') {
+    // Endless — zawsze "KONIEC" + porównanie z rekordem
+    const oldBest = getStat('best_score', 0);
+    if (game.score > oldBest) {
+      title = 'NOWY REKORD! 🏆';
+      sub = 'Pobiłeś swój rekord o ' + (game.score - oldBest) + ' pkt';
+    } else {
+      title = 'KONIEC';
+      sub = 'Rekord: ' + oldBest + ' · próbuj dalej!';
+    }
+  } else if (game.finished) {
     title = M.id === 'calm' ? 'CIERPLIWOŚĆ ✓' : M.id === 'intervals' ? '4/4 CYKLI! 🔥' : 'UKOŃCZONO';
     sub = 'Trening mentalny zaliczony';
   } else {
