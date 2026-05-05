@@ -798,6 +798,24 @@ function switchTab(name) {
 // ═════════════════════════════════════════════════
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
+
+// 🆕 Performance: wyłącz shadowBlur w low quality mode (kosztowne renderowanie)
+let _origShadowBlurDesc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowBlur');
+if (!_origShadowBlurDesc) _origShadowBlurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
+let _shadowBlurValue = 0;
+Object.defineProperty(ctx, 'shadowBlur', {
+  set(v) {
+    _shadowBlurValue = v;
+    // Wyłącz blur w low quality mode
+    if (typeof _lowQuality !== 'undefined' && _lowQuality) {
+      _origShadowBlurDesc.set.call(this, 0);
+    } else {
+      _origShadowBlurDesc.set.call(this, v);
+    }
+  },
+  get() { return _shadowBlurValue; },
+  configurable: true
+});
 let W, H, GROUND_Y, dpr;
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -2371,17 +2389,18 @@ function update() {
     let weatherType = null;
     
     if (escene === 0) {  // PARK — opadające liście
-      spawnRate = 0.05;
+      spawnRate = 0.04;
       weatherType = 'leaf';
     } else if (escene === 2) {  // NOC — krople deszczu
-      spawnRate = 0.6;
+      spawnRate = 0.4;
       weatherType = 'rain';
     } else if (escene === 4) {  // GÓRY — śnieg
-      spawnRate = 0.3;
+      spawnRate = 0.22;
       weatherType = 'snow';
     }
     
-    if (spawnRate > 0 && Math.random() < spawnRate) {
+    // 🆕 Cap: max 60 weather particles
+    if (spawnRate > 0 && game.weather.length < 60 && Math.random() < spawnRate) {
       if (weatherType === 'leaf') {
         game.weather.push({
           type: 'leaf',
@@ -3226,7 +3245,7 @@ function render() {
     const sunY = GROUND_Y * 0.32;
     
     if (escene === 0) {
-      // PARK — żółte słońce z poświatą + lens flare
+      // PARK — żółte słońce z poświatą + lens flare + ray spikes
       // Lens flare ring (subtle ring around sun)
       ctx.save();
       ctx.globalCompositeOperation = 'screen';
@@ -3239,6 +3258,25 @@ function render() {
       ctx.arc(sunX, sunY, 95 * dpr, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
+      
+      // 🆕 Sun ray spikes (8 promieni świetlnych z korony) — pomijamy w low quality
+      if (!_lowQuality) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.strokeStyle = 'rgba(255,240,180,0.3)';
+        ctx.lineWidth = 2 * dpr;
+        ctx.lineCap = 'round';
+        for (let r = 0; r < 8; r++) {
+          const angle = r * Math.PI / 4 + game.t * 0.005;  // bardzo wolny obrót
+          const innerR = 30 * dpr;
+          const outerR = (45 + Math.sin(game.t * 0.04 + r) * 6) * dpr;
+          ctx.beginPath();
+          ctx.moveTo(sunX + Math.cos(angle) * innerR, sunY + Math.sin(angle) * innerR);
+          ctx.lineTo(sunX + Math.cos(angle) * outerR, sunY + Math.sin(angle) * outerR);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
       
       // Glow główny
       const grad = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 80 * dpr);
@@ -3399,18 +3437,17 @@ function render() {
       ctx.restore();
     }
     
-    // 🆕 GOD RAYS — promienie świetlne padające z góry (PARK, ŚWIT)
-    if (escene === 0 || escene === 3) {
+    // 🆕 GOD RAYS — promienie świetlne padające z góry (skip w low quality)
+    if ((escene === 0 || escene === 3) && !_lowQuality) {
       ctx.save();
       const sunX = escene === 3 ? W * 0.6 : W * 0.78;
       const sunY = escene === 3 ? GROUND_Y * 0.55 : GROUND_Y * 0.32;
       
-      ctx.globalCompositeOperation = 'screen';  // additive blend
+      ctx.globalCompositeOperation = 'screen';
       ctx.fillStyle = escene === 3 ? 'rgba(255,180,100,0.06)' : 'rgba(255,230,150,0.04)';
       
-      // 8 promieni rozchodzących się z słońca
       for (let i = 0; i < 8; i++) {
-        const angle = Math.PI / 2 + (i - 4) * 0.12;  // wachlarz w dół
+        const angle = Math.PI / 2 + (i - 4) * 0.12;
         const rayLen = 600 * dpr;
         const rayWidth = 30 * dpr;
         ctx.beginPath();
@@ -3427,23 +3464,27 @@ function render() {
         ctx.fill();
       }
       ctx.restore();
+    }
+    
+    if (escene === 0 || escene === 3) {
       
-      // 🆕 DUST MOTES — pyłki w powietrzu w promieniach słońca
-      ctx.save();
-      ctx.globalCompositeOperation = 'screen';
-      const moteColor = escene === 3 ? 'rgba(255,200,150,0.55)' : 'rgba(255,240,180,0.4)';
-      ctx.fillStyle = moteColor;
-      for (let m = 0; m < 25; m++) {
-        const seed = m * 137.5;
-        // Powolny ruch pyłków
-        const mx = ((seed - game.bgFar * 0.05 + game.t * 0.15) % W + W) % W;
-        const my = (200 + (m * 23) % 250 + Math.sin(game.t * 0.02 + m) * 8) * dpr;
-        const ms = (0.8 + Math.sin(m + game.t * 0.04) * 0.4) * dpr;
-        ctx.beginPath();
-        ctx.arc(mx, my, ms, 0, Math.PI * 2);
-        ctx.fill();
+      // 🆕 DUST MOTES — pyłki w powietrzu w promieniach słońca (skip w low quality)
+      if (!_lowQuality) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        const moteColor = escene === 3 ? 'rgba(255,200,150,0.55)' : 'rgba(255,240,180,0.4)';
+        ctx.fillStyle = moteColor;
+        for (let m = 0; m < 15; m++) {  // 25 → 15
+          const seed = m * 137.5;
+          const mx = ((seed - game.bgFar * 0.05 + game.t * 0.15) % W + W) % W;
+          const my = (200 + (m * 23) % 250 + Math.sin(game.t * 0.02 + m) * 8) * dpr;
+          const ms = (0.8 + Math.sin(m + game.t * 0.04) * 0.4) * dpr;
+          ctx.beginPath();
+          ctx.arc(mx, my, ms, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
       }
-      ctx.restore();
     }
   }
   let mountainColor;
@@ -5630,13 +5671,24 @@ function render() {
   // Player — emoji biegacza domyślnie patrzy w lewo, odbijamy żeby biegł w prawo
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
   
-  // 🆕 Cień pod graczem — wskazuje gdzie jest na ziemi (mniejszy gdy w powietrzu)
+  // 🆕 Cień pod graczem — wskazuje gdzie jest na ziemi
+  // Soft gradient shadow zamiast pełnego ellipse (mniej rzucający się w oczy)
   const heightAboveGround = GROUND_Y - game.py;
   const shadowScale = Math.max(0.3, 1 - heightAboveGround / (200 * dpr));
-  const shadowAlpha = 0.4 * shadowScale;
-  ctx.fillStyle = 'rgba(0,0,0,' + shadowAlpha + ')';
+  const shadowAlpha = 0.35 * shadowScale * shadowScale;  // kwadratowo szybciej zanika
+  
+  // Soft radial gradient cień (jaśniejsze brzegi)
+  const shadowR = 22 * dpr * shadowScale;
+  const shadowGrad = ctx.createRadialGradient(
+    game.px, GROUND_Y - 1 * dpr, 0,
+    game.px, GROUND_Y - 1 * dpr, shadowR
+  );
+  shadowGrad.addColorStop(0, 'rgba(0,0,0,' + shadowAlpha + ')');
+  shadowGrad.addColorStop(0.6, 'rgba(0,0,0,' + (shadowAlpha * 0.5) + ')');
+  shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = shadowGrad;
   ctx.beginPath();
-  ctx.ellipse(game.px, GROUND_Y - 2 * dpr, 22 * dpr * shadowScale, 5 * dpr * shadowScale, 0, 0, Math.PI * 2);
+  ctx.ellipse(game.px, GROUND_Y - 1 * dpr, shadowR, 5 * dpr * shadowScale, 0, 0, Math.PI * 2);
   ctx.fill();
   
   // 🆕 Combo aura — pulsuje wokół gracza, kolor zależy od tier
@@ -5700,13 +5752,13 @@ function render() {
     ctx.save();
     if (game.dashing > 0) {
       ctx.shadowColor = '#e8561e';
-      ctx.shadowBlur = 30 * dpr;
+      ctx.shadowBlur = 18 * dpr;  // 30 → 18
     } else if (game.slowedTimer > 0) {
       ctx.shadowColor = '#5090e0';
-      ctx.shadowBlur = 18 * dpr;
+      ctx.shadowBlur = 12 * dpr;  // 18 → 12
     } else if (game.flipping) {
       ctx.shadowColor = '#ffd966';
-      ctx.shadowBlur = 25 * dpr;
+      ctx.shadowBlur = 14 * dpr;  // 25 → 14 (mniej intensywne)
     }
     
     // Bouncing podczas biegu - smooth easing (sinusoidalny absolute = bouncing)
@@ -5769,41 +5821,44 @@ function render() {
     }
   }
   
-  // 🆕 VIGNETTE — ciemniejsze rogi (cinema feel)
-  const vignette = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
-  vignette.addColorStop(0, 'rgba(0,0,0,0)');
-  vignette.addColorStop(0.6, 'rgba(0,0,0,0)');
-  vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, W, H);
+  // 🆕 VIGNETTE — ciemniejsze rogi (cinema feel, skip w low quality)
+  if (!_lowQuality) {
+    const vignette = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H) * 0.7);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(0.6, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
+  }
   
-  // 🆕 FILM GRAIN — subtelne szumy (artystyczny feel)
-  if (game._grainCanvas === undefined) {
-    // Stwórz raz cache canvas z grain
-    const gc = document.createElement('canvas');
-    gc.width = 200; gc.height = 200;
-    const gctx = gc.getContext('2d');
-    const imgData = gctx.createImageData(200, 200);
-    for (let i = 0; i < imgData.data.length; i += 4) {
-      const v = Math.floor(Math.random() * 255);
-      imgData.data[i] = v;
-      imgData.data[i+1] = v;
-      imgData.data[i+2] = v;
-      imgData.data[i+3] = 25;  // bardzo subtle
+  // 🆕 FILM GRAIN — subtelne szumy (skip w low quality)
+  if (!_lowQuality) {
+    if (game._grainCanvas === undefined) {
+      // Stwórz raz cache canvas z grain
+      const gc = document.createElement('canvas');
+      gc.width = 200; gc.height = 200;
+      const gctx = gc.getContext('2d');
+      const imgData = gctx.createImageData(200, 200);
+      for (let i = 0; i < imgData.data.length; i += 4) {
+        const v = Math.floor(Math.random() * 255);
+        imgData.data[i] = v;
+        imgData.data[i+1] = v;
+        imgData.data[i+2] = v;
+        imgData.data[i+3] = 25;
+      }
+      gctx.putImageData(imgData, 0, 0);
+      game._grainCanvas = gc;
     }
-    gctx.putImageData(imgData, 0, 0);
-    game._grainCanvas = gc;
-  }
-  // Repeating pattern grain — bardzo subtelny, animowany
-  ctx.globalAlpha = 0.18;
-  const grainOffsetX = (game.t * 17) % 200;
-  const grainOffsetY = (game.t * 13) % 200;
-  for (let gx = -grainOffsetX; gx < W; gx += 200) {
-    for (let gy = -grainOffsetY; gy < H; gy += 200) {
-      ctx.drawImage(game._grainCanvas, gx, gy);
+    ctx.globalAlpha = 0.18;
+    const grainOffsetX = (game.t * 17) % 200;
+    const grainOffsetY = (game.t * 13) % 200;
+    for (let gx = -grainOffsetX; gx < W; gx += 200) {
+      for (let gy = -grainOffsetY; gy < H; gy += 200) {
+        ctx.drawImage(game._grainCanvas, gx, gy);
+      }
     }
+    ctx.globalAlpha = 1;
   }
-  ctx.globalAlpha = 1;
 
   // ── SCREEN FLASH (overlay, kolorowy błysk) ──
   if (_screenFlash.life > 0 && _screenFlash.color) {
@@ -5819,9 +5874,25 @@ function render() {
 // LOOP
 // ═════════════════════════════════════════════════
 let lastFrame = 0;
+let _fpsHistory = [];
+let _lowQuality = false;  // 🆕 auto-degrade quality if FPS drops
 function loop(t) {
   if (!game || !game.running) return;
   if (t - lastFrame >= 16) {
+    // 🆕 FPS monitoring (rolling avg z 30 ostatnich klatek)
+    const dt = t - lastFrame;
+    if (dt < 100) {  // skip first frame and tab-switches
+      _fpsHistory.push(dt);
+      if (_fpsHistory.length > 30) _fpsHistory.shift();
+      // Check every 30 frames if we need to drop quality
+      if (_fpsHistory.length === 30 && game.t % 30 === 0) {
+        const avgDt = _fpsHistory.reduce((a, b) => a + b, 0) / _fpsHistory.length;
+        // Jeśli klatka trwa > 22ms (czyli < ~45 fps) → tryb low quality
+        if (avgDt > 22) _lowQuality = true;
+        else if (avgDt < 18) _lowQuality = false;  // wyłączamy gdy znów płynnie
+      }
+    }
+    
     update();
     if (!game.running) return;  // mogło się skończyć w update
     render();
