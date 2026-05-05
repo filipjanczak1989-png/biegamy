@@ -3224,6 +3224,64 @@ function render() {
       ctx.arc(sunX, sunY, 22 * dpr, 0, Math.PI * 2);
       ctx.fill();
     } else if (escene === 2) {
+      // 🆕 GWIAZDY MIGAJĄCE — przed księżycem
+      ctx.save();
+      for (let st = 0; st < 50; st++) {
+        const stx = (st * 73.5) % W;
+        const sty = ((st * 41.3) % (GROUND_Y * 0.7));
+        const seed = st * 17;
+        // Twinkle animation (każda gwiazda pulsuje inaczej)
+        const twinkle = (Math.sin(game.t * 0.05 + seed) + 1) / 2;
+        const starSize = (0.4 + (st % 3) * 0.4 + twinkle * 0.4) * dpr;
+        const starAlpha = 0.5 + twinkle * 0.5;
+        ctx.fillStyle = 'rgba(255,255,230,' + starAlpha + ')';
+        ctx.beginPath();
+        ctx.arc(stx, sty, starSize, 0, Math.PI * 2);
+        ctx.fill();
+        // Mały krzyż dla większych gwiazd (sparkle)
+        if (st % 7 === 0 && twinkle > 0.5) {
+          ctx.strokeStyle = 'rgba(255,255,230,' + (twinkle * 0.7) + ')';
+          ctx.lineWidth = 0.5 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(stx - starSize * 3, sty);
+          ctx.lineTo(stx + starSize * 3, sty);
+          ctx.moveTo(stx, sty - starSize * 3);
+          ctx.lineTo(stx, sty + starSize * 3);
+          ctx.stroke();
+        }
+      }
+      
+      // 🆕 SPADAJĄCA GWIAZDA — co jakiś czas (raz na ~10s)
+      if (game.t % 600 < 30) {  // 30 klatek showing
+        const phaseProgress = (game.t % 600) / 30;  // 0..1
+        const startX = W * 0.2;
+        const startY = GROUND_Y * 0.15;
+        const endX = W * 0.6;
+        const endY = GROUND_Y * 0.4;
+        const cx = startX + (endX - startX) * phaseProgress;
+        const cy = startY + (endY - startY) * phaseProgress;
+        // Trail
+        for (let tr = 0; tr < 5; tr++) {
+          const trProgress = phaseProgress - tr * 0.05;
+          if (trProgress < 0) continue;
+          const tx = startX + (endX - startX) * trProgress;
+          const ty = startY + (endY - startY) * trProgress;
+          ctx.fillStyle = 'rgba(255,255,200,' + ((1 - tr / 5) * 0.8) + ')';
+          ctx.beginPath();
+          ctx.arc(tx, ty, (3 - tr * 0.5) * dpr, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        // Główna gwiazda
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 15 * dpr;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      ctx.restore();
+      
       // NOC — biały księżyc
       const moonX = W * 0.75;
       const moonY = GROUND_Y * 0.25;
@@ -3238,11 +3296,18 @@ function render() {
       ctx.beginPath();
       ctx.arc(moonX, moonY, 22 * dpr, 0, Math.PI * 2);
       ctx.fill();
-      // Cienie krateru
-      ctx.fillStyle = 'rgba(180,180,210,0.4)';
+      // Cienie krateru (więcej dla głębi)
+      ctx.fillStyle = 'rgba(180,180,210,0.45)';
       ctx.beginPath();
       ctx.arc(moonX - 6 * dpr, moonY - 4 * dpr, 4 * dpr, 0, Math.PI * 2);
       ctx.arc(moonX + 8 * dpr, moonY + 6 * dpr, 3 * dpr, 0, Math.PI * 2);
+      ctx.arc(moonX - 2 * dpr, moonY + 9 * dpr, 2 * dpr, 0, Math.PI * 2);
+      ctx.arc(moonX + 4 * dpr, moonY - 8 * dpr, 1.8 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      // Highlight na księżycu (sun glint)
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath();
+      ctx.arc(moonX - 7 * dpr, moonY - 7 * dpr, 4 * dpr, 0, Math.PI * 2);
       ctx.fill();
     } else if (escene === 3) {
       // ŚWIT — wielkie pomarańczowe słońce nad horyzontem
@@ -3724,8 +3789,112 @@ function render() {
       }
     }
     
-    // 🆕 MIASTO - przejście dla pieszych (zebra) + hydranty
+    // 🆕 MIASTO - przejście dla pieszych (zebra) + hydranty + samochody + billboardy
     if (escene === 1) {
+      // 🚗 Zaparkowane samochody (drugi plan, parallax bliżej budynków)
+      for (let i = 0; i < 5; i++) {
+        const cx = ((i * 280 * dpr - game.bgMid * 0.5) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
+        if (cx < -80 * dpr || cx > W + 80 * dpr) continue;
+        const carColor = ['#3070c0', '#c83020', '#206040', '#a0a0a8', '#202028'][i % 5];
+        const carY = GROUND_Y - 22 * dpr;
+        
+        // Cień
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(cx, GROUND_Y - 1 * dpr, 32 * dpr, 3 * dpr, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Body samochodu (sedan)
+        ctx.fillStyle = carColor;
+        // Główna karoseria
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(cx - 28 * dpr, carY, 56 * dpr, 12 * dpr, 4 * dpr);
+        else ctx.rect(cx - 28 * dpr, carY, 56 * dpr, 12 * dpr);
+        ctx.fill();
+        // Kabina (mniejsze, nad karoserią)
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(cx - 18 * dpr, carY - 10 * dpr, 36 * dpr, 12 * dpr, 4 * dpr);
+        else ctx.rect(cx - 18 * dpr, carY - 10 * dpr, 36 * dpr, 12 * dpr);
+        ctx.fill();
+        
+        // Okna (niebieskawe)
+        ctx.fillStyle = 'rgba(120,160,210,0.7)';
+        ctx.fillRect(cx - 16 * dpr, carY - 8 * dpr, 14 * dpr, 8 * dpr);
+        ctx.fillRect(cx + 2 * dpr, carY - 8 * dpr, 14 * dpr, 8 * dpr);
+        // Slup między oknami
+        ctx.fillStyle = carColor;
+        ctx.fillRect(cx - 1 * dpr, carY - 8 * dpr, 2 * dpr, 8 * dpr);
+        
+        // Highlight na karoserii (rim light)
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(cx - 26 * dpr, carY + 1 * dpr, 52 * dpr, 1 * dpr);
+        
+        // Koła
+        ctx.fillStyle = '#1a1a1f';
+        ctx.beginPath();
+        ctx.arc(cx - 18 * dpr, carY + 12 * dpr, 4 * dpr, 0, Math.PI * 2);
+        ctx.arc(cx + 18 * dpr, carY + 12 * dpr, 4 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Felgi
+        ctx.fillStyle = '#5a5a65';
+        ctx.beginPath();
+        ctx.arc(cx - 18 * dpr, carY + 12 * dpr, 2 * dpr, 0, Math.PI * 2);
+        ctx.arc(cx + 18 * dpr, carY + 12 * dpr, 2 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Reflektory (przednie - z lewej, bo auta zaparkowane skierowane w lewo)
+        ctx.fillStyle = 'rgba(255,240,180,0.85)';
+        ctx.shadowColor = '#fff0a0';
+        ctx.shadowBlur = 4 * dpr;
+        ctx.beginPath();
+        ctx.arc(cx - 27 * dpr, carY + 4 * dpr, 1.5 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // Tylne (czerwone) z prawej
+        ctx.fillStyle = 'rgba(255,80,60,0.85)';
+        ctx.beginPath();
+        ctx.arc(cx + 27 * dpr, carY + 4 * dpr, 1.2 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // 🪧 Billboardy świetlne (na budynkach, wysoko)
+      for (let i = 0; i < 3; i++) {
+        const bx = ((i * 480 * dpr - game.bgFar * 0.3) % (W + 600 * dpr) + W + 600 * dpr) % (W + 600 * dpr) - 300 * dpr;
+        if (bx < -120 * dpr || bx > W + 120 * dpr) continue;
+        const billY = GROUND_Y - 130 * dpr;
+        const billColors = [
+          ['rgba(232,86,30,0.7)', 'rgba(255,180,80,0.9)'],   // pomarańczowy
+          ['rgba(80,144,224,0.7)', 'rgba(140,200,255,0.9)'], // niebieski
+          ['rgba(168,104,224,0.7)', 'rgba(220,180,255,0.9)']  // fioletowy
+        ];
+        const [bgColor, glowColor] = billColors[i % 3];
+        
+        // Stelaż billboardu
+        ctx.fillStyle = '#2a2a35';
+        ctx.fillRect(bx - 35 * dpr, billY, 70 * dpr, 22 * dpr);
+        // Świecące tło
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(bx - 33 * dpr, billY + 2 * dpr, 66 * dpr, 18 * dpr);
+        // Glow
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 14 * dpr;
+        ctx.fillStyle = glowColor;
+        ctx.fillRect(bx - 33 * dpr, billY + 2 * dpr, 66 * dpr, 18 * dpr);
+        ctx.shadowBlur = 0;
+        // Drobne "pixele" tekstu (nie czytelne, tylko sugestia tekstu)
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        for (let p = 0; p < 12; p++) {
+          ctx.fillRect(bx - 30 * dpr + p * 5 * dpr, billY + 8 * dpr, 3 * dpr, 1.5 * dpr);
+        }
+        for (let p = 0; p < 8; p++) {
+          ctx.fillRect(bx - 22 * dpr + p * 5 * dpr, billY + 13 * dpr, 3 * dpr, 1.5 * dpr);
+        }
+        
+        // Podpora (od dachu budynku)
+        ctx.fillStyle = '#2a2a35';
+        ctx.fillRect(bx - 2 * dpr, billY + 22 * dpr, 4 * dpr, 30 * dpr);
+      }
+      
       // Zebra crossing - białe pasy na ziemi
       const zebraOffset = (game.bgFar * 1.2) % (180 * dpr);
       for (let i = 0; i < 3; i++) {
@@ -3807,6 +3976,101 @@ function render() {
           ctx.quadraticCurveTo(hx + 12 * dpr, GROUND_Y - 4 * dpr, hx + 16 * dpr, GROUND_Y - 1 * dpr);
           ctx.stroke();
         }
+      }
+    }
+    
+    // 🆕 GÓRY — sosny iglaste + sterty śniegu + ślady na śniegu
+    if (escene === 4) {
+      // Sosny (3 warstwowe trójkąty, ze śniegiem na gałęziach)
+      for (let i = 0; i < 7; i++) {
+        const px = ((i * 200 * dpr - game.bgMid * 0.55) % (W + 300 * dpr) + W + 300 * dpr) % (W + 300 * dpr) - 150 * dpr;
+        if (px < -50 * dpr || px > W + 50 * dpr) continue;
+        const pH = 70 + (i % 3) * 25;
+        const sway = Math.sin(game.t * 0.018 + i) * 1.5;  // delikatny sway
+        
+        // Cień
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(px, GROUND_Y - 1 * dpr, 18 * dpr, 4 * dpr, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Pień
+        ctx.fillStyle = '#3a2018';
+        ctx.fillRect(px - 3 * dpr, GROUND_Y - 14 * dpr, 6 * dpr, 14 * dpr);
+        
+        // 3 warstwy iglaków (od dołu do góry, mniejsze)
+        const layerYs = [GROUND_Y - 14, GROUND_Y - 14 - pH * 0.35, GROUND_Y - 14 - pH * 0.7];
+        const layerWs = [22, 16, 10];
+        for (let layer = 0; layer < 3; layer++) {
+          const ly = layerYs[layer] * dpr;
+          const lw = layerWs[layer] * dpr;
+          // Igły
+          ctx.fillStyle = layer === 0 ? '#1a4830' : layer === 1 ? '#205838' : '#286840';
+          ctx.beginPath();
+          ctx.moveTo(px - lw + sway * dpr, ly);
+          ctx.lineTo(px + sway * dpr, ly - pH * 0.4 * dpr);
+          ctx.lineTo(px + lw + sway * dpr, ly);
+          ctx.closePath();
+          ctx.fill();
+          // Śnieg na czubku warstwy (biały trójkąt na górze)
+          ctx.fillStyle = 'rgba(245,250,255,0.92)';
+          ctx.beginPath();
+          ctx.moveTo(px - lw * 0.6 + sway * dpr, ly - pH * 0.3 * dpr);
+          ctx.lineTo(px + sway * dpr, ly - pH * 0.4 * dpr);
+          ctx.lineTo(px + lw * 0.6 + sway * dpr, ly - pH * 0.3 * dpr);
+          ctx.lineTo(px + lw * 0.4 + sway * dpr, ly - pH * 0.32 * dpr);
+          ctx.lineTo(px + sway * dpr, ly - pH * 0.36 * dpr);
+          ctx.lineTo(px - lw * 0.4 + sway * dpr, ly - pH * 0.32 * dpr);
+          ctx.closePath();
+          ctx.fill();
+          // Highlight z lewej strony igły (rim light)
+          ctx.strokeStyle = 'rgba(120,180,140,0.4)';
+          ctx.lineWidth = 0.7 * dpr;
+          ctx.beginPath();
+          ctx.moveTo(px - lw + sway * dpr, ly);
+          ctx.lineTo(px + sway * dpr, ly - pH * 0.4 * dpr);
+          ctx.stroke();
+        }
+      }
+      
+      // Sterty śniegu (pierwszy plan - po obu stronach)
+      for (let i = 0; i < 5; i++) {
+        const sx = ((i * 280 * dpr - game.bgNear * 0.7) % (W + 400 * dpr) + W + 400 * dpr) % (W + 400 * dpr) - 200 * dpr;
+        if (sx < -60 * dpr || sx > W + 60 * dpr) continue;
+        
+        // Sterta śniegu (półokrągła)
+        const snowGrad = ctx.createLinearGradient(sx, GROUND_Y - 8 * dpr, sx, GROUND_Y);
+        snowGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+        snowGrad.addColorStop(1, 'rgba(180,200,220,0.85)');
+        ctx.fillStyle = snowGrad;
+        ctx.beginPath();
+        ctx.ellipse(sx, GROUND_Y, 28 * dpr, 8 * dpr, 0, Math.PI, Math.PI * 2);
+        ctx.fill();
+        // Mniejsza sterta obok (asymetryczna)
+        ctx.beginPath();
+        ctx.ellipse(sx + 18 * dpr, GROUND_Y, 14 * dpr, 5 * dpr, 0, Math.PI, Math.PI * 2);
+        ctx.fill();
+        // Highlight (połysk)
+        ctx.fillStyle = 'rgba(255,255,255,0.6)';
+        ctx.beginPath();
+        ctx.ellipse(sx - 8 * dpr, GROUND_Y - 5 * dpr, 8 * dpr, 1 * dpr, -0.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      // Ślady stóp na śniegu (deterministic, statyczne)
+      const trackOffset = (game.bgFar * 1.2) % (140 * dpr);
+      ctx.fillStyle = 'rgba(60,70,90,0.5)';
+      for (let i = 0; i < 8; i++) {
+        const tx = ((i * 80 * dpr - trackOffset * 1.5) % (W + 200 * dpr) + W + 200 * dpr) % (W + 200 * dpr) - 100 * dpr;
+        if (tx < -10 * dpr || tx > W + 10 * dpr) continue;
+        // Owalny ślad (mniejszy niż bigracza)
+        ctx.beginPath();
+        ctx.ellipse(tx, GROUND_Y + 3 * dpr, 3 * dpr, 1.5 * dpr, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Ślad alternatywnie - drugi po przeciwnej stronie
+        ctx.beginPath();
+        ctx.ellipse(tx + 6 * dpr, GROUND_Y + 5 * dpr, 3 * dpr, 1.5 * dpr, 0, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
     
