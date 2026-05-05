@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Runner Rush · BiegaMy</title>
+<title>Biegaj i Omijaj · BiegaMy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -183,14 +183,14 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 <div id="screen-home" class="screen">
   <div class="topbar">
     <a class="back-btn" href="zawodnik.html">‹</a>
-    <div class="tb-title">RUNNER<span>RUSH</span></div>
+    <div class="tb-title">BIEGAJ <span>I OMIJAJ</span></div>
     <div class="tb-spacer"></div>
   </div>
 
   <div class="home-content">
     <div class="hero-block">
-      <div class="hero-title">Runner<br><span class="accent">Rush</span></div>
-      <div class="hero-sub">Endless run · Skacz · Zbieraj · Pobij rekord</div>
+      <div class="hero-title">Biegaj<br><span class="accent">i omijaj</span></div>
+      <div class="hero-sub">Biegnij bez końca · Skacz · Zbieraj · Pobij rekord</div>
     </div>
 
     <!-- Big high score display -->
@@ -285,7 +285,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
       <div class="end-stat"><div class="end-stat-val" id="end-distance">0</div><div class="end-stat-lbl">Dystans (m)</div></div>
       <div class="end-stat"><div class="end-stat-val" id="end-coins">0</div><div class="end-stat-lbl">Coiny 🪙</div></div>
       <div class="end-stat"><div class="end-stat-val" id="end-perfects">0</div><div class="end-stat-lbl">Perfect</div></div>
-      <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max combo</div></div>
+      <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max seria</div></div>
     </div>
 
     <div class="btn-row">
@@ -325,10 +325,10 @@ let _todayPlanned = null;  // typ dzisiejszego treningu z kalendarza
 const MODES = {
   endless: {
     id: 'endless',
-    name: 'RUNNER RUSH',
+    name: 'BIEGAJ I OMIJAJ',
     emoji: '🏃',
     color: '#e8561e',
-    trains: 'endless run',
+    trains: 'bieg bez końca',
     description: 'Biegnij jak najdalej. 3 życia. Im dalej, tym szybciej.',
     duration: 99999,
     targetType: 'distance',
@@ -1013,10 +1013,10 @@ function spawnPowerup() {
 }
 
 const PU_DEFS = {
-  magnet: { icon: '🧲', dur: 360, msg: 'MAGNET' },
-  shield: { icon: '🛡', dur: 300, msg: 'SHIELD' },
-  slowmo: { icon: '🐢', dur: 240, msg: 'SLOWMO' },
-  boost:  { icon: '⚡', dur: 300, msg: 'BOOST' }
+  magnet: { icon: '🧲', dur: 360, msg: 'MAGNES' },
+  shield: { icon: '🛡', dur: 300, msg: 'TARCZA' },
+  slowmo: { icon: '🐢', dur: 240, msg: 'ZWOLNIENIE' },
+  boost:  { icon: '⚡', dur: 300, msg: 'PRZYSPIESZENIE' }
 };
 
 function activatePowerup(type) {
@@ -1703,7 +1703,7 @@ function update() {
             updateComboMultiplier();
             const bonus = Math.floor(50 * game.multi);
             game.score += bonus;
-            spawnPopup(game.px, game.py - 100 * dpr, 'FLIP! +' + bonus, '#ffd966');
+            spawnPopup(game.px, game.py - 100 * dpr, 'SALTO! +' + bonus, '#ffd966');
             spawnParticles(game.px, game.py - 30 * dpr, '#ffd966', 20);
             flashScreen('rgba(255,217,102,0.18)', 12);
             playPerfect();
@@ -1941,7 +1941,7 @@ function update() {
         updateComboMultiplier();
         const bonus = Math.floor(15 * game.multi);
         game.score += bonus;
-        spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'NEAR MISS! +' + bonus, '#5090e0');
+        spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'TUŻ TUŻ! +' + bonus, '#5090e0');
         spawnParticles(o.x, (oy1 || GROUND_Y) - 10 * dpr, '#5090e0', 8);
         // Małe screen flash dla emocji
         flashScreen('rgba(80,144,224,0.08)', 5);
@@ -1964,13 +1964,13 @@ function update() {
           updateComboMultiplier();
           const bonus = Math.floor(20 * game.multi);
           game.score += bonus;
-          spawnPopup(o.x, oy1 - 30 * dpr, 'PERFECT! +' + bonus, '#ffd966');
+          spawnPopup(o.x, oy1 - 30 * dpr, 'IDEALNIE! +' + bonus, '#ffd966');
           playPerfect();
           spawnParticles(o.x, oy1, '#ffd966', 10);
           // Combo milestone (co 5 perfectów)
           if (game.perfects % 5 === 0) {
             playCombo(game.perfects / 5);
-            spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.perfects + ' PERFECT!', '#ff7a45');
+            spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.perfects + ' IDEALNYCH!', '#ff7a45');
             flashScreen('rgba(232,86,30,0.18)', 10);
           }
         }
@@ -2222,7 +2222,7 @@ function updateComboMultiplier() {
     // Specjalny efekt przy wskoku do nowego tier
     if (c === 3 || c === 5 || c === 10) {
       const tierColor = c === 3 ? '#ffd966' : c === 5 ? '#ff7a45' : '#ff3a45';
-      const tierLabel = c === 3 ? 'COMBO x1.5!' : c === 5 ? '🔥 COMBO x2!' : '🔥🔥 COMBO x3!';
+      const tierLabel = c === 3 ? 'SERIA x1.5!' : c === 5 ? '🔥 SERIA x2!' : '🔥🔥 SERIA x3!';
       flashScreen('rgba(232,86,30,0.25)', 18);
       playCombo(c / 3);
       // Spawn dużych particles dookoła gracza
@@ -2249,7 +2249,7 @@ function hitObstacle() {
     game.invuln = 60;
     spawnParticles(game.px, game.py - 30 * dpr, '#5090e0', 20);
     flashScreen('rgba(80,144,224,0.2)', 12);
-    showToast('🛡 SHIELD!');
+    showToast('🛡 TARCZA!');
     if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
     return;
   }
@@ -2258,7 +2258,7 @@ function hitObstacle() {
   game.focusStartT = game.t;
   // Pokaż popup utraty combo jeśli był jakiś streak
   if (game.perfectStreak >= 3) {
-    spawnPopup(game.px, game.py - 100 * dpr, 'COMBO STRACONE!', '#e05050');
+    spawnPopup(game.px, game.py - 100 * dpr, 'SERIA UTRACONA!', '#e05050');
   }
   game.multi = _bonuses.startMulti;
   game.perfectStreak = 0;
@@ -2675,20 +2675,19 @@ function render() {
       return;
     }
     if (o.type === 'pedestrian') {
-      // 🚴/🏃/👵/🐕 — emoji z bobbingiem
+      // 🚴/🏃/🐕 — emoji z bobbingiem
       const bobOffset = Math.sin(o.bobPhase) * 3 * dpr;
       ctx.save();
-      ctx.font = (o.h + 8 * dpr) + 'px serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       // Cień pod stopami
-      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath();
-      ctx.ellipse(o.x + o.w / 2, GROUND_Y - 2 * dpr, o.w * 0.5, 4 * dpr, 0, 0, Math.PI * 2);
+      ctx.ellipse(o.x + o.w / 2, GROUND_Y - 2 * dpr, o.w * 0.55, 4 * dpr, 0, 0, Math.PI * 2);
       ctx.fill();
       // Speed lines za pieszym (po prawej, bo idą w lewo)
       if (o.speedBonus > 2 * dpr) {
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
         ctx.lineWidth = 1.5 * dpr;
         for (let i = 0; i < 3; i++) {
           const lx = o.x + o.w + (10 + i * 8) * dpr;
@@ -2699,7 +2698,10 @@ function render() {
           ctx.stroke();
         }
       }
-      // Emoji bez odbicia — emoji domyślnie patrzy w lewo, czyli idzie w lewo (przeciwnie do gracza)
+      // 🆕 RESET fillStyle do białego żeby emoji nie było przyciemnione
+      ctx.fillStyle = '#ffffff';
+      // Większa czcionka żeby emoji było wyraźne
+      ctx.font = (o.h + 18 * dpr) + 'px serif';
       ctx.fillText(o.emoji, o.x + o.w / 2, GROUND_Y + bobOffset);
       ctx.restore();
       return;
@@ -2813,17 +2815,45 @@ function render() {
   game.coinsArr.forEach(c => {
     if (c.collected) return;
     const bobY = c.y + Math.sin(c.bob) * 4 * dpr;
-    const cgrad = ctx.createRadialGradient(c.x, bobY, 0, c.x, bobY, c.r);
-    cgrad.addColorStop(0, '#ffd966');
-    cgrad.addColorStop(0.7, '#e8b840');
+    // Rotacja - imitacja 3D obrotu monety przez squashing X
+    const xScale = Math.abs(Math.cos(c.bob * 1.5));
+    const effRX = c.r * xScale + 1 * dpr;
+    
+    // Glow zewnętrzny
+    ctx.shadowColor = '#ffd966';
+    ctx.shadowBlur = 12 * dpr;
+    
+    // Główne ciało monety (eliptyczne dla efektu obrotu)
+    const cgrad = ctx.createRadialGradient(c.x - effRX * 0.3, bobY - c.r * 0.3, 0, c.x, bobY, c.r);
+    cgrad.addColorStop(0, '#fff5b8');
+    cgrad.addColorStop(0.5, '#ffd966');
     cgrad.addColorStop(1, '#a8801a');
     ctx.fillStyle = cgrad;
     ctx.beginPath();
-    ctx.arc(c.x, bobY, c.r, 0, Math.PI * 2);
+    ctx.ellipse(c.x, bobY, effRX, c.r, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,217,102,0.7)';
-    ctx.lineWidth = 1 * dpr;
+    ctx.shadowBlur = 0;
+    
+    // Obwódka
+    ctx.strokeStyle = '#fff8b0';
+    ctx.lineWidth = 1.5 * dpr;
     ctx.stroke();
+    
+    // Symbol $ albo ✦ tylko gdy moneta jest "twarzą do nas"
+    if (xScale > 0.7) {
+      ctx.fillStyle = 'rgba(140,90,20,0.6)';
+      ctx.font = 'bold ' + (c.r * 0.9) + 'px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('✦', c.x, bobY);
+    }
+    
+    // Sparkle effect
+    if (Math.floor(c.bob * 5) % 8 === 0) {
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.font = (c.r * 0.7) + 'px serif';
+      ctx.fillText('✨', c.x + c.r * 0.7, bobY - c.r * 0.7);
+    }
   });
 
   // Particles
@@ -3036,6 +3066,15 @@ function render() {
   // Player — emoji biegacza domyślnie patrzy w lewo, odbijamy żeby biegł w prawo
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
   
+  // 🆕 Cień pod graczem — wskazuje gdzie jest na ziemi (mniejszy gdy w powietrzu)
+  const heightAboveGround = GROUND_Y - game.py;
+  const shadowScale = Math.max(0.3, 1 - heightAboveGround / (200 * dpr));
+  const shadowAlpha = 0.4 * shadowScale;
+  ctx.fillStyle = 'rgba(0,0,0,' + shadowAlpha + ')';
+  ctx.beginPath();
+  ctx.ellipse(game.px, GROUND_Y - 2 * dpr, 22 * dpr * shadowScale, 5 * dpr * shadowScale, 0, 0, Math.PI * 2);
+  ctx.fill();
+  
   // 🆕 Combo aura — pulsuje wokół gracza, kolor zależy od tier
   if (game.perfectStreak >= 3) {
     const c = game.perfectStreak;
@@ -3067,7 +3106,8 @@ function render() {
       ctx.shadowBlur = 20 * dpr;
     }
     const playerEmoji = game.sliding > 0 ? '🤸' : (game.flipping ? '🤸' : '🏃');
-    ctx.font = (game.sliding > 0 ? 36 : 42) * dpr + 'px serif';
+    // 🆕 Większy biegacz
+    ctx.font = (game.sliding > 0 ? 42 : 48) * dpr + 'px serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     // Odbicie horyzontalne — biegacz patrzy w prawo (kierunek ruchu)
@@ -3140,7 +3180,7 @@ function showTutorial(mode) {
   rows.push('<div class="tut-row"><div class="tut-icon">🤸</div><div class="tut-text"><b>Tap w powietrzu</b> — SALTO! Wyląduj 360° = +3 combo + bonus</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik szybko</b> — dash (przebij przeszkodę)</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>PERFECT JUMP</b> = +1 combo · <b>NEAR MISS</b> = +2 combo</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>IDEALNIE</b> = +1 combo · <b>TUŻ TUŻ</b> = +2 combo · <b>SALTO</b> = +3 combo</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Zbieraj coiny</b> — punkty + sklep (wkrótce)</div></div>');
   rows.push('<div class="tut-row"><div class="tut-icon">❤❤❤</div><div class="tut-text"><b>3 życia</b> — pobij swój rekord!</div></div>');
 
