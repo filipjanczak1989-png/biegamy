@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BiegaMy — Łączenie ze Stravą</title>
+<script src="js/sb.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:#07070a;color:#f0ede8;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
@@ -28,8 +29,8 @@
 </div>
 
 <script>
-const EDGE_FUNCTION_URL = 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/strava-callback';
-const SUPABASE_ANON_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
+// SB_URL, SB_KEY, SB_FN_URL z js/sb.js
+const EDGE_FUNCTION_URL = SB_FN_URL + '/strava-callback';
 
 async function handleCallback() {
   const params = new URLSearchParams(window.location.search);
@@ -48,7 +49,7 @@ async function handleCallback() {
       `${EDGE_FUNCTION_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
       {
         headers: {
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${SB_KEY}`,
           'Content-Type': 'application/json'
         }
       }
@@ -88,7 +89,12 @@ function showError(msg) {
   `;
 }
 
-handleCallback();
+// Opóźnij wywołanie do momentu gdy js/sb.js (defer) załaduje się
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', handleCallback);
+} else {
+  handleCallback();
+}
 </script>
 </body>
 </html>

@@ -457,6 +457,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="toast" id="t-el"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/sb.js"></script>
 
 <script>
 // ── STATE (mocki usunięte — dane ładowane z DB przez loadAthletes) ──
@@ -498,7 +499,7 @@ async function loadStravaPanel() {
   el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
 
   // Sprawdź czy zawodnik ma Stravę
-  const { data: ath } = await _sb.from('athletes')
+  const { data: ath } = await sb.from('athletes')
     .select('strava_athlete_id, strava_connected_at')
     .eq('id', id).maybeSingle();
 
@@ -511,7 +512,7 @@ async function loadStravaPanel() {
   }
 
   // Pobierz aktywności
-  const { data: activities } = await _sb
+  const { data: activities } = await sb
     .from('strava_activities')
     .select('*')
     .eq('athlete_id', id)
@@ -580,7 +581,7 @@ async function loadPanelStats() {
   const since30 = new Date(); since30.setDate(since30.getDate()-30);
   const since7  = new Date(); since7.setDate(since7.getDate()-7);
 
-  const { data: logs } = await _sb.from('training_logs').select('*')
+  const { data: logs } = await sb.from('training_logs').select('*')
     .eq('athlete_id', id)
     .gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending:true});
@@ -727,7 +728,7 @@ async function loadPanelStats() {
 async function loadPanelPB() {
   const id = window._selectedAthleteId;
   if (!id) return;
-  const { data: a } = await _sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k,race_goals,goal,target_date').eq('id', id).maybeSingle();
+  const { data: a } = await sb.from('athletes').select('pb_marathon,pb_half,pb_10k,pb_5k,race_goals,goal,target_date').eq('id', id).maybeSingle();
   if (!a) return;
   document.getElementById('ppb-mar').textContent = a.pb_marathon || '—';
   document.getElementById('ppb-half').textContent = a.pb_half || '—';
@@ -772,7 +773,7 @@ function togglePanelPBEdit() {
 async function savePanelPB() {
   const id = window._selectedAthleteId;
   if (!id) return;
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     pb_marathon: document.getElementById('ppb-mar-in').value.trim() || null,
     pb_half: document.getElementById('ppb-half-in').value.trim() || null,
     pb_10k: document.getElementById('ppb-10k-in').value.trim() || null,
@@ -793,7 +794,7 @@ async function deletePanelGoal(idx) {
   const id = window._selectedAthleteId;
   if (!id) return;
   const goals = (window._panelGoals || []).filter((_,i) => i !== idx);
-  await _sb.from('athletes').update({
+  await sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -808,7 +809,7 @@ async function savePanelGoal() {
   const date = document.getElementById('ppb-goal-date').value;
   if (!name) { showToast('Podaj nazwę biegu'); return; }
   const goals = [...(window._panelGoals||[]), {name, date}];
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -837,22 +838,21 @@ function calcP(){
 function showToast(msg){const el=document.getElementById('t-el');el.textContent=msg;el.classList.add('on');setTimeout(()=>el.classList.remove('on'),3000);}
 
 // ── SUPABASE ──────────────────────────────────────────────────────
-const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 let _coachId = null;
 let _dbAthletes = [];
 
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     await new Promise(r => setTimeout(r, 800));
-    const { data: { session: s2 } } = await _sb.auth.getSession();
+    const { data: { session: s2 } } = await sb.auth.getSession();
     if (!s2) { window.location.href = 'index.html'; return; }
     _coachId = s2.user.id;
     // Sprawdź rolę — tylko trener może tu wejść
     const role2 = s2.user.user_metadata?.role;
     if (role2 === 'athlete') { window.location.href = 'zawodnik.html'; return; }
-    const { data: coachCheck2 } = await _sb.from('coaches').select('id').eq('id', s2.user.id).maybeSingle();
+    const { data: coachCheck2 } = await sb.from('coaches').select('id').eq('id', s2.user.id).maybeSingle();
     if (!coachCheck2) { window.location.href = 'zawodnik.html'; return; }
     const name2 = s2.user.user_metadata?.full_name || 'Trener';
     const initials2 = name2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -866,7 +866,7 @@ async function initAuth() {
   // Sprawdź rolę — tylko trener może tu wejść
   const role = session.user.user_metadata?.role;
   if (role === 'athlete') { window.location.href = 'zawodnik.html'; return; }
-  const { data: coachCheck } = await _sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
+  const { data: coachCheck } = await sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
   if (!coachCheck) { window.location.href = 'zawodnik.html'; return; }
   const name = session.user.user_metadata?.full_name || 'Trener';
   const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -882,7 +882,7 @@ async function initAuth() {
 async function loadAthletes() {
   // Precyzyjna lista kolumn — BEZ tokenów Stravy (security przez SQL grants).
   // Frontend trenera nie potrzebuje access/refresh token swoich zawodników.
-  const { data, error } = await _sb
+  const { data, error } = await sb
     .from('athletes')
     .select(`
       id, user_id, coach_id, full_name, goal, target_race, target_date,
@@ -932,13 +932,13 @@ async function renderDbAthletes(list) {
   const todayStr = now.toISOString().split('T')[0];
 
   const withLogs = await Promise.all(list.map(async a => {
-    const { count } = await _sb.from('training_logs').select('*',{count:'exact',head:true})
+    const { count } = await sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
       .is('read_by_coach', null);
 
     // Sprawdź czy zawodnik miał zaplanowany trening 2+ dni temu bez logu
     // ORAZ nie zalogował żadnego treningu w ciągu ostatnich 2 dni
-    const { data: recentLogs } = await _sb.from('training_logs')
+    const { data: recentLogs } = await sb.from('training_logs')
       .select('logged_at')
       .eq('athlete_id', a.id)
       .gte('logged_at', twoDaysAgo.toISOString())
@@ -947,7 +947,7 @@ async function renderDbAthletes(list) {
 
     let hasMissed = false;
     if (!hasRecentLog) {
-      const { data: missedTrainings } = await _sb.from('trainings')
+      const { data: missedTrainings } = await sb.from('trainings')
         .select('date,type')
         .eq('athlete_id', a.id)
         .neq('type', 'Odpoczynek')
@@ -994,12 +994,12 @@ async function deleteAthlete(id, name) {
   if (!confirm('Usunąć zawodnika: ' + name + '?\nZostaną usunięte wszystkie jego treningi i wiadomości. Operacja nieodwracalna.')) return;
 
   // Usuń powiązane dane
-  await _sb.from('training_logs').delete().eq('athlete_id', id);
-  await _sb.from('trainings').delete().eq('athlete_id', id);
-  await _sb.from('messages').delete().eq('athlete_id', id);
+  await sb.from('training_logs').delete().eq('athlete_id', id);
+  await sb.from('trainings').delete().eq('athlete_id', id);
+  await sb.from('messages').delete().eq('athlete_id', id);
 
   // Usuń zawodnika
-  const { error } = await _sb.from('athletes').delete().eq('id', id);
+  const { error } = await sb.from('athletes').delete().eq('id', id);
   if (error) { showToast('Błąd: ' + error.message); return; }
 
   if (window._selectedAthleteId === id) {
@@ -1059,7 +1059,7 @@ async function selA_db(athleteId) {
   document.getElementById('panel').classList.add('open');
   
   window._selectedAthleteId = athleteId;
-  await _sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
+  await sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
 
   // Skasuj badge 'nowy log' i 'brak logu'
   const athIdx = _dbAthletes.findIndex(x => x.id === athleteId);
@@ -1098,7 +1098,7 @@ async function loadAthleteTrainings(athleteId) {
   const rangeStart = new Date(); rangeStart.setDate(rangeStart.getDate()-1);
   const rangeEnd = new Date(); rangeEnd.setDate(rangeEnd.getDate()+13);
   const fmt = d => d.toISOString().split('T')[0];
-  const { data } = await _sb
+  const { data } = await sb
     .from('trainings')
     .select('*')
     .eq('athlete_id', athleteId)
@@ -1125,7 +1125,7 @@ function renderWM_db(trainings) {
 
 // ── LOAD LOGS ─────────────────────────────────────────────────────
 async function loadAthleteLogs(athleteId) {
-  const { data } = await _sb
+  const { data } = await sb
     .from('training_logs')
     .select('*')
     .eq('athlete_id', athleteId)
@@ -1197,7 +1197,7 @@ async function saveCoachComment(logId, idx) {
   const gif = window._pendingGif?.[idx] || null;
   const updateData = {coach_comment: comment || null};
   if (gif) updateData.coach_gif = gif;
-  const { error } = await _sb.from('training_logs').update(updateData).eq('id', logId);
+  const { error } = await sb.from('training_logs').update(updateData).eq('id', logId);
   if (error) { showToast('Błąd: '+error.message); return; }
   if (gif) delete window._pendingGif[idx];
   showToast('Komentarz zapisany ✓');
@@ -1205,7 +1205,7 @@ async function saveCoachComment(logId, idx) {
 }
 
 async function removeCoachGif(logId, idx) {
-  await _sb.from('training_logs').update({coach_gif: null}).eq('id', logId);
+  await sb.from('training_logs').update({coach_gif: null}).eq('id', logId);
   await loadAthleteLogs(window._selectedAthleteId);
 }
 
@@ -1254,7 +1254,7 @@ async function saveTr_db() {
   
   if (!date) { showToast('Wybierz datę'); return; }
   
-  const { error } = await _sb.from('trainings').insert({
+  const { error } = await sb.from('trainings').insert({
     athlete_id: window._selectedAthleteId,
     coach_id: _coachId,
     date,
@@ -1286,7 +1286,7 @@ async function saveSend_db() {
 
 // ── LOGOUT & MENU ─────────────────────────────────────────────────
 async function logout() {
-  try { await _sb.auth.signOut(); } catch(e) {}
+  try { await sb.auth.signOut(); } catch(e) {}
   localStorage.clear(); sessionStorage.clear();
   window.location.href = 'index.html';
 }
@@ -1354,12 +1354,12 @@ async function saveAthlete() {
   
   // Get fresh session if needed
   if (!_coachId) {
-    const { data: { session } } = await _sb.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (!session) { showToast('Zaloguj się ponownie'); return; }
     _coachId = session.user.id;
   }
   
-  const { data, error } = await _sb.from('athletes').insert({
+  const { data, error } = await sb.from('athletes').insert({
     coach_id: _coachId,
     full_name: name,
     goal: document.getElementById('ath-goal').value.trim() || null,
@@ -1801,11 +1801,11 @@ async function sendTemplate() {
 
   for (const athleteId of targets) {
     for (const day of days) {
-      const { data: existing } = await _sb.from('trainings')
+      const { data: existing } = await sb.from('trainings')
         .select('id').eq('athlete_id', athleteId).eq('date', day.dateStr).maybeSingle();
       if (existing) { skipped++; continue; }
 
-      const { error } = await _sb.from('trainings').insert({
+      const { error } = await sb.from('trainings').insert({
         athlete_id: athleteId,
         coach_id: _coachId,
         date: day.dateStr,
@@ -1843,7 +1843,7 @@ setTimeout(async () => { await initAuth(); await checkUnreadMessages(); loadAppS
 
 async function loadRacesPendingBadge() {
   try {
-    const { data } = await _sb.from('races').select('id', { count: 'exact', head: false }).eq('status', 'pending');
+    const { data } = await sb.from('races').select('id', { count: 'exact', head: false }).eq('status', 'pending');
     const count = data?.length || 0;
     const badge = document.getElementById('races-pending-badge');
     if (badge) {
@@ -1864,10 +1864,10 @@ const _coachNotifications = []; // local store for new registrations
 async function loadAppStats() {
   try {
     // Total athletes
-    const { count: total } = await _sb.from('athletes').select('*', { count: 'exact', head: true });
+    const { count: total } = await sb.from('athletes').select('*', { count: 'exact', head: true });
     // New today
     const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const { count: today } = await _sb.from('athletes').select('*', { count: 'exact', head: true })
+    const { count: today } = await sb.from('athletes').select('*', { count: 'exact', head: true })
       .gte('created_at', todayStart.toISOString());
     _appStats.totalUsers = total || 0;
     _appStats.newToday = today || 0;
@@ -1892,7 +1892,7 @@ function _renderAppStatsBar(el) {
 
 function initRealtimeNotifications() {
   try {
-    _sb.channel('new-athletes')
+    sb.channel('new-athletes')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'athletes' },
         function(payload) {
           const name = payload.new?.full_name || 'Nowy zawodnik';
@@ -1924,13 +1924,13 @@ let _prevCoachMsgCount = 0;
 
 async function _checkCoachMessages() {
   try {
-    const { data: { session } } = await _sb.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
     // Pobierz liczbę nieprzeczytanych wiadomości od zawodników
-    const { data: athletes } = await _sb.from('athletes').select('id').eq('coach_id', session.user.id);
+    const { data: athletes } = await sb.from('athletes').select('id').eq('coach_id', session.user.id);
     if (!athletes || !athletes.length) return;
     const ids = athletes.map(a => a.id);
-    const { count } = await _sb.from('messages')
+    const { count } = await sb.from('messages')
       .select('*', {count: 'exact', head: true})
       .in('athlete_id', ids)
       .eq('sender', 'athlete')
@@ -1996,7 +1996,7 @@ async function _renderNotifPanel(panel) {
   const todayStart = new Date(); todayStart.setHours(0,0,0,0);
   const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - 7);
 
-  const { data: recent } = await _sb.from('athletes')
+  const { data: recent } = await sb.from('athletes')
     .select('id,full_name,created_at,goal')
     .order('created_at', { ascending: false })
     .limit(10);
@@ -2129,7 +2129,7 @@ async function loadCoachSocialFeed() {
   const feedEl = document.getElementById('coach-feed-content');
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
-  const { data: logs } = await _sb.from('training_logs')
+  const { data: logs } = await sb.from('training_logs')
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)')
     .order('logged_at', { ascending: false }).limit(60);
   if (!logs || !logs.length) {
@@ -2193,7 +2193,7 @@ const _coachMyReactions = {};
 async function coachLoadReactionCounts(ids) {
   if (!ids||!ids.length) return;
   try {
-    const {data}=await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',ids);
+    const {data}=await sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',ids);
     if(!data)return;const counts={};
     data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;});
     Object.keys(counts).forEach(function(k){const i=k.lastIndexOf('_');const lid=k.slice(0,i);const tp=k.slice(i+1);const el=document.getElementById('crc-'+tp+'-'+lid);if(el)el.textContent=counts[k];});
@@ -2202,7 +2202,7 @@ async function coachLoadReactionCounts(ids) {
 async function coachLoadCommentCounts(ids) {
   if (!ids||!ids.length) return;
   try {
-    const {data}=await _sb.from('log_comments').select('log_id').in('log_id',ids);
+    const {data}=await sb.from('log_comments').select('log_id').in('log_id',ids);
     if(!data)return;const counts={};
     data.forEach(function(r){counts[r.log_id]=(counts[r.log_id]||0)+1;});
     Object.keys(counts).forEach(function(lid){const el=document.getElementById('ccc-'+lid);if(el)el.textContent=counts[lid];});
@@ -2211,7 +2211,7 @@ async function coachLoadCommentCounts(ids) {
 async function coachToggleReact(logId, type) {
   if (!_coachId) return;
   // Find coach's athlete record for reactions
-  const {data:me}=await _sb.from('athletes').select('id').eq('user_id',(await _sb.auth.getSession()).data.session?.user.id).maybeSingle();
+  const {data:me}=await sb.from('athletes').select('id').eq('user_id',(await sb.auth.getSession()).data.session?.user.id).maybeSingle();
   const aid = me?.id;
   if (!aid) return;
   if (!_coachMyReactions[logId]) _coachMyReactions[logId]=new Set();
@@ -2220,8 +2220,8 @@ async function coachToggleReact(logId, type) {
   const countEl=document.getElementById('crc-'+type+'-'+logId);
   const cur=parseInt((countEl&&countEl.textContent)||'0');
   try {
-    if(already){await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',aid).eq('reaction_type',type);_coachMyReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);}
-    else{await _sb.from('log_reactions').insert({log_id:logId,athlete_id:aid,reaction_type:type});_coachMyReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;}
+    if(already){await sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',aid).eq('reaction_type',type);_coachMyReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);}
+    else{await sb.from('log_reactions').insert({log_id:logId,athlete_id:aid,reaction_type:type});_coachMyReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;}
   }catch(e){showToast('Błąd: '+e.message);}
 }
 async function openCoachComments(logId) {
@@ -2244,7 +2244,7 @@ async function openCoachComments(logId) {
 async function _loadCComments(logId) {
   const el=document.getElementById('cc-list');if(!el)return;
   try {
-    const {data}=await _sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
     if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>';return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
@@ -2261,9 +2261,9 @@ async function _loadCComments(logId) {
 async function submitCoachComment(logId) {
   const inp=document.getElementById('cc-inp');if(!inp||!inp.value.trim())return;
   const body=inp.value.trim();inp.value='';
-  const {data:me}=await _sb.from('athletes').select('id').eq('user_id',(await _sb.auth.getSession()).data.session?.user.id).maybeSingle();
+  const {data:me}=await sb.from('athletes').select('id').eq('user_id',(await sb.auth.getSession()).data.session?.user.id).maybeSingle();
   if (!me?.id) { showToast('Profil zawodnika wymagany do komentowania'); return; }
-  try{await _sb.from('log_comments').insert({log_id:logId,athlete_id:me.id,body,created_at:new Date().toISOString()});_loadCComments(logId);const el=document.getElementById('ccc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;}
+  try{await sb.from('log_comments').insert({log_id:logId,athlete_id:me.id,body,created_at:new Date().toISOString()});_loadCComments(logId);const el=document.getElementById('ccc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;}
   catch(e){showToast('Błąd: '+e.message);}
 }
 
@@ -2278,7 +2278,7 @@ function coachSocialSearch(q) {
 async function _coachDoSearch(q) {
   const el=document.getElementById('coach-search-results');if(!el)return;
   // Pobierz is_public + coach_id, filtruj client-side: publiczni LUB swoi
-  const {data}=await _sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
+  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
   }).slice(0,15);
@@ -2293,7 +2293,7 @@ async function _coachDoSearch(q) {
 async function loadCoachSuggestedProfiles() {
   const el=document.getElementById('coach-search-results');if(!el)return;
   // Pobierz więcej, filtruj client-side: publiczni LUB swoi
-  const {data}=await _sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
+  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
   }).slice(0,10);
@@ -2310,7 +2310,7 @@ async function loadCoachRanking() {
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const wS=new Date();wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1);wS.setHours(0,0,0,0);
   // Pobierz logi razem z athlete (is_public, coach_id) i odfiltruj — pokazujemy publicznych LUB swoich
-  const {data:logs}=await _sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').gte('logged_at',wS.toISOString());
+  const {data:logs}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').gte('logged_at',wS.toISOString());
   const km={};const elev={};const nm={};
   (logs||[]).forEach(function(l){
     if(!l.athletes) return;
@@ -2345,20 +2345,20 @@ async function loadCoachMsgsList() {
   const tListEl = document.getElementById('t-chat-list'); if(tListEl){tListEl.style.display='flex';tListEl.style.flexDirection='column';}
   document.getElementById('msgs-chat')?.style?.setProperty('display','none');
 
-  const { data: athletes } = await _sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
+  const { data: athletes } = await sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
   if (!athletes || athletes.length === 0) {
     list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników.</div>';
     return;
   }
 
   const counts = await Promise.all(athletes.map(async a => {
-    const { count } = await _sb.from('messages').select('*',{count:'exact',head:true}).eq('athlete_id',a.id).eq('sender','athlete').eq('read',false);
+    const { count } = await sb.from('messages').select('*',{count:'exact',head:true}).eq('athlete_id',a.id).eq('sender','athlete').eq('read',false);
     return { ...a, unread: count || 0 };
   }));
 
   // Pobierz ostatnią wiadomość dla każdego
   const withPrev = await Promise.all(counts.map(async a => {
-    const {data:lm} = await _sb.from('messages').select('body,sent_at,sender').eq('athlete_id',a.id).order('sent_at',{ascending:false}).limit(1).maybeSingle();
+    const {data:lm} = await sb.from('messages').select('body,sent_at,sender').eq('athlete_id',a.id).order('sent_at',{ascending:false}).limit(1).maybeSingle();
     return {...a, lastMsg:lm};
   }));
   withPrev.sort((a,b)=>{
@@ -2403,7 +2403,7 @@ async function openCoachChat(athleteId, athleteName) {
 
 async function loadCoachChat() {
   if (!_currentChatAthleteId) return;
-  const { data } = await _sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:true}).limit(50);
+  const { data } = await sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:true}).limit(50);
   const thread = document.getElementById('chat-thread');
 
   const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
@@ -2431,7 +2431,7 @@ async function loadCoachChat() {
     requestAnimationFrame(() => { thread.scrollTop = thread.scrollHeight; });
   }
   // Oznacz jako przeczytane
-  await _sb.from('messages').update({read:true})
+  await sb.from('messages').update({read:true})
     .eq('athlete_id',_currentChatAthleteId)
     .eq('sender','athlete')
     .eq('read',false);
@@ -2460,13 +2460,13 @@ async function _deleteCoachMsg_old(e, msgId, isCoach) {
   e.preventDefault();
   if (isCoach !== 'true') return;
   if (!confirm('Usunąć tę wiadomość?')) return;
-  await _sb.from('messages').delete().eq('id', msgId);
+  await sb.from('messages').delete().eq('id', msgId);
   await loadCoachChat();
 }
 
 async function clearCoachChat() {
   if (!confirm('Usunąć całą historię czatu?')) return;
-  await _sb.from('messages').delete().eq('athlete_id', _currentChatAthleteId);
+  await sb.from('messages').delete().eq('athlete_id', _currentChatAthleteId);
   await loadCoachChat();
 }
 
@@ -2475,7 +2475,7 @@ async function checkUnreadMessages() {
   // Filtruj tylko zawodników tego trenera — bez tego liczymy wiadomości z całego systemu
   const athleteIds = (_dbAthletes || []).map(a => a.id);
   if (!athleteIds.length) return;
-  const { count } = await _sb.from('messages')
+  const { count } = await sb.from('messages')
     .select('*', {count:'exact', head:true})
     .eq('read', false)
     .eq('sender', 'athlete')
@@ -2534,7 +2534,7 @@ async function sendCoachGif(url) {
   document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
   if (!_currentChatAthleteId) return;
   const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
-  await _sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
+  await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
   await loadCoachChat();
 }
 let _coachMediaRecorder = null, _coachAudioChunks = [], _coachRecStart = 0;
@@ -2559,11 +2559,11 @@ async function toggleVoiceCoach() {
       const dur = Math.round((Date.now()-_coachRecStart)/1000);
       if (!_currentChatAthleteId) return;
       const path = _currentChatAthleteId + '/voice_coach_' + Date.now() + '.webm';
-      const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
+      const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
       if (error) { showToast('Błąd: '+error.message); return; }
-      const {data:urlData} = _sb.storage.from('training-screenshots').getPublicUrl(path);
+      const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
       const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${dur}s</span></div>`;
-      await _sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
+      await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
       await loadCoachChat();
     };
     _coachMediaRecorder.start();
@@ -2573,7 +2573,7 @@ async function toggleVoiceCoach() {
 }
 async function recallCoachMsg(msgId) {
   document.getElementById('msg-ctx-menu-t')?.remove();
-  await _sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
+  await sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
   await loadCoachChat();
 }
 function playVoiceMsg(btn, url) {
@@ -2590,14 +2590,14 @@ async function sendCoachFile(input) {
   for (let i = 0; i < input.files.length; i++) {
     const file = input.files[i];
     const path = _currentChatAthleteId + '/coach_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
-    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
     if (upErr) { showToast('Błąd: '+upErr.message); continue; }
-    const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+    const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
     urls.push(urlData.publicUrl);
   }
   if (!urls.length) return;
   const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${url}','_blank')" />`).join('');
-  await _sb.from('messages').insert({
+  await sb.from('messages').insert({
     athlete_id: _currentChatAthleteId,
     sender: 'coach',
     body,
@@ -2613,7 +2613,7 @@ async function sendCoachMessage() {
   const body = input?.value?.trim();
   if (!body || !_currentChatAthleteId) return;
   input.value = '';
-  const { error } = await _sb.from('messages').insert({
+  const { error } = await sb.from('messages').insert({
     athlete_id: _currentChatAthleteId,
     sender: 'coach',
     body,
@@ -2629,10 +2629,10 @@ async function loadAnalytics() {
   // Render app stats in analytics section
   const appEl = document.getElementById('analytics-app-stats');
   if (appEl) {
-    const { count: total } = await _sb.from('athletes').select('*', { count:'exact', head:true });
-    const { count: myCount } = await _sb.from('athletes').select('*', { count:'exact', head:true }).eq('coach_id', _coachId);
+    const { count: total } = await sb.from('athletes').select('*', { count:'exact', head:true });
+    const { count: myCount } = await sb.from('athletes').select('*', { count:'exact', head:true }).eq('coach_id', _coachId);
     const wS = new Date(); wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1); wS.setHours(0,0,0,0);
-    const { count: newWeek } = await _sb.from('athletes').select('*', { count:'exact', head:true }).gte('created_at', wS.toISOString());
+    const { count: newWeek } = await sb.from('athletes').select('*', { count:'exact', head:true }).gte('created_at', wS.toISOString());
     appEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">'
       + '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
       + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:var(--accent);line-height:1;">' + (total||0) + '</div>'
@@ -2652,7 +2652,7 @@ async function loadAnalytics() {
   const el = document.getElementById('analytics-content');
   el.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;">Ładowanie...</div>';
 
-  const { data: athletes } = await _sb.from('athletes')
+  const { data: athletes } = await sb.from('athletes')
     .select('id,full_name,goal,target_date,pb_marathon,pb_half,pb_10k,pb_5k,race_goals')
     .eq('coach_id', _coachId);
   if (!athletes || athletes.length === 0) {
@@ -2665,7 +2665,7 @@ async function loadAnalytics() {
   const typeColors2 = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
 
   const stats = await Promise.all(athletes.map(async a => {
-    const { data: logs30 } = await _sb.from('training_logs')
+    const { data: logs30 } = await sb.from('training_logs')
       .select('distance_km,training_type,logged_at,pace,duration,feel')
       .eq('athlete_id', a.id)
       .gte('logged_at', since30.toISOString())
@@ -2807,7 +2807,7 @@ async function loadAthleteDetailStats(athleteId, container) {
   const since30 = new Date(); since30.setDate(since30.getDate()-30);
   const since7  = new Date(); since7.setDate(since7.getDate()-7);
 
-  const { data: logs } = await _sb.from('training_logs').select('*')
+  const { data: logs } = await sb.from('training_logs').select('*')
     .eq('athlete_id', athleteId)
     .gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending:true});
@@ -2942,7 +2942,7 @@ async function loadPanelChat() {
   document.getElementById('panel').classList.remove('open');
 
   // Pobierz imię zawodnika
-  const { data } = await _sb.from('athletes')
+  const { data } = await sb.from('athletes')
     .select('id, full_name')
     .eq('id', athleteId)
     .maybeSingle();
@@ -2960,7 +2960,7 @@ async function sendPanelMessage() {
   const body = input?.value?.trim();
   if (!body || !athleteId) return;
   input.value = '';
-  const { error } = await _sb.from('messages').insert({
+  const { error } = await sb.from('messages').insert({
     athlete_id: athleteId,
     sender: 'coach',
     body,
@@ -2997,7 +2997,7 @@ async function searchAthleteByEmail() {
 
   // Szukaj zawodnika po emailu — Supabase przechowuje email w auth.users
   // Używamy widoku users_with_email jeśli istnieje, lub szukamy przez athlete email kolumnę
-  const { data, error } = await _sb
+  const { data, error } = await sb
     .from('athletes')
     .select('id, full_name, coach_id, user_id, email')
     .ilike('email', email)
@@ -3031,7 +3031,7 @@ async function searchAthleteByEmail() {
 
 async function assignAthleteByEmail() {
   if (!_foundAthleteId) return;
-  const { error } = await _sb.from('athletes').update({ coach_id: _coachId }).eq('id', _foundAthleteId);
+  const { error } = await sb.from('athletes').update({ coach_id: _coachId }).eq('id', _foundAthleteId);
   if (error) { showToast('Błąd: ' + error.message); return; }
   showToast('Zawodnik przypisany do Twojej grupy ✓');
   closeAthModal();
@@ -3050,7 +3050,7 @@ if (_tabParam) {
 async function _sendTrainingNotif(athleteId, type, message) {
   if (!athleteId) return;
   try {
-    await _sb.from('notifications').insert({
+    await sb.from('notifications').insert({
       athlete_id: athleteId,
       type: type,
       from_athlete_id: null,

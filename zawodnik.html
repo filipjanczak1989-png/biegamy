@@ -1428,6 +1428,7 @@ body > *{position:relative;z-index:1;}
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/sb.js"></script>
 
 <script>
 const weekPlan=[
@@ -1500,7 +1501,7 @@ async function markDone(btn){
     return;
   }
   btn.textContent='...';btn.disabled=true;
-  const { error } = await _sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining.id);
+  const { error } = await sb.from('trainings').update({status:'done'}).eq('id', window._todayTraining.id);
   btn.disabled=false;
   if (error) { toast('Błąd: ' + error.message); return; }
   btn.textContent='✓ Gotowe!';
@@ -1594,7 +1595,7 @@ async function _prefillLogFromDate(dateStr) {
     training = window._todayTraining;
   } else if (_athleteId) {
     // Pobierz trening dla tej daty z bazy
-    const { data } = await _sb.from('trainings')
+    const { data } = await sb.from('trainings')
       .select('*')
       .eq('athlete_id', _athleteId)
       .eq('date', dateStr)
@@ -2004,7 +2005,7 @@ function showSection(name) {
     document.getElementById('section-msgs').style.display = 'flex';
   showSection_msgs_init();
     loadMessages().then(() => { const th = document.getElementById('msgs-thread'); if(th) requestAnimationFrame(() => { th.scrollTop = th.scrollHeight; }); });
-    if (_athleteId) { _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ _sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
+    if (_athleteId) { sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle().then(({data:a})=>{ if(a?.coach_id){ sb.from('profiles').select('full_name').eq('id',a.coach_id).maybeSingle().then(({data:p})=>{ if(p?.full_name){ const n=document.getElementById('z-coach-name'); if(n)n.textContent='Trener '+p.full_name.split(' ')[0]; const av=document.getElementById('z-coach-av'); if(av)av.textContent=p.full_name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2); } }); } }); }
 
   } else if (name === 'profile') {
     setTimeout(_startProfileBanner, 100);
@@ -2096,7 +2097,7 @@ async function _loadProfileMsgs() {
   if (!_athleteId) return;
   const thread = document.getElementById('profile-msgs-thread');
   if (!thread) return;
-  const { data } = await _sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: true }).limit(50);
+  const { data } = await sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: true }).limit(50);
   if (!data) return;
   const typeColors = { Spokojny:'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
   thread.innerHTML = data.map(m => {
@@ -2117,7 +2118,7 @@ async function sendProfileMsg() {
   if (!inp || !inp.value.trim() || !_athleteId) return;
   const body = inp.value.trim();
   inp.value = '';
-  await _sb.from('messages').insert({ athlete_id: _athleteId, sender: 'athlete', body, sent_at: new Date().toISOString() });
+  await sb.from('messages').insert({ athlete_id: _athleteId, sender: 'athlete', body, sent_at: new Date().toISOString() });
   _loadProfileMsgs();
 }
 
@@ -2129,7 +2130,7 @@ async function _loadStatsInProfile() {
   const since90 = new Date(); since90.setDate(since90.getDate() - 90);
   const since30 = new Date(); since30.setDate(since30.getDate() - 30);
   const since7  = new Date(); since7.setDate(since7.getDate() - 7);
-  const { data: logs } = await _sb.from('training_logs').select('*')
+  const { data: logs } = await sb.from('training_logs').select('*')
     .eq('athlete_id', _athleteId).gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending: true});
 
@@ -2247,7 +2248,7 @@ async function togglePrivacy() {
   if (!_athleteId) return;
   _isPublic = !_isPublic;
   _updatePrivacyUI();
-  const { error } = await _sb.from('athletes').update({ is_public: _isPublic }).eq('id', _athleteId);
+  const { error } = await sb.from('athletes').update({ is_public: _isPublic }).eq('id', _athleteId);
   if (error) { _isPublic = !_isPublic; _updatePrivacyUI(); toast('Błąd zapisu'); }
   else toast(_isPublic ? 'Profil publiczny ✓' : 'Profil prywatny ✓');
 }
@@ -2414,7 +2415,7 @@ async function loadProfile() {
   // Załaduj odznaki i wyrenderuj sekcję
   await loadAchievements();
   renderBadgesSection();
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
   const name = session.user.user_metadata?.full_name || '—';
   const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
@@ -2446,7 +2447,7 @@ async function loadProfile() {
   if (_athleteId) {
     // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
-    const { data: ath } = await _sb.from('athletes')
+    const { data: ath } = await sb.from('athletes')
       .select('pb_marathon,pb_half,pb_10k,pb_5k,goal,target_date,full_name,race_goals,is_public,avatar_url')
       .eq('id', _athleteId).single();
     if (ath?.avatar_url) {
@@ -2479,18 +2480,18 @@ async function loadProfile() {
         goals = [{ name: ath.goal, date: ath.target_date || '' }];
         // Synchronizuj race_goals z tym co ustawił trener
         if (_athleteId) {
-          _sb.from('athletes').update({ race_goals: JSON.stringify(goals) }).eq('id', _athleteId).then(() => {});
+          sb.from('athletes').update({ race_goals: JSON.stringify(goals) }).eq('id', _athleteId).then(() => {});
         }
       }
       window._profileGoals = goals;
       renderGoals(goals);
       // Trener — dociągamy z bazy
       try {
-        const { data: athExtra } = await _sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
+        const { data: athExtra } = await sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
         if(athExtra?.coach_id) {
           let coachName = 'BiegaMy Coaching';
           try {
-            const { data: coachRow } = await _sb.from('coaches').select('full_name').eq('id', athExtra.coach_id).maybeSingle();
+            const { data: coachRow } = await sb.from('coaches').select('full_name').eq('id', athExtra.coach_id).maybeSingle();
             if(coachRow?.full_name) coachName = coachRow.full_name;
           } catch(e) {}
           const cnEl = document.getElementById('profile-coach-name');
@@ -2571,7 +2572,7 @@ async function savePBs() {
     pb_10k: document.getElementById('pb-10k-input').value.trim() || null,
     pb_5k: document.getElementById('pb-5k-input').value.trim() || null,
   };
-  const { error } = await _sb.from('athletes').update(updates).eq('id', _athleteId);
+  const { error } = await sb.from('athletes').update(updates).eq('id', _athleteId);
   if (error) { toast('Błąd: ' + error.message); return; }
   toast('Życiówki zapisane ✓');
   toggleEditPBs();
@@ -2609,7 +2610,7 @@ async function goalSuggest(q) {
   }
   _goalSuggestTimer = setTimeout(async function() {
     const today = new Date().toISOString().slice(0,10);
-    const { data } = await _sb.from('races')
+    const { data } = await sb.from('races')
       .select('id,name,date,city,distance_km')
       .eq('status','approved')
       .gte('date', today)
@@ -2673,7 +2674,7 @@ async function saveGoal() {
 
   // Jeśli lokalna kopia pusta — pobierz z bazy (tylko race_goals, bez legacy)
   if (goals.length === 0 && linkingIdx === null) {
-    const { data: fresh } = await _sb.from('athletes')
+    const { data: fresh } = await sb.from('athletes')
       .select('race_goals')
       .eq('id', _athleteId).maybeSingle();
     if (fresh?.race_goals) {
@@ -2688,7 +2689,7 @@ async function saveGoal() {
     goals.push({ name, date, race_id: raceId || null });
   }
 
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -2698,16 +2699,16 @@ async function saveGoal() {
   // Auto-signup do race_signups jeśli powiązano z kalendarzem
   if (raceId) {
     try {
-      const { error: sErr } = await _sb.from('race_signups').upsert({
+      const { error: sErr } = await sb.from('race_signups').upsert({
         race_id: raceId,
         athlete_id: _athleteId,
         signed_at: new Date().toISOString()
       }, { onConflict: 'race_id,athlete_id' });
       if (!sErr) {
         // Zwiększ signup_count w races
-        const { data: rRow } = await _sb.from('races').select('signup_count').eq('id', raceId).maybeSingle();
+        const { data: rRow } = await sb.from('races').select('signup_count').eq('id', raceId).maybeSingle();
         const newCount = ((rRow && rRow.signup_count) || 0) + 1;
-        _sb.from('races').update({ signup_count: newCount }).eq('id', raceId).then(function(){});
+        sb.from('races').update({ signup_count: newCount }).eq('id', raceId).then(function(){});
       }
     } catch(e) { console.warn('Auto-signup failed:', e); }
   }
@@ -2725,7 +2726,7 @@ async function deleteGoal(idx) {
   let goals = Array.isArray(window._profileGoals) ? [...window._profileGoals] : [];
   const removed = goals[idx];
   goals = goals.filter((_, i) => i !== idx);
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -2735,14 +2736,14 @@ async function deleteGoal(idx) {
   // Jeśli cel był powiązany z wyścigiem — wypisz z race_signups
   if (removed && removed.race_id && _athleteId) {
     try {
-      await _sb.from('race_signups').delete()
+      await sb.from('race_signups').delete()
         .eq('race_id', removed.race_id)
         .eq('athlete_id', _athleteId);
       // Zmniejsz signup_count
-      const { data: rRow } = await _sb.from('races').select('signup_count').eq('id', removed.race_id).maybeSingle();
+      const { data: rRow } = await sb.from('races').select('signup_count').eq('id', removed.race_id).maybeSingle();
       if (rRow) {
         const newCount = Math.max(0, (rRow.signup_count || 1) - 1);
-        _sb.from('races').update({ signup_count: newCount }).eq('id', removed.race_id).then(function(){});
+        sb.from('races').update({ signup_count: newCount }).eq('id', removed.race_id).then(function(){});
       }
     } catch(e) { console.warn('Race unsignup failed:', e); }
   }
@@ -2757,12 +2758,12 @@ async function uploadAvatar(input) {
   const file = input.files[0];
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const path = 'avatars/' + _athleteId + '.' + ext;
-  const { error } = await _sb.storage.from('biegamy-assets').upload(path, file, {upsert:true, contentType: file.type});
+  const { error } = await sb.storage.from('biegamy-assets').upload(path, file, {upsert:true, contentType: file.type});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
-  const { data: urlData } = _sb.storage.from('biegamy-assets').getPublicUrl(path);
+  const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
   if (urlData?.publicUrl) {
     const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
-    await _sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _athleteId);
+    await sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _athleteId);
   }
   toast('Zdjęcie zaktualizowane ✓');
   loadAvatarTopbar(_athleteId);
@@ -2771,7 +2772,7 @@ async function uploadAvatar(input) {
 
 async function checkNewMessages() {
   if (!_athleteId) return;
-  const { count } = await _sb.from('messages').select('*',{count:'exact',head:true})
+  const { count } = await sb.from('messages').select('*',{count:'exact',head:true})
     .eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   const dot = document.getElementById('zawodnik-bell-dot');
   if (dot) {
@@ -2806,7 +2807,7 @@ async function loadMessages() {
     if(thread) thread.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Zaloguj się aby zobaczyć wiadomości.</div>';
     return;
   }
-  const { data, error } = await _sb
+  const { data, error } = await sb
     .from('messages')
     .select('*')
     .eq('athlete_id', _athleteId)
@@ -2834,7 +2835,7 @@ async function loadMessages() {
     </div>`;
   }).join('');
 
-  await _sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
+  await sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   requestAnimationFrame(() => { if(thread) { thread.scrollTop = thread.scrollHeight; } });
   await checkNewMessages();
 }
@@ -2857,13 +2858,13 @@ async function deleteMsgPrompt(e, msgId, isAthlete) {
 }
 async function recallMsg(msgId) {
   document.getElementById('msg-ctx-menu')?.remove();
-  await _sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
+  await sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
   await loadMessages();
 }
 
 async function clearAllMessages() {
   if (!confirm('Usunąć całą historię wiadomości?')) return;
-  await _sb.from('messages').delete().eq('athlete_id', _athleteId).eq('sender', 'athlete');
+  await sb.from('messages').delete().eq('athlete_id', _athleteId).eq('sender', 'athlete');
   await loadMessages();
 }
 
@@ -2871,7 +2872,7 @@ async function sendGif(url, pickerId) {
   document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
   if (!_athleteId) return;
   const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
-  await _sb.from('messages').insert({athlete_id:_athleteId,sender:'athlete',body,sent_at:new Date().toISOString()});
+  await sb.from('messages').insert({athlete_id:_athleteId,sender:'athlete',body,sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
@@ -2881,11 +2882,11 @@ async function uploadVoiceMsg(blob, duration, sender, mimeType) {
   const ext = (mimeType||'').includes('mp4') ? 'mp4' : (mimeType||'').includes('ogg') ? 'ogg' : 'webm';
   const contentType = mimeType || 'audio/webm';
   const path = _athleteId + '/voice_' + Date.now() + '.' + ext;
-  const {error} = await _sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
+  const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
-  const {data:urlData} = _sb.storage.from('training-screenshots').getPublicUrl(path);
+  const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
   const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
-  await _sb.from('messages').insert({athlete_id:_athleteId, sender:sender, body, sent_at:new Date().toISOString()});
+  await sb.from('messages').insert({athlete_id:_athleteId, sender:sender, body, sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
@@ -2905,14 +2906,14 @@ async function sendFileMessage(input) {
     const file = input.files[i];
     const ext = file.name.split('.').pop();
     const path = _athleteId + '/msg_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + ext;
-    const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
     if (upErr) { toast('Błąd: ' + upErr.message); continue; }
-    const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+    const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
     urls.push(urlData.publicUrl);
   }
   if (!urls.length) return;
   const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" />`).join('');
-  await _sb.from('messages').insert({
+  await sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
     body,
@@ -2929,7 +2930,7 @@ async function _origSendMessageFn() {
   if (!body) return;
   if (!_athleteId) { toast('Musisz być zalogowany'); return; }
   input.value = '';
-  const { error } = await _sb.from('messages').insert({
+  const { error } = await sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
     body,
@@ -2969,7 +2970,6 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); con
 
 
 // ── SUPABASE ──────────────────────────────────────────────────────
-const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 let _athleteId = null;
 
 
@@ -3001,7 +3001,7 @@ async function loadDailyMotivation() {
     try {
       // Pobierz ile osób biegło dziś lub wczoraj
       const since = new Date(); since.setDate(since.getDate()-1);
-      const { count } = await _sb.from('training_logs')
+      const { count } = await sb.from('training_logs')
         .select('*', {count:'exact', head:true})
         .gte('logged_at', since.toISOString());
       if (count && count > 1) {
@@ -3012,7 +3012,7 @@ async function loadDailyMotivation() {
     
     // Sprawdź też cel zawodnika — ile dni do startu
     try {
-      const { data: ath } = await _sb.from('athletes').select('goal,target_date').eq('id',_athleteId).maybeSingle();
+      const { data: ath } = await sb.from('athletes').select('goal,target_date').eq('id',_athleteId).maybeSingle();
       if (ath?.target_date && ath?.goal) {
         const days = Math.ceil((new Date(ath.target_date+'T12:00:00') - new Date()) / 86400000);
         if (days > 0 && days <= 90) {
@@ -3041,7 +3041,7 @@ async function loadAvatarTopbar(athleteId) {
   const ini = document.getElementById('av-initials');
   if (!photo) return;
   // Pobierz avatar_url z bazy (jedna prawda)
-  const { data: ath } = await _sb.from('athletes').select('avatar_url').eq('id', athleteId).maybeSingle();
+  const { data: ath } = await sb.from('athletes').select('avatar_url').eq('id', athleteId).maybeSingle();
   if (!ath?.avatar_url) {
     photo.style.display = 'none';
     if (ini) ini.style.display = '';
@@ -3063,11 +3063,11 @@ async function initAuth() {
 
   const _isOnboarding = new URLSearchParams(window.location.search).get('onboarding') === '1';
 
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     // Poczekaj chwilę (OAuth callback lub email confirmation może być w toku)
     await new Promise(r => setTimeout(r, 1200));
-    const { data: { session: s2 } } = await _sb.auth.getSession();
+    const { data: { session: s2 } } = await sb.auth.getSession();
     if (!s2) { window.location.href = 'index.html'; return; }
     // Kontynuuj z s2 jako sesją
     const user2 = s2.user;
@@ -3078,7 +3078,7 @@ async function initAuth() {
     const tn2 = document.getElementById('topbar-name');
     if(tn2){ tn2.innerHTML = name2.split(' ')[0]; tn2.style.opacity='1'; }
 
-    const { data: ath2 } = await _sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
+    const { data: ath2 } = await sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
     if (ath2) {
       _athleteId = ath2.id;
       const n2 = ath2.full_name || name2;
@@ -3104,7 +3104,7 @@ async function initAuth() {
   if(tnEl){ tnEl.innerHTML = nameFromMeta.split(' ')[0]; tnEl.style.opacity='1'; }
 
   // Pobierz dane z athletes
-  const { data: ath } = await _sb
+  const { data: ath } = await sb
     .from('athletes')
     .select('id, full_name')
     .eq('user_id', user.id)
@@ -3125,7 +3125,7 @@ async function initAuth() {
       return;
     }
 
-    const { data: athFull } = await _sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
+    const { data: athFull } = await sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
     if (athFull) {
       let goals=[];
       try{goals=JSON.parse(athFull.race_goals||'[]');}catch(e){}
@@ -3157,7 +3157,7 @@ async function initAuth() {
     if (fromTrener) {
       // Trener wchodzi jako zawodnik — utwórz automatycznie profil zawodnika
       const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Trener';
-      const { data: created, error: cErr } = await _sb.from('athletes').insert({
+      const { data: created, error: cErr } = await sb.from('athletes').insert({
         user_id: user.id,
         full_name: name,
         email: user.email,
@@ -3173,7 +3173,7 @@ async function initAuth() {
         toast('Profil zawodnika utworzony ✓');
       } else {
         // Może już istnieje (race condition) — pobierz po user_id
-        const { data: fetched } = await _sb.from('athletes').select('id').eq('user_id', user.id).maybeSingle();
+        const { data: fetched } = await sb.from('athletes').select('id').eq('user_id', user.id).maybeSingle();
         if (fetched?.id) {
           _athleteId = fetched.id;
           await loadLogs();
@@ -3210,7 +3210,7 @@ function showOnboarding() {
   if (_obNav) _obNav.style.display = 'none';
 
   // Pre-fill name from auth
-  _sb.auth.getSession().then(({ data: { session } }) => {
+  sb.auth.getSession().then(({ data: { session } }) => {
     if (!session) return;
     const name = session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '';
     const firstName = name.split(' ')[0];
@@ -3305,7 +3305,7 @@ async function obFinish() {
   if (btn) { btn.textContent = 'Zapisuję...'; btn.disabled = true; }
 
   try {
-    const { data: { session } } = await _sb.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (!session) {
       if (btn) { btn.textContent = 'Gotowe! 🏃'; btn.disabled = false; }
       if (errEl) { errEl.textContent = 'Brak sesji — zaloguj się ponownie.'; errEl.style.display = 'block'; }
@@ -3330,11 +3330,11 @@ async function obFinish() {
 
     // Jeśli mamy _athleteId (użytkownik już istnieje) — tylko update
     if (_athleteId) {
-      const { error } = await _sb.from('athletes').update(athleteData).eq('id', _athleteId);
+      const { error } = await sb.from('athletes').update(athleteData).eq('id', _athleteId);
       if (error) console.warn('Update warning:', error.message); // nie blokuj — dane i tak są w bazie
     } else {
       // Nowy user — próbuj insert
-      const { data: ins, error: insErr } = await _sb.from('athletes')
+      const { data: ins, error: insErr } = await sb.from('athletes')
         .insert({ ...athleteData, user_id: session.user.id })
         .select('id').maybeSingle();
 
@@ -3342,10 +3342,10 @@ async function obFinish() {
         _athleteId = ins.id;
       } else if (insErr?.code === '23505' || insErr?.code === '409' || (insErr?.message||'').includes('duplicate') || (insErr?.message||'').includes('already exists')) {
         // Rekord istnieje — szukaj po emailu
-        const { data: byEmail } = await _sb.from('athletes').select('id').eq('email', session.user.email).maybeSingle();
+        const { data: byEmail } = await sb.from('athletes').select('id').eq('email', session.user.email).maybeSingle();
         if (byEmail?.id) _athleteId = byEmail.id;
         // Spróbuj update jeśli mamy ID
-        if (_athleteId) await _sb.from('athletes').update(athleteData).eq('id', _athleteId);
+        if (_athleteId) await sb.from('athletes').update(athleteData).eq('id', _athleteId);
       } else if (insErr) {
         // Inny błąd — pokaż ale nie blokuj jeśli to RLS
         console.error('Insert error:', insErr);
@@ -3362,13 +3362,13 @@ async function obFinish() {
       try {
         const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
         const path = 'avatars/' + _athleteId + '.' + ext;
-        const { error: upErr } = await _sb.storage.from('biegamy-assets')
+        const { error: upErr } = await sb.storage.from('biegamy-assets')
           .upload(path, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
         if (!upErr) {
-          const { data: urlData } = _sb.storage.from('biegamy-assets').getPublicUrl(path);
+          const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
           if (urlData?.publicUrl) {
             const avatarUrl = urlData.publicUrl + '?t=' + Date.now();
-            await _sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _athleteId);
+            await sb.from('athletes').update({ avatar_url: avatarUrl }).eq('id', _athleteId);
           }
         }
       } catch(e) { console.warn('Avatar upload:', e); }
@@ -3385,7 +3385,7 @@ async function obFinish() {
     // Sprawdź czy jeden z pierwszych 50 użytkowników (odznaka pierwsza_z_pierwszych)
     if (_athleteId) {
       try {
-        const { count: athletesCount } = await _sb.from('athletes')
+        const { count: athletesCount } = await sb.from('athletes')
           .select('id', {count:'exact',head:true});
         if (athletesCount && athletesCount <= 50) {
           // Ta osoba jest jednym z pierwszych 50 — przyznaj odznakę po krótkiej zwłoce
@@ -3424,7 +3424,7 @@ async function loadCoaches() {
   const coachesEl = document.getElementById('ob-coaches');
   if (!coachesEl) return;
 
-  const { data: coachList, error } = await _sb.from('coaches').select('id, full_name, specialization').order('full_name');
+  const { data: coachList, error } = await sb.from('coaches').select('id, full_name, specialization').order('full_name');
   if (loading) loading.style.display = 'none';
   coachesEl.style.display = 'block';
 
@@ -3485,13 +3485,13 @@ async function openChangeCoach() {
   const list = document.getElementById('change-coaches-list');
   list.innerHTML = '<div style="font-size:12px;color:var(--muted);font-family:DM Mono,monospace;">Ładuję...</div>';
 
-  const { data: coachTable } = await _sb.from('coaches').select('id, full_name, specialization').order('full_name');
+  const { data: coachTable } = await sb.from('coaches').select('id, full_name, specialization').order('full_name');
   const coachList = (coachTable && coachTable.length > 0)
     ? coachTable
     : [{id: 'bd9cbbac-c98d-4ac7-8610-9daf754b2de5', full_name: 'Filip — BiegaMy Coaching', specialization: 'Bieganie długodystansowe'}];
 
   // Pobierz aktualnego trenera zawodnika
-  const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
+  const { data: ath } = await sb.from('athletes').select('coach_id').eq('id', _athleteId).maybeSingle();
   const currentCoachId = ath?.coach_id || COACH_ID;
   _changeCoachId = currentCoachId;
 
@@ -3535,7 +3535,7 @@ function closeChangeCoach() {
 
 async function saveCoachChange() {
   if (!_changeCoachId || !_athleteId) return;
-  const { error } = await _sb.from('athletes').update({ coach_id: _changeCoachId }).eq('id', _athleteId);
+  const { error } = await sb.from('athletes').update({ coach_id: _changeCoachId }).eq('id', _athleteId);
   if (error) { toast('Błąd: ' + error.message); return; }
   COACH_ID = _changeCoachId;
   closeChangeCoach();
@@ -4301,7 +4301,7 @@ async function loadWeekPlan() {
   rangeEnd.setDate(now.getDate() + 13);
   const rangeEndStr = localDateStr(rangeEnd);
 
-  const { data, error } = await _sb.from('trainings')
+  const { data, error } = await sb.from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
     .gte('date', todayStr)
@@ -4400,7 +4400,7 @@ async function loadLogs() {
     // Skeleton loader
     const logList = document.getElementById('log-list');
     if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
-    const { data } = await _sb
+    const { data } = await sb
       .from('training_logs')
       .select('*')
       .eq('athlete_id', _athleteId)
@@ -4423,7 +4423,7 @@ async function loadLogs() {
     if (!window._msgInterval) window._msgInterval = setInterval(() => { checkNewMessages(); checkNotifications(); }, 30000);
     // Realtime — nowe wiadomości od trenera od razu
     if (!window._realtimeChannel && _athleteId) {
-      window._realtimeChannel = _sb.channel('messages-' + _athleteId)
+      window._realtimeChannel = sb.channel('messages-' + _athleteId)
         .on('postgres_changes', {event:'INSERT', schema:'public', table:'messages',
           filter:'athlete_id=eq.'+_athleteId}, (payload) => {
             // Tylko wiadomości od trenera
@@ -4458,12 +4458,12 @@ async function updateWeekProgress() {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23,59,59,999);
 
-  const { data: trainingsThisWeek } = await _sb.from('trainings')
+  const { data: trainingsThisWeek } = await sb.from('trainings')
     .select('*').eq('athlete_id', _athleteId)
     .gte('date', weekStart.toISOString().split('T')[0])
     .lte('date', weekEnd.toISOString().split('T')[0]);
 
-  const { data: logsThisWeek } = await _sb.from('training_logs')
+  const { data: logsThisWeek } = await sb.from('training_logs')
     .select('distance_km').eq('athlete_id', _athleteId)
     .gte('logged_at', weekStart.toISOString())
     .lte('logged_at', weekEnd.toISOString());
@@ -4497,7 +4497,7 @@ async function updateWeekProgress() {
 async function loadTodayTraining() {
   if (!_athleteId) return;
   const today = new Date().toISOString().split('T')[0];
-  const { data } = await _sb
+  const { data } = await sb
     .from('trainings')
     .select('*')
     .eq('athlete_id', _athleteId)
@@ -4535,14 +4535,14 @@ async function loadTodayTraining() {
 async function loadCoachMessage() {
   // Show coach section only if athlete has coach
   if (_athleteId) {
-    const { data: ath } = await _sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
+    const { data: ath } = await sb.from('athletes').select('coach_id').eq('id',_athleteId).maybeSingle();
     const coachSection = document.getElementById('coach-msg-section');
     if (coachSection) coachSection.style.display = ath && ath.coach_id ? 'block' : 'none';
   }
   
   if (!_athleteId) return;
   // Pobierz wszystkie wiadomości od trenera — szukaj ostatniej tekstowej
-  const { data: msgs } = await _sb
+  const { data: msgs } = await sb
     .from('messages')
     .select('body, sent_at')
     .eq('athlete_id', _athleteId)
@@ -4694,7 +4694,7 @@ function renderLogsDb(data) {
 async function deleteLog(logId) {
   if (!confirm('Usunąć ten log?')) return;
   if (!_athleteId) { toast('Błąd sesji — odśwież stronę'); return; }
-  const { data: delData, error } = await _sb.from('training_logs').delete()
+  const { data: delData, error } = await sb.from('training_logs').delete()
     .eq('id', logId).eq('athlete_id', _athleteId).select('id');
   if (error) {
     console.error('deleteLog error:', error);
@@ -4782,9 +4782,9 @@ async function saveLog() {
       const file = filesToUpload[i];
       const ext = file.name.split('.').pop();
       const path = _athleteId + '/' + base + '_' + i + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
-      const { error: upErr } = await _sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
       if (!upErr) {
-        const { data: urlData } = _sb.storage.from('training-screenshots').getPublicUrl(path);
+        const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
         urls.push(urlData.publicUrl);
       } else {
         toast('Błąd uploadu: ' + upErr.message);
@@ -4822,7 +4822,7 @@ async function saveLog() {
   if (!_editingLogId && _logType !== 'Warm-up mentalny') {
     try {
       const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
-      const { data: gamesPlayed } = await _sb.from('game_scores')
+      const { data: gamesPlayed } = await sb.from('game_scores')
         .select('mode, created_at, finished, reaction_avg_ms')
         .eq('athlete_id', _athleteId)
         .gte('created_at', todayStart.toISOString())
@@ -4842,7 +4842,7 @@ async function saveLog() {
     // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
     const updateData = {...logData};
     if (attachmentUrl) updateData.attachment_url = attachmentUrl;
-    const { data: updData, error: updErr } = await _sb.from('training_logs')
+    const { data: updData, error: updErr } = await sb.from('training_logs')
       .update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId).select('id');
     error = updErr;
     if (!updErr && (!updData || updData.length === 0)) {
@@ -4850,7 +4850,7 @@ async function saveLog() {
     }
   } else {
     // INSERT nowego logu
-    ({ error } = await _sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));
+    ({ error } = await sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));
   }
 
   if (error) {
@@ -4862,14 +4862,14 @@ async function saveLog() {
   }
 
   // Oznacz trening z kalendarza jako wykonany (jeśli istnieje na ten dzień)
-  const { data: planned } = await _sb.from('trainings')
+  const { data: planned } = await sb.from('trainings')
     .select('id')
     .eq('athlete_id', _athleteId)
     .eq('date', logDate)
     .neq('status', 'done')
     .maybeSingle();
   if (planned) {
-    await _sb.from('trainings').update({
+    await sb.from('trainings').update({
       status: 'done',
       distance_km: dist,
       pace: pace || null,
@@ -4942,7 +4942,7 @@ const STRAVA_CLIENT_ID = '224918';
 const STRAVA_CALLBACK_URL = 'https://biegamy.run/strava-callback.html';
 
 async function connectStrava() {
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (!session) { toast('Musisz być zalogowany'); return; }
 
   const authUrl = 'https://www.strava.com/oauth/authorize' +
@@ -4958,7 +4958,7 @@ async function connectStrava() {
 async function disconnectStrava() {
   if (!_athleteId) return;
   if (!confirm('Odłączyć Stravę?')) return;
-  const { error } = await _sb.from('athletes').update({
+  const { error } = await sb.from('athletes').update({
     strava_athlete_id: null,
     strava_access_token: null,
     strava_refresh_token: null,
@@ -4978,8 +4978,8 @@ async function syncStrava() {
 
   try {
     const res = await fetch(
-      `https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/strava-sync?athlete_id=${_athleteId}`,
-      { headers: { 'Authorization': `Bearer sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY` } }
+      `${SB_FN_URL}/strava-sync?athlete_id=${_athleteId}`,
+      { headers: { 'Authorization': `Bearer ${SB_KEY}` } }
     );
     const data = await res.json();
 
@@ -4998,7 +4998,7 @@ async function syncStrava() {
 
 async function loadStravaActivities() {
   if (!_athleteId) return;
-  const { data } = await _sb
+  const { data } = await sb
     .from('strava_activities')
     .select('*')
     .eq('athlete_id', _athleteId)
@@ -5034,7 +5034,7 @@ async function loadStravaActivities() {
 
 async function checkStravaStatus() {
   if (!_athleteId) return;
-  const { data } = await _sb.from('athletes')
+  const { data } = await sb.from('athletes')
     .select('strava_athlete_id, strava_connected_at')
     .eq('id', _athleteId)
     .maybeSingle();
@@ -5078,7 +5078,7 @@ async function checkStravaStatus() {
 }
 
 async function logout() {
-  try { await _sb.auth.signOut(); } catch(e) {}
+  try { await sb.auth.signOut(); } catch(e) {}
   localStorage.clear();
   sessionStorage.clear();
   window.location.href = 'index.html';
@@ -5124,15 +5124,15 @@ async function executeDeleteAccount() {
   try {
     // Usuń dane zawodnika (treningi, logi, follows — kaskadowo przez FK)
     if (_athleteId) {
-      await _sb.from('training_logs').delete().eq('athlete_id', _athleteId);
-      await _sb.from('messages').delete().eq('athlete_id', _athleteId);
-      await _sb.from('follows').delete().eq('follower_id', _athleteId);
-      await _sb.from('follows').delete().eq('following_id', _athleteId);
-      await _sb.from('notifications').delete().eq('athlete_id', _athleteId);
-      await _sb.from('athletes').delete().eq('id', _athleteId);
+      await sb.from('training_logs').delete().eq('athlete_id', _athleteId);
+      await sb.from('messages').delete().eq('athlete_id', _athleteId);
+      await sb.from('follows').delete().eq('follower_id', _athleteId);
+      await sb.from('follows').delete().eq('following_id', _athleteId);
+      await sb.from('notifications').delete().eq('athlete_id', _athleteId);
+      await sb.from('athletes').delete().eq('id', _athleteId);
     }
     // Wyloguj
-    await _sb.auth.signOut();
+    await sb.auth.signOut();
     localStorage.clear();
     document.getElementById('delete-account-modal')?.remove();
     // Pokaż potwierdzenie i przekieruj
@@ -5155,8 +5155,8 @@ async function blockUser(targetAthleteId, targetName) {
       localStorage.setItem('biegamy_blocked', JSON.stringify(blocked));
     }
     // Przestań obserwować jeśli obserwujesz
-    await _sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetAthleteId);
-    await _sb.from('follows').delete().eq('follower_id', targetAthleteId).eq('following_id', _athleteId);
+    await sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetAthleteId);
+    await sb.from('follows').delete().eq('follower_id', targetAthleteId).eq('following_id', _athleteId);
     document.getElementById('athlete-profile-modal')?.remove();
     toast(`Zablokowano ${targetName} ✓`);
   } catch(e) {
@@ -5204,7 +5204,7 @@ async function loadSocialFeed(compact) {
   // Pobierz zawodników:
   // 1. Publicznych (is_public = true)
   // 2. Swoich zawodników jeśli jesteśmy trenerem (niezależnie od is_public)
-  const { data: publicAthletes } = await _sb.from('athletes')
+  const { data: publicAthletes } = await sb.from('athletes')
     .select('id,full_name,is_public,avatar_url')
     .eq('is_public', true)
     .limit(100);
@@ -5213,12 +5213,12 @@ async function loadSocialFeed(compact) {
   let coachAthletes = [];
   if (_athleteId) {
     // Sprawdź czy user jest trenerem
-    const { data: coachRow } = await _sb.from('coaches')
+    const { data: coachRow } = await sb.from('coaches')
       .select('id')
-      .eq('id', (await _sb.auth.getSession()).data.session?.user?.id)
+      .eq('id', (await sb.auth.getSession()).data.session?.user?.id)
       .maybeSingle();
     if (coachRow?.id) {
-      const { data: myAthletes } = await _sb.from('athletes')
+      const { data: myAthletes } = await sb.from('athletes')
         .select('id,full_name,is_public,avatar_url')
         .eq('coach_id', coachRow.id)
         .limit(100);
@@ -5243,7 +5243,7 @@ async function loadSocialFeed(compact) {
 
   // Pobierz logi tych zawodników
   const [logsRes, achRes] = await Promise.all([
-    _sb.from('training_logs')
+    sb.from('training_logs')
       .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
       .in('athlete_id', publicIds.slice(0, 50))
       .not('training_type', 'like', '__badge__%')
@@ -5266,7 +5266,7 @@ async function loadSocialFeed(compact) {
   const athMap = {};
   allVisibleAthletes.forEach(function(a){ athMap[a.id] = a; });
 
-  const { data: followData } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
+  const { data: followData } = await sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const followingSet = new Set((followData||[]).map(function(f){return f.following_id;}));
   const tc = { Spokojny:'#5090e0', 'Bieg spokojny':'#5090e0', 'Interwa\u0142y':'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8', Wzmacniaj\u0105cy:'#f0a830' };
   function buildCard(l, _cardIdx) {
@@ -5342,7 +5342,7 @@ const _myReactions = {};
 async function loadReactionCounts(logIds) {
   if (!logIds||!logIds.length) return;
   try {
-    const {data} = await _sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
+    const {data} = await sb.from('log_reactions').select('log_id,reaction_type,athlete_id').in('log_id',logIds);
     if (!data) return;
     const counts={};
     data.forEach(function(r){const k=r.log_id+'_'+r.reaction_type;counts[k]=(counts[k]||0)+1;if(r.athlete_id===_athleteId){if(!_myReactions[r.log_id])_myReactions[r.log_id]=new Set();_myReactions[r.log_id].add(r.reaction_type);}});
@@ -5354,7 +5354,7 @@ async function loadReactionCounts(logIds) {
 async function loadCommentCounts(logIds) {
   if (!logIds||!logIds.length) return;
   try {
-    const {data}=await _sb.from('log_comments').select('log_id').in('log_id',logIds);
+    const {data}=await sb.from('log_comments').select('log_id').in('log_id',logIds);
     if(!data)return;
     const counts={};data.forEach(function(r){counts[r.log_id]=(counts[r.log_id]||0)+1;});
     Object.keys(counts).forEach(function(lid){const el=document.getElementById('cc-'+lid);if(el)el.textContent=counts[lid];});
@@ -5370,10 +5370,10 @@ async function toggleReact(logId, type) {
   const cur=parseInt((countEl&&countEl.textContent)||'0');
   try {
     if (already) {
-      await _sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
+      await sb.from('log_reactions').delete().eq('log_id',logId).eq('athlete_id',_athleteId).eq('reaction_type',type);
       _myReactions[logId].delete(type);if(btn)btn.style.background='';if(countEl)countEl.textContent=Math.max(0,cur-1);
     } else {
-      await _sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
+      await sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
       _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
     }
   } catch(e){
@@ -5494,7 +5494,7 @@ async function sendCommentGif(url) {
   const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;" />`;
   document.getElementById('cm-gif-picker').style.display = 'none';
   try {
-    await _sb.from('log_comments').insert({log_id:logId, athlete_id:_athleteId, body, created_at:new Date().toISOString()});
+    await sb.from('log_comments').insert({log_id:logId, athlete_id:_athleteId, body, created_at:new Date().toISOString()});
     _loadComments(logId);
     const el = document.getElementById('cc-'+logId);
     if (el) el.textContent = parseInt(el.textContent||'0') + 1;
@@ -5504,7 +5504,7 @@ async function sendCommentGif(url) {
 async function _loadComments(logId) {
   const el=document.getElementById('comments-list');if(!el)return;
   try {
-    const {data}=await _sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name,avatar_url)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
+    const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name,avatar_url)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
     if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>';return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
@@ -5538,7 +5538,7 @@ async function submitComment(logId) {
   const inp=document.getElementById('comment-inp');if(!inp||!inp.value.trim()||!_athleteId)return;
   const body=inp.value.trim();inp.value='';
   try{
-    await _sb.from('log_comments').insert({log_id:logId,athlete_id:_athleteId,body,created_at:new Date().toISOString()});
+    await sb.from('log_comments').insert({log_id:logId,athlete_id:_athleteId,body,created_at:new Date().toISOString()});
     _loadComments(logId);
     const el=document.getElementById('cc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;
   } catch(e){
@@ -5549,7 +5549,7 @@ async function submitComment(logId) {
 }
 
 async function deleteComment(commentId, logId) {
-  await _sb.from('log_comments').delete().eq('id',commentId);_loadComments(logId);const el=document.getElementById('cc-'+logId);if(el)el.textContent=Math.max(0,parseInt(el.textContent||'0')-1);
+  await sb.from('log_comments').delete().eq('id',commentId);_loadComments(logId);const el=document.getElementById('cc-'+logId);if(el)el.textContent=Math.max(0,parseInt(el.textContent||'0')-1);
 }
 
 async function editFeedLog(logId) {
@@ -5558,7 +5558,7 @@ async function editFeedLog(logId) {
     if (cached) { editLog(window._logsData.indexOf(cached)); return; }
   }
   if (!_athleteId) { toast('Błąd sesji'); return; }
-  const { data: l, error } = await _sb.from('training_logs')
+  const { data: l, error } = await sb.from('training_logs')
     .select('*').eq('id', logId).eq('athlete_id', _athleteId).maybeSingle();
   if (error || !l) { toast('Nie można załadować logu: ' + (error?.message || 'brak danych')); return; }
   if (!window._logsData) window._logsData = [];
@@ -5569,7 +5569,7 @@ async function editFeedLog(logId) {
 async function deleteFeedLog(logId) {
   if (!confirm('Usunąć ten trening?')) return;
   if (!_athleteId) { toast('Błąd sesji — odśwież stronę'); return; }
-  const { data: delData, error } = await _sb.from('training_logs').delete()
+  const { data: delData, error } = await sb.from('training_logs').delete()
     .eq('id', logId).eq('athlete_id', _athleteId).select('id');
   if (error) { console.error('deleteFeedLog:', error); toast('Błąd: ' + error.message); return; }
   if (!delData || delData.length === 0) {
@@ -5675,9 +5675,9 @@ function loadChallenges() {
   if (!_athleteId) return;
 
   Promise.all([
-    _sb.from('training_logs').select('distance_km,logged_at,training_type,pace')
+    sb.from('training_logs').select('distance_km,logged_at,training_type,pace')
        .eq('athlete_id', _athleteId).gte('logged_at', mS.toISOString()),
-    _sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
+    sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
   ]).then(([logsRes, achRes]) => {
     const all = logsRes.data || [];
     const wl = all.filter(l => new Date(l.logged_at) >= wS);
@@ -5748,7 +5748,7 @@ async function loadFollowing() {
   el.innerHTML = '<div style="text-align:center;padding:16px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
 
   // Krok 1: pobierz listę obserwowanych ID
-  const { data: followRows, error: fErr } = await _sb.from('follows')
+  const { data: followRows, error: fErr } = await sb.from('follows')
     .select('following_id')
     .eq('follower_id', _athleteId);
 
@@ -5759,7 +5759,7 @@ async function loadFollowing() {
 
   // Krok 2: pobierz dane tych zawodników
   const ids = followRows.map(f => f.following_id);
-  const { data: athletes } = await _sb.from('athletes')
+  const { data: athletes } = await sb.from('athletes')
     .select('id,full_name,pb_marathon,pb_half,pb_10k,pb_5k,goal,avatar_url')
     .in('id', ids);
 
@@ -5805,7 +5805,7 @@ async function loadSuggestedProfiles() {
   if (!el) return;
   el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Sugerowane profile</div>';
 
-  const { data } = await _sb.from('athletes')
+  const { data } = await sb.from('athletes')
     .select('id,full_name,pb_marathon,goal,avatar_url')
     .eq('is_public', true)
     .neq('id', _athleteId)
@@ -5815,7 +5815,7 @@ async function loadSuggestedProfiles() {
     el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wpisz imię żeby szukać</div>';
     return;
   }
-  const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
+  const { data: myF } = await sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
   el.innerHTML = '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Sugerowane profile</div>'
     + _buildAthleteCards(data, fSet);
@@ -5825,7 +5825,7 @@ async function _doSearch(q) {
   const el = document.getElementById('social-search-results');
   if (!el) return;
   // Pokazujemy też prywatne profile - Filip prosił
-  const { data, error } = await _sb.from('athletes')
+  const { data, error } = await sb.from('athletes')
     .select('id,full_name,pb_marathon,goal,avatar_url,is_public')
     .ilike('full_name', '%' + q + '%')
     .limit(20);
@@ -5834,7 +5834,7 @@ async function _doSearch(q) {
     el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + q + '"</div>';
     return;
   }
-  const { data: myF } = await _sb.from('follows').select('following_id').eq('follower_id', _athleteId);
+  const { data: myF } = await sb.from('follows').select('following_id').eq('follower_id', _athleteId);
   const fSet = new Set((myF||[]).map(f=>f.following_id));
   await loadFriendStatusesForSearch(results.map(function(a){return a.id;}));
   el.innerHTML = _buildAthleteCards(results, fSet);
@@ -5885,7 +5885,7 @@ async function loadFriendStatusesForSearch(ids) {
   var orStr = ids.map(function(id){
     return 'and(requester_id.eq.'+_athleteId+',addressee_id.eq.'+id+'),and(requester_id.eq.'+id+',addressee_id.eq.'+_athleteId+')';
   }).join(',');
-  var res = await _sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
+  var res = await sb.from('friendships').select('requester_id,addressee_id,status').or(orStr);
   window._friendStatuses = {};
   (res.data||[]).forEach(function(r){
     var other = r.requester_id===_athleteId ? r.addressee_id : r.requester_id;
@@ -5897,20 +5897,20 @@ async function loadFriendStatusesForSearch(ids) {
 
 async function sendFriendFromSearch(targetId, btn) {
   if (!_athleteId) return;
-  var res = await _sb.from('friendships').insert({requester_id:_athleteId, addressee_id:targetId});
+  var res = await sb.from('friendships').insert({requester_id:_athleteId, addressee_id:targetId});
   if (res.error) { toast('Błąd: '+res.error.message); return; }
   if (!window._friendStatuses) window._friendStatuses={};
   window._friendStatuses[targetId]='pending_sent';
   btn.textContent='\u23f3 Wysłano'; btn.disabled=true; btn.style.opacity='0.6';
   toast('Zaproszenie wysłane \u2713');
-  var me = await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+  var me = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
   var myName = me.data?.full_name || 'Ktoś';
   _sendNotification(targetId,'friend_request',myName+' chce zostać Twoim znajomym');
 }
 
 async function acceptFriendFromSearch(targetId, btn) {
   if (!_athleteId) return;
-  var res = await _sb.from('friendships').update({status:'accepted',updated_at:new Date().toISOString()})
+  var res = await sb.from('friendships').update({status:'accepted',updated_at:new Date().toISOString()})
     .eq('requester_id',targetId).eq('addressee_id',_athleteId);
   if (res.error) { toast('Błąd: '+res.error.message); return; }
   if (!window._friendStatuses) window._friendStatuses={};
@@ -5918,19 +5918,19 @@ async function acceptFriendFromSearch(targetId, btn) {
   btn.outerHTML='<span style="font-size:9px;color:var(--green);padding:5px 8px;">\u2713 Znajomi</span>';
   toast('Jesteście znajomymi! \U0001f389');
   checkFriendRequests();
-  var me = await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+  var me = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
   var myName = me.data?.full_name || 'Ktoś';
   _sendNotification(targetId,'friend_accepted',myName+' zaakceptował(a) Twoje zaproszenie');
 }
 
 async function rejectFriend(requesterId) {
-  await _sb.from('friendships').delete().eq('requester_id',requesterId).eq('addressee_id',_athleteId);
+  await sb.from('friendships').delete().eq('requester_id',requesterId).eq('addressee_id',_athleteId);
   loadFriends();
 }
 
 async function checkFriendRequests() {
   if (!_athleteId) return;
-  var res = await _sb.from('notifications').select('type').eq('athlete_id',_athleteId).eq('read',false);
+  var res = await sb.from('notifications').select('type').eq('athlete_id',_athleteId).eq('read',false);
   var count = (res.data||[]).filter(function(n){return n.type==='friend_request';}).length;
   var badge = document.getElementById('friends-badge');
   if (badge) badge.style.display = count>0 ? 'block' : 'none';
@@ -5942,7 +5942,7 @@ async function loadFriends() {
   if (!el) return;
   el.innerHTML = '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
 
-  var res = await _sb.from('friendships')
+  var res = await sb.from('friendships')
     .select('id,status,requester_id,addressee_id')
     .or('requester_id.eq.'+_athleteId+',addressee_id.eq.'+_athleteId);
   var rows = res.data || [];
@@ -5958,7 +5958,7 @@ async function loadFriends() {
   var allIds = rows.map(function(r){return r.requester_id===_athleteId?r.addressee_id:r.requester_id;});
   allIds = allIds.filter(function(v,i,a){return a.indexOf(v)===i;});
 
-  var athRes = await _sb.from('athletes').select('id,full_name,avatar_url').in('id',allIds);
+  var athRes = await sb.from('athletes').select('id,full_name,avatar_url').in('id',allIds);
   var athMap = {};
   (athRes.data||[]).forEach(function(a){athMap[a.id]=a;});
 
@@ -5998,7 +5998,7 @@ async function loadFriends() {
     html += pending_out.map(function(r){return card(r.addressee_id,'<span style="font-size:9px;color:var(--accent);">&#x23F3; Oczekuje</span>');}).join('');
   }
   el.innerHTML = html;
-  _sb.from('notifications').update({read:true}).eq('athlete_id',_athleteId).eq('type','friend_request').then(function(){checkFriendRequests();});
+  sb.from('notifications').update({read:true}).eq('athlete_id',_athleteId).eq('type','friend_request').then(function(){checkFriendRequests();});
 }
 
 
@@ -6006,14 +6006,14 @@ async function toggleFollow(targetId, btn, isFollowing) {
   if (!_athleteId) { toast('Zaloguj się jako zawodnik aby obserwować'); return; }
   btn.disabled = true;
   if (isFollowing) {
-    const { error } = await _sb.from('follows').delete()
+    const { error } = await sb.from('follows').delete()
       .eq('follower_id',_athleteId).eq('following_id',targetId);
     if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
     btn.textContent='+ Obserwuj'; btn.style.background='var(--accent)';
     btn.style.borderColor='var(--accent)'; btn.style.color='#fff';
     btn.onclick=()=>toggleFollow(targetId,btn,false);
   } else {
-    const { error } = await _sb.from('follows').insert(
+    const { error } = await sb.from('follows').insert(
       {follower_id:_athleteId, following_id:targetId});
     if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
     btn.textContent='Obserwujesz'; btn.style.background='transparent';
@@ -6028,20 +6028,20 @@ async function toggleFollow(targetId, btn, isFollowing) {
 
 
 async function rejectFriend(requesterId) {
-  await _sb.from('friendships').delete().eq('requester_id', requesterId).eq('addressee_id', _athleteId);
+  await sb.from('friendships').delete().eq('requester_id', requesterId).eq('addressee_id', _athleteId);
   loadFriends();
 }
 
 async function checkFriendRequests() {
   if (!_athleteId) return;
-  const { data } = await _sb.from('friendships').select('id').eq('status','pending').eq('addressee_id', _athleteId);
+  const { data } = await sb.from('friendships').select('id').eq('status','pending').eq('addressee_id', _athleteId);
   const badge = document.getElementById('friends-badge');
   if (badge) badge.style.display = (data?.length > 0) ? 'block' : 'none';
 }
 
 async function unfollowAthlete(targetId, cardEl) {
   if (!confirm('Przestać obserwować?')) return;
-  await _sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetId);
+  await sb.from('follows').delete().eq('follower_id', _athleteId).eq('following_id', targetId);
   if (cardEl) cardEl.remove();
   else loadFollowing();
   toast('Usunięto z obserwowanych ✓');
@@ -6059,7 +6059,7 @@ async function _apToggleFollow(targetId, isFollowing) {
   if (!_athleteId) { toast('Zaloguj się jako zawodnik aby obserwować'); return; }
   btn.disabled = true;
   if (isFollowing) {
-    const { error } = await _sb.from('follows').delete()
+    const { error } = await sb.from('follows').delete()
       .eq('follower_id', _athleteId).eq('following_id', targetId);
     if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
     btn.textContent = '+ Obserwuj';
@@ -6068,7 +6068,7 @@ async function _apToggleFollow(targetId, isFollowing) {
     btn.style.color = '#fff';
     btn.onclick = () => _apToggleFollow(targetId, false);
   } else {
-    const { error } = await _sb.from('follows').insert(
+    const { error } = await sb.from('follows').insert(
       { follower_id: _athleteId, following_id: targetId });
     if (error) { toast('Błąd: ' + error.message); btn.disabled=false; return; }
     btn.textContent = '✓ Obserwujesz';
@@ -6086,7 +6086,7 @@ async function _apToggleFollow(targetId, isFollowing) {
 async function _sendNotification(targetAthleteId, type, message) {
   if (!_athleteId) return;
   try {
-    await _sb.from('notifications').insert({
+    await sb.from('notifications').insert({
       athlete_id: targetAthleteId, type: type,
       from_athlete_id: _athleteId, message: message,
       read: false, created_at: new Date().toISOString()
@@ -6096,7 +6096,7 @@ async function _sendNotification(targetAthleteId, type, message) {
 
 async function _sendFollowNotification(targetAthleteId) {
   if (!_athleteId) return;
-  var meR = await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+  var meR = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
   var myName = meR.data?.full_name || 'Ktoś';
   _sendNotification(targetAthleteId,'follow',myName+' zaczął(a) Cię obserwować');
 }
@@ -6104,7 +6104,7 @@ async function _sendFollowNotification(targetAthleteId) {
 async function checkNotifications() {
   if (!_athleteId) return;
   try {
-    var res = await _sb.from('notifications').select('type').eq('athlete_id',_athleteId).eq('read',false);
+    var res = await sb.from('notifications').select('type').eq('athlete_id',_athleteId).eq('read',false);
     var notifs = res.data || [];
     var count = notifs.length;
     var dot = document.getElementById('zawodnik-bell-dot');
@@ -6144,7 +6144,7 @@ async function openNotifications() {
   }, 100);
 
   try {
-    const { data: notifs } = await _sb.from('notifications')
+    const { data: notifs } = await sb.from('notifications')
       .select('*')
       .eq('athlete_id', _athleteId)
       .order('created_at', { ascending: false })
@@ -6189,7 +6189,7 @@ async function openNotifications() {
         </div>`;
       }).join('');
 
-      await _sb.from('notifications').update({ read: true }).eq('athlete_id', _athleteId).eq('read', false);
+      await sb.from('notifications').update({ read: true }).eq('athlete_id', _athleteId).eq('read', false);
       const dot = document.getElementById('zawodnik-bell-dot');
       if (dot) dot.style.display = 'none';
     }
@@ -6237,18 +6237,18 @@ async function loadChatConvList() {
   el.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
 
   // Trener — ostatnia wiadomość
-  var coachRow = await _sb.from('messages').select('body,sent_at,sender')
+  var coachRow = await sb.from('messages').select('body,sent_at,sender')
     .eq('athlete_id',_athleteId).order('sent_at',{ascending:false}).limit(1);
   var coachLast = coachRow.data && coachRow.data[0];
 
   // Znajomi — pobierz konwersacje
-  var fsRes = await _sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
+  var fsRes = await sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
     .or('requester_id.eq.'+_athleteId+',addressee_id.eq.'+_athleteId);
   var friendIds = (fsRes.data||[]).map(function(r){ return r.requester_id===_athleteId?r.addressee_id:r.requester_id; });
 
   var athMap = {};
   if (friendIds.length) {
-    var ar = await _sb.from('athletes').select('id,full_name,avatar_url').in('id',friendIds);
+    var ar = await sb.from('athletes').select('id,full_name,avatar_url').in('id',friendIds);
     (ar.data||[]).forEach(function(a){ athMap[a.id]=a; });
   }
 
@@ -6257,7 +6257,7 @@ async function loadChatConvList() {
     var orStr = friendIds.map(function(id){
       return 'and(from_id.eq.'+_athleteId+',to_id.eq.'+id+'),and(from_id.eq.'+id+',to_id.eq.'+_athleteId+')';
     }).join(',');
-    var pm = await _sb.from('peer_messages').select('from_id,to_id,body,sent_at,read').or(orStr)
+    var pm = await sb.from('peer_messages').select('from_id,to_id,body,sent_at,read').or(orStr)
       .order('sent_at',{ascending:false}).limit(300);
     peerMsgs = pm.data||[];
   }
@@ -6367,7 +6367,7 @@ async function openChatThread(mode, pid, name) {
     if (mode === 'peer' && pid) {
       const ini = (name||'').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2) || '?';
       avEl.textContent = ini;
-      _sb.from('athletes').select('avatar_url').eq('id', pid).maybeSingle().then(({data}) => {
+      sb.from('athletes').select('avatar_url').eq('id', pid).maybeSingle().then(({data}) => {
         if (data?.avatar_url) {
           avEl.innerHTML = '';
           var img = document.createElement('img');
@@ -6444,7 +6444,7 @@ async function _loadPeerThreadZ(tid, silent) {
   if (!el) return;
   var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 80;
 
-  var res = await _sb.from('peer_messages').select('id,from_id,body,sent_at')
+  var res = await sb.from('peer_messages').select('id,from_id,body,sent_at')
     .or('and(from_id.eq.'+_athleteId+',to_id.eq.'+tid+'),and(from_id.eq.'+tid+',to_id.eq.'+_athleteId+')')
     .order('sent_at',{ascending:true}).limit(200);
   var msgs = res.data||[];
@@ -6496,7 +6496,7 @@ async function _loadPeerThreadZ(tid, silent) {
   el.innerHTML = html;
   if (wasNearBottom || !silent) el.scrollTop = el.scrollHeight;
 
-  _sb.from('peer_messages').update({read:true}).eq('to_id',_athleteId).eq('from_id',tid).eq('read',false).then(function(){});
+  sb.from('peer_messages').update({read:true}).eq('to_id',_athleteId).eq('from_id',tid).eq('read',false).then(function(){});
 }
 
 // Override sendMessage — delegate to peer if in peer mode
@@ -6522,7 +6522,7 @@ async function _sendPeerMsgZ() {
                 || document.querySelector('.pchat-input-row button:last-child');
   if (sendBtn) { sendBtn.style.opacity = '0.5'; sendBtn.disabled = true; }
 
-  var ins = await _sb.from('peer_messages').insert({from_id:_athleteId,to_id:_chatPeerId,body:body,sent_at:new Date().toISOString(),read:false});
+  var ins = await sb.from('peer_messages').insert({from_id:_athleteId,to_id:_chatPeerId,body:body,sent_at:new Date().toISOString(),read:false});
 
   if (sendBtn) { sendBtn.style.opacity = '1'; sendBtn.disabled = false; }
 
@@ -6533,8 +6533,8 @@ async function _sendPeerMsgZ() {
   }
 
   await _loadPeerThreadZ(_chatPeerId);
-  var me=await _sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
-  _sb.from('notifications').insert({athlete_id:_chatPeerId,type:'chat',from_athlete_id:_athleteId,message:(me.data&&me.data.full_name||'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
+  var me=await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+  sb.from('notifications').insert({athlete_id:_chatPeerId,type:'chat',from_athlete_id:_athleteId,message:(me.data&&me.data.full_name||'Znajomy')+' wysłał(a) Ci wiadomość',read:false,created_at:new Date().toISOString()}).then(function(){});
   inp.focus();
 }
 
@@ -6554,7 +6554,7 @@ async function loadStats() {
   const since30 = new Date(); since30.setDate(since30.getDate() - 30);
   const since7  = new Date(); since7.setDate(since7.getDate() - 7);
 
-  const { data: logs } = await _sb.from('training_logs').select('*')
+  const { data: logs } = await sb.from('training_logs').select('*')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending: true});
@@ -6975,7 +6975,7 @@ Anim.initSound();
 init();
 // Obsłuż token z linku aktywacyjnego ZANIM initAuth
 // Supabase SDK przetwarza #access_token z URL asynchronicznie
-_sb.auth.onAuthStateChange((event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session && !window._authInitDone) {
     window._authInitDone = true;
     initAuth().then(() => { checkStravaStatus(); setTimeout(() => { if (_athleteId) checkFriendRequests(); }, 1500); });
@@ -7212,7 +7212,7 @@ async function loadDuelsToContainer() {
   await finalizeExpiredDuels();
 
   // Pobierz wszystkie pojedynki gdzie jestem zaangażowany
-  const { data: duels, error } = await _sb.from('duels')
+  const { data: duels, error } = await sb.from('duels')
     .select('*')
     .or('challenger_id.eq.' + _athleteId + ',opponent_id.eq.' + _athleteId)
     .order('created_at', { ascending: false })
@@ -7234,7 +7234,7 @@ async function loadDuelsToContainer() {
 
   // Pobierz dane przeciwników
   const otherIds = [...new Set(duels.map(d => d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id))];
-  const { data: athletes } = await _sb.from('athletes')
+  const { data: athletes } = await sb.from('athletes')
     .select('id,full_name,avatar_url')
     .in('id', otherIds);
   const athMap = {};
@@ -7411,7 +7411,7 @@ async function _calculateDuelScores(d) {
   if (!startIso || !endIso) return;
   // Jeśli się zakończył, finalize go - ale loadDuels już wywołało finalizeExpiredDuels
   const ids = [d.challenger_id, d.opponent_id];
-  const { data: logs } = await _sb.from('training_logs')
+  const { data: logs } = await sb.from('training_logs')
     .select('athlete_id,distance_km,pace,logged_at,training_type')
     .in('athlete_id', ids)
     .gte('logged_at', startIso)
@@ -7449,7 +7449,7 @@ async function _calculateDuelScores(d) {
 
   // Update tylko jeśli zmiana
   if (cs !== (d.challenger_score || 0) || os !== (d.opponent_score || 0)) {
-    await _sb.from('duels').update({ challenger_score: cs, opponent_score: os }).eq('id', d.id);
+    await sb.from('duels').update({ challenger_score: cs, opponent_score: os }).eq('id', d.id);
     d.challenger_score = cs;
     d.opponent_score = os;
   }
@@ -7468,7 +7468,7 @@ function _parsePaceToSecs(pace) {
 async function finalizeExpiredDuels() {
   if (!_athleteId) return;
   const now = new Date().toISOString();
-  const { data: expired } = await _sb.from('duels')
+  const { data: expired } = await sb.from('duels')
     .select('*')
     .eq('status', 'accepted')
     .lte('end_at', now)
@@ -7487,7 +7487,7 @@ async function finalizeExpiredDuels() {
     } else {
       winnerId = cs > os ? d.challenger_id : (os > cs ? d.opponent_id : null);
     }
-    await _sb.from('duels').update({ status: 'finished', winner_id: winnerId }).eq('id', d.id);
+    await sb.from('duels').update({ status: 'finished', winner_id: winnerId }).eq('id', d.id);
 
     // Powiadomienie do obu graczy
     const otherId = d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id;
@@ -7495,7 +7495,7 @@ async function finalizeExpiredDuels() {
     const draw = !winnerId;
     if (otherId) {
       const msg = draw ? 'Pojedynek zakończony remisem' : (winnerId === otherId ? 'Wygrał pojedynek z Tobą' : 'Wygrałeś pojedynek');
-      _sb.from('notifications').insert({
+      sb.from('notifications').insert({
         athlete_id: otherId,
         type: 'duel',
         from_athlete_id: _athleteId,
@@ -7509,7 +7509,7 @@ async function finalizeExpiredDuels() {
     if (meWon && typeof awardBadge === 'function') {
       awardBadge('zwyciezca_pojedynku');
       // Sprawdź ile pojedynków wygrałem łącznie
-      const { count } = await _sb.from('duels').select('id',{count:'exact',head:true})
+      const { count } = await sb.from('duels').select('id',{count:'exact',head:true})
         .eq('winner_id', _athleteId).eq('status','finished');
       if (count >= 10) awardBadge('mistrz_pojedynkow');
     }
@@ -7519,10 +7519,10 @@ async function finalizeExpiredDuels() {
 // ── AKCJE ─────────────────────────────────────────────────────────
 async function acceptDuel(duelId) {
   const start = new Date();
-  const { data: d } = await _sb.from('duels').select('duration_days').eq('id', duelId).maybeSingle();
+  const { data: d } = await sb.from('duels').select('duration_days').eq('id', duelId).maybeSingle();
   if (!d) return;
   const end = new Date(start.getTime() + d.duration_days * 86400000);
-  const { error } = await _sb.from('duels').update({
+  const { error } = await sb.from('duels').update({
     status: 'accepted',
     start_at: start.toISOString(),
     end_at: end.toISOString()
@@ -7530,9 +7530,9 @@ async function acceptDuel(duelId) {
   if (error) { toast('Błąd: ' + error.message); return; }
   toast('Pojedynek przyjęty! 🔥');
   // Powiadom challengera
-  const { data: full } = await _sb.from('duels').select('challenger_id').eq('id', duelId).maybeSingle();
+  const { data: full } = await sb.from('duels').select('challenger_id').eq('id', duelId).maybeSingle();
   if (full) {
-    _sb.from('notifications').insert({
+    sb.from('notifications').insert({
       athlete_id: full.challenger_id,
       type: 'duel',
       from_athlete_id: _athleteId,
@@ -7546,14 +7546,14 @@ async function acceptDuel(duelId) {
 
 async function rejectDuel(duelId) {
   if (!confirm('Odrzucić to wyzwanie?')) return;
-  await _sb.from('duels').update({ status: 'rejected' }).eq('id', duelId);
+  await sb.from('duels').update({ status: 'rejected' }).eq('id', duelId);
   toast('Odrzucono');
   loadDuels();
 }
 
 async function cancelDuel(duelId) {
   if (!confirm('Anulować pojedynek?')) return;
-  await _sb.from('duels').update({ status: 'cancelled' }).eq('id', duelId);
+  await sb.from('duels').update({ status: 'cancelled' }).eq('id', duelId);
   toast('Anulowano');
   loadDuels();
 }
@@ -7627,7 +7627,7 @@ async function sendDuelChallenge() {
   if (days < 3 || days > 60) { toast('Długość 3-60 dni'); return; }
 
   // Sprawdź czy nie ma już aktywnego/pending pojedynku
-  const { data: existing } = await _sb.from('duels')
+  const { data: existing } = await sb.from('duels')
     .select('id,status')
     .or('and(challenger_id.eq.' + _athleteId + ',opponent_id.eq.' + target.id + '),and(challenger_id.eq.' + target.id + ',opponent_id.eq.' + _athleteId + ')')
     .in('status', ['pending','accepted']);
@@ -7636,7 +7636,7 @@ async function sendDuelChallenge() {
     return;
   }
 
-  const { error } = await _sb.from('duels').insert({
+  const { error } = await sb.from('duels').insert({
     challenger_id: _athleteId,
     opponent_id: target.id,
     type: type,
@@ -7646,7 +7646,7 @@ async function sendDuelChallenge() {
   if (error) { toast('Błąd: ' + error.message); return; }
 
   // Powiadomienie
-  _sb.from('notifications').insert({
+  sb.from('notifications').insert({
     athlete_id: target.id,
     type: 'duel',
     from_athlete_id: _athleteId,
@@ -8472,17 +8472,17 @@ async function awardBadge(badgeId) {
   if (window._earnedBadges.has(badgeId)) return;
   if (!_athleteId) return;
   // Sprawdź czy już ma
-  const { data: existing } = await _sb.from('achievements')
+  const { data: existing } = await sb.from('achievements')
     .select('id').eq('athlete_id', _athleteId).eq('badge_id', badgeId).maybeSingle();
   if (existing) { window._earnedBadges.add(badgeId); return; }
   // Zapisz
-  await _sb.from('achievements').insert({ athlete_id: _athleteId, badge_id: badgeId });
+  await sb.from('achievements').insert({ athlete_id: _athleteId, badge_id: badgeId });
   window._earnedBadges.add(badgeId);
   // Wyświetl pop-up
   const badge = BADGES.find(b => b.id === badgeId);
   if (badge) setTimeout(() => showBadgePopup(badge), 400);
   // Wpisz do social feed jako event
-  await _sb.from('training_logs').insert({
+  await sb.from('training_logs').insert({
     athlete_id: _athleteId,
     training_type: '__badge__',
     comment: badgeId,
@@ -8494,7 +8494,7 @@ async function awardBadge(badgeId) {
 // ── Załaduj posiadane odznaki ─────────────────────────────────────
 async function loadAchievements() {
   if (!_athleteId) return;
-  const { data } = await _sb.from('achievements')
+  const { data } = await sb.from('achievements')
     .select('badge_id').eq('athlete_id', _athleteId);
   if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
 }
@@ -8608,7 +8608,7 @@ async function checkBadges(logs) {
   if (maxStreak >= 30) awardBadge('30_dni_challenge');
 
   // SPOŁECZNOŚĆ — sprawdź komentarze
-  const { count: cCount } = await _sb.from('log_comments')
+  const { count: cCount } = await sb.from('log_comments')
     .select('id', {count:'exact',head:true}).eq('athlete_id', _athleteId);
   if (cCount >= 1) awardBadge('pierwszy_koment');
 
@@ -8736,7 +8736,7 @@ async function checkBadges(logs) {
   })) awardBadge('walentynki_solo');
   // urodzinowy_run: bieg w dniu urodzin (date_of_birth z athletes)
   try {
-    const { data: ath, error: dobErr } = await _sb.from('athletes').select('date_of_birth').eq('id', _athleteId).maybeSingle();
+    const { data: ath, error: dobErr } = await sb.from('athletes').select('date_of_birth').eq('id', _athleteId).maybeSingle();
     if (dobErr) return; // kolumna może nie istnieć
     if (ath?.date_of_birth) {
       const dob = new Date(ath.date_of_birth);
@@ -8766,7 +8766,7 @@ async function checkBadges(logs) {
 
   // pierwszy_fan: pierwszy follow (count z follows gdzie follower_id=ja)
   try {
-    const { count: followCount } = await _sb.from('follows')
+    const { count: followCount } = await sb.from('follows')
       .select('id', {count:'exact',head:true})
       .eq('follower_id', _athleteId);
     if (followCount && followCount >= 1) awardBadge('pierwszy_fan');
@@ -8774,7 +8774,7 @@ async function checkBadges(logs) {
 
   // pliszka: pierwsza akceptacja zaproszenia (friendships gdzie addressee=ja, status=accepted)
   try {
-    const { count: acceptedCount } = await _sb.from('friendships')
+    const { count: acceptedCount } = await sb.from('friendships')
       .select('id', {count:'exact',head:true})
       .eq('addressee_id', _athleteId)
       .eq('status', 'accepted');
@@ -8784,7 +8784,7 @@ async function checkBadges(logs) {
   // stary_druh: 1 rok obserwacji znajomego (friendships z created_at < 365 dni temu)
   try {
     const yearAgo = new Date(Date.now() - 365*86400000).toISOString();
-    const { count: oldFriendCount } = await _sb.from('friendships')
+    const { count: oldFriendCount } = await sb.from('friendships')
       .select('id', {count:'exact',head:true})
       .eq('status', 'accepted')
       .lt('created_at', yearAgo)
@@ -8795,7 +8795,7 @@ async function checkBadges(logs) {
   // coach_whisperer: 50 wiadomości wysłanych do trenera (tabela `messages` lub `peer_messages`)
   try {
     // Spróbuj najpierw `messages` (coach-specific) - jeśli istnieje
-    const { count: msgCount, error: msgErr } = await _sb.from('messages')
+    const { count: msgCount, error: msgErr } = await sb.from('messages')
       .select('id', {count:'exact',head:true})
       .eq('athlete_id', _athleteId);
     if (!msgErr && msgCount && msgCount >= 50) awardBadge('coach_whisperer');
@@ -8803,7 +8803,7 @@ async function checkBadges(logs) {
 
   // spam_friend: 100 wiadomości peer do jednego znajomego
   try {
-    const { data: peerMsgs } = await _sb.from('peer_messages')
+    const { data: peerMsgs } = await sb.from('peer_messages')
       .select('to_id')
       .eq('from_id', _athleteId);
     if (peerMsgs && peerMsgs.length) {

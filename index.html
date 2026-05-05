@@ -10,7 +10,8 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link rel="preconnect" href="https://afqojgkaveykxbltxzwm.supabase.co">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap&font-display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/sb.js"></script>
 <style>
 /* ══ BIEGAMY LOGIN — PREMIUM UI v3 ═══════════════════════════════════ */
 :root{
@@ -406,12 +407,7 @@ body::before,body::after{contain:strict;}
 document.addEventListener('DOMContentLoaded', function () {
 
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
-const VERIFY_COACH_FN_URL = SUPABASE_URL + '/functions/v1/verify-coach-code';
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+const VERIFY_COACH_FN_URL = SB_FN_URL + '/verify-coach-code';
 let selectedRole = 'athlete';
 let currentTab = 'login';
 

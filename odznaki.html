@@ -6,6 +6,7 @@
 <title>BiegaMy — Odznaki</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/sb.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
@@ -54,7 +55,6 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   </div>
 </div>
 <script>
-const _sb = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co', 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
 let _athleteId = null;
 window._earnedBadges = new Set();
 
@@ -274,13 +274,13 @@ function renderBadgesSection() {
 }
 
 async function init() {
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (!session) { history.back(); return; }
-  const { data: ath } = await _sb.from('athletes')
+  const { data: ath } = await sb.from('athletes')
     .select('id').eq('user_id', session.user.id).single();
   if (ath) {
     _athleteId = ath.id;
-    const { data } = await _sb.from('achievements')
+    const { data } = await sb.from('achievements')
       .select('badge_id').eq('athlete_id', _athleteId);
     if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
   }
@@ -318,9 +318,8 @@ init();
 // Ustaw link do profilu
 (async function(){
   try {
-    const _sbN = supabase.createClient('https://afqojgkaveykxbltxzwm.supabase.co','sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY');
-    const {data:{session}} = await _sbN.auth.getSession();
-    if(session){const {data:a}=await _sbN.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();if(a)document.getElementById('nav-profil-link').href='profil.html?id='+a.id;}
+        const {data:{session}} = await sb.auth.getSession();
+    if(session){const {data:a}=await sb.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();if(a)document.getElementById('nav-profil-link').href='profil.html?id='+a.id;}
   }catch(e){}
 })();
 </script>

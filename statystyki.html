@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/sb.js"></script>
 <style>
 :root{
   --bg:#07070a;--card:rgba(18,15,24,0.97);--card2:rgba(24,20,32,0.98);
@@ -283,11 +284,6 @@ nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;c
 </nav>
 
 <script>
-const _sb = supabase.createClient(
-  'https://afqojgkaveykxbltxzwm.supabase.co',
-  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
-);
-
 const params = new URLSearchParams(location.search);
 const _targetId = params.get('id');
 let _logs = [];
@@ -351,9 +347,9 @@ async function goToProfile() {
 async function init() {
   if (!_targetId) {
     // brak ID → spróbuj wziąć własne
-    const { data: { session } } = await _sb.auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (session) {
-      const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
       if (ath) location.href = 'statystyki.html?id='+ath.id;
       else location.href = 'zawodnik.html';
       return;
@@ -363,14 +359,14 @@ async function init() {
   }
 
   // mój athlete id
-  const { data: { session } } = await _sb.auth.getSession();
+  const { data: { session } } = await sb.auth.getSession();
   if (session) {
-    const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    const { data: me } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (me) _myAthleteId = me.id;
   }
 
   // pobierz logi
-  const { data: logs } = await _sb.from('training_logs')
+  const { data: logs } = await sb.from('training_logs')
     .select('training_type,distance_km,pace,logged_at,comment')
     .eq('athlete_id', _targetId)
     .not('training_type','like','__badge__%')
