@@ -97,6 +97,8 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .hud-score{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.8);}
 .hud-multi{font-family:'DM Mono',monospace;font-size:14px;color:var(--accent);font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,0.8);}
 .hud-multi.pulse{animation:pulse 0.4s ease-in-out;}
+.hud-combo{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#ff7a45;text-shadow:0 0 12px rgba(255,122,69,0.8),0 2px 8px rgba(0,0,0,0.8);letter-spacing:0.05em;line-height:1;animation:comboBeat 0.5s ease-out;}
+@keyframes comboBeat{0%{transform:scale(1.5);opacity:0;}40%{transform:scale(1.15);opacity:1;}100%{transform:scale(1);}}
 @keyframes pulse{0%{transform:scale(1);}50%{transform:scale(1.4);color:#fff;}100%{transform:scale(1);}}
 .hud-mode-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-shadow:0 1px 4px rgba(0,0,0,0.8);letter-spacing:0.1em;}
 .hud-distance{font-family:'DM Mono',monospace;font-size:13px;color:var(--fg);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:500;}
@@ -327,6 +329,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
       <div class="hud-mode-label" id="hud-mode-label">SPOKOJNY</div>
       <div class="hud-score" id="hud-score">0</div>
       <div class="hud-multi" id="hud-multi">x1.0</div>
+      <div class="hud-combo" id="hud-combo" style="display:none;"></div>
     </div>
     <div class="hud-right">
       <div class="hud-distance" id="hud-distance">0 m</div>
@@ -465,17 +468,17 @@ const MODES = {
     emoji: '🎯',
     color: '#a868e0',
     trains: 'próg, tempo run',
-    description: 'Tap rytmicznie w takt metronomu. 60s. Punkty za regularność.',
+    description: 'Skacz w rytm metronomu — przeszkody pojawiają się synchronicznie z BPM. 60s.',
     duration: 60,
     targetType: 'consistency',
-    target: 80,             // % consistency = ukończone
+    target: 70,             // % consistency = ukończone (zniżone bo trudniej)
     speedScale: 0.85,
     speedRamp: 0.3,
-    obstacleFreq: 1.5,      // mniej przeszkód, focus na rytm
+    obstacleFreq: 1.5,
     coinFreq: 0.7,
     powerups: false,
     lives: 3,
-    bpm: 120,               // 120 BPM = 2 takty/s = co 0.5s tap
+    bpm: 120,               // 120 BPM = 2 beats/s; co drugi beat = przeszkoda
     targetTraining: 'Tempo'
   },
   // 🏔 DŁUGI BIEG — wytrwałość, sceny zmieniają się co minutę
@@ -906,13 +909,18 @@ function newGame(mode) {
     // TEMPO MODE state
     bpm: M.bpm || 120,        // beats per minute
     tempoBeats: [],           // [{ t: gameTime, hit: true/false, error: ms }]
-    tempoNextBeatT: 0,        // czas następnego beat (s)
+    tempoNextBeatT: 60 / (M.bpm || 120),  // start po 1 beat (czas wpada)
     tempoBeatPulse: 0,        // 0..1 dla pulsowania wskaźnika
-    tempoLastTapT: -1,        // ostatni tap (do consistency)
-    tempoConsistency: 100,    // % bieżącej zgodności
+    tempoLastTapT: -1,        // ostatni tap
+    tempoConsistency: 0,      // % bieżącej zgodności (od 0!)
     tempoTotalTaps: 0,
     tempoGoodTaps: 0,
     tempoPerfectTaps: 0,
+    tempoExpectedBeats: 0,    // ile beatów już minęło (oczekiwane tapy)
+    tempoMissedBeats: 0,      // ile beatów minęło bez tapa
+    tempoBeatMarkers: [],     // [{ x, beatT, hit, missed, missAnnounced }]
+    tempoStreak: 0,           // streak perfectów z rzędu
+    tempoMaxStreak: 0,
 
     // LONGRUN MODE state
     longrunScene: 0,          // 0..4: park, miasto, noc, świt, meta
@@ -1058,39 +1066,44 @@ window.addEventListener('keyup', e => {
 function registerTempoTap() {
   if (!game || game.config.id !== 'tempo') return;
   const t = game.elapsed;
-  const beatInterval = 60 / game.bpm;  // sekund między beatami
+  const beatInterval = 60 / game.bpm;
 
-  // Znajdź najbliższy beat (idealny czas)
+  // Znajdź najbliższy beat
   const nearestBeatT = Math.round(t / beatInterval) * beatInterval;
   const errorMs = Math.abs(t - nearestBeatT) * 1000;
 
   game.tempoTotalTaps++;
-  let quality;
-  let bonusMulti;
+  let quality, bonusMulti, scoreBase;
   if (errorMs < 80) {
-    quality = 'PERFECT';
-    bonusMulti = 1.5;
-    game.tempoPerfectTaps++;
-    game.tempoGoodTaps++;
+    quality = 'PERFECT'; bonusMulti = 2.0; scoreBase = 30;
+    game.tempoPerfectTaps++; game.tempoGoodTaps++;
+    game.tempoStreak++;
+    if (game.tempoStreak > game.tempoMaxStreak) game.tempoMaxStreak = game.tempoStreak;
+    playPerfect();
+    flashScreen('rgba(255,217,102,0.15)', 8);
   } else if (errorMs < 200) {
-    quality = 'GOOD';
-    bonusMulti = 1.0;
+    quality = 'GOOD'; bonusMulti = 1.2; scoreBase = 18;
     game.tempoGoodTaps++;
+    game.tempoStreak++;
+    playTap();
   } else if (errorMs < 350) {
-    quality = 'OK';
-    bonusMulti = 0.5;
+    quality = 'OK'; bonusMulti = 0.6; scoreBase = 8;
+    game.tempoStreak = 0;
+    playTap();
   } else {
-    quality = 'OFF';
-    bonusMulti = 0.1;
+    quality = 'OFF'; bonusMulti = 0.0; scoreBase = 0;
+    game.tempoStreak = 0;
+    playMiss();
+    flashScreen('rgba(224,80,80,0.18)', 10);
   }
 
   // Score
-  game.score += Math.floor(15 * bonusMulti * game.multi);
+  game.score += Math.floor(scoreBase * bonusMulti * game.multi);
 
-  // Build combo dla perfect/good
+  // Multiplier: rośnie z streakiem perfectów
   if (quality === 'PERFECT' || quality === 'GOOD') {
     game.perfectStreak++;
-    const newMulti = Math.min(5, _bonuses.startMulti + game.perfectStreak / 3 * 0.2);
+    const newMulti = Math.min(5, _bonuses.startMulti + game.tempoStreak / 4 * 0.3);
     if (newMulti > game.multi + 0.05) {
       game.multi = newMulti;
       game.maxMulti = Math.max(game.maxMulti, game.multi);
@@ -1099,24 +1112,40 @@ function registerTempoTap() {
       void mEl.offsetWidth;
       mEl.classList.add('pulse');
     }
+    // Combo milestone sound
+    if (game.tempoStreak === 5 || game.tempoStreak === 10 || game.tempoStreak === 20) {
+      playCombo(game.tempoStreak / 5);
+      spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.tempoStreak + ' COMBO!', '#ff7a45');
+      flashScreen('rgba(232,86,30,0.2)', 12);
+    }
   } else {
     game.perfectStreak = 0;
-    game.multi = _bonuses.startMulti;
+    if (quality === 'OFF') game.multi = Math.max(_bonuses.startMulti, game.multi - 0.3);
   }
 
-  // Update consistency
-  game.tempoConsistency = game.tempoTotalTaps > 0
-    ? Math.round((game.tempoGoodTaps / game.tempoTotalTaps) * 100)
-    : 100;
+  // ── Zaznacz trafiony marker (ten najbliższy beata) ──
+  // Marker który zostanie "trafiony" to ten o beatT === nearestBeatT (tolerancja)
+  for (const m of game.tempoBeatMarkers) {
+    if (!m.hit && !m.missed && Math.abs(m.beatT - nearestBeatT) < 0.05) {
+      m.hit = true;
+      m.quality = quality;
+      // Jeśli to obstacle marker — zaliczamy unik (nie liczymy jako miss)
+      if (m.obstacleType) m.missed = false;
+      break;
+    }
+  }
+
+  // Consistency — uwzględnia BRAK klikania jako kara
+  // Bazujemy na expectedBeats (ile minęło) — gracz powinien klikać KAŻDY beat
+  const denom = Math.max(game.tempoExpectedBeats, game.tempoTotalTaps);
+  game.tempoConsistency = denom > 0
+    ? Math.round((game.tempoGoodTaps / denom) * 100)
+    : 0;
 
   // Popup
   const colors = { PERFECT: '#ffd966', GOOD: '#3db870', OK: '#5090e0', OFF: '#e05050' };
   spawnPopup(game.px, game.py - 80 * dpr, quality, colors[quality]);
-
-  // Particles
-  spawnParticles(game.px, game.py - 30 * dpr, colors[quality], quality === 'PERFECT' ? 12 : 6);
-
-  // Pulse beat indicator
+  spawnParticles(game.px, game.py - 30 * dpr, colors[quality], quality === 'PERFECT' ? 14 : 6);
   game.tempoBeatPulse = 1.0;
 
   game.tempoBeats.push({ t, quality, errorMs });
@@ -1337,6 +1366,176 @@ function spawnParticles(x, y, color, count) {
     });
   }
 }
+// ═════════════════════════════════════════════════
+// AUDIO SYSTEM — Web Audio API (bez zewnętrznych plików)
+// ═════════════════════════════════════════════════
+let _audioCtx = null;
+let _audioEnabled = true;
+
+function _getAudio() {
+  if (!_audioCtx) {
+    try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch(e) { return null; }
+  }
+  // iOS — wymaga unlock przy user gesture
+  if (_audioCtx.state === 'suspended') {
+    _audioCtx.resume().catch(() => {});
+  }
+  return _audioCtx;
+}
+
+// Krótki beat tick (dla tempo metronomu)
+function playBeat(strong) {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = strong ? 1200 : 800;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.07);
+  } catch(e) {}
+}
+
+// Tap (krótki click)
+function playTap() {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(220, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.04);
+    gain.gain.setValueAtTime(0.06, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.06);
+  } catch(e) {}
+}
+
+// Perfect (wysoki ton + sparkle)
+function playPerfect() {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    [880, 1320, 1760].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      const start = ctx.currentTime + i * 0.03;
+      gain.gain.setValueAtTime(0.08, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      osc.start(start);
+      osc.stop(start + 0.2);
+    });
+  } catch(e) {}
+}
+
+// Coin (krótki dzwoneczek)
+function playCoin() {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1318, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(2093, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.07, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.13);
+  } catch(e) {}
+}
+
+// Hit (kolizja — niski thud)
+function playHit() {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    // Noise burst + low osc
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.15, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / data.length * 8) * 0.3;
+    }
+    const noise = ctx.createBufferSource();
+    const noiseGain = ctx.createGain();
+    noise.buffer = buf;
+    noise.connect(noiseGain); noiseGain.connect(ctx.destination);
+    noiseGain.gain.value = 0.4;
+    noise.start();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(120, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.16);
+  } catch(e) {}
+}
+
+// Miss / OFF beat
+function playMiss() {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.18);
+    gain.gain.setValueAtTime(0.08, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.21);
+  } catch(e) {}
+}
+
+// Combo milestone
+function playCombo(level) {
+  if (!_audioEnabled) return;
+  const ctx = _getAudio(); if (!ctx) return;
+  try {
+    const baseFreq = 440 + level * 80;
+    [0, 0.06, 0.12].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'triangle';
+      osc.frequency.value = baseFreq * (1 + i * 0.5);
+      const start = ctx.currentTime + delay;
+      gain.gain.setValueAtTime(0.1, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.15);
+      osc.start(start);
+      osc.stop(start + 0.16);
+    });
+  } catch(e) {}
+}
+
+// ═════════════════════════════════════════════════
+// SCREEN FLASH — kolorowy błysk dla feedbacku
+// ═════════════════════════════════════════════════
+let _screenFlash = { color: null, life: 0 };
+function flashScreen(color, intensity) {
+  _screenFlash.color = color;
+  _screenFlash.life = intensity || 15;
+}
+
 function spawnPopup(x, y, text, color) {
   game.popups.push({ x, y, text, color: color || '#e8561e', life: 50, vy: -1.5 * dpr });
 }
@@ -1412,20 +1611,133 @@ function update() {
 
   game.speed = Math.min(baseSpeed, curMaxSpeed) * game.slowedFactor * puSpeedMul;
 
-  // TEMPO MODE: emituj beat indicator
+  // TEMPO MODE: rytmiczne przeszkody synchronizowane z BPM
   if (M.id === 'tempo') {
     const beatInterval = 60 / game.bpm;
-    // Pulsowanie wskaźnika
     game.tempoBeatPulse *= 0.92;
-    // Spawn beat marker (visual)
-    if (game.elapsed >= game.tempoNextBeatT) {
-      game.tempoBeatPulse = 1.0;
+
+    // Co 2 beaty spawn rytmicznej przeszkody (co ~1s przy 120bpm)
+    // Spawn z wyprzedzeniem 2 beaty żeby gracz miał czas zobaczyć
+    if (game.elapsed + 2 * beatInterval >= game.tempoNextBeatT) {
+      const beatIdx = game.tempoExpectedBeats;
+      const isStrong = beatIdx % 4 === 0;
+      // Co drugi beat = przeszkoda (rytmiczne 60 BPM odczuwalne)
+      const isObstacleBeat = beatIdx % 2 === 0;
+      
+      if (isObstacleBeat) {
+        // Spawn fizyczną przeszkodę — będzie w strefie player'a dokładnie na beat
+        // Marker służy jako wizualna pomoc + tracking timing
+        game.tempoBeatMarkers.push({
+          beatT: game.tempoNextBeatT,
+          spawnT: game.elapsed,
+          x: W + 50 * dpr,
+          strong: isStrong,
+          hit: false,
+          missed: false,
+          missAnnounced: false,
+          beatPlayed: false,
+          // Obstacle związany z tym beatem
+          obstacleType: 'low',  // niska przeszkoda do przeskoku
+          obstacleH: 32 * dpr,
+          obstacleW: 28 * dpr
+        });
+      } else {
+        // Pomiędzy = lekki marker bez przeszkody (visual rhythm)
+        game.tempoBeatMarkers.push({
+          beatT: game.tempoNextBeatT,
+          spawnT: game.elapsed,
+          x: W + 50 * dpr,
+          strong: false,
+          hit: false,
+          missed: false,
+          missAnnounced: false,
+          beatPlayed: false,
+          obstacleType: null  // brak przeszkody, tylko visual cue
+        });
+      }
       game.tempoNextBeatT += beatInterval;
+      game.tempoExpectedBeats++;
     }
 
-    // Kończenie tempo: po 60s
+    // Update markers — przemieszczenie + miss detection + kolizje
+    const tapZoneX = W * 0.18;  // gdzie player stoi
+    const playerR = 18 * dpr;
+    
+    for (const m of game.tempoBeatMarkers) {
+      // Pozycja zależy od czasu do beata
+      const timeToBeat = m.beatT - game.elapsed;
+      const totalTravel = 2 * beatInterval;
+      const progress = 1 - (timeToBeat / totalTravel);
+      m.x = (W + 50 * dpr) - progress * (W + 50 * dpr - tapZoneX);
+
+      // Beat tick gdy marker dochodzi do strefy
+      if (!m.beatPlayed && timeToBeat <= 0.05 && timeToBeat >= -0.05) {
+        m.beatPlayed = true;
+        playBeat(m.strong);
+        game.tempoBeatPulse = 1.0;
+      }
+
+      // Kolizja z przeszkodą — tylko jeśli to był obstacle beat I gracz nie skacze
+      if (m.obstacleType && !m.hit && !m.missed && game.invuln <= 0) {
+        // Player jest na ziemi i marker w jego strefie?
+        const inRange = Math.abs(m.x - tapZoneX) < playerR + m.obstacleW/2;
+        if (inRange && game.py >= GROUND_Y - 5 * dpr) {
+          // Trafienie — kolizja
+          m.missed = true;
+          m.hit = true;  // marker oznaczony jako "trafiony przez gracza" (negative)
+          if (!m.missAnnounced) {
+            m.missAnnounced = true;
+            game.tempoMissedBeats++;
+            game.tempoStreak = 0;
+            // Pierwsze 3 missy bez utraty życia
+            if (game.tempoMissedBeats > 3) {
+              hitObstacle();
+            } else {
+              game.lives = game.lives;  // zachowaj
+              game.invuln = 30;
+              game.multi = Math.max(_bonuses.startMulti, game.multi - 0.5);
+              spawnPopup(tapZoneX, GROUND_Y - 80 * dpr, 'WPADKA!', '#e05050');
+              spawnParticles(game.px, game.py - 30 * dpr, '#e05050', 12);
+              flashScreen('rgba(224,80,80,0.18)', 8);
+              playHit();
+              if (navigator.vibrate) navigator.vibrate(80);
+            }
+            const denom = Math.max(game.tempoExpectedBeats, game.tempoTotalTaps);
+            game.tempoConsistency = denom > 0
+              ? Math.round((game.tempoGoodTaps / denom) * 100)
+              : 0;
+          }
+        }
+      }
+
+      // Miss detection (przeszkoda przeleciała bez skoku) — gracz nie zareagował
+      if (m.obstacleType && !m.hit && !m.missed && m.x < tapZoneX - 50 * dpr) {
+        // Marker przeleciał obok bez skoku ANI bez kolizji = brak reakcji
+        // Sprawdzamy czy gracz był w powietrzu (zaliczamy hit) czy stał (miss)
+        m.missed = true;
+        if (!m.missAnnounced) {
+          m.missAnnounced = true;
+          game.tempoStreak = 0;
+          game.multi = Math.max(_bonuses.startMulti, game.multi - 0.3);
+          spawnPopup(tapZoneX, GROUND_Y - 80 * dpr, 'OFF', '#888');
+          const denom = Math.max(game.tempoExpectedBeats, game.tempoTotalTaps);
+          game.tempoConsistency = denom > 0
+            ? Math.round((game.tempoGoodTaps / denom) * 100)
+            : 0;
+        }
+      }
+    }
+    // Usuń stare markery
+    game.tempoBeatMarkers = game.tempoBeatMarkers.filter(m => m.x > -100 * dpr);
+
+    // Recalculate consistency
+    const denom = Math.max(game.tempoExpectedBeats, game.tempoTotalTaps);
+    game.tempoConsistency = denom > 0
+      ? Math.round((game.tempoGoodTaps / denom) * 100)
+      : 0;
+
+    // Kończenie tempo: po duration
     if (game.elapsed >= M.duration) {
-      // Sukces jeśli consistency >= target
       game.finished = game.tempoConsistency >= M.target;
       endGame();
       return;
@@ -1706,6 +2018,14 @@ function update() {
           const bonus = Math.floor(20 * game.multi);
           game.score += bonus;
           spawnPopup(o.x, oy1 - 30 * dpr, 'PERFECT! +' + bonus, '#ffd966');
+          playPerfect();
+          spawnParticles(o.x, oy1, '#ffd966', 10);
+          // Combo milestone (co 5 perfectów)
+          if (game.perfects % 5 === 0) {
+            playCombo(game.perfects / 5);
+            spawnPopup(game.px, game.py - 110 * dpr, '🔥 ' + game.perfects + ' COMBO!', '#ff7a45');
+            flashScreen('rgba(232,86,30,0.18)', 10);
+          }
         }
       }
       game.score += Math.floor(10 * game.multi);
@@ -1808,6 +2128,9 @@ function update() {
       game.coins++;
       game.score += Math.floor(5 * game.multi);
       spawnParticles(c.x, c.y, '#ffd966', 6);
+      playCoin();
+      // Combo coin sound (jeśli w streak)
+      if (game.coins % 5 === 0) playCombo(1);
     }
   }
 
@@ -1832,6 +2155,25 @@ function update() {
   document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
   document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
   document.getElementById('hud-lives').innerHTML = '<span style="color:#e05050;">' + '❤'.repeat(game.lives) + '</span><span style="opacity:0.2;">' + '❤'.repeat(Math.max(0, M.lives - game.lives)) + '</span>';
+
+  // Combo counter (pokazuje przy >= 3 perfectach z rzędu)
+  const comboEl = document.getElementById('hud-combo');
+  const comboCount = M.id === 'tempo' ? game.tempoStreak : game.perfectStreak;
+  if (comboEl) {
+    if (comboCount >= 3) {
+      const newText = '🔥 ' + comboCount + 'x';
+      if (comboEl.textContent !== newText) {
+        comboEl.textContent = newText;
+        comboEl.style.display = 'block';
+        // Re-trigger animation
+        comboEl.style.animation = 'none';
+        void comboEl.offsetWidth;
+        comboEl.style.animation = 'comboBeat 0.5s ease-out';
+      }
+    } else {
+      comboEl.style.display = 'none';
+    }
+  }
 
   // Mode-specific target
   updateModeTarget();
@@ -1882,16 +2224,21 @@ function hitObstacle() {
     game.activePU.shield = 0;
     game.invuln = 60;
     spawnParticles(game.px, game.py - 30 * dpr, '#5090e0', 20);
+    flashScreen('rgba(80,144,224,0.2)', 12);
     showToast('🛡 SHIELD!');
+    if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
     return;
   }
   game.lives--;
   game.invuln = 60;
-  // Reset focus streak
   game.focusStartT = game.t;
   game.multi = _bonuses.startMulti;
   game.perfectStreak = 0;
-  spawnParticles(game.px, game.py - 30 * dpr, '#e05050', 14);
+  spawnParticles(game.px, game.py - 30 * dpr, '#e05050', 18);
+  flashScreen('rgba(224,80,80,0.25)', 14);
+  shakeAmount = 18 * dpr;
+  playHit();
+  if (navigator.vibrate) navigator.vibrate(120);
   if (game.lives <= 0) {
     game.finished = false;
     endGame();
@@ -2285,49 +2632,146 @@ function render() {
 
   // 🎯 TEMPO MODE — pulsujący wskaźnik beat
   if (M.id === 'tempo') {
-    const cx = W / 2;
-    const cy = H * 0.35;
-    const baseR = 50 * dpr;
-    const pulseR = baseR + game.tempoBeatPulse * 30 * dpr;
+    // ── TAP ZONE w pozycji gracza (lewa-środkowa) ──
+    const tapZoneX = W * 0.18;
+    const tapZoneY = GROUND_Y - 60 * dpr;
+    const baseR = 38 * dpr;
+    const pulseR = baseR + game.tempoBeatPulse * 22 * dpr;
 
-    // Outer pulse ring
-    ctx.globalAlpha = game.tempoBeatPulse * 0.5;
-    ctx.strokeStyle = '#a868e0';
-    ctx.lineWidth = 4 * dpr;
+    // Tor po którym lecą markery (linia od prawej do strefy)
+    ctx.strokeStyle = 'rgba(168,104,224,0.18)';
+    ctx.lineWidth = 2 * dpr;
+    ctx.setLineDash([8 * dpr, 6 * dpr]);
     ctx.beginPath();
-    ctx.arc(cx, cy, pulseR + 20 * dpr, 0, Math.PI * 2);
+    ctx.moveTo(tapZoneX, tapZoneY);
+    ctx.lineTo(W, tapZoneY);
     ctx.stroke();
-    ctx.globalAlpha = 1;
+    ctx.setLineDash([]);
 
-    // Main circle
-    const beatGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, pulseR);
-    beatGrad.addColorStop(0, 'rgba(168,104,224,' + (0.3 + game.tempoBeatPulse * 0.5) + ')');
-    beatGrad.addColorStop(1, 'rgba(168,104,224,0)');
-    ctx.fillStyle = beatGrad;
+    // Outer pulse ring (na beat)
+    if (game.tempoBeatPulse > 0.05) {
+      ctx.globalAlpha = game.tempoBeatPulse * 0.7;
+      ctx.strokeStyle = '#a868e0';
+      ctx.lineWidth = 4 * dpr;
+      ctx.beginPath();
+      ctx.arc(tapZoneX, tapZoneY, pulseR + 18 * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // TAP ZONE — okrąg wskazujący "tutaj klikaj"
+    const zoneGrad = ctx.createRadialGradient(tapZoneX, tapZoneY, 0, tapZoneX, tapZoneY, baseR);
+    zoneGrad.addColorStop(0, 'rgba(168,104,224,' + (0.25 + game.tempoBeatPulse * 0.4) + ')');
+    zoneGrad.addColorStop(1, 'rgba(168,104,224,0)');
+    ctx.fillStyle = zoneGrad;
     ctx.beginPath();
-    ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+    ctx.arc(tapZoneX, tapZoneY, baseR, 0, Math.PI * 2);
     ctx.fill();
 
-    // Border
     ctx.strokeStyle = 'rgba(168,104,224,0.8)';
-    ctx.lineWidth = 2 * dpr;
+    ctx.lineWidth = 2.5 * dpr;
     ctx.beginPath();
-    ctx.arc(cx, cy, baseR, 0, Math.PI * 2);
+    ctx.arc(tapZoneX, tapZoneY, baseR, 0, Math.PI * 2);
     ctx.stroke();
 
-    // BPM text
+    // ── Beat markery — lecą od prawej do strefy ──
+    for (const m of game.tempoBeatMarkers) {
+      if (m.x < -50 * dpr) continue;
+      const inZone = m.x < tapZoneX + 30 * dpr;
+      const r = m.strong ? 18 * dpr : 14 * dpr;
+      let color, alpha = 1;
+      if (m.hit) {
+        color = m.quality === 'PERFECT' ? '#ffd966' : m.quality === 'GOOD' ? '#3db870' : '#5090e0';
+        alpha = 0.4;
+      } else if (m.missed) {
+        color = '#e05050';
+        alpha = 0.3;
+      } else {
+        // Obstacle markers = pomarańcz/czerwony, zwykłe = fioletowy
+        color = m.obstacleType ? (m.strong ? '#ff7a45' : '#e05050') : '#a868e0';
+      }
+      
+      // ── Fizyczna przeszkoda na ziemi (jeśli to obstacle marker) ──
+      if (m.obstacleType && !m.hit) {
+        const obsW = m.obstacleW || 28 * dpr;
+        const obsH = m.obstacleH || 32 * dpr;
+        const obsY = GROUND_Y - obsH;
+        const obsAlpha = m.missed ? 0.4 : 1.0;
+        ctx.globalAlpha = obsAlpha;
+        const obsGrad = ctx.createLinearGradient(m.x - obsW/2, obsY, m.x - obsW/2, obsY + obsH);
+        obsGrad.addColorStop(0, m.missed ? '#666' : '#e05050');
+        obsGrad.addColorStop(1, m.missed ? '#333' : '#a02020');
+        ctx.fillStyle = obsGrad;
+        ctx.fillRect(m.x - obsW/2, obsY, obsW, obsH);
+        ctx.shadowColor = m.missed ? '#666' : '#e05050';
+        ctx.shadowBlur = 10 * dpr;
+        ctx.strokeStyle = m.missed ? 'rgba(120,120,120,0.5)' : 'rgba(255,80,80,0.7)';
+        ctx.lineWidth = 1 * dpr;
+        ctx.strokeRect(m.x - obsW/2, obsY, obsW, obsH);
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
+        
+        // Linia łącząca beat marker z przeszkodą — visual cue
+        if (!m.missed && !m.hit && m.x < W) {
+          ctx.globalAlpha = 0.3;
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 1 * dpr;
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath();
+          ctx.moveTo(m.x, tapZoneY + r);
+          ctx.lineTo(m.x, obsY);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+        }
+      }
+      
+      // Beat marker (kółko)
+      ctx.globalAlpha = alpha;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 16 * dpr;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(m.x, tapZoneY, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // Inner highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.arc(m.x - r * 0.3, tapZoneY - r * 0.3, r * 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      // "Strong" beat oznaczenie
+      if (m.strong && !m.hit && !m.missed) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        ctx.arc(m.x, tapZoneY, r + 4 * dpr, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // BPM badge u góry
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold ' + (18 * dpr) + 'px "DM Mono", monospace';
+    ctx.font = 'bold ' + (14 * dpr) + 'px "DM Mono", monospace';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('TAP', cx, cy - 6 * dpr);
-    ctx.font = (12 * dpr) + 'px "DM Mono", monospace';
-    ctx.fillText(game.bpm + ' BPM', cx, cy + 14 * dpr);
+    ctx.fillText(game.bpm + ' BPM', W / 2, H * 0.18);
 
-    // Consistency
+    // Streak badge (gdy >= 3)
+    if (game.tempoStreak >= 3) {
+      ctx.font = 'bold ' + (28 * dpr) + 'px "Bebas Neue", sans-serif';
+      ctx.fillStyle = game.tempoStreak >= 10 ? '#ff7a45' : game.tempoStreak >= 5 ? '#ffd966' : '#a868e0';
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 12 * dpr;
+      ctx.fillText('🔥 ' + game.tempoStreak + 'x', W / 2, H * 0.18 + 30 * dpr);
+      ctx.shadowBlur = 0;
+    }
+
+    // Consistency badge u dołu
     ctx.font = (14 * dpr) + 'px "DM Mono", monospace';
     ctx.fillStyle = game.tempoConsistency >= 80 ? '#3db870' : game.tempoConsistency >= 50 ? '#ffd966' : '#e05050';
-    ctx.fillText(game.tempoConsistency + '% RYTMU', cx, cy + baseR + 24 * dpr);
+    ctx.fillText(game.tempoConsistency + '% RYTMU', W / 2, H * 0.18 + (game.tempoStreak >= 3 ? 60 : 30) * dpr);
   }
   // Player — emoji biegacza domyślnie patrzy w lewo, odbijamy żeby biegł w prawo
   const blink = game.invuln > 0 && Math.floor(game.invuln / 4) % 2 === 0;
@@ -2353,6 +2797,15 @@ function render() {
   }
 
   ctx.restore();
+
+  // ── SCREEN FLASH (overlay, kolorowy błysk) ──
+  if (_screenFlash.life > 0 && _screenFlash.color) {
+    const alpha = _screenFlash.life / 15 * 0.4;
+    ctx.fillStyle = _screenFlash.color.replace(/[\d.]+\)$/, alpha + ')');
+    ctx.fillRect(0, 0, W, H);
+    _screenFlash.life--;
+    if (_screenFlash.life <= 0) _screenFlash.color = null;
+  }
 }
 
 // ═════════════════════════════════════════════════
@@ -2400,12 +2853,12 @@ function showTutorial(mode) {
   rows.push('<div class="tut-row"><div class="tut-icon">📋</div><div class="tut-text">' + M.description + '</div></div>');
 
   if (mode === 'tempo') {
-    // TEMPO ma własną mechanikę — tap w rytm, brak przeszkód
-    rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>Tap w rytm</b> ' + M.bpm + ' BPM (co ~' + (60/M.bpm).toFixed(1) + 's)</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">💜</div><div class="tut-text"><b>Pulsujący wskaźnik</b> pokazuje idealny moment</div></div>');
+    // TEMPO — rytmiczne przeszkody synchronizowane z BPM
+    rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>Skacz w rytm</b> ' + M.bpm + ' BPM — przeszkody pojawiają się DOKŁADNIE w rytmie</div></div>');
+    rows.push('<div class="tut-row"><div class="tut-icon">🥁</div><div class="tut-text"><b>Słuchaj beatu</b> — każde 2 uderzenie = przeszkoda do przeskoku</div></div>');
     rows.push('<div class="tut-row"><div class="tut-icon">⭐</div><div class="tut-text"><b>PERFECT</b> &lt;80ms · <b>GOOD</b> &lt;200ms · <b>OK</b> &lt;350ms</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🏆</div><div class="tut-text"><b>Cel:</b> 80%+ rytmu po 60s = ukończone</div></div>');
-    rows.push('<div class="tut-row"><div class="tut-icon">🏃</div><div class="tut-text">Brak przeszkód — pełen focus na rytmie</div></div>');
+    rows.push('<div class="tut-row"><div class="tut-icon">⚠️</div><div class="tut-text"><b>Wpadka</b> = nie skoczyłeś w porę. Pierwsze 3 missy bez utraty życia, potem -1 ❤</div></div>');
+    rows.push('<div class="tut-row"><div class="tut-icon">🏆</div><div class="tut-text"><b>Cel:</b> 80%+ trafień rytmu = ukończone. Trenuje pace consistency.</div></div>');
   } else if (mode === 'longrun') {
     rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
     rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
