@@ -6007,25 +6007,7 @@ function render() {
     ctx.arc(game.px, game.py - 20 * dpr, auraR, 0, Math.PI * 2);
     ctx.fill();
     
-    // 🆕 Flame particles dla wysokiego combo (>=5)
-    if (c >= 5) {
-      const flameCount = c >= 10 ? 4 : 2;
-      for (let i = 0; i < flameCount; i++) {
-        const phase = (game.t * 0.15 + i * Math.PI / 2) % (Math.PI * 2);
-        const fx = game.px + Math.cos(phase) * 25 * dpr;
-        const fy = game.py - 20 * dpr + Math.sin(phase) * 15 * dpr - 8 * dpr;
-        const flameY = fy + (Math.sin(game.t * 0.4 + i) - 1) * 8 * dpr;
-        // Płomień - czerwono-pomarańczowy gradient
-        const fGrad = ctx.createRadialGradient(fx, flameY, 0, fx, flameY, 10 * dpr);
-        fGrad.addColorStop(0, c >= 10 ? 'rgba(255,200,100,0.9)' : 'rgba(255,180,60,0.85)');
-        fGrad.addColorStop(0.5, c >= 10 ? 'rgba(255,80,30,0.7)' : 'rgba(232,86,30,0.6)');
-        fGrad.addColorStop(1, 'rgba(232,30,30,0)');
-        ctx.fillStyle = fGrad;
-        ctx.beginPath();
-        ctx.arc(fx, flameY, 10 * dpr, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
+    // (usunięto orbital flame particles - wyglądały jak żonglowanie pomarańczami)
   }
   
   if (!blink) {
@@ -6033,7 +6015,7 @@ function render() {
     if (!game.playerTrail) game.playerTrail = [];
     if (game.t % 3 === 0 && (game.speed > 5 * dpr || game.dashing > 0 || !game.onGround)) {
       game.playerTrail.push({
-        x: game.px, y: game.py, life: 12,
+        x: game.px, y: game.py, life: 14,  // 12 → 14 (dłuższy trail)
         rot: game.flipping ? game.flipRotation : 0,
         state: getRunnerState(),
         legPhase: game.t * 0.35
@@ -6042,10 +6024,11 @@ function render() {
     for (const t of game.playerTrail) {
       t.life--;
       if (t.life <= 0) continue;
-      const a = (t.life / 12) * 0.35;
+      const a = (t.life / 14) * 0.4;  // 0.35 → 0.4
       ctx.save();
       ctx.globalAlpha = a;
-      drawRunner(ctx, t.x, t.y, t.state, t.legPhase, t.rot, true);
+      // 🆕 Każdy ghost lekko offsetowany (bardziej dynamic feel)
+      drawRunner(ctx, t.x - (14 - t.life) * 0.5 * dpr, t.y, t.state, t.legPhase, t.rot, true);
       ctx.restore();
     }
     game.playerTrail = game.playerTrail.filter(t => t.life > 0);
