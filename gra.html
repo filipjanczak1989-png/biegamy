@@ -3704,6 +3704,43 @@ function render() {
           ctx.arc(lx, ly, 2.5 * dpr, 0, Math.PI * 2);
           ctx.fill();
         }
+        
+        // 🆕 Mały ptaszek siedzący na gałęzi (co 3-cim drzewie)
+        if (i % 3 === 0) {
+          const birdX = baseX + 14 * dpr;
+          const birdY = GROUND_Y - (treeH - 5) * dpr;
+          const bobBird = Math.sin(game.t * 0.08 + i) * 0.5 * dpr;  // delikatne kołysanie
+          // Body
+          ctx.fillStyle = '#5a3020';
+          ctx.beginPath();
+          ctx.ellipse(birdX, birdY + bobBird, 3 * dpr, 2.2 * dpr, 0, 0, Math.PI * 2);
+          ctx.fill();
+          // Główka
+          ctx.beginPath();
+          ctx.arc(birdX - 2 * dpr, birdY - 1.5 * dpr + bobBird, 1.7 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          // Dziób
+          ctx.fillStyle = '#ffd966';
+          ctx.beginPath();
+          ctx.moveTo(birdX - 3.5 * dpr, birdY - 1.5 * dpr + bobBird);
+          ctx.lineTo(birdX - 5 * dpr, birdY - 1 * dpr + bobBird);
+          ctx.lineTo(birdX - 3.5 * dpr, birdY - 0.5 * dpr + bobBird);
+          ctx.closePath();
+          ctx.fill();
+          // Oko
+          ctx.fillStyle = '#000';
+          ctx.beginPath();
+          ctx.arc(birdX - 2.5 * dpr, birdY - 1.8 * dpr + bobBird, 0.4 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          // Ogon (mały trójkąt)
+          ctx.fillStyle = '#5a3020';
+          ctx.beginPath();
+          ctx.moveTo(birdX + 3 * dpr, birdY + bobBird);
+          ctx.lineTo(birdX + 5 * dpr, birdY - 0.5 * dpr + bobBird);
+          ctx.lineTo(birdX + 4 * dpr, birdY + 1 * dpr + bobBird);
+          ctx.closePath();
+          ctx.fill();
+        }
       }
       
       // 🆕 Motyle latające w PARK
@@ -4214,6 +4251,27 @@ function render() {
         ctx.lineTo(baseX + 55 * dpr, GROUND_Y);
         ctx.closePath();
         ctx.fill();
+        
+        // 🆕 Owady krążące wokół żarówki w NOC (małe ciemne kropki orbitujące)
+        if (escene === 2) {
+          ctx.fillStyle = 'rgba(20,15,10,0.85)';
+          for (let bug = 0; bug < 4; bug++) {
+            const orbitPhase = game.t * 0.12 + bug * Math.PI / 2 + i * 0.7;
+            const orbitR = (10 + (bug % 2) * 4) * dpr;
+            const bugX = baseX + 15 * dpr + Math.cos(orbitPhase) * orbitR;
+            const bugY = GROUND_Y - 95 * dpr + Math.sin(orbitPhase * 1.3) * orbitR * 0.6;
+            // Body
+            ctx.beginPath();
+            ctx.arc(bugX, bugY, 0.8 * dpr, 0, Math.PI * 2);
+            ctx.fill();
+            // Trail (smug skrzydeł)
+            ctx.fillStyle = 'rgba(20,15,10,0.3)';
+            ctx.beginPath();
+            ctx.arc(bugX - Math.cos(orbitPhase) * 2 * dpr, bugY - Math.sin(orbitPhase * 1.3) * 1 * dpr, 0.5 * dpr, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(20,15,10,0.85)';
+          }
+        }
       }
     }
     
@@ -4339,6 +4397,43 @@ function render() {
           ctx.arc(baseX + 40 * dpr, GROUND_Y - (bH + 12) * dpr, 1.5 * dpr, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
+        }
+      }
+      
+      // 🆕 Balkony z roślinami (co 4-tym budynku)
+      if (i % 4 === 2 && bH > 70) {
+        for (let bal = 0; bal < 2; bal++) {
+          const balY = GROUND_Y - (bH * 0.3 + bal * bH * 0.3) * dpr;
+          // Płyta balkonu
+          ctx.fillStyle = 'rgba(60,55,75,0.85)';
+          ctx.fillRect(baseX + 12 * dpr, balY, 14 * dpr, 2.5 * dpr);
+          // Balustrada (cienkie pionowe pręty)
+          ctx.strokeStyle = 'rgba(80,75,95,0.7)';
+          ctx.lineWidth = 0.7 * dpr;
+          for (let r = 0; r < 4; r++) {
+            ctx.beginPath();
+            ctx.moveTo(baseX + (14 + r * 4) * dpr, balY);
+            ctx.lineTo(baseX + (14 + r * 4) * dpr, balY - 4 * dpr);
+            ctx.stroke();
+          }
+          // Górna belka balustrady
+          ctx.fillStyle = 'rgba(80,75,95,0.8)';
+          ctx.fillRect(baseX + 12 * dpr, balY - 5 * dpr, 14 * dpr, 0.8 * dpr);
+          // Doniczka z rośliną
+          ctx.fillStyle = '#5a3020';
+          ctx.fillRect(baseX + 18 * dpr, balY - 4 * dpr, 4 * dpr, 3 * dpr);
+          // Roślinka (zielona kępa)
+          ctx.fillStyle = '#3a8050';
+          ctx.beginPath();
+          ctx.arc(baseX + 20 * dpr, balY - 5 * dpr, 2.5 * dpr, 0, Math.PI * 2);
+          ctx.fill();
+          // Mały kwiatek na roślince
+          if (bal === 0) {
+            ctx.fillStyle = '#ff90a8';
+            ctx.beginPath();
+            ctx.arc(baseX + 20 * dpr, balY - 6.5 * dpr, 0.8 * dpr, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
     }
@@ -4499,6 +4594,16 @@ function render() {
         ctx.beginPath();
         ctx.ellipse(px - sz * 0.3, py - sz * 0.3, sz * 0.5, sz * 0.3, 0, 0, Math.PI * 2);
         ctx.fill();
+        // 🆕 Mech na co 3-cim kamieniu (zielonkawe plamki)
+        if (i % 3 === 0) {
+          ctx.fillStyle = 'rgba(80,120,70,0.6)';
+          ctx.beginPath();
+          ctx.arc(px + sz * 0.5, py + sz * 0.2, sz * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(px - sz * 0.6, py + sz * 0.3, sz * 0.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
         ctx.fillStyle = 'rgba(150,160,180,0.5)';
       }
       // 🆕 Zamarznięte kałuże (lód błyskający)
@@ -4902,6 +5007,23 @@ function render() {
       ctx.lineTo(cx - topHalfW + 1 * dpr, coneTop + 5 * dpr);
       ctx.stroke();
       
+      // 🆕 Drobne zarysowania (worn look) - 2-3 ciemne kreski
+      ctx.strokeStyle = 'rgba(80,30,10,0.4)';
+      ctx.lineWidth = 0.7 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(cx + baseHalfW * 0.3, cy - h * 0.3);
+      ctx.lineTo(cx + baseHalfW * 0.4, cy - h * 0.4);
+      ctx.moveTo(cx - baseHalfW * 0.4, cy - h * 0.5);
+      ctx.lineTo(cx - baseHalfW * 0.3, cy - h * 0.55);
+      ctx.stroke();
+      
+      // 🆕 Drobne plamy / brud na podstawie
+      ctx.fillStyle = 'rgba(50,30,15,0.4)';
+      ctx.beginPath();
+      ctx.arc(cx + baseHalfW * 0.5, cy - 1 * dpr, 1.5 * dpr, 0, Math.PI * 2);
+      ctx.arc(cx - baseHalfW * 0.7, cy, 1 * dpr, 0, Math.PI * 2);
+      ctx.fill();
+      
       // Czubek - mała czarna kropka
       ctx.fillStyle = '#1a1a1f';
       ctx.beginPath();
@@ -4929,6 +5051,32 @@ function render() {
       ctx.fillStyle = '#3a3a45';
       ctx.fillRect(o.x - 3 * dpr, beamY, 4 * dpr, GROUND_Y - beamY);
       ctx.fillRect(o.x + o.w - 1 * dpr, beamY, 4 * dpr, GROUND_Y - beamY);
+      
+      // 🆕 Pionowy highlight na supportach (rim light)
+      ctx.fillStyle = 'rgba(180,180,200,0.4)';
+      ctx.fillRect(o.x - 3 * dpr, beamY, 1 * dpr, GROUND_Y - beamY);
+      ctx.fillRect(o.x + o.w - 1 * dpr, beamY, 1 * dpr, GROUND_Y - beamY);
+      
+      // 🆕 Śruby na supportach (3 sztuki na każdym)
+      ctx.fillStyle = '#1a1a1f';
+      for (let bolt = 0; bolt < 3; bolt++) {
+        const bY = beamY + (GROUND_Y - beamY) * (0.2 + bolt * 0.3);
+        // Lewy support
+        ctx.beginPath();
+        ctx.arc(o.x - 1 * dpr, bY, 1 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Prawy support
+        ctx.beginPath();
+        ctx.arc(o.x + o.w + 1 * dpr, bY, 1 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        // Highlight śrub
+        ctx.fillStyle = 'rgba(200,200,220,0.5)';
+        ctx.beginPath();
+        ctx.arc(o.x - 1.3 * dpr, bY - 0.3 * dpr, 0.4 * dpr, 0, Math.PI * 2);
+        ctx.arc(o.x + o.w + 0.7 * dpr, bY - 0.3 * dpr, 0.4 * dpr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#1a1a1f';
+      }
       
       // Podstawy supportów
       ctx.fillStyle = '#1a1a1f';
@@ -5023,26 +5171,108 @@ function render() {
       ctx.save();
       ctx.translate(h.x + h.w / 2, h.y - h.h / 2);
       ctx.rotate(h.rot);
-      ctx.font = (24 * dpr) + 'px serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('🍌', 0, 0);
+      
+      // 🆕 Banana narysowana z prymitywów (zakrzywiony żółty kształt)
+      const bs = dpr;
+      // Cień
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.beginPath();
+      ctx.ellipse(0, 4 * bs, 14 * bs, 3 * bs, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Body bananki - zakrzywiony kształt (3 punkty kontrolne)
+      const banGrad = ctx.createLinearGradient(0, -8 * bs, 0, 8 * bs);
+      banGrad.addColorStop(0, '#fff160');
+      banGrad.addColorStop(0.5, '#ffd840');
+      banGrad.addColorStop(1, '#d4a020');
+      ctx.fillStyle = banGrad;
+      ctx.beginPath();
+      ctx.moveTo(-12 * bs, 4 * bs);
+      ctx.quadraticCurveTo(0, -10 * bs, 12 * bs, 0);
+      ctx.quadraticCurveTo(10 * bs, 6 * bs, -12 * bs, 4 * bs);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Highlight (rim light z góry)
+      ctx.strokeStyle = 'rgba(255,250,150,0.7)';
+      ctx.lineWidth = 1.2 * bs;
+      ctx.beginPath();
+      ctx.moveTo(-10 * bs, 2 * bs);
+      ctx.quadraticCurveTo(0, -8 * bs, 10 * bs, -1 * bs);
+      ctx.stroke();
+      
+      // Brown end tips (czubki)
+      ctx.fillStyle = '#5a3a10';
+      ctx.beginPath();
+      ctx.ellipse(-12 * bs, 4 * bs, 1.5 * bs, 1 * bs, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(12 * bs, 0, 1.5 * bs, 1 * bs, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 🆕 Liść/ogonek na czubku (zielony)
+      ctx.fillStyle = '#4a8a3a';
+      ctx.beginPath();
+      ctx.moveTo(-12 * bs, 4 * bs);
+      ctx.lineTo(-15 * bs, 1 * bs);
+      ctx.lineTo(-13 * bs, 0);
+      ctx.lineTo(-11 * bs, 3 * bs);
+      ctx.closePath();
+      ctx.fill();
+      
       ctx.restore();
     } else if (h.type === 'puddle') {
-      // Owalna kałuża
+      // Owalna kałuża - kolor refleksu zależny od sceny
       const cy = h.y - h.h / 2 + Math.sin(h.bob) * 1 * dpr;
+      const escene = M.id === 'endless' ? game.endlessScene : 0;
+      
+      let puddleColor1, puddleColor2, reflectionColor;
+      if (escene === 3) {  // ŚWIT
+        puddleColor1 = 'rgba(255,180,140,0.7)';
+        puddleColor2 = 'rgba(220,120,90,0.5)';
+        reflectionColor = 'rgba(255,220,180,0.5)';
+      } else if (escene === 2) {  // NOC
+        puddleColor1 = 'rgba(70,90,140,0.75)';
+        puddleColor2 = 'rgba(40,50,90,0.6)';
+        reflectionColor = 'rgba(180,180,220,0.4)';
+      } else if (escene === 4) {  // GÓRY
+        puddleColor1 = 'rgba(160,200,230,0.75)';
+        puddleColor2 = 'rgba(100,150,200,0.55)';
+        reflectionColor = 'rgba(220,235,250,0.5)';
+      } else {  // PARK / inne
+        puddleColor1 = 'rgba(120,180,240,0.7)';
+        puddleColor2 = 'rgba(80,144,224,0.5)';
+        reflectionColor = 'rgba(200,230,255,0.4)';
+      }
+      
       const pgrad = ctx.createRadialGradient(h.x + h.w / 2, cy, 0, h.x + h.w / 2, cy, h.w / 2);
-      pgrad.addColorStop(0, 'rgba(120,180,240,0.7)');
-      pgrad.addColorStop(0.7, 'rgba(80,144,224,0.5)');
-      pgrad.addColorStop(1, 'rgba(80,144,224,0.1)');
+      pgrad.addColorStop(0, puddleColor1);
+      pgrad.addColorStop(0.7, puddleColor2);
+      pgrad.addColorStop(1, puddleColor2.replace(/[\d.]+\)$/, '0.1)'));
       ctx.fillStyle = pgrad;
       ctx.beginPath();
       ctx.ellipse(h.x + h.w / 2, cy, h.w / 2, h.h, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Refleksy
-      ctx.fillStyle = 'rgba(200,230,255,0.4)';
+      
+      // 🆕 Faliste fale na powierzchni (animowane)
+      ctx.strokeStyle = reflectionColor.replace(/[\d.]+\)$/, '0.3)');
+      ctx.lineWidth = 0.7 * dpr;
+      const wavePhase = game.t * 0.05;
+      for (let w = 0; w < 2; w++) {
+        ctx.beginPath();
+        const wy = cy + Math.sin(wavePhase + w * 1.5) * 0.5 * dpr;
+        ctx.ellipse(h.x + h.w / 2, wy, h.w * 0.4 - w * 3 * dpr, h.h * (0.7 - w * 0.2), 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      // Refleks (highlight)
+      ctx.fillStyle = reflectionColor;
       ctx.beginPath();
       ctx.ellipse(h.x + h.w * 0.3, cy - 1 * dpr, h.w * 0.15, h.h * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Drugi mniejszy refleks
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w * 0.6, cy + 0.5 * dpr, h.w * 0.08, h.h * 0.25, 0, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -6544,6 +6774,11 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.beginPath();
   ctx.ellipse(lFootX + 1 * s, lFootY - 2 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
+  // 🆕 Pasek pomarańczowy na skarpetce (sport)
+  if (!isGhost) {
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(lFootX - 2 * s, lFootY - 2.3 * s, 6 * s, 0.6 * s);
+  }
   
   // But lewy
   ctx.fillStyle = SHOES;
@@ -6552,6 +6787,16 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.fill();
   ctx.fillStyle = SHOE_SOLE;
   ctx.fillRect(lFootX - 4 * s, lFootY + 2.5 * s, 12 * s, 1 * s);
+  // 🆕 Swoosh na bucie (krzywa pomarańczowa)
+  if (!isGhost) {
+    ctx.strokeStyle = SHOE_ACCENT;
+    ctx.lineWidth = 1.2 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(lFootX - 2 * s, lFootY + 1.5 * s);
+    ctx.quadraticCurveTo(lFootX + 1 * s, lFootY - 0.5 * s, lFootX + 5 * s, lFootY + 1 * s);
+    ctx.stroke();
+  }
   
   // ═══════════════════════════════
   // — TUŁÓW (koszulka) — z lekkim pochyleniem podczas biegu
@@ -6604,10 +6849,14 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   
   // Logo "B" na koszulce
   if (!isGhost) {
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    // Drobny cień pod logo
+    ctx.fillStyle = 'rgba(60,20,5,0.4)';
     ctx.font = 'bold ' + (9 * s) + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillText('B', torsoLeanX + 0.5 * s, -19.5 * s);
+    // Logo white
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.fillText('B', torsoLeanX, -20 * s);
   }
   
@@ -6670,6 +6919,20 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.arc(lHandX, lHandY, 3 * s, 0, Math.PI * 2);
   ctx.fill();
   
+  // 🆕 BICEP HIGHLIGHT — subtelny rim light na ramieniu z przodu
+  if (!isGhost && state === 'run') {
+    ctx.strokeStyle = 'rgba(255,235,200,0.3)';
+    ctx.lineWidth = 1.2 * s;
+    ctx.lineCap = 'round';
+    // Rim light na lewym ramieniu (z przodu, najbardziej widoczne)
+    const midX = (shoulderL_X + lElbowX) / 2;
+    const midY = (shoulderL_Y + lElbowY) / 2;
+    ctx.beginPath();
+    ctx.moveTo(shoulderL_X - 1 * s, shoulderL_Y);
+    ctx.lineTo(midX - 1 * s, midY);
+    ctx.stroke();
+  }
+  
   // ═══════════════════════════════
   // — PRAWA NOGA (z PRZODU, na wierzchu) —
   // ═══════════════════════════════
@@ -6701,6 +6964,11 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.beginPath();
   ctx.ellipse(rFootX + 1 * s, rFootY - 2 * s, 4 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
+  // 🆕 Pasek pomarańczowy na skarpetce
+  if (!isGhost) {
+    ctx.fillStyle = SHOE_ACCENT;
+    ctx.fillRect(rFootX - 2 * s, rFootY - 2.3 * s, 6 * s, 0.6 * s);
+  }
   
   // But prawy
   ctx.fillStyle = SHOES;
@@ -6709,10 +6977,16 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.fill();
   ctx.fillStyle = SHOE_SOLE;
   ctx.fillRect(rFootX - 4 * s, rFootY + 2.5 * s, 12 * s, 1 * s);
-  // Pasek na bucie
+  // Pasek na bucie + swoosh + sznurówki
   if (!isGhost) {
-    ctx.fillStyle = SHOE_ACCENT;
-    ctx.fillRect(rFootX - 3 * s, rFootY, 7 * s, 1.5 * s);
+    // 🆕 Swoosh na bucie (krzywa pomarańczowa, subtle)
+    ctx.strokeStyle = SHOE_ACCENT;
+    ctx.lineWidth = 1.2 * s;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(rFootX - 2 * s, rFootY + 1.5 * s);
+    ctx.quadraticCurveTo(rFootX + 1 * s, rFootY - 0.5 * s, rFootX + 5 * s, rFootY + 1 * s);
+    ctx.stroke();
     // Sznurówki — krzyż X
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 0.8 * s;
@@ -6773,6 +7047,26 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   );
   ctx.lineTo(headX - 7 * s, headY + 4 * s);
   ctx.fill();
+  
+  // 🆕 Drobny kosmyk środkowy (krótszy, dynamiczny)
+  ctx.beginPath();
+  ctx.moveTo(headX + 2 * s, headY - 6 * s);
+  ctx.quadraticCurveTo(
+    headX - 1 * s - hairBlow * 0.7 * s,
+    headY - 9 * s,
+    headX - 5 * s - hairBlow * 1.2 * s,
+    headY - 5 * s
+  );
+  ctx.lineTo(headX - 1 * s, headY - 4 * s);
+  ctx.fill();
+  
+  // 🆕 Highlight włosów (jaśniejszy brąz dla 3D feel)
+  if (!isGhost) {
+    ctx.fillStyle = 'rgba(80,50,30,0.8)';  // jaśniejszy brąz
+    ctx.beginPath();
+    ctx.arc(headX - 2 * s, headY - 5 * s, headR * 0.6, Math.PI * 1.15, Math.PI * 1.85);
+    ctx.fill();
+  }
   
   // ═══════════════════════════════
   // — TWARZ — oko + brew + uśmiech
