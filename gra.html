@@ -436,6 +436,9 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
       <div style="font-size:11px;color:var(--fg2);font-family:DM Mono,monospace;margin-top:4px;" id="high-distance">0 m</div>
     </div>
 
+    <!-- 🔥 STREAK BANNER -->
+    <div id="streak-banner" style="display:none;"></div>
+
     <!-- DAILY CHALLENGE -->
     <div class="section-card" id="daily-challenge"></div>
 
@@ -858,51 +861,173 @@ function claimDailyReward() {
   if (!ch.completed || ch.rewardClaimed) return false;
   ch.rewardClaimed = true;
   setStat('daily_challenge', ch);
-  // Aktywuj reward
+  // Aktywuj boost
   if (ch.reward === 'startMultiBoost') {
     setStat('next_run_multi_boost', 1.5);
   } else if (ch.reward === 'extraLife') {
     setStat('next_run_extra_life', 1);
   }
+  // 🆕 Gemy — uniwersalna waluta + streak bonus
+  // Streak: liczba dni z rzędu z ukończonym daily
+  const streakDays = updateDailyStreak();
+  // Bazowo 5 💎, +1 za każdy dzień streaka, max 10
+  const gemReward = Math.min(10, 5 + Math.floor(streakDays / 2));
+  addGems(gemReward);
+  // 🆕 Coiny też — gracz nie zbiera ich do końca specifically dla skinów
+  const coinReward = 50 + streakDays * 10;
+  addCoins(coinReward);
+  // Zapisz info do toastu
+  ch._lastReward = { gems: gemReward, coins: coinReward, streak: streakDays };
+  setStat('daily_challenge', ch);
   return true;
 }
 
+// 🆕 Streak system — codzienny z rzędu = większy bonus
+function updateDailyStreak() {
+  const today = todayKey();
+  const lastClaim = getStat('daily_last_claim', null);
+  let streak = getStat('daily_streak', 0);
+
+  if (!lastClaim) {
+    streak = 1;
+  } else {
+    // Sprawdź czy ostatnie odbieranie było wczoraj
+    const lastDate = new Date(lastClaim);
+    const todayDate = new Date(today);
+    const diffDays = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+    if (diffDays === 1) {
+      streak += 1;  // kontynuuje serię
+    } else if (diffDays === 0) {
+      // ten sam dzień — bez zmian (i tak claim raz dziennie)
+    } else {
+      streak = 1;  // przerwa, reset
+    }
+  }
+  setStat('daily_last_claim', today);
+  setStat('daily_streak', streak);
+  setStat('daily_max_streak', Math.max(getStat('daily_max_streak', 0), streak));
+  return streak;
+}
+
+function getDailyStreak() {
+  return getStat('daily_streak', 0);
+}
+
+// 🆕 Bonus startowy zależny od streaka (rośnie z dniami)
+function getStreakBonus() {
+  const streak = getDailyStreak();
+  // Sprawdź czy daily było odebrane DZISIAJ — jeśli nie, streak nie działa (gracz musi najpierw odebrać)
+  const lastClaim = getStat('daily_last_claim', null);
+  const today = todayKey();
+  if (lastClaim !== today) return null;  // streak nieaktywny
+
+  if (streak >= 30) return { tier: 30, multi: 2.0,  extraLife: 1, invuln: 300, label: '🔥 IRON RUNNER (30 dni)' };
+  if (streak >= 14) return { tier: 14, multi: 2.0,  extraLife: 1, invuln: 300, label: '🔥 14 dni z rzędu — POTWORNY START!' };
+  if (streak >= 7)  return { tier: 7,  multi: 1.5,  extraLife: 1, invuln: 0,   label: '🔥 7 dni — bonus życia + multi' };
+  if (streak >= 5)  return { tier: 5,  multi: 1.5,  extraLife: 0, invuln: 60,  label: '🔥 5 dni — multi x1.5 + tarcza' };
+  if (streak >= 3)  return { tier: 3,  multi: 1.2,  extraLife: 0, invuln: 0,   label: '🔥 3 dni — multi x1.2' };
+  return null;  // poniżej 3 dni — bez bonusu
+}
+
+// 🔥 Streak banner — widoczny tylko gdy streak >= 1 i odebrany dzisiaj
+function renderStreakBanner() {
+  const banner = document.getElementById('streak-banner');
+  if (!banner) return;
+  const streak = getDailyStreak();
+  const lastClaim = getStat('daily_last_claim', null);
+  const today = todayKey();
+  const claimedToday = lastClaim === today;
+
+  if (streak < 1) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  const tiers = [
+    { days: 3,  label: 'Multi x1.2' },
+    { days: 5,  label: 'Multi x1.5 + tarcza' },
+    { days: 7,  label: '+1 życie + multi x1.5' },
+    { days: 14, label: 'Pełen pakiet startowy' },
+    { days: 30, label: '🏆 Iron Runner' }
+  ];
+  // Następny tier który nie został jeszcze osiągnięty
+  const nextTier = tiers.find(t => t.days > streak);
+  const currentTier = [...tiers].reverse().find(t => t.days <= streak);
+
+  // Jeśli streak >=3 i odebrane dziś — banner zielony (aktywny)
+  // Jeśli streak >=3 ale nie odebrane dziś — banner żółty (klikni "odbierz daily" by aktywować)
+  // Jeśli streak <3 — banner pomarańczowy ("buduj serię")
+  let bgColor, borderColor, textColor, statusLabel;
+  if (currentTier && claimedToday) {
+    bgColor = 'rgba(61,184,112,0.12)'; borderColor = 'rgba(61,184,112,0.4)'; textColor = '#3db870';
+    statusLabel = '✓ Bonus aktywny: ' + currentTier.label;
+  } else if (currentTier && !claimedToday) {
+    bgColor = 'rgba(255,217,102,0.12)'; borderColor = 'rgba(255,217,102,0.4)'; textColor = '#ffd966';
+    statusLabel = '⚠ Odbierz daily by aktywować bonus: ' + currentTier.label;
+  } else {
+    bgColor = 'rgba(232,86,30,0.10)'; borderColor = 'rgba(232,86,30,0.3)'; textColor = '#ff7a45';
+    statusLabel = 'Buduj serię — bonus startowy od 3 dni';
+  }
+
+  const nextLabel = nextTier ? `Następny tier: <b>${nextTier.days} dni</b> → ${nextTier.label}` : 'Maksymalny tier osiągnięty 👑';
+
+  banner.style.display = 'block';
+  banner.innerHTML = `
+    <div style="background:${bgColor};border:1px solid ${borderColor};border-radius:14px;padding:12px 14px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:28px;line-height:1;">🔥</div>
+        <div style="flex:1;">
+          <div style="font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:0.04em;color:${textColor};line-height:1;">SERIA: ${streak} ${streak === 1 ? 'DZIEŃ' : 'DNI'}</div>
+          <div style="font-size:10px;color:var(--fg2);font-family:DM Mono,monospace;margin-top:3px;">${statusLabel}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${nextLabel}</div>
+        </div>
+      </div>
+    </div>`;
+}
+
 function renderDailyChallenge() {
+  renderStreakBanner();
   const ch = getDailyChallenge();
   const cont = document.getElementById('daily-challenge');
   if (!cont) return;
   const pct = Math.min(100, Math.round(ch.progress / ch.target * 100));
-  const rewardLabel = ch.reward === 'startMultiBoost' ? '🎁 Start z x1.5 multi' : '❤ +1 życie na start';
-  
+  const boostLabel = ch.reward === 'startMultiBoost' ? '🎁 Multi x1.5' : '❤ +1 życie';
+  const streak = getDailyStreak();
+  const expectedGems = Math.min(10, 5 + Math.floor((streak + (ch.completed && !ch.rewardClaimed ? 1 : 0)) / 2));
+  const expectedCoins = 50 + (streak + (ch.completed && !ch.rewardClaimed ? 1 : 0)) * 10;
+  const streakBadge = streak > 1 ? `<span style="background:rgba(232,86,30,0.2);color:var(--accent);padding:2px 6px;border-radius:6px;font-family:DM Mono,monospace;font-size:9px;font-weight:700;margin-left:6px;">🔥 ${streak} dni</span>` : '';
+
   if (ch.completed && !ch.rewardClaimed) {
     cont.innerHTML = `
-      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#3db870;margin-bottom:6px;">✓ Wyzwanie ukończone!</div>
+      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#3db870;margin-bottom:6px;">✓ Wyzwanie ukończone! ${streakBadge}</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="font-size:24px;">${ch.icon}</div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:600;color:var(--fg);">${ch.label}</div>
-          <div style="font-size:10px;color:var(--muted);">Odbierz nagrodę: ${rewardLabel}</div>
+          <div style="font-size:10px;color:var(--muted);">Nagroda: <span style="color:#a868e0;font-weight:600;">💎 ${expectedGems}</span> · <span style="color:#ffd966;font-weight:600;">🪙 ${expectedCoins}</span> · ${boostLabel}</div>
         </div>
         <button onclick="claimDailyAndShow()" style="background:#3db870;color:#000;border:none;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:600;">Odbierz</button>
       </div>`;
   } else if (ch.completed && ch.rewardClaimed) {
+    const last = ch._lastReward || {};
     cont.innerHTML = `
-      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">✓ Dzisiejsze wyzwanie</div>
+      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;">✓ Dzisiejsze wyzwanie ${streakBadge}</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="font-size:24px;opacity:0.5;">${ch.icon}</div>
         <div style="flex:1;">
           <div style="font-size:12px;color:var(--muted);">${ch.label} — odebrane</div>
-          <div style="font-size:10px;color:var(--muted);">Następne wyzwanie jutro</div>
+          <div style="font-size:10px;color:var(--muted);">Otrzymałeś: 💎 ${last.gems || 5} · 🪙 ${last.coins || 50} · ${boostLabel}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px;">Następne wyzwanie jutro</div>
         </div>
       </div>`;
   } else {
     cont.innerHTML = `
-      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">⚡ Dzisiejsze wyzwanie</div>
+      <div style="font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">⚡ Dzisiejsze wyzwanie ${streakBadge}</div>
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="font-size:24px;">${ch.icon}</div>
         <div style="flex:1;">
           <div style="font-size:13px;font-weight:600;color:var(--fg);margin-bottom:4px;">${ch.label}</div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Nagroda: ${rewardLabel}</div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Nagroda: <span style="color:#a868e0;font-weight:600;">💎 ${expectedGems}</span> · <span style="color:#ffd966;font-weight:600;">🪙 ${expectedCoins}</span> · ${boostLabel}</div>
           <div style="background:rgba(255,255,255,0.08);height:4px;border-radius:3px;overflow:hidden;">
             <div style="background:linear-gradient(90deg,#ffd966,#e8561e);height:100%;width:${pct}%;"></div>
           </div>
@@ -915,12 +1040,25 @@ function renderDailyChallenge() {
 window.claimDailyAndShow = function() {
   if (claimDailyReward()) {
     renderDailyChallenge();
-    // Toast/popup
+    updateWalletDisplay();  // 🆕 odśwież portfel
+    // Pobierz dane nagrody dla wyświetlenia
+    const ch = getDailyChallenge();
+    const last = ch._lastReward || {};
+    const streak = last.streak || 1;
+    // Większy popup z dokładnym breakdownem
     const t = document.createElement('div');
-    t.textContent = '🎁 Nagroda aktywowana w następnym biegu!';
-    t.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#3db870;color:#000;padding:14px 24px;border-radius:14px;z-index:9999;font-weight:600;font-family:DM Mono,monospace;font-size:12px;letter-spacing:0.06em;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+    t.innerHTML = `
+      <div style="font-size:13px;font-weight:700;letter-spacing:0.05em;margin-bottom:6px;">🎁 Nagroda odebrana!</div>
+      <div style="display:flex;gap:14px;justify-content:center;font-size:14px;font-weight:700;">
+        <span style="color:#a868e0;">💎 +${last.gems || 5}</span>
+        <span style="color:#ffd966;">🪙 +${last.coins || 50}</span>
+      </div>
+      ${streak > 1 ? `<div style="font-size:10px;margin-top:6px;color:#000;opacity:0.7;">🔥 Seria: ${streak} dni z rzędu</div>` : ''}
+    `;
+    t.style.cssText = 'position:fixed;top:20%;left:50%;transform:translateX(-50%);background:#3db870;color:#000;padding:16px 28px;border-radius:14px;z-index:9999;font-family:DM Mono,monospace;text-align:center;letter-spacing:0.04em;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2500);
+    setTimeout(() => t.remove(), 3500);
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50, 30, 100]);
   }
 };
 
@@ -7314,6 +7452,28 @@ function render() {
     ctx.globalAlpha = 1;
   }
 
+  // 🎨 THEME COLOR OVERLAY — koloryzuje całą grę zgodnie z aktywnym motywem
+  // Stosowany przed screen flash, żeby flash był na wierzchu
+  const equippedTheme = (typeof getEquipped === 'function') ? getEquipped('themes') : 'default';
+  if (equippedTheme && equippedTheme !== 'default') {
+    const themeColor = THEME_OVERLAYS[equippedTheme];
+    if (themeColor) {
+      ctx.save();
+      ctx.globalCompositeOperation = themeColor.mode || 'multiply';
+      ctx.fillStyle = themeColor.color;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+      // Drugi pass jeśli theme ma overlay (np. retro pixel-grid)
+      if (themeColor.overlay) {
+        ctx.save();
+        ctx.globalCompositeOperation = themeColor.overlayMode || 'screen';
+        ctx.fillStyle = themeColor.overlay;
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+      }
+    }
+  }
+
   // ── SCREEN FLASH (overlay, kolorowy błysk) ──
   if (_screenFlash.life > 0 && _screenFlash.color) {
     const alpha = _screenFlash.life / 15 * 0.4;
@@ -7414,13 +7574,14 @@ function showTutorial(mode) {
 
   const rows = [];
   rows.push('<div class="tut-row"><div class="tut-icon">📋</div><div class="tut-text">' + M.description + '</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj wyższy)</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">🤸</div><div class="tut-text"><b>Tap w powietrzu</b> — SALTO! Wyląduj 360° = +3 combo + bonus</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod high obstacle</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik szybko</b> — dash (przebij przeszkodę)</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>IDEALNIE</b> = +1 combo · <b>TUŻ TUŻ</b> = +2 combo · <b>SALTO</b> = +3 combo</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Zbieraj coiny</b> — punkty + sklep (wkrótce)</div></div>');
-  rows.push('<div class="tut-row"><div class="tut-icon">❤❤❤</div><div class="tut-text"><b>3 życia</b> — pobij swój rekord!</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">👆</div><div class="tut-text"><b>Tap</b> — skok (przytrzymaj = wyższy)</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🤸</div><div class="tut-text"><b>Tap w powietrzu</b> — SALTO. Niszczy banany/kałuże gdy nad nimi przeskakujesz. Łańcuch: <b>CHAIN x2, x3...</b></div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">👇</div><div class="tut-text"><b>Swipe ↓</b> — slide pod ptakami / wysokimi przeszkodami</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">⚡</div><div class="tut-text"><b>Dwuklik szybko (≤220ms)</b> — DASH. Przebijasz przeszkodę z nieśmiertelnością. <b>3 dasze na bieg</b> (kropki na dole ekranu).</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">📏</div><div class="tut-text"><b>NEAR MISS</b> — przeskocz blisko przeszkody dla bonusa +25</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">❤</div><div class="tut-text"><b>Serca + żele</b> na trasie — apteczka i 5s nieśmiertelności</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🪙</div><div class="tut-text"><b>Coiny + 💎 klejnoty</b> — wydaj w sklepie na skiny, gadżety i boosty</div></div>');
+  rows.push('<div class="tut-row"><div class="tut-icon">🎯</div><div class="tut-text"><b>IDEALNIE</b> +1 combo · <b>NEAR MISS</b> +2 · <b>SALTO</b> +3</div></div>');
 
   document.getElementById('tut-body').innerHTML = rows.join('');
   document.getElementById('tutorial').style.display = 'flex';
@@ -7465,6 +7626,30 @@ function realStart(mode) {
     game.lives = (game.config.lives || 3) + extraLife;
     setStat('next_run_extra_life', 0);
     setTimeout(() => spawnPopup(W * 0.5, H * 0.5, '❤ +1 ŻYCIE!', '#3db870'), 500);
+  }
+
+  // 🔥 Apply STREAK BONUS — bonus startowy za dni z rzędu (po odebraniu daily)
+  const streakBonus = getStreakBonus();
+  if (streakBonus) {
+    if (streakBonus.multi > game.multi) {
+      game.multi = streakBonus.multi;
+      game.maxMulti = Math.max(game.maxMulti, streakBonus.multi);
+    }
+    if (streakBonus.extraLife > 0) {
+      game.lives += streakBonus.extraLife;
+    }
+    if (streakBonus.invuln > 0) {
+      game.invuln = Math.max(game.invuln, streakBonus.invuln);
+      if (streakBonus.invuln >= 300) {
+        // 5s+ traktuj jak gel
+        if (game.activePU) game.activePU.gel = streakBonus.invuln;
+      } else if (streakBonus.invuln >= 60) {
+        // 1s = tarcza
+        if (game.activePU) game.activePU.shield = 300;
+      }
+    }
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.35, streakBonus.label, '#ff7a45'), 400);
+    setTimeout(() => showToast(streakBonus.label), 800);
   }
 
   // 🆕 Apply SHOP boosts (z pending_boosts) — gracz wybrał w boost-selector
@@ -7512,6 +7697,13 @@ function realStart(mode) {
   const activeGadgets = getOwned('gadgets');
   if (activeGadgets.length > 0) {
     setTimeout(() => showToast('🎒 Gadżety: ' + activeGadgets.length + ' aktywnych'), 1200);
+  }
+
+  // 🌆 Pokaż aktywny motyw
+  const equippedThemeId = getEquipped('themes');
+  const equippedTheme = findShopItem('themes', equippedThemeId);
+  if (equippedTheme && equippedThemeId !== 'default') {
+    setTimeout(() => showToast('🌆 Motyw: ' + equippedTheme.name), 1800);
   }
 
   lastFrame = performance.now();
@@ -7843,7 +8035,7 @@ function renderShopGrid(category){
     skins:   '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Skiny zmieniają wygląd postaci w grze</div>',
     boosts:  '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Boosty aktywują się przed biegiem na home screen</div>',
     gadgets: '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Gadżety wzmacniają power-upy w grze (kup raz, działa zawsze)</div>',
-    themes:  '<div style="grid-column:1/-1;background:rgba(255,217,102,0.10);border:1px solid rgba(255,217,102,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#ffd966;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">⏳ Motywy mapy wkrótce — zakup zostanie zachowany</div>'
+    themes:  '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Motywy zmieniają kolorystykę całej gry</div>'
   };
   const html = (banners[category] || '') + items.map(item => renderShopCard(category, item)).join('');
   grid.innerHTML = html;
@@ -8504,6 +8696,35 @@ function drawDog(ctx, x, y, bobPhase) {
   
   ctx.restore();
 }
+
+// 🎨 Motywy mapy — kolorowy overlay dla całej gry
+// Mode 'multiply' przyciemnia + barwi, 'screen' rozjaśnia, 'overlay' kontrast
+const THEME_OVERLAYS = {
+  cyberpunk: {
+    color: 'rgba(168, 100, 240, 0.28)',  // fioletowo-różowy
+    mode: 'overlay',
+    overlay: 'rgba(255, 50, 200, 0.08)',  // dodatkowy magenta tint
+    overlayMode: 'screen'
+  },
+  sunset: {
+    color: 'rgba(255, 122, 60, 0.30)',   // ciepły pomarańcz
+    mode: 'overlay',
+    overlay: 'rgba(255, 200, 80, 0.10)',  // złoty rozblysk
+    overlayMode: 'screen'
+  },
+  arctic: {
+    color: 'rgba(160, 220, 255, 0.30)',  // lodowy niebieski
+    mode: 'overlay',
+    overlay: 'rgba(220, 240, 255, 0.08)', // białe rozjaśnienie
+    overlayMode: 'screen'
+  },
+  retro: {
+    color: 'rgba(80, 200, 100, 0.20)',   // 8-bit zielony
+    mode: 'overlay',
+    overlay: 'rgba(255, 217, 102, 0.10)', // żółty tint
+    overlayMode: 'screen'
+  }
+};
 
 // 🎨 Palety kolorów skinów (zdefiniowane przed drawRunner)
 const SKIN_PALETTES = {
