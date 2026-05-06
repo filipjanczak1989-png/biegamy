@@ -3,26 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#07070a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BiegaMy">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="BiegaMy">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="shortcut icon" href="favicon.ico">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<!-- 🆕 PWA / fullscreen na iOS po dodaniu do ekranu głównego -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BiegaMy">
+<meta name="theme-color" content="#07070a">
 <title>BiegaMy: Wyzwanie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="sb.js"></script>
 <style>
 :root{
   --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
@@ -43,7 +36,8 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
 .screen{position:fixed;inset:0;display:flex;flex-direction:column;}
 .screen.hidden{display:none;}
 
-#screen-home{padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;}
+/* 🆕 FIX SCROLL: jawnie ustawiamy fixed+inset, bo specyficzność #screen-home > .screen */
+#screen-home{position:fixed;inset:0;padding-top:max(60px,env(safe-area-inset-top,60px));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}
 #screen-home::before{
   content:'';
   position:fixed;
@@ -57,7 +51,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;he
   0%,100%{filter:hue-rotate(0deg);}
   50%{filter:hue-rotate(20deg);}
 }
-.home-content{padding:14px 18px max(160px,calc(env(safe-area-inset-bottom,0px) + 160px));flex:1;position:relative;z-index:1;}
+.home-content{padding:14px 18px max(160px,calc(env(safe-area-inset-bottom,0px) + 160px));position:relative;z-index:1;flex-shrink:0;}
 .hero-block{text-align:center;margin-bottom:18px;position:relative;}
 .hero-block::after{
   content:'';
@@ -212,7 +206,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 
 .hud{position:fixed;top:0;left:0;right:0;padding:max(14px,env(safe-area-inset-top,14px)) 16px 0;z-index:10;pointer-events:none;display:flex;justify-content:space-between;align-items:flex-start;}
 .hud-left,.hud-right{display:flex;flex-direction:column;gap:6px;}
-.hud-right{align-items:flex-end;}
+.hud-right{align-items:flex-end;padding-right:46px;}  /* 🆕 miejsce pod przycisk muzyki (36px button + 10px right) */
 .hud-score,.hud-multi,.hud-distance,.hud-speed,.hud-lives{padding:3px 10px;background:rgba(15,12,20,0.4);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.08);border-radius:10px;display:inline-block;}
 .hud-score{font-family:'Bebas Neue',sans-serif;font-size:42px;line-height:0.9;color:var(--fg);text-shadow:0 2px 12px rgba(0,0,0,0.95),0 0 20px rgba(232,86,30,0.4);letter-spacing:0.02em;}
 .hud-multi{font-family:'DM Mono',monospace;font-size:15px;color:var(--accent);font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,0.9),0 0 12px rgba(232,86,30,0.6);}
@@ -225,31 +219,47 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .hud-speed{font-family:'DM Mono',monospace;font-size:11px;color:var(--fg2);text-shadow:0 1px 4px rgba(0,0,0,0.8);}
 .hud-lives{font-family:'DM Mono',monospace;font-size:14px;}
 
-/* 🆕 Landscape — mniejszy HUD, kompaktowy układ */
+/* 🆕 Landscape — kompaktowy układ, misje + powerup-bar na DOLE (góra ciasna) */
 @media (orientation: landscape) and (max-height: 500px) {
   .hud{padding:max(8px,env(safe-area-inset-top,8px)) 12px 0;}
-  .hud-score{font-size:28px;}
-  .hud-multi{font-size:13px;}
-  .hud-combo{font-size:20px;}
-  .hud-distance{font-size:11px;}
-  .hud-speed{font-size:10px;}
-  .hud-lives{font-size:12px;}
-  .hud-left,.hud-right{gap:3px;}
+  .hud-score{font-size:24px;}
+  .hud-multi{font-size:11px;padding:2px 8px;}
+  .hud-combo{font-size:18px;padding:2px 8px;}
+  .hud-distance{font-size:10px;padding:2px 8px;}
+  .hud-speed{font-size:9px;padding:2px 8px;}
+  .hud-lives{font-size:11px;padding:2px 8px;}
+  .hud-left,.hud-right{gap:2px;}
+  /* Większy padding-right żeby score/distance NIE chowały się pod 🎵 (button 36px + 10px right + 6px gap) */
+  .hud-right{padding-right:52px;}
   .dash-meter{padding:6px 12px;font-size:9px;bottom:max(10px,env(safe-area-inset-bottom,10px));}
-  .missions-hud{top:max(50px,calc(env(safe-area-inset-top,0px) + 50px));}
-  .powerup-bar{top:max(70px,calc(env(safe-area-inset-top,0px) + 70px));}
+  /* Mode-target (rekord) — kompaktowo na górze pod safe-area, mniejszy bar */
+  .mode-target{top:max(8px,calc(env(safe-area-inset-top,0px) + 8px));font-size:10px;padding:5px 12px;gap:6px;}
+  .mode-target .mt-icon{font-size:12px;}
+  .mode-target .mt-bar{width:60px;height:4px;}
+  /* Misje — na DOLE, nad dash-meter, kompaktowo */
+  .missions-hud{top:auto;bottom:max(60px,calc(env(safe-area-inset-bottom,0px) + 60px));opacity:0.7;}
+  .mission-row{max-width:100px;padding:2px 4px;}
+  .mission-label{font-size:6px;}
+  .mission-val{font-size:6px;}
+  /* Power-upy — między HUD a misjami w środku */
+  .powerup-bar{top:auto;bottom:max(95px,calc(env(safe-area-inset-bottom,0px) + 95px));}
+  .pu-pill{padding:3px 8px;font-size:9px;}
+  /* Mniejszy przycisk muzyki w landscape */
+  #music-toggle{width:30px !important;height:30px !important;font-size:13px !important;top:max(8px,env(safe-area-inset-top,8px)) !important;right:8px !important;}
 }
 
 /* Mode-specific UI */
-.mode-target{position:fixed;top:max(80px,calc(env(safe-area-inset-top,0px) + 80px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;}
+/* mode-target = pasek "X / Y (rekord)" — przesunięty poniżej misji */
+.mode-target{position:fixed;top:max(108px,calc(env(safe-area-inset-top,0px) + 108px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;}
 .mode-target .mt-icon{font-size:14px;}
 .mode-target .mt-bar{width:80px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
 .mode-target .mt-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
 
 /* Interval phase indicator */
 .phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
-.powerup-bar{position:fixed;top:max(160px,calc(env(safe-area-inset-top,0px) + 160px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
-.missions-hud{position:fixed;left:0;right:0;top:max(75px,calc(env(safe-area-inset-top,0px) + 75px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;}
+/* powerup-bar — pod paskiem rekordu */
+.powerup-bar{position:fixed;top:max(146px,calc(env(safe-area-inset-top,0px) + 146px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
+.missions-hud{position:fixed;left:50%;transform:translateX(-50%);top:max(78px,calc(env(safe-area-inset-top,0px) + 78px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;max-width:calc(100vw - 24px);flex-wrap:nowrap;}
 .mission-row{flex:1;max-width:120px;background:rgba(7,7,10,0.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.05);border-radius:5px;padding:2px 5px;display:flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;transition:all 0.3s;}
 .mission-row.done{background:rgba(61,184,112,0.22);border-color:rgba(61,184,112,0.5);opacity:1;}
 .mission-icon{font-size:10px;flex-shrink:0;width:12px;text-align:center;opacity:0.85;}
@@ -310,6 +320,76 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .btn-restart{background:var(--accent);color:#fff;border:none;padding:13px 26px;border-radius:11px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;cursor:pointer;flex:1;}
 .btn-home{background:rgba(255,255,255,0.06);color:var(--fg2);border:1px solid var(--border);padding:13px 18px;border-radius:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;}
 
+/* ════ 🛍 SHOP STYLES ════ */
+.wallet-display{display:inline-flex;align-items:center;gap:12px;background:rgba(15,12,20,0.7);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;}
+.wallet-coin{color:#ffd966;display:flex;align-items:center;gap:5px;}
+.wallet-gem{color:#a868e0;display:flex;align-items:center;gap:5px;}
+.wallet-coin .w-icon,.wallet-gem .w-icon{font-size:14px;}
+
+.shop-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:linear-gradient(135deg,rgba(168,104,224,0.25),rgba(80,144,224,0.15));border:1px solid rgba(168,104,224,0.5);color:var(--fg);border-radius:14px;padding:14px;font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.08em;cursor:pointer;margin-top:12px;transition:all 0.2s;}
+.shop-btn:active{transform:scale(0.98);}
+.shop-btn .shop-icon{font-size:24px;}
+
+#screen-shop{background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.shop-header{position:sticky;top:0;background:linear-gradient(to bottom,rgba(7,7,10,0.98),rgba(7,7,10,0.92));backdrop-filter:blur(12px);padding:max(50px,env(safe-area-inset-top,50px)) 16px 12px;z-index:10;border-bottom:1px solid var(--border);}
+.shop-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.06em;color:var(--fg);text-align:center;margin-bottom:8px;}
+.shop-title span{color:var(--accent);}
+.shop-wallet-row{display:flex;justify-content:center;margin-bottom:12px;}
+.shop-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+.shop-tabs::-webkit-scrollbar{display:none;}
+.shop-tab{flex-shrink:0;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);padding:8px 14px;border-radius:20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:all 0.2s;}
+.shop-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+.shop-grid{padding:14px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding-bottom:max(120px,calc(env(safe-area-inset-bottom,0px) + 120px));}
+@media (min-width:600px){.shop-grid{grid-template-columns:repeat(3,1fr);}}
+@media (min-width:900px){.shop-grid{grid-template-columns:repeat(4,1fr);max-width:1100px;margin:0 auto;}}
+
+.shop-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+.shop-card:active{transform:scale(0.97);}
+.shop-card.owned{border-color:rgba(61,184,112,0.5);}
+.shop-card.equipped{border-color:var(--accent);box-shadow:0 0 0 2px rgba(232,86,30,0.3);}
+.shop-card.locked{opacity:0.65;}
+.shop-card-icon{font-size:42px;line-height:1;margin:6px 0;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.4));}
+.shop-card-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--fg);}
+.shop-card-desc{font-family:'Inter',sans-serif;font-size:10px;color:var(--fg2);line-height:1.3;flex:1;}
+.shop-card-price{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;}
+.shop-card-price.coin{color:#ffd966;}
+.shop-card-price.gem{color:#a868e0;}
+.shop-card-action{margin-top:6px;width:100%;padding:7px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;border:none;cursor:pointer;}
+.shop-card-action.buy{background:var(--accent);color:#fff;}
+.shop-card-action.equip{background:rgba(80,144,224,0.25);color:#5090e0;border:1px solid rgba(80,144,224,0.5);}
+.shop-card-action.equipped{background:rgba(61,184,112,0.25);color:#3db870;border:1px solid rgba(61,184,112,0.5);}
+.shop-card-action.cant-afford{background:rgba(255,255,255,0.05);color:var(--muted);cursor:not-allowed;}
+.shop-card-action.owned{background:rgba(61,184,112,0.2);color:#3db870;}
+.shop-card-badge{position:absolute;top:6px;right:6px;font-size:14px;background:rgba(7,7,10,0.85);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;}
+.shop-card-count{position:absolute;top:6px;left:6px;background:var(--accent);color:#fff;border-radius:10px;padding:2px 7px;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;}
+
+/* ⚡ BOOST SELECTOR (home screen) */
+.boost-selector-wrap{background:linear-gradient(135deg,rgba(232,86,30,0.10),rgba(168,104,224,0.06));border:1px solid rgba(232,86,30,0.3);border-radius:14px;padding:12px;}
+.boost-selector-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;text-align:center;font-weight:600;}
+.boost-selector-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
+.boost-pill{display:flex;align-items:center;gap:6px;background:rgba(7,7,10,0.6);border:1px solid var(--border);border-radius:20px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);cursor:pointer;transition:all 0.2s;user-select:none;}
+.boost-pill:active{transform:scale(0.95);}
+.boost-pill.active{background:rgba(232,86,30,0.25);border-color:var(--accent);color:#fff;box-shadow:0 0 0 1px var(--accent);}
+.boost-pill .b-icon{font-size:14px;}
+.boost-pill .b-count{opacity:0.6;font-size:10px;}
+.boost-pill.active .b-count{opacity:1;}
+
+.shop-empty{padding:40px 20px;text-align:center;color:var(--fg3);font-family:'DM Mono',monospace;font-size:11px;}
+
+.shop-modal{position:fixed;inset:0;background:rgba(7,7,10,0.9);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+.shop-modal.hidden{display:none;}
+.shop-modal-card{background:var(--card);border:1px solid var(--accent);border-radius:18px;padding:24px;max-width:340px;width:100%;text-align:center;}
+.shop-modal-icon{font-size:60px;line-height:1;margin-bottom:12px;}
+.shop-modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;color:var(--fg);margin-bottom:8px;}
+.shop-modal-desc{font-size:13px;color:var(--fg2);margin-bottom:16px;}
+.shop-modal-price{font-family:'DM Mono',monospace;font-size:18px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.shop-modal-buttons{display:flex;gap:8px;}
+.shop-modal-buttons button{flex:1;padding:13px;border-radius:10px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;border:none;cursor:pointer;}
+.shop-modal-cancel{background:rgba(255,255,255,0.06);color:var(--fg2);border:1px solid var(--border) !important;}
+.shop-modal-confirm{background:var(--accent);color:#fff;}
+.shop-modal-confirm:disabled{background:rgba(255,255,255,0.06);color:var(--muted);cursor:not-allowed;}
+
 .toast{position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);background:rgba(7,7,10,0.95);backdrop-filter:blur(12px);border:1px solid var(--accent);color:var(--accent);padding:10px 18px;border-radius:24px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;opacity:0;pointer-events:none;transition:all 0.3s;z-index:30;font-weight:600;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
@@ -340,6 +420,13 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     <div class="hero-block">
       <div class="hero-title">Biega<br><span class="accent">My</span></div>
       <div class="hero-sub">Biegnij bez końca · Skacz · Zbieraj · Pobij rekord</div>
+      <!-- 💰 Wallet -->
+      <div style="margin-top:14px;display:flex;justify-content:center;">
+        <div class="wallet-display" id="wallet-display-home">
+          <div class="wallet-coin"><span class="w-icon">🪙</span><span id="wallet-coins">0</span></div>
+          <div class="wallet-gem"><span class="w-icon">💎</span><span id="wallet-gems">0</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Big high score display -->
@@ -352,9 +439,18 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     <!-- DAILY CHALLENGE -->
     <div class="section-card" id="daily-challenge"></div>
 
+    <!-- ⚡ BOOST SELECTOR — pokazuje aktywne boosty z możliwością odznaczenia -->
+    <div id="boost-selector" style="display:none;margin-bottom:8px;"></div>
+
     <!-- BIG PLAY BUTTON -->
     <button onclick="startGame('endless')" class="play-btn" style="width:100%;background:linear-gradient(135deg,var(--accent),#ff7a45);color:#fff;border:none;border-radius:16px;padding:24px;font-family:Bebas Neue,sans-serif;font-size:36px;letter-spacing:0.08em;cursor:pointer;box-shadow:0 8px 32px rgba(232,86,30,0.4);margin:8px 0 16px;text-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;overflow:hidden;">
       ▶ GRAJ
+    </button>
+
+    <!-- 🛍 SHOP BUTTON -->
+    <button onclick="openShop()" class="shop-btn">
+      <span class="shop-icon">🛍</span>
+      <span>SKLEP</span>
     </button>
 
     <!-- Bonusy z treningów -->
@@ -369,6 +465,16 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     </div>
 
     <!-- Leaderboard -->
+    <div class="section-card">
+      <div class="section-hdr">
+        <div class="section-icon">🌍</div>
+        <div class="section-title">Top 10 globalnie</div>
+      </div>
+      <div id="lb-card-global" style="padding:0;">
+        <div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>
+      </div>
+    </div>
+
     <div class="section-card">
       <div class="section-hdr">
         <div class="section-icon">🏆</div>
@@ -388,6 +494,45 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
     <div class="tut-sub" id="tut-sub">Tryb: spokojny</div>
     <div id="tut-body"></div>
     <button class="btn-primary" onclick="closeTutorial()">START</button>
+  </div>
+</div>
+
+<!-- ═══════════════ 🛍 SHOP SCREEN ═══════════════ -->
+<div id="screen-shop" class="screen hidden">
+  <div class="shop-header">
+    <div class="topbar" style="position:absolute;top:0;left:0;right:0;">
+      <button class="back-btn" onclick="closeShop()">‹</button>
+      <div class="tb-title">SKLEP <span>BiegaMy</span></div>
+      <div class="tb-spacer"></div>
+    </div>
+    <div class="shop-title" style="margin-top:8px;">🛍 <span>SKLEP</span></div>
+    <div class="shop-wallet-row">
+      <div class="wallet-display">
+        <div class="wallet-coin"><span class="w-icon">🪙</span><span id="shop-wallet-coins">0</span></div>
+        <div class="wallet-gem"><span class="w-icon">💎</span><span id="shop-wallet-gems">0</span></div>
+      </div>
+    </div>
+    <div class="shop-tabs" id="shop-tabs">
+      <div class="shop-tab active" data-cat="skins"   onclick="switchShopTab('skins')">👕 Skiny</div>
+      <div class="shop-tab" data-cat="gadgets" onclick="switchShopTab('gadgets')">🎒 Gadżety</div>
+      <div class="shop-tab" data-cat="boosts"  onclick="switchShopTab('boosts')">⚡ Boosty</div>
+      <div class="shop-tab" data-cat="themes"  onclick="switchShopTab('themes')">🌆 Motywy</div>
+    </div>
+  </div>
+  <div class="shop-grid" id="shop-grid"></div>
+</div>
+
+<!-- 🛍 Modal potwierdzenia zakupu -->
+<div class="shop-modal hidden" id="shop-modal">
+  <div class="shop-modal-card">
+    <div class="shop-modal-icon" id="shop-modal-icon">🎁</div>
+    <div class="shop-modal-title" id="shop-modal-title">—</div>
+    <div class="shop-modal-desc" id="shop-modal-desc">—</div>
+    <div class="shop-modal-price" id="shop-modal-price">—</div>
+    <div class="shop-modal-buttons">
+      <button class="shop-modal-cancel" onclick="closeShopModal()">Anuluj</button>
+      <button class="shop-modal-confirm" id="shop-modal-confirm">Kup</button>
+    </div>
   </div>
 </div>
 
@@ -442,11 +587,17 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
       <div class="end-stat"><div class="end-stat-val" id="end-multi">x1</div><div class="end-stat-lbl">Max seria</div></div>
     </div>
 
+    <!-- 💰 Rewards do walleta -->
+    <div id="end-rewards" style="text-align:center;margin:14px 0;font-family:'DM Mono',monospace;font-size:13px;font-weight:600;"></div>
+
     <div id="end-daily"></div>
 
     <div class="btn-row">
       <button class="btn-restart" onclick="startGameAgain()">▶ JESZCZE RAZ</button>
       <button class="btn-home" onclick="goHome()">DOM</button>
+    </div>
+    <div style="margin-top:8px;">
+      <button class="btn-home" onclick="goHome();setTimeout(openShop,100);" style="width:100%;padding:11px;">🛍 SKLEP</button>
     </div>
   </div>
 </div>
@@ -467,6 +618,11 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 // ═════════════════════════════════════════════════
 // SUPABASE + USER
 // ═════════════════════════════════════════════════
+const _sb = supabase.createClient(
+  'https://afqojgkaveykxbltxzwm.supabase.co',
+  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
+);
+
 let _athleteId = null;
 let _athleteName = null;
 let _bonuses = {
@@ -523,6 +679,114 @@ function setStat(key, val) {
 }
 function incStat(key, by) {
   setStat(key, getStat(key, 0) + (by || 1));
+}
+
+// ═════════════════════════════════════════════════
+// 💰 WALLET — coiny + klejnoty (Faza A sklepu)
+// ═════════════════════════════════════════════════
+function getCoins() { return getStat('wallet_coins', 0); }
+function getGems()  { return getStat('wallet_gems',  0); }
+function addCoins(n){ if (!n) return; setStat('wallet_coins', getCoins() + n); updateWalletDisplay(); }
+function addGems(n) { if (!n) return; setStat('wallet_gems',  getGems()  + n); updateWalletDisplay(); }
+function spendCoins(n){
+  if (getCoins() < n) return false;
+  setStat('wallet_coins', getCoins() - n);
+  updateWalletDisplay();
+  return true;
+}
+function spendGems(n){
+  if (getGems() < n) return false;
+  setStat('wallet_gems', getGems() - n);
+  updateWalletDisplay();
+  return true;
+}
+function getOwned(category){ return getStat('owned_' + category, []) || []; }
+function addOwned(category, id){
+  const list = getOwned(category);
+  if (!list.includes(id)) {
+    list.push(id);
+    setStat('owned_' + category, list);
+  }
+}
+function isOwned(category, id){ return getOwned(category).includes(id); }
+function getEquipped(category){ return getStat('equipped_' + category, 'default'); }
+function setEquipped(category, id){ setStat('equipped_' + category, id); }
+function getPendingBoosts(){ return getStat('pending_boosts', {}) || {}; }
+function setPendingBoosts(b){ setStat('pending_boosts', b); }
+function addPendingBoost(id){
+  const b = getPendingBoosts();
+  b[id] = (b[id] || 0) + 1;
+  setPendingBoosts(b);
+}
+function removePendingBoost(id){
+  const b = getPendingBoosts();
+  if (b[id] > 0) { b[id]--; if (b[id] <= 0) delete b[id]; setPendingBoosts(b); }
+}
+
+// ═════════════════════════════════════════════════
+// 🛍 SHOP CATALOG — Skromna ekonomia (boosty są celem)
+// Cenniki: 1 km biegu ≈ 30-60 coin, więc 200 coin = ~5 dobrych biegów
+// ═════════════════════════════════════════════════
+const SHOP_CATALOG = {
+  skins: [
+    { id: 'default',  name: 'B Klasyczny',     desc: 'Twoja domyślna postać.',                   price: 0,    currency: 'coin', icon: '🏃', preview: '#e8561e' },
+    { id: 'adonis',   name: 'Adonisy',         desc: 'Dres w 3 paski. "Original" produkt.',      price: 300,  currency: 'coin', icon: '🥷', preview: '#5090e0' },
+    { id: 'nice',     name: 'NICE Air',        desc: 'Charakterystyczny swoosh, prawie jak.',    price: 600,  currency: 'coin', icon: '👟', preview: '#e8561e' },
+    { id: 'kuna',     name: 'Kuna Sport',      desc: 'Trzy wyłaniające się gwiazdy puma-style.', price: 900,  currency: 'coin', icon: '🐈', preview: '#3db870' },
+    { id: 'tetra',    name: 'Tetra Stripes',   desc: '4 paski zamiast 3 — więcej znaczy szybciej.', price: 1300, currency: 'coin', icon: '🎽', preview: '#a868e0' },
+    { id: 'reepok',   name: 'Reepok Wave',     desc: 'Vintage z lat 90, falujące logo.',         price: 1700, currency: 'coin', icon: '🏃‍♀️', preview: '#ffd966' },
+    { id: 'gold',     name: 'Złoty Mistrz',    desc: 'Dla prawdziwych legend. Limited edition.', price: 30,   currency: 'gem',  icon: '🥇', preview: '#ffd966' }
+  ],
+  gadgets: [
+    { id: 'big_magnet',  name: 'Wzmocniony magnes',  desc: 'Magnes ma o 30% większy zasięg.',          price: 60,  currency: 'gem',  icon: '🧲' },
+    { id: 'tough_shield',name: 'Wytrzymała tarcza',  desc: 'Tarcza wytrzymuje 2 trafienia.',           price: 80,  currency: 'gem',  icon: '🛡' },
+    { id: 'big_gel',     name: 'Lepszy żel',         desc: 'Nieśmiertelność trwa 7s zamiast 5s.',      price: 100, currency: 'gem',  icon: '💪' },
+    { id: 'flip_master', name: 'Mistrz salta',       desc: 'Salto-kill daje +50% punktów.',            price: 70,  currency: 'gem',  icon: '🤸' },
+    { id: 'coin_pull',   name: 'Magnetyk monet',     desc: 'Coiny lecą z 50% większego zasięgu.',      price: 50,  currency: 'gem',  icon: '🪙' }
+  ],
+  boosts: [
+    { id: 'extra_life',   name: '+1 życie',         desc: 'Zaczynasz bieg z 4 życiami.',         price: 80,  currency: 'coin', icon: '❤', consumable: true },
+    { id: 'multi_boost',  name: 'Multi x1.5',       desc: 'Zaczynasz z mnożnikiem x1.5.',        price: 150, currency: 'coin', icon: '⭐', consumable: true },
+    { id: 'sprint_start', name: 'Sprint start',     desc: 'Pierwsze 10s nieśmiertelności.',      price: 200, currency: 'coin', icon: '🚀', consumable: true },
+    { id: 'magnet_start', name: 'Magnet z startu',  desc: 'Aktywny magnes przez pierwsze 30s.', price: 120, currency: 'coin', icon: '🧲', consumable: true }
+  ],
+  themes: [
+    { id: 'default',   name: 'Domyślny',     desc: 'Klasyczny ciemny motyw.',          price: 0,   currency: 'coin', icon: '🌃', preview: '#07070a' },
+    { id: 'cyberpunk', name: 'Cyberpunk',    desc: 'Różowo-fioletowe neony.',          price: 400, currency: 'coin', icon: '🌆', preview: '#a868e0' },
+    { id: 'sunset',    name: 'Sunset',       desc: 'Ciepły zachód słońca.',            price: 400, currency: 'coin', icon: '🌅', preview: '#ff7a45' },
+    { id: 'arctic',    name: 'Arctic',       desc: 'Lodowo-błękitne pustkowia.',       price: 500, currency: 'coin', icon: '🧊', preview: '#5090e0' },
+    { id: 'retro',     name: 'Retro 8-bit',  desc: 'Pikselowe kolory z lat 80.',       price: 800, currency: 'coin', icon: '👾', preview: '#3db870' }
+  ]
+};
+
+// Auto-grant default items (raz)
+(function initShopDefaults(){
+  if (!getStat('shop_initialized', false)) {
+    addOwned('skins', 'default');
+    setEquipped('skins', 'default');
+    addOwned('themes', 'default');
+    setEquipped('themes', 'default');
+    setStat('shop_initialized', true);
+  }
+})();
+
+// 🆕 TEST GRANT — jednorazowy bonus startowy do testowania sklepu
+(function grantTestCurrency(){
+  if (!getStat('test_grant_v2', false)) {
+    setStat('wallet_coins', getCoins() + 5000);
+    setStat('wallet_gems', getGems() + 200);
+    setStat('test_grant_v2', true);
+  }
+})();
+
+function findShopItem(category, id){
+  const list = SHOP_CATALOG[category] || [];
+  return list.find(i => i.id === id);
+}
+
+// 🆕 Faza C — gadżety realnie zmieniają gameplay
+function hasGadget(id) {
+  return isOwned('gadgets', id);
 }
 
 // ═════════════════════════════════════════════════
@@ -664,9 +928,9 @@ window.claimDailyAndShow = function() {
 // USER INIT
 // ═════════════════════════════════════════════════
 async function initUser() {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
-  const { data: ath } = await sb.from('athletes')
+  const { data: ath } = await _sb.from('athletes')
     .select('id, full_name')
     .eq('user_id', session.user.id)
     .maybeSingle();
@@ -696,7 +960,7 @@ async function loadTodayPlanned() {
   if (!_athleteId) return;
   const today = new Date().toISOString().slice(0, 10);
   try {
-    const { data } = await sb.from('trainings')
+    const { data } = await _sb.from('trainings')
       .select('type, description, distance_km')
       .eq('athlete_id', _athleteId)
       .eq('date', today)
@@ -733,7 +997,7 @@ function showSuggestedMode() {
 async function loadBonuses() {
   if (!_athleteId) return;
   const wS = new Date(); wS.setDate(wS.getDate() - 7);
-  const { data: weekLogs } = await sb.from('training_logs')
+  const { data: weekLogs } = await _sb.from('training_logs')
     .select('distance_km, training_type, pace, logged_at')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', wS.toISOString());
@@ -744,7 +1008,7 @@ async function loadBonuses() {
 
   // Streak
   const m30 = new Date(); m30.setDate(m30.getDate() - 30);
-  const { data: monthLogs } = await sb.from('training_logs')
+  const { data: monthLogs } = await _sb.from('training_logs')
     .select('logged_at, training_type')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', m30.toISOString());
@@ -808,7 +1072,7 @@ async function loadBonuses() {
 
 async function loadHighScore() {
   if (!_athleteId) return;
-  const { data } = await sb.from('game_scores')
+  const { data } = await _sb.from('game_scores')
     .select('score, distance')
     .eq('athlete_id', _athleteId)
     .order('score', { ascending: false })
@@ -834,13 +1098,57 @@ async function loadMentalMetrics() {
 // LEADERBOARD
 // ═════════════════════════════════════════════════
 async function loadLeaderboard(mode) {
+  // Załaduj OBA: globalny i znajomych
+  loadGlobalLeaderboard();
+  loadFriendsLeaderboard();
+}
+
+async function loadGlobalLeaderboard() {
+  const card = document.getElementById('lb-card-global');
+  if (!card) return;
+  card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>';
+  try {
+    // Wszystkie scores w trybie endless, top 10
+    const { data: scores, error } = await _sb.from('game_scores')
+      .select('athlete_id, score, distance, athletes(full_name)')
+      .order('score', { ascending: false })
+      .limit(100);  // pobierz więcej, deduplikuj per athlete, weź top 10
+    if (error) throw error;
+
+    const seen = new Set();
+    const top = (scores || []).filter(s => {
+      if (seen.has(s.athlete_id)) return false;
+      seen.add(s.athlete_id);
+      return true;
+    }).slice(0, 10);
+
+    if (!top.length) {
+      card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Brak wyników. Bądź pierwszy!</div>';
+      return;
+    }
+    card.innerHTML = top.map((s, i) => {
+      const isMe = s.athlete_id === _athleteId;
+      const name = s.athletes?.full_name || 'Biegacz';
+      const rankStyle = i === 0 ? 'color:var(--gold);' : i === 1 ? 'color:#cbd5e1;' : i === 2 ? 'color:#cd7f32;' : 'color:var(--muted);';
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);${isMe ? 'background:rgba(232,86,30,0.08);margin:0 -8px;padding:8px;border-radius:8px;border-bottom:none;' : ''}">
+        <div style="font-family:Bebas Neue,sans-serif;font-size:20px;width:24px;text-align:center;${rankStyle}">${i+1}</div>
+        <div style="flex:1;font-size:13px;color:var(--fg);">${name}${isMe ? ' (Ty)' : ''}</div>
+        <div style="font-family:DM Mono,monospace;font-size:13px;color:var(--accent);font-weight:600;">${s.score}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    console.warn('Global leaderboard failed:', e);
+    card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Nie udało się załadować rankingu globalnego.</div>';
+  }
+}
+
+async function loadFriendsLeaderboard() {
   if (!_athleteId) return;
-  // W endless mode nie ma wyboru trybu — ignorujemy parametr
   const card = document.getElementById('lb-card');
   if (!card) return;
   card.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:16px 0;">Ładowanie...</div>';
 
-  const friendsRes = await sb.from('friendships')
+  const friendsRes = await _sb.from('friendships')
     .select('requester_id, addressee_id')
     .eq('status', 'accepted')
     .or('requester_id.eq.' + _athleteId + ',addressee_id.eq.' + _athleteId);
@@ -850,7 +1158,7 @@ async function loadLeaderboard(mode) {
     friendIds.add(f.addressee_id);
   });
   const ids = [...friendIds];
-  const { data: scores } = await sb.from('game_scores')
+  const { data: scores } = await _sb.from('game_scores')
     .select('athlete_id, score, distance, athletes(full_name)')
     .in('athlete_id', ids)
     .order('score', { ascending: false })
@@ -892,18 +1200,33 @@ function switchTab(name) {
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-// 🆕 Performance: wyłącz shadowBlur w low quality mode (kosztowne renderowanie)
+// 🆕 Performance: lazy DOM cache dla HUD elementów wołanych co frame
+// Lazy = jeśli element nie istnieje przy starcie, znajdzie później przy pierwszym użyciu
+const _domCache = {};
+function $(id) {
+  let el = _domCache[id];
+  if (!el || !el.isConnected) {
+    el = document.getElementById(id);
+    if (el) _domCache[id] = el;
+  }
+  return el;
+}
+
+// 🆕 Performance: globalny clamp shadowBlur
+// - Low quality: blur OFF zawsze (cienie zniknięte)
+// - High quality: blur clamped do 8px max (różnica między 8 a 25 jest minimalna wzrokowo, ale GPU 3x mocniej pracuje)
 let _origShadowBlurDesc = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(ctx), 'shadowBlur');
 if (!_origShadowBlurDesc) _origShadowBlurDesc = Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, 'shadowBlur');
 let _shadowBlurValue = 0;
+const _MAX_BLUR = 8;  // 🆕 hard cap
 Object.defineProperty(ctx, 'shadowBlur', {
   set(v) {
     _shadowBlurValue = v;
-    // Wyłącz blur w low quality mode
     if (typeof _lowQuality !== 'undefined' && _lowQuality) {
       _origShadowBlurDesc.set.call(this, 0);
     } else {
-      _origShadowBlurDesc.set.call(this, v);
+      // Clamp w high quality też — 25px blur wygląda tak samo jak 8px, a kosztuje 3x więcej GPU
+      _origShadowBlurDesc.set.call(this, v > _MAX_BLUR ? _MAX_BLUR : v);
     }
   },
   get() { return _shadowBlurValue; },
@@ -918,7 +1241,12 @@ function resize() {
   canvas.style.height = window.innerHeight + 'px';
   GROUND_Y = H - H * 0.18;
 }
-window.addEventListener('resize', resize);
+// 🆕 Debounce resize — na mobile (chowanie paska URL) eventy lecą szybko, niepotrzebnie spamują
+let _resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(_resizeTimeout);
+  _resizeTimeout = setTimeout(resize, 100);
+});
 window.addEventListener('orientationchange', () => {
   // 🆕 Mała opóźnienie żeby przeglądarka zdążyła zaktualizować innerWidth/Height
   setTimeout(resize, 100);
@@ -945,6 +1273,7 @@ function newGame(mode) {
     multi: _bonuses.startMulti,
     maxMulti: _bonuses.startMulti,
     coins: 0,
+    gemsEarned: 0,  // 💎 klejnoty zarobione w tym runie (z misji) — transfer do walleta na endzie
     perfects: 0,
 
     // Lives — z trybu
@@ -992,6 +1321,7 @@ function newGame(mode) {
     bouncePhase: 0,          // 🆕 smooth bounce
     squashAmount: 0,         // 🆕 squash & stretch (anticipation/landing)
     popups: [],
+    shockwaves: [],          // 🆕 Pierścienie efektów (np. salto)
     trail: [],
 
     perfectStreak: 0,
@@ -1042,9 +1372,12 @@ function newGame(mode) {
     ambientBirds: [],         // 🆕 dekoracyjne ptaki w tle (bez kolizji)
 
     // POWER-UPS (tylko longrun)
-    nextPowerupIn: M.powerups ? 600 : Infinity,
+    nextPowerupIn: M.powerups ? 300 : Infinity,  // 🆕 pierwszy powerup po ~5s zamiast 10s
     powerups: [],
-    activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0 },
+    activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0, gel: 0 },
+    // 🆕 GWARANTOWANE wczesne spawny — żeby gracz widział że istnieją
+    guaranteedHeartSpawned: false,  // serce w 8s
+    guaranteedGelSpawned: false,    // żel w 14s
 
     // METRYKI MENTALNE
     reactionTimes: [],
@@ -1100,7 +1433,7 @@ function onTapDown(e) {
     registerTempoTap();
   }
 
-  if (now - lastTap < 280) {
+  if (now - lastTap < 220) {  // 🆕 220ms (było 280ms) — uniknięcie przypadkowego dasha przy rytmicznym skok+salto
     tryDash();
     recordReaction();
     lastTap = 0;
@@ -1128,6 +1461,11 @@ function onTapDown(e) {
     game.flipStartT = game.t;
     game.vy = -10 * dpr;          // mały dodatkowy hop dla efektu
     spawnParticles(game.px, game.py, '#ffb84d', 12);
+    // 🆕 Podwójny shockwave (zamiast ghost-postaci)
+    // Pierwszy: żółty, większy — główny "wybuch"
+    spawnShockwave(game.px, game.py - 20 * dpr, '#ffd966', { maxR: 70, lineWidth: 3 });
+    // Drugi: pomarańczowy, mniejszy, lekko opóźniony przez krótszy maxR (efekt podwójnej fali)
+    spawnShockwave(game.px, game.py - 20 * dpr, '#ff7a45', { maxR: 45, lineWidth: 2 });
     spawnPopup(game.px, game.py - 60 * dpr, 'SALTO!', '#ffb84d');
     if (navigator.vibrate) navigator.vibrate([15, 10, 15]);  // 🆕 podwójny puls
     playTap();
@@ -1198,6 +1536,9 @@ canvas.addEventListener('touchmove', function(e) {
   }
 }, { passive: false });
 canvas.addEventListener('touchend', function() { touchStartY = null; onTapUp(); });
+// 🆕 Touchcancel — gdy system przerwie touch (notyfikacja, połączenie, alert)
+// Bez tego jumpHold zostałby =1 a gracz "lewitowałby" do końca skoku
+canvas.addEventListener('touchcancel', function() { touchStartY = null; onTapUp(); });
 canvas.addEventListener('mousedown', onTapDown);
 canvas.addEventListener('mouseup', onTapUp);
 window.addEventListener('keydown', e => {
@@ -1262,7 +1603,7 @@ function registerTempoTap() {
     if (newMulti > game.multi + 0.05) {
       game.multi = newMulti;
       game.maxMulti = Math.max(game.maxMulti, game.multi);
-      const mEl = document.getElementById('hud-multi');
+      const mEl = $('hud-multi');
       mEl.classList.remove('pulse');
       void mEl.offsetWidth;
       mEl.classList.add('pulse');
@@ -1369,8 +1710,27 @@ function checkLongrunSceneChange() {
 // POWER-UPS (longrun mode)
 // ═════════════════════════════════════════════════
 function spawnPowerup() {
-  const types = ['magnet', 'shield', 'slowmo', 'boost'];
-  const type = types[Math.floor(Math.random() * types.length)];
+  // 🆕 TESTING: heart i gel są MOCNO widoczne (50% wszystkich) żeby zweryfikować spawn
+  // Wartości po dostrojeniu można zmniejszyć
+  const pool = [
+    { type: 'magnet', weight: 12 },
+    { type: 'shield', weight: 12 },
+    { type: 'slowmo', weight: 12 },
+    { type: 'boost',  weight: 12 },
+    { type: 'gel',    weight: 26 },  // 🆕 26% — żel WIDOCZNY
+    { type: 'heart',  weight: 26 }   // 🆕 26% — serce WIDOCZNE
+  ];
+  const totalWeight = pool.reduce((s, p) => s + p.weight, 0);
+  let r = Math.random() * totalWeight;
+  let type = pool[0].type;
+  for (const p of pool) {
+    if ((r -= p.weight) <= 0) { type = p.type; break; }
+  }
+  spawnSpecificPowerup(type);
+}
+
+function spawnSpecificPowerup(type) {
+  if (!game) return;
   game.powerups.push({
     type,
     x: W + 30 * dpr,
@@ -1442,8 +1802,10 @@ function checkMissionProgress(trackName, value) {
       m.completed = true;
       const bonusScore = Math.floor(m.bonus * game.multi);
       game.score += bonusScore;
-      spawnPopup(W * 0.5, H * 0.35, '✓ MISJA! +' + bonusScore, '#ffd966');
-      flashScreen('rgba(255,217,102,0.2)', 14);
+      // 💎 +1 klejnot za ukończoną misję (do walleta po runie)
+      game.gemsEarned = (game.gemsEarned || 0) + 1;
+      spawnPopup(W * 0.5, H * 0.35, '✓ MISJA! +' + bonusScore + ' · 💎+1', '#a868e0');
+      flashScreen('rgba(168,104,224,0.2)', 14);
       playCombo(2);
       if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
       // Po 1s wymień misję na nową
@@ -1484,13 +1846,77 @@ const PU_DEFS = {
   magnet: { icon: '🧲', dur: 360, msg: 'MAGNES' },
   shield: { icon: '🛡', dur: 300, msg: 'TARCZA' },
   slowmo: { icon: '🐢', dur: 240, msg: 'ZWOLNIENIE' },
-  boost:  { icon: '⚡', dur: 300, msg: 'PRZYSPIESZENIE' }
+  boost:  { icon: '⚡', dur: 300, msg: 'PRZYSPIESZENIE' },
+  gel:    { icon: '💪', dur: 300, msg: 'ŻEL — NIEŚMIERTELNOŚĆ' },  // 5s pełnej nietykalności
+  heart:  { icon: '❤', dur: 0,   msg: '+1 ŻYCIE' }                  // instant pickup, nie ma timera
 };
 
 function activatePowerup(type) {
   const def = PU_DEFS[type];
   if (!def) return;
+
+  // ❤ HEART — instant +1 życie (cap 5)
+  if (type === 'heart') {
+    const maxLives = 5;
+    if (game.lives < maxLives) {
+      game.lives++;
+      showToast('❤ +1 ŻYCIE!');
+      spawnPopup(game.px, game.py - 80 * dpr, '+1 ❤', '#e05050');
+      // pulsuj HUD serc
+      const hud = document.getElementById('hud-lives');
+      if (hud) {
+        hud.style.transform = 'scale(1.4)';
+        hud.style.transition = 'transform 0.3s';
+        setTimeout(() => { hud.style.transform = 'scale(1)'; }, 300);
+      }
+    } else {
+      // cap — daj punkty zamiast życia
+      const bonus = 200;
+      game.score += bonus;
+      showToast('❤ MAX ŻYĆ — +' + bonus);
+      spawnPopup(game.px, game.py - 80 * dpr, '+' + bonus, '#e05050');
+    }
+    flashScreen('rgba(224,80,80,0.18)', 14);
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      spawnParticles(
+        game.px + Math.cos(angle) * 25 * dpr,
+        game.py - 30 * dpr + Math.sin(angle) * 25 * dpr,
+        '#e05050', 1
+      );
+    }
+    playCombo(2);
+    if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
+    return;
+  }
+
+  // 💪 GEL — pełna nieśmiertelność (5s, z gadżetem big_gel: 7s) przez game.invuln
+  if (type === 'gel') {
+    // 🎒 GADŻET big_gel — wydłuża żel z 5s do 7s (300 → 420 klatek)
+    const gelDur = hasGadget('big_gel') ? 420 : def.dur;
+    game.activePU.gel = gelDur;
+    game.invuln = Math.max(game.invuln, gelDur);  // pełen invuln, niezależnie od shield
+    showToast(def.icon + ' ' + def.msg + (hasGadget('big_gel') ? ' (+2s)' : ''));
+    flashScreen('rgba(255,165,0,0.22)', 16);
+    // złoto-pomarańczowa aura wybuch
+    for (let i = 0; i < 20; i++) {
+      const angle = (i / 20) * Math.PI * 2;
+      spawnParticles(
+        game.px + Math.cos(angle) * 28 * dpr,
+        game.py - 30 * dpr + Math.sin(angle) * 28 * dpr,
+        i % 2 === 0 ? '#ffa030' : '#ffd966', 1
+      );
+    }
+    playCombo(3);
+    if (navigator.vibrate) navigator.vibrate([50, 30, 50, 30, 80]);
+    return;
+  }
+
   game.activePU[type] = def.dur;
+  // 🎒 GADŻET tough_shield — przy aktywacji tarczy resetuj liczbę trafień
+  if (type === 'shield' && hasGadget('tough_shield')) {
+    game.shieldHits = 2;
+  }
   showToast(def.icon + ' ' + def.msg);
   // 🆕 Lepszy feel — flash + particles + sound + vibration
   const colors = { magnet: '#ffb84d', shield: '#5090e0', slowmo: '#3db870', boost: '#e8561e' };
@@ -1514,7 +1940,7 @@ function updatePowerupHUD() {
   const bar = document.getElementById('powerup-bar');
   if (!bar) return;
   const items = [];
-  ['boost', 'shield', 'magnet', 'slowmo'].forEach(k => {
+  ['boost', 'shield', 'gel', 'magnet', 'slowmo'].forEach(k => {
     if (game.activePU[k] > 0) {
       const def = PU_DEFS[k];
       const sec = Math.ceil(game.activePU[k] / 60);
@@ -1541,28 +1967,19 @@ function spawnObstacle() {
     ? types[1 + Math.floor(Math.random()*2)]
     : types[Math.floor(Math.random()*3)];
   
-  // 🆕 Rodzaj rowu zależny od sceny
-  let gapKind = 'empty';  // domyślnie pusty (przepaść)
+  // 🆕 Rodzaj rowu zależny od sceny — TYLKO woda lub lawa (czarna dziura była niewidoczna)
+  let gapKind = 'water';  // domyślnie woda
   if (type === 'gap') {
     const escene = game.endlessScene || 0;
-    const r = Math.random();
-    // PARK / MIASTO — woda/puste
-    if (escene === 0 || escene === 1) {
-      gapKind = r < 0.6 ? 'water' : 'empty';
+    // PARK / MIASTO / NOC / ŚWIT — woda (świecące, kontrastowe)
+    if (escene === 0 || escene === 1 || escene === 2 || escene === 3) {
+      gapKind = 'water';
     }
-    // NOC — głównie puste, czasem woda (kałuża)
-    else if (escene === 2) {
-      gapKind = r < 0.7 ? 'empty' : 'water';
-    }
-    // ŚWIT — woda/puste
-    else if (escene === 3) {
-      gapKind = r < 0.5 ? 'water' : 'empty';
-    }
-    // GÓRY — głównie puste, lava w 30%
+    // GÓRY — lawa (gorąca, pomarańczowa, na każdym tle widoczna)
     else if (escene === 4) {
-      gapKind = r < 0.3 ? 'lava' : 'empty';
+      gapKind = 'lava';
     }
-    // KOSMOS — same czarne dziury
+    // KOSMOS — czarne dziury (na czarnym tle to celowy wyzwanie)
     else {
       gapKind = 'empty';
     }
@@ -2066,134 +2483,159 @@ function startMusic() {
   
   // Master gain
   const masterGain = ctx.createGain();
-  masterGain.gain.value = 0.22;
+  masterGain.gain.value = 0.18;  // 🆕 0.22 → 0.18 (rap beat z 808 jest mocniejszy w niskich tonach)
   masterGain.connect(ctx.destination);
   _musicState.masterGain = masterGain;
   _musicState.playing = true;
   
   // 🆕 NOWE PODEJŚCIE: pre-render cały loop do AudioBuffer (8 sekund) i loopuj natywnie
   // To omija problem JS scheduler timera na iOS Safari
-  const bpm = 75;
-  const beatDur = 60 / bpm;          // 0.8s na beat (4/4)
-  const stepDur = beatDur / 4;       // 16th = 0.2s
-  const loopDur = stepDur * 32;      // 32 step (2 bary) = 6.4s
+  // 🎤 RAP/HIP-HOP BEAT — boom-bap z trap hi-hats, Cm progression
+  const bpm = 88;                    // 🆕 boom-bap pocket (było lo-fi 75)
+  const beatDur = 60 / bpm;          // 0.682s na beat (4/4)
+  const stepDur = beatDur / 4;       // 16th
+  const loopDur = stepDur * 32;      // 32 step (2 bary)
   const sampleRate = ctx.sampleRate;
   const loopSamples = Math.floor(loopDur * sampleRate);
   const buffer = ctx.createBuffer(2, loopSamples, sampleRate);  // stereo
   const left = buffer.getChannelData(0);
   const right = buffer.getChannelData(1);
   
-  // Helper: generuje kick drum sample
+  // Helper: kick drum — cięższy, niżej, mocniejszy slide (rap style)
   function _kick(samples, time, vol) {
-    const dur = 0.15 * sampleRate;
+    const dur = 0.18 * sampleRate;
     const start = Math.floor(time * sampleRate);
     for (let i = 0; i < dur && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.exp(-t * 12);
-      const freq = 60 + 60 * Math.exp(-t * 30);  // pitch drop
+      const env = Math.exp(-t * 10);
+      // 🆕 Rap kick — głębszy slide z 90 do 35Hz
+      const freq = 35 + 55 * Math.exp(-t * 35);
       const sample = Math.sin(2 * Math.PI * freq * t) * env * vol;
       samples[start + i] += sample;
     }
   }
   
-  // Helper: snare (white noise + tonal)
-  function _snare(samples, time, vol) {
-    const dur = 0.1 * sampleRate;
+  // Helper: clap (rap style — dwa hity razem, mocniejszy backbeat niż snare)
+  function _clap(samples, time, vol) {
+    const dur = 0.12 * sampleRate;
     const start = Math.floor(time * sampleRate);
     for (let i = 0; i < dur && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.exp(-t * 25);
-      const noise = (Math.random() * 2 - 1) * 0.6;
-      const tone = Math.sin(2 * Math.PI * 200 * t) * 0.4;
-      samples[start + i] += (noise + tone) * env * vol;
+      // Multi-hit envelope (3 szybkie peaki = clap effect)
+      let env = 0;
+      env += Math.exp(-Math.abs(t - 0) * 200);
+      env += Math.exp(-Math.abs(t - 0.008) * 200) * 0.7;
+      env += Math.exp(-Math.abs(t - 0.018) * 60) * 0.5;
+      const noise = (Math.random() * 2 - 1);
+      // Highpass approx (różnica)
+      samples[start + i] += noise * env * vol * 0.5;
     }
   }
   
-  // Helper: hi-hat (filtered noise, krótki)
+  // Helper: hi-hat (filtered noise, krótki) — to samo co było, dobre na trap rolls
   function _hat(samples, time, vol, open) {
-    const dur = (open ? 0.18 : 0.05) * sampleRate;
+    const dur = (open ? 0.15 : 0.04) * sampleRate;
     const start = Math.floor(time * sampleRate);
     let lastSample = 0;
     for (let i = 0; i < dur && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.exp(-t * (open ? 12 : 50));
-      // Simple highpass: różnica kolejnych próbek (high freq pass)
+      const env = Math.exp(-t * (open ? 14 : 60));
       const noise = Math.random() * 2 - 1;
       const filtered = noise - lastSample * 0.7;
       lastSample = noise;
-      samples[start + i] += filtered * env * vol * 0.5;
+      samples[start + i] += filtered * env * vol * 0.45;
     }
   }
   
-  // Helper: bass (sine + saw, lowpass)
-  function _bass(samples, time, freq, dur, vol) {
-    const durSamples = dur * sampleRate;
-    const start = Math.floor(time * sampleRate);
-    let lpState = 0;
-    for (let i = 0; i < durSamples && start + i < samples.length; i++) {
-      const t = i / sampleRate;
-      const env = Math.min(1, t * 50) * Math.exp(-t * 1.5);  // attack + slow decay
-      // Saw wave
-      const phase = (freq * t) % 1;
-      const saw = phase * 2 - 1;
-      const sine = Math.sin(2 * Math.PI * freq * t);
-      const raw = saw * 0.4 + sine * 0.6;
-      // Lowpass filter (simple one-pole)
-      lpState += (raw - lpState) * 0.15;
-      samples[start + i] += lpState * env * vol;
-    }
-  }
-  
-  // Helper: pad (3 sine fundamentals z delikatnym vibrato)
-  function _pad(samples, time, freqs, dur, vol) {
+  // Helper: 808 sub-bass — czysty sinus, długi, low-end (rap fundament)
+  function _808(samples, time, freq, dur, vol) {
     const durSamples = dur * sampleRate;
     const start = Math.floor(time * sampleRate);
     for (let i = 0; i < durSamples && start + i < samples.length; i++) {
       const t = i / sampleRate;
-      const env = Math.min(1, t * 1.5) * Math.min(1, (dur - t) * 1.5);  // ramp in/out
-      let sample = 0;
-      for (const freq of freqs) {
-        const vibrato = Math.sin(2 * Math.PI * 4 * t) * 1.5;  // 4Hz vibrato 1.5Hz depth
-        sample += Math.sin(2 * Math.PI * (freq * 4 + vibrato) * t);
+      // Slow attack, dłuższy decay (typowy 808)
+      const env = Math.min(1, t * 30) * Math.exp(-t * 2);
+      // Lekki pitch slide na początku (boom)
+      const slideFactor = 1 + 0.1 * Math.exp(-t * 20);
+      const sine = Math.sin(2 * Math.PI * freq * slideFactor * t);
+      // Trochę soft saturation (drive) dla rap feel
+      const driven = Math.tanh(sine * 1.5) * 0.85;
+      samples[start + i] += driven * env * vol;
+    }
+  }
+  
+  // Helper: vinyl crackle (subtle background noise dla retro-rap vibe)
+  function _vinyl(samples, vol) {
+    for (let i = 0; i < samples.length; i++) {
+      // Sparse crackle: ~0.1% chance per sample
+      if (Math.random() < 0.0008) {
+        samples[i] += (Math.random() * 2 - 1) * vol * 2;
       }
-      samples[start + i] += (sample / freqs.length) * env * vol;
+      // Constant low hiss
+      samples[i] += (Math.random() * 2 - 1) * vol * 0.15;
     }
   }
   
-  // Patterns (32 step = 2 bary)
-  const kickPat = [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0,
-                   1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,1,0];
-  const snarePat = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0,
-                    0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
-  const hatPat = [1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1,
-                  1,0,1,1, 1,0,1,2, 1,0,1,1, 1,0,2,1];
+  // 🆕 RAP PATTERNS (32 step = 2 bary)
+  // Kick — boom-bap: 1 i 7 (kick na 1, kick przed snare)
+  const kickPat = [1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,0,
+                   1,0,0,0, 0,0,0,0, 0,0,1,0, 0,0,0,1];  // ostatni to ghost kick
+  // Clap zamiast snare — backbeat 5 i 13 (mocniejszy "bujający" feel)
+  const clapPat = [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0,
+                   0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0];
+  // Hi-hat — trap z rolls (2=open, 3=double 1/32 hit, 4=triple roll)
+  const hatPat = [1,0,1,3, 1,0,1,2, 1,0,1,3, 1,0,4,4,
+                  1,0,1,3, 1,0,1,2, 1,0,1,3, 1,3,3,3];  // ostatni bar = hi-hat roll fill
   
-  // 2 chords w 32-step pętli (Am, F)
-  const chord1 = [110.00, 130.81, 164.81];   // Am
-  const chord2 = [87.31, 110.00, 130.81];    // F
+  // 🆕 Cm progression (ciemniejsza, hip-hop sound): Cm - Ab - Eb - G
+  // Tylko bass notes (root) — rap nie potrzebuje kompletnych chordów
+  // Cm=65.41 (C2), Ab=51.91 (Ab1), Eb=77.78 (Eb2), G=49.00 (G1)
+  const bassPat = [
+    {step: 0,  freq: 65.41, dur: 0.6},   // Cm
+    {step: 8,  freq: 51.91, dur: 0.6},   // Ab
+    {step: 16, freq: 77.78, dur: 0.6},   // Eb
+    {step: 24, freq: 49.00, dur: 0.5},   // G
+    // Ghost notes / fills
+    {step: 6,  freq: 65.41, dur: 0.15},  // ghost C
+    {step: 22, freq: 77.78, dur: 0.15},  // ghost Eb
+  ];
   
-  // Wypełnij oba kanały (mono → stereo)
+  // Wypełnij sample buffer (mono, później kopiowane do stereo)
   const allSamples = new Float32Array(loopSamples);
   
-  // Drums + bass + pad
+  // Vinyl crackle background (retro-rap atmosfera)
+  _vinyl(allSamples, 0.04);
+  
+  // Drums
   for (let step = 0; step < 32; step++) {
     const t = step * stepDur;
-    if (kickPat[step]) _kick(allSamples, t, 0.7);
-    if (snarePat[step]) _snare(allSamples, t, 0.4);
-    if (hatPat[step]) _hat(allSamples, t, 0.3, hatPat[step] === 2);
-    
-    // Bass na 0 i 8 (każdy bar)
-    if (step === 0) _bass(allSamples, t, chord1[0] / 2, stepDur * 8, 0.5);
-    if (step === 8) _bass(allSamples, t, chord1[1] / 2, stepDur * 8, 0.4);
-    if (step === 16) _bass(allSamples, t, chord2[0] / 2, stepDur * 8, 0.5);
-    if (step === 24) _bass(allSamples, t, chord2[1] / 2, stepDur * 8, 0.4);
+    if (kickPat[step]) _kick(allSamples, t, kickPat[step] === 1 ? 0.85 : 0.4);  // ghost = quieter
+    if (clapPat[step]) _clap(allSamples, t, 0.55);
+    if (hatPat[step]) {
+      const v = hatPat[step];
+      if (v === 1) {
+        _hat(allSamples, t, 0.35, false);
+      } else if (v === 2) {
+        _hat(allSamples, t, 0.4, true);  // open hat
+      } else if (v === 3) {
+        // Double 1/32 hit (trap roll)
+        _hat(allSamples, t, 0.32, false);
+        _hat(allSamples, t + stepDur * 0.5, 0.28, false);
+      } else if (v === 4) {
+        // Triple 1/32 roll fill
+        _hat(allSamples, t, 0.3, false);
+        _hat(allSamples, t + stepDur * 0.33, 0.28, false);
+        _hat(allSamples, t + stepDur * 0.66, 0.32, false);
+      }
+    }
   }
   
-  // Pad — 2 chordy
-  _pad(allSamples, 0, chord1, stepDur * 16, 0.18);
-  _pad(allSamples, stepDur * 16, chord2, stepDur * 16, 0.18);
+  // 808 bass
+  for (const b of bassPat) {
+    _808(allSamples, b.step * stepDur, b.freq, b.dur, b.step % 8 === 0 ? 0.7 : 0.35);
+  }
   
-  // Kopiuj do stereo (subtle pan może być dodany później)
+  // Kopiuj do stereo
   for (let i = 0; i < loopSamples; i++) {
     left[i] = allSamples[i];
     right[i] = allSamples[i];
@@ -2257,6 +2699,21 @@ function spawnPopup(x, y, text, color) {
     life: 50, 
     maxLife: 50,        // 🆕 dla scale animation
     vy: -1.5 * dpr 
+  });
+}
+
+// 🆕 Pierścień rozszerzający się (shockwave) — efekt wybuchowy w jednym punkcie
+// Używany przy salcie zamiast ghost-postaci (które ciągnęły się i wkurzały)
+function spawnShockwave(x, y, color, opts) {
+  if (!game.shockwaves) game.shockwaves = [];
+  opts = opts || {};
+  game.shockwaves.push({
+    x, y,
+    color: color || '#ffd966',
+    life: 24,
+    maxLife: 24,
+    maxR: (opts.maxR || 60) * dpr,
+    lineWidth: (opts.lineWidth || 3) * dpr
   });
 }
 
@@ -2494,7 +2951,7 @@ function update() {
       }
     }
     // Update aktywne power-upy
-    ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+    ['magnet', 'shield', 'slowmo', 'boost', 'gel'].forEach(k => {
       if (game.activePU[k] > 0) game.activePU[k]--;
     });
     // Update HUD bar
@@ -2573,14 +3030,25 @@ function update() {
     }
     if (game.sceneTransition > 0) game.sceneTransition--;
     if (M.powerups) {
+      // 🆕 GWARANTOWANE wczesne spawny — żeby gracz widział nowe power-upy
+      if (!game.guaranteedHeartSpawned && game.elapsed >= 8) {
+        spawnSpecificPowerup('heart');
+        game.guaranteedHeartSpawned = true;
+        showToast('❤ Serce na trasie!');
+      }
+      if (!game.guaranteedGelSpawned && game.elapsed >= 14) {
+        spawnSpecificPowerup('gel');
+        game.guaranteedGelSpawned = true;
+        showToast('💪 Żel na trasie!');
+      }
       game.nextPowerupIn--;
       if (game.nextPowerupIn <= 0) {
         spawnPowerup();
-        game.nextPowerupIn = 400 + Math.random() * 300;  // częściej (było 700-1200)
+        game.nextPowerupIn = 300 + Math.random() * 250;  // 🆕 co 5-9s (było 6.5-11s)
       }
     }
     // Update aktywne power-upy
-    ['magnet', 'shield', 'slowmo', 'boost'].forEach(k => {
+    ['magnet', 'shield', 'slowmo', 'boost', 'gel'].forEach(k => {
       if (game.activePU[k] > 0) game.activePU[k]--;
     });
     updatePowerupHUD();
@@ -2681,6 +3149,8 @@ function update() {
             game.score += bonus;
             spawnPopup(game.px, game.py - 100 * dpr, 'SALTO! +' + bonus, '#ffd966');
             spawnParticles(game.px, game.py - 30 * dpr, '#ffd966', 20);
+            // 🆕 Celebracyjna shockwave przy lądowaniu (większa od startowej)
+            spawnShockwave(game.px, GROUND_Y - 5 * dpr, '#ffd966', { maxR: 100, lineWidth: 4 });
             flashScreen('rgba(255,217,102,0.18)', 12);
             playPerfect();
             playCombo(3);
@@ -2743,8 +3213,8 @@ function update() {
 
   if (game.invuln > 0) game.invuln--;
 
-  // Trail
-  if (game.t % 2 === 0) {
+  // Trail — tylko podczas dasha (intensywny ruch). Normalny bieg/skok bez smugi (czyściej, mniej GPU).
+  if (game.dashing > 0 && game.t % 2 === 0) {
     game.trail.push({ x: game.px, y: game.py - (game.sliding > 0 ? 10 * dpr : 30 * dpr), life: 20 });
   }
   game.trail.forEach(t => t.life--);
@@ -2860,10 +3330,16 @@ function update() {
   // Particles + popups
   game.particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.3 * dpr; p.life--; });
   game.particles = game.particles.filter(p => p.life > 0);
-  // 🆕 Cap particles na 150 (zapobiega lag spike przy explozjach)
-  if (game.particles.length > 150) game.particles = game.particles.slice(-150);
+  // 🆕 Cap particles — dynamiczny w zależności od jakości (mobile/low = 50, high = 150)
+  const maxParticles = _lowQuality ? 50 : 150;
+  if (game.particles.length > maxParticles) game.particles = game.particles.slice(-maxParticles);
   game.popups.forEach(p => { p.y += p.vy; p.life--; });
   game.popups = game.popups.filter(p => p.life > 0);
+  // 🆕 Shockwaves update (rosną i fade-out)
+  if (game.shockwaves && game.shockwaves.length > 0) {
+    game.shockwaves.forEach(sw => sw.life--);
+    game.shockwaves = game.shockwaves.filter(sw => sw.life > 0);
+  }
   
   // 🆕 FOOTPRINTS — ślady stóp gdy biegacz na ziemi
   if (game.onGround && !game.sliding && !game.flipping && game.speed > 3 * dpr) {
@@ -2956,8 +3432,8 @@ function update() {
     
     // 🆕 BUTTERFLIES w PARK
     if (escene === 0) {
-      // Spawn raz na ~3-5s
-      if (game.t % 200 === 0 && game.butterflies.length < 4) {
+      // Spawn raz na ~3-5s — pomijamy w low quality
+      if (!_lowQuality && game.t % 200 === 0 && game.butterflies.length < 4) {
         game.butterflies.push({
           x: W + 30 * dpr,
           y: GROUND_Y - (50 + Math.random() * 80) * dpr,
@@ -3158,9 +3634,53 @@ function update() {
     if (h.triggered) continue;
     const hx1 = h.x, hx2 = h.x + h.w;
     const hy1 = h.y - h.h, hy2 = h.y;
-    if (px2 > hx1 && px1 < hx2 && py2 > hy1 && py1 < hy2) {
+
+    // 🤸 SALTO KILL — jeśli gracz robi salto i przelatuje NAD hazardem (w powietrzu),
+    // niszczymy go zamiast spowolnienia. Sprawdzamy x-overlap + bycie w powietrzu z flippingiem.
+    const xOverlap = px2 > hx1 && px1 < hx2;
+    const isFlipping = game.flipping && game.flipRotation >= 90;
+    const isAirborne = game.py < GROUND_Y - 8 * dpr;
+    if (xOverlap && isFlipping && isAirborne) {
+      h.triggered = true;
+      // 🎒 GADŻET flip_master — bonus +50% za salto-kill
+      const baseBonus = 75;
+      const bonusMultiplier = hasGadget('flip_master') ? 1.5 : 1;
+      const bonus = Math.floor(baseBonus * bonusMultiplier * game.multi);
+      game.score += bonus;
+      const msg = h.type === 'banana' ? '🍌 SMASH! +' + bonus : '💧 SPLASH! +' + bonus;
+      const color = h.type === 'banana' ? '#ffd966' : '#5090e0';
+      spawnPopup(h.x + h.w / 2, h.y - 40 * dpr, msg, color);
+      // Wybuch particles — większy
+      for (let i = 0; i < 18; i++) {
+        const angle = (i / 18) * Math.PI * 2;
+        spawnParticles(
+          h.x + h.w / 2 + Math.cos(angle) * 8 * dpr,
+          h.y - h.h / 2 + Math.sin(angle) * 8 * dpr,
+          color, 1
+        );
+      }
+      // Shockwave dla feedbacku
+      spawnShockwave(h.x + h.w / 2, h.y - h.h / 2, color, { maxR: 60, lineWidth: 3 });
+      flashScreen('rgba(255,217,102,0.10)', 8);
+      playCombo(2);
+      if (navigator.vibrate) navigator.vibrate([20, 15, 30]);
+      // Mission tracker — liczy jako trick
+      if (game.missionTrackers) {
+        game.missionTrackers.perfects = (game.missionTrackers.perfects || 0) + 1;
+      }
+      continue;
+    }
+
+    if (xOverlap && py2 > hy1 && py1 < hy2) {
       // Kontakt — tylko jeśli na ziemi (bo to obiekty na podłodze)
       if (game.py >= GROUND_Y - 8 * dpr) {
+        // 💪 Gel — nieśmiertelność, hazard też nas nie złapie
+        if (game.activePU && game.activePU.gel > 0) {
+          h.triggered = true;
+          spawnPopup(h.x + h.w / 2, h.y - 30 * dpr, '💪 IGNORE', '#ffa030');
+          spawnParticles(h.x + h.w / 2, h.y, '#ffa030', 8);
+          continue;
+        }
         h.triggered = true;
         // Spowolnienie na 2 sekundy
         game.slowedTimer = 120;  // 2s przy 60fps
@@ -3206,22 +3726,38 @@ function update() {
     }
   }
 
-  // 🪄 POWER-UPS (longrun mode)
-  if (game.config.id === 'longrun') {
+  // 🪄 POWER-UPS (każdy tryb z M.powerups: true) — 🆕 BUG FIX: było 'longrun' only
+  if (game.config.powerups) {
     // Move power-ups
     game.powerups.forEach(p => { p.x -= game.speed; p.bob += 0.05; });
     game.powerups = game.powerups.filter(p => p.x + p.r > -30 * dpr && !p.collected);
 
-    // Magnet effect
+    // Magnet effect (z gadżetem big_magnet → +30% zasięgu)
     if (game.activePU.magnet > 0) {
+      const magnetRange = hasGadget('big_magnet') ? 260 : 200;  // 🎒 GADŻET
       game.coinsArr.forEach(c => {
         if (c.collected) return;
         const dxc = game.px - c.x;
         const dyc = (game.py - 30 * dpr) - c.y;
         const distc = Math.sqrt(dxc*dxc + dyc*dyc);
-        if (distc < 200 * dpr && distc > 0) {
+        if (distc < magnetRange * dpr && distc > 0) {
           c.x += dxc / distc * 8 * dpr;
           c.y += dyc / distc * 8 * dpr;
+        }
+      });
+    }
+
+    // 🎒 GADŻET coin_pull — pasywne przyciąganie monet z bliskiego zasięgu (50% większe)
+    if (hasGadget('coin_pull')) {
+      const passivePullRange = 90;  // bazowy zasięg "auto-collect"
+      game.coinsArr.forEach(c => {
+        if (c.collected) return;
+        const dxc = game.px - c.x;
+        const dyc = (game.py - 30 * dpr) - c.y;
+        const distc = Math.sqrt(dxc*dxc + dyc*dyc);
+        if (distc < passivePullRange * dpr && distc > 0) {
+          c.x += dxc / distc * 4 * dpr;  // wolniejsze niż magnet
+          c.y += dyc / distc * 4 * dpr;
         }
       });
     }
@@ -3234,7 +3770,15 @@ function update() {
       if (dxp * dxp + dyp * dyp < (p.r + playerR) * (p.r + playerR)) {
         p.collected = true;
         activatePowerup(p.type);
-        spawnParticles(p.x, p.y, p.type === 'magnet' ? '#ffd966' : p.type === 'shield' ? '#5090e0' : p.type === 'slowmo' ? '#a868e0' : '#e8561e', 14);
+        const puColors = {
+          magnet: '#ffd966',
+          shield: '#5090e0',
+          slowmo: '#a868e0',
+          boost:  '#e8561e',
+          heart:  '#e05050',
+          gel:    '#ffa030'
+        };
+        spawnParticles(p.x, p.y, puColors[p.type] || '#ffd966', 14);
         // 🎯 Mission tracking
         if (game.missionTrackers) {
           game.missionTrackers.powerupsCollected++;
@@ -3344,10 +3888,10 @@ function update() {
     game._displayScore += Math.max(1, Math.ceil(Math.abs(diff) / 8)) * Math.sign(diff);
     if (Math.abs(target - game._displayScore) < 1) game._displayScore = target;
   }
-  document.getElementById('hud-score').textContent = Math.floor(game._displayScore);
-  document.getElementById('hud-multi').textContent = 'x' + game.multi.toFixed(1);
-  document.getElementById('hud-distance').textContent = Math.floor(game.distance) + ' m';
-  document.getElementById('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
+  $('hud-score').textContent = Math.floor(game._displayScore);
+  $('hud-multi').textContent = 'x' + game.multi.toFixed(1);
+  $('hud-distance').textContent = Math.floor(game.distance) + ' m';
+  $('hud-speed').textContent = Math.round(game.speed / dpr * 5) + ' km/h';
   // 🆕 Lepsze hearts — z poświatą i animacją utraty
   const maxLives = Math.max(M.lives, game.lives);
   let heartsHtml = '';
@@ -3358,10 +3902,10 @@ function update() {
       heartsHtml += '<span style="color:rgba(255,80,80,0.15);font-size:16px;">♡</span>';
     }
   }
-  document.getElementById('hud-lives').innerHTML = heartsHtml;
+  $('hud-lives').innerHTML = heartsHtml;
 
   // Combo counter — tier-based colors (zaczyna się od 3)
-  const comboEl = document.getElementById('hud-combo');
+  const comboEl = $('hud-combo');
   const comboCount = M.id === 'tempo' ? game.tempoStreak : game.perfectStreak;
   if (comboEl) {
     if (comboCount >= 3) {
@@ -3399,56 +3943,51 @@ function update() {
 
 function updateModeTarget() {
   const M = game.config;
-  const target = document.getElementById('mode-target');
+  const target = $('mode-target');
   if (M.id === 'endless') {
     // Endless — pokaż dystans + porównanie z rekordem
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '🏁';
-    const best = getStat('best_score', 0);
+    $('mt-icon').textContent = '🏁';
+    const best = game.cachedBestScore;  // 🆕 cached zamiast getStat → unika localStorage read co frame
     const cur = Math.floor(game.score);
     if (best > 0 && cur < best) {
-      document.getElementById('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
-      document.getElementById('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
+      $('mt-text').textContent = cur + ' / ' + best + ' (rekord)';
+      $('mt-fill').style.width = Math.min(100, cur / best * 100) + '%';
     } else if (best > 0 && cur >= best) {
-      document.getElementById('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
-      document.getElementById('mt-fill').style.width = '100%';
+      $('mt-text').textContent = '🏆 NOWY REKORD: ' + cur;
+      $('mt-fill').style.width = '100%';
     } else {
-      document.getElementById('mt-text').textContent = cur + ' pkt';
-      document.getElementById('mt-fill').style.width = '0%';
+      $('mt-text').textContent = cur + ' pkt';
+      $('mt-fill').style.width = '0%';
     }
     return;
   }
   if (M.id === 'tempo') {
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '🎯';
+    $('mt-icon').textContent = '🎯';
     const remaining = Math.max(0, M.duration - Math.floor(game.elapsed));
-    document.getElementById('mt-text').textContent = remaining + 's · ' + game.tempoConsistency + '%';
-    document.getElementById('mt-fill').style.width = game.tempoConsistency + '%';
+    $('mt-text').textContent = remaining + 's · ' + game.tempoConsistency + '%';
+    $('mt-fill').style.width = game.tempoConsistency + '%';
     return;
   }
   if (M.id === 'longrun') {
-    target.style.display = 'flex';
-    const scene = LONGRUN_SCENES[game.longrunScene] || LONGRUN_SCENES[0];
-    const min = Math.floor(game.elapsed / 60);
-    const sec = Math.floor(game.elapsed % 60);
-    document.getElementById('mt-icon').textContent = scene.icon;
-    document.getElementById('mt-text').textContent = scene.label + ' · ' + min + ':' + String(sec).padStart(2, '0');
-    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+    // 🆕 Scena widoczna wizualnie — pasek niepotrzebny (zwalnia miejsce na górze ekranu)
+    target.style.display = 'none';
     return;
   }
   if (M.targetType === 'time') {
     target.style.display = 'flex';
-    document.getElementById('mt-icon').textContent = '⏱';
+    $('mt-icon').textContent = '⏱';
     const remaining = Math.max(0, M.target - Math.floor(game.elapsed));
-    document.getElementById('mt-text').textContent = remaining + 's';
-    document.getElementById('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
+    $('mt-text').textContent = remaining + 's';
+    $('mt-fill').style.width = Math.min(100, game.elapsed / M.target * 100) + '%';
   } else if (M.targetType === 'cycles') {
     target.style.display = 'flex';
     const phaseIcon = game.intervalPhase === 'sprint' ? '⚡' : '🌿';
     const phaseRemain = Math.ceil((game.intervalPhase === 'sprint' ? M.sprintLen : M.restLen) - game.intervalPhaseTimer);
-    document.getElementById('mt-icon').textContent = phaseIcon;
-    document.getElementById('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
-    document.getElementById('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
+    $('mt-icon').textContent = phaseIcon;
+    $('mt-text').textContent = (game.intervalCycle + 1) + '/' + M.intervalCycles + ' · ' + phaseRemain + 's';
+    $('mt-fill').style.width = Math.min(100, game.intervalCycle / M.intervalCycles * 100) + '%';
   } else {
     target.style.display = 'none';
   }
@@ -3478,7 +4017,7 @@ function updateComboMultiplier() {
       checkMissionProgress('maxComboReached', game.missionTrackers.maxComboReached);
     }
     // Pulsująca animacja na zmianie tier
-    const mEl = document.getElementById('hud-multi');
+    const mEl = $('hud-multi');
     if (mEl) {
       mEl.classList.remove('pulse');
       void mEl.offsetWidth;
@@ -3523,8 +4062,24 @@ function updateComboMultiplier() {
 }
 
 function hitObstacle() {
-  // Shield absorbuje pierwsze trafienie
+  // Shield absorbuje trafienie (z gadżetem tough_shield → 2 trafienia zamiast 1)
   if (game.activePU && game.activePU.shield > 0) {
+    // 🎒 GADŻET tough_shield: tarcza ma "hp" przechowywane jako game.shieldHits
+    if (hasGadget('tough_shield')) {
+      if (game.shieldHits === undefined) game.shieldHits = 2;
+      game.shieldHits--;
+      if (game.shieldHits > 0) {
+        // Pierwsze trafienie — tarcza dalej działa, tylko popup
+        game.invuln = 60;
+        spawnPopup(game.px, game.py - 70 * dpr, '🛡 -1 (zostało ' + game.shieldHits + ')', '#5090e0');
+        flashScreen('rgba(80,144,224,0.2)', 12);
+        shakeAmount = 8 * dpr;
+        if (navigator.vibrate) navigator.vibrate([20, 30, 20]);
+        return;
+      }
+      // Drugie trafienie — tarcza znika
+      game.shieldHits = undefined;
+    }
     game.activePU.shield = 0;
     game.invuln = 60;
     // Większa eksplozja particles
@@ -5573,6 +6128,22 @@ function render() {
       const droneW = o.w;
       const droneH = o.h * 0.5;  // dron jest płaski, nie kwadratowy
       const propPhase = game.t * 0.8;  // szybkie wirowanie propellerów
+
+      // 🆕 KOLOROWA AURA OSTRZEGAWCZA — cykluje przez tęczę dla widoczności na każdym tle
+      const droneT = game.t;
+      const droneCycle = (droneT * 0.04) % (Math.PI * 2);
+      const droneHue = (Math.sin(droneCycle) * 0.5 + 0.5) * 360;
+      const dronePulseColor = 'hsl(' + Math.floor(droneHue) + ', 95%, 60%)';
+      const dronePulseAlpha = 0.5 + Math.sin(droneT * 0.15) * 0.25;
+      // Duża świecąca aura wokół drona
+      const droneAuraGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, droneW * 0.9);
+      droneAuraGrad.addColorStop(0, dronePulseColor.replace('hsl(', 'hsla(').replace(')', ',' + dronePulseAlpha + ')'));
+      droneAuraGrad.addColorStop(0.5, dronePulseColor.replace('hsl(', 'hsla(').replace(')', ',' + (dronePulseAlpha * 0.3) + ')'));
+      droneAuraGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = droneAuraGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, droneW * 0.9, 0, Math.PI * 2);
+      ctx.fill();
       
       // Cień pod dronem (na ziemi, żeby było widać że lewituje)
       const shadowGrad = ctx.createRadialGradient(cx, GROUND_Y - 2 * dpr, 0, cx, GROUND_Y - 2 * dpr, droneW * 0.6);
@@ -5999,41 +6570,61 @@ function render() {
       
       ctx.restore();
     } else if (h.type === 'puddle') {
-      // Owalna kałuża - kolor refleksu zależny od sceny
+      // Owalna kałuża - kolor refleksu zależny od sceny + GLOW dla widoczności
       const cy = h.y - h.h / 2 + Math.sin(h.bob) * 1 * dpr;
       const escene = M.id === 'endless' ? game.endlessScene : 0;
       
-      let puddleColor1, puddleColor2, reflectionColor;
+      let puddleColor1, puddleColor2, reflectionColor, glowColor;
       if (escene === 3) {  // ŚWIT
-        puddleColor1 = 'rgba(255,180,140,0.7)';
-        puddleColor2 = 'rgba(220,120,90,0.5)';
-        reflectionColor = 'rgba(255,220,180,0.5)';
-      } else if (escene === 2) {  // NOC
-        puddleColor1 = 'rgba(70,90,140,0.75)';
-        puddleColor2 = 'rgba(40,50,90,0.6)';
-        reflectionColor = 'rgba(180,180,220,0.4)';
-      } else if (escene === 4) {  // GÓRY
-        puddleColor1 = 'rgba(160,200,230,0.75)';
-        puddleColor2 = 'rgba(100,150,200,0.55)';
-        reflectionColor = 'rgba(220,235,250,0.5)';
+        puddleColor1 = 'rgba(255,180,140,0.85)';
+        puddleColor2 = 'rgba(220,120,90,0.6)';
+        reflectionColor = 'rgba(255,235,200,0.7)';
+        glowColor = 'rgba(255,180,140,0.4)';
+      } else if (escene === 2) {  // NOC — świecąca cyjan-niebieska woda dla kontrastu
+        puddleColor1 = 'rgba(80,200,255,0.9)';
+        puddleColor2 = 'rgba(40,140,220,0.75)';
+        reflectionColor = 'rgba(200,240,255,0.85)';
+        glowColor = 'rgba(80,200,255,0.55)';
+      } else if (escene === 4) {  // GÓRY — jasny lód z wyraźnym konturem
+        puddleColor1 = 'rgba(220,240,255,0.9)';
+        puddleColor2 = 'rgba(140,190,230,0.75)';
+        reflectionColor = 'rgba(255,255,255,0.85)';
+        glowColor = 'rgba(180,220,255,0.5)';
       } else {  // PARK / inne
-        puddleColor1 = 'rgba(120,180,240,0.7)';
-        puddleColor2 = 'rgba(80,144,224,0.5)';
-        reflectionColor = 'rgba(200,230,255,0.4)';
+        puddleColor1 = 'rgba(120,180,240,0.8)';
+        puddleColor2 = 'rgba(80,144,224,0.6)';
+        reflectionColor = 'rgba(200,230,255,0.5)';
+        glowColor = 'rgba(120,180,240,0.3)';
       }
+      
+      // 🆕 GLOW pod kałużą — szczególnie widoczny w nocy/górach
+      const glowGrad = ctx.createRadialGradient(h.x + h.w / 2, cy, 0, h.x + h.w / 2, cy, h.w * 0.7);
+      glowGrad.addColorStop(0, glowColor);
+      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w / 2, cy, h.w * 0.7, h.h * 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
       
       const pgrad = ctx.createRadialGradient(h.x + h.w / 2, cy, 0, h.x + h.w / 2, cy, h.w / 2);
       pgrad.addColorStop(0, puddleColor1);
       pgrad.addColorStop(0.7, puddleColor2);
-      pgrad.addColorStop(1, puddleColor2.replace(/[\d.]+\)$/, '0.1)'));
+      pgrad.addColorStop(1, puddleColor2.replace(/[\d.]+\)$/, '0.15)'));
       ctx.fillStyle = pgrad;
       ctx.beginPath();
       ctx.ellipse(h.x + h.w / 2, cy, h.w / 2, h.h, 0, 0, Math.PI * 2);
       ctx.fill();
       
-      // 🆕 Faliste fale na powierzchni (animowane)
-      ctx.strokeStyle = reflectionColor.replace(/[\d.]+\)$/, '0.3)');
-      ctx.lineWidth = 0.7 * dpr;
+      // 🆕 Wyraźna obwódka — kluczowa dla widoczności
+      ctx.strokeStyle = reflectionColor;
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w / 2, cy, h.w / 2, h.h, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Faliste fale na powierzchni (animowane)
+      ctx.strokeStyle = reflectionColor.replace(/[\d.]+\)$/, '0.5)');
+      ctx.lineWidth = 0.8 * dpr;
       const wavePhase = game.t * 0.05;
       for (let w = 0; w < 2; w++) {
         ctx.beginPath();
@@ -6188,6 +6779,25 @@ function render() {
   });
   ctx.globalAlpha = 1;
 
+  // 🆕 Shockwaves — rozszerzające się pierścienie (np. przy salcie)
+  if (game.shockwaves && game.shockwaves.length > 0) {
+    game.shockwaves.forEach(sw => {
+      const t = 1 - sw.life / sw.maxLife;  // 0..1 progress
+      // Ease-out curve: rośnie szybko, zwalnia
+      const easeT = 1 - Math.pow(1 - t, 2);
+      const r = easeT * sw.maxR;
+      // Alpha fade-out
+      const alpha = (1 - t) * 0.7;
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = sw.color;
+      ctx.lineWidth = sw.lineWidth * (1 - t * 0.5);  // line cieniuje
+      ctx.beginPath();
+      ctx.arc(sw.x, sw.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+  }
+
   // Popups
   game.popups.forEach(p => {
     ctx.save();
@@ -6246,8 +6856,8 @@ function render() {
   if ((M.id === 'longrun' || M.id === 'endless') && game.powerups) {
     game.powerups.forEach(p => {
       if (p.collected) return;
-      const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e' };
-      const icons = { magnet: '🧲', shield: '🛡', slowmo: '🐢', boost: '⚡' };
+      const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e', heart: '#e05050', gel: '#ffa030' };
+      const icons  = { magnet: '🧲',     shield: '🛡',      slowmo: '🐢',      boost: '⚡',       heart: '❤',       gel: '💪' };
       const bobY = p.y + Math.sin(p.bob) * 5 * dpr;
       const pulse = (Math.sin(game.t * 0.15) + 1) / 2;
       const glowR = p.r + (8 + pulse * 6) * dpr;
@@ -6308,6 +6918,26 @@ function render() {
       ctx.shadowBlur = 15 * dpr;
       ctx.beginPath();
       ctx.arc(game.px, game.py - 25 * dpr, 32 * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+    // 💪 Gel aura — pomarańczowa pulsująca aura (nieśmiertelność)
+    if (game.activePU && game.activePU.gel > 0) {
+      const pulse = (Math.sin(game.t * 0.25) + 1) / 2;
+      const flicker = (Math.sin(game.t * 0.5) + 1) / 2;
+      // Wewnętrzna intensywna aura
+      ctx.strokeStyle = 'rgba(255,160,48,' + (0.7 + pulse * 0.3) + ')';
+      ctx.lineWidth = (3 + flicker * 1.5) * dpr;
+      ctx.shadowColor = '#ffa030';
+      ctx.shadowBlur = (18 + pulse * 10) * dpr;
+      ctx.beginPath();
+      ctx.arc(game.px, game.py - 25 * dpr, (30 + pulse * 4) * dpr, 0, Math.PI * 2);
+      ctx.stroke();
+      // Zewnętrzny pierścień złoty
+      ctx.strokeStyle = 'rgba(255,217,102,' + (0.4 + flicker * 0.3) + ')';
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath();
+      ctx.arc(game.px, game.py - 25 * dpr, (40 + pulse * 6) * dpr, 0, Math.PI * 2);
       ctx.stroke();
       ctx.shadowBlur = 0;
     }
@@ -6498,13 +7128,13 @@ function render() {
   }
   
   if (!blink) {
-    // 🆕 Motion trail — TYLKO przy dashie i flippingu (nie przy zwykłym biegu)
+    // 🆕 Motion trail — TYLKO przy dashie (nie przy salcie/skoku/biegu)
+    // Salto ma już własną wizualizację (rotacja + particles + popup), trail dodawał chaos
     if (!game.playerTrail) game.playerTrail = [];
-    // Spawn TYLKO gdy dash lub flip — przy zwykłym biegu trail wyglądał jak "drgająca postać"
-    if (game.t % 3 === 0 && (game.dashing > 0 || game.flipping)) {
+    if (game.t % 3 === 0 && game.dashing > 0) {
       game.playerTrail.push({
         x: game.px, y: game.py, life: 10,  // krótszy trail
-        rot: game.flipping ? game.flipRotation : 0,
+        rot: 0,  // dash = bez rotacji
         state: getRunnerState(),
         legPhase: game.t * 0.35
       });
@@ -6646,7 +7276,14 @@ function render() {
 // ═════════════════════════════════════════════════
 let lastFrame = 0;
 let _fpsHistory = [];
-let _lowQuality = false;
+// 🆕 Auto-detect: mobile = low quality OD STARTU (proaktywnie, nie reaktywnie)
+// Wykrywa: telefony, tablety, urządzenia z touch + małym ekranem
+let _lowQuality = (() => {
+  const ua = navigator.userAgent || '';
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet|webOS|BlackBerry|Windows Phone/i.test(ua);
+  const isTouchSmall = ('ontouchstart' in window) && Math.min(window.innerWidth, window.innerHeight) < 900;
+  return isMobileUA || isTouchSmall;
+})();
 let _accumulator = 0;
 const FIXED_DT = 1000 / 60;  // 16.67ms per logic tick
 const MAX_STEPS = 4;          // max 4 catch-up updates per render
@@ -6663,8 +7300,10 @@ function loop(t) {
     if (_fpsHistory.length > 30) _fpsHistory.shift();
     if (_fpsHistory.length === 30 && game.t % 30 === 0) {
       const avgDt = _fpsHistory.reduce((a, b) => a + b, 0) / _fpsHistory.length;
-      if (avgDt > 22) _lowQuality = true;
-      else if (avgDt < 18) _lowQuality = false;
+      // 🆕 Agresywniejsze progi: szybciej włącza low (>20ms = ~50fps), wolniej wyłącza (<15ms = ~67fps)
+      // Hysteresis 5ms zapobiega flickerowaniu między stanami
+      if (avgDt > 20) _lowQuality = true;
+      else if (avgDt < 15) _lowQuality = false;
     }
   }
   
@@ -6744,6 +7383,8 @@ function realStart(mode) {
   game = newGame(mode);
   game.running = true;
   game.focusStartT = 0;
+  // 🆕 Cache best_score raz na rozpoczęcie gry — używane co frame w updateModeTarget()
+  game.cachedBestScore = getStat('best_score', 0);
   _endGameCalled = false;
   
   // 🆕 Próba wymuszenia landscape orientation (Android Chrome wspiera, iOS Safari nie)
@@ -6772,6 +7413,33 @@ function realStart(mode) {
     setStat('next_run_extra_life', 0);
     setTimeout(() => spawnPopup(W * 0.5, H * 0.5, '❤ +1 ŻYCIE!', '#3db870'), 500);
   }
+
+  // 🆕 Apply SHOP boosts (z pending_boosts) — gracz wybrał w boost-selector
+  const shopBoosts = consumeSelectedBoosts();
+  let popupDelay = 700;
+  if (shopBoosts.extra_life) {
+    game.lives = (game.lives || game.config.lives || 3) + 1;
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '❤ +1 ŻYCIE (sklep)', '#e05050'), popupDelay);
+    popupDelay += 200;
+  }
+  if (shopBoosts.multi_boost) {
+    game.multi = Math.max(game.multi, 1.5);
+    game.maxMulti = Math.max(game.maxMulti, 1.5);
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '⭐ MULTI x1.5 (sklep)', '#ffd966'), popupDelay);
+    popupDelay += 200;
+  }
+  if (shopBoosts.sprint_start) {
+    // 10s nieśmiertelności = 600 klatek przy 60fps
+    game.invuln = 600;
+    if (game.activePU) game.activePU.gel = 600;  // pokazuje aurę
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '🚀 SPRINT START 10s', '#ffa030'), popupDelay);
+    popupDelay += 200;
+  }
+  if (shopBoosts.magnet_start) {
+    // 30s magnesu = 1800 klatek
+    if (game.activePU) game.activePU.magnet = 1800;
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '🧲 MAGNET 30s', '#ffd966'), popupDelay);
+  }
   
   initMissions();
   renderMissionsHUD();
@@ -6779,6 +7447,19 @@ function realStart(mode) {
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.remove('hidden');
   updateDashUI();
+
+  // 🆕 Pokaż equipped skin jako toast (potwierdzenie że dziala)
+  const equippedSkinId = getEquipped('skins');
+  const equippedSkin = findShopItem('skins', equippedSkinId);
+  if (equippedSkin && equippedSkinId !== 'default') {
+    setTimeout(() => showToast('👕 Strój: ' + equippedSkin.name), 600);
+  }
+
+  // 🎒 Pokaż aktywne gadżety
+  const activeGadgets = getOwned('gadgets');
+  if (activeGadgets.length > 0) {
+    setTimeout(() => showToast('🎒 Gadżety: ' + activeGadgets.length + ' aktywnych'), 1200);
+  }
 
   lastFrame = performance.now();
   requestAnimationFrame(loop);
@@ -6863,6 +7544,20 @@ async function endGame() {
     setText('end-coins', game.coins || 0);
     setText('end-perfects', game.perfects);
     setText('end-multi', 'x' + game.maxMulti.toFixed(1));
+
+    // 💰 Transfer do walleta — coiny z runu + gemy za misje
+    const earnedCoins = game.coins || 0;
+    const earnedGems = game.gemsEarned || 0;
+    if (earnedCoins > 0) addCoins(earnedCoins);
+    if (earnedGems > 0)  addGems(earnedGems);
+    // Wyświetl info o earned na end screen jeśli element istnieje
+    const endRewardEl = document.getElementById('end-rewards');
+    if (endRewardEl) {
+      let rewardHtml = '';
+      if (earnedCoins > 0) rewardHtml += '<span style="color:#ffd966;">+🪙 ' + earnedCoins + '</span>';
+      if (earnedGems > 0)  rewardHtml += '<span style="color:#a868e0;margin-left:12px;">+💎 ' + earnedGems + '</span>';
+      endRewardEl.innerHTML = rewardHtml;
+    }
 
     const isNew = Math.floor(game.score) >= getStat('best_score', 1) && game.score > 100;
     const recordEl = document.getElementById('new-record-banner');
@@ -6958,7 +7653,7 @@ function spawnEndScreenConfetti() {
 async function _saveScoreInBackground(M) {
   if (!_athleteId || !game || game.score <= 0) return;
   try {
-    await sb.from('game_scores').insert({
+    await _sb.from('game_scores').insert({
       athlete_id: _athleteId,
       score: Math.floor(game.score),
       distance: Math.floor(game.distance),
@@ -6993,7 +7688,7 @@ async function logAsTraining() {
     + (d.finished ? ' · UKOŃCZONO ✓' : '');
 
   try {
-    const { error } = await sb.from('training_logs').insert({
+    const { error } = await _sb.from('training_logs').insert({
       athlete_id: _athleteId,
       training_type: 'Warm-up mentalny',
       distance_km: distance_km,
@@ -7017,15 +7712,18 @@ async function logAsTraining() {
 function goHome() {
   document.getElementById('screen-end').classList.add('hidden');
   document.getElementById('screen-game').classList.add('hidden');
+  document.getElementById('screen-shop').classList.add('hidden');
   document.getElementById('screen-home').classList.remove('hidden');
   loadHighScore();
   loadMentalMetrics();
+  updateWalletDisplay();
+  renderBoostSelector();  // 🆕 odśwież selektor po zakupach/zużyciu
 }
 
 function updateDashUI() {
   if (!game) return;
   for (let i = 1; i <= 3; i++) {
-    const pip = document.getElementById('dash-' + i);
+    const pip = $('dash-' + i);
     if (!pip) continue;
     if (i <= game.dashLeft) pip.classList.add('active');
     else pip.classList.remove('active');
@@ -7041,6 +7739,258 @@ function showToast(msg) {
 }
 
 // ═════════════════════════════════════════════════
+// 🛍 SHOP UI
+// ═════════════════════════════════════════════════
+let _currentShopTab = 'skins';
+let _pendingPurchase = null;
+
+function updateWalletDisplay(){
+  const coins = getCoins();
+  const gems = getGems();
+  const els = ['wallet-coins', 'wallet-gems', 'shop-wallet-coins', 'shop-wallet-gems'];
+  const map = { 'wallet-coins': coins, 'wallet-gems': gems, 'shop-wallet-coins': coins, 'shop-wallet-gems': gems };
+  els.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = map[id];
+  });
+}
+
+function openShop(){
+  document.getElementById('screen-home').classList.add('hidden');
+  document.getElementById('screen-shop').classList.remove('hidden');
+  updateWalletDisplay();
+  switchShopTab(_currentShopTab);
+}
+
+function closeShop(){
+  document.getElementById('screen-shop').classList.add('hidden');
+  document.getElementById('screen-home').classList.remove('hidden');
+  closeShopModal();
+  renderBoostSelector();  // 🆕 nowo kupione boosty pojawiają się od razu
+}
+
+function switchShopTab(category){
+  _currentShopTab = category;
+  // Update tabs visual state
+  document.querySelectorAll('.shop-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.cat === category);
+  });
+  renderShopGrid(category);
+}
+
+function renderShopGrid(category){
+  const grid = document.getElementById('shop-grid');
+  const items = SHOP_CATALOG[category] || [];
+  if (!items.length) {
+    grid.innerHTML = '<div class="shop-empty">Brak przedmiotów w tej kategorii</div>';
+    return;
+  }
+  // 🆕 Banner statusu kategorii
+  const banners = {
+    skins:   '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Skiny zmieniają wygląd postaci w grze</div>',
+    boosts:  '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Boosty aktywują się przed biegiem na home screen</div>',
+    gadgets: '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Gadżety wzmacniają power-upy w grze (kup raz, działa zawsze)</div>',
+    themes:  '<div style="grid-column:1/-1;background:rgba(255,217,102,0.10);border:1px solid rgba(255,217,102,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#ffd966;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">⏳ Motywy mapy wkrótce — zakup zostanie zachowany</div>'
+  };
+  const html = (banners[category] || '') + items.map(item => renderShopCard(category, item)).join('');
+  grid.innerHTML = html;
+}
+
+function renderShopCard(category, item){
+  const owned = isOwned(category, item.id);
+  const consumable = !!item.consumable;
+  const equipped = !consumable && getEquipped(category) === item.id;
+  const pendingCount = consumable ? (getPendingBoosts()[item.id] || 0) : 0;
+
+  const wallet = item.currency === 'gem' ? getGems() : getCoins();
+  const canAfford = wallet >= item.price;
+
+  const currencyIcon = item.currency === 'gem' ? '💎' : '🪙';
+  const priceClass = item.currency === 'gem' ? 'gem' : 'coin';
+
+  // State logic
+  let actionHtml = '';
+  let badgeHtml = '';
+  let countHtml = '';
+  let cardClass = 'shop-card';
+
+  if (consumable) {
+    // Boosty są kupowane wielokrotnie (zużywalne)
+    if (pendingCount > 0) {
+      countHtml = '<div class="shop-card-count">' + pendingCount + '×</div>';
+    }
+    if (item.price === 0) {
+      actionHtml = '<button class="shop-card-action owned">DARMOWE</button>';
+    } else if (canAfford) {
+      actionHtml = '<button class="shop-card-action buy" onclick="event.stopPropagation();askBuy(\'' + category + '\',\'' + item.id + '\')">KUP</button>';
+    } else {
+      actionHtml = '<button class="shop-card-action cant-afford" disabled>BRAK ' + currencyIcon + '</button>';
+      cardClass += ' locked';
+    }
+  } else {
+    if (equipped) {
+      actionHtml = '<button class="shop-card-action equipped">✓ ZAŁOŻONE</button>';
+      cardClass += ' equipped';
+      badgeHtml = '<div class="shop-card-badge">✓</div>';
+    } else if (owned) {
+      actionHtml = '<button class="shop-card-action equip" onclick="event.stopPropagation();equipItem(\'' + category + '\',\'' + item.id + '\')">ZAŁÓŻ</button>';
+      cardClass += ' owned';
+    } else if (item.price === 0) {
+      actionHtml = '<button class="shop-card-action equip" onclick="event.stopPropagation();equipItem(\'' + category + '\',\'' + item.id + '\')">ZAŁÓŻ</button>';
+      cardClass += ' owned';
+    } else if (canAfford) {
+      actionHtml = '<button class="shop-card-action buy" onclick="event.stopPropagation();askBuy(\'' + category + '\',\'' + item.id + '\')">KUP</button>';
+    } else {
+      actionHtml = '<button class="shop-card-action cant-afford" disabled>BRAK ' + currencyIcon + '</button>';
+      cardClass += ' locked';
+    }
+  }
+
+  const priceHtml = item.price === 0
+    ? '<div class="shop-card-price" style="color:var(--fg2);">FREE</div>'
+    : '<div class="shop-card-price ' + priceClass + '"><span>' + currencyIcon + '</span>' + item.price + '</div>';
+
+  return '<div class="' + cardClass + '" onclick="askBuy(\'' + category + '\',\'' + item.id + '\')">' +
+    badgeHtml +
+    countHtml +
+    '<div class="shop-card-icon">' + (item.icon || '🎁') + '</div>' +
+    '<div class="shop-card-name">' + item.name + '</div>' +
+    '<div class="shop-card-desc">' + item.desc + '</div>' +
+    priceHtml +
+    actionHtml +
+    '</div>';
+}
+
+function askBuy(category, id){
+  const item = findShopItem(category, id);
+  if (!item) return;
+
+  const owned = isOwned(category, id);
+  const consumable = !!item.consumable;
+  const equipped = !consumable && getEquipped(category) === id;
+
+  // Owned non-consumable → equip flow
+  if (!consumable && (owned || item.price === 0)) {
+    if (!equipped) equipItem(category, id);
+    return;
+  }
+
+  _pendingPurchase = { category, id };
+
+  const currencyIcon = item.currency === 'gem' ? '💎' : '🪙';
+  const wallet = item.currency === 'gem' ? getGems() : getCoins();
+  const canAfford = wallet >= item.price;
+
+  document.getElementById('shop-modal-icon').textContent = item.icon || '🎁';
+  document.getElementById('shop-modal-title').textContent = item.name;
+  document.getElementById('shop-modal-desc').textContent = item.desc;
+  document.getElementById('shop-modal-price').innerHTML = currencyIcon + ' ' + item.price + ' <span style="opacity:0.5;font-size:13px;margin-left:8px;">(masz: ' + wallet + ')</span>';
+
+  const confirmBtn = document.getElementById('shop-modal-confirm');
+  confirmBtn.disabled = !canAfford;
+  confirmBtn.textContent = canAfford ? 'KUP' : 'BRAK ŚRODKÓW';
+  confirmBtn.onclick = canAfford ? confirmPurchase : null;
+
+  document.getElementById('shop-modal').classList.remove('hidden');
+}
+
+function closeShopModal(){
+  document.getElementById('shop-modal').classList.add('hidden');
+  _pendingPurchase = null;
+}
+
+function confirmPurchase(){
+  if (!_pendingPurchase) return;
+  const { category, id } = _pendingPurchase;
+  const item = findShopItem(category, id);
+  if (!item) { closeShopModal(); return; }
+
+  const ok = item.currency === 'gem' ? spendGems(item.price) : spendCoins(item.price);
+  if (!ok) { showToast('BRAK ŚRODKÓW'); closeShopModal(); return; }
+
+  if (item.consumable) {
+    addPendingBoost(id);
+    showToast('✓ ' + item.name + ' kupione');
+  } else {
+    addOwned(category, id);
+    showToast('✓ Zakupiono: ' + item.name);
+  }
+
+  closeShopModal();
+  renderShopGrid(category);
+  if (navigator.vibrate) navigator.vibrate([20, 30, 50]);
+}
+
+function equipItem(category, id){
+  if (!isOwned(category, id) && id !== 'default') return;
+  setEquipped(category, id);
+  const item = findShopItem(category, id);
+  showToast('✓ Założono: ' + (item ? item.name : id));
+  renderShopGrid(category);
+  if (navigator.vibrate) navigator.vibrate(20);
+}
+
+// ═════════════════════════════════════════════════
+// ⚡ BOOST SELECTOR (home screen) — wybór boostów na następny run
+// ═════════════════════════════════════════════════
+let _selectedBoosts = {};  // { boost_id: true } - per-session selection
+
+function renderBoostSelector(){
+  const wrap = document.getElementById('boost-selector');
+  if (!wrap) return;
+  const pending = getPendingBoosts();
+  const ids = Object.keys(pending).filter(id => pending[id] > 0);
+
+  if (!ids.length) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  // Auto-select all available boosts on first render (gracz może odznaczyć)
+  ids.forEach(id => { if (_selectedBoosts[id] === undefined) _selectedBoosts[id] = true; });
+
+  const pills = ids.map(id => {
+    const item = findShopItem('boosts', id);
+    if (!item) return '';
+    const count = pending[id];
+    const active = !!_selectedBoosts[id];
+    return '<div class="boost-pill ' + (active ? 'active' : '') + '" onclick="toggleBoost(\'' + id + '\')">' +
+      '<span class="b-icon">' + item.icon + '</span>' +
+      '<span>' + item.name + '</span>' +
+      '<span class="b-count">×' + count + '</span>' +
+    '</div>';
+  }).join('');
+
+  wrap.style.display = 'block';
+  wrap.innerHTML =
+    '<div class="boost-selector-wrap">' +
+      '<div class="boost-selector-title">⚡ Boosty na następny bieg</div>' +
+      '<div class="boost-selector-list">' + pills + '</div>' +
+    '</div>';
+}
+
+function toggleBoost(id){
+  _selectedBoosts[id] = !_selectedBoosts[id];
+  renderBoostSelector();
+  if (navigator.vibrate) navigator.vibrate(15);
+}
+
+function consumeSelectedBoosts(){
+  // Zwróć obiekt z efektami do aplikacji + zdejmij 1 z każdego pendingu który był aktywny
+  const toApply = {};
+  const pending = getPendingBoosts();
+  Object.keys(_selectedBoosts).forEach(id => {
+    if (_selectedBoosts[id] && pending[id] > 0) {
+      toApply[id] = true;
+      removePendingBoost(id);
+    }
+  });
+  _selectedBoosts = {};  // reset selection po zużyciu
+  return toApply;
+}
+
+// ═════════════════════════════════════════════════
 // INIT + EXPOSE
 // ═════════════════════════════════════════════════
 initUser();
@@ -7052,6 +8002,18 @@ window.goHome = goHome;
 window.switchTab = switchTab;
 window.loadLeaderboard = loadLeaderboard;
 window.logAsTraining = logAsTraining;
+// 🛍 Shop
+window.openShop = openShop;
+window.closeShop = closeShop;
+window.switchShopTab = switchShopTab;
+window.askBuy = askBuy;
+window.confirmPurchase = confirmPurchase;
+window.closeShopModal = closeShopModal;
+window.equipItem = equipItem;
+window.toggleBoost = toggleBoost;
+// Initial wallet display
+updateWalletDisplay();
+renderBoostSelector();  // 🆕 jeśli gracz ma już kupione boosty
 
 // Cross-link: zaloguj rzeczywisty trening po grze
 function goLogRealTraining() {
@@ -7089,19 +8051,19 @@ function getRunnerState() {
 // isGhost: czy to trail ghost (mniej szczegółów)
 // 🆕 Pedestrian charcters - drawn from primitives, all face LEFT (going opposite to player)
 function drawBird(ctx, x, y, flapPhase) {
-  const s = dpr * 1.2;  // 🆕 +20% scale (mniej niż piesze bo lata daleko)
-  const flap = Math.sin(flapPhase);  // -1..1 dla flapowania skrzydeł
-  
+  const s = dpr * 1.4;
+  const flap = Math.sin(flapPhase);
+
   ctx.save();
   ctx.translate(x, y);
-  
-  // Cień pod ptakiem (głębsze)
+
+  // Cień pod ptakiem
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.beginPath();
   ctx.ellipse(0, 8 * s, 12 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Body (eliptyczny)
+  // Body (eliptyczny) — naturalny brązowy
   const bodyGrad = ctx.createLinearGradient(0, -6 * s, 0, 6 * s);
   bodyGrad.addColorStop(0, '#5a3a20');
   bodyGrad.addColorStop(0.5, '#3a2010');
@@ -7121,8 +8083,7 @@ function drawBird(ctx, x, y, flapPhase) {
   // Lewe skrzydło (z tyłu, mniej widoczne)
   ctx.save();
   ctx.translate(-3 * s, -2 * s);
-  ctx.rotate(-flap * 0.6);  // flap up/down
-  // Skrzydło - krzywa jak liść
+  ctx.rotate(-flap * 0.6);
   const wingGrad = ctx.createLinearGradient(0, 0, -15 * s, 0);
   wingGrad.addColorStop(0, '#5a3a20');
   wingGrad.addColorStop(0.5, '#3a2010');
@@ -7134,7 +8095,6 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.quadraticCurveTo(-12 * s, 4 * s, 0, 2 * s);
   ctx.closePath();
   ctx.fill();
-  // Linie piór
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.lineWidth = 0.8 * s;
   for (let i = 0; i < 3; i++) {
@@ -7181,7 +8141,6 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.lineTo(-9 * s, 1 * s);
   ctx.closePath();
   ctx.fill();
-  // Cień dzioba
   ctx.strokeStyle = '#a87820';
   ctx.lineWidth = 0.7 * s;
   ctx.stroke();
@@ -7218,7 +8177,7 @@ function drawBird(ctx, x, y, flapPhase) {
 
 // 🆕 Pedestrian charcters
 function drawCyclist(ctx, x, y, bobPhase) {
-  const s = dpr * 1.3;  // 🆕 +30% scale (bardziej proporcjonalny do gracza)
+  const s = dpr * 1.5;  // 🆕 +50% scale (dorosła osoba na rowerze - większa od gracza)
   const wheelSpin = bobPhase * 6;  // szybki spin
   
   ctx.save();
@@ -7331,7 +8290,7 @@ function drawCyclist(ctx, x, y, bobPhase) {
 }
 
 function drawSmallRunner(ctx, x, y, bobPhase) {
-  const s = dpr * 1.3;  // 🆕 +30% scale
+  const s = dpr * 1.5;  // 🆕 +50% scale (proporcjonalny do gracza)
   const cycle = Math.sin(bobPhase * 3);
   
   ctx.save();
@@ -7400,7 +8359,7 @@ function drawSmallRunner(ctx, x, y, bobPhase) {
 }
 
 function drawDog(ctx, x, y, bobPhase) {
-  const s = dpr * 1.3;  // 🆕 +30% scale
+  const s = dpr * 1.5;  // 🆕 +50% scale
   const cycle = Math.sin(bobPhase * 4);
   
   ctx.save();
@@ -7493,21 +8452,80 @@ function drawDog(ctx, x, y, bobPhase) {
   ctx.restore();
 }
 
+// 🎨 Palety kolorów skinów (zdefiniowane przed drawRunner)
+const SKIN_PALETTES = {
+  default: {
+    SHIRT_TOP: '#ff7a45', SHIRT_MID: '#e8561e', SHIRT_BOT: '#c0410e', SHIRT_HIGHLIGHT: '#ffaa70',
+    SHORTS: '#1a1a25', SHORTS_HIGHLIGHT: '#2a2a35',
+    SHOES: '#2a2a35', SHOE_ACCENT: '#ff7a45', SHOE_SOLE: '#ffffff',
+    LOGO: 'B', LOGO_COLOR: 'rgba(255,255,255,0.92)'
+  },
+  adonis: {  // 3-paski Adonis-style, niebieski dres
+    SHIRT_TOP: '#4070d0', SHIRT_MID: '#3060c0', SHIRT_BOT: '#1e4a90', SHIRT_HIGHLIGHT: '#80a5e0',
+    SHORTS: '#1e3a70', SHORTS_HIGHLIGHT: '#2e4a80',
+    SHOES: '#0a0a0a', SHOE_ACCENT: '#ffffff', SHOE_SOLE: '#ffffff',
+    LOGO: 'A', LOGO_COLOR: '#ffffff',
+    STRIPES: 3, STRIPE_COLOR: '#ffffff'  // 3 białe paski na rękawach
+  },
+  nice: {  // NICE Air swoosh, biało-pomarańczowy
+    SHIRT_TOP: '#ffffff', SHIRT_MID: '#f0f0f0', SHIRT_BOT: '#d0d0d0', SHIRT_HIGHLIGHT: '#ffffff',
+    SHORTS: '#1a1a25', SHORTS_HIGHLIGHT: '#2a2a35',
+    SHOES: '#ff7a45', SHOE_ACCENT: '#ffffff', SHOE_SOLE: '#ffffff',
+    LOGO: '✓', LOGO_COLOR: '#ff7a45',  // swoosh-like
+    SWOOSH: true
+  },
+  kuna: {  // Kuna Sport — zielono-czarny z gwiazdkami
+    SHIRT_TOP: '#3db870', SHIRT_MID: '#2a9858', SHIRT_BOT: '#1a7040', SHIRT_HIGHLIGHT: '#65d090',
+    SHORTS: '#0a0a0a', SHORTS_HIGHLIGHT: '#1a1a1a',
+    SHOES: '#0a0a0a', SHOE_ACCENT: '#3db870', SHOE_SOLE: '#ffffff',
+    LOGO: '★', LOGO_COLOR: '#ffd966',
+    STARS: true  // 3 gwiazdki na koszulce
+  },
+  tetra: {  // Tetra Stripes — fioletowo-czarny z 4 paskami
+    SHIRT_TOP: '#a868e0', SHIRT_MID: '#8848c0', SHIRT_BOT: '#5828a0', SHIRT_HIGHLIGHT: '#c898f0',
+    SHORTS: '#0a0a0a', SHORTS_HIGHLIGHT: '#2a1a3a',
+    SHOES: '#1a1a25', SHOE_ACCENT: '#a868e0', SHOE_SOLE: '#ffffff',
+    LOGO: 'T', LOGO_COLOR: '#ffffff',
+    STRIPES: 4, STRIPE_COLOR: '#ffd966'  // 4 żółte paski
+  },
+  reepok: {  // Reepok Wave — vintage żółto-czerwony
+    SHIRT_TOP: '#ffd966', SHIRT_MID: '#e8a830', SHIRT_BOT: '#b07020', SHIRT_HIGHLIGHT: '#fff0a0',
+    SHORTS: '#c0410e', SHORTS_HIGHLIGHT: '#e85020',
+    SHOES: '#ffffff', SHOE_ACCENT: '#c0410e', SHOE_SOLE: '#ffd966',
+    LOGO: 'R', LOGO_COLOR: '#c0410e',
+    WAVE: true  // falujące logo
+  },
+  gold: {  // Złoty Mistrz — premium gold
+    SHIRT_TOP: '#ffe580', SHIRT_MID: '#ffd966', SHIRT_BOT: '#e8a830', SHIRT_HIGHLIGHT: '#ffffff',
+    SHORTS: '#3a2a10', SHORTS_HIGHLIGHT: '#5a4a30',
+    SHOES: '#ffd966', SHOE_ACCENT: '#3a2a10', SHOE_SOLE: '#ffffff',
+    LOGO: '👑', LOGO_COLOR: '#ffd966',
+    GLOW: '#ffd966'  // złota poświata
+  }
+};
+
 function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
+  ctx.save();  // 🆕 FIX: parowanie z restore() na końcu funkcji (linia ~8176)
   const s = dpr;
-  // Kolory
+  // Pobierz aktywny skin z localStorage
+  const skinId = (typeof getEquipped === 'function') ? getEquipped('skins') : 'default';
+  const palette = SKIN_PALETTES[skinId] || SKIN_PALETTES.default;
+  // Kolory bazowe (skóra/włosy zawsze takie same)
   const SKIN = '#f4c39a';
   const SKIN_DARK = '#d99c70';
   const HAIR = '#1a1a1a';
-  const SHIRT_TOP = '#ff7a45';
-  const SHIRT_MID = '#e8561e';
-  const SHIRT_BOT = '#c0410e';
-  const SHIRT_HIGHLIGHT = '#ffaa70';
-  const SHORTS = '#1a1a25';
-  const SHORTS_HIGHLIGHT = '#2a2a35';
-  const SHOES = '#2a2a35';
-  const SHOE_ACCENT = '#ff7a45';
-  const SHOE_SOLE = '#ffffff';
+  // Kolory ze skina
+  const SHIRT_TOP = palette.SHIRT_TOP;
+  const SHIRT_MID = palette.SHIRT_MID;
+  const SHIRT_BOT = palette.SHIRT_BOT;
+  const SHIRT_HIGHLIGHT = palette.SHIRT_HIGHLIGHT;
+  const SHORTS = palette.SHORTS;
+  const SHORTS_HIGHLIGHT = palette.SHORTS_HIGHLIGHT;
+  const SHOES = palette.SHOES;
+  const SHOE_ACCENT = palette.SHOE_ACCENT;
+  const SHOE_SOLE = palette.SHOE_SOLE;
+  const LOGO_TEXT = palette.LOGO || 'B';
+  const LOGO_COLOR = palette.LOGO_COLOR || 'rgba(255,255,255,0.92)';
   
   ctx.save();
   ctx.translate(x, y);
@@ -7536,13 +8554,13 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
     // Highlight na koszulce
     ctx.fillStyle = SHIRT_HIGHLIGHT;
     ctx.fillRect(-20 * s, -15 * s, 34 * s, 2 * s);
-    // Logo B
+    // Logo (z palety skina)
     if (!isGhost) {
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.fillStyle = LOGO_COLOR;
       ctx.font = 'bold ' + (8 * s) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('B', 0, -9 * s);
+      ctx.fillText(LOGO_TEXT, 0, -9 * s);
     }
     
     // 🆕 Druga ręka (z przodu - dołem do ziemi, push gesture)
@@ -7880,17 +8898,77 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
     ctx.fillRect(-8 * s + torsoLeanX, -27 * s, 5 * s, 2 * s);
   }
   
-  // Logo "B" na koszulce
+  // Logo na koszulce (z palety skina)
   if (!isGhost) {
     // Drobny cień pod logo
     ctx.fillStyle = 'rgba(60,20,5,0.4)';
     ctx.font = 'bold ' + (9 * s) + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('B', torsoLeanX + 0.5 * s, -19.5 * s);
-    // Logo white
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.fillText('B', torsoLeanX, -20 * s);
+    ctx.fillText(LOGO_TEXT, torsoLeanX + 0.5 * s, -19.5 * s);
+    // Logo z palety
+    ctx.fillStyle = LOGO_COLOR;
+    ctx.fillText(LOGO_TEXT, torsoLeanX, -20 * s);
+
+    // 🆕 Skin-specific decorations
+    // Adonis/Tetra paski na bokach koszulki
+    if (palette.STRIPES && palette.STRIPE_COLOR) {
+      ctx.fillStyle = palette.STRIPE_COLOR;
+      const numStripes = palette.STRIPES;
+      const stripeY = -28 * s;
+      const stripeH = 16 * s;
+      const stripeW = 1.5 * s;
+      const gap = 2 * s;
+      const totalW = numStripes * stripeW + (numStripes - 1) * gap;
+      // Lewa strona koszulki (na ramieniu)
+      const leftStartX = -10 * s + torsoLeanX;
+      for (let i = 0; i < numStripes; i++) {
+        ctx.fillRect(leftStartX + i * (stripeW + gap), stripeY, stripeW, stripeH);
+      }
+      // Prawa strona koszulki
+      const rightStartX = 6 * s + torsoLeanX;
+      for (let i = 0; i < numStripes; i++) {
+        ctx.fillRect(rightStartX + i * (stripeW + gap), stripeY, stripeW, stripeH);
+      }
+    }
+    // NICE swoosh — duży zakrzywiony swoosh przez pierś
+    if (palette.SWOOSH) {
+      ctx.strokeStyle = '#ff7a45';
+      ctx.lineWidth = 2.5 * s;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-9 * s + torsoLeanX, -16 * s);
+      ctx.quadraticCurveTo(0 + torsoLeanX, -12 * s, 9 * s + torsoLeanX, -22 * s);
+      ctx.stroke();
+    }
+    // Kuna gwiazdki — 3 małe na piersi
+    if (palette.STARS) {
+      ctx.fillStyle = '#ffd966';
+      ctx.font = 'bold ' + (5 * s) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', -7 * s + torsoLeanX, -25 * s);
+      ctx.fillText('★', 0 + torsoLeanX, -27 * s);
+      ctx.fillText('★', 7 * s + torsoLeanX, -25 * s);
+    }
+    // Reepok wave — falujące linie pod logo
+    if (palette.WAVE) {
+      ctx.strokeStyle = '#c0410e';
+      ctx.lineWidth = 1.2 * s;
+      ctx.beginPath();
+      ctx.moveTo(-7 * s + torsoLeanX, -13 * s);
+      ctx.quadraticCurveTo(-3.5 * s + torsoLeanX, -15 * s, 0 + torsoLeanX, -13 * s);
+      ctx.quadraticCurveTo(3.5 * s + torsoLeanX, -11 * s, 7 * s + torsoLeanX, -13 * s);
+      ctx.stroke();
+    }
+    // Złoty mistrz — złota poświata wokół tułowia
+    if (palette.GLOW) {
+      ctx.save();
+      ctx.shadowColor = palette.GLOW;
+      ctx.shadowBlur = 12 * s;
+      ctx.fillStyle = 'rgba(255,217,102,0.15)';
+      ctx.fillRect(-12 * s + torsoLeanX, -29 * s, 24 * s, 18 * s);
+      ctx.restore();
+    }
   }
   
   // ═══════════════════════════════
@@ -8167,40 +9245,6 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.restore();
 }
 
-</script>
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
-      .then(function(reg) {
-        // Wykryj update i powiadom usera
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nowa wersja gotowa — auto-reload
-                console.log('[PWA] New version available, reloading...');
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          }
-        });
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service worker registration failed:', err);
-      });
-  });
-
-  // Reload przy zmianie kontrolera (po SKIP_WAITING)
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
 </script>
 </body>
 </html>
