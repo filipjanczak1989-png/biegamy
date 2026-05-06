@@ -249,17 +249,18 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 }
 
 /* Mode-specific UI */
-/* mode-target = pasek "X / Y (rekord)" — przesunięty poniżej misji */
-.mode-target{position:fixed;top:max(108px,calc(env(safe-area-inset-top,0px) + 108px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:8px 16px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;}
-.mode-target .mt-icon{font-size:14px;}
-.mode-target .mt-bar{width:80px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+/* mode-target = pasek "X / Y (rekord)" — TUŻ pod HUDem (wyżej niż misje) */
+.mode-target{position:fixed;top:max(72px,calc(env(safe-area-inset-top,0px) + 72px));left:50%;transform:translateX(-50%);background:rgba(7,7,10,0.85);backdrop-filter:blur(12px);border:1px solid var(--border);border-radius:24px;padding:6px 14px;z-index:10;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);letter-spacing:0.1em;display:flex;align-items:center;gap:8px;max-width:calc(100vw - 32px);white-space:nowrap;overflow:hidden;}
+.mode-target .mt-icon{font-size:12px;}
+.mode-target .mt-bar{width:60px;height:4px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
 .mode-target .mt-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.3s;}
 
 /* Interval phase indicator */
 .phase-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(7,7,10,0.92);backdrop-filter:blur(16px);border:2px solid var(--accent);border-radius:20px;padding:24px 36px;z-index:30;text-align:center;animation:phaseIn 0.4s ease-out;}
-/* powerup-bar — pod paskiem rekordu */
-.powerup-bar{position:fixed;top:max(146px,calc(env(safe-area-inset-top,0px) + 146px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
-.missions-hud{position:fixed;left:50%;transform:translateX(-50%);top:max(78px,calc(env(safe-area-inset-top,0px) + 78px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;max-width:calc(100vw - 24px);flex-wrap:nowrap;}
+/* powerup-bar — niżej, pod misjami */
+.powerup-bar{position:fixed;top:max(140px,calc(env(safe-area-inset-top,0px) + 140px));left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;pointer-events:none;}
+/* missions-hud — pod rekordem, kompaktowo */
+.missions-hud{position:fixed;left:50%;transform:translateX(-50%);top:max(108px,calc(env(safe-area-inset-top,0px) + 108px));z-index:9;pointer-events:none;display:flex;gap:4px;padding:0 12px;justify-content:center;opacity:0.55;max-width:calc(100vw - 24px);flex-wrap:nowrap;}
 .mission-row{flex:1;max-width:120px;background:rgba(7,7,10,0.45);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.05);border-radius:5px;padding:2px 5px;display:flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;transition:all 0.3s;}
 .mission-row.done{background:rgba(61,184,112,0.22);border-color:rgba(61,184,112,0.5);opacity:1;}
 .mission-icon{font-size:10px;flex-shrink:0;width:12px;text-align:center;opacity:0.85;}
@@ -284,8 +285,8 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 .phase-banner.rest{border-color:var(--green);}
 .phase-banner.rest .pb-label,.phase-banner.rest .pb-text{color:var(--green);}
 
-.dash-meter{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));left:50%;transform:translateX(-50%);background:rgba(232,86,30,0.18);backdrop-filter:blur(12px);border:1.5px solid var(--accent);border-radius:24px;padding:11px 20px;display:flex;align-items:center;gap:10px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:0.1em;font-weight:700;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform 0.1s;box-shadow:0 4px 16px rgba(232,86,30,0.3);}
-.dash-meter:active{transform:translateX(-50%) scale(0.94);background:rgba(232,86,30,0.35);}
+.dash-meter{position:fixed;bottom:max(20px,env(safe-area-inset-bottom,20px));right:max(14px,env(safe-area-inset-right,14px));background:rgba(232,86,30,0.18);backdrop-filter:blur(12px);border:1.5px solid var(--accent);border-radius:24px;padding:11px 16px;display:flex;align-items:center;gap:8px;z-index:10;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);letter-spacing:0.08em;font-weight:700;user-select:none;-webkit-tap-highlight-color:transparent;transition:transform 0.1s;box-shadow:0 4px 16px rgba(232,86,30,0.3);}
+.dash-meter:active{transform:scale(0.94);background:rgba(232,86,30,0.35);}
 .dash-meter.depleted{opacity:0.4;border-color:var(--border);background:rgba(7,7,10,0.7);color:var(--muted);box-shadow:none;}
 
 /* 🍊 Orange throw button — w lewym dolnym rogu */
@@ -767,7 +768,9 @@ const SHOP_CATALOG = {
     { id: 'extra_life',   name: '+1 życie',         desc: 'Zaczynasz bieg z 4 życiami.',         price: 80,  currency: 'coin', icon: '❤', consumable: true },
     { id: 'multi_boost',  name: 'Multi x1.5',       desc: 'Zaczynasz z mnożnikiem x1.5.',        price: 150, currency: 'coin', icon: '⭐', consumable: true },
     { id: 'sprint_start', name: 'Sprint start',     desc: 'Pierwsze 10s nieśmiertelności.',      price: 200, currency: 'coin', icon: '🚀', consumable: true },
-    { id: 'magnet_start', name: 'Magnet z startu',  desc: 'Aktywny magnes przez pierwsze 30s.', price: 120, currency: 'coin', icon: '🧲', consumable: true }
+    { id: 'magnet_start', name: 'Magnet z startu',  desc: 'Aktywny magnes przez pierwsze 30s.', price: 120, currency: 'coin', icon: '🧲', consumable: true },
+    { id: 'extra_dash',   name: '+1 dash',          desc: 'Zaczynasz z 2 dashami zamiast 1.',    price: 100, currency: 'coin', icon: '⚡', consumable: true },
+    { id: 'extra_oranges',name: '+2 pomarańcze',    desc: 'Zaczynasz z 5 pomarańczami zamiast 3.', price: 130, currency: 'coin', icon: '🍊', consumable: true }
   ],
   themes: [
     { id: 'default',   name: 'Domyślny',     desc: 'Klasyczny ciemny motyw.',          price: 0,   currency: 'coin', icon: '🌃', preview: '#07070a' },
@@ -1447,9 +1450,11 @@ function newGame(mode) {
     canDoubleJump: false,
     sliding: 0,
     dashing: 0,
-    dashLeft: _bonuses.dashCount,
+    dashLeft: 1,  // 🆕 start z 1 dashem — reszta do zdobycia w grze lub sklep
+    dashMax: 3,   // max 3 sztuki naraz
     // 🍊 Orange projectiles
-    orangesLeft: 3,
+    orangesLeft: 3,  // start z 3 pomarańczami
+    orangesMax: 5,   // 🆕 max 5 (żeby boost ze sklepu miał sens)
     orangeProjectiles: [],
     
     // 🆕 SALTO state
@@ -1689,12 +1694,12 @@ function tryThrowOrange() {
   // Projectile spawn
   game.orangeProjectiles.push({
     x: game.px + 10 * dpr,
-    y: game.py - 30 * dpr,  // z poziomu ramienia
-    vx: 14 * dpr,           // mocno do przodu
-    vy: -6 * dpr,            // delikatny łuk w górę
+    y: game.py - 35 * dpr,  // z poziomu klatki piersiowej
+    vx: 16 * dpr,           // 🆕 szybszy
+    vy: -3 * dpr,            // 🆕 mniejszy łuk (było -6) — leci bardziej płasko
     rot: 0,
-    life: 90,                // ~1.5s zanim zniknie
-    r: 10 * dpr
+    life: 120,                // 🆕 dłużej żyje (było 90)
+    r: 14 * dpr               // 🆕 większy hitbox (było 10)
   });
   // Feedback
   spawnParticles(game.px + 10 * dpr, game.py - 30 * dpr, '#ffa030', 6);
@@ -1705,17 +1710,19 @@ function tryThrowOrange() {
 
 function updateOrangeUI() {
   if (!game) return;
-  for (let i = 1; i <= 3; i++) {
-    const pip = document.getElementById('orange-' + i);
-    if (!pip) continue;
-    if (i <= game.orangesLeft) pip.classList.add('active');
-    else pip.classList.remove('active');
-  }
   const meter = document.getElementById('orange-meter');
-  if (meter) {
-    if (game.orangesLeft <= 0) meter.classList.add('depleted');
-    else meter.classList.remove('depleted');
+  if (!meter) return;
+  // Gdy >3 pomarańczy — pokaż liczbę "× 4", inaczej kropki
+  if (game.orangesLeft > 3) {
+    meter.innerHTML = '<span>🍊 RZUĆ</span><span style="background:#ffa030;color:#0a0a14;border-radius:10px;padding:2px 8px;font-weight:800;font-size:11px;">× ' + game.orangesLeft + '</span>';
+  } else {
+    meter.innerHTML = '<span>🍊 RZUĆ</span>' +
+      '<div class="orange-pip ' + (game.orangesLeft >= 1 ? 'active' : '') + '"></div>' +
+      '<div class="orange-pip ' + (game.orangesLeft >= 2 ? 'active' : '') + '"></div>' +
+      '<div class="orange-pip ' + (game.orangesLeft >= 3 ? 'active' : '') + '"></div>';
   }
+  if (game.orangesLeft <= 0) meter.classList.add('depleted');
+  else meter.classList.remove('depleted');
 }
 
 canvas.addEventListener('touchstart', function(e) {
@@ -1908,12 +1915,14 @@ function spawnPowerup() {
   // 🆕 TESTING: heart i gel są MOCNO widoczne (50% wszystkich) żeby zweryfikować spawn
   // Wartości po dostrojeniu można zmniejszyć
   const pool = [
-    { type: 'magnet', weight: 12 },
-    { type: 'shield', weight: 12 },
-    { type: 'slowmo', weight: 12 },
-    { type: 'boost',  weight: 12 },
-    { type: 'gel',    weight: 26 },  // 🆕 26% — żel WIDOCZNY
-    { type: 'heart',  weight: 26 }   // 🆕 26% — serce WIDOCZNE
+    { type: 'magnet', weight: 10 },
+    { type: 'shield', weight: 10 },
+    { type: 'slowmo', weight: 10 },
+    { type: 'boost',  weight: 10 },
+    { type: 'gel',    weight: 22 },  // 22% — żel widoczny
+    { type: 'heart',  weight: 22 },  // 22% — serce widoczne
+    { type: 'dash_pickup',   weight: 8 },  // 🆕 8% — dash do zdobycia (rzadki)
+    { type: 'orange_pickup', weight: 8 }   // 🆕 8% — pomarańcza do zdobycia (rzadki)
   ];
   const totalWeight = pool.reduce((s, p) => s + p.weight, 0);
   let r = Math.random() * totalWeight;
@@ -2043,12 +2052,60 @@ const PU_DEFS = {
   slowmo: { icon: '🐢', dur: 240, msg: 'ZWOLNIENIE' },
   boost:  { icon: '⚡', dur: 300, msg: 'PRZYSPIESZENIE' },
   gel:    { icon: '💪', dur: 300, msg: 'ŻEL — NIEŚMIERTELNOŚĆ' },  // 5s pełnej nietykalności
-  heart:  { icon: '❤', dur: 0,   msg: '+1 ŻYCIE' }                  // instant pickup, nie ma timera
+  heart:  { icon: '❤', dur: 0,   msg: '+1 ŻYCIE' },                 // instant pickup, nie ma timera
+  dash_pickup:   { icon: '⚡', dur: 0, msg: '+1 DASH' },             // 🆕 dodaje 1 do dashLeft
+  orange_pickup: { icon: '🍊', dur: 0, msg: '+1 POMARAŃCZA' }       // 🆕 dodaje 1 do orangesLeft
 };
 
 function activatePowerup(type) {
   const def = PU_DEFS[type];
   if (!def) return;
+
+  // ⚡ DASH PICKUP — instant +1 dash (cap dashMax)
+  if (type === 'dash_pickup') {
+    const max = game.dashMax || 3;
+    if (game.dashLeft < max) {
+      game.dashLeft++;
+      showToast('⚡ +1 DASH!');
+      spawnPopup(game.px, game.py - 80 * dpr, '+1 ⚡', '#e8561e');
+      updateDashUI();
+    } else {
+      // cap — daj punkty
+      game.score += 100;
+      showToast('⚡ MAX — +100 pkt');
+    }
+    flashScreen('rgba(232,86,30,0.18)', 14);
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      spawnParticles(game.px + Math.cos(angle) * 25 * dpr, game.py - 30 * dpr + Math.sin(angle) * 25 * dpr, '#e8561e', 1);
+    }
+    playCombo(2);
+    if (navigator.vibrate) navigator.vibrate([30, 20, 40]);
+    return;
+  }
+
+  // 🍊 ORANGE PICKUP — instant +1 pomarańcza (cap orangesMax)
+  if (type === 'orange_pickup') {
+    const max = game.orangesMax || 3;
+    if (game.orangesLeft < max) {
+      game.orangesLeft++;
+      showToast('🍊 +1 POMARAŃCZA!');
+      spawnPopup(game.px, game.py - 80 * dpr, '+1 🍊', '#ffa030');
+      updateOrangeUI();
+    } else {
+      // cap — daj punkty
+      game.score += 100;
+      showToast('🍊 MAX — +100 pkt');
+    }
+    flashScreen('rgba(255,160,48,0.18)', 14);
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      spawnParticles(game.px + Math.cos(angle) * 25 * dpr, game.py - 30 * dpr + Math.sin(angle) * 25 * dpr, '#ffa030', 1);
+    }
+    playCombo(2);
+    if (navigator.vibrate) navigator.vibrate([30, 20, 40]);
+    return;
+  }
 
   // ❤ HEART — instant +1 życie (cap 5)
   if (type === 'heart') {
@@ -3482,31 +3539,43 @@ function update() {
       if (proj.dead) continue;
       proj.x += proj.vx;
       proj.y += proj.vy;
-      proj.vy += 0.4 * dpr;  // grawitacja (łuk)
+      proj.vy += 0.2 * dpr;  // 🆕 łagodniejsza grawitacja (było 0.4)
       proj.rot += 0.3;
       proj.life--;
 
       // Kolizje z obstacles
       for (const o of game.obstacles) {
         if (o.passed || o.type === 'gap') continue;
-        const ox = o.x;
-        const oy = (o.type === 'high' ? GROUND_Y - 90 * dpr : o.type === 'pedestrian' ? GROUND_Y - o.h : GROUND_Y - o.h);
-        if (proj.x > ox && proj.x < ox + o.w && proj.y > oy && proj.y < oy + o.h) {
+        const ox1 = o.x;
+        const ox2 = o.x + o.w;
+        let oy1, oy2;
+        if (o.type === 'low' || o.type === 'pedestrian') {
+          oy1 = GROUND_Y - o.h;
+          oy2 = GROUND_Y;
+        } else if (o.type === 'high') {
+          oy1 = GROUND_Y - 90 * dpr;
+          oy2 = GROUND_Y - 90 * dpr + o.h;
+        } else if (o.type === 'moving') {
+          oy1 = o.y - o.h / 2;
+          oy2 = o.y + o.h / 2;
+        } else continue;
+        // 🆕 Większy hitbox (proj.r tolerance) żeby trafianie było wyrozumiałe
+        if (proj.x + proj.r > ox1 && proj.x - proj.r < ox2 && proj.y + proj.r > oy1 && proj.y - proj.r < oy2) {
           proj.dead = true;
           o.passed = true;
           // Zniszcz przeszkodę z bonusem
           const bonus = Math.floor(50 * game.multi);
           game.score += bonus;
-          spawnPopup(o.x + o.w / 2, oy - 20 * dpr, '🍊 +' + bonus, '#ffa030');
+          spawnPopup(o.x + o.w / 2, oy1 - 20 * dpr, '🍊 +' + bonus, '#ffa030');
           for (let i = 0; i < 16; i++) {
             const angle = (i / 16) * Math.PI * 2;
             spawnParticles(
               o.x + o.w / 2 + Math.cos(angle) * 8 * dpr,
-              oy + o.h / 2 + Math.sin(angle) * 8 * dpr,
+              (oy1 + oy2) / 2 + Math.sin(angle) * 8 * dpr,
               i % 2 === 0 ? '#ffa030' : '#ffd966', 1
             );
           }
-          spawnShockwave(o.x + o.w / 2, oy + o.h / 2, '#ffa030', { maxR: 50, lineWidth: 2 });
+          spawnShockwave(o.x + o.w / 2, (oy1 + oy2) / 2, '#ffa030', { maxR: 50, lineWidth: 2 });
           if (navigator.vibrate) navigator.vibrate([15, 10, 25]);
           playCombo(2);
           break;
@@ -3514,10 +3583,10 @@ function update() {
       }
       if (proj.dead) continue;
 
-      // Kolizje z hazardami (banany, kałuże)
+      // Kolizje z hazardami (banany, kałuże) — większy hitbox z proj.r
       for (const h of game.hazards) {
         if (h.triggered) continue;
-        if (proj.x > h.x && proj.x < h.x + h.w && proj.y > h.y - h.h && proj.y < h.y + 10 * dpr) {
+        if (proj.x + proj.r > h.x && proj.x - proj.r < h.x + h.w && proj.y + proj.r > h.y - h.h && proj.y - proj.r < h.y + 10 * dpr) {
           proj.dead = true;
           h.triggered = true;
           const bonus = Math.floor(40 * game.multi);
@@ -3529,11 +3598,12 @@ function update() {
       }
       if (proj.dead) continue;
 
-      // Kolizje z ptakami
+      // Kolizje z ptakami — większy hitbox
       for (const b of game.birds) {
         if (b.passed) continue;
         const dx = proj.x - b.x, dy = proj.y - b.y;
-        if (dx * dx + dy * dy < (b.r + proj.r) * (b.r + proj.r)) {
+        const collisionR = (b.r || 14 * dpr) + proj.r + 8 * dpr;  // 🆕 +8px wyrozumiałości
+        if (dx * dx + dy * dy < collisionR * collisionR) {
           proj.dead = true;
           b.passed = true;
           const bonus = Math.floor(60 * game.multi);
@@ -4100,7 +4170,9 @@ function update() {
           slowmo: '#a868e0',
           boost:  '#e8561e',
           heart:  '#e05050',
-          gel:    '#ffa030'
+          gel:    '#ffa030',
+          dash_pickup: '#e8561e',
+          orange_pickup: '#ffa030'
         };
         spawnParticles(p.x, p.y, puColors[p.type] || '#ffd966', 14);
         // 🎯 Mission tracking
@@ -7224,8 +7296,8 @@ function render() {
   if ((M.id === 'longrun' || M.id === 'endless') && game.powerups) {
     game.powerups.forEach(p => {
       if (p.collected) return;
-      const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e', heart: '#e05050', gel: '#ffa030' };
-      const icons  = { magnet: '🧲',     shield: '🛡',      slowmo: '🐢',      boost: '⚡',       heart: '❤',       gel: '💪' };
+      const colors = { magnet: '#ffd966', shield: '#5090e0', slowmo: '#a868e0', boost: '#e8561e', heart: '#e05050', gel: '#ffa030', dash_pickup: '#e8561e', orange_pickup: '#ffa030' };
+      const icons  = { magnet: '🧲',     shield: '🛡',      slowmo: '🐢',      boost: '⚡',       heart: '❤',       gel: '💪',       dash_pickup: '⚡',       orange_pickup: '🍊' };
       const bobY = p.y + Math.sin(p.bob) * 5 * dpr;
       const pulse = (Math.sin(game.t * 0.15) + 1) / 2;
       const glowR = p.r + (8 + pulse * 6) * dpr;
@@ -7855,6 +7927,18 @@ function realStart(mode) {
     // 30s magnesu = 1800 klatek
     if (game.activePU) game.activePU.magnet = 1800;
     setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '🧲 MAGNET 30s', '#ffd966'), popupDelay);
+    popupDelay += 200;
+  }
+  if (shopBoosts.extra_dash) {
+    // 🆕 +1 dash startowy
+    game.dashLeft = (game.dashLeft || 0) + 1;
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '⚡ +1 DASH', '#e8561e'), popupDelay);
+    popupDelay += 200;
+  }
+  if (shopBoosts.extra_oranges) {
+    // 🆕 +2 pomarańcze startowe
+    game.orangesLeft = (game.orangesLeft || 0) + 2;
+    setTimeout(() => spawnPopup(W * 0.5, H * 0.45, '🍊 +2 POMARAŃCZE', '#ffa030'), popupDelay);
   }
   
   initMissions();
