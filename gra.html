@@ -1300,6 +1300,7 @@ function newGame(mode) {
     flipRotation: 0,           // 0..360+
     flipStartT: 0,
     flipFailStun: 0,           // klatki stunu po failed flip
+    flipChain: 0,              // 🆕 hazardy ubite w trakcie obecnego salta (combo)
 
     // Spawn
     nextObstacleIn: 90 * (M.obstacleFreq || 1),
@@ -3135,6 +3136,7 @@ function update() {
           }
         }
         game.onGround = true;
+        game.flipChain = 0;  // 🆕 reset combo przy lądowaniu
         
         // 🆕 SALTO LANDING CHECK — bardziej hojne
         if (wasFlipping) {
@@ -3578,11 +3580,25 @@ function update() {
         o.nearMissed = true;
         game.perfectStreak += 2;
         updateComboMultiplier();
-        const bonus = Math.floor(15 * game.multi);
+        const bonus = Math.floor(25 * game.multi);  // 🆕 15 → 25 (bardziej satysfakcjonujący)
         game.score += bonus;
-        spawnPopup(o.x, (oy1 || GROUND_Y) - 20 * dpr, 'TUŻ TUŻ! +' + bonus, '#5090e0');
-        spawnParticles(o.x, (oy1 || GROUND_Y) - 10 * dpr, '#5090e0', 8);
-        flashScreen('rgba(80,144,224,0.08)', 5);
+        // 🆕 Mocniejszy popup, większy, jaśniejszy
+        spawnPopup(o.x, (oy1 || GROUND_Y) - 30 * dpr, '⚡ NEAR MISS! +' + bonus, '#ffd966');
+        // Pierścień particles wokół przeszkody
+        for (let i = 0; i < 12; i++) {
+          const angle = (i / 12) * Math.PI * 2;
+          spawnParticles(
+            o.x + o.w / 2 + Math.cos(angle) * 12 * dpr,
+            (oy1 || GROUND_Y - 20 * dpr) + Math.sin(angle) * 12 * dpr,
+            i % 2 === 0 ? '#ffd966' : '#5090e0', 1
+          );
+        }
+        // Krótka shockwave
+        spawnShockwave(o.x + o.w / 2, oy1 || GROUND_Y - 20 * dpr, '#ffd966', { maxR: 35, lineWidth: 2 });
+        flashScreen('rgba(255,217,102,0.12)', 6);
+        // Lekki haptic
+        if (navigator.vibrate) navigator.vibrate(15);
+        playCoin();  // ten sam dźwięk co coin — szybki ping
         // 🎯 Mission tracking
         if (game.missionTrackers) {
           game.missionTrackers.nearmiss++;
@@ -3642,28 +3658,45 @@ function update() {
     const isAirborne = game.py < GROUND_Y - 8 * dpr;
     if (xOverlap && isFlipping && isAirborne) {
       h.triggered = true;
+      // 🆕 CHAIN — każdy kolejny hazard w tym samym salcie zwiększa licznik i bonus
+      game.flipChain = (game.flipChain || 0) + 1;
+      const chainCount = game.flipChain;
       // 🎒 GADŻET flip_master — bonus +50% za salto-kill
       const baseBonus = 75;
       const bonusMultiplier = hasGadget('flip_master') ? 1.5 : 1;
-      const bonus = Math.floor(baseBonus * bonusMultiplier * game.multi);
+      // Chain bonus: x1 dla pierwszego, x1.5 drugi, x2 trzeci, x3 czwarty, x4 piąty+
+      const chainMultiplier = chainCount === 1 ? 1 : chainCount === 2 ? 1.5 : chainCount === 3 ? 2 : chainCount === 4 ? 3 : 4;
+      const bonus = Math.floor(baseBonus * bonusMultiplier * chainMultiplier * game.multi);
       game.score += bonus;
-      const msg = h.type === 'banana' ? '🍌 SMASH! +' + bonus : '💧 SPLASH! +' + bonus;
+      const baseMsg = h.type === 'banana' ? '🍌 SMASH!' : '💧 SPLASH!';
+      const chainLabel = chainCount > 1 ? ' CHAIN x' + chainCount : '';
+      const msg = baseMsg + chainLabel + ' +' + bonus;
       const color = h.type === 'banana' ? '#ffd966' : '#5090e0';
-      spawnPopup(h.x + h.w / 2, h.y - 40 * dpr, msg, color);
-      // Wybuch particles — większy
-      for (let i = 0; i < 18; i++) {
-        const angle = (i / 18) * Math.PI * 2;
+      // Większy popup dla chainów
+      const popupColor = chainCount >= 3 ? '#ff7a45' : (chainCount === 2 ? '#ffd966' : color);
+      spawnPopup(h.x + h.w / 2, h.y - 40 * dpr, msg, popupColor);
+      // Drugi popup w centrum dla CHAIN x3+
+      if (chainCount >= 3) {
+        spawnPopup(W * 0.5, H * 0.35, '🔥 CHAIN x' + chainCount + '!', '#ff7a45');
+        flashScreen('rgba(255,122,69,0.18)', 14);
+        shakeAmount = Math.max(shakeAmount, 12 * dpr);
+      }
+      // Wybuch particles — większy dla większych chain
+      const particleCount = 18 + chainCount * 6;
+      for (let i = 0; i < particleCount; i++) {
+        const angle = (i / particleCount) * Math.PI * 2;
         spawnParticles(
           h.x + h.w / 2 + Math.cos(angle) * 8 * dpr,
           h.y - h.h / 2 + Math.sin(angle) * 8 * dpr,
-          color, 1
+          chainCount >= 2 ? '#ff7a45' : color, 1
         );
       }
-      // Shockwave dla feedbacku
-      spawnShockwave(h.x + h.w / 2, h.y - h.h / 2, color, { maxR: 60, lineWidth: 3 });
+      // Shockwave — większa dla chainów
+      const shockMaxR = 60 + chainCount * 15;
+      spawnShockwave(h.x + h.w / 2, h.y - h.h / 2, chainCount >= 2 ? '#ff7a45' : color, { maxR: shockMaxR, lineWidth: 3 + chainCount * 0.5 });
       flashScreen('rgba(255,217,102,0.10)', 8);
-      playCombo(2);
-      if (navigator.vibrate) navigator.vibrate([20, 15, 30]);
+      playCombo(Math.min(3, chainCount + 1));
+      if (navigator.vibrate) navigator.vibrate(chainCount >= 3 ? [40, 30, 60, 30, 80] : [20, 15, 30]);
       // Mission tracker — liczy jako trick
       if (game.missionTrackers) {
         game.missionTrackers.perfects = (game.missionTrackers.perfects || 0) + 1;
@@ -3712,12 +3745,31 @@ function update() {
         shakeAmount = 12 * dpr;
       }
     }
-    // Near miss
+    // Near miss — ptak
     if (!b.nearMissed && Math.abs(dx) < 30 * dpr && Math.abs(dy) > collisionR && Math.abs(dy) < collisionR + 20 * dpr) {
       b.nearMissed = true;
-      const bonus = Math.floor(20 * game.multi);
+      const bonus = Math.floor(35 * game.multi);  // 🆕 ptak więcej niż obstacle (większe ryzyko)
       game.score += bonus;
-      spawnPopup(b.x, b.y - 30 * dpr, 'NEAR BIRD! +' + bonus, '#a868e0');
+      game.perfectStreak += 2;
+      updateComboMultiplier();
+      spawnPopup(b.x, b.y - 30 * dpr, '⚡ NEAR BIRD! +' + bonus, '#ffd966');
+      // Particles
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        spawnParticles(
+          b.x + Math.cos(angle) * 14 * dpr,
+          b.y + Math.sin(angle) * 14 * dpr,
+          i % 2 === 0 ? '#ffd966' : '#a868e0', 1
+        );
+      }
+      spawnShockwave(b.x, b.y, '#ffd966', { maxR: 35, lineWidth: 2 });
+      flashScreen('rgba(255,217,102,0.12)', 6);
+      if (navigator.vibrate) navigator.vibrate(15);
+      playCoin();
+      if (game.missionTrackers) {
+        game.missionTrackers.nearmiss = (game.missionTrackers.nearmiss || 0) + 1;
+        checkMissionProgress('nearmiss', game.missionTrackers.nearmiss);
+      }
     }
     // Passed
     if (!b.passed && b.x < game.px - 30 * dpr) {
@@ -4099,6 +4151,7 @@ function hitObstacle() {
   }
   game.lives--;
   game.invuln = 60;
+  game.flipChain = 0;  // 🆕 reset combo przy hicie
   game.focusStartT = game.t;
   // 🆕 Reset survival bonus (utrata)
   if (game.survivalLastTier > 0) {
