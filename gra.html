@@ -772,10 +772,10 @@ const SHOP_CATALOG = {
 
 // 🆕 TEST GRANT — jednorazowy bonus startowy do testowania sklepu
 (function grantTestCurrency(){
-  if (!getStat('test_grant_v1', false)) {
-    setStat('wallet_coins', 2000);
-    setStat('wallet_gems', 50);
-    setStat('test_grant_v1', true);
+  if (!getStat('test_grant_v2', false)) {
+    setStat('wallet_coins', getCoins() + 5000);
+    setStat('wallet_gems', getGems() + 200);
+    setStat('test_grant_v2', true);
   }
 })();
 
@@ -1370,6 +1370,9 @@ function newGame(mode) {
     nextPowerupIn: M.powerups ? 300 : Infinity,  // 🆕 pierwszy powerup po ~5s zamiast 10s
     powerups: [],
     activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0, gel: 0 },
+    // 🆕 GWARANTOWANE wczesne spawny — żeby gracz widział że istnieją
+    guaranteedHeartSpawned: false,  // serce w 8s
+    guaranteedGelSpawned: false,    // żel w 14s
 
     // METRYKI MENTALNE
     reactionTimes: [],
@@ -1718,6 +1721,11 @@ function spawnPowerup() {
   for (const p of pool) {
     if ((r -= p.weight) <= 0) { type = p.type; break; }
   }
+  spawnSpecificPowerup(type);
+}
+
+function spawnSpecificPowerup(type) {
+  if (!game) return;
   game.powerups.push({
     type,
     x: W + 30 * dpr,
@@ -1948,28 +1956,19 @@ function spawnObstacle() {
     ? types[1 + Math.floor(Math.random()*2)]
     : types[Math.floor(Math.random()*3)];
   
-  // 🆕 Rodzaj rowu zależny od sceny — w ciemnych scenach ZAWSZE woda/lawa dla kontrastu
-  let gapKind = 'empty';  // domyślnie pusty (przepaść)
+  // 🆕 Rodzaj rowu zależny od sceny — TYLKO woda lub lawa (czarna dziura była niewidoczna)
+  let gapKind = 'water';  // domyślnie woda
   if (type === 'gap') {
     const escene = game.endlessScene || 0;
-    const r = Math.random();
-    // PARK / MIASTO — woda/puste (mix)
-    if (escene === 0 || escene === 1) {
-      gapKind = r < 0.6 ? 'water' : 'empty';
-    }
-    // NOC — 🆕 ZAWSZE świecąca woda (czarna dziura znika w ciemności)
-    else if (escene === 2) {
+    // PARK / MIASTO / NOC / ŚWIT — woda (świecące, kontrastowe)
+    if (escene === 0 || escene === 1 || escene === 2 || escene === 3) {
       gapKind = 'water';
     }
-    // ŚWIT — woda/puste mix
-    else if (escene === 3) {
-      gapKind = r < 0.5 ? 'water' : 'empty';
-    }
-    // GÓRY — 🆕 ZAWSZE lawa dla wyraźnego ostrzeżenia
+    // GÓRY — lawa (gorąca, pomarańczowa, na każdym tle widoczna)
     else if (escene === 4) {
       gapKind = 'lava';
     }
-    // KOSMOS — same czarne dziury (na czarnym tle to celowe — wyzwanie)
+    // KOSMOS — czarne dziury (na czarnym tle to celowy wyzwanie)
     else {
       gapKind = 'empty';
     }
@@ -3020,6 +3019,17 @@ function update() {
     }
     if (game.sceneTransition > 0) game.sceneTransition--;
     if (M.powerups) {
+      // 🆕 GWARANTOWANE wczesne spawny — żeby gracz widział nowe power-upy
+      if (!game.guaranteedHeartSpawned && game.elapsed >= 8) {
+        spawnSpecificPowerup('heart');
+        game.guaranteedHeartSpawned = true;
+        showToast('❤ Serce na trasie!');
+      }
+      if (!game.guaranteedGelSpawned && game.elapsed >= 14) {
+        spawnSpecificPowerup('gel');
+        game.guaranteedGelSpawned = true;
+        showToast('💪 Żel na trasie!');
+      }
       game.nextPowerupIn--;
       if (game.nextPowerupIn <= 0) {
         spawnPowerup();
@@ -6073,6 +6083,22 @@ function render() {
       const droneW = o.w;
       const droneH = o.h * 0.5;  // dron jest płaski, nie kwadratowy
       const propPhase = game.t * 0.8;  // szybkie wirowanie propellerów
+
+      // 🆕 KOLOROWA AURA OSTRZEGAWCZA — cykluje przez tęczę dla widoczności na każdym tle
+      const droneT = game.t;
+      const droneCycle = (droneT * 0.04) % (Math.PI * 2);
+      const droneHue = (Math.sin(droneCycle) * 0.5 + 0.5) * 360;
+      const dronePulseColor = 'hsl(' + Math.floor(droneHue) + ', 95%, 60%)';
+      const dronePulseAlpha = 0.5 + Math.sin(droneT * 0.15) * 0.25;
+      // Duża świecąca aura wokół drona
+      const droneAuraGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, droneW * 0.9);
+      droneAuraGrad.addColorStop(0, dronePulseColor.replace('hsl(', 'hsla(').replace(')', ',' + dronePulseAlpha + ')'));
+      droneAuraGrad.addColorStop(0.5, dronePulseColor.replace('hsl(', 'hsla(').replace(')', ',' + (dronePulseAlpha * 0.3) + ')'));
+      droneAuraGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = droneAuraGrad;
+      ctx.beginPath();
+      ctx.arc(cx, cy, droneW * 0.9, 0, Math.PI * 2);
+      ctx.fill();
       
       // Cień pod dronem (na ziemi, żeby było widać że lewituje)
       const shadowGrad = ctx.createRadialGradient(cx, GROUND_Y - 2 * dpr, 0, cx, GROUND_Y - 2 * dpr, droneW * 0.6);
@@ -7977,29 +8003,8 @@ function drawBird(ctx, x, y, flapPhase) {
   const s = dpr * 1.4;
   const flap = Math.sin(flapPhase);
 
-  // 🆕 Cykliczny kolor — bird/dron pulsuje przez tęczę dla widoczności
-  // game.t to globalny licznik klatek, więc kolor się zmienia stale
-  const t = (typeof game !== 'undefined' && game ? game.t : 0);
-  const colorCycle = (t * 0.04) % (Math.PI * 2);
-  // Cykluj 4 jaskrawe kolory: cyan → magenta → yellow → red-orange
-  const hue = (Math.sin(colorCycle) * 0.5 + 0.5) * 360;
-  const pulseColor = 'hsl(' + Math.floor(hue) + ', 95%, 60%)';
-  const pulseColorDim = 'hsl(' + Math.floor(hue) + ', 80%, 40%)';
-  // Pulsujący alpha dla glow
-  const pulseAlpha = 0.5 + Math.sin(t * 0.15) * 0.25;
-  
   ctx.save();
   ctx.translate(x, y);
-  
-  // 🆕 OSTRZEGAWCZY GLOW — duża świecąca aura wokół drona
-  const auraGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 28 * s);
-  auraGrad.addColorStop(0, pulseColor.replace('hsl(', 'hsla(').replace(')', ',' + pulseAlpha + ')'));
-  auraGrad.addColorStop(0.5, pulseColor.replace('hsl(', 'hsla(').replace(')', ',' + (pulseAlpha * 0.3) + ')'));
-  auraGrad.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = auraGrad;
-  ctx.beginPath();
-  ctx.arc(0, 0, 28 * s, 0, Math.PI * 2);
-  ctx.fill();
 
   // Cień pod ptakiem
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
@@ -8007,29 +8012,30 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.ellipse(0, 8 * s, 12 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Body (eliptyczny) — z kolorowym akcentem
+  // Body (eliptyczny) — naturalny brązowy
   const bodyGrad = ctx.createLinearGradient(0, -6 * s, 0, 6 * s);
-  bodyGrad.addColorStop(0, pulseColor);  // 🆕 góra ciała pulsuje
-  bodyGrad.addColorStop(0.5, pulseColorDim);
+  bodyGrad.addColorStop(0, '#5a3a20');
+  bodyGrad.addColorStop(0.5, '#3a2010');
   bodyGrad.addColorStop(1, '#1a1008');
   ctx.fillStyle = bodyGrad;
   ctx.beginPath();
   ctx.ellipse(0, 0, 10 * s, 6 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Białe pióra na brzuchu
+  // Białe pióra na brzuchu (subtle)
   ctx.fillStyle = 'rgba(220,200,180,0.4)';
   ctx.beginPath();
   ctx.ellipse(2 * s, 3 * s, 7 * s, 3 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // SKRZYDŁA — animowane, też z pulsującym kolorem
+  // SKRZYDŁA — animowane (główna część ptaka)
+  // Lewe skrzydło (z tyłu, mniej widoczne)
   ctx.save();
   ctx.translate(-3 * s, -2 * s);
   ctx.rotate(-flap * 0.6);
   const wingGrad = ctx.createLinearGradient(0, 0, -15 * s, 0);
-  wingGrad.addColorStop(0, pulseColor);    // 🆕
-  wingGrad.addColorStop(0.5, pulseColorDim); // 🆕
+  wingGrad.addColorStop(0, '#5a3a20');
+  wingGrad.addColorStop(0.5, '#3a2010');
   wingGrad.addColorStop(1, '#2a1408');
   ctx.fillStyle = wingGrad;
   ctx.beginPath();
@@ -8048,7 +8054,7 @@ function drawBird(ctx, x, y, flapPhase) {
   }
   ctx.restore();
   
-  // Prawe skrzydło
+  // Prawe skrzydło (z przodu, główne)
   ctx.save();
   ctx.translate(3 * s, -2 * s);
   ctx.rotate(flap * 0.6);
@@ -8070,12 +8076,12 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.restore();
   
   // Głowa
-  ctx.fillStyle = pulseColorDim;  // 🆕
+  ctx.fillStyle = '#3a2010';
   ctx.beginPath();
   ctx.arc(-7 * s, -2 * s, 4 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Dziób
+  // Dziób (orle - zakrzywiony)
   ctx.fillStyle = '#ffd966';
   ctx.beginPath();
   ctx.moveTo(-9 * s, -1 * s);
@@ -8088,8 +8094,8 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.lineWidth = 0.7 * s;
   ctx.stroke();
   
-  // Oko — pulsujące jasno
-  ctx.fillStyle = '#ffffff';  // 🆕 białe dla kontrastu
+  // Oko (czerwone, drapieżne)
+  ctx.fillStyle = '#ffa040';
   ctx.beginPath();
   ctx.arc(-7 * s, -3 * s, 1.5 * s, 0, Math.PI * 2);
   ctx.fill();
@@ -8098,8 +8104,8 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.arc(-7 * s, -3 * s, 0.8 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Ogon
-  ctx.fillStyle = pulseColorDim;  // 🆕
+  // Ogon (3 pióra)
+  ctx.fillStyle = '#3a2010';
   ctx.beginPath();
   ctx.moveTo(8 * s, -2 * s);
   ctx.lineTo(14 * s, -3 * s);
