@@ -290,8 +290,127 @@ body::before,body::after{contain:strict;}
 .card{contain:layout style;}
 .tab,.role-btn,.btn,.btn-google{will-change:transform;}
 .spinner{contain:strict;}
+
+/* ── HERO LANDING (tylko dla nowych userów) ──────────────────────── */
+#hero-landing {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: #07070a;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+}
+body.show-hero #hero-landing { display: flex; }
+body.show-hero .container { display: none; }
+
+.hero-photo-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+.hero-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  display: block;
+}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom,
+    rgba(7,7,10,0) 0%,
+    rgba(7,7,10,0) 50%,
+    rgba(7,7,10,0.85) 88%,
+    rgba(7,7,10,1) 100%);
+  pointer-events: none;
+}
+.hero-logo-overlay {
+  position: absolute;
+  top: 24px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 2;
+}
+.hero-logo-overlay .logo-text {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+}
+.hero-logo-overlay .logo-text span { color: var(--accent); }
+.hero-logo-overlay .logo-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.hero-content {
+  background: #07070a;
+  padding: 28px 24px 32px;
+  text-align: center;
+}
+.hero-quote {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  margin-bottom: 8px;
+}
+.hero-quote .accent { color: var(--accent); }
+.hero-quote .line2 { display: block; margin-top: 4px; }
+.hero-tagline {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.hero-cta {
+  display: block;
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 16px 24px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(232,86,30,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.hero-cta:active { transform: scale(0.98); }
+.hero-cta:hover { box-shadow: 0 12px 32px rgba(232,86,30,0.5); }
+.hero-skip {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  margin-top: 16px;
+  padding: 8px;
+}
+.hero-skip:hover { color: var(--fg2); }
+
 /* Loading state - ukryj wszystko zanim wykryjemy sesję */
-body.loading .container { visibility: hidden; }
+body.loading .container,
+body.loading #hero-landing { visibility: hidden; }
 body.loading::before {
   content: '';
   position: fixed;
@@ -322,6 +441,27 @@ body.loading::after {
 </style>
 </head>
 <body class="loading">
+
+<!-- HERO LANDING (pierwszy raz) -->
+<div id="hero-landing">
+  <div class="hero-photo-wrap">
+    <div class="hero-logo-overlay">
+      <div class="logo-text">Biega<span>My</span></div>
+      <div class="logo-sub">Coaching Biegowy</div>
+    </div>
+    <img src="hero-filip-kasia.jpg" alt="Filip i Kasia, mistrzostwa Polski" class="hero-photo" loading="eager">
+    <div class="hero-overlay"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-quote">
+      <span>Nie obiecuję, że <span class="accent">łatwo</span>.</span>
+      <span class="line2">Obiecuję, że <span class="accent">warto</span>.</span>
+    </div>
+    <div class="hero-tagline">Filip & Kasia · Twoi trenerzy</div>
+    <button class="hero-cta" onclick="dismissHero()">Zaczynamy →</button>
+    <button class="hero-skip" onclick="dismissHero()">Już mam konto</button>
+  </div>
+</div>
 
 <div class="container">
   <div class="logo">
@@ -468,13 +608,27 @@ function selectRole(role) {
 // ── CHECK IF ALREADY LOGGED IN ────────────────────────────────────────────────
 async function checkSession() {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) {
-    // Brak sesji - pokaż formularz logowania
-    document.body.classList.remove('loading');
+  if (session) {
+    // Jest sesja - automatyczny redirect (skip hero, skip formularz)
+    redirectUser(session.user);
     return;
   }
-  // Jest sesja - automatyczny redirect bez pokazywania landingu
-  redirectUser(session.user);
+  // Brak sesji - sprawdź czy to pierwszy raz
+  const seenHero = localStorage.getItem('biegamy_seen_landing');
+  if (!seenHero) {
+    // Pierwszy raz - pokaż hero
+    document.body.classList.remove('loading');
+    document.body.classList.add('show-hero');
+  } else {
+    // Wraca - od razu formularz
+    document.body.classList.remove('loading');
+  }
+}
+
+// Dismiss hero - oznacz że user widział, pokaż formularz
+function dismissHero() {
+  localStorage.setItem('biegamy_seen_landing', 'true');
+  document.body.classList.remove('show-hero');
 }
 
 function continueSession() {
@@ -835,6 +989,7 @@ window.forgotPassword = forgotPassword;
 window.loginGoogle = loginGoogle;
 window.continueSession = continueSession;
 window.logoutSession = logoutSession;
+window.dismissHero = dismissHero;
 
 }); // end DOMContentLoaded
 </script>
