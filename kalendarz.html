@@ -1128,7 +1128,6 @@ html { scroll-behavior: smooth; }
 <div class="notif" id="notif"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="sb.js"></script>
 <script>
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const typeColors = {
@@ -1485,7 +1484,7 @@ async function saveTraining() {
 
   if(!editingDate) { notify('Brak daty'); return; }
 
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
 
   // ── TRENER: zapisz/zaktualizuj w Supabase ───────────────────────
   if (session && _urlRole === 'coach') {
@@ -1494,7 +1493,7 @@ async function saveTraining() {
     const dbId = existingTraining?._id || null;
 
     if (dbId) {
-      const { error: updErr } = await sb.from('trainings').update({
+      const { error: updErr } = await _sbKal.from('trainings').update({
         type: selectedType, distance_km: dist||null, duration_min: time||null,
         pace: pace||null, heart_rate: hr||null, description: desc||null, status
       }).eq('id', dbId);
@@ -1508,7 +1507,7 @@ async function saveTraining() {
         notify('Wybierz zawodnika w prawym górnym rogu');
         return;
       }
-      const { error: insErr } = await sb.from('trainings').insert({
+      const { error: insErr } = await _sbKal.from('trainings').insert({
         coach_id: session.user.id,
         athlete_id: finalAthleteId,
         date: editingDate,
@@ -1536,7 +1535,7 @@ async function saveTraining() {
 
   if (athDbId) {
     // UPDATE — zawodnik edytuje swój trening
-    const { error: updErr } = await sb.from('trainings').update({
+    const { error: updErr } = await _sbKal.from('trainings').update({
       type: selectedType,
       distance_km: dist || null,
       duration_min: time || null,
@@ -1549,11 +1548,11 @@ async function saveTraining() {
 
   } else {
     // INSERT — zawodnik dodaje nowy trening
-    const { data: athRow } = await sb.from('athletes')
+    const { data: athRow } = await _sbKal.from('athletes')
       .select('id').eq('user_id', session.user.id).maybeSingle();
     if (!athRow) { notify('Nie znaleziono profilu zawodnika'); return; }
 
-    const { error: insErr } = await sb.from('trainings').insert({
+    const { error: insErr } = await _sbKal.from('trainings').insert({
       athlete_id: athRow.id,
       date: editingDate,
       type: selectedType,
@@ -1568,7 +1567,7 @@ async function saveTraining() {
   }
 
   // Zawsze przetwarzaj screenshoty (niezależnie od statusu)
-  const { data: athRow2 } = await sb.from('athletes')
+  const { data: athRow2 } = await _sbKal.from('athletes')
     .select('id').eq('user_id', session.user.id).maybeSingle();
   if (athRow2) {
     const logFiles = document.getElementById('f-log-files');
@@ -1589,10 +1588,10 @@ async function saveTraining() {
       for (let fi = 0; fi < fileSources.length; fi++) {
         const file = fileSources[fi];
         const path = athRow2.id + '/log_' + base + '_' + fi + '.' + (file.name.split('.').pop()||'jpg');
-        const { error: upErr } = await sb.storage
+        const { error: upErr } = await _sbKal.storage
           .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
         if (!upErr) {
-          const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
+          const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
           urls.push(urlData.publicUrl);
         }
       }
@@ -1602,7 +1601,7 @@ async function saveTraining() {
     // Jeśli status=done LUB są pliki — zapisz log z wynikiem
     if (status === 'done' || attachmentUrl) {
       // Sprawdź czy log już istnieje dla tej daty
-      const { data: existingLog } = await sb.from('training_logs')
+      const { data: existingLog } = await _sbKal.from('training_logs')
         .select('id').eq('athlete_id', athRow2.id)
         .gte('logged_at', editingDate + 'T00:00:00')
         .lte('logged_at', editingDate + 'T23:59:59')
@@ -1614,10 +1613,10 @@ async function saveTraining() {
         if (attachmentUrl) upd.attachment_url = attachmentUrl;
         if (logStrava) upd.strava_link = logStrava;
         if (document.getElementById('f-comment')?.value) upd.comment = document.getElementById('f-comment').value;
-        if (Object.keys(upd).length) await sb.from('training_logs').update(upd).eq('id', existingLog.id);
+        if (Object.keys(upd).length) await _sbKal.from('training_logs').update(upd).eq('id', existingLog.id);
       } else {
         // INSERT nowego logu
-        await sb.from('training_logs').insert({
+        await _sbKal.from('training_logs').insert({
           athlete_id: athRow2.id,
           training_type: selectedType,
           distance_km: logDist,
@@ -1654,7 +1653,7 @@ async function deleteTraining(e, ds, idx) {
   if (!confirm('Usunąć: ' + label + '?')) return;
 
   if (dbId) {
-    const { error } = await sb.from('trainings').delete().eq('id', dbId);
+    const { error } = await _sbKal.from('trainings').delete().eq('id', dbId);
     if (error) {
       if (error.code === '42501' || error.message?.includes('policy')) {
         notify('Brak uprawnień do usunięcia tego treningu');
@@ -1695,6 +1694,10 @@ const _urlAthlete = new URLSearchParams(window.location.search).get('athlete') |
 const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
 // Jeśli trener przyszedł z wybranym zawodnikiem — ustaw od razu
 if (_urlAthlete) window._calSelectedAthleteId = _urlAthlete;
+const SUPABASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
+const _sbKal = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 function goBack() {
   window.location.href = _backUrl;
 }
@@ -1708,7 +1711,7 @@ window._raceDates = [];
 async function initRole() {
   if (_urlRoleFromUrl) return; // URL ma rolę — ufamy jej
   // Brak roli w URL — sprawdź w sesji
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) { window.location.href = 'index.html'; return; }
   const role = session.user.user_metadata?.role || 'athlete';
   if (role === 'coach') {
@@ -1723,9 +1726,9 @@ initRole();
 
 async function loadAthletesSelect() {
   if (_urlRole !== 'coach') return;
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
-  const { data } = await sb.from('athletes').select('id,full_name,goal').eq('coach_id', session.user.id);
+  const { data } = await _sbKal.from('athletes').select('id,full_name,goal').eq('coach_id', session.user.id);
   if (!data || !data.length) return;
   const sel = document.getElementById('athlete-select');
   if (!sel) return;
@@ -1748,14 +1751,14 @@ function onAthleteChange(athleteId) {
 
 // ── LOAD TRAININGS FROM DB ────────────────────────────────────────
 async function loadTrainingsFromDB() {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
 
-  let query = sb.from('trainings').select('*');
+  let query = _sbKal.from('trainings').select('*');
 
   if (_urlRole === 'athlete') {
     // Zawodnik — tylko swoje treningi
-    const { data: ath } = await sb.from('athletes')
+    const { data: ath } = await _sbKal.from('athletes')
       .select('id').eq('user_id', session.user.id).maybeSingle();
     if (!ath) return;
     query = query.eq('athlete_id', ath.id);
@@ -1793,13 +1796,13 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type').not('training_type', 'like', '__badge__%').order('logged_at');
+  let logsQuery = _sbKal.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type, comment, strava_link').not('training_type', 'like', '__badge__%').order('logged_at');
   if (_urlRole === 'athlete') {
-    const { data: ath2 } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    const { data: ath2 } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
   } else if (_urlRole === 'coach') {
     // Trener widzi TYLKO logi swoich zawodników
-    const { data: myAthletes } = await sb.from('athletes').select('id').eq('coach_id', session.user.id);
+    const { data: myAthletes } = await _sbKal.from('athletes').select('id').eq('coach_id', session.user.id);
     const myAthleteIds = (myAthletes || []).map(a => a.id);
     if (window._calSelectedAthleteId) {
       // Konkretny zawodnik — ale tylko jeśli jest mój
@@ -1829,19 +1832,19 @@ async function loadTrainingsFromDB() {
   // Załaduj aktywności Stravy — dla zawodnika i dla trenera gdy wybrany zawodnik
   let stravaAthleteId = null;
   if (_urlRole === 'athlete') {
-    const { data: ath3 } = await sb.from('athletes')
+    const { data: ath3 } = await _sbKal.from('athletes')
       .select('id, strava_athlete_id').eq('user_id', session.user.id).maybeSingle();
     if (ath3?.strava_athlete_id) stravaAthleteId = ath3.id;
   } else if (window._calSelectedAthleteId) {
     // Trener patrzy na konkretnego zawodnika — sprawdź czy ma Stravę
-    const { data: ath3 } = await sb.from('athletes')
+    const { data: ath3 } = await _sbKal.from('athletes')
       .select('id, strava_athlete_id').eq('id', window._calSelectedAthleteId).maybeSingle();
     if (ath3?.strava_athlete_id) stravaAthleteId = ath3.id;
   }
 
   window._stravaActivities = {};
   if (stravaAthleteId) {
-    const { data: stravaData } = await sb
+    const { data: stravaData } = await _sbKal
       .from('strava_activities')
       .select('*')
       .eq('athlete_id', stravaAthleteId)
@@ -1930,7 +1933,7 @@ async function smartSuggest(athleteId, trainingType, isEdit) {
   // Pobierz PB zawodnika — potrzebne do stref i objętości
   let marPaceSec = null; // bazowe tempo maratońskie (sec/km)
   if (athleteId) {
-    const { data: ath } = await sb
+    const { data: ath } = await _sbKal
       .from('athletes')
       .select('pb_marathon, pb_half, pb_10k, pb_5k')
       .eq('id', athleteId)
@@ -2012,7 +2015,7 @@ async function smartSuggest(athleteId, trainingType, isEdit) {
   if (athleteId) {
     const since = new Date();
     since.setDate(since.getDate() - 56);
-    const { data: logs } = await sb
+    const { data: logs } = await _sbKal
       .from('training_logs')
       .select('training_type, distance_km, pace')
       .eq('athlete_id', athleteId)
@@ -2079,9 +2082,9 @@ let _editingGoalAthleteId = null; // id zawodnika
 let _editingGoalCelId = null;     // id konkretnego celu w tablicy
 
 async function loadGoals() {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
-  let query = sb.from('athletes').select('id, full_name, goal, target_date');
+  let query = _sbKal.from('athletes').select('id, full_name, goal, target_date');
   if (_urlRole === 'athlete') {
     query = query.eq('user_id', session.user.id).not('target_date', 'is', null);
   } else if (window._calSelectedAthleteId) {
@@ -2148,9 +2151,9 @@ async function openGoalModal(athleteId) {
     document.getElementById('goal-athlete-wrap').style.display = 'block';
     const sel = document.getElementById('goal-athlete');
     sel.innerHTML = '<option value="">— wybierz —</option>';
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session } } = await _sbKal.auth.getSession();
     if (session) {
-      const { data } = await sb.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
+      const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
       (data||[]).forEach(a => {
         const opt = document.createElement('option');
         opt.value = a.id; opt.textContent = a.full_name || a.id;
@@ -2194,7 +2197,7 @@ async function deleteGoal() {
   const athleteId = _editingGoalAthleteId || _editingGoalId;
   const celId = _editingGoalCelId || null;
 
-  const { data: athData } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
+  const { data: athData } = await _sbKal.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
   let goals = [];
   if (athData?.race_goals) {
     try { goals = JSON.parse(athData.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
@@ -2207,7 +2210,7 @@ async function deleteGoal() {
     goals = goals.slice(0, -1); // usuń ostatni jako fallback
   }
 
-  const { error } = await sb.from('athletes').update({
+  const { error } = await _sbKal.from('athletes').update({
     race_goals: goals.length > 0 ? JSON.stringify(goals) : null,
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -2222,20 +2225,20 @@ async function saveGoal() {
   const name = document.getElementById('goal-name').value.trim();
   const date = document.getElementById('goal-date').value;
   if (!name || !date) { notify('Wypełnij nazwę i datę'); return; }
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
   let athleteId = null;
   if (_urlRole === 'coach') {
     athleteId = document.getElementById('goal-athlete').value || _editingGoalId;
     if (!athleteId) { notify('Wybierz zawodnika'); return; }
   } else {
-    const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     athleteId = ath?.id;
     if (!athleteId) { notify('Błąd konta'); return; }
   }
 
   // Pobierz aktualne race_goals i dodaj nowy cel do tablicy
-  const { data: athData } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
+  const { data: athData } = await _sbKal.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
   let goals = [];
   if (athData?.race_goals) {
     try { goals = JSON.parse(athData.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
@@ -2257,7 +2260,7 @@ async function saveGoal() {
   // Sortuj po dacie
   goals.sort((a, b) => a.date.localeCompare(b.date));
 
-  const { error } = await sb.from('athletes').update({
+  const { error } = await _sbKal.from('athletes').update({
     race_goals: JSON.stringify(goals),
     goal: goals[0]?.name || null,
     target_date: goals[0]?.date || null
@@ -2418,11 +2421,11 @@ async function saveLog() {
   const strava = document.getElementById('lm-strava').value.trim() || null;
   const comment = document.getElementById('lm-comment').value.trim() || null;
   if (!dist) { notify('Podaj dystans'); return; }
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) { notify('Zaloguj się'); return; }
-  const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   if (!ath) { notify('Błąd konta'); return; }
-  await sb.from('training_logs').insert({
+  await _sbKal.from('training_logs').insert({
     athlete_id: ath.id,
     training_type: _logType2,
     distance_km: dist,
@@ -2437,7 +2440,7 @@ async function saveLog() {
     const updateData = { status: 'done' };
     if (dist) updateData.distance_km = dist;
     if (pace) updateData.pace = pace;
-    await sb.from('trainings').update(updateData).eq('id', _logTrainingId);
+    await _sbKal.from('trainings').update(updateData).eq('id', _logTrainingId);
     if (trainings[_logDate2]) {
       const t = trainings[_logDate2].find(x => x._id === _logTrainingId);
       if (t) {
@@ -2516,7 +2519,7 @@ async function executeMoveScreen(logId, url, currentDs) {
 
   try {
     // Find log on current day with this URL
-    const { data: currentLog } = await sb.from('training_logs')
+    const { data: currentLog } = await _sbKal.from('training_logs')
       .select('id,attachment_url,logged_at,athlete_id')
       .eq('id', logId).maybeSingle();
 
@@ -2525,7 +2528,7 @@ async function executeMoveScreen(logId, url, currentDs) {
     const ownAthleteId = currentLog.athlete_id || window._calSelectedAthleteId;
 
     // Find or create a log entry on the target day
-    const { data: targetLog } = await sb.from('training_logs')
+    const { data: targetLog } = await _sbKal.from('training_logs')
       .select('id,attachment_url')
       .eq('athlete_id', ownAthleteId)
       .gte('logged_at', targetDs + 'T00:00:00')
@@ -2534,7 +2537,7 @@ async function executeMoveScreen(logId, url, currentDs) {
 
     // Remove URL from current log's attachment_url
     const currentUrls = (currentLog.attachment_url || '').split(',').filter(u => u && u !== url);
-    await sb.from('training_logs').update({
+    await _sbKal.from('training_logs').update({
       attachment_url: currentUrls.length ? currentUrls.join(',') : null
     }).eq('id', currentLog.id);
 
@@ -2542,7 +2545,7 @@ async function executeMoveScreen(logId, url, currentDs) {
       // Append to existing log on target day
       const existingUrls = (targetLog.attachment_url || '').split(',').filter(Boolean);
       existingUrls.push(url);
-      await sb.from('training_logs').update({
+      await _sbKal.from('training_logs').update({
         attachment_url: existingUrls.join(',')
       }).eq('id', targetLog.id);
     } else {
@@ -2551,7 +2554,7 @@ async function executeMoveScreen(logId, url, currentDs) {
       const tzSign = tzOffset >= 0 ? '+' : '-';
       const tzHH = String(Math.floor(Math.abs(tzOffset)/60)).padStart(2,'0');
       const tzMM = String(Math.abs(tzOffset)%60).padStart(2,'0');
-      await sb.from('training_logs').insert({
+      await _sbKal.from('training_logs').insert({
         athlete_id: ownAthleteId,
         training_type: 'Zdjęcie',
         logged_at: targetDs + 'T12:00:00' + tzSign + tzHH + ':' + tzMM,
@@ -2582,7 +2585,7 @@ async function dragDrop(e, targetDs) {
   if (!t) return;
   const dbId = t._id;
   if (dbId) {
-    const { error } = await sb.from('trainings').update({ date: targetDs }).eq('id', dbId);
+    const { error } = await _sbKal.from('trainings').update({ date: targetDs }).eq('id', dbId);
     if (error) { notify('Błąd: ' + error.message); _dragDs=null; _dragIdx=null; return; }
   }
   if (!trainings[targetDs]) trainings[targetDs] = [];
@@ -2606,9 +2609,9 @@ async function openCopyModalFromCard(e, ds, idx) {
   _copySourceDate = ds;
   const sel = document.getElementById('copy-athlete-select');
   sel.innerHTML = '<option value="">— wybierz —</option>';
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (session) {
-    const { data } = await sb.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
+    const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
     (data||[]).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id; opt.textContent = a.full_name || a.id;
@@ -2626,9 +2629,9 @@ async function openCopyModal() {
   _copyTrainingData = t;
   const sel = document.getElementById('copy-athlete-select');
   sel.innerHTML = '<option value="">— wybierz —</option>';
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (session) {
-    const { data } = await sb.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
+    const { data } = await _sbKal.from('athletes').select('id,full_name').eq('coach_id', session.user.id);
     (data||[]).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id; opt.textContent = a.full_name || a.id;
@@ -2650,9 +2653,9 @@ async function copyTraining() {
   if (!date) { notify('Podaj datę'); return; }
   const t = _copyTrainingData;
   if (!t) return;
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sbKal.auth.getSession();
   if (!session) return;
-  const { error } = await sb.from('trainings').insert({
+  const { error } = await _sbKal.from('trainings').insert({
     coach_id: session.user.id,
     athlete_id: athleteId,
     date,
@@ -3091,9 +3094,9 @@ async function openWeekTemplateModal() {
   // Załaduj zawodników
   const sel = document.getElementById('wtpl-athlete');
   sel.innerHTML = '<option value="">— wybierz zawodnika —</option>';
-  const {data:{session}} = await sb.auth.getSession();
+  const {data:{session}} = await _sbKal.auth.getSession();
   if (session) {
-    const {data:athletes} = await sb.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
+    const {data:athletes} = await _sbKal.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
     (athletes||[]).forEach(a => {
       const opt = document.createElement('option');
       opt.value = a.id;
@@ -3163,7 +3166,7 @@ async function sendWeekTemplate() {
   const btn = document.getElementById('wtpl-send-btn');
   btn.textContent = 'Wysyłam...'; btn.disabled = true;
 
-  const {data:{session}} = await sb.auth.getSession();
+  const {data:{session}} = await _sbKal.auth.getSession();
   if (!session) { btn.textContent = 'Wyślij plan →'; btn.disabled = false; return; }
 
   const [yyyy, mm, dd] = weekDateStr.split('-').map(Number);
@@ -3181,10 +3184,10 @@ async function sendWeekTemplate() {
     const dateStr = date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0');
 
     // Sprawdź czy już istnieje
-    const {data:existing} = await sb.from('trainings').select('id').eq('athlete_id',athleteId).eq('date',dateStr).maybeSingle();
+    const {data:existing} = await _sbKal.from('trainings').select('id').eq('athlete_id',athleteId).eq('date',dateStr).maybeSingle();
     if (existing) { skipped++; continue; }
 
-    const {error} = await sb.from('trainings').insert({
+    const {error} = await _sbKal.from('trainings').insert({
       athlete_id: athleteId,
       coach_id: session.user.id,
       date: dateStr,
@@ -3298,9 +3301,9 @@ if (_isCoach) {
 } else {
   // Pobierz athlete ID i przekieruj na nowy profil
   (async function() {
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session } } = await _sbKal.auth.getSession();
     if (session) {
-      const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
       document.getElementById('bnav-profile').href = ath ? 'profil.html?id=' + ath.id : 'profil.html';
     }
   })();
@@ -4322,9 +4325,9 @@ async function openCopyWeekModal() {
   // Zawodnicy
   const sel = document.getElementById('cw-athlete');
   sel.innerHTML = '<option value="">— wybierz zawodnika —</option>';
-  const {data:{session}} = await sb.auth.getSession();
+  const {data:{session}} = await _sbKal.auth.getSession();
   if (session) {
-    const {data} = await sb.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
+    const {data} = await _sbKal.from('athletes').select('id,full_name').eq('coach_id',session.user.id);
     (data||[]).forEach(a => {
       const o = document.createElement('option');
       o.value = a.id; o.textContent = a.full_name||a.id;
@@ -4351,7 +4354,7 @@ async function doCopyWeek() {
   const days = [];
   for (let i=0;i<7;i++) days.push(addDays(currentWeekStart,i));
   const toInsert = [];
-  const {data:{session}} = await sb.auth.getSession();
+  const {data:{session}} = await _sbKal.auth.getSession();
   if (!session) return;
   days.forEach((ds,di) => {
     (trainings[ds]||[]).forEach(t => {
@@ -4371,7 +4374,7 @@ async function doCopyWeek() {
     });
   });
   if (!toInsert.length) { notify('Brak treningów do skopiowania'); return; }
-  const {error} = await sb.from('trainings').insert(toInsert);
+  const {error} = await _sbKal.from('trainings').insert(toInsert);
   if (error) { notify('Błąd: '+error.message); return; }
   closeCopyWeekModal();
   notify('Skopiowano '+toInsert.length+' treningów ✓');
