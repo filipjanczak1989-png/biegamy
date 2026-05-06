@@ -49,6 +49,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   <h1>Wyzwania</h1>
 </div>
 <div id="content">
+  <div id="duels-section" style="margin-bottom:18px;"></div>
   <div id="challenges-content">
     <div style="text-align:center;padding:48px 0;color:var(--muted);font-size:13px;">Ładowanie...</div>
   </div>
@@ -61,8 +62,133 @@ async function init() {
   if (!session) { history.back(); return; }
   const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).single();
   if (ath) _athleteId = ath.id;
+  loadDuels();
   loadChallenges();
 }
+
+// ── POJEDYNKI (duels) ─────────────────────────────────────────────
+async function loadDuels() {
+  const target = document.getElementById('duels-section');
+  if (!target || !_athleteId) return;
+
+  const { data: duels, error } = await sb.from('duels')
+    .select('*')
+    .or('challenger_id.eq.' + _athleteId + ',opponent_id.eq.' + _athleteId)
+    .in('status', ['pending', 'accepted'])
+    .order('created_at', { ascending: false });
+
+  if (error) { console.warn('duels:', error.message); target.innerHTML = ''; return; }
+  if (!duels || !duels.length) { target.innerHTML = ''; return; }
+
+  // Pobierz dane przeciwników
+  const otherIds = [...new Set(duels.map(d => d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id))];
+  const { data: athletes } = await sb.from('athletes')
+    .select('id,full_name,avatar_url').in('id', otherIds);
+  const athMap = {};
+  (athletes || []).forEach(a => athMap[a.id] = a);
+
+  const TYPE_LABELS = { distance: 'Dystans', time: 'Czas', pace: 'Tempo', frequency: 'Treningi' };
+
+  // Header
+  let html = '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;letter-spacing:0.05em;margin-bottom:10px;display:flex;align-items:center;gap:8px;">⚔️ Pojedynki <span style="background:var(--accent);color:#fff;font-size:10px;padding:2px 8px;border-radius:8px;font-family:\'DM Mono\',monospace;font-weight:600;">' + duels.length + '</span></div>';
+
+  duels.forEach(d => {
+    const isChallenger = d.challenger_id === _athleteId;
+    const otherId = isChallenger ? d.opponent_id : d.challenger_id;
+    const other = athMap[otherId] || { full_name: 'Biegacz' };
+    const typeName = TYPE_LABELS[d.type] || d.type;
+    const ini = (other.full_name || '?').split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2);
+    const av = other.avatar_url
+      ? '<img src="' + other.avatar_url + '" style="width:100%;height:100%;object-fit:cover;">'
+      : ini;
+
+    let statusBadge = '';
+    let actions = '';
+
+    if (d.status === 'pending') {
+      if (isChallenger) {
+        statusBadge = '<span style="background:rgba(232,86,30,0.15);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">⏳ Wysłano</span>';
+        actions = '<button onclick="cancelDuel(\'' + d.id + '\')" style="background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:7px;cursor:pointer;">Anuluj</button>';
+      } else {
+        statusBadge = '<span style="background:rgba(232,86,30,0.2);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">📩 Wyzwał Cię!</span>';
+        actions = '<div style="display:flex;gap:6px;"><button onclick="acceptDuel(\'' + d.id + '\')" style="background:var(--accent);border:none;color:#fff;font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:600;">✓ Przyjmij</button><button onclick="rejectDuel(\'' + d.id + '\')" style="background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:7px 10px;border-radius:8px;cursor:pointer;">✕</button></div>';
+      }
+    } else if (d.status === 'accepted') {
+      statusBadge = '<span style="background:rgba(61,184,112,0.15);color:var(--green);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">🔥 Aktywny</span>';
+      // Czas do końca
+      if (d.end_at) {
+        const end = new Date(d.end_at);
+        const now = new Date();
+        const diffH = Math.max(0, Math.round((end - now) / 3600000));
+        const diffD = Math.floor(diffH / 24);
+        const remain = diffD > 0 ? diffD + 'd ' + (diffH % 24) + 'h' : diffH + 'h';
+        statusBadge += ' <span style="color:var(--muted);font-size:10px;font-family:\'DM Mono\',monospace;margin-left:6px;">⏱ ' + remain + '</span>';
+      }
+    }
+
+    html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+        + '<div onclick="openProfile(\'' + otherId + '\')" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">' + av + '</div>'
+        + '<div style="flex:1;min-width:0;">'
+          + '<div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + (other.full_name || 'Biegacz') + '</div>'
+          + '<div style="font-size:10px;color:var(--muted);font-family:\'DM Mono\',monospace;margin-top:2px;">' + typeName + ' · ' + d.duration_days + ' dni</div>'
+        + '</div>'
+        + '<div style="flex-shrink:0;">' + statusBadge + '</div>'
+      + '</div>'
+      + (actions ? '<div style="display:flex;justify-content:flex-end;">' + actions + '</div>' : '')
+    + '</div>';
+  });
+
+  target.innerHTML = html;
+}
+
+async function acceptDuel(duelId) {
+  const start = new Date();
+  const { data: d } = await sb.from('duels').select('duration_days,challenger_id').eq('id', duelId).maybeSingle();
+  if (!d) return;
+  const end = new Date(start.getTime() + d.duration_days * 86400000);
+  const { error } = await sb.from('duels').update({
+    status: 'accepted',
+    start_at: start.toISOString(),
+    end_at: end.toISOString()
+  }).eq('id', duelId);
+  if (error) { alert('Błąd: ' + error.message); return; }
+  // Powiadom challengera
+  try {
+    const meR = await sb.from('athletes').select('full_name').eq('id', _athleteId).maybeSingle();
+    const myName = meR.data?.full_name || 'Ktoś';
+    await sb.from('notifications').insert({
+      athlete_id: d.challenger_id,
+      type: 'duel',
+      from_athlete_id: _athleteId,
+      message: myName + ' przyjął(a) Twoje wyzwanie 🔥',
+      read: false,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) {}
+  loadDuels();
+}
+
+async function rejectDuel(duelId) {
+  if (!confirm('Odrzucić to wyzwanie?')) return;
+  await sb.from('duels').update({ status: 'rejected' }).eq('id', duelId);
+  loadDuels();
+}
+
+async function cancelDuel(duelId) {
+  if (!confirm('Anulować pojedynek?')) return;
+  await sb.from('duels').update({ status: 'cancelled' }).eq('id', duelId);
+  loadDuels();
+}
+
+function openProfile(athleteId) {
+  location.href = 'profil.html?id=' + athleteId;
+}
+
+window.acceptDuel = acceptDuel;
+window.rejectDuel = rejectDuel;
+window.cancelDuel = cancelDuel;
+window.openProfile = openProfile;
 
 function loadChallenges() {
   const el = document.getElementById('challenges-content');

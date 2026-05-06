@@ -1301,18 +1301,191 @@ async function loadProfileFriends() {
   load.textContent = 'Ładowanie...';
   el.appendChild(load);
 
+  // ZNAJOMI ZAAKCEPTOWANI
   var res = await sb.from('friendships').select('requester_id,addressee_id').eq('status','accepted')
     .or('requester_id.eq.' + _targetId + ',addressee_id.eq.' + _targetId);
   var rows = res.data || [];
+
+  // ZAPROSZENIA - tylko jeśli to MÓJ profil
+  var pendingIn = []; // przychodzące do mnie
+  var pendingOut = []; // wysłane przeze mnie
+  if (_myId && _myId === _targetId) {
+    var pendRes = await sb.from('friendships')
+      .select('id,requester_id,addressee_id,created_at')
+      .eq('status','pending')
+      .or('requester_id.eq.' + _myId + ',addressee_id.eq.' + _myId);
+    (pendRes.data || []).forEach(function(r) {
+      if (r.addressee_id === _myId) pendingIn.push(r);
+      else pendingOut.push(r);
+    });
+  }
+
   el.innerHTML = '';
 
-  if (!rows.length) {
+  // ── SEKCJA: Zaproszenia do Ciebie (na górze, z badge) ──
+  if (pendingIn.length) {
+    var inHdr = document.createElement('div');
+    inHdr.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0 6px;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);font-weight:600;';
+    inHdr.innerHTML = 'Zaproszenia do Ciebie <span style="background:var(--accent);color:#fff;font-size:9px;padding:2px 6px;border-radius:8px;font-weight:700;">' + pendingIn.length + '</span>';
+    el.appendChild(inHdr);
+
+    var inIds = pendingIn.map(function(r){ return r.requester_id; });
+    var inAthRes = await sb.from('athletes').select('id,full_name,goal,avatar_url').in('id', inIds);
+    var inMap = {};
+    (inAthRes.data || []).forEach(function(a){ inMap[a.id] = a; });
+
+    pendingIn.forEach(function(p) {
+      var a = inMap[p.requester_id];
+      if (!a) return;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);';
+
+      var avWrap = document.createElement('div');
+      avWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
+      avWrap.addEventListener('click', function(){ openAthleteProfile(a.id); });
+      if (a.avatar_url) {
+        var img = document.createElement('img');
+        img.src = a.avatar_url; img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        img.onerror = function(){ this.style.opacity = 0; };
+        avWrap.appendChild(img);
+      } else {
+        avWrap.textContent = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+      }
+
+      var info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+      info.addEventListener('click', function(){ openAthleteProfile(a.id); });
+      var nm = document.createElement('div');
+      nm.style.cssText = 'font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      nm.textContent = a.full_name || 'Biegacz';
+      info.appendChild(nm);
+      var sub = document.createElement('div');
+      sub.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
+      sub.textContent = 'chce zostać Twoim znajomym';
+      info.appendChild(sub);
+
+      var actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;gap:6px;flex-shrink:0;';
+
+      var acceptBtn = document.createElement('button');
+      acceptBtn.style.cssText = 'background:var(--accent);border:none;color:#fff;font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:600;';
+      acceptBtn.textContent = '✓ Akceptuj';
+      acceptBtn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        acceptBtn.disabled = true; acceptBtn.style.opacity='0.6';
+        await sb.from('friendships').update({status:'accepted',updated_at:new Date().toISOString()})
+          .eq('id', p.id);
+        // Powiadomienie dla zapraszającego
+        try {
+          var meR = await sb.from('athletes').select('full_name').eq('id',_myId).maybeSingle();
+          var myName = meR.data?.full_name || 'Ktoś';
+          await sb.from('notifications').insert({
+            athlete_id: a.id,
+            type: 'friend_accepted',
+            from_athlete_id: _myId,
+            message: myName + ' zaakceptował(a) Twoje zaproszenie',
+            read: false,
+            created_at: new Date().toISOString()
+          });
+        } catch(e2) {}
+        showToast('Jesteście znajomymi! 🎉');
+        loadProfileFriends();
+      });
+      actions.appendChild(acceptBtn);
+
+      var rejectBtn = document.createElement('button');
+      rejectBtn.style.cssText = 'background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:7px 10px;border-radius:8px;cursor:pointer;';
+      rejectBtn.textContent = '✕';
+      rejectBtn.title = 'Odrzuć';
+      rejectBtn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        rejectBtn.disabled = true; rejectBtn.style.opacity='0.6';
+        await sb.from('friendships').delete().eq('id', p.id);
+        loadProfileFriends();
+      });
+      actions.appendChild(rejectBtn);
+
+      row.appendChild(avWrap);
+      row.appendChild(info);
+      row.appendChild(actions);
+      el.appendChild(row);
+    });
+  }
+
+  // ── SEKCJA: Wysłane przez Ciebie ──
+  if (pendingOut.length) {
+    var outHdr = document.createElement('div');
+    outHdr.style.cssText = 'padding:14px 0 6px;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);';
+    outHdr.textContent = 'Wysłane (' + pendingOut.length + ')';
+    el.appendChild(outHdr);
+
+    var outIds = pendingOut.map(function(r){ return r.addressee_id; });
+    var outAthRes = await sb.from('athletes').select('id,full_name,goal,avatar_url').in('id', outIds);
+    var outMap = {};
+    (outAthRes.data || []).forEach(function(a){ outMap[a.id] = a; });
+
+    pendingOut.forEach(function(p) {
+      var a = outMap[p.addressee_id];
+      if (!a) return;
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);opacity:0.85;';
+
+      var avWrap = document.createElement('div');
+      avWrap.style.cssText = 'width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
+      avWrap.addEventListener('click', function(){ openAthleteProfile(a.id); });
+      if (a.avatar_url) {
+        var img = document.createElement('img');
+        img.src = a.avatar_url; img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        img.onerror = function(){ this.style.opacity = 0; };
+        avWrap.appendChild(img);
+      } else {
+        avWrap.textContent = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
+      }
+
+      var info = document.createElement('div');
+      info.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+      info.addEventListener('click', function(){ openAthleteProfile(a.id); });
+      var nm = document.createElement('div');
+      nm.style.cssText = 'font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+      nm.textContent = a.full_name || 'Biegacz';
+      info.appendChild(nm);
+      var sub = document.createElement('div');
+      sub.style.cssText = 'font-size:10px;color:var(--muted);margin-top:2px;';
+      sub.textContent = '⏳ czeka na akceptację';
+      info.appendChild(sub);
+
+      var cancelBtn = document.createElement('button');
+      cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:7px;cursor:pointer;flex-shrink:0;';
+      cancelBtn.textContent = 'Anuluj';
+      cancelBtn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        cancelBtn.disabled = true; cancelBtn.style.opacity='0.6';
+        await sb.from('friendships').delete().eq('id', p.id);
+        loadProfileFriends();
+      });
+
+      row.appendChild(avWrap);
+      row.appendChild(info);
+      row.appendChild(cancelBtn);
+      el.appendChild(row);
+    });
+  }
+
+  // ── SEKCJA: Znajomi (zaakceptowani) ──
+  if (rows.length) {
+    var hdr = document.createElement('div');
+    hdr.style.cssText = 'padding:' + ((pendingIn.length || pendingOut.length) ? '14px' : '4px') + ' 0 6px;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--muted);';
+    hdr.textContent = 'Znajomi (' + rows.length + ')';
+    el.appendChild(hdr);
+  } else if (!pendingIn.length && !pendingOut.length) {
     var empty = document.createElement('div');
     empty.style.cssText = 'text-align:center;padding:40px 16px;color:var(--muted);font-size:13px;';
     empty.textContent = 'Brak znajomych';
     el.appendChild(empty);
     return;
   }
+
+  if (!rows.length) return;
 
   var ids = rows.map(function(r){ return r.requester_id === _targetId ? r.addressee_id : r.requester_id; });
   var athRes = await sb.from('athletes').select('id,full_name,pb_5k,goal,avatar_url').in('id', ids);
