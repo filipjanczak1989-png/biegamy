@@ -36,8 +36,8 @@ const PRECACHE_URLS = [
   '/sb.js',
   '/manifest.json',
   '/offline.html',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 // ─── INSTALL ─────────────────────────────────────────────────────────
