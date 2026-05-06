@@ -705,11 +705,13 @@ function removePendingBoost(id){
 // ═════════════════════════════════════════════════
 const SHOP_CATALOG = {
   skins: [
-    { id: 'default',  name: 'B Klasyczny',     desc: 'Twoja domyślna postać.',           price: 0,    currency: 'coin', icon: '🏃', preview: '#e8561e' },
-    { id: 'classic',  name: 'Maratończyk',     desc: 'Niebieska bluza, klasyk parku.',   price: 300,  currency: 'coin', icon: '🏃‍♂️', preview: '#5090e0' },
-    { id: 'ninja',    name: 'Ninja',           desc: 'Czarny strój, dyskretny biegacz.', price: 800,  currency: 'coin', icon: '🥷', preview: '#222' },
-    { id: 'filip',    name: 'Filip Coach',     desc: 'Pomarańczowy w stylu BiegaMy.',    price: 1200, currency: 'coin', icon: '🧡', preview: '#ff7a45' },
-    { id: 'gold',     name: 'Złoty Mistrz',    desc: 'Dla prawdziwych legend.',          price: 30,   currency: 'gem',  icon: '🥇', preview: '#ffd966' }
+    { id: 'default',  name: 'B Klasyczny',     desc: 'Twoja domyślna postać.',                   price: 0,    currency: 'coin', icon: '🏃', preview: '#e8561e' },
+    { id: 'adonis',   name: 'Adonisy',         desc: 'Dres w 3 paski. "Original" produkt.',      price: 300,  currency: 'coin', icon: '🥷', preview: '#5090e0' },
+    { id: 'nice',     name: 'NICE Air',        desc: 'Charakterystyczny swoosh, prawie jak.',    price: 600,  currency: 'coin', icon: '👟', preview: '#e8561e' },
+    { id: 'kuna',     name: 'Kuna Sport',      desc: 'Trzy wyłaniające się gwiazdy puma-style.', price: 900,  currency: 'coin', icon: '🐈', preview: '#3db870' },
+    { id: 'tetra',    name: 'Tetra Stripes',   desc: '4 paski zamiast 3 — więcej znaczy szybciej.', price: 1300, currency: 'coin', icon: '🎽', preview: '#a868e0' },
+    { id: 'reepok',   name: 'Reepok Wave',     desc: 'Vintage z lat 90, falujące logo.',         price: 1700, currency: 'coin', icon: '🏃‍♀️', preview: '#ffd966' },
+    { id: 'gold',     name: 'Złoty Mistrz',    desc: 'Dla prawdziwych legend. Limited edition.', price: 30,   currency: 'gem',  icon: '🥇', preview: '#ffd966' }
   ],
   gadgets: [
     { id: 'big_magnet',  name: 'Wzmocniony magnes',  desc: 'Magnes ma o 30% większy zasięg.',          price: 60,  currency: 'gem',  icon: '🧲' },
@@ -1288,7 +1290,7 @@ function newGame(mode) {
     ambientBirds: [],         // 🆕 dekoracyjne ptaki w tle (bez kolizji)
 
     // POWER-UPS (tylko longrun)
-    nextPowerupIn: M.powerups ? 600 : Infinity,
+    nextPowerupIn: M.powerups ? 300 : Infinity,  // 🆕 pierwszy powerup po ~5s zamiast 10s
     powerups: [],
     activePU: { magnet: 0, shield: 0, slowmo: 0, boost: 0, gel: 0 },
 
@@ -1623,14 +1625,14 @@ function checkLongrunSceneChange() {
 // POWER-UPS (longrun mode)
 // ═════════════════════════════════════════════════
 function spawnPowerup() {
-  // Ważone losowanie — heart i gel są rzadsze niż standardowe powerupy
+  // Ważone losowanie — heart i gel są nieco rzadsze niż klasyki, ale wystarczająco często by gracz widział
   const pool = [
-    { type: 'magnet', weight: 22 },
-    { type: 'shield', weight: 22 },
-    { type: 'slowmo', weight: 18 },
-    { type: 'boost',  weight: 18 },
-    { type: 'gel',    weight: 12 },  // ~12% — nieśmiertelność jest mocna
-    { type: 'heart',  weight: 8 }    // ~8% — apteczka, najrzadsza
+    { type: 'magnet', weight: 18 },
+    { type: 'shield', weight: 18 },
+    { type: 'slowmo', weight: 14 },
+    { type: 'boost',  weight: 14 },
+    { type: 'gel',    weight: 18 },  // 🆕 podbite z 12 — żel widoczny ~co 5-7 spawnów
+    { type: 'heart',  weight: 18 }   // 🆕 podbite z 8 — serce widoczne ~co 5-7 spawnów
   ];
   const totalWeight = pool.reduce((s, p) => s + p.weight, 0);
   let r = Math.random() * totalWeight;
@@ -2943,7 +2945,7 @@ function update() {
       game.nextPowerupIn--;
       if (game.nextPowerupIn <= 0) {
         spawnPowerup();
-        game.nextPowerupIn = 400 + Math.random() * 300;  // częściej (było 700-1200)
+        game.nextPowerupIn = 300 + Math.random() * 250;  // 🆕 co 5-9s (było 6.5-11s)
       }
     }
     // Update aktywne power-upy
@@ -6419,41 +6421,61 @@ function render() {
       
       ctx.restore();
     } else if (h.type === 'puddle') {
-      // Owalna kałuża - kolor refleksu zależny od sceny
+      // Owalna kałuża - kolor refleksu zależny od sceny + GLOW dla widoczności
       const cy = h.y - h.h / 2 + Math.sin(h.bob) * 1 * dpr;
       const escene = M.id === 'endless' ? game.endlessScene : 0;
       
-      let puddleColor1, puddleColor2, reflectionColor;
+      let puddleColor1, puddleColor2, reflectionColor, glowColor;
       if (escene === 3) {  // ŚWIT
-        puddleColor1 = 'rgba(255,180,140,0.7)';
-        puddleColor2 = 'rgba(220,120,90,0.5)';
-        reflectionColor = 'rgba(255,220,180,0.5)';
-      } else if (escene === 2) {  // NOC
-        puddleColor1 = 'rgba(70,90,140,0.75)';
-        puddleColor2 = 'rgba(40,50,90,0.6)';
-        reflectionColor = 'rgba(180,180,220,0.4)';
-      } else if (escene === 4) {  // GÓRY
-        puddleColor1 = 'rgba(160,200,230,0.75)';
-        puddleColor2 = 'rgba(100,150,200,0.55)';
-        reflectionColor = 'rgba(220,235,250,0.5)';
+        puddleColor1 = 'rgba(255,180,140,0.85)';
+        puddleColor2 = 'rgba(220,120,90,0.6)';
+        reflectionColor = 'rgba(255,235,200,0.7)';
+        glowColor = 'rgba(255,180,140,0.4)';
+      } else if (escene === 2) {  // NOC — świecąca cyjan-niebieska woda dla kontrastu
+        puddleColor1 = 'rgba(80,200,255,0.9)';
+        puddleColor2 = 'rgba(40,140,220,0.75)';
+        reflectionColor = 'rgba(200,240,255,0.85)';
+        glowColor = 'rgba(80,200,255,0.55)';
+      } else if (escene === 4) {  // GÓRY — jasny lód z wyraźnym konturem
+        puddleColor1 = 'rgba(220,240,255,0.9)';
+        puddleColor2 = 'rgba(140,190,230,0.75)';
+        reflectionColor = 'rgba(255,255,255,0.85)';
+        glowColor = 'rgba(180,220,255,0.5)';
       } else {  // PARK / inne
-        puddleColor1 = 'rgba(120,180,240,0.7)';
-        puddleColor2 = 'rgba(80,144,224,0.5)';
-        reflectionColor = 'rgba(200,230,255,0.4)';
+        puddleColor1 = 'rgba(120,180,240,0.8)';
+        puddleColor2 = 'rgba(80,144,224,0.6)';
+        reflectionColor = 'rgba(200,230,255,0.5)';
+        glowColor = 'rgba(120,180,240,0.3)';
       }
+      
+      // 🆕 GLOW pod kałużą — szczególnie widoczny w nocy/górach
+      const glowGrad = ctx.createRadialGradient(h.x + h.w / 2, cy, 0, h.x + h.w / 2, cy, h.w * 0.7);
+      glowGrad.addColorStop(0, glowColor);
+      glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = glowGrad;
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w / 2, cy, h.w * 0.7, h.h * 1.8, 0, 0, Math.PI * 2);
+      ctx.fill();
       
       const pgrad = ctx.createRadialGradient(h.x + h.w / 2, cy, 0, h.x + h.w / 2, cy, h.w / 2);
       pgrad.addColorStop(0, puddleColor1);
       pgrad.addColorStop(0.7, puddleColor2);
-      pgrad.addColorStop(1, puddleColor2.replace(/[\d.]+\)$/, '0.1)'));
+      pgrad.addColorStop(1, puddleColor2.replace(/[\d.]+\)$/, '0.15)'));
       ctx.fillStyle = pgrad;
       ctx.beginPath();
       ctx.ellipse(h.x + h.w / 2, cy, h.w / 2, h.h, 0, 0, Math.PI * 2);
       ctx.fill();
       
-      // 🆕 Faliste fale na powierzchni (animowane)
-      ctx.strokeStyle = reflectionColor.replace(/[\d.]+\)$/, '0.3)');
-      ctx.lineWidth = 0.7 * dpr;
+      // 🆕 Wyraźna obwódka — kluczowa dla widoczności
+      ctx.strokeStyle = reflectionColor;
+      ctx.lineWidth = 1.5 * dpr;
+      ctx.beginPath();
+      ctx.ellipse(h.x + h.w / 2, cy, h.w / 2, h.h, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      
+      // Faliste fale na powierzchni (animowane)
+      ctx.strokeStyle = reflectionColor.replace(/[\d.]+\)$/, '0.5)');
+      ctx.lineWidth = 0.8 * dpr;
       const wavePhase = game.t * 0.05;
       for (let w = 0; w < 2; w++) {
         ctx.beginPath();
@@ -7769,43 +7791,62 @@ function getRunnerState() {
 // isGhost: czy to trail ghost (mniej szczegółów)
 // 🆕 Pedestrian charcters - drawn from primitives, all face LEFT (going opposite to player)
 function drawBird(ctx, x, y, flapPhase) {
-  const s = dpr * 1.4;  // 🆕 +40% scale (dopasowane do skali gracza)
-  const flap = Math.sin(flapPhase);  // -1..1 dla flapowania skrzydeł
+  const s = dpr * 1.4;
+  const flap = Math.sin(flapPhase);
+
+  // 🆕 Cykliczny kolor — bird/dron pulsuje przez tęczę dla widoczności
+  // game.t to globalny licznik klatek, więc kolor się zmienia stale
+  const t = (typeof game !== 'undefined' && game ? game.t : 0);
+  const colorCycle = (t * 0.04) % (Math.PI * 2);
+  // Cykluj 4 jaskrawe kolory: cyan → magenta → yellow → red-orange
+  const hue = (Math.sin(colorCycle) * 0.5 + 0.5) * 360;
+  const pulseColor = 'hsl(' + Math.floor(hue) + ', 95%, 60%)';
+  const pulseColorDim = 'hsl(' + Math.floor(hue) + ', 80%, 40%)';
+  // Pulsujący alpha dla glow
+  const pulseAlpha = 0.5 + Math.sin(t * 0.15) * 0.25;
   
   ctx.save();
   ctx.translate(x, y);
   
-  // Cień pod ptakiem (głębsze)
+  // 🆕 OSTRZEGAWCZY GLOW — duża świecąca aura wokół drona
+  const auraGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 28 * s);
+  auraGrad.addColorStop(0, pulseColor.replace('hsl(', 'hsla(').replace(')', ',' + pulseAlpha + ')'));
+  auraGrad.addColorStop(0.5, pulseColor.replace('hsl(', 'hsla(').replace(')', ',' + (pulseAlpha * 0.3) + ')'));
+  auraGrad.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = auraGrad;
+  ctx.beginPath();
+  ctx.arc(0, 0, 28 * s, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Cień pod ptakiem
   ctx.fillStyle = 'rgba(0,0,0,0.2)';
   ctx.beginPath();
   ctx.ellipse(0, 8 * s, 12 * s, 2 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Body (eliptyczny)
+  // Body (eliptyczny) — z kolorowym akcentem
   const bodyGrad = ctx.createLinearGradient(0, -6 * s, 0, 6 * s);
-  bodyGrad.addColorStop(0, '#5a3a20');
-  bodyGrad.addColorStop(0.5, '#3a2010');
+  bodyGrad.addColorStop(0, pulseColor);  // 🆕 góra ciała pulsuje
+  bodyGrad.addColorStop(0.5, pulseColorDim);
   bodyGrad.addColorStop(1, '#1a1008');
   ctx.fillStyle = bodyGrad;
   ctx.beginPath();
   ctx.ellipse(0, 0, 10 * s, 6 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // Białe pióra na brzuchu (subtle)
+  // Białe pióra na brzuchu
   ctx.fillStyle = 'rgba(220,200,180,0.4)';
   ctx.beginPath();
   ctx.ellipse(2 * s, 3 * s, 7 * s, 3 * s, 0, 0, Math.PI * 2);
   ctx.fill();
   
-  // SKRZYDŁA — animowane (główna część ptaka)
-  // Lewe skrzydło (z tyłu, mniej widoczne)
+  // SKRZYDŁA — animowane, też z pulsującym kolorem
   ctx.save();
   ctx.translate(-3 * s, -2 * s);
-  ctx.rotate(-flap * 0.6);  // flap up/down
-  // Skrzydło - krzywa jak liść
+  ctx.rotate(-flap * 0.6);
   const wingGrad = ctx.createLinearGradient(0, 0, -15 * s, 0);
-  wingGrad.addColorStop(0, '#5a3a20');
-  wingGrad.addColorStop(0.5, '#3a2010');
+  wingGrad.addColorStop(0, pulseColor);    // 🆕
+  wingGrad.addColorStop(0.5, pulseColorDim); // 🆕
   wingGrad.addColorStop(1, '#2a1408');
   ctx.fillStyle = wingGrad;
   ctx.beginPath();
@@ -7814,7 +7855,6 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.quadraticCurveTo(-12 * s, 4 * s, 0, 2 * s);
   ctx.closePath();
   ctx.fill();
-  // Linie piór
   ctx.strokeStyle = 'rgba(0,0,0,0.4)';
   ctx.lineWidth = 0.8 * s;
   for (let i = 0; i < 3; i++) {
@@ -7825,7 +7865,7 @@ function drawBird(ctx, x, y, flapPhase) {
   }
   ctx.restore();
   
-  // Prawe skrzydło (z przodu, główne)
+  // Prawe skrzydło
   ctx.save();
   ctx.translate(3 * s, -2 * s);
   ctx.rotate(flap * 0.6);
@@ -7847,12 +7887,12 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.restore();
   
   // Głowa
-  ctx.fillStyle = '#3a2010';
+  ctx.fillStyle = pulseColorDim;  // 🆕
   ctx.beginPath();
   ctx.arc(-7 * s, -2 * s, 4 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Dziób (orle - zakrzywiony)
+  // Dziób
   ctx.fillStyle = '#ffd966';
   ctx.beginPath();
   ctx.moveTo(-9 * s, -1 * s);
@@ -7861,13 +7901,12 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.lineTo(-9 * s, 1 * s);
   ctx.closePath();
   ctx.fill();
-  // Cień dzioba
   ctx.strokeStyle = '#a87820';
   ctx.lineWidth = 0.7 * s;
   ctx.stroke();
   
-  // Oko (czerwone, drapieżne)
-  ctx.fillStyle = '#ffa040';
+  // Oko — pulsujące jasno
+  ctx.fillStyle = '#ffffff';  // 🆕 białe dla kontrastu
   ctx.beginPath();
   ctx.arc(-7 * s, -3 * s, 1.5 * s, 0, Math.PI * 2);
   ctx.fill();
@@ -7876,8 +7915,8 @@ function drawBird(ctx, x, y, flapPhase) {
   ctx.arc(-7 * s, -3 * s, 0.8 * s, 0, Math.PI * 2);
   ctx.fill();
   
-  // Ogon (3 pióra)
-  ctx.fillStyle = '#3a2010';
+  // Ogon
+  ctx.fillStyle = pulseColorDim;  // 🆕
   ctx.beginPath();
   ctx.moveTo(8 * s, -2 * s);
   ctx.lineTo(14 * s, -3 * s);
