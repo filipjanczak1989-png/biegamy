@@ -408,6 +408,90 @@ body.show-hero .container { display: none; }
 }
 .hero-skip:hover { color: var(--fg2); }
 
+/* ── DESKTOP (>768px): SPLIT-SCREEN LAYOUT ───────────────────────── */
+@media (min-width: 769px) {
+  #hero-landing {
+    flex-direction: row; /* horizontal split */
+  }
+  
+  .hero-photo-wrap {
+    flex: 0 0 50%; /* lewa połowa */
+    height: 100vh;
+  }
+  .hero-photo {
+    object-position: center 25%;
+  }
+  /* Subtelny gradient od prawej krawędzi foto */
+  .hero-overlay {
+    background: linear-gradient(to right,
+      rgba(7,7,10,0) 0%,
+      rgba(7,7,10,0) 70%,
+      rgba(7,7,10,0.6) 92%,
+      rgba(7,7,10,1) 100%);
+  }
+  /* Logo overlay nieobecne na desktop (jest w content prawym) */
+  .hero-logo-overlay {
+    display: none;
+  }
+  
+  .hero-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    padding: 60px 60px;
+    max-width: none;
+  }
+  .hero-logo-desktop {
+    display: block !important;
+    text-align: center;
+  }
+  .hero-logo-desktop .logo-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 0.06em;
+    color: #fff;
+  }
+  .hero-logo-desktop .logo-text span { color: var(--accent); }
+  .hero-logo-desktop .logo-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  
+  .hero-quote {
+    font-size: 48px;
+    line-height: 1.15;
+    margin-bottom: 16px;
+    max-width: 520px;
+  }
+  .hero-tagline {
+    font-size: 11px;
+    margin-bottom: 0;
+  }
+  .hero-cta {
+    max-width: 360px;
+    padding: 18px 32px;
+    font-size: 13px;
+    margin: 0 auto;
+  }
+  .hero-skip {
+    margin-top: 18px;
+  }
+  .hero-cta-wrap {
+    width: 100%;
+    max-width: 360px;
+  }
+}
+
+/* Logo desktop - hidden by default (mobile uses .hero-logo-overlay) */
+.hero-logo-desktop { display: none; }
+
 /* Loading state - ukryj wszystko zanim wykryjemy sesję */
 body.loading .container,
 body.loading #hero-landing { visibility: hidden; }
@@ -453,13 +537,24 @@ body.loading::after {
     <div class="hero-overlay"></div>
   </div>
   <div class="hero-content">
-    <div class="hero-quote">
-      <span>Nie obiecuję, że <span class="accent">łatwo</span>.</span>
-      <span class="line2">Obiecuję, że <span class="accent">warto</span>.</span>
+    <!-- Logo widoczne tylko na desktop (na mobile mamy hero-logo-overlay) -->
+    <div class="hero-logo-desktop">
+      <div class="logo-text">Biega<span>My</span></div>
+      <div class="logo-sub">Coaching Biegowy</div>
     </div>
-    <div class="hero-tagline">Filip & Kasia · Twoi trenerzy</div>
-    <button class="hero-cta" onclick="dismissHero()">Zaczynamy →</button>
-    <button class="hero-skip" onclick="dismissHero()">Już mam konto</button>
+    <!-- Quote + tagline -->
+    <div>
+      <div class="hero-quote">
+        <span>Nie obiecuję, że <span class="accent">łatwo</span>.</span>
+        <span class="line2">Obiecuję, że <span class="accent">warto</span>.</span>
+      </div>
+      <div class="hero-tagline">Filip &amp; Kasia · Twoi trenerzy</div>
+    </div>
+    <!-- CTA -->
+    <div class="hero-cta-wrap">
+      <button class="hero-cta" onclick="dismissHero()">Zaczynamy →</button>
+      <button class="hero-skip" onclick="dismissHero()">Już mam konto</button>
+    </div>
   </div>
 </div>
 
