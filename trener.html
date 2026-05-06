@@ -889,6 +889,8 @@ async function initAuth() {
   const settingsEmail = document.getElementById('settings-email');
   if (settingsEmail) settingsEmail.textContent = session.user.email;
   await loadAthletes();
+  // Inicjalizuj toggle powiadomień push
+  if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
 }
 
 // ── LOAD ATHLETES FROM DB ─────────────────────────────────────────
@@ -1306,6 +1308,83 @@ async function logout() {
   localStorage.clear(); sessionStorage.clear();
   window.location.href = 'index.html';
 }
+
+// ─── PUSH NOTIFICATIONS ────────────────────────────────────────────
+let _coachAthleteId = null; // athlete_id trenera (do przechowywania subskrypcji)
+
+async function _ensureCoachAthleteId() {
+  if (_coachAthleteId) return _coachAthleteId;
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return null;
+    const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    if (ath) _coachAthleteId = ath.id;
+    return _coachAthleteId;
+  } catch(e) { return null; }
+}
+
+async function refreshPushToggleUI() {
+  const status = document.getElementById('push-toggle-status');
+  const pill = document.getElementById('push-toggle-pill');
+  if (!status || !pill) return;
+
+  if (!window.isPushSupported || !window.isPushSupported()) {
+    status.textContent = 'Niedostępne w tej przeglądarce';
+    pill.textContent = '—';
+    return;
+  }
+
+  const perm = window.getPushPermission();
+  const subscribed = await window.isPushSubscribed();
+
+  if (perm === 'denied') {
+    status.textContent = 'Zablokowane w przeglądarce';
+    pill.textContent = 'Off';
+    pill.style.background = 'rgba(224,80,80,0.15)';
+    pill.style.color = 'var(--red)';
+  } else if (subscribed && perm === 'granted') {
+    status.textContent = 'Włączone';
+    pill.textContent = 'On';
+    pill.style.background = 'rgba(61,184,112,0.15)';
+    pill.style.color = 'var(--green)';
+  } else {
+    status.textContent = 'Wyłączone — kliknij żeby włączyć';
+    pill.textContent = 'Off';
+    pill.style.background = 'rgba(255,255,255,0.05)';
+    pill.style.color = 'var(--muted)';
+  }
+}
+
+async function togglePushNotifs() {
+  if (!window.isPushSupported || !window.isPushSupported()) {
+    showToast('Twoja przeglądarka nie wspiera powiadomień push');
+    return;
+  }
+  const aid = await _ensureCoachAthleteId();
+  if (!aid) { showToast('Najpierw się zaloguj'); return; }
+
+  const perm = window.getPushPermission();
+  const subscribed = await window.isPushSubscribed();
+
+  if (perm === 'denied') {
+    showToast('Powiadomienia są zablokowane w ustawieniach przeglądarki');
+    return;
+  }
+
+  if (subscribed) {
+    if (!confirm('Wyłączyć powiadomienia push?')) return;
+    const r = await window.unsubscribeFromPush();
+    if (r.ok) { showToast('Powiadomienia wyłączone'); refreshPushToggleUI(); }
+    else { showToast('Błąd: ' + r.error); }
+  } else {
+    const r = await window.subscribeToPush(aid);
+    if (r.ok) { showToast('🔔 Powiadomienia włączone!'); refreshPushToggleUI(); }
+    else { showToast(r.error); }
+  }
+}
+
+window.togglePushNotifs = togglePushNotifs;
+window.refreshPushToggleUI = refreshPushToggleUI;
 
 function toggleMenu() {
   const m = document.getElementById('av-menu');
@@ -3232,6 +3311,16 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
         <div style="font-size:13px;">E-mail</div>
         <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="settings-email">—</div>
       </div>
+    </div>
+    <div id="push-toggle-card" onclick="togglePushNotifs()" style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:18px;">🔔</div>
+        <div>
+          <div style="font-size:13px;">Powiadomienia push</div>
+          <div id="push-toggle-status" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">Sprawdzam status...</div>
+        </div>
+      </div>
+      <div id="push-toggle-pill" style="font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--muted);">—</div>
     </div>
     <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="logout()">
       <div style="font-size:13px;color:var(--red);">Wyloguj się</div>

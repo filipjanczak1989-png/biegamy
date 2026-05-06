@@ -1185,6 +1185,16 @@ body > *{position:relative;z-index:1;}
       </button>
     </div>
 
+    <!-- Powiadomienia push -->
+    <div id="push-toggle-card" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">
+      <div style="font-size:22px;flex-shrink:0;">🔔</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">Powiadomienia push</div>
+        <div id="push-toggle-status" style="font-size:11px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">Sprawdzam status...</div>
+      </div>
+      <div id="push-toggle-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--muted);flex-shrink:0;">—</div>
+    </div>
+
     <!-- Wyloguj -->
     <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
 
@@ -2021,6 +2031,7 @@ function showSection(name) {
     document.getElementById('section-profile').style.display = 'block';
     activateNav('nav-profile');
     loadProfile();
+    if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
 
   } else if (name === 'stats' || name === 'analytics' || name === 'statystyki') {
     // Stats moved to profile
@@ -5084,6 +5095,78 @@ async function checkStravaStatus() {
   } else if (stravaStatus === 'error') {
     toast('Błąd połączenia ze Stravą');
     window.history.replaceState({}, '', 'zawodnik.html');
+  }
+}
+
+// ─── PUSH NOTIFICATIONS ────────────────────────────────────────────
+async function refreshPushToggleUI() {
+  const status = document.getElementById('push-toggle-status');
+  const pill = document.getElementById('push-toggle-pill');
+  if (!status || !pill) return;
+
+  if (!window.isPushSupported || !window.isPushSupported()) {
+    status.textContent = 'Niedostępne w tej przeglądarce';
+    pill.textContent = '—';
+    pill.style.background = 'rgba(255,255,255,0.05)';
+    pill.style.color = 'var(--muted)';
+    return;
+  }
+
+  const perm = window.getPushPermission();
+  const subscribed = await window.isPushSubscribed();
+
+  if (perm === 'denied') {
+    status.textContent = 'Zablokowane w przeglądarce — odblokuj w ustawieniach';
+    pill.textContent = 'Off';
+    pill.style.background = 'rgba(224,80,80,0.15)';
+    pill.style.color = 'var(--red)';
+  } else if (subscribed && perm === 'granted') {
+    status.textContent = 'Włączone — będziesz dostawać powiadomienia';
+    pill.textContent = 'On';
+    pill.style.background = 'rgba(61,184,112,0.15)';
+    pill.style.color = 'var(--green)';
+  } else {
+    status.textContent = 'Wyłączone — kliknij żeby włączyć';
+    pill.textContent = 'Off';
+    pill.style.background = 'rgba(255,255,255,0.05)';
+    pill.style.color = 'var(--muted)';
+  }
+}
+
+async function togglePushNotifs() {
+  if (!_athleteId) { toast('Najpierw się zaloguj'); return; }
+  if (!window.isPushSupported || !window.isPushSupported()) {
+    toast('Twoja przeglądarka nie wspiera powiadomień push');
+    return;
+  }
+
+  const perm = window.getPushPermission();
+  const subscribed = await window.isPushSubscribed();
+
+  if (perm === 'denied') {
+    toast('Powiadomienia są zablokowane w ustawieniach przeglądarki. Odblokuj i odśwież stronę.');
+    return;
+  }
+
+  if (subscribed) {
+    // OFF
+    if (!confirm('Wyłączyć powiadomienia push?')) return;
+    const r = await window.unsubscribeFromPush();
+    if (r.ok) {
+      toast('Powiadomienia wyłączone');
+      refreshPushToggleUI();
+    } else {
+      toast('Błąd: ' + r.error);
+    }
+  } else {
+    // ON
+    const r = await window.subscribeToPush(_athleteId);
+    if (r.ok) {
+      toast('🔔 Powiadomienia włączone!');
+      refreshPushToggleUI();
+    } else {
+      toast(r.error);
+    }
   }
 }
 

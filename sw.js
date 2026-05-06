@@ -13,7 +13,7 @@
 //   - skipWaiting + clients.claim → user dostaje nową wersję natychmiast
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'biegamy-2026-05-06-9612991';
+const CACHE_VERSION = 'biegamy-v1';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
@@ -36,8 +36,8 @@ const PRECACHE_URLS = [
   '/sb.js',
   '/manifest.json',
   '/offline.html',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/icons/icon-192.png',
+  '/icons/icon-512.png'
 ];
 
 // ─── INSTALL ─────────────────────────────────────────────────────────
@@ -197,6 +197,55 @@ async function navigationHandler(request) {
     return offline || new Response('Offline', { status: 503 });
   }
 }
+
+// ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────
+// Odbiór push z Web Push API
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {
+    // Plain text fallback
+    data = { title: 'BiegaMy', body: event.data ? event.data.text() : 'Nowa aktywność' };
+  }
+
+  const title = data.title || 'BiegaMy';
+  const options = {
+    body: data.body || 'Masz nową aktywność',
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-72.png',
+    tag: data.tag || 'biegamy', // grupowanie - nowe pushy tego samego typu zastąpią poprzednie
+    data: { url: data.url || '/zawodnik.html', type: data.type },
+    requireInteraction: false,
+    silent: false,
+    vibrate: [100, 50, 100],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// Klik w powiadomienie → otwórz odpowiedni URL
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/zawodnik.html';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Jeśli BiegaMy już otwarte gdzieś — fokusuj i nawiguj
+      for (let i = 0; i < windowClients.length; i++) {
+        const client = windowClients[i];
+        if (client.url.includes('biegamy.run') || client.url.includes(self.location.origin)) {
+          if ('navigate' in client) client.navigate(url);
+          return client.focus();
+        }
+      }
+      // W przeciwnym razie otwórz nową
+      if (clients.openWindow) return clients.openWindow(url);
+    })
+  );
+});
 
 // ─── MESSAGE CHANNEL: pozwala apce kontrolować SW ────────────────────
 self.addEventListener('message', (event) => {
