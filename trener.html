@@ -2547,6 +2547,7 @@ async function sendCoachGif(url) {
   if (!_currentChatAthleteId) return;
   const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
   await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
+  _notifyCoachMessage(_currentChatAthleteId, '[GIF]');
   await loadCoachChat();
 }
 let _coachMediaRecorder = null, _coachAudioChunks = [], _coachRecStart = 0;
@@ -2576,6 +2577,7 @@ async function toggleVoiceCoach() {
       const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
       const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${dur}s</span></div>`;
       await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
+      _notifyCoachMessage(_currentChatAthleteId, '[wiadomość głosowa]');
       await loadCoachChat();
     };
     _coachMediaRecorder.start();
@@ -2615,6 +2617,7 @@ async function sendCoachFile(input) {
     body,
     sent_at: new Date().toISOString()
   });
+  _notifyCoachMessage(_currentChatAthleteId, '[zdjęcie]');
   input.value = '';
   showToast(urls.length + ' zdjęcie(cia) wysłane ✓');
   await loadCoachChat();
@@ -2632,6 +2635,7 @@ async function sendCoachMessage() {
     sent_at: new Date().toISOString()
   });
   if (error) { showToast('Błąd: '+error.message); return; }
+  _notifyCoachMessage(_currentChatAthleteId, body);
   await loadCoachChat();
 }
 
@@ -2979,6 +2983,7 @@ async function sendPanelMessage() {
     sent_at: new Date().toISOString()
   });
   if (error) { showToast('Błąd: ' + error.message); return; }
+  _notifyCoachMessage(athleteId, body);
   showToast('Wiadomość wysłana ✓');
   await loadPanelChat();
 }
@@ -3071,6 +3076,24 @@ async function _sendTrainingNotif(athleteId, type, message) {
       created_at: new Date().toISOString()
     });
   } catch(e) { console.warn('Notif failed:', e.message); }
+}
+
+// Powiadomienie zawodnika o nowej wiadomości od trenera
+async function _notifyCoachMessage(athleteId, msgPreview) {
+  if (!athleteId) return;
+  try {
+    let preview = (msgPreview || '').replace(/<[^>]+>/g,'').trim();
+    if (!preview) preview = '[obraz/GIF/audio]';
+    if (preview.length > 60) preview = preview.slice(0,57) + '...';
+    await sb.from('notifications').insert({
+      athlete_id: athleteId,
+      type: 'coach_message',
+      from_athlete_id: null,
+      message: 'Trener wysłał wiadomość: "' + preview + '"',
+      read: false,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) {}
 }
 </script>
 

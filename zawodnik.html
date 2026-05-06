@@ -5387,6 +5387,17 @@ async function toggleReact(logId, type) {
     } else {
       await sb.from('log_reactions').insert({log_id:logId,athlete_id:_athleteId,reaction_type:type});
       _myReactions[logId].add(type);if(btn)btn.style.background='rgba(255,255,255,0.08)';if(countEl)countEl.textContent=cur+1;
+      // Powiadomienie dla właściciela treningu (jeśli to nie ja)
+      try {
+        const logRes = await sb.from('training_logs').select('athlete_id').eq('id',logId).maybeSingle();
+        const ownerId = logRes.data?.athlete_id;
+        if (ownerId && ownerId !== _athleteId) {
+          const meR = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+          const myName = meR.data?.full_name || 'Ktoś';
+          const emoji = type==='fire'?'🔥':type==='strong'?'💪':type==='clap'?'👏':'❤️';
+          _sendNotification(ownerId, 'like', myName + ' zareagował(a) ' + emoji + ' na Twój trening');
+        }
+      } catch(e) {}
     }
   } catch(e){
     if(e.message && e.message.includes('does not exist')) {
@@ -5510,6 +5521,7 @@ async function sendCommentGif(url) {
     _loadComments(logId);
     const el = document.getElementById('cc-'+logId);
     if (el) el.textContent = parseInt(el.textContent||'0') + 1;
+    _notifyLogOwnerAboutComment(logId, body);
   } catch(e) { toast('Błąd: '+e.message); }
 }
 
@@ -5553,11 +5565,28 @@ async function submitComment(logId) {
     await sb.from('log_comments').insert({log_id:logId,athlete_id:_athleteId,body,created_at:new Date().toISOString()});
     _loadComments(logId);
     const el=document.getElementById('cc-'+logId);if(el)el.textContent=parseInt(el.textContent||'0')+1;
+    _notifyLogOwnerAboutComment(logId, body);
   } catch(e){
     inp.value=body; // restore on error
     if(e.message&&e.message.includes('does not exist')){toast('Brak tabeli log_comments — wykonaj SQL w Supabase');}
     else{toast('Błąd: '+e.message);}
   }
+}
+
+// Helper: powiadom właściciela treningu o komentarzu (jeśli to nie ja)
+async function _notifyLogOwnerAboutComment(logId, body) {
+  try {
+    const logRes = await sb.from('training_logs').select('athlete_id').eq('id',logId).maybeSingle();
+    const ownerId = logRes.data?.athlete_id;
+    if (!ownerId || ownerId === _athleteId) return;
+    const meR = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+    const myName = meR.data?.full_name || 'Ktoś';
+    // Skróć body do 60 znaków, usuń HTML jeśli to GIF
+    let preview = body.replace(/<[^>]+>/g,'').trim();
+    if (!preview) preview = '[GIF]';
+    if (preview.length > 60) preview = preview.slice(0,57) + '...';
+    _sendNotification(ownerId, 'comment', myName + ' skomentował(a) Twój trening: "' + preview + '"');
+  } catch(e) {}
 }
 
 async function deleteComment(commentId, logId) {
@@ -7541,17 +7570,21 @@ async function acceptDuel(duelId) {
   }).eq('id', duelId);
   if (error) { toast('Błąd: ' + error.message); return; }
   toast('Pojedynek przyjęty! 🔥');
-  // Powiadom challengera
+  // Powiadom challengera z imieniem
   const { data: full } = await sb.from('duels').select('challenger_id').eq('id', duelId).maybeSingle();
   if (full) {
-    sb.from('notifications').insert({
-      athlete_id: full.challenger_id,
-      type: 'duel',
-      from_athlete_id: _athleteId,
-      message: 'Przyjęto Twoje wyzwanie',
-      read: false,
-      created_at: new Date().toISOString()
-    }).then(function(){});
+    try {
+      const meR = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+      const myName = meR.data?.full_name || 'Ktoś';
+      sb.from('notifications').insert({
+        athlete_id: full.challenger_id,
+        type: 'duel',
+        from_athlete_id: _athleteId,
+        message: myName + ' przyjął(a) Twoje wyzwanie 🔥',
+        read: false,
+        created_at: new Date().toISOString()
+      }).then(function(){});
+    } catch(e) {}
   }
   loadDuels();
 }
@@ -7657,15 +7690,21 @@ async function sendDuelChallenge() {
   });
   if (error) { toast('Błąd: ' + error.message); return; }
 
-  // Powiadomienie
-  sb.from('notifications').insert({
-    athlete_id: target.id,
-    type: 'duel',
-    from_athlete_id: _athleteId,
-    message: 'Wyzwał Cię na pojedynek',
-    read: false,
-    created_at: new Date().toISOString()
-  }).then(function(){});
+  // Powiadomienie z imieniem
+  try {
+    const meR = await sb.from('athletes').select('full_name').eq('id',_athleteId).maybeSingle();
+    const myName = meR.data?.full_name || 'Ktoś';
+    const typeNames = {distance:'dystans', time:'czas', pace:'tempo', frequency:'częstotliwość'};
+    const typeName = typeNames[type] || type;
+    sb.from('notifications').insert({
+      athlete_id: target.id,
+      type: 'duel',
+      from_athlete_id: _athleteId,
+      message: myName + ' wyzwał(a) Cię na pojedynek (' + typeName + ', ' + days + ' dni) ⚔️',
+      read: false,
+      created_at: new Date().toISOString()
+    }).then(function(){});
+  } catch(e) {}
 
   // Badge: pierwszy pojedynek
   if (typeof awardBadge === 'function') awardBadge('pierwszy_pojedynek');
@@ -8535,6 +8574,18 @@ async function awardBadge(badgeId) {
     logged_at: new Date().toISOString(),
     distance_km: null
   });
+  // Powiadomienie dla mnie (żebym widział w dzwonku)
+  try {
+    const badgeName = badge ? badge.name : badgeId;
+    await sb.from('notifications').insert({
+      athlete_id: _athleteId,
+      type: 'badge',
+      from_athlete_id: null,
+      message: 'Zdobyłeś odznakę: ' + badgeName + ' 🏅',
+      read: false,
+      created_at: new Date().toISOString()
+    });
+  } catch(e) {}
 }
 
 // ── Załaduj posiadane odznaki ─────────────────────────────────────
