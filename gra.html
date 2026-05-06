@@ -1702,14 +1702,15 @@ function checkLongrunSceneChange() {
 // POWER-UPS (longrun mode)
 // ═════════════════════════════════════════════════
 function spawnPowerup() {
-  // Ważone losowanie — heart i gel są nieco rzadsze niż klasyki, ale wystarczająco często by gracz widział
+  // 🆕 TESTING: heart i gel są MOCNO widoczne (50% wszystkich) żeby zweryfikować spawn
+  // Wartości po dostrojeniu można zmniejszyć
   const pool = [
-    { type: 'magnet', weight: 18 },
-    { type: 'shield', weight: 18 },
-    { type: 'slowmo', weight: 14 },
-    { type: 'boost',  weight: 14 },
-    { type: 'gel',    weight: 18 },  // 🆕 podbite z 12 — żel widoczny ~co 5-7 spawnów
-    { type: 'heart',  weight: 18 }   // 🆕 podbite z 8 — serce widoczne ~co 5-7 spawnów
+    { type: 'magnet', weight: 12 },
+    { type: 'shield', weight: 12 },
+    { type: 'slowmo', weight: 12 },
+    { type: 'boost',  weight: 12 },
+    { type: 'gel',    weight: 26 },  // 🆕 26% — żel WIDOCZNY
+    { type: 'heart',  weight: 26 }   // 🆕 26% — serce WIDOCZNE
   ];
   const totalWeight = pool.reduce((s, p) => s + p.weight, 0);
   let r = Math.random() * totalWeight;
@@ -1947,28 +1948,28 @@ function spawnObstacle() {
     ? types[1 + Math.floor(Math.random()*2)]
     : types[Math.floor(Math.random()*3)];
   
-  // 🆕 Rodzaj rowu zależny od sceny
+  // 🆕 Rodzaj rowu zależny od sceny — w ciemnych scenach ZAWSZE woda/lawa dla kontrastu
   let gapKind = 'empty';  // domyślnie pusty (przepaść)
   if (type === 'gap') {
     const escene = game.endlessScene || 0;
     const r = Math.random();
-    // PARK / MIASTO — woda/puste
+    // PARK / MIASTO — woda/puste (mix)
     if (escene === 0 || escene === 1) {
       gapKind = r < 0.6 ? 'water' : 'empty';
     }
-    // NOC — głównie puste, czasem woda (kałuża)
+    // NOC — 🆕 ZAWSZE świecąca woda (czarna dziura znika w ciemności)
     else if (escene === 2) {
-      gapKind = r < 0.7 ? 'empty' : 'water';
+      gapKind = 'water';
     }
-    // ŚWIT — woda/puste
+    // ŚWIT — woda/puste mix
     else if (escene === 3) {
       gapKind = r < 0.5 ? 'water' : 'empty';
     }
-    // GÓRY — głównie puste, lava w 30%
+    // GÓRY — 🆕 ZAWSZE lawa dla wyraźnego ostrzeżenia
     else if (escene === 4) {
-      gapKind = r < 0.3 ? 'lava' : 'empty';
+      gapKind = 'lava';
     }
-    // KOSMOS — same czarne dziury
+    // KOSMOS — same czarne dziury (na czarnym tle to celowe — wyzwanie)
     else {
       gapKind = 'empty';
     }
@@ -7376,6 +7377,13 @@ function realStart(mode) {
   document.getElementById('screen-game').classList.remove('hidden');
   updateDashUI();
 
+  // 🆕 Pokaż equipped skin jako toast (potwierdzenie że dziala)
+  const equippedSkinId = getEquipped('skins');
+  const equippedSkin = findShopItem('skins', equippedSkinId);
+  if (equippedSkin && equippedSkinId !== 'default') {
+    setTimeout(() => showToast('👕 Strój: ' + equippedSkin.name), 600);
+  }
+
   lastFrame = performance.now();
   requestAnimationFrame(loop);
 }
@@ -7700,7 +7708,14 @@ function renderShopGrid(category){
     grid.innerHTML = '<div class="shop-empty">Brak przedmiotów w tej kategorii</div>';
     return;
   }
-  const html = items.map(item => renderShopCard(category, item)).join('');
+  // 🆕 Banner statusu kategorii
+  const banners = {
+    skins:   '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Skiny zmieniają wygląd postaci w grze</div>',
+    boosts:  '<div style="grid-column:1/-1;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#3db870;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">✓ Boosty aktywują się przed biegiem na home screen</div>',
+    gadgets: '<div style="grid-column:1/-1;background:rgba(255,217,102,0.10);border:1px solid rgba(255,217,102,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#ffd966;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">⏳ Gadżety wkrótce — zakup zostanie zachowany</div>',
+    themes:  '<div style="grid-column:1/-1;background:rgba(255,217,102,0.10);border:1px solid rgba(255,217,102,0.3);border-radius:10px;padding:8px 12px;font-size:11px;color:#ffd966;font-family:DM Mono,monospace;text-align:center;margin-bottom:4px;">⏳ Motywy mapy wkrótce — zakup zostanie zachowany</div>'
+  };
+  const html = (banners[category] || '') + items.map(item => renderShopCard(category, item)).join('');
   grid.innerHTML = html;
 }
 
