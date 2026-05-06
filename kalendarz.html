@@ -2290,8 +2290,8 @@ function selLmType(btn, type) {
   window._logType2 = type;
 }
 
-function openLogModal(e, ds, idx) {
-  e.stopPropagation();
+function openLogModal(e, ds, idx, existingLogId) {
+  if (e && e.stopPropagation) e.stopPropagation();
   const t = trainings[ds] && trainings[ds][idx];
   _logTrainingId = t?._id || null;
   _logDate2 = ds;
@@ -2300,8 +2300,49 @@ function openLogModal(e, ds, idx) {
   ['lm-dist','lm-time','lm-pace','lm-hr','lm-strava','lm-comment'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  // Prefill z planu trenera
-  if (t) {
+  // Wyczyść istniejące dane
+  window._editingLogId = existingLogId || null;
+  window._existingAttachments = [];
+  window._ocrFiles = [];
+  const thumbs = document.getElementById('ocr-thumbs');
+  if (thumbs) thumbs.innerHTML = '';
+
+  // Jeśli edycja — pobierz istniejący log z _calLogs i prefill
+  if (existingLogId) {
+    const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
+    const log = dayLogs.find(l => l.id === existingLogId);
+    if (log) {
+      const distEl = document.getElementById('lm-dist');
+      const paceEl = document.getElementById('lm-pace');
+      const timeEl = document.getElementById('lm-time');
+      const hrEl = document.getElementById('lm-hr');
+      const stravaEl = document.getElementById('lm-strava');
+      const commentEl = document.getElementById('lm-comment');
+      if (distEl && log.distance_km) distEl.value = log.distance_km;
+      if (paceEl && log.pace) paceEl.value = log.pace;
+      if (timeEl && log.duration) timeEl.value = log.duration;
+      if (hrEl && log.heart_rate) hrEl.value = log.heart_rate;
+      if (stravaEl && log.strava_link) stravaEl.value = log.strava_link;
+      if (commentEl && log.comment) commentEl.value = log.comment;
+      _logFeel = log.feel || 'mid';
+      _logType2 = log.training_type || _logType2;
+      // Załączniki — pokaż jako miniatury z opcją usunięcia
+      if (log.attachment_url) {
+        const urls = log.attachment_url.split(',').filter(Boolean);
+        window._existingAttachments = urls.slice();
+        if (thumbs) {
+          urls.forEach((url, i) => {
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'position:relative;display:inline-block;';
+            wrap.dataset.url = url;
+            wrap.innerHTML = `<img src="${url}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"><button onclick="removeExistingAttachment(this,'${url}')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:#e05050;color:#fff;border:none;font-size:11px;cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;">✕</button>`;
+            thumbs.appendChild(wrap);
+          });
+        }
+      }
+    }
+  } else if (t) {
+    // Prefill z planu trenera (tylko dla nowego logu)
     const distEl = document.getElementById('lm-dist');
     const paceEl = document.getElementById('lm-pace');
     const timeEl = document.getElementById('lm-time');
@@ -2316,22 +2357,24 @@ function openLogModal(e, ds, idx) {
     b.style.borderColor = active ? 'var(--accent)' : '';
     b.style.color = active ? 'var(--accent)' : '';
   });
-  _logFeel = 'mid';
+  if (!existingLogId) _logFeel = 'mid';
   document.querySelectorAll('.feel-log-btn').forEach(b => {
-    b.style.borderColor = b.dataset.feel === 'mid' ? 'rgba(232,184,64,0.4)' : 'var(--border)';
+    b.classList.remove('active-good','active-mid','active-bad');
+    if (b.dataset.feel === _logFeel) b.classList.add('active-' + _logFeel);
   });
   const ocrLabel = document.getElementById('ocr-file-label');
   if (ocrLabel) ocrLabel.textContent = 'AI odczyta dane automatycznie';
   const ocrArea = document.getElementById('ocr-upload-area');
   if (ocrArea) ocrArea.style.borderColor = 'var(--border)';
-  // Resetuj type pills do domyślnego
+  // Resetuj type pills do domyślnego (lub zaznacz typ z logu)
   document.querySelectorAll('.lm-type-pill').forEach((b,i) => {
-    b.style.background = i===0 ? 'rgba(80,144,224,0.12)' : 'transparent';
-    b.style.borderColor = i===0 ? 'rgba(80,144,224,0.4)' : 'var(--border)';
-    b.style.color = i===0 ? '#5090e0' : 'var(--muted)';
+    const isActive = b.onclick?.toString().includes("'" + _logType2 + "'") || (i===0 && !existingLogId);
+    b.style.background = isActive ? 'rgba(80,144,224,0.12)' : 'transparent';
+    b.style.borderColor = isActive ? 'rgba(80,144,224,0.4)' : 'var(--border)';
+    b.style.color = isActive ? '#5090e0' : 'var(--muted)';
   });
-  window._logType2 = 'Bieg spokojny';
-  document.getElementById('log-modal-title').textContent = '📝 Log: ' + (_logType2 || 'Trening');
+  window._logType2 = _logType2;
+  document.getElementById('log-modal-title').textContent = (existingLogId ? '✏️ Edytuj: ' : '📝 Log: ') + (_logType2 || 'Trening');
   const modal = document.getElementById('log-modal-bg');
   modal.style.opacity = '0';
   modal.style.display = 'flex';
@@ -2339,6 +2382,13 @@ function openLogModal(e, ds, idx) {
     modal.style.opacity = '1';
     document.getElementById('log-modal-inner').style.transform = 'translateY(0)';
   }, 20);
+}
+
+function removeExistingAttachment(btn, url) {
+  // Usuwa miniaturę i z listy do zachowania
+  window._existingAttachments = (window._existingAttachments || []).filter(u => u !== url);
+  const wrap = btn.parentElement;
+  if (wrap) wrap.remove();
 }
 
 function closeLogModal() {
@@ -2425,16 +2475,61 @@ async function saveLog() {
   if (!session) { notify('Zaloguj się'); return; }
   const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   if (!ath) { notify('Błąd konta'); return; }
-  await _sbKal.from('training_logs').insert({
-    athlete_id: ath.id,
+
+  // Upload nowych zdjęć (jeśli są)
+  const newFiles = window._ocrFiles || [];
+  let newUrls = [];
+  if (newFiles.length > 0) {
+    const base = Date.now();
+    for (let i = 0; i < newFiles.length; i++) {
+      const file = newFiles[i];
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = ath.id + '/log_' + base + '_' + i + '.' + ext;
+      const { error: upErr } = await _sbKal.storage
+        .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+      if (!upErr) {
+        const { data: urlData } = _sbKal.storage.from('training-screenshots').getPublicUrl(path);
+        newUrls.push(urlData.publicUrl);
+      }
+    }
+  }
+
+  // Merge istniejących (po usunięciu krzyżykiem) + nowych
+  const allAttachments = [...(window._existingAttachments || []), ...newUrls];
+  const attachmentUrl = allAttachments.length ? allAttachments.join(',') : null;
+
+  const editingId = window._editingLogId || null;
+  const payload = {
     training_type: _logType2,
     distance_km: dist,
     duration: time,
     pace, heart_rate: hr,
     strava_link: strava,
     comment, feel: _logFeel,
-    logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
-  });
+    attachment_url: attachmentUrl
+  };
+
+  let saveError = null;
+  if (editingId) {
+    // UPDATE istniejącego loga
+    const { error } = await _sbKal.from('training_logs')
+      .update(payload).eq('id', editingId).eq('athlete_id', ath.id);
+    saveError = error;
+  } else {
+    // INSERT nowego
+    const { error } = await _sbKal.from('training_logs').insert({
+      ...payload,
+      athlete_id: ath.id,
+      logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
+    });
+    saveError = error;
+  }
+
+  if (saveError) {
+    notify('Błąd zapisu: ' + saveError.message);
+    return;
+  }
+
   // Oznacz trening jako wykonany i zaktualizuj dystans z logu
   if (_logTrainingId) {
     const updateData = { status: 'done' };
@@ -2456,10 +2551,59 @@ async function saveLog() {
     time: time || '',
     type: _logType2 || '',
   };
+  // Reset edycyjnego stanu
+  window._editingLogId = null;
+  window._existingAttachments = [];
+  window._ocrFiles = [];
   closeLogModal();
   await loadTrainingsFromDB();
-  notify('Log zapisany ✓');
-  setTimeout(() => { if (window.PRS) window.PRS.launch(_prsKal); }, 400);
+  notify(editingId ? 'Log zaktualizowany ✓' : 'Log zapisany ✓');
+  if (!editingId) setTimeout(() => { if (window.PRS) window.PRS.launch(_prsKal); }, 400);
+}
+
+// ── USUWANIE LOGU Z KALENDARZA ─────────────────────────────────────
+async function deleteLogFromCalendar(logId, ds) {
+  if (!logId) return;
+  if (!confirm('Usunąć ten trening i wszystkie załączone zdjęcia?')) return;
+  const { data: { session } } = await _sbKal.auth.getSession();
+  if (!session) { notify('Zaloguj się'); return; }
+  const { data: ath } = await _sbKal.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  if (!ath) return;
+
+  // Pobierz log żeby usunąć zdjęcia z storage
+  const { data: log } = await _sbKal.from('training_logs')
+    .select('attachment_url').eq('id', logId).eq('athlete_id', ath.id).maybeSingle();
+
+  if (log && log.attachment_url) {
+    const urls = log.attachment_url.split(',').filter(Boolean);
+    const paths = urls.map(url => {
+      // Wyciągnij path po '/training-screenshots/'
+      const m = url.match(/training-screenshots\/(.+)$/);
+      return m ? m[1] : null;
+    }).filter(Boolean);
+    if (paths.length) {
+      await _sbKal.storage.from('training-screenshots').remove(paths);
+    }
+  }
+
+  // Usuń log
+  const { error: delErr } = await _sbKal.from('training_logs')
+    .delete().eq('id', logId).eq('athlete_id', ath.id);
+  if (delErr) {
+    notify('Błąd usuwania: ' + delErr.message);
+    return;
+  }
+
+  // Jeśli był połączony plan trenera — zresetuj jego status
+  if (ds && trainings[ds]) {
+    const t = trainings[ds].find(x => x.status === 'done');
+    if (t && t._id) {
+      await _sbKal.from('trainings').update({ status: 'planned' }).eq('id', t._id);
+    }
+  }
+
+  await loadTrainingsFromDB();
+  notify('Trening usunięty ✓');
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
@@ -3881,18 +4025,19 @@ function _openDayScreen(ds) {
   if (_urlRole === 'athlete') {
     const logId = logs[0] && logs[0].id;
     if (hasLog) {
-      // Ma log — "Edytuj" + "Story"
+      // Ma log — "Edytuj" + "Story" + "Usuń"
       const storyBtn = `<button onclick="if(typeof PRS!=='undefined')PRS.launch({})" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;border-radius:12px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">▶ Story</button>`;
-      ctaInner.innerHTML = closeBtn + storyBtn + +
-        `<button onclick="_closeDayScreen();setTimeout(()=>{ const el=document.querySelector('[data-log-id=\"${logId}\"]'); if(el) el.click(); else openLogModal('${ds}'); },200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
+      const deleteBtn = `<button onclick="_closeDayScreen();setTimeout(()=>deleteLogFromCalendar('${logId}','${ds}'),200);" title="Usuń log" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:14px;cursor:pointer;width:48px;flex-shrink:0;">🗑</button>`;
+      ctaInner.innerHTML = closeBtn + storyBtn + deleteBtn +
+        `<button onclick="_closeDayScreen();setTimeout(()=>{ openLogModal({stopPropagation:()=>{}}, '${ds}', 0, '${logId}'); },200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
     } else if (hasPlan) {
       // Ma plan, brak logu — "Zaloguj wynik"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
+        `<button onclick="_closeDayScreen();setTimeout(()=>openLogModal({stopPropagation:()=>{}}, '${ds}', 0),200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
     } else {
       // Brak planu i logu — "Dodaj trening"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Dodaj trening</button>`;
+        `<button onclick="_closeDayScreen();setTimeout(()=>openLogModal({stopPropagation:()=>{}}, '${ds}', 0),200);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Dodaj trening</button>`;
     }
   } else {
     ctaInner.innerHTML = closeBtn;
