@@ -882,6 +882,8 @@ body > *{position:relative;z-index:1;}
 
 <!-- Akcje pod kartą -->
 <div class="today-actions-wrap fade-in">
+  <!-- Auto-prompt push (renderowane przez maybeShowPushPrompt) -->
+  <div id="push-prompt-banner"></div>
   <!-- Pending duels banner (renderowane przez loadPendingDuelsBanner) -->
   <div id="today-pending-duels"></div>
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
@@ -4436,6 +4438,7 @@ async function loadLogs() {
     await loadCoachMessage();
     await loadTodayTraining();
     loadPendingDuelsBanner(); // banner pending/active duels w "Dziś"
+    maybeShowPushPrompt(); // banner push (po 24h od first seen)
     await loadWeekPlan();
     loadHomeSocialPreview();
     await updateWeekProgress();
@@ -5164,11 +5167,97 @@ async function togglePushNotifs() {
     if (r.ok) {
       toast('🔔 Powiadomienia włączone!');
       refreshPushToggleUI();
+      hidePushPrompt(); // schowaj banner jeśli był
     } else {
       toast(r.error);
     }
   }
 }
+
+// ─── AUTO-PROMPT PUSH NOTIFICATIONS ──────────────────────────────────
+// Pokazuje banner "Włącz powiadomienia" w "Dziś" jeśli user:
+// - używa apki min. 24h
+// - nie ma jeszcze subskrypcji
+// - nie odrzucił banneru w ostatnich 30 dniach
+// - nie zablokował powiadomień w przeglądarce
+
+async function maybeShowPushPrompt() {
+  if (!_athleteId) return;
+  if (!window.isPushSupported || !window.isPushSupported()) return;
+  
+  const perm = window.getPushPermission();
+  // Nie pokazuj jeśli odmówił w przeglądarce
+  if (perm === 'denied') return;
+  // Nie pokazuj jeśli już subscrybowany
+  if (await window.isPushSubscribed()) return;
+  
+  // Sprawdź "first seen" timestamp
+  const firstSeenKey = 'biegamy_first_seen';
+  const dismissedKey = 'biegamy_push_prompt_dismissed';
+  
+  let firstSeen = parseInt(localStorage.getItem(firstSeenKey) || '0');
+  if (!firstSeen) {
+    // Pierwsza wizyta — zapisz timestamp, nie pokazuj jeszcze
+    localStorage.setItem(firstSeenKey, Date.now().toString());
+    return;
+  }
+  
+  // Czekamy 24h od pierwszej wizyty
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  if (Date.now() - firstSeen < ONE_DAY) return;
+  
+  // Sprawdź czy nie odrzucił w ostatnich 30 dniach
+  const dismissedAt = parseInt(localStorage.getItem(dismissedKey) || '0');
+  const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
+  if (dismissedAt && (Date.now() - dismissedAt < THIRTY_DAYS)) return;
+  
+  // Pokaż banner
+  showPushPrompt();
+}
+
+function showPushPrompt() {
+  const target = document.getElementById('push-prompt-banner');
+  if (!target) return;
+  target.innerHTML = '<div style="background:linear-gradient(135deg,rgba(232,86,30,0.18),rgba(255,122,69,0.08));border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;">'
+    + '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;">'
+      + '<div style="font-size:24px;flex-shrink:0;">🔔</div>'
+      + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;font-weight:600;color:var(--fg);">Włącz powiadomienia</div>'
+        + '<div style="font-size:11px;color:var(--fg2);margin-top:3px;line-height:1.5;">Bądź na bieżąco z wiadomościami od trenera, komentarzami i wyzwaniami.</div>'
+      + '</div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
+      + '<button onclick="acceptPushPrompt()" style="background:var(--accent);border:none;color:#fff;padding:10px;border-radius:8px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;cursor:pointer;">Włącz</button>'
+      + '<button onclick="dismissPushPrompt()" style="background:transparent;border:1px solid var(--border2);color:var(--muted);padding:10px;border-radius:8px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;">Może później</button>'
+    + '</div>'
+  + '</div>';
+}
+
+async function acceptPushPrompt() {
+  const r = await window.subscribeToPush(_athleteId);
+  if (r.ok) {
+    toast('🔔 Powiadomienia włączone!');
+    hidePushPrompt();
+    if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
+  } else {
+    toast(r.error);
+    // Jeśli user odrzucił w prompcie przeglądarki, ukryj banner (już nie pomoże)
+    if (window.getPushPermission() === 'denied') hidePushPrompt();
+  }
+}
+
+function dismissPushPrompt() {
+  localStorage.setItem('biegamy_push_prompt_dismissed', Date.now().toString());
+  hidePushPrompt();
+}
+
+function hidePushPrompt() {
+  const target = document.getElementById('push-prompt-banner');
+  if (target) target.innerHTML = '';
+}
+
+window.acceptPushPrompt = acceptPushPrompt;
+window.dismissPushPrompt = dismissPushPrompt;
 
 async function logout() {
   try { await sb.auth.signOut(); } catch(e) {}
