@@ -770,6 +770,15 @@ const SHOP_CATALOG = {
   }
 })();
 
+// 🆕 TEST GRANT — jednorazowy bonus startowy do testowania sklepu
+(function grantTestCurrency(){
+  if (!getStat('test_grant_v1', false)) {
+    setStat('wallet_coins', 2000);
+    setStat('wallet_gems', 50);
+    setStat('test_grant_v1', true);
+  }
+})();
+
 function findShopItem(category, id){
   const list = SHOP_CATALOG[category] || [];
   return list.find(i => i.id === id);
@@ -8371,22 +8380,80 @@ function drawDog(ctx, x, y, bobPhase) {
   ctx.restore();
 }
 
+// 🎨 Palety kolorów skinów (zdefiniowane przed drawRunner)
+const SKIN_PALETTES = {
+  default: {
+    SHIRT_TOP: '#ff7a45', SHIRT_MID: '#e8561e', SHIRT_BOT: '#c0410e', SHIRT_HIGHLIGHT: '#ffaa70',
+    SHORTS: '#1a1a25', SHORTS_HIGHLIGHT: '#2a2a35',
+    SHOES: '#2a2a35', SHOE_ACCENT: '#ff7a45', SHOE_SOLE: '#ffffff',
+    LOGO: 'B', LOGO_COLOR: 'rgba(255,255,255,0.92)'
+  },
+  adonis: {  // 3-paski Adonis-style, niebieski dres
+    SHIRT_TOP: '#4070d0', SHIRT_MID: '#3060c0', SHIRT_BOT: '#1e4a90', SHIRT_HIGHLIGHT: '#80a5e0',
+    SHORTS: '#1e3a70', SHORTS_HIGHLIGHT: '#2e4a80',
+    SHOES: '#0a0a0a', SHOE_ACCENT: '#ffffff', SHOE_SOLE: '#ffffff',
+    LOGO: 'A', LOGO_COLOR: '#ffffff',
+    STRIPES: 3, STRIPE_COLOR: '#ffffff'  // 3 białe paski na rękawach
+  },
+  nice: {  // NICE Air swoosh, biało-pomarańczowy
+    SHIRT_TOP: '#ffffff', SHIRT_MID: '#f0f0f0', SHIRT_BOT: '#d0d0d0', SHIRT_HIGHLIGHT: '#ffffff',
+    SHORTS: '#1a1a25', SHORTS_HIGHLIGHT: '#2a2a35',
+    SHOES: '#ff7a45', SHOE_ACCENT: '#ffffff', SHOE_SOLE: '#ffffff',
+    LOGO: '✓', LOGO_COLOR: '#ff7a45',  // swoosh-like
+    SWOOSH: true
+  },
+  kuna: {  // Kuna Sport — zielono-czarny z gwiazdkami
+    SHIRT_TOP: '#3db870', SHIRT_MID: '#2a9858', SHIRT_BOT: '#1a7040', SHIRT_HIGHLIGHT: '#65d090',
+    SHORTS: '#0a0a0a', SHORTS_HIGHLIGHT: '#1a1a1a',
+    SHOES: '#0a0a0a', SHOE_ACCENT: '#3db870', SHOE_SOLE: '#ffffff',
+    LOGO: '★', LOGO_COLOR: '#ffd966',
+    STARS: true  // 3 gwiazdki na koszulce
+  },
+  tetra: {  // Tetra Stripes — fioletowo-czarny z 4 paskami
+    SHIRT_TOP: '#a868e0', SHIRT_MID: '#8848c0', SHIRT_BOT: '#5828a0', SHIRT_HIGHLIGHT: '#c898f0',
+    SHORTS: '#0a0a0a', SHORTS_HIGHLIGHT: '#2a1a3a',
+    SHOES: '#1a1a25', SHOE_ACCENT: '#a868e0', SHOE_SOLE: '#ffffff',
+    LOGO: 'T', LOGO_COLOR: '#ffffff',
+    STRIPES: 4, STRIPE_COLOR: '#ffd966'  // 4 żółte paski
+  },
+  reepok: {  // Reepok Wave — vintage żółto-czerwony
+    SHIRT_TOP: '#ffd966', SHIRT_MID: '#e8a830', SHIRT_BOT: '#b07020', SHIRT_HIGHLIGHT: '#fff0a0',
+    SHORTS: '#c0410e', SHORTS_HIGHLIGHT: '#e85020',
+    SHOES: '#ffffff', SHOE_ACCENT: '#c0410e', SHOE_SOLE: '#ffd966',
+    LOGO: 'R', LOGO_COLOR: '#c0410e',
+    WAVE: true  // falujące logo
+  },
+  gold: {  // Złoty Mistrz — premium gold
+    SHIRT_TOP: '#ffe580', SHIRT_MID: '#ffd966', SHIRT_BOT: '#e8a830', SHIRT_HIGHLIGHT: '#ffffff',
+    SHORTS: '#3a2a10', SHORTS_HIGHLIGHT: '#5a4a30',
+    SHOES: '#ffd966', SHOE_ACCENT: '#3a2a10', SHOE_SOLE: '#ffffff',
+    LOGO: '👑', LOGO_COLOR: '#ffd966',
+    GLOW: '#ffd966'  // złota poświata
+  }
+};
+
 function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   ctx.save();  // 🆕 FIX: parowanie z restore() na końcu funkcji (linia ~8176)
   const s = dpr;
-  // Kolory
+  // Pobierz aktywny skin z localStorage
+  const skinId = (typeof getEquipped === 'function') ? getEquipped('skins') : 'default';
+  const palette = SKIN_PALETTES[skinId] || SKIN_PALETTES.default;
+  // Kolory bazowe (skóra/włosy zawsze takie same)
   const SKIN = '#f4c39a';
   const SKIN_DARK = '#d99c70';
   const HAIR = '#1a1a1a';
-  const SHIRT_TOP = '#ff7a45';
-  const SHIRT_MID = '#e8561e';
-  const SHIRT_BOT = '#c0410e';
-  const SHIRT_HIGHLIGHT = '#ffaa70';
-  const SHORTS = '#1a1a25';
-  const SHORTS_HIGHLIGHT = '#2a2a35';
-  const SHOES = '#2a2a35';
-  const SHOE_ACCENT = '#ff7a45';
-  const SHOE_SOLE = '#ffffff';
+  // Kolory ze skina
+  const SHIRT_TOP = palette.SHIRT_TOP;
+  const SHIRT_MID = palette.SHIRT_MID;
+  const SHIRT_BOT = palette.SHIRT_BOT;
+  const SHIRT_HIGHLIGHT = palette.SHIRT_HIGHLIGHT;
+  const SHORTS = palette.SHORTS;
+  const SHORTS_HIGHLIGHT = palette.SHORTS_HIGHLIGHT;
+  const SHOES = palette.SHOES;
+  const SHOE_ACCENT = palette.SHOE_ACCENT;
+  const SHOE_SOLE = palette.SHOE_SOLE;
+  const LOGO_TEXT = palette.LOGO || 'B';
+  const LOGO_COLOR = palette.LOGO_COLOR || 'rgba(255,255,255,0.92)';
   
   ctx.save();
   ctx.translate(x, y);
@@ -8415,13 +8482,13 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
     // Highlight na koszulce
     ctx.fillStyle = SHIRT_HIGHLIGHT;
     ctx.fillRect(-20 * s, -15 * s, 34 * s, 2 * s);
-    // Logo B
+    // Logo (z palety skina)
     if (!isGhost) {
-      ctx.fillStyle = 'rgba(255,255,255,0.92)';
+      ctx.fillStyle = LOGO_COLOR;
       ctx.font = 'bold ' + (8 * s) + 'px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('B', 0, -9 * s);
+      ctx.fillText(LOGO_TEXT, 0, -9 * s);
     }
     
     // 🆕 Druga ręka (z przodu - dołem do ziemi, push gesture)
@@ -8759,17 +8826,77 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
     ctx.fillRect(-8 * s + torsoLeanX, -27 * s, 5 * s, 2 * s);
   }
   
-  // Logo "B" na koszulce
+  // Logo na koszulce (z palety skina)
   if (!isGhost) {
     // Drobny cień pod logo
     ctx.fillStyle = 'rgba(60,20,5,0.4)';
     ctx.font = 'bold ' + (9 * s) + 'px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('B', torsoLeanX + 0.5 * s, -19.5 * s);
-    // Logo white
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.fillText('B', torsoLeanX, -20 * s);
+    ctx.fillText(LOGO_TEXT, torsoLeanX + 0.5 * s, -19.5 * s);
+    // Logo z palety
+    ctx.fillStyle = LOGO_COLOR;
+    ctx.fillText(LOGO_TEXT, torsoLeanX, -20 * s);
+
+    // 🆕 Skin-specific decorations
+    // Adonis/Tetra paski na bokach koszulki
+    if (palette.STRIPES && palette.STRIPE_COLOR) {
+      ctx.fillStyle = palette.STRIPE_COLOR;
+      const numStripes = palette.STRIPES;
+      const stripeY = -28 * s;
+      const stripeH = 16 * s;
+      const stripeW = 1.5 * s;
+      const gap = 2 * s;
+      const totalW = numStripes * stripeW + (numStripes - 1) * gap;
+      // Lewa strona koszulki (na ramieniu)
+      const leftStartX = -10 * s + torsoLeanX;
+      for (let i = 0; i < numStripes; i++) {
+        ctx.fillRect(leftStartX + i * (stripeW + gap), stripeY, stripeW, stripeH);
+      }
+      // Prawa strona koszulki
+      const rightStartX = 6 * s + torsoLeanX;
+      for (let i = 0; i < numStripes; i++) {
+        ctx.fillRect(rightStartX + i * (stripeW + gap), stripeY, stripeW, stripeH);
+      }
+    }
+    // NICE swoosh — duży zakrzywiony swoosh przez pierś
+    if (palette.SWOOSH) {
+      ctx.strokeStyle = '#ff7a45';
+      ctx.lineWidth = 2.5 * s;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-9 * s + torsoLeanX, -16 * s);
+      ctx.quadraticCurveTo(0 + torsoLeanX, -12 * s, 9 * s + torsoLeanX, -22 * s);
+      ctx.stroke();
+    }
+    // Kuna gwiazdki — 3 małe na piersi
+    if (palette.STARS) {
+      ctx.fillStyle = '#ffd966';
+      ctx.font = 'bold ' + (5 * s) + 'px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('★', -7 * s + torsoLeanX, -25 * s);
+      ctx.fillText('★', 0 + torsoLeanX, -27 * s);
+      ctx.fillText('★', 7 * s + torsoLeanX, -25 * s);
+    }
+    // Reepok wave — falujące linie pod logo
+    if (palette.WAVE) {
+      ctx.strokeStyle = '#c0410e';
+      ctx.lineWidth = 1.2 * s;
+      ctx.beginPath();
+      ctx.moveTo(-7 * s + torsoLeanX, -13 * s);
+      ctx.quadraticCurveTo(-3.5 * s + torsoLeanX, -15 * s, 0 + torsoLeanX, -13 * s);
+      ctx.quadraticCurveTo(3.5 * s + torsoLeanX, -11 * s, 7 * s + torsoLeanX, -13 * s);
+      ctx.stroke();
+    }
+    // Złoty mistrz — złota poświata wokół tułowia
+    if (palette.GLOW) {
+      ctx.save();
+      ctx.shadowColor = palette.GLOW;
+      ctx.shadowBlur = 12 * s;
+      ctx.fillStyle = 'rgba(255,217,102,0.15)';
+      ctx.fillRect(-12 * s + torsoLeanX, -29 * s, 24 * s, 18 * s);
+      ctx.restore();
+    }
   }
   
   // ═══════════════════════════════
