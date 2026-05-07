@@ -164,6 +164,101 @@ body {
 }
 
 /* HERO — dzisiejsze podsumowanie */
+/* ── DATE BAR — 7 dni z aktywnym kółkiem ─────────────────────── */
+.date-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 8px 4px;
+  background: linear-gradient(135deg, rgba(20,18,22,0.85), rgba(14,12,16,0.95));
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  position: relative;
+}
+.date-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--fg2);
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+.date-nav-btn:hover {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--border);
+  color: var(--fg);
+}
+.date-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  flex: 1;
+}
+.date-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border-radius: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  transition: all 0.18s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  font-family: inherit;
+  color: var(--fg2);
+}
+.date-day:hover {
+  background: rgba(255,255,255,0.04);
+}
+.date-day-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+.date-day-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--fg);
+  letter-spacing: 0.02em;
+}
+.date-day.today .date-day-num {
+  color: var(--accent);
+}
+.date-day.active {
+  background: linear-gradient(135deg, rgba(232,86,30,0.25), rgba(232,86,30,0.08));
+  border-color: rgba(232,86,30,0.4);
+  box-shadow: 0 4px 12px rgba(232,86,30,0.2), inset 0 1px 0 rgba(255,180,77,0.15);
+}
+.date-day.active .date-day-name { color: var(--accent); }
+.date-day.active .date-day-num { color: var(--fg); }
+.date-day-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(232,86,30,0.6);
+  margin-top: 1px;
+  opacity: 0;
+}
+.date-day.has-meals .date-day-dot { opacity: 1; }
+
+/* HERO — premium dashboard */
 .hero-card {
   background: rgba(14,12,16,0.95);
   border: 1px solid rgba(232,86,30,0.25);
@@ -616,6 +711,157 @@ body {
 }
 
 /* MEAL ITEM */
+/* ── MEAL SLOTS — 5 sekcji per meal_type (Śniadanie/Lunch/Obiad/Przekąska/Kolacja) ── */
+.meal-slot {
+  background: linear-gradient(145deg, rgba(36,28,24,0.55), rgba(20,16,14,0.72));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: var(--shadow-sm);
+}
+.meal-slot.has-meals {
+  border-color: rgba(232,86,30,0.25);
+  box-shadow: var(--shadow-sm), 0 0 0 1px rgba(232,86,30,0.06) inset;
+}
+.meal-slot-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+.meal-slot-header:hover {
+  background: rgba(255,255,255,0.02);
+}
+.meal-slot-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+.meal-slot-info {
+  flex: 1;
+  min-width: 0;
+}
+.meal-slot-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+}
+.meal-slot-kcal {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  margin-top: 3px;
+}
+.meal-slot.has-meals .meal-slot-kcal {
+  color: var(--accent);
+  font-weight: 600;
+}
+.meal-slot-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.meal-slot-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: rgba(232,86,30,0.10);
+  border: 1px solid rgba(232,86,30,0.30);
+  color: var(--accent);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.meal-slot-btn:hover {
+  background: rgba(232,86,30,0.20);
+  transform: scale(1.05);
+}
+.meal-slot-btn:active {
+  transform: scale(0.95);
+}
+.meal-slot-btn.ai {
+  background: linear-gradient(135deg, rgba(232,86,30,0.15), rgba(255,180,77,0.10));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+.meal-slot-items {
+  border-top: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+  padding: 8px 12px 10px;
+}
+.meal-slot-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.meal-slot-item:hover {
+  background: rgba(255,255,255,0.04);
+}
+.meal-slot-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.meal-slot-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.meal-slot-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.meal-slot-item-meta {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+.meal-slot-item-kcal {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 16px;
+  color: var(--fg);
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+  text-align: right;
+}
+.meal-slot-item-kcal-unit {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-top: -2px;
+}
+
 .meal-item {
   background: linear-gradient(145deg, rgba(36,28,24,0.7), rgba(20,16,14,0.7));
   border: 1px solid var(--border);
@@ -2290,6 +2536,15 @@ body {
     <button onclick="goToToday()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);border-radius:9px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;cursor:pointer;white-space:nowrap;">Dziś →</button>
   </div>
 
+  <!-- DATE BAR — 7 dni z aktywnym kółkiem (jak fitatu) -->
+  <div class="date-bar" id="date-bar">
+    <button class="date-nav-btn" onclick="shiftDateWeek(-1)" title="Poprzedni tydzień">‹</button>
+    <div class="date-days" id="date-days">
+      <!-- generowane przez JS -->
+    </div>
+    <button class="date-nav-btn" onclick="shiftDateWeek(1)" title="Następny tydzień">›</button>
+  </div>
+
   <!-- HERO — split layout: stats po lewej + grafika rotująca po prawej -->
   <div class="hero-card">
     <!-- Slider grafik po prawej stronie -->
@@ -2385,16 +2640,15 @@ body {
     <div class="quick-add-row" id="quick-add-list"></div>
   </div>
 
-  <!-- LISTA POSIŁKÓW -->
+  <!-- POSIŁKI — 5 slotów per meal_type (jak fitatu) -->
   <div class="section-header">
     <div class="section-title" id="meals-section-title">Dzisiaj zjedzone</div>
   </div>
-  <div id="meals-list">
-    <div class="empty-state">
-      <div class="empty-icon">🥗</div>
-      <div class="empty-text">Ładowanie...</div>
-    </div>
+  <div id="meal-slots">
+    <!-- generowane przez JS — każdy slot to grupa posiłków per meal_type -->
   </div>
+  <!-- Legacy meal-list ukryta (zachowany dla quick search innych view) -->
+  <div id="meals-list" style="display:none;"></div>
 
   </div><!-- /view-today -->
 
@@ -3426,6 +3680,11 @@ function getViewDateLabel() {
   await loadTodayMeals();
   refreshDashboard();
 
+  // Init pasek dni
+  _dateBarWeekStart = getMonday(new Date(_viewDate + 'T00:00:00'));
+  renderDateBar();
+  loadDateBarMealIndicators();
+
   // Pierwsze wejście — uruchom onboarding (ale NIE jeśli przyszli z ?date= param)
   const hasDateParam = new URLSearchParams(window.location.search).has('date');
   const onboarded = localStorage.getItem('nutrition_onboarded');
@@ -3666,6 +3925,12 @@ async function loadTodayMeals() {
   if (error) console.warn('meals:', error);
   _todayMeals = data || [];
 
+  // Update has-meals indicator dla bieżącego dnia w pasku
+  if (_mealsHasDataByDate) {
+    _mealsHasDataByDate[_viewDate] = _todayMeals.length > 0;
+    renderDateBar();
+  }
+
   // Update etykiety i banner
   updateViewDateUI();
 }
@@ -3813,8 +4078,9 @@ function refreshDashboard() {
   // Kontekst — kalorie z treningu (jeśli mamy logi z BiegaMy)
   loadTrainingContext(totals.kcal, target);
 
-  // Lista posiłków
+  // Lista posiłków (legacy + nowe sloty)
   renderMealsList();
+  renderMealSlots();
 
   // Quota AI (best-effort, async)
   refreshAIQuota();
@@ -4178,6 +4444,225 @@ function estimateTrainingKcal(log) {
   return weightKg * km * multiplier;
 }
 
+// ════════════════════════════════════════════════════════════
+// DATE BAR — 7-day picker with active day, meal indicators
+// ════════════════════════════════════════════════════════════
+
+// State: jaki tydzień jest pokazywany w pasku (start = poniedziałek)
+let _dateBarWeekStart = null;
+// Cache posiłków per dzień (do haczyków "ten dzień ma posiłki")
+let _mealsHasDataByDate = {};
+
+function getMonday(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - (day === 0 ? 6 : day - 1);  // niedziela = 7
+  d.setDate(diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function fmtDateLocal(d) {
+  // YYYY-MM-DD w lokalnym czasie (bez UTC offsetu)
+  return d.toLocaleDateString('en-CA');
+}
+
+function shiftDateWeek(delta) {
+  if (!_dateBarWeekStart) _dateBarWeekStart = getMonday(new Date(_viewDate + 'T00:00:00'));
+  const d = new Date(_dateBarWeekStart);
+  d.setDate(d.getDate() + delta * 7);
+  _dateBarWeekStart = d;
+  renderDateBar();
+  // Pobierz haczyki dla tego tygodnia
+  loadDateBarMealIndicators();
+}
+
+async function loadDateBarMealIndicators() {
+  if (!_athleteId || !_dateBarWeekStart) return;
+  const start = new Date(_dateBarWeekStart);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  end.setHours(0, 0, 0, 0);
+
+  const { data } = await sb.from('nutrition_meals')
+    .select('eaten_at')
+    .eq('athlete_id', _athleteId)
+    .gte('eaten_at', start.toISOString())
+    .lt('eaten_at', end.toISOString());
+
+  _mealsHasDataByDate = {};
+  if (data) {
+    for (const m of data) {
+      const ds = fmtDateLocal(new Date(m.eaten_at));
+      _mealsHasDataByDate[ds] = true;
+    }
+  }
+  renderDateBar();
+}
+
+function renderDateBar() {
+  const wrap = document.getElementById('date-days');
+  if (!wrap) return;
+
+  if (!_dateBarWeekStart) {
+    _dateBarWeekStart = getMonday(new Date(_viewDate + 'T00:00:00'));
+  }
+
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const dayNames = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+
+  let html = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(_dateBarWeekStart);
+    d.setDate(d.getDate() + i);
+    const ds = fmtDateLocal(d);
+    const isActive = ds === _viewDate;
+    const isToday = ds === todayStr;
+    const hasMeals = !!_mealsHasDataByDate[ds];
+
+    const classes = ['date-day'];
+    if (isActive) classes.push('active');
+    if (isToday) classes.push('today');
+    if (hasMeals) classes.push('has-meals');
+
+    html += `
+      <button class="${classes.join(' ')}" data-date="${ds}" onclick="selectDate('${ds}')">
+        <div class="date-day-name">${dayNames[i]}</div>
+        <div class="date-day-num">${d.getDate()}</div>
+        <div class="date-day-dot"></div>
+      </button>`;
+  }
+  wrap.innerHTML = html;
+}
+
+async function selectDate(ds) {
+  _viewDate = ds;
+  // Update URL param (replace, nie push — żeby nie zaśmiecać historii)
+  const url = new URL(window.location.href);
+  if (ds === new Date().toLocaleDateString('en-CA')) {
+    url.searchParams.delete('date');
+  } else {
+    url.searchParams.set('date', ds);
+  }
+  window.history.replaceState({}, '', url.toString());
+
+  // Re-render bar (active dot)
+  renderDateBar();
+
+  // Pobierz posiłki + odśwież dashboard
+  await loadTodayMeals();
+  refreshDashboard();
+  renderMealsList();
+}
+
+// ════════════════════════════════════════════════════════════
+// MEAL SLOTS — 5 slotów per meal_type (jak fitatu)
+// ════════════════════════════════════════════════════════════
+
+const MEAL_TYPES = [
+  { key: 'breakfast', label: 'Śniadanie', icon: '🌅', defaultHour: 8 },
+  { key: 'lunch',     label: 'Lunch',     icon: '☀️', defaultHour: 12 },
+  { key: 'dinner',    label: 'Obiad',     icon: '🍽',  defaultHour: 14 },
+  { key: 'snack',     label: 'Przekąska', icon: '🍎', defaultHour: 16 },
+  { key: 'evening',   label: 'Kolacja',   icon: '🌙', defaultHour: 19 }
+];
+
+function renderMealSlots() {
+  const wrap = document.getElementById('meal-slots');
+  if (!wrap) return;
+
+  // Mapa po id dla onclick handlerów
+  window._mealsById = {};
+  _todayMeals.forEach(m => { window._mealsById[m.id] = m; });
+
+  // Grupuj posiłki per meal_type
+  const byType = {};
+  for (const m of _todayMeals) {
+    let t = m.meal_type || 'snack';
+    // Mapowanie starych typów: 'meal' → 'lunch'
+    if (t === 'meal') t = 'lunch';
+    if (!byType[t]) byType[t] = [];
+    byType[t].push(m);
+  }
+
+  let html = '';
+  for (const slot of MEAL_TYPES) {
+    const meals = byType[slot.key] || [];
+    const totalKcal = meals.reduce((s, m) => s + (m.kcal || 0), 0);
+    const hasMeals = meals.length > 0;
+
+    let itemsHtml = '';
+    if (hasMeals) {
+      itemsHtml = '<div class="meal-slot-items">';
+      for (const m of meals) {
+        const t = new Date(m.eaten_at);
+        const time = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+        const meta = [
+          time,
+          m.weight_g ? Math.round(m.weight_g) + 'g' : null,
+          'B:' + Math.round(m.protein_g || 0) + 'g',
+          'W:' + Math.round(m.carbs_g || 0) + 'g',
+          'T:' + Math.round(m.fat_g || 0) + 'g'
+        ].filter(Boolean).join(' · ');
+        const initImg = getFoodImageSync(m.name);
+        itemsHtml += `
+          <div class="meal-slot-item" onclick="event.stopPropagation();openMealActions(window._mealsById['${m.id}'])">
+            <div class="meal-slot-item-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');"></div>
+            <div class="meal-slot-item-info">
+              <div class="meal-slot-item-name">${escapeHtml(m.name)}</div>
+              <div class="meal-slot-item-meta">${meta}</div>
+            </div>
+            <div class="meal-slot-item-kcal">
+              ${Math.round(m.kcal || 0)}
+              <span class="meal-slot-item-kcal-unit">kcal</span>
+            </div>
+          </div>`;
+      }
+      itemsHtml += '</div>';
+    }
+
+    html += `
+      <div class="meal-slot ${hasMeals ? 'has-meals' : ''}">
+        <div class="meal-slot-header" onclick="addMealToSlot('${slot.key}')">
+          <div class="meal-slot-icon">${slot.icon}</div>
+          <div class="meal-slot-info">
+            <div class="meal-slot-name">${slot.label}</div>
+            <div class="meal-slot-kcal">${hasMeals ? Math.round(totalKcal) + ' kcal · ' + meals.length + (meals.length === 1 ? ' pozycja' : ' pozycje') : '0 kcal'}</div>
+          </div>
+          <div class="meal-slot-actions">
+            <button class="meal-slot-btn ai" onclick="event.stopPropagation();addMealToSlotAI('${slot.key}')" title="Dodaj zdjęciem (AI)">AI</button>
+            <button class="meal-slot-btn" onclick="event.stopPropagation();addMealToSlot('${slot.key}')" title="Dodaj">+</button>
+          </div>
+        </div>
+        ${itemsHtml}
+      </div>`;
+  }
+  wrap.innerHTML = html;
+
+  // Prefetch obrazów dla wszystkich posiłków
+  prefetchAndUpdateMealImages(_todayMeals);
+}
+
+// Helper: dodaj posiłek do konkretnego slotu — przekierowuje do search modal
+// z ustawionym meal_type i defaultową godziną
+function addMealToSlot(mealType) {
+  window._pendingMealType = mealType;
+  // Otwórz search modal (główny sposób dodawania)
+  if (typeof openSearchModal === 'function') {
+    openSearchModal();
+  }
+}
+
+function addMealToSlotAI(mealType) {
+  window._pendingMealType = mealType;
+  // Otwórz photo modal
+  if (typeof openPhotoModal === 'function') {
+    openPhotoModal();
+  }
+}
+
+
 function renderMealsList() {
   const list = document.getElementById('meals-list');
   if (_todayMeals.length === 0) {
@@ -4477,7 +4962,13 @@ async function confirmMeal() {
 }
 
 function guessMealType() {
-  // Bazuje na godzinie z getInsertTimestamp (uwzględnia _viewDate)
+  // Jeśli user kliknął konkretny slot ("Dodaj do Śniadania") — szanuj jego wybór
+  if (window._pendingMealType) {
+    const t = window._pendingMealType;
+    window._pendingMealType = null;  // zużyj raz
+    return t;
+  }
+  // Domyślnie: bazuje na godzinie z getInsertTimestamp (uwzględnia _viewDate)
   const ts = getInsertTimestamp();
   const h = new Date(ts).getHours();
   if (h < 11) return 'breakfast';
