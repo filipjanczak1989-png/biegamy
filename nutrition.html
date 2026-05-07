@@ -854,7 +854,79 @@ body {
 }
 .ai-suggestion:active { background: rgba(232,86,30,0.15); color: var(--accent); }
 
-/* QUICK ADD — często jadane */
+/* HEATMAP — kalendarz 30 dni */
+.heatmap-wrap {
+  display: flex;
+  gap: 8px;
+}
+.heatmap-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  text-align: right;
+  letter-spacing: 0.04em;
+  padding-top: 1px;
+}
+.hm-label {
+  height: 26px;
+  line-height: 26px;
+}
+.heatmap {
+  flex: 1;
+  display: grid;
+  grid-template-rows: repeat(7, 26px);
+  grid-auto-flow: column;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.hm-cell {
+  width: 26px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.2s;
+  position: relative;
+}
+.hm-cell:active { transform: scale(0.92); }
+.hm-cell.empty {
+  background: rgba(255,255,255,0.04);
+  border: 1px dashed rgba(255,255,255,0.06);
+}
+.hm-cell.l1 { background: rgba(80,144,224,0.5); }
+.hm-cell.l2 { background: rgba(80,144,224,0.75); }
+.hm-cell.l3 { background: rgba(255,180,77,0.7); }
+.hm-cell.l4 { background: rgba(232,86,30,0.85); }
+.hm-cell.l5 { background: rgba(232,86,30,1); }
+.hm-cell.today {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.hm-cell.placeholder {
+  background: transparent;
+  border: none;
+  cursor: default;
+  pointer-events: none;
+}
+/* Bary 30-dniowe — węższe niż 7-dniowe */
+.bars-30 {
+  height: 80px !important;
+  gap: 2px !important;
+}
+.bars-30 .bar-col {
+  min-width: 0;
+}
+.bars-30 .bar-day {
+  display: none;
+}
+.bars-30 .bar-val {
+  display: none;
+}
+
+/* DAY DETAILS modal — lista posiłków z dnia */
+.day-details-list { margin-bottom: 12px; }
 .quick-add-row {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -975,10 +1047,11 @@ body {
     <button class="btn-primary" onclick="openProfileModal()">Skonfiguruj</button>
   </div>
 
-  <!-- TABS — Dzisiaj / Tydzień -->
+  <!-- TABS — Dzisiaj / Tydzień / Historia -->
   <div class="tabs">
     <button class="tab active" id="tab-today" onclick="switchTab('today')">Dzisiaj</button>
     <button class="tab" id="tab-week" onclick="switchTab('week')">Tydzień</button>
+    <button class="tab" id="tab-history" onclick="switchTab('history')">Historia</button>
   </div>
 
   <!-- VIEW: TODAY -->
@@ -1077,6 +1150,84 @@ body {
       </div>
     </div>
   </div><!-- /view-week -->
+
+  <!-- VIEW: HISTORIA — 30 dni heatmap + bar chart -->
+  <div id="view-history" style="display:none;">
+    <!-- 30-dni stats summary -->
+    <div class="hero-card" style="margin-bottom:14px;">
+      <div class="hero-label">Ostatnie 30 dni</div>
+      <div>
+        <span class="hero-kcal" id="hist-avg-kcal">0</span>
+        <span class="hero-kcal-target">kcal średnio</span>
+      </div>
+      <div class="hero-context" id="hist-context"></div>
+    </div>
+
+    <!-- Heatmap kalendarza -->
+    <div class="week-chart">
+      <div class="week-chart-header">
+        <div>
+          <div class="week-chart-title">Kalendarz 30 dni</div>
+        </div>
+        <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;">
+          <span style="display:inline-block;width:8px;height:8px;background:rgba(255,255,255,0.06);border-radius:2px;vertical-align:middle;"></span> brak
+          <span style="display:inline-block;width:8px;height:8px;background:rgba(80,144,224,0.5);border-radius:2px;vertical-align:middle;margin-left:6px;"></span> mało
+          <span style="display:inline-block;width:8px;height:8px;background:rgba(232,86,30,0.7);border-radius:2px;vertical-align:middle;margin-left:6px;"></span> dużo
+        </div>
+      </div>
+      <div class="heatmap-wrap">
+        <div class="heatmap-labels">
+          <div class="hm-label">Pn</div>
+          <div class="hm-label">Wt</div>
+          <div class="hm-label">Śr</div>
+          <div class="hm-label">Cz</div>
+          <div class="hm-label">Pt</div>
+          <div class="hm-label">Sb</div>
+          <div class="hm-label">Nd</div>
+        </div>
+        <div class="heatmap" id="heatmap-grid"></div>
+      </div>
+      <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;margin-top:10px;letter-spacing:0.06em;">
+        Tap dzień żeby zobaczyć posiłki
+      </div>
+    </div>
+
+    <!-- Bar chart 30 dni — kompaktowy -->
+    <div class="week-chart">
+      <div class="week-chart-header">
+        <div>
+          <div class="week-chart-title">Wykres 30 dni — kcal/dzień</div>
+        </div>
+      </div>
+      <div class="bars-wrap">
+        <div class="bars bars-30" id="hist-bars"></div>
+      </div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="week-summary">
+      <div class="summary-card">
+        <div class="summary-label">Aktywnych dni</div>
+        <div class="summary-val" id="hist-active-days">0</div>
+        <div class="summary-sub">z ostatnich 30</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Najwięcej</div>
+        <div class="summary-val" id="hist-max-kcal">0</div>
+        <div class="summary-sub" id="hist-max-day">—</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Posiłki/dzień</div>
+        <div class="summary-val" id="hist-meals-avg">0</div>
+        <div class="summary-sub">średnio</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">Zgodność z celem</div>
+        <div class="summary-val" id="hist-target-pct">—</div>
+        <div class="summary-sub" id="hist-target-sub">—</div>
+      </div>
+    </div>
+  </div><!-- /view-history -->
 
   <!-- DISCLAIMER -->
   <div class="disclaimer">
@@ -1351,6 +1502,20 @@ body {
       <button class="btn-secondary" onclick="closeEditMeal()">Anuluj</button>
       <button class="btn-primary" onclick="saveEditMeal()">Zapisz</button>
     </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- MODAL: DAY DETAILS — posiłki z konkretnego dnia -->
+<!-- ─────────────────────────────────────── -->
+<div id="day-modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-title" id="day-title">Dzień</div>
+    <div class="modal-sub" id="day-sub">—</div>
+
+    <div class="day-details-list" id="day-meals"></div>
+
+    <button class="btn-secondary" onclick="closeDayDetails()">Zamknij</button>
   </div>
 </div>
 
@@ -2006,9 +2171,215 @@ function guessMealType() {
 function switchTab(tab) {
   document.getElementById('tab-today').classList.toggle('active', tab === 'today');
   document.getElementById('tab-week').classList.toggle('active', tab === 'week');
+  document.getElementById('tab-history').classList.toggle('active', tab === 'history');
   document.getElementById('view-today').style.display = tab === 'today' ? '' : 'none';
   document.getElementById('view-week').style.display = tab === 'week' ? '' : 'none';
+  document.getElementById('view-history').style.display = tab === 'history' ? '' : 'none';
   if (tab === 'week') loadWeekView();
+  if (tab === 'history') loadHistoryView();
+}
+
+// ════════════════════════════════════════════════════════════
+// HISTORIA — 30 dni heatmap + bar chart + summary
+// ════════════════════════════════════════════════════════════
+async function loadHistoryView() {
+  // Pobierz 30 dni wstecz (włącznie z dziś = 30)
+  const days = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    days.push({
+      date: d,
+      key: d.toISOString().slice(0, 10),
+      kcal: 0,
+      protein: 0,
+      meals: 0
+    });
+  }
+  const startISO = days[0].date.toISOString();
+  const { data } = await sb.from('nutrition_meals')
+    .select('eaten_at, kcal, protein_g, carbs_g, fat_g')
+    .eq('athlete_id', _athleteId)
+    .gte('eaten_at', startISO);
+
+  (data || []).forEach(m => {
+    const k = new Date(m.eaten_at).toISOString().slice(0, 10);
+    const day = days.find(d => d.key === k);
+    if (!day) return;
+    day.kcal += m.kcal || 0;
+    day.protein += parseFloat(m.protein_g) || 0;
+    day.meals += 1;
+  });
+
+  // ── Hero summary
+  const activeDays = days.filter(d => d.kcal > 0);
+  const avgKcal = activeDays.length ? Math.round(activeDays.reduce((s, d) => s + d.kcal, 0) / activeDays.length) : 0;
+  document.getElementById('hist-avg-kcal').textContent = avgKcal;
+
+  // Target i context
+  let target = null;
+  if (_profile && _profile.tdee) {
+    const goalAdjust = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
+    target = _profile.tdee + goalAdjust;
+  }
+  const ctxEl = document.getElementById('hist-context');
+  if (target) {
+    const diff = avgKcal - target;
+    if (Math.abs(diff) < 100) {
+      ctxEl.innerHTML = `Cel: ${target} kcal · <span class="ctx-pos">~zgodnie</span>`;
+    } else if (diff > 0) {
+      ctxEl.innerHTML = `Cel: ${target} kcal · <span class="ctx-neg">+${Math.round(diff)} ponad</span>`;
+    } else {
+      ctxEl.innerHTML = `Cel: ${target} kcal · <span class="ctx-neg">${Math.round(diff)} pod</span>`;
+    }
+  } else {
+    ctxEl.innerHTML = `${activeDays.length}/30 dni z wpisami`;
+  }
+
+  // ── Heatmap 5×7 (30 dni ułożone w grid kolumn po 7 dni)
+  // Każda kolumna = tydzień (Pn → Nd)
+  const heatmap = document.getElementById('heatmap-grid');
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const maxKcal = Math.max(...days.map(d => d.kcal), 1);
+
+  // Indeks dnia tygodnia: Pn=0...Nd=6 (z Date.getDay() Nd=0 → mapuję)
+  function dowIndex(date) {
+    const d = date.getDay();
+    return d === 0 ? 6 : d - 1;
+  }
+
+  // Zaczynamy od pierwszego dnia (najstarszy), ale chcemy żeby grid pokazywał tygodnie kolumnami
+  // Rezerwujemy puste komórki na początku jeśli pierwszy dzień to nie poniedziałek
+  const cells = [];
+  const firstDow = dowIndex(days[0].date);
+  // Placeholder cells na początku
+  for (let i = 0; i < firstDow; i++) {
+    cells.push({ placeholder: true });
+  }
+  days.forEach(d => cells.push(d));
+
+  // Mapa po klawiszu
+  window._historyDays = {};
+  days.forEach(d => { window._historyDays[d.key] = d; });
+
+  heatmap.innerHTML = cells.map(c => {
+    if (c.placeholder) {
+      return '<div class="hm-cell placeholder"></div>';
+    }
+    let cls = 'empty';
+    if (c.kcal > 0) {
+      const ratio = c.kcal / Math.max(maxKcal, 1);
+      if (ratio < 0.3) cls = 'l1';
+      else if (ratio < 0.55) cls = 'l2';
+      else if (ratio < 0.8) cls = 'l3';
+      else if (ratio < 1.0) cls = 'l4';
+      else cls = 'l5';
+    }
+    const todayCls = c.key === todayKey ? ' today' : '';
+    const dateStr = c.date.getDate() + '.' + (c.date.getMonth() + 1);
+    return `<div class="hm-cell ${cls}${todayCls}" onclick="openDayDetails('${c.key}')" title="${dateStr}: ${c.kcal} kcal"></div>`;
+  }).join('');
+
+  // ── Bar chart 30 dni (kompaktowy)
+  const barsEl = document.getElementById('hist-bars');
+  barsEl.innerHTML = days.map(d => {
+    const pct = Math.min(100, (d.kcal / Math.max(maxKcal, 1)) * 100);
+    let cls = '';
+    if (d.kcal === 0) cls = 'no-data';
+    else if (target && d.kcal > target * 1.1) cls = 'over-target';
+    else if (target && d.kcal < target * 0.7) cls = 'under-target';
+    return `<div class="bar-col">
+      <div class="bar-stem ${cls}" style="height:${Math.max(2, pct)}%;" title="${d.date.getDate()}.${d.date.getMonth()+1}: ${Math.round(d.kcal)} kcal"></div>
+    </div>`;
+  }).join('');
+
+  // ── Summary cards
+  document.getElementById('hist-active-days').textContent = activeDays.length;
+  const maxDay = days.reduce((max, d) => d.kcal > (max?.kcal || 0) ? d : max, null);
+  document.getElementById('hist-max-kcal').textContent = maxDay && maxDay.kcal > 0 ? Math.round(maxDay.kcal) : '0';
+  document.getElementById('hist-max-day').textContent = maxDay && maxDay.kcal > 0
+    ? maxDay.date.getDate() + '.' + (maxDay.date.getMonth() + 1) + '.'
+    : '—';
+  const totalMeals = days.reduce((s, d) => s + d.meals, 0);
+  document.getElementById('hist-meals-avg').textContent = activeDays.length
+    ? (totalMeals / activeDays.length).toFixed(1)
+    : '0';
+
+  // Target compliance
+  if (target && activeDays.length > 0) {
+    const inRange = activeDays.filter(d => Math.abs(d.kcal - target) < target * 0.15).length;
+    const pct = Math.round((inRange / activeDays.length) * 100);
+    document.getElementById('hist-target-pct').textContent = pct + '%';
+    document.getElementById('hist-target-sub').textContent = `${inRange}/${activeDays.length} dni`;
+  } else {
+    document.getElementById('hist-target-pct').textContent = '—';
+    document.getElementById('hist-target-sub').textContent = 'brak celu';
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// DAY DETAILS — modal po kliknięciu komórki heatmap
+// ════════════════════════════════════════════════════════════
+async function openDayDetails(dateKey) {
+  const day = window._historyDays?.[dateKey];
+  if (!day) return;
+
+  // Pobierz pełne posiłki tego dnia
+  const startOfDay = new Date(day.date);
+  const endOfDay = new Date(day.date);
+  endOfDay.setHours(23, 59, 59, 999);
+  const { data } = await sb.from('nutrition_meals')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .gte('eaten_at', startOfDay.toISOString())
+    .lte('eaten_at', endOfDay.toISOString())
+    .order('eaten_at', { ascending: true });
+
+  const meals = data || [];
+  const dateLabel = day.date.toLocaleDateString('pl-PL', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+  document.getElementById('day-title').textContent = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+
+  if (meals.length === 0) {
+    document.getElementById('day-sub').textContent = 'Brak wpisów';
+    document.getElementById('day-meals').innerHTML = `
+      <div class="empty-state" style="padding:30px 0;">
+        <div class="empty-icon">🥗</div>
+        <div class="empty-text">Tego dnia nic nie zjadłeś (lub zapomniałeś dodać)</div>
+      </div>`;
+  } else {
+    const totalKcal = meals.reduce((s, m) => s + (m.kcal || 0), 0);
+    const totalP = meals.reduce((s, m) => s + (parseFloat(m.protein_g) || 0), 0);
+    const totalC = meals.reduce((s, m) => s + (parseFloat(m.carbs_g) || 0), 0);
+    const totalF = meals.reduce((s, m) => s + (parseFloat(m.fat_g) || 0), 0);
+    document.getElementById('day-sub').textContent =
+      `${Math.round(totalKcal)} kcal · B:${Math.round(totalP)}g W:${Math.round(totalC)}g T:${Math.round(totalF)}g · ${meals.length} ${meals.length === 1 ? 'posiłek' : meals.length < 5 ? 'posiłki' : 'posiłków'}`;
+
+    const icons = { breakfast: '🌅', lunch: '🌞', dinner: '🌙', snack: '🍎', meal: '🍽' };
+    document.getElementById('day-meals').innerHTML = meals.map(m => {
+      const t = new Date(m.eaten_at);
+      const time = t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
+      return `
+        <div class="meal-item" style="cursor:default;">
+          <div class="meal-icon">${icons[m.meal_type] || '🍽'}</div>
+          <div class="meal-info">
+            <div class="meal-name">${escapeHtml(m.name)}</div>
+            <div class="meal-meta">${time}${m.weight_g ? ' · ' + Math.round(m.weight_g) + 'g' : ''}</div>
+          </div>
+          <div>
+            <span class="meal-kcal">${Math.round(m.kcal || 0)}</span>
+            <span class="meal-kcal-unit">kcal</span>
+          </div>
+        </div>`;
+    }).join('');
+  }
+  document.getElementById('day-modal').classList.remove('hidden');
+}
+
+function closeDayDetails() {
+  document.getElementById('day-modal').classList.add('hidden');
 }
 
 // ════════════════════════════════════════════════════════════
