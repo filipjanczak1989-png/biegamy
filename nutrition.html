@@ -854,6 +854,109 @@ body {
 }
 .ai-suggestion:active { background: rgba(232,86,30,0.15); color: var(--accent); }
 
+/* ═══════════════════ QUOTE OF THE DAY ═══════════════════ */
+.quote-card {
+  position: relative;
+  background: linear-gradient(135deg, rgba(232,86,30,0.08), rgba(232,86,30,0.02) 60%, transparent);
+  border: 1px solid rgba(232,86,30,0.18);
+  border-radius: 18px;
+  padding: 22px 24px 20px;
+  margin-bottom: 18px;
+  overflow: hidden;
+  animation: quoteFade 0.6s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes quoteFade {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.quote-card::before {
+  content: '';
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(232,86,30,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+.quote-mark {
+  position: absolute;
+  top: 8px;
+  left: 18px;
+  font-family: 'Georgia', serif;
+  font-size: 80px;
+  line-height: 1;
+  color: var(--accent);
+  opacity: 0.18;
+  pointer-events: none;
+}
+.quote-label {
+  position: relative;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.quote-label::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 1px;
+  background: var(--accent);
+}
+.quote-text {
+  position: relative;
+  font-family: 'Georgia', serif;
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--fg);
+  font-style: italic;
+  font-weight: 400;
+  margin-bottom: 14px;
+  letter-spacing: 0.005em;
+}
+.quote-author {
+  position: relative;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--fg2);
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quote-author::before {
+  content: '—';
+  color: var(--accent);
+  font-weight: 600;
+}
+.quote-category {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.quote-loading {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
 /* ═══════════════════ ONBOARDING — PREMIUM ═══════════════════ */
 .onboard {
   position: fixed;
@@ -1468,6 +1571,14 @@ body {
       </div>
     </div>
     <div class="hero-context" id="hero-context"></div>
+  </div>
+
+  <!-- QUOTE OF THE DAY -->
+  <div class="quote-card" id="quote-card" style="display:none;">
+    <div class="quote-mark">"</div>
+    <div class="quote-label">Cytat dnia</div>
+    <div class="quote-text" id="quote-text">—</div>
+    <div class="quote-author"><span id="quote-author">—</span><span class="quote-category" id="quote-category"></span></div>
   </div>
 
   <!-- QUICK ADD — często jadane -->
@@ -2639,8 +2750,77 @@ function refreshDashboard() {
   // Quota AI (best-effort, async)
   refreshAIQuota();
 
-  // 🆕 Quick-add (często jadane)
+  // Quick-add (często jadane)
   loadQuickAdd();
+
+  // 🆕 Cytat dnia (rotuje codziennie deterministycznie)
+  loadQuoteOfDay();
+}
+
+// ════════════════════════════════════════════════════════════
+// QUOTE OF THE DAY — rotuje codziennie, wszyscy widzą ten sam
+// ════════════════════════════════════════════════════════════
+async function loadQuoteOfDay() {
+  const card = document.getElementById('quote-card');
+  if (!card) return;
+
+  // Cache w sessionStorage żeby nie pobierać kilka razy w tej samej sesji
+  const today = new Date().toLocaleDateString('en-CA');
+  const cacheKey = 'quote_of_day_' + today;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    try {
+      renderQuote(JSON.parse(cached));
+      return;
+    } catch(e) { /* invalid cache, fetch fresh */ }
+  }
+
+  // Pobierz wszystkie aktywne cytaty
+  const { data, error } = await sb.from('nutrition_quotes')
+    .select('text_pl, author, category')
+    .eq('is_active', true)
+    .order('display_order');
+
+  if (error || !data || data.length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+
+  // Wybór deterministyczny: dzień roku % count → wszyscy userzy widzą ten sam cytat dziś
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+  const idx = dayOfYear % data.length;
+  const quote = data[idx];
+
+  sessionStorage.setItem(cacheKey, JSON.stringify(quote));
+  renderQuote(quote);
+}
+
+function renderQuote(quote) {
+  if (!quote) return;
+  const card = document.getElementById('quote-card');
+  const textEl = document.getElementById('quote-text');
+  const authorEl = document.getElementById('quote-author');
+  const catEl = document.getElementById('quote-category');
+
+  if (!card || !textEl || !authorEl) return;
+
+  textEl.textContent = quote.text_pl;
+  authorEl.textContent = quote.author || 'Anonim';
+
+  // Kategoria — czytelna etykieta po polsku
+  const catMap = {
+    nutrition: 'Żywienie',
+    motivation: 'Motywacja',
+    mindset: 'Filozofia',
+    science: 'Nauka',
+    sport: 'Sport',
+    general: 'Inspiracja'
+  };
+  if (catEl) {
+    catEl.textContent = catMap[quote.category] || '';
+    catEl.style.display = quote.category ? '' : 'none';
+  }
+  card.style.display = 'block';
 }
 
 // ════════════════════════════════════════════════════════════
