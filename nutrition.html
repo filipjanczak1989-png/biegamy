@@ -167,8 +167,10 @@ body {
 .hero-card {
   background:
     linear-gradient(135deg, rgba(10,8,9,0.92) 0%, rgba(26,22,20,0.80) 50%, rgba(232,86,30,0.30) 100%),
-    url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/j1.webp') center/cover no-repeat,
     linear-gradient(135deg, rgba(232,86,30,0.12), rgba(255,180,77,0.06));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid rgba(232,86,30,0.25);
   border-radius: 22px;
   padding: 24px;
@@ -179,6 +181,7 @@ body {
     0 20px 60px rgba(0,0,0,0.6),
     0 0 40px rgba(232,86,30,0.15),
     inset 0 1px 0 rgba(255,255,255,0.08);
+  transition: background-image 0.4s ease-out;
 }
 .hero-card::before {
   content: '';
@@ -1371,8 +1374,10 @@ body {
   position: relative;
   background:
     linear-gradient(135deg, rgba(10,8,9,0.92) 0%, rgba(26,18,14,0.85) 60%, rgba(232,86,30,0.25) 100%),
-    url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/j9.webp') center/cover no-repeat,
     linear-gradient(135deg, rgba(232,86,30,0.18), rgba(255,180,77,0.05));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 1px solid rgba(232,86,30,0.25);
   border-radius: 22px;
   padding: 26px 26px 22px;
@@ -1381,6 +1386,7 @@ body {
   animation: quoteFade 0.6s cubic-bezier(0.16,1,0.3,1);
   box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.06);
   backdrop-filter: blur(8px);
+  transition: background-image 0.4s ease-out;
 }
 @keyframes quoteFade {
   from { opacity: 0; transform: translateY(12px); }
@@ -2993,6 +2999,31 @@ body {
 // ════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// FOOD IMAGES — pula 55 grafik j1.webp ... j55.webp
+// ════════════════════════════════════════════════════════════
+const FOOD_IMG_COUNT = 55;
+const FOOD_IMG_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+
+// Losowa grafika (przy każdym wywołaniu inna)
+function getRandomFoodImage() {
+  const n = Math.floor(Math.random() * FOOD_IMG_COUNT) + 1;
+  return FOOD_IMG_BASE + 'j' + n + '.webp';
+}
+
+// Deterministyczna grafika z seeda (np. data → zawsze ten sam obraz dla tego dnia)
+// Używa prostego hash z stringa
+function getFoodImageFromSeed(seed) {
+  let hash = 0;
+  const s = String(seed);
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) - hash) + s.charCodeAt(i);
+    hash = hash & hash;
+  }
+  const n = Math.abs(hash) % FOOD_IMG_COUNT + 1;
+  return FOOD_IMG_BASE + 'j' + n + '.webp';
+}
+
 let _athleteId = null;
 let _profile = null;
 let _todayMeals = [];
@@ -3337,6 +3368,19 @@ function goToToday() {
 // DASHBOARD REFRESH
 // ════════════════════════════════════════════════════════════
 function refreshDashboard() {
+  // Losowa grafika tła hero — sesyjnie cache'owana, żeby nie skakała przy każdym refresh w trakcie sesji
+  const hero = document.querySelector('.hero-card');
+  if (hero) {
+    let heroImg = sessionStorage.getItem('hero_img_session');
+    if (!heroImg) {
+      heroImg = getRandomFoodImage();
+      sessionStorage.setItem('hero_img_session', heroImg);
+    }
+    // Wstaw URL do middle-layer w background
+    hero.style.backgroundImage =
+      `linear-gradient(135deg, rgba(10,8,9,0.92) 0%, rgba(26,22,20,0.80) 50%, rgba(232,86,30,0.30) 100%), url('${heroImg}'), linear-gradient(135deg, rgba(232,86,30,0.12), rgba(255,180,77,0.06))`;
+  }
+
   // Sumy
   const totals = _todayMeals.reduce((acc, m) => {
     acc.kcal += m.kcal || 0;
@@ -3443,6 +3487,13 @@ function renderQuote(quote) {
 
   textEl.textContent = quote.text_pl;
   authorEl.textContent = quote.author || 'Anonim';
+
+  // Tło quote — deterministyczne z dnia (wszyscy widzą ten sam obraz tego samego dnia)
+  // ale inne niż hero żeby różniło się
+  const today = new Date().toLocaleDateString('en-CA');
+  const quoteImg = getFoodImageFromSeed('quote_' + today);
+  card.style.backgroundImage =
+    `linear-gradient(135deg, rgba(10,8,9,0.92) 0%, rgba(26,18,14,0.85) 60%, rgba(232,86,30,0.25) 100%), url('${quoteImg}'), linear-gradient(135deg, rgba(232,86,30,0.18), rgba(255,180,77,0.05))`;
 
   // Kategoria — czytelna etykieta po polsku
   const catMap = {
@@ -3663,9 +3714,13 @@ function renderMealsList() {
       Math.round(m.carbs_g || 0) + 'g W',
       Math.round(m.fat_g || 0) + 'g T'
     ].filter(Boolean).join(' · ');
+    // Mała grafika per posiłek (deterministyczna)
+    const mealImg = getFoodImageFromSeed('meal_' + m.id);
     return `
       <div class="meal-item" onclick="openMealActions(window._mealsById['${m.id}'])">
-        <div class="meal-icon">${icons[m.meal_type] || '🍽'}</div>
+        <div class="meal-icon" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.5),rgba(26,18,14,0.3)),url('${mealImg}');background-size:cover;background-position:center;border:1px solid rgba(232,86,30,0.3);position:relative;color:transparent;">
+          <span style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg);">${icons[m.meal_type] || '🍽'}</span>
+        </div>
         <div class="meal-info">
           <div class="meal-name">${escapeHtml(m.name)}</div>
           <div class="meal-meta">${meta}</div>

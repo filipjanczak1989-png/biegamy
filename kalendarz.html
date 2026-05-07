@@ -1251,6 +1251,24 @@ function getDayMealCount(ds) {
   return (window._calMeals[ds] || []).length;
 }
 
+// ════════════════════════════════════════════════════════════
+// FOOD IMAGES — pula 55 grafik (z nutrition.html)
+// ════════════════════════════════════════════════════════════
+const FOOD_IMG_COUNT = 55;
+const FOOD_IMG_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+
+// Deterministyczna grafika z seeda (np. data → ten sam obraz dla danego dnia)
+function getFoodImageFromSeed(seed) {
+  let hash = 0;
+  const s = String(seed);
+  for (let i = 0; i < s.length; i++) {
+    hash = ((hash << 5) - hash) + s.charCodeAt(i);
+    hash = hash & hash;
+  }
+  const n = Math.abs(hash) % FOOD_IMG_COUNT + 1;
+  return FOOD_IMG_BASE + 'j' + n + '.webp';
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
   const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
@@ -1279,8 +1297,10 @@ function render() {
     const km = ts.reduce((s,t)=>s+(t.dist||0),0);
     const dayKcal = getDayKcal(ds);
     const dayMeals = getDayMealCount(ds);
+    // Miniaturka grafiki gdy są posiłki (deterministyczna z daty)
+    const dayImg = dayMeals > 0 ? getFoodImageFromSeed('day_' + ds) : null;
     const kcalBadge = dayMeals > 0
-      ? `<div class="day-kcal" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:6px;padding:4px 8px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--accent);transition:all 0.15s;" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,86,30,0.08))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04))'">🍎 ${Math.round(dayKcal)} kcal · ${dayMeals}</div>`
+      ? `<div class="day-kcal" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:8px;padding:4px 8px 4px 4px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--accent);transition:all 0.15s;overflow:hidden;" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,86,30,0.08))';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04))';this.style.transform='translateY(0)'"><div style="width:22px;height:22px;border-radius:6px;background-image:url('${dayImg}');background-size:cover;background-position:center;flex-shrink:0;border:1px solid rgba(232,86,30,0.4);box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div><span>${Math.round(dayKcal)} kcal · ${dayMeals}</span></div>`
       : `<div class="day-kcal-empty" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:5px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--muted);">+ jedzenie</div>`;
     return `<div class="day-header ${isToday?'today':''}">
       <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
@@ -1545,6 +1565,18 @@ async function openDayMealsModal(ds, e) {
   document.getElementById('meals-modal-title').textContent =
     dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
+  // Tło hero w modalu — grafika dnia (deterministyczna, ta sama co w mini badge)
+  const dayImg = getFoodImageFromSeed('day_' + ds);
+  const heroEl = document.getElementById('meals-hero');
+  if (heroEl) {
+    heroEl.style.backgroundImage =
+      `linear-gradient(135deg,rgba(10,8,9,0.88) 0%,rgba(26,18,14,0.78) 50%,rgba(232,86,30,0.30) 100%), url('${dayImg}')`;
+    heroEl.style.backgroundSize = 'cover';
+    heroEl.style.backgroundPosition = 'center';
+    heroEl.style.borderColor = 'rgba(232,86,30,0.35)';
+    heroEl.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.06)';
+  }
+
   // Reload from cached week meals; jeśli nie ma, pobierz dla dnia
   let meals = window._calMeals[ds];
   if (!meals) {
@@ -1589,9 +1621,14 @@ function renderDayMealsList(meals) {
   wrap.innerHTML = meals.map(m => {
     const t = new Date(m.eaten_at);
     const time = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+    // Mała grafika per posiłek (deterministyczna z id)
+    const mealImg = getFoodImageFromSeed('meal_' + m.id);
     return `
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;">
-        <div style="font-size:22px;width:32px;text-align:center;flex-shrink:0;">${icons[m.meal_type] || '🍽'}</div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:11px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(232,86,30,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='var(--border)'">
+        <div style="position:relative;width:42px;height:42px;flex-shrink:0;">
+          <div style="width:42px;height:42px;border-radius:10px;background-image:url('${mealImg}');background-size:cover;background-position:center;border:1px solid rgba(255,255,255,0.08);box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>
+          <div style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;">${icons[m.meal_type] || '🍽'}</div>
+        </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.name)}</div>
           <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.04em;">
