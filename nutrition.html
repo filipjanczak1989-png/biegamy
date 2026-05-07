@@ -1164,31 +1164,16 @@ body {
 </div>
 
 <!-- ─────────────────────────────────────── -->
-<!-- MODAL: SEARCH + AI TEXT -->
+<!-- MODAL: SEARCH (ręczne wyszukiwanie z food_cache) -->
 <!-- ─────────────────────────────────────── -->
 <div id="text-modal" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-title">✏ Wpisz lub znajdź</div>
-    <div class="modal-sub">AI policzy posiłek z opisu, lub wyszukaj zeskanowane wcześniej</div>
-
-    <!-- AI TEXT -->
-    <div class="field">
-      <label class="field-label">Opisz co zjadłeś (AI)</label>
-      <textarea id="ai-text-input" class="ai-text-input" placeholder="np. owsianka z bananem i miodem, kanapka z szynką i serem..."></textarea>
-      <div class="ai-text-suggestions">
-        <span class="ai-suggestion" onclick="setAITextSuggestion('owsianka z bananem')">owsianka z bananem</span>
-        <span class="ai-suggestion" onclick="setAITextSuggestion('kanapka z szynką i serem')">kanapka z szynką</span>
-        <span class="ai-suggestion" onclick="setAITextSuggestion('makaron z sosem pomidorowym i kurczakiem')">makaron z kurczakiem</span>
-        <span class="ai-suggestion" onclick="setAITextSuggestion('jajecznica z 3 jaj na maśle')">jajecznica</span>
-      </div>
-      <button class="btn-primary" onclick="processAIText()" style="margin-bottom:14px;">🤖 Policz przez AI</button>
-    </div>
-
-    <div style="text-align:center;font-family:DM Mono,monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;margin:6px 0 12px;">— LUB —</div>
+    <div class="modal-title">✏ Znajdź produkt</div>
+    <div class="modal-sub">Wpisz nazwę produktu, który już skanowałeś</div>
 
     <!-- SEARCH ręczny -->
     <div class="search-wrap">
-      <input id="search-input" type="text" placeholder="Wyszukaj zeskanowany produkt..." autocomplete="off">
+      <input id="search-input" type="text" placeholder="np. jabłko, kurczak, jogurt..." autocomplete="off">
     </div>
 
     <div id="search-results" class="search-results empty"></div>
@@ -1416,23 +1401,25 @@ async function saveProfile() {
     activity_level: activity,
     goal
   };
-  // Explicit insert-or-update żeby uniknąć dziwactw upsert + RLS
-  let error;
-  if (_profile && _profile.athlete_id) {
-    // Profil istnieje → UPDATE
-    const { error: updateError } = await sb.from('nutrition_profiles')
-      .update(payload)
-      .eq('athlete_id', _athleteId);
-    error = updateError;
-  } else {
-    // Brak profilu → INSERT
+  // Try UPDATE first; if 0 rows affected, do INSERT.
+  // Nie ufamy _profile bo może być stale po error na poprzednim zapisie.
+  const { data: updated, error: updateError } = await sb.from('nutrition_profiles')
+    .update(payload)
+    .eq('athlete_id', _athleteId)
+    .select();
+
+  let error = updateError;
+
+  if (!updateError && (!updated || updated.length === 0)) {
+    // Brak rekordu → INSERT
     const { error: insertError } = await sb.from('nutrition_profiles')
       .insert(payload);
     error = insertError;
   }
+
   if (error) {
     showToast('Błąd zapisu: ' + (error.message || error.code || 'nieznany'));
-    console.error('saveProfile error:', error);
+    console.error('saveProfile error:', error, 'code:', error.code, 'hint:', error.hint);
     return;
   }
   showToast('✓ Profil zapisany');
