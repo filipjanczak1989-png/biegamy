@@ -1416,10 +1416,25 @@ async function saveProfile() {
     activity_level: activity,
     goal
   };
-  const { error } = await sb.from('nutrition_profiles').upsert(payload, {
-    onConflict: 'athlete_id'
-  });
-  if (error) { showToast('Błąd zapisu profilu'); console.error(error); return; }
+  // Explicit insert-or-update żeby uniknąć dziwactw upsert + RLS
+  let error;
+  if (_profile && _profile.athlete_id) {
+    // Profil istnieje → UPDATE
+    const { error: updateError } = await sb.from('nutrition_profiles')
+      .update(payload)
+      .eq('athlete_id', _athleteId);
+    error = updateError;
+  } else {
+    // Brak profilu → INSERT
+    const { error: insertError } = await sb.from('nutrition_profiles')
+      .insert(payload);
+    error = insertError;
+  }
+  if (error) {
+    showToast('Błąd zapisu: ' + (error.message || error.code || 'nieznany'));
+    console.error('saveProfile error:', error);
+    return;
+  }
   showToast('✓ Profil zapisany');
   closeProfileModal();
   await loadProfile();
