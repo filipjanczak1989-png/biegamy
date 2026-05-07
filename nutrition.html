@@ -76,53 +76,84 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  padding: 16px 18px;
   position: sticky;
   top: 0;
-  background: rgba(10,8,9,0.85);
-  backdrop-filter: blur(20px) saturate(1.3);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  background:
+    linear-gradient(180deg, rgba(10,8,9,0.95) 0%, rgba(10,8,9,0.82) 100%);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
   z-index: 20;
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.topbar::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 25%;
+  right: 25%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(232,86,30,0.4), transparent);
+  pointer-events: none;
 }
 .back-btn {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border);
+  background: linear-gradient(145deg, rgba(40,32,30,0.6), rgba(20,16,18,0.6));
+  border: 1px solid rgba(255,255,255,0.08);
   color: var(--fg);
   font-size: 22px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+  overflow: hidden;
+}
+.back-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(232,86,30,0.0), transparent);
+  transition: background 0.25s;
 }
 .back-btn:hover {
-  background: rgba(232,86,30,0.15);
-  border-color: rgba(232,86,30,0.4);
+  background: linear-gradient(145deg, rgba(50,40,38,0.7), rgba(30,22,20,0.7));
+  border-color: rgba(232,86,30,0.35);
   color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 16px rgba(232,86,30,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.1);
 }
+.back-btn:active { transform: scale(0.95); }
 .tb-title {
   flex: 1;
   text-align: center;
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 22px;
-  letter-spacing: 0.06em;
-  background: linear-gradient(135deg, var(--fg) 0%, var(--fg2) 100%);
+  font-size: 24px;
+  letter-spacing: 0.08em;
+  background: linear-gradient(135deg, #fff 0%, #b5b5bd 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  position: relative;
+  text-shadow: 0 0 30px rgba(255,255,255,0.1);
 }
 .tb-title span {
-  background: linear-gradient(135deg, var(--accent), var(--gold));
+  background: linear-gradient(135deg, var(--accent) 0%, #ffb74d 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  font-weight: 700;
+  filter: drop-shadow(0 0 8px rgba(232,86,30,0.4));
 }
-.tb-spacer { width: 40px; }
+.tb-spacer { width: 42px; }
 
 /* CONTENT */
 .content {
@@ -164,6 +195,64 @@ body {
   0%, 100% { opacity: 0.6; transform: translate(0,0); }
   50% { opacity: 1; transform: translate(-20px, 20px); }
 }
+.hero-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+}
+.hero-left {
+  flex: 1;
+  min-width: 0;
+}
+.hero-kcal-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.hero-kcal-meta {
+  margin-bottom: 8px;
+}
+.hero-kcal-unit {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg2);
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+.hero-ring-wrap {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  flex-shrink: 0;
+}
+.hero-ring {
+  width: 86px;
+  height: 86px;
+  filter: drop-shadow(0 4px 12px rgba(232,86,30,0.25));
+}
+#hero-ring-arc {
+  transition: stroke-dashoffset 1s cubic-bezier(0.16,1,0.3,1);
+}
+.hero-ring-pct {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--fg);
+  letter-spacing: 0.02em;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
 .hero-label {
   font-family: 'DM Mono', monospace;
   font-size: 10px;
@@ -194,19 +283,24 @@ body {
 }
 .hero-kcal {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 56px;
-  line-height: 1;
+  font-size: 64px;
+  line-height: 0.9;
   color: var(--fg);
-  letter-spacing: -0.01em;
-  text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  letter-spacing: -0.02em;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.6);
   position: relative;
+  background: linear-gradient(180deg, #fff 0%, #d5d5dd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .hero-kcal-target {
-  font-size: 18px;
+  font-size: 11px;
   color: var(--fg2);
   font-family: 'DM Mono', monospace;
-  letter-spacing: 0.05em;
-  margin-left: 8px;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+  font-weight: 600;
 }
 .hero-progress {
   background: rgba(0,0,0,0.4);
@@ -784,13 +878,50 @@ body {
   border-radius: 22px 22px 0 0;
   pointer-events: none;
 }
+.modal-icon-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+  position: relative;
+}
+.modal-icon-wrap {
+  width: 60px;
+  height: 60px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(232,86,30,0.18) 0%, rgba(232,86,30,0.05) 100%);
+  border: 1px solid rgba(232,86,30,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow:
+    0 8px 24px rgba(232,86,30,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+}
+.modal-icon-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  background: radial-gradient(circle, rgba(232,86,30,0.3) 0%, transparent 70%);
+  filter: blur(12px);
+  z-index: -1;
+}
+.modal-icon-wrap svg {
+  width: 28px;
+  height: 28px;
+  stroke: var(--accent);
+  stroke-width: 1.7;
+  filter: drop-shadow(0 0 6px rgba(232,86,30,0.4));
+}
+
 .modal-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 26px;
+  font-size: 28px;
   letter-spacing: 0.04em;
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   position: relative;
-  background: linear-gradient(135deg, var(--fg) 0%, var(--fg2) 100%);
+  text-align: center;
+  background: linear-gradient(135deg, #fff 0%, #b5b5bd 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -798,9 +929,10 @@ body {
 .modal-sub {
   font-size: 11px;
   color: var(--muted);
-  margin-bottom: 18px;
+  margin-bottom: 22px;
   font-family: 'DM Mono', monospace;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.10em;
+  text-align: center;
   position: relative;
 }
 .field {
@@ -1921,9 +2053,18 @@ body {
 <body>
 
 <div class="topbar">
-  <button class="back-btn" onclick="window.location.href='zawodnik.html'">‹</button>
+  <button class="back-btn" onclick="window.location.href='zawodnik.html'" title="Powrót">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1;">
+      <path d="M15 18 l-6 -6 l6 -6"/>
+    </svg>
+  </button>
   <div class="tb-title">ODŻYWIANIE <span>BiegaMy</span></div>
-  <button class="back-btn" onclick="openProfileModal()" title="Profil">⚙</button>
+  <button class="back-btn" onclick="openProfileModal()" title="Profil">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="position:relative;z-index:1;">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15 a 1.65 1.65 0 0 0 0.33 1.82 l 0.06 0.06 a 2 2 0 1 1 -2.83 2.83 l -0.06 -0.06 a 1.65 1.65 0 0 0 -1.82 -0.33 a 1.65 1.65 0 0 0 -1 1.51 V 21 a 2 2 0 0 1 -4 0 v -0.09 A 1.65 1.65 0 0 0 9 19.4 a 1.65 1.65 0 0 0 -1.82 0.33 l -0.06 0.06 a 2 2 0 1 1 -2.83 -2.83 l 0.06 -0.06 a 1.65 1.65 0 0 0 0.33 -1.82 a 1.65 1.65 0 0 0 -1.51 -1 H 3 a 2 2 0 0 1 0 -4 h 0.09 A 1.65 1.65 0 0 0 4.6 9 a 1.65 1.65 0 0 0 -0.33 -1.82 l -0.06 -0.06 a 2 2 0 1 1 2.83 -2.83 l 0.06 0.06 a 1.65 1.65 0 0 0 1.82 0.33 H 9 a 1.65 1.65 0 0 0 1 -1.51 V 3 a 2 2 0 0 1 4 0 v 0.09 a 1.65 1.65 0 0 0 1 1.51 a 1.65 1.65 0 0 0 1.82 -0.33 l 0.06 -0.06 a 2 2 0 1 1 2.83 2.83 l -0.06 0.06 a 1.65 1.65 0 0 0 -0.33 1.82 V 9 a 1.65 1.65 0 0 0 1.51 1 H 21 a 2 2 0 0 1 0 4 h -0.09 a 1.65 1.65 0 0 0 -1.51 1 z"/>
+    </svg>
+  </button>
 </div>
 
 <div class="content">
@@ -1962,14 +2103,44 @@ body {
     <button onclick="goToToday()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);border-radius:9px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;cursor:pointer;white-space:nowrap;">Dziś →</button>
   </div>
 
-  <!-- HERO — dzisiejsze podsumowanie -->
+  <!-- HERO — premium dashboard -->
   <div class="hero-card">
-    <div class="hero-label" id="hero-label">Dziś</div>
-    <div>
-      <span class="hero-kcal" id="hero-kcal">0</span>
-      <span class="hero-kcal-target" id="hero-target"></span>
+    <div class="hero-top">
+      <div class="hero-left">
+        <div class="hero-label" id="hero-label">Dziś</div>
+        <div class="hero-kcal-row">
+          <span class="hero-kcal" id="hero-kcal">0</span>
+          <div class="hero-kcal-meta">
+            <div class="hero-kcal-unit">kcal</div>
+            <div class="hero-kcal-target" id="hero-target"></div>
+          </div>
+        </div>
+        <div class="hero-context" id="hero-context"></div>
+      </div>
+      <!-- Premium progress ring -->
+      <div class="hero-ring-wrap">
+        <svg class="hero-ring" width="86" height="86" viewBox="0 0 86 86">
+          <defs>
+            <linearGradient id="ringGradHero" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--accent)"/>
+              <stop offset="100%" stop-color="#ffb74d"/>
+            </linearGradient>
+            <filter id="ringGlow">
+              <feGaussianBlur stdDeviation="3" result="blur"/>
+              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+          <circle id="hero-ring-arc" cx="43" cy="43" r="36" fill="none"
+                  stroke="url(#ringGradHero)" stroke-width="6"
+                  stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2"
+                  transform="rotate(-90 43 43)" filter="url(#ringGlow)"/>
+        </svg>
+        <div class="hero-ring-pct" id="hero-ring-pct">—</div>
+      </div>
     </div>
-    <div class="hero-progress">
+    <!-- Liniowy progress bar — zostawiamy dla detali -->
+    <div class="hero-progress" style="display:none;">
       <div class="hero-progress-fill" id="hero-progress-fill" style="width:0%;"></div>
     </div>
     <div class="hero-macros">
@@ -1986,7 +2157,6 @@ body {
         <div class="macro-val"><span id="macro-fat">0</span><span class="macro-unit">g</span></div>
       </div>
     </div>
-    <div class="hero-context" id="hero-context"></div>
   </div>
 
   <!-- QUOTE OF THE DAY -->
@@ -2506,8 +2676,16 @@ body {
 <!-- ─────────────────────────────────────── -->
 <div id="profile-modal" class="modal hidden">
   <div class="modal-card">
+    <div class="modal-icon-header">
+      <div class="modal-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21 c 0 -4 4 -7 8 -7 c 4 0 8 3 8 7"/>
+        </svg>
+      </div>
+    </div>
     <div class="modal-title">Profil odżywczy</div>
-    <div class="modal-sub">Liczymy twój dzienny pułap kaloryczny</div>
+    <div class="modal-sub">Twoje dane do liczenia dziennego pułapu</div>
 
     <div class="field">
       <label class="field-label">Płeć</label>
@@ -2593,8 +2771,16 @@ body {
 <!-- ─────────────────────────────────────── -->
 <div id="manual-modal" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-title">✏ Dodaj ręcznie</div>
-    <div class="modal-sub">Gdy nie znajdujesz w bazie</div>
+    <div class="modal-icon-header">
+      <div class="modal-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M17 3 l4 4 l-12 12 l-5 1 l1 -5 z"/>
+          <path d="M14 6 l4 4"/>
+        </svg>
+      </div>
+    </div>
+    <div class="modal-title">Dodaj ręcznie</div>
+    <div class="modal-sub">Gdy nie znajdujesz w bazie produktów</div>
 
     <div class="field">
       <label class="field-label">Nazwa</label>
@@ -2655,7 +2841,15 @@ body {
 <!-- ─────────────────────────────────────── -->
 <div id="edit-meal-modal" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-title">✏ Edytuj posiłek</div>
+    <div class="modal-icon-header">
+      <div class="modal-icon-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4 H 5 a 2 2 0 0 0 -2 2 v 14 a 2 2 0 0 0 2 2 h 14 a 2 2 0 0 0 2 -2 v -7"/>
+          <path d="M19 3 l 3 3 l -10 10 l -3 0 l 0 -3 z"/>
+        </svg>
+      </div>
+    </div>
+    <div class="modal-title">Edytuj posiłek</div>
     <div class="modal-sub">Zmień szczegóły jeśli się pomyliłeś</div>
 
     <div class="field">
@@ -3152,7 +3346,8 @@ function refreshDashboard() {
     return acc;
   }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
 
-  document.getElementById('hero-kcal').textContent = Math.round(totals.kcal);
+  // Animowana liczba kcal (count-up) — premium feel przy zmianie
+  animateValue(document.getElementById('hero-kcal'), Math.round(totals.kcal));
   document.getElementById('macro-protein').textContent = Math.round(totals.protein);
   document.getElementById('macro-carbs').textContent = Math.round(totals.carbs);
   document.getElementById('macro-fat').textContent = Math.round(totals.fat);
@@ -3162,12 +3357,25 @@ function refreshDashboard() {
   if (_profile && _profile.tdee) {
     const goalAdjust = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
     target = _profile.tdee + goalAdjust;
-    document.getElementById('hero-target').textContent = '/ ' + target + ' kcal';
+    document.getElementById('hero-target').textContent = 'cel: ' + target + ' kcal';
     const pct = Math.min(100, Math.round(totals.kcal / target * 100));
     document.getElementById('hero-progress-fill').style.width = pct + '%';
+    // Premium ring update
+    const ringArc = document.getElementById('hero-ring-arc');
+    const pctEl = document.getElementById('hero-ring-pct');
+    if (ringArc) {
+      const circumference = 226.2;  // 2 * π * 36
+      const offset = circumference - (pct / 100) * circumference;
+      ringArc.style.strokeDashoffset = offset;
+    }
+    if (pctEl) pctEl.textContent = pct + '%';
   } else {
-    document.getElementById('hero-target').textContent = 'kcal (skonfiguruj profil)';
+    document.getElementById('hero-target').textContent = 'skonfiguruj profil';
     document.getElementById('hero-progress-fill').style.width = '0%';
+    const ringArc = document.getElementById('hero-ring-arc');
+    if (ringArc) ringArc.style.strokeDashoffset = '226.2';
+    const pctEl = document.getElementById('hero-ring-pct');
+    if (pctEl) pctEl.textContent = '—';
   }
 
   // Kontekst — kalorie z treningu (jeśli mamy logi z BiegaMy)
@@ -4637,6 +4845,26 @@ function showToast(msg) {
 
 function escapeHtml(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
+}
+
+// Count-up animation — smooth zmiana liczby kcal (premium feel)
+function animateValue(el, target, duration) {
+  if (!el) return;
+  duration = duration || 700;
+  const start = parseInt(el.textContent.replace(/\D/g, ''), 10) || 0;
+  if (start === target) { el.textContent = target; return; }
+  const range = target - start;
+  const startTime = performance.now();
+
+  function step(now) {
+    const elapsed = now - startTime;
+    const progress = Math.min(1, elapsed / duration);
+    // Ease-out cubic
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(start + range * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
 }
 </script>
 </body>
