@@ -2869,6 +2869,204 @@ async function loadAnalytics() {
   `;
 }
 
+// ── AI RAPORTY (analiza zawodnika) ────────────────────────────────
+let _currentAthleteIdForAI = null;
+let _currentAthleteNameForAI = null;
+
+async function loadAthleteAIReports(athleteId) {
+  _currentAthleteIdForAI = athleteId;
+  const target = document.getElementById('asm-ai-content');
+  if (!target) return;
+  target.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;padding:12px 0;">Ładowanie raportów...</div>';
+
+  const { data: reports, error } = await sb.from('ai_reports')
+    .select('id, generated_at, report_type, priority, summary, read_by_coach')
+    .eq('athlete_id', athleteId)
+    .order('generated_at', { ascending: false })
+    .limit(5);
+
+  if (error) {
+    target.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:11px;padding:12px 0;">Błąd: ' + error.message + '</div>';
+    return;
+  }
+
+  if (!reports || reports.length === 0) {
+    target.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;padding:16px 0;">Brak raportów. Wygeneruj pierwszy ↓</div>';
+    return;
+  }
+
+  // Render listy
+  let html = '';
+  reports.forEach(r => {
+    const date = new Date(r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const priorityColors = {
+      red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: 'PILNE' },
+      yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: 'UWAGA' },
+      green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: 'OK' }
+    };
+    const pc = priorityColors[r.priority] || priorityColors.green;
+    const isUnread = !r.read_by_coach;
+    
+    html += '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+        + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pc.text + '</span>'
+        + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
+        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--fg);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + (r.summary || 'Raport AI') + '</div>'
+    + '</div>';
+  });
+
+  target.innerHTML = html;
+}
+
+async function generateAIReport() {
+  if (!_currentAthleteIdForAI) { showToast('Wybierz zawodnika'); return; }
+  const btn = document.getElementById('asm-ai-generate-btn');
+  if (!btn) return;
+  
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Generuję raport... (5-15s)';
+  btn.style.opacity = '0.7';
+
+  try {
+    const session = (await sb.auth.getSession()).data.session;
+    if (!session) { showToast('Sesja wygasła'); return; }
+    
+    const r = await fetch(window.SB_FN_URL + '/generate-athlete-report', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({
+        athlete_id: _currentAthleteIdForAI,
+        report_type: 'on_demand',
+        period_days: 28
+      })
+    });
+    
+    const data = await r.json();
+    if (!r.ok) {
+      showToast('Błąd: ' + (data.error || 'API'));
+      console.error('AI report error:', data);
+      return;
+    }
+    
+    showToast('✨ Raport wygenerowany!');
+    // Odśwież listę
+    await loadAthleteAIReports(_currentAthleteIdForAI);
+    // Otwórz nowy raport od razu
+    if (data.report_id) {
+      openAIReportModal(data.report_id);
+    }
+  } catch (e) {
+    console.error('generateAIReport error:', e);
+    showToast('Błąd: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    btn.style.opacity = '1';
+  }
+}
+
+async function openAIReportModal(reportId) {
+  const modal = document.getElementById('ai-report-modal');
+  const inner = document.getElementById('ai-report-modal-inner');
+  const content = document.getElementById('airm-content');
+  const titleEl = document.getElementById('airm-title');
+  const metaEl = document.getElementById('airm-meta');
+  const badgeEl = document.getElementById('airm-priority-badge');
+  
+  content.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0;">Ładowanie...</div>';
+  modal.style.display = 'flex';
+  setTimeout(() => { inner.style.transform = 'translateY(0)'; }, 10);
+
+  const { data: report, error } = await sb.from('ai_reports')
+    .select('*, athletes(full_name)')
+    .eq('id', reportId)
+    .maybeSingle();
+  
+  if (error || !report) {
+    content.innerHTML = '<div style="text-align:center;color:var(--red);padding:30px 0;">Nie udało się załadować raportu</div>';
+    return;
+  }
+
+  const date = new Date(report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const periodFromTo = (report.period_start && report.period_end) 
+    ? new Date(report.period_start).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) + ' – ' + new Date(report.period_end).toLocaleDateString('pl-PL',{day:'numeric',month:'short'})
+    : '';
+  
+  titleEl.textContent = report.athletes?.full_name || 'Raport AI';
+  metaEl.textContent = date + (periodFromTo ? ' · ' + periodFromTo : '');
+  
+  const priorityMap = {
+    red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 PILNE' },
+    yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: '⚠ UWAGA' },
+    green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓ OK' }
+  };
+  const p = priorityMap[report.priority] || priorityMap.green;
+  badgeEl.style.background = p.bg;
+  badgeEl.style.color = p.fg;
+  badgeEl.textContent = p.text;
+  
+  // Render markdown
+  content.innerHTML = mdToHtml(report.content_markdown || '');
+  
+  // Oznacz jako przeczytany
+  if (!report.read_by_coach) {
+    sb.from('ai_reports').update({ read_by_coach: new Date().toISOString() })
+      .eq('id', reportId).then(() => {
+        // Odśwież listę gdy zamkniemy
+        if (_currentAthleteIdForAI) loadAthleteAIReports(_currentAthleteIdForAI);
+      });
+  }
+}
+
+function closeAIReportModal() {
+  const inner = document.getElementById('ai-report-modal-inner');
+  inner.style.transform = 'translateY(20px)';
+  setTimeout(() => { document.getElementById('ai-report-modal').style.display = 'none'; }, 250);
+}
+
+// Prosty markdown → HTML converter (nagłówki, bullety, bold, italic, emoji)
+function mdToHtml(md) {
+  if (!md) return '';
+  let html = md;
+  // Escape HTML
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:0.06em;color:var(--accent);margin:14px 0 6px;">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:0.04em;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px;">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:22px;margin:20px 0 10px;">$1</h2>');
+  // Bold + italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--fg);">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Bullety
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:4px 0;list-style:none;padding-left:18px;position:relative;"><span style="position:absolute;left:0;color:var(--accent);">›</span>$1</li>');
+  // Numbered lists
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:24px;position:relative;"><span style="position:absolute;left:0;color:var(--accent);font-family:DM Mono,monospace;font-size:11px;font-weight:600;">$1.</span>$2</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
+    return '<ul style="padding-left:0;margin:8px 0;">' + match + '</ul>';
+  });
+  // PRIORITY linia (na końcu raportu) - ukryj, bo mamy badge
+  html = html.replace(/^\*?\*?PRIORITY:\s*(red|yellow|green)\*?\*?$/gmi, '');
+  // Linie przerwa
+  html = html.replace(/\n\n+/g, '</p><p style="margin:8px 0;">');
+  html = '<p style="margin:8px 0;">' + html + '</p>';
+  // Cleanup
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
+  html = html.replace(/<p[^>]*>(\s*<h[234]|\s*<ul)/g, '$1');
+  html = html.replace(/(<\/h[234]>|<\/ul>)\s*<\/p>/g, '$1');
+  return html;
+}
+
+window.generateAIReport = generateAIReport;
+window.openAIReportModal = openAIReportModal;
+window.closeAIReportModal = closeAIReportModal;
+
 // ── ATHLETE DETAIL STATS W ANALITYCE ──────────────────────────────
 // ── ATHLETE STATS MODAL ──────────────────────────────────────────
 function openAthleteStatsModal(athleteId, name, goal) {
@@ -2878,9 +3076,13 @@ function openAthleteStatsModal(athleteId, name, goal) {
   document.getElementById('asm-name').textContent = name;
   document.getElementById('asm-goal').textContent = goal ? '🏁 ' + goal : '';
   document.getElementById('asm-content').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:20px 0;">Ładowanie...</div>';
+  _currentAthleteIdForAI = athleteId;
+  _currentAthleteNameForAI = name;
   modal.style.display = 'flex';
   setTimeout(() => { document.getElementById('athlete-stats-modal-inner').style.transform = 'translateY(0)'; }, 10);
   loadAthleteDetailStats(athleteId, document.getElementById('asm-content'));
+  // Załaduj listę raportów AI
+  loadAthleteAIReports(athleteId);
 }
 function closeAthleteStatsModal() {
   const modal = document.getElementById('athlete-stats-modal');
