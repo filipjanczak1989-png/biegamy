@@ -165,37 +165,55 @@ body {
 
 /* HERO — dzisiejsze podsumowanie */
 .hero-card {
-  background:
-    linear-gradient(135deg, rgba(20,18,22,0.95) 0%, rgba(14,12,16,0.95) 60%, rgba(232,86,30,0.18) 100%),
-    rgba(14,12,16,0.95);
+  background: rgba(14,12,16,0.95);
   border: 1px solid rgba(232,86,30,0.25);
   border-radius: 22px;
-  padding: 24px 24px 24px 32px;  /* dodatkowe padding po lewej dla paska */
+  padding: 0;
   margin-bottom: 16px;
   position: relative;
   overflow: hidden;
+  min-height: 220px;
   box-shadow:
     0 20px 60px rgba(0,0,0,0.6),
     0 0 40px rgba(232,86,30,0.15),
     inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
-/* Pasek z grafiką po lewej stronie */
-.hero-card::after {
-  content: '';
+/* Slider grafik po prawej stronie hero (rotujące jak quote) */
+.hero-img-slider {
   position: absolute;
   top: 0;
-  left: 0;
+  right: 0;
   bottom: 0;
-  width: 8px;
-  background-image: var(--hero-strip-img, none);
+  width: 50%;  /* prawa połowa */
+  z-index: 1;
+}
+.hero-img-slide {
+  position: absolute;
+  inset: 0;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+}
+.hero-img-slide.active {
+  opacity: 1;
+}
+
+/* Overlay na grafice — gradient od lewej (pełny czarny) do prawej (lekki) */
+.hero-img-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg,
+      rgba(14,12,16,1) 0%,
+      rgba(14,12,16,0.95) 35%,
+      rgba(14,12,16,0.65) 60%,
+      rgba(14,12,16,0.40) 100%
+    );
   z-index: 2;
-  box-shadow:
-    inset -1px 0 0 rgba(232,86,30,0.4),
-    2px 0 12px rgba(232,86,30,0.25);
+  pointer-events: none;
 }
 
 .hero-card::before {
@@ -208,22 +226,22 @@ body {
   background: radial-gradient(ellipse, rgba(255,150,80,0.18) 0%, transparent 60%);
   pointer-events: none;
   animation: heroGlow 8s ease-in-out infinite;
+  z-index: 3;
 }
 @keyframes heroGlow {
   0%, 100% { opacity: 0.6; transform: translate(0,0); }
   50% { opacity: 1; transform: translate(-20px, 20px); }
 }
-.hero-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
+
+/* Lewa kolumna ze statystykami */
+.hero-stats {
   position: relative;
-}
-.hero-left {
-  flex: 1;
+  z-index: 4;
+  padding: 22px 22px 22px 24px;
+  width: 60%;  /* lewa większa część */
   min-width: 0;
 }
+
 .hero-kcal-row {
   display: flex;
   align-items: flex-end;
@@ -242,16 +260,20 @@ body {
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0,0,0,0.5);
 }
+
+/* Ring po prawej, NA grafice */
 .hero-ring-wrap {
-  position: relative;
+  position: absolute;
+  top: 22px;
+  right: 22px;
   width: 86px;
   height: 86px;
-  flex-shrink: 0;
+  z-index: 5;
 }
 .hero-ring {
   width: 86px;
   height: 86px;
-  filter: drop-shadow(0 4px 12px rgba(232,86,30,0.25));
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5)) drop-shadow(0 0 8px rgba(232,86,30,0.4));
 }
 #hero-ring-arc {
   transition: stroke-dashoffset 1s cubic-bezier(0.16,1,0.3,1);
@@ -354,15 +376,15 @@ body {
 .hero-macros {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 16px;
+  gap: 6px;
+  margin-top: 14px;
   position: relative;
 }
 .macro-pill {
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.55);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: 11px;
+  padding: 8px 8px;
   text-align: center;
   backdrop-filter: blur(8px);
   transition: all 0.2s;
@@ -2268,59 +2290,67 @@ body {
     <button onclick="goToToday()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);border-radius:9px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;cursor:pointer;white-space:nowrap;">Dziś →</button>
   </div>
 
-  <!-- HERO — premium dashboard -->
+  <!-- HERO — split layout: stats po lewej + grafika rotująca po prawej -->
   <div class="hero-card">
-    <div class="hero-top">
-      <div class="hero-left">
-        <div class="hero-label" id="hero-label">Dziś</div>
-        <div class="hero-kcal-row">
-          <span class="hero-kcal" id="hero-kcal">0</span>
-          <div class="hero-kcal-meta">
-            <div class="hero-kcal-unit">kcal</div>
-            <div class="hero-kcal-target" id="hero-target"></div>
-          </div>
+    <!-- Slider grafik po prawej stronie -->
+    <div class="hero-img-slider" id="hero-img-slider"></div>
+    <!-- Overlay gradientem od lewej do prawej (czytelność tekstu po lewej) -->
+    <div class="hero-img-overlay"></div>
+
+    <!-- Treść po lewej -->
+    <div class="hero-stats">
+      <div class="hero-label" id="hero-label">Dziś</div>
+      <div class="hero-kcal-row">
+        <span class="hero-kcal" id="hero-kcal">0</span>
+        <div class="hero-kcal-meta">
+          <div class="hero-kcal-unit">kcal</div>
+          <div class="hero-kcal-target" id="hero-target"></div>
         </div>
-        <div class="hero-context" id="hero-context"></div>
       </div>
-      <!-- Premium progress ring -->
-      <div class="hero-ring-wrap">
-        <svg class="hero-ring" width="86" height="86" viewBox="0 0 86 86">
-          <defs>
-            <linearGradient id="ringGradHero" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="var(--accent)"/>
-              <stop offset="100%" stop-color="#ffb74d"/>
-            </linearGradient>
-            <filter id="ringGlow">
-              <feGaussianBlur stdDeviation="3" result="blur"/>
-              <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-            </filter>
-          </defs>
-          <circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
-          <circle id="hero-ring-arc" cx="43" cy="43" r="36" fill="none"
-                  stroke="url(#ringGradHero)" stroke-width="6"
-                  stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2"
-                  transform="rotate(-90 43 43)" filter="url(#ringGlow)"/>
-        </svg>
-        <div class="hero-ring-pct" id="hero-ring-pct">—</div>
+      <div class="hero-context" id="hero-context"></div>
+
+      <!-- Macros — kompaktowy układ pod kcal -->
+      <div class="hero-macros">
+        <div class="macro-pill">
+          <div class="macro-name">Białko</div>
+          <div class="macro-val"><span id="macro-protein">0</span><span class="macro-unit">g</span></div>
+        </div>
+        <div class="macro-pill">
+          <div class="macro-name">Węgle</div>
+          <div class="macro-val"><span id="macro-carbs">0</span><span class="macro-unit">g</span></div>
+        </div>
+        <div class="macro-pill">
+          <div class="macro-name">Tłuszcz</div>
+          <div class="macro-val"><span id="macro-fat">0</span><span class="macro-unit">g</span></div>
+        </div>
       </div>
     </div>
-    <!-- Liniowy progress bar — zostawiamy dla detali -->
+
+    <!-- Premium progress ring po prawej (na grafice) -->
+    <div class="hero-ring-wrap">
+      <svg class="hero-ring" width="86" height="86" viewBox="0 0 86 86">
+        <defs>
+          <linearGradient id="ringGradHero" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="var(--accent)"/>
+            <stop offset="100%" stop-color="#ffb74d"/>
+          </linearGradient>
+          <filter id="ringGlow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <circle cx="43" cy="43" r="36" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+        <circle id="hero-ring-arc" cx="43" cy="43" r="36" fill="none"
+                stroke="url(#ringGradHero)" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2"
+                transform="rotate(-90 43 43)" filter="url(#ringGlow)"/>
+      </svg>
+      <div class="hero-ring-pct" id="hero-ring-pct">—</div>
+    </div>
+
+    <!-- Hidden — liniowy progress bar (legacy, ukryty bo używamy ring) -->
     <div class="hero-progress" style="display:none;">
       <div class="hero-progress-fill" id="hero-progress-fill" style="width:0%;"></div>
-    </div>
-    <div class="hero-macros">
-      <div class="macro-pill">
-        <div class="macro-name">Białko</div>
-        <div class="macro-val"><span id="macro-protein">0</span><span class="macro-unit">g</span></div>
-      </div>
-      <div class="macro-pill">
-        <div class="macro-name">Węgle</div>
-        <div class="macro-val"><span id="macro-carbs">0</span><span class="macro-unit">g</span></div>
-      </div>
-      <div class="macro-pill">
-        <div class="macro-name">Tłuszcz</div>
-        <div class="macro-val"><span id="macro-fat">0</span><span class="macro-unit">g</span></div>
-      </div>
     </div>
   </div>
 
@@ -3668,14 +3698,67 @@ function goToToday() {
 // ════════════════════════════════════════════════════════════
 // DASHBOARD REFRESH
 // ════════════════════════════════════════════════════════════
-function refreshDashboard() {
-  // Pasek z grafiką po lewej hero — deterministyczna z dnia (wszyscy widzą tę samą dziś, codziennie inną)
-  const hero = document.querySelector('.hero-card');
-  if (hero) {
-    const today = new Date().toLocaleDateString('en-CA');
-    const stripImg = getFoodImageFromSeed('hero_strip_' + today);
-    hero.style.setProperty('--hero-strip-img', `url('${stripImg}')`);
+// ════════════════════════════════════════════════════════════
+// HERO IMAGE SLIDER — 4 grafiki rotujące w prawej połowie hero
+// ════════════════════════════════════════════════════════════
+let _heroSliderState = {
+  images: [],
+  currentIdx: 0,
+  autoTimer: null
+};
+
+function setupHeroImageSlider() {
+  const slider = document.getElementById('hero-img-slider');
+  if (!slider) return;
+
+  // Tylko inicjalizuj raz na sesję — żeby slider nie wracał do 1 przy każdym refresh
+  if (_heroSliderState.images.length > 0) return;
+
+  // 4 grafiki dnia (deterministycznie)
+  const today = new Date().toLocaleDateString('en-CA');
+  const indices = new Set();
+  let hash = 0;
+  const seed = 'hero_imgs_' + today;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+    hash = hash & hash;
   }
+  hash = Math.abs(hash);
+  let i = 0;
+  while (indices.size < 4 && i < 40) {
+    const n = ((hash + i * 17) % FOOD_IMG_COUNT) + 1;
+    indices.add(n);
+    i++;
+  }
+  const images = [...indices].map(n => FOOD_IMG_BASE + 'j' + n + '.webp');
+  _heroSliderState.images = images;
+
+  // Render slidów
+  slider.innerHTML = images.map((url, idx) => `
+    <div class="hero-img-slide ${idx === 0 ? 'active' : ''}" style="background-image:url('${url}')"></div>
+  `).join('');
+
+  // Auto-rotate
+  startHeroAutoRotate();
+}
+
+function startHeroAutoRotate() {
+  if (_heroSliderState.autoTimer) clearInterval(_heroSliderState.autoTimer);
+  _heroSliderState.autoTimer = setInterval(() => {
+    if (!_heroSliderState.images.length) return;
+    const slider = document.getElementById('hero-img-slider');
+    if (!slider) return;
+    const next = (_heroSliderState.currentIdx + 1) % _heroSliderState.images.length;
+    slider.querySelectorAll('.hero-img-slide').forEach((sl, i) => {
+      sl.classList.toggle('active', i === next);
+    });
+    _heroSliderState.currentIdx = next;
+  }, 7000);  // co 7s
+}
+
+function refreshDashboard() {
+  // Slider 4 grafik w hero (rotujące co 7s, deterministyczne z dnia — codziennie inne 4)
+  setupHeroImageSlider();
 
   // Sumy
   const totals = _todayMeals.reduce((acc, m) => {
