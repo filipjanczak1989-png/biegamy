@@ -1191,6 +1191,66 @@ function addDays(date, n) {
   return y+'-'+m+'-'+dd;
 }
 
+// ════════════════════════════════════════════════════════════
+// NUTRITION INTEGRATION
+// ════════════════════════════════════════════════════════════
+window._calMeals = {};        // { 'YYYY-MM-DD': [meals] }
+window._calCurrentUserId = null;  // user_id (auth.users.id) wybranego zawodnika
+
+// Wyciąga user_id (auth.users.id) zawodnika którego oglądamy
+async function getCurrentNutritionUserId() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) return null;
+  if (_urlRole === 'athlete') {
+    return session.user.id;  // zawodnik widzi swoje
+  }
+  // Trener — musi mieć wybranego konkretnego zawodnika
+  if (!window._calSelectedAthleteId) return null;
+  // _calSelectedAthleteId = athletes.id, potrzebujemy athletes.user_id
+  const { data } = await sb.from('athletes')
+    .select('user_id')
+    .eq('id', window._calSelectedAthleteId)
+    .maybeSingle();
+  return data?.user_id || null;
+}
+
+async function loadMealsForWeek() {
+  // Pobierz posiłki dla aktualnie wyświetlanego tygodnia (7 dni)
+  window._calMeals = {};
+  const userId = await getCurrentNutritionUserId();
+  window._calCurrentUserId = userId;
+  if (!userId) return;
+
+  const startDate = currentWeekStart instanceof Date ? currentWeekStart : new Date(currentWeekStart + 'T00:00:00');
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + 7);
+  endDate.setHours(23, 59, 59, 999);
+
+  const { data, error } = await sb.from('nutrition_meals')
+    .select('id, eaten_at, name, meal_type, weight_g, kcal, protein_g, carbs_g, fat_g, fiber_g, source, source_data')
+    .eq('athlete_id', userId)
+    .gte('eaten_at', startDate.toISOString())
+    .lte('eaten_at', endDate.toISOString())
+    .order('eaten_at', { ascending: true });
+
+  if (error) { console.warn('loadMealsForWeek:', error); return; }
+
+  (data || []).forEach(m => {
+    const dayKey = new Date(m.eaten_at).toLocaleDateString('en-CA');  // YYYY-MM-DD
+    if (!window._calMeals[dayKey]) window._calMeals[dayKey] = [];
+    window._calMeals[dayKey].push(m);
+  });
+}
+
+function getDayKcal(ds) {
+  const meals = window._calMeals[ds] || [];
+  return meals.reduce((s, m) => s + (m.kcal || 0), 0);
+}
+
+function getDayMealCount(ds) {
+  return (window._calMeals[ds] || []).length;
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
   const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
@@ -1217,10 +1277,16 @@ function render() {
     const isToday = ds === dateStr(new Date());
     const ts = trainings[ds] || [];
     const km = ts.reduce((s,t)=>s+(t.dist||0),0);
+    const dayKcal = getDayKcal(ds);
+    const dayMeals = getDayMealCount(ds);
+    const kcalBadge = dayMeals > 0
+      ? `<div class="day-kcal" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:6px;padding:4px 8px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--accent);transition:all 0.15s;" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,86,30,0.08))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04))'">🍎 ${Math.round(dayKcal)} kcal · ${dayMeals}</div>`
+      : `<div class="day-kcal-empty" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:5px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--muted);">+ jedzenie</div>`;
     return `<div class="day-header ${isToday?'today':''}">
       <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
       <div class="day-num">${dObj.getDate()} ${monthNames[dObj.getMonth()]}</div>
       ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
+      ${kcalBadge}
     </div>`;
   }).join('');
 
@@ -1338,15 +1404,20 @@ function changeWeek(dir) {
   // Synchronizuj _tileMonth z aktualnym tygodniem
   const ref = new Date(currentWeekStart + 'T00:00:00');
   _tileMonth = { year: ref.getFullYear(), month: ref.getMonth() };
-  if (_calView === 'mobile') renderMobile();
-  else render();
+  // Reload posiłków na nowy tydzień, potem render
+  loadMealsForWeek().then(() => {
+    if (_calView === 'mobile') renderMobile();
+    else render();
+  });
 }
 function goToday() {
   currentWeekStart = getWeekStart(new Date());
   _tileMonth = null; // reset miesiąca
-  if (_calView === 'mobile') renderMobile();
-  else if (_calView === 'tiles') renderTiles();
-  else render();
+  loadMealsForWeek().then(() => {
+    if (_calView === 'mobile') renderMobile();
+    else if (_calView === 'tiles') renderTiles();
+    else render();
+  });
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────────────────
@@ -1455,6 +1526,214 @@ function closeModal() {
 }
 function closeModalOnBg(e) {
   if(e.target===document.getElementById('modal-bg')) closeModal();
+}
+
+// ════════════════════════════════════════════════════════════
+// NUTRITION MEALS MODAL
+// ════════════════════════════════════════════════════════════
+window._currentDayKey = null;
+window._editingMealId = null;
+
+async function openDayMealsModal(ds, e) {
+  if (e) { e.stopPropagation(); e.preventDefault(); }
+  window._currentDayKey = ds;
+
+  const dObj = new Date(ds + 'T00:00:00');
+  const dateLabel = dObj.toLocaleDateString('pl-PL', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+  document.getElementById('meals-modal-title').textContent =
+    dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
+
+  // Reload from cached week meals; jeśli nie ma, pobierz dla dnia
+  let meals = window._calMeals[ds];
+  if (!meals) {
+    await loadMealsForWeek();
+    meals = window._calMeals[ds] || [];
+  }
+
+  renderDayMealsList(meals);
+  updateDayMealsTotals(meals);
+
+  // Sub label
+  const userId = window._calCurrentUserId;
+  const isViewingOther = _urlRole === 'coach' && window._calSelectedAthleteId;
+  document.getElementById('meals-modal-sub').textContent =
+    isViewingOther ? '(widok trenera)' : '';
+
+  document.getElementById('meals-modal-bg').classList.add('open');
+}
+
+function closeMealsModal() {
+  document.getElementById('meals-modal-bg').classList.remove('open');
+}
+
+function closeMealsOnBg(e) {
+  if (e.target === document.getElementById('meals-modal-bg')) closeMealsModal();
+}
+
+function renderDayMealsList(meals) {
+  const wrap = document.getElementById('meals-list-wrap');
+  if (!meals || meals.length === 0) {
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:30px 20px;color:var(--muted);">
+        <div style="font-size:32px;margin-bottom:8px;">🥗</div>
+        <div style="font-size:13px;color:var(--fg2);">Brak posiłków w tym dniu</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:6px;">Dodaj pierwszy klikając niżej</div>
+      </div>`;
+    return;
+  }
+
+  const icons = { breakfast: '🌅', lunch: '🌞', dinner: '🌙', snack: '🍎', meal: '🍽' };
+
+  wrap.innerHTML = meals.map(m => {
+    const t = new Date(m.eaten_at);
+    const time = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+    return `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;">
+        <div style="font-size:22px;width:32px;text-align:center;flex-shrink:0;">${icons[m.meal_type] || '🍽'}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.name)}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.04em;">
+            ${time}${m.weight_g ? ' · ' + Math.round(m.weight_g) + 'g' : ''} · B:${Math.round(m.protein_g||0)}g W:${Math.round(m.carbs_g||0)}g T:${Math.round(m.fat_g||0)}g
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${Math.round(m.kcal||0)}</div>
+          <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;">kcal</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <button onclick="openCalMealEdit('${m.id}')" title="Edytuj" style="width:28px;height:28px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:7px;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;">✏</button>
+          <button onclick="deleteCalMeal('${m.id}')" title="Usuń" style="width:28px;height:28px;background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:7px;color:#e05050;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;">🗑</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function updateDayMealsTotals(meals) {
+  const totals = (meals || []).reduce((acc, m) => {
+    acc.kcal += m.kcal || 0;
+    acc.p += parseFloat(m.protein_g) || 0;
+    acc.c += parseFloat(m.carbs_g) || 0;
+    acc.f += parseFloat(m.fat_g) || 0;
+    return acc;
+  }, { kcal: 0, p: 0, c: 0, f: 0 });
+  document.getElementById('meals-total-kcal').textContent = Math.round(totals.kcal);
+  document.getElementById('meals-total-p').textContent = Math.round(totals.p);
+  document.getElementById('meals-total-c').textContent = Math.round(totals.c);
+  document.getElementById('meals-total-f').textContent = Math.round(totals.f);
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Edycja posiłku
+function openCalMealEdit(mealId) {
+  const meals = window._calMeals[window._currentDayKey] || [];
+  const meal = meals.find(m => m.id === mealId);
+  if (!meal) return;
+  window._editingMealId = mealId;
+
+  document.getElementById('cm-edit-name').value = meal.name || '';
+  document.getElementById('cm-edit-weight').value = meal.weight_g || '';
+  document.getElementById('cm-edit-kcal').value = meal.kcal || 0;
+  document.getElementById('cm-edit-protein').value = meal.protein_g || 0;
+  document.getElementById('cm-edit-carbs').value = meal.carbs_g || 0;
+  document.getElementById('cm-edit-fat').value = meal.fat_g || 0;
+
+  const t = new Date(meal.eaten_at);
+  const hh = t.getHours().toString().padStart(2,'0');
+  const mm = t.getMinutes().toString().padStart(2,'0');
+  document.getElementById('cm-edit-time').value = hh + ':' + mm;
+
+  document.getElementById('meal-edit-bg').classList.add('open');
+}
+
+function closeMealEdit() {
+  document.getElementById('meal-edit-bg').classList.remove('open');
+  window._editingMealId = null;
+}
+
+function closeMealEditOnBg(e) {
+  if (e.target === document.getElementById('meal-edit-bg')) closeMealEdit();
+}
+
+async function saveCalMealEdit() {
+  if (!window._editingMealId) return;
+  const name = document.getElementById('cm-edit-name').value.trim();
+  const kcal = parseInt(document.getElementById('cm-edit-kcal').value, 10);
+  const weight = parseFloat(document.getElementById('cm-edit-weight').value) || null;
+  const protein = parseFloat(document.getElementById('cm-edit-protein').value) || 0;
+  const carbs = parseFloat(document.getElementById('cm-edit-carbs').value) || 0;
+  const fat = parseFloat(document.getElementById('cm-edit-fat').value) || 0;
+  const timeStr = document.getElementById('cm-edit-time').value;
+
+  if (!name) { alert('Podaj nazwę'); return; }
+  if (!kcal || kcal <= 0) { alert('Podaj kalorie'); return; }
+
+  // Skonstruuj nowe eaten_at
+  const meals = window._calMeals[window._currentDayKey] || [];
+  const oldMeal = meals.find(m => m.id === window._editingMealId);
+  const oldDate = oldMeal ? new Date(oldMeal.eaten_at) : new Date(window._currentDayKey + 'T12:00:00');
+  if (timeStr && /^\d{2}:\d{2}$/.test(timeStr)) {
+    const [h, mn] = timeStr.split(':').map(Number);
+    oldDate.setHours(h, mn, 0, 0);
+  }
+
+  const update = {
+    name, kcal,
+    weight_g: weight,
+    protein_g: protein,
+    carbs_g: carbs,
+    fat_g: fat,
+    eaten_at: oldDate.toISOString()
+  };
+
+  const { error } = await sb.from('nutrition_meals')
+    .update(update)
+    .eq('id', window._editingMealId);
+  if (error) {
+    alert('Błąd zapisu: ' + (error.message || error.code));
+    console.error('saveCalMealEdit:', error);
+    return;
+  }
+  closeMealEdit();
+  await loadMealsForWeek();
+  // Re-render listy w modalu
+  const updatedMeals = window._calMeals[window._currentDayKey] || [];
+  renderDayMealsList(updatedMeals);
+  updateDayMealsTotals(updatedMeals);
+  // Re-render kalendarza żeby kafelki się zaktualizowały
+  render();
+}
+
+async function deleteCalMeal(mealId) {
+  if (!confirm('Usunąć ten posiłek?')) return;
+  const { error } = await sb.from('nutrition_meals').delete().eq('id', mealId);
+  if (error) {
+    alert('Błąd usuwania');
+    console.error(error);
+    return;
+  }
+  await loadMealsForWeek();
+  const updatedMeals = window._calMeals[window._currentDayKey] || [];
+  renderDayMealsList(updatedMeals);
+  updateDayMealsTotals(updatedMeals);
+  render();
+}
+
+function goToNutritionForDay() {
+  // Otwórz nutrition.html — jeśli to dziś, wprost; jeśli inny dzień, można dodać query param
+  // Na razie tylko prosty redirect
+  closeMealsModal();
+  const today = dateStr(new Date());
+  if (window._currentDayKey === today) {
+    window.location.href = 'nutrition.html';
+  } else {
+    // Można dodać support dla ?date= w nutrition.html później
+    window.location.href = 'nutrition.html?date=' + window._currentDayKey;
+  }
 }
 
 function selType(el, type, cls) {
@@ -1887,6 +2166,9 @@ async function loadTrainingsFromDB() {
       window._stravaActivities[ds].push(a);
     });
   }
+
+  // Załaduj posiłki dla aktualnego tygodnia (nutrition)
+  await loadMealsForWeek();
 
   render();
 }
@@ -4043,6 +4325,96 @@ document.addEventListener('keydown', e => {
 });
 
 </script>
+
+<!-- ═══════════════ MODAL: POSIŁKI DNIA (NUTRITION) ═══════════════ -->
+<div class="modal-bg" id="meals-modal-bg" onclick="closeMealsOnBg(event)">
+  <div class="modal" style="width:520px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="meals-modal-title">Posiłki dnia</div>
+        <div id="meals-modal-sub" style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:4px;">—</div>
+      </div>
+      <button class="modal-close" onclick="closeMealsModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Suma kcal hero -->
+      <div id="meals-hero" style="background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.25);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div>
+          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Razem dziś</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);"><span id="meals-total-kcal">0</span> kcal</div>
+        </div>
+        <div style="text-align:right;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg2);line-height:1.5;">
+          <div>B: <span id="meals-total-p">0</span>g</div>
+          <div>W: <span id="meals-total-c">0</span>g</div>
+          <div>T: <span id="meals-total-f">0</span>g</div>
+        </div>
+      </div>
+
+      <!-- Lista posiłków -->
+      <div id="meals-list-wrap"></div>
+
+      <!-- Akcje na dole -->
+      <div id="meals-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
+        <button onclick="goToNutritionForDay()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:13px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(232,86,30,0.35);">
+          + Dodaj posiłek (otwórz tracker)
+        </button>
+        <div style="font-size:10px;color:var(--muted);text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.06em;">
+          Pełne dodawanie posiłków przez Nutrition Tracker
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ MODAL: EDIT POSIŁKU ═══════════════ -->
+<div class="modal-bg" id="meal-edit-bg" onclick="closeMealEditOnBg(event)">
+  <div class="modal" style="width:440px;">
+    <div class="modal-header">
+      <div class="modal-title">✏ Edytuj posiłek</div>
+      <button class="modal-close" onclick="closeMealEdit()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field" style="margin-bottom:12px;">
+        <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">Nazwa</label>
+        <input type="text" id="cm-edit-name" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="field">
+          <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">Godzina</label>
+          <input type="time" id="cm-edit-time" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+        </div>
+        <div class="field">
+          <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">Waga (g)</label>
+          <input type="number" id="cm-edit-weight" min="1" max="2000" inputmode="numeric" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div class="field">
+          <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">kcal</label>
+          <input type="number" id="cm-edit-kcal" min="0" max="3000" inputmode="numeric" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+        </div>
+        <div class="field">
+          <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">Białko (g)</label>
+          <input type="number" id="cm-edit-protein" min="0" max="200" step="0.1" inputmode="decimal" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+        <div class="field">
+          <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">Węgle (g)</label>
+          <input type="number" id="cm-edit-carbs" min="0" max="500" step="0.1" inputmode="decimal" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+        </div>
+        <div class="field">
+          <label style="display:block;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;">Tłuszcz (g)</label>
+          <input type="number" id="cm-edit-fat" min="0" max="200" step="0.1" inputmode="decimal" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--fg);font-size:14px;">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeMealEdit()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg2);border-radius:11px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
+        <button onclick="saveCalMealEdit()" style="flex:2;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:11px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;">Zapisz</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ═══════════════ EKRAN DNIA ═══════════════ -->
 <style>
