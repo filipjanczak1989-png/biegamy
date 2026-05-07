@@ -2157,31 +2157,11 @@ function resizeImage(file, maxDim, quality) {
 }
 
 // ════════════════════════════════════════════════════════════
-// AI TEXT — opis posiłku → Edge Function → wynik
+// AI TEXT — wyłączone, używamy tylko AI Vision (zdjęcie)
 // ════════════════════════════════════════════════════════════
-function setAITextSuggestion(text) {
-  document.getElementById('ai-text-input').value = text;
-}
-
-async function processAIText() {
-  const txt = document.getElementById('ai-text-input').value.trim();
-  if (txt.length < 3) { showToast('Opisz dokładniej'); return; }
-  showToast('🤖 AI liczy...');
-  try {
-    const res = await callFoodRecognize({ mode: 'text', text: txt });
-    closeTextModal();
-    showAIResult(res, '✏ Wynik AI');
-    if (res._cache) showToast('⚡ Z cache (darmowo)');
-    refreshAIQuota();
-  } catch (e) {
-    console.error('text recognize:', e);
-    if (e.code === 'limit_exceeded') {
-      showToast('⏰ Limit AI tekst (10/10) — reset jutro');
-    } else {
-      showToast('Błąd AI: ' + (e.message || 'spróbuj ponownie'));
-    }
-  }
-}
+// Stub żeby stara wersja w cache PWA nie wybuchała
+function setAITextSuggestion(text) { /* deprecated */ }
+async function processAIText() { /* deprecated */ }
 
 // ════════════════════════════════════════════════════════════
 // EDGE FUNCTION CALL
