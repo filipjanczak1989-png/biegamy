@@ -1273,10 +1273,15 @@ function getFoodImageFromSeed(seed) {
 window._foodImageCache = window._foodImageCache || {};
 
 function normalizeFoodName(name) {
-  return String(name || '')
-    .toLowerCase()
-    .trim()
-    .replace(/\([^)]*\)/g, '')
+  let s = String(name || '').toLowerCase().trim();
+  // Smart parens: "Produkt (Coca-Cola)" → "coca-cola"
+  const parenMatch = s.match(/^(produkt|produkty|item|food|napój|napoj|jedzenie|posiłek|posilek)\s*\(([^)]+)\)/i);
+  if (parenMatch) {
+    s = parenMatch[2].toLowerCase().trim();
+  } else {
+    s = s.replace(/\([^)]*\)/g, '');
+  }
+  return s
     .replace(/\d+\s*(g|kg|ml|l|szt)\.?/gi, '')
     .replace(/\s+/g, ' ')
     .trim()

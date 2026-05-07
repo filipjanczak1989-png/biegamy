@@ -3274,11 +3274,20 @@ function getFoodImageFromSeed(seed) {
 window._foodImageCache = window._foodImageCache || {};
 
 function normalizeFoodName(name) {
-  return String(name || '')
-    .toLowerCase()
-    .trim()
-    .replace(/\([^)]*\)/g, '')      // usuń nawiasy
-    .replace(/\d+\s*(g|kg|ml|l|szt)\.?/gi, '')  // usuń jednostki
+  let s = String(name || '').toLowerCase().trim();
+
+  // Smart parens: jeśli prefix to generic word (produkt/produkty/itp) → weź zawartość nawiasów
+  // np. "Produkt (Coca-Cola)" → "coca-cola"
+  const parenMatch = s.match(/^(produkt|produkty|item|food|napój|napoj|jedzenie|posiłek|posilek)\s*\(([^)]+)\)/i);
+  if (parenMatch) {
+    s = parenMatch[2].toLowerCase().trim();
+  } else {
+    // W innych przypadkach: nawiasy = metadata, usuń
+    s = s.replace(/\([^)]*\)/g, '');
+  }
+
+  return s
+    .replace(/\d+\s*(g|kg|ml|l|szt)\.?/gi, '')
     .replace(/\s+/g, ' ')
     .trim()
     .substring(0, 100);
