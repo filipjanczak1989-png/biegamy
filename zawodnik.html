@@ -4374,23 +4374,6 @@ async function loadNutritionWidget() {
   const widget = document.getElementById('nutri-widget');
   if (!widget) return;
 
-  // Tło widgetu — losowa grafika z puli (deterministyczna z dnia, taka sama w sesji)
-  const today = new Date().toLocaleDateString('en-CA');
-  let hash = 0;
-  const s = 'nutri_widget_' + today;
-  for (let i = 0; i < s.length; i++) {
-    hash = ((hash << 5) - hash) + s.charCodeAt(i);
-    hash = hash & hash;
-  }
-  const imgIdx = Math.abs(hash) % 55 + 1;
-  const imgUrl = `https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/j${imgIdx}.webp`;
-  widget.style.backgroundImage =
-    `linear-gradient(135deg,rgba(10,8,9,0.85),rgba(20,16,18,0.75) 60%,rgba(232,86,30,0.25)), url('${imgUrl}')`;
-  widget.style.backgroundSize = 'cover';
-  widget.style.backgroundPosition = 'center';
-  widget.style.borderColor = 'rgba(232,86,30,0.4)';
-  widget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4), 0 0 16px rgba(232,86,30,0.1)';
-
   try {
     // Pobierz dzisiejsze posiłki
     const startOfDay = new Date();
