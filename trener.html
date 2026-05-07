@@ -3499,6 +3499,32 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
     <div id="asm-content" style="padding:16px 20px;">
       <div style="text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;padding:20px 0;">Ładowanie...</div>
     </div>
+
+    <!-- SEKCJA AI RAPORTÓW -->
+    <div id="asm-ai-section" style="padding:0 20px 16px;">
+      <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;border-top:1px solid var(--border);padding-top:16px;">🧠 Analiza AI</div>
+      <div id="asm-ai-content"></div>
+      <button id="asm-ai-generate-btn" onclick="generateAIReport()" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;cursor:pointer;margin-top:10px;">
+        ✨ Generuj nowy raport AI
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: PEŁNY RAPORT AI -->
+<div id="ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAIReportModal()">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--accent);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;" id="ai-report-modal-inner">
+    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
+    <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;">
+      <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧠</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;" id="airm-title">Raport AI</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="airm-meta"></div>
+      </div>
+      <div id="airm-priority-badge" style="font-size:9px;padding:4px 10px;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;font-weight:600;text-transform:uppercase;flex-shrink:0;"></div>
+      <button onclick="closeAIReportModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
+    </div>
+    <div id="airm-content" style="padding:16px 20px 100px;font-size:13px;line-height:1.6;"></div>
   </div>
 </div>
 
@@ -3615,25 +3641,6 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
 <!-- SEKCJA ANALITYKI -->
 
 </div>
-
-<!-- MODAL STATYSTYK ZAWODNIKA -->
-<div id="athlete-stats-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAthleteStatsModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:1px solid var(--accent);width:100%;max-width:480px;max-height:88vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);padding-bottom:32px;transform:translateY(20px);transition:transform 0.25s;" id="athlete-stats-modal-inner">
-    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
-    <div style="padding:16px 20px 8px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);">
-      <div style="width:42px;height:42px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:17px;flex-shrink:0;" id="asm-avatar">MK</div>
-      <div style="flex:1;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;" id="asm-name">Zawodnik</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="asm-goal"></div>
-      </div>
-      <button onclick="closeAthleteStatsModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;">✕</button>
-    </div>
-    <div id="asm-content" style="padding:16px 20px;">
-      <div style="text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;padding:20px 0;">Ładowanie...</div>
-    </div>
-  </div>
-</div>
-
 <!-- SEKCJA USTAWIEŃ -->
 <div id="settings-section" style="display:none;padding:0 20px 100px;">
   <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Ustawienia</div>
