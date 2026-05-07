@@ -913,30 +913,6 @@ body > *{position:relative;z-index:1;}
 </div>
 <div id="home-social-preview" class="fade-in" style="margin:0 0 18px;"></div>
 
-<!-- ───────────────────────────────────────────── -->
-<!-- WIDGET: NUTRITION (Dziś jedzenie) -->
-<!-- ───────────────────────────────────────────── -->
-<div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Dziś jedzenie</div><a href="nutrition.html" class="sec-link">Tracker →</a></div>
-<div class="nutri-widget fade-in" id="nutri-widget" onclick="location.href='nutrition.html'" style="cursor:pointer;background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(232,86,30,0.02));border:1px solid rgba(232,86,30,0.2);border-radius:14px;padding:14px 16px;margin-bottom:18px;display:flex;align-items:center;gap:14px;transition:all 0.2s;">
-  <div style="width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 14px rgba(232,86,30,0.3);">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/>
-      <path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/>
-    </svg>
-  </div>
-  <div style="flex:1;min-width:0;">
-    <div id="nutri-main" style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1;color:var(--fg);">— kcal</div>
-    <div id="nutri-sub" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;margin-top:3px;">Brak wpisów dzisiaj</div>
-  </div>
-  <div id="nutri-progress" style="width:60px;height:60px;position:relative;flex-shrink:0;">
-    <svg width="60" height="60" viewBox="0 0 60 60">
-      <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
-      <circle cx="30" cy="30" r="24" fill="none" stroke="url(#ringGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="150.8" id="nutri-ring-arc" stroke-dashoffset="150.8" transform="rotate(-90 30 30)"/>
-    </svg>
-    <div id="nutri-pct" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-family:DM Mono,monospace;font-size:11px;font-weight:700;color:var(--fg);">—</div>
-  </div>
-</div>
-
 <div id="coach-msg-section" style="display:none;">
   <div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Wiadomość od trenera</div><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;">kliknij →</span></div>
   <div class="coach-box fade-in" id="coach-box" onclick="showSection('msgs')">
@@ -946,6 +922,19 @@ body > *{position:relative;z-index:1;}
       <div class="coach-ts" id="coach-ts"></div>
     </div>
     <div class="coach-body" id="coach-body" style="color:var(--muted);font-style:italic;">Brak wiadomości od trenera.</div>
+  </div>
+</div>
+
+<!-- KAFELEK RAPORTÓW AI OD TRENERA (widoczny gdy są nieprzeczytane) -->
+<div id="ai-reports-tile-section" style="display:none;">
+  <div class="sec-hdr fade-in" style="margin-top:4px;"><div class="sec-title">Raporty od trenera</div><a href="#" class="sec-link" onclick="showSection('aireports');return false;">Wszystkie →</a></div>
+  <div class="fade-in" id="ai-reports-tile" onclick="showSection('aireports')" style="background:linear-gradient(135deg,rgba(139,92,246,0.12),rgba(99,102,241,0.08));border:1px solid rgba(139,92,246,0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;">
+    <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🧠</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;color:var(--fg);" id="ai-tile-title">Nowy raport AI</div>
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;" id="ai-tile-summary">—</div>
+    </div>
+    <div id="ai-tile-badge" style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;flex-shrink:0;"></div>
   </div>
 </div>
 
@@ -981,13 +970,6 @@ body > *{position:relative;z-index:1;}
       <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <div class="nav-lbl" style="margin-top:2px;">Log</div>
-  </a>
-  <a class="nav-it" href="nutrition.html" id="nav-nutrition">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/>
-      <path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/>
-    </svg>
-    <div class="nav-lbl">Jedzenie</div>
   </a>
   <a class="nav-it" href="#" onclick="showSection('social');return false;" id="nav-social">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -1059,13 +1041,6 @@ body > *{position:relative;z-index:1;}
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="openModal();return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Log</span>
-    </a>
-    <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="nutrition.html">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/>
-        <path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/>
-      </svg>
-      <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Jedzenie</span>
     </a>
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;position:relative;" href="#">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -2017,7 +1992,7 @@ function showSection(name) {
   });
 
   // Hide all overlay sections
-  ['section-msgs','section-profile','section-stats','section-social'].forEach(id => {
+  ['section-msgs','section-profile','section-stats','section-social','section-aireports'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -2063,7 +2038,7 @@ function showSection(name) {
     if (_athleteId) {
       loadWeekPlan();
       loadHomeSocialPreview();
-      loadNutritionWidget();
+      loadHomeAIReportsTile();
     }
     requestAnimationFrame(() => {
       document.querySelectorAll('.today-hero,.week-sum,.coach-box').forEach((el,i) => {
@@ -2103,6 +2078,9 @@ function showSection(name) {
     document.getElementById('section-social').style.display = 'block';
     activateNav('nav-social');
     loadSocialFeed();
+  } else if (name === 'aireports') {
+    document.getElementById('section-aireports').style.display = 'block';
+    loadAIReportsForAthlete();
   }
 }
 
@@ -4366,77 +4344,6 @@ function _startProfileBanner() {
   el._bannerInterval = interval;
 }
 
-// ════════════════════════════════════════════════════════════
-// NUTRITION WIDGET — Dziś jedzenie na dashboardzie
-// ════════════════════════════════════════════════════════════
-async function loadNutritionWidget() {
-  if (!_athleteId) return;
-  const widget = document.getElementById('nutri-widget');
-  if (!widget) return;
-
-  try {
-    // Pobierz dzisiejsze posiłki
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const { data: meals } = await sb.from('nutrition_meals')
-      .select('kcal, protein_g')
-      .eq('athlete_id', _athleteId)
-      .gte('eaten_at', startOfDay.toISOString());
-
-    // Pobierz profil dla obliczenia celu
-    const { data: profile } = await sb.from('nutrition_profiles')
-      .select('tdee, goal')
-      .eq('athlete_id', _athleteId)
-      .maybeSingle();
-
-    const totalKcal = (meals || []).reduce((s, m) => s + (m.kcal || 0), 0);
-    const mealCount = meals?.length || 0;
-
-    let target = null;
-    if (profile?.tdee) {
-      const goalAdjust = profile.goal === 'deficit' ? -300 : profile.goal === 'surplus' ? 300 : 0;
-      target = profile.tdee + goalAdjust;
-    }
-
-    // Render main + sub
-    const mainEl = document.getElementById('nutri-main');
-    const subEl = document.getElementById('nutri-sub');
-
-    if (mealCount === 0) {
-      mainEl.textContent = '0 kcal';
-      subEl.textContent = target ? `Cel: ${target} kcal · tap żeby dodać posiłek` : 'Tap żeby zacząć tracking';
-    } else {
-      mainEl.textContent = Math.round(totalKcal) + ' kcal';
-      let sub = `${mealCount} ${mealCount === 1 ? 'posiłek' : mealCount < 5 ? 'posiłki' : 'posiłków'}`;
-      if (target) {
-        const remaining = target - totalKcal;
-        if (remaining > 0) {
-          sub += ` · do celu ${Math.round(remaining)} kcal`;
-        } else {
-          sub += ` · ${Math.abs(Math.round(remaining))} kcal ponad cel`;
-        }
-      }
-      subEl.textContent = sub;
-    }
-
-    // Progress ring
-    const ringArc = document.getElementById('nutri-ring-arc');
-    const pctEl = document.getElementById('nutri-pct');
-    if (ringArc && target) {
-      const pct = Math.min(100, Math.round(totalKcal / target * 100));
-      const circumference = 150.8;  // 2 * π * 24
-      const offset = circumference - (pct / 100) * circumference;
-      ringArc.style.strokeDashoffset = offset;
-      if (pctEl) pctEl.textContent = pct + '%';
-    } else if (pctEl) {
-      pctEl.textContent = '—';
-    }
-  } catch (e) {
-    console.warn('nutrition widget:', e);
-  }
-}
-
 async function loadWeekPlan() {
   if (!_athleteId) return;
 
@@ -4566,7 +4473,7 @@ async function loadLogs() {
     maybeShowPushPrompt(); // banner push (po 24h od first seen)
     await loadWeekPlan();
     loadHomeSocialPreview();
-    loadNutritionWidget();
+    loadHomeAIReportsTile();
     await updateWeekProgress();
     await checkNewMessages();
     checkNotifications();
@@ -5610,6 +5517,193 @@ function switchSocialTab(tab) {
   if (tab==='following') loadFollowing();
   if (tab==='find') loadSuggestedProfiles();
 }
+
+// ── RAPORTY AI DLA ZAWODNIKA ─────────────────────────────────────
+async function loadHomeAIReportsTile() {
+  if (!_athleteId) return;
+  const sec = document.getElementById('ai-reports-tile-section');
+  const titleEl = document.getElementById('ai-tile-title');
+  const summaryEl = document.getElementById('ai-tile-summary');
+  const badgeEl = document.getElementById('ai-tile-badge');
+  if (!sec || !titleEl) return;
+  
+  // Pobierz najnowszy raport (visible_to_athlete=true)
+  const { data: reports, error } = await sb.from('ai_reports')
+    .select('id, summary, priority, report_type, sent_at, read_by_athlete')
+    .eq('athlete_id', _athleteId)
+    .eq('visible_to_athlete', true)
+    .order('sent_at', { ascending: false })
+    .limit(1);
+  
+  if (error || !reports || reports.length === 0) {
+    sec.style.display = 'none';
+    return;
+  }
+  
+  const r = reports[0];
+  const isUnread = !r.read_by_athlete;
+  const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
+  
+  titleEl.textContent = (isUnread ? '✨ Nowy raport • ' : '') + typeLabel;
+  summaryEl.textContent = r.summary || 'Kliknij aby zobaczyć';
+  
+  const priorityMap = {
+    red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨' },
+    yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: '⚠' },
+    green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓' }
+  };
+  const p = priorityMap[r.priority] || priorityMap.green;
+  badgeEl.style.background = p.bg;
+  badgeEl.style.color = p.fg;
+  badgeEl.textContent = p.text;
+  
+  sec.style.display = '';
+}
+
+async function loadAIReportsForAthlete() {
+  if (!_athleteId) return;
+  const target = document.getElementById('ar-content');
+  if (!target) return;
+  target.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+  
+  const { data: reports, error } = await sb.from('ai_reports')
+    .select('id, generated_at, sent_at, report_type, priority, summary, read_by_athlete, content_markdown')
+    .eq('athlete_id', _athleteId)
+    .eq('visible_to_athlete', true)
+    .order('sent_at', { ascending: false })
+    .limit(20);
+  
+  if (error) {
+    target.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--red);font-size:12px;">Błąd: ' + error.message + '</div>';
+    return;
+  }
+  
+  if (!reports || reports.length === 0) {
+    target.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--muted);font-family:DM Mono,monospace;">'
+      + '<div style="font-size:48px;margin-bottom:12px;opacity:0.3;">🧠</div>'
+      + '<div style="font-size:13px;">Brak raportów</div>'
+      + '<div style="font-size:11px;margin-top:6px;opacity:0.7;">Trener wyśle Ci raport gdy będzie miał coś do przekazania</div>'
+      + '</div>';
+    return;
+  }
+  
+  let html = '';
+  reports.forEach(r => {
+    const date = new Date(r.sent_at || r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',year:'numeric'});
+    const time = new Date(r.sent_at || r.generated_at).toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
+    const priorityColors = {
+      red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 Pilne' },
+      yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: '⚠ Uwaga' },
+      green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓ Standard' }
+    };
+    const pc = priorityColors[r.priority] || priorityColors.green;
+    const isUnread = !r.read_by_athlete;
+    const typeIcon = r.report_type === 'daily' ? '📅' : r.report_type === 'weekly' ? '📊' : r.report_type === 'monthly' ? '📈' : '📄';
+    const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
+    
+    html += '<div onclick="openZawAIReportModal(\'' + r.id + '\')" style="background:rgba(255,255,255,0.03);border:1px solid ' + (isUnread ? 'rgba(139,92,246,0.4)' : 'var(--border)') + ';border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;position:relative;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.6)\'" onmouseout="this.style.borderColor=\'' + (isUnread ? 'rgba(139,92,246,0.4)' : 'var(--border)') + '\'">'
+      + (isUnread ? '<div style="position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>' : '')
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
+        + '<span style="font-size:16px;">' + typeIcon + '</span>'
+        + '<span style="font-size:11px;color:var(--fg);font-weight:600;">' + typeLabel + '</span>'
+        + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.06em;">' + pc.text + '</span>'
+      + '</div>'
+      + '<div style="font-size:13px;color:var(--fg);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px;">' + (r.summary || 'Raport AI') + '</div>'
+      + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.04em;">' + date + ' · ' + time + '</div>'
+    + '</div>';
+  });
+  
+  target.innerHTML = html;
+}
+
+async function openZawAIReportModal(reportId) {
+  const modal = document.getElementById('zaw-ai-report-modal');
+  const inner = document.getElementById('zaw-ai-report-modal-inner');
+  const content = document.getElementById('zarm-content');
+  const titleEl = document.getElementById('zarm-title');
+  const metaEl = document.getElementById('zarm-meta');
+  const badgeEl = document.getElementById('zarm-priority-badge');
+  
+  content.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0;">Ładowanie...</div>';
+  modal.style.display = 'flex';
+  setTimeout(() => { inner.style.transform = 'translateY(0)'; }, 10);
+  
+  const { data: report, error } = await sb.from('ai_reports')
+    .select('*')
+    .eq('id', reportId)
+    .maybeSingle();
+  
+  if (error || !report) {
+    content.innerHTML = '<div style="text-align:center;color:var(--red);padding:30px 0;">Nie udało się załadować raportu</div>';
+    return;
+  }
+  
+  const date = new Date(report.sent_at || report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const typeLabel = report.report_type === 'daily' ? 'Dzienny' : report.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
+  
+  titleEl.textContent = 'Raport · ' + typeLabel;
+  metaEl.textContent = date;
+  
+  const priorityMap = {
+    red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 Pilne' },
+    yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: '⚠ Uwaga' },
+    green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓ Standard' }
+  };
+  const p = priorityMap[report.priority] || priorityMap.green;
+  badgeEl.style.background = p.bg;
+  badgeEl.style.color = p.fg;
+  badgeEl.textContent = p.text;
+  
+  content.innerHTML = mdToHtmlZaw(report.content_markdown || '');
+  
+  // Oznacz jako przeczytany
+  if (!report.read_by_athlete) {
+    sb.from('ai_reports').update({ read_by_athlete: new Date().toISOString() })
+      .eq('id', reportId).then(() => {
+        // Odśwież listę i kafelek
+        loadAIReportsForAthlete();
+        loadHomeAIReportsTile();
+      });
+  }
+}
+
+function closeZawAIReportModal() {
+  const inner = document.getElementById('zaw-ai-report-modal-inner');
+  if (inner) inner.style.transform = 'translateY(20px)';
+  setTimeout(() => { 
+    const m = document.getElementById('zaw-ai-report-modal');
+    if (m) m.style.display = 'none'; 
+  }, 250);
+}
+
+// Markdown converter dla zawodnika
+function mdToHtmlZaw(md) {
+  if (!md) return '';
+  let html = md;
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:14px;letter-spacing:0.06em;color:var(--accent);margin:14px 0 6px;">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:0.04em;margin:18px 0 8px;border-top:1px solid var(--border);padding-top:14px;">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:22px;margin:20px 0 10px;">$1</h2>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--fg);">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:4px 0;list-style:none;padding-left:18px;position:relative;"><span style="position:absolute;left:0;color:var(--accent);">›</span>$1</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:24px;position:relative;"><span style="position:absolute;left:0;color:var(--accent);font-family:DM Mono,monospace;font-size:11px;font-weight:600;">$1.</span>$2</li>');
+  html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
+    return '<ul style="padding-left:0;margin:8px 0;">' + match + '</ul>';
+  });
+  html = html.replace(/^\*?\*?PRIORITY:\s*(red|yellow|green)\*?\*?$/gmi, '');
+  html = html.replace(/\n\n+/g, '</p><p style="margin:8px 0;">');
+  html = '<p style="margin:8px 0;">' + html + '</p>';
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
+  html = html.replace(/<p[^>]*>(\s*<h[234]|\s*<ul)/g, '$1');
+  html = html.replace(/(<\/h[234]>|<\/ul>)\s*<\/p>/g, '$1');
+  return html;
+}
+
+window.openZawAIReportModal = openZawAIReportModal;
+window.closeZawAIReportModal = closeZawAIReportModal;
+window.loadAIReportsForAthlete = loadAIReportsForAthlete;
+window.loadHomeAIReportsTile = loadHomeAIReportsTile;
 
 async function loadSocialFeed(compact) {
   if (!_athleteId) return;
@@ -8309,6 +8403,37 @@ window.sendDuelChallenge = sendDuelChallenge;
   </div>
 </div>
 
+<!-- SEKCJA: RAPORTY AI -->
+<div id="section-aireports" style="display:none;padding:0 0 100px;">
+  <div style="padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Od trenera</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin-top:2px;">Raporty AI</div>
+    </div>
+    <button onclick="showSection('home')" style="background:transparent;border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:18px;">←</button>
+  </div>
+  <div id="ar-content" style="padding:0 16px;">
+    <div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
+  </div>
+</div>
+
+<!-- MODAL: pojedynczy raport AI dla zawodnika -->
+<div id="zaw-ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeZawAIReportModal()">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--accent);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;" id="zaw-ai-report-modal-inner">
+    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
+    <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;">
+      <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧠</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;" id="zarm-title">Raport</div>
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="zarm-meta"></div>
+      </div>
+      <div id="zarm-priority-badge" style="font-size:9px;padding:4px 10px;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;font-weight:600;text-transform:uppercase;flex-shrink:0;"></div>
+      <button onclick="closeZawAIReportModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
+    </div>
+    <div id="zarm-content" style="padding:16px 20px 60px;font-size:13px;line-height:1.6;flex:1;overflow-y:auto;"></div>
+  </div>
+</div>
+
 <div id="section-stats" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 20px 16px;display:flex;align-items:center;justify-content:space-between;">
     <div>
@@ -8332,13 +8457,6 @@ window.sendDuelChallenge = sendDuelChallenge;
     <a class="nav-it" href="#" onclick="openModal();return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       <div class="nav-lbl">Log</div>
-    </a>
-    <a class="nav-it" href="nutrition.html">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/>
-        <path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/>
-      </svg>
-      <div class="nav-lbl">Jedzenie</div>
     </a>
     <a class="nav-it" href="#" onclick="showSection('msgs');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>

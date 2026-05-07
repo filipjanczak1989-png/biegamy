@@ -401,9 +401,11 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div id="pai-content">
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika.</div>
       </div>
-      <button id="pai-generate-btn" onclick="generateAIReportFromPanel()" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;cursor:pointer;margin-top:12px;">
-        ✨ Generuj raport AI
-      </button>
+      <div style="display:flex;gap:6px;margin-top:12px;">
+        <button class="pai-gen-btn" data-period="1" onclick="generateAIReportFromPanel(1)" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;">📅 Dzień</button>
+        <button class="pai-gen-btn" data-period="7" onclick="generateAIReportFromPanel(7)" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;">📊 Tydzień</button>
+        <button class="pai-gen-btn" data-period="28" onclick="generateAIReportFromPanel(28)" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;">📈 Miesiąc</button>
+      </div>
     </div>
     <div id="pcl" style="display:none;">
       <div class="f-row" style="margin-bottom:10px;">
@@ -528,7 +530,7 @@ async function loadPanelAI() {
   target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie raportów...</div>';
 
   const { data: reports, error } = await sb.from('ai_reports')
-    .select('id, generated_at, report_type, priority, summary, read_by_coach')
+    .select('id, generated_at, report_type, priority, summary, read_by_coach, visible_to_athlete, sent_at')
     .eq('athlete_id', id)
     .order('generated_at', { ascending: false })
     .limit(10);
@@ -553,10 +555,18 @@ async function loadPanelAI() {
     };
     const pc = priorityColors[r.priority] || priorityColors.green;
     const isUnread = !r.read_by_coach;
+    const typeIcon = r.report_type === 'daily' ? '📅' : r.report_type === 'weekly' ? '📊' : r.report_type === 'monthly' ? '📈' : '📄';
+    const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : r.report_type === 'monthly' ? 'Miesięczny' : 'Raport';
+    const sentBadge = r.visible_to_athlete && r.sent_at 
+      ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(139,92,246,0.15);color:#a78bfa;letter-spacing:0.06em;">📤 WYSŁANY</span>'
+      : '';
     
     html += '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">'
+        + '<span style="font-size:14px;">' + typeIcon + '</span>'
+        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;">' + typeLabel + '</span>'
         + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pc.text + '</span>'
+        + sentBadge
         + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
         + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
       + '</div>'
@@ -567,18 +577,20 @@ async function loadPanelAI() {
   target.innerHTML = html;
 }
 
-async function generateAIReportFromPanel() {
+async function generateAIReportFromPanel(periodDays) {
   const id = window._selectedAthleteId;
   if (!id) { showToast('Wybierz zawodnika'); return; }
-  // Przekieruj do generateAIReport (używa _currentAthleteIdForAI)
-  window._currentAthleteIdForAI = id;
-  const btn = document.getElementById('pai-generate-btn');
-  if (!btn) return;
+  if (!periodDays) periodDays = 28; // fallback
   
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '⏳ Generuję raport... (5-15s)';
-  btn.style.opacity = '0.7';
+  window._currentAthleteIdForAI = id;
+  const btns = document.querySelectorAll('.pai-gen-btn');
+  const targetBtn = document.querySelector('.pai-gen-btn[data-period="' + periodDays + '"]');
+  if (!targetBtn) return;
+  
+  const originalText = targetBtn.textContent;
+  btns.forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+  targetBtn.textContent = '⏳ ...';
+  targetBtn.style.opacity = '0.9';
 
   try {
     const session = (await sb.auth.getSession()).data.session;
@@ -593,7 +605,7 @@ async function generateAIReportFromPanel() {
       body: JSON.stringify({
         athlete_id: id,
         report_type: 'on_demand',
-        period_days: 28
+        period_days: periodDays
       })
     });
     
@@ -604,7 +616,8 @@ async function generateAIReportFromPanel() {
       return;
     }
     
-    showToast('✨ Raport wygenerowany!');
+    const typeLabel = periodDays === 1 ? 'Dzienny' : periodDays === 7 ? 'Tygodniowy' : 'Miesięczny';
+    showToast('✨ Raport ' + typeLabel + ' wygenerowany!');
     await loadPanelAI();
     if (data.report_id) {
       openAIReportModal(data.report_id);
@@ -613,9 +626,8 @@ async function generateAIReportFromPanel() {
     console.error('generateAIReport error:', e);
     showToast('Błąd: ' + e.message);
   } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
-    btn.style.opacity = '1';
+    btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+    targetBtn.textContent = originalText;
   }
 }
 
@@ -3091,6 +3103,9 @@ async function generateAIReport() {
   }
 }
 
+// ── AI REPORT MODAL — pełen raport z edycją + wysyłką ──────────
+let _currentReportInModal = null; // pełny obiekt raportu
+
 async function openAIReportModal(reportId) {
   const modal = document.getElementById('ai-report-modal');
   const inner = document.getElementById('ai-report-modal-inner');
@@ -3113,12 +3128,15 @@ async function openAIReportModal(reportId) {
     return;
   }
 
+  _currentReportInModal = report;
+  
   const date = new Date(report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const periodFromTo = (report.period_start && report.period_end) 
     ? new Date(report.period_start).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) + ' – ' + new Date(report.period_end).toLocaleDateString('pl-PL',{day:'numeric',month:'short'})
     : '';
+  const typeLabel = report.report_type === 'daily' ? 'Dzienny' : report.report_type === 'weekly' ? 'Tygodniowy' : report.report_type === 'monthly' ? 'Miesięczny' : 'Raport';
   
-  titleEl.textContent = report.athletes?.full_name || 'Raport AI';
+  titleEl.textContent = (report.athletes?.full_name || 'Raport AI') + ' · ' + typeLabel;
   metaEl.textContent = date + (periodFromTo ? ' · ' + periodFromTo : '');
   
   const priorityMap = {
@@ -3131,24 +3149,155 @@ async function openAIReportModal(reportId) {
   badgeEl.style.color = p.fg;
   badgeEl.textContent = p.text;
   
+  // Ustaw stan visibility w toolbar
+  const visEl = document.getElementById('airm-visibility-status');
+  const sendBtn = document.getElementById('airm-send-btn');
+  if (report.visible_to_athlete && report.sent_at) {
+    const sentDate = new Date(report.sent_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    if (visEl) visEl.textContent = '✓ Wysłany ' + sentDate;
+    if (sendBtn) sendBtn.textContent = '📤 Wyślij ponownie';
+  } else {
+    if (visEl) visEl.textContent = '🔒 Tylko dla Ciebie';
+    if (sendBtn) sendBtn.textContent = '📤 Wyślij do zawodnika';
+  }
+  
   // Render markdown
   content.innerHTML = mdToHtml(report.content_markdown || '');
   
-  // Oznacz jako przeczytany
+  // Reset edit mode
+  cancelAIReportEdit();
+  
+  // Oznacz jako przeczytany przez trenera
   if (!report.read_by_coach) {
     sb.from('ai_reports').update({ read_by_coach: new Date().toISOString() })
       .eq('id', reportId).then(() => {
-        // Odśwież listę gdy zamkniemy
-        if (_currentAthleteIdForAI) loadAthleteAIReports(_currentAthleteIdForAI);
+        if (typeof loadPanelAI === 'function') loadPanelAI();
       });
   }
+}
+
+function toggleAIReportEdit() {
+  const content = document.getElementById('airm-content');
+  const textarea = document.getElementById('airm-edit-textarea');
+  const editBtn = document.getElementById('airm-edit-btn');
+  const saveBtn = document.getElementById('airm-save-btn');
+  const cancelBtn = document.getElementById('airm-cancel-btn');
+  
+  if (!_currentReportInModal) return;
+  
+  // Włącz tryb edycji
+  textarea.value = _currentReportInModal.content_markdown || '';
+  content.style.display = 'none';
+  textarea.style.display = 'block';
+  editBtn.style.display = 'none';
+  saveBtn.style.display = 'inline-block';
+  cancelBtn.style.display = 'inline-block';
+}
+
+function cancelAIReportEdit() {
+  const content = document.getElementById('airm-content');
+  const textarea = document.getElementById('airm-edit-textarea');
+  const editBtn = document.getElementById('airm-edit-btn');
+  const saveBtn = document.getElementById('airm-save-btn');
+  const cancelBtn = document.getElementById('airm-cancel-btn');
+  
+  if (!content) return;
+  content.style.display = 'block';
+  if (textarea) textarea.style.display = 'none';
+  if (editBtn) editBtn.style.display = 'inline-block';
+  if (saveBtn) saveBtn.style.display = 'none';
+  if (cancelBtn) cancelBtn.style.display = 'none';
+}
+
+async function saveAIReportEdit() {
+  if (!_currentReportInModal) return;
+  const textarea = document.getElementById('airm-edit-textarea');
+  const newMd = textarea.value.trim();
+  if (!newMd) { showToast('Treść nie może być pusta'); return; }
+  
+  const saveBtn = document.getElementById('airm-save-btn');
+  const orig = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ Zapisuję...';
+  
+  // Wyciągnij priority i summary z nowego markdownu
+  const priorityMatch = newMd.match(/PRIORITY:\s*(green|yellow|red)/i);
+  const newPriority = priorityMatch ? priorityMatch[1].toLowerCase() : _currentReportInModal.priority;
+  const tldrMatch = _currentReportInModal.report_type === 'daily'
+    ? newMd.match(/##\s*Co dzisiaj\s*\n+([^\n#]+)/)
+    : newMd.match(/##\s*TL;DR\s*\n+([^\n#]+)/);
+  const newSummary = tldrMatch ? tldrMatch[1].trim().substring(0, 300) : _currentReportInModal.summary;
+  
+  const { error } = await sb.from('ai_reports').update({
+    content_markdown: newMd,
+    priority: newPriority,
+    summary: newSummary
+  }).eq('id', _currentReportInModal.id);
+  
+  saveBtn.disabled = false;
+  saveBtn.textContent = orig;
+  
+  if (error) {
+    showToast('Błąd zapisu: ' + error.message);
+    return;
+  }
+  
+  showToast('✅ Zapisano');
+  // Odśwież modal i listę
+  await openAIReportModal(_currentReportInModal.id);
+  if (typeof loadPanelAI === 'function') loadPanelAI();
+}
+
+async function sendAIReportToAthlete() {
+  if (!_currentReportInModal) return;
+  const wasSent = _currentReportInModal.visible_to_athlete && _currentReportInModal.sent_at;
+  const confirmMsg = wasSent
+    ? 'Raport jest już udostępniony zawodnikowi. Wysłać ponownie powiadomienie?'
+    : 'Wysłać raport do zawodnika? Stanie się widoczny w jego aplikacji.';
+  if (!confirm(confirmMsg)) return;
+  
+  const sendBtn = document.getElementById('airm-send-btn');
+  const orig = sendBtn.textContent;
+  sendBtn.disabled = true;
+  sendBtn.textContent = '⏳ Wysyłam...';
+  
+  // Update raportu — visible + sent_at
+  const { error } = await sb.from('ai_reports').update({
+    visible_to_athlete: true,
+    sent_at: new Date().toISOString()
+  }).eq('id', _currentReportInModal.id);
+  
+  if (error) {
+    sendBtn.disabled = false;
+    sendBtn.textContent = orig;
+    showToast('Błąd: ' + error.message);
+    return;
+  }
+  
+  // TODO: w fazie B — wywołaj edge function send-report-to-athlete (push + email)
+  // Na razie tylko ustawiamy widoczność.
+  
+  sendBtn.disabled = false;
+  sendBtn.textContent = orig;
+  showToast('✅ Raport wysłany do zawodnika');
+  
+  // Odśwież modal + listę
+  await openAIReportModal(_currentReportInModal.id);
+  if (typeof loadPanelAI === 'function') loadPanelAI();
 }
 
 function closeAIReportModal() {
   const inner = document.getElementById('ai-report-modal-inner');
   inner.style.transform = 'translateY(20px)';
   setTimeout(() => { document.getElementById('ai-report-modal').style.display = 'none'; }, 250);
+  cancelAIReportEdit();
+  _currentReportInModal = null;
 }
+
+window.toggleAIReportEdit = toggleAIReportEdit;
+window.saveAIReportEdit = saveAIReportEdit;
+window.cancelAIReportEdit = cancelAIReportEdit;
+window.sendAIReportToAthlete = sendAIReportToAthlete;
 
 // Prosty markdown → HTML converter (nagłówki, bullety, bold, italic, emoji)
 function mdToHtml(md) {
@@ -3633,9 +3782,9 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
 
 <!-- MODAL: PEŁNY RAPORT AI -->
 <div id="ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAIReportModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--accent);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;" id="ai-report-modal-inner">
-    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
-    <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--card);z-index:2;">
+  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--accent);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;" id="ai-report-modal-inner">
+    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
+    <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;">
       <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧠</div>
       <div style="flex:1;min-width:0;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;" id="airm-title">Raport AI</div>
@@ -3644,7 +3793,18 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
       <div id="airm-priority-badge" style="font-size:9px;padding:4px 10px;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;font-weight:600;text-transform:uppercase;flex-shrink:0;"></div>
       <button onclick="closeAIReportModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
     </div>
-    <div id="airm-content" style="padding:16px 20px 100px;font-size:13px;line-height:1.6;"></div>
+    <!-- Toolbar: Edytuj / Wyślij -->
+    <div id="airm-toolbar" style="padding:10px 20px;display:flex;gap:8px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;align-items:center;flex-wrap:wrap;">
+      <button id="airm-edit-btn" onclick="toggleAIReportEdit()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">✏️ Edytuj</button>
+      <button id="airm-save-btn" onclick="saveAIReportEdit()" style="display:none;background:#3db870;border:none;color:#fff;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;font-weight:600;">💾 Zapisz</button>
+      <button id="airm-cancel-btn" onclick="cancelAIReportEdit()" style="display:none;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">Anuluj</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+        <span id="airm-visibility-status" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;"></span>
+        <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;font-weight:600;">📤 Wyślij</button>
+      </div>
+    </div>
+    <div id="airm-content" style="padding:16px 20px 60px;font-size:13px;line-height:1.6;flex:1;overflow-y:auto;"></div>
+    <textarea id="airm-edit-textarea" style="display:none;flex:1;width:calc(100% - 40px);margin:16px 20px 60px;padding:14px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;resize:vertical;min-height:300px;"></textarea>
   </div>
 </div>
 
