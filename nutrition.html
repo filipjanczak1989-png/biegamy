@@ -1427,15 +1427,11 @@ body {
 }
 .ai-suggestion:active { background: rgba(232,86,30,0.15); color: var(--accent); }
 
-/* ═══════════════════ QUOTE SLIDER — premium z ciemnym overlay ═══════════════════ */
+/* ═══════════════════ QUOTE CARD — 1 cytat + 4 grafiki rotujące w tle ═══════════════════ */
 .quote-card {
   position: relative;
-  background:
-    linear-gradient(135deg, rgba(10,8,9,0.96) 0%, rgba(14,12,16,0.92) 50%, rgba(232,86,30,0.30) 100%),
-    url('https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/j9.webp') center/cover no-repeat;
   border: 1px solid rgba(232,86,30,0.30);
   border-radius: 22px;
-  padding: 22px 24px 20px;
   margin-bottom: 18px;
   overflow: hidden;
   animation: quoteFade 0.6s cubic-bezier(0.16,1,0.3,1);
@@ -1443,11 +1439,45 @@ body {
     0 16px 48px rgba(0,0,0,0.55),
     0 0 24px rgba(232,86,30,0.12),
     inset 0 1px 0 rgba(255,255,255,0.06);
+  background: rgba(14,12,16,1);  /* fallback gdy grafiki się nie ładują */
+  min-height: 240px;
 }
 @keyframes quoteFade {
   from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Slider grafik — warstwa pod treścią */
+.quote-bg-slider {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.quote-bg-slide {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+  pointer-events: none;
+}
+.quote-bg-slide.active {
+  opacity: 1;
+}
+
+/* Overlay ciemny dla czytelności */
+.quote-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(10,8,9,0.75) 0%, rgba(14,12,16,0.55) 50%, rgba(232,86,30,0.30) 100%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Glow w prawym górnym */
 .quote-card::before {
   content: '';
   position: absolute;
@@ -1455,25 +1485,35 @@ body {
   right: -60px;
   width: 220px;
   height: 220px;
-  background: radial-gradient(circle, rgba(232,86,30,0.20) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(232,86,30,0.30) 0%, transparent 70%);
   pointer-events: none;
   animation: quoteGlow 6s ease-in-out infinite;
+  z-index: 3;
 }
 @keyframes quoteGlow {
   0%, 100% { opacity: 0.6; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.15); }
 }
+
+/* Content na wierzchu */
+.quote-content {
+  position: relative;
+  z-index: 4;
+  padding: 22px 24px 16px;
+}
+
 .quote-mark {
   position: absolute;
-  top: 0;
+  top: -6px;
   left: 18px;
   font-family: 'Georgia', serif;
   font-size: 100px;
   line-height: 1;
   color: var(--accent);
-  opacity: 0.22;
+  opacity: 0.32;
   pointer-events: none;
   font-weight: bold;
+  text-shadow: 0 2px 16px rgba(0,0,0,0.7);
 }
 .quote-label {
   position: relative;
@@ -1497,49 +1537,27 @@ body {
   background: var(--accent);
   box-shadow: 0 0 8px rgba(232,86,30,0.5);
 }
-
-/* Slider mechanism — slides w wierszu, przewijane przez transform */
-.quote-slides {
-  position: relative;
-  overflow: hidden;
-  min-height: 110px;
-  margin-bottom: 14px;
-}
-.quote-slide {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.5s cubic-bezier(0.16,1,0.3,1), transform 0.5s cubic-bezier(0.16,1,0.3,1);
-  pointer-events: none;
-}
-.quote-slide.active {
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: all;
-  position: relative;
-}
 .quote-text {
   font-family: 'Georgia', serif;
-  font-size: 17px;
+  font-size: 18px;
   line-height: 1.5;
   color: var(--fg);
   font-style: italic;
   font-weight: 400;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   letter-spacing: 0.005em;
-  text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.85), 0 0 20px rgba(0,0,0,0.6);
 }
 .quote-author {
   font-family: 'DM Mono', monospace;
   font-size: 11px;
   color: var(--fg);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   display: flex;
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+  text-shadow: 0 1px 4px rgba(0,0,0,0.85);
 }
 .quote-author::before {
   content: '—';
@@ -1553,26 +1571,28 @@ body {
   color: var(--accent);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  background: rgba(232,86,30,0.18);
-  border: 1px solid rgba(232,86,30,0.4);
+  background: rgba(232,86,30,0.20);
+  border: 1px solid rgba(232,86,30,0.45);
   padding: 4px 10px;
   border-radius: 8px;
   font-weight: 700;
   backdrop-filter: blur(8px);
 }
 
-/* Dots indicator */
+/* Dots indicator dla rotujących grafik */
 .quote-dots {
+  position: relative;
+  z-index: 4;
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-top: 6px;
+  padding: 0 0 14px;
 }
 .quote-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.25);
   border: none;
   padding: 0;
   cursor: pointer;
@@ -2269,15 +2289,26 @@ body {
     </div>
   </div>
 
-  <!-- QUOTES SLIDER — 4 cytaty z auto-rotate -->
+  <!-- QUOTE CARD — 1 cytat dnia + 4 grafiki rotujące w tle -->
   <div class="quote-card" id="quote-card" style="display:none;">
-    <div class="quote-mark">"</div>
-    <div class="quote-label">Cytat dnia</div>
-    <div class="quote-slides" id="quote-slides">
-      <!-- slidy generowane przez JS -->
+    <!-- Slider grafik w tle (4 rotujące) -->
+    <div class="quote-bg-slider" id="quote-bg-slider">
+      <!-- divy z background-image generowane przez JS -->
     </div>
+    <div class="quote-overlay"></div>
+    <!-- Treść cytatu na wierzchu -->
+    <div class="quote-content">
+      <div class="quote-mark">"</div>
+      <div class="quote-label">Cytat dnia</div>
+      <div class="quote-text" id="quote-text">—</div>
+      <div class="quote-author">
+        <span id="quote-author">—</span>
+        <span class="quote-category" id="quote-category"></span>
+      </div>
+    </div>
+    <!-- Kropki indicatora grafiki -->
     <div class="quote-dots" id="quote-dots">
-      <!-- kropki generowane przez JS -->
+      <!-- generowane przez JS -->
     </div>
   </div>
 
@@ -2474,12 +2505,12 @@ body {
 <!-- BOTTOM NAV — Dashboard / Kalendarz / Plan / Profil -->
 <!-- ─────────────────────────────────────── -->
 <nav class="bottom-nav">
-  <a class="nav-it" href="zawodnik.html" title="Dashboard">
+  <a class="nav-it" href="zawodnik.html" title="Dom">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 12 l9 -9 l9 9"/>
       <path d="M5 10 v10 a1 1 0 0 0 1 1 h4 v-7 h4 v7 h4 a1 1 0 0 0 1 -1 v-10"/>
     </svg>
-    <div class="nav-lbl">Dashboard</div>
+    <div class="nav-lbl">Dom</div>
   </a>
   <a class="nav-it" href="kalendarz.html?role=athlete" title="Kalendarz">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
@@ -3570,10 +3601,10 @@ function refreshDashboard() {
 }
 
 // ════════════════════════════════════════════════════════════
-// QUOTE SLIDER — 4 cytaty na dzień, auto-rotate co 8s
+// QUOTE CARD — 1 cytat dnia + 4 grafiki rotujące w tle co 6s
 // ════════════════════════════════════════════════════════════
-let _quoteSliderState = {
-  quotes: [],
+let _quoteImageState = {
+  images: [],
   currentIdx: 0,
   autoTimer: null,
   pauseTimer: null
@@ -3585,11 +3616,11 @@ async function loadQuoteOfDay() {
 
   // Cache w sessionStorage
   const today = new Date().toLocaleDateString('en-CA');
-  const cacheKey = 'quotes_of_day_' + today;
+  const cacheKey = 'quote_of_day_' + today;
   const cached = sessionStorage.getItem(cacheKey);
   if (cached) {
     try {
-      renderQuotesSlider(JSON.parse(cached));
+      renderQuoteCard(JSON.parse(cached));
       return;
     } catch(e) { /* invalid cache, fetch fresh */ }
   }
@@ -3605,27 +3636,29 @@ async function loadQuoteOfDay() {
     return;
   }
 
-  // Wybierz 4 cytaty deterministycznie z dnia roku
-  // Każdy dzień = inna 4-tka. Zmiana co dzień, wszyscy widzą te same.
+  // Wybór deterministyczny: 1 cytat dnia (wszyscy widzą ten sam dziś)
   const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const total = data.length;
-  const selected = [];
-  for (let i = 0; i < Math.min(4, total); i++) {
-    const idx = (dayOfYear * 4 + i * 7) % total;  // równomiernie rozproszone
-    selected.push(data[idx]);
-  }
+  const idx = dayOfYear % data.length;
+  const quote = data[idx];
 
-  sessionStorage.setItem(cacheKey, JSON.stringify(selected));
-  renderQuotesSlider(selected);
+  sessionStorage.setItem(cacheKey, JSON.stringify(quote));
+  renderQuoteCard(quote);
 }
 
-function renderQuotesSlider(quotes) {
-  if (!quotes || quotes.length === 0) return;
+function renderQuoteCard(quote) {
+  if (!quote) return;
   const card = document.getElementById('quote-card');
-  const slidesWrap = document.getElementById('quote-slides');
+  const textEl = document.getElementById('quote-text');
+  const authorEl = document.getElementById('quote-author');
+  const catEl = document.getElementById('quote-category');
+  const bgSlider = document.getElementById('quote-bg-slider');
   const dotsWrap = document.getElementById('quote-dots');
-  if (!card || !slidesWrap || !dotsWrap) return;
 
+  if (!card || !textEl || !authorEl || !bgSlider || !dotsWrap) return;
+
+  // Treść cytatu (jeden, statyczny)
+  textEl.textContent = quote.text_pl;
+  authorEl.textContent = quote.author || 'Anonim';
   const catMap = {
     nutrition: 'Żywienie',
     motivation: 'Motywacja',
@@ -3634,80 +3667,97 @@ function renderQuotesSlider(quotes) {
     sport: 'Sport',
     general: 'Inspiracja'
   };
+  if (catEl) {
+    catEl.textContent = catMap[quote.category] || '';
+    catEl.style.display = quote.category ? '' : 'none';
+  }
 
-  // Render slidów
-  slidesWrap.innerHTML = quotes.map((q, i) => `
-    <div class="quote-slide ${i === 0 ? 'active' : ''}" data-idx="${i}">
-      <div class="quote-text">${escapeHtml(q.text_pl)}</div>
-      <div class="quote-author">
-        <span>${escapeHtml(q.author || 'Anonim')}</span>
-        ${q.category ? `<span class="quote-category">${catMap[q.category] || ''}</span>` : ''}
-      </div>
-    </div>
+  // Wybór 4 grafik na dziś (deterministycznie z dnia)
+  const today = new Date().toLocaleDateString('en-CA');
+  const images = pickQuoteImages(today, 4);
+  _quoteImageState.images = images;
+  _quoteImageState.currentIdx = 0;
+
+  // Render warstw grafik
+  bgSlider.innerHTML = images.map((url, i) => `
+    <div class="quote-bg-slide ${i === 0 ? 'active' : ''}" data-idx="${i}" style="background-image:url('${url}')"></div>
   `).join('');
 
   // Render dots
-  dotsWrap.innerHTML = quotes.map((_, i) => `
-    <button class="quote-dot ${i === 0 ? 'active' : ''}" data-idx="${i}" aria-label="Cytat ${i+1}"></button>
+  dotsWrap.innerHTML = images.map((_, i) => `
+    <button class="quote-dot ${i === 0 ? 'active' : ''}" data-idx="${i}" aria-label="Grafika ${i+1}"></button>
   `).join('');
-
-  // Event listeners na dots
   dotsWrap.querySelectorAll('.quote-dot').forEach(dot => {
     dot.addEventListener('click', () => {
       const idx = parseInt(dot.dataset.idx, 10);
-      goToQuoteSlide(idx);
-      pauseAutoRotate();
+      goToQuoteImage(idx);
+      pauseQuoteAutoRotate();
     });
   });
 
-  _quoteSliderState.quotes = quotes;
-  _quoteSliderState.currentIdx = 0;
   card.style.display = 'block';
-
-  // Start auto-rotate
-  startAutoRotate();
+  startQuoteAutoRotate();
 }
 
-function goToQuoteSlide(idx) {
-  if (!_quoteSliderState.quotes.length) return;
-  const slidesWrap = document.getElementById('quote-slides');
-  const dotsWrap = document.getElementById('quote-dots');
-  if (!slidesWrap || !dotsWrap) return;
+// Wybiera 4 unikalne grafiki na bazie daty (deterministycznie)
+function pickQuoteImages(dateStr, count) {
+  const total = 55;
+  const indices = new Set();
+  // Hash z daty
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+    hash = hash & hash;
+  }
+  hash = Math.abs(hash);
+  let i = 0;
+  while (indices.size < count && i < count * 10) {
+    const n = ((hash + i * 13) % total) + 1;
+    indices.add(n);
+    i++;
+  }
+  const baseUrl = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+  return [...indices].map(n => `${baseUrl}j${n}.webp`);
+}
 
-  // Update slides
-  slidesWrap.querySelectorAll('.quote-slide').forEach((sl, i) => {
+function goToQuoteImage(idx) {
+  if (!_quoteImageState.images.length) return;
+  const bgSlider = document.getElementById('quote-bg-slider');
+  const dotsWrap = document.getElementById('quote-dots');
+  if (!bgSlider || !dotsWrap) return;
+
+  bgSlider.querySelectorAll('.quote-bg-slide').forEach((sl, i) => {
     sl.classList.toggle('active', i === idx);
   });
   dotsWrap.querySelectorAll('.quote-dot').forEach((dot, i) => {
     dot.classList.toggle('active', i === idx);
   });
-  _quoteSliderState.currentIdx = idx;
+  _quoteImageState.currentIdx = idx;
 }
 
-function startAutoRotate() {
-  stopAutoRotate();
-  _quoteSliderState.autoTimer = setInterval(() => {
-    if (!_quoteSliderState.quotes.length) return;
-    const next = (_quoteSliderState.currentIdx + 1) % _quoteSliderState.quotes.length;
-    goToQuoteSlide(next);
-  }, 8000);
+function startQuoteAutoRotate() {
+  stopQuoteAutoRotate();
+  _quoteImageState.autoTimer = setInterval(() => {
+    if (!_quoteImageState.images.length) return;
+    const next = (_quoteImageState.currentIdx + 1) % _quoteImageState.images.length;
+    goToQuoteImage(next);
+  }, 6000);  // co 6s zmiana grafiki
 }
 
-function stopAutoRotate() {
-  if (_quoteSliderState.autoTimer) {
-    clearInterval(_quoteSliderState.autoTimer);
-    _quoteSliderState.autoTimer = null;
+function stopQuoteAutoRotate() {
+  if (_quoteImageState.autoTimer) {
+    clearInterval(_quoteImageState.autoTimer);
+    _quoteImageState.autoTimer = null;
   }
-  if (_quoteSliderState.pauseTimer) {
-    clearTimeout(_quoteSliderState.pauseTimer);
-    _quoteSliderState.pauseTimer = null;
+  if (_quoteImageState.pauseTimer) {
+    clearTimeout(_quoteImageState.pauseTimer);
+    _quoteImageState.pauseTimer = null;
   }
 }
 
-function pauseAutoRotate() {
-  // Pauza po interakcji usera — wraca po 30s
-  stopAutoRotate();
-  _quoteSliderState.pauseTimer = setTimeout(() => startAutoRotate(), 30000);
+function pauseQuoteAutoRotate() {
+  stopQuoteAutoRotate();
+  _quoteImageState.pauseTimer = setTimeout(() => startQuoteAutoRotate(), 20000);
 }
 
 // ════════════════════════════════════════════════════════════
