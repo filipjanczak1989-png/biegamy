@@ -854,6 +854,50 @@ body {
 }
 .ai-suggestion:active { background: rgba(232,86,30,0.15); color: var(--accent); }
 
+/* QUICK ADD — często jadane */
+.quick-add-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.quick-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: transform 0.1s, border-color 0.2s;
+  position: relative;
+}
+.quick-card:active { transform: scale(0.96); border-color: var(--accent); }
+.quick-card .qc-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.quick-card .qc-meta {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  margin-top: 2px;
+  letter-spacing: 0.04em;
+}
+.quick-card .qc-count {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 9px;
+  color: var(--accent);
+  font-family: 'DM Mono', monospace;
+  font-weight: 700;
+}
+
+/* QUICK ADD — często jadane (END) */
+
 /* TOAST */
 .toast {
   position: fixed;
@@ -965,6 +1009,14 @@ body {
       </div>
     </div>
     <div class="hero-context" id="hero-context"></div>
+  </div>
+
+  <!-- QUICK ADD — często jadane -->
+  <div id="quick-add-wrap" style="display:none;">
+    <div class="section-header">
+      <div class="section-title">⚡ Często jadane (tap = dodaj)</div>
+    </div>
+    <div class="quick-add-row" id="quick-add-list"></div>
   </div>
 
   <!-- LISTA POSIŁKÓW -->
@@ -1242,9 +1294,63 @@ body {
     <div class="modal-title" id="ma-title">Posiłek</div>
     <div class="modal-sub" id="ma-meta">—</div>
 
+    <button class="btn-secondary" style="margin-bottom:8px;" onclick="openEditMeal()">✏ Edytuj</button>
     <button class="btn-secondary" style="margin-bottom:8px;" onclick="duplicateMeal()">📋 Zjedz to samo jeszcze raz</button>
     <button class="btn-secondary" style="margin-bottom:8px;background:rgba(224,80,80,0.1);border-color:rgba(224,80,80,0.4);color:#e05050;" onclick="deleteMealConfirm()">🗑 Usuń</button>
     <button class="btn-secondary" onclick="closeMealActions()">Anuluj</button>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- MODAL: EDIT MEAL -->
+<!-- ─────────────────────────────────────── -->
+<div id="edit-meal-modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-title">✏ Edytuj posiłek</div>
+    <div class="modal-sub">Zmień szczegóły jeśli się pomyliłeś</div>
+
+    <div class="field">
+      <label class="field-label">Nazwa</label>
+      <input type="text" id="edit-name" autocomplete="off">
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Godzina</label>
+        <input type="time" id="edit-time">
+      </div>
+      <div class="field">
+        <label class="field-label">Waga (g, opcj.)</label>
+        <input type="number" id="edit-weight" min="1" max="2000" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">kcal</label>
+        <input type="number" id="edit-kcal" min="1" max="3000" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label class="field-label">Białko (g)</label>
+        <input type="number" id="edit-protein" min="0" max="200" step="0.1" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label class="field-label">Węgle (g)</label>
+        <input type="number" id="edit-carbs" min="0" max="500" step="0.1" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label class="field-label">Tłuszcz (g)</label>
+        <input type="number" id="edit-fat" min="0" max="200" step="0.1" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="closeEditMeal()">Anuluj</button>
+      <button class="btn-primary" onclick="saveEditMeal()">Zapisz</button>
+    </div>
   </div>
 </div>
 
@@ -1482,6 +1588,94 @@ function refreshDashboard() {
 
   // Quota AI (best-effort, async)
   refreshAIQuota();
+
+  // 🆕 Quick-add (często jadane)
+  loadQuickAdd();
+}
+
+// ════════════════════════════════════════════════════════════
+// QUICK ADD — top 5 najczęściej jadanych z ostatnich 30 dni
+// ════════════════════════════════════════════════════════════
+async function loadQuickAdd() {
+  const wrap = document.getElementById('quick-add-wrap');
+  const list = document.getElementById('quick-add-list');
+  if (!wrap || !list) return;
+  // Dane z ostatnich 30 dni
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  cutoff.setHours(0, 0, 0, 0);
+
+  const { data, error } = await sb.from('nutrition_meals')
+    .select('name, kcal, protein_g, carbs_g, fat_g, fiber_g, weight_g, source, source_data, meal_type')
+    .eq('athlete_id', _athleteId)
+    .gte('eaten_at', cutoff.toISOString());
+  if (error) { console.warn('quick-add:', error); return; }
+  if (!data || data.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  // Group by name (case-insensitive), policz częstość, weź medianę kcal
+  const grouped = {};
+  data.forEach(m => {
+    const key = (m.name || '').trim().toLowerCase();
+    if (!key) return;
+    if (!grouped[key]) grouped[key] = { name: m.name, count: 0, samples: [] };
+    grouped[key].count++;
+    grouped[key].samples.push(m);
+  });
+
+  // Top 6, sortowane po częstości
+  const top = Object.values(grouped)
+    .filter(g => g.count >= 2)  // tylko te jedzone min. 2 razy
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  if (top.length === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
+
+  // Mapa po klawiszu → ostatnia próbka (do dodania)
+  window._quickAddCache = {};
+  list.innerHTML = top.map((g, i) => {
+    // Weź median (środkową) próbkę żeby wartości były reprezentatywne
+    const sorted = [...g.samples].sort((a, b) => (a.kcal || 0) - (b.kcal || 0));
+    const median = sorted[Math.floor(sorted.length / 2)];
+    window._quickAddCache[i] = median;
+    return `
+      <div class="quick-card" onclick="quickAddMeal(${i})">
+        <div class="qc-count">×${g.count}</div>
+        <div class="qc-name">${escapeHtml(g.name)}</div>
+        <div class="qc-meta">${Math.round(median.kcal)} kcal${median.weight_g ? ' · ' + Math.round(median.weight_g) + 'g' : ''}</div>
+      </div>`;
+  }).join('');
+  wrap.style.display = 'block';
+}
+
+async function quickAddMeal(idx) {
+  const m = window._quickAddCache?.[idx];
+  if (!m) return;
+  const dup = {
+    athlete_id: _athleteId,
+    eaten_at: new Date().toISOString(),
+    name: m.name,
+    meal_type: guessMealType(),
+    weight_g: m.weight_g,
+    kcal: m.kcal,
+    protein_g: m.protein_g,
+    carbs_g: m.carbs_g,
+    fat_g: m.fat_g,
+    fiber_g: m.fiber_g,
+    source: m.source,
+    source_data: m.source_data
+  };
+  const { error } = await sb.from('nutrition_meals').insert(dup);
+  if (error) { showToast('Błąd: ' + (error.message || 'spróbuj ponownie')); console.error(error); return; }
+  showToast('✓ Dodano: ' + m.kcal + ' kcal');
+  await loadTodayMeals();
+  refreshDashboard();
+  if (navigator.vibrate) navigator.vibrate([15, 25, 40]);
 }
 
 async function loadTrainingContext(eatenKcal, target) {
@@ -2078,6 +2272,80 @@ async function deleteMealConfirm() {
 }
 
 // ════════════════════════════════════════════════════════════
+// EDIT MEAL — pełna edycja istniejącego posiłku
+// ════════════════════════════════════════════════════════════
+function openEditMeal() {
+  if (!_selectedMeal) return;
+  const m = _selectedMeal;
+  // Wypełnij pola aktualnymi wartościami
+  document.getElementById('edit-name').value = m.name || '';
+  document.getElementById('edit-weight').value = m.weight_g || '';
+  document.getElementById('edit-kcal').value = m.kcal || 0;
+  document.getElementById('edit-protein').value = m.protein_g || 0;
+  document.getElementById('edit-carbs').value = m.carbs_g || 0;
+  document.getElementById('edit-fat').value = m.fat_g || 0;
+  // Godzina z eaten_at
+  const t = new Date(m.eaten_at);
+  const hh = t.getHours().toString().padStart(2, '0');
+  const mm = t.getMinutes().toString().padStart(2, '0');
+  document.getElementById('edit-time').value = hh + ':' + mm;
+  // Zamknij actions modal, otwórz edit
+  closeMealActions();
+  document.getElementById('edit-meal-modal').classList.remove('hidden');
+}
+
+function closeEditMeal() {
+  document.getElementById('edit-meal-modal').classList.add('hidden');
+}
+
+async function saveEditMeal() {
+  const id = _selectedMeal?.id;
+  if (!id) { showToast('Brak posiłku'); return; }
+  const name = document.getElementById('edit-name').value.trim();
+  const kcal = parseInt(document.getElementById('edit-kcal').value, 10);
+  const weight = parseFloat(document.getElementById('edit-weight').value) || null;
+  const protein = parseFloat(document.getElementById('edit-protein').value) || 0;
+  const carbs = parseFloat(document.getElementById('edit-carbs').value) || 0;
+  const fat = parseFloat(document.getElementById('edit-fat').value) || 0;
+  const timeStr = document.getElementById('edit-time').value;  // "HH:MM"
+
+  if (!name) { showToast('Podaj nazwę'); return; }
+  if (!kcal || kcal <= 0) { showToast('Podaj kalorie'); return; }
+
+  // Skonstruuj nowe eaten_at — z dotychczasowej daty + nowej godziny (jeśli zmieniona)
+  const oldDate = new Date(_selectedMeal.eaten_at);
+  if (timeStr && /^\d{2}:\d{2}$/.test(timeStr)) {
+    const [h, mn] = timeStr.split(':').map(Number);
+    oldDate.setHours(h, mn, 0, 0);
+  }
+
+  const update = {
+    name,
+    kcal,
+    weight_g: weight,
+    protein_g: protein,
+    carbs_g: carbs,
+    fat_g: fat,
+    eaten_at: oldDate.toISOString()
+  };
+
+  const { error } = await sb.from('nutrition_meals')
+    .update(update)
+    .eq('id', id);
+  if (error) {
+    showToast('Błąd zapisu: ' + (error.message || error.code || 'nieznany'));
+    console.error('saveEditMeal:', error);
+    return;
+  }
+  showToast('✓ Zaktualizowano');
+  closeEditMeal();
+  _selectedMeal = null;
+  await loadTodayMeals();
+  refreshDashboard();
+  if (navigator.vibrate) navigator.vibrate(20);
+}
+
+// ════════════════════════════════════════════════════════════
 // AI VISION (zdjęcie) — kamera/galeria → Edge Function → wynik
 // ════════════════════════════════════════════════════════════
 function openPhotoModal() {
@@ -2200,12 +2468,14 @@ async function callFoodRecognize(payload) {
 }
 
 // ════════════════════════════════════════════════════════════
-// AI USAGE QUOTA — odśwież widok dzienny
+// AI USAGE QUOTA — wyłączone w fazie testów (limity Infinity)
 // ════════════════════════════════════════════════════════════
 async function refreshAIQuota() {
   const el = document.getElementById('ai-quota-info');
   if (!el) return;
-  // Pobierz dzisiejsze użycie z view ai_usage_today (lub bezpośrednio z log)
+  el.innerHTML = '';  // pusty na fazę testów
+  // Gdy wracasz limity, odkomentuj poniższy kod:
+  /*
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const { data, error } = await sb.from('ai_usage_log')
@@ -2216,15 +2486,12 @@ async function refreshAIQuota() {
   const visionReal = (data || []).filter(r => r.mode === 'vision' && !r.cache_hit).length;
   const textReal = (data || []).filter(r => r.mode === 'text' && !r.cache_hit).length;
   const cacheHits = (data || []).filter(r => r.cache_hit).length;
-  const planType = _profile?.plan_type || 'free';
-  const visionLimit = planType === 'premium' ? '∞' : 5;
-  const textLimit = planType === 'premium' ? '∞' : 10;
   el.innerHTML = `
     <span style="color:var(--fg2);">Dziś AI:</span>
-    📸 <span style="color:${visionReal >= 5 && planType === 'free' ? 'var(--red)' : 'var(--fg2)'};">${visionReal}/${visionLimit}</span> ·
-    ✏ <span style="color:${textReal >= 10 && planType === 'free' ? 'var(--red)' : 'var(--fg2)'};">${textReal}/${textLimit}</span>
-    ${cacheHits > 0 ? `· <span style="color:var(--green);">${cacheHits} z cache</span>` : ''}
-    ${planType === 'free' ? ' · reset jutro 00:00' : ''}`;
+    📸 ${visionReal} ·
+    ✏ ${textReal}
+    ${cacheHits > 0 ? `· <span style="color:var(--green);">${cacheHits} z cache</span>` : ''}`;
+  */
 }
 
 // ════════════════════════════════════════════════════════════
