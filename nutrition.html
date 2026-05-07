@@ -2068,12 +2068,15 @@ body {
   background: linear-gradient(145deg, rgba(36,28,24,0.7), rgba(20,16,14,0.7));
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 10px 12px 10px 10px;
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 .quick-card::before {
   content: '';
@@ -2093,6 +2096,19 @@ body {
 }
 .quick-card:hover::before { opacity: 1; }
 .quick-card:active { transform: translateY(0) scale(0.97); }
+.quick-card-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  border: 1px solid rgba(232,86,30,0.25);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  transition: background-image 0.4s ease-out;
+}
+.quick-card .qc-info {
+  flex: 1;
+  min-width: 0;
+}
 .quick-card .qc-name {
   font-size: 12px;
   font-weight: 600;
@@ -3199,6 +3215,97 @@ function getFoodImageFromSeed(seed) {
   return FOOD_IMG_BASE + 'j' + n + '.webp';
 }
 
+// ════════════════════════════════════════════════════════════
+// FOOD IMAGE LOOKUP — Unsplash + cache
+// 3-warstwowy cache:
+// 1. In-memory (window._foodImageCache) — natychmiastowy
+// 2. food_images table — przez edge function (Supabase cache)
+// 3. Edge function pobiera z Unsplash + zapisuje
+// ════════════════════════════════════════════════════════════
+window._foodImageCache = window._foodImageCache || {};
+
+function normalizeFoodName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\([^)]*\)/g, '')      // usuń nawiasy
+    .replace(/\d+\s*(g|kg|ml|l|szt)\.?/gi, '')  // usuń jednostki
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100);
+}
+
+// Pobiera obrazek dla nazwy. Async, z lokalnym cache.
+// Fallback: jeśli edge function nie odpowie → losowa z j1-j55 (seed z nazwy)
+async function getFoodImageForName(name) {
+  const key = normalizeFoodName(name);
+  if (!key) return getFoodImageFromSeed('default_' + name);
+
+  // 1. In-memory cache hit
+  if (window._foodImageCache[key]) {
+    return window._foodImageCache[key];
+  }
+
+  // 2. Wywołaj edge function (która sprawdza DB cache + Unsplash)
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      // Bez sesji → fallback
+      const fallback = getFoodImageFromSeed(key);
+      window._foodImageCache[key] = fallback;
+      return fallback;
+    }
+
+    const r = await fetch(
+      `${window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1'}/food-image-fetch`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ name: key })
+      }
+    );
+
+    if (!r.ok) throw new Error('food-image-fetch HTTP ' + r.status);
+    const result = await r.json();
+
+    if (result.url) {
+      // Zapisz oba (full + thumb) w cache
+      const url = result.thumb || result.url;
+      window._foodImageCache[key] = url;
+      return url;
+    }
+  } catch (e) {
+    console.warn('food-image-fetch failed:', e);
+  }
+
+  // 3. Fallback do losowej naszej grafiki
+  const fallback = getFoodImageFromSeed(key);
+  window._foodImageCache[key] = fallback;
+  return fallback;
+}
+
+// Synchroniczna wersja — zwraca URL z cache (już znany) lub fallback
+// Używana w renderach żeby nie blokować UI
+function getFoodImageSync(name) {
+  const key = normalizeFoodName(name);
+  if (window._foodImageCache[key]) return window._foodImageCache[key];
+  return getFoodImageFromSeed(key);  // fallback do naszego seeda
+}
+
+// Prefetch — pobiera obrazki dla listy nazw w tle, populuje cache
+async function prefetchFoodImages(names) {
+  const unique = [...new Set(names.map(normalizeFoodName).filter(n => n && !window._foodImageCache[n]))];
+  // Concurrent ale ograniczone (max 4 naraz żeby nie zalać)
+  const BATCH = 4;
+  for (let i = 0; i < unique.length; i += BATCH) {
+    const batch = unique.slice(i, i + BATCH);
+    await Promise.all(batch.map(n => getFoodImageForName(n).catch(() => {})));
+  }
+}
+
 let _athleteId = null;
 let _profile = null;
 let _todayMeals = [];
@@ -3810,14 +3917,29 @@ async function loadQuickAdd() {
     const sorted = [...g.samples].sort((a, b) => (a.kcal || 0) - (b.kcal || 0));
     const median = sorted[Math.floor(sorted.length / 2)];
     window._quickAddCache[i] = median;
+    const initImg = getFoodImageSync(g.name);
     return `
       <div class="quick-card" onclick="quickAddMeal(${i})">
         <div class="qc-count">×${g.count}</div>
-        <div class="qc-name">${escapeHtml(g.name)}</div>
-        <div class="qc-meta">${Math.round(median.kcal)} kcal${median.weight_g ? ' · ' + Math.round(median.weight_g) + 'g' : ''}</div>
+        <div class="quick-card-thumb" data-quick-name="${escapeHtml(g.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');background-size:cover;background-position:center;"></div>
+        <div class="qc-info">
+          <div class="qc-name">${escapeHtml(g.name)}</div>
+          <div class="qc-meta">${Math.round(median.kcal)} kcal${median.weight_g ? ' · ' + Math.round(median.weight_g) + 'g' : ''}</div>
+        </div>
       </div>`;
   }).join('');
   wrap.style.display = 'block';
+
+  // Prefetch w tle dla ulubionych — często powtarzane → wpadną do cache
+  const quickNames = top.map(g => g.name);
+  prefetchFoodImages(quickNames).then(() => {
+    document.querySelectorAll('.quick-card-thumb[data-quick-name]').forEach(el => {
+      const name = el.getAttribute('data-quick-name');
+      const newImg = getFoodImageSync(name);
+      el.style.backgroundImage =
+        `linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${newImg}')`;
+    });
+  });
 }
 
 async function quickAddMeal(idx) {
@@ -3963,9 +4085,13 @@ function renderMealsList() {
       Math.round(m.carbs_g || 0) + 'g W',
       Math.round(m.fat_g || 0) + 'g T'
     ].filter(Boolean).join(' · ');
+    // Synchroniczna wersja — zwraca cache lub fallback (j1-j55 z seeda nazwy)
+    const initialImg = getFoodImageSync(m.name);
     return `
       <div class="meal-item" onclick="openMealActions(window._mealsById['${m.id}'])">
-        <div class="meal-icon">${icons[m.meal_type] || '🍽'}</div>
+        <div class="meal-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.45),rgba(26,18,14,0.25)),url('${initialImg}');background-size:cover;background-position:center;border:1px solid rgba(232,86,30,0.3);position:relative;color:transparent;">
+          <span style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg);">${icons[m.meal_type] || '🍽'}</span>
+        </div>
         <div class="meal-info">
           <div class="meal-name">${escapeHtml(m.name)}</div>
           <div class="meal-meta">${meta}</div>
@@ -3976,6 +4102,26 @@ function renderMealsList() {
         </div>
       </div>`;
   }).join('');
+
+  // Prefetch w tle — jak Unsplash znajdzie lepsze obrazki, podmienić w DOM
+  prefetchAndUpdateMealImages(_todayMeals);
+}
+
+// Po prefetchu update obrazków w DOM
+async function prefetchAndUpdateMealImages(meals) {
+  if (!meals || !meals.length) return;
+  const names = meals.map(m => m.name).filter(Boolean);
+  await prefetchFoodImages(names);
+  // Po prefetchu — podmień obrazy w DOM
+  document.querySelectorAll('.meal-icon[data-meal-name]').forEach(el => {
+    const name = el.getAttribute('data-meal-name');
+    const newImg = getFoodImageSync(name);
+    const currentBg = el.style.backgroundImage;
+    if (currentBg && !currentBg.includes(newImg)) {
+      el.style.backgroundImage =
+        `linear-gradient(135deg,rgba(10,8,9,0.45),rgba(26,18,14,0.25)),url('${newImg}')`;
+    }
+  });
 }
 
 // LEGACY: stara funkcja deleteMeal — zostawiam dla kompatybilności gdyby gdzieś była, ale nieużywana

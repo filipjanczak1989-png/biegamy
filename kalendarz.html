@@ -1269,6 +1269,71 @@ function getFoodImageFromSeed(seed) {
   return FOOD_IMG_BASE + 'j' + n + '.webp';
 }
 
+// Unsplash + cache helpers (zsynchronizowane z nutrition.html)
+window._foodImageCache = window._foodImageCache || {};
+
+function normalizeFoodName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .trim()
+    .replace(/\([^)]*\)/g, '')
+    .replace(/\d+\s*(g|kg|ml|l|szt)\.?/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .substring(0, 100);
+}
+
+function getFoodImageSync(name) {
+  const key = normalizeFoodName(name);
+  if (window._foodImageCache[key]) return window._foodImageCache[key];
+  return getFoodImageFromSeed(key || 'default');
+}
+
+async function getFoodImageForName(name) {
+  const key = normalizeFoodName(name);
+  if (!key) return getFoodImageFromSeed('default_' + name);
+  if (window._foodImageCache[key]) return window._foodImageCache[key];
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      const fb = getFoodImageFromSeed(key);
+      window._foodImageCache[key] = fb;
+      return fb;
+    }
+    const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/food-image-fetch';
+    const r = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ name: key })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const result = await r.json();
+    if (result.url) {
+      const url = result.thumb || result.url;
+      window._foodImageCache[key] = url;
+      return url;
+    }
+  } catch (e) {
+    console.warn('food-image-fetch failed:', e);
+  }
+  const fb = getFoodImageFromSeed(key);
+  window._foodImageCache[key] = fb;
+  return fb;
+}
+
+async function prefetchFoodImages(names) {
+  const unique = [...new Set(names.map(normalizeFoodName).filter(n => n && !window._foodImageCache[n]))];
+  const BATCH = 4;
+  for (let i = 0; i < unique.length; i += BATCH) {
+    const batch = unique.slice(i, i + BATCH);
+    await Promise.all(batch.map(n => getFoodImageForName(n).catch(() => {})));
+  }
+}
+
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function render() {
   const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
@@ -1609,9 +1674,13 @@ function renderDayMealsList(meals) {
   wrap.innerHTML = meals.map(m => {
     const t = new Date(m.eaten_at);
     const time = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+    const initImg = getFoodImageSync(m.name);
     return `
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:11px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(232,86,30,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='var(--border)'">
-        <div style="font-size:22px;width:32px;text-align:center;flex-shrink:0;">${icons[m.meal_type] || '🍽'}</div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:11px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(232,86,30,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='var(--border)'">
+        <div style="position:relative;width:42px;height:42px;flex-shrink:0;">
+          <div data-meal-name="${escapeHtml(m.name)}" style="width:42px;height:42px;border-radius:10px;background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');background-size:cover;background-position:center;border:1px solid rgba(232,86,30,0.25);box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>
+          <div style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;">${icons[m.meal_type] || '🍽'}</div>
+        </div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(m.name)}</div>
           <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;letter-spacing:0.04em;">
@@ -1628,6 +1697,15 @@ function renderDayMealsList(meals) {
         </div>
       </div>`;
   }).join('');
+
+  // Prefetch w tle — gdy Unsplash zwróci, podmień obrazki w DOM
+  prefetchFoodImages(meals.map(m => m.name)).then(() => {
+    document.querySelectorAll('[data-meal-name]').forEach(el => {
+      const name = el.getAttribute('data-meal-name');
+      const newImg = getFoodImageSync(name);
+      el.style.backgroundImage = `linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${newImg}')`;
+    });
+  });
 }
 
 function updateDayMealsTotals(meals) {
