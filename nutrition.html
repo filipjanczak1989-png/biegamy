@@ -170,7 +170,7 @@ body {
     rgba(14,12,16,0.95);
   border: 1px solid rgba(232,86,30,0.25);
   border-radius: 22px;
-  padding: 24px;
+  padding: 24px 24px 24px 32px;  /* dodatkowe padding po lewej dla paska */
   margin-bottom: 16px;
   position: relative;
   overflow: hidden;
@@ -179,6 +179,25 @@ body {
     0 0 40px rgba(232,86,30,0.15),
     inset 0 1px 0 rgba(255,255,255,0.08);
 }
+
+/* Pasek z grafiką po lewej stronie */
+.hero-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 8px;
+  background-image: var(--hero-strip-img, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 2;
+  box-shadow:
+    inset -1px 0 0 rgba(232,86,30,0.4),
+    2px 0 12px rgba(232,86,30,0.25);
+}
+
 .hero-card::before {
   content: '';
   position: absolute;
@@ -3650,6 +3669,14 @@ function goToToday() {
 // DASHBOARD REFRESH
 // ════════════════════════════════════════════════════════════
 function refreshDashboard() {
+  // Pasek z grafiką po lewej hero — deterministyczna z dnia (wszyscy widzą tę samą dziś, codziennie inną)
+  const hero = document.querySelector('.hero-card');
+  if (hero) {
+    const today = new Date().toLocaleDateString('en-CA');
+    const stripImg = getFoodImageFromSeed('hero_strip_' + today);
+    hero.style.setProperty('--hero-strip-img', `url('${stripImg}')`);
+  }
+
   // Sumy
   const totals = _todayMeals.reduce((acc, m) => {
     acc.kcal += m.kcal || 0;
