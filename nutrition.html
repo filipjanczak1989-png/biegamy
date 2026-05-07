@@ -854,30 +854,69 @@ body {
 }
 .ai-suggestion:active { background: rgba(232,86,30,0.15); color: var(--accent); }
 
-/* ═══════════════════ ONBOARDING ═══════════════════ */
+/* ═══════════════════ ONBOARDING — PREMIUM ═══════════════════ */
 .onboard {
   position: fixed;
   inset: 0;
-  background: linear-gradient(135deg, #07070a 0%, #14141c 100%);
+  background: #07070a;
   z-index: 1000;
   display: flex;
   flex-direction: column;
   padding: 0;
-  animation: onboardIn 0.3s ease-out;
+  animation: onboardIn 0.4s cubic-bezier(0.16,1,0.3,1);
+  overflow: hidden;
 }
 .onboard.hidden { display: none; }
 @keyframes onboardIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Topbar onboardingu */
+/* Animowane orby w tle — premium feel */
+.onboard::before,
+.onboard::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+  z-index: 0;
+}
+.onboard::before {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+  top: -100px;
+  right: -100px;
+  animation: orbFloat1 18s ease-in-out infinite;
+}
+.onboard::after {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, #4a90e2 0%, transparent 70%);
+  bottom: -80px;
+  left: -80px;
+  animation: orbFloat2 22s ease-in-out infinite;
+  opacity: 0.3;
+}
+@keyframes orbFloat1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-40px, 60px) scale(1.1); }
+}
+@keyframes orbFloat2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(50px, -40px) scale(1.15); }
+}
+
+/* Topbar z premium feel */
 .onboard-top {
   display: flex;
   align-items: center;
   padding: 16px;
   padding-top: max(16px, env(safe-area-inset-top, 16px));
-  border-bottom: 1px solid var(--border);
+  position: relative;
+  z-index: 2;
 }
 .onboard-progress-wrap {
   flex: 1;
@@ -887,13 +926,21 @@ body {
 }
 .onboard-dot {
   flex: 1;
-  height: 4px;
-  background: rgba(255,255,255,0.1);
+  height: 3px;
+  background: rgba(255,255,255,0.08);
   border-radius: 2px;
-  transition: background 0.3s;
+  transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+  overflow: hidden;
 }
-.onboard-dot.active { background: var(--accent); }
-.onboard-dot.done { background: var(--accent); opacity: 0.6; }
+.onboard-dot.active {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 12px rgba(232,86,30,0.5);
+}
+.onboard-dot.done {
+  background: var(--accent);
+  opacity: 0.4;
+}
 
 .onboard-skip {
   background: transparent;
@@ -905,10 +952,11 @@ body {
   text-transform: uppercase;
   cursor: pointer;
   padding: 8px;
+  transition: color 0.2s;
 }
 .onboard-skip:active { color: var(--fg); }
 
-/* Content */
+/* Content area */
 .onboard-content {
   flex: 1;
   overflow-y: auto;
@@ -917,124 +965,262 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  position: relative;
+  z-index: 2;
+  animation: contentSlide 0.4s cubic-bezier(0.16,1,0.3,1);
 }
-.onboard-icon {
-  font-size: 64px;
-  line-height: 1;
-  margin-bottom: 18px;
-  animation: onboardIcon 0.5s ease-out;
+@keyframes contentSlide {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes onboardIcon {
-  from { transform: scale(0.5); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+
+/* Hero icon — premium z glow */
+.onboard-hero {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  margin: 18px auto 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.onboard-hero::before {
+  content: '';
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle, rgba(232,86,30,0.4) 0%, transparent 70%);
+  filter: blur(20px);
+  animation: heroPulse 3s ease-in-out infinite;
+}
+@keyframes heroPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+.onboard-hero-circle {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(232,86,30,0.15), rgba(74,144,226,0.1));
+  border: 1px solid rgba(232,86,30,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  backdrop-filter: blur(10px);
+  z-index: 2;
+  animation: heroFloat 4s ease-in-out infinite;
+}
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.onboard-hero-circle svg {
+  width: 56px;
+  height: 56px;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
 .onboard-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 32px;
+  font-size: 38px;
   letter-spacing: 0.04em;
-  line-height: 1.05;
-  margin-bottom: 12px;
+  line-height: 1.0;
+  margin-bottom: 14px;
   max-width: 340px;
+  background: linear-gradient(135deg, var(--fg) 0%, #b5b5bd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-.onboard-title span { color: var(--accent); }
+.onboard-title span {
+  background: linear-gradient(135deg, var(--accent), #ffb74d);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 .onboard-text {
   font-size: 14px;
   color: var(--fg2);
-  line-height: 1.5;
+  line-height: 1.55;
   max-width: 320px;
-  margin-bottom: 22px;
+  margin-bottom: 26px;
 }
 
+/* Feature cards — premium */
 .onboard-features {
   display: flex;
   flex-direction: column;
   gap: 10px;
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   margin-bottom: 12px;
 }
 .onboard-feature {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 14px 16px;
   text-align: left;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16,1,0.3,1);
+}
+.onboard-feature::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(232,86,30,0.05), transparent);
+  transition: left 0.6s;
+}
+.onboard-feature:hover::before { left: 100%; }
+.onboard-feature[onclick]:active {
+  transform: scale(0.98);
+  border-color: rgba(232,86,30,0.4);
+}
+.onboard-feature[onclick] {
+  cursor: pointer;
 }
 .onboard-feature-icon {
-  font-size: 28px;
-  line-height: 1;
+  width: 44px;
+  height: 44px;
   flex-shrink: 0;
-  width: 40px;
-  text-align: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(232,86,30,0.15), rgba(232,86,30,0.05));
+  border: 1px solid rgba(232,86,30,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 }
-.onboard-feature-text { flex: 1; min-width: 0; }
+.onboard-feature-icon svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--accent);
+  stroke-width: 1.8;
+}
+.onboard-feature-icon-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+.onboard-feature-text { flex: 1; min-width: 0; padding-top: 2px; }
 .onboard-feature-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--fg);
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  letter-spacing: -0.01em;
 }
 .onboard-feature-sub {
-  font-size: 11px;
+  font-size: 12px;
+  color: var(--fg2);
+  line-height: 1.45;
+}
+.onboard-feature-arrow {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
   color: var(--muted);
-  font-family: 'DM Mono', monospace;
-  letter-spacing: 0.04em;
-  line-height: 1.4;
+  align-self: center;
+  opacity: 0.4;
 }
 
-/* Forma profilu w onboardingu */
+/* Mockup screen w step 2 — pokazuje przykładowy widok apki */
+.onboard-mockup {
+  width: 240px;
+  height: 320px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #0e0e15, #14141c);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 22px;
+  padding: 14px;
+  position: relative;
+  box-shadow: 
+    0 30px 60px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(232,86,30,0.1),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+  animation: heroFloat 5s ease-in-out infinite;
+}
+.onboard-mockup-notch {
+  width: 50px;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  margin: 0 auto 12px;
+}
+
+/* Profile form w onboardingu */
 .onboard-form {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
 }
 
-/* CTA bottom */
+/* CTA bottom — premium */
 .onboard-bottom {
-  padding: 16px 24px;
+  padding: 14px 20px;
   padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
-  border-top: 1px solid var(--border);
-  background: rgba(7,7,10,0.85);
-  backdrop-filter: blur(12px);
+  background: linear-gradient(180deg, transparent, rgba(7,7,10,0.95) 30%);
   display: flex;
   gap: 10px;
+  position: relative;
+  z-index: 3;
 }
 .onboard-btn-back {
   background: rgba(255,255,255,0.06);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255,255,255,0.1);
   color: var(--fg2);
-  border-radius: 12px;
-  padding: 13px 18px;
+  border-radius: 14px;
+  padding: 14px 18px;
   font-family: 'DM Mono', monospace;
-  font-size: 12px;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
   font-weight: 600;
+  transition: all 0.2s;
 }
+.onboard-btn-back:active { background: rgba(255,255,255,0.1); }
 .onboard-btn-next {
   flex: 1;
   background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;
   border: none;
-  border-radius: 12px;
-  padding: 13px;
+  border-radius: 14px;
+  padding: 14px;
   font-family: 'DM Mono', monospace;
   font-size: 13px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(232,86,30,0.3);
+  box-shadow: 
+    0 8px 24px rgba(232,86,30,0.4),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
 }
-.onboard-btn-next:active { transform: scale(0.98); }
-.onboard-btn-next:disabled {
-  background: rgba(255,255,255,0.08);
-  color: var(--muted);
-  box-shadow: none;
-  cursor: not-allowed;
+.onboard-btn-next::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.6s;
+}
+.onboard-btn-next:hover::before { left: 100%; }
+.onboard-btn-next:active {
+  transform: scale(0.98);
+  box-shadow: 0 4px 16px rgba(232,86,30,0.4);
 }
 
 /* HEATMAP — kalendarz 30 dni */
@@ -1513,31 +1699,55 @@ body {
 
   <!-- KROK 1 — Welcome -->
   <div class="onboard-content" id="ob-step-1">
-    <div class="onboard-icon">🍎🏃</div>
-    <div class="onboard-title">Nutrition <span>tracker</span> dla biegaczy</div>
+    <div class="onboard-hero">
+      <div class="onboard-hero-circle">
+        <!-- Apple + arrow ikona -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2 Z"/>
+          <path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/>
+        </svg>
+      </div>
+    </div>
+    <div class="onboard-title">Witaj w <span>Nutrition</span></div>
     <div class="onboard-text">
-      Skanuj jedzenie, śledź kalorie i zobacz jak dieta łączy się z twoim treningiem.
+      Tracker faktów dla biegaczy.<br>
+      Skanuj jedzenie, śledź kalorie, łącz z treningami.
     </div>
     <div class="onboard-features">
       <div class="onboard-feature">
-        <div class="onboard-feature-icon">🎯</div>
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="6"/>
+            <circle cx="12" cy="12" r="2"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">Tylko fakty</div>
-          <div class="onboard-feature-sub">Nie podpowiadamy diet ani planów. Pokazujemy ile zjadłeś — decyzje należą do ciebie.</div>
+          <div class="onboard-feature-title">Bez sugestii diet</div>
+          <div class="onboard-feature-sub">Pokazujemy fakty: ile zjadłeś, jaki balans makro. Decyzje należą do ciebie.</div>
         </div>
       </div>
       <div class="onboard-feature">
-        <div class="onboard-feature-icon">🏃</div>
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 4 v6 h6"/>
+            <path d="M3 12 a9 9 0 1 0 9 -9"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
           <div class="onboard-feature-title">Łączy się z treningami</div>
           <div class="onboard-feature-sub">Twoje przebiegnięte kilometry liczymy do dziennego bilansu kcal.</div>
         </div>
       </div>
       <div class="onboard-feature">
-        <div class="onboard-feature-icon">⚡</div>
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M13 2 L4 14 h7 l-1 8 l9 -12 h-7 z"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
           <div class="onboard-feature-title">Szybkie dodawanie</div>
-          <div class="onboard-feature-sub">Barcode, AI rozpoznawanie zdjęć, lub kliknięcie na "często jadane".</div>
+          <div class="onboard-feature-sub">3 sekundy: barcode, zdjęcie z AI, lub jeden tap "często jadane".</div>
         </div>
       </div>
     </div>
@@ -1545,31 +1755,58 @@ body {
 
   <!-- KROK 2 — 3 sposoby dodawania -->
   <div class="onboard-content" id="ob-step-2" style="display:none;">
-    <div class="onboard-icon">🍽</div>
+    <div class="onboard-hero">
+      <div class="onboard-hero-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 v4"/>
+          <path d="M3 9 c0 8 4 13 9 13 c5 0 9 -5 9 -13"/>
+          <path d="M3 9 c2 -2 7 -2 9 0 c2 -2 7 -2 9 0"/>
+        </svg>
+      </div>
+    </div>
     <div class="onboard-title">3 sposoby <span>dodawania</span></div>
     <div class="onboard-text">
-      Wybierz najwygodniejszy. Wszystkie działają razem.
+      Wybierz najwygodniejszy. Wszystkie razem działają.
     </div>
     <div class="onboard-features">
       <div class="onboard-feature">
-        <div class="onboard-feature-icon">📊</div>
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 5 v14"/>
+            <path d="M7 5 v14"/>
+            <path d="M11 5 v14"/>
+            <path d="M15 5 v14"/>
+            <path d="M19 5 v14"/>
+            <path d="M21 5 v14"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">Barcode (najdokładniejsze)</div>
+          <div class="onboard-feature-title">📊 Barcode (najdokładniej)</div>
           <div class="onboard-feature-sub">Skanuj kod produktu — Tymbark, jogurt, paluszki. Dane prosto z producenta.</div>
         </div>
       </div>
       <div class="onboard-feature">
-        <div class="onboard-feature-icon">📸</div>
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7 a2 2 0 0 1 2 -2 h3 l2 -3 h4 l2 3 h3 a2 2 0 0 1 2 2 v11 a2 2 0 0 1 -2 2 h-14 a2 2 0 0 1 -2 -2 z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">Zdjęcie (AI)</div>
-          <div class="onboard-feature-sub">Sfotografuj posiłek, AI rozpozna składniki i policzy kalorie. Idealne do gotowanego.</div>
+          <div class="onboard-feature-title">📸 Zdjęcie + AI</div>
+          <div class="onboard-feature-sub">Sfotografuj posiłek. AI rozpozna składniki i policzy kalorie. Idealne do gotowanego.</div>
         </div>
       </div>
       <div class="onboard-feature">
-        <div class="onboard-feature-icon">✏</div>
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 3 l4 4 l-12 12 l-5 1 l1 -5 z"/>
+            <path d="M14 6 l4 4"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">Ręcznie</div>
-          <div class="onboard-feature-sub">Wpisz nazwę i kalorie — gdy znasz wartości albo szybkie szacowanie.</div>
+          <div class="onboard-feature-title">✏ Ręcznie / Wyszukaj</div>
+          <div class="onboard-feature-sub">Wpisz nazwę i kalorie, lub wyszukaj zeskanowany wcześniej produkt z bazy.</div>
         </div>
       </div>
     </div>
@@ -1577,10 +1814,17 @@ body {
 
   <!-- KROK 3 — Profil -->
   <div class="onboard-content" id="ob-step-3" style="display:none;">
-    <div class="onboard-icon">📊</div>
+    <div class="onboard-hero">
+      <div class="onboard-hero-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/>
+          <path d="M4 21 c 0 -4 4 -7 8 -7 c 4 0 8 3 8 7"/>
+        </svg>
+      </div>
+    </div>
     <div class="onboard-title">Skonfiguruj <span>profil</span></div>
     <div class="onboard-text">
-      Bez tego nie obliczymy twojego dziennego celu kalorii.
+      Bez tego nie obliczymy twojego dziennego celu kalorycznego.
     </div>
     <div class="onboard-form">
       <div class="field-row">
@@ -1628,36 +1872,68 @@ body {
 
   <!-- KROK 4 — Gotowe! -->
   <div class="onboard-content" id="ob-step-4" style="display:none;">
-    <div class="onboard-icon">🎉</div>
-    <div class="onboard-title">Gotowe! Dodaj <span>pierwszy posiłek</span></div>
+    <div class="onboard-hero">
+      <div class="onboard-hero-circle">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M8 12 l3 3 l5 -7"/>
+        </svg>
+      </div>
+    </div>
+    <div class="onboard-title">Gotowe! <span>Pierwszy krok</span></div>
     <div class="onboard-text">
-      Możesz zacząć teraz albo od jutra. Twój profil jest zapisany.
+      Wybierz sposób dodania pierwszego posiłku — albo zacznij jutro.
     </div>
     <div class="onboard-features">
-      <div class="onboard-feature" style="cursor:pointer;" onclick="finishOnboarding(()=>openScanner())">
-        <div class="onboard-feature-icon">📊</div>
+      <div class="onboard-feature" onclick="finishOnboarding(()=>openScanner())">
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 5 v14"/>
+            <path d="M7 5 v14"/>
+            <path d="M11 5 v14"/>
+            <path d="M15 5 v14"/>
+            <path d="M19 5 v14"/>
+            <path d="M21 5 v14"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
           <div class="onboard-feature-title">Skanuj barcode</div>
-          <div class="onboard-feature-sub">Weź dowolny produkt z szafki i zeskanuj jego kod kreskowy.</div>
+          <div class="onboard-feature-sub">Weź dowolny produkt z szafki i zeskanuj kod kreskowy.</div>
         </div>
+        <svg class="onboard-feature-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18 l6 -6 l-6 -6"/>
+        </svg>
       </div>
-      <div class="onboard-feature" style="cursor:pointer;" onclick="finishOnboarding(()=>openPhotoModal())">
-        <div class="onboard-feature-icon">📸</div>
+      <div class="onboard-feature" onclick="finishOnboarding(()=>openPhotoModal())">
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7 a2 2 0 0 1 2 -2 h3 l2 -3 h4 l2 3 h3 a2 2 0 0 1 2 2 v11 a2 2 0 0 1 -2 2 h-14 a2 2 0 0 1 -2 -2 z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
           <div class="onboard-feature-title">Sfotografuj jedzenie</div>
-          <div class="onboard-feature-sub">Wybierz zdjęcie z galerii lub zrób kamerą — AI rozpozna posiłek.</div>
+          <div class="onboard-feature-sub">Wybierz zdjęcie z galerii lub zrób kamerą. AI rozpozna posiłek.</div>
         </div>
+        <svg class="onboard-feature-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18 l6 -6 l-6 -6"/>
+        </svg>
       </div>
-      <div class="onboard-feature" style="cursor:pointer;" onclick="finishOnboarding(()=>openTextModal())">
-        <div class="onboard-feature-icon">✏</div>
+      <div class="onboard-feature" onclick="finishOnboarding(()=>openTextModal())">
+        <div class="onboard-feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="M21 21 l-5 -5"/>
+          </svg>
+        </div>
         <div class="onboard-feature-text">
           <div class="onboard-feature-title">Wyszukaj lub wpisz</div>
-          <div class="onboard-feature-sub">Wybierz z bazy lub dodaj ręcznie z kaloriami.</div>
+          <div class="onboard-feature-sub">Znajdź w bazie zeskanowanych albo dodaj ręcznie z kaloriami.</div>
         </div>
+        <svg class="onboard-feature-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18 l6 -6 l-6 -6"/>
+        </svg>
       </div>
-    </div>
-    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;margin-top:14px;">
-      Lub kliknij "Zaczynam" niżej żeby przejść do dashboardu
     </div>
   </div>
 
