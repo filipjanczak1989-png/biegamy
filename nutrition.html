@@ -1426,9 +1426,26 @@ body {
   <!-- VIEW: TODAY -->
   <div id="view-today">
 
+  <!-- BANNER: oglądany dzień (gdy nie dzisiejszy) -->
+  <div id="view-date-banner" style="display:none;background:linear-gradient(135deg,rgba(80,144,224,0.15),rgba(80,144,224,0.05));border:1px solid rgba(80,144,224,0.3);border-radius:12px;padding:10px 14px;margin-bottom:14px;align-items:center;gap:10px;">
+    <div style="width:36px;height:36px;border-radius:10px;background:rgba(80,144,224,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5090e0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2"/>
+        <line x1="16" y1="2" x2="16" y2="6"/>
+        <line x1="8" y1="2" x2="8" y2="6"/>
+        <line x1="3" y1="10" x2="21" y2="10"/>
+      </svg>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:2px;">Oglądasz</div>
+      <div id="view-date-label" style="font-size:14px;font-weight:600;color:var(--fg);">—</div>
+    </div>
+    <button onclick="goToToday()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);border-radius:9px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;cursor:pointer;white-space:nowrap;">Dziś →</button>
+  </div>
+
   <!-- HERO — dzisiejsze podsumowanie -->
   <div class="hero-card">
-    <div class="hero-label">Dziś</div>
+    <div class="hero-label" id="hero-label">Dziś</div>
     <div>
       <span class="hero-kcal" id="hero-kcal">0</span>
       <span class="hero-kcal-target" id="hero-target"></span>
@@ -1463,7 +1480,7 @@ body {
 
   <!-- LISTA POSIŁKÓW -->
   <div class="section-header">
-    <div class="section-title">Dzisiaj zjedzone</div>
+    <div class="section-title" id="meals-section-title">Dzisiaj zjedzone</div>
   </div>
   <div id="meals-list">
     <div class="empty-state">
@@ -2248,6 +2265,48 @@ let _todayMeals = [];
 let _scannedProduct = null;  // produkt aktualnie pokazywany w modalu confirm
 let _scanner = null;          // ZXing reader instance
 
+// Data oglądana — domyślnie dziś, ale z URL ?date=YYYY-MM-DD można otworzyć inny dzień
+let _viewDate = (function() {
+  const params = new URLSearchParams(window.location.search);
+  const d = params.get('date');
+  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d)) {
+    return d;
+  }
+  return new Date().toLocaleDateString('en-CA');  // YYYY-MM-DD lokalnie
+})();
+
+function isViewingToday() {
+  return _viewDate === new Date().toLocaleDateString('en-CA');
+}
+
+// Pomocnik: zwraca timestamp dla wstawiania posiłku
+// Dla "dziś" — używa aktualnej godziny
+// Dla innego dnia — używa np. południa (12:00)
+function getInsertTimestamp() {
+  if (isViewingToday()) {
+    return new Date().toISOString();
+  }
+  // Dla starszego/przyszłego dnia — wstaw na 12:00 tego dnia
+  const d = new Date(_viewDate + 'T12:00:00');
+  return d.toISOString();
+}
+
+function getViewDateLabel() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const view = new Date(_viewDate + 'T00:00:00');
+
+  if (view.getTime() === today.getTime()) return 'Dziś';
+  if (view.getTime() === yesterday.getTime()) return 'Wczoraj';
+  if (view.getTime() === tomorrow.getTime()) return 'Jutro';
+
+  // Inny dzień — pełny format
+  const days = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+  const months = ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
+  return days[view.getDay()] + ', ' + view.getDate() + ' ' + months[view.getMonth()];
+}
+
 // ════════════════════════════════════════════════════════════
 // AUTH + INIT
 // ════════════════════════════════════════════════════════════
@@ -2262,10 +2321,10 @@ let _scanner = null;          // ZXing reader instance
   await loadTodayMeals();
   refreshDashboard();
 
-  // Pierwsze wejście — uruchom onboarding
+  // Pierwsze wejście — uruchom onboarding (ale NIE jeśli przyszli z ?date= param)
+  const hasDateParam = new URLSearchParams(window.location.search).has('date');
   const onboarded = localStorage.getItem('nutrition_onboarded');
-  if (!onboarded && !_profile) {
-    // Małe opóźnienie żeby UI się załadowało
+  if (!onboarded && !_profile && !hasDateParam) {
     setTimeout(() => openOnboarding(), 300);
   }
 })();
@@ -2489,15 +2548,55 @@ async function saveProfile() {
 // LOAD TODAY MEALS
 // ════════════════════════════════════════════════════════════
 async function loadTodayMeals() {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  // Granice dnia: początek i koniec _viewDate (lokalnie)
+  const startOfDay = new Date(_viewDate + 'T00:00:00');
+  const endOfDay = new Date(_viewDate + 'T23:59:59.999');
+
   const { data, error } = await sb.from('nutrition_meals')
     .select('*')
     .eq('athlete_id', _athleteId)
     .gte('eaten_at', startOfDay.toISOString())
+    .lte('eaten_at', endOfDay.toISOString())
     .order('eaten_at', { ascending: false });
   if (error) console.warn('meals:', error);
   _todayMeals = data || [];
+
+  // Update etykiety i banner
+  updateViewDateUI();
+}
+
+function updateViewDateUI() {
+  const banner = document.getElementById('view-date-banner');
+  const heroLabel = document.getElementById('hero-label');
+  const sectionTitle = document.getElementById('meals-section-title');
+  const label = getViewDateLabel();
+
+  if (isViewingToday()) {
+    if (banner) banner.style.display = 'none';
+    if (heroLabel) heroLabel.textContent = 'Dziś';
+    if (sectionTitle) sectionTitle.textContent = 'Dzisiaj zjedzone';
+  } else {
+    if (banner) {
+      banner.style.display = 'flex';
+      const labelEl = document.getElementById('view-date-label');
+      if (labelEl) labelEl.textContent = label;
+    }
+    if (heroLabel) heroLabel.textContent = label;
+    if (sectionTitle) sectionTitle.textContent = 'Posiłki tego dnia';
+  }
+}
+
+function goToToday() {
+  // Reset _viewDate na dziś + wyczyść URL param
+  _viewDate = new Date().toLocaleDateString('en-CA');
+  // Usuń ?date= z URL bez przeładowania strony
+  const url = new URL(window.location.href);
+  url.searchParams.delete('date');
+  window.history.replaceState({}, '', url);
+  // Przeładuj dane
+  loadTodayMeals().then(() => {
+    refreshDashboard();
+  });
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2609,7 +2708,7 @@ async function quickAddMeal(idx) {
   if (!m) return;
   const dup = {
     athlete_id: _athleteId,
-    eaten_at: new Date().toISOString(),
+    eaten_at: getInsertTimestamp(),
     name: m.name,
     meal_type: guessMealType(),
     weight_g: m.weight_g,
@@ -2631,16 +2730,16 @@ async function quickAddMeal(idx) {
 
 async function loadTrainingContext(eatenKcal, target) {
   const ctxEl = document.getElementById('hero-context');
-  // Pobierz dzisiejsze logi treningowe
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  // Pobierz logi treningowe dla _viewDate (nie zawsze dziś!)
+  const startOfDay = new Date(_viewDate + 'T00:00:00');
+  const endOfDay = new Date(_viewDate + 'T23:59:59.999');
   let burnedKcal = 0;
   try {
-    // Pobieram wszystkie kolumny żeby móc używać duration/pace jeśli są dostępne
     const { data } = await sb.from('training_logs')
       .select('*')
       .eq('athlete_id', _athleteId)
-      .gte('logged_at', startOfDay.toISOString());
+      .gte('logged_at', startOfDay.toISOString())
+      .lte('logged_at', endOfDay.toISOString());
     if (data) {
       burnedKcal = data.reduce((s, l) => {
         return s + estimateTrainingKcal(l);
@@ -2974,7 +3073,7 @@ async function confirmMeal() {
   const f = g / 100;
   const meal = {
     athlete_id: _athleteId,
-    eaten_at: new Date().toISOString(),
+    eaten_at: getInsertTimestamp(),
     name: _scannedProduct.name + (_scannedProduct.brand ? ' (' + _scannedProduct.brand + ')' : ''),
     meal_type: guessMealType(),
     weight_g: g,
@@ -2996,7 +3095,9 @@ async function confirmMeal() {
 }
 
 function guessMealType() {
-  const h = new Date().getHours();
+  // Bazuje na godzinie z getInsertTimestamp (uwzględnia _viewDate)
+  const ts = getInsertTimestamp();
+  const h = new Date(ts).getHours();
   if (h < 11) return 'breakfast';
   if (h < 16) return 'lunch';
   if (h < 21) return 'dinner';
@@ -3479,7 +3580,7 @@ async function saveManualMeal() {
 
   const meal = {
     athlete_id: _athleteId,
-    eaten_at: new Date().toISOString(),
+    eaten_at: getInsertTimestamp(),
     name: name,
     meal_type: guessMealType(),
     weight_g: weight,
@@ -3523,7 +3624,7 @@ async function duplicateMeal() {
   const m = _selectedMeal;
   const dup = {
     athlete_id: _athleteId,
-    eaten_at: new Date().toISOString(),
+    eaten_at: getInsertTimestamp(),
     name: m.name,
     meal_type: guessMealType(),
     weight_g: m.weight_g,
