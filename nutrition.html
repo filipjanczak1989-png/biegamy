@@ -158,7 +158,7 @@ body {
 /* CONTENT */
 .content {
   padding: 16px;
-  padding-bottom: 100px;
+  padding-bottom: 200px; /* miejsce na FAB row + bottom nav */
   max-width: 600px;
   margin: 0 auto;
 }
@@ -682,16 +682,78 @@ body {
   letter-spacing: 0.06em;
 }
 
-/* FAB row — premium 3 buttony dodawania */
+/* ── BOTTOM NAV ─────────────────────────────────────────────────────── */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 420px;
+  background: rgba(7,7,11,0.92);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  padding: 10px 6px calc(22px + env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.5);
+}
+.nav-it {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 2px;
+  cursor: pointer;
+  text-decoration: none;
+  position: relative;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.nav-it svg {
+  width: 22px;
+  height: 22px;
+  stroke: var(--muted);
+  stroke-width: 1.7;
+  transition: stroke 0.15s;
+}
+.nav-it.active svg { stroke: var(--accent); }
+.nav-lbl {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.nav-it.active .nav-lbl { color: var(--accent); }
+.nav-it.active::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 0 14px rgba(232,86,30,0.75);
+}
+
+/* FAB row — premium 3 buttony dodawania (nad bottom nav) */
 .fab-row {
   position: fixed;
-  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  bottom: calc(86px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 30;
+  z-index: 31;
   background: linear-gradient(135deg, rgba(20,16,18,0.85), rgba(10,8,10,0.92));
   backdrop-filter: blur(32px) saturate(1.4);
   -webkit-backdrop-filter: blur(32px) saturate(1.4);
@@ -2361,6 +2423,42 @@ body {
     <div class="fab-label">Zdjęcie</div>
   </button>
 </div>
+
+<!-- ─────────────────────────────────────── -->
+<!-- BOTTOM NAV — Dashboard / Kalendarz / Plan / Profil -->
+<!-- ─────────────────────────────────────── -->
+<nav class="bottom-nav">
+  <a class="nav-it" href="zawodnik.html" title="Dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12 l9 -9 l9 9"/>
+      <path d="M5 10 v10 a1 1 0 0 0 1 1 h4 v-7 h4 v7 h4 a1 1 0 0 0 1 -1 v-10"/>
+    </svg>
+    <div class="nav-lbl">Dashboard</div>
+  </a>
+  <a class="nav-it" href="kalendarz.html?role=athlete" title="Kalendarz">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2"/>
+      <line x1="16" y1="2" x2="16" y2="6"/>
+      <line x1="8" y1="2" x2="8" y2="6"/>
+      <line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+    <div class="nav-lbl">Kalendarz</div>
+  </a>
+  <a class="nav-it" href="zawodnik.html?section=plan" title="Plan treningowy">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9 11 l3 3 l8 -8"/>
+      <path d="M20 12 v6 a2 2 0 0 1 -2 2 H6 a2 2 0 0 1 -2 -2 V6 a2 2 0 0 1 2 -2 h11"/>
+    </svg>
+    <div class="nav-lbl">Plan</div>
+  </a>
+  <a class="nav-it" href="#" onclick="event.preventDefault();openProfileModal();" title="Profil">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="8" r="4"/>
+      <path d="M4 21 c 0 -4 4 -7 8 -7 c 4 0 8 3 8 7"/>
+    </svg>
+    <div class="nav-lbl">Profil</div>
+  </a>
+</nav>
 
 <!-- ─────────────────────────────────────── -->
 <!-- MODAL: SCANNER -->
