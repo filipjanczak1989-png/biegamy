@@ -854,6 +854,189 @@ body {
 }
 .ai-suggestion:active { background: rgba(232,86,30,0.15); color: var(--accent); }
 
+/* ═══════════════════ ONBOARDING ═══════════════════ */
+.onboard {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #07070a 0%, #14141c 100%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  animation: onboardIn 0.3s ease-out;
+}
+.onboard.hidden { display: none; }
+@keyframes onboardIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Topbar onboardingu */
+.onboard-top {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  padding-top: max(16px, env(safe-area-inset-top, 16px));
+  border-bottom: 1px solid var(--border);
+}
+.onboard-progress-wrap {
+  flex: 1;
+  display: flex;
+  gap: 6px;
+  margin: 0 16px;
+}
+.onboard-dot {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+.onboard-dot.active { background: var(--accent); }
+.onboard-dot.done { background: var(--accent); opacity: 0.6; }
+
+.onboard-skip {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 8px;
+}
+.onboard-skip:active { color: var(--fg); }
+
+/* Content */
+.onboard-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.onboard-icon {
+  font-size: 64px;
+  line-height: 1;
+  margin-bottom: 18px;
+  animation: onboardIcon 0.5s ease-out;
+}
+@keyframes onboardIcon {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.onboard-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+  margin-bottom: 12px;
+  max-width: 340px;
+}
+.onboard-title span { color: var(--accent); }
+.onboard-text {
+  font-size: 14px;
+  color: var(--fg2);
+  line-height: 1.5;
+  max-width: 320px;
+  margin-bottom: 22px;
+}
+
+.onboard-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 12px;
+}
+.onboard-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  text-align: left;
+}
+.onboard-feature-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 40px;
+  text-align: center;
+}
+.onboard-feature-text { flex: 1; min-width: 0; }
+.onboard-feature-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 3px;
+}
+.onboard-feature-sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+  line-height: 1.4;
+}
+
+/* Forma profilu w onboardingu */
+.onboard-form {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* CTA bottom */
+.onboard-bottom {
+  padding: 16px 24px;
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  border-top: 1px solid var(--border);
+  background: rgba(7,7,10,0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  gap: 10px;
+}
+.onboard-btn-back {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  color: var(--fg2);
+  border-radius: 12px;
+  padding: 13px 18px;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-weight: 600;
+}
+.onboard-btn-next {
+  flex: 1;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px;
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(232,86,30,0.3);
+}
+.onboard-btn-next:active { transform: scale(0.98); }
+.onboard-btn-next:disabled {
+  background: rgba(255,255,255,0.08);
+  color: var(--muted);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
 /* HEATMAP — kalendarz 30 dni */
 .heatmap-wrap {
   display: flex;
@@ -1312,6 +1495,179 @@ body {
   </div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ONBOARDING — pełnoekranowy 4-krokowy flow                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="onboarding" class="onboard hidden">
+  <!-- TOP BAR: progress + skip -->
+  <div class="onboard-top">
+    <div style="width:32px;"></div>
+    <div class="onboard-progress-wrap">
+      <div class="onboard-dot active" id="ob-dot-1"></div>
+      <div class="onboard-dot" id="ob-dot-2"></div>
+      <div class="onboard-dot" id="ob-dot-3"></div>
+      <div class="onboard-dot" id="ob-dot-4"></div>
+    </div>
+    <button class="onboard-skip" onclick="skipOnboarding()">Pomiń</button>
+  </div>
+
+  <!-- KROK 1 — Welcome -->
+  <div class="onboard-content" id="ob-step-1">
+    <div class="onboard-icon">🍎🏃</div>
+    <div class="onboard-title">Nutrition <span>tracker</span> dla biegaczy</div>
+    <div class="onboard-text">
+      Skanuj jedzenie, śledź kalorie i zobacz jak dieta łączy się z twoim treningiem.
+    </div>
+    <div class="onboard-features">
+      <div class="onboard-feature">
+        <div class="onboard-feature-icon">🎯</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Tylko fakty</div>
+          <div class="onboard-feature-sub">Nie podpowiadamy diet ani planów. Pokazujemy ile zjadłeś — decyzje należą do ciebie.</div>
+        </div>
+      </div>
+      <div class="onboard-feature">
+        <div class="onboard-feature-icon">🏃</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Łączy się z treningami</div>
+          <div class="onboard-feature-sub">Twoje przebiegnięte kilometry liczymy do dziennego bilansu kcal.</div>
+        </div>
+      </div>
+      <div class="onboard-feature">
+        <div class="onboard-feature-icon">⚡</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Szybkie dodawanie</div>
+          <div class="onboard-feature-sub">Barcode, AI rozpoznawanie zdjęć, lub kliknięcie na "często jadane".</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KROK 2 — 3 sposoby dodawania -->
+  <div class="onboard-content" id="ob-step-2" style="display:none;">
+    <div class="onboard-icon">🍽</div>
+    <div class="onboard-title">3 sposoby <span>dodawania</span></div>
+    <div class="onboard-text">
+      Wybierz najwygodniejszy. Wszystkie działają razem.
+    </div>
+    <div class="onboard-features">
+      <div class="onboard-feature">
+        <div class="onboard-feature-icon">📊</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Barcode (najdokładniejsze)</div>
+          <div class="onboard-feature-sub">Skanuj kod produktu — Tymbark, jogurt, paluszki. Dane prosto z producenta.</div>
+        </div>
+      </div>
+      <div class="onboard-feature">
+        <div class="onboard-feature-icon">📸</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Zdjęcie (AI)</div>
+          <div class="onboard-feature-sub">Sfotografuj posiłek, AI rozpozna składniki i policzy kalorie. Idealne do gotowanego.</div>
+        </div>
+      </div>
+      <div class="onboard-feature">
+        <div class="onboard-feature-icon">✏</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Ręcznie</div>
+          <div class="onboard-feature-sub">Wpisz nazwę i kalorie — gdy znasz wartości albo szybkie szacowanie.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KROK 3 — Profil -->
+  <div class="onboard-content" id="ob-step-3" style="display:none;">
+    <div class="onboard-icon">📊</div>
+    <div class="onboard-title">Skonfiguruj <span>profil</span></div>
+    <div class="onboard-text">
+      Bez tego nie obliczymy twojego dziennego celu kalorii.
+    </div>
+    <div class="onboard-form">
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Płeć</label>
+          <select id="ob-sex">
+            <option value="M">Mężczyzna</option>
+            <option value="F">Kobieta</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Wiek</label>
+          <input type="number" id="ob-age" min="14" max="100" placeholder="35" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label class="field-label">Waga (kg)</label>
+          <input type="number" id="ob-weight" min="30" max="200" step="0.1" placeholder="75" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label class="field-label">Wzrost (cm)</label>
+          <input type="number" id="ob-height" min="120" max="220" placeholder="180" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Aktywność (poza treningami)</label>
+        <select id="ob-activity">
+          <option value="1.2">Siedząca (biuro)</option>
+          <option value="1.375" selected>Lekka (chodzenie)</option>
+          <option value="1.55">Umiarkowana (fizyczna praca)</option>
+          <option value="1.725">Wysoka</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label">Cel</label>
+        <select id="ob-goal">
+          <option value="maintain" selected>Utrzymanie wagi</option>
+          <option value="deficit">Redukcja (-300 kcal/dzień)</option>
+          <option value="surplus">Masa (+300 kcal/dzień)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- KROK 4 — Gotowe! -->
+  <div class="onboard-content" id="ob-step-4" style="display:none;">
+    <div class="onboard-icon">🎉</div>
+    <div class="onboard-title">Gotowe! Dodaj <span>pierwszy posiłek</span></div>
+    <div class="onboard-text">
+      Możesz zacząć teraz albo od jutra. Twój profil jest zapisany.
+    </div>
+    <div class="onboard-features">
+      <div class="onboard-feature" style="cursor:pointer;" onclick="finishOnboarding(()=>openScanner())">
+        <div class="onboard-feature-icon">📊</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Skanuj barcode</div>
+          <div class="onboard-feature-sub">Weź dowolny produkt z szafki i zeskanuj jego kod kreskowy.</div>
+        </div>
+      </div>
+      <div class="onboard-feature" style="cursor:pointer;" onclick="finishOnboarding(()=>openPhotoModal())">
+        <div class="onboard-feature-icon">📸</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Sfotografuj jedzenie</div>
+          <div class="onboard-feature-sub">Wybierz zdjęcie z galerii lub zrób kamerą — AI rozpozna posiłek.</div>
+        </div>
+      </div>
+      <div class="onboard-feature" style="cursor:pointer;" onclick="finishOnboarding(()=>openTextModal())">
+        <div class="onboard-feature-icon">✏</div>
+        <div class="onboard-feature-text">
+          <div class="onboard-feature-title">Wyszukaj lub wpisz</div>
+          <div class="onboard-feature-sub">Wybierz z bazy lub dodaj ręcznie z kaloriami.</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;margin-top:14px;">
+      Lub kliknij "Zaczynam" niżej żeby przejść do dashboardu
+    </div>
+  </div>
+
+  <!-- BOTTOM: Back + Next -->
+  <div class="onboard-bottom" id="ob-bottom">
+    <button class="onboard-btn-back" id="ob-btn-back" onclick="onboardingBack()" style="display:none;">← Wstecz</button>
+    <button class="onboard-btn-next" id="ob-btn-next" onclick="onboardingNext()">Dalej →</button>
+  </div>
+</div>
+
 <!-- ─────────────────────────────────────── -->
 <!-- MODAL: PROFILE -->
 <!-- ─────────────────────────────────────── -->
@@ -1367,6 +1723,10 @@ body {
     <div class="btn-row">
       <button class="btn-secondary" onclick="closeProfileModal()">Anuluj</button>
       <button class="btn-primary" onclick="saveProfile()">Zapisz</button>
+    </div>
+
+    <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;">
+      <a href="#" onclick="event.preventDefault();closeProfileModal();openOnboarding();" style="color:var(--accent);text-decoration:underline;">Pokaż wprowadzenie</a>
     </div>
   </div>
 </div>
@@ -1625,7 +1985,152 @@ let _scanner = null;          // ZXing reader instance
   await loadProfile();
   await loadTodayMeals();
   refreshDashboard();
+
+  // Pierwsze wejście — uruchom onboarding
+  const onboarded = localStorage.getItem('nutrition_onboarded');
+  if (!onboarded && !_profile) {
+    // Małe opóźnienie żeby UI się załadowało
+    setTimeout(() => openOnboarding(), 300);
+  }
 })();
+
+// ════════════════════════════════════════════════════════════
+// ONBOARDING — pełnoekranowy 4-krokowy flow
+// ════════════════════════════════════════════════════════════
+let _onboardStep = 1;
+const ONBOARD_TOTAL = 4;
+
+function openOnboarding() {
+  _onboardStep = 1;
+  showOnboardStep(1);
+  document.getElementById('onboarding').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeOnboarding() {
+  document.getElementById('onboarding').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function showOnboardStep(n) {
+  // Hide all steps
+  for (let i = 1; i <= ONBOARD_TOTAL; i++) {
+    const el = document.getElementById('ob-step-' + i);
+    if (el) el.style.display = 'none';
+    const dot = document.getElementById('ob-dot-' + i);
+    if (dot) dot.classList.remove('active', 'done');
+  }
+  // Show current step
+  const cur = document.getElementById('ob-step-' + n);
+  if (cur) cur.style.display = '';
+  // Progress dots
+  for (let i = 1; i <= ONBOARD_TOTAL; i++) {
+    const dot = document.getElementById('ob-dot-' + i);
+    if (!dot) continue;
+    if (i === n) dot.classList.add('active');
+    else if (i < n) dot.classList.add('done');
+  }
+  // Back button
+  document.getElementById('ob-btn-back').style.display = n > 1 ? '' : 'none';
+  // Next button label
+  const btnNext = document.getElementById('ob-btn-next');
+  if (n === ONBOARD_TOTAL) {
+    btnNext.textContent = 'Zaczynam ✓';
+  } else if (n === 3) {
+    btnNext.textContent = 'Zapisz profil →';
+  } else {
+    btnNext.textContent = 'Dalej →';
+  }
+}
+
+function onboardingNext() {
+  if (_onboardStep === 3) {
+    // Krok 3 = profil → zapisujemy
+    saveOnboardProfile();
+    return;
+  }
+  if (_onboardStep < ONBOARD_TOTAL) {
+    _onboardStep++;
+    showOnboardStep(_onboardStep);
+  } else {
+    finishOnboarding();
+  }
+}
+
+function onboardingBack() {
+  if (_onboardStep > 1) {
+    _onboardStep--;
+    showOnboardStep(_onboardStep);
+  }
+}
+
+function skipOnboarding() {
+  if (!confirm('Pominąć wprowadzenie? Możesz wrócić do niego z menu profilu.')) return;
+  finishOnboarding();
+}
+
+async function saveOnboardProfile() {
+  const sex = document.getElementById('ob-sex').value;
+  const age = parseInt(document.getElementById('ob-age').value, 10);
+  const weight = parseFloat(document.getElementById('ob-weight').value);
+  const height = parseInt(document.getElementById('ob-height').value, 10);
+  const activity = parseFloat(document.getElementById('ob-activity').value);
+  const goal = document.getElementById('ob-goal').value;
+
+  if (!age || age < 14 || age > 100) {
+    showToast('Podaj wiek (14-100)');
+    return;
+  }
+  if (!weight || weight < 30 || weight > 200) {
+    showToast('Podaj wagę w kg');
+    return;
+  }
+  if (!height || height < 120 || height > 220) {
+    showToast('Podaj wzrost w cm');
+    return;
+  }
+
+  const payload = {
+    athlete_id: _athleteId,
+    sex, age,
+    weight_kg: weight,
+    height_cm: height,
+    activity_level: activity,
+    goal
+  };
+
+  // Try UPDATE first; if 0 rows, INSERT
+  const { data: updated, error: updateError } = await sb.from('nutrition_profiles')
+    .update(payload)
+    .eq('athlete_id', _athleteId)
+    .select();
+  let error = updateError;
+  if (!updateError && (!updated || updated.length === 0)) {
+    const { error: insertError } = await sb.from('nutrition_profiles')
+      .insert(payload);
+    error = insertError;
+  }
+  if (error) {
+    showToast('Błąd zapisu: ' + (error.message || error.code || 'nieznany'));
+    console.error('saveOnboardProfile:', error);
+    return;
+  }
+
+  showToast('✓ Profil zapisany');
+  await loadProfile();
+  refreshDashboard();
+  // Idziemy do kroku 4
+  _onboardStep = 4;
+  showOnboardStep(4);
+}
+
+function finishOnboarding(callback) {
+  localStorage.setItem('nutrition_onboarded', '1');
+  closeOnboarding();
+  if (typeof callback === 'function') {
+    setTimeout(callback, 200);  // małe opóźnienie żeby modal się zamknął
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 // PROFILE
