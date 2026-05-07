@@ -1683,6 +1683,27 @@ async function deleteTraining(e, ds, idx) {
   notify('Trening usunięty ✓');
 }
 
+// Usuwa wszystkie logi treningowe (training_logs) dla danego dnia własnego zawodnika
+async function deleteLogForDay(ds) {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { notify('Zaloguj się'); return; }
+  const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  if (!ath) return;
+  const start = ds + 'T00:00:00';
+  const end = ds + 'T23:59:59';
+  const { error } = await sb.from('training_logs').delete()
+    .eq('athlete_id', ath.id)
+    .gte('logged_at', start)
+    .lte('logged_at', end)
+    .not('training_type', 'like', '__badge__%');
+  if (error) {
+    notify('Błąd: ' + error.message);
+    return;
+  }
+  await loadTrainingsFromDB();
+  notify('Log usunięty ✓');
+}
+
 // ── NOTIF ─────────────────────────────────────────────────────────────────────
 function notify(msg) {
   const el = document.getElementById('notif');
@@ -3889,34 +3910,73 @@ function _openDayScreen(ds) {
 
   if (_urlRole === 'athlete') {
     if (hasLog) {
-      // Ma log — "Edytuj" + "Story"
-      const storyBtn = `<button onclick="if(typeof PRS!=='undefined')PRS.launch({})" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;border-radius:12px;padding:14px 16px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">▶ Story</button>`;
-      ctaInner.innerHTML = closeBtn + storyBtn +
+      // Ma log — "Edytuj" + "Story" + "Usuń"
+      const storyBtn = `<button onclick="if(typeof PRS!=='undefined')PRS.launch({})" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">▶ Story</button>`;
+      const deleteBtn = `<button id="ds-delete-btn" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">🗑</button>`;
+      ctaInner.innerHTML = closeBtn + storyBtn + deleteBtn +
         `<button id="ds-edit-btn" data-ds="${ds}" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
-      // Podepnij listener bezpośrednio (bez inline onclick — unikamy problemów z escape)
+      // Podepnij listenery (bez inline onclick — unikamy problemów z escape)
       setTimeout(() => {
-        const btn = document.getElementById('ds-edit-btn');
-        if (btn) {
-          btn.addEventListener('click', () => {
-            const dsv = btn.dataset.ds;
+        const btnEdit = document.getElementById('ds-edit-btn');
+        if (btnEdit) {
+          btnEdit.addEventListener('click', () => {
+            const dsv = btnEdit.dataset.ds;
             _closeDayScreen();
-            // Po zamknięciu day screen — otwórz modal edycji treningu
             setTimeout(() => {
-              // Znajdź indeks treningu dla tej daty
               const items = trainings[dsv] || [];
               if (items.length > 0) {
-                openModal(dsv, 0); // Edytuj pierwszy trening tego dnia
+                openModal(dsv, 0);
               } else {
-                openModal(dsv); // Brak — nowy
+                openModal(dsv);
               }
             }, 250);
           });
         }
+        const btnDel = document.getElementById('ds-delete-btn');
+        if (btnDel) {
+          btnDel.addEventListener('click', () => {
+            const dsv = btnDel.dataset.ds;
+            const items = trainings[dsv] || [];
+            const fakeEvt = { stopPropagation: () => {} };
+            // deleteTraining handles confirm
+            if (items.length > 0) {
+              _closeDayScreen();
+              setTimeout(() => deleteTraining(fakeEvt, dsv, 0), 250);
+            } else {
+              // Tylko log bez planu — usuń log bezpośrednio
+              if (confirm('Usunąć ten log treningowy?')) {
+                deleteLogForDay(dsv);
+              }
+            }
+          });
+        }
       }, 50);
     } else if (hasPlan) {
-      // Ma plan, brak logu — "Zaloguj wynik"
-      ctaInner.innerHTML = closeBtn +
+      // Ma plan, brak logu — "Zaloguj wynik" + "Edytuj plan" + "Usuń plan"
+      const deleteBtn = `<button id="ds-delete-btn-plan" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">🗑</button>`;
+      const editBtn = `<button id="ds-edit-btn-plan" data-ds="${ds}" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);color:rgba(240,237,232,0.85);border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">✏️</button>`;
+      ctaInner.innerHTML = closeBtn + deleteBtn + editBtn +
         `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
+      // Podepnij listenery
+      setTimeout(() => {
+        const btnEdit = document.getElementById('ds-edit-btn-plan');
+        if (btnEdit) {
+          btnEdit.addEventListener('click', () => {
+            const dsv = btnEdit.dataset.ds;
+            _closeDayScreen();
+            setTimeout(() => openModal(dsv, 0), 250);
+          });
+        }
+        const btnDel = document.getElementById('ds-delete-btn-plan');
+        if (btnDel) {
+          btnDel.addEventListener('click', () => {
+            const dsv = btnDel.dataset.ds;
+            const fakeEvt = { stopPropagation: () => {} };
+            _closeDayScreen();
+            setTimeout(() => deleteTraining(fakeEvt, dsv, 0), 250);
+          });
+        }
+      }, 50);
     } else {
       // Brak planu i logu — "Dodaj trening"
       ctaInner.innerHTML = closeBtn +

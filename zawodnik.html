@@ -1441,6 +1441,7 @@ body > *{position:relative;z-index:1;}
     </div>
     <div class="modal-footer" style="display:flex;gap:8px;">
       <button class="btn" style="background:var(--card2);color:var(--muted);border:1px solid var(--border);width:auto;padding:12px 20px;" onclick="closeModal()">← Wstecz</button>
+      <button class="btn" id="delete-log-btn" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;width:auto;padding:12px 16px;display:none;" onclick="deleteLogFromModal()">🗑 Usuń</button>
       <button class="btn btn-primary" style="flex:1;" id="save-btn" onclick="saveLog()">Zapisz log →</button>
     </div>
   </div>
@@ -1666,6 +1667,9 @@ function closeModal(){
   _editingLogId = null;
   _savingLog = false;
   const saveBtn = document.getElementById('save-btn'); if (saveBtn) { saveBtn.textContent = 'Zapisz log →'; saveBtn.disabled = false; }
+  // Ukryj button Usuń (tryb nowy log)
+  const delBtn = document.getElementById('delete-log-btn');
+  if (delBtn) delBtn.style.display = 'none';
 }
 function closeMBg(e){if(e.target===document.getElementById('modal-bg'))closeModal();}
 function selFeel(el,t){
@@ -4798,8 +4802,35 @@ function editLog(idx) {
     : 'Edycja logu';
   document.querySelector('#modal-bg .modal-title').textContent = 'Edytuj trening';
   document.getElementById('save-btn').textContent = 'Zaktualizuj →';
+  // Pokaż button Usuń (tryb edycji)
+  const delBtn = document.getElementById('delete-log-btn');
+  if (delBtn) delBtn.style.display = '';
   document.getElementById('modal-bg').classList.add('open');
 }
+
+async function deleteLogFromModal() {
+  if (!_editingLogId) { toast('Brak logu do usunięcia'); return; }
+  if (!confirm('Usunąć ten log? Tej operacji nie można cofnąć.')) return;
+  if (!_athleteId) { toast('Błąd sesji'); return; }
+  const { data: delData, error } = await sb.from('training_logs').delete()
+    .eq('id', _editingLogId).eq('athlete_id', _athleteId).select('id');
+  if (error) {
+    toast('Błąd: ' + error.message);
+    return;
+  }
+  if (!delData || delData.length === 0) {
+    toast('Nie można usunąć — sprawdź czy to Twój trening');
+    return;
+  }
+  toast('Log usunięty ✓');
+  if (window._logsData) window._logsData = window._logsData.filter(function(l){ return l.id !== _editingLogId; });
+  closeModal();
+  // Refresh feed jeśli jesteśmy w społeczności
+  if (typeof loadFeed === 'function') loadFeed();
+  if (typeof loadLogsAsCards === 'function') loadLogsAsCards();
+}
+
+window.deleteLogFromModal = deleteLogFromModal;
 
 // Renderuje istniejące załączniki w preview list (z możliwością usunięcia)
 function _renderExistingAttachments() {
