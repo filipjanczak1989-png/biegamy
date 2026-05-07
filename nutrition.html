@@ -1594,36 +1594,95 @@ async function deleteMeal(id, name) {
 async function openScanner() {
   document.getElementById('scanner-modal').classList.remove('hidden');
   const status = document.getElementById('scanner-status');
+  const videoEl = document.getElementById('scanner-video');
   status.textContent = 'Inicjuję kamerę...';
+
+  // Sprawdź czy ZXing załadował
+  if (typeof ZXing === 'undefined') {
+    status.innerHTML = '❌ Biblioteka ZXing nie załadowała się.<br>Odśwież stronę (Ctrl+R / pull-down).';
+    console.error('ZXing not defined');
+    return;
+  }
+
+  // Sprawdź czy przeglądarka wspiera getUserMedia
+  if (!navigator.mediaDevices?.getUserMedia) {
+    status.textContent = '❌ Przeglądarka nie wspiera kamery';
+    return;
+  }
 
   try {
     if (!_scanner) _scanner = new ZXing.BrowserMultiFormatReader();
-    const videoEl = document.getElementById('scanner-video');
-    const devices = await _scanner.listVideoInputDevices();
-    // Preferuj tylną kamerę
-    const back = devices.find(d => /back|rear|environment/i.test(d.label));
-    const deviceId = back ? back.deviceId : (devices[0] && devices[0].deviceId);
-    if (!deviceId) throw new Error('Brak kamery');
 
-    status.textContent = 'Skieruj kamerę na kod kreskowy';
+    // 🆕 Bezpośrednio przez constraints — najbardziej kompatybilne na Androidzie
+    // facingMode: environment = wymusza tylną kamerę
+    status.textContent = 'Pozwól na dostęp do kamery...';
 
-    _scanner.decodeFromVideoDevice(deviceId, videoEl, (result, err) => {
-      if (result) {
-        const code = result.getText();
-        if (navigator.vibrate) navigator.vibrate(50);
-        closeScanner();
-        lookupBarcode(code);
+    // Najpierw test getUserMedia żeby user dał permission, dopiero potem ZXing
+    let testStream;
+    try {
+      testStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
+      // Zatrzymujemy testowy stream — ZXing odpali własny
+      testStream.getTracks().forEach(t => t.stop());
+    } catch (permErr) {
+      console.error('getUserMedia error:', permErr);
+      if (permErr.name === 'NotAllowedError' || permErr.name === 'PermissionDeniedError') {
+        status.innerHTML = '❌ Brak pozwolenia na kamerę.<br><br>' +
+          '<span style="font-size:11px;color:var(--muted);">Kliknij kłódkę w pasku adresu → Permissions → Camera → Allow</span>';
+      } else if (permErr.name === 'NotFoundError') {
+        status.textContent = '❌ Nie wykryto kamery na urządzeniu';
+      } else if (permErr.name === 'NotReadableError') {
+        status.textContent = '❌ Kamera zajęta przez inną aplikację';
+      } else {
+        status.textContent = '❌ ' + (permErr.message || permErr.name || 'błąd kamery');
       }
-      // err to "no barcode in this frame" - normalne, ignorujemy
-    });
+      return;
+    }
+
+    status.textContent = 'Skieruj na kod kreskowy';
+
+    // ZXing decodeFromConstraints — automatycznie wybiera kamerę
+    _scanner.decodeFromConstraints(
+      {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      videoEl,
+      (result, err) => {
+        if (result) {
+          const code = result.getText();
+          if (navigator.vibrate) navigator.vibrate(50);
+          closeScanner();
+          lookupBarcode(code);
+        }
+        // err = "no barcode in this frame" — normalne, ignorujemy
+      }
+    );
   } catch (e) {
     status.textContent = '❌ ' + (e.message || 'Błąd kamery');
-    console.error(e);
+    console.error('scanner error:', e);
   }
 }
 
 function closeScanner() {
-  if (_scanner) _scanner.reset();
+  try {
+    if (_scanner) _scanner.reset();
+  } catch(e) { console.warn('scanner reset:', e); }
+  // Zatrzymaj wszystkie tracky video które mogły zostać
+  const videoEl = document.getElementById('scanner-video');
+  if (videoEl && videoEl.srcObject) {
+    const stream = videoEl.srcObject;
+    stream.getTracks().forEach(t => t.stop());
+    videoEl.srcObject = null;
+  }
   document.getElementById('scanner-modal').classList.add('hidden');
 }
 
