@@ -323,6 +323,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
+    <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
     <button class="ptab" onclick="ptab('str',this)" style="color:#FC4C02;">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02" style="vertical-align:middle;margin-right:3px;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>Strava
     </button>
@@ -394,6 +395,15 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div id="pstr-content">
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć aktywności Strava.</div>
       </div>
+    </div>
+    <div id="pai" style="display:none;">
+      <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;">🧠 Analiza AI</div>
+      <div id="pai-content">
+        <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika.</div>
+      </div>
+      <button id="pai-generate-btn" onclick="generateAIReportFromPanel()" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:600;cursor:pointer;margin-top:12px;">
+        ✨ Generuj raport AI
+      </button>
     </div>
     <div id="pcl" style="display:none;">
       <div class="f-row" style="margin-bottom:10px;">
@@ -490,7 +500,7 @@ async function closePanel(){
 function closePanelBg(e){if(e.target===document.getElementById('panel'))closePanel();}
 function goToAthleteCalendar(){const id=window._selectedAthleteId;window.location.href='kalendarz.html?role=coach'+(id?'&athlete='+id:'');}
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st','str'].forEach(t=>{
+  ['ov','pl','lg','ms','cl','pb','st','str','ai'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
     if(el2) el2.style.display = t===n ? 'block' : 'none';
   });
@@ -500,7 +510,117 @@ function ptab(n,el){
   if (n === 'pb') loadPanelPB();
   if (n === 'st') loadPanelStats();
   if (n === 'str') loadStravaPanel();
+  if (n === 'ai') loadPanelAI();
 }
+
+// ── PANEL AI (raporty AI dla zawodnika) ───────────────────────────
+async function loadPanelAI() {
+  const id = window._selectedAthleteId;
+  const target = document.getElementById('pai-content');
+  if (!id || !target) {
+    if (target) target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wybierz zawodnika.</div>';
+    return;
+  }
+  // Ustaw _currentAthleteIdForAI używane przez generateAIReport (legacy)
+  if (typeof _currentAthleteIdForAI !== 'undefined') {
+    window._currentAthleteIdForAI = id;
+  }
+  target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie raportów...</div>';
+
+  const { data: reports, error } = await sb.from('ai_reports')
+    .select('id, generated_at, report_type, priority, summary, read_by_coach')
+    .eq('athlete_id', id)
+    .order('generated_at', { ascending: false })
+    .limit(10);
+
+  if (error) {
+    target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--red);font-size:11px;">Błąd: ' + error.message + '</div>';
+    return;
+  }
+
+  if (!reports || reports.length === 0) {
+    target.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak raportów. Wygeneruj pierwszy ↓</div>';
+    return;
+  }
+
+  let html = '';
+  reports.forEach(r => {
+    const date = new Date(r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    const priorityColors = {
+      red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 PILNE' },
+      yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: '⚠ UWAGA' },
+      green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓ OK' }
+    };
+    const pc = priorityColors[r.priority] || priorityColors.green;
+    const isUnread = !r.read_by_coach;
+    
+    html += '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+        + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pc.text + '</span>'
+        + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
+        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--fg);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + (r.summary || 'Raport AI') + '</div>'
+    + '</div>';
+  });
+
+  target.innerHTML = html;
+}
+
+async function generateAIReportFromPanel() {
+  const id = window._selectedAthleteId;
+  if (!id) { showToast('Wybierz zawodnika'); return; }
+  // Przekieruj do generateAIReport (używa _currentAthleteIdForAI)
+  window._currentAthleteIdForAI = id;
+  const btn = document.getElementById('pai-generate-btn');
+  if (!btn) return;
+  
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ Generuję raport... (5-15s)';
+  btn.style.opacity = '0.7';
+
+  try {
+    const session = (await sb.auth.getSession()).data.session;
+    if (!session) { showToast('Sesja wygasła'); return; }
+    
+    const r = await fetch(window.SB_FN_URL + '/generate-athlete-report', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({
+        athlete_id: id,
+        report_type: 'on_demand',
+        period_days: 28
+      })
+    });
+    
+    const data = await r.json();
+    if (!r.ok) {
+      showToast('Błąd: ' + (data.error || 'API'));
+      console.error('AI report error:', data);
+      return;
+    }
+    
+    showToast('✨ Raport wygenerowany!');
+    await loadPanelAI();
+    if (data.report_id) {
+      openAIReportModal(data.report_id);
+    }
+  } catch (e) {
+    console.error('generateAIReport error:', e);
+    showToast('Błąd: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+    btn.style.opacity = '1';
+  }
+}
+
+window.generateAIReportFromPanel = generateAIReportFromPanel;
+window.loadPanelAI = loadPanelAI;
 
 // ── STRAVA PANEL ──────────────────────────────────────────────────
 async function loadStravaPanel() {
