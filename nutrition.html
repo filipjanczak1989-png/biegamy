@@ -1227,6 +1227,11 @@ body {
         <div class="summary-sub" id="hist-target-sub">—</div>
       </div>
     </div>
+
+    <!-- EKSPORT CSV -->
+    <button class="btn-secondary" style="margin-top:16px;" onclick="exportCSV()">
+      📤 Eksport CSV (30 dni)
+    </button>
   </div><!-- /view-history -->
 
   <!-- DISCLAIMER -->
@@ -1845,21 +1850,19 @@ async function quickAddMeal(idx) {
 
 async function loadTrainingContext(eatenKcal, target) {
   const ctxEl = document.getElementById('hero-context');
-  // Pobierz dzisiejsze logi treningowe (kalorie spalone)
+  // Pobierz dzisiejsze logi treningowe
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
   let burnedKcal = 0;
   try {
+    // Pobieram wszystkie kolumny żeby móc używać duration/pace jeśli są dostępne
     const { data } = await sb.from('training_logs')
-      .select('distance_km, training_type')
+      .select('*')
       .eq('athlete_id', _athleteId)
       .gte('logged_at', startOfDay.toISOString());
-    // Estymacja: ~60 kcal/km dla biegu (uśredniona dla biegacza ~70kg)
     if (data) {
       burnedKcal = data.reduce((s, l) => {
-        if ((l.training_type || '').startsWith('__badge__')) return s;
-        const km = parseFloat(l.distance_km) || 0;
-        return s + km * 60;
+        return s + estimateTrainingKcal(l);
       }, 0);
     }
   } catch (e) { console.warn('training context:', e); }
@@ -1881,6 +1884,60 @@ async function loadTrainingContext(eatenKcal, target) {
   } else {
     ctxEl.innerHTML = target ? `Do pułapu: ${Math.round(target - eatenKcal)} kcal` : '';
   }
+}
+
+// ════════════════════════════════════════════════════════════
+// ESTYMACJA KCAL Z TRENINGU — fizjologicznie
+// Wzór: kcal = waga(kg) × km × multiplier(intensywność)
+// Dla biegacza ~70kg, średnie tempo: ~1 kcal/km/kg = 70 kcal/km
+// ════════════════════════════════════════════════════════════
+function estimateTrainingKcal(log) {
+  if (!log) return 0;
+  // Pomijaj badge entries i inne nie-treningowe
+  if ((log.training_type || '').startsWith('__badge__')) return 0;
+
+  const km = parseFloat(log.distance_km) || 0;
+  if (km <= 0) return 0;
+
+  // Waga z profilu, fallback 70kg
+  const weightKg = (_profile?.weight_kg) || 70;
+
+  // Tempo per km — szukaj różnych formatów: pace_min_per_km, duration_min, pace
+  let paceMinPerKm = null;
+
+  if (log.pace_min_per_km) {
+    paceMinPerKm = parseFloat(log.pace_min_per_km);
+  } else if (log.pace) {
+    // Może być "5:30" string
+    if (typeof log.pace === 'string' && log.pace.includes(':')) {
+      const [m, s] = log.pace.split(':').map(Number);
+      paceMinPerKm = m + (s || 0) / 60;
+    } else {
+      paceMinPerKm = parseFloat(log.pace);
+    }
+  } else if (log.duration_min && km > 0) {
+    paceMinPerKm = parseFloat(log.duration_min) / km;
+  } else if (log.duration_seconds && km > 0) {
+    paceMinPerKm = (parseFloat(log.duration_seconds) / 60) / km;
+  }
+
+  // Multiplier intensywności (na podstawie tempa)
+  let multiplier = 1.0;  // średnie tempo (5-6 min/km)
+  if (paceMinPerKm) {
+    if (paceMinPerKm < 4.5) multiplier = 1.20;       // sprint/interwały
+    else if (paceMinPerKm < 5.0) multiplier = 1.10;  // szybko
+    else if (paceMinPerKm < 6.0) multiplier = 1.0;   // normalnie
+    else if (paceMinPerKm < 7.0) multiplier = 0.92;  // łagodnie
+    else multiplier = 0.85;                          // jogging/spacer
+  }
+
+  // Korekta gdy training_type wskazuje typ aktywności
+  const type = (log.training_type || '').toLowerCase();
+  if (type.includes('spacer') || type.includes('walk')) multiplier = 0.55;
+  if (type.includes('interw') || type.includes('sprint')) multiplier = Math.max(multiplier, 1.20);
+  if (type.includes('rower') || type.includes('bike') || type.includes('cycl')) multiplier = 0.40;  // rowery mniej kcal/km
+
+  return weightKg * km * multiplier;
 }
 
 function renderMealsList() {
@@ -2380,6 +2437,82 @@ async function openDayDetails(dateKey) {
 
 function closeDayDetails() {
   document.getElementById('day-modal').classList.add('hidden');
+}
+
+// ════════════════════════════════════════════════════════════
+// EKSPORT CSV — pobierz ostatnie 30 dni jako plik
+// ════════════════════════════════════════════════════════════
+async function exportCSV() {
+  showToast('📤 Generuję CSV...');
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  cutoff.setHours(0, 0, 0, 0);
+
+  const { data, error } = await sb.from('nutrition_meals')
+    .select('eaten_at, name, meal_type, weight_g, kcal, protein_g, carbs_g, fat_g, fiber_g, source')
+    .eq('athlete_id', _athleteId)
+    .gte('eaten_at', cutoff.toISOString())
+    .order('eaten_at', { ascending: true });
+
+  if (error) {
+    showToast('Błąd: ' + (error.message || 'spróbuj ponownie'));
+    console.error('exportCSV:', error);
+    return;
+  }
+  if (!data || data.length === 0) {
+    showToast('Brak danych do eksportu');
+    return;
+  }
+
+  // Generuj CSV — używamy ; jako separatora (lepsze dla Excel PL)
+  const headers = ['Data', 'Godzina', 'Posiłek', 'Typ', 'Waga (g)', 'kcal', 'Białko (g)', 'Węgle (g)', 'Tłuszcz (g)', 'Błonnik (g)', 'Źródło'];
+  const typeMap = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'kolacja', snack: 'przekąska', meal: 'posiłek' };
+  const sourceMap = { barcode: 'kod kreskowy', text: 'tekst', photo: 'zdjęcie AI', manual: 'ręcznie', database: 'baza' };
+
+  const rows = data.map(m => {
+    const t = new Date(m.eaten_at);
+    const date = t.toLocaleDateString('pl-PL');
+    const time = t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
+    return [
+      date,
+      time,
+      csvEscape(m.name || ''),
+      typeMap[m.meal_type] || m.meal_type || 'posiłek',
+      m.weight_g ? Math.round(m.weight_g) : '',
+      Math.round(m.kcal || 0),
+      (parseFloat(m.protein_g) || 0).toFixed(1),
+      (parseFloat(m.carbs_g) || 0).toFixed(1),
+      (parseFloat(m.fat_g) || 0).toFixed(1),
+      (parseFloat(m.fiber_g) || 0).toFixed(1),
+      sourceMap[m.source] || m.source || ''
+    ];
+  });
+
+  // BOM dla Excela żeby polskie znaki były OK
+  const BOM = '\uFEFF';
+  const csv = BOM + [headers, ...rows].map(r => r.join(';')).join('\r\n');
+
+  // Pobierz
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const today = new Date().toISOString().slice(0, 10);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `biegamy-nutrition-${today}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast(`✓ Pobrano ${data.length} wpisów`);
+}
+
+function csvEscape(s) {
+  // Excel obsługuje "" jako escape dla " w CSV. Plus zawiń w cudzysłowy jeśli ma ; lub przecinek lub newline
+  s = String(s || '');
+  if (s.includes('"') || s.includes(';') || s.includes(',') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
 }
 
 // ════════════════════════════════════════════════════════════
