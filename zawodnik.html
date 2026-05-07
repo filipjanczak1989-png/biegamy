@@ -1656,8 +1656,9 @@ function closeModal(){
   document.getElementById('modal-bg').classList.remove('open');
   // Reset timera
   if (window._timerRunning) stopTimer();
-  // Reset pendingFiles — zapobiegaj wysyłaniu starych plików przy następnym logu
+  // Reset pendingFiles + existingAttachments
   window._pendingFiles = [];
+  window._existingAttachments = [];
   const previewList = document.getElementById('file-preview-list');
   if (previewList) previewList.innerHTML = '';
   const uploadLabel = document.getElementById('upload-label');
@@ -1843,6 +1844,7 @@ function updateIvSummary() {
 
 // Lista plików do uploadu — dodawana po jednej
 window._pendingFiles = [];
+window._existingAttachments = window._existingAttachments || [];
 
 function appendFile(input) {
   if (!input.files[0]) return;
@@ -1853,20 +1855,29 @@ function appendFile(input) {
   const idx = window._pendingFiles.length - 1;
   const url = URL.createObjectURL(file);
   const div = document.createElement('div');
-  div.style.cssText = 'position:relative;width:calc(50% - 3px);';
-  div.innerHTML = `<img src="${url}" style="width:100%;max-height:100px;object-fit:cover;border-radius:8px;display:block;">
-    <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;">✕</button>`;
+  div.style.cssText = 'position:relative;width:60px;height:60px;';
+  div.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
+    <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
+    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
   list.appendChild(div);
-  // Update label
-  document.getElementById('upload-label').textContent = `Kliknij aby dodać kolejne (${window._pendingFiles.length})`;
+  // Update label (uwzględnia existing)
+  if (typeof _updateUploadLabel === 'function') {
+    _updateUploadLabel();
+  } else {
+    document.getElementById('upload-label').textContent = `Kliknij aby dodać kolejne (${window._pendingFiles.length})`;
+  }
   input.value = ''; // reset żeby można było dodać ten sam plik
 }
 
 function removeFile(idx, el) {
   window._pendingFiles.splice(idx, 1);
   el.remove();
-  const count = window._pendingFiles.length;
-  document.getElementById('upload-label').textContent = count > 0 ? `Kliknij aby dodać kolejne (${count})` : 'Kliknij aby dodać zdjęcie';
+  if (typeof _updateUploadLabel === 'function') {
+    _updateUploadLabel();
+  } else {
+    const count = window._pendingFiles.length;
+    document.getElementById('upload-label').textContent = count > 0 ? `Kliknij aby dodać kolejne (${count})` : 'Kliknij aby dodać zdjęcie';
+  }
 }
 
 function previewFile(input) {
@@ -4744,6 +4755,13 @@ function editLog(idx) {
   _editingLogId = l.id;
   _logDate = l.logged_at ? l.logged_at.split('T')[0] : null;
   setTimeout(_updateLogDateDisplay, 50);
+
+  // RESET stanu pending files i preview (z poprzedniego logu)
+  window._pendingFiles = [];
+  window._existingAttachments = []; // URLe istniejących zdjęć
+  const previewList = document.getElementById('file-preview-list');
+  if (previewList) previewList.innerHTML = '';
+
   // Wypełnij formularz danymi logu
   document.getElementById('l-dist').value = l.distance_km || '';
   document.getElementById('l-time').value = l.duration || '';
@@ -4752,6 +4770,18 @@ function editLog(idx) {
   const elevEl = document.getElementById('l-elevation'); if (elevEl) elevEl.value = l.elevation_gain || '';
   document.getElementById('l-comment').value = l.comment || '';
   document.getElementById('l-strava').value = l.strava_link || '';
+
+  // ZAŁADUJ ISTNIEJĄCE ZAŁĄCZNIKI
+  if (l.attachment_url) {
+    const urls = l.attachment_url.split(',').map(u => u.trim()).filter(Boolean);
+    window._existingAttachments = urls.slice();
+    window._originalAttachmentsCount = urls.length; // zapamiętaj ile było na starcie
+    _renderExistingAttachments();
+  } else {
+    window._originalAttachmentsCount = 0;
+  }
+  _updateUploadLabel();
+
   // Ustaw typ
   _logType = l.training_type || 'Spokojny';
   document.querySelectorAll('.type-pill').forEach(p => {
@@ -4770,6 +4800,48 @@ function editLog(idx) {
   document.getElementById('save-btn').textContent = 'Zaktualizuj →';
   document.getElementById('modal-bg').classList.add('open');
 }
+
+// Renderuje istniejące załączniki w preview list (z możliwością usunięcia)
+function _renderExistingAttachments() {
+  const list = document.getElementById('file-preview-list');
+  if (!list) return;
+  // Wyrenderuj istniejące (oddzielnie od pendingFiles które są w innym tagu)
+  const urls = window._existingAttachments || [];
+  // Czyścimy tylko istniejące tagi (nie nowe pendingFiles)
+  list.querySelectorAll('[data-existing="1"]').forEach(el => el.remove());
+  urls.forEach((url, idx) => {
+    const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(url);
+    const tag = document.createElement('div');
+    tag.dataset.existing = '1';
+    tag.style.cssText = 'position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1px solid rgba(61,184,112,0.4);';
+    tag.innerHTML = (isVideo
+      ? '<video src="' + url + '" style="width:100%;height:100%;object-fit:cover;" muted></video>'
+      : '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;">'
+    ) + '<button onclick="_removeExistingAttachment(' + idx + ')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);color:#fff;border:none;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>'
+      + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(61,184,112,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">ZAPISANE</div>';
+    list.appendChild(tag);
+  });
+}
+
+function _removeExistingAttachment(idx) {
+  if (!window._existingAttachments) return;
+  window._existingAttachments.splice(idx, 1);
+  _renderExistingAttachments();
+  _updateUploadLabel();
+}
+
+function _updateUploadLabel() {
+  const label = document.getElementById('upload-label');
+  if (!label) return;
+  const totalCount = (window._pendingFiles?.length || 0) + (window._existingAttachments?.length || 0);
+  if (totalCount === 0) {
+    label.textContent = 'Kliknij aby dodać zdjęcie';
+  } else {
+    label.textContent = 'Kliknij aby dodać kolejne (' + totalCount + ')';
+  }
+}
+
+window._removeExistingAttachment = _removeExistingAttachment;
 
 // ── SAVE LOG DO BAZY ──────────────────────────────────────────────
 let _savingLog = false;
@@ -4794,13 +4866,17 @@ async function saveLog() {
   btn.textContent = 'Zapisuję...';
   btn.disabled = true;
 
-  // Upload screena — użyj _pendingFiles
+  // Upload screena — użyj _pendingFiles (nowe) + _existingAttachments (już zapisane)
   let attachmentUrl = null;
   const filesToUpload = window._pendingFiles && window._pendingFiles.length > 0
     ? window._pendingFiles
     : (() => { const fi = document.getElementById('l-file'); return fi.files.length > 0 ? Array.from(fi.files) : []; })();
+  
+  // Najpierw zaczynamy od istniejących URLi (po ewentualnych usunięciach)
+  const allUrls = (window._existingAttachments || []).slice();
+  
+  // Upload nowych plików
   if (filesToUpload.length > 0 && _athleteId) {
-    const urls = [];
     const base = Date.now();
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i];
@@ -4809,12 +4885,18 @@ async function saveLog() {
       const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
       if (!upErr) {
         const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-        urls.push(urlData.publicUrl);
+        allUrls.push(urlData.publicUrl);
       } else {
         toast('Błąd uploadu: ' + upErr.message);
       }
     }
-    if (urls.length) attachmentUrl = urls.join(',');
+  }
+  
+  if (allUrls.length) attachmentUrl = allUrls.join(',');
+  // Jeśli edytujemy log i user usunął wszystkie istniejące, ale nie dodał nowych → 
+  // attachmentUrl = null (przesyłamy puste — usunie attachment_url w bazie)
+  if (_editingLogId && allUrls.length === 0 && (window._existingAttachments?.length === 0)) {
+    attachmentUrl = null; // wyraźne wyczyszczenie
   }
 
   // Wyznacz datę logu — użyj lokalnej strefy czasowej
@@ -4863,9 +4945,19 @@ async function saveLog() {
 
   let error;
   if (_editingLogId) {
-    // UPDATE istniejącego logu — dodaj attachment jeśli są nowe pliki
+    // UPDATE istniejącego logu
     const updateData = {...logData};
-    if (attachmentUrl) updateData.attachment_url = attachmentUrl;
+    // Ustaw attachment_url tylko jeśli mamy zmiany (są pliki nowe lub user usunął wszystkie)
+    const hadOriginalAttachments = window._originalAttachmentsCount > 0;
+    const hasAnyNow = allUrls.length > 0;
+    const userClearedAll = hadOriginalAttachments && (window._existingAttachments?.length === 0) && !hasAnyNow;
+    if (hasAnyNow) {
+      updateData.attachment_url = attachmentUrl; // join nowych + pozostałych
+    } else if (userClearedAll) {
+      updateData.attachment_url = null; // user wyraźnie usunął wszystkie
+    }
+    // Jeśli żadna z powyższych — nie tknij attachment_url
+    
     const { data: updData, error: updErr } = await sb.from('training_logs')
       .update(updateData).eq('id', _editingLogId).eq('athlete_id', _athleteId).select('id');
     error = updErr;
