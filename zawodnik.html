@@ -2084,6 +2084,9 @@ function showSection(name) {
     document.getElementById('daily-motivation')?.style.setProperty('display','none');
     document.getElementById('week-strip')?.style.setProperty('display','none');
     document.getElementById('log-list')?.style.setProperty('display','none');
+    // ✅ Fix wycieków: kafelek raportów AI i nutrition widget (oba siedzą w głównym layout, nie w overlayowych sekcjach)
+    document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
+    document.getElementById('nut-widget')?.style.setProperty('display','none');
   }
 
   function activateNav(id) {
