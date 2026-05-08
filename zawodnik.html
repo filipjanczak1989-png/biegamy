@@ -327,6 +327,62 @@ body > *{position:relative;z-index:1;}
 .ws-km{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;text-align:right;color:var(--fg);}
 .ws-km-lbl{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;text-align:right;letter-spacing:0.1em;}
 
+/* ── NUTRITION WIDGET ─────────────────────────────────────────────── */
+.nut-widget{
+  margin:0 16px 16px;
+  background:linear-gradient(145deg,rgba(22,18,30,0.9),rgba(11,11,17,0.95));
+  border-radius:var(--tile-radius);
+  border:1px solid rgba(255,255,255,0.07);
+  padding:14px 16px;
+  display:flex;align-items:center;gap:14px;
+  cursor:pointer;
+  text-decoration:none;
+  color:inherit;
+  transition:border-color 0.18s,box-shadow 0.18s,transform 0.15s;
+  box-shadow:var(--tile-shadow);
+  position:relative;
+}
+.nut-widget:hover{
+  border-color:rgba(232,86,30,0.25);
+  box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 24px rgba(232,86,30,0.08);
+}
+.nut-widget:active{transform:scale(0.99);}
+.nut-ring{position:relative;width:58px;height:58px;flex-shrink:0;}
+.nut-ring svg{transform:rotate(-90deg);}
+.nut-ring-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:var(--accent);}
+.nut-info{flex:1;min-width:0;}
+.nut-title{font-size:13px;font-weight:500;color:var(--fg);margin-bottom:3px;display:flex;align-items:center;gap:6px;}
+.nut-title-icon{
+  width:14px;height:14px;color:var(--accent);
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.nut-sub{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.04em;}
+.nut-macros{display:flex;gap:10px;margin-top:5px;font-size:10px;font-family:DM Mono,monospace;color:var(--fg2);letter-spacing:0.04em;}
+.nut-macros span{display:inline-flex;align-items:baseline;gap:3px;}
+.nut-macros b{font-family:'Bebas Neue',sans-serif;font-size:13px;font-weight:400;color:var(--fg);letter-spacing:0;}
+.nut-kcal-wrap{text-align:right;}
+.nut-kcal{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--fg);}
+.nut-kcal-lbl{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;text-align:right;letter-spacing:0.1em;text-transform:uppercase;}
+.nut-empty{
+  display:flex;align-items:center;justify-content:space-between;
+  width:100%;gap:12px;
+}
+.nut-empty-msg{font-size:12px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.04em;}
+.nut-empty-cta{
+  font-size:9px;letter-spacing:0.16em;text-transform:uppercase;
+  color:var(--accent);font-family:DM Mono,monospace;
+  padding:7px 12px;border:1px solid rgba(232,86,30,0.35);
+  border-radius:8px;background:rgba(232,86,30,0.08);
+  white-space:nowrap;
+}
+.nut-warn-tag{
+  position:absolute;top:8px;right:10px;
+  font-size:8px;letter-spacing:0.14em;text-transform:uppercase;
+  color:#ff8a6c;font-family:DM Mono,monospace;font-weight:700;
+  padding:2px 6px;background:rgba(232,86,30,0.12);
+  border:1px solid rgba(232,86,30,0.32);border-radius:5px;
+}
+
 /* ── COACH BOX ─────────────────────────────────────────────────────── */
 .coach-box{
   margin:0 16px 16px;
@@ -906,6 +962,15 @@ body > *{position:relative;z-index:1;}
   <div class="ws-info"><div class="ws-title">Postęp tygodnia</div><div class="ws-sub" id="ws-days">Ładowanie...</div></div>
   <div><div class="ws-km" id="ws-km">—</div><div class="ws-km-lbl" id="ws-km-lbl">km</div></div>
 </div>
+
+<!-- ── NUTRITION WIDGET ── -->
+<div class="sec-hdr fade-in" style="margin-top:4px;">
+  <div class="sec-title">Odżywianie dziś</div>
+  <a href="nutrition.html" class="sec-link">Pełny widok →</a>
+</div>
+<a href="nutrition.html" class="nut-widget fade-in" id="nut-widget" style="display:none;">
+  <!-- generowane JS -->
+</a>
 
 <div class="sec-hdr fade-in" style="margin-top:4px;">
   <div class="sec-title"><span style="color:var(--accent)">SPOŁE</span><span>CZNOŚĆ</span></div>
@@ -2052,11 +2117,12 @@ function showSection(name) {
     // Zawsze przeładuj przy powrocie na home
     if (_athleteId) {
       loadWeekPlan();
+      loadNutritionWidget();
       loadHomeSocialPreview();
       loadHomeAIReportsTile();
     }
     requestAnimationFrame(() => {
-      document.querySelectorAll('.today-hero,.week-sum,.coach-box').forEach((el,i) => {
+      document.querySelectorAll('.today-hero,.week-sum,.nut-widget,.coach-box').forEach((el,i) => {
         el.style.opacity = '0'; el.style.transform = 'translateY(14px)';
         setTimeout(() => {
           el.style.transition = `opacity 0.38s cubic-bezier(0.16,1,0.3,1) ${i*60}ms, transform 0.38s cubic-bezier(0.16,1,0.3,1) ${i*60}ms`;
@@ -4359,6 +4425,148 @@ function _startProfileBanner() {
   el._bannerInterval = interval;
 }
 
+// ════════════════════════════════════════════════════════════
+// NUTRITION WIDGET — kcal dzisiaj + ring postępu + makro
+// ════════════════════════════════════════════════════════════
+async function loadNutritionWidget() {
+  if (!_athleteId) return;
+  const widget = document.getElementById('nut-widget');
+  if (!widget) return;
+
+  // Dziś — od północy lokalnie do północy lokalnie
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+
+  // Pobierz posiłki dziś (uwaga: nutrition_meals może nie istnieć jeśli user wcale nie odpalił sekcji odżywiania — to OK, łapiemy błąd)
+  let meals = [];
+  try {
+    const { data, error } = await sb.from('nutrition_meals')
+      .select('kcal, protein_g, carbs_g, fat_g, salt_g, sugar_g')
+      .eq('athlete_id', _athleteId)
+      .gte('eaten_at', today.toISOString())
+      .lt('eaten_at', tomorrow.toISOString());
+    if (error) {
+      // Tabela może nie istnieć / brak uprawnień — schowaj widget cicho
+      console.warn('Nutrition widget skipped:', error.message);
+      widget.style.display = 'none';
+      return;
+    }
+    meals = data || [];
+  } catch (e) {
+    widget.style.display = 'none';
+    return;
+  }
+
+  // Pobierz target kcal z profilu (athletes.tdee/profile_data)
+  let targetKcal = null;
+  try {
+    const { data: prof } = await sb.from('athletes')
+      .select('tdee, profile_data')
+      .eq('id', _athleteId)
+      .maybeSingle();
+    if (prof) {
+      const tdee = prof.tdee || prof.profile_data?.tdee;
+      const goal = prof.profile_data?.goal || 'maintain';
+      if (tdee) {
+        targetKcal = tdee + (goal === 'deficit' ? -300 : goal === 'surplus' ? 300 : 0);
+      }
+    }
+  } catch (e) {
+    // bez targetu, pokażemy tylko surowe kcal
+  }
+
+  widget.style.display = '';
+
+  // EMPTY STATE — brak posiłków
+  if (!meals.length) {
+    widget.innerHTML = `
+      <div class="nut-empty">
+        <div>
+          <div class="nut-title">
+            <span class="nut-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-1 4-5 5-5 9a5 5 0 0 0 10 0c0-2-1-4-2-5"/></svg>
+            </span>
+            Odżywianie
+          </div>
+          <div class="nut-sub">Brak posiłków dziś</div>
+        </div>
+        <div class="nut-empty-cta">+ Dodaj posiłek</div>
+      </div>`;
+    return;
+  }
+
+  // SUMA dziś
+  const totals = meals.reduce((acc, m) => ({
+    kcal: acc.kcal + (m.kcal || 0),
+    protein: acc.protein + (parseFloat(m.protein_g) || 0),
+    carbs: acc.carbs + (parseFloat(m.carbs_g) || 0),
+    fat: acc.fat + (parseFloat(m.fat_g) || 0),
+    salt: acc.salt + (parseFloat(m.salt_g) || 0),
+    sugar: acc.sugar + (parseFloat(m.sugar_g) || 0)
+  }), { kcal: 0, protein: 0, carbs: 0, fat: 0, salt: 0, sugar: 0 });
+
+  // Ring — % celu
+  const C = 2 * Math.PI * 22; // obwód koła r=22
+  let pct = 0;
+  let ringText = '—';
+  let warnTag = '';
+  if (targetKcal) {
+    pct = Math.min(100, Math.round((totals.kcal / targetKcal) * 100));
+    ringText = pct + '%';
+    // Warning jeśli ponad cel
+    if (totals.kcal > targetKcal * 1.15) {
+      warnTag = `<div class="nut-warn-tag">+${Math.round(((totals.kcal / targetKcal) - 1) * 100)}%</div>`;
+    }
+  }
+  // Jeśli brak targetu — pokaż wypełnienie proporcjonalne do 2000 (placeholder)
+  const ringPctForArc = targetKcal ? pct : Math.min(100, (totals.kcal / 2000) * 100);
+  const ringDashOffset = C - (ringPctForArc / 100) * C;
+
+  // Sub: posiłki + status
+  let subText = `${meals.length} ${meals.length === 1 ? 'posiłek' : meals.length < 5 ? 'posiłki' : 'posiłków'}`;
+  if (targetKcal) {
+    const remaining = targetKcal - totals.kcal;
+    if (remaining > 100) {
+      subText += ` · zostało ${Math.round(remaining)} kcal`;
+    } else if (remaining < -100) {
+      subText += ` · ponad cel`;
+    } else {
+      subText += ` · przy celu`;
+    }
+  }
+
+  widget.innerHTML = `
+    ${warnTag}
+    <div class="nut-ring">
+      <svg width="58" height="58" viewBox="0 0 56 56">
+        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" stroke-width="4"/>
+        <defs><linearGradient id="nutRingGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent2)"/></linearGradient></defs>
+        <circle cx="28" cy="28" r="22" fill="none" stroke="url(#nutRingGrad)" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C.toFixed(2)}" stroke-dashoffset="${ringDashOffset.toFixed(2)}"/>
+      </svg>
+      <div class="nut-ring-text">${ringText}</div>
+    </div>
+    <div class="nut-info">
+      <div class="nut-title">
+        <span class="nut-title-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-1 4-5 5-5 9a5 5 0 0 0 10 0c0-2-1-4-2-5"/></svg>
+        </span>
+        Odżywianie
+      </div>
+      <div class="nut-sub">${subText}</div>
+      <div class="nut-macros">
+        <span><b>${Math.round(totals.protein)}</b>g B</span>
+        <span><b>${Math.round(totals.carbs)}</b>g W</span>
+        <span><b>${Math.round(totals.fat)}</b>g T</span>
+      </div>
+    </div>
+    <div class="nut-kcal-wrap">
+      <div class="nut-kcal">${Math.round(totals.kcal)}</div>
+      <div class="nut-kcal-lbl">kcal</div>
+    </div>`;
+}
+
 async function loadWeekPlan() {
   if (!_athleteId) return;
 
@@ -4487,6 +4695,7 @@ async function loadLogs() {
     loadPendingDuelsBanner(); // banner pending/active duels w "Dziś"
     maybeShowPushPrompt(); // banner push (po 24h od first seen)
     await loadWeekPlan();
+    loadNutritionWidget(); // widget kcal dziś
     loadHomeSocialPreview();
     loadHomeAIReportsTile();
     await updateWeekProgress();
@@ -5660,21 +5869,43 @@ async function openZawAIReportModal(reportId) {
   const typeLabelEl = document.getElementById('zarm-type-label');
   const metaEl = document.getElementById('zarm-meta');
   const badgeEl = document.getElementById('zarm-priority-badge');
-  
-  content.innerHTML = '<div style="text-align:center;color:rgba(240,237,232,0.4);font-size:12px;padding:30px 0;">Ładowanie...</div>';
+
+  if (!modal || !content) {
+    console.warn('[ai-report-modal] missing DOM elements');
+    return;
+  }
+
+  // Przed otwarciem modala — wyczyść stare dane (z poprzedniego raportu)
+  // żeby nigdy nie pokazać "starego nagłówka + pustej treści"
+  content.innerHTML = '<div style="text-align:center;color:rgba(240,237,232,0.4);font-size:12px;padding:60px 0;">Ładowanie raportu...</div>';
+  if (titleEl) titleEl.textContent = '—';
+  if (typeLabelEl) typeLabelEl.textContent = 'Raport';
+  if (metaEl) metaEl.innerHTML = '';
+  if (badgeEl) { badgeEl.textContent = ''; badgeEl.style.background = 'transparent'; }
+  _currentZawReportId = null;
+  _currentZawReaction = null;
+
+  // Pokaż modal natychmiast (z loading state) — user widzi że coś się dzieje
   modal.style.display = 'flex';
-  setTimeout(() => { inner.style.transform = 'translateY(0)'; }, 10);
-  
+  // Scroll inner do góry — żeby user nigdy nie wylądował w środku poprzedniego scrolla
+  if (inner) inner.scrollTop = 0;
+  setTimeout(() => { if (inner) inner.style.transform = 'translateY(0)'; }, 10);
+
   const { data: report, error } = await sb.from('ai_reports')
     .select('*, athletes(full_name)')
     .eq('id', reportId)
     .maybeSingle();
-  
+
   if (error || !report) {
-    content.innerHTML = '<div style="text-align:center;color:#e05050;padding:30px 0;">Nie udało się załadować raportu</div>';
+    content.innerHTML = '<div style="text-align:center;color:#e05050;padding:60px 20px;font-size:13px;">Nie udało się załadować raportu.<br><span style="font-size:11px;opacity:0.7;">' + (error?.message || 'Brak danych') + '</span></div>';
     return;
   }
-  
+
+  // Ostrzeżenie jeśli content_markdown jest pusty (rzadki edge case — np. failed generation)
+  if (!report.content_markdown || report.content_markdown.trim().length === 0) {
+    content.innerHTML = '<div style="text-align:center;color:rgba(240,237,232,0.5);padding:60px 20px;font-size:13px;">Ten raport nie ma jeszcze treści.<br><span style="font-size:11px;opacity:0.7;">Skontaktuj się z trenerem.</span></div>';
+  }
+
   const typeLabel = report.report_type === 'daily' ? 'Raport Dzienny' 
     : report.report_type === 'weekly' ? 'Raport Tygodniowy' 
     : report.report_type === 'monthly' ? 'Raport Miesięczny' 
@@ -5685,8 +5916,8 @@ async function openZawAIReportModal(reportId) {
     : '';
   
   if (typeLabelEl) typeLabelEl.textContent = typeLabel;
-  titleEl.textContent = report.athletes?.full_name || '—';
-  metaEl.innerHTML = (periodFromTo ? periodFromTo + '<br>' : '') + '<span style="opacity:0.6;">' + date + '</span>';
+  if (titleEl) titleEl.textContent = report.athletes?.full_name || '—';
+  if (metaEl) metaEl.innerHTML = (periodFromTo ? periodFromTo + '<br>' : '') + '<span style="opacity:0.6;">' + date + '</span>';
   
   const priorityMap = {
     red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 Pilne' },
@@ -5694,11 +5925,20 @@ async function openZawAIReportModal(reportId) {
     green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓ Standard' }
   };
   const p = priorityMap[report.priority] || priorityMap.green;
-  badgeEl.style.background = p.bg;
-  badgeEl.style.color = p.fg;
-  badgeEl.textContent = p.text;
+  if (badgeEl) {
+    badgeEl.style.background = p.bg;
+    badgeEl.style.color = p.fg;
+    badgeEl.textContent = p.text;
+  }
   
-  content.innerHTML = mdToHtmlZawPremium(report.content_markdown || '');
+  // Wstaw treść raportu — TYLKO gdy faktycznie istnieje (uniknij nadpisywania komunikatu o pustym raporcie)
+  if (report.content_markdown && report.content_markdown.trim().length > 0) {
+    content.innerHTML = mdToHtmlZawPremium(report.content_markdown);
+  }
+  
+  // Po wstawieniu treści — scroll inner do góry (jeszcze raz, na wypadek gdyby
+  // w międzyczasie coś zmieniło scroll — np. browser auto-scroll do focused element)
+  if (inner) inner.scrollTop = 0;
   
   // Załaduj feedback (jeśli był)
   _currentZawReportId = report.id;
@@ -5732,16 +5972,16 @@ function mdToHtmlZawPremium(md) {
   html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
   html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:0.06em;color:#f0ede8;margin:28px 0 12px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);text-transform:uppercase;">$1</h3>');
   html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:26px;color:#f0ede8;margin:24px 0 14px;">$1</h2>');
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f0ede8;font-weight:600;">$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em style="color:rgba(240,237,232,0.7);">$1</em>');
-  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;">›</span>$1</li>');
-  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#ffffff;font-weight:700;">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em style="color:rgba(240,237,232,0.85);font-style:italic;">$1</em>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;color:#f0ede8;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;">›</span>$1</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;color:#f0ede8;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
   html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
     return '<ul style="padding-left:0;margin:10px 0;">' + match + '</ul>';
   });
   html = html.replace(/^\*?\*?PRIORITY:\s*(red|yellow|green)\*?\*?$/gmi, '');
-  html = html.replace(/\n\n+/g, '</p><p style="margin:12px 0;">');
-  html = '<p style="margin:12px 0;">' + html + '</p>';
+  html = html.replace(/\n\n+/g, '</p><p style="margin:12px 0;color:#f0ede8;">');
+  html = '<p style="margin:12px 0;color:#f0ede8;">' + html + '</p>';
   html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
   html = html.replace(/<p[^>]*>(\s*<h[234]|\s*<ul)/g, '$1');
   html = html.replace(/(<\/h[234]>|<\/ul>)\s*<\/p>/g, '$1');
@@ -6843,7 +7083,7 @@ async function openNotifications() {
     if (!notifs || notifs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak powiadomień</div>';
     } else {
-      var icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅' };
+      var icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '🧠' };
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
         var notifClick = '';
@@ -6865,6 +7105,16 @@ async function openNotifications() {
           notifClick = "location.href='races.html';";
         } else if (n.type==='badge') {
           notifClick = "location.href='odznaki.html';";
+        } else if (n.type==='ai_report') {
+          // Klik w notyfikację raportu AI → otwiera modal odpowiedniego raportu
+          // Użyj n.related_id (lub n.report_id, w zależności od schemy notifications)
+          var rid = n.related_id || n.report_id || n.entity_id || null;
+          if (rid) {
+            notifClick = "document.getElementById('notif-panel')?.remove();handleAIReportDeepLink('" + rid + "', { delaySection: 0, delayModal: 200 });";
+          } else {
+            // fallback: otwórz sekcję AI Reports (lista wszystkich)
+            notifClick = "document.getElementById('notif-panel')?.remove();showSection('aireports');";
+          }
         }
         return `<div onclick="${notifClick}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifClick?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
           <span style="font-size:18px;flex-shrink:0;">${icons[n.type]||'🔔'}</span>
@@ -8660,7 +8910,7 @@ window.sendDuelChallenge = sendDuelChallenge;
       </div>
     </div>
     
-    <div id="zarm-content" style="padding:28px 28px 0;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+    <div id="zarm-content" style="padding:28px 28px 0;font-size:14px;line-height:1.7;color:#f0ede8;"></div>
     
     <!-- Feedback od zawodnika -->
     <div id="zarm-feedback-section" style="padding:24px 28px 100px;border-top:1px solid rgba(255,255,255,0.06);margin-top:24px;">
