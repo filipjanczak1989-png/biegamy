@@ -1290,6 +1290,16 @@ body > *{position:relative;z-index:1;}
       <div id="push-toggle-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--muted);flex-shrink:0;">—</div>
     </div>
 
+    <!-- Email toggle: czy zawodnik chce dostawać raporty mailem -->
+    <div id="email-toggle-card" onclick="toggleEmailReports()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">
+      <div style="font-size:22px;flex-shrink:0;">📧</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:600;">Raporty mailem</div>
+        <div id="email-toggle-status" style="font-size:11px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">Sprawdzam status...</div>
+      </div>
+      <div id="email-toggle-pill" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--muted);flex-shrink:0;">—</div>
+    </div>
+
     <!-- Wyloguj -->
     <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:var(--red);border:1px solid rgba(224,80,80,0.25);border-radius:10px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
 
@@ -2147,6 +2157,7 @@ function showSection(name) {
     activateNav('nav-profile');
     loadProfile();
     if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
+    if (typeof refreshEmailToggleUI === 'function') refreshEmailToggleUI();
 
   } else if (name === 'stats' || name === 'analytics' || name === 'statystyki') {
     // Stats moved to profile
@@ -5547,6 +5558,85 @@ async function togglePushNotifs() {
     }
   }
 }
+
+// ═════════════════════════════════════════════════════════════════
+// EMAIL REPORTS TOGGLE — preferencja athletes.email_reports_enabled
+// ═════════════════════════════════════════════════════════════════
+async function refreshEmailToggleUI() {
+  if (!_athleteId) return;
+  
+  const statusEl = document.getElementById('email-toggle-status');
+  const pillEl = document.getElementById('email-toggle-pill');
+  if (!statusEl || !pillEl) return;
+  
+  try {
+    const { data, error } = await sb.from('athletes')
+      .select('email_reports_enabled')
+      .eq('id', _athleteId)
+      .maybeSingle();
+    
+    if (error) {
+      statusEl.textContent = 'Nie udało się pobrać statusu';
+      pillEl.textContent = '?';
+      pillEl.style.background = 'rgba(255,255,255,0.05)';
+      pillEl.style.color = 'var(--muted)';
+      return;
+    }
+    
+    // Default true (kolumna NOT NULL DEFAULT TRUE, ale obsługuję też null defensywnie)
+    const enabled = data?.email_reports_enabled !== false;
+    
+    if (enabled) {
+      statusEl.textContent = 'Włączone — raporty od trenera trafią też na maila';
+      pillEl.textContent = 'On';
+      pillEl.style.background = 'rgba(61,184,112,0.15)';
+      pillEl.style.color = 'var(--green)';
+    } else {
+      statusEl.textContent = 'Wyłączone — raporty tylko w aplikacji';
+      pillEl.textContent = 'Off';
+      pillEl.style.background = 'rgba(255,255,255,0.05)';
+      pillEl.style.color = 'var(--muted)';
+    }
+  } catch (e) {
+    console.warn('refreshEmailToggleUI error:', e);
+  }
+}
+
+async function toggleEmailReports() {
+  if (!_athleteId) { toast('Najpierw się zaloguj'); return; }
+  
+  // Pobierz aktualny stan
+  const { data: cur, error: getErr } = await sb.from('athletes')
+    .select('email_reports_enabled')
+    .eq('id', _athleteId)
+    .maybeSingle();
+  
+  if (getErr) {
+    toast('Błąd: ' + getErr.message);
+    return;
+  }
+  
+  const currentlyEnabled = cur?.email_reports_enabled !== false;
+  const newValue = !currentlyEnabled;
+  
+  if (currentlyEnabled) {
+    if (!confirm('Wyłączyć emaile z raportami? Raporty będą widoczne tylko w aplikacji.')) return;
+  }
+  
+  const { error: updErr } = await sb.from('athletes')
+    .update({ email_reports_enabled: newValue })
+    .eq('id', _athleteId);
+  
+  if (updErr) {
+    toast('Błąd zapisu: ' + updErr.message);
+    return;
+  }
+  
+  toast(newValue ? '📧 Emaile włączone' : 'Emaile wyłączone');
+  await refreshEmailToggleUI();
+}
+
+window.toggleEmailReports = toggleEmailReports;
 
 // ─── AUTO-PROMPT PUSH NOTIFICATIONS ──────────────────────────────────
 // Pokazuje banner "Włącz powiadomienia" w "Dziś" jeśli user:

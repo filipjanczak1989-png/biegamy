@@ -3417,8 +3417,8 @@ async function sendAIReportToAthlete() {
   if (!_currentReportInModal) return;
   const wasSent = _currentReportInModal.visible_to_athlete && _currentReportInModal.sent_at;
   const confirmMsg = wasSent
-    ? 'Raport jest już udostępniony zawodnikowi. Wysłać ponownie powiadomienie?'
-    : 'Wysłać raport do zawodnika? Stanie się widoczny w jego aplikacji + dostanie powiadomienie push.';
+    ? 'Raport jest już udostępniony zawodnikowi. Wysłać ponownie powiadomienie i email?'
+    : 'Wysłać raport do zawodnika? Stanie się widoczny w jego aplikacji + dostanie push i email.';
   if (!confirm(confirmMsg)) return;
   
   const sendBtn = document.getElementById('airm-send-btn');
@@ -3458,7 +3458,37 @@ async function sendAIReportToAthlete() {
       // Nie zatrzymujemy — sam raport już udostępniony
     }
     
-    showToast('✅ Raport wysłany do zawodnika' + (notifErr ? '' : ' (push)'));
+    // 3. Wyślij email (równolegle, nie blokuje UI — opt-out po stronie zawodnika)
+    let emailStatus = '';
+    try {
+      const session = (await sb.auth.getSession()).data.session;
+      if (session) {
+        const emailResp = await fetch(window.SB_FN_URL + '/send-report-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + session.access_token,
+          },
+          body: JSON.stringify({ report_id: _currentReportInModal.id }),
+        });
+        const emailData = await emailResp.json();
+        if (emailData.ok) {
+          if (emailData.skipped === 'email_disabled_by_athlete') {
+            emailStatus = ''; // zawodnik wyłączył maile, nie chwalimy się że nie wysłaliśmy
+          } else {
+            emailStatus = ' (push + mail)';
+          }
+        } else {
+          console.warn('Email send failed:', emailData.error);
+          emailStatus = ' (push, mail failed)';
+        }
+      }
+    } catch (emailErr) {
+      console.warn('Email send error:', emailErr);
+      emailStatus = ' (push, mail failed)';
+    }
+    
+    showToast('✅ Raport wysłany do zawodnika' + (emailStatus || (notifErr ? '' : ' (push)')));
     
     // Odśwież modal + listę
     await openAIReportModal(_currentReportInModal.id);
