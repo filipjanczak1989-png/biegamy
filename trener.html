@@ -3253,7 +3253,7 @@ async function sendAIReportToAthlete() {
   const wasSent = _currentReportInModal.visible_to_athlete && _currentReportInModal.sent_at;
   const confirmMsg = wasSent
     ? 'Raport jest już udostępniony zawodnikowi. Wysłać ponownie powiadomienie?'
-    : 'Wysłać raport do zawodnika? Stanie się widoczny w jego aplikacji.';
+    : 'Wysłać raport do zawodnika? Stanie się widoczny w jego aplikacji + dostanie powiadomienie push.';
   if (!confirm(confirmMsg)) return;
   
   const sendBtn = document.getElementById('airm-send-btn');
@@ -3261,29 +3261,50 @@ async function sendAIReportToAthlete() {
   sendBtn.disabled = true;
   sendBtn.textContent = '⏳ Wysyłam...';
   
-  // Update raportu — visible + sent_at
-  const { error } = await sb.from('ai_reports').update({
-    visible_to_athlete: true,
-    sent_at: new Date().toISOString()
-  }).eq('id', _currentReportInModal.id);
-  
-  if (error) {
+  try {
+    // 1. Update raportu — visible + sent_at
+    const { error: updErr } = await sb.from('ai_reports').update({
+      visible_to_athlete: true,
+      sent_at: new Date().toISOString()
+    }).eq('id', _currentReportInModal.id);
+    
+    if (updErr) {
+      showToast('Błąd: ' + updErr.message);
+      return;
+    }
+    
+    // 2. Wyślij push notification (przez insert do notifications, DB trigger uruchomi send-push)
+    const typeLabel = _currentReportInModal.report_type === 'daily' ? 'dzienny'
+      : _currentReportInModal.report_type === 'weekly' ? 'tygodniowy'
+      : _currentReportInModal.report_type === 'monthly' ? 'miesięczny'
+      : '';
+    const summary = _currentReportInModal.summary || 'Trener przygotował dla Ciebie raport';
+    
+    const { error: notifErr } = await sb.from('notifications').insert({
+      athlete_id: _currentReportInModal.athlete_id,
+      from_athlete_id: null, // od trenera
+      type: 'ai_report',
+      message: '🧠 Nowy raport ' + typeLabel + ' od trenera: ' + summary.substring(0, 100),
+      read: false
+    });
+    
+    if (notifErr) {
+      console.warn('Notification insert failed (push may not work):', notifErr);
+      // Nie zatrzymujemy — sam raport już udostępniony
+    }
+    
+    showToast('✅ Raport wysłany do zawodnika' + (notifErr ? '' : ' (push)'));
+    
+    // Odśwież modal + listę
+    await openAIReportModal(_currentReportInModal.id);
+    if (typeof loadPanelAI === 'function') loadPanelAI();
+  } catch (e) {
+    console.error('sendAIReportToAthlete error:', e);
+    showToast('Błąd: ' + e.message);
+  } finally {
     sendBtn.disabled = false;
     sendBtn.textContent = orig;
-    showToast('Błąd: ' + error.message);
-    return;
   }
-  
-  // TODO: w fazie B — wywołaj edge function send-report-to-athlete (push + email)
-  // Na razie tylko ustawiamy widoczność.
-  
-  sendBtn.disabled = false;
-  sendBtn.textContent = orig;
-  showToast('✅ Raport wysłany do zawodnika');
-  
-  // Odśwież modal + listę
-  await openAIReportModal(_currentReportInModal.id);
-  if (typeof loadPanelAI === 'function') loadPanelAI();
 }
 
 function closeAIReportModal() {
