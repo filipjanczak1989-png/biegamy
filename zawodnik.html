@@ -5800,7 +5800,7 @@ async function loadAIReportsForAthlete() {
   target.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>';
   
   const { data: reports, error } = await sb.from('ai_reports')
-    .select('id, generated_at, sent_at, report_type, priority, summary, read_by_athlete, content_markdown')
+    .select('id, generated_at, sent_at, report_type, priority, summary, read_by_athlete, content_markdown, content_markdown_edited')
     .eq('athlete_id', _athleteId)
     .eq('visible_to_athlete', true)
     .order('sent_at', { ascending: false })
@@ -5954,8 +5954,9 @@ async function openZawAIReportModal(reportId) {
     return;
   }
 
-  // Ostrzeżenie jeśli content_markdown jest pusty (rzadki edge case — np. failed generation)
-  if (!report.content_markdown || report.content_markdown.trim().length === 0) {
+  // Ostrzeżenie jeśli ŻADNA wersja nie ma treści (rzadki edge case — np. failed generation)
+  const anyContent = report.content_markdown_edited || report.content_markdown;
+  if (!anyContent || anyContent.trim().length === 0) {
     content.innerHTML = '<div style="text-align:center;color:rgba(240,237,232,0.5);padding:60px 20px;font-size:13px;">Ten raport nie ma jeszcze treści.<br><span style="font-size:11px;opacity:0.7;">Skontaktuj się z trenerem.</span></div>';
   }
 
@@ -6021,9 +6022,11 @@ async function openZawAIReportModal(reportId) {
     badgeEl.style.display = 'none';
   }
   
-  // Wstaw treść raportu — TYLKO gdy faktycznie istnieje (uniknij nadpisywania komunikatu o pustym raporcie)
-  if (report.content_markdown && report.content_markdown.trim().length > 0) {
-    content.innerHTML = mdToHtmlZawPremium(report.content_markdown);
+  // ✅ Wstaw treść raportu — preferuj edytowaną wersję trenera, fallback do oryginału AI
+  // Trener może edytować raport, wtedy zawodnik widzi tę "polished" wersję
+  const finalMarkdown = report.content_markdown_edited || report.content_markdown;
+  if (finalMarkdown && finalMarkdown.trim().length > 0) {
+    content.innerHTML = mdToHtmlZawPremium(finalMarkdown);
   }
   
   // Po wstawieniu treści — scroll inner do góry (jeszcze raz, na wypadek gdyby

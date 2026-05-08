@@ -3219,7 +3219,21 @@ async function openAIReportModal(reportId) {
     pdfBtn.style.display = (report.report_type === 'weekly' || report.report_type === 'monthly') ? 'inline-block' : 'none';
   }
   
-  content.innerHTML = mdToHtmlPremium(report.content_markdown || '');
+  // ✅ Pokazuj edytowaną wersję jeśli istnieje, inaczej oryginał AI
+  const displayMd = report.content_markdown_edited || report.content_markdown || '';
+  content.innerHTML = mdToHtmlPremium(displayMd);
+  
+  // Wskaźnik że raport był edytowany przez trenera
+  const editedBadge = document.getElementById('airm-edited-badge');
+  if (editedBadge) {
+    if (report.content_markdown_edited && report.coach_edit_count > 0) {
+      const editedDate = report.edited_at ? new Date(report.edited_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+      editedBadge.style.display = 'inline-flex';
+      editedBadge.innerHTML = '✏️ Edytowane' + (report.coach_edit_count > 1 ? ' (' + report.coach_edit_count + 'x)' : '') + (editedDate ? ' · ' + editedDate : '');
+    } else {
+      editedBadge.style.display = 'none';
+    }
+  }
   
   // Pokaż feedback od zawodnika (jeśli jest)
   const feedbackSec = document.getElementById('airm-athlete-feedback');
@@ -3334,8 +3348,8 @@ function toggleAIReportEdit() {
   
   if (!_currentReportInModal) return;
   
-  // Włącz tryb edycji
-  textarea.value = _currentReportInModal.content_markdown || '';
+  // Włącz tryb edycji — pre-fill aktualną wersją (edytowana > oryginał AI)
+  textarea.value = _currentReportInModal.content_markdown_edited || _currentReportInModal.content_markdown || '';
   content.style.display = 'none';
   textarea.style.display = 'block';
   editBtn.style.display = 'none';
@@ -3378,7 +3392,9 @@ async function saveAIReportEdit() {
   const newSummary = tldrMatch ? tldrMatch[1].trim().substring(0, 300) : _currentReportInModal.summary;
   
   const { error } = await sb.from('ai_reports').update({
-    content_markdown: newMd,
+    content_markdown_edited: newMd,
+    edited_at: new Date().toISOString(),
+    coach_edit_count: ((_currentReportInModal.coach_edit_count || 0) + 1),
     priority: newPriority,
     summary: newSummary
   }).eq('id', _currentReportInModal.id);
@@ -3391,7 +3407,7 @@ async function saveAIReportEdit() {
     return;
   }
   
-  showToast('✅ Zapisano');
+  showToast('✅ Zapisano. AI uczy się Twojego stylu 🧠');
   // Odśwież modal i listę
   await openAIReportModal(_currentReportInModal.id);
   if (typeof loadPanelAI === 'function') loadPanelAI();
@@ -3997,8 +4013,13 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
         </div>
       </div>
 
+      <!-- Badge: edytowane przez trenera -->
+      <div style="padding:0 28px;">
+        <div id="airm-edited-badge" style="display:none;font-size:10px;padding:6px 12px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.06em;background:rgba(232,86,30,0.12);color:#e8561e;border:1px solid rgba(232,86,30,0.25);align-items:center;gap:6px;width:fit-content;"></div>
+      </div>
+      
       <!-- Treść raportu -->
-      <div id="airm-content" style="padding:28px 28px 0;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+      <div id="airm-content" style="padding:18px 28px 0;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
       
       <!-- Feedback od zawodnika (tylko jeśli istnieje) -->
       <div id="airm-athlete-feedback" style="display:none;padding:24px 28px;border-top:1px solid rgba(232,86,30,0.2);margin-top:24px;background:rgba(232,86,30,0.04);">
