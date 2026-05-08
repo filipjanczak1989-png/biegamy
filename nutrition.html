@@ -475,6 +475,9 @@ body {
   margin-top: 14px;
   position: relative;
 }
+.hero-macros-secondary {
+  margin-top: 6px !important;
+}
 .macro-pill {
   background: rgba(0,0,0,0.55);
   border: 1px solid var(--border);
@@ -488,6 +491,38 @@ body {
   border-color: var(--border-hi);
   background: rgba(0,0,0,0.6);
   transform: translateY(-1px);
+}
+.macro-pill.micro {
+  padding: 5px 6px;
+  border-radius: 9px;
+  background: rgba(0,0,0,0.4);
+}
+.macro-pill.micro .macro-name {
+  font-size: 8px;
+  letter-spacing: 0.10em;
+}
+.macro-pill.micro .macro-val {
+  font-size: 17px;
+  margin-top: 2px;
+}
+.macro-pill.micro .macro-unit {
+  font-size: 9px;
+}
+/* Stan: ostrzeżenie (np. sól > 5g WHO daily) */
+.macro-pill.warning {
+  background: rgba(220,150,50,0.12);
+  border-color: rgba(220,150,50,0.4);
+}
+.macro-pill.warning .macro-name {
+  color: #e0a040;
+}
+/* Stan: pozytywny (np. błonnik > 25g WHO daily) */
+.macro-pill.good {
+  background: rgba(80,180,90,0.10);
+  border-color: rgba(80,180,90,0.35);
+}
+.macro-pill.good .macro-name {
+  color: #4fb45a;
 }
 .macro-name {
   font-family: 'DM Mono', monospace;
@@ -2666,6 +2701,22 @@ body {
           <div class="macro-val"><span id="macro-fat">0</span><span class="macro-unit">g</span></div>
         </div>
       </div>
+
+      <!-- Drugi rząd makro: błonnik / cukier / sól (z OFF/USDA) -->
+      <div class="hero-macros hero-macros-secondary" id="hero-macros-secondary" style="display:none;">
+        <div class="macro-pill micro" id="pill-fiber">
+          <div class="macro-name">Błonnik</div>
+          <div class="macro-val"><span id="macro-fiber">0</span><span class="macro-unit">g</span></div>
+        </div>
+        <div class="macro-pill micro" id="pill-sugar">
+          <div class="macro-name">Cukier</div>
+          <div class="macro-val"><span id="macro-sugar">0</span><span class="macro-unit">g</span></div>
+        </div>
+        <div class="macro-pill micro" id="pill-salt">
+          <div class="macro-name">Sól</div>
+          <div class="macro-val"><span id="macro-salt">0</span><span class="macro-unit">g</span></div>
+        </div>
+      </div>
     </div>
 
     <!-- Premium progress ring po prawej (na grafice) -->
@@ -4121,20 +4172,65 @@ function refreshDashboard() {
   // Slider 4 grafik w hero (rotujące co 7s, deterministyczne z dnia — codziennie inne 4)
   setupHeroImageSlider();
 
-  // Sumy
+  // Sumy — z rozszerzonymi makro
   const totals = _todayMeals.reduce((acc, m) => {
     acc.kcal += m.kcal || 0;
     acc.protein += parseFloat(m.protein_g) || 0;
     acc.carbs += parseFloat(m.carbs_g) || 0;
     acc.fat += parseFloat(m.fat_g) || 0;
+    acc.fiber += parseFloat(m.fiber_g) || 0;
+    acc.sugar += parseFloat(m.sugar_g) || 0;
+    acc.salt += parseFloat(m.salt_g) || 0;
+    acc.satFat += parseFloat(m.saturated_fat_g) || 0;
     return acc;
-  }, { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+  }, { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, salt: 0, satFat: 0 });
 
   // Animowana liczba kcal (count-up) — premium feel przy zmianie
   animateValue(document.getElementById('hero-kcal'), Math.round(totals.kcal));
   document.getElementById('macro-protein').textContent = Math.round(totals.protein);
   document.getElementById('macro-carbs').textContent = Math.round(totals.carbs);
   document.getElementById('macro-fat').textContent = Math.round(totals.fat);
+
+  // Drugi rząd makro: błonnik, cukier, sól (tylko gdy mamy dane)
+  const hasExtended = totals.fiber > 0 || totals.sugar > 0 || totals.salt > 0;
+  const secondaryRow = document.getElementById('hero-macros-secondary');
+  if (secondaryRow) {
+    if (hasExtended) {
+      secondaryRow.style.display = '';
+      // Błonnik
+      const fiberEl = document.getElementById('macro-fiber');
+      const fiberPill = document.getElementById('pill-fiber');
+      if (fiberEl) fiberEl.textContent = Math.round(totals.fiber * 10) / 10;
+      // Limit dzienny WHO ≥ 25g — bonus dobry
+      if (fiberPill) {
+        fiberPill.classList.toggle('good', totals.fiber >= 25);
+        fiberPill.classList.toggle('warning', false);
+      }
+
+      // Cukier
+      const sugarEl = document.getElementById('macro-sugar');
+      const sugarPill = document.getElementById('pill-sugar');
+      if (sugarEl) sugarEl.textContent = Math.round(totals.sugar * 10) / 10;
+      // Limit WHO 50g/dzień (10% energii) — ostrzeżenie powyżej
+      if (sugarPill) {
+        sugarPill.classList.toggle('warning', totals.sugar > 50);
+        sugarPill.classList.toggle('good', false);
+      }
+
+      // Sól
+      const saltEl = document.getElementById('macro-salt');
+      const saltPill = document.getElementById('pill-salt');
+      if (saltEl) saltEl.textContent = Math.round(totals.salt * 10) / 10;
+      // Limit WHO 5g/dzień — ostrzeżenie powyżej
+      if (saltPill) {
+        saltPill.classList.toggle('warning', totals.salt > 5);
+        saltPill.classList.toggle('good', false);
+      }
+    } else {
+      // Brak danych rozszerzonych — schowaj rząd
+      secondaryRow.style.display = 'none';
+    }
+  }
 
   // Target i progress (jeśli profil)
   let target = null;
