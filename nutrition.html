@@ -5635,26 +5635,52 @@ async function doSearch(q) {
       const name = (food.display_name || '').toLowerCase();
       let score = 0;
 
-      // 1. Najwyższy priorytet: nazwa zaczyna się od query (exact match)
-      if (name.startsWith(queryLower)) score += 100;
+      // ── 1. EXACT MATCH (najwyższy priorytet) ───────────────────
+      // Nazwa to dokładnie query lub query + 1-2 słowa modyfikatorów
+      // np. "jabłko", "jabłka", "jabłka surowe"
+      const queryStem = queryLower.replace(/[aoeę]?$/, '');  // jabłko → jabłk, kurczak → kurczak
+      const firstWord = name.split(/[,\s]/)[0];
       
-      // 2. Słowo query jest na początku po przecinku ("Jabłka, fuji" zaczyna się od "jabłka")
-      else if (name.split(/[,\s]/).some(w => w.startsWith(queryLower))) score += 60;
+      // Pierwsze słowo to query (po stemie) — jasna nazwa typu "Jabłka, surowe"
+      if (firstWord.startsWith(queryStem) || queryLower.startsWith(firstWord.replace(/[aoeę]?$/, ''))) {
+        score += 200;  // bardzo wysoki priorytet
+      }
 
-      // 3. Single-word query → preferuj USDA (surowe składniki)
-      //    Multi-word → preferuj OFF (produkty markowe)
-      if (isSingleWord && food._source === 'usda') score += 30;
-      if (!isSingleWord && food._source === 'off') score += 20;
+      // 2. Nazwa zaczyna się od query
+      if (name.startsWith(queryLower)) score += 100;
 
-      // 4. USDA "raw" / "surowe" — bonus dla single word queries
-      if (isSingleWord && (name.includes('surow') || name.includes('śwież'))) score += 15;
+      // 3. Nazwa zaczyna się od stemu query (jabłk vs jabłko)
+      if (queryStem.length >= 4 && name.startsWith(queryStem)) score += 80;
 
-      // 5. Im krótsza nazwa, tym lepsza (mniej mętności)
-      score -= Math.min(name.length / 10, 10);
+      // ── 4. Source preference ───────────────────────────────────
+      if (isSingleWord && food._source === 'usda') score += 50;
+      if (!isSingleWord && food._source === 'off') score += 25;
 
-      // 6. Lekka kara dla brandów przy single word query
-      //    np. "Tymbark sok jabłkowy" przy zapytaniu "jabłko"
-      if (isSingleWord && food.brand) score -= 25;
+      // 5. Bonus: zawiera "surowe/świeże" (raw foods)
+      if (isSingleWord && (name.includes('surow') || name.includes('śwież'))) score += 30;
+
+      // ── 6. KARY za brandy/produkty pochodne ─────────────────────
+      // Single word + brand = produkt markowy, prawdopodobnie nie chcesz tego pierwsze
+      if (isSingleWord && food.brand) score -= 80;
+
+      // Nazwa zawiera słowo "sok", "nektar", "mus", "krem" = pochodna, nie surowy składnik
+      if (isSingleWord) {
+        const derivativeWords = ['sok', 'nektar', 'mus', 'krem', 'pasztet', 'pasta', 'sos', 
+                                  'puree', 'koncentrat', 'syrop', 'dżem', 'powidła', 'galaretka',
+                                  'lody', 'ciastko', 'baton', 'cukierek', 'wafel'];
+        for (const w of derivativeWords) {
+          if (name.includes(w)) {
+            score -= 60;
+            break;
+          }
+        }
+      }
+
+      // 7. Nazwa zawiera myślnik (np. "Jabłko-wiśnia") = mieszanka, nie czysty składnik
+      if (isSingleWord && /[a-ząćęłńóśźż]-[a-ząćęłńóśźż]/.test(name)) score -= 40;
+
+      // 8. Im krótsza nazwa, tym lepiej (jasność)
+      score -= Math.min(name.length / 8, 12);
 
       return score;
     }
