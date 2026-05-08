@@ -898,6 +898,11 @@ body > *{position:relative;z-index:1;}
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
+  <!-- Cytat motywacyjny — overlay na dole karty -->
+  <div id="hero-quote-overlay" style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px 14px;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.55) 50%,rgba(0,0,0,0.85) 100%);border-radius:0 0 inherit inherit;pointer-events:none;z-index:2;opacity:0;transition:opacity 0.5s ease;">
+    <div id="hero-quote-text" style="font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;line-height:1.4;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.7);font-style:italic;letter-spacing:0.01em;"></div>
+    <div id="hero-quote-author" style="margin-top:5px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(232,86,30,0.95);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:600;"></div>
+  </div>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
   <!-- spacer żeby karta miała wysokość -->
   <div style="flex:1;"></div>
@@ -3798,6 +3803,83 @@ const _heroSets = [
 ];
 const _heroDay = new Date().getDay(); // 0-6
 const _heroCards = _heroSets[_heroDay].map(n => BASE_ASSETS + n + '.webp');
+
+// ═══════════════════════════════════════════════════════════════
+// CYTATY MOTYWACYJNE — biblioteka 50+, 5 losowych per dzień
+// Mix: rap, sport, influencerzy, klasyki — głównie po polsku
+// ═══════════════════════════════════════════════════════════════
+const _heroQuotesLibrary = [
+  // Polskie raperzy
+  { text: 'Każdy dzień to nowa walka. Nie odpuszczaj.', author: 'Quebonafide' },
+  { text: 'Dyscyplina przebije talent kiedy talent nie ma dyscypliny.', author: 'Taco Hemingway' },
+  { text: 'Zostaw wszystko na trasie. Resztę dorobi czas.', author: 'O.S.T.R.' },
+  { text: 'Nie ma drogi na skróty do miejsca, do którego warto dotrzeć.', author: 'Mata' },
+  { text: 'Robisz wynik, kiedy nikt nie patrzy.', author: 'Pezet' },
+  { text: 'Nie boję się tego, kto trenował 10 000 kopnięć raz. Boję się tego, kto trenował jedno kopnięcie 10 000 razy.', author: 'Bruce Lee' },
+  
+  // Polscy biegacze i trenerzy
+  { text: 'Bieg to medytacja w ruchu.', author: 'Marcin Świerc' },
+  { text: 'Nie chodzi o to, żeby być najszybszym. Chodzi o to, żeby nigdy się nie poddać.', author: 'Robert Korzeniowski' },
+  { text: 'Granica jest tylko w głowie. Nogi jeszcze sporo wytrzymają.', author: 'Joanna Jóźwik' },
+  
+  // Influencerzy fitness
+  { text: 'Najtrudniejszy krok to ten pierwszy. Reszta sama się zrobi.', author: 'Akop Szostak' },
+  { text: 'Twoje ciało może wszystko. To Twoja głowa musisz przekonać.', author: 'David Goggins' },
+  { text: 'Bądź lepszy o 1% każdego dnia. Po roku jesteś 37x lepszy.', author: 'James Clear' },
+  
+  // Sportowe legendy
+  { text: 'Trudno cię pokonać, kiedy nigdy się nie poddajesz.', author: 'Babe Ruth' },
+  { text: 'Cierpienie jest opcjonalne. Ból jest nieunikniony.', author: 'Haruki Murakami' },
+  { text: 'Nie chodzi o to ile razy upadasz. Chodzi o to ile razy wstajesz.', author: 'Vince Lombardi' },
+  { text: 'Jedyna granica twojej wytrzymałości jest tam gdzie postanowisz przestać.', author: 'Eliud Kipchoge' },
+  { text: 'Nie liczę swoich brzuszków, dopóki nie zacznie boleć. Wtedy zaczynam liczyć — bo wtedy się liczą.', author: 'Muhammad Ali' },
+  
+  // Polskie klasyki i autorskie
+  { text: 'Pot to słabość opuszczająca ciało.', author: 'Stara szkoła' },
+  { text: 'Zacznij. Reszta jest łatwiejsza niż myślisz.', author: 'BiegaMy' },
+  { text: 'Kilometr po kilometrze. Tak buduje się formę.', author: 'BiegaMy' },
+  { text: 'Najgorszy bieg jest lepszy niż żaden bieg.', author: 'BiegaMy' },
+  { text: 'Plan na dziś > marzenia o jutrze.', author: 'BiegaMy' },
+  { text: 'Ciało robi to, co głowa pozwoli mu robić.', author: 'BiegaMy' },
+  
+  // Kpop/influ na czasie
+  { text: 'Zaufaj procesowi. Wszystko ma swój czas.', author: 'Drake' },
+  { text: 'Nie szukasz wymówek. Szukasz drogi.', author: 'Kobe Bryant' },
+  { text: 'Ciężka praca przebije talent, jeśli talent nie pracuje ciężko.', author: 'Tim Notke' },
+  
+  // Filozofia treningu
+  { text: 'Wstań wcześnie. Trenuj. Powtórz. To wszystko.', author: 'Jocko Willink' },
+  { text: 'Sukces to suma małych wysiłków powtarzanych dzień po dniu.', author: 'Robert Collier' },
+  { text: 'Nie ma magicznej tabletki. Jest plan i robota.', author: 'Mat Fraser' },
+  
+  // Krótkie kopniaki
+  { text: 'Idziesz po medal czy po wymówkę?', author: 'BiegaMy' },
+  { text: 'Buty założone. Reszta to detale.', author: 'BiegaMy' },
+  { text: 'Twój największy rywal patrzy na Ciebie z lustra.', author: 'BiegaMy' },
+  { text: 'Dziś nie? To kiedy?', author: 'BiegaMy' },
+];
+
+// Wybierz 5 cytatów na dziś (deterministycznie z daty — ten sam zestaw w ciągu dnia)
+const _heroQuotes = (() => {
+  const today = new Date();
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  // Deterministyczny shuffle (Mulberry32)
+  let s = seed;
+  const rand = () => {
+    s |= 0; s = (s + 0x6D2B79F5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const arr = [..._heroQuotesLibrary];
+  // Fisher-Yates shuffle z deterministycznym RNG
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, 5);
+})();
+
 let _heroIdx = 0;
 let _heroTimer = null;
 
@@ -3815,9 +3897,27 @@ function _heroShow(i) {
   const bg = document.getElementById('today-hero-bg');
   if (!bg) return;
   bg.style.opacity = '0';
+  
+  // Cytat — fade out razem z tłem
+  const quoteOverlay = document.getElementById('hero-quote-overlay');
+  if (quoteOverlay) quoteOverlay.style.opacity = '0';
+  
   setTimeout(() => {
     bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
     bg.style.opacity = '1';
+    
+    // Cytat — wstaw nową treść i fade in
+    const q = _heroQuotes[i % _heroQuotes.length];
+    const qText = document.getElementById('hero-quote-text');
+    const qAuthor = document.getElementById('hero-quote-author');
+    if (q && qText && qAuthor) {
+      qText.textContent = '"' + q.text + '"';
+      qAuthor.textContent = '— ' + q.author;
+    }
+    if (quoteOverlay) {
+      // Krótka pauza żeby tło się załadowało, potem fade-in
+      setTimeout(() => { quoteOverlay.style.opacity = '1'; }, 100);
+    }
   }, 220);
   // Zaktualizuj paginację
   document.querySelectorAll('.hero-dot').forEach((d, idx) => {
@@ -3837,6 +3937,17 @@ function _heroInit() {
   if (!bg || !_heroCards.length) return;
   bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
   bg.style.opacity = '0';
+  
+  // Pierwszy cytat
+  const q0 = _heroQuotes[0];
+  const qText = document.getElementById('hero-quote-text');
+  const qAuthor = document.getElementById('hero-quote-author');
+  const quoteOverlay = document.getElementById('hero-quote-overlay');
+  if (q0 && qText && qAuthor) {
+    qText.textContent = '"' + q0.text + '"';
+    qAuthor.textContent = '— ' + q0.author;
+  }
+  
   // Buduj paginację
   const dotsEl = document.getElementById('hero-dots');
   if (dotsEl) {
@@ -3844,8 +3955,11 @@ function _heroInit() {
       `<span class="hero-dot${i===0?' active':''}" onclick="_heroShow(${i});_heroIdx=${i};"></span>`
     ).join('');
   }
-  // Fade-in
-  requestAnimationFrame(() => setTimeout(() => { bg.style.opacity = '0.72'; }, 60));
+  // Fade-in tła + cytatu
+  requestAnimationFrame(() => setTimeout(() => { 
+    bg.style.opacity = '0.72'; 
+    if (quoteOverlay) quoteOverlay.style.opacity = '1';
+  }, 60));
   // Auto-rotate
   _heroStartRotation();
 }
@@ -6283,10 +6397,10 @@ async function saveZawFeedback() {
     return;
   }
   
-  toast('✅ Feedback zapisany');
+  toast('✅ Opinia wysłana do trenera');
   const status = document.getElementById('zarm-feedback-status');
   if (status) {
-    status.textContent = 'Zapisano · ' + new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
+    status.textContent = 'Wysłano · ' + new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
   }
 }
 
@@ -9133,10 +9247,10 @@ window.sendDuelChallenge = sendDuelChallenge;
     <div id="zarm-feedback-section" style="padding:32px 28px 28px;margin-top:36px;background:linear-gradient(180deg,rgba(232,86,30,0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
         <div style="width:24px;height:1px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));"></div>
-        <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;">Twój feedback</div>
+        <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;">Twoja odpowiedź</div>
       </div>
       <div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.55;margin-bottom:18px;">
-        Trener sprawdza wszystkie odpowiedzi. Powiedz co o tym myślisz — to pomaga w kolejnych raportach.
+        Trener czyta wszystkie odpowiedzi. Powiedz co o tym myślisz — to pomaga w kolejnych raportach.
       </div>
       
       <!-- Reactions — większe, premium -->
@@ -9152,7 +9266,7 @@ window.sendDuelChallenge = sendDuelChallenge;
       <textarea id="zarm-feedback-text" placeholder="Coś nie pasuje? Coś było super? Napisz..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.55;padding:14px 16px;resize:vertical;min-height:90px;outline:none;box-sizing:border-box;transition:border-color 0.2s;" oninput="this.style.borderColor='rgba(232,86,30,0.5)'" onfocus="this.style.borderColor='rgba(232,86,30,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
       
       <div style="margin-top:14px;">
-        <button onclick="saveZawFeedback()" style="width:100%;background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(232,86,30,0.25);transition:transform 0.12s,box-shadow 0.18s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">Zapisz feedback</button>
+        <button onclick="saveZawFeedback()" style="width:100%;background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(232,86,30,0.25);transition:transform 0.12s,box-shadow 0.18s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">Wyślij odpowiedź</button>
       </div>
       <div id="zarm-feedback-status" style="margin-top:10px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;letter-spacing:0.04em;"></div>
     </div>
