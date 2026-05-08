@@ -7694,23 +7694,66 @@ if (_tabParam) {
   setTimeout(() => showSection(_tabParam), 800);
 }
 
-// Obsługa ?section=aireports&report_id=XXX — z push notification
+// ════════════════════════════════════════════════════════════════════
+// Deep-link do raportu AI (z push notification lub URL ?section=aireports)
+// ════════════════════════════════════════════════════════════════════
+// Wspólna funkcja używana w 2 miejscach:
+//   1) Handler URL params przy starcie (gdy SW openWindow z deep-linkiem)
+//   2) Listener postMessage od SW (gdy karta już otwarta i SW przekazuje
+//      kliknięcie notyfikacji bez przeładowania strony)
+function handleAIReportDeepLink(reportId, opts) {
+  opts = opts || {};
+  const delaySection = opts.delaySection != null ? opts.delaySection : 0;
+  const delayModal = opts.delayModal != null ? opts.delayModal : 350;
+
+  setTimeout(() => {
+    if (typeof showSection === 'function') {
+      showSection('aireports');
+    }
+    if (reportId) {
+      setTimeout(() => {
+        if (typeof openZawAIReportModal === 'function') {
+          openZawAIReportModal(reportId);
+        } else {
+          console.warn('[deep-link] openZawAIReportModal not available');
+        }
+      }, delayModal);
+    }
+  }, delaySection);
+}
+
+// Obsługa ?section=aireports&report_id=XXX — z push notification (nowa karta)
 const _sectionParam = new URLSearchParams(window.location.search).get('section');
 const _reportIdParam = new URLSearchParams(window.location.search).get('report_id');
 if (_sectionParam === 'aireports') {
+  // Pierwsze otwarcie z URL — większy delay, czekamy aż app się załaduje
+  handleAIReportDeepLink(_reportIdParam, { delaySection: 800, delayModal: 600 });
+  // Wyczyść URL żeby refresh nie otwierał ponownie
   setTimeout(() => {
-    showSection('aireports');
-    if (_reportIdParam) {
-      // Po przejściu do sekcji, otwórz modal raportu
-      setTimeout(() => {
-        if (typeof openZawAIReportModal === 'function') {
-          openZawAIReportModal(_reportIdParam);
-        }
-      }, 600);
-    }
-    // Wyczyść URL żeby refresh nie otwierał ponownie
     history.replaceState({}, '', location.pathname);
-  }, 800);
+  }, 1000);
+}
+
+// Listener postMessage od Service Workera — gdy karta już otwarta
+// i user kliknął push notification (SW nie chce robić client.navigate
+// bo to bywa zawodne; zamiast tego przekazuje dane przez postMessage)
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const msg = event.data || {};
+    if (msg.type !== 'PUSH_NOTIFICATION_CLICK') return;
+
+    // Otwarty raport AI?
+    if (msg.notifType === 'ai_report' || (msg.targetPath && msg.targetPath.includes('zawodnik.html'))) {
+      // Karta już otwarta — modal otwiera się szybko, bez czekania na load
+      handleAIReportDeepLink(msg.reportId, { delaySection: 0, delayModal: 250 });
+      return;
+    }
+
+    // Inne typy push (na przyszłość) — zwykła nawigacja
+    if (msg.targetUrl && msg.targetUrl !== location.pathname + location.search) {
+      try { location.assign(msg.targetUrl); } catch (e) { console.warn('[push-msg] navigate failed', e); }
+    }
+  });
 }
 
 // Obsługa ?duel=athleteId&duel_name=Imię — otwiera modal pojedynku

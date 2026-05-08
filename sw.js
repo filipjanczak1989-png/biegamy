@@ -13,7 +13,7 @@
 //   - skipWaiting + clients.claim → user dostaje nową wersję natychmiast
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'biegamy-2026-05-08-bffdb91';
+const CACHE_VERSION = 'biegamy-2026-05-08-pushfix';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
@@ -212,10 +212,15 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'BiegaMy';
   const options = {
     body: data.body || 'Masz nową aktywność',
-    icon: data.icon || '/icon-192.png',
-    badge: data.badge || '/icon-72.png',
-    tag: data.tag || 'biegamy', // grupowanie - nowe pushy tego samego typu zastąpią poprzednie
-    data: { url: data.url || '/zawodnik.html', type: data.type },
+    icon: data.icon || '/icons/icon-192.png',
+    badge: data.badge || '/icons/icon-192.png',
+    // UWAGA: każdy ai_report ma WŁASNY tag żeby nie zastępował się wzajemnie
+    tag: data.tag || 'biegamy',
+    data: {
+      url: data.url || '/zawodnik.html',
+      type: data.type,
+      report_id: data.report_id || null
+    },
     requireInteraction: false,
     silent: false,
     vibrate: [100, 50, 100],
@@ -226,25 +231,83 @@ self.addEventListener('push', (event) => {
   );
 });
 
+// ════════════════════════════════════════════════════════════════════
 // Klik w powiadomienie → otwórz odpowiedni URL
+// ════════════════════════════════════════════════════════════════════
+// PROBLEM którego unikamy:
+//   - client.navigate(url) bywa ignorowany przez Chrome jeśli karta
+//     jest już na zawodnik.html (różny query string nie wystarcza)
+//   - client.focus() kończy event handler zanim navigate się dokona
+//
+// ROZWIĄZANIE:
+//   - Jeśli karta jest otwarta → fokusuj + wyślij postMessage
+//     do strony, która sama otworzy modal raportu (bez reload)
+//   - Jeśli karta jest zamknięta → openWindow z deep-linkiem
+//     (handler URL params w zawodnik.html zajmie się resztą)
+// ════════════════════════════════════════════════════════════════════
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || '/zawodnik.html';
 
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      // Jeśli BiegaMy już otwarte gdzieś — fokusuj i nawiguj
-      for (let i = 0; i < windowClients.length; i++) {
-        const client = windowClients[i];
-        if (client.url.includes('biegamy.run') || client.url.includes(self.location.origin)) {
-          if ('navigate' in client) client.navigate(url);
-          return client.focus();
+  const data = event.notification.data || {};
+  const targetUrl = data.url || '/zawodnik.html';
+  const reportId = data.report_id || null;
+  const notifType = data.type || null;
+
+  // Wyciągnij ścieżkę i query do oddzielnych zmiennych — przyda się
+  // przy decyzji "czy ta sama strona już jest otwarta"
+  const targetPath = targetUrl.split('?')[0];
+
+  event.waitUntil((async () => {
+    const allClients = await clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    });
+
+    // Szukamy otwartej karty z BiegaMy (origin match)
+    const myOrigin = self.location.origin;
+    const matched = allClients.find((c) => {
+      try {
+        const u = new URL(c.url);
+        return u.origin === myOrigin;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    if (matched) {
+      // Karta otwarta — fokusuj i wyślij postMessage
+      // (strona zdecyduje czy nawigować, czy tylko otworzyć modal)
+      try {
+        await matched.focus();
+      } catch (e) {
+        console.warn('[SW] focus failed', e);
+      }
+
+      // Wyślij wiadomość do strony — niech sama obsłuży deep-link
+      try {
+        matched.postMessage({
+          type: 'PUSH_NOTIFICATION_CLICK',
+          targetUrl: targetUrl,
+          targetPath: targetPath,
+          reportId: reportId,
+          notifType: notifType
+        });
+      } catch (e) {
+        console.warn('[SW] postMessage failed, fallback to navigate', e);
+        // Fallback: jeśli postMessage nie zadziała, spróbuj navigate
+        if ('navigate' in matched) {
+          try { await matched.navigate(targetUrl); } catch (_) {}
         }
       }
-      // W przeciwnym razie otwórz nową
-      if (clients.openWindow) return clients.openWindow(url);
-    })
-  );
+      return;
+    }
+
+    // Brak otwartej karty — otwórz nową z pełnym URL (deep-link)
+    // Handler URL params w zawodnik.html (linia ~7700) sam otworzy modal
+    if (clients.openWindow) {
+      return clients.openWindow(targetUrl);
+    }
+  })());
 });
 
 // ─── MESSAGE CHANNEL: pozwala apce kontrolować SW ────────────────────
