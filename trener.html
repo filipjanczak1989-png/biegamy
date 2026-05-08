@@ -566,7 +566,7 @@ async function loadPanelAI() {
   target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie raportów...</div>';
 
   const { data: reports, error } = await sb.from('ai_reports')
-    .select('id, generated_at, report_type, priority, summary, read_by_coach, visible_to_athlete, sent_at')
+    .select('id, generated_at, report_type, priority, summary, read_by_coach, visible_to_athlete, sent_at, athlete_feedback, athlete_reaction')
     .eq('athlete_id', id)
     .order('generated_at', { ascending: false })
     .limit(10);
@@ -596,6 +596,9 @@ async function loadPanelAI() {
     const sentBadge = r.visible_to_athlete && r.sent_at 
       ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(139,92,246,0.15);color:#a78bfa;letter-spacing:0.06em;">📤 WYSŁANY</span>'
       : '';
+    const feedbackBadge = (r.athlete_feedback || r.athlete_reaction)
+      ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(232,86,30,0.15);color:#e8561e;letter-spacing:0.06em;font-weight:600;">💬 FEEDBACK</span>'
+      : '';
     
     html += '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">'
@@ -603,6 +606,7 @@ async function loadPanelAI() {
         + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;">' + typeLabel + '</span>'
         + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pc.text + '</span>'
         + sentBadge
+        + feedbackBadge
         + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
         + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
       + '</div>'
@@ -3217,6 +3221,31 @@ async function openAIReportModal(reportId) {
   
   content.innerHTML = mdToHtmlPremium(report.content_markdown || '');
   
+  // Pokaż feedback od zawodnika (jeśli jest)
+  const feedbackSec = document.getElementById('airm-athlete-feedback');
+  const reactionEl = document.getElementById('airm-athlete-reaction');
+  const feedbackTextEl = document.getElementById('airm-athlete-feedback-text');
+  const feedbackMetaEl = document.getElementById('airm-athlete-feedback-meta');
+  if (feedbackSec) {
+    if (report.athlete_feedback || report.athlete_reaction) {
+      feedbackSec.style.display = '';
+      // Reaction
+      if (reactionEl) {
+        if (report.athlete_reaction === 'thumbs_up') reactionEl.innerHTML = '<span style="background:rgba(61,184,112,0.15);color:#3db870;padding:5px 10px;border-radius:6px;font-size:11px;font-family:DM Mono,monospace;">👍 Pomocne</span>';
+        else if (report.athlete_reaction === 'thumbs_down') reactionEl.innerHTML = '<span style="background:rgba(224,80,80,0.15);color:#e05050;padding:5px 10px;border-radius:6px;font-size:11px;font-family:DM Mono,monospace;">👎 Mało pomocne</span>';
+        else reactionEl.innerHTML = '';
+      }
+      if (feedbackTextEl) feedbackTextEl.textContent = report.athlete_feedback || '(tylko reakcja, brak komentarza)';
+      if (feedbackMetaEl && report.athlete_feedback_at) {
+        feedbackMetaEl.textContent = '— ' + new Date(report.athlete_feedback_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      } else if (feedbackMetaEl) {
+        feedbackMetaEl.textContent = '';
+      }
+    } else {
+      feedbackSec.style.display = 'none';
+    }
+  }
+  
   cancelAIReportEdit();
   
   if (!report.read_by_coach) {
@@ -3276,6 +3305,25 @@ function exportAIReportToPDF() {
 }
 
 window.exportAIReportToPDF = exportAIReportToPDF;
+
+async function deleteAIReport() {
+  if (!_currentReportInModal) return;
+  if (!confirm('Usunąć ten raport? Ta operacja jest nieodwracalna.')) return;
+  
+  const { error } = await sb.from('ai_reports').delete()
+    .eq('id', _currentReportInModal.id);
+  
+  if (error) {
+    showToast('Błąd: ' + error.message);
+    return;
+  }
+  
+  showToast('✅ Raport usunięty');
+  closeAIReportModal();
+  if (typeof loadPanelAI === 'function') loadPanelAI();
+}
+
+window.deleteAIReport = deleteAIReport;
 
 function toggleAIReportEdit() {
   const content = document.getElementById('airm-content');
@@ -3913,6 +3961,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
       <button id="airm-save-btn" onclick="saveAIReportEdit()" style="display:none;background:#3db870;border:none;color:#fff;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;font-weight:600;">💾 Zapisz</button>
       <button id="airm-cancel-btn" onclick="cancelAIReportEdit()" style="display:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(240,237,232,0.6);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">Anuluj</button>
       <button id="airm-pdf-btn" onclick="exportAIReportToPDF()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f0ede8;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">📄 PDF</button>
+      <button id="airm-delete-btn" onclick="deleteAIReport()" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">🗑</button>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
         <span id="airm-visibility-status" style="font-size:10px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;"></span>
         <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.08em;font-weight:600;text-transform:uppercase;">📤 Wyślij</button>
@@ -3949,7 +3998,15 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
       </div>
 
       <!-- Treść raportu -->
-      <div id="airm-content" style="padding:28px 28px 60px;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+      <div id="airm-content" style="padding:28px 28px 0;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+      
+      <!-- Feedback od zawodnika (tylko jeśli istnieje) -->
+      <div id="airm-athlete-feedback" style="display:none;padding:24px 28px;border-top:1px solid rgba(232,86,30,0.2);margin-top:24px;background:rgba(232,86,30,0.04);">
+        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(232,86,30,0.8);font-family:'DM Mono',monospace;margin-bottom:12px;">💬 Feedback od zawodnika</div>
+        <div id="airm-athlete-reaction" style="margin-bottom:10px;font-size:14px;"></div>
+        <div id="airm-athlete-feedback-text" style="font-size:13px;line-height:1.6;color:#f0ede8;font-style:italic;background:rgba(255,255,255,0.03);padding:12px 14px;border-left:3px solid #e8561e;border-radius:0 8px 8px 0;"></div>
+        <div id="airm-athlete-feedback-meta" style="margin-top:8px;font-size:10px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.06em;"></div>
+      </div>
 
       <!-- Stopka (tylko w PDF) -->
       <div id="airm-print-footer" style="display:none;padding:20px 28px;border-top:1px solid rgba(255,255,255,0.06);font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-align:center;">

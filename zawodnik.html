@@ -5684,6 +5684,21 @@ async function openZawAIReportModal(reportId) {
   
   content.innerHTML = mdToHtmlZawPremium(report.content_markdown || '');
   
+  // Załaduj feedback (jeśli był)
+  _currentZawReportId = report.id;
+  _currentZawReaction = report.athlete_reaction || null;
+  const feedbackText = document.getElementById('zarm-feedback-text');
+  if (feedbackText) feedbackText.value = report.athlete_feedback || '';
+  const feedbackStatus = document.getElementById('zarm-feedback-status');
+  if (feedbackStatus) {
+    if (report.athlete_feedback_at) {
+      feedbackStatus.textContent = 'Zapisano ' + new Date(report.athlete_feedback_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+    } else {
+      feedbackStatus.textContent = '';
+    }
+  }
+  refreshZawReactionUI();
+  
   if (!report.read_by_athlete) {
     sb.from('ai_reports').update({ read_by_athlete: new Date().toISOString() })
       .eq('id', reportId).then(() => {
@@ -5754,6 +5769,73 @@ window.openZawAIReportModal = openZawAIReportModal;
 window.closeZawAIReportModal = closeZawAIReportModal;
 window.loadAIReportsForAthlete = loadAIReportsForAthlete;
 window.loadHomeAIReportsTile = loadHomeAIReportsTile;
+
+// ── FEEDBACK od zawodnika do raportu AI ─────────────────────────
+let _currentZawReportId = null;
+let _currentZawReaction = null;
+
+async function setZawReaction(reaction) {
+  if (!_currentZawReportId) return;
+  // Toggle: kliknij tę samą reakcję ponownie żeby cofnąć
+  const newReaction = (_currentZawReaction === reaction) ? null : reaction;
+  
+  const { error } = await sb.from('ai_reports').update({
+    athlete_reaction: newReaction
+  }).eq('id', _currentZawReportId);
+  
+  if (error) {
+    toast('Błąd zapisu: ' + error.message);
+    return;
+  }
+  _currentZawReaction = newReaction;
+  refreshZawReactionUI();
+  toast(newReaction ? '✓ Zapisano reakcję' : '✓ Cofnięto');
+}
+
+function refreshZawReactionUI() {
+  const btnUp = document.getElementById('zarm-react-up');
+  const btnDown = document.getElementById('zarm-react-down');
+  if (!btnUp || !btnDown) return;
+  
+  const setActive = (btn, active, color) => {
+    if (active) {
+      btn.style.background = color;
+      btn.style.borderColor = color.replace('0.15', '0.4');
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'rgba(255,255,255,0.05)';
+      btn.style.borderColor = 'rgba(255,255,255,0.1)';
+      btn.style.color = 'rgba(240,237,232,0.7)';
+    }
+  };
+  setActive(btnUp, _currentZawReaction === 'thumbs_up', 'rgba(61,184,112,0.4)');
+  setActive(btnDown, _currentZawReaction === 'thumbs_down', 'rgba(224,80,80,0.4)');
+}
+
+async function saveZawFeedback() {
+  if (!_currentZawReportId) return;
+  const txt = document.getElementById('zarm-feedback-text').value.trim();
+  if (!txt) { toast('Napisz coś najpierw'); return; }
+  
+  const { error } = await sb.from('ai_reports').update({
+    athlete_feedback: txt,
+    athlete_feedback_at: new Date().toISOString()
+  }).eq('id', _currentZawReportId);
+  
+  if (error) {
+    toast('Błąd: ' + error.message);
+    return;
+  }
+  
+  toast('✅ Feedback zapisany');
+  const status = document.getElementById('zarm-feedback-status');
+  if (status) {
+    status.textContent = 'Zapisano · ' + new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
+  }
+}
+
+window.setZawReaction = setZawReaction;
+window.saveZawFeedback = saveZawFeedback;
 
 async function loadSocialFeed(compact) {
   if (!_athleteId) return;
@@ -8469,39 +8551,55 @@ window.sendDuelChallenge = sendDuelChallenge;
 
 <!-- MODAL: pojedynczy raport AI dla zawodnika (premium look) -->
 <div id="zaw-ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeZawAIReportModal()">
-  <div id="zaw-ai-report-modal-inner" style="background:#0c0c10;border-radius:24px 24px 0 0;border-top:1px solid rgba(232,86,30,0.5);width:100%;max-width:560px;max-height:94vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;box-shadow:0 -10px 60px rgba(232,86,30,0.15);">
-    <div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
+  <div id="zaw-ai-report-modal-inner" style="background:#0c0c10;border-radius:24px 24px 0 0;border-top:1px solid rgba(232,86,30,0.5);width:100%;max-width:560px;max-height:94vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;box-shadow:0 -10px 60px rgba(232,86,30,0.15);-webkit-overflow-scrolling:touch;">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 0;"></div>
     
     <!-- Toolbar (tylko przycisk zamykania) -->
-    <div style="padding:8px 18px;display:flex;justify-content:flex-end;flex-shrink:0;">
+    <div style="padding:8px 18px;display:flex;justify-content:flex-end;position:sticky;top:0;background:#0c0c10;z-index:2;">
       <button onclick="closeZawAIReportModal()" style="background:none;border:none;color:rgba(240,237,232,0.4);font-size:22px;cursor:pointer;padding:4px;">✕</button>
     </div>
     
-    <div style="flex:1;overflow-y:auto;background:#0c0c10;">
-      <!-- Header (premium) -->
-      <div style="padding:20px 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(232,86,30,0.06) 0%,transparent 100%);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:32px;height:32px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">
-            <div>
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;line-height:1;">BIEGAMY</div>
-              <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;margin-top:2px;">Od trenera</div>
-            </div>
+    <!-- Header (premium) -->
+    <div style="padding:0 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(232,86,30,0.06) 0%,transparent 100%);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:32px;height:32px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;line-height:1;">BIEGAMY</div>
+            <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;margin-top:2px;">Od trenera</div>
           </div>
-          <div id="zarm-priority-badge" style="font-size:9px;padding:5px 10px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.12em;font-weight:600;text-transform:uppercase;"></div>
         </div>
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;" id="zarm-type-label">Raport</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1.1;color:#f0ede8;letter-spacing:0.02em;" id="zarm-title">—</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.06em;" id="zarm-meta"></div>
-          </div>
+        <div id="zarm-priority-badge" style="font-size:9px;padding:5px 10px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.12em;font-weight:600;text-transform:uppercase;"></div>
+      </div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;" id="zarm-type-label">Raport</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1.1;color:#f0ede8;letter-spacing:0.02em;" id="zarm-title">—</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.06em;" id="zarm-meta"></div>
         </div>
       </div>
+    </div>
+    
+    <div id="zarm-content" style="padding:28px 28px 0;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+    
+    <!-- Feedback od zawodnika -->
+    <div id="zarm-feedback-section" style="padding:24px 28px 100px;border-top:1px solid rgba(255,255,255,0.06);margin-top:24px;">
+      <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(232,86,30,0.8);font-family:'DM Mono',monospace;margin-bottom:12px;">💬 Twój feedback</div>
       
-      <div id="zarm-content" style="padding:28px 28px 60px;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+      <!-- Reactions -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="zarm-react-up" onclick="setZawReaction('thumbs_up')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.7);border-radius:10px;padding:10px;cursor:pointer;font-size:13px;transition:all 0.15s;">👍 Pomocne</button>
+        <button id="zarm-react-down" onclick="setZawReaction('thumbs_down')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.7);border-radius:10px;padding:10px;cursor:pointer;font-size:13px;transition:all 0.15s;">👎 Mało pomocne</button>
+      </div>
+      
+      <textarea id="zarm-feedback-text" placeholder="Co o tym myślisz? Coś zostało źle? Możesz tu napisać..." style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.5;padding:12px;resize:vertical;min-height:80px;outline:none;box-sizing:border-box;" oninput="this.style.borderColor='rgba(232,86,30,0.4)'"></textarea>
+      
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button onclick="saveZawFeedback()" style="flex:1;background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:10px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;cursor:pointer;">Zapisz feedback</button>
+      </div>
+      <div id="zarm-feedback-status" style="margin-top:8px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;"></div>
     </div>
   </div>
 </div>
