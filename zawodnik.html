@@ -899,9 +899,9 @@ body > *{position:relative;z-index:1;}
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
   <!-- Cytat motywacyjny — overlay na dole karty -->
-  <div id="hero-quote-overlay" style="position:absolute;left:0;right:0;bottom:0;padding:14px 16px 14px;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.55) 50%,rgba(0,0,0,0.85) 100%);border-radius:0 0 inherit inherit;pointer-events:none;z-index:2;opacity:0;transition:opacity 0.5s ease;">
-    <div id="hero-quote-text" style="font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;line-height:1.4;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.7);font-style:italic;letter-spacing:0.01em;"></div>
-    <div id="hero-quote-author" style="margin-top:5px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(232,86,30,0.95);text-shadow:0 1px 4px rgba(0,0,0,0.8);font-weight:600;"></div>
+  <div id="hero-quote-overlay" style="position:absolute;left:0;right:0;bottom:0;padding:16px 18px 18px;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.7) 40%,rgba(0,0,0,0.92) 100%);border-radius:0 0 inherit inherit;pointer-events:none;z-index:5;opacity:0;transition:opacity 0.5s ease;">
+    <div id="hero-quote-text" style="font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;line-height:1.4;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.9);font-style:italic;letter-spacing:0.01em;"></div>
+    <div id="hero-quote-author" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:#FF8347;text-shadow:0 1px 4px rgba(0,0,0,0.95);font-weight:700;"></div>
   </div>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
   <!-- spacer żeby karta miała wysokość -->
@@ -3934,7 +3934,10 @@ function _heroStopRotation() {
 // Inicjalizacja — pokaż pierwszą kartę
 function _heroInit() {
   const bg = document.getElementById('today-hero-bg');
-  if (!bg || !_heroCards.length) return;
+  if (!bg || !_heroCards.length) {
+    console.warn('[hero] _heroInit skipped - no bg or cards');
+    return;
+  }
   bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
   bg.style.opacity = '0';
   
@@ -3943,6 +3946,14 @@ function _heroInit() {
   const qText = document.getElementById('hero-quote-text');
   const qAuthor = document.getElementById('hero-quote-author');
   const quoteOverlay = document.getElementById('hero-quote-overlay');
+  
+  console.log('[hero] _heroInit', { 
+    quoteOverlayExists: !!quoteOverlay, 
+    qTextExists: !!qText, 
+    quotesCount: _heroQuotes.length,
+    firstQuote: q0?.text?.substring(0, 30) 
+  });
+  
   if (q0 && qText && qAuthor) {
     qText.textContent = '"' + q0.text + '"';
     qAuthor.textContent = '— ' + q0.author;
@@ -3964,6 +3975,28 @@ function _heroInit() {
   _heroStartRotation();
 }
 window._heroInit = _heroInit;
+
+// Backup wywołanie — jeśli initAuth zawiódł lub nie wywołał, próbuj na DOMContentLoaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const overlay = document.getElementById('hero-quote-overlay');
+      if (overlay && parseFloat(overlay.style.opacity || '0') === 0) {
+        console.log('[hero] DOM ready fallback init');
+        try { _heroInit(); } catch(e) { console.warn('[hero] fallback init failed', e); }
+      }
+    }, 500);
+  });
+} else {
+  // DOM już załadowany
+  setTimeout(() => {
+    const overlay = document.getElementById('hero-quote-overlay');
+    if (overlay && parseFloat(overlay.style.opacity || '0') === 0) {
+      console.log('[hero] late fallback init');
+      try { _heroInit(); } catch(e) { console.warn('[hero] late init failed', e); }
+    }
+  }, 500);
+}
 
 
 // ── SEZONOWE GRAFIKI TODAY-HERO ─────────────────────────────────────────

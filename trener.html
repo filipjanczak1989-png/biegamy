@@ -1169,23 +1169,21 @@ async function loadFreshFeedbacks() {
     return;
   }
   
-  // Liczba NIEPRZECZYTANYCH przez trenera
-  const unreadCount = myReports.filter(r => !r.coach_seen_feedback_at).length;
-  
-  // Pokaż sekcję tylko jeśli są jakieś nieprzeczytane LUB świeże (do 7 dni)
-  const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-  const visibleReports = myReports.filter(r => 
-    !r.coach_seen_feedback_at || r.athlete_feedback_at > sevenDaysAgo
-  );
+  // Pokaż TYLKO nieprzeczytane (po kliknięciu znikają z listy, sekcja sama się chowa)
+  const visibleReports = myReports.filter(r => !r.coach_seen_feedback_at);
   
   if (visibleReports.length === 0) {
     wrap.style.display = 'none';
     return;
   }
   
+  const unreadCount = visibleReports.length;
+  
   wrap.style.display = '';
-  if (countEl) countEl.textContent = unreadCount > 0 ? unreadCount : visibleReports.length;
-  if (countEl) countEl.style.background = unreadCount > 0 ? 'var(--accent)' : 'rgba(255,255,255,0.15)';
+  if (countEl) {
+    countEl.textContent = unreadCount;
+    countEl.style.background = 'var(--accent)';
+  }
   
   let html = '';
   visibleReports.forEach(r => {
@@ -1195,7 +1193,6 @@ async function loadFreshFeedbacks() {
     const feedbackDate = r.athlete_feedback_at 
       ? new Date(r.athlete_feedback_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
       : '';
-    const isUnread = !r.coach_seen_feedback_at;
     const reactionIcon = r.athlete_reaction === 'thumbs_up' ? '👍' 
                       : r.athlete_reaction === 'thumbs_down' ? '👎' 
                       : '';
@@ -1209,18 +1206,17 @@ async function loadFreshFeedbacks() {
     const feedbackText = (r.athlete_feedback || '(tylko reakcja)').substring(0, 140);
     
     html += '<div onclick="openFeedbackFromList(\'' + r.id + '\', \'' + r.athlete_id + '\')" '
-      + 'style="background:' + (isUnread ? 'rgba(232,86,30,0.06)' : 'rgba(255,255,255,0.03)') 
-      + ';border:1px solid ' + (isUnread ? 'rgba(232,86,30,0.25)' : 'var(--border)')
-      + ';border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;gap:12px;align-items:flex-start;" '
+      + 'style="background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.25);'
+      + 'border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;gap:12px;align-items:flex-start;" '
       + 'onmouseover="this.style.borderColor=\'rgba(232,86,30,0.5)\';this.style.transform=\'translateX(2px)\'" '
-      + 'onmouseout="this.style.borderColor=\'' + (isUnread ? 'rgba(232,86,30,0.25)' : 'var(--border)') + '\';this.style.transform=\'\'">'
+      + 'onmouseout="this.style.borderColor=\'rgba(232,86,30,0.25)\';this.style.transform=\'\'">'
       + '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#FF6B2C);color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;">' + initials + '</div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">'
           + '<span style="font-size:13px;color:var(--fg);font-weight:600;">' + athName + '</span>'
           + (reactionIcon ? '<span style="font-size:14px;color:' + reactionColor + ';">' + reactionIcon + '</span>' : '')
           + '<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;">' + typeLabel + '</span>'
-          + (isUnread ? '<span style="background:var(--accent);color:#fff;border-radius:5px;padding:1px 6px;font-size:8px;font-family:DM Mono,monospace;letter-spacing:0.1em;font-weight:700;">NOWE</span>' : '')
+          + '<span style="background:var(--accent);color:#fff;border-radius:5px;padding:1px 6px;font-size:8px;font-family:DM Mono,monospace;letter-spacing:0.1em;font-weight:700;">NOWE</span>'
           + '<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;flex-shrink:0;">' + feedbackDate + '</span>'
         + '</div>'
         + '<div style="font-size:12.5px;color:rgba(240,237,232,0.85);line-height:1.5;font-style:italic;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">'
