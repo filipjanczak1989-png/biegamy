@@ -5916,6 +5916,45 @@ async function openZawAIReportModal(reportId) {
   if (titleEl) titleEl.textContent = report.athletes?.full_name || '—';
   if (metaEl) metaEl.innerHTML = (periodFromTo ? periodFromTo + '<br>' : '') + '<span style="opacity:0.6;">' + date + '</span>';
   
+  // ✅ Premium hero — losuj zdjęcie deterministycznie z 26 dostępnych ra*.webp
+  // Deterministycznie: ten sam raport zawsze ma to samo zdjęcie (na podstawie hasha ID)
+  const heroEl = document.getElementById('zarm-hero-img');
+  if (heroEl) {
+    const _RA_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+    const _RA_COUNT = 26;
+    // Hash z UUID raportu → indeks 1..26
+    let hash = 0;
+    const id = report.id || '';
+    for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+    const raIdx = (Math.abs(hash) % _RA_COUNT) + 1;
+    heroEl.style.backgroundImage = "url('" + _RA_BASE + 'ra' + raIdx + ".webp')";
+  }
+  
+  // ✅ Sticky toolbar — pojawia się dopiero po przewinięciu hero
+  const toolbar = document.getElementById('zarm-toolbar');
+  const toolbarLabel = document.getElementById('zarm-toolbar-label');
+  if (toolbar && inner) {
+    // Usuń poprzedni listener jeśli był
+    if (inner._scrollHandler) inner.removeEventListener('scroll', inner._scrollHandler);
+    inner._scrollHandler = function() {
+      const scrolled = inner.scrollTop > 100;
+      if (scrolled) {
+        toolbar.style.background = 'rgba(12,12,16,0.96)';
+        toolbar.style.backdropFilter = 'blur(10px)';
+        toolbar.style.borderBottomColor = 'rgba(255,255,255,0.05)';
+        if (toolbarLabel) toolbarLabel.style.color = 'rgba(240,237,232,0.5)';
+      } else {
+        toolbar.style.background = 'rgba(12,12,16,0)';
+        toolbar.style.backdropFilter = 'blur(0px)';
+        toolbar.style.borderBottomColor = 'rgba(255,255,255,0)';
+        if (toolbarLabel) toolbarLabel.style.color = 'rgba(255,255,255,0)';
+      }
+    };
+    inner.addEventListener('scroll', inner._scrollHandler, { passive: true });
+    // Wywołaj raz na start (resetuje toolbar do stanu nad-hero)
+    inner._scrollHandler();
+  }
+  
   // Badge priority został wyłączony — zawodnik nie potrzebuje patrzeć na alarmy.
   // Niezależnie od report.priority badge zostaje ukryty (display:none w HTML).
   if (badgeEl) {
@@ -5965,24 +6004,27 @@ function mdToHtmlZawPremium(md) {
   html = html.replace(/^\s*\*{0,2}PRIORITY\s*:?\s*(red|yellow|green|RED|YELLOW|GREEN)\s*\*{0,2}\s*$/gmi, '');
   html = html.replace(/^\s*#{1,4}\s*(Priority|PRIORITY|Red flags?|RED FLAGS?)\s*:?\s*$/gmi, '');
   html = html.replace(/^\s*\*{0,2}(Priority|PRIORITY)\s*:?\s*(red|yellow|green|low|medium|high|RED|YELLOW|GREEN|LOW|MEDIUM|HIGH)\s*\*{0,2}\s*$/gmi, '');
+  // ✅ TL;DR / TLDR → WSTĘP (Claude lubi tym zaczynać raport, ale dla zawodnika lepiej po polsku)
+  html = html.replace(/^(\s*#{1,4}\s+)TL\s*;?\s*DR\s*:?\s*$/gmi, '$1Wstęp');
+  html = html.replace(/^(\s*\*{0,2})TL\s*;?\s*DR\s*:?\s*(\*{0,2})\s*$/gmi, '$1Wstęp$2');
   // Usuń wiele pustych linii powstałych po cięciu (3+ → 2)
   html = html.replace(/\n{3,}/g, '\n\n');
   // Trim leading/trailing whitespace całości
   html = html.trim();
 
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
-  html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:0.06em;color:#f0ede8;margin:28px 0 12px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);text-transform:uppercase;">$1</h3>');
-  html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:26px;color:#f0ede8;margin:24px 0 14px;">$1</h2>');
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:17px;letter-spacing:0.06em;color:#e8561e;margin:24px 0 10px;text-transform:uppercase;">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:0.06em;color:#f0ede8;margin:32px 0 14px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08);text-transform:uppercase;">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:28px;color:#f0ede8;margin:24px 0 16px;letter-spacing:0.01em;">$1</h2>');
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#ffffff;font-weight:700;">$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em style="color:rgba(240,237,232,0.85);font-style:italic;">$1</em>');
-  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;color:#f0ede8;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;">›</span>$1</li>');
-  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;color:#f0ede8;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:24px;position:relative;line-height:1.75;color:#f0ede8;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;font-size:16px;line-height:1.5;">›</span>$1</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:10px 0;list-style:none;padding-left:32px;position:relative;line-height:1.75;color:#f0ede8;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:4px;letter-spacing:0.04em;">$1.</span>$2</li>');
   html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
-    return '<ul style="padding-left:0;margin:10px 0;">' + match + '</ul>';
+    return '<ul style="padding-left:0;margin:14px 0;">' + match + '</ul>';
   });
-  html = html.replace(/\n\n+/g, '</p><p style="margin:12px 0;color:#f0ede8;">');
-  html = '<p style="margin:12px 0;color:#f0ede8;">' + html + '</p>';
+  html = html.replace(/\n\n+/g, '</p><p style="margin:14px 0;color:#f0ede8;">');
+  html = '<p style="margin:14px 0;color:#f0ede8;">' + html + '</p>';
   html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
   html = html.replace(/<p[^>]*>(\s*<h[234]|\s*<ul)/g, '$1');
   html = html.replace(/(<\/h[234]>|<\/ul>)\s*<\/p>/g, '$1');
@@ -8889,54 +8931,74 @@ window.sendDuelChallenge = sendDuelChallenge;
 <!-- MODAL: pojedynczy raport AI dla zawodnika (FULLSCREEN) -->
 <div id="zaw-ai-report-modal" style="position:fixed;inset:0;background:#070510;z-index:600;display:none;" onclick="if(event.target===this)closeZawAIReportModal()">
   <div id="zaw-ai-report-modal-inner" style="position:absolute;inset:0;background:#0c0c10;max-width:720px;margin:0 auto;overflow-y:scroll;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;opacity:0;transition:opacity 0.2s;">
-    <!-- Toolbar (sticky top — zawsze dostępny) -->
-    <div style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(12,12,16,0.96);backdrop-filter:blur(10px);z-index:5;border-bottom:1px solid rgba(255,255,255,0.05);">
-      <button onclick="closeZawAIReportModal()" style="background:transparent;border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.85);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
-      <div style="font-size:10px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;">Raport</div>
+    <!-- Toolbar (sticky top — zawsze dostępny, na początku transparentny nad hero) -->
+    <div id="zarm-toolbar" style="padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(12,12,16,0);backdrop-filter:blur(0px);z-index:5;transition:background 0.25s,backdrop-filter 0.25s,border-color 0.25s;border-bottom:1px solid rgba(255,255,255,0);">
+      <button onclick="closeZawAIReportModal()" style="background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.18);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;padding:0;backdrop-filter:blur(8px);">✕</button>
+      <div id="zarm-toolbar-label" style="font-size:10px;color:rgba(255,255,255,0);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;transition:color 0.25s;">Raport</div>
       <div style="width:36px;"></div>
     </div>
     
-    <!-- Header (premium) -->
-    <div style="padding:24px 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(232,86,30,0.06) 0%,transparent 100%);">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:32px;height:32px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">
-          <div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;line-height:1;">BIEGAMY</div>
-            <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;margin-top:2px;">Od trenera</div>
-          </div>
-        </div>
-        <div id="zarm-priority-badge" style="display:none;font-size:9px;padding:5px 10px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.12em;font-weight:600;text-transform:uppercase;"></div>
-      </div>
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;" id="zarm-type-label">Raport</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1.1;color:#f0ede8;letter-spacing:0.02em;" id="zarm-title">—</div>
-        </div>
-        <div style="text-align:right;">
-          <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.06em;" id="zarm-meta"></div>
+    <!-- HERO — pełnoszerokie zdjęcie z gradient overlay + tekstem na dole -->
+    <div id="zarm-hero" style="position:relative;width:100%;height:260px;margin-top:-66px;overflow:hidden;background:#0c0c10;">
+      <div id="zarm-hero-img" style="position:absolute;inset:0;background-size:cover;background-position:center 35%;background-repeat:no-repeat;"></div>
+      <!-- Gradient od dołu (do czytelności tekstu) + lekki od góry (do toolbar overlay) -->
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,16,0.55) 0%,rgba(7,5,16,0) 22%,rgba(7,5,16,0) 50%,rgba(7,5,16,0.92) 100%);pointer-events:none;"></div>
+      <!-- Sygnatura BIEGAMY w lewym dolnym rogu -->
+      <div style="position:absolute;left:24px;bottom:18px;display:flex;align-items:center;gap:9px;z-index:2;">
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:26px;height:26px;border-radius:7px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.4);" onerror="this.style.display='none'">
+        <div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.06em;color:#fff;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.6);">BIEGAMY</div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-top:2px;text-shadow:0 1px 4px rgba(0,0,0,0.6);">Od trenera</div>
         </div>
       </div>
+      <!-- Typ raportu w prawym dolnym -->
+      <div id="zarm-type-label" style="position:absolute;right:24px;bottom:22px;font-size:9px;color:rgba(255,255,255,0.7);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.6);z-index:2;">Raport</div>
     </div>
     
-    <div id="zarm-content" style="padding:28px 28px 0;font-size:14px;line-height:1.7;color:#f0ede8;"></div>
+    <!-- Header tekstowy (pod hero) — duży tytuł, meta -->
+    <div style="padding:26px 28px 28px;background:#0c0c10;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1.05;color:#f0ede8;letter-spacing:0.015em;" id="zarm-title">—</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.05em;line-height:1.6;" id="zarm-meta"></div>
+        </div>
+      </div>
+      <!-- Akcent — pomarańczowa linia odddzielająca header od treści -->
+      <div style="margin-top:22px;height:2px;width:42px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));border-radius:2px;"></div>
+      <!-- Hidden priority badge — zostaje w DOM żeby openZawAIReportModal nie crashowało -->
+      <div id="zarm-priority-badge" style="display:none;"></div>
+    </div>
     
-    <!-- Feedback od zawodnika -->
-    <div id="zarm-feedback-section" style="padding:24px 28px 100px;border-top:1px solid rgba(255,255,255,0.06);margin-top:24px;">
-      <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(232,86,30,0.8);font-family:'DM Mono',monospace;margin-bottom:12px;">💬 Twój feedback</div>
-      
-      <!-- Reactions -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <button id="zarm-react-up" onclick="setZawReaction('thumbs_up')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.7);border-radius:10px;padding:10px;cursor:pointer;font-size:13px;transition:all 0.15s;">👍 Pomocne</button>
-        <button id="zarm-react-down" onclick="setZawReaction('thumbs_down')" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(240,237,232,0.7);border-radius:10px;padding:10px;cursor:pointer;font-size:13px;transition:all 0.15s;">👎 Mało pomocne</button>
+    <div id="zarm-content" style="padding:8px 28px 0;font-size:14.5px;line-height:1.75;color:#f0ede8;"></div>
+    
+    <!-- Feedback od zawodnika (premium) -->
+    <div id="zarm-feedback-section" style="padding:32px 28px 100px;margin-top:36px;background:linear-gradient(180deg,rgba(232,86,30,0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div style="width:24px;height:1px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));"></div>
+        <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;">Twój feedback</div>
+      </div>
+      <div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.55;margin-bottom:18px;">
+        Trener sprawdza wszystkie odpowiedzi. Powiedz co o tym myślisz — to pomaga w kolejnych raportach.
       </div>
       
-      <textarea id="zarm-feedback-text" placeholder="Co o tym myślisz? Coś zostało źle? Możesz tu napisać..." style="width:100%;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.5;padding:12px;resize:vertical;min-height:80px;outline:none;box-sizing:border-box;" oninput="this.style.borderColor='rgba(232,86,30,0.4)'"></textarea>
-      
-      <div style="display:flex;gap:8px;margin-top:12px;">
-        <button onclick="saveZawFeedback()" style="flex:1;background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:10px;padding:11px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;cursor:pointer;">Zapisz feedback</button>
+      <!-- Reactions — większe, premium -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;">
+        <button id="zarm-react-up" onclick="setZawReaction('thumbs_up')" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(240,237,232,0.8);border-radius:12px;padding:14px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:18px;">👍</span> Pomocne
+        </button>
+        <button id="zarm-react-down" onclick="setZawReaction('thumbs_down')" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(240,237,232,0.8);border-radius:12px;padding:14px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:18px;">👎</span> Mało pomocne
+        </button>
       </div>
-      <div id="zarm-feedback-status" style="margin-top:8px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;"></div>
+      
+      <textarea id="zarm-feedback-text" placeholder="Coś nie pasuje? Coś było super? Napisz..." style="width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.55;padding:14px 16px;resize:vertical;min-height:90px;outline:none;box-sizing:border-box;transition:border-color 0.2s;" oninput="this.style.borderColor='rgba(232,86,30,0.5)'" onfocus="this.style.borderColor='rgba(232,86,30,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)'"></textarea>
+      
+      <div style="margin-top:14px;">
+        <button onclick="saveZawFeedback()" style="width:100%;background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(232,86,30,0.25);transition:transform 0.12s,box-shadow 0.18s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">Zapisz feedback</button>
+      </div>
+      <div id="zarm-feedback-status" style="margin-top:10px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;letter-spacing:0.04em;"></div>
     </div>
   </div>
 </div>
