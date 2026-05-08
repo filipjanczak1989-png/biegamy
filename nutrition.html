@@ -158,7 +158,7 @@ body {
 /* CONTENT */
 .content {
   padding: 16px;
-  padding-bottom: 200px; /* miejsce na FAB row + bottom nav */
+  padding-bottom: 240px; /* miejsce na FAB row + bottom nav + 5 slotów posiłków */
   max-width: 600px;
   margin: 0 auto;
 }
@@ -1520,17 +1520,75 @@ body {
 }
 .search-results.empty { display: none; }
 .search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background 0.1s;
+  transition: all 0.18s cubic-bezier(0.16,1,0.3,1);
+  -webkit-tap-highlight-color: transparent;
 }
 .search-result-item:last-child { border-bottom: none; }
-.search-result-item:active { background: rgba(232,86,30,0.1); }
+.search-result-item:hover {
+  background: rgba(255,255,255,0.03);
+}
+.search-result-item:active { 
+  background: rgba(232,86,30,0.1); 
+  transform: scale(0.98);
+}
+.sr-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 11px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255,255,255,0.04);
+  flex-shrink: 0;
+  border: 1px solid rgba(232,86,30,0.18);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: var(--muted);
+}
+.sr-thumb-placeholder {
+  background: linear-gradient(135deg, rgba(36,28,24,0.7), rgba(20,16,14,0.7));
+}
+.sr-info {
+  flex: 1;
+  min-width: 0;
+}
 .sr-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sr-source-tag {
+  display: inline-block;
+  font-size: 8px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 6px;
+  border-radius: 5px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+.sr-source-tag.off {
+  background: rgba(64,150,80,0.18);
+  color: #4caf6a;
+  border: 1px solid rgba(64,150,80,0.3);
+}
+.sr-source-tag.usda {
+  background: rgba(80,120,200,0.18);
+  color: #6088d4;
+  border: 1px solid rgba(80,120,200,0.3);
 }
 .sr-meta {
   font-size: 10px;
@@ -1545,6 +1603,17 @@ body {
   color: var(--muted);
   font-size: 12px;
   font-family: 'DM Mono', monospace;
+}
+.spinner-sm {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(232,86,30,0.18);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* AI LOADER + ITEMS */
@@ -4715,17 +4784,19 @@ function renderMealSlots() {
 // z ustawionym meal_type i defaultową godziną
 function addMealToSlot(mealType) {
   window._pendingMealType = mealType;
-  // Otwórz search modal (główny sposób dodawania)
-  if (typeof openSearchModal === 'function') {
-    openSearchModal();
+  // Search modal jest głównym sposobem dodawania
+  if (typeof openTextModal === 'function') {
+    openTextModal();
   }
 }
 
 function addMealToSlotAI(mealType) {
   window._pendingMealType = mealType;
-  // Otwórz photo modal
+  // Photo modal — AI rozpoznaje ze zdjęcia
   if (typeof openPhotoModal === 'function') {
     openPhotoModal();
+  } else if (typeof openCameraModal === 'function') {
+    openCameraModal();
   }
 }
 
@@ -4904,49 +4975,61 @@ function closeScanner() {
 }
 
 // ════════════════════════════════════════════════════════════
-// BARCODE LOOKUP — cache → Open Food Facts
+// BARCODE LOOKUP — przez edge function food-search-off
+// (cache w food_database + fetch z Open Food Facts + zapisuje pełne dane)
 // ════════════════════════════════════════════════════════════
 async function lookupBarcode(barcode) {
   showToast('🔍 Szukam: ' + barcode);
-  // 1. Sprawdź cache w Supabase
-  const { data: cached } = await sb.from('food_cache')
-    .select('*')
-    .eq('barcode', barcode)
-    .maybeSingle();
-  if (cached) {
-    showProductConfirm(cached);
-    return;
-  }
-  // 2. Fetch Open Food Facts
+
   try {
-    const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${encodeURIComponent(barcode)}.json`);
-    const j = await res.json();
-    if (j.status !== 1 || !j.product) {
-      showToast('❌ Nie znaleziono w OFF');
+    const session = (await sb.auth.getSession()).data.session;
+    if (!session) { showToast('Brak sesji'); return; }
+
+    const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1');
+    const r = await fetch(`${fnUrl}/food-search-off`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ mode: 'barcode', barcode: barcode })
+    });
+
+    if (!r.ok) {
+      showToast('❌ Błąd serwera (' + r.status + ')');
       return;
     }
-    const p = j.product;
-    const n = p.nutriments || {};
-    const food = {
-      barcode: barcode,
-      name: p.product_name_pl || p.product_name || p.generic_name || 'Produkt',
-      brand: p.brands || '',
-      kcal_per_100g: parseFloat(n['energy-kcal_100g']) || (parseFloat(n['energy_100g']) ? parseFloat(n['energy_100g']) / 4.184 : 0),
-      protein_per_100g: parseFloat(n.proteins_100g) || 0,
-      carbs_per_100g: parseFloat(n.carbohydrates_100g) || 0,
-      fat_per_100g: parseFloat(n.fat_100g) || 0,
-      fiber_per_100g: parseFloat(n.fiber_100g) || 0,
-      source: 'off',
-      raw_data: { url: `https://world.openfoodfacts.org/product/${barcode}` }
-    };
-    if (food.kcal_per_100g <= 0) {
+
+    const data = await r.json();
+    if (!data.product) {
+      showToast('❌ Nie znaleziono produktu');
+      return;
+    }
+
+    const p = data.product;
+    if (!p.kcal_per_100 || p.kcal_per_100 <= 0) {
       showToast('❌ Brak danych o kaloriach');
       return;
     }
-    // Cache (best effort)
-    sb.from('food_cache').insert(food).then(({ error }) => {
-      if (error) console.warn('cache insert:', error);
-    });
+
+    // Mapuj na format showProductConfirm (per_100g zamiast per_100)
+    const food = {
+      name: p.display_name,
+      brand: p.brand,
+      barcode: p.barcode || barcode,
+      kcal_per_100g: p.kcal_per_100,
+      protein_per_100g: p.protein_g_per_100 || 0,
+      carbs_per_100g: p.carbs_g_per_100 || 0,
+      fat_per_100g: p.fat_g_per_100 || 0,
+      fiber_per_100g: p.fiber_g_per_100 || 0,
+      sugar_per_100g: p.sugar_g_per_100 || 0,
+      salt_per_100g: p.salt_g_per_100 || 0,
+      saturated_fat_per_100g: p.saturated_fat_g_per_100 || 0,
+      image_url: p.image_url || null,
+      source: 'open_food_facts',
+      source_id: p.barcode || barcode
+    };
+
     showProductConfirm(food);
   } catch (e) {
     showToast('❌ Błąd połączenia');
@@ -5005,20 +5088,38 @@ async function confirmMeal() {
   const g = parseFloat(document.getElementById('mc-grams').value) || 0;
   if (g <= 0) { showToast('Podaj gramaturę'); return; }
   const f = g / 100;
+
+  // Nazwa: produkt z brandem jeśli istnieje
+  let mealName = _scannedProduct.name || 'Produkt';
+  if (_scannedProduct.brand && !mealName.toLowerCase().includes(_scannedProduct.brand.toLowerCase())) {
+    mealName = mealName + ' (' + _scannedProduct.brand + ')';
+  }
+
   const meal = {
     athlete_id: _athleteId,
     eaten_at: getInsertTimestamp(),
-    name: _scannedProduct.name + (_scannedProduct.brand ? ' (' + _scannedProduct.brand + ')' : ''),
+    name: mealName,
     meal_type: guessMealType(),
     weight_g: g,
     kcal: Math.round((_scannedProduct.kcal_per_100g || 0) * f),
     protein_g: Math.round((_scannedProduct.protein_per_100g || 0) * f * 10) / 10,
     carbs_g: Math.round((_scannedProduct.carbs_per_100g || 0) * f * 10) / 10,
     fat_g: Math.round((_scannedProduct.fat_per_100g || 0) * f * 10) / 10,
+    // Rozszerzone makro
     fiber_g: Math.round((_scannedProduct.fiber_per_100g || 0) * f * 10) / 10,
-    source: 'barcode',
-    source_data: { barcode: _scannedProduct.barcode, food_source: _scannedProduct.source }
+    sugar_g: Math.round((_scannedProduct.sugar_per_100g || 0) * f * 10) / 10,
+    salt_g: Math.round((_scannedProduct.salt_per_100g || 0) * f * 100) / 100,
+    saturated_fat_g: Math.round((_scannedProduct.saturated_fat_per_100g || 0) * f * 10) / 10,
+    barcode: _scannedProduct.barcode || null,
+    source: _scannedProduct.barcode ? 'barcode' : (_scannedProduct.source === 'usda' ? 'usda' : 'food_search'),
+    source_data: { 
+      barcode: _scannedProduct.barcode, 
+      food_source: _scannedProduct.source,
+      source_id: _scannedProduct.source_id,
+      image_url: _scannedProduct.image_url
+    }
   };
+
   const { error } = await sb.from('nutrition_meals').insert(meal);
   if (error) { showToast('Błąd zapisu'); console.error(error); return; }
   showToast('✓ Dodano: ' + meal.kcal + ' kcal');
@@ -5460,33 +5561,118 @@ async function doSearch(q) {
     results.innerHTML = '';
     return;
   }
-  // Search po nazwie + brand (case-insensitive, like)
-  const { data, error } = await sb.from('food_cache')
-    .select('*')
-    .or(`name.ilike.%${q}%,brand.ilike.%${q}%`)
-    .limit(20);
-  if (error) console.warn('search:', error);
+
   results.className = 'search-results';
-  if (!data || !data.length) {
-    results.innerHTML = '<div class="search-empty">Nic nie znaleziono. Skanuj barcode lub dodaj ręcznie.</div>';
-    return;
+  results.innerHTML = '<div class="search-empty" style="padding:24px;"><div style="display:flex;align-items:center;justify-content:center;gap:10px;color:var(--muted);"><div class="spinner-sm"></div>Szukam w bazach...</div></div>';
+
+  try {
+    const session = (await sb.auth.getSession()).data.session;
+    if (!session) {
+      results.innerHTML = '<div class="search-empty">Brak sesji — zaloguj się ponownie.</div>';
+      return;
+    }
+
+    const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1');
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session.access_token}`
+    };
+
+    // 1. Szukaj równolegle w OFF i USDA
+    const [offRes, usdaRes] = await Promise.allSettled([
+      fetch(`${fnUrl}/food-search-off`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ mode: 'search', query: q, limit: 8 })
+      }).then(r => r.json()),
+      fetch(`${fnUrl}/food-search-usda`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ mode: 'search', query: q, limit: 6 })
+      }).then(r => r.json())
+    ]);
+
+    // 2. Połącz wyniki
+    const all = [];
+    const seen = new Set();
+
+    if (offRes.status === 'fulfilled' && offRes.value?.results) {
+      for (const r of offRes.value.results) {
+        const key = `off:${r.display_name}:${r.brand || ''}`;
+        if (!seen.has(key)) {
+          all.push({ ...r, _source: 'off' });
+          seen.add(key);
+        }
+      }
+    }
+    if (usdaRes.status === 'fulfilled' && usdaRes.value?.results) {
+      for (const r of usdaRes.value.results) {
+        const key = `usda:${r.display_name}`;
+        if (!seen.has(key)) {
+          all.push({ ...r, _source: 'usda' });
+          seen.add(key);
+        }
+      }
+    }
+
+    if (!all.length) {
+      results.innerHTML = `
+        <div class="search-empty">
+          <div style="margin-bottom:8px;">Nic nie znaleziono dla "<strong>${escapeHtml(q)}</strong>".</div>
+          <div style="font-size:11px;color:var(--muted);">Spróbuj prostszej nazwy lub <a href="#" onclick="event.preventDefault();manualEntry();" style="color:var(--accent);">dodaj ręcznie</a>.</div>
+        </div>`;
+      return;
+    }
+
+    // Mapa po indeksie
+    window._searchHits = {};
+    results.innerHTML = all.map((food, i) => {
+      window._searchHits[i] = food;
+      const brand = food.brand ? ` · ${escapeHtml(food.brand)}` : '';
+      const sourceTag = food._source === 'off' 
+        ? '<span class="sr-source-tag off">OFF</span>' 
+        : '<span class="sr-source-tag usda">USDA</span>';
+      const kcal = Math.round(food.kcal_per_100 || 0);
+      const fiber = food.fiber_g_per_100 ? ` · F:${Math.round(food.fiber_g_per_100*10)/10}g` : '';
+      const imgHtml = food.image_url 
+        ? `<div class="sr-thumb" style="background-image:url('${food.image_url}')"></div>`
+        : `<div class="sr-thumb sr-thumb-placeholder">🍽</div>`;
+      return `
+        <div class="search-result-item" onclick="pickSearchResult(window._searchHits[${i}])">
+          ${imgHtml}
+          <div class="sr-info">
+            <div class="sr-name">${escapeHtml(food.display_name)}${brand} ${sourceTag}</div>
+            <div class="sr-meta">${kcal} kcal/100g · B:${Math.round((food.protein_g_per_100||0)*10)/10}g W:${Math.round((food.carbs_g_per_100||0)*10)/10}g T:${Math.round((food.fat_g_per_100||0)*10)/10}g${fiber}</div>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    console.error('Search error:', e);
+    results.innerHTML = `<div class="search-empty">Błąd wyszukiwania. <a href="#" onclick="event.preventDefault();manualEntry();" style="color:var(--accent);">Dodaj ręcznie</a>.</div>`;
   }
-  // Mapa po indeksie (bezpieczniej niż serializacja JSON w atrybucie)
-  window._searchHits = {};
-  results.innerHTML = data.map((food, i) => {
-    window._searchHits[i] = food;
-    const brand = food.brand ? ` · ${escapeHtml(food.brand)}` : '';
-    return `
-      <div class="search-result-item" onclick="pickSearchResult(window._searchHits[${i}])">
-        <div class="sr-name">${escapeHtml(food.name)}${brand}</div>
-        <div class="sr-meta">${Math.round(food.kcal_per_100g)} kcal/100g · B:${food.protein_per_100g||0}g W:${food.carbs_per_100g||0}g T:${food.fat_per_100g||0}g</div>
-      </div>`;
-  }).join('');
 }
 
+// Pick z nowego search — mapuje pole z food_database na format showProductConfirm
 function pickSearchResult(food) {
   closeTextModal();
-  showProductConfirm(food);
+  // Mapuj nowy format (per_100) na stary który używa showProductConfirm
+  const mapped = {
+    name: food.display_name,
+    brand: food.brand,
+    kcal_per_100g: food.kcal_per_100 || 0,
+    protein_per_100g: food.protein_g_per_100 || 0,
+    carbs_per_100g: food.carbs_g_per_100 || 0,
+    fat_per_100g: food.fat_g_per_100 || 0,
+    fiber_per_100g: food.fiber_g_per_100 || 0,
+    sugar_per_100g: food.sugar_g_per_100 || 0,
+    salt_per_100g: food.salt_g_per_100 || 0,
+    saturated_fat_per_100g: food.saturated_fat_g_per_100 || 0,
+    barcode: food.barcode || null,
+    image_url: food.image_url || null,
+    source: food.source || food._source || 'food_database',
+    source_id: food.source_id || food.id || null
+  };
+  showProductConfirm(mapped);
 }
 
 // ════════════════════════════════════════════════════════════
