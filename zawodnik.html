@@ -8819,7 +8819,16 @@ window.sendDuelChallenge = sendDuelChallenge;
 <!-- SEKCJA: SPOŁECZNOŚĆ -->
 <div id="section-social" style="display:none;padding:0 0 100px;">
   <div style="padding:52px 16px 0 16px;">
-    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;"><img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy"><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div><div style="position:absolute;bottom:16px;left:16px;"><div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-bottom:2px;">Biegacze</div><div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;"><span style="color:var(--accent)">SPOŁE</span><span style="color:#f0ede8">CZNOŚĆ</span></div></div></div><div style="padding:12px 16px 0 16px;">
+    <div style="position:relative;height:220px;overflow:hidden;border-radius:0 0 20px 20px;margin-bottom:0;">
+      <img id="social-banner-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg" alt="" style="width:100%;height:100%;object-fit:cover;object-position:center 20%;transition:opacity 0.5s ease;" loading="lazy">
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.2) 0%,rgba(7,5,12,0.88) 100%);"></div>
+      <div style="position:absolute;bottom:16px;left:16px;">
+        <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-bottom:2px;">Biegacze</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;color:#fff;line-height:1;"><span style="color:var(--accent)">SPOŁE</span><span style="color:#f0ede8">CZNOŚĆ</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
       <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Wyzwania<span id="duels-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
@@ -8830,27 +8839,24 @@ window.sendDuelChallenge = sendDuelChallenge;
     </div>
   </div>
   <div id="social-feed" style="padding:0 16px;">
-    <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.8;">Zaobserwuj innych bieg aczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
+    <div id="social-feed-content"><div style="text-align:center;padding:40px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.8;">Zaobserwuj innych biegaczy<br>żeby zobaczyć ich treningi tutaj.</div></div>
   </div>
   <div id="social-challenges" style="display:none;padding:0 16px;">
     <div id="challenges-content"></div>
-    <div id="social-clubs" style="display:none;padding:14px 16px;">
-      <div style="text-align:center;padding:32px 16px;border:1px dashed var(--border);border-radius:14px;background:rgba(255,255,255,0.02);">
-        <div style="font-size:42px;margin-bottom:14px;">🏃‍♂️</div>
-        <div style="font-size:14px;font-weight:600;color:var(--fg);margin-bottom:8px;">Kluby biegowe</div>
-        <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.7;letter-spacing:0.04em;">
-          Już wkrótce!<br>
-          Twórz kluby, dołączaj do innych,<br>
-          rywalizujcie w klubowych wyzwaniach.
-        </div>
+  </div>
+  <div id="social-clubs" style="display:none;padding:14px 16px;">
+    <div style="text-align:center;padding:32px 16px;border:1px dashed var(--border);border-radius:14px;background:rgba(255,255,255,0.02);">
+      <div style="font-size:42px;margin-bottom:14px;">🏃‍♂️</div>
+      <div style="font-size:14px;font-weight:600;color:var(--fg);margin-bottom:8px;">Kluby biegowe</div>
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.7;letter-spacing:0.04em;">
+        Już wkrótce!<br>
+        Twórz kluby, dołączaj do innych,<br>
+        rywalizujcie w klubowych wyzwaniach.
       </div>
     </div>
   </div>
   <div id="social-friends" style="display:none;padding:0 16px;">
     <div id="social-friends-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;">Ładowanie...</div></div>
-  </div>
-  <div id="social-friends" style="display:none;padding:0 16px;">
-    <div id="social-friends-content"></div>
   </div>
   <div id="social-following" style="display:none;padding:0 16px;">
     <div id="social-following-content"><div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Nie obserwujesz jeszcze nikogo.</div></div>
