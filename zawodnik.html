@@ -966,6 +966,10 @@ body > *{position:relative;z-index:1;}
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
     <div class="nav-lbl">Plan</div>
   </a>
+  <a class="nav-it" href="nutrition.html" id="nav-nutrition" title="Odżywianie">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/><path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/></svg>
+    <div class="nav-lbl">Jedzenie</div>
+  </a>
   <a class="nav-it" href="#" onclick="openModal();return false;">
     <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
       <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
@@ -5621,8 +5625,8 @@ async function loadAIReportsForAthlete() {
     const typeIcon = r.report_type === 'daily' ? '📅' : r.report_type === 'weekly' ? '📊' : r.report_type === 'monthly' ? '📈' : '📄';
     const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
     
-    html += '<div onclick="openZawAIReportModal(\'' + r.id + '\')" style="background:rgba(255,255,255,0.03);border:1px solid ' + (isUnread ? 'rgba(139,92,246,0.4)' : 'var(--border)') + ';border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;position:relative;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.6)\'" onmouseout="this.style.borderColor=\'' + (isUnread ? 'rgba(139,92,246,0.4)' : 'var(--border)') + '\'">'
-      + (isUnread ? '<div style="position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--accent);"></div>' : '')
+    html += '<div data-zar-report-id="' + r.id + '" class="zar-report-card" style="background:rgba(255,255,255,0.03);border:1px solid ' + (isUnread ? 'rgba(232,86,30,0.4)' : 'var(--border)') + ';border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;position:relative;">'
+      + (isUnread ? '<div style="position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#e8561e;"></div>' : '')
       + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
         + '<span style="font-size:16px;">' + typeIcon + '</span>'
         + '<span style="font-size:11px;color:var(--fg);font-weight:600;">' + typeLabel + '</span>'
@@ -5634,6 +5638,18 @@ async function loadAIReportsForAthlete() {
   });
   
   target.innerHTML = html;
+  
+  // Bind eventów (addEventListener zamiast inline onclick — działa niezawodnie)
+  target.querySelectorAll('.zar-report-card').forEach(card => {
+    const reportId = card.getAttribute('data-zar-report-id');
+    card.addEventListener('click', () => openZawAIReportModal(reportId));
+    card.addEventListener('mouseover', () => { card.style.borderColor = 'rgba(232,86,30,0.6)'; });
+    card.addEventListener('mouseout', () => {
+      const isUnread = card.querySelector('div[style*="rgba(232,86,30,0.4)"]') ||
+        card.querySelector('div[style*="background:#e8561e"]');
+      card.style.borderColor = isUnread ? 'rgba(232,86,30,0.4)' : 'var(--border)';
+    });
+  });
 }
 
 async function openZawAIReportModal(reportId) {
@@ -8642,6 +8658,10 @@ window.sendDuelChallenge = sendDuelChallenge;
     <a class="nav-it" href="kalendarz.html?role=athlete">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <div class="nav-lbl">Plan</div>
+    </a>
+    <a class="nav-it" href="nutrition.html" title="Odżywianie">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/><path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/></svg>
+      <div class="nav-lbl">Jedzenie</div>
     </a>
     <a class="nav-it" href="#" onclick="openModal();return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
