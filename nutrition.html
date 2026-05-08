@@ -280,7 +280,7 @@ body {
   top: 0;
   right: 0;
   bottom: 0;
-  width: 50%;  /* prawa połowa */
+  width: 46%;  /* prawa połowa — trochę węższa żeby tekst miał miejsce */
   z-index: 1;
 }
 .hero-img-slide {
@@ -303,9 +303,10 @@ body {
   background:
     linear-gradient(90deg,
       rgba(14,12,16,1) 0%,
-      rgba(14,12,16,0.95) 35%,
-      rgba(14,12,16,0.65) 60%,
-      rgba(14,12,16,0.40) 100%
+      rgba(14,12,16,1) 42%,
+      rgba(14,12,16,0.85) 58%,
+      rgba(14,12,16,0.55) 80%,
+      rgba(14,12,16,0.35) 100%
     );
   z-index: 2;
   pointer-events: none;
@@ -332,8 +333,8 @@ body {
 .hero-stats {
   position: relative;
   z-index: 4;
-  padding: 22px 22px 22px 24px;
-  width: 60%;  /* lewa większa część */
+  padding: 22px 28px 22px 24px;
+  width: 64%;  /* lewa większa część */
   min-width: 0;
 }
 
@@ -1781,6 +1782,477 @@ body {
   background: rgba(232,86,30,0.2);
   border-color: var(--accent);
   color: var(--accent);
+}
+
+/* ════════════════════════════════════════════════════════════ */
+/* PREMIUM PRODUCT CONFIRM MODAL                                  */
+/* ════════════════════════════════════════════════════════════ */
+.pc-card {
+  padding: 0 !important;  /* hero zaczyna od krawędzi */
+  max-width: 440px;
+  overflow: hidden !important;
+}
+.pc-card::before { display: none; }  /* nie potrzebujemy gradient bo mamy hero */
+
+/* close button */
+.pc-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+}
+.pc-close:hover { background: rgba(232,86,30,0.55); }
+.pc-close svg { width: 16px; height: 16px; }
+
+/* HERO */
+.pc-hero {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+  border-radius: 22px 22px 0 0;
+  background: #14101a;
+}
+.pc-hero-img {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  transition: opacity 0.4s;
+}
+.pc-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg,
+      rgba(14,12,16,0.30) 0%,
+      rgba(14,12,16,0.70) 60%,
+      rgba(14,12,16,0.95) 100%
+    );
+}
+.pc-hero-content {
+  position: absolute;
+  bottom: 14px;
+  left: 18px;
+  right: 18px;
+  z-index: 2;
+}
+.pc-source-tag {
+  display: inline-block;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(91,185,104,0.22);
+  border: 1px solid rgba(91,185,104,0.45);
+  color: #7dd494;
+  margin-bottom: 6px;
+}
+.pc-source-tag.off { background: rgba(91,185,104,0.22); border-color: rgba(91,185,104,0.45); color: #7dd494; }
+.pc-source-tag.usda { background: rgba(74,144,226,0.22); border-color: rgba(74,144,226,0.45); color: #70b0f0; }
+.pc-source-tag.barcode { background: rgba(232,86,30,0.22); border-color: rgba(232,86,30,0.45); color: var(--accent); }
+.pc-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.02em;
+  color: #fff;
+  line-height: 1.1;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.7);
+  margin-bottom: 2px;
+}
+.pc-brand {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+}
+.pc-brand:empty { display: none; }
+
+/* BODY */
+.pc-body {
+  padding: 16px 18px 18px;
+}
+
+/* Slider gramatury */
+.pc-grams {
+  margin-bottom: 14px;
+}
+.pc-grams-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.pc-grams-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pc-grams-val {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.pc-grams-val input {
+  width: 64px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--fg);
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  text-align: right;
+  padding: 4px 8px;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+  appearance: none;
+}
+.pc-grams-val input::-webkit-outer-spin-button,
+.pc-grams-val input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.pc-grams-val input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.pc-grams-unit {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Range slider */
+.pc-grams-slider {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  outline: none;
+  margin: 4px 0 12px;
+}
+.pc-grams-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  cursor: pointer;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 12px rgba(232,86,30,0.4);
+}
+.pc-grams-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  cursor: pointer;
+  border: 2px solid #fff;
+}
+
+/* Presets */
+.pc-presets {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.pc-preset {
+  flex: 1;
+  min-width: 50px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--fg2);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  padding: 7px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pc-preset.active {
+  background: linear-gradient(135deg, rgba(232,86,30,0.25), rgba(232,86,30,0.12));
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* KCAL highlight */
+.pc-kcal-highlight {
+  background:
+    radial-gradient(ellipse at center, rgba(232,86,30,0.15), transparent 70%),
+    rgba(232,86,30,0.06);
+  border: 1px solid rgba(232,86,30,0.28);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  position: relative;
+}
+.pc-kcal-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 44px;
+  background: linear-gradient(135deg, #fff, #ffd9a8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+}
+.pc-kcal-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+.pc-kcal-target {
+  margin-left: auto;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--fg2);
+  text-align: right;
+}
+.pc-kcal-target b {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* TABS */
+.pc-tabs {
+  display: flex;
+  gap: 4px;
+  background: rgba(0,0,0,0.4);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+.pc-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 6px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 700;
+}
+.pc-tab.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(232,86,30,0.25);
+}
+
+/* TAB CONTENT — MAKRO */
+.pc-macro-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.pc-macro-cell {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 12px 8px 10px;
+  text-align: center;
+}
+.pc-macro-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 6px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.pc-macro-icon svg { width: 18px; height: 18px; }
+.pc-macro-val {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  color: var(--fg);
+  line-height: 1;
+}
+.pc-macro-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* DETAIL LIST — szczegółowe makro */
+.pc-detail-list {
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 4px 0;
+  margin-bottom: 10px;
+}
+.pc-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.pc-detail-row:last-child { border-bottom: none; }
+.pc-detail-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--fg2);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.pc-detail-label.indent {
+  padding-left: 14px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.pc-detail-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--fg);
+  font-weight: 700;
+}
+.pc-detail-val.warn { color: #ff8a6c; }
+.pc-detail-val.good { color: #7dd494; }
+.pc-detail-pct {
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: 6px;
+  font-weight: 400;
+}
+.pc-detail-pct.warn { color: rgba(255,138,108,0.8); }
+
+/* WHO note */
+.pc-who-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+  padding: 8px 12px;
+  background: rgba(255,217,102,0.05);
+  border: 1px dashed rgba(255,217,102,0.18);
+  border-radius: 9px;
+  line-height: 1.4;
+}
+
+/* TAB MICRO — witaminy/minerały */
+.pc-micro-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px 12px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+}
+.pc-micro-source {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 7px;
+}
+.pc-micro-source b { color: var(--accent); }
+.pc-micro-section {
+  margin-bottom: 14px;
+}
+.pc-micro-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.pc-micro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.pc-micro-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.pc-micro-name {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--fg2);
+}
+.pc-micro-val {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.pc-micro-pct {
+  font-size: 9px;
+  color: var(--muted);
+  margin-left: 4px;
+  font-weight: 400;
+}
+.pc-micro-pct.high { color: #7dd494; }
+
+/* TAB INGREDIENTS */
+.pc-ingredients {
+  font-size: 12px;
+  color: var(--fg2);
+  line-height: 1.6;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  font-family: 'Inter', sans-serif;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 /* SEARCH INPUT in modal */
@@ -3283,38 +3755,131 @@ body {
 </div>
 
 <!-- ─────────────────────────────────────── -->
-<!-- MODAL: PRODUCT FOUND - confirm meal -->
+<!-- MODAL: PRODUCT FOUND - confirm meal (premium) -->
 <!-- ─────────────────────────────────────── -->
 <div id="meal-confirm-modal" class="modal hidden">
-  <div class="modal-card">
-    <div class="modal-title" id="mc-title">Produkt</div>
-    <div class="modal-sub" id="mc-brand">Marka</div>
+  <div class="modal-card pc-card">
+    <button class="pc-close" onclick="closeMealConfirm()" aria-label="Zamknij">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
 
-    <div class="field">
-      <label class="field-label">Ile zjadłeś (gramów)</label>
-      <input type="number" id="mc-grams" min="1" max="2000" value="100" inputmode="numeric">
-      <div class="preset-row">
-        <button class="preset-btn" onclick="setPreset(50)">50g</button>
-        <button class="preset-btn active" onclick="setPreset(100)">100g</button>
-        <button class="preset-btn" onclick="setPreset(150)">150g</button>
-        <button class="preset-btn" onclick="setPreset(200)">200g</button>
-        <button class="preset-btn" onclick="setPreset(250)">250g (porcja)</button>
-        <button class="preset-btn" onclick="setPreset(330)">330g (puszka)</button>
+    <!-- HERO: zdjęcie produktu + nazwa + brand + tag źródła -->
+    <div class="pc-hero" id="pc-hero">
+      <div class="pc-hero-img" id="pc-hero-img"></div>
+      <div class="pc-hero-overlay"></div>
+      <div class="pc-hero-content">
+        <div class="pc-source-tag" id="pc-source-tag">USDA</div>
+        <div class="pc-title" id="mc-title">Produkt</div>
+        <div class="pc-brand" id="mc-brand"></div>
       </div>
     </div>
 
-    <div style="background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.25);border-radius:10px;padding:12px;margin-bottom:14px;">
-      <div style="font-family:Bebas Neue,sans-serif;font-size:32px;color:var(--accent);"><span id="mc-kcal">0</span> <span style="font-size:14px;color:var(--muted);">kcal</span></div>
-      <div style="display:flex;gap:14px;font-family:DM Mono,monospace;font-size:11px;color:var(--fg2);margin-top:4px;">
-        <span>B: <span id="mc-protein">0</span>g</span>
-        <span>W: <span id="mc-carbs">0</span>g</span>
-        <span>T: <span id="mc-fat">0</span>g</span>
+    <!-- BODY -->
+    <div class="pc-body">
+      <!-- SLIDER + presets -->
+      <div class="pc-grams">
+        <div class="pc-grams-row">
+          <label class="pc-grams-label">Ile zjadłeś</label>
+          <div class="pc-grams-val">
+            <input type="number" id="mc-grams" min="1" max="2000" value="100" inputmode="numeric">
+            <span class="pc-grams-unit" id="pc-grams-unit">g</span>
+          </div>
+        </div>
+        <input type="range" id="mc-grams-slider" class="pc-grams-slider" min="5" max="500" step="5" value="100">
+        <div class="pc-presets">
+          <button class="pc-preset" onclick="setPreset(50)">50g</button>
+          <button class="pc-preset active" onclick="setPreset(100)">100g</button>
+          <button class="pc-preset" onclick="setPreset(150)">150g</button>
+          <button class="pc-preset" onclick="setPreset(200)">200g</button>
+          <button class="pc-preset" onclick="setPreset(250)">250g</button>
+          <button class="pc-preset" onclick="setPreset(330)">330g</button>
+        </div>
       </div>
-    </div>
 
-    <div class="btn-row">
-      <button class="btn-secondary" onclick="closeMealConfirm()">Anuluj</button>
-      <button class="btn-primary" onclick="confirmMeal()">Dodaj</button>
+      <!-- KCAL HIGHLIGHT -->
+      <div class="pc-kcal-highlight">
+        <div class="pc-kcal-num" id="mc-kcal">0</div>
+        <div class="pc-kcal-label">kcal</div>
+        <div class="pc-kcal-target" id="pc-kcal-pct"></div>
+      </div>
+
+      <!-- TABS -->
+      <div class="pc-tabs">
+        <button class="pc-tab active" data-tab="macro" onclick="switchPcTab('macro')">Makro</button>
+        <button class="pc-tab" data-tab="micro" onclick="switchPcTab('micro')">Witaminy</button>
+        <button class="pc-tab" data-tab="ingredients" onclick="switchPcTab('ingredients')">Skład</button>
+      </div>
+
+      <!-- TAB: MAKRO -->
+      <div class="pc-tab-content" id="pc-tab-macro">
+        <!-- Główne 3: B/W/T -->
+        <div class="pc-macro-grid-3">
+          <div class="pc-macro-cell">
+            <div class="pc-macro-icon" style="background:linear-gradient(135deg,rgba(91,185,104,0.18),rgba(91,185,104,0.05));">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#7dd494" stroke-width="1.7" stroke-linecap="round"><path d="M4 7l8-3 8 3v3l-8 3-8-3z"/><path d="M4 11l8 3 8-3"/></svg>
+            </div>
+            <div class="pc-macro-val" id="mc-protein">0</div>
+            <div class="pc-macro-label">Białko (g)</div>
+          </div>
+          <div class="pc-macro-cell">
+            <div class="pc-macro-icon" style="background:linear-gradient(135deg,rgba(74,144,226,0.18),rgba(74,144,226,0.05));">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#70b0f0" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="8"/><path d="M9 9l6 6M15 9l-6 6"/></svg>
+            </div>
+            <div class="pc-macro-val" id="mc-carbs">0</div>
+            <div class="pc-macro-label">Węgle (g)</div>
+          </div>
+          <div class="pc-macro-cell">
+            <div class="pc-macro-icon" style="background:linear-gradient(135deg,rgba(232,86,30,0.18),rgba(232,86,30,0.05));">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#ff8a6c" stroke-width="1.7" stroke-linecap="round"><path d="M7 7c0-2 2-4 5-4s5 2 5 4c0 4-5 5-5 12 0-7-5-8-5-12z"/></svg>
+            </div>
+            <div class="pc-macro-val" id="mc-fat">0</div>
+            <div class="pc-macro-label">Tłuszcz (g)</div>
+          </div>
+        </div>
+
+        <!-- Szczegółowe makro: nasycone, błonnik, cukier, sól, sód -->
+        <div class="pc-detail-list" id="pc-detail-list">
+          <!-- generowane JS -->
+        </div>
+
+        <!-- WHO info -->
+        <div class="pc-who-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" style="width:13px;height:13px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span>WHO zaleca dziennie: błonnik ≥25g, cukier ≤50g, sól ≤5g</span>
+        </div>
+      </div>
+
+      <!-- TAB: MIKRO (witaminy/minerały) -->
+      <div class="pc-tab-content" id="pc-tab-micro" style="display:none;">
+        <div class="pc-micro-loading" id="pc-micro-loading" style="display:none;">
+          <div class="spinner-sm"></div>
+          <span>AI wylicza wartości…</span>
+        </div>
+        <div class="pc-micro-source" id="pc-micro-source"></div>
+        <div class="pc-micro-section">
+          <div class="pc-micro-title">Witaminy</div>
+          <div class="pc-micro-grid" id="pc-micro-vitamins"><!-- JS --></div>
+        </div>
+        <div class="pc-micro-section">
+          <div class="pc-micro-title">Minerały</div>
+          <div class="pc-micro-grid" id="pc-micro-minerals"><!-- JS --></div>
+        </div>
+        <div class="pc-who-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" style="width:13px;height:13px;flex-shrink:0;"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg>
+          <span>% RDA = % rekomendowanej dziennej dawki dla dorosłego</span>
+        </div>
+      </div>
+
+      <!-- TAB: SKŁAD -->
+      <div class="pc-tab-content" id="pc-tab-ingredients" style="display:none;">
+        <div class="pc-ingredients" id="pc-ingredients-text">—</div>
+      </div>
+
+      <!-- BUTTONS -->
+      <div class="btn-row" style="margin-top:18px;">
+        <button class="btn-secondary" onclick="closeMealConfirm()">Anuluj</button>
+        <button class="btn-primary" onclick="confirmMeal()">Dodaj posiłek</button>
+      </div>
     </div>
   </div>
 </div>
@@ -5409,18 +5974,67 @@ async function lookupBarcode(barcode) {
 // ════════════════════════════════════════════════════════════
 // PRODUCT CONFIRM MODAL
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// PREMIUM PRODUCT CONFIRM MODAL
+// ════════════════════════════════════════════════════════════
+let _pcMicroCache = {};  // cache per source_id żeby nie pytać AI ponownie
+
 function showProductConfirm(food) {
   _scannedProduct = food;
-  document.getElementById('mc-title').textContent = food.name || 'Produkt';
-  document.getElementById('mc-brand').textContent = food.brand || '—';
+
+  // Hero — zdjęcie + tag + nazwa + brand
+  const heroImg = document.getElementById('pc-hero-img');
+  const heroName = food.name || 'Produkt';
+
+  // Async — pobierz obraz (z food.image_url jeśli OFF, inaczej z naszego cache)
+  if (food.image_url) {
+    heroImg.style.backgroundImage = `url('${food.image_url}')`;
+  } else {
+    // Fallback: użyj getFoodImageForName jeśli istnieje
+    if (typeof getFoodImageForName === 'function') {
+      getFoodImageForName(heroName).then(url => {
+        if (url) heroImg.style.backgroundImage = `url('${url}')`;
+      }).catch(() => {});
+    }
+    // Tymczasowy gradient zanim się pobierze
+    heroImg.style.background = 'linear-gradient(135deg,#241c18,#100a06)';
+  }
+
+  // Source tag
+  const tagEl = document.getElementById('pc-source-tag');
+  const src = (food.source || '').toLowerCase();
+  let tagText = 'PRODUKT';
+  let tagCls = '';
+  if (src === 'usda') { tagText = 'USDA'; tagCls = 'usda'; }
+  else if (src.includes('off') || src.includes('open')) { tagText = 'OFF'; tagCls = 'off'; }
+  else if (food.barcode) { tagText = 'BARCODE'; tagCls = 'barcode'; }
+  tagEl.textContent = tagText;
+  tagEl.className = 'pc-source-tag ' + tagCls;
+
+  document.getElementById('mc-title').textContent = heroName;
+  document.getElementById('mc-brand').textContent = food.brand || '';
+
+  // Reset gramatury i tabs
   document.getElementById('mc-grams').value = 100;
+  document.getElementById('mc-grams-slider').value = 100;
   setActivePreset(100);
   recalcMacrosForGrams(100);
+  switchPcTab('macro');
+
   document.getElementById('meal-confirm-modal').classList.remove('hidden');
-  // Listener na input
+
+  // Listenery
   const gInput = document.getElementById('mc-grams');
+  const gSlider = document.getElementById('mc-grams-slider');
   gInput.oninput = () => {
     const g = parseFloat(gInput.value) || 0;
+    gSlider.value = Math.min(500, Math.max(5, g));
+    recalcMacrosForGrams(g);
+    setActivePreset(null);
+  };
+  gSlider.oninput = () => {
+    const g = parseFloat(gSlider.value) || 0;
+    gInput.value = g;
     recalcMacrosForGrams(g);
     setActivePreset(null);
   };
@@ -5428,12 +6042,13 @@ function showProductConfirm(food) {
 
 function setPreset(g) {
   document.getElementById('mc-grams').value = g;
+  document.getElementById('mc-grams-slider').value = Math.min(500, g);
   recalcMacrosForGrams(g);
   setActivePreset(g);
 }
 
 function setActivePreset(g) {
-  document.querySelectorAll('.preset-btn').forEach(b => {
+  document.querySelectorAll('.pc-preset, .preset-btn').forEach(b => {
     b.classList.toggle('active', b.textContent.startsWith(g + 'g'));
   });
 }
@@ -5441,10 +6056,224 @@ function setActivePreset(g) {
 function recalcMacrosForGrams(g) {
   if (!_scannedProduct || !g) return;
   const f = g / 100;
-  document.getElementById('mc-kcal').textContent = Math.round((_scannedProduct.kcal_per_100g || 0) * f);
-  document.getElementById('mc-protein').textContent = Math.round((_scannedProduct.protein_per_100g || 0) * f * 10) / 10;
-  document.getElementById('mc-carbs').textContent = Math.round((_scannedProduct.carbs_per_100g || 0) * f * 10) / 10;
-  document.getElementById('mc-fat').textContent = Math.round((_scannedProduct.fat_per_100g || 0) * f * 10) / 10;
+  const p = _scannedProduct;
+
+  // główne 3
+  const kcal = Math.round((p.kcal_per_100g || 0) * f);
+  const protein = Math.round((p.protein_per_100g || 0) * f * 10) / 10;
+  const carbs = Math.round((p.carbs_per_100g || 0) * f * 10) / 10;
+  const fat = Math.round((p.fat_per_100g || 0) * f * 10) / 10;
+
+  document.getElementById('mc-kcal').textContent = kcal;
+  document.getElementById('mc-protein').textContent = protein.toFixed(1);
+  document.getElementById('mc-carbs').textContent = carbs.toFixed(1);
+  document.getElementById('mc-fat').textContent = fat.toFixed(1);
+
+  // % dziennego celu kcal
+  if (_profile?.tdee) {
+    const target = _profile.tdee + (_profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0);
+    const pct = Math.round((kcal / target) * 100);
+    document.getElementById('pc-kcal-pct').innerHTML = `<b>${pct}%</b><br>celu dziennego`;
+  } else {
+    document.getElementById('pc-kcal-pct').textContent = '';
+  }
+
+  // Detail list — nasycone, błonnik, cukier, sól, sód
+  const fiber = (p.fiber_per_100g || 0) * f;
+  const sugar = (p.sugar_per_100g || 0) * f;
+  const salt = (p.salt_per_100g || 0) * f;
+  const satFat = (p.saturated_fat_per_100g || 0) * f;
+  const sodium = (p.sodium_mg_per_100g || (salt * 400)) * f / (p.sodium_mg_per_100g ? 1 : f); // sól * 400 = sód mg
+
+  // Spr. czy mamy sodium per_100g, jeśli tak to f, jeśli nie to z soli
+  const sodiumDisplay = p.sodium_mg_per_100g ? Math.round(p.sodium_mg_per_100g * f) : Math.round(salt * 400);
+
+  const rows = [
+    { label: 'w tym tłuszcze nasycone', val: satFat, unit: 'g', indent: true, decimals: 1 },
+    { label: 'Błonnik', val: fiber, unit: 'g', decimals: 1, who: { good: 25, type: 'min' } },
+    { label: 'Cukier', val: sugar, unit: 'g', decimals: 1, who: { limit: 50, type: 'max' } },
+    { label: 'Sól', val: salt, unit: 'g', decimals: 2, who: { limit: 5, type: 'max' } },
+    { label: 'Sód', val: sodiumDisplay, unit: 'mg', decimals: 0, indent: true, who: { limit: 2000, type: 'max' } }
+  ];
+
+  const dailyTarget = _profile?.tdee || 2000;
+  document.getElementById('pc-detail-list').innerHTML = rows.map(r => {
+    let pctText = '';
+    let valCls = '';
+    if (r.who) {
+      // dla 'min' (błonnik) — % dziennego celu
+      // dla 'max' (sól, cukier) — % limitu
+      const ref = r.who.good || r.who.limit;
+      const pct = Math.round((r.val / ref) * 100);
+      if (r.who.type === 'max' && pct > 100) {
+        pctText = `<span class="pc-detail-pct warn">(${pct}% dziennego limitu)</span>`;
+        valCls = 'warn';
+      } else if (r.who.type === 'min' && pct >= 50) {
+        pctText = `<span class="pc-detail-pct">(${pct}% dziennego celu)</span>`;
+        if (pct >= 100) valCls = 'good';
+      } else if (r.who.type === 'max') {
+        pctText = `<span class="pc-detail-pct">(${pct}% dziennego limitu)</span>`;
+      } else {
+        pctText = `<span class="pc-detail-pct">(${pct}% dziennego celu)</span>`;
+      }
+    }
+    return `
+      <div class="pc-detail-row">
+        <div class="pc-detail-label ${r.indent ? 'indent' : ''}">${r.label}</div>
+        <div class="pc-detail-val ${valCls}">${r.val.toFixed(r.decimals)} ${r.unit}${pctText}</div>
+      </div>`;
+  }).join('');
+}
+
+// ── TABS w modalu produktu
+function switchPcTab(tab) {
+  document.querySelectorAll('.pc-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === tab);
+  });
+  document.getElementById('pc-tab-macro').style.display = tab === 'macro' ? '' : 'none';
+  document.getElementById('pc-tab-micro').style.display = tab === 'micro' ? '' : 'none';
+  document.getElementById('pc-tab-ingredients').style.display = tab === 'ingredients' ? '' : 'none';
+
+  if (tab === 'micro') {
+    loadMicroNutrients();
+  }
+  if (tab === 'ingredients') {
+    loadIngredients();
+  }
+}
+
+// ── ŁADOWANIE WITAMIN/MINERAŁÓW (z USDA jeśli ma, AI jeśli nie)
+async function loadMicroNutrients() {
+  if (!_scannedProduct) return;
+  const productKey = _scannedProduct.source_id || _scannedProduct.barcode || _scannedProduct.name;
+  const grams = parseFloat(document.getElementById('mc-grams').value) || 100;
+
+  const sourceEl = document.getElementById('pc-micro-source');
+  const loadingEl = document.getElementById('pc-micro-loading');
+  const vitsEl = document.getElementById('pc-micro-vitamins');
+  const minsEl = document.getElementById('pc-micro-minerals');
+
+  // Cache check
+  let micros = _pcMicroCache[productKey];
+  if (!micros) {
+    loadingEl.style.display = 'flex';
+    vitsEl.innerHTML = '';
+    minsEl.innerHTML = '';
+    sourceEl.innerHTML = '';
+
+    try {
+      // 1. Spróbuj wyciągnąć z source_data jeśli USDA zapisała pełne dane
+      if (_scannedProduct.full_nutrients) {
+        micros = _scannedProduct.full_nutrients;
+        micros.source = 'usda';
+      } else {
+        // 2. AI estimate przez edge function
+        const session = (await sb.auth.getSession()).data.session;
+        const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1');
+        const r = await fetch(`${fnUrl}/food-micronutrients`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            name: _scannedProduct.name,
+            brand: _scannedProduct.brand,
+            kcal_per_100: _scannedProduct.kcal_per_100g,
+            protein_per_100: _scannedProduct.protein_per_100g,
+            carbs_per_100: _scannedProduct.carbs_per_100g,
+            fat_per_100: _scannedProduct.fat_per_100g,
+            source_id: _scannedProduct.source_id,
+            barcode: _scannedProduct.barcode
+          })
+        });
+        if (r.ok) {
+          micros = await r.json();
+        }
+      }
+      if (micros) _pcMicroCache[productKey] = micros;
+    } catch (e) {
+      console.error('Micro fetch failed:', e);
+    }
+    loadingEl.style.display = 'none';
+  }
+
+  if (!micros || (!micros.vitamins && !micros.minerals)) {
+    vitsEl.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:11px;padding:20px;font-family:DM Mono,monospace;">Brak danych o witaminach</div>';
+    minsEl.innerHTML = '';
+    sourceEl.innerHTML = '';
+    return;
+  }
+
+  // Source label
+  const srcLabel = micros.source === 'usda'
+    ? '<b>USDA</b> · oficjalne dane laboratoryjne'
+    : '<b>AI</b> · oszacowane na podstawie typowych wartości';
+  sourceEl.innerHTML = srcLabel;
+
+  // Render vitamins
+  const f = grams / 100;
+  vitsEl.innerHTML = renderMicroGrid(micros.vitamins || {}, f);
+  minsEl.innerHTML = renderMicroGrid(micros.minerals || {}, f);
+}
+
+// RDA dla dorosłego (DV from WHO/EU)
+const MICRO_RDA = {
+  // Witaminy
+  'A': { rda: 800, unit: 'µg', label: 'Witamina A' },
+  'B1': { rda: 1.1, unit: 'mg', label: 'B1 (Tiamina)' },
+  'B2': { rda: 1.4, unit: 'mg', label: 'B2 (Ryboflawina)' },
+  'B3': { rda: 16, unit: 'mg', label: 'B3 (Niacyna)' },
+  'B5': { rda: 6, unit: 'mg', label: 'B5 (Pantotenowy)' },
+  'B6': { rda: 1.4, unit: 'mg', label: 'B6' },
+  'B7': { rda: 50, unit: 'µg', label: 'B7 (Biotyna)' },
+  'B9': { rda: 200, unit: 'µg', label: 'B9 (Folacyna)' },
+  'B12': { rda: 2.5, unit: 'µg', label: 'B12' },
+  'C': { rda: 80, unit: 'mg', label: 'Witamina C' },
+  'D': { rda: 5, unit: 'µg', label: 'Witamina D' },
+  'E': { rda: 12, unit: 'mg', label: 'Witamina E' },
+  'K': { rda: 75, unit: 'µg', label: 'Witamina K' },
+  // Minerały
+  'Ca': { rda: 800, unit: 'mg', label: 'Wapń (Ca)' },
+  'Fe': { rda: 14, unit: 'mg', label: 'Żelazo (Fe)' },
+  'Mg': { rda: 375, unit: 'mg', label: 'Magnez (Mg)' },
+  'P': { rda: 700, unit: 'mg', label: 'Fosfor (P)' },
+  'K_min': { rda: 2000, unit: 'mg', label: 'Potas (K)' },
+  'Zn': { rda: 10, unit: 'mg', label: 'Cynk (Zn)' },
+  'Cu': { rda: 1, unit: 'mg', label: 'Miedź (Cu)' },
+  'Mn': { rda: 2, unit: 'mg', label: 'Mangan (Mn)' },
+  'Se': { rda: 55, unit: 'µg', label: 'Selen (Se)' },
+  'I': { rda: 150, unit: 'µg', label: 'Jod (I)' }
+};
+
+function renderMicroGrid(items, grams_factor) {
+  const keys = Object.keys(items);
+  if (!keys.length) return '<div style="grid-column:1/-1;font-size:10px;color:var(--muted);padding:8px;text-align:center;">—</div>';
+  return keys.map(k => {
+    const v = items[k];
+    if (v === null || v === undefined) return '';
+    const meta = MICRO_RDA[k] || { rda: null, unit: 'mg', label: k };
+    const valForPortion = v * grams_factor;
+    const pct = meta.rda ? Math.round((valForPortion / meta.rda) * 100) : null;
+    const pctClass = pct >= 30 ? 'high' : '';
+    const valStr = valForPortion < 1
+      ? valForPortion.toFixed(2)
+      : valForPortion < 10
+        ? valForPortion.toFixed(1)
+        : Math.round(valForPortion);
+    return `
+      <div class="pc-micro-item">
+        <div class="pc-micro-name">${meta.label}</div>
+        <div class="pc-micro-val">${valStr} ${meta.unit}${pct !== null ? `<span class="pc-micro-pct ${pctClass}">${pct}%RDA</span>` : ''}</div>
+      </div>`;
+  }).filter(s => s).join('');
+}
+
+// ── INGREDIENTS
+function loadIngredients() {
+  if (!_scannedProduct) return;
+  const ing = _scannedProduct.ingredients_text || _scannedProduct.ingredients || null;
+  document.getElementById('pc-ingredients-text').textContent = ing || 'Brak informacji o składzie. Dane dostępne głównie dla produktów ze skanu kodu kreskowego.';
 }
 
 function closeMealConfirm() {
