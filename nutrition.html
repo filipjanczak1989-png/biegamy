@@ -713,6 +713,272 @@ body {
 }
 .bars-wrap { position: relative; }
 
+/* ── RANGE TOGGLE (Tydzień / Miesiąc) ── */
+.range-toggle {
+  display: flex;
+  gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 14px;
+}
+.range-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.range-btn.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(232,86,30,0.25);
+}
+
+/* ── MINI MACRO CARD (jedna linia per makro) ── */
+.macro-week-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 14px 10px;
+  margin-bottom: 10px;
+  position: relative;
+  overflow: hidden;
+}
+.mwc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  gap: 12px;
+}
+.mwc-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mwc-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(232,86,30,0.16), rgba(232,86,30,0.05));
+  border: 1px solid rgba(232,86,30,0.22);
+}
+.mwc-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--accent);
+  stroke-width: 1.7;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mwc-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+.mwc-sub {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 1px;
+  font-family: 'DM Mono', monospace;
+}
+.mwc-stats {
+  text-align: right;
+}
+.mwc-avg {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  color: var(--fg);
+  line-height: 1;
+}
+.mwc-avg-unit {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.08em;
+}
+.mwc-target {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  margin-top: 2px;
+  letter-spacing: 0.06em;
+}
+.mwc-target.over { color: #ff8a6c; }
+.mwc-target.good { color: #6dd49a; }
+
+/* mini bars wewnątrz karty makro */
+.mwc-bars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3px;
+  height: 50px;
+  position: relative;
+  padding-bottom: 16px;
+}
+.mwc-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+  cursor: pointer;
+}
+.mwc-bar {
+  width: 100%;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+  background: linear-gradient(to top, var(--accent), var(--accent2));
+  transition: opacity 0.2s, transform 0.2s;
+}
+.mwc-bar:hover { opacity: 0.85; transform: translateY(-1px); }
+.mwc-bar.no-data { background: rgba(255,255,255,0.06); }
+.mwc-bar.over { background: linear-gradient(to top, #ff8a6c, #ffa890); }
+.mwc-bar.under { background: linear-gradient(to top, #4a90e2, #70b0f0); }
+.mwc-bar.warn { background: linear-gradient(to top, #f0ad4e, #f8c878); }
+.mwc-bar.good { background: linear-gradient(to top, #5bb968, #7dd494); }
+.mwc-bar-day {
+  position: absolute;
+  bottom: 0;
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.mwc-bar-day.today { color: var(--accent); font-weight: 700; }
+.mwc-bar-day.peak { color: var(--fg2); }
+
+/* WHO target line */
+.mwc-who-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(255,217,102,0.55);
+  pointer-events: none;
+  z-index: 2;
+}
+.mwc-who-line::before {
+  content: 'WHO';
+  position: absolute;
+  right: 0;
+  top: -10px;
+  font-family: 'DM Mono', monospace;
+  font-size: 7px;
+  letter-spacing: 0.08em;
+  color: rgba(255,217,102,0.7);
+}
+.mwc-who-line.warn { background: rgba(232,86,30,0.55); }
+.mwc-who-line.warn::before {
+  color: rgba(232,86,30,0.85);
+  content: 'limit';
+}
+
+/* ── GRADING DNI — kolorowe kropki ── */
+.day-grading {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.dg-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.dg-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.dg-legend {
+  display: flex;
+  gap: 10px;
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+.dg-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.dg-legend i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dg-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.dg-day {
+  flex: 1;
+  text-align: center;
+}
+.dg-day-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  color: var(--muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.04em;
+}
+.dg-day-label.today { color: var(--accent); font-weight: 700; }
+.dg-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  border: 1.5px solid transparent;
+}
+.dg-dot.good { background: rgba(91,185,104,0.18); border-color: rgba(91,185,104,0.5); color: #7dd494; }
+.dg-dot.medium { background: rgba(240,173,78,0.18); border-color: rgba(240,173,78,0.5); color: #f8c878; }
+.dg-dot.poor { background: rgba(232,86,30,0.18); border-color: rgba(232,86,30,0.5); color: #ff8a6c; }
+.dg-dot.empty { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); color: var(--muted); }
+.dg-dot-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 14px;
+}
+.dg-summary {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  font-size: 10px;
+  color: var(--fg2);
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.dg-summary span b { color: var(--fg); font-weight: 700; }
+
 /* WEEK SUMMARY CARDS */
 .week-summary {
   display: grid;
@@ -2792,25 +3058,32 @@ body {
 
   <!-- VIEW: WEEK -->
   <div id="view-week" style="display:none;">
-    <div class="week-chart">
-      <div class="week-chart-header">
-        <div>
-          <div class="week-chart-title">Ostatnie 7 dni — kcal/dzień</div>
-        </div>
-        <div>
-          <span class="week-chart-avg" id="week-avg">0</span>
-          <span class="week-chart-avg-unit">kcal średnio</span>
-        </div>
-      </div>
-      <div class="bars-wrap">
-        <div class="bars" id="week-bars">
-          <!-- generowane JS -->
-        </div>
-      </div>
+    <!-- TOGGLE: Tydzień / Miesiąc -->
+    <div class="range-toggle">
+      <button class="range-btn active" id="range-week" onclick="setWeekRange('week')">7 dni</button>
+      <button class="range-btn" id="range-month" onclick="setWeekRange('month')">30 dni</button>
     </div>
 
+    <!-- GRADING — kolorowe kropki dni (tylko dla 7 dni) -->
+    <div class="day-grading" id="day-grading">
+      <div class="dg-header">
+        <div class="dg-title">Ocena dni</div>
+        <div class="dg-legend">
+          <span><i style="background:#7dd494"></i>dobry</span>
+          <span><i style="background:#f8c878"></i>średni</span>
+          <span><i style="background:#ff8a6c"></i>słaby</span>
+        </div>
+      </div>
+      <div class="dg-grid" id="dg-grid"><!-- generowane JS --></div>
+      <div class="dg-summary" id="dg-summary"><!-- generowane JS --></div>
+    </div>
+
+    <!-- 7 wykresów per makro -->
+    <div id="macro-cards"><!-- generowane JS --></div>
+
+    <!-- KARTY PODSUMOWANIA (totale) -->
     <div class="section-header">
-      <div class="section-title">Podsumowanie tygodnia</div>
+      <div class="section-title">Sumy okresu</div>
     </div>
     <div class="week-summary">
       <div class="summary-card">
@@ -5535,12 +5808,34 @@ function csvEscape(s) {
 }
 
 // ════════════════════════════════════════════════════════════
-// WEEK VIEW
+// WEEK / MONTH VIEW — fitatu-style z grading dni + per-macro charts
 // ════════════════════════════════════════════════════════════
+let _weekRange = 'week';  // 'week' | 'month'
+
+function setWeekRange(range) {
+  _weekRange = range;
+  document.getElementById('range-week').classList.toggle('active', range === 'week');
+  document.getElementById('range-month').classList.toggle('active', range === 'month');
+  // Grading sensowny tylko dla 7 dni (na 30 zrobiłby się ścisk)
+  document.getElementById('day-grading').style.display = range === 'week' ? '' : 'none';
+  loadWeekView();
+}
+
+// SVG ikony dla makro
+const MACRO_ICONS = {
+  kcal: '<svg viewBox="0 0 24 24"><path d="M12 3c-1 4-5 5-5 9a5 5 0 0 0 10 0c0-2-1-4-2-5"/><path d="M12 14a2 2 0 0 0 2-2"/></svg>',
+  protein: '<svg viewBox="0 0 24 24"><path d="M4 7l8-3 8 3v3l-8 3-8-3z"/><path d="M4 11l8 3 8-3"/><path d="M4 15l8 3 8-3"/></svg>',
+  carbs: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M9 9l6 6M15 9l-6 6"/></svg>',
+  fat: '<svg viewBox="0 0 24 24"><path d="M7 7c0-2 2-4 5-4s5 2 5 4c0 4-5 5-5 12-0-7-5-8-5-12z"/></svg>',
+  fiber: '<svg viewBox="0 0 24 24"><path d="M3 12h18M5 8h14M5 16h14M7 4h10M7 20h10"/></svg>',
+  sugar: '<svg viewBox="0 0 24 24"><path d="M12 4l3 6 6 1-4.5 4 1 6L12 18l-5.5 3 1-6L3 11l6-1z"/></svg>',
+  salt: '<svg viewBox="0 0 24 24"><path d="M8 4h8v4l-2 12H10L8 8z"/><path d="M8 8h8"/></svg>'
+};
+
 async function loadWeekView() {
-  // 7 dni wstecz, włącznie z dziś
   const days = [];
-  for (let i = 6; i >= 0; i--) {
+  const numDays = _weekRange === 'month' ? 30 : 7;
+  for (let i = numDays - 1; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     d.setHours(0, 0, 0, 0);
@@ -5548,16 +5843,20 @@ async function loadWeekView() {
       date: d,
       key: d.toISOString().slice(0, 10),
       label: ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'][d.getDay()],
+      dayNum: d.getDate(),
       kcal: 0,
       protein: 0,
       carbs: 0,
       fat: 0,
+      fiber: 0,
+      sugar: 0,
+      salt: 0,
       meals: 0
     });
   }
   const startISO = days[0].date.toISOString();
   const { data } = await sb.from('nutrition_meals')
-    .select('eaten_at, kcal, protein_g, carbs_g, fat_g')
+    .select('eaten_at, kcal, protein_g, carbs_g, fat_g, fiber_g, sugar_g, salt_g')
     .eq('athlete_id', _athleteId)
     .gte('eaten_at', startISO)
     .order('eaten_at', { ascending: true });
@@ -5570,50 +5869,36 @@ async function loadWeekView() {
     day.protein += parseFloat(m.protein_g) || 0;
     day.carbs += parseFloat(m.carbs_g) || 0;
     day.fat += parseFloat(m.fat_g) || 0;
+    day.fiber += parseFloat(m.fiber_g) || 0;
+    day.sugar += parseFloat(m.sugar_g) || 0;
+    day.salt += parseFloat(m.salt_g) || 0;
     day.meals += 1;
   });
 
-  // Render bars
-  const maxKcal = Math.max(...days.map(d => d.kcal), _profile?.tdee || 2000, 1);
   const target = _profile?.tdee
     ? _profile.tdee + (_profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0)
     : null;
   const todayKey = new Date().toISOString().slice(0, 10);
-
-  const barsEl = document.getElementById('week-bars');
-  barsEl.innerHTML = days.map(d => {
-    const pct = Math.min(100, (d.kcal / maxKcal) * 100);
-    let cls = '';
-    if (d.kcal === 0) cls = 'no-data';
-    else if (target && d.kcal > target * 1.1) cls = 'over-target';
-    else if (target && d.kcal < target * 0.7) cls = 'under-target';
-    return `
-      <div class="bar-col">
-        <div class="bar-stem ${cls}" style="height:${Math.max(2, pct)}%;" title="${d.kcal} kcal"></div>
-        <div class="bar-day ${d.key === todayKey ? 'today' : ''}">${d.label}</div>
-        <div class="bar-val">${d.kcal > 0 ? Math.round(d.kcal) : '—'}</div>
-      </div>`;
-  }).join('');
-
-  // Targets line (jeśli profil)
-  // (Pomijam — wizualnie skomplikowane na małych słupkach, kolor słupka wystarcza)
-
-  // Średnia z dni z wpisami
   const daysWithData = days.filter(d => d.kcal > 0);
-  const avgKcal = daysWithData.length ? Math.round(daysWithData.reduce((s, d) => s + d.kcal, 0) / daysWithData.length) : 0;
-  document.getElementById('week-avg').textContent = avgKcal;
 
-  // Summary cards
+  // ── GRADING DNI (tylko dla 7 dni)
+  if (_weekRange === 'week') {
+    renderDayGrading(days, target, todayKey);
+  }
+
+  // ── PER-MACRO MINI CHARTS
+  renderMacroCards(days, target, todayKey);
+
+  // ── SUMMARY CARDS (totale)
   const totals = days.reduce((acc, d) => ({
     kcal: acc.kcal + d.kcal,
     protein: acc.protein + d.protein,
     carbs: acc.carbs + d.carbs,
-    fat: acc.fat + d.fat,
     meals: acc.meals + d.meals
-  }), { kcal: 0, protein: 0, carbs: 0, fat: 0, meals: 0 });
+  }), { kcal: 0, protein: 0, carbs: 0, meals: 0 });
 
   document.getElementById('week-total-kcal').textContent = Math.round(totals.kcal);
-  document.getElementById('week-days').textContent = `${daysWithData.length} / 7 dni z wpisami`;
+  document.getElementById('week-days').textContent = `${daysWithData.length} / ${numDays} dni z wpisami`;
   document.getElementById('week-meals').textContent = totals.meals;
   document.getElementById('week-meals-avg').textContent = daysWithData.length
     ? `${(totals.meals / daysWithData.length).toFixed(1)} / dzień`
@@ -5626,6 +5911,244 @@ async function loadWeekView() {
   document.getElementById('week-carbs-avg').textContent = daysWithData.length
     ? `${Math.round(totals.carbs / daysWithData.length)}g / dzień`
     : '—';
+}
+
+// ── GRADING — ocena dnia w skali dobry/średni/słaby
+// Algorytm: punkty (0-100) na podstawie 4 kryteriów:
+//   - kcal w zakresie ±15% od targetu (0-30pkt)
+//   - białko ≥ 1.2g / kg masy (0-25pkt)
+//   - błonnik ≥ 25g (0-20pkt)
+//   - sól ≤ 5g i cukier ≤ 50g (0-25pkt)
+function gradeDay(d, target, weight) {
+  if (d.kcal === 0) return null;  // pusty dzień
+  let score = 0;
+
+  // kcal — w zakresie ±15% od targetu
+  if (target) {
+    const ratio = d.kcal / target;
+    if (ratio >= 0.85 && ratio <= 1.15) score += 30;
+    else if (ratio >= 0.7 && ratio <= 1.3) score += 18;
+    else score += 5;
+  } else {
+    score += 15; // bez targetu — neutralnie
+  }
+
+  // białko — ≥ 1.2g / kg
+  const proteinTarget = weight ? weight * 1.2 : 70;
+  if (d.protein >= proteinTarget) score += 25;
+  else if (d.protein >= proteinTarget * 0.7) score += 15;
+  else score += 5;
+
+  // błonnik — ≥ 25g WHO
+  if (d.fiber >= 25) score += 20;
+  else if (d.fiber >= 15) score += 12;
+  else if (d.fiber >= 5) score += 5;
+
+  // sól + cukier — w limitach WHO
+  let bonus = 25;
+  if (d.salt > 5) bonus -= 10;
+  if (d.sugar > 50) bonus -= 10;
+  score += Math.max(0, bonus);
+
+  return { score, grade: score >= 75 ? 'good' : score >= 50 ? 'medium' : 'poor' };
+}
+
+function renderDayGrading(days, target, todayKey) {
+  const weight = _profile?.weight_kg || null;
+  const grids = days.map(d => {
+    const g = gradeDay(d, target, weight);
+    if (!g) return { html: `
+      <div class="dg-day">
+        <div class="dg-day-label ${d.key === todayKey ? 'today' : ''}">${d.label}</div>
+        <div class="dg-dot empty">—</div>
+      </div>`, grade: null };
+    return { html: `
+      <div class="dg-day" title="${d.dayNum} ${d.label} • ${g.score}/100">
+        <div class="dg-day-label ${d.key === todayKey ? 'today' : ''}">${d.label}</div>
+        <div class="dg-dot ${g.grade}"><span class="dg-dot-num">${g.score}</span></div>
+      </div>`, grade: g.grade };
+  });
+
+  document.getElementById('dg-grid').innerHTML = grids.map(g => g.html).join('');
+
+  // Summary — ile dobrych/średnich/słabych
+  const tally = grids.reduce((acc, g) => {
+    if (g.grade === 'good') acc.good++;
+    else if (g.grade === 'medium') acc.medium++;
+    else if (g.grade === 'poor') acc.poor++;
+    return acc;
+  }, { good: 0, medium: 0, poor: 0 });
+
+  document.getElementById('dg-summary').innerHTML = `
+    <span><b>${tally.good}</b> dobrych</span>
+    <span><b>${tally.medium}</b> średnich</span>
+    <span><b>${tally.poor}</b> słabych</span>
+  `;
+}
+
+// ── MACRO CARDS — 7 mini wykresów (kcal + B + W + T + błonnik + cukier + sól)
+function renderMacroCards(days, target, todayKey) {
+  const weight = _profile?.weight_kg || 70;
+  const macros = [
+    {
+      key: 'kcal', label: 'kcal', icon: MACRO_ICONS.kcal,
+      values: days.map(d => d.kcal),
+      target: target,
+      unit: 'kcal',
+      compare: 'range',  // range = w zakresie ±15% target
+      decimals: 0
+    },
+    {
+      key: 'protein', label: 'Białko', icon: MACRO_ICONS.protein,
+      values: days.map(d => d.protein),
+      target: Math.round(weight * 1.2),
+      unit: 'g',
+      compare: 'min',  // min = min target
+      decimals: 0
+    },
+    {
+      key: 'carbs', label: 'Węgle', icon: MACRO_ICONS.carbs,
+      values: days.map(d => d.carbs),
+      target: target ? Math.round(target * 0.5 / 4) : null, // 50% kcal z węgli, /4 kcal/g
+      unit: 'g',
+      compare: 'range',
+      decimals: 0
+    },
+    {
+      key: 'fat', label: 'Tłuszcz', icon: MACRO_ICONS.fat,
+      values: days.map(d => d.fat),
+      target: target ? Math.round(target * 0.3 / 9) : null, // 30% kcal z tłuszczu /9 kcal/g
+      unit: 'g',
+      compare: 'range',
+      decimals: 0
+    },
+    {
+      key: 'fiber', label: 'Błonnik', icon: MACRO_ICONS.fiber,
+      values: days.map(d => d.fiber),
+      target: 25,
+      unit: 'g',
+      compare: 'min',
+      whoLabel: 'WHO 25g',
+      decimals: 1
+    },
+    {
+      key: 'sugar', label: 'Cukier', icon: MACRO_ICONS.sugar,
+      values: days.map(d => d.sugar),
+      target: 50,
+      unit: 'g',
+      compare: 'max',  // max = limit
+      whoLabel: 'limit 50g',
+      whoWarn: true,
+      decimals: 0
+    },
+    {
+      key: 'salt', label: 'Sól', icon: MACRO_ICONS.salt,
+      values: days.map(d => d.salt),
+      target: 5,
+      unit: 'g',
+      compare: 'max',
+      whoLabel: 'limit 5g',
+      whoWarn: true,
+      decimals: 1
+    }
+  ];
+
+  const html = macros.map(m => {
+    const vals = m.values;
+    const dataVals = vals.filter(v => v > 0);
+    const avg = dataVals.length ? dataVals.reduce((s, v) => s + v, 0) / dataVals.length : 0;
+    // Skala maxa wykresu (też uwzględnij target żeby linia WHO się mieściła)
+    const max = Math.max(...vals, m.target || 0, 1) * 1.15;
+
+    // Pozycja linii WHO (jeśli jest target)
+    const whoTop = m.target ? (1 - m.target / max) * 100 : null;
+
+    // Bary
+    const bars = vals.map((v, i) => {
+      const pct = Math.max(0, Math.min(100, (v / max) * 100));
+      const isToday = days[i].key === todayKey;
+      let cls = '';
+      if (v === 0) cls = 'no-data';
+      else if (m.compare === 'max' && m.target && v > m.target) cls = 'over';
+      else if (m.compare === 'min' && m.target && v >= m.target) cls = 'good';
+      else if (m.compare === 'min' && m.target && v < m.target * 0.5) cls = 'under';
+      else if (m.compare === 'range' && m.target) {
+        const r = v / m.target;
+        if (r > 1.15) cls = 'over';
+        else if (r < 0.7) cls = 'under';
+        else if (r >= 0.85 && r <= 1.15) cls = 'good';
+        else cls = 'warn';
+      }
+
+      // Etykieta dnia: tylko co którąś dla 30 dni żeby się nie tłoczyło
+      const showLabel = days.length <= 7 || (i % 5 === 0) || isToday || i === days.length - 1;
+      const dayLbl = days.length <= 7 ? days[i].label : days[i].dayNum;
+      return `
+        <div class="mwc-bar-col" title="${days[i].dayNum} ${days[i].label}: ${v.toFixed(m.decimals)}${m.unit}">
+          <div class="mwc-bar ${cls}" style="height:${pct}%"></div>
+          ${showLabel ? `<div class="mwc-bar-day ${isToday ? 'today' : ''}">${dayLbl}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    // Status text dla średniej vs target
+    let targetText = '';
+    let targetCls = '';
+    if (m.target) {
+      if (m.compare === 'max') {
+        // max = limit (cukier/sól) — chcemy < target
+        if (avg <= m.target) {
+          targetText = `✓ poniżej ${m.target}${m.unit}`;
+          targetCls = 'good';
+        } else {
+          targetText = `⚠ ponad ${m.target}${m.unit}`;
+          targetCls = 'over';
+        }
+      } else if (m.compare === 'min') {
+        // min = chcemy ≥ target (białko, błonnik)
+        if (avg >= m.target) {
+          targetText = `✓ powyżej ${m.target}${m.unit}`;
+          targetCls = 'good';
+        } else {
+          targetText = `cel: ${m.target}${m.unit}`;
+        }
+      } else {
+        // range (kcal/węgle/tłuszcz)
+        const r = avg / m.target;
+        if (r >= 0.85 && r <= 1.15) {
+          targetText = `✓ przy celu ${m.target}${m.unit}`;
+          targetCls = 'good';
+        } else if (r > 1.15) {
+          targetText = `+${Math.round((r - 1) * 100)}% ponad cel`;
+          targetCls = 'over';
+        } else {
+          targetText = `−${Math.round((1 - r) * 100)}% poniżej celu`;
+        }
+      }
+    }
+
+    return `
+      <div class="macro-week-card">
+        <div class="mwc-header">
+          <div class="mwc-label">
+            <div class="mwc-icon">${m.icon}</div>
+            <div>
+              <div class="mwc-title">${m.label}</div>
+              <div class="mwc-sub">${dataVals.length} ${dataVals.length === 1 ? 'dzień' : 'dni'} z wpisami</div>
+            </div>
+          </div>
+          <div class="mwc-stats">
+            <div><span class="mwc-avg">${avg.toFixed(m.decimals)}</span><span class="mwc-avg-unit">${m.unit}/dzień</span></div>
+            ${targetText ? `<div class="mwc-target ${targetCls}">${targetText}</div>` : ''}
+          </div>
+        </div>
+        <div class="mwc-bars">
+          ${whoTop !== null ? `<div class="mwc-who-line ${m.whoWarn ? 'warn' : ''}" style="top:${whoTop}%"></div>` : ''}
+          ${bars}
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('macro-cards').innerHTML = html;
 }
 
 // ════════════════════════════════════════════════════════════
