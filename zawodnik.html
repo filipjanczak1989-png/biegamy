@@ -5821,36 +5821,92 @@ async function loadAIReportsForAthlete() {
   }
   
   let html = '';
-  reports.forEach(r => {
+  // ✅ Helper — deterministyczny indeks zdjęcia z 26 (ten sam co w modalu)
+  const _RA_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+  const _RA_COUNT = 26;
+  function _raImgFromId(id) {
+    let h = 0;
+    for (let i = 0; i < (id||'').length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+    return _RA_BASE + 'ra' + ((Math.abs(h) % _RA_COUNT) + 1) + '.webp';
+  }
+  
+  // Helper renderujący kartę — ta sama logika dla slider i grid (różni się szerokość)
+  function _renderReportCard(r, isSlider) {
     const date = new Date(r.sent_at || r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',year:'numeric'});
-    const time = new Date(r.sent_at || r.generated_at).toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
-    // Priority badge wycinamy — zawodnik nie patrzy na alarmy 🚨/⚠/✓
     const isUnread = !r.read_by_athlete;
-    const typeIcon = r.report_type === 'daily' ? '📅' : r.report_type === 'weekly' ? '📊' : r.report_type === 'monthly' ? '📈' : '📄';
     const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
+    const heroUrl = _raImgFromId(r.id);
+    const widthStyle = isSlider ? 'width:280px;flex-shrink:0;scroll-snap-align:start;' : 'width:100%;';
+    const heightStyle = isSlider ? 'height:200px;' : 'height:170px;';
     
-    html += '<div data-zar-report-id="' + r.id + '" class="zar-report-card" style="background:rgba(255,255,255,0.03);border:1px solid ' + (isUnread ? 'rgba(232,86,30,0.4)' : 'var(--border)') + ';border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.15s;position:relative;">'
-      + (isUnread ? '<div style="position:absolute;top:14px;right:14px;width:8px;height:8px;border-radius:50%;background:#e8561e;"></div>' : '')
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
-        + '<span style="font-size:16px;">' + typeIcon + '</span>'
-        + '<span style="font-size:11px;color:var(--fg);font-weight:600;">' + typeLabel + '</span>'
+    return '<div data-zar-report-id="' + r.id + '" class="zar-report-card" style="' + widthStyle + 'position:relative;' + heightStyle + 'border-radius:16px;overflow:hidden;cursor:pointer;background:#0c0c10;border:1px solid ' + (isUnread ? 'rgba(232,86,30,0.5)' : 'rgba(255,255,255,0.06)') + ';transition:transform 0.18s,border-color 0.18s,box-shadow 0.18s;">'
+      // Hero image background
+      + '<div style="position:absolute;inset:0;background-image:url(\'' + heroUrl + '\');background-size:cover;background-position:center 28%;"></div>'
+      // Gradient overlay
+      + '<div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,16,0.15) 0%,rgba(7,5,16,0.4) 40%,rgba(7,5,16,0.92) 100%);pointer-events:none;"></div>'
+      // Unread dot
+      + (isUnread ? '<div style="position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:#e8561e;box-shadow:0 0 0 3px rgba(232,86,30,0.25);z-index:2;"></div>' : '')
+      // Górny pasek: typ raportu
+      + '<div style="position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:8px;z-index:2;">'
+        + '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.85);font-family:\'DM Mono\',monospace;background:rgba(0,0,0,0.4);padding:4px 9px;border-radius:5px;backdrop-filter:blur(8px);">' + typeLabel + '</div>'
       + '</div>'
-      + '<div style="font-size:13px;color:var(--fg);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:8px;">' + (r.summary || 'Raport od trenera') + '</div>'
-      + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.04em;">' + date + ' · ' + time + '</div>'
+      // Tekst na dole — summary + data
+      + '<div style="position:absolute;bottom:0;left:0;right:0;padding:14px 16px 14px;z-index:2;">'
+        + '<div style="font-size:13px;color:#fff;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;text-shadow:0 2px 6px rgba(0,0,0,0.5);">' + (r.summary || 'Raport od trenera') + '</div>'
+        + '<div style="font-size:9px;color:rgba(255,255,255,0.7);font-family:\'DM Mono\',monospace;letter-spacing:0.06em;text-shadow:0 1px 4px rgba(0,0,0,0.6);">' + date + '</div>'
+      + '</div>'
     + '</div>';
-  });
+  }
+  
+  // ━━━━━━ SLIDER: najnowsze raporty (max 5, większe karty 280×200, scroll horyzontalny) ━━━━━━
+  const newestReports = reports.slice(0, 5);
+  if (newestReports.length > 0) {
+    html += '<div style="margin-bottom:28px;">'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;">'
+        + '<div style="width:18px;height:1px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));"></div>'
+        + '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:\'DM Mono\',monospace;font-weight:600;">Najnowsze</div>'
+      + '</div>'
+      + '<div id="ar-slider" style="display:flex;gap:14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 16px 14px;margin:0 -16px;scrollbar-width:none;">'
+      + newestReports.map(r => _renderReportCard(r, true)).join('')
+      + '</div>'
+    + '</div>';
+  }
+  
+  // ━━━━━━ GRID: starsze raporty (od 6-go w dół, pełna szerokość, stos) ━━━━━━
+  if (reports.length > 5) {
+    const olderReports = reports.slice(5);
+    html += '<div>'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;">'
+        + '<div style="width:18px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0));"></div>'
+        + '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;font-weight:600;">Wszystkie raporty</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:14px;">'
+      + olderReports.map(r => _renderReportCard(r, false)).join('')
+      + '</div>'
+    + '</div>';
+  }
   
   target.innerHTML = html;
+  
+  // Hide scrollbar in slider (webkit)
+  if (!document.getElementById('ar-slider-style')) {
+    const st = document.createElement('style');
+    st.id = 'ar-slider-style';
+    st.textContent = '#ar-slider::-webkit-scrollbar { display: none; }';
+    document.head.appendChild(st);
+  }
   
   // Bind eventów (addEventListener zamiast inline onclick — działa niezawodnie)
   target.querySelectorAll('.zar-report-card').forEach(card => {
     const reportId = card.getAttribute('data-zar-report-id');
     card.addEventListener('click', () => openZawAIReportModal(reportId));
-    card.addEventListener('mouseover', () => { card.style.borderColor = 'rgba(232,86,30,0.6)'; });
+    card.addEventListener('mouseover', () => {
+      card.style.transform = 'translateY(-2px)';
+      card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.35)';
+    });
     card.addEventListener('mouseout', () => {
-      const isUnread = card.querySelector('div[style*="rgba(232,86,30,0.4)"]') ||
-        card.querySelector('div[style*="background:#e8561e"]');
-      card.style.borderColor = isUnread ? 'rgba(232,86,30,0.4)' : 'var(--border)';
+      card.style.transform = '';
+      card.style.boxShadow = '';
     });
   });
 }
@@ -5912,7 +5968,11 @@ async function openZawAIReportModal(reportId) {
     ? new Date(report.period_start).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) + ' – ' + new Date(report.period_end).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'})
     : '';
   
-  if (typeLabelEl) typeLabelEl.textContent = typeLabel;
+  // typeLabel teraz idzie do dużego nagłówka (zarm-type-title), nie do małego "RAPORT"
+  const typeTitleEl = document.getElementById('zarm-type-title');
+  if (typeTitleEl) typeTitleEl.textContent = typeLabel;
+  if (typeLabelEl) typeLabelEl.textContent = typeLabel; // toolbar/hero label
+  // titleEl teraz pokazuje imię atlety jako mały podtytuł
   if (titleEl) titleEl.textContent = report.athletes?.full_name || '—';
   if (metaEl) metaEl.innerHTML = (periodFromTo ? periodFromTo + '<br>' : '') + '<span style="opacity:0.6;">' + date + '</span>';
   
@@ -6007,6 +6067,8 @@ function mdToHtmlZawPremium(md) {
   // ✅ TL;DR / TLDR → WSTĘP (Claude lubi tym zaczynać raport, ale dla zawodnika lepiej po polsku)
   html = html.replace(/^(\s*#{1,4}\s+)TL\s*;?\s*DR\s*:?\s*$/gmi, '$1Wstęp');
   html = html.replace(/^(\s*\*{0,2})TL\s*;?\s*DR\s*:?\s*(\*{0,2})\s*$/gmi, '$1Wstęp$2');
+  // ✅ Wycinamy pierwszy # H1 z markdown — typ raportu jest już w hero/headerze, nie ma sensu dublować
+  html = html.replace(/^\s*#\s+[^\n]+\n+/, '');
   // Usuń wiele pustych linii powstałych po cięciu (3+ → 2)
   html = html.replace(/\n{3,}/g, '\n\n');
   // Trim leading/trailing whitespace całości
@@ -8940,9 +9002,9 @@ window.sendDuelChallenge = sendDuelChallenge;
     
     <!-- HERO — pełnoszerokie zdjęcie z gradient overlay + tekstem na dole -->
     <div id="zarm-hero" style="position:relative;width:100%;height:260px;margin-top:-66px;overflow:hidden;background:#0c0c10;">
-      <div id="zarm-hero-img" style="position:absolute;inset:0;background-size:cover;background-position:center 35%;background-repeat:no-repeat;"></div>
+      <div id="zarm-hero-img" style="position:absolute;inset:0;background-size:cover;background-position:center 28%;background-repeat:no-repeat;"></div>
       <!-- Gradient od dołu (do czytelności tekstu) + lekki od góry (do toolbar overlay) -->
-      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,16,0.55) 0%,rgba(7,5,16,0) 22%,rgba(7,5,16,0) 50%,rgba(7,5,16,0.92) 100%);pointer-events:none;"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,16,0.55) 0%,rgba(7,5,16,0) 22%,rgba(7,5,16,0) 45%,rgba(7,5,16,0.95) 100%);pointer-events:none;"></div>
       <!-- Sygnatura BIEGAMY w lewym dolnym rogu -->
       <div style="position:absolute;left:24px;bottom:18px;display:flex;align-items:center;gap:9px;z-index:2;">
         <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:26px;height:26px;border-radius:7px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.4);" onerror="this.style.display='none'">
@@ -8955,18 +9017,19 @@ window.sendDuelChallenge = sendDuelChallenge;
       <div id="zarm-type-label" style="position:absolute;right:24px;bottom:22px;font-size:9px;color:rgba(255,255,255,0.7);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.6);z-index:2;">Raport</div>
     </div>
     
-    <!-- Header tekstowy (pod hero) — duży tytuł, meta -->
-    <div style="padding:26px 28px 28px;background:#0c0c10;">
+    <!-- Header tekstowy (pod hero) — duży typ raportu, drobny athlete + meta -->
+    <div style="padding:24px 28px 24px;background:#0c0c10;">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
         <div style="flex:1;min-width:0;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:1.05;color:#f0ede8;letter-spacing:0.015em;" id="zarm-title">—</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1.05;color:#f0ede8;letter-spacing:0.02em;text-transform:uppercase;" id="zarm-type-title">Raport</div>
+          <div style="font-size:11px;color:rgba(240,237,232,0.55);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:6px;" id="zarm-title">—</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
-          <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.05em;line-height:1.6;" id="zarm-meta"></div>
+          <div style="font-size:10px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.05em;line-height:1.7;" id="zarm-meta"></div>
         </div>
       </div>
-      <!-- Akcent — pomarańczowa linia odddzielająca header od treści -->
-      <div style="margin-top:22px;height:2px;width:42px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));border-radius:2px;"></div>
+      <!-- Akcent — pomarańczowa linia oddzielająca header od treści -->
+      <div style="margin-top:18px;height:2px;width:42px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));border-radius:2px;"></div>
       <!-- Hidden priority badge — zostaje w DOM żeby openZawAIReportModal nie crashowało -->
       <div id="zarm-priority-badge" style="display:none;"></div>
     </div>
@@ -8974,7 +9037,7 @@ window.sendDuelChallenge = sendDuelChallenge;
     <div id="zarm-content" style="padding:8px 28px 0;font-size:14.5px;line-height:1.75;color:#f0ede8;"></div>
     
     <!-- Feedback od zawodnika (premium) -->
-    <div id="zarm-feedback-section" style="padding:32px 28px 100px;margin-top:36px;background:linear-gradient(180deg,rgba(232,86,30,0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);">
+    <div id="zarm-feedback-section" style="padding:32px 28px 28px;margin-top:36px;background:linear-gradient(180deg,rgba(232,86,30,0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
         <div style="width:24px;height:1px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));"></div>
         <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;">Twój feedback</div>
@@ -8999,6 +9062,24 @@ window.sendDuelChallenge = sendDuelChallenge;
         <button onclick="saveZawFeedback()" style="width:100%;background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(232,86,30,0.25);transition:transform 0.12s,box-shadow 0.18s;" onmousedown="this.style.transform='scale(0.98)'" onmouseup="this.style.transform=''" onmouseleave="this.style.transform=''">Zapisz feedback</button>
       </div>
       <div id="zarm-feedback-status" style="margin-top:10px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;letter-spacing:0.04em;"></div>
+    </div>
+    
+    <!-- FOOTER: sygnatura BIEGAMY -->
+    <div style="padding:32px 28px 100px;text-align:center;">
+      <!-- Subtelna kreska oddzielająca -->
+      <div style="height:1px;width:60px;background:rgba(255,255,255,0.08);margin:0 auto 22px;"></div>
+      <!-- Logo + wordmark -->
+      <div style="display:inline-flex;align-items:center;gap:10px;opacity:0.55;">
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:24px;height:24px;border-radius:6px;object-fit:cover;" onerror="this.style.display='none'">
+        <div style="text-align:left;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;color:#f0ede8;line-height:1;">BIEGAMY</div>
+          <div style="font-size:8px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-top:3px;">biegamy.run</div>
+        </div>
+      </div>
+      <!-- Mała wiadomość pod sygnaturą -->
+      <div style="margin-top:18px;font-size:10px;color:rgba(240,237,232,0.35);font-family:'DM Mono',monospace;letter-spacing:0.06em;line-height:1.6;">
+        Twój trener · 2026
+      </div>
     </div>
   </div>
 </div>
