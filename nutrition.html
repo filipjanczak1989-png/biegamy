@@ -5624,6 +5624,43 @@ async function doSearch(q) {
       return;
     }
 
+    // ── SMART RANKING ─────────────────────────────────────────────
+    // Dla pojedynczego słowa (np. "jabłko", "kurczak") preferuj surowe składniki (USDA)
+    // Dla wieloznawowych zapytań (np. "coca cola") preferuj produkty markowe (OFF)
+    const queryLower = q.toLowerCase().trim();
+    const queryWords = queryLower.split(/\s+/);
+    const isSingleWord = queryWords.length === 1 && queryLower.length >= 3;
+
+    function scoreResult(food) {
+      const name = (food.display_name || '').toLowerCase();
+      let score = 0;
+
+      // 1. Najwyższy priorytet: nazwa zaczyna się od query (exact match)
+      if (name.startsWith(queryLower)) score += 100;
+      
+      // 2. Słowo query jest na początku po przecinku ("Jabłka, fuji" zaczyna się od "jabłka")
+      else if (name.split(/[,\s]/).some(w => w.startsWith(queryLower))) score += 60;
+
+      // 3. Single-word query → preferuj USDA (surowe składniki)
+      //    Multi-word → preferuj OFF (produkty markowe)
+      if (isSingleWord && food._source === 'usda') score += 30;
+      if (!isSingleWord && food._source === 'off') score += 20;
+
+      // 4. USDA "raw" / "surowe" — bonus dla single word queries
+      if (isSingleWord && (name.includes('surow') || name.includes('śwież'))) score += 15;
+
+      // 5. Im krótsza nazwa, tym lepsza (mniej mętności)
+      score -= Math.min(name.length / 10, 10);
+
+      // 6. Lekka kara dla brandów przy single word query
+      //    np. "Tymbark sok jabłkowy" przy zapytaniu "jabłko"
+      if (isSingleWord && food.brand) score -= 25;
+
+      return score;
+    }
+
+    all.sort((a, b) => scoreResult(b) - scoreResult(a));
+
     // Mapa po indeksie
     window._searchHits = {};
     results.innerHTML = all.map((food, i) => {
