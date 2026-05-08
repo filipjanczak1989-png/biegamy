@@ -5640,28 +5640,36 @@ async function openZawAIReportModal(reportId) {
   const inner = document.getElementById('zaw-ai-report-modal-inner');
   const content = document.getElementById('zarm-content');
   const titleEl = document.getElementById('zarm-title');
+  const typeLabelEl = document.getElementById('zarm-type-label');
   const metaEl = document.getElementById('zarm-meta');
   const badgeEl = document.getElementById('zarm-priority-badge');
   
-  content.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0;">Ładowanie...</div>';
+  content.innerHTML = '<div style="text-align:center;color:rgba(240,237,232,0.4);font-size:12px;padding:30px 0;">Ładowanie...</div>';
   modal.style.display = 'flex';
   setTimeout(() => { inner.style.transform = 'translateY(0)'; }, 10);
   
   const { data: report, error } = await sb.from('ai_reports')
-    .select('*')
+    .select('*, athletes(full_name)')
     .eq('id', reportId)
     .maybeSingle();
   
   if (error || !report) {
-    content.innerHTML = '<div style="text-align:center;color:var(--red);padding:30px 0;">Nie udało się załadować raportu</div>';
+    content.innerHTML = '<div style="text-align:center;color:#e05050;padding:30px 0;">Nie udało się załadować raportu</div>';
     return;
   }
   
-  const date = new Date(report.sent_at || report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  const typeLabel = report.report_type === 'daily' ? 'Dzienny' : report.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
+  const typeLabel = report.report_type === 'daily' ? 'Raport Dzienny' 
+    : report.report_type === 'weekly' ? 'Raport Tygodniowy' 
+    : report.report_type === 'monthly' ? 'Raport Miesięczny' 
+    : 'Raport';
+  const date = new Date(report.sent_at || report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric'});
+  const periodFromTo = (report.period_start && report.period_end) 
+    ? new Date(report.period_start).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) + ' – ' + new Date(report.period_end).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'})
+    : '';
   
-  titleEl.textContent = 'Raport · ' + typeLabel;
-  metaEl.textContent = date;
+  if (typeLabelEl) typeLabelEl.textContent = typeLabel;
+  titleEl.textContent = report.athletes?.full_name || '—';
+  metaEl.innerHTML = (periodFromTo ? periodFromTo + '<br>' : '') + '<span style="opacity:0.6;">' + date + '</span>';
   
   const priorityMap = {
     red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 Pilne' },
@@ -5673,17 +5681,39 @@ async function openZawAIReportModal(reportId) {
   badgeEl.style.color = p.fg;
   badgeEl.textContent = p.text;
   
-  content.innerHTML = mdToHtmlZaw(report.content_markdown || '');
+  content.innerHTML = mdToHtmlZawPremium(report.content_markdown || '');
   
-  // Oznacz jako przeczytany
   if (!report.read_by_athlete) {
     sb.from('ai_reports').update({ read_by_athlete: new Date().toISOString() })
       .eq('id', reportId).then(() => {
-        // Odśwież listę i kafelek
         loadAIReportsForAthlete();
         loadHomeAIReportsTile();
       });
   }
+}
+
+// Premium markdown rendering dla zawodnika
+function mdToHtmlZawPremium(md) {
+  if (!md) return '';
+  let html = md;
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:0.06em;color:#f0ede8;margin:28px 0 12px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);text-transform:uppercase;">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:26px;color:#f0ede8;margin:24px 0 14px;">$1</h2>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f0ede8;font-weight:600;">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em style="color:rgba(240,237,232,0.7);">$1</em>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;">›</span>$1</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
+  html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
+    return '<ul style="padding-left:0;margin:10px 0;">' + match + '</ul>';
+  });
+  html = html.replace(/^\*?\*?PRIORITY:\s*(red|yellow|green)\*?\*?$/gmi, '');
+  html = html.replace(/\n\n+/g, '</p><p style="margin:12px 0;">');
+  html = '<p style="margin:12px 0;">' + html + '</p>';
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
+  html = html.replace(/<p[^>]*>(\s*<h[234]|\s*<ul)/g, '$1');
+  html = html.replace(/(<\/h[234]>|<\/ul>)\s*<\/p>/g, '$1');
+  return html;
 }
 
 function closeZawAIReportModal() {
@@ -8436,20 +8466,42 @@ window.sendDuelChallenge = sendDuelChallenge;
   </div>
 </div>
 
-<!-- MODAL: pojedynczy raport AI dla zawodnika -->
-<div id="zaw-ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeZawAIReportModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--accent);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;" id="zaw-ai-report-modal-inner">
-    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
-    <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;">
-      <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧠</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;" id="zarm-title">Raport</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="zarm-meta"></div>
-      </div>
-      <div id="zarm-priority-badge" style="font-size:9px;padding:4px 10px;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;font-weight:600;text-transform:uppercase;flex-shrink:0;"></div>
-      <button onclick="closeZawAIReportModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
+<!-- MODAL: pojedynczy raport AI dla zawodnika (premium look) -->
+<div id="zaw-ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeZawAIReportModal()">
+  <div id="zaw-ai-report-modal-inner" style="background:#0c0c10;border-radius:24px 24px 0 0;border-top:1px solid rgba(232,86,30,0.5);width:100%;max-width:560px;max-height:94vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;box-shadow:0 -10px 60px rgba(232,86,30,0.15);">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
+    
+    <!-- Toolbar (tylko przycisk zamykania) -->
+    <div style="padding:8px 18px;display:flex;justify-content:flex-end;flex-shrink:0;">
+      <button onclick="closeZawAIReportModal()" style="background:none;border:none;color:rgba(240,237,232,0.4);font-size:22px;cursor:pointer;padding:4px;">✕</button>
     </div>
-    <div id="zarm-content" style="padding:16px 20px 60px;font-size:13px;line-height:1.6;flex:1;overflow-y:auto;"></div>
+    
+    <div style="flex:1;overflow-y:auto;background:#0c0c10;">
+      <!-- Header (premium) -->
+      <div style="padding:20px 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(232,86,30,0.06) 0%,transparent 100%);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:32px;height:32px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;line-height:1;">BIEGAMY</div>
+              <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;margin-top:2px;">Od trenera</div>
+            </div>
+          </div>
+          <div id="zarm-priority-badge" style="font-size:9px;padding:5px 10px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.12em;font-weight:600;text-transform:uppercase;"></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;" id="zarm-type-label">Raport</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;line-height:1.1;color:#f0ede8;letter-spacing:0.02em;" id="zarm-title">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.06em;" id="zarm-meta"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="zarm-content" style="padding:28px 28px 60px;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+    </div>
   </div>
 </div>
 

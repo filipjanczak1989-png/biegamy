@@ -257,6 +257,42 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
 .pchat-send{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;box-shadow:0 2px 8px rgba(212,80,26,0.4);}
 .pchat-send:hover{transform:scale(1.08);box-shadow:0 4px 14px rgba(212,80,26,0.5);}
+
+/* PRINT STYLESHEET — gdy uzytkownik klika "PDF" lub Ctrl+P */
+@media print {
+  body * { visibility: hidden !important; }
+  #airm-print-area, #airm-print-area * { visibility: visible !important; }
+  #airm-print-area {
+    position: absolute !important;
+    left: 0; top: 0; width: 100%;
+    background: white !important;
+    color: #1a1a1a !important;
+  }
+  #airm-print-area * {
+    background: white !important;
+    color: #1a1a1a !important;
+  }
+  #airm-premium-header { 
+    border-bottom: 2px solid #e8561e !important; 
+    padding: 30px 40px 24px !important;
+  }
+  #airm-premium-header div[id="airm-priority-badge"] {
+    background: #fff !important;
+    border: 1.5px solid currentColor !important;
+  }
+  #airm-content { padding: 30px 40px !important; font-size: 12px !important; line-height: 1.7 !important; }
+  #airm-content h2, #airm-content h3, #airm-content h4 { color: #1a1a1a !important; }
+  #airm-content h3 { border-top-color: #ddd !important; }
+  #airm-content strong { color: #1a1a1a !important; font-weight: 700 !important; }
+  #airm-print-footer { 
+    display: block !important; 
+    border-top: 1px solid #ddd !important;
+    padding: 18px 40px !important;
+    color: #888 !important;
+  }
+  #airm-toolbar, .ai-modal-handle { display: none !important; }
+  @page { size: A4; margin: 0; }
+}
 </style>
 </head>
 <body>
@@ -3111,10 +3147,11 @@ async function openAIReportModal(reportId) {
   const inner = document.getElementById('ai-report-modal-inner');
   const content = document.getElementById('airm-content');
   const titleEl = document.getElementById('airm-title');
+  const typeLabelEl = document.getElementById('airm-type-label');
   const metaEl = document.getElementById('airm-meta');
   const badgeEl = document.getElementById('airm-priority-badge');
   
-  content.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12px;padding:30px 0;">Ładowanie...</div>';
+  content.innerHTML = '<div style="text-align:center;color:rgba(240,237,232,0.4);font-size:12px;padding:30px 0;">Ładowanie...</div>';
   modal.style.display = 'flex';
   setTimeout(() => { inner.style.transform = 'translateY(0)'; }, 10);
 
@@ -3124,20 +3161,26 @@ async function openAIReportModal(reportId) {
     .maybeSingle();
   
   if (error || !report) {
-    content.innerHTML = '<div style="text-align:center;color:var(--red);padding:30px 0;">Nie udało się załadować raportu</div>';
+    content.innerHTML = '<div style="text-align:center;color:#e05050;padding:30px 0;">Nie udało się załadować raportu</div>';
     return;
   }
 
   _currentReportInModal = report;
   
-  const date = new Date(report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
-  const periodFromTo = (report.period_start && report.period_end) 
-    ? new Date(report.period_start).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) + ' – ' + new Date(report.period_end).toLocaleDateString('pl-PL',{day:'numeric',month:'short'})
-    : '';
-  const typeLabel = report.report_type === 'daily' ? 'Dzienny' : report.report_type === 'weekly' ? 'Tygodniowy' : report.report_type === 'monthly' ? 'Miesięczny' : 'Raport';
+  const typeLabel = report.report_type === 'daily' ? 'Raport Dzienny' 
+    : report.report_type === 'weekly' ? 'Raport Tygodniowy' 
+    : report.report_type === 'monthly' ? 'Raport Miesięczny' 
+    : 'Raport';
   
-  titleEl.textContent = (report.athletes?.full_name || 'Raport AI') + ' · ' + typeLabel;
-  metaEl.textContent = date + (periodFromTo ? ' · ' + periodFromTo : '');
+  // Data + okres
+  const date = new Date(report.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'long',year:'numeric'});
+  const periodFromTo = (report.period_start && report.period_end) 
+    ? new Date(report.period_start).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) + ' – ' + new Date(report.period_end).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'})
+    : '';
+  
+  titleEl.textContent = report.athletes?.full_name || '—';
+  typeLabelEl.textContent = typeLabel;
+  metaEl.innerHTML = (periodFromTo ? periodFromTo + '<br>' : '') + '<span style="opacity:0.6;">' + date + '</span>';
   
   const priorityMap = {
     red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 PILNE' },
@@ -3149,7 +3192,7 @@ async function openAIReportModal(reportId) {
   badgeEl.style.color = p.fg;
   badgeEl.textContent = p.text;
   
-  // Ustaw stan visibility w toolbar
+  // Visibility status
   const visEl = document.getElementById('airm-visibility-status');
   const sendBtn = document.getElementById('airm-send-btn');
   if (report.visible_to_athlete && report.sent_at) {
@@ -3157,17 +3200,20 @@ async function openAIReportModal(reportId) {
     if (visEl) visEl.textContent = '✓ Wysłany ' + sentDate;
     if (sendBtn) sendBtn.textContent = '📤 Wyślij ponownie';
   } else {
-    if (visEl) visEl.textContent = '🔒 Tylko dla Ciebie';
-    if (sendBtn) sendBtn.textContent = '📤 Wyślij do zawodnika';
+    if (visEl) visEl.textContent = '🔒 Tylko Ty';
+    if (sendBtn) sendBtn.textContent = '📤 Wyślij';
   }
   
-  // Render markdown
-  content.innerHTML = mdToHtml(report.content_markdown || '');
+  // PDF button — pokaz tylko dla weekly/monthly (dzienny za krotki)
+  const pdfBtn = document.getElementById('airm-pdf-btn');
+  if (pdfBtn) {
+    pdfBtn.style.display = (report.report_type === 'weekly' || report.report_type === 'monthly') ? 'inline-block' : 'none';
+  }
   
-  // Reset edit mode
+  content.innerHTML = mdToHtmlPremium(report.content_markdown || '');
+  
   cancelAIReportEdit();
   
-  // Oznacz jako przeczytany przez trenera
   if (!report.read_by_coach) {
     sb.from('ai_reports').update({ read_by_coach: new Date().toISOString() })
       .eq('id', reportId).then(() => {
@@ -3175,6 +3221,56 @@ async function openAIReportModal(reportId) {
       });
   }
 }
+
+// Premium markdown renderer (inny kolor schema niz pierwotny mdToHtml)
+function mdToHtmlPremium(md) {
+  if (!md) return '';
+  let html = md;
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  // H3 (## w markdown) — sekcja z border-top + pomarańczowym akcentem na lewej krawędzi
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:0.03em;color:#f0ede8;margin:28px 0 12px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);text-transform:uppercase;letter-spacing:0.06em;">$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:26px;color:#f0ede8;margin:24px 0 14px;">$1</h2>');
+  // Bold + italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f0ede8;font-weight:600;">$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em style="color:rgba(240,237,232,0.7);">$1</em>');
+  // Bullets
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;">›</span>$1</li>');
+  // Numbered
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
+  // Wrap consecutive <li>
+  html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
+    return '<ul style="padding-left:0;margin:10px 0;">' + match + '</ul>';
+  });
+  // Ukryj PRIORITY (mamy badge)
+  html = html.replace(/^\*?\*?PRIORITY:\s*(red|yellow|green)\*?\*?$/gmi, '');
+  // Paragraphs
+  html = html.replace(/\n\n+/g, '</p><p style="margin:12px 0;">');
+  html = '<p style="margin:12px 0;">' + html + '</p>';
+  html = html.replace(/<p[^>]*>\s*<\/p>/g, '');
+  html = html.replace(/<p[^>]*>(\s*<h[234]|\s*<ul)/g, '$1');
+  html = html.replace(/(<\/h[234]>|<\/ul>)\s*<\/p>/g, '$1');
+  return html;
+}
+
+// Eksport raportu do PDF (window.print + dedykowany print stylesheet)
+function exportAIReportToPDF() {
+  if (!_currentReportInModal) { showToast('Brak raportu'); return; }
+  const oldTitle = document.title;
+  const safeName = (_currentReportInModal.athletes?.full_name || 'raport').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const dateStr = new Date(_currentReportInModal.generated_at).toISOString().split('T')[0];
+  const typeStr = _currentReportInModal.report_type === 'weekly' ? 'tygodniowy' 
+    : _currentReportInModal.report_type === 'monthly' ? 'miesieczny' 
+    : 'raport';
+  // Tytul → nazwa pliku PDF
+  document.title = `BiegaMy_${safeName}_${typeStr}_${dateStr}`;
+  setTimeout(() => {
+    window.print();
+    setTimeout(() => { document.title = oldTitle; }, 1000);
+  }, 100);
+}
+
+window.exportAIReportToPDF = exportAIReportToPDF;
 
 function toggleAIReportEdit() {
   const content = document.getElementById('airm-content');
@@ -3801,31 +3897,63 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
   </div>
 </div>
 
-<!-- MODAL: PEŁNY RAPORT AI -->
-<div id="ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAIReportModal()">
-  <div style="background:var(--card);border-radius:20px 20px 0 0;border-top:2px solid var(--accent);width:100%;max-width:520px;max-height:92vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;" id="ai-report-modal-inner">
-    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
-    <div style="padding:16px 20px 12px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;">
-      <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">🧠</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;line-height:1;" id="airm-title">Raport AI</div>
-        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;" id="airm-meta"></div>
-      </div>
-      <div id="airm-priority-badge" style="font-size:9px;padding:4px 10px;border-radius:8px;font-family:'DM Mono',monospace;letter-spacing:0.1em;font-weight:600;text-transform:uppercase;flex-shrink:0;"></div>
-      <button onclick="closeAIReportModal()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:4px;flex-shrink:0;">✕</button>
-    </div>
-    <!-- Toolbar: Edytuj / Wyślij -->
-    <div id="airm-toolbar" style="padding:10px 20px;display:flex;gap:8px;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;align-items:center;flex-wrap:wrap;">
-      <button id="airm-edit-btn" onclick="toggleAIReportEdit()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">✏️ Edytuj</button>
+<!-- MODAL: PEŁNY RAPORT AI (premium look dla weekly/monthly) -->
+<div id="ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAIReportModal()">
+  <div id="ai-report-modal-inner" style="background:#0c0c10;border-radius:24px 24px 0 0;border-top:1px solid rgba(232,86,30,0.5);width:100%;max-width:560px;max-height:94vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;box-shadow:0 -10px 60px rgba(232,86,30,0.15);">
+    <div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
+
+    <!-- Toolbar -->
+    <div id="airm-toolbar" style="padding:10px 18px 8px;display:flex;gap:6px;background:#0c0c10;flex-shrink:0;align-items:center;flex-wrap:wrap;">
+      <button id="airm-edit-btn" onclick="toggleAIReportEdit()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f0ede8;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">✏️ Edytuj</button>
       <button id="airm-save-btn" onclick="saveAIReportEdit()" style="display:none;background:#3db870;border:none;color:#fff;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;font-weight:600;">💾 Zapisz</button>
-      <button id="airm-cancel-btn" onclick="cancelAIReportEdit()" style="display:none;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">Anuluj</button>
+      <button id="airm-cancel-btn" onclick="cancelAIReportEdit()" style="display:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(240,237,232,0.6);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">Anuluj</button>
+      <button id="airm-pdf-btn" onclick="exportAIReportToPDF()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f0ede8;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">📄 PDF</button>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
-        <span id="airm-visibility-status" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;"></span>
-        <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;font-weight:600;">📤 Wyślij</button>
+        <span id="airm-visibility-status" style="font-size:10px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;"></span>
+        <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.08em;font-weight:600;text-transform:uppercase;">📤 Wyślij</button>
+        <button onclick="closeAIReportModal()" style="background:none;border:none;color:rgba(240,237,232,0.4);font-size:22px;cursor:pointer;padding:4px;">✕</button>
       </div>
     </div>
-    <div id="airm-content" style="padding:16px 20px 60px;font-size:13px;line-height:1.6;flex:1;overflow-y:auto;"></div>
-    <textarea id="airm-edit-textarea" style="display:none;flex:1;width:calc(100% - 40px);margin:16px 20px 60px;padding:14px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:10px;color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;resize:vertical;min-height:300px;"></textarea>
+
+    <!-- Premium content (printable area) -->
+    <div id="airm-print-area" style="flex:1;overflow-y:auto;background:#0c0c10;">
+      <!-- Header raportu (premium) -->
+      <div id="airm-premium-header" style="padding:30px 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(232,86,30,0.06) 0%,transparent 100%);">
+        <!-- Logo + brand -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:32px;height:32px;border-radius:8px;object-fit:cover;" onerror="this.style.display='none'">
+            <div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;line-height:1;">BIEGAMY</div>
+              <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;margin-top:2px;">Coaching Report</div>
+            </div>
+          </div>
+          <div id="airm-priority-badge" style="font-size:9px;padding:5px 10px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.12em;font-weight:600;text-transform:uppercase;"></div>
+        </div>
+        <!-- Atletka info -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;">Zawodnik</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;color:#f0ede8;letter-spacing:0.02em;" id="airm-title">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-bottom:4px;" id="airm-type-label">Raport</div>
+            <div style="font-size:11px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.06em;" id="airm-meta"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Treść raportu -->
+      <div id="airm-content" style="padding:28px 28px 60px;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
+
+      <!-- Stopka (tylko w PDF) -->
+      <div id="airm-print-footer" style="display:none;padding:20px 28px;border-top:1px solid rgba(255,255,255,0.06);font-size:9px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-align:center;">
+        BIEGAMY.RUN · Personalized AI Coaching Reports
+      </div>
+    </div>
+
+    <!-- Edit textarea (chowany w trybie podglądu) -->
+    <textarea id="airm-edit-textarea" style="display:none;flex:1;width:calc(100% - 40px);margin:16px 20px 60px;padding:14px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#f0ede8;font-family:'DM Mono',monospace;font-size:12px;line-height:1.6;resize:vertical;min-height:300px;"></textarea>
   </div>
 </div>
 
