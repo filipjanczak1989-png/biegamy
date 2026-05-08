@@ -1101,6 +1101,16 @@ body > *{position:relative;z-index:1;}
     </div>
   </div>
 
+  <!-- Powiadomienia push (zawsze widoczne, niezależnie od zakładki) -->
+  <div id="push-toggle-card-top" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.3)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div style="font-size:22px;flex-shrink:0;">🔔</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;">Powiadomienia push</div>
+      <div id="push-toggle-status-top" style="font-size:11px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">Sprawdzam status...</div>
+    </div>
+    <div id="push-toggle-pill-top" style="font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,0.05);color:var(--muted);flex-shrink:0;">—</div>
+  </div>
+
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 20px;">
     <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
@@ -5244,15 +5254,27 @@ async function checkStravaStatus() {
 
 // ─── PUSH NOTIFICATIONS ────────────────────────────────────────────
 async function refreshPushToggleUI() {
-  const status = document.getElementById('push-toggle-status');
-  const pill = document.getElementById('push-toggle-pill');
-  if (!status || !pill) return;
+  // Update OBA toggle naraz (stary w zakladce info + nowy na górze profilu)
+  const updateUI = (statusId, pillId) => {
+    const status = document.getElementById(statusId);
+    const pill = document.getElementById(pillId);
+    if (!status || !pill) return null;
+    return { status, pill };
+  };
+  const ui1 = updateUI('push-toggle-status', 'push-toggle-pill');
+  const ui2 = updateUI('push-toggle-status-top', 'push-toggle-pill-top');
+  
+  const setUI = (ui, statusText, pillText, bg, color) => {
+    if (!ui) return;
+    ui.status.textContent = statusText;
+    ui.pill.textContent = pillText;
+    ui.pill.style.background = bg;
+    ui.pill.style.color = color;
+  };
 
   if (!window.isPushSupported || !window.isPushSupported()) {
-    status.textContent = 'Niedostępne w tej przeglądarce';
-    pill.textContent = '—';
-    pill.style.background = 'rgba(255,255,255,0.05)';
-    pill.style.color = 'var(--muted)';
+    setUI(ui1, 'Niedostępne w tej przeglądarce', '—', 'rgba(255,255,255,0.05)', 'var(--muted)');
+    setUI(ui2, 'Niedostępne w tej przeglądarce', '—', 'rgba(255,255,255,0.05)', 'var(--muted)');
     return;
   }
 
@@ -5260,20 +5282,14 @@ async function refreshPushToggleUI() {
   const subscribed = await window.isPushSubscribed();
 
   if (perm === 'denied') {
-    status.textContent = 'Zablokowane w przeglądarce — odblokuj w ustawieniach';
-    pill.textContent = 'Off';
-    pill.style.background = 'rgba(224,80,80,0.15)';
-    pill.style.color = 'var(--red)';
+    setUI(ui1, 'Zablokowane w przeglądarce — odblokuj w ustawieniach', 'Off', 'rgba(224,80,80,0.15)', 'var(--red)');
+    setUI(ui2, 'Zablokowane w przeglądarce — odblokuj w ustawieniach', 'Off', 'rgba(224,80,80,0.15)', 'var(--red)');
   } else if (subscribed && perm === 'granted') {
-    status.textContent = 'Włączone — będziesz dostawać powiadomienia';
-    pill.textContent = 'On';
-    pill.style.background = 'rgba(61,184,112,0.15)';
-    pill.style.color = 'var(--green)';
+    setUI(ui1, 'Włączone — będziesz dostawać powiadomienia', 'On', 'rgba(61,184,112,0.15)', 'var(--green)');
+    setUI(ui2, 'Włączone — będziesz dostawać powiadomienia', 'On', 'rgba(61,184,112,0.15)', 'var(--green)');
   } else {
-    status.textContent = 'Wyłączone — kliknij żeby włączyć';
-    pill.textContent = 'Off';
-    pill.style.background = 'rgba(255,255,255,0.05)';
-    pill.style.color = 'var(--muted)';
+    setUI(ui1, 'Wyłączone — kliknij żeby włączyć', 'Off', 'rgba(255,255,255,0.05)', 'var(--muted)');
+    setUI(ui2, 'Wyłączone — kliknij żeby włączyć', 'Off', 'rgba(255,255,255,0.05)', 'var(--muted)');
   }
 }
 
