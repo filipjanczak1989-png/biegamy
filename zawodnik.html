@@ -7678,6 +7678,25 @@ if (_tabParam) {
   setTimeout(() => showSection(_tabParam), 800);
 }
 
+// Obsługa ?section=aireports&report_id=XXX — z push notification
+const _sectionParam = new URLSearchParams(window.location.search).get('section');
+const _reportIdParam = new URLSearchParams(window.location.search).get('report_id');
+if (_sectionParam === 'aireports') {
+  setTimeout(() => {
+    showSection('aireports');
+    if (_reportIdParam) {
+      // Po przejściu do sekcji, otwórz modal raportu
+      setTimeout(() => {
+        if (typeof openZawAIReportModal === 'function') {
+          openZawAIReportModal(_reportIdParam);
+        }
+      }, 600);
+    }
+    // Wyczyść URL żeby refresh nie otwierał ponownie
+    history.replaceState({}, '', location.pathname);
+  }, 800);
+}
+
 // Obsługa ?duel=athleteId&duel_name=Imię — otwiera modal pojedynku
 const _duelParam = new URLSearchParams(window.location.search).get('duel');
 const _duelNameParam = new URLSearchParams(window.location.search).get('duel_name');
