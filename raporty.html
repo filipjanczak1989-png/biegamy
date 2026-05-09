@@ -538,6 +538,27 @@ async function init() {
 async function loadReports() {
   const target = document.getElementById('rl-content');
   
+  console.log('[raporty] loadReports start, _athleteId:', _athleteId);
+  
+  // ━━━━━━ DIAGNOSTYKA KROK 1: Test bez filtra visible_to_athlete ━━━━━━
+  const diagnose = await window.sb.from('ai_reports')
+    .select('id, athlete_id, visible_to_athlete, sent_at, report_type, summary')
+    .eq('athlete_id', _athleteId)
+    .order('generated_at', { ascending: false })
+    .limit(5);
+  
+  console.log('[raporty] DIAGNOSTYKA — wszystkie raporty zawodnika (bez filtrów):', {
+    count: diagnose.data?.length || 0,
+    error: diagnose.error?.message,
+    samples: diagnose.data?.map(r => ({
+      id: r.id.substring(0, 8) + '...',
+      visible: r.visible_to_athlete,
+      sent_at: r.sent_at,
+      type: r.report_type
+    }))
+  });
+  
+  // ━━━━━━ Właściwy query ━━━━━━
   const { data: reports, error } = await window.sb.from('ai_reports')
     .select('id, generated_at, sent_at, report_type, priority, summary, read_by_athlete, content_markdown, content_markdown_edited')
     .eq('athlete_id', _athleteId)
@@ -545,16 +566,26 @@ async function loadReports() {
     .order('sent_at', { ascending: false })
     .limit(20);
   
+  console.log('[raporty] główny query — visible_to_athlete=true:', {
+    count: reports?.length || 0,
+    error: error?.message
+  });
+  
   if (error) {
     target.innerHTML = '<div class="empty"><div class="empty-msg" style="color:var(--red);">Błąd: ' + error.message + '</div></div>';
     return;
   }
   
   if (!reports || reports.length === 0) {
+    // Dodatkowa diagnostyka — co widać w bazie?
+    const diagInfo = diagnose.data && diagnose.data.length > 0 
+      ? '<br><br>📊 W bazie znaleziono ' + diagnose.data.length + ' raport(ów) ale żaden nie ma <code>visible_to_athlete=true</code>.<br>Trener musi je "wysłać" w panelu trenera.'
+      : '';
+    
     target.innerHTML = '<div class="empty">'
       + '<img class="empty-icon" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" onerror="this.style.display=\'none\'">'
       + '<div class="empty-msg">Brak raportów</div>'
-      + '<div class="empty-hint">Trener wyśle Ci raport gdy będzie miał coś do przekazania</div>'
+      + '<div class="empty-hint">Trener wyśle Ci raport gdy będzie miał coś do przekazania' + diagInfo + '</div>'
     + '</div>';
     return;
   }
