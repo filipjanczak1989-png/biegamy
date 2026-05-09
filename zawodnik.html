@@ -898,11 +898,6 @@ body > *{position:relative;z-index:1;}
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
-  <!-- Cytat motywacyjny — overlay na dole karty -->
-  <div id="hero-quote-overlay" style="position:absolute;left:0;right:0;bottom:0;padding:16px 18px 18px;background:linear-gradient(180deg,rgba(0,0,0,0) 0%,rgba(0,0,0,0.7) 40%,rgba(0,0,0,0.92) 100%);border-radius:0 0 inherit inherit;pointer-events:none;z-index:5;opacity:0;transition:opacity 0.5s ease;">
-    <div id="hero-quote-text" style="font-family:'DM Sans',sans-serif;font-size:13.5px;font-weight:500;line-height:1.4;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,0.9);font-style:italic;letter-spacing:0.01em;"></div>
-    <div id="hero-quote-author" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:#FF8347;text-shadow:0 1px 4px rgba(0,0,0,0.95);font-weight:700;"></div>
-  </div>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
   <!-- spacer żeby karta miała wysokość -->
   <div style="flex:1;"></div>
@@ -922,6 +917,13 @@ body > *{position:relative;z-index:1;}
     <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
 </div>
+</div>
+
+<!-- Cytat motywacyjny — kafelek pod hero card -->
+<div id="hero-quote-card" style="display:block !important;opacity:1 !important;visibility:visible !important;margin:8px 16px 6px;padding:14px 16px;background:linear-gradient(135deg,rgba(232,86,30,0.12) 0%,rgba(232,86,30,0.04) 100%);border:1px solid rgba(232,86,30,0.35);border-radius:14px;position:relative;overflow:hidden;min-height:60px;">
+  <div style="position:absolute;top:8px;right:12px;font-size:32px;line-height:1;color:rgba(232,86,30,0.18);font-family:Georgia,serif;font-weight:700;">"</div>
+  <div id="hero-quote-text" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;line-height:1.5;color:#f0ede8;font-style:italic;letter-spacing:0.01em;padding-right:24px;">"Wstań wcześnie. Trenuj. Powtórz. To wszystko."</div>
+  <div id="hero-quote-author" style="margin-top:6px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:#e8561e;font-weight:700;">— Jocko Willink</div>
 </div>
 
 <!-- Dots pod kartą -->
@@ -997,8 +999,8 @@ body > *{position:relative;z-index:1;}
 
 <!-- KAFELEK RAPORTÓW AI OD TRENERA (widoczny gdy są nieprzeczytane) -->
 <div id="ai-reports-tile-section" style="display:none;">
-  <div class="sec-hdr" id="ai-reports-tile-hdr" style="margin-top:4px;"><div class="sec-title">Raporty od trenera</div><a href="#" class="sec-link" onclick="showSection('aireports');return false;">Wszystkie →</a></div>
-  <div id="ai-reports-tile" onclick="showSection('aireports')" style="background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(255,107,44,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.5)'" onmouseout="this.style.borderColor='rgba(232,86,30,0.3)'">
+  <div class="sec-hdr" id="ai-reports-tile-hdr" style="margin-top:4px;"><div class="sec-title">Raporty od trenera</div><a href="raporty.html" class="sec-link">Wszystkie →</a></div>
+  <div id="ai-reports-tile" onclick="window.location.href='raporty.html'" style="background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(255,107,44,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.5)'" onmouseout="this.style.borderColor='rgba(232,86,30,0.3)'">
     <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
     <div style="display:none;width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#e8561e,#FF6B2C);align-items:center;justify-content:center;font-size:18px;font-family:'Bebas Neue',sans-serif;color:#fff;flex-shrink:0;">B</div>
     <div style="flex:1;min-width:0;">
@@ -3898,15 +3900,15 @@ function _heroShow(i) {
   if (!bg) return;
   bg.style.opacity = '0';
   
-  // Cytat — fade out razem z tłem
-  const quoteOverlay = document.getElementById('hero-quote-overlay');
-  if (quoteOverlay) quoteOverlay.style.opacity = '0';
+  // Cytat — fade out karty cytatu
+  const quoteCard = document.getElementById('hero-quote-card');
+  if (quoteCard) quoteCard.style.opacity = '0.4';
   
   setTimeout(() => {
     bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
     bg.style.opacity = '1';
     
-    // Cytat — wstaw nową treść i fade in
+    // Cytat — wstaw nową treść
     const q = _heroQuotes[i % _heroQuotes.length];
     const qText = document.getElementById('hero-quote-text');
     const qAuthor = document.getElementById('hero-quote-author');
@@ -3914,9 +3916,8 @@ function _heroShow(i) {
       qText.textContent = '"' + q.text + '"';
       qAuthor.textContent = '— ' + q.author;
     }
-    if (quoteOverlay) {
-      // Krótka pauza żeby tło się załadowało, potem fade-in
-      setTimeout(() => { quoteOverlay.style.opacity = '1'; }, 100);
+    if (quoteCard) {
+      setTimeout(() => { quoteCard.style.opacity = '1'; }, 100);
     }
   }, 220);
   // Zaktualizuj paginację
@@ -3945,10 +3946,8 @@ function _heroInit() {
   const q0 = _heroQuotes[0];
   const qText = document.getElementById('hero-quote-text');
   const qAuthor = document.getElementById('hero-quote-author');
-  const quoteOverlay = document.getElementById('hero-quote-overlay');
   
   console.log('[hero] _heroInit', { 
-    quoteOverlayExists: !!quoteOverlay, 
     qTextExists: !!qText, 
     quotesCount: _heroQuotes.length,
     firstQuote: q0?.text?.substring(0, 30) 
@@ -3966,10 +3965,9 @@ function _heroInit() {
       `<span class="hero-dot${i===0?' active':''}" onclick="_heroShow(${i});_heroIdx=${i};"></span>`
     ).join('');
   }
-  // Fade-in tła + cytatu
+  // Fade-in tła
   requestAnimationFrame(() => setTimeout(() => { 
-    bg.style.opacity = '0.72'; 
-    if (quoteOverlay) quoteOverlay.style.opacity = '1';
+    bg.style.opacity = '0.72';
   }, 60));
   // Auto-rotate
   _heroStartRotation();
@@ -3980,8 +3978,8 @@ window._heroInit = _heroInit;
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-      const overlay = document.getElementById('hero-quote-overlay');
-      if (overlay && parseFloat(overlay.style.opacity || '0') === 0) {
+      const dotsEl = document.getElementById('hero-dots');
+      if (dotsEl && !dotsEl.children.length) {
         console.log('[hero] DOM ready fallback init');
         try { _heroInit(); } catch(e) { console.warn('[hero] fallback init failed', e); }
       }
@@ -3990,8 +3988,8 @@ if (document.readyState === 'loading') {
 } else {
   // DOM już załadowany
   setTimeout(() => {
-    const overlay = document.getElementById('hero-quote-overlay');
-    if (overlay && parseFloat(overlay.style.opacity || '0') === 0) {
+    const dotsEl = document.getElementById('hero-dots');
+    if (dotsEl && !dotsEl.children.length) {
       console.log('[hero] late fallback init');
       try { _heroInit(); } catch(e) { console.warn('[hero] late init failed', e); }
     }
@@ -6095,9 +6093,26 @@ async function loadAIReportsForAthlete() {
     + '</div>';
   }
   
-  // ━━━━━━ SLIDER: najnowsze raporty (max 5, większe karty 280×200, scroll horyzontalny) ━━━━━━
-  const newestReports = reports.slice(0, 5);
-  if (newestReports.length > 0) {
+  // ━━━━━━ Decyzja layout ━━━━━━
+  // Mniej niż 4 raporty — wszystkie w pionie (slider z 1-3 raportami wygląda dziwnie)
+  // 4+ raportów — slider z 5 najnowszymi + grid od 6-go w dół
+  const SHOW_SLIDER_THRESHOLD = 4;
+  const useSlider = reports.length >= SHOW_SLIDER_THRESHOLD;
+  
+  if (!useSlider) {
+    // Wszystkie w pionie — proste i jednoznaczne
+    html += '<div>'
+      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;">'
+        + '<div style="width:18px;height:1px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));"></div>'
+        + '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:\'DM Mono\',monospace;font-weight:600;">Najnowsze</div>'
+      + '</div>'
+      + '<div style="display:flex;flex-direction:column;gap:14px;">'
+      + reports.map(r => _renderReportCard(r, false)).join('')
+      + '</div>'
+    + '</div>';
+  } else {
+    // ━━━━━━ SLIDER: 5 najnowszych raportów (większe karty 280×200, scroll horyzontalny) ━━━━━━
+    const newestReports = reports.slice(0, 5);
     html += '<div style="margin-bottom:28px;">'
       + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;">'
         + '<div style="width:18px;height:1px;background:linear-gradient(90deg,#e8561e,rgba(232,86,30,0));"></div>'
@@ -6107,20 +6122,20 @@ async function loadAIReportsForAthlete() {
       + newestReports.map(r => _renderReportCard(r, true)).join('')
       + '</div>'
     + '</div>';
-  }
-  
-  // ━━━━━━ GRID: starsze raporty (od 6-go w dół, pełna szerokość, stos) ━━━━━━
-  if (reports.length > 5) {
-    const olderReports = reports.slice(5);
-    html += '<div>'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;">'
-        + '<div style="width:18px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0));"></div>'
-        + '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;font-weight:600;">Wszystkie raporty</div>'
-      + '</div>'
-      + '<div style="display:flex;flex-direction:column;gap:14px;">'
-      + olderReports.map(r => _renderReportCard(r, false)).join('')
-      + '</div>'
-    + '</div>';
+    
+    // ━━━━━━ GRID: starsze raporty (od 6-go w dół, pełna szerokość, stos) ━━━━━━
+    if (reports.length > 5) {
+      const olderReports = reports.slice(5);
+      html += '<div>'
+        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:0 2px;">'
+          + '<div style="width:18px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0));"></div>'
+          + '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;font-weight:600;">Wszystkie raporty</div>'
+        + '</div>'
+        + '<div style="display:flex;flex-direction:column;gap:14px;">'
+        + olderReports.map(r => _renderReportCard(r, false)).join('')
+        + '</div>'
+      + '</div>';
+    }
   }
   
   target.innerHTML = html;
@@ -7453,14 +7468,13 @@ async function openNotifications() {
         } else if (n.type==='badge') {
           notifClick = "location.href='odznaki.html';";
         } else if (n.type==='ai_report') {
-          // Klik w notyfikację raportu AI → otwiera modal odpowiedniego raportu
-          // Użyj n.related_id (lub n.report_id, w zależności od schemy notifications)
+          // Klik w notyfikację raportu AI → przekieruj do raporty.html (nowa strona)
           var rid = n.related_id || n.report_id || n.entity_id || null;
           if (rid) {
-            notifClick = "document.getElementById('notif-panel')?.remove();handleAIReportDeepLink('" + rid + "', { delaySection: 0, delayModal: 200 });";
+            notifClick = "window.location.href='raporty.html?report_id=" + rid + "';";
           } else {
-            // fallback: otwórz sekcję AI Reports (lista wszystkich)
-            notifClick = "document.getElementById('notif-panel')?.remove();showSection('aireports');";
+            // fallback: lista raportów
+            notifClick = "window.location.href='raporty.html';";
           }
         }
         return `<div onclick="${notifClick}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifClick?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
@@ -8320,15 +8334,13 @@ function handleAIReportDeepLink(reportId, opts) {
 }
 
 // Obsługa ?section=aireports&report_id=XXX — z push notification (nowa karta)
+// Po refaktoryzacji: raporty są na osobnej stronie raporty.html, więc redirect
 const _sectionParam = new URLSearchParams(window.location.search).get('section');
 const _reportIdParam = new URLSearchParams(window.location.search).get('report_id');
 if (_sectionParam === 'aireports') {
-  // Pierwsze otwarcie z URL — większy delay, czekamy aż app się załaduje
-  handleAIReportDeepLink(_reportIdParam, { delaySection: 800, delayModal: 600 });
-  // Wyczyść URL żeby refresh nie otwierał ponownie
-  setTimeout(() => {
-    history.replaceState({}, '', location.pathname);
-  }, 1000);
+  // Redirect do raporty.html (zachowując report_id)
+  const newUrl = 'raporty.html' + (_reportIdParam ? '?report_id=' + encodeURIComponent(_reportIdParam) : '');
+  setTimeout(() => { window.location.href = newUrl; }, 100);
 }
 
 // Listener postMessage od Service Workera — gdy karta już otwarta
@@ -8339,14 +8351,14 @@ if ('serviceWorker' in navigator) {
     const msg = event.data || {};
     if (msg.type !== 'PUSH_NOTIFICATION_CLICK') return;
 
-    // Otwarty raport AI?
+    // Otwarty raport AI? — przekieruj do raporty.html
     if (msg.notifType === 'ai_report' || (msg.targetPath && msg.targetPath.includes('zawodnik.html'))) {
-      // Karta już otwarta — modal otwiera się szybko, bez czekania na load
-      handleAIReportDeepLink(msg.reportId, { delaySection: 0, delayModal: 250 });
+      const target = 'raporty.html' + (msg.reportId ? '?report_id=' + encodeURIComponent(msg.reportId) : '');
+      try { location.assign(target); } catch (e) { console.warn('[push-msg] navigate failed', e); }
       return;
     }
 
-    // Inne typy push (na przyszłość) — zwykła nawigacja
+    // Inne typy push — zwykła nawigacja
     if (msg.targetUrl && msg.targetUrl !== location.pathname + location.search) {
       try { location.assign(msg.targetUrl); } catch (e) { console.warn('[push-msg] navigate failed', e); }
     }

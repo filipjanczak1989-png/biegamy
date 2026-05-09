@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0c0c10">
+<title>Raporty od trenera · BIEGAMY</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0c10; --card:#13131a; --card2:#1a1a22;
+  --fg:#f0ede8; --muted:rgba(240,237,232,0.55); --border:rgba(255,255,255,0.08);
+  --accent:#e8561e; --accent2:#FF6B2C; --green:#3db870; --red:#e05050;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+body{padding:0 0 100px;min-height:100vh;}
+
+/* Top header */
+.page-hdr{padding:18px 16px 10px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.page-hdr-back{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.page-hdr-title{flex:1;}
+.page-hdr-title-eyebrow{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;font-weight:600;}
+.page-hdr-title-main{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;color:var(--fg);line-height:1;margin-top:3px;}
+
+/* Section header */
+.sec-hdr{display:flex;align-items:center;gap:10px;margin:24px 16px 14px;}
+.sec-hdr-line{width:18px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(232,86,30,0));}
+.sec-hdr-text{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;}
+.sec-hdr-text.muted{color:rgba(255,255,255,0.5);}
+.sec-hdr-line.muted{background:linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0));}
+
+/* Toast */
+#toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:rgba(20,20,28,0.95);color:#f0ede8;padding:12px 22px;border-radius:12px;border:1px solid var(--border);font-size:13px;font-family:'DM Mono',monospace;backdrop-filter:blur(10px);z-index:1000;display:none;box-shadow:0 4px 20px rgba(0,0,0,0.4);max-width:90vw;text-align:center;}
+
+/* Loader */
+.loader{padding:60px 20px;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;letter-spacing:0.06em;}
+
+/* Empty state */
+.empty{padding:60px 20px;text-align:center;font-family:'DM Mono',monospace;color:var(--muted);}
+.empty-icon{width:48px;height:48px;border-radius:10px;margin:0 auto 14px;opacity:0.4;}
+.empty-msg{font-size:13px;}
+.empty-hint{font-size:11px;margin-top:8px;opacity:0.7;line-height:1.5;}
+
+/* Lista raportów */
+.rl-wrap{padding:0 16px;}
+.rl-vstack{display:flex;flex-direction:column;gap:14px;}
+.rl-slider{display:flex;gap:14px;overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding:4px 16px 14px;margin:0 -16px;scrollbar-width:none;}
+.rl-slider::-webkit-scrollbar{display:none;}
+
+/* Karta raportu */
+.rep-card{position:relative;border-radius:16px;overflow:hidden;cursor:pointer;background:#0c0c10;border:1px solid rgba(255,255,255,0.06);transition:transform 0.18s,border-color 0.18s,box-shadow 0.18s;}
+.rep-card.unread{border-color:rgba(232,86,30,0.5);}
+.rep-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.35);}
+.rep-card-vert{width:100%;height:170px;}
+.rep-card-slide{width:280px;height:200px;flex-shrink:0;scroll-snap-align:start;}
+.rep-card-bg{position:absolute;inset:0;background-size:cover;background-position:center 28%;}
+.rep-card-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,16,0.15) 0%,rgba(7,5,16,0.4) 40%,rgba(7,5,16,0.92) 100%);pointer-events:none;}
+.rep-card-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.25);z-index:2;}
+.rep-card-tag{position:absolute;top:14px;left:14px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;background:rgba(0,0,0,0.4);padding:4px 9px;border-radius:5px;backdrop-filter:blur(8px);z-index:2;}
+.rep-card-bottom{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;z-index:2;}
+.rep-card-summary{font-size:13px;color:#fff;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;text-shadow:0 2px 6px rgba(0,0,0,0.5);}
+.rep-card-date{font-size:9px;color:rgba(255,255,255,0.7);font-family:'DM Mono',monospace;letter-spacing:0.06em;text-shadow:0 1px 4px rgba(0,0,0,0.6);}
+
+/* MODAL — premium hero, full-screen */
+.zar-modal{position:fixed;inset:0;background:#070510;z-index:600;display:none;}
+.zar-modal-inner{position:absolute;inset:0;background:#0c0c10;max-width:720px;margin:0 auto;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;}
+.zar-toolbar{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(12,12,16,0);backdrop-filter:blur(0px);z-index:5;transition:background 0.25s,backdrop-filter 0.25s,border-color 0.25s;border-bottom:1px solid rgba(255,255,255,0);}
+.zar-toolbar.scrolled{background:rgba(12,12,16,0.92);backdrop-filter:blur(14px);border-bottom-color:rgba(255,255,255,0.08);}
+.zar-toolbar-btn{background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.18);color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;padding:0;backdrop-filter:blur(8px);}
+.zar-toolbar-label{font-size:10px;color:rgba(255,255,255,0);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;transition:color 0.25s;}
+.zar-toolbar.scrolled .zar-toolbar-label{color:rgba(255,255,255,0.85);}
+
+.zar-hero{position:relative;width:100%;height:260px;margin-top:-66px;overflow:hidden;background:#0c0c10;}
+.zar-hero-img{position:absolute;inset:0;background-size:cover;background-position:center 28%;background-repeat:no-repeat;}
+.zar-hero-grad{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,16,0.55) 0%,rgba(7,5,16,0) 22%,rgba(7,5,16,0) 45%,rgba(7,5,16,0.95) 100%);pointer-events:none;}
+.zar-hero-sig{position:absolute;left:24px;bottom:18px;display:flex;align-items:center;gap:9px;z-index:2;}
+.zar-hero-sig-img{width:26px;height:26px;border-radius:7px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.4);}
+.zar-hero-sig-name{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.06em;color:#fff;line-height:1;text-shadow:0 2px 8px rgba(0,0,0,0.6);}
+.zar-hero-sig-tag{font-size:8px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-top:2px;text-shadow:0 1px 4px rgba(0,0,0,0.6);}
+.zar-hero-type{position:absolute;right:24px;bottom:22px;font-size:9px;color:rgba(255,255,255,0.7);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,0.6);z-index:2;}
+
+.zar-header{padding:24px 28px;background:#0c0c10;}
+.zar-header-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+.zar-type-title{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1.05;color:#f0ede8;letter-spacing:0.02em;text-transform:uppercase;}
+.zar-title{font-size:11px;color:rgba(240,237,232,0.55);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:6px;}
+.zar-meta{font-size:10px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.05em;line-height:1.7;text-align:right;}
+.zar-accent{margin-top:18px;height:2px;width:42px;background:linear-gradient(90deg,var(--accent),rgba(232,86,30,0));border-radius:2px;}
+
+.zar-content{padding:8px 28px 0;font-size:14.5px;line-height:1.75;color:#f0ede8;}
+.zar-content h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:var(--accent);margin:32px 0 14px;text-transform:uppercase;font-weight:700;}
+.zar-content h3{font-size:13px;letter-spacing:0.06em;color:var(--accent);margin:24px 0 8px;text-transform:uppercase;font-weight:700;font-family:'DM Mono',monospace;}
+.zar-content p{margin:14px 0;}
+.zar-content ul{padding-left:0;list-style:none;}
+.zar-content li{margin:8px 0;padding-left:20px;position:relative;}
+.zar-content li:before{content:'›';position:absolute;left:0;color:var(--accent);font-weight:700;}
+.zar-content strong{color:#fff;font-weight:600;}
+
+/* Feedback */
+.zar-feedback{padding:32px 28px 28px;margin-top:36px;background:linear-gradient(180deg,rgba(232,86,30,0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);}
+.zar-fb-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.zar-fb-line{width:24px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(232,86,30,0));}
+.zar-fb-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;}
+.zar-fb-desc{font-size:13px;color:rgba(240,237,232,0.6);line-height:1.55;margin-bottom:18px;}
+.zar-fb-reactions{display:flex;gap:10px;margin-bottom:16px;}
+.zar-fb-react{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(240,237,232,0.8);border-radius:12px;padding:14px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;}
+.zar-fb-react.active-up{background:rgba(61,184,112,0.4);border-color:rgba(61,184,112,0.6);color:#fff;}
+.zar-fb-react.active-down{background:rgba(224,80,80,0.4);border-color:rgba(224,80,80,0.6);color:#fff;}
+.zar-fb-textarea{width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.55;padding:14px 16px;resize:vertical;min-height:90px;outline:none;box-sizing:border-box;transition:border-color 0.2s;}
+.zar-fb-textarea:focus{border-color:rgba(232,86,30,0.5);}
+.zar-fb-submit{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(232,86,30,0.25);transition:transform 0.12s;margin-top:14px;}
+.zar-fb-submit:active{transform:scale(0.98);}
+.zar-fb-status{margin-top:10px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;letter-spacing:0.04em;}
+
+/* Footer */
+.zar-footer{padding:32px 28px 100px;text-align:center;}
+.zar-footer-line{height:1px;width:60px;background:rgba(255,255,255,0.08);margin:0 auto 22px;}
+.zar-footer-sig{display:inline-flex;align-items:center;gap:10px;opacity:0.55;}
+.zar-footer-sig-img{width:24px;height:24px;border-radius:6px;object-fit:cover;}
+.zar-footer-sig-name{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:0.1em;color:#f0ede8;line-height:1;text-align:left;}
+.zar-footer-sig-tag{font-size:8px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;letter-spacing:0.18em;text-transform:uppercase;margin-top:3px;text-align:left;}
+.zar-footer-msg{margin-top:18px;font-size:10px;color:rgba(240,237,232,0.35);font-family:'DM Mono',monospace;letter-spacing:0.06em;line-height:1.6;}
+
+/* Bottom nav (taki sam jak w zawodnik.html) */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(12,12,16,0.95);backdrop-filter:blur(14px);border-top:1px solid var(--border);padding:8px 0 calc(env(safe-area-inset-bottom,0px) + 8px);display:flex;z-index:50;}
+.bnav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;color:var(--muted);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;}
+.bnav-it.active{color:var(--accent);}
+.bnav-it svg{width:22px;height:22px;}
+</style>
+</head>
+<body>
+
+<!-- Top header -->
+<header class="page-hdr">
+  <button class="page-hdr-back" onclick="goBack()">←</button>
+  <div class="page-hdr-title">
+    <div class="page-hdr-title-eyebrow">Od trenera</div>
+    <div class="page-hdr-title-main">RAPORTY</div>
+  </div>
+</header>
+
+<!-- Lista raportów -->
+<div id="rl-content">
+  <div class="loader">Ładowanie...</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL RAPORTU                                                   -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="zar-modal" class="zar-modal" onclick="if(event.target===this)closeReportModal()">
+  <div id="zar-modal-inner" class="zar-modal-inner">
+    <!-- Toolbar (sticky) -->
+    <div id="zar-toolbar" class="zar-toolbar">
+      <button class="zar-toolbar-btn" onclick="closeReportModal()">✕</button>
+      <div class="zar-toolbar-label" id="zar-toolbar-label">Raport</div>
+      <div style="width:36px;"></div>
+    </div>
+    
+    <!-- HERO -->
+    <div class="zar-hero">
+      <div id="zar-hero-img" class="zar-hero-img"></div>
+      <div class="zar-hero-grad"></div>
+      <div class="zar-hero-sig">
+        <img class="zar-hero-sig-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" onerror="this.style.display='none'">
+        <div>
+          <div class="zar-hero-sig-name">BIEGAMY</div>
+          <div class="zar-hero-sig-tag">Od trenera</div>
+        </div>
+      </div>
+      <div id="zar-hero-type" class="zar-hero-type">Raport</div>
+    </div>
+    
+    <!-- Header -->
+    <div class="zar-header">
+      <div class="zar-header-row">
+        <div style="flex:1;min-width:0;">
+          <div class="zar-type-title" id="zar-type-title">Raport</div>
+          <div class="zar-title" id="zar-title">—</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <div class="zar-meta" id="zar-meta"></div>
+        </div>
+      </div>
+      <div class="zar-accent"></div>
+    </div>
+    
+    <!-- Treść raportu -->
+    <div id="zar-content" class="zar-content"></div>
+    
+    <!-- Feedback section -->
+    <div class="zar-feedback">
+      <div class="zar-fb-hdr">
+        <div class="zar-fb-line"></div>
+        <div class="zar-fb-label">Twoja odpowiedź</div>
+      </div>
+      <div class="zar-fb-desc">Trener czyta wszystkie odpowiedzi. Powiedz co o tym myślisz — to pomaga w kolejnych raportach.</div>
+      
+      <div class="zar-fb-reactions">
+        <button id="zar-react-up" class="zar-fb-react" onclick="setReaction('thumbs_up')">
+          <span style="font-size:18px;">👍</span> Pomocne
+        </button>
+        <button id="zar-react-down" class="zar-fb-react" onclick="setReaction('thumbs_down')">
+          <span style="font-size:18px;">👎</span> Mało pomocne
+        </button>
+      </div>
+      
+      <textarea id="zar-fb-text" class="zar-fb-textarea" placeholder="Coś nie pasuje? Coś było super? Napisz..."></textarea>
+      
+      <button class="zar-fb-submit" onclick="sendFeedback()">Wyślij odpowiedź</button>
+      <div id="zar-fb-status" class="zar-fb-status"></div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="zar-footer">
+      <div class="zar-footer-line"></div>
+      <div class="zar-footer-sig">
+        <img class="zar-footer-sig-img" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" onerror="this.style.display='none'">
+        <div>
+          <div class="zar-footer-sig-name">BIEGAMY</div>
+          <div class="zar-footer-sig-tag">biegamy.run</div>
+        </div>
+      </div>
+      <div class="zar-footer-msg">Twój trener · 2026</div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Bottom nav -->
+<nav class="bnav">
+  <a class="bnav-it" href="zawodnik.html">
+    <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3v-7h6v7h3a1 1 0 001-1V10"/></svg>
+    Dziś
+  </a>
+  <a class="bnav-it" href="kalendarz.html">
+    <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    Plan
+  </a>
+  <a class="bnav-it" href="nutrition.html">
+    <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M12 2a4 4 0 014 4c0 2-2 4-4 4s-4-2-4-4a4 4 0 014-4zM12 10v12"/></svg>
+    Jedzenie
+  </a>
+  <a class="bnav-it active" href="raporty.html">
+    <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    Raporty
+  </a>
+  <a class="bnav-it" href="zawodnik.html?section=social">
+    <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+    Społ.
+  </a>
+  <a class="bnav-it" href="zawodnik.html?section=profile">
+    <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    Profil
+  </a>
+</nav>
+
+<script src="sb.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// RAPORTY — strona dedykowana
+// ═══════════════════════════════════════════════════════════════
+const RA_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const RA_COUNT = 26;
+
+let _athleteId = null;
+let _currentReportId = null;
+let _currentReaction = null;
+
+// Toast helper
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 2800);
+}
+
+function goBack() {
+  // Wracaj do strony skąd przyszliśmy, albo home jeśli direct entry
+  if (document.referrer && document.referrer.includes(window.location.host)) {
+    window.history.back();
+  } else {
+    window.location.href = 'zawodnik.html';
+  }
+}
+
+// Deterministyczny indeks zdjęcia hero z UUID raportu
+function raImgFromId(id) {
+  let h = 0;
+  for (let i = 0; i < (id || '').length; i++) h = ((h << 5) - h + id.charCodeAt(i)) | 0;
+  return RA_BASE + 'ra' + ((Math.abs(h) % RA_COUNT) + 1) + '.webp';
+}
+
+// Markdown → HTML (premium dla zawodnika)
+function mdToHtml(md) {
+  if (!md) return '';
+  
+  // Wytnij PRIORITY linie
+  let html = md
+    .replace(/^\s*PRIORITY:\s*(green|yellow|red|low|medium|high)\s*$/gmi, '')
+    .replace(/^\s*\*{0,2}PRIORITY\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '');
+  
+  // TL;DR → WSTĘP
+  html = html.replace(/^(\s*#{1,4}\s+)TL\s*;?\s*DR\s*:?\s*$/gmi, '$1Wstęp');
+  
+  // Escape HTML
+  html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  
+  // Headers
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^# (.+)$/gm, '<h2>$1</h2>');
+  
+  // Bold + italic
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  
+  // Lists
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li>$1</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li>$2</li>');
+  html = html.replace(/(<li>.+?<\/li>\s*)+/gs, function(match) {
+    return '<ul>' + match + '</ul>';
+  });
+  
+  // Paragraphs
+  html = html.replace(/\n\n+/g, '</p><p>');
+  html = '<p>' + html + '</p>';
+  
+  // Cleanup
+  html = html.replace(/<p>\s*<\/p>/g, '');
+  html = html.replace(/<p>(\s*<h[1-3]|\s*<ul)/g, '$1');
+  html = html.replace(/(<\/h[1-3]>|<\/ul>)\s*<\/p>/g, '$1');
+  
+  return html;
+}
+
+// ─── AUTH + LOAD ───────────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) {
+    // Daj chwilę OAuth callback
+    await new Promise(r => setTimeout(r, 1200));
+    const { data: { session: s2 } } = await sb.auth.getSession();
+    if (!s2) { window.location.href = 'index.html'; return; }
+    _athleteId = s2.user.id;
+  } else {
+    _athleteId = session.user.id;
+  }
+  
+  await loadReports();
+  
+  // Deep link — ?report_id=X
+  const params = new URLSearchParams(window.location.search);
+  const deepReportId = params.get('report_id');
+  if (deepReportId) {
+    setTimeout(() => openReportModal(deepReportId), 300);
+  }
+}
+
+async function loadReports() {
+  const target = document.getElementById('rl-content');
+  
+  const { data: reports, error } = await sb.from('ai_reports')
+    .select('id, generated_at, sent_at, report_type, priority, summary, read_by_athlete, content_markdown, content_markdown_edited')
+    .eq('athlete_id', _athleteId)
+    .eq('visible_to_athlete', true)
+    .order('sent_at', { ascending: false })
+    .limit(20);
+  
+  if (error) {
+    target.innerHTML = '<div class="empty"><div class="empty-msg" style="color:var(--red);">Błąd: ' + error.message + '</div></div>';
+    return;
+  }
+  
+  if (!reports || reports.length === 0) {
+    target.innerHTML = '<div class="empty">'
+      + '<img class="empty-icon" src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" onerror="this.style.display=\'none\'">'
+      + '<div class="empty-msg">Brak raportów</div>'
+      + '<div class="empty-hint">Trener wyśle Ci raport gdy będzie miał coś do przekazania</div>'
+    + '</div>';
+    return;
+  }
+  
+  // ━━━━━━ Decyzja layout ━━━━━━
+  // Mniej niż 4 raporty → wszystko w pionie
+  // 4+ → slider (5 najnowszych) + grid (od 6-go w dół)
+  const useSlider = reports.length >= 4;
+  
+  let html = '';
+  if (!useSlider) {
+    html += '<div class="rl-wrap">'
+      + '<div class="sec-hdr"><div class="sec-hdr-line"></div><div class="sec-hdr-text">Najnowsze</div></div>'
+      + '<div class="rl-vstack">'
+      + reports.map(r => renderCard(r, false)).join('')
+      + '</div>'
+    + '</div>';
+  } else {
+    const newest = reports.slice(0, 5);
+    html += '<div style="margin-bottom:28px;">'
+      + '<div class="sec-hdr"><div class="sec-hdr-line"></div><div class="sec-hdr-text">Najnowsze</div></div>'
+      + '<div class="rl-slider">'
+      + newest.map(r => renderCard(r, true)).join('')
+      + '</div>'
+    + '</div>';
+    
+    if (reports.length > 5) {
+      const older = reports.slice(5);
+      html += '<div class="rl-wrap">'
+        + '<div class="sec-hdr"><div class="sec-hdr-line muted"></div><div class="sec-hdr-text muted">Wszystkie raporty</div></div>'
+        + '<div class="rl-vstack">'
+        + older.map(r => renderCard(r, false)).join('')
+        + '</div>'
+      + '</div>';
+    }
+  }
+  
+  target.innerHTML = html;
+  
+  // Bind clicks
+  target.querySelectorAll('[data-rid]').forEach(card => {
+    const rid = card.getAttribute('data-rid');
+    card.addEventListener('click', () => openReportModal(rid));
+  });
+}
+
+function renderCard(r, isSlider) {
+  const date = new Date(r.sent_at || r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',year:'numeric'});
+  const isUnread = !r.read_by_athlete;
+  const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : 'Miesięczny';
+  const heroUrl = raImgFromId(r.id);
+  const klass = 'rep-card ' + (isSlider ? 'rep-card-slide' : 'rep-card-vert') + (isUnread ? ' unread' : '');
+  
+  return '<div data-rid="' + r.id + '" class="' + klass + '">'
+    + '<div class="rep-card-bg" style="background-image:url(\'' + heroUrl + '\');"></div>'
+    + '<div class="rep-card-grad"></div>'
+    + (isUnread ? '<div class="rep-card-dot"></div>' : '')
+    + '<div class="rep-card-tag">' + typeLabel + '</div>'
+    + '<div class="rep-card-bottom">'
+      + '<div class="rep-card-summary">' + (r.summary || 'Raport od trenera').replace(/</g,'&lt;') + '</div>'
+      + '<div class="rep-card-date">' + date + '</div>'
+    + '</div>'
+  + '</div>';
+}
+
+// ─── MODAL ───────────────────────────────────────────────────────
+async function openReportModal(reportId) {
+  const modal = document.getElementById('zar-modal');
+  const inner = document.getElementById('zar-modal-inner');
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  inner.scrollTop = 0;
+  
+  // Reset toolbar (transparent)
+  const toolbar = document.getElementById('zar-toolbar');
+  toolbar.classList.remove('scrolled');
+  
+  // Pobierz raport
+  const { data: report, error } = await sb.from('ai_reports')
+    .select('*')
+    .eq('id', reportId)
+    .eq('athlete_id', _athleteId)
+    .maybeSingle();
+  
+  if (error || !report) {
+    document.getElementById('zar-content').innerHTML = '<div style="text-align:center;color:var(--red);padding:30px 0;font-size:13px;">Nie udało się załadować raportu</div>';
+    return;
+  }
+  
+  _currentReportId = report.id;
+  _currentReaction = report.athlete_reaction || null;
+  
+  // Hero
+  document.getElementById('zar-hero-img').style.backgroundImage = 'url(\'' + raImgFromId(report.id) + '\')';
+  
+  // Type label
+  const typeLabel = report.report_type === 'daily' ? 'Raport Dzienny' 
+                  : report.report_type === 'weekly' ? 'Raport Tygodniowy' 
+                  : report.report_type === 'monthly' ? 'Raport Miesięczny' 
+                  : 'Raport';
+  document.getElementById('zar-type-title').textContent = typeLabel;
+  document.getElementById('zar-toolbar-label').textContent = typeLabel;
+  document.getElementById('zar-hero-type').textContent = typeLabel.replace('Raport ','').toLowerCase();
+  
+  // Title
+  const sentDate = report.sent_at ? new Date(report.sent_at) : new Date(report.generated_at);
+  document.getElementById('zar-title').textContent = sentDate.toLocaleDateString('pl-PL', {weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  
+  // Meta (period_start - period_end)
+  let metaTxt = '';
+  if (report.period_start && report.period_end) {
+    const ps = new Date(report.period_start).toLocaleDateString('pl-PL', {day:'numeric',month:'short'});
+    const pe = new Date(report.period_end).toLocaleDateString('pl-PL', {day:'numeric',month:'short',year:'numeric'});
+    metaTxt = ps + ' – ' + pe;
+  }
+  document.getElementById('zar-meta').textContent = metaTxt;
+  
+  // Treść (preferuj edytowaną wersję trenera)
+  const finalMd = report.content_markdown_edited || report.content_markdown;
+  document.getElementById('zar-content').innerHTML = finalMd ? mdToHtml(finalMd) : '<div style="text-align:center;color:rgba(240,237,232,0.5);padding:60px 20px;font-size:13px;">Ten raport nie ma jeszcze treści.</div>';
+  
+  // Feedback
+  document.getElementById('zar-fb-text').value = report.athlete_feedback || '';
+  refreshReactionUI();
+  document.getElementById('zar-fb-status').textContent = report.athlete_feedback_at 
+    ? 'Ostatnia odpowiedź: ' + new Date(report.athlete_feedback_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+    : '';
+  
+  // Mark as read
+  if (!report.read_by_athlete) {
+    sb.from('ai_reports')
+      .update({ read_by_athlete: new Date().toISOString() })
+      .eq('id', report.id)
+      .then(() => {});
+  }
+}
+
+function closeReportModal() {
+  document.getElementById('zar-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  _currentReportId = null;
+  _currentReaction = null;
+  
+  // Wyczyść URL z report_id (żeby refresh nie otwierał ponownie)
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('report_id')) {
+    params.delete('report_id');
+    const newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+    window.history.replaceState({}, '', newUrl);
+  }
+  
+  // Odśwież listę (read state)
+  loadReports();
+}
+
+window.closeReportModal = closeReportModal;
+
+// Toolbar scroll effect
+document.getElementById('zar-modal-inner').addEventListener('scroll', function() {
+  const toolbar = document.getElementById('zar-toolbar');
+  if (this.scrollTop > 100) toolbar.classList.add('scrolled');
+  else toolbar.classList.remove('scrolled');
+});
+
+// ─── FEEDBACK ────────────────────────────────────────────────────
+async function setReaction(reaction) {
+  if (!_currentReportId) return;
+  const newReaction = (_currentReaction === reaction) ? null : reaction;
+  
+  const { error } = await sb.from('ai_reports').update({
+    athlete_reaction: newReaction
+  }).eq('id', _currentReportId);
+  
+  if (error) {
+    toast('Błąd: ' + error.message);
+    return;
+  }
+  
+  _currentReaction = newReaction;
+  refreshReactionUI();
+  toast(newReaction ? '✓ Zapisano reakcję' : '✓ Cofnięto');
+}
+window.setReaction = setReaction;
+
+function refreshReactionUI() {
+  const btnUp = document.getElementById('zar-react-up');
+  const btnDown = document.getElementById('zar-react-down');
+  if (!btnUp || !btnDown) return;
+  
+  btnUp.classList.toggle('active-up', _currentReaction === 'thumbs_up');
+  btnDown.classList.toggle('active-down', _currentReaction === 'thumbs_down');
+}
+
+async function sendFeedback() {
+  if (!_currentReportId) return;
+  const txt = document.getElementById('zar-fb-text').value.trim();
+  if (!txt) { toast('Napisz coś najpierw'); return; }
+  
+  const { error } = await sb.from('ai_reports').update({
+    athlete_feedback: txt,
+    athlete_feedback_at: new Date().toISOString(),
+    coach_seen_feedback_at: null  // Reset — nowa opinia, trener musi zobaczyć
+  }).eq('id', _currentReportId);
+  
+  if (error) {
+    toast('Błąd: ' + error.message);
+    return;
+  }
+  
+  toast('✅ Opinia wysłana do trenera');
+  document.getElementById('zar-fb-status').textContent = 'Wysłano · ' + new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit'});
+}
+window.sendFeedback = sendFeedback;
+
+// ─── START ───────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
