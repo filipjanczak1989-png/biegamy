@@ -142,7 +142,7 @@ body{padding:0 0 100px;min-height:100vh;}
 </header>
 
 <!-- Slider banerów (5 grafik, auto-rotate 4s, fade) -->
-<div id="banner-slider-wrap" style="margin:14px 16px 0;border-radius:16px;overflow:hidden;position:relative;background:#0c0c10;aspect-ratio:16/9;cursor:grab;user-select:none;">
+<div id="banner-slider-wrap" style="margin:14px 16px 0;border-radius:16px;overflow:hidden;position:relative;background:#000;aspect-ratio:16/9;cursor:grab;user-select:none;">
   <!-- Track ze slajdami (każdy slide absolute z opacity transition) -->
   <div id="banner-track" style="position:absolute;inset:0;"></div>
   
@@ -361,18 +361,11 @@ if (document.readyState === 'loading') {
 // ═══════════════════════════════════════════════════════════════
 // SLIDER BANNER — 5 grafik, auto-rotate co 4s
 // Pliki w bucket: banner-1.webp ... banner-5.webp
-// Jeśli plik 404 → placeholder gradient (gracja)
+// Naturalne przejście crossfade z lekkim zoomem (Ken Burns)
 // ═══════════════════════════════════════════════════════════════
 const BANNER_COUNT = 5;
 const BANNER_INTERVAL_MS = 4000;
-// Gradienty placeholder gdy grafika nie istnieje (kolorystyka spójna z BIEGAMY)
-const BANNER_PLACEHOLDERS = [
-  'linear-gradient(135deg, #e8561e 0%, #FF6B2C 100%)',
-  'linear-gradient(135deg, #1a1a22 0%, #e8561e 100%)',
-  'linear-gradient(135deg, #FF6B2C 0%, #4e8cd6 100%)',
-  'linear-gradient(135deg, #2a2a36 0%, #FF6B2C 100%)',
-  'linear-gradient(135deg, #e8561e 0%, #2a2a36 100%)',
-];
+const BANNER_FADE_MS = 1800;  // 1.8s - długi, płynny crossfade
 
 let _bannerIdx = 0;
 let _bannerTimer = null;
@@ -383,20 +376,20 @@ function initBannerSlider() {
   if (!track || !dotsEl) return;
   
   // Buduj slajdy (każdy zajmuje pełną kartę, absolute, fade-in)
+  // Tło: czarny → zdjęcie ładuje się przez fade-in. Brak placeholder gradients
+  // (świeciły pomarańczowo podczas crossfade)
   let html = '';
   for (let i = 1; i <= BANNER_COUNT; i++) {
     const url = RA_BASE + 'banner-' + i + '.webp';
-    const placeholder = BANNER_PLACEHOLDERS[i - 1];
-    html += '<div class="banner-slide" data-idx="' + (i - 1) + '" style="position:absolute;inset:0;background-image:url(\'' + url + '\');background-size:cover;background-position:center;opacity:' + (i === 1 ? '1' : '0') + ';transition:opacity 0.6s ease;background-color:transparent;">'
-      + '<div style="position:absolute;inset:0;background:' + placeholder + ';opacity:0.85;z-index:-1;"></div>'
-    + '</div>';
+    const isFirst = i === 1;
+    html += '<div class="banner-slide" data-idx="' + (i - 1) + '" style="position:absolute;inset:0;background-image:url(\'' + url + '\');background-size:cover;background-position:center;background-color:#000;opacity:' + (isFirst ? '1' : '0') + ';transition:opacity ' + BANNER_FADE_MS + 'ms ease-in-out;will-change:opacity;"></div>';
   }
   track.innerHTML = html;
   
   // Buduj kropki
   let dotsHtml = '';
   for (let i = 0; i < BANNER_COUNT; i++) {
-    dotsHtml += '<span class="banner-dot" data-idx="' + i + '" style="width:6px;height:6px;border-radius:50%;background:' + (i === 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)') + ';cursor:pointer;transition:all 0.2s;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></span>';
+    dotsHtml += '<span class="banner-dot" data-idx="' + i + '" style="width:6px;height:6px;border-radius:50%;background:' + (i === 0 ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.4)') + ';cursor:pointer;transition:all 0.3s;display:inline-block;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></span>';
   }
   dotsEl.innerHTML = dotsHtml;
   
@@ -408,22 +401,6 @@ function initBannerSlider() {
       showBannerSlide(idx);
       restartBannerRotation();
     });
-  });
-  
-  // Wykrywaj broken images — chowaj div ze zdjęciem, placeholder gradient zostaje
-  track.querySelectorAll('.banner-slide').forEach(slide => {
-    const url = slide.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/)?.[1];
-    if (url) {
-      const img = new Image();
-      img.onload = () => { 
-        // OK, zostaw bg image (placeholder za nim niewidoczny)
-      };
-      img.onerror = () => {
-        // 404 — usuń bg image, zostanie sam placeholder gradient
-        slide.style.backgroundImage = 'none';
-      };
-      img.src = url;
-    }
   });
   
   startBannerRotation();
