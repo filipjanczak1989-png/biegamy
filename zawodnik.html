@@ -1079,7 +1079,7 @@ body > *{position:relative;z-index:1;}
 </nav>
 
 <!-- SEKCJA: WIADOMOŚCI -->
-<div id="section-msgs" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;width:100%;left:50%;transform:translateX(-50%);overflow:hidden;">
+<div id="section-msgs" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);height:100dvh;height:100vh;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;width:100%;overflow:hidden;">
   <!-- CZAT: lista konwersacji (trener + znajomi) -->
   <div id="chat-list-view" style="flex:1;display:flex;flex-direction:column;min-height:0;">
     <div style="flex-shrink:0;padding:max(52px,env(safe-area-inset-top,52px)) 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;">
@@ -1160,11 +1160,14 @@ body > *{position:relative;z-index:1;}
       <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">BiegaMy</div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.03em;margin-top:2px;">Mój profil</div>
     </div>
-    <!-- Toggle publiczny/prywatny -->
-    <button id="privacy-toggle-btn" onclick="togglePrivacy()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;">
-      <svg id="privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-      <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--green);">Publiczny</span>
-    </button>
+    <!-- Toggle publiczny/prywatny + push -->
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button id="privacy-toggle-btn" onclick="togglePrivacy()" style="background:transparent;border:1px solid var(--border);border-radius:20px;padding:6px 12px;display:flex;align-items:center;gap:6px;cursor:pointer;transition:all 0.2s;">
+        <svg id="privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--green);">Publiczny</span>
+      </button>
+      <button id="push-mini-btn" onclick="togglePushNotifs()" title="Powiadomienia push" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:14px;line-height:1;">🔔</button>
+    </div>
   </div>
 
 
@@ -5562,7 +5565,7 @@ async function loadStravaActivities() {
     const mins = Math.floor(a.moving_time / 60);
     const secs = a.moving_time % 60;
     const pace = a.average_speed > 0
-      ? Math.floor(1000 / a.average_speed / 60) + ':' + String(Math.round((1000 / a.average_speed) % 60)).padStart(2,'0')
+      ? (() => { const t = Math.round(1000 / a.average_speed); return Math.floor(t/60) + ':' + String(t%60).padStart(2,'0'); })()
       : '—';
     const date = new Date(a.start_date).toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
     return `<div style="background:rgba(252,76,2,0.05);border:1px solid rgba(252,76,2,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
@@ -5641,9 +5644,23 @@ async function refreshPushToggleUI() {
     ui.pill.style.color = color;
   };
 
+  // Helper: aktualizuj mały dzwonek w headerze profilu (jeśli istnieje)
+  const setMiniBtn = (isOn) => {
+    const miniBtn = document.getElementById('push-mini-btn');
+    if (!miniBtn) return;
+    if (isOn) {
+      miniBtn.style.borderColor = 'var(--green)';
+      miniBtn.style.background = 'rgba(61,184,112,0.15)';
+    } else {
+      miniBtn.style.borderColor = 'var(--border)';
+      miniBtn.style.background = 'transparent';
+    }
+  };
+
   if (!window.isPushSupported || !window.isPushSupported()) {
     setUI(ui1, 'Niedostępne w tej przeglądarce', '—', 'rgba(255,255,255,0.05)', 'var(--muted)');
     setUI(ui2, 'Niedostępne w tej przeglądarce', '—', 'rgba(255,255,255,0.05)', 'var(--muted)');
+    setMiniBtn(false);
     return;
   }
 
@@ -5653,12 +5670,15 @@ async function refreshPushToggleUI() {
   if (perm === 'denied') {
     setUI(ui1, 'Zablokowane w przeglądarce — odblokuj w ustawieniach', 'Off', 'rgba(224,80,80,0.15)', 'var(--red)');
     setUI(ui2, 'Zablokowane w przeglądarce — odblokuj w ustawieniach', 'Off', 'rgba(224,80,80,0.15)', 'var(--red)');
+    setMiniBtn(false);
   } else if (subscribed && perm === 'granted') {
     setUI(ui1, 'Włączone — będziesz dostawać powiadomienia', 'On', 'rgba(61,184,112,0.15)', 'var(--green)');
     setUI(ui2, 'Włączone — będziesz dostawać powiadomienia', 'On', 'rgba(61,184,112,0.15)', 'var(--green)');
+    setMiniBtn(true);
   } else {
     setUI(ui1, 'Wyłączone — kliknij żeby włączyć', 'Off', 'rgba(255,255,255,0.05)', 'var(--muted)');
     setUI(ui2, 'Wyłączone — kliknij żeby włączyć', 'Off', 'rgba(255,255,255,0.05)', 'var(--muted)');
+    setMiniBtn(false);
   }
 }
 
@@ -7264,6 +7284,38 @@ function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoac
 }
 
 
+// ── Fix klawiatury na mobile: visualViewport API ──
+// Gdy klawiatura wyskakuje, height:100vh na iOS Safari NIE zmienia się,
+// więc input wpada pod klawiaturę. Ten handler dynamicznie dostosowuje sekcję.
+let _chatVvpHandler = null;
+function setupChatViewportFix() {
+  if (!window.visualViewport) return; // brak wsparcia (stare przeglądarki)
+  
+  // Cleanup jeśli już raz dodany
+  if (_chatVvpHandler) {
+    window.visualViewport.removeEventListener('resize', _chatVvpHandler);
+    window.visualViewport.removeEventListener('scroll', _chatVvpHandler);
+  }
+  
+  _chatVvpHandler = function() {
+    var section = document.getElementById('section-msgs');
+    if (!section || section.style.display === 'none') return;
+    
+    var vvh = window.visualViewport.height; // wysokość widocznego obszaru (bez klawiatury)
+    section.style.height = vvh + 'px';
+    
+    // Scroll thread do dołu (do najnowszych wiadomości) gdy klawiatura zmienia rozmiar
+    var thread = document.getElementById('msgs-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  };
+  
+  window.visualViewport.addEventListener('resize', _chatVvpHandler);
+  window.visualViewport.addEventListener('scroll', _chatVvpHandler);
+  
+  // Wywołaj raz na start
+  _chatVvpHandler();
+}
+
 async function openChatThread(mode, pid, name) {
   if (!mode) return;
   pid = pid || null;
@@ -7274,6 +7326,10 @@ async function openChatThread(mode, pid, name) {
   var threadView = document.getElementById('chat-thread-view');
   if(listView) listView.style.display='none';
   if(threadView) threadView.style.display='flex';
+
+  // ── Fix mobile: input nad klawiaturą (visualViewport API) ──
+  // Reaguje na pojawienie się klawiatury na iOS Safari + Android Chrome
+  setupChatViewportFix();
 
   var nameEl = document.getElementById('z-coach-name');
   var subEl = document.getElementById('chat-thread-sub');

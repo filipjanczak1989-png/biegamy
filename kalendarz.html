@@ -1444,7 +1444,7 @@ function render() {
     const stravaHtml = stravaDay.map(a => {
       const km = (a.distance / 1000).toFixed(1);
       const pace = a.average_speed > 0
-        ? Math.floor(1000/a.average_speed/60)+':'+String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
+        ? (() => { const t = Math.round(1000/a.average_speed); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); })()
         : '—';
       const hr = a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '';
 
@@ -2289,8 +2289,10 @@ function paceToSec(pace) {
 // Konwertuje sekundy/km na "M:SS"
 function secToPace(sec) {
   if (!sec || sec <= 0) return null;
-  const m = Math.floor(sec / 60);
-  const s = String(Math.round(sec % 60)).padStart(2, '0');
+  // Najpierw zaokrąglij do całych sekund, żeby uniknąć "4:60" przy floating point
+  const total = Math.round(sec);
+  const m = Math.floor(total / 60);
+  const s = String(total % 60).padStart(2, '0');
   return m + ':' + s;
 }
 // Parsuje PB "H:MM:SS" lub "M:SS" na sekundy

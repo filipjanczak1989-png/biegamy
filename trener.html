@@ -236,7 +236,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-new-tag{background:rgba(212,80,26,0.15);color:var(--accent);font-size:9px;border-radius:4px;padding:2px 6px;font-family:'DM Mono',monospace;letter-spacing:0.08em;text-transform:uppercase;}
 
 /* Chat view - fullscreen modal */
-.pchat-view{display:none;position:fixed;inset:0;background:var(--bg);z-index:9999;flex-direction:column;width:100%;height:100%;left:0;transform:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
+.pchat-view{display:none;position:fixed;top:0;left:0;background:var(--bg);z-index:9999;flex-direction:column;width:100%;height:100dvh;height:100vh;transform:none;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
 
 .pchat-view-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(22,22,26,0.98);backdrop-filter:blur(12px);flex-shrink:0;}
 .pchat-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:24px;padding:0 4px;line-height:1;transition:color 0.15s;}
@@ -748,6 +748,13 @@ async function generateAIReportFromPanel(periodDays) {
   if (!id) { showToast('Wybierz zawodnika'); return; }
   if (!periodDays) periodDays = 28; // fallback
   
+  // Dla raportu DZIENNEGO — pytaj o dzień (dziś/wczoraj/2 dni temu/własna data)
+  let targetDate = null;
+  if (periodDays === 1) {
+    targetDate = await pickReportDate();
+    if (targetDate === null) return; // user anulował
+  }
+  
   window._currentAthleteIdForAI = id;
   const btns = document.querySelectorAll('.pai-gen-btn');
   const targetBtn = document.querySelector('.pai-gen-btn[data-period="' + periodDays + '"]');
@@ -762,17 +769,20 @@ async function generateAIReportFromPanel(periodDays) {
     const session = (await sb.auth.getSession()).data.session;
     if (!session) { showToast('Sesja wygasła'); return; }
     
+    const body = {
+      athlete_id: id,
+      report_type: 'on_demand',
+      period_days: periodDays
+    };
+    if (targetDate) body.target_date = targetDate;
+    
     const r = await fetch(window.SB_FN_URL + '/generate-athlete-report', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + session.access_token
       },
-      body: JSON.stringify({
-        athlete_id: id,
-        report_type: 'on_demand',
-        period_days: periodDays
-      })
+      body: JSON.stringify(body)
     });
     
     const data = await r.json();
@@ -795,6 +805,63 @@ async function generateAIReportFromPanel(periodDays) {
     btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
     targetBtn.textContent = originalText;
   }
+}
+
+// ── Wybór daty dla raportu dziennego ───────────────────────────────
+function pickReportDate() {
+  return new Promise((resolve) => {
+    const today = new Date();
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const dayBefore = new Date(today); dayBefore.setDate(today.getDate() - 2);
+    
+    const fmt = (d) => d.toISOString().slice(0, 10);
+    const fmtPl = (d) => d.toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    const html = `
+      <div id="rd-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);" onclick="if(event.target===this)window._rdResolve(null)">
+        <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(139,92,246,0.3);border-radius:14px;padding:18px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:2px;">📅 Raport dnia</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">Który dzień?</div>
+            </div>
+            <button onclick="window._rdResolve(null)" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+            <button onclick="window._rdResolve('${fmt(today)}')" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#fff;padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">DZIŚ</div>
+              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">${fmtPl(today)}</div>
+            </button>
+            <button onclick="window._rdResolve('${fmt(yesterday)}')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">WCZORAJ</div>
+              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">${fmtPl(yesterday)}</div>
+            </button>
+            <button onclick="window._rdResolve('${fmt(dayBefore)}')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;">
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">2 DNI TEMU</div>
+              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">${fmtPl(dayBefore)}</div>
+            </button>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
+            <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">lub własna data (max 7 dni wstecz)</label>
+            <div style="display:flex;gap:6px;">
+              <input type="date" id="rd-custom" max="${fmt(today)}" min="${fmt(new Date(today.getTime() - 7*86400000))}" value="${fmt(today)}" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
+              <button onclick="window._rdResolve(document.getElementById('rd-custom').value)" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;">OK</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    document.body.appendChild(wrapper.firstElementChild);
+    
+    window._rdResolve = (date) => {
+      const m = document.getElementById('rd-modal');
+      if (m) m.remove();
+      delete window._rdResolve;
+      resolve(date);
+    };
+  });
 }
 
 window.generateAIReportFromPanel = generateAIReportFromPanel;
@@ -1841,7 +1908,7 @@ async function loadStravaPanel() {
   const totalKm = activities.reduce((s,a) => s + (a.distance||0), 0) / 1000;
   const avgPace = activities.filter(a=>a.average_speed>0).reduce((s,a) => s + 1000/a.average_speed, 0) / activities.filter(a=>a.average_speed>0).length;
   const avgPaceStr = avgPace > 0
-    ? Math.floor(avgPace/60)+':'+String(Math.round(avgPace%60)).padStart(2,'0')
+    ? (() => { const t = Math.round(avgPace); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); })()
     : '—';
 
   el.innerHTML = `
@@ -1867,7 +1934,7 @@ async function loadStravaPanel() {
       ${activities.map(a => {
         const km = (a.distance/1000).toFixed(2);
         const pace = a.average_speed > 0
-          ? Math.floor(1000/a.average_speed/60)+':'+String(Math.round((1000/a.average_speed)%60)).padStart(2,'0')
+          ? (() => { const t = Math.round(1000/a.average_speed); return Math.floor(t/60)+':'+String(t%60).padStart(2,'0'); })()
           : '—';
         const hr = a.average_heartrate ? ' · ♥ ' + Math.round(a.average_heartrate) : '';
         const date = new Date(a.start_date).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'2-digit'});
@@ -3918,12 +3985,33 @@ function stripHtmlChat(h){const t=document.createElement('div');t.innerHTML=h;re
 function relTimeChat(iso){if(!iso)return'';const d=(Date.now()-new Date(iso))/1000;if(d<60)return'teraz';if(d<3600)return Math.floor(d/60)+' min';if(d<86400)return Math.floor(d/3600)+' godz.';return Math.floor(d/86400)+' dni';}
 function filterPchatList(q){document.querySelectorAll('.pchat-row').forEach(r=>{const n=r.querySelector('.pchat-name')?.textContent?.toLowerCase()||'';r.style.display=n.includes(q.toLowerCase())?'':'none';});}
 function closeTChatView(){const v=document.getElementById('t-chat-view');if(v)v.style.display='none';loadCoachMsgsList();}
+// ── Fix klawiatury na mobile dla czatu trenera ──
+let _coachChatVvpHandler = null;
+function setupCoachChatViewportFix() {
+  if (!window.visualViewport) return;
+  if (_coachChatVvpHandler) {
+    window.visualViewport.removeEventListener('resize', _coachChatVvpHandler);
+    window.visualViewport.removeEventListener('scroll', _coachChatVvpHandler);
+  }
+  _coachChatVvpHandler = function() {
+    var view = document.getElementById('t-chat-view');
+    if (!view || view.style.display === 'none' || getComputedStyle(view).display === 'none') return;
+    view.style.height = window.visualViewport.height + 'px';
+    var thread = document.getElementById('chat-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  };
+  window.visualViewport.addEventListener('resize', _coachChatVvpHandler);
+  window.visualViewport.addEventListener('scroll', _coachChatVvpHandler);
+  _coachChatVvpHandler();
+}
+
 async function openCoachChat(athleteId, athleteName) {
   _currentChatAthleteId = athleteId;
   document.getElementById('chat-athlete-name').textContent = athleteName;
   const ini = athleteName.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   const avEl = document.getElementById('t-chat-av'); if(avEl) avEl.textContent = ini;
   const v = document.getElementById('t-chat-view'); if(v) v.style.display='flex';
+  setupCoachChatViewportFix();
   await loadCoachChat();
   const _cht = document.getElementById('chat-thread'); if(_cht) requestAnimationFrame(()=>{ _cht.scrollTop = _cht.scrollHeight; });
 }
