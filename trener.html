@@ -5222,77 +5222,79 @@ if ('serviceWorker' in navigator) {
 <!-- ════════════════════════════════════════════════════════════════════ -->
 <!-- MODAL: NOWY PLAN TRENINGOWY (generowanie)                            -->
 <!-- ════════════════════════════════════════════════════════════════════ -->
-<div id="tp-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);" onclick="if(event.target===this)closeCreateTrainingPlanModal()">
-  <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(34,197,94,0.3);border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-    <!-- Header -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+<div id="tp-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);" onclick="if(event.target===this)closeCreateTrainingPlanModal()">
+  <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <!-- Header (mały) -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
       <div>
-        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:4px;">🏋️ Generator AI</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;color:var(--fg);">Nowy plan treningowy</div>
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:2px;">🏋️ Generator AI</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--fg);">Nowy plan</div>
       </div>
-      <button onclick="closeCreateTrainingPlanModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+      <button onclick="closeCreateTrainingPlanModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
     </div>
 
-    <!-- Typ planu -->
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Typ planu</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-        <button class="tp-type-btn on" data-type="micro" onclick="selectTpType(this)" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#fff;padding:12px 8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;">MICRO</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;">2 tyg</div>
+    <!-- Typ planu (kompakt) -->
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Typ planu</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">
+        <button class="tp-type-btn on" data-type="micro" onclick="selectTpType(this)" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#fff;padding:8px 4px;border-radius:7px;cursor:pointer;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;">MICRO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:1px;">2 tyg</div>
         </button>
-        <button class="tp-type-btn" data-type="meso" onclick="selectTpType(this)" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:12px 8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;">MESO</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;">4 tyg</div>
+        <button class="tp-type-btn" data-type="meso" onclick="selectTpType(this)" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:8px 4px;border-radius:7px;cursor:pointer;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;">MESO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:1px;">4 tyg</div>
         </button>
-        <button class="tp-type-btn" data-type="macro" onclick="selectTpType(this)" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:12px 8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;">
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;">MACRO</div>
-          <div style="font-size:9px;color:var(--muted);margin-top:2px;">12 tyg</div>
+        <button class="tp-type-btn" data-type="macro" onclick="selectTpType(this)" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:8px 4px;border-radius:7px;cursor:pointer;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;">MACRO</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);margin-top:1px;">12 tyg</div>
         </button>
       </div>
     </div>
 
-    <!-- Data startu -->
-    <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Data startu planu</label>
-      <input type="date" id="tp-start-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:10px;border-radius:8px;outline:none;">
-    </div>
-
-    <!-- Cel — sekcja -->
-    <div style="margin-bottom:14px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
-      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:10px;">🎯 Cel (opcjonalny)</div>
-      
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans</label>
-          <select id="tp-target-race" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:6px;outline:none;cursor:pointer;">
-            <option value="">— brak —</option>
-            <option value="5k">5 km</option>
-            <option value="10k">10 km</option>
-            <option value="half">Półmaraton</option>
-            <option value="marathon">Maraton</option>
-            <option value="custom">Inny</option>
-          </select>
-        </div>
-        <div>
-          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Data startu</label>
-          <input type="date" id="tp-target-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:6px;outline:none;">
-        </div>
-      </div>
-
+    <!-- Wiersz 1: data startu + dystans (2 kolumny) -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
       <div>
-        <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Cel czasowy (opcjonalnie)</label>
-        <input type="text" id="tp-target-time" placeholder="np. 3:30:00 lub 1:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:6px;outline:none;">
+        <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Start planu</label>
+        <input type="date" id="tp-start-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
       </div>
+      <div>
+        <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Dystans cel</label>
+        <select id="tp-target-race" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;cursor:pointer;box-sizing:border-box;">
+          <option value="">— brak —</option>
+          <option value="5k">5 km</option>
+          <option value="10k">10 km</option>
+          <option value="half">Półmaraton</option>
+          <option value="marathon">Maraton</option>
+          <option value="custom">Inny</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Wiersz 2: data zawodów + cel czasowy -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+      <div>
+        <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Data zawodów</label>
+        <input type="date" id="tp-target-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Cel czasowy</label>
+        <input type="text" id="tp-target-time" placeholder="3:30:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
+      </div>
+    </div>
+
+    <!-- Co AI uwzględnia (info box) -->
+    <div style="background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.15);border-radius:8px;padding:9px 11px;margin-bottom:12px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.03em;line-height:1.5;">
+      🧠 AI weźmie pod uwagę: PB, logi (km, tempo, HR, odczucia), screenshoty Garmin/Strava, poprzednie plany, zmiany trenera.
     </div>
 
     <!-- Status / loader -->
-    <div id="tp-create-status" style="display:none;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:12px;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);text-align:center;"></div>
+    <div id="tp-create-status" style="display:none;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:7px;padding:9px;margin-bottom:10px;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg);text-align:center;"></div>
 
     <!-- Buttons -->
-    <div style="display:flex;gap:8px;">
-      <button onclick="closeCreateTrainingPlanModal()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
-      <button id="tp-create-go-btn" onclick="generateTrainingPlan()" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;font-weight:600;box-shadow:0 4px 12px rgba(34,197,94,0.4);">🚀 Wygeneruj plan</button>
+    <div style="display:flex;gap:6px;">
+      <button onclick="closeCreateTrainingPlanModal()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:11px;border-radius:7px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
+      <button id="tp-create-go-btn" onclick="generateTrainingPlan()" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:11px;border-radius:7px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(34,197,94,0.4);">🚀 Wygeneruj</button>
     </div>
   </div>
 </div>
