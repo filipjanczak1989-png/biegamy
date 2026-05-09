@@ -6982,7 +6982,22 @@ async function openNotifications() {
     if (!notifs || notifs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak powiadomień</div>';
     } else {
-      var icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋' };
+      // Premium PNG ikony (zamiast emoji) — wgrane do /icons/notif-{type}.png
+      var ICONS_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/notif-';
+      var iconExt = '.png';
+      // Mapa typu → nazwa pliku (większość 1:1, niektóre wspólne)
+      var iconMap = {
+        follow: 'follow', message: 'message', like: 'like',
+        friend_request: 'friend_request', friend_accepted: 'friend_accepted',
+        chat: 'chat', coach: 'coach', coach_message: 'coach_message',
+        training_change: 'training_change', training_updated: 'training_updated',
+        comment: 'comment', log_comment: 'log_comment',
+        duel: 'duel', race_signup: 'race_signup', race_added: 'race_added',
+        badge: 'badge', ai_report: 'ai_report'
+      };
+      // Fallback gdyby plik nie istniał — emoji
+      var emojiFallback = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋' };
+      
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
         var notifClick = '';
@@ -7005,19 +7020,25 @@ async function openNotifications() {
         } else if (n.type==='badge') {
           notifClick = "location.href='odznaki.html';";
         } else if (n.type==='ai_report') {
-          // Klik w notyfikację raportu AI → przekieruj do raporty.html (nowa strona)
           var rid = n.related_id || n.report_id || n.entity_id || null;
           if (rid) {
             notifClick = "window.location.href='raporty.html?report_id=" + rid + "';";
           } else {
-            // fallback: lista raportów
             notifClick = "window.location.href='raporty.html';";
           }
         }
-        return `<div onclick="${notifClick}" style="padding:10px 12px;border-radius:8px;margin-bottom:4px;display:flex;align-items:flex-start;gap:10px;background:${n.read?'transparent':'rgba(61,184,112,0.06)'};cursor:${notifClick?'pointer':'default'};" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='${n.read?'transparent':'rgba(61,184,112,0.06)'}'">
-          <span style="font-size:18px;flex-shrink:0;">${icons[n.type]||'🔔'}</span>
+        // Premium ikona — PNG z fallback do emoji
+        var iconName = iconMap[n.type];
+        var iconUrl = iconName ? (ICONS_BASE + iconName + iconExt) : null;
+        var emoji = emojiFallback[n.type] || '🔔';
+        var iconHtml = iconUrl
+          ? `<img src="${iconUrl}" style="width:36px;height:36px;border-radius:8px;flex-shrink:0;" onerror="this.outerHTML='<span style=\\'font-size:18px;flex-shrink:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;\\'>${emoji}</span>'">`
+          : `<span style="font-size:18px;flex-shrink:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">${emoji}</span>`;
+        
+        return `<div onclick="${notifClick}" style="padding:12px;border-radius:10px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?'rgba(255,255,255,0.025)':'rgba(232,86,30,0.07)'};border:1px solid ${n.read?'transparent':'rgba(232,86,30,0.18)'};cursor:${notifClick?'pointer':'default'};transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.12)'" onmouseout="this.style.background='${n.read?'rgba(255,255,255,0.025)':'rgba(232,86,30,0.07)'}';this.style.borderColor='${n.read?'transparent':'rgba(232,86,30,0.18)'}'">
+          ${iconHtml}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;line-height:1.4;">${n.message}</div>
+            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;">${n.message}</div>
             <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">${time}</div>
           </div>
           ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#3db870;flex-shrink:0;margin-top:4px;"></div>' : ''}
