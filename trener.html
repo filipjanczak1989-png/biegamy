@@ -95,6 +95,15 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .panel-tabs{display:flex;border-bottom:1px solid var(--border);}
 .ptab{flex:1;padding:10px 8px;text-align:center;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all 0.15s;}
 .ptab.on{color:var(--fg);border-bottom-color:var(--accent);}
+/* ━━━━━━ Auto-toggle (premium switch) ━━━━━━ */
+.auto-toggle{position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;}
+.auto-toggle input{opacity:0;width:0;height:0;}
+.auto-toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:24px;transition:all 0.2s;}
+.auto-toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:2px;top:2px;background:#888;border-radius:50%;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);}
+.auto-toggle input:checked + .auto-toggle-slider{background:rgba(232,86,30,0.25);border-color:rgba(232,86,30,0.5);}
+.auto-toggle input:checked + .auto-toggle-slider:before{transform:translateX(20px);background:#e8561e;box-shadow:0 0 8px rgba(232,86,30,0.6);}
+.auto-toggle input:checked + .auto-toggle-slider.monthly{background:rgba(139,92,246,0.25);border-color:rgba(139,92,246,0.5);}
+.auto-toggle input:checked + .auto-toggle-slider.monthly:before{background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,0.6);}
 .panel-body{padding:16px 18px;}
 .mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
 .ms{background:var(--card2);border-radius:8px;padding:10px;text-align:center;}
@@ -377,6 +386,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
     <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
+    <button class="ptab" onclick="ptab('au',this)" style="color:#e8561e;">📅 Auto</button>
     <button class="ptab" onclick="ptab('str',this)" style="color:#FC4C02;">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02" style="vertical-align:middle;margin-right:3px;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>Strava
     </button>
@@ -461,6 +471,83 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika.</div>
       </div>
     </div>
+    
+    <!-- ━━━━━━━━━━ Auto-Raporty ━━━━━━━━━━ -->
+    <div id="pau" style="display:none;">
+      <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">📅 Auto-raporty</div>
+      
+      <!-- WEEKLY toggle -->
+      <div style="background:linear-gradient(135deg,rgba(232,86,30,0.08) 0%,rgba(232,86,30,0.02) 100%);border:1px solid rgba(232,86,30,0.2);border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--fg);">Raport tygodniowy</div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.04em;">Automatycznie co tydzień</div>
+          </div>
+          <label class="auto-toggle">
+            <input type="checkbox" id="pau-weekly-on" onchange="toggleAutoReport('weekly')">
+            <span class="auto-toggle-slider"></span>
+          </label>
+        </div>
+        <div id="pau-weekly-config" style="display:none;border-top:1px solid rgba(232,86,30,0.15);padding-top:12px;margin-top:10px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div>
+              <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dzień</label>
+              <select id="pau-weekly-day" onchange="saveAutoReportConfig()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-radius:6px;outline:none;cursor:pointer;">
+                <option value="1">Poniedziałek</option>
+                <option value="2">Wtorek</option>
+                <option value="3">Środa</option>
+                <option value="4">Czwartek</option>
+                <option value="5">Piątek</option>
+                <option value="6">Sobota</option>
+                <option value="0">Niedziela</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Godzina</label>
+              <select id="pau-weekly-hour" onchange="saveAutoReportConfig()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-radius:6px;outline:none;cursor:pointer;">
+                <!-- generowane przez JS -->
+              </select>
+            </div>
+          </div>
+          <div id="pau-weekly-info" style="margin-top:10px;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;">Następny raport: —</div>
+        </div>
+      </div>
+      
+      <!-- MONTHLY toggle -->
+      <div style="background:linear-gradient(135deg,rgba(139,92,246,0.08) 0%,rgba(139,92,246,0.02) 100%);border:1px solid rgba(139,92,246,0.2);border-radius:12px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--fg);">Raport miesięczny</div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:2px;letter-spacing:0.04em;">1. dzień każdego miesiąca</div>
+          </div>
+          <label class="auto-toggle">
+            <input type="checkbox" id="pau-monthly-on" onchange="toggleAutoReport('monthly')">
+            <span class="auto-toggle-slider monthly"></span>
+          </label>
+        </div>
+        <div id="pau-monthly-config" style="display:none;border-top:1px solid rgba(139,92,246,0.15);padding-top:12px;margin-top:10px;">
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Godzina wysyłki</label>
+          <select id="pau-monthly-hour" onchange="saveAutoReportConfig()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:7px 10px;border-radius:6px;outline:none;cursor:pointer;">
+            <!-- generowane przez JS -->
+          </select>
+          <div id="pau-monthly-info" style="margin-top:10px;padding:8px 10px;background:rgba(0,0,0,0.2);border-radius:6px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;">Następny raport: —</div>
+        </div>
+      </div>
+      
+      <!-- Last sent info -->
+      <div style="background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:6px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">Historia auto-wysyłek</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);">
+          <span>Ostatni weekly:</span>
+          <span id="pau-last-weekly" style="color:var(--muted);">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);margin-top:5px;">
+          <span>Ostatni monthly:</span>
+          <span id="pau-last-monthly" style="color:var(--muted);">—</span>
+        </div>
+      </div>
+    </div>
+    
     <div id="pcl" style="display:none;">
       <div class="f-row" style="margin-bottom:10px;">
         <div class="field"><label>Dystans</label>
@@ -563,7 +650,7 @@ function viewAsAthlete(){
 }
 window.viewAsAthlete = viewAsAthlete;
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st','str','ai'].forEach(t=>{
+  ['ov','pl','lg','ms','cl','pb','st','str','ai','au'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
     if(el2) el2.style.display = t===n ? 'block' : 'none';
   });
@@ -574,6 +661,7 @@ function ptab(n,el){
   if (n === 'st') loadPanelStats();
   if (n === 'str') loadStravaPanel();
   if (n === 'ai') loadPanelAI();
+  if (n === 'au') loadPanelAuto();
 }
 
 // ── PANEL AI (raporty AI dla zawodnika) ───────────────────────────
@@ -698,6 +786,181 @@ async function generateAIReportFromPanel(periodDays) {
 
 window.generateAIReportFromPanel = generateAIReportFromPanel;
 window.loadPanelAI = loadPanelAI;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ── PANEL AUTO-RAPORTY (cron weekly + monthly) ──────────────────
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function loadPanelAuto() {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  
+  // Buduj selecty godzin (tylko raz)
+  const wHour = document.getElementById('pau-weekly-hour');
+  const mHour = document.getElementById('pau-monthly-hour');
+  if (wHour && wHour.options.length === 0) {
+    let opts = '';
+    for (let h = 6; h <= 22; h++) {
+      const hh = String(h).padStart(2, '0');
+      opts += `<option value="${h}">${hh}:00</option>`;
+    }
+    wHour.innerHTML = opts;
+    mHour.innerHTML = opts;
+  }
+  
+  // Pobierz ustawienia zawodnika
+  const { data: a, error } = await sb.from('athletes')
+    .select('auto_report_enabled, auto_report_day_of_week, auto_report_hour, auto_monthly_enabled, auto_monthly_hour, last_auto_weekly_at, last_auto_monthly_at')
+    .eq('id', id)
+    .single();
+  
+  if (error) {
+    console.error('[auto] load error:', error);
+    showToast('Błąd: ' + error.message);
+    return;
+  }
+  
+  // Wypełnij UI
+  const wOn = document.getElementById('pau-weekly-on');
+  const wDay = document.getElementById('pau-weekly-day');
+  const mOn = document.getElementById('pau-monthly-on');
+  
+  wOn.checked = !!a.auto_report_enabled;
+  wDay.value = String(a.auto_report_day_of_week ?? 1);
+  wHour.value = String(a.auto_report_hour ?? 8);
+  mOn.checked = !!a.auto_monthly_enabled;
+  mHour.value = String(a.auto_monthly_hour ?? 8);
+  
+  // Pokaż/ukryj config
+  document.getElementById('pau-weekly-config').style.display = wOn.checked ? 'block' : 'none';
+  document.getElementById('pau-monthly-config').style.display = mOn.checked ? 'block' : 'none';
+  
+  // Ostatni raport
+  const lastW = document.getElementById('pau-last-weekly');
+  const lastM = document.getElementById('pau-last-monthly');
+  if (lastW) lastW.textContent = a.last_auto_weekly_at ? formatRelativeDate(a.last_auto_weekly_at) : '—';
+  if (lastM) lastM.textContent = a.last_auto_monthly_at ? formatRelativeDate(a.last_auto_monthly_at) : '—';
+  
+  // Update info next dates
+  updateAutoInfo();
+}
+
+function formatRelativeDate(iso) {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return 'dziś, ' + d.toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
+  if (diffDays === 1) return 'wczoraj';
+  if (diffDays < 7) return diffDays + ' dni temu';
+  return d.toLocaleDateString('pl-PL', {day:'numeric', month:'short'});
+}
+
+function updateAutoInfo() {
+  // Następna data weekly
+  const wDayVal = parseInt(document.getElementById('pau-weekly-day').value, 10);
+  const wHourVal = parseInt(document.getElementById('pau-weekly-hour').value, 10);
+  const wInfo = document.getElementById('pau-weekly-info');
+  if (wInfo) {
+    const next = getNextWeekday(wDayVal, wHourVal);
+    wInfo.textContent = 'Następny raport: ' + next.toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'}) 
+      + ' o ' + String(wHourVal).padStart(2,'0') + ':00';
+  }
+  
+  // Następna data monthly
+  const mHourVal = parseInt(document.getElementById('pau-monthly-hour').value, 10);
+  const mInfo = document.getElementById('pau-monthly-info');
+  if (mInfo) {
+    const now = new Date();
+    let next = new Date(now.getFullYear(), now.getMonth() + 1, 1, mHourVal, 0, 0);
+    if (now.getDate() === 1 && now.getHours() < mHourVal) {
+      next = new Date(now.getFullYear(), now.getMonth(), 1, mHourVal, 0, 0);
+    }
+    mInfo.textContent = 'Następny raport: ' + next.toLocaleDateString('pl-PL', {day:'numeric', month:'long'}) 
+      + ' o ' + String(mHourVal).padStart(2,'0') + ':00';
+  }
+}
+
+function getNextWeekday(targetDay, targetHour) {
+  const now = new Date();
+  const result = new Date(now);
+  const currentDay = now.getDay();
+  let daysAhead = (targetDay - currentDay + 7) % 7;
+  if (daysAhead === 0 && now.getHours() >= targetHour) daysAhead = 7;
+  result.setDate(now.getDate() + daysAhead);
+  result.setHours(targetHour, 0, 0, 0);
+  return result;
+}
+
+async function toggleAutoReport(type) {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  
+  if (type === 'weekly') {
+    const checked = document.getElementById('pau-weekly-on').checked;
+    document.getElementById('pau-weekly-config').style.display = checked ? 'block' : 'none';
+    
+    const update = { auto_report_enabled: checked };
+    if (checked) {
+      // Domyślne wartości jeśli pierwszy raz
+      update.auto_report_day_of_week = parseInt(document.getElementById('pau-weekly-day').value, 10);
+      update.auto_report_hour = parseInt(document.getElementById('pau-weekly-hour').value, 10);
+    }
+    
+    const { error } = await sb.from('athletes').update(update).eq('id', id);
+    if (error) {
+      showToast('Błąd: ' + error.message);
+      // rollback
+      document.getElementById('pau-weekly-on').checked = !checked;
+      document.getElementById('pau-weekly-config').style.display = !checked ? 'block' : 'none';
+    } else {
+      showToast(checked ? '✅ Auto-raport tygodniowy włączony' : '⏸ Wyłączony');
+      if (checked) updateAutoInfo();
+    }
+  }
+  
+  if (type === 'monthly') {
+    const checked = document.getElementById('pau-monthly-on').checked;
+    document.getElementById('pau-monthly-config').style.display = checked ? 'block' : 'none';
+    
+    const update = { auto_monthly_enabled: checked };
+    if (checked) {
+      update.auto_monthly_hour = parseInt(document.getElementById('pau-monthly-hour').value, 10);
+    }
+    
+    const { error } = await sb.from('athletes').update(update).eq('id', id);
+    if (error) {
+      showToast('Błąd: ' + error.message);
+      document.getElementById('pau-monthly-on').checked = !checked;
+      document.getElementById('pau-monthly-config').style.display = !checked ? 'block' : 'none';
+    } else {
+      showToast(checked ? '✅ Auto-raport miesięczny włączony' : '⏸ Wyłączony');
+      if (checked) updateAutoInfo();
+    }
+  }
+}
+
+async function saveAutoReportConfig() {
+  const id = window._selectedAthleteId;
+  if (!id) return;
+  
+  const update = {
+    auto_report_day_of_week: parseInt(document.getElementById('pau-weekly-day').value, 10),
+    auto_report_hour: parseInt(document.getElementById('pau-weekly-hour').value, 10),
+    auto_monthly_hour: parseInt(document.getElementById('pau-monthly-hour').value, 10),
+  };
+  
+  const { error } = await sb.from('athletes').update(update).eq('id', id);
+  if (error) {
+    showToast('Błąd zapisu: ' + error.message);
+  } else {
+    updateAutoInfo();
+    showToast('💾 Zapisano');
+  }
+}
+
+window.loadPanelAuto = loadPanelAuto;
+window.toggleAutoReport = toggleAutoReport;
+window.saveAutoReportConfig = saveAutoReportConfig;
 
 // ── STRAVA PANEL ──────────────────────────────────────────────────
 async function loadStravaPanel() {
