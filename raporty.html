@@ -445,7 +445,32 @@ async function waitForSb(maxWaitMs) {
 async function init() {
   // Defensywny check — czekaj aż sb.js się załaduje (10s)
   const sbReady = await waitForSb(10000);
-  if (!sbReady) {
+  
+  // Fallback: jeśli sb nie jest dostępne ale SB_URL/SB_KEY są — utwórz klienta ręcznie
+  if (!sbReady && typeof window.SB_URL !== 'undefined' && typeof window.SB_KEY !== 'undefined') {
+    console.log('[raporty] Creating sb client manually from window.SB_URL/SB_KEY');
+    try {
+      // Załaduj Supabase JS SDK z CDN jeśli createClient nie ma
+      if (typeof window.supabase === 'undefined' || !window.supabase?.createClient) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+      // window.supabase.createClient
+      window.sb = window.supabase.createClient(window.SB_URL, window.SB_KEY, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+      });
+      console.log('[raporty] ✅ sb client created manually');
+    } catch (e) {
+      console.error('[raporty] Failed to create sb manually:', e);
+    }
+  }
+  
+  if (!window.sb) {
     // Diagnostyka — co się stało?
     const swActive = navigator.serviceWorker?.controller ? 'TAK' : 'NIE';
     const cacheStatus = typeof window.SB_URL !== 'undefined' ? 'częściowo' : 'NIE';
