@@ -3415,6 +3415,27 @@ async function openAIReportModal(reportId) {
 function mdToHtmlPremium(md) {
   if (!md) return '';
   let html = md;
+  
+  // ━━━━━━ Wycinki PRZED konwersją na HTML (działają na markdownie) ━━━━━━
+  // Wytnij linie PRIORITY (różne formaty)
+  html = html
+    .replace(/^\s*PRIORITY:\s*(green|yellow|red|low|medium|high)\s*$/gmi, '')
+    .replace(/^\s*\*{0,2}PRIORITY\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*PRIORITY[\s:]*$/gmi, '');
+  
+  // Wytnij headery RED FLAGS / Czerwone flagi (puste sekcje na końcu)
+  html = html
+    .replace(/^\s*#{1,4}\s*🚨?\s*RED FLAGS?\s*:?\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*🚨?\s*Red flags?\s*:?\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*🚨?\s*Czerwone flagi\s*:?\s*$/gmi, '');
+  
+  // TL;DR → "Wstęp" (różne warianty zapisu)
+  html = html
+    .replace(/^(\s*#{1,4}\s+)TL\s*[;:]?\s*DR\s*:?\s*$/gmi, '$1Wstęp')
+    .replace(/^(\s*#{1,4}\s+)TLDR\s*:?\s*$/gmi, '$1Wstęp')
+    .replace(/^(\s*#{1,4}\s+)Tl\s*;?\s*dr\s*:?\s*$/gmi, '$1Wstęp');
+  
+  // ━━━━━━ Konwersja na HTML ━━━━━━
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // H3 (## w markdown) — sekcja z border-top + pomarańczowym akcentem na lewej krawędzi
   html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
@@ -3431,8 +3452,6 @@ function mdToHtmlPremium(md) {
   html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
     return '<ul style="padding-left:0;margin:10px 0;">' + match + '</ul>';
   });
-  // Ukryj PRIORITY (mamy badge)
-  html = html.replace(/^\*?\*?PRIORITY:\s*(red|yellow|green)\*?\*?$/gmi, '');
   // Paragraphs
   html = html.replace(/\n\n+/g, '</p><p style="margin:12px 0;">');
   html = '<p style="margin:12px 0;">' + html + '</p>';

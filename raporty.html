@@ -297,13 +297,25 @@ function raImgFromId(id) {
 function mdToHtml(md) {
   if (!md) return '';
   
-  // Wytnij PRIORITY linie
-  let html = md
-    .replace(/^\s*PRIORITY:\s*(green|yellow|red|low|medium|high)\s*$/gmi, '')
-    .replace(/^\s*\*{0,2}PRIORITY\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '');
+  let html = md;
   
-  // TL;DR → WSTĘP
-  html = html.replace(/^(\s*#{1,4}\s+)TL\s*;?\s*DR\s*:?\s*$/gmi, '$1Wstęp');
+  // Wytnij linie PRIORITY (różne formaty)
+  html = html
+    .replace(/^\s*PRIORITY:\s*(green|yellow|red|low|medium|high)\s*$/gmi, '')
+    .replace(/^\s*\*{0,2}PRIORITY\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*PRIORITY[\s:]*$/gmi, '');
+  
+  // Wytnij headery RED FLAGS / Red flags / 🚨 Czerwone flagi
+  html = html
+    .replace(/^\s*#{1,4}\s*🚨?\s*RED FLAGS?\s*:?\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*🚨?\s*Red flags?\s*:?\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*🚨?\s*Czerwone flagi\s*:?\s*$/gmi, '');
+  
+  // TL;DR → Wstęp (różne warianty zapisu)
+  html = html
+    .replace(/^(\s*#{1,4}\s+)TL\s*[;:]?\s*DR\s*:?\s*$/gmi, '$1Wstęp')
+    .replace(/^(\s*#{1,4}\s+)TLDR\s*:?\s*$/gmi, '$1Wstęp')
+    .replace(/^(\s*#{1,4}\s+)Tl\s*;?\s*dr\s*:?\s*$/gmi, '$1Wstęp');
   
   // Escape HTML
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -337,7 +349,32 @@ function mdToHtml(md) {
 }
 
 // ─── AUTH + LOAD ───────────────────────────────────────────────
+async function waitForSb(maxWaitMs) {
+  // Czekaj aż sb (z sb.js) będzie dostępne globalnie — max maxWaitMs
+  const start = Date.now();
+  while (typeof sb === 'undefined' || !sb) {
+    if (Date.now() - start > maxWaitMs) {
+      return false;
+    }
+    await new Promise(r => setTimeout(r, 50));
+  }
+  return true;
+}
+
 async function init() {
+  // Defensywny check — czekaj aż sb.js się załaduje
+  const sbReady = await waitForSb(5000);
+  if (!sbReady) {
+    document.getElementById('rl-content').innerHTML = 
+      '<div class="empty">'
+      + '<div class="empty-msg" style="color:var(--red);">Błąd ładowania</div>'
+      + '<div class="empty-hint">Nie udało się załadować Supabase SDK. Sprawdź połączenie i odśwież stronę.</div>'
+      + '<button onclick="location.reload()" style="margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-family:DM Mono,monospace;font-size:11px;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">Odśwież</button>'
+      + '</div>';
+    console.error('[raporty] sb is not defined — sb.js failed to load');
+    return;
+  }
+  
   const { data: { session } } = await sb.auth.getSession();
   if (!session) {
     // Daj chwilę OAuth callback
@@ -594,7 +631,11 @@ async function sendFeedback() {
 window.sendFeedback = sendFeedback;
 
 // ─── START ───────────────────────────────────────────────────────
-init();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 </body>
 </html>
