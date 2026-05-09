@@ -522,6 +522,19 @@ async function init() {
     _athleteId = session.user.id;
   }
   
+  // ━━━━━━ OVERRIDE: ?athlete_id=X dla testów (np. trener ogląda jako zawodnik) ━━━━━━
+  const urlParams = new URLSearchParams(window.location.search);
+  const athleteIdOverride = urlParams.get('athlete_id');
+  if (athleteIdOverride && athleteIdOverride !== _athleteId) {
+    console.log('[raporty] ⚠️ ATHLETE_ID OVERRIDE z URL:', athleteIdOverride, '(was:', _athleteId, ')');
+    _athleteId = athleteIdOverride;
+    // Pokaż banner że jesteś w trybie podglądu
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;padding:8px 16px;margin:8px 16px;border-radius:8px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.04em;text-align:center;';
+    banner.innerHTML = '👁️ TRYB PODGLĄDU · zawodnik: ' + athleteIdOverride.substring(0, 8) + '...';
+    document.body.insertBefore(banner, document.getElementById('rl-content'));
+  }
+  
   // Ustaw globalnie dla reszty funkcji
   window.sb = _sb;
   
