@@ -448,13 +448,14 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     </div>
     <div id="pai" style="display:none;">
       <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;">🧠 Analiza AI</div>
+      <!-- Przyciski generuj — NA GÓRZE z !important żeby NIC ich nie ukryło -->
+      <div id="pai-gen-row" style="display:flex !important;gap:6px;margin-bottom:14px;visibility:visible !important;opacity:1 !important;min-height:42px;">
+        <button class="pai-gen-btn" data-period="1" onclick="generateAIReportFromPanel(1)" style="display:flex !important;visibility:visible !important;opacity:1 !important;flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;align-items:center;justify-content:center;">📅 Dzień</button>
+        <button class="pai-gen-btn" data-period="7" onclick="generateAIReportFromPanel(7)" style="display:flex !important;visibility:visible !important;opacity:1 !important;flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;align-items:center;justify-content:center;">📊 Tydzień</button>
+        <button class="pai-gen-btn" data-period="28" onclick="generateAIReportFromPanel(28)" style="display:flex !important;visibility:visible !important;opacity:1 !important;flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;align-items:center;justify-content:center;">📈 Miesiąc</button>
+      </div>
       <div id="pai-content">
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika.</div>
-      </div>
-      <div style="display:flex;gap:6px;margin-top:12px;">
-        <button class="pai-gen-btn" data-period="1" onclick="generateAIReportFromPanel(1)" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;">📅 Dzień</button>
-        <button class="pai-gen-btn" data-period="7" onclick="generateAIReportFromPanel(7)" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;">📊 Tydzień</button>
-        <button class="pai-gen-btn" data-period="28" onclick="generateAIReportFromPanel(28)" style="flex:1;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;border-radius:10px;padding:11px 8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;font-weight:600;cursor:pointer;">📈 Miesiąc</button>
       </div>
     </div>
     <div id="pcl" style="display:none;">
@@ -1137,15 +1138,23 @@ async function loadFreshFeedbacks() {
   const countEl = document.getElementById('fresh-feedbacks-count');
   if (!wrap || !list) return;
   
-  // Pobierz raporty z ostatnich 30 dni z opinią/reakcją (gdzie trener nie oznaczył jako przeczytane)
+  // Pobierz raporty z opinią (athlete_feedback NOT NULL) z ostatnich 30 dni
+  // gdzie trener nie oznaczył jako przeczytane
   const sinceDate = new Date(Date.now() - 30 * 86400000).toISOString();
   
   const { data: reports, error } = await sb.from('ai_reports')
     .select('id, athlete_id, report_type, athlete_feedback, athlete_reaction, athlete_feedback_at, coach_seen_feedback_at')
+    .not('athlete_feedback_at', 'is', null)
     .gte('athlete_feedback_at', sinceDate)
-    .or('athlete_feedback.not.is.null,athlete_reaction.not.is.null')
+    .is('coach_seen_feedback_at', null)
     .order('athlete_feedback_at', { ascending: false })
     .limit(20);
+  
+  console.log('[freshFeedbacks] query result:', { 
+    count: reports?.length || 0, 
+    error: error?.message,
+    athletesCount: (_dbAthletes || []).length 
+  });
   
   if (error) {
     console.warn('loadFreshFeedbacks error:', error.message);
@@ -1162,15 +1171,7 @@ async function loadFreshFeedbacks() {
   const athletesMap = new Map((_dbAthletes || []).map(a => [a.id, a]));
   
   // Filtr: tylko opinie od MOICH zawodników (RLS i tak filtruje, ale upewnij się)
-  const myReports = reports.filter(r => athletesMap.has(r.athlete_id));
-  
-  if (myReports.length === 0) {
-    wrap.style.display = 'none';
-    return;
-  }
-  
-  // Pokaż TYLKO nieprzeczytane (po kliknięciu znikają z listy, sekcja sama się chowa)
-  const visibleReports = myReports.filter(r => !r.coach_seen_feedback_at);
+  const visibleReports = reports.filter(r => athletesMap.has(r.athlete_id));
   
   if (visibleReports.length === 0) {
     wrap.style.display = 'none';
