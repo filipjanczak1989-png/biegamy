@@ -6982,7 +6982,7 @@ async function openNotifications() {
     if (!notifs || notifs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak powiadomień</div>';
     } else {
-      var icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '🧠' };
+      var icons = { follow: '👤', message: '💬', like: '🔥', friend_request: '🤝', friend_accepted: '✅', chat: '💬', coach: '👨‍🏫', coach_message: '👨‍🏫', training_change: '📋', training_updated: '📋', comment: '💬', log_comment: '💬', duel: '⚔️', race_signup: '🏁', race_added: '🏁', badge: '🏅', ai_report: '📋' };
       listEl.innerHTML = notifs.map(n => {
         const time = new Date(n.created_at).toLocaleDateString('pl-PL', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
         var notifClick = '';

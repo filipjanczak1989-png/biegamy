@@ -3609,7 +3609,7 @@ async function sendAIReportToAthlete() {
       athlete_id: _currentReportInModal.athlete_id,
       from_athlete_id: null, // od trenera
       type: 'ai_report',
-      message: '🧠 Nowy raport ' + typeLabel + ' od trenera: ' + summary.substring(0, 100),
+      message: 'Nowy raport ' + typeLabel + ' od trenera · ' + summary.substring(0, 100),
       read: false
     });
     
