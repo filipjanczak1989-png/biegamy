@@ -7122,7 +7122,7 @@ async function openNotifications() {
         return `<div onclick="${notifClick}" style="padding:12px;border-radius:12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?readBg:unreadBg};border:1px solid ${n.read?'transparent':'rgba(232,86,30,0.20)'};cursor:${notifClick?'pointer':'default'};transition:all 0.18s ease;position:relative;" onmouseover="this.style.background='${hoverBg}';this.style.borderColor='rgba(255,255,255,0.10)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='${n.read?readBg:unreadBg}';this.style.borderColor='${n.read?'transparent':'rgba(232,86,30,0.20)'}';this.style.transform='translateX(0)'">
           ${iconHtml}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;font-weight:${n.read?'400':'500'};">${n.message}</div>
+            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;font-weight:${n.read?'400':'500'};">${(n.message || '').replace(/^[\s🧠📊📈📋✨🤖]+/,'').trim()}</div>
             <div style="font-size:9.5px;color:var(--muted);font-family:DM Mono,monospace;margin-top:5px;letter-spacing:0.04em;">${time}</div>
           </div>
           ${!n.read ? '<div style="width:8px;height:8px;border-radius:50%;background:#e8561e;flex-shrink:0;margin-top:6px;box-shadow:0 0 8px rgba(232,86,30,0.6);"></div>' : ''}
