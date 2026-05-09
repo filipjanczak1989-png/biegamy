@@ -387,6 +387,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
     <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
     <button class="ptab" onclick="ptab('au',this)" style="color:#e8561e;">📅 Auto</button>
+    <button class="ptab" onclick="ptab('tp',this)" style="color:#22c55e;">🏋️ Plany</button>
     <button class="ptab" onclick="ptab('str',this)" style="color:#FC4C02;">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02" style="vertical-align:middle;margin-right:3px;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>Strava
     </button>
@@ -548,6 +549,17 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       </div>
     </div>
     
+    <!-- ━━━━━━━━━━ Plany Treningowe AI ━━━━━━━━━━ -->
+    <div id="ptp" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">🏋️ Plany Treningowe AI</div>
+        <button onclick="openCreateTrainingPlanModal()" style="background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:8px 14px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;box-shadow:0 2px 8px rgba(34,197,94,0.3);">+ Nowy plan</button>
+      </div>
+      <div id="ptp-content" style="min-height:200px;">
+        <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika.</div>
+      </div>
+    </div>
+    
     <div id="pcl" style="display:none;">
       <div class="f-row" style="margin-bottom:10px;">
         <div class="field"><label>Dystans</label>
@@ -650,7 +662,7 @@ function viewAsAthlete(){
 }
 window.viewAsAthlete = viewAsAthlete;
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st','str','ai','au'].forEach(t=>{
+  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
     if(el2) el2.style.display = t===n ? 'block' : 'none';
   });
@@ -662,6 +674,7 @@ function ptab(n,el){
   if (n === 'str') loadStravaPanel();
   if (n === 'ai') loadPanelAI();
   if (n === 'au') loadPanelAuto();
+  if (n === 'tp') loadPanelTrainingPlans();
 }
 
 // ── PANEL AI (raporty AI dla zawodnika) ───────────────────────────
@@ -961,6 +974,474 @@ async function saveAutoReportConfig() {
 window.loadPanelAuto = loadPanelAuto;
 window.toggleAutoReport = toggleAutoReport;
 window.saveAutoReportConfig = saveAutoReportConfig;
+
+// ════════════════════════════════════════════════════════════════════
+// ── PLANY TRENINGOWE AI ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════
+
+let _tpSelectedType = 'micro';
+let _tpCurrentPlanId = null;
+
+async function loadPanelTrainingPlans() {
+  const id = window._selectedAthleteId;
+  const target = document.getElementById('ptp-content');
+  if (!id || !target) {
+    if (target) target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wybierz zawodnika.</div>';
+    return;
+  }
+
+  target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie planów...</div>';
+
+  const { data: plans, error } = await sb.from('training_plans')
+    .select('id, status, plan_type, start_date, end_date, target_race_type, target_time, ai_summary, ai_warnings, total_workouts, total_distance_km, generated_at, approved_at')
+    .eq('athlete_id', id)
+    .order('created_at', { ascending: false })
+    .limit(20);
+
+  if (error) {
+    target.innerHTML = '<div style="padding:20px 0;text-align:center;color:#e8561e;font-size:11px;">Błąd: ' + error.message + '</div>';
+    return;
+  }
+
+  if (!plans || plans.length === 0) {
+    target.innerHTML = `
+      <div style="padding:30px 20px;text-align:center;background:rgba(34,197,94,0.04);border:1px dashed rgba(34,197,94,0.2);border-radius:12px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);margin-bottom:6px;">Brak planów</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.05em;">Kliknij "+ Nowy plan" żeby wygenerować pierwszy</div>
+      </div>`;
+    return;
+  }
+
+  const planTypeLabels = { micro: '2 tyg', meso: '4 tyg', macro: '12 tyg' };
+  const raceLabels = { '5k': '5 km', '10k': '10 km', 'half': 'Półmaraton', 'marathon': 'Maraton', 'custom': 'Inny' };
+  const statusBadges = {
+    draft: { label: 'DRAFT', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+    approved: { label: 'AKTYWNY', color: '#22c55e', bg: 'rgba(34,197,94,0.15)' },
+    rejected: { label: 'ODRZUCONY', color: '#9ca3af', bg: 'rgba(156,163,175,0.15)' },
+    completed: { label: 'ZAKOŃCZONY', color: '#8b5cf6', bg: 'rgba(139,92,246,0.15)' }
+  };
+
+  let html = '';
+  for (const p of plans) {
+    const badge = statusBadges[p.status] || statusBadges.draft;
+    const dateStart = new Date(p.start_date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+    const dateEnd = new Date(p.end_date).toLocaleDateString('pl', { day: 'numeric', month: 'short', year: 'numeric' });
+    const targetText = p.target_race_type 
+      ? `${raceLabels[p.target_race_type] || p.target_race_type}${p.target_time ? ' · ' + p.target_time : ''}` 
+      : 'Bez konkretnego celu';
+
+    html += `
+      <div onclick="openViewTrainingPlanModal('${p.id}')" style="background:linear-gradient(135deg,rgba(34,197,94,0.06),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.18);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(34,197,94,0.4)';this.style.transform='translateY(-1px)'" onmouseout="this.style.borderColor='rgba(34,197,94,0.18)';this.style.transform='translateY(0)'">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="background:${badge.bg};color:${badge.color};padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;font-weight:600;">${badge.label}</span>
+              <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${p.plan_type} · ${planTypeLabels[p.plan_type] || ''}</span>
+            </div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.02em;color:var(--fg);margin-bottom:2px;">${targetText}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;">${dateStart} → ${dateEnd}</div>
+          </div>
+        </div>
+        ${p.ai_summary ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:#cbd5e1;line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">${escapeHtml(p.ai_summary)}</div>` : ''}
+        <div style="display:flex;gap:14px;margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.05em;">
+          <span>📅 ${p.total_workouts || 0} treningów</span>
+          <span>📏 ${p.total_distance_km || 0} km</span>
+        </div>
+      </div>`;
+  }
+
+  target.innerHTML = html;
+}
+
+// ── MODAL: NOWY PLAN ────────────────────────────────────────────────
+function openCreateTrainingPlanModal() {
+  if (!window._selectedAthleteId) { alert('Wybierz najpierw zawodnika'); return; }
+  
+  // Reset stanu
+  _tpSelectedType = 'micro';
+  document.querySelectorAll('.tp-type-btn').forEach(b => {
+    if (b.dataset.type === 'micro') {
+      b.classList.add('on');
+      b.style.background = 'rgba(34,197,94,0.15)';
+      b.style.borderColor = '#22c55e';
+    } else {
+      b.classList.remove('on');
+      b.style.background = 'rgba(255,255,255,0.04)';
+      b.style.borderColor = 'var(--border)';
+    }
+  });
+  
+  // Default data startu — najbliższy poniedziałek
+  const today = new Date();
+  const daysUntilMonday = (8 - today.getDay()) % 7 || 7; // 1-7
+  const nextMonday = new Date(today);
+  nextMonday.setDate(today.getDate() + daysUntilMonday);
+  document.getElementById('tp-start-date').value = nextMonday.toISOString().slice(0, 10);
+  document.getElementById('tp-target-race').value = '';
+  document.getElementById('tp-target-date').value = '';
+  document.getElementById('tp-target-time').value = '';
+  document.getElementById('tp-create-status').style.display = 'none';
+  document.getElementById('tp-create-go-btn').disabled = false;
+  document.getElementById('tp-create-go-btn').style.opacity = '1';
+  
+  document.getElementById('tp-create-modal').style.display = 'flex';
+}
+window.openCreateTrainingPlanModal = openCreateTrainingPlanModal;
+
+function closeCreateTrainingPlanModal() {
+  document.getElementById('tp-create-modal').style.display = 'none';
+}
+window.closeCreateTrainingPlanModal = closeCreateTrainingPlanModal;
+
+function selectTpType(btn) {
+  _tpSelectedType = btn.dataset.type;
+  document.querySelectorAll('.tp-type-btn').forEach(b => {
+    if (b === btn) {
+      b.classList.add('on');
+      b.style.background = 'rgba(34,197,94,0.15)';
+      b.style.borderColor = '#22c55e';
+    } else {
+      b.classList.remove('on');
+      b.style.background = 'rgba(255,255,255,0.04)';
+      b.style.borderColor = 'var(--border)';
+    }
+  });
+}
+window.selectTpType = selectTpType;
+
+async function generateTrainingPlan() {
+  const athleteId = window._selectedAthleteId;
+  if (!athleteId) { alert('Wybierz zawodnika'); return; }
+
+  const startDate = document.getElementById('tp-start-date').value;
+  if (!startDate) { alert('Wybierz datę startu planu'); return; }
+
+  const targetRace = document.getElementById('tp-target-race').value || null;
+  const targetDate = document.getElementById('tp-target-date').value || null;
+  const targetTime = document.getElementById('tp-target-time').value.trim() || null;
+
+  // UI: loading
+  const goBtn = document.getElementById('tp-create-go-btn');
+  const statusEl = document.getElementById('tp-create-status');
+  goBtn.disabled = true;
+  goBtn.style.opacity = '0.6';
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>AI generuje plan... (10-30 sek)</div>';
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Brak sesji');
+
+    const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/generate-training-plan';
+    const resp = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + session.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        athlete_id: athleteId,
+        plan_type: _tpSelectedType,
+        start_date: startDate,
+        target_race_type: targetRace,
+        target_race_date: targetDate,
+        target_time: targetTime
+      })
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Błąd generowania');
+
+    statusEl.innerHTML = `<div style="color:#22c55e;">✅ Plan wygenerowany — ${data.workouts_count} treningów, ${data.total_distance_km} km</div>`;
+    setTimeout(() => {
+      closeCreateTrainingPlanModal();
+      loadPanelTrainingPlans();
+      // Otwórz od razu podgląd
+      openViewTrainingPlanModal(data.plan_id);
+    }, 1200);
+
+  } catch (err) {
+    console.error('[generateTrainingPlan] error:', err);
+    statusEl.style.background = 'rgba(232,86,30,0.1)';
+    statusEl.style.borderColor = 'rgba(232,86,30,0.3)';
+    statusEl.innerHTML = `<div style="color:#e8561e;">❌ ${err.message}</div>`;
+    goBtn.disabled = false;
+    goBtn.style.opacity = '1';
+  }
+}
+window.generateTrainingPlan = generateTrainingPlan;
+
+// ── MODAL: PODGLĄD PLANU ────────────────────────────────────────────
+async function openViewTrainingPlanModal(planId) {
+  _tpCurrentPlanId = planId;
+  const modal = document.getElementById('tp-view-modal');
+  const content = document.getElementById('tp-view-content');
+  content.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+
+  // Pobierz plan + workouts
+  const { data: plan, error: pErr } = await sb.from('training_plans').select('*').eq('id', planId).maybeSingle();
+  if (pErr || !plan) {
+    content.innerHTML = '<div style="padding:30px;color:#e8561e;font-family:DM Mono,monospace;">Błąd ładowania planu</div>';
+    return;
+  }
+
+  const { data: workouts, error: wErr } = await sb.from('training_plan_workouts')
+    .select('*').eq('plan_id', planId).order('date');
+  if (wErr) {
+    content.innerHTML = '<div style="padding:30px;color:#e8561e;font-family:DM Mono,monospace;">Błąd ładowania treningów</div>';
+    return;
+  }
+
+  renderPlanView(plan, workouts || []);
+}
+window.openViewTrainingPlanModal = openViewTrainingPlanModal;
+
+function closeViewTrainingPlanModal() {
+  document.getElementById('tp-view-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  _tpCurrentPlanId = null;
+}
+window.closeViewTrainingPlanModal = closeViewTrainingPlanModal;
+
+function renderPlanView(plan, workouts) {
+  const content = document.getElementById('tp-view-content');
+  const planTypeLabels = { micro: 'MICRO · 2 tyg', meso: 'MESO · 4 tyg', macro: 'MACRO · 12 tyg' };
+  const raceLabels = { '5k': '5 km', '10k': '10 km', 'half': 'Półmaraton', 'marathon': 'Maraton', 'custom': 'Inny' };
+  const statusColors = { draft: '#fbbf24', approved: '#22c55e', rejected: '#9ca3af', completed: '#8b5cf6' };
+  const statusLabels = { draft: 'DRAFT', approved: 'AKTYWNY', rejected: 'ODRZUCONY', completed: 'ZAKOŃCZONY' };
+
+  // Group workouts by week
+  const weekGroups = {};
+  for (const w of workouts) {
+    if (!weekGroups[w.week_number]) weekGroups[w.week_number] = [];
+    weekGroups[w.week_number].push(w);
+  }
+
+  const typeColors = {
+    'Bieg spokojny': '#3b82f6',
+    'Wybieganie': '#06b6d4',
+    'Tempo': '#f59e0b',
+    'Interwały': '#ef4444',
+    'Regeneracja': '#10b981',
+    'Wzmacniający': '#8b5cf6',
+    'Odpoczynek': '#6b7280',
+    'Start': '#e8561e',
+    'Zastępczy': '#ec4899'
+  };
+
+  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+
+  let html = `
+    <!-- Header info -->
+    <div style="background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.02));border:1px solid rgba(34,197,94,0.3);border-radius:14px;padding:18px;margin-bottom:18px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <span style="background:${statusColors[plan.status]}20;color:${statusColors[plan.status]};padding:3px 10px;border-radius:5px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;font-weight:700;">${statusLabels[plan.status]}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${planTypeLabels[plan.plan_type] || ''}</span>
+      </div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.02em;color:var(--fg);margin-bottom:4px;">${plan.target_race_type ? raceLabels[plan.target_race_type] : 'Plan ogólny'}${plan.target_time ? ' · ' + plan.target_time : ''}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:0.04em;">${new Date(plan.start_date).toLocaleDateString('pl', { day: 'numeric', month: 'long' })} → ${new Date(plan.end_date).toLocaleDateString('pl', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+      <div style="display:flex;gap:18px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(34,197,94,0.15);">
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Treningów</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.total_workouts || 0}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Łącznie</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.total_distance_km || 0} km</div></div>
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;">Avg/tydz</div><div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#22c55e;">${plan.input_target_volume_km || '—'} km</div></div>
+      </div>
+    </div>`;
+
+  // AI Summary + Rationale
+  if (plan.ai_summary || plan.ai_rationale) {
+    html += `
+      <div style="background:rgba(255,255,255,0.025);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:18px;">
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:8px;">🧠 AI o tym planie</div>
+        ${plan.ai_summary ? `<div style="font-family:Inter,sans-serif;font-size:13px;color:var(--fg);line-height:1.6;margin-bottom:10px;">${escapeHtml(plan.ai_summary)}</div>` : ''}
+        ${plan.ai_rationale ? `<details><summary style="cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.05em;">Pełne uzasadnienie ▾</summary><div style="font-family:Inter,sans-serif;font-size:12px;color:#cbd5e1;line-height:1.7;margin-top:10px;white-space:pre-wrap;">${escapeHtml(plan.ai_rationale)}</div></details>` : ''}
+        ${plan.ai_warnings ? `<div style="margin-top:10px;padding:10px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.25);border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;color:#fbbf24;">⚠️ ${escapeHtml(plan.ai_warnings)}</div>` : ''}
+      </div>`;
+  }
+
+  // Tygodnie
+  html += '<div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">📅 Plan po tygodniach</div>';
+  
+  const weekNums = Object.keys(weekGroups).map(n => parseInt(n)).sort((a,b) => a-b);
+  for (const wn of weekNums) {
+    const wks = weekGroups[wn];
+    const weekKm = wks.reduce((s, w) => s + (Number(w.target_distance_km) || 0), 0);
+    const weekStart = new Date(wks[0].date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+    const weekEnd = new Date(wks[wks.length-1].date).toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+
+    html += `
+      <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+          <div>
+            <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">Tydzień ${wn}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-left:8px;letter-spacing:0.04em;">${weekStart} – ${weekEnd}</span>
+          </div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#22c55e;letter-spacing:0.05em;">${weekKm.toFixed(1)} km</div>
+        </div>`;
+
+    for (const w of wks) {
+      const date = new Date(w.date);
+      const dayLabel = dayNames[date.getDay()];
+      const dateLabel = date.toLocaleDateString('pl', { day: 'numeric', month: 'short' });
+      const color = typeColors[w.workout_type] || '#6b7280';
+      const isRest = w.workout_type === 'Odpoczynek';
+
+      html += `
+        <div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.05);align-items:flex-start;">
+          <div style="min-width:48px;text-align:center;">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;">${dayLabel}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);">${dateLabel}</div>
+          </div>
+          <div style="flex:1;${isRest ? 'opacity:0.5;' : ''}">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <span style="background:${color}20;color:${color};padding:2px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;font-weight:600;">${w.workout_type.toUpperCase()}</span>
+              ${w.target_distance_km ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);">${w.target_distance_km} km</span>` : ''}
+              ${w.target_pace ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);">@ ${w.target_pace}</span>` : ''}
+              ${w.target_hr_zone ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:#ef4444;">HR Z${w.target_hr_zone}</span>` : ''}
+            </div>
+            ${w.title ? `<div style="font-family:Inter,sans-serif;font-size:12px;color:var(--fg);font-weight:600;margin-bottom:2px;">${escapeHtml(w.title)}</div>` : ''}
+            ${w.description ? `<div style="font-family:Inter,sans-serif;font-size:11px;color:#cbd5e1;line-height:1.5;">${escapeHtml(w.description)}</div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    html += '</div>';
+  }
+
+  // Action buttons (tylko dla draft)
+  if (plan.status === 'draft') {
+    html += `
+      <div style="position:sticky;bottom:0;background:linear-gradient(180deg,transparent 0%,#0c0c10 30%);padding:20px 0;margin-top:20px;display:flex;gap:8px;">
+        <button onclick="rejectTrainingPlan()" style="flex:1;background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.3);color:#e8561e;padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">❌ Odrzuć</button>
+        <button onclick="approveTrainingPlanFlow()" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:700;box-shadow:0 4px 14px rgba(34,197,94,0.4);">✅ Zatwierdź i wstaw do kalendarza</button>
+      </div>`;
+  } else if (plan.status === 'approved') {
+    html += `
+      <div style="margin-top:20px;padding:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:10px;text-align:center;">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#22c55e;letter-spacing:0.08em;">✅ Plan aktywny w kalendarzu zawodnika</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;">Zatwierdzony: ${plan.approved_at ? new Date(plan.approved_at).toLocaleString('pl') : '—'}</div>
+      </div>`;
+  }
+
+  content.innerHTML = html;
+}
+
+// ── ZATWIERDZENIE PLANU (z wykrywaniem konfliktów) ─────────────────
+async function approveTrainingPlanFlow() {
+  if (!_tpCurrentPlanId) return;
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { alert('Brak sesji'); return; }
+
+  const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/approve-training-plan';
+
+  // Krok 1: sprawdź konflikty
+  let conflictsResp;
+  try {
+    const r = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + session.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ plan_id: _tpCurrentPlanId, action: 'check_conflicts' })
+    });
+    conflictsResp = await r.json();
+    if (!r.ok) throw new Error(conflictsResp.error || 'Błąd sprawdzania');
+  } catch (e) {
+    alert('Błąd: ' + e.message);
+    return;
+  }
+
+  let resolution = 'skip';
+  if (conflictsResp.has_conflicts) {
+    const conflicts = conflictsResp.conflicts || [];
+    const conflictsList = conflicts.slice(0, 5).map(c => 
+      `• ${new Date(c.date).toLocaleDateString('pl', {day:'numeric', month:'short'})}: ${c.existing.map(e => `${e.type} ${e.distance_km || 0}km`).join(', ')}`
+    ).join('\n');
+    const moreText = conflicts.length > 5 ? `\n... i ${conflicts.length - 5} kolejnych` : '';
+
+    const choice = prompt(
+      `⚠️ Konflikty w ${conflicts.length} dniach (z ${conflictsResp.total_days}):\n\n${conflictsList}${moreText}\n\nWpisz:\n  1 = Nadpisz wszystkie (skasuj istniejące)\n  2 = Pomiń te dni (zachowaj istniejące)\n  3 = Wstaw obok (2 treningi/dzień)\n  ESC = Anuluj`,
+      '2'
+    );
+
+    if (choice === null) return; // anuluj
+    if (choice === '1') resolution = 'overwrite';
+    else if (choice === '2') resolution = 'skip';
+    else if (choice === '3') resolution = 'keep_both';
+    else { alert('Nieprawidłowa opcja'); return; }
+  } else {
+    if (!confirm(`Zatwierdzić plan? ${conflictsResp.total_days} treningów wstawi się do kalendarza zawodnika.`)) return;
+  }
+
+  // Krok 2: approve z wybraną resolution
+  try {
+    const r = await fetch(fnUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + session.access_token,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ plan_id: _tpCurrentPlanId, action: 'approve', conflict_resolution: resolution })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Błąd akceptacji');
+
+    let msg = `✅ Plan zatwierdzony!\n\nWstawiono: ${data.inserted}`;
+    if (data.skipped > 0) msg += `\nPominięto: ${data.skipped}`;
+    if (data.overwritten > 0) msg += `\nNadpisano: ${data.overwritten}`;
+    alert(msg);
+
+    closeViewTrainingPlanModal();
+    loadPanelTrainingPlans();
+  } catch (e) {
+    alert('Błąd: ' + e.message);
+  }
+}
+window.approveTrainingPlanFlow = approveTrainingPlanFlow;
+
+async function rejectTrainingPlan() {
+  if (!_tpCurrentPlanId) return;
+  const reason = prompt('Powód odrzucenia (opcjonalny):', '');
+  if (reason === null) return;
+
+  const { error } = await sb.from('training_plans')
+    .update({ 
+      status: 'rejected', 
+      rejected_at: new Date().toISOString(), 
+      rejection_reason: reason || null 
+    })
+    .eq('id', _tpCurrentPlanId);
+
+  if (error) { alert('Błąd: ' + error.message); return; }
+  closeViewTrainingPlanModal();
+  loadPanelTrainingPlans();
+}
+window.rejectTrainingPlan = rejectTrainingPlan;
+
+window.loadPanelTrainingPlans = loadPanelTrainingPlans;
+
+// ── HELPER: escape HTML ────────────────────────────────────────────
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// CSS animation dla spinnera
+(function() {
+  if (document.getElementById('tpspin-style')) return;
+  const s = document.createElement('style');
+  s.id = 'tpspin-style';
+  s.textContent = '@keyframes tpspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+  document.head.appendChild(s);
+})();
 
 // ── STRAVA PANEL ──────────────────────────────────────────────────
 async function loadStravaPanel() {
@@ -4737,5 +5218,100 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: NOWY PLAN TRENINGOWY (generowanie)                            -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="tp-create-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px);" onclick="if(event.target===this)closeCreateTrainingPlanModal()">
+  <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(34,197,94,0.3);border-radius:16px;padding:24px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+      <div>
+        <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:4px;">🏋️ Generator AI</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;color:var(--fg);">Nowy plan treningowy</div>
+      </div>
+      <button onclick="closeCreateTrainingPlanModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+
+    <!-- Typ planu -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Typ planu</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <button class="tp-type-btn on" data-type="micro" onclick="selectTpType(this)" style="background:rgba(34,197,94,0.15);border:1px solid #22c55e;color:#fff;padding:12px 8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;">MICRO</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px;">2 tyg</div>
+        </button>
+        <button class="tp-type-btn" data-type="meso" onclick="selectTpType(this)" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:12px 8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;">MESO</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px;">4 tyg</div>
+        </button>
+        <button class="tp-type-btn" data-type="macro" onclick="selectTpType(this)" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:12px 8px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;text-align:center;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;">MACRO</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px;">12 tyg</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Data startu -->
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Data startu planu</label>
+      <input type="date" id="tp-start-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:12px;padding:10px;border-radius:8px;outline:none;">
+    </div>
+
+    <!-- Cel — sekcja -->
+    <div style="margin-bottom:14px;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px;">
+      <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:10px;">🎯 Cel (opcjonalny)</div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dystans</label>
+          <select id="tp-target-race" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:6px;outline:none;cursor:pointer;">
+            <option value="">— brak —</option>
+            <option value="5k">5 km</option>
+            <option value="10k">10 km</option>
+            <option value="half">Półmaraton</option>
+            <option value="marathon">Maraton</option>
+            <option value="custom">Inny</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Data startu</label>
+          <input type="date" id="tp-target-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:6px;outline:none;">
+        </div>
+      </div>
+
+      <div>
+        <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Cel czasowy (opcjonalnie)</label>
+        <input type="text" id="tp-target-time" placeholder="np. 3:30:00 lub 1:45:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:6px;outline:none;">
+      </div>
+    </div>
+
+    <!-- Status / loader -->
+    <div id="tp-create-status" style="display:none;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);border-radius:8px;padding:12px;margin-bottom:14px;font-family:'DM Mono',monospace;font-size:11px;color:var(--fg);text-align:center;"></div>
+
+    <!-- Buttons -->
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeCreateTrainingPlanModal()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
+      <button id="tp-create-go-btn" onclick="generateTrainingPlan()" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;font-weight:600;box-shadow:0 4px 12px rgba(34,197,94,0.4);">🚀 Wygeneruj plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- MODAL: PODGLĄD PLANU (DRAFT)                                         -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="tp-view-modal" style="display:none;position:fixed;inset:0;background:#070510;z-index:9000;overflow-y:auto;" onclick="if(event.target===this)closeViewTrainingPlanModal()">
+  <div style="max-width:760px;margin:0 auto;background:#0c0c10;min-height:100vh;">
+    <!-- Sticky header -->
+    <div style="position:sticky;top:0;z-index:10;background:rgba(12,12,16,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <button onclick="closeViewTrainingPlanModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;">✕</button>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;">Plan Treningowy</div>
+      <div style="width:32px;"></div>
+    </div>
+
+    <div id="tp-view-content" style="padding:20px;"></div>
+  </div>
+</div>
+
 </body>
 </html>
