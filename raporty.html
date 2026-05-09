@@ -603,38 +603,14 @@ async function loadReports() {
     return;
   }
   
-  // ━━━━━━ Decyzja layout ━━━━━━
-  // Mniej niż 4 raporty → wszystko w pionie
-  // 4+ → slider (5 najnowszych) + grid (od 6-go w dół)
-  const useSlider = reports.length >= 4;
-  
+  // ━━━━━━ Layout: zawsze w pionie (scroll w dół jak natywna aplikacja) ━━━━━━
   let html = '';
-  if (!useSlider) {
-    html += '<div class="rl-wrap">'
-      + '<div class="sec-hdr"><div class="sec-hdr-line"></div><div class="sec-hdr-text">Najnowsze</div></div>'
-      + '<div class="rl-vstack">'
-      + reports.map(r => renderCard(r, false)).join('')
-      + '</div>'
-    + '</div>';
-  } else {
-    const newest = reports.slice(0, 5);
-    html += '<div style="margin-bottom:28px;">'
-      + '<div class="sec-hdr"><div class="sec-hdr-line"></div><div class="sec-hdr-text">Najnowsze</div></div>'
-      + '<div class="rl-slider">'
-      + newest.map(r => renderCard(r, true)).join('')
-      + '</div>'
-    + '</div>';
-    
-    if (reports.length > 5) {
-      const older = reports.slice(5);
-      html += '<div class="rl-wrap">'
-        + '<div class="sec-hdr"><div class="sec-hdr-line muted"></div><div class="sec-hdr-text muted">Wszystkie raporty</div></div>'
-        + '<div class="rl-vstack">'
-        + older.map(r => renderCard(r, false)).join('')
-        + '</div>'
-      + '</div>';
-    }
-  }
+  html += '<div class="rl-wrap">'
+    + '<div class="sec-hdr"><div class="sec-hdr-line"></div><div class="sec-hdr-text">Najnowsze</div></div>'
+    + '<div class="rl-vstack">'
+    + reports.map(r => renderCard(r, false)).join('')
+    + '</div>'
+  + '</div>';
   
   target.innerHTML = html;
   
