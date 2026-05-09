@@ -152,12 +152,39 @@ body > *{position:relative;z-index:1;}
 .topbar-name{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.03em;line-height:1.05;}
 .topbar-name span{color:var(--accent);}
 .notif-bell-z{
-  width:38px;height:38px;border-radius:50%;
-  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  width:40px;height:40px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);
+  border:1px solid var(--border);
   display:flex;align-items:center;justify-content:center;cursor:pointer;
-  position:relative;transition:all 0.2s;
+  position:relative;transition:all 0.25s ease;
 }
-.notif-bell-z:hover{border-color:var(--border2);background:rgba(255,255,255,0.07);}
+.notif-bell-z:hover{
+  border-color:rgba(232,86,30,0.5);
+  background:linear-gradient(135deg,rgba(232,86,30,0.10) 0%,rgba(232,86,30,0.03) 100%);
+  box-shadow:0 0 18px rgba(232,86,30,0.18);
+  transform:scale(1.04);
+}
+.notif-bell-z:hover svg{stroke:var(--accent);}
+.notif-bell-z.has-unread{
+  border-color:rgba(232,86,30,0.45);
+  background:linear-gradient(135deg,rgba(232,86,30,0.08) 0%,rgba(232,86,30,0.02) 100%);
+}
+.notif-bell-z.has-unread svg{stroke:var(--accent);}
+@keyframes pulseDot {
+  0%, 100% { transform:scale(1); box-shadow:0 0 0 0 rgba(232,86,30,0.5); }
+  50% { transform:scale(1.08); box-shadow:0 0 0 6px rgba(232,86,30,0); }
+}
+#zawodnik-bell-dot{
+  animation:pulseDot 2s ease-in-out infinite;
+}
+@keyframes panelSlideIn {
+  from { opacity:0; transform:translateY(-8px) scale(0.96); }
+  to { opacity:1; transform:translateY(0) scale(1); }
+}
+#notif-panel{
+  animation:panelSlideIn 0.22s cubic-bezier(0.16,1,0.3,1);
+  transform-origin:top right;
+}
 .topbar-avatar{
   width:44px;height:44px;border-radius:50%;
   border:2px solid var(--accent);
@@ -2925,9 +2952,14 @@ async function checkNewMessages() {
   const { count } = await sb.from('messages').select('*',{count:'exact',head:true})
     .eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   const dot = document.getElementById('zawodnik-bell-dot');
+  const bell = document.getElementById('zawodnik-bell');
   if (dot) {
     dot.style.display = (count && count > 0) ? 'flex' : 'none';
     dot.textContent = count > 0 ? (count > 9 ? '9+' : count) : '';
+  }
+  if (bell) {
+    if (count && count > 0) bell.classList.add('has-unread');
+    else bell.classList.remove('has-unread');
   }
   // Jeśli poprzednio nie było a teraz są — pokaż toast
   const prev = window._prevMsgCount || 0;
@@ -6948,16 +6980,38 @@ async function openNotifications() {
 
   const panel = document.createElement('div');
   panel.id = 'notif-panel';
-  panel.style.cssText = 'position:fixed;top:64px;right:16px;width:300px;max-width:calc(100vw - 32px);background:var(--card);border:1px solid var(--border);border-radius:14px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,0.6);overflow:hidden;';
+  panel.style.cssText = 'position:fixed;top:64px;right:16px;width:340px;max-width:calc(100vw - 32px);background:linear-gradient(180deg,#1a1a22 0%,#13131a 100%);border:1px solid rgba(232,86,30,0.18);border-radius:16px;z-index:9999;box-shadow:0 20px 60px rgba(0,0,0,0.85),0 0 0 1px rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.05);overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
   panel.innerHTML = `
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;">Powiadomienia</div>
-      <button onclick="document.getElementById('notif-panel').remove()" style="background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;">✕</button>
+    <div style="position:relative;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
+      <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(232,86,30,0.5) 50%,transparent 100%);"></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(232,86,30,0.18) 0%,rgba(232,86,30,0.06) 100%);border:1px solid rgba(232,86,30,0.25);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8561e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        </div>
+        <div>
+          <div style="font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;font-weight:700;">CENTRUM</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:#f0ede8;line-height:1;margin-top:2px;">Powiadomienia</div>
+        </div>
+      </div>
+      <button onclick="document.getElementById('notif-panel').remove()" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);width:28px;height:28px;border-radius:8px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#f0ede8'" onmouseout="this.style.background='rgba(255,255,255,0.04)';this.style.color='var(--muted)'">✕</button>
     </div>
-    <div id="notif-list" style="max-height:320px;overflow-y:auto;padding:8px;">
-      <div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Ładowanie...</div>
+    <div id="notif-list" style="max-height:360px;overflow-y:auto;padding:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;">
+      <div style="text-align:center;padding:24px 16px;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.08em;">
+        <div style="margin-bottom:12px;display:flex;justify-content:center;">
+          <div style="width:24px;height:24px;border:2px solid rgba(232,86,30,0.2);border-top-color:#e8561e;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        </div>
+        ŁADOWANIE...
+      </div>
     </div>`;
   document.body.appendChild(panel);
+  
+  // Add keyframes for spinner if not exists
+  if (!document.getElementById('notif-keyframes')) {
+    const style = document.createElement('style');
+    style.id = 'notif-keyframes';
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+  }
 
   // Zamknij przy kliknięciu poza panel
   setTimeout(() => {
@@ -6980,11 +7034,17 @@ async function openNotifications() {
     if (!listEl) return;
 
     if (!notifs || notifs.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak powiadomień</div>';
+      listEl.innerHTML = '<div style="text-align:center;padding:32px 20px;">'
+        + '<div style="width:56px;height:56px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(232,86,30,0.1) 0%,rgba(232,86,30,0.02) 100%);border:1px solid rgba(232,86,30,0.18);display:flex;align-items:center;justify-content:center;">'
+        + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(232,86,30,0.6)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+        + '</div>'
+        + '<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;margin-bottom:4px;">Cisza w eterze</div>'
+        + '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.06em;color:var(--muted);">Brak nowych powiadomień</div>'
+        + '</div>';
     } else {
-      // Premium PNG ikony (zamiast emoji) — wgrane do /icons/notif-{type}.png
+      // Premium WebP ikony (zamiast emoji) — wgrane do bucket'a `biegamy-assets`
       var ICONS_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/notif-';
-      var iconExt = '.png';
+      var iconExt = '.webp';
       // Mapa typu → nazwa pliku (większość 1:1, niektóre wspólne)
       var iconMap = {
         follow: 'follow', message: 'message', like: 'like',
@@ -7027,21 +7087,25 @@ async function openNotifications() {
             notifClick = "window.location.href='raporty.html';";
           }
         }
-        // Premium ikona — PNG z fallback do emoji
+        // Premium ikona — WebP z fallback do emoji
         var iconName = iconMap[n.type];
         var iconUrl = iconName ? (ICONS_BASE + iconName + iconExt) : null;
         var emoji = emojiFallback[n.type] || '🔔';
         var iconHtml = iconUrl
-          ? `<img src="${iconUrl}" style="width:36px;height:36px;border-radius:8px;flex-shrink:0;" onerror="this.outerHTML='<span style=\\'font-size:18px;flex-shrink:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;\\'>${emoji}</span>'">`
-          : `<span style="font-size:18px;flex-shrink:0;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">${emoji}</span>`;
+          ? `<img src="${iconUrl}" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(232,86,30,0.15);" onerror="this.outerHTML='<span style=\\'font-size:20px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(232,86,30,0.1);border-radius:10px;border:1px solid rgba(232,86,30,0.2);\\'>${emoji}</span>'">`
+          : `<span style="font-size:20px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(232,86,30,0.1);border-radius:10px;border:1px solid rgba(232,86,30,0.2);">${emoji}</span>`;
         
-        return `<div onclick="${notifClick}" style="padding:12px;border-radius:10px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?'rgba(255,255,255,0.025)':'rgba(232,86,30,0.07)'};border:1px solid ${n.read?'transparent':'rgba(232,86,30,0.18)'};cursor:${notifClick?'pointer':'default'};transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.12)'" onmouseout="this.style.background='${n.read?'rgba(255,255,255,0.025)':'rgba(232,86,30,0.07)'}';this.style.borderColor='${n.read?'transparent':'rgba(232,86,30,0.18)'}'">
+        var unreadBg = 'linear-gradient(135deg,rgba(232,86,30,0.08) 0%,rgba(232,86,30,0.02) 100%)';
+        var readBg = 'rgba(255,255,255,0.02)';
+        var hoverBg = 'rgba(255,255,255,0.05)';
+        
+        return `<div onclick="${notifClick}" style="padding:12px;border-radius:12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?readBg:unreadBg};border:1px solid ${n.read?'transparent':'rgba(232,86,30,0.20)'};cursor:${notifClick?'pointer':'default'};transition:all 0.18s ease;position:relative;" onmouseover="this.style.background='${hoverBg}';this.style.borderColor='rgba(255,255,255,0.10)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='${n.read?readBg:unreadBg}';this.style.borderColor='${n.read?'transparent':'rgba(232,86,30,0.20)'}';this.style.transform='translateX(0)'">
           ${iconHtml}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;">${n.message}</div>
-            <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">${time}</div>
+            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;font-weight:${n.read?'400':'500'};">${n.message}</div>
+            <div style="font-size:9.5px;color:var(--muted);font-family:DM Mono,monospace;margin-top:5px;letter-spacing:0.04em;">${time}</div>
           </div>
-          ${!n.read ? '<div style="width:7px;height:7px;border-radius:50%;background:#3db870;flex-shrink:0;margin-top:4px;"></div>' : ''}
+          ${!n.read ? '<div style="width:8px;height:8px;border-radius:50%;background:#e8561e;flex-shrink:0;margin-top:6px;box-shadow:0 0 8px rgba(232,86,30,0.6);"></div>' : ''}
         </div>`;
       }).join('');
 
