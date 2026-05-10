@@ -1056,7 +1056,7 @@ footer{
                loading="lazy">
         </div>
         <div class="coach-name">Filip</div>
-        <div class="coach-creds">Maraton 2:27 · Reprezentacja Polski</div>
+        <div class="coach-creds">Maraton 2:27 · Medale Mistrzostw Polski</div>
         <!-- ⬇️ CYTAT FILIPA - DO PODMIANY -->
         <p class="coach-quote">
           „Zacząłem trenować bez wiedzy, książek i internetu. Robiłem błędy które dziś znam na pamięć — żebyś Ty ich nie powtórzył."
@@ -1169,8 +1169,16 @@ footer{
       <div class="phone">
         <div class="phone-screen">
           <div class="phone-notch"></div>
-          <!-- mockup zawartości aplikacji - fallback gdy brak prawdziwego screena -->
-          <div class="phone-fake">
+          <!-- ⬇️ GRAFIKA APLIKACJI - grafika1.webp 
+               Wgraj plik do bucketa biegamy-assets jako "grafika1.webp"
+               Wymiary: 1080×2240px (proporcja 9:18.7 = telefon)
+               Jeśli grafika nie załaduje się, pokaże się fallback mockup poniżej -->
+          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/grafika1.webp"
+               alt="Aplikacja BiegaMy"
+               loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+          <!-- Fallback mockup - pokazuje się tylko jeśli grafika1.webp nie istnieje -->
+          <div class="phone-fake" style="display:none;">
             <div class="phone-fake-header">
               <span style="color:var(--accent);">BIEGAMY</span>
               <span style="color:var(--paper-dim);">•••</span>
@@ -1191,8 +1199,6 @@ footer{
               <span class="phone-fake-val" style="color:var(--accent);font-size:14px;">2 nowe</span>
             </div>
           </div>
-          <!-- Jeśli wgrasz prawdziwy screen, podmień fallback na: -->
-          <!-- <img src="https://...biegamy-assets/app-screen.webp" alt="Aplikacja BiegaMy"> -->
         </div>
       </div>
     </div>
@@ -1212,7 +1218,7 @@ footer{
       <div class="why-card reveal">
         <div class="why-num">01</div>
         <div class="why-title">Doświadczenie<br>z trasy</div>
-        <p class="why-text">Reprezentacja Polski. Maraton 2:27. Dobówka 238 km. Nie uczymy z książki — uczymy z tego co przeżyliśmy.</p>
+        <p class="why-text">Medale Mistrzostw Polski. Maraton 2:27. Dobówka 238 km. Nie uczymy z książki — uczymy z tego co przeżyliśmy.</p>
       </div>
       <div class="why-card reveal">
         <div class="why-num">02</div>
@@ -1272,10 +1278,10 @@ footer{
         <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-07.webp"
              alt="Emocje na mecie biegu" loading="lazy">
       </div>
-      <!-- ZDJĘCIE: gal-08.webp - Run For Nourish, reprezentacja Polski -->
+      <!-- ZDJĘCIE: gal-08.webp - Medale Mistrzostw Polski -->
       <div class="gallery-item g8 reveal">
         <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-08.webp"
-             alt="Reprezentacja Polski" loading="lazy">
+             alt="Medale Mistrzostw Polski" loading="lazy">
       </div>
       <!-- ZDJĘCIE: gal-09.webp - Filip na stadionie, palec wskazujący -->
       <div class="gallery-item g9 reveal">
