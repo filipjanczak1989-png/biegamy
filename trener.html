@@ -6596,7 +6596,7 @@ async function loadCoachNotesForAthlete(athleteId, containerId) {
           <div class="note-actions">
             ${!n.is_resolved 
               ? `<button class="note-action-btn resolve" onclick="resolveCoachNote('${n.id}', '${athleteId}')">✓ Załatwione</button>`
-              : `<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;align-self:center;">załatwione</span>`
+              : `<button class="note-action-btn" onclick="unresolveCoachNote('${n.id}', '${athleteId}')" style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;background:none;border:1px dashed rgba(255,255,255,0.15);padding:3px 8px;border-radius:5px;cursor:pointer;">↩ cofnij</button>`
             }
             <button class="note-action-btn delete" onclick="deleteCoachNote('${n.id}', '${athleteId}')">✕</button>
           </div>
@@ -6837,6 +6837,20 @@ async function resolveCoachNote(noteId, athleteId) {
   }
 }
 window.resolveCoachNote = resolveCoachNote;
+
+// ✨ Cofnij resolve - notatka wraca jako aktywna
+async function unresolveCoachNote(noteId, athleteId) {
+  try {
+    const { error } = await sb.from('coach_athlete_notes')
+      .update({ is_resolved: false, resolved_at: null })
+      .eq('id', noteId);
+    if (error) throw error;
+    if (athleteId) loadCoachNotesForAthlete(athleteId);
+  } catch (e) {
+    alert('Błąd: ' + (e.message || e));
+  }
+}
+window.unresolveCoachNote = unresolveCoachNote;
 
 async function deleteCoachNote(noteId, athleteId) {
   if (!confirm('Usunąć notatkę?')) return;
