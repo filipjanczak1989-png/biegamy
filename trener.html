@@ -385,6 +385,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
+    <button class="ptab" onclick="ptab('no',this)" style="color:#e8561e;">📝 Notatki</button>
     <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
     <button class="ptab" onclick="ptab('tp',this)" style="color:#22c55e;">🏋️ Plany</button>
     <button class="ptab" onclick="ptab('au',this)" style="color:#e8561e;">📅 Auto</button>
@@ -460,6 +461,21 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć aktywności Strava.</div>
       </div>
     </div>
+    
+    <!-- ZAKŁADKA NOTATKI TRENERA -->
+    <div id="pno" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">📝 Moje notatki</div>
+        <button class="notes-list-add" onclick="openNotesModal(window._selectedAthleteId)">+ Dodaj</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.5;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:8px;padding:10px;margin-bottom:14px;">
+        💡 Prywatne notatki — zawodnik ich NIE widzi. Klaudiusz wykorzysta je przy generowaniu planów i raportów.
+      </div>
+      <div id="coach-notes-list">
+        <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika.</div>
+      </div>
+    </div>
+    
     <div id="pai" style="display:none;">
       <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:12px;">🧠 Analiza AI</div>
       <!-- Przyciski generuj — NA GÓRZE z !important żeby NIC ich nie ukryło -->
@@ -695,7 +711,7 @@ function viewAsAthlete(){
 }
 window.viewAsAthlete = viewAsAthlete;
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp'].forEach(t=>{
+  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp','no'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
     if(el2) el2.style.display = t===n ? 'block' : 'none';
   });
@@ -708,6 +724,15 @@ function ptab(n,el){
   if (n === 'ai') loadPanelAI();
   if (n === 'au') loadPanelAuto();
   if (n === 'tp') loadPanelTrainingPlans();
+  if (n === 'no') {
+    const id = window._selectedAthleteId;
+    if (id && typeof loadCoachNotesForAthlete === 'function') {
+      loadCoachNotesForAthlete(id);
+    } else {
+      const c = document.getElementById('coach-notes-list');
+      if (c) c.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wybierz zawodnika.</div>';
+    }
+  }
 }
 
 // ── PANEL AI (raporty AI dla zawodnika) ───────────────────────────
@@ -781,12 +806,12 @@ async function generateAIReportFromPanel(periodDays) {
   if (!id) { showToast('Wybierz zawodnika'); return; }
   if (!periodDays) periodDays = 28; // fallback
   
-  // Dla raportu DZIENNEGO — pytaj o dzień (dziś/wczoraj/2 dni temu/własna data)
+  // ✨ v5.1: Pytaj o datę końca okresu DLA KAŻDEGO typu raportu
+  // Dziennego: który dzień. Tygodniowego: do którego dnia liczyć tydzień.
+  // Miesięcznego: do którego dnia liczyć miesiąc.
   let targetDate = null;
-  if (periodDays === 1) {
-    targetDate = await pickReportDate();
-    if (targetDate === null) return; // user anulował
-  }
+  targetDate = await pickReportDate(periodDays);
+  if (targetDate === null) return; // user anulował
   
   // Krok komentarz trenera — opcjonalny, daje Klaudiuszowi szerszy kontekst
   const coachNote = await pickCoachNote(periodDays);
@@ -970,7 +995,11 @@ function pickCoachNote(options) {
 }
 
 // ── Wybór daty dla raportu dziennego ───────────────────────────────
-function pickReportDate() {
+// Pyta trenera o datę końca okresu raportu — działa dla dowolnego periodDays (1/7/30).
+// Dla dziennego: "który DZIEŃ".
+// Dla tygodniowego: "do którego DNIA liczyć ostatnie 7 dni".
+// Dla miesięcznego: "do którego DNIA liczyć ostatnie 30 dni".
+function pickReportDate(periodDays) {
   return new Promise((resolve) => {
     const today = new Date();
     const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
@@ -979,32 +1008,58 @@ function pickReportDate() {
     const fmt = (d) => d.toISOString().slice(0, 10);
     const fmtPl = (d) => d.toLocaleDateString('pl', { weekday: 'long', day: 'numeric', month: 'long' });
     
+    // Etykiety zależne od typu raportu
+    let title, headerTag, todayLabel, yesterdayLabel, dayBeforeLabel, customLabel;
+    if (periodDays === 1) {
+      title = 'Który dzień?';
+      headerTag = '📅 Raport dnia';
+      todayLabel = 'DZIŚ';
+      yesterdayLabel = 'WCZORAJ';
+      dayBeforeLabel = '2 DNI TEMU';
+      customLabel = 'lub własna data (max 7 dni wstecz)';
+    } else if (periodDays === 7) {
+      title = 'Tydzień kończący się kiedy?';
+      headerTag = '📅 Raport tygodniowy';
+      todayLabel = 'OSTATNIE 7 DNI';
+      yesterdayLabel = 'TYDZIEŃ DO WCZORAJ';
+      dayBeforeLabel = 'TYDZIEŃ DO 2 DNI TEMU';
+      customLabel = 'lub własny dzień końca tygodnia (max 7 dni wstecz)';
+    } else {
+      // miesięczny / inny
+      title = 'Okres kończący się kiedy?';
+      headerTag = '📅 Raport ' + (periodDays === 30 ? 'miesięczny' : (periodDays + ' dni'));
+      todayLabel = 'OSTATNIE ' + periodDays + ' DNI';
+      yesterdayLabel = 'OKRES DO WCZORAJ';
+      dayBeforeLabel = 'OKRES DO 2 DNI TEMU';
+      customLabel = 'lub własny dzień końca okresu (max 7 dni wstecz)';
+    }
+    
     const html = `
       <div id="rd-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);" onclick="if(event.target===this)window._rdResolve(null)">
         <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(139,92,246,0.3);border-radius:14px;padding:18px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6);">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
             <div>
-              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:2px;">📅 Raport dnia</div>
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">Który dzień?</div>
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:2px;">${headerTag}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${title}</div>
             </div>
             <button onclick="window._rdResolve(null)" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
             <button onclick="window._rdResolve('${fmt(today)}')" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#fff;padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">DZIŚ</div>
-              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">${fmtPl(today)}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">${todayLabel}</div>
+              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">do ${fmtPl(today)}</div>
             </button>
             <button onclick="window._rdResolve('${fmt(yesterday)}')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">WCZORAJ</div>
-              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">${fmtPl(yesterday)}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">${yesterdayLabel}</div>
+              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">do ${fmtPl(yesterday)}</div>
             </button>
             <button onclick="window._rdResolve('${fmt(dayBefore)}')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:10px 12px;border-radius:7px;cursor:pointer;text-align:left;font-family:'DM Mono',monospace;font-size:11px;">
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">2 DNI TEMU</div>
-              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">${fmtPl(dayBefore)}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;">${dayBeforeLabel}</div>
+              <div style="color:var(--muted);font-size:9px;margin-top:2px;letter-spacing:0.04em;">do ${fmtPl(dayBefore)}</div>
             </button>
           </div>
           <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">
-            <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">lub własna data (max 7 dni wstecz)</label>
+            <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">${customLabel}</label>
             <div style="display:flex;gap:6px;">
               <input type="date" id="rd-custom" max="${fmt(today)}" min="${fmt(new Date(today.getTime() - 7*86400000))}" value="${fmt(today)}" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
               <button onclick="window._rdResolve(document.getElementById('rd-custom').value)" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;font-weight:600;">OK</button>
@@ -5964,6 +6019,634 @@ if ('serviceWorker' in navigator) {
     <div id="tp-view-content" style="padding:20px;"></div>
   </div>
 </div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- COACH ATHLETE NOTES — FAB + Quick capture modal + Profile section    -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+
+<style>
+/* Pływający FAB w prawym dolnym rogu (zawsze widoczny w panelu trenera) */
+#notes-fab {
+  position: fixed;
+  bottom: 90px; /* nad bottom-nav */
+  right: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8561e, #d4501a);
+  color: #fff;
+  border: none;
+  box-shadow: 0 6px 20px rgba(232,86,30,0.45), 0 0 0 4px rgba(232,86,30,0.1);
+  cursor: pointer;
+  z-index: 49;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 300;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+#notes-fab:hover { transform: scale(1.05); box-shadow: 0 8px 24px rgba(232,86,30,0.55), 0 0 0 6px rgba(232,86,30,0.12); }
+#notes-fab:active { transform: scale(0.95); }
+#notes-fab .fab-icon { line-height: 1; }
+#notes-fab .fab-tooltip {
+  position: absolute;
+  right: 60px;
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  white-space: nowrap;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+#notes-fab:hover .fab-tooltip { opacity: 1; }
+
+/* Notes modal */
+.notes-modal-bg {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 9700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(8px);
+}
+.notes-modal-card {
+  background: linear-gradient(135deg, #1a1a22, #13131a);
+  border: 1px solid rgba(232,86,30,0.3);
+  border-radius: 14px;
+  padding: 18px;
+  max-width: 480px;
+  width: 100%;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+}
+.notes-modal-tag {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e8561e;
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 4px;
+}
+.notes-modal-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  color: var(--fg);
+  margin-bottom: 14px;
+  line-height: 1.1;
+}
+.notes-modal-label {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  margin-bottom: 6px;
+}
+.notes-modal-select {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--fg);
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  margin-bottom: 12px;
+  outline: none;
+  cursor: pointer;
+}
+.notes-modal-textarea {
+  width: 100%;
+  min-height: 90px;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--fg);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  box-sizing: border-box;
+  margin-bottom: 4px;
+}
+.notes-modal-counter {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  text-align: right;
+  margin-bottom: 12px;
+}
+.notes-modal-tagrow {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.notes-tag-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 10px;
+  padding: 5px 9px;
+  border-radius: 13px;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.notes-tag-chip:hover { color: var(--fg); border-color: rgba(255,255,255,0.2); }
+.notes-tag-chip.active {
+  background: rgba(232,86,30,0.15);
+  border-color: #e8561e;
+  color: #e8561e;
+}
+.notes-modal-date {
+  width: 100%;
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--fg);
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  margin-bottom: 12px;
+  outline: none;
+  box-sizing: border-box;
+}
+.notes-modal-actions {
+  display: flex;
+  gap: 6px;
+}
+.notes-btn-cancel {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 10px;
+  border-radius: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.notes-btn-save {
+  flex: 2;
+  background: linear-gradient(135deg, #e8561e, #d4501a);
+  border: none;
+  color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(232,86,30,0.4);
+}
+.notes-btn-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Lista notatek (w profilu zawodnika) */
+.notes-list-wrap {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.notes-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.notes-list-title {
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.notes-list-add {
+  background: rgba(232,86,30,0.12);
+  border: 1px solid rgba(232,86,30,0.3);
+  color: #e8561e;
+  font-size: 10px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+.notes-list-add:hover { background: rgba(232,86,30,0.2); border-color: rgba(232,86,30,0.5); }
+.note-card {
+  background: rgba(255,255,255,0.03);
+  border-left: 2px solid #e8561e;
+  border-radius: 0 7px 7px 0;
+  padding: 8px 10px 10px;
+  margin-bottom: 6px;
+  position: relative;
+}
+.note-card.resolved {
+  opacity: 0.45;
+  border-left-color: var(--muted);
+}
+.note-card.tag-start { border-left-color: #f0a830; }
+.note-card.tag-cel { border-left-color: #5090e0; }
+.note-card.tag-kontuzja { border-left-color: #e05050; }
+.note-card.tag-samopoczucie { border-left-color: #9a6fe8; }
+.note-card.tag-zycie { border-left-color: #3db870; }
+.note-card.tag-strategia { border-left-color: #e8b840; }
+.note-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.note-meta-tag {
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: 'DM Mono', monospace;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.note-meta-tag.tag-start { background: rgba(240,168,48,0.15); color: #f0a830; }
+.note-meta-tag.tag-cel { background: rgba(80,144,224,0.15); color: #5090e0; }
+.note-meta-tag.tag-kontuzja { background: rgba(224,80,80,0.15); color: #e05050; }
+.note-meta-tag.tag-samopoczucie { background: rgba(154,111,232,0.15); color: #9a6fe8; }
+.note-meta-tag.tag-zycie { background: rgba(61,184,112,0.15); color: #3db870; }
+.note-meta-tag.tag-strategia { background: rgba(232,184,64,0.15); color: #e8b840; }
+.note-meta-tag.tag-inne { background: rgba(255,255,255,0.06); color: var(--muted); }
+.note-meta-date {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+.note-meta-event {
+  font-size: 9px;
+  color: #e8561e;
+  font-family: 'DM Mono', monospace;
+  margin-left: auto;
+}
+.note-text {
+  font-size: 12px;
+  color: var(--fg);
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.note-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  justify-content: flex-end;
+}
+.note-action-btn {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 9px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'DM Mono', monospace;
+}
+.note-action-btn:hover { color: var(--fg); border-color: rgba(255,255,255,0.2); }
+.note-action-btn.resolve { color: #3db870; border-color: rgba(61,184,112,0.3); }
+.note-action-btn.resolve:hover { background: rgba(61,184,112,0.1); }
+.note-action-btn.delete { color: #e05050; border-color: rgba(224,80,80,0.3); }
+.note-action-btn.delete:hover { background: rgba(224,80,80,0.1); }
+</style>
+
+<!-- FAB pływający -->
+<button id="notes-fab" onclick="openNotesModal()" aria-label="Dodaj szybką notatkę o zawodniku" title="Dodaj notatkę (Ctrl+N)">
+  <span class="fab-icon">+</span>
+  <span class="fab-tooltip">Notatka (Ctrl+N)</span>
+</button>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+// COACH ATHLETE NOTES — Quick capture system
+// ════════════════════════════════════════════════════════════════════
+
+const NOTE_TAGS = [
+  { id: 'start', label: 'Start', desc: 'planowane zawody / wyścig' },
+  { id: 'cel', label: 'Cel', desc: 'aspiracje, ambicje' },
+  { id: 'kontuzja', label: 'Kontuzja', desc: 'ból, uraz, ograniczenie' },
+  { id: 'samopoczucie', label: 'Samopoczucie', desc: 'zmęczenie, energia, sen' },
+  { id: 'zycie', label: 'Życie', desc: 'praca, rodzina, podróż' },
+  { id: 'strategia', label: 'Strategia', desc: 'plan długofalowy, taktyka' },
+];
+
+let _notesCurrentNoteId = null; // dla edycji (null = nowa)
+let _notesPreselectedAthlete = null;
+let _notesSelectedTag = 'inne';
+
+// ─── Otwórz modal — z opcjonalnym preselect athlete ────────────────
+async function openNotesModal(athleteId) {
+  _notesCurrentNoteId = null;
+  _notesPreselectedAthlete = athleteId || window._selectedAthleteId || null;
+  _notesSelectedTag = 'inne';
+  
+  // Pobierz listę zawodników trenera
+  let athletesList = [];
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) { alert('Nie jesteś zalogowany'); return; }
+    
+    const { data, error } = await sb.from('athletes')
+      .select('id, full_name')
+      .eq('coach_id', user.id)
+      .eq('active', true)
+      .order('full_name');
+    if (error) throw error;
+    athletesList = data || [];
+  } catch (e) {
+    console.error('[notes] błąd pobierania zawodników:', e);
+    alert('Nie udało się pobrać listy zawodników');
+    return;
+  }
+  
+  if (athletesList.length === 0) {
+    alert('Nie masz żadnych aktywnych zawodników');
+    return;
+  }
+  
+  // Render modal
+  const today = new Date().toISOString().slice(0, 10);
+  const maxDate = new Date(); maxDate.setMonth(maxDate.getMonth() + 6);
+  const maxDateStr = maxDate.toISOString().slice(0, 10);
+  
+  const athleteOptions = athletesList.map(a => 
+    `<option value="${a.id}" ${a.id === _notesPreselectedAthlete ? 'selected' : ''}>${escapeHtml(a.full_name)}</option>`
+  ).join('');
+  
+  const tagChips = NOTE_TAGS.map(t => 
+    `<button type="button" class="notes-tag-chip ${t.id === _notesSelectedTag ? 'active' : ''}" data-tag="${t.id}" onclick="_notesSelectTag('${t.id}')" title="${t.desc}">${t.label}</button>`
+  ).join('');
+  
+  const html = `
+    <div class="notes-modal-bg" id="notes-modal" onclick="if(event.target===this)closeNotesModal()">
+      <div class="notes-modal-card">
+        <div class="notes-modal-tag">⚡ Szybka notatka</div>
+        <div class="notes-modal-title">Co warto żebym zapamiętał?</div>
+        
+        <div class="notes-modal-label">Zawodnik</div>
+        <select id="note-athlete" class="notes-modal-select">
+          ${athleteOptions}
+        </select>
+        
+        <div class="notes-modal-label">Notatka</div>
+        <textarea 
+          id="note-text" 
+          class="notes-modal-textarea" 
+          placeholder="np. niedziela półmaraton w Kołobrzegu, chce sub 1:30 — zapomniał dodać do celów"
+          maxlength="500"
+          oninput="_notesUpdateCounter()"
+        ></textarea>
+        <div class="notes-modal-counter" id="note-counter">0 / 500</div>
+        
+        <button type="button" id="note-more-toggle" onclick="_notesToggleMore()" style="background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 0;margin-bottom:8px;display:block;text-align:left;">
+          <span id="note-more-arrow">▸</span> Więcej opcji (kategoria, data eventu)
+        </button>
+        
+        <div id="note-more-section" style="display:none;">
+          <div class="notes-modal-label">Tag (kategoria)</div>
+          <div class="notes-modal-tagrow">${tagChips}</div>
+          
+          <div class="notes-modal-label">Data eventu (opcjonalnie — np. data startu)</div>
+          <input type="date" id="note-event-date" class="notes-modal-date" min="${today}" max="${maxDateStr}">
+        </div>
+        
+        <div class="notes-modal-actions">
+          <button class="notes-btn-cancel" onclick="closeNotesModal()">Anuluj</button>
+          <button class="notes-btn-save" id="note-save-btn" onclick="saveCoachNote()">✅ Zatwierdź</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = html;
+  document.body.appendChild(wrapper.firstElementChild);
+  
+  // Focus textarea
+  setTimeout(() => {
+    const ta = document.getElementById('note-text');
+    if (ta) ta.focus();
+  }, 50);
+}
+window.openNotesModal = openNotesModal;
+
+function closeNotesModal() {
+  const m = document.getElementById('notes-modal');
+  if (m) m.remove();
+  _notesCurrentNoteId = null;
+  _notesPreselectedAthlete = null;
+}
+window.closeNotesModal = closeNotesModal;
+
+function _notesSelectTag(tagId) {
+  _notesSelectedTag = tagId;
+  document.querySelectorAll('.notes-tag-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.tag === tagId);
+  });
+}
+window._notesSelectTag = _notesSelectTag;
+
+function _notesUpdateCounter() {
+  const ta = document.getElementById('note-text');
+  const counter = document.getElementById('note-counter');
+  if (ta && counter) counter.textContent = `${ta.value.length} / 500`;
+}
+window._notesUpdateCounter = _notesUpdateCounter;
+
+function _notesToggleMore() {
+  const sec = document.getElementById('note-more-section');
+  const arrow = document.getElementById('note-more-arrow');
+  if (!sec || !arrow) return;
+  const isOpen = sec.style.display !== 'none';
+  sec.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▸' : '▾';
+}
+window._notesToggleMore = _notesToggleMore;
+
+// ─── Zapis notatki ────────────────────────────────────────────────
+async function saveCoachNote() {
+  const athleteSelect = document.getElementById('note-athlete');
+  const textArea = document.getElementById('note-text');
+  const eventDateInput = document.getElementById('note-event-date');
+  const saveBtn = document.getElementById('note-save-btn');
+  
+  if (!athleteSelect || !textArea) return;
+  
+  const athleteId = athleteSelect.value;
+  const noteText = textArea.value.trim();
+  const eventDate = eventDateInput?.value || null;
+  
+  if (!athleteId) { alert('Wybierz zawodnika'); return; }
+  if (!noteText) { alert('Wpisz treść notatki'); return; }
+  if (noteText.length > 500) { alert('Maksymalnie 500 znaków'); return; }
+  
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ Zapisuję...';
+  
+  try {
+    const { data: { user } } = await sb.auth.getUser();
+    if (!user) throw new Error('Brak sesji');
+    
+    const payload = {
+      coach_id: user.id,
+      athlete_id: athleteId,
+      tag: _notesSelectedTag,
+      note: noteText,
+      event_date: eventDate || null,
+    };
+    
+    const { error } = await sb.from('coach_athlete_notes').insert(payload);
+    if (error) throw error;
+    
+    // Sukces!
+    saveBtn.textContent = '✅ Zapisane';
+    setTimeout(() => {
+      closeNotesModal();
+      // Odśwież listę notatek w profilu jeśli widoczna
+      if (window._selectedAthleteId === athleteId && typeof loadCoachNotesForAthlete === 'function') {
+        loadCoachNotesForAthlete(athleteId);
+      }
+    }, 700);
+    
+  } catch (err) {
+    console.error('[saveCoachNote] error:', err);
+    alert('Błąd zapisu: ' + (err.message || err));
+    saveBtn.disabled = false;
+    saveBtn.textContent = '💾 Zapisz';
+  }
+}
+window.saveCoachNote = saveCoachNote;
+
+// ─── Renderowanie listy notatek dla zawodnika ─────────────────────
+async function loadCoachNotesForAthlete(athleteId, containerId) {
+  if (!athleteId) return;
+  containerId = containerId || 'coach-notes-list';
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  container.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;padding:14px;">Ładowanie...</div>';
+  
+  try {
+    const { data, error } = await sb.from('coach_athlete_notes')
+      .select('id, tag, note, event_date, is_resolved, resolved_at, created_at')
+      .eq('athlete_id', athleteId)
+      .order('is_resolved', { ascending: true }) // nieresolved na górze
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (error) throw error;
+    
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;padding:14px;line-height:1.5;">Brak notatek.<br>Klikni <strong style="color:var(--fg)">+ Dodaj</strong> żeby zapisać pierwszą.</div>';
+      return;
+    }
+    
+    container.innerHTML = data.map(n => {
+      const created = new Date(n.created_at);
+      const dateStr = created.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+      const eventStr = n.event_date 
+        ? '🏁 ' + new Date(n.event_date + 'T00:00:00').toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })
+        : '';
+      const resolvedClass = n.is_resolved ? 'resolved' : '';
+      const tagClass = 'tag-' + n.tag;
+      const tagLabel = NOTE_TAGS.find(t => t.id === n.tag)?.label || n.tag;
+      
+      return `
+        <div class="note-card ${tagClass} ${resolvedClass}" data-note-id="${n.id}">
+          <div class="note-meta">
+            <span class="note-meta-tag ${tagClass}">${tagLabel}</span>
+            <span class="note-meta-date">${dateStr}</span>
+            ${eventStr ? `<span class="note-meta-event">${eventStr}</span>` : ''}
+          </div>
+          <div class="note-text">${escapeHtml(n.note)}</div>
+          <div class="note-actions">
+            ${!n.is_resolved 
+              ? `<button class="note-action-btn resolve" onclick="resolveCoachNote('${n.id}', '${athleteId}')">✓ Załatwione</button>`
+              : `<span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;align-self:center;">załatwione</span>`
+            }
+            <button class="note-action-btn delete" onclick="deleteCoachNote('${n.id}', '${athleteId}')">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (e) {
+    console.error('[loadCoachNotesForAthlete] error:', e);
+    container.innerHTML = `<div style="font-size:11px;color:var(--accent);font-family:DM Mono,monospace;text-align:center;padding:14px;">Błąd: ${escapeHtml(e.message || String(e))}</div>`;
+  }
+}
+window.loadCoachNotesForAthlete = loadCoachNotesForAthlete;
+
+async function resolveCoachNote(noteId, athleteId) {
+  try {
+    const { error } = await sb.from('coach_athlete_notes')
+      .update({ is_resolved: true, resolved_at: new Date().toISOString() })
+      .eq('id', noteId);
+    if (error) throw error;
+    if (athleteId) loadCoachNotesForAthlete(athleteId);
+  } catch (e) {
+    alert('Błąd: ' + (e.message || e));
+  }
+}
+window.resolveCoachNote = resolveCoachNote;
+
+async function deleteCoachNote(noteId, athleteId) {
+  if (!confirm('Usunąć notatkę?')) return;
+  try {
+    const { error } = await sb.from('coach_athlete_notes')
+      .delete()
+      .eq('id', noteId);
+    if (error) throw error;
+    if (athleteId) loadCoachNotesForAthlete(athleteId);
+  } catch (e) {
+    alert('Błąd: ' + (e.message || e));
+  }
+}
+window.deleteCoachNote = deleteCoachNote;
+
+// ─── Skrót klawiszowy Ctrl+N ──────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !e.shiftKey && !e.altKey) {
+    // Nie przejmuj jeśli w textarea/inputie
+    const tag = (document.activeElement?.tagName || '').toUpperCase();
+    if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') return;
+    e.preventDefault();
+    openNotesModal();
+  }
+});
+
+// Esc zamyka modal notatek
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.getElementById('notes-modal')) {
+    closeNotesModal();
+  }
+});
+</script>
 
 </body>
 </html>
