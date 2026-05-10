@@ -969,6 +969,10 @@ body > *{position:relative;z-index:1;}
   <div id="push-prompt-banner"></div>
   <!-- Pending duels banner (renderowane przez loadPendingDuelsBanner) -->
   <div id="today-pending-duels"></div>
+  <!-- Banner typu treningu (renderowany przez loadToday) -->
+  <div id="today-type-banner" style="display:none;margin-bottom:12px;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(232,86,30,0.15);">
+    <img id="today-type-banner-img" src="" alt="" style="width:100%;height:auto;display:block;">
+  </div>
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
   <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
@@ -4784,6 +4788,24 @@ async function loadWeekPlan() {
   }  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
 
+  const _bannerMap = {
+    'Bieg spokojny':'banner-spokojny.webp',
+    'Spokojny':'banner-spokojny.webp',
+    'Interwały':'banner-interwaly.webp',
+    'Tempo':'banner-tempo.webp',
+    'Wybieganie':'banner-wybieganie.webp',
+    'Regeneracja':'banner-regeneracja.webp',
+    'Wzmacniający':'banner-wzmacniajacy.webp',
+    'Zastępczy':'banner-zastepczy.webp',
+    'Start':'banner-start.webp',
+  };
+  const _bannerBase = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
+  function _typeBanner(type) {
+    const f = _bannerMap[type];
+    if (!f) return '';
+    return `<div style="margin-bottom:10px;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(232,86,30,0.12);"><img src="${_bannerBase}${f}" alt="${type}" style="width:100%;height:auto;display:block;"></div>`;
+  }
+
   document.getElementById('week-strip').innerHTML = data.map((t, i) => {
     // Parsuj datę lokalnie — new Date('2026-04-06') = UTC, powoduje przesunięcie
     const [dy, dm, dd2] = t.date.split('-').map(Number);
@@ -4824,6 +4846,7 @@ async function loadWeekPlan() {
       </div>
       <div class="day-detail" id="detail-${i}" style="display:none;padding:0 14px 14px;border-top:1px solid rgba(255,255,255,0.05);">
         <div style="height:8px;"></div>
+        ${_typeBanner(t.type)}
         ${dist>0?`<div style="display:flex;gap:12px;margin-bottom:10px;">
           <div style="flex:1;background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 12px;">
             <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Dystans</div>
@@ -4961,6 +4984,9 @@ async function loadTodayTraining() {
   
   if (!data) {
     document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
+    // Ukryj banner gdy brak treningu
+    const tBanner = document.getElementById('today-type-banner');
+    if (tBanner) tBanner.style.display = 'none';
     window._todayTraining = null;
     return;
   }
@@ -4975,6 +5001,30 @@ async function loadTodayTraining() {
   
   if(badge){ badge.textContent = (typeIcons[data.type]||'🏃') + ' ' + (data.type||'Trening'); badge.style.display='inline-flex'; }
   if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
+  
+  // ── Banner typu treningu — premium header pod akcjami ──
+  const bannerMap = {
+    'Bieg spokojny':'banner-spokojny.webp',
+    'Spokojny':'banner-spokojny.webp',
+    'Interwały':'banner-interwaly.webp',
+    'Tempo':'banner-tempo.webp',
+    'Wybieganie':'banner-wybieganie.webp',
+    'Regeneracja':'banner-regeneracja.webp',
+    'Wzmacniający':'banner-wzmacniajacy.webp',
+    'Zastępczy':'banner-zastepczy.webp',
+    'Start':'banner-start.webp',
+  };
+  const tBanner = document.getElementById('today-type-banner');
+  const tBannerImg = document.getElementById('today-type-banner-img');
+  const bannerFile = bannerMap[data.type];
+  if (bannerFile && tBannerImg && tBanner) {
+    const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
+    tBannerImg.src = baseUrl + bannerFile;
+    tBannerImg.alt = data.type;
+    tBanner.style.display = '';
+  } else if (tBanner) {
+    tBanner.style.display = 'none';
+  }
   
   const metaItems = [
     `<div class="today-meta-item"><div class="today-meta-lbl">Tempo</div><div class="today-meta-val">${data.pace ? data.pace+' /km' : '—'}</div></div>`,
