@@ -92,8 +92,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .panel-name{font-family:'Bebas Neue',sans-serif;font-size:22px;}
 .panel-meta{font-size:11px;color:var(--muted);margin-top:1px;}
 .panel-close{margin-left:auto;background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;}
-.panel-tabs{display:flex;border-bottom:1px solid var(--border);}
-.ptab{flex:1;padding:10px 8px;text-align:center;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all 0.15s;}
+.panel-tabs{display:grid;grid-template-columns:repeat(6, 1fr);border-bottom:1px solid var(--border);}
+.ptab{padding:10px 4px;text-align:center;font-size:9.5px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;cursor:pointer;border:none;background:none;border-bottom:2px solid transparent;transition:all 0.15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
 .ptab.on{color:var(--fg);border-bottom-color:var(--accent);}
 /* ━━━━━━ Auto-toggle (premium switch) ━━━━━━ */
 .auto-toggle{position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;flex-shrink:0;}
@@ -385,6 +385,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
+    <button class="ptab" onclick="ptab('di',this)" style="color:#3db870;">🥗 Dieta</button>
     <button class="ptab" onclick="ptab('no',this)" style="color:#e8561e;">📝 Notatki</button>
     <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
     <button class="ptab" onclick="ptab('tp',this)" style="color:#22c55e;">🏋️ Plany</button>
@@ -459,6 +460,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div id="pstr" style="display:none;">
       <div id="pstr-content">
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć aktywności Strava.</div>
+      </div>
+    </div>
+    
+    <!-- ZAKŁADKA DIETA ZAWODNIKA -->
+    <div id="pdi" style="display:none;">
+      <div id="pdi-content">
+        <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć dietę.</div>
       </div>
     </div>
     
@@ -711,7 +719,7 @@ function viewAsAthlete(){
 }
 window.viewAsAthlete = viewAsAthlete;
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp','no'].forEach(t=>{
+  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp','no','di'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
     if(el2) el2.style.display = t===n ? 'block' : 'none';
   });
@@ -724,6 +732,7 @@ function ptab(n,el){
   if (n === 'ai') loadPanelAI();
   if (n === 'au') loadPanelAuto();
   if (n === 'tp') loadPanelTrainingPlans();
+  if (n === 'di') loadPanelDiet();
   if (n === 'no') {
     const id = window._selectedAthleteId;
     if (id && typeof loadCoachNotesForAthlete === 'function') {
@@ -6601,6 +6610,220 @@ async function loadCoachNotesForAthlete(athleteId, containerId) {
   }
 }
 window.loadCoachNotesForAthlete = loadCoachNotesForAthlete;
+
+// ════════════════════════════════════════════════════════════════════
+// ✨ DIETA — Wgląd trenera w odżywianie zawodnika
+// ════════════════════════════════════════════════════════════════════
+
+async function loadPanelDiet() {
+  const athleteId = window._selectedAthleteId;
+  const container = document.getElementById('pdi-content');
+  if (!container) return;
+  
+  if (!athleteId) {
+    container.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Wybierz zawodnika.</div>';
+    return;
+  }
+  
+  container.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie diety...</div>';
+  
+  try {
+    // Pobierz profil nutrition (cele kcal/makro)
+    const { data: nProfile } = await sb.from('nutrition_profiles')
+      .select('target_kcal, target_protein_g, target_carbs_g, target_fat_g, weight_kg, height_cm, age, activity_level, goal')
+      .eq('athlete_id', athleteId)
+      .maybeSingle();
+    
+    // Pobierz posiłki z ostatnich 30 dni
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const { data: meals } = await sb.from('nutrition_meals')
+      .select('id, eaten_at, name, kcal, protein_g, carbs_g, fat_g, fiber_g, weight_g, source, meal_type')
+      .eq('athlete_id', athleteId)
+      .gte('eaten_at', thirtyDaysAgo.toISOString())
+      .order('eaten_at', { ascending: false });
+    
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    
+    // Grupuj per dzień
+    const byDay = {};
+    for (const m of (meals || [])) {
+      const d = m.eaten_at.slice(0, 10);
+      if (!byDay[d]) byDay[d] = { meals: [], kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+      byDay[d].meals.push(m);
+      byDay[d].kcal += Number(m.kcal) || 0;
+      byDay[d].protein += Number(m.protein_g) || 0;
+      byDay[d].carbs += Number(m.carbs_g) || 0;
+      byDay[d].fat += Number(m.fat_g) || 0;
+      byDay[d].fiber += Number(m.fiber_g) || 0;
+    }
+    
+    const todayData = byDay[todayStr] || { meals: [], kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+    const yesterdayData = byDay[yesterdayStr] || { meals: [], kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+    
+    // Stats 7 dni i 30 dni
+    const last7Days = Object.keys(byDay).filter(d => d >= new Date(Date.now() - 7*86400000).toISOString().slice(0,10)).sort();
+    const last30Days = Object.keys(byDay).sort();
+    
+    const sumLast7 = last7Days.reduce((acc, d) => ({
+      kcal: acc.kcal + byDay[d].kcal,
+      protein: acc.protein + byDay[d].protein,
+      carbs: acc.carbs + byDay[d].carbs,
+      fat: acc.fat + byDay[d].fat,
+      days: acc.days + 1,
+    }), { kcal: 0, protein: 0, carbs: 0, fat: 0, days: 0 });
+    
+    const avg7 = sumLast7.days > 0 ? {
+      kcal: Math.round(sumLast7.kcal / sumLast7.days),
+      protein: Math.round(sumLast7.protein / sumLast7.days),
+      carbs: Math.round(sumLast7.carbs / sumLast7.days),
+      fat: Math.round(sumLast7.fat / sumLast7.days),
+    } : null;
+    
+    // Ranking popularnych produktów - count usage per name
+    const productUsage = {};
+    for (const m of (meals || [])) {
+      const key = (m.name || '').trim();
+      if (!key) continue;
+      if (!productUsage[key]) productUsage[key] = { count: 0, kcal: 0, weight: 0, lastDate: m.eaten_at };
+      productUsage[key].count++;
+      productUsage[key].kcal += Number(m.kcal) || 0;
+      productUsage[key].weight += Number(m.weight_g) || 0;
+      if (m.eaten_at > productUsage[key].lastDate) productUsage[key].lastDate = m.eaten_at;
+    }
+    const popular = Object.entries(productUsage)
+      .sort(([,a], [,b]) => b.count - a.count)
+      .slice(0, 10)
+      .map(([name, stats]) => ({ name, ...stats }));
+    
+    // Render
+    const targetKcal = nProfile?.target_kcal || 0;
+    const todayPct = targetKcal > 0 ? Math.round((todayData.kcal / targetKcal) * 100) : 0;
+    
+    container.innerHTML = `
+      <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">🥗 Odżywianie zawodnika</div>
+      
+      ${!nProfile ? `
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;padding:14px;background:rgba(255,255,255,0.03);border-radius:8px;margin-bottom:14px;">
+          Zawodnik nie ma jeszcze profilu nutrition.<br>Cele kcal/makro nie są ustawione.
+        </div>
+      ` : `
+        <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;margin-bottom:14px;">
+          <div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:7px;padding:8px;text-align:center;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#3db870;">${nProfile.target_kcal || '—'}</div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">kcal cel</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.target_protein_g || '—'}g</div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">białko</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.target_carbs_g || '—'}g</div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">węgle</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.target_fat_g || '—'}g</div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">tłuszcz</div>
+          </div>
+        </div>
+      `}
+      
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">DZIŚ ${targetKcal > 0 ? `(${todayPct}% celu)` : ''}</div>
+      <div style="background:rgba(255,255,255,0.04);border-left:3px solid ${todayPct >= 80 && todayPct <= 110 ? '#3db870' : todayPct < 60 ? '#e8b840' : '#e05050'};padding:10px 12px;margin-bottom:12px;border-radius:0 7px 7px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--fg);">${Math.round(todayData.kcal)} <span style="font-size:11px;color:var(--muted);">kcal</span></div>
+          <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${todayData.meals.length} ${todayData.meals.length === 1 ? 'posiłek' : 'posiłków'}</div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);">
+          <span>B: ${Math.round(todayData.protein)}g</span>
+          <span>W: ${Math.round(todayData.carbs)}g</span>
+          <span>T: ${Math.round(todayData.fat)}g</span>
+          <span>F: ${Math.round(todayData.fiber)}g</span>
+        </div>
+      </div>
+      
+      ${yesterdayData.meals.length > 0 ? `
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">WCZORAJ</div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:8px 12px;margin-bottom:12px;border-radius:7px;display:flex;justify-content:space-between;align-items:baseline;">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg2);">${Math.round(yesterdayData.kcal)} <span style="font-size:10px;color:var(--muted);">kcal</span></div>
+          <div style="display:flex;gap:8px;font-size:9px;font-family:'DM Mono',monospace;color:var(--muted);">
+            <span>B${Math.round(yesterdayData.protein)}</span><span>W${Math.round(yesterdayData.carbs)}</span><span>T${Math.round(yesterdayData.fat)}</span>
+          </div>
+        </div>
+      ` : ''}
+      
+      ${avg7 ? `
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">ŚREDNIA 7 DNI (${sumLast7.days} ${sumLast7.days === 1 ? 'dzień' : sumLast7.days < 5 ? 'dni' : 'dni'} z logami)</div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);padding:10px 12px;margin-bottom:16px;border-radius:7px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${avg7.kcal} <span style="font-size:10px;color:var(--muted);">kcal/dzień</span></div>
+            ${targetKcal > 0 ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${Math.round((avg7.kcal/targetKcal)*100)}% celu</div>` : ''}
+          </div>
+          <div style="display:flex;gap:10px;font-size:10px;font-family:'DM Mono',monospace;color:var(--muted);">
+            <span>B: ${avg7.protein}g</span>
+            <span>W: ${avg7.carbs}g</span>
+            <span>T: ${avg7.fat}g</span>
+          </div>
+        </div>
+      ` : ''}
+      
+      ${popular.length > 0 ? `
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">🏆 NAJCZĘŚCIEJ JADANE (30 dni)</div>
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:16px;">
+          ${popular.map((p, i) => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;${i < popular.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : ''}">
+              <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+                <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:#3db870;min-width:24px;">${p.count}×</div>
+                <div style="font-size:12px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(p.name)}</div>
+              </div>
+              <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;margin-left:8px;">${Math.round(p.kcal/p.count)} kcal/szt</div>
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      
+      <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">DZISIEJSZE POSIŁKI</div>
+      ${todayData.meals.length === 0 ? `
+        <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;text-align:center;padding:14px;background:rgba(255,255,255,0.02);border-radius:7px;">
+          Brak wpisów dziś.
+        </div>
+      ` : `
+        <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:7px;overflow:hidden;">
+          ${todayData.meals.map((m, i) => {
+            const time = new Date(m.eaten_at).toLocaleTimeString('pl-PL', {hour:'2-digit', minute:'2-digit'});
+            const typeLabels = {breakfast:'śniadanie', lunch:'obiad', dinner:'kolacja', snack:'przekąska', supper:'podwieczorek'};
+            const typeLabel = typeLabels[m.meal_type] || m.meal_type || '';
+            return `
+              <div style="padding:8px 12px;${i < todayData.meals.length - 1 ? 'border-bottom:1px solid rgba(255,255,255,0.04);' : ''}">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:2px;">
+                  <div style="font-size:12px;color:var(--fg);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">${escapeHtml(m.name)}</div>
+                  <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-left:8px;">${time}</div>
+                </div>
+                <div style="display:flex;gap:8px;font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">
+                  ${typeLabel ? `<span style="color:#3db870;">${typeLabel}</span>` : ''}
+                  ${m.weight_g ? `<span>${m.weight_g}g</span>` : ''}
+                  <span>${Math.round(m.kcal || 0)} kcal</span>
+                  <span>B${Math.round(m.protein_g || 0)} W${Math.round(m.carbs_g || 0)} T${Math.round(m.fat_g || 0)}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+      
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.5;background:rgba(61,184,112,0.06);border:1px solid rgba(61,184,112,0.2);border-radius:8px;padding:10px;margin-top:14px;">
+        💡 ${last30Days.length} ${last30Days.length === 1 ? 'dzień' : 'dni'} z logami w ostatnich 30 dniach. Dane prywatne — używaj do oceny czy zawodnik je adekwatnie do treningów.
+      </div>
+    `;
+    
+  } catch (e) {
+    console.error('[loadPanelDiet] error:', e);
+    container.innerHTML = `<div style="padding:14px;color:#e05050;font-size:11px;font-family:DM Mono,monospace;text-align:center;">Błąd: ${escapeHtml(e.message || String(e))}</div>`;
+  }
+}
+window.loadPanelDiet = loadPanelDiet;
+
 
 async function resolveCoachNote(noteId, athleteId) {
   try {

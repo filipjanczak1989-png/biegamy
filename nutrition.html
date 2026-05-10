@@ -1507,10 +1507,6 @@ body {
   justify-content: center;
   z-index: 100;
   padding: 16px;
-  /* iOS dynamic viewport — reaguje na klawiaturę */
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
   animation: modalFade 0.25s ease-out;
 }
 @keyframes modalFade {
@@ -1524,18 +1520,10 @@ body {
   border: 1px solid var(--border-hi);
   border-radius: 22px;
   padding: 24px;
-  /* dolny padding ważny żeby przyciski nie były pod nawigacją iOS */
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   max-width: 400px;
   width: 100%;
-  /* dynamic viewport - 90dvh nie 90vh */
-  max-height: calc(100dvh - 32px);
+  max-height: 90vh;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  /* Safari flex hack */
-  min-height: 0;
-  /* nie dragujemy strony przy scroll w modalu */
-  overscroll-behavior: contain;
   box-shadow:
     0 30px 80px rgba(0,0,0,0.7),
     0 0 0 1px rgba(255,255,255,0.04),
@@ -1802,13 +1790,7 @@ body {
 .pc-card {
   padding: 0 !important;  /* hero zaczyna od krawędzi */
   max-width: 440px;
-  /* WAŻNE: pozwalamy na scroll w pionie, ale nie wycieka treść z boków */
-  overflow-x: hidden !important;
-  overflow-y: auto !important;
-  /* iOS momentum scroll */
-  -webkit-overflow-scrolling: touch;
-  /* Safe area dla telefonów z notch */
-  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  overflow: hidden !important;
 }
 .pc-card::before { display: none; }  /* nie potrzebujemy gradient bo mamy hero */
 
@@ -4491,7 +4473,7 @@ body {
 // FOOD IMAGES — pula 55 grafik j1.webp ... j55.webp
 // ════════════════════════════════════════════════════════════
 const FOOD_IMG_COUNT = 55;
-const FOOD_IMG_BASE = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
+const FOOD_IMG_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
 
 // Losowa grafika (przy każdym wywołaniu inna)
 function getRandomFoodImage() {
@@ -5247,7 +5229,7 @@ function pickQuoteImages(dateStr, count) {
     indices.add(n);
     i++;
   }
-  const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
+  const baseUrl = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
   return [...indices].map(n => `${baseUrl}j${n}.webp`);
 }
 
@@ -7002,6 +6984,30 @@ function renderMacroCards(days, target, todayKey) {
 // SEARCH (ręczne) — z food_cache
 // ════════════════════════════════════════════════════════════
 let _searchTm = null;
+let _userUsageMap = null; // ✨ v2 - mapa: name (lowercase) → count
+
+// ✨ Pobierz historię produktów zawodnika (ile razy używał danego produktu)
+async function _loadUserUsageMap() {
+  if (!_athleteId) { _userUsageMap = {}; return; }
+  try {
+    // Pobierz 90 dni wstecz - co używał ostatnio
+    const cutoff = new Date(Date.now() - 90*86400000).toISOString();
+    const { data } = await sb.from('nutrition_meals')
+      .select('name')
+      .eq('athlete_id', _athleteId)
+      .gte('eaten_at', cutoff);
+    
+    _userUsageMap = {};
+    for (const m of (data || [])) {
+      const key = (m.name || '').trim().toLowerCase();
+      if (!key) continue;
+      _userUsageMap[key] = (_userUsageMap[key] || 0) + 1;
+    }
+  } catch (e) {
+    console.warn('[_loadUserUsageMap]', e);
+    _userUsageMap = {};
+  }
+}
 
 function openTextModal() {
   document.getElementById('text-modal').classList.remove('hidden');
@@ -7010,6 +7016,8 @@ function openTextModal() {
   document.getElementById('search-results').className = 'search-results empty';
   document.getElementById('search-results').innerHTML = '';
   setTimeout(() => input.focus(), 100);
+  // ✨ Preload historii użycia (asynchronicznie - nie blokuje otwarcia modala)
+  _loadUserUsageMap();
   input.oninput = () => {
     clearTimeout(_searchTm);
     _searchTm = setTimeout(() => doSearch(input.value.trim()), 250);
@@ -7148,6 +7156,17 @@ async function doSearch(q) {
       // 8. Im krótsza nazwa, tym lepiej (jasność)
       score -= Math.min(name.length / 8, 12);
 
+      // ✨ 9. BONUS: Produkty które zawodnik już jadł (historia 90 dni)
+      // To jest klucz personalizacji — produkty popularne u zawodnika idą wyżej
+      if (_userUsageMap) {
+        const displayKey = (food.display_name || '').trim().toLowerCase();
+        const usage = _userUsageMap[displayKey] || 0;
+        if (usage > 0) {
+          // 1× użyty: +120, 2×: +200, 3×: +260, 5+: +350 (cap)
+          score += Math.min(120 + (usage - 1) * 70, 350);
+        }
+      }
+
       return score;
     }
 
@@ -7166,11 +7185,19 @@ async function doSearch(q) {
       const imgHtml = food.image_url 
         ? `<div class="sr-thumb" style="background-image:url('${food.image_url}')"></div>`
         : `<div class="sr-thumb sr-thumb-placeholder">🍽</div>`;
+      
+      // ✨ Badge "często jadane" jeśli zawodnik już używał tego produktu
+      const usageKey = (food.display_name || '').trim().toLowerCase();
+      const usageCount = (_userUsageMap && _userUsageMap[usageKey]) || 0;
+      const usageBadge = usageCount > 0
+        ? `<span style="display:inline-block;background:rgba(61,184,112,0.18);border:1px solid rgba(61,184,112,0.4);color:#3db870;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;padding:1px 6px;border-radius:4px;margin-right:4px;">★ ${usageCount}×</span>`
+        : '';
+      
       return `
         <div class="search-result-item" onclick="pickSearchResult(window._searchHits[${i}])">
           ${imgHtml}
           <div class="sr-info">
-            <div class="sr-name">${escapeHtml(food.display_name)}${brand} ${sourceTag}</div>
+            <div class="sr-name">${usageBadge}${escapeHtml(food.display_name)}${brand} ${sourceTag}</div>
             <div class="sr-meta">${kcal} kcal/100g · B:${Math.round((food.protein_g_per_100||0)*10)/10}g W:${Math.round((food.carbs_g_per_100||0)*10)/10}g T:${Math.round((food.fat_g_per_100||0)*10)/10}g${fiber}</div>
           </div>
         </div>`;
@@ -7704,34 +7731,6 @@ function animateValue(el, target, duration) {
   }
   requestAnimationFrame(step);
 }
-
-// ── MODAL VIEWPORT FIX (iOS keyboard) ──────────────────────────
-// Gdy klawiatura iOS się otwiera, viewport się zmniejsza. Modale
-// muszą reagować by przyciski "Zapisz" pozostały widoczne.
-(function setupModalViewportFix(){
-  if (!window.visualViewport) return;
-  
-  function updateModals() {
-    const vv = window.visualViewport;
-    const modals = document.querySelectorAll('.modal:not(.hidden)');
-    modals.forEach(m => {
-      m.style.height = vv.height + 'px';
-    });
-  }
-  
-  window.visualViewport.addEventListener('resize', updateModals);
-  window.visualViewport.addEventListener('scroll', updateModals);
-  
-  // Gdy fokusujemy input w modalu — scroll do widoku po animacji klawiatury
-  document.addEventListener('focusin', e => {
-    const target = e.target;
-    const modalCard = target.closest('.modal-card, .pc-card');
-    if (!modalCard) return;
-    setTimeout(() => {
-      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 300);
-  });
-})();
 </script>
 </body>
 </html>
