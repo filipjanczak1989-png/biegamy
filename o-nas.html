@@ -60,7 +60,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
 <!-- Preload hero image -->
-<link rel="preload" as="image" href="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/hero-pucharki.webp">
+<link rel="preload" as="image" href="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-pucharki.webp">
 
 <style>
 :root{
@@ -161,6 +161,19 @@ nav.scrolled{border-bottom-color:var(--line);}
   transition:all 0.2s ease;
 }
 .nav-cta:hover{background:var(--accent);color:var(--paper);}
+
+.nav-login{
+  padding:10px 14px;
+  background:transparent;
+  color:var(--paper);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:500;
+  letter-spacing:0.12em;text-transform:uppercase;
+  border:1px solid rgba(245,243,239,0.2);
+  border-radius:0;
+  transition:all 0.2s ease;
+}
+.nav-login:hover{border-color:var(--accent);color:var(--accent);}
 
 /* ── HERO ─────────────────────────────────────────────── */
 .hero{
@@ -917,6 +930,7 @@ footer{
 @media (max-width:640px){
   nav{padding:14px 18px;}
   .nav-cta{font-size:10px;padding:8px 12px;}
+  .nav-login{font-size:10px;padding:8px 10px;}
   .nav-icon{width:32px;height:32px;}
   .hero{padding:96px 18px 40px;}
   .hero-right{min-height:380px;height:50vh;}
@@ -952,6 +966,7 @@ footer{
     <a href="https://www.facebook.com/biegaMy.run/" target="_blank" rel="noopener noreferrer" class="nav-icon" aria-label="Facebook">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
     </a>
+    <a href="index.html" class="nav-login">Zaloguj</a>
     <a href="#formularz" class="nav-cta">Dołącz</a>
   </div>
 </nav>
@@ -973,11 +988,12 @@ footer{
     <div class="hero-actions">
       <a href="#formularz" class="btn-primary"><span>Zacznij z nami</span> <span>→</span></a>
       <a href="#oferta" class="btn-ghost">Oferta <span>↓</span></a>
+      <a href="index.html" class="btn-ghost btn-login-alt"><span>Zaloguj</span> <span>↗</span></a>
     </div>
 
     <div class="hero-strip">
       <span class="pill">App</span>
-      <span>Plany · Strava · Czat z trenerem · Klaudiusz AI</span>
+      <span>Plany · Czat z trenerem · Powiadomienia · Statystyki</span>
       <a href="#aplikacja">Zobacz →</a>
     </div>
   </div>
@@ -986,7 +1002,7 @@ footer{
     <div class="hero-photo-wrap">
       <!-- ZDJĘCIE: hero-pucharki.webp - Filip i Kasia plecami z pucharami, koszulki "CHOJNACKA K" + "TRENER FILIP" -->
       <img class="hero-photo"
-           src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/hero-pucharki.webp"
+           src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/hero-pucharki.webp"
            alt="Filip i Kasia z pucharami, BiegaMy.run"
            loading="eager">
     </div>
@@ -1029,7 +1045,7 @@ footer{
       <div class="coach reveal">
         <div class="coach-photo" data-num="01">
           <!-- ZDJĘCIE: filip-portret.webp - Filip pojedyncze zdjęcie portretowe (najlepiej w trakcie biegu lub spokojnie) -->
-          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/filip-portret.webp"
+          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/filip-portret.webp"
                alt="Filip — trener biegania"
                loading="lazy">
         </div>
@@ -1048,7 +1064,7 @@ footer{
       <div class="coach reveal">
         <div class="coach-photo" data-num="02">
           <!-- ZDJĘCIE: kasia-portret.webp - Kasia pojedyncze zdjęcie portretowe -->
-          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/kasia-portret.webp"
+          <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/kasia-portret.webp"
                alt="Kasia — trenerka biegania"
                loading="lazy">
         </div>
@@ -1102,8 +1118,8 @@ footer{
     <div class="app-left">
       <div class="eyebrow reveal">04 / Aplikacja BiegaMy</div>
       <h2 class="reveal">
-        Plan. Strava.<br>
-        <em>Klaudiusz.</em>
+        Plan. Czat.<br>
+        <em>Społeczność.</em>
       </h2>
       <p class="app-lead reveal">
         Zbudowaliśmy aplikację, którą sami chcielibyśmy mieć jako biegacze. Coach w kieszeni — Twój plan, Twoje treningi, kontakt z trenerem 7 dni w tygodniu.
@@ -1119,22 +1135,22 @@ footer{
         <li class="reveal">
           <span class="num">02</span>
           <span class="feat-text">
-            <div class="feat-title">Synchronizacja ze Stravą</div>
-            <div class="feat-sub">Nic nie wpisujesz ręcznie. Trening idzie na Strava — Trener widzi go u siebie. Automatycznie.</div>
-          </span>
-        </li>
-        <li class="reveal">
-          <span class="num">03</span>
-          <span class="feat-text">
             <div class="feat-title">Czat z trenerem 7/7</div>
             <div class="feat-sub">Pytanie o trening? Zdjęcie z biegu? Boli kolano? Piszesz, my odpowiadamy. Bez czekania na poniedziałek.</div>
           </span>
         </li>
         <li class="reveal">
+          <span class="num">03</span>
+          <span class="feat-text">
+            <div class="feat-title">Twoje statystyki</div>
+            <div class="feat-sub">Wszystkie Twoje treningi, dystanse, tempo i postępy w jednym miejscu. Widzisz krzywą formy.</div>
+          </span>
+        </li>
+        <li class="reveal">
           <span class="num">04</span>
           <span class="feat-text">
-            <div class="feat-title">Klaudiusz — analizy AI</div>
-            <div class="feat-sub">Cotygodniowe i miesięczne raporty oparte na Twoich danych. Klaudiusz pokazuje wzorce, które łatwo przegapić.</div>
+            <div class="feat-title">Powiadomienia push</div>
+            <div class="feat-sub">Trener Cię nie zapomni. Przypomnienia o treningu, wiadomości, nowe plany — wszystko trafi na Twój telefon.</div>
           </span>
         </li>
       </ul>
@@ -1143,7 +1159,7 @@ footer{
 
     <div class="phone-stage">
       <span class="phone-tag t1">Twój plan</span>
-      <span class="phone-tag t2">Live · Strava</span>
+      <span class="phone-tag t2">Czat 7/7</span>
       <div class="phone">
         <div class="phone-screen">
           <div class="phone-notch"></div>
@@ -1170,7 +1186,7 @@ footer{
             </div>
           </div>
           <!-- Jeśli wgrasz prawdziwy screen, podmień fallback na: -->
-          <!-- <img src="https://...biegamy-assets/o-nas/app-screen.webp" alt="Aplikacja BiegaMy"> -->
+          <!-- <img src="https://...biegamy-assets/app-screen.webp" alt="Aplikacja BiegaMy"> -->
         </div>
       </div>
     </div>
@@ -1195,7 +1211,7 @@ footer{
       <div class="why-card reveal">
         <div class="why-num">02</div>
         <div class="why-title">Aplikacja<br>w cenie</div>
-        <p class="why-text">Pakiet miesięczny zawiera dostęp do aplikacji BiegaMy. Plany, Strava, czat — wszystko w jednym miejscu.</p>
+        <p class="why-text">Pakiet miesięczny zawiera dostęp do aplikacji BiegaMy. Plany, czat, statystyki — wszystko w jednym miejscu.</p>
       </div>
       <div class="why-card reveal">
         <div class="why-num">03</div>
@@ -1217,32 +1233,32 @@ footer{
     <div class="gallery-grid">
       <!-- ZDJĘCIE: gal-01.webp (DUŻE - hero galerii) Bieszczady, Wy w górach z napisem "ULTRA LOVERS" -->
       <div class="gallery-item g1 reveal">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/gal-01.webp"
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-01.webp"
              alt="Bieg górski w Bieszczadach" loading="lazy">
       </div>
       <!-- ZDJĘCIE: gal-02.webp - Wy biegniecie do mety za rękę -->
       <div class="gallery-item g2 reveal">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/gal-02.webp"
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-02.webp"
              alt="Filip i Kasia na mecie" loading="lazy">
       </div>
       <!-- ZDJĘCIE: gal-03.webp - Wy z medalami wtuleni -->
       <div class="gallery-item g3 reveal">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/gal-03.webp"
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-03.webp"
              alt="Filip i Kasia po biegu z medalami" loading="lazy">
       </div>
       <!-- ZDJĘCIE: gal-04.webp - Wy na bieżni rozciąganie z śmiechem -->
       <div class="gallery-item g4 reveal">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/gal-04.webp"
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-04.webp"
              alt="Trening na bieżni" loading="lazy">
       </div>
       <!-- ZDJĘCIE: gal-05.webp (WYŻSZE) - Filip krzyczący na mecie z medalem -->
       <div class="gallery-item g5 reveal">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/gal-05.webp"
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-05.webp"
              alt="Filip na mecie biegu" loading="lazy">
       </div>
       <!-- ZDJĘCIE: gal-06.webp - Konfetti, biegacz na mecie z rękami w górze -->
       <div class="gallery-item g6 reveal">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/o-nas/gal-06.webp"
+        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/gal-06.webp"
              alt="Meta biegu z konfetti" loading="lazy">
       </div>
     </div>
