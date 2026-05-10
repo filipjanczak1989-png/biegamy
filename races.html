@@ -3,18 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#07070a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BiegaMy">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="BiegaMy">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="shortcut icon" href="favicon.ico">
 <title>Kalendarz Startów · BiegaMy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -550,6 +538,8 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
 <div class="toast" id="toast"></div>
 
 <script>
+const _sb = window.sb;
+
 let _user = null, _athleteId = null, _athleteGoals = [], _isCoach = false;
 let _allRaces = [], _mySignups = new Set();
 let _activeDist = 'all', _searchVal = '';
@@ -557,12 +547,12 @@ let _currentRace = null;
 
 // ── INIT ──────────────────────────────────────────────────────────
 (async () => {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
   _user = session.user;
 
   // Pobierz athlete
-  const { data: ath } = await sb.from('athletes')
+  const { data: ath } = await _sb.from('athletes')
     .select('id,race_goals')
     .eq('user_id', _user.id)
     .maybeSingle();
@@ -572,7 +562,7 @@ let _currentRace = null;
   }
 
   // Sprawdź czy trener
-  const { data: coachRow } = await sb.from('coaches').select('id').eq('id', _user.id).maybeSingle();
+  const { data: coachRow } = await _sb.from('coaches').select('id').eq('id', _user.id).maybeSingle();
   _isCoach = !!coachRow;
   updateAddRaceUI();
 
@@ -582,7 +572,7 @@ let _currentRace = null;
 
 // ── LOAD RACES ────────────────────────────────────────────────────
 async function loadRaces() {
-  let query = sb.from('races')
+  let query = _sb.from('races')
     .select('*')
     .gte('date', new Date().toISOString().slice(0,10))
     .order('date', { ascending: true });
@@ -602,7 +592,7 @@ async function loadRaces() {
 
   // Sprawdź pending (tylko dla zawodnika)
   if (_athleteId && !_isCoach) {
-    const { data: pending } = await sb.from('races')
+    const { data: pending } = await _sb.from('races')
       .select('id')
       .eq('added_by', _athleteId)
       .eq('status', 'pending');
@@ -621,7 +611,7 @@ async function loadRaceParticipantsAvatars() {
   if (!raceIds.length) return;
 
   // Pobierz wszystkie signups dla widocznych wyścigów
-  const { data: signups } = await sb.from('race_signups')
+  const { data: signups } = await _sb.from('race_signups')
     .select('race_id,athlete_id,signed_at')
     .in('race_id', raceIds)
     .order('signed_at', { ascending: false });
@@ -638,7 +628,7 @@ async function loadRaceParticipantsAvatars() {
   // Pobierz dane wszystkich tych zawodników jednym zapytaniem
   const allAthleteIds = [...new Set(Object.values(byRace).flat())];
   if (!allAthleteIds.length) return;
-  const { data: athletes } = await sb.from('athletes')
+  const { data: athletes } = await _sb.from('athletes')
     .select('id,full_name,avatar_url')
     .in('id', allAthleteIds);
 
@@ -655,7 +645,7 @@ async function loadRaceParticipantsAvatars() {
 
 async function loadMySignups() {
   if (!_athleteId) return;
-  const { data } = await sb.from('race_signups')
+  const { data } = await _sb.from('race_signups')
     .select('race_id')
     .eq('athlete_id', _athleteId);
   _mySignups = new Set((data || []).map(r => r.race_id));
@@ -1041,7 +1031,7 @@ function updateModalSignupBtn(signed) {
 
 async function approveRace() {
   if (!_currentRace) return;
-  const { error } = await sb.from('races').update({ status: 'approved' }).eq('id', _currentRace.id);
+  const { error } = await _sb.from('races').update({ status: 'approved' }).eq('id', _currentRace.id);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _currentRace.status = 'approved';
   // Aktualizuj lokalnie
@@ -1055,7 +1045,7 @@ async function approveRace() {
 async function rejectRace() {
   if (!_currentRace) return;
   if (!confirm('Odrzucić propozycję "' + _currentRace.name + '"?')) return;
-  const { error } = await sb.from('races').update({ status: 'rejected' }).eq('id', _currentRace.id);
+  const { error } = await _sb.from('races').update({ status: 'rejected' }).eq('id', _currentRace.id);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _currentRace.status = 'rejected';
   const r = _allRaces.find(r => r.id === _currentRace.id);
@@ -1069,7 +1059,7 @@ async function deleteRace() {
   if (!_currentRace) return;
   const name = _currentRace.name;
   if (!confirm(`Usunąć "${name}" z kalendarza? Tej operacji nie można cofnąć.`)) return;
-  const { error } = await sb.from('races').delete().eq('id', _currentRace.id);
+  const { error } = await _sb.from('races').delete().eq('id', _currentRace.id);
   if (error) { showToast('Błąd: ' + error.message); return; }
   _allRaces = _allRaces.filter(r => r.id !== _currentRace.id);
   showToast(`"${name}" usunięte ✓`);
@@ -1109,7 +1099,7 @@ async function doSignup(raceId) {
   const race = _allRaces.find(r => r.id === raceId);
   if (!race) return;
 
-  const { error } = await sb.from('race_signups').upsert({
+  const { error } = await _sb.from('race_signups').upsert({
     race_id: raceId,
     athlete_id: _athleteId
   }, { onConflict: 'race_id,athlete_id' });
@@ -1132,7 +1122,7 @@ async function doSignup(raceId) {
 
 async function doUnsignup(raceId) {
   if (!_athleteId) return;
-  const { error } = await sb.from('race_signups')
+  const { error } = await _sb.from('race_signups')
     .delete()
     .eq('race_id', raceId)
     .eq('athlete_id', _athleteId);
@@ -1162,7 +1152,7 @@ async function addToGoals(race) {
     var existing = _athleteGoals.find(function(g){ return g.name && g.name.toLowerCase() === race.name.toLowerCase(); });
     if (existing && !existing.race_id) {
       existing.race_id = race.id;
-      await sb.from('athletes').update({ race_goals: JSON.stringify(_athleteGoals) }).eq('id', _athleteId);
+      await _sb.from('athletes').update({ race_goals: JSON.stringify(_athleteGoals) }).eq('id', _athleteId);
     }
     return;
   }
@@ -1170,7 +1160,7 @@ async function addToGoals(race) {
   const newGoal = { name: race.name, date: race.date, race_id: race.id };
   _athleteGoals.push(newGoal);
 
-  await sb.from('athletes').update({
+  await _sb.from('athletes').update({
     race_goals: JSON.stringify(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,
     target_date: _athleteGoals[0]?.date || null
@@ -1183,7 +1173,7 @@ async function removeFromGoals(raceId) {
   const idx = _athleteGoals.findIndex(g => g.race_id === raceId);
   if (idx === -1) return;
   _athleteGoals.splice(idx, 1);
-  await sb.from('athletes').update({
+  await _sb.from('athletes').update({
     race_goals: JSON.stringify(_athleteGoals),
     goal: _athleteGoals[0]?.name || null,
     target_date: _athleteGoals[0]?.date || null
@@ -1332,13 +1322,13 @@ async function submitRace() {
   let result;
   if (_editingRaceId) {
     // EDIT — update istniejący
-    result = await sb.from('races').update(payload).eq('id', _editingRaceId);
+    result = await _sb.from('races').update(payload).eq('id', _editingRaceId);
   } else {
     // INSERT — nowy
     payload.status = _isCoach ? 'approved' : 'pending';
     payload.added_by = _athleteId || null;
     payload.signup_count = 0;
-    result = await sb.from('races').insert(payload);
+    result = await _sb.from('races').insert(payload);
   }
 
   if (result.error) {
@@ -1347,9 +1337,9 @@ async function submitRace() {
       delete payload.voivodeship;
       payload.region = voivodeship || null;
       if (_editingRaceId) {
-        result = await sb.from('races').update(payload).eq('id', _editingRaceId);
+        result = await _sb.from('races').update(payload).eq('id', _editingRaceId);
       } else {
-        result = await sb.from('races').insert(payload);
+        result = await _sb.from('races').insert(payload);
       }
     }
   }
@@ -1431,7 +1421,7 @@ function showToast(msg) {
 }
 
 async function showParticipants(raceId, raceName) {
-  var res = await sb.from('race_signups').select('athlete_id').eq('race_id', raceId).limit(50);
+  var res = await _sb.from('race_signups').select('athlete_id').eq('race_id', raceId).limit(50);
   var ids = (res.data||[]).map(function(r){return r.athlete_id;});
   var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;z-index:500;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);display:flex;align-items:flex-end;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
   var sh=document.createElement('div');sh.style.cssText='width:100%;max-width:480px;max-height:70vh;background:#0f0d18;border-radius:24px 24px 0 0;display:flex;flex-direction:column;overflow:hidden;';
@@ -1441,7 +1431,7 @@ async function showParticipants(raceId, raceName) {
   var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
   if(!ids.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych uczestników</div>';return;}
-  var ar=await sb.from('athletes').select('id,full_name,avatar_url').in('id',ids);
+  var ar=await _sb.from('athletes').select('id,full_name,avatar_url').in('id',ids);
   li.innerHTML='';
   (ar.data||[]).forEach(function(a){
     var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';
@@ -1452,40 +1442,6 @@ async function showParticipants(raceId, raceName) {
     var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:13px;font-weight:600;';nm.textContent=a.full_name||'Biegacz';
     var arr=document.createElement('span');arr.innerHTML='›';arr.style.cssText='color:var(--muted);font-size:16px;';
     row.appendChild(av);row.appendChild(nm);row.appendChild(arr);li.appendChild(row);
-  });
-}
-</script>
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
-      .then(function(reg) {
-        // Wykryj update i powiadom usera
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nowa wersja gotowa — auto-reload
-                console.log('[PWA] New version available, reloading...');
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          }
-        });
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service worker registration failed:', err);
-      });
-  });
-
-  // Reload przy zmianie kontrolera (po SKIP_WAITING)
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
   });
 }
 </script>

@@ -3,18 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#07070a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BiegaMy">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="BiegaMy">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="shortcut icon" href="favicon.ico">
 <title>Statystyki · BiegaMy</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -281,7 +269,7 @@ nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;c
   </a>
   <a href="zawodnik.html">
     <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+      <img src="" id="nav-img-stat" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <span style="margin-top:2px;">Log</span>
   </a>
@@ -296,6 +284,13 @@ nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;c
 </nav>
 
 <script>
+const _sb = window.sb;
+// Ustaw src dla nav-img (dynamicznie z sb.js)
+(function(){
+  const navImg = document.getElementById('nav-img-stat');
+  if (navImg) navImg.src = window.SB_URL + '/storage/v1/object/public/biegamy-assets/bm-nav.webp';
+})();
+
 const params = new URLSearchParams(location.search);
 const _targetId = params.get('id');
 let _logs = [];
@@ -359,9 +354,9 @@ async function goToProfile() {
 async function init() {
   if (!_targetId) {
     // brak ID → spróbuj wziąć własne
-    const { data: { session } } = await sb.auth.getSession();
+    const { data: { session } } = await _sb.auth.getSession();
     if (session) {
-      const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
       if (ath) location.href = 'statystyki.html?id='+ath.id;
       else location.href = 'zawodnik.html';
       return;
@@ -371,14 +366,14 @@ async function init() {
   }
 
   // mój athlete id
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
   if (session) {
-    const { data: me } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (me) _myAthleteId = me.id;
   }
 
   // pobierz logi
-  const { data: logs } = await sb.from('training_logs')
+  const { data: logs } = await _sb.from('training_logs')
     .select('training_type,distance_km,pace,logged_at,comment')
     .eq('athlete_id', _targetId)
     .not('training_type','like','__badge__%')
@@ -694,40 +689,6 @@ function calcPaceZones() {
 }
 
 init();
-</script>
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
-      .then(function(reg) {
-        // Wykryj update i powiadom usera
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nowa wersja gotowa — auto-reload
-                console.log('[PWA] New version available, reloading...');
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          }
-        });
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service worker registration failed:', err);
-      });
-  });
-
-  // Reload przy zmianie kontrolera (po SKIP_WAITING)
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
 </script>
 </body>
 </html>

@@ -3,20 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#07070a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BiegaMy">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="BiegaMy">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="shortcut icon" href="favicon.ico">
 <title>BiegaMy — Łączenie ze Stravą</title>
-<script src="sb.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:#07070a;color:#f0ede8;font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;}
@@ -29,6 +16,8 @@
   .spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,0.1);border-top-color:#FC4C02;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;}
   @keyframes spin{to{transform:rotate(360deg);}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sb.js"></script>
 </head>
 <body>
 <div class="box">
@@ -41,8 +30,8 @@
 </div>
 
 <script>
-// SB_URL, SB_KEY, SB_FN_URL z js/sb.js
-const EDGE_FUNCTION_URL = SB_FN_URL + '/strava-callback';
+const EDGE_FUNCTION_URL = window.SB_FN_URL + '/strava-callback';
+const SUPABASE_ANON_KEY = window.SB_KEY;
 
 async function handleCallback() {
   const params = new URLSearchParams(window.location.search);
@@ -61,7 +50,7 @@ async function handleCallback() {
       `${EDGE_FUNCTION_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`,
       {
         headers: {
-          'Authorization': `Bearer ${SB_KEY}`,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json'
         }
       }
@@ -101,46 +90,7 @@ function showError(msg) {
   `;
 }
 
-// Opóźnij wywołanie do momentu gdy js/sb.js (defer) załaduje się
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', handleCallback);
-} else {
-  handleCallback();
-}
-</script>
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
-      .then(function(reg) {
-        // Wykryj update i powiadom usera
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nowa wersja gotowa — auto-reload
-                console.log('[PWA] New version available, reloading...');
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          }
-        });
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service worker registration failed:', err);
-      });
-  });
-
-  // Reload przy zmianie kontrolera (po SKIP_WAITING)
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
+handleCallback();
 </script>
 </body>
 </html>

@@ -3,18 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- PWA Meta Tags -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#07070a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BiegaMy">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="application-name" content="BiegaMy">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
-<link rel="shortcut icon" href="favicon.ico">
 <title>BiegaMy — Odznaki</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -67,15 +55,20 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   </div>
 </div>
 <script>
+const _sb = window.sb;
 let _athleteId = null;
 window._earnedBadges = new Set();
 
-
+// Ustaw src dla nav-img (dynamicznie z sb.js)
+(function(){
+  const navImg = document.getElementById('nav-img-odznaki');
+  if (navImg) navImg.src = window.SB_URL + '/storage/v1/object/public/biegamy-assets/bm-nav.webp';
+})();
 
 const RARITY_COLOR = {common:'#e8a040',rare:'#aac8ff',epic:'#c87ef0',legendary:'#ffcc00'};
 const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
-const BASE_URL = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/badges/';
-const BASE_ASSETS = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const BASE_URL = window.SB_URL + '/storage/v1/object/public/biegamy-assets/badges/';
+const BASE_ASSETS = window.SB_URL + '/storage/v1/object/public/biegamy-assets/';
 
 const BADGES = [
   // PODSTAWOWE
@@ -286,13 +279,13 @@ function renderBadgesSection() {
 }
 
 async function init() {
-  const { data: { session } } = await sb.auth.getSession();
+  const { data: { session } } = await _sb.auth.getSession();
   if (!session) { history.back(); return; }
-  const { data: ath } = await sb.from('athletes')
+  const { data: ath } = await _sb.from('athletes')
     .select('id').eq('user_id', session.user.id).single();
   if (ath) {
     _athleteId = ath.id;
-    const { data } = await sb.from('achievements')
+    const { data } = await _sb.from('achievements')
       .select('badge_id').eq('athlete_id', _athleteId);
     if (data) data.forEach(r => window._earnedBadges.add(r.badge_id));
   }
@@ -313,7 +306,7 @@ init();
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
     <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+      <img src="" id="nav-img-odznaki" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;margin-top:2px;">Log</span>
   </a>
@@ -330,44 +323,11 @@ init();
 // Ustaw link do profilu
 (async function(){
   try {
-        const {data:{session}} = await sb.auth.getSession();
-    if(session){const {data:a}=await sb.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();if(a)document.getElementById('nav-profil-link').href='profil.html?id='+a.id;}
+    const _sbN = window.sb;
+    const {data:{session}} = await _sbN.auth.getSession();
+    if(session){const {data:a}=await _sbN.from('athletes').select('id').eq('user_id',session.user.id).maybeSingle();if(a)document.getElementById('nav-profil-link').href='profil.html?id='+a.id;}
   }catch(e){}
 })();
-</script>
-<!-- PWA Service Worker -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
-      .then(function(reg) {
-        // Wykryj update i powiadom usera
-        reg.addEventListener('updatefound', function() {
-          var newWorker = reg.installing;
-          if (newWorker) {
-            newWorker.addEventListener('statechange', function() {
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                // Nowa wersja gotowa — auto-reload
-                console.log('[PWA] New version available, reloading...');
-                newWorker.postMessage({ type: 'SKIP_WAITING' });
-              }
-            });
-          }
-        });
-      })
-      .catch(function(err) {
-        console.warn('[PWA] Service worker registration failed:', err);
-      });
-  });
-
-  // Reload przy zmianie kontrolera (po SKIP_WAITING)
-  var refreshing = false;
-  navigator.serviceWorker.addEventListener('controllerchange', function() {
-    if (refreshing) return;
-    refreshing = true;
-    window.location.reload();
-  });
-}
 </script>
 </body>
 </html>

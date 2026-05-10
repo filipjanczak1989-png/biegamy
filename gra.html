@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sb.js"></script>
 <style>
 :root{
   --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
@@ -659,10 +660,7 @@ canvas{display:block;width:100vw;height:100vh;background:#07070a;cursor:pointer;
 // ═════════════════════════════════════════════════
 // SUPABASE + USER
 // ═════════════════════════════════════════════════
-const _sb = supabase.createClient(
-  'https://afqojgkaveykxbltxzwm.supabase.co',
-  'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY'
-);
+const _sb = window.sb;
 
 let _athleteId = null;
 let _athleteName = null;
