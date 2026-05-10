@@ -2573,6 +2573,9 @@ async function selA_db(athleteId) {
   // Wyczyść listę raportów AI z poprzedniego zawodnika
   const paiContent = document.getElementById('pai-content');
   if (paiContent) paiContent.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie...</div>';
+  // Wyczyść listę planów treningowych z poprzedniego zawodnika
+  const ptpContent = document.getElementById('ptp-content');
+  if (ptpContent) ptpContent.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie planów...</div>';
   await sb.from('training_logs').update({read_by_coach: new Date().toISOString()}).eq('athlete_id',athleteId).is('read_by_coach',null);
 
   // Skasuj badge 'nowy log' i 'brak logu'
@@ -2592,6 +2595,8 @@ async function selA_db(athleteId) {
   await loadPanelPB();
   // Odśwież listę raportów AI dla TEGO zawodnika (inaczej widać raporty poprzedniego)
   if (typeof loadPanelAI === 'function') loadPanelAI();
+  // Odśwież listę planów treningowych dla TEGO zawodnika (inaczej widać plany poprzedniego)
+  if (typeof loadPanelTrainingPlans === 'function') loadPanelTrainingPlans();
 
   // Telefon zawodnika
   const phoneRow = document.getElementById('pov-phone-row');
