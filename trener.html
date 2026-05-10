@@ -817,10 +817,48 @@ async function generateAIReportFromPanel(periodDays) {
 // w górach, troche przeciążony. Karolina ma słabe wyniki krwi, witaminy
 // powinna brać." itp. Komentarz nie musi pojawić się w treści raportu —
 // ma tylko pomóc Klaudiuszowi zrozumieć sytuację.
-function pickCoachNote(periodDays) {
+// ── Komentarz trenera przed raportem/planem (opcjonalny) ──────────
+// Daje Klaudiuszowi szerszy kontekst o zawodniku — kontuzje, samopoczucie,
+// ksywki, sytuacja życiowa. Komentarz nie musi pojawić się w treści —
+// służy jako tło dla rozumowania Klaudiusza.
+//
+// Args (opcjonalne):
+//   options.context: 'report' (default) | 'plan'
+//   options.periodDays: dla raportu (1, 7, 30)
+//   options.planType: dla planu (np. 'weekly')
+//   options.targetRace: dla planu (np. 'maraton')
+//
+// Backward-compat: pickCoachNote(periodDays) — liczba traktowana jako raport
+function pickCoachNote(options) {
+  // Stara sygnatura: pickCoachNote(7) → {context:'report', periodDays:7}
+  if (typeof options === 'number') {
+    options = { context: 'report', periodDays: options };
+  }
+  options = options || {};
+  
+  const ctx = options.context || 'report';
+  const isPlan = ctx === 'plan';
+  
   return new Promise((resolve) => {
-    const periodLabel = periodDays === 1 ? 'dziennego' : periodDays === 7 ? 'tygodniowego' : periodDays === 30 ? 'miesięcznego' : (periodDays + ' dni');
     const athleteName = (window._selectedAthleteName || 'zawodnika');
+    
+    let title, subtitle, placeholder, submitLabel, skipLabel;
+    if (isPlan) {
+      const planLabel = options.planType ? options.planType.replace(/_/g,' ') : 'planu';
+      const raceText = options.targetRace ? ` · ${options.targetRace}` : '';
+      title = 'Coś co Klaudiusz powinien wiedzieć?';
+      subtitle = `Plan <strong style="color:#8b5cf6;">${planLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>${raceText}. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie, plany dnia. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em>`;
+      placeholder = 'np. ostatnio dużo pracował, mało spał. Lub: po ultra w górach w weekend, trzeba się rozkręcić. Lub: ma kontuzję ścięgna achilles, omijaj interwały. Lub: wraca po przerwie, trzeba spokojnie...';
+      submitLabel = '✨ Generuj plan z komentarzem';
+      skipLabel = 'Pomiń — generuj bez komentarza';
+    } else {
+      const periodLabel = options.periodDays === 1 ? 'dziennego' : options.periodDays === 7 ? 'tygodniowego' : options.periodDays === 30 ? 'miesięcznego' : ((options.periodDays||'') + ' dni');
+      title = 'Coś co warto żeby Klaudiusz wiedział?';
+      subtitle = `Raport <strong style="color:#8b5cf6;">${periodLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em>`;
+      placeholder = 'np. po ultra w górach w weekend, trochę przeciążony. Lub: ma słabe wyniki krwi, suplementuje witaminy. Lub: ma ksywę Łysy, śmieje się że na szybkich akcentach poczuje wiatr we włosach...';
+      submitLabel = '✨ Generuj z komentarzem';
+      skipLabel = 'Pomiń — generuj bez komentarza';
+    }
     
     const html = `
       <div id="cn-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);" onclick="if(event.target===this)window._cnResolve(null)">
@@ -828,18 +866,18 @@ function pickCoachNote(periodDays) {
           <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px;">
             <div style="flex:1;min-width:0;">
               <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:2px;">💬 Kontekst dla Klaudiusza</div>
-              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);line-height:1.1;">Coś co warto żeby Klaudiusz wiedział?</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);line-height:1.1;">${title}</div>
             </div>
             <button onclick="window._cnResolve(null)" style="flex-shrink:0;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
           </div>
           
           <div style="font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;margin-bottom:12px;line-height:1.5;">
-            Raport <strong style="color:#8b5cf6;">${periodLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em>
+            ${subtitle}
           </div>
           
           <textarea 
             id="cn-textarea" 
-            placeholder="np. po ultra w górach w weekend, trochę przeciążony. Lub: ma słabe wyniki krwi, suplementuje witaminy. Lub: ma ksywę Łysy, śmieje się że na szybkich akcentach poczuje wiatr we włosach..."
+            placeholder="${placeholder.replace(/"/g,'&quot;')}"
             style="width:100%;min-height:140px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;resize:vertical;outline:none;"
             maxlength="2000"
           ></textarea>
@@ -849,8 +887,8 @@ function pickCoachNote(periodDays) {
           </div>
           
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <button onclick="window._cnSubmit()" style="padding:11px 14px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:none;border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:500;">✨ Generuj z komentarzem</button>
-            <button onclick="window._cnResolve('')" style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Pomiń — generuj bez komentarza</button>
+            <button onclick="window._cnSubmit()" style="padding:11px 14px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:none;border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:500;">${submitLabel}</button>
+            <button onclick="window._cnResolve('')" style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">${skipLabel}</button>
           </div>
         </div>
       </div>
@@ -1388,6 +1426,14 @@ async function generateTrainingPlan() {
   const targetDate = document.getElementById('tp-target-date').value || null;
   const targetTime = document.getElementById('tp-target-time').value.trim() || null;
 
+  // Krok komentarz trenera — daje Klaudiuszowi szerszy kontekst przed planem
+  const coachNote = await pickCoachNote({
+    context: 'plan',
+    planType: _tpSelectedType,
+    targetRace: targetRace
+  });
+  if (coachNote === null) return; // user anulował
+
   // UI: loading
   const goBtn = document.getElementById('tp-create-go-btn');
   const statusEl = document.getElementById('tp-create-status');
@@ -1401,20 +1447,23 @@ async function generateTrainingPlan() {
     if (!session) throw new Error('Brak sesji');
 
     const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/generate-training-plan';
+    const body = {
+      athlete_id: athleteId,
+      plan_type: _tpSelectedType,
+      start_date: startDate,
+      target_race_type: targetRace,
+      target_race_date: targetDate,
+      target_time: targetTime
+    };
+    if (coachNote) body.coach_note = coachNote; // ← NOWE
+    
     const resp = await fetch(fnUrl, {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + session.access_token,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        athlete_id: athleteId,
-        plan_type: _tpSelectedType,
-        start_date: startDate,
-        target_race_type: targetRace,
-        target_race_date: targetDate,
-        target_time: targetTime
-      })
+      body: JSON.stringify(body)
     });
 
     const data = await resp.json();

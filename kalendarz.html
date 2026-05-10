@@ -4201,6 +4201,34 @@ function _openDayScreen(ds) {
     badge.innerHTML = '';
   }
 
+  // ── BANNER typu treningu (premium header) ─────────────────────────
+  // Mapowanie nazwy typu na plik banner-a w bucket biegamy-assets/banners/
+  const bannerMap = {
+    'Bieg spokojny':'banner-spokojny.webp',
+    'Spokojny':'banner-spokojny.webp',
+    'Interwały':'banner-interwaly.webp',
+    'Tempo':'banner-tempo.webp',
+    'Wybieganie':'banner-wybieganie.webp',
+    'Regeneracja':'banner-regeneracja.webp',
+    'Wzmacniający':'banner-wzmacniajacy.webp',
+    'Zastępczy':'banner-zastepczy.webp',
+    'Start':'banner-start.webp',
+    // Race goal: różnie nazywany ale jako "start"
+  };
+  const bannerWrap = document.getElementById('ds-type-banner');
+  const bannerImg  = document.getElementById('ds-type-banner-img');
+  // Race goal — zawsze banner-start; inaczej dopasuj po typie
+  const bannerKey = raceGoal ? 'Start' : typeName;
+  const bannerFile = bannerMap[bannerKey];
+  if (bannerFile && bannerImg && bannerWrap) {
+    const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/banners/';
+    bannerImg.src = baseUrl + bannerFile;
+    bannerImg.alt = typeName || bannerKey;
+    bannerWrap.style.display = '';
+  } else if (bannerWrap) {
+    bannerWrap.style.display = 'none';
+  }
+
   // Meta: tempo + tętno pod KM
   const heroMeta = document.getElementById('ds-hero-meta');
   const metaHtml = [];
@@ -4591,6 +4619,11 @@ document.addEventListener('keydown', e => {
 
   <!-- CONTENT -->
   <div style="padding:18px 16px calc(max(env(safe-area-inset-bottom,0px),16px) + 88px);">
+
+    <!-- BANNER typu treningu (wstawiany dynamicznie z _openDayScreen) -->
+    <div id="ds-type-banner" style="display:none;margin:0 0 16px;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(232,86,30,0.15);">
+      <img id="ds-type-banner-img" src="" alt="" style="width:100%;height:auto;display:block;">
+    </div>
 
     <!-- KARTA: Dane 2x2 -->
     <div id="ds-stats-card" class="ds-card" style="display:none;">
