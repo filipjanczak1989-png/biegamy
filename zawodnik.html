@@ -969,10 +969,8 @@ body > *{position:relative;z-index:1;}
   <div id="push-prompt-banner"></div>
   <!-- Pending duels banner (renderowane przez loadPendingDuelsBanner) -->
   <div id="today-pending-duels"></div>
-  <!-- Banner typu treningu (renderowany przez loadToday) -->
-  <div id="today-type-banner" style="display:none;margin-bottom:12px;border-radius:12px;overflow:hidden;box-shadow:0 4px 16px rgba(232,86,30,0.15);">
-    <img id="today-type-banner-img" src="" alt="" style="width:100%;height:auto;display:block;">
-  </div>
+  <!-- Pill typu treningu (renderowana przez loadToday) -->
+  <div id="today-type-pill-wrap" style="display:none;margin-bottom:12px;"></div>
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
   <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
@@ -1590,6 +1588,44 @@ body > *{position:relative;z-index:1;}
 <script src="sb.js"></script>
 
 <script>
+// ── PILL TYPU TRENINGU (uniwersalna komponenta) ──────────────────
+// Mała, subtelna odznaka z ikonką w kafelku — pokazuje typ treningu
+// bez dominacji UI. Zwraca HTML string (bezpieczny — używa SVG hardcoded).
+function renderTypePill(type, opts) {
+  if (!type) return '';
+  opts = opts || {};
+  const size = opts.size || 'md'; // 'sm' (mniejszy) | 'md' (default)
+  
+  const map = {
+    'Spokojny':       {color:'#5090e0', icon:'<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/>'},
+    'Bieg spokojny':  {color:'#5090e0', icon:'<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/>'},
+    'Interwały':      {color:'#e8b840', icon:'<polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'},
+    'Tempo':          {color:'#f06030', icon:'<circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 15 15"/><line x1="9" y1="3" x2="15" y2="3"/>'},
+    'Wybieganie':     {color:'#3db870', icon:'<path d="M3 18 C 6 14, 9 10, 12 10 C 15 10, 18 14, 21 18"/><path d="M9 14 L 9 14.5"/><path d="M15 14 L 15 14.5"/>'},
+    'Regeneracja':    {color:'#9a6fe8', icon:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'},
+    'Wzmacniający':   {color:'#f0a830', icon:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'},
+    'Zastępczy':      {color:'#888888', icon:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>'},
+    'Start':          {color:'#3db870', icon:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'},
+    'Odpoczynek':     {color:'#888888', icon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'},
+  };
+  
+  const m = map[type] || {color:'#888888', icon:'<circle cx="12" cy="12" r="9"/>'};
+  const padX = size==='sm' ? '5px 9px 5px 5px' : '6px 12px 6px 6px';
+  const iconBoxSize = size==='sm' ? '18px' : '24px';
+  const iconSize = size==='sm' ? '12' : '14';
+  const fontSize = size==='sm' ? '9px' : '10px';
+  const gap = size==='sm' ? '6px' : '8px';
+  const radius = size==='sm' ? '6px' : '8px';
+  
+  return `<span style="display:inline-flex;align-items:center;gap:${gap};background:linear-gradient(90deg,#1a1a1a,#0d0d0d);border:1px solid ${m.color}88;border-radius:${radius};padding:${padX};box-shadow:0 0 8px ${m.color}26;color:#fff;font-family:'DM Mono',monospace;">
+    <span style="width:${iconBoxSize};height:${iconBoxSize};border-radius:5px;background:${m.color}2e;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${m.icon}</svg>
+    </span>
+    <span style="font-size:${fontSize};letter-spacing:0.12em;text-transform:uppercase;font-weight:500;">${type}</span>
+  </span>`;
+}
+window.renderTypePill = renderTypePill;
+
 // ── Security: HTML escape (anti-XSS) ───────────────────────────────
 // Uwaga: jeśli sb.js dorobi window.escapeHtml, ten lokalny zostanie nadpisany
 if (typeof window.escapeHtml !== 'function') {
@@ -4788,22 +4824,11 @@ async function loadWeekPlan() {
   }  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
   const today = todayStr;
 
-  const _bannerMap = {
-    'Bieg spokojny':'banner-spokojny.webp',
-    'Spokojny':'banner-spokojny.webp',
-    'Interwały':'banner-interwaly.webp',
-    'Tempo':'banner-tempo.webp',
-    'Wybieganie':'banner-wybieganie.webp',
-    'Regeneracja':'banner-regeneracja.webp',
-    'Wzmacniający':'banner-wzmacniajacy.webp',
-    'Zastępczy':'banner-zastepczy.webp',
-    'Start':'banner-start.webp',
-  };
-  const _bannerBase = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
+  // Zamiast wielkiego banner-a używamy małej pill (uniwersalna funkcja z window)
   function _typeBanner(type) {
-    const f = _bannerMap[type];
-    if (!f) return '';
-    return `<div style="margin-bottom:10px;border-radius:10px;overflow:hidden;box-shadow:0 2px 12px rgba(232,86,30,0.12);"><img src="${_bannerBase}${f}" alt="${type}" style="width:100%;height:auto;display:block;"></div>`;
+    if (!type || type === 'Odpoczynek') return '';
+    if (typeof window.renderTypePill !== 'function') return '';
+    return `<div style="margin-bottom:10px;">${window.renderTypePill(type)}</div>`;
   }
 
   document.getElementById('week-strip').innerHTML = data.map((t, i) => {
@@ -4984,9 +5009,9 @@ async function loadTodayTraining() {
   
   if (!data) {
     document.getElementById('today-desc').textContent = 'Brak zaplanowanego treningu na dziś.';
-    // Ukryj banner gdy brak treningu
-    const tBanner = document.getElementById('today-type-banner');
-    if (tBanner) tBanner.style.display = 'none';
+    // Ukryj pill gdy brak treningu
+    const tPillWrap = document.getElementById('today-type-pill-wrap');
+    if (tPillWrap) tPillWrap.style.display = 'none';
     window._todayTraining = null;
     return;
   }
@@ -5002,28 +5027,13 @@ async function loadTodayTraining() {
   if(badge){ badge.textContent = (typeIcons[data.type]||'🏃') + ' ' + (data.type||'Trening'); badge.style.display='inline-flex'; }
   if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
   
-  // ── Banner typu treningu — premium header pod akcjami ──
-  const bannerMap = {
-    'Bieg spokojny':'banner-spokojny.webp',
-    'Spokojny':'banner-spokojny.webp',
-    'Interwały':'banner-interwaly.webp',
-    'Tempo':'banner-tempo.webp',
-    'Wybieganie':'banner-wybieganie.webp',
-    'Regeneracja':'banner-regeneracja.webp',
-    'Wzmacniający':'banner-wzmacniajacy.webp',
-    'Zastępczy':'banner-zastepczy.webp',
-    'Start':'banner-start.webp',
-  };
-  const tBanner = document.getElementById('today-type-banner');
-  const tBannerImg = document.getElementById('today-type-banner-img');
-  const bannerFile = bannerMap[data.type];
-  if (bannerFile && tBannerImg && tBanner) {
-    const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
-    tBannerImg.src = baseUrl + bannerFile;
-    tBannerImg.alt = data.type;
-    tBanner.style.display = '';
-  } else if (tBanner) {
-    tBanner.style.display = 'none';
+  // ── Pill typu treningu — kompaktowa odznaka pod akcjami ──
+  const tPillWrap = document.getElementById('today-type-pill-wrap');
+  if (tPillWrap && data.type && data.type !== 'Odpoczynek' && typeof renderTypePill === 'function') {
+    tPillWrap.innerHTML = renderTypePill(data.type);
+    tPillWrap.style.display = '';
+  } else if (tPillWrap) {
+    tPillWrap.style.display = 'none';
   }
   
   const metaItems = [
@@ -5177,7 +5187,7 @@ function renderLogsDb(data) {
       <div style="height:70px;"></div>
       <div style="position:relative;z-index:1;padding:8px 14px 12px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-          <span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 8px;border-radius:6px;border:1px solid ${col}55;">${type}</span>
+          ${typeof window.renderTypePill === 'function' ? window.renderTypePill(rawType, {size:'sm'}) : `<span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:${col};font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 8px;border-radius:6px;border:1px solid ${col}55;">${type}</span>`}
           <span style="font-size:9px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;margin-left:auto;">${date}</span>
           ${feelEmoji ? '<div style="margin-left:4px;">'+feelEmoji+'</div>' : ''}
           <button onclick="event.stopPropagation();deleteLog('${l.id}')" style="background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4);cursor:pointer;font-size:11px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>
