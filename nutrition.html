@@ -1507,6 +1507,10 @@ body {
   justify-content: center;
   z-index: 100;
   padding: 16px;
+  /* iOS dynamic viewport — reaguje na klawiaturę */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   animation: modalFade 0.25s ease-out;
 }
 @keyframes modalFade {
@@ -1520,10 +1524,18 @@ body {
   border: 1px solid var(--border-hi);
   border-radius: 22px;
   padding: 24px;
+  /* dolny padding ważny żeby przyciski nie były pod nawigacją iOS */
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
   max-width: 400px;
   width: 100%;
-  max-height: 90vh;
+  /* dynamic viewport - 90dvh nie 90vh */
+  max-height: calc(100dvh - 32px);
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Safari flex hack */
+  min-height: 0;
+  /* nie dragujemy strony przy scroll w modalu */
+  overscroll-behavior: contain;
   box-shadow:
     0 30px 80px rgba(0,0,0,0.7),
     0 0 0 1px rgba(255,255,255,0.04),
@@ -1790,7 +1802,13 @@ body {
 .pc-card {
   padding: 0 !important;  /* hero zaczyna od krawędzi */
   max-width: 440px;
-  overflow: hidden !important;
+  /* WAŻNE: pozwalamy na scroll w pionie, ale nie wycieka treść z boków */
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  /* iOS momentum scroll */
+  -webkit-overflow-scrolling: touch;
+  /* Safe area dla telefonów z notch */
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
 }
 .pc-card::before { display: none; }  /* nie potrzebujemy gradient bo mamy hero */
 
@@ -1977,8 +1995,8 @@ body {
   flex-wrap: wrap;
 }
 .pc-preset {
-  flex: 1 1 calc(33% - 5px);
-  min-width: 70px;
+  flex: 1;
+  min-width: 50px;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
   color: var(--fg2);
@@ -1988,20 +2006,12 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
-  line-height: 1.3;
-}
-.pc-preset .pc-preset-grams {
-  display: block;
-  font-size: 9px;
-  opacity: 0.6;
-  margin-top: 2px;
 }
 .pc-preset.active {
   background: linear-gradient(135deg, rgba(232,86,30,0.25), rgba(232,86,30,0.12));
   border-color: var(--accent);
   color: var(--accent);
 }
-.pc-preset.active .pc-preset-grams { opacity: 0.85; }
 
 /* KCAL highlight */
 .pc-kcal-highlight {
@@ -2045,164 +2055,6 @@ body {
   color: var(--accent);
   font-weight: 700;
 }
-
-/* TRYB JEDNOSTEK (g / sztuki / łyżki) */
-.pc-mode-toggle {
-  display: flex;
-  gap: 4px;
-  background: rgba(0,0,0,0.4);
-  border-radius: 10px;
-  padding: 4px;
-  margin: 10px 0 8px;
-}
-.pc-mode-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: var(--fg2);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 8px 4px;
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
-}
-.pc-mode-btn.active {
-  background: rgba(232,86,30,0.18);
-  color: var(--accent);
-  box-shadow: 0 0 0 1px rgba(232,86,30,0.3) inset;
-}
-.pc-mode-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-/* SANITY BADGE (banan 370 kcal -> ⚠) */
-.pc-sanity-badge {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(224, 80, 80, 0.10);
-  border: 1px solid rgba(224, 80, 80, 0.35);
-  border-radius: 10px;
-  padding: 9px 12px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.pc-sanity-badge:active {
-  background: rgba(224, 80, 80, 0.18);
-}
-.pc-sanity-badge.hidden { display: none; }
-.pc-sanity-icon {
-  font-size: 14px;
-  line-height: 1;
-}
-.pc-sanity-text {
-  flex: 1;
-  font-size: 12px;
-  color: #ffb0b0;
-  font-weight: 600;
-}
-.pc-sanity-action {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  color: var(--accent);
-  font-weight: 700;
-}
-
-/* EDYTOR PER-100g */
-.pc-per100-toggle {
-  text-align: center;
-  margin-bottom: 10px;
-}
-.pc-per100-link {
-  background: transparent;
-  border: none;
-  color: var(--fg2);
-  font-size: 11px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: rgba(255,255,255,0.2);
-  text-underline-offset: 3px;
-  font-family: inherit;
-  padding: 4px 8px;
-}
-.pc-per100-link:active { color: var(--accent); }
-.pc-per100-editor {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 14px;
-}
-.pc-per100-editor.hidden { display: none; }
-.pc-per100-title {
-  font-size: 11px;
-  font-family: 'DM Mono', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg2);
-  margin-bottom: 10px;
-}
-.pc-per100-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-.pc-per100-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.pc-per100-label {
-  font-size: 10px;
-  color: var(--muted);
-  font-family: 'DM Mono', monospace;
-}
-.pc-per100-cell input {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px 10px;
-  color: var(--fg);
-  font-size: 14px;
-  font-family: 'DM Mono', monospace;
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-}
-.pc-per100-cell input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.pc-per100-actions {
-  display: flex;
-  gap: 8px;
-}
-.pc-per100-reset, .pc-per100-close {
-  flex: 1;
-  border: none;
-  border-radius: 8px;
-  padding: 9px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-.pc-per100-reset {
-  background: transparent;
-  color: var(--fg2);
-  border: 1px solid var(--border);
-}
-.pc-per100-close {
-  background: var(--accent);
-  color: #fff;
-}
-.pc-per100-reset:active { background: rgba(255,255,255,0.05); }
-.pc-per100-close:active { filter: brightness(0.9); }
 
 /* TABS */
 .pc-tabs {
@@ -2665,114 +2517,6 @@ body {
   transition: background 0.1s;
 }
 .ai-item-remove:active { background: rgba(224,80,80,0.2); color: var(--red); }
-
-/* Edycja per-100g w AI modal */
-.ai-item { flex-wrap: wrap; }
-.ai-item-edit {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--fg2);
-  cursor: pointer;
-  font-size: 12px;
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.1s;
-}
-.ai-item-edit:active {
-  background: rgba(232,86,30,0.15);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-.ai-sanity-badge {
-  display: inline-block;
-  margin-top: 4px;
-  background: rgba(224, 80, 80, 0.12);
-  border: 1px solid rgba(224, 80, 80, 0.4);
-  color: #ffb0b0;
-  font-size: 10px;
-  font-family: 'DM Mono', monospace;
-  padding: 3px 7px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.ai-sanity-badge:active { background: rgba(224, 80, 80, 0.22); }
-
-.ai-item-editor {
-  flex-basis: 100%;
-  margin-top: 8px;
-  padding: 10px;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-.ai-item-editor-title {
-  font-size: 10px;
-  font-family: 'DM Mono', monospace;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg2);
-  margin-bottom: 8px;
-}
-.ai-item-editor-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-.ai-item-editor-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.ai-item-editor-grid label span {
-  font-size: 9px;
-  color: var(--muted);
-  font-family: 'DM Mono', monospace;
-}
-.ai-item-editor-grid input {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 4px;
-  color: var(--fg);
-  font-size: 12px;
-  font-family: 'DM Mono', monospace;
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-}
-.ai-item-editor-grid input:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-.ai-item-editor-actions {
-  display: flex;
-  gap: 6px;
-}
-.ai-item-editor-reset, .ai-item-editor-close {
-  flex: 1;
-  border: none;
-  border-radius: 6px;
-  padding: 7px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  font-family: inherit;
-}
-.ai-item-editor-reset {
-  background: transparent;
-  color: var(--fg2);
-  border: 1px solid var(--border);
-}
-.ai-item-editor-close {
-  background: var(--accent);
-  color: #fff;
-}
 
 .ai-total {
   background: rgba(232,86,30,0.10);
@@ -4050,7 +3794,7 @@ body {
 
     <!-- BODY -->
     <div class="pc-body">
-      <!-- SLIDER + presets + tryb jednostki -->
+      <!-- SLIDER + presets -->
       <div class="pc-grams">
         <div class="pc-grams-row">
           <label class="pc-grams-label">Ile zjadłeś</label>
@@ -4060,14 +3804,14 @@ body {
           </div>
         </div>
         <input type="range" id="mc-grams-slider" class="pc-grams-slider" min="5" max="500" step="5" value="100">
-        <!-- Tryb jednostki: g / sztuki/kromki/szklanki / łyżki -->
-        <div class="pc-mode-toggle" id="pc-mode-toggle">
-          <button type="button" class="pc-mode-btn" data-mode="units" onclick="setPortionMode('units')">Sztuki</button>
-          <button type="button" class="pc-mode-btn active" data-mode="g" onclick="setPortionMode('g')">Gramy</button>
-          <button type="button" class="pc-mode-btn" data-mode="spoon" onclick="setPortionMode('spoon')">Łyżki</button>
+        <div class="pc-presets">
+          <button class="pc-preset" onclick="setPreset(50)">50g</button>
+          <button class="pc-preset active" onclick="setPreset(100)">100g</button>
+          <button class="pc-preset" onclick="setPreset(150)">150g</button>
+          <button class="pc-preset" onclick="setPreset(200)">200g</button>
+          <button class="pc-preset" onclick="setPreset(250)">250g</button>
+          <button class="pc-preset" onclick="setPreset(330)">330g</button>
         </div>
-        <!-- Presety dynamicznie generowane na podstawie trybu -->
-        <div class="pc-presets" id="pc-presets"></div>
       </div>
 
       <!-- KCAL HIGHLIGHT -->
@@ -4075,45 +3819,6 @@ body {
         <div class="pc-kcal-num" id="mc-kcal">0</div>
         <div class="pc-kcal-label">kcal</div>
         <div class="pc-kcal-target" id="pc-kcal-pct"></div>
-      </div>
-
-      <!-- SANITY BADGE — pokazywany gdy kcal/100g poza fizjologicznym zakresem -->
-      <div id="pc-sanity-badge" class="pc-sanity-badge hidden" onclick="togglePer100Editor(true)">
-        <span class="pc-sanity-icon">⚠</span>
-        <span class="pc-sanity-text" id="pc-sanity-text">Sprawdź wartości</span>
-        <span class="pc-sanity-action">Edytuj →</span>
-      </div>
-
-      <!-- EDYCJA WARTOŚCI NA 100g — schowany domyślnie, otwierany linkiem lub badgem -->
-      <div class="pc-per100-toggle">
-        <button type="button" class="pc-per100-link" onclick="togglePer100Editor()">
-          <span id="pc-per100-link-label">✎ Popraw wartości na 100g</span>
-        </button>
-      </div>
-      <div id="pc-per100-editor" class="pc-per100-editor hidden">
-        <div class="pc-per100-title">Wartości odżywcze na 100g produktu</div>
-        <div class="pc-per100-grid">
-          <label class="pc-per100-cell">
-            <span class="pc-per100-label">kcal</span>
-            <input type="number" id="pc-edit-kcal" min="0" max="900" step="1" inputmode="numeric" oninput="onPer100Edit()">
-          </label>
-          <label class="pc-per100-cell">
-            <span class="pc-per100-label">Białko (g)</span>
-            <input type="number" id="pc-edit-protein" min="0" max="100" step="0.1" inputmode="decimal" oninput="onPer100Edit()">
-          </label>
-          <label class="pc-per100-cell">
-            <span class="pc-per100-label">Węgle (g)</span>
-            <input type="number" id="pc-edit-carbs" min="0" max="100" step="0.1" inputmode="decimal" oninput="onPer100Edit()">
-          </label>
-          <label class="pc-per100-cell">
-            <span class="pc-per100-label">Tłuszcz (g)</span>
-            <input type="number" id="pc-edit-fat" min="0" max="100" step="0.1" inputmode="decimal" oninput="onPer100Edit()">
-          </label>
-        </div>
-        <div class="pc-per100-actions">
-          <button type="button" class="pc-per100-reset" onclick="resetPer100ToOriginal()">↺ Przywróć</button>
-          <button type="button" class="pc-per100-close" onclick="togglePer100Editor(false)">Gotowe</button>
-        </div>
       </div>
 
       <!-- TABS -->
@@ -4786,7 +4491,7 @@ body {
 // FOOD IMAGES — pula 55 grafik j1.webp ... j55.webp
 // ════════════════════════════════════════════════════════════
 const FOOD_IMG_COUNT = 55;
-const FOOD_IMG_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const FOOD_IMG_BASE = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
 
 // Losowa grafika (przy każdym wywołaniu inna)
 function getRandomFoodImage() {
@@ -5542,7 +5247,7 @@ function pickQuoteImages(dateStr, count) {
     indices.add(n);
     i++;
   }
-  const baseUrl = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+  const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
   return [...indices].map(n => `${baseUrl}j${n}.webp`);
 }
 
@@ -6288,301 +5993,6 @@ async function lookupBarcode(barcode) {
 // PRODUCT CONFIRM MODAL
 // ════════════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════════════
-// PORTION SYSTEM — jednostki domowe + sanity check kcal/100g
-// ════════════════════════════════════════════════════════════
-// Każda kategoria ma:
-//   units: lista jednostek {label, grams, default?} — pierwsza z default=true to domyślna
-//   kcalRange: [min, max] kcal/100g — fizjologiczny zakres dla sanity check
-//   keywords: regex (i flag) do dopasowania po nazwie
-//
-// Frontend dopasowuje kategorię po nazwie produktu. Edge function może
-// też zwrócić serving_units bezpośrednio — wtedy ma priorytet (patrz applyServingUnits).
-
-const PORTION_CATEGORIES = [
-  // ── OWOCE ────────────────────────────────────────────────
-  { id: 'banana', kcalRange: [60, 120], keywords: /\b(banan|banana)\b/i,
-    units: [
-      { label: 'sztuka mała', grams: 90 },
-      { label: 'sztuka średnia', grams: 120, default: true },
-      { label: 'sztuka duża', grams: 150 },
-      { label: 'plaster', grams: 6 },
-    ]},
-  { id: 'apple', kcalRange: [40, 80], keywords: /\b(jabłk|jablk|apple)/i,
-    units: [
-      { label: 'sztuka mała', grams: 130 },
-      { label: 'sztuka średnia', grams: 180, default: true },
-      { label: 'sztuka duża', grams: 220 },
-    ]},
-  { id: 'pear', kcalRange: [40, 80], keywords: /\b(grusz|pear)/i,
-    units: [
-      { label: 'sztuka średnia', grams: 180, default: true },
-      { label: 'sztuka duża', grams: 230 },
-    ]},
-  { id: 'orange', kcalRange: [35, 70], keywords: /\b(pomarańcz|pomaranc|orange|mandarynk)/i,
-    units: [
-      { label: 'sztuka średnia', grams: 150, default: true },
-      { label: 'sztuka duża', grams: 200 },
-    ]},
-  { id: 'kiwi', kcalRange: [40, 80], keywords: /\bkiwi\b/i,
-    units: [
-      { label: 'sztuka', grams: 70, default: true },
-    ]},
-  { id: 'strawberry', kcalRange: [25, 50], keywords: /\b(truskaw|strawberr|malin|raspberr|jagod|borówk|borowk|blueberr)/i,
-    units: [
-      { label: 'garść', grams: 100, default: true },
-      { label: 'szklanka', grams: 150 },
-      { label: 'sztuka', grams: 12 },
-    ]},
-  { id: 'grape', kcalRange: [55, 90], keywords: /\b(winogron|grape)/i,
-    units: [
-      { label: 'garść', grams: 80, default: true },
-      { label: 'szklanka', grams: 150 },
-    ]},
-  // ── WARZYWA ──────────────────────────────────────────────
-  { id: 'tomato', kcalRange: [15, 35], keywords: /\b(pomidor|tomato)/i,
-    units: [
-      { label: 'sztuka mała', grams: 80 },
-      { label: 'sztuka średnia', grams: 120, default: true },
-      { label: 'koktajlowy', grams: 15 },
-    ]},
-  { id: 'cucumber', kcalRange: [10, 25], keywords: /\b(ogórek|ogorek|cucumber)/i,
-    units: [
-      { label: 'sztuka', grams: 250, default: true },
-      { label: 'plaster', grams: 8 },
-    ]},
-  { id: 'pepper', kcalRange: [20, 45], keywords: /\b(papryk|pepper)/i,
-    units: [
-      { label: 'sztuka', grams: 150, default: true },
-    ]},
-  { id: 'carrot', kcalRange: [30, 60], keywords: /\b(marchew|carrot)/i,
-    units: [
-      { label: 'sztuka', grams: 80, default: true },
-      { label: 'starta — szklanka', grams: 110 },
-    ]},
-  { id: 'potato', kcalRange: [60, 110], keywords: /\b(ziemniak|kartofl|potato)/i,
-    units: [
-      { label: 'sztuka średnia', grams: 150, default: true },
-      { label: 'sztuka duża', grams: 220 },
-    ]},
-  // ── PIECZYWO / ZBOŻA ─────────────────────────────────────
-  { id: 'bread', kcalRange: [200, 320], keywords: /\b(chleb|bułk|bulk|tost|bagiet|bread|toast|baguette|pieczyw)/i,
-    units: [
-      { label: 'kromka', grams: 30, default: true },
-      { label: 'gruba kromka', grams: 50 },
-      { label: 'bułka', grams: 60 },
-    ]},
-  { id: 'rice', kcalRange: [110, 380], keywords: /\b(ryż|ryz|rice)\b/i,
-    units: [
-      { label: 'porcja ugotowanego', grams: 150, default: true },
-      { label: 'szklanka ugotowanego', grams: 200 },
-      { label: 'szklanka suchego', grams: 200 },
-      { label: 'łyżka suchego', grams: 12 },
-    ]},
-  { id: 'pasta', kcalRange: [110, 380], keywords: /\b(makaron|pasta|spaghett|penne|fusill|farfall|pierog|noodle)/i,
-    units: [
-      { label: 'porcja ugotowanego', grams: 200, default: true },
-      { label: 'szklanka suchego', grams: 100 },
-    ]},
-  { id: 'oats', kcalRange: [350, 410], keywords: /\b(owsian|oats|płatki owsian|platki owsian)/i,
-    units: [
-      { label: 'łyżka', grams: 10 },
-      { label: 'porcja (4 łyżki)', grams: 40, default: true },
-      { label: 'szklanka', grams: 80 },
-    ]},
-  { id: 'flour', kcalRange: [330, 380], keywords: /\b(mąk|maka|flour)\b/i,
-    units: [
-      { label: 'łyżka', grams: 15 },
-      { label: 'szklanka', grams: 130, default: true },
-    ]},
-  // ── NABIAŁ ───────────────────────────────────────────────
-  { id: 'milk', kcalRange: [30, 75], keywords: /\b(mleko|milk)\b/i,
-    units: [
-      { label: 'szklanka', grams: 250, default: true },
-      { label: 'kubek', grams: 200 },
-      { label: 'łyżka', grams: 15 },
-    ]},
-  { id: 'yogurt', kcalRange: [40, 110], keywords: /\b(jogurt|kefir|maślank|maslank|yogurt|yoghurt)/i,
-    units: [
-      { label: 'opakowanie małe', grams: 150 },
-      { label: 'opakowanie', grams: 200, default: true },
-      { label: 'łyżka', grams: 20 },
-    ]},
-  { id: 'cheese', kcalRange: [200, 420], keywords: /\b(ser|cheese|mozzarell|cheddar|gouda|parmez|parmes|feta)/i,
-    units: [
-      { label: 'plaster', grams: 20, default: true },
-      { label: 'kostka (2cm)', grams: 15 },
-      { label: 'porcja', grams: 50 },
-    ]},
-  { id: 'cottage_cheese', kcalRange: [85, 180], keywords: /\b(twaróg|twarog|serek wiejsk|cottage)/i,
-    units: [
-      { label: 'opakowanie', grams: 200, default: true },
-      { label: 'łyżka', grams: 20 },
-    ]},
-  { id: 'butter', kcalRange: [700, 770], keywords: /\b(masło|maslo|butter)\b/i,
-    units: [
-      { label: 'łyżeczka', grams: 5, default: true },
-      { label: 'łyżka', grams: 15 },
-      { label: 'kostka mała', grams: 10 },
-    ]},
-  // ── JAJKA ────────────────────────────────────────────────
-  { id: 'egg', kcalRange: [130, 160], keywords: /\b(jajk|jajo|egg)\b/i,
-    units: [
-      { label: 'sztuka S', grams: 50 },
-      { label: 'sztuka M', grams: 58, default: true },
-      { label: 'sztuka L', grams: 68 },
-      { label: 'sztuka XL', grams: 75 },
-    ]},
-  // ── TŁUSZCZE / OLEJE ─────────────────────────────────────
-  { id: 'oil', kcalRange: [820, 900], keywords: /\b(olej|oliw|oil|olive)/i,
-    units: [
-      { label: 'łyżeczka', grams: 5 },
-      { label: 'łyżka', grams: 10, default: true },
-      { label: 'szklanka', grams: 220 },
-    ]},
-  // ── ORZECHY / NASIONA ────────────────────────────────────
-  { id: 'nuts', kcalRange: [550, 720], keywords: /\b(orzech|migdał|migdal|nerkow|pistac|nuts|almond|cashew|peanut|walnut|pestki)/i,
-    units: [
-      { label: 'garść', grams: 30, default: true },
-      { label: 'łyżka', grams: 10 },
-    ]},
-  // ── SŁODYCZE / CUKIER ────────────────────────────────────
-  { id: 'sugar', kcalRange: [380, 410], keywords: /\b(cukier|sugar)\b/i,
-    units: [
-      { label: 'łyżeczka', grams: 5, default: true },
-      { label: 'łyżka', grams: 12 },
-      { label: 'kostka', grams: 4 },
-    ]},
-  { id: 'honey', kcalRange: [290, 340], keywords: /\b(miód|miod|honey)\b/i,
-    units: [
-      { label: 'łyżeczka', grams: 7, default: true },
-      { label: 'łyżka', grams: 20 },
-    ]},
-  { id: 'jam', kcalRange: [200, 290], keywords: /\b(dżem|dzem|konfitur|jam|marmolad|powidł|powidl)/i,
-    units: [
-      { label: 'łyżeczka', grams: 8 },
-      { label: 'łyżka', grams: 20, default: true },
-    ]},
-  { id: 'chocolate', kcalRange: [450, 600], keywords: /\b(czekolad|chocolate)/i,
-    units: [
-      { label: 'kostka', grams: 5 },
-      { label: 'rządek', grams: 15 },
-      { label: 'tabliczka mała', grams: 50, default: true },
-      { label: 'tabliczka', grams: 100 },
-    ]},
-  // ── MIĘSO / RYBY ─────────────────────────────────────────
-  { id: 'meat', kcalRange: [100, 380], keywords: /\b(kurczak|wołow|wolow|wieprz|indyk|cielęc|cielec|chicken|beef|pork|turkey|mięso|mieso)/i,
-    units: [
-      { label: 'porcja', grams: 150, default: true },
-      { label: 'duża porcja', grams: 200 },
-    ]},
-  { id: 'fish', kcalRange: [80, 250], keywords: /\b(łosoś|losos|tuńczyk|tunczyk|dorsz|śledź|sledz|salmon|tuna|cod|fish|ryba)/i,
-    units: [
-      { label: 'porcja', grams: 150, default: true },
-      { label: 'puszka', grams: 120 },
-    ]},
-  // ── NAPOJE ───────────────────────────────────────────────
-  { id: 'coffee', kcalRange: [0, 10], keywords: /\b(kawa|coffee|espresso|latte|cappuccino|americano)/i,
-    units: [
-      { label: 'espresso', grams: 30 },
-      { label: 'mała', grams: 150 },
-      { label: 'duża', grams: 250, default: true },
-    ]},
-  { id: 'tea', kcalRange: [0, 10], keywords: /\b(herbat|tea)\b/i,
-    units: [
-      { label: 'kubek', grams: 200 },
-      { label: 'szklanka', grams: 250, default: true },
-    ]},
-  { id: 'juice', kcalRange: [30, 70], keywords: /\b(sok|juice|nektar)/i,
-    units: [
-      { label: 'szklanka', grams: 250, default: true },
-      { label: 'butelka', grams: 330 },
-      { label: 'litr', grams: 1000 },
-    ]},
-  { id: 'beer', kcalRange: [25, 70], keywords: /\b(piwo|beer)\b/i,
-    units: [
-      { label: 'puszka', grams: 330, default: true },
-      { label: 'butelka 0.5l', grams: 500 },
-      { label: 'kufel', grams: 500 },
-    ]},
-  { id: 'wine', kcalRange: [70, 120], keywords: /\b(wino|wine)\b/i,
-    units: [
-      { label: 'kieliszek', grams: 150, default: true },
-      { label: 'butelka', grams: 750 },
-    ]},
-];
-
-// Generyczne presety gdy nie znamy kategorii (fallback)
-const GENERIC_GRAM_PRESETS = [
-  { label: '50g', grams: 50 },
-  { label: '100g', grams: 100, default: true },
-  { label: '150g', grams: 150 },
-  { label: '200g', grams: 200 },
-  { label: '250g', grams: 250 },
-  { label: '330g', grams: 330 },
-];
-
-// Globalne jednostki dostępne ZAWSZE jako "tryb łyżki" (uniwersalne)
-const COMMON_SPOON_UNITS = [
-  { label: 'łyżeczka', grams: 5 },
-  { label: 'łyżka', grams: 15 },
-  { label: 'szklanka', grams: 240 },
-];
-
-// Wykrywa kategorię produktu po nazwie. Zwraca obiekt kategorii lub null.
-function detectPortionCategory(name) {
-  if (!name) return null;
-  for (const cat of PORTION_CATEGORIES) {
-    if (cat.keywords.test(name)) return cat;
-  }
-  return null;
-}
-
-// Sanity check kcal/100g — zwraca obiekt:
-//   { ok: true } gdy w zakresie lub kategoria nieznana
-//   { ok: false, expected: [min,max], category: 'banana' } gdy poza zakresem
-function checkKcalSanity(name, kcalPer100g) {
-  if (!kcalPer100g || kcalPer100g <= 0) return { ok: true };
-  const cat = detectPortionCategory(name);
-  if (!cat) return { ok: true };  // nieznana kategoria — nie alarmujemy
-  const [min, max] = cat.kcalRange;
-  // Margines tolerancji ±15% — uwzględnia warianty (suszone vs świeże dla owoców powoduje
-  // ogromną różnicę, więc dla "banana" 80 vs 350 to NIE jest tolerancja a sygnał błędu)
-  if (kcalPer100g < min * 0.85 || kcalPer100g > max * 1.15) {
-    return { ok: false, expected: [min, max], category: cat.id };
-  }
-  return { ok: true };
-}
-
-// Zwraca listę jednostek dla produktu:
-//  1. jeśli food.serving_units (z edge function) — ich używa
-//  2. jeśli wykryta kategoria — z PORTION_CATEGORIES
-//  3. fallback — GENERIC_GRAM_PRESETS
-// Tryb 'g' zawsze daje gramy. Tryb 'units' daje sztuki/kromki/szklanki. Tryb 'spoon' daje łyżeczki/łyżki/szklanki.
-function getPortionUnitsForProduct(food, mode) {
-  // Tryb 'spoon' — uniwersalne, niezależne od produktu
-  if (mode === 'spoon') {
-    return COMMON_SPOON_UNITS.map(u => ({ ...u }));
-  }
-  // Tryb 'g' — generyczne gramy
-  if (mode === 'g') {
-    return GENERIC_GRAM_PRESETS.map(u => ({ ...u }));
-  }
-  // Tryb 'units' (domyślny gdy dostępny)
-  // 1. Z edge function — najwyższy priorytet
-  if (Array.isArray(food?.serving_units) && food.serving_units.length > 0) {
-    return food.serving_units.map(u => ({
-      label: u.label || 'porcja',
-      grams: parseFloat(u.grams) || 100,
-      default: !!u.default
-    }));
-  }
-  // 2. Z detekcji kategorii
-  const cat = detectPortionCategory(food?.name || '');
-  if (cat) return cat.units.map(u => ({ ...u }));
-  // 3. Brak danych — null żeby UI ukrył tryb units
-  return null;
-}
-// ════════════════════════════════════════════════════════════
 // PREMIUM PRODUCT CONFIRM MODAL
 // ════════════════════════════════════════════════════════════
 let _pcMicroCache = {};  // cache per source_id żeby nie pytać AI ponownie
@@ -6622,30 +6032,11 @@ function showProductConfirm(food) {
   document.getElementById('mc-title').textContent = heroName;
   document.getElementById('mc-brand').textContent = food.brand || '';
 
-  // Reset gramatury, trybu, edytora — i wykryj domyślny tryb
-  _portionMode = pickInitialPortionMode(food);
-  _per100Original = {
-    kcal: food.kcal_per_100g || 0,
-    protein: food.protein_per_100g || 0,
-    carbs: food.carbs_per_100g || 0,
-    fat: food.fat_per_100g || 0,
-  };
-  _per100Edited = false;
-  // Hide editor at start
-  document.getElementById('pc-per100-editor').classList.add('hidden');
-  document.getElementById('pc-per100-link-label').textContent = '✎ Popraw wartości na 100g';
-  // Render mode toggle (some modes might be unavailable)
-  renderPortionModeToggle();
-  // Render presets dla wybranego trybu
-  renderPortionPresets();
-  // Default gramatura — z domyślnej jednostki (np. banan -> 120g) lub 100g
-  const defaultGrams = getDefaultGramsForCurrentMode();
-  document.getElementById('mc-grams').value = defaultGrams;
-  document.getElementById('mc-grams-slider').value = Math.min(500, Math.max(5, defaultGrams));
-  setActivePreset(defaultGrams);
-  recalcMacrosForGrams(defaultGrams);
-  // Sanity check przy starcie
-  refreshSanityBadge();
+  // Reset gramatury i tabs
+  document.getElementById('mc-grams').value = 100;
+  document.getElementById('mc-grams-slider').value = 100;
+  setActivePreset(100);
+  recalcMacrosForGrams(100);
   switchPcTab('macro');
 
   document.getElementById('meal-confirm-modal').classList.remove('hidden');
@@ -6667,69 +6058,6 @@ function showProductConfirm(food) {
   };
 }
 
-// ── PORTION MODE STATE ────────────────────────────────────────
-let _portionMode = 'g';        // 'g' | 'units' | 'spoon'
-let _per100Original = null;    // oryginał z bazy/AI — do "Przywróć"
-let _per100Edited = false;     // flaga że user nadpisał wartości
-
-// Wybiera tryb startowy: jeśli produkt ma kategorię z jednostkami → 'units', inaczej 'g'
-function pickInitialPortionMode(food) {
-  const units = getPortionUnitsForProduct(food, 'units');
-  return (units && units.length) ? 'units' : 'g';
-}
-
-// Renderuje pasek trybów. Wyłącza 'units' jeśli brak danych dla produktu.
-function renderPortionModeToggle() {
-  const wrap = document.getElementById('pc-mode-toggle');
-  if (!wrap) return;
-  const hasUnits = !!getPortionUnitsForProduct(_scannedProduct, 'units');
-  wrap.querySelectorAll('.pc-mode-btn').forEach(btn => {
-    const m = btn.dataset.mode;
-    btn.classList.toggle('active', m === _portionMode);
-    if (m === 'units') btn.disabled = !hasUnits;
-    else btn.disabled = false;
-  });
-}
-
-// Renderuje przyciski presetów wg aktualnego trybu
-function renderPortionPresets() {
-  const wrap = document.getElementById('pc-presets');
-  if (!wrap) return;
-  const units = getPortionUnitsForProduct(_scannedProduct, _portionMode);
-  if (!units || !units.length) { wrap.innerHTML = ''; return; }
-  wrap.innerHTML = units.map(u => {
-    const labelTxt = (_portionMode === 'g')
-      ? u.label
-      : `${escapeHtml(u.label)} <span class="pc-preset-grams">${Math.round(u.grams)}g</span>`;
-    return `<button type="button" class="pc-preset" data-grams="${u.grams}" data-label="${escapeHtml(u.label)}" onclick="setPreset(${u.grams})">${labelTxt}</button>`;
-  }).join('');
-  // Po renderze zaznacz aktywny (jeśli aktualne grams pasują do któregoś)
-  const cur = parseFloat(document.getElementById('mc-grams').value) || 0;
-  setActivePreset(cur);
-}
-
-// Zwraca gramy dla domyślnej jednostki w aktualnym trybie. Fallback 100g.
-function getDefaultGramsForCurrentMode() {
-  const units = getPortionUnitsForProduct(_scannedProduct, _portionMode);
-  if (!units || !units.length) return 100;
-  const def = units.find(u => u.default) || units[Math.floor(units.length / 2)];
-  return def ? def.grams : 100;
-}
-
-// Przełącza tryb jednostek
-function setPortionMode(mode) {
-  if (!['g','units','spoon'].includes(mode)) return;
-  _portionMode = mode;
-  renderPortionModeToggle();
-  renderPortionPresets();
-  // Po zmianie trybu — ustaw domyślną gramaturę dla nowego trybu
-  const g = getDefaultGramsForCurrentMode();
-  document.getElementById('mc-grams').value = g;
-  document.getElementById('mc-grams-slider').value = Math.min(500, Math.max(5, g));
-  recalcMacrosForGrams(g);
-  setActivePreset(g);
-}
-
 function setPreset(g) {
   document.getElementById('mc-grams').value = g;
   document.getElementById('mc-grams-slider').value = Math.min(500, g);
@@ -6737,81 +6065,10 @@ function setPreset(g) {
   setActivePreset(g);
 }
 
-// Aktywny preset = ten z data-grams === g (z tolerancją 0.5g — float)
 function setActivePreset(g) {
-  document.querySelectorAll('#pc-presets .pc-preset').forEach(b => {
-    const bg = parseFloat(b.dataset.grams);
-    b.classList.toggle('active', g != null && Math.abs(bg - g) < 0.5);
+  document.querySelectorAll('.pc-preset, .preset-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent.startsWith(g + 'g'));
   });
-}
-
-// ── EDYCJA WARTOŚCI NA 100g ──────────────────────────────────
-function togglePer100Editor(forceOpen) {
-  const ed = document.getElementById('pc-per100-editor');
-  if (!ed || !_scannedProduct) return;
-  const willOpen = (forceOpen === true) ? true : (forceOpen === false ? false : ed.classList.contains('hidden'));
-  if (willOpen) {
-    // Wypełnij inputami z aktualnych wartości produktu (mogły być już edytowane)
-    document.getElementById('pc-edit-kcal').value = Math.round(_scannedProduct.kcal_per_100g || 0);
-    document.getElementById('pc-edit-protein').value = +(_scannedProduct.protein_per_100g || 0).toFixed(1);
-    document.getElementById('pc-edit-carbs').value = +(_scannedProduct.carbs_per_100g || 0).toFixed(1);
-    document.getElementById('pc-edit-fat').value = +(_scannedProduct.fat_per_100g || 0).toFixed(1);
-    ed.classList.remove('hidden');
-  } else {
-    ed.classList.add('hidden');
-  }
-}
-
-// Wywoływane przy każdym oninput w edytorze — aktualizuje produkt + przelicz
-function onPer100Edit() {
-  if (!_scannedProduct) return;
-  const kcal = parseFloat(document.getElementById('pc-edit-kcal').value);
-  const protein = parseFloat(document.getElementById('pc-edit-protein').value);
-  const carbs = parseFloat(document.getElementById('pc-edit-carbs').value);
-  const fat = parseFloat(document.getElementById('pc-edit-fat').value);
-  if (!isNaN(kcal)) _scannedProduct.kcal_per_100g = kcal;
-  if (!isNaN(protein)) _scannedProduct.protein_per_100g = protein;
-  if (!isNaN(carbs)) _scannedProduct.carbs_per_100g = carbs;
-  if (!isNaN(fat)) _scannedProduct.fat_per_100g = fat;
-  _per100Edited = true;
-  document.getElementById('pc-per100-link-label').textContent = '✎ Wartości edytowane — kliknij by zmienić';
-  // Przelicz aktualną gramaturę
-  const g = parseFloat(document.getElementById('mc-grams').value) || 100;
-  recalcMacrosForGrams(g);
-  refreshSanityBadge();
-}
-
-function resetPer100ToOriginal() {
-  if (!_scannedProduct || !_per100Original) return;
-  _scannedProduct.kcal_per_100g = _per100Original.kcal;
-  _scannedProduct.protein_per_100g = _per100Original.protein;
-  _scannedProduct.carbs_per_100g = _per100Original.carbs;
-  _scannedProduct.fat_per_100g = _per100Original.fat;
-  _per100Edited = false;
-  document.getElementById('pc-per100-link-label').textContent = '✎ Popraw wartości na 100g';
-  // Re-fill inputs
-  document.getElementById('pc-edit-kcal').value = Math.round(_per100Original.kcal);
-  document.getElementById('pc-edit-protein').value = +(_per100Original.protein).toFixed(1);
-  document.getElementById('pc-edit-carbs').value = +(_per100Original.carbs).toFixed(1);
-  document.getElementById('pc-edit-fat').value = +(_per100Original.fat).toFixed(1);
-  const g = parseFloat(document.getElementById('mc-grams').value) || 100;
-  recalcMacrosForGrams(g);
-  refreshSanityBadge();
-}
-
-// Pokazuje/ukrywa badge sanity check
-function refreshSanityBadge() {
-  if (!_scannedProduct) return;
-  const badge = document.getElementById('pc-sanity-badge');
-  const txt = document.getElementById('pc-sanity-text');
-  if (!badge || !txt) return;
-  const r = checkKcalSanity(_scannedProduct.name, _scannedProduct.kcal_per_100g);
-  if (r.ok) {
-    badge.classList.add('hidden');
-  } else {
-    txt.textContent = `Wartość ${Math.round(_scannedProduct.kcal_per_100g)} kcal/100g wygląda podejrzanie (typowy zakres: ${r.expected[0]}–${r.expected[1]})`;
-    badge.classList.remove('hidden');
-  }
 }
 
 function recalcMacrosForGrams(g) {
@@ -8299,31 +7556,19 @@ function showAIResult(result, title) {
   const nWrap = document.getElementById('ai-note-wrap');
   nWrap.innerHTML = result.note ? `<div class="ai-note">${escapeHtml(result.note)}</div>` : '';
   // Items
-  _aiItems = result.items.map(it => {
-    const w = parseFloat(it.weight_g) || 100;
-    const kcal = parseFloat(it.kcal) || 0;
-    const protein = parseFloat(it.protein_g) || 0;
-    const carbs = parseFloat(it.carbs_g) || 0;
-    const fat = parseFloat(it.fat_g) || 0;
-    return {
-      name: it.name || 'Produkt',
-      weight_g: w,
-      kcal, protein_g: protein, carbs_g: carbs, fat_g: fat,
-      // serving_units z edge function — żeby kontekstowe presety były gotowe
-      serving_units: Array.isArray(it.serving_units) ? it.serving_units : null,
-      // wartości na 100g — kluczowe dla edycji "AI się pomylił z bazą"
-      kcal_per_100: kcal / w * 100,
-      protein_per_100: protein / w * 100,
-      carbs_per_100: carbs / w * 100,
-      fat_per_100: fat / w * 100,
-      // oryginał — do "Przywróć"
-      _orig_per100: {
-        kcal: kcal / w * 100, protein: protein / w * 100,
-        carbs: carbs / w * 100, fat: fat / w * 100,
-      },
-      _editingPer100: false,
-    };
-  });
+  _aiItems = result.items.map(it => ({
+    name: it.name || 'Produkt',
+    weight_g: parseFloat(it.weight_g) || 100,
+    kcal: parseFloat(it.kcal) || 0,
+    protein_g: parseFloat(it.protein_g) || 0,
+    carbs_g: parseFloat(it.carbs_g) || 0,
+    fat_g: parseFloat(it.fat_g) || 0,
+    // zachowuj oryginalne wartości per gram żeby skalować
+    _kcal_per_g: ((parseFloat(it.kcal) || 0) / (parseFloat(it.weight_g) || 100)),
+    _p_per_g: ((parseFloat(it.protein_g) || 0) / (parseFloat(it.weight_g) || 100)),
+    _c_per_g: ((parseFloat(it.carbs_g) || 0) / (parseFloat(it.weight_g) || 100)),
+    _f_per_g: ((parseFloat(it.fat_g) || 0) / (parseFloat(it.weight_g) || 100))
+  }));
   renderAIItems();
   document.getElementById('ai-result-modal').classList.remove('hidden');
 }
@@ -8335,49 +7580,21 @@ function renderAIItems() {
     updateAITotals();
     return;
   }
-  wrap.innerHTML = _aiItems.map((it, i) => {
-    const sanity = checkKcalSanity(it.name, it.kcal_per_100);
-    const sanityBadge = sanity.ok ? '' :
-      `<button type="button" class="ai-sanity-badge" onclick="toggleAIItemEditor(${i}, true)" title="Sprawdź wartości">
-        ⚠ ${Math.round(it.kcal_per_100)} kcal/100g — typowo ${sanity.expected[0]}–${sanity.expected[1]}
-      </button>`;
-    const editorBlock = it._editingPer100 ? `
-      <div class="ai-item-editor">
-        <div class="ai-item-editor-title">Wartości na 100g produktu</div>
-        <div class="ai-item-editor-grid">
-          <label><span>kcal</span><input type="number" min="0" max="900" step="1" inputmode="numeric"
-            value="${Math.round(it.kcal_per_100)}" oninput="updateAIItemPer100(${i}, 'kcal', this.value)"></label>
-          <label><span>B (g)</span><input type="number" min="0" max="100" step="0.1" inputmode="decimal"
-            value="${it.protein_per_100.toFixed(1)}" oninput="updateAIItemPer100(${i}, 'protein', this.value)"></label>
-          <label><span>W (g)</span><input type="number" min="0" max="100" step="0.1" inputmode="decimal"
-            value="${it.carbs_per_100.toFixed(1)}" oninput="updateAIItemPer100(${i}, 'carbs', this.value)"></label>
-          <label><span>T (g)</span><input type="number" min="0" max="100" step="0.1" inputmode="decimal"
-            value="${it.fat_per_100.toFixed(1)}" oninput="updateAIItemPer100(${i}, 'fat', this.value)"></label>
-        </div>
-        <div class="ai-item-editor-actions">
-          <button type="button" class="ai-item-editor-reset" onclick="resetAIItemPer100(${i})">↺ Przywróć</button>
-          <button type="button" class="ai-item-editor-close" onclick="toggleAIItemEditor(${i}, false)">Gotowe</button>
-        </div>
-      </div>` : '';
-    return `
-      <div class="ai-item">
-        <div class="ai-item-info">
-          <div class="ai-item-name">${escapeHtml(it.name)}</div>
-          <div class="ai-item-meta">${Math.round(it.kcal)} kcal · B:${it.protein_g.toFixed(1)}g W:${it.carbs_g.toFixed(1)}g T:${it.fat_g.toFixed(1)}g</div>
-          ${sanityBadge}
-        </div>
-        <div class="ai-item-controls">
-          <input class="ai-item-grams" type="number" min="1" max="2000" inputmode="numeric"
-                 value="${Math.round(it.weight_g)}"
-                 oninput="updateAIItemGrams(${i}, this.value)">
-          <span class="ai-item-unit">g</span>
-          <button type="button" class="ai-item-edit" onclick="toggleAIItemEditor(${i})" title="Edytuj wartości na 100g">✎</button>
-          <button class="ai-item-remove" onclick="removeAIItem(${i})" title="Usuń">×</button>
-        </div>
-        ${editorBlock}
+  wrap.innerHTML = _aiItems.map((it, i) => `
+    <div class="ai-item">
+      <div class="ai-item-info">
+        <div class="ai-item-name">${escapeHtml(it.name)}</div>
+        <div class="ai-item-meta">${Math.round(it.kcal)} kcal · B:${it.protein_g.toFixed(1)}g W:${it.carbs_g.toFixed(1)}g T:${it.fat_g.toFixed(1)}g</div>
       </div>
-    `;
-  }).join('');
+      <div class="ai-item-controls">
+        <input class="ai-item-grams" type="number" min="1" max="2000" inputmode="numeric"
+               value="${Math.round(it.weight_g)}"
+               oninput="updateAIItemGrams(${i}, this.value)">
+        <span class="ai-item-unit">g</span>
+        <button class="ai-item-remove" onclick="removeAIItem(${i})" title="Usuń">×</button>
+      </div>
+    </div>
+  `).join('');
   updateAITotals();
 }
 
@@ -8387,12 +7604,10 @@ function updateAIItemGrams(idx, val) {
   const it = _aiItems[idx];
   if (!it) return;
   it.weight_g = g;
-  // Skaluj z per-100g (żeby edycja per-100g działała poprawnie)
-  const f = g / 100;
-  it.kcal = it.kcal_per_100 * f;
-  it.protein_g = it.protein_per_100 * f;
-  it.carbs_g = it.carbs_per_100 * f;
-  it.fat_g = it.fat_per_100 * f;
+  it.kcal = it._kcal_per_g * g;
+  it.protein_g = it._p_per_g * g;
+  it.carbs_g = it._c_per_g * g;
+  it.fat_g = it._f_per_g * g;
   // Update tylko meta + total (bez przerendowania całej listy żeby nie tracić focus inputa)
   const itemEls = document.querySelectorAll('#ai-items .ai-item');
   if (itemEls[idx]) {
@@ -8400,60 +7615,6 @@ function updateAIItemGrams(idx, val) {
       `${Math.round(it.kcal)} kcal · B:${it.protein_g.toFixed(1)}g W:${it.carbs_g.toFixed(1)}g T:${it.fat_g.toFixed(1)}g`;
   }
   updateAITotals();
-}
-
-// Otwiera/zamyka inline editor wartości na 100g dla danego itemu
-function toggleAIItemEditor(idx, forceOpen) {
-  const it = _aiItems[idx];
-  if (!it) return;
-  it._editingPer100 = (forceOpen === true) ? true : (forceOpen === false ? false : !it._editingPer100);
-  renderAIItems();
-}
-
-// Update wartości per-100g jednego itemu — aktualizuje też kcal/B/W/T po przeskalowaniu
-function updateAIItemPer100(idx, field, val) {
-  const v = parseFloat(val);
-  const it = _aiItems[idx];
-  if (!it || isNaN(v) || v < 0) return;
-  if (field === 'kcal') it.kcal_per_100 = v;
-  else if (field === 'protein') it.protein_per_100 = v;
-  else if (field === 'carbs') it.carbs_per_100 = v;
-  else if (field === 'fat') it.fat_per_100 = v;
-  // Przelicz absolutne dla aktualnej wagi
-  const f = it.weight_g / 100;
-  it.kcal = it.kcal_per_100 * f;
-  it.protein_g = it.protein_per_100 * f;
-  it.carbs_g = it.carbs_per_100 * f;
-  it.fat_g = it.fat_per_100 * f;
-  // Update meta inline (bez re-render — żeby focus inputa nie skakał)
-  const itemEls = document.querySelectorAll('#ai-items .ai-item');
-  if (itemEls[idx]) {
-    itemEls[idx].querySelector('.ai-item-meta').textContent =
-      `${Math.round(it.kcal)} kcal · B:${it.protein_g.toFixed(1)}g W:${it.carbs_g.toFixed(1)}g T:${it.fat_g.toFixed(1)}g`;
-    // Jeśli sanity check przeszedł — usuń badge
-    const oldBadge = itemEls[idx].querySelector('.ai-sanity-badge');
-    const sanity = checkKcalSanity(it.name, it.kcal_per_100);
-    if (sanity.ok && oldBadge) oldBadge.remove();
-    else if (!sanity.ok && oldBadge) {
-      oldBadge.innerHTML = `⚠ ${Math.round(it.kcal_per_100)} kcal/100g — typowo ${sanity.expected[0]}–${sanity.expected[1]}`;
-    }
-  }
-  updateAITotals();
-}
-
-function resetAIItemPer100(idx) {
-  const it = _aiItems[idx];
-  if (!it || !it._orig_per100) return;
-  it.kcal_per_100 = it._orig_per100.kcal;
-  it.protein_per_100 = it._orig_per100.protein;
-  it.carbs_per_100 = it._orig_per100.carbs;
-  it.fat_per_100 = it._orig_per100.fat;
-  const f = it.weight_g / 100;
-  it.kcal = it.kcal_per_100 * f;
-  it.protein_g = it.protein_per_100 * f;
-  it.carbs_g = it.carbs_per_100 * f;
-  it.fat_g = it.fat_per_100 * f;
-  renderAIItems();  // pełny re-render żeby inputs się zaktualizowały
 }
 
 function removeAIItem(idx) {
@@ -8543,6 +7704,34 @@ function animateValue(el, target, duration) {
   }
   requestAnimationFrame(step);
 }
+
+// ── MODAL VIEWPORT FIX (iOS keyboard) ──────────────────────────
+// Gdy klawiatura iOS się otwiera, viewport się zmniejsza. Modale
+// muszą reagować by przyciski "Zapisz" pozostały widoczne.
+(function setupModalViewportFix(){
+  if (!window.visualViewport) return;
+  
+  function updateModals() {
+    const vv = window.visualViewport;
+    const modals = document.querySelectorAll('.modal:not(.hidden)');
+    modals.forEach(m => {
+      m.style.height = vv.height + 'px';
+    });
+  }
+  
+  window.visualViewport.addEventListener('resize', updateModals);
+  window.visualViewport.addEventListener('scroll', updateModals);
+  
+  // Gdy fokusujemy input w modalu — scroll do widoku po animacji klawiatury
+  document.addEventListener('focusin', e => {
+    const target = e.target;
+    const modalCard = target.closest('.modal-card, .pc-card');
+    if (!modalCard) return;
+    setTimeout(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 300);
+  });
+})();
 </script>
 </body>
 </html>
