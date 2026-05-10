@@ -755,6 +755,10 @@ async function generateAIReportFromPanel(periodDays) {
     if (targetDate === null) return; // user anulował
   }
   
+  // Krok komentarz trenera — opcjonalny, daje Klaudiuszowi szerszy kontekst
+  const coachNote = await pickCoachNote(periodDays);
+  if (coachNote === null) return; // user anulował
+  
   window._currentAthleteIdForAI = id;
   const btns = document.querySelectorAll('.pai-gen-btn');
   const targetBtn = document.querySelector('.pai-gen-btn[data-period="' + periodDays + '"]');
@@ -775,6 +779,7 @@ async function generateAIReportFromPanel(periodDays) {
       period_days: periodDays
     };
     if (targetDate) body.target_date = targetDate;
+    if (coachNote) body.coach_note = coachNote; // ← NOWE
     
     const r = await fetch(window.SB_FN_URL + '/generate-athlete-report', {
       method: 'POST',
@@ -805,6 +810,92 @@ async function generateAIReportFromPanel(periodDays) {
     btns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
     targetBtn.textContent = originalText;
   }
+}
+
+// ── Komentarz trenera przed raportem (opcjonalny) ──────────────────
+// Daje Klaudiuszowi szerszy kontekst o zawodniku — np. "Damian po ultra
+// w górach, troche przeciążony. Karolina ma słabe wyniki krwi, witaminy
+// powinna brać." itp. Komentarz nie musi pojawić się w treści raportu —
+// ma tylko pomóc Klaudiuszowi zrozumieć sytuację.
+function pickCoachNote(periodDays) {
+  return new Promise((resolve) => {
+    const periodLabel = periodDays === 1 ? 'dziennego' : periodDays === 7 ? 'tygodniowego' : periodDays === 30 ? 'miesięcznego' : (periodDays + ' dni');
+    const athleteName = (window._selectedAthleteName || 'zawodnika');
+    
+    const html = `
+      <div id="cn-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9500;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(8px);" onclick="if(event.target===this)window._cnResolve(null)">
+        <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(139,92,246,0.3);border-radius:14px;padding:18px;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6);max-height:calc(100dvh - 32px);overflow-y:auto;">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:2px;">💬 Kontekst dla Klaudiusza</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);line-height:1.1;">Coś co warto żeby Klaudiusz wiedział?</div>
+            </div>
+            <button onclick="window._cnResolve(null)" style="flex-shrink:0;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
+          </div>
+          
+          <div style="font-size:11px;color:var(--muted);font-family:'Inter',sans-serif;margin-bottom:12px;line-height:1.5;">
+            Raport <strong style="color:#8b5cf6;">${periodLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em>
+          </div>
+          
+          <textarea 
+            id="cn-textarea" 
+            placeholder="np. po ultra w górach w weekend, trochę przeciążony. Lub: ma słabe wyniki krwi, suplementuje witaminy. Lub: ma ksywę Łysy, śmieje się że na szybkich akcentach poczuje wiatr we włosach..."
+            style="width:100%;min-height:140px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'Inter',sans-serif;font-size:13px;line-height:1.5;resize:vertical;outline:none;"
+            maxlength="2000"
+          ></textarea>
+          
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:14px;">
+            <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;" id="cn-counter">0 / 2000</div>
+          </div>
+          
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button onclick="window._cnSubmit()" style="padding:11px 14px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border:none;border-radius:8px;color:#fff;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:500;">✨ Generuj z komentarzem</button>
+            <button onclick="window._cnResolve('')" style="padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Pomiń — generuj bez komentarza</button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    const wrap = document.createElement('div');
+    wrap.innerHTML = html;
+    document.body.appendChild(wrap);
+    
+    // Counter
+    const ta = document.getElementById('cn-textarea');
+    const counter = document.getElementById('cn-counter');
+    if (ta && counter) {
+      ta.addEventListener('input', () => {
+        counter.textContent = ta.value.length + ' / 2000';
+      });
+      // Autofokus po krótkim opóźnieniu (modal animation)
+      setTimeout(() => ta.focus(), 100);
+    }
+    
+    window._cnSubmit = () => {
+      const note = (ta?.value || '').trim();
+      window._cnResolve(note || ''); // pusty string = pomiń, nie null
+    };
+    
+    window._cnResolve = (val) => {
+      const m = document.getElementById('cn-modal');
+      if (m) m.parentElement.remove();
+      delete window._cnSubmit;
+      delete window._cnResolve;
+      resolve(val);
+    };
+    
+    // Esc = anuluj (null), Cmd+Enter = submit
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        window._cnResolve(null);
+        document.removeEventListener('keydown', onKey);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        window._cnSubmit();
+        document.removeEventListener('keydown', onKey);
+      }
+    };
+    document.addEventListener('keydown', onKey);
+  });
 }
 
 // ── Wybór daty dla raportu dziennego ───────────────────────────────
@@ -2570,6 +2661,7 @@ async function selA_db(athleteId) {
   document.getElementById('panel').classList.add('open');
   
   window._selectedAthleteId = athleteId;
+  window._selectedAthleteName = a.full_name || 'zawodnika'; // dla pickCoachNote
   // Wyczyść listę raportów AI z poprzedniego zawodnika
   const paiContent = document.getElementById('pai-content');
   if (paiContent) paiContent.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie...</div>';
