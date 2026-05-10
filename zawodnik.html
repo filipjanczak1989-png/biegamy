@@ -1586,6 +1586,21 @@ body > *{position:relative;z-index:1;}
 <script src="sb.js"></script>
 
 <script>
+// ── Security: HTML escape (anti-XSS) ───────────────────────────────
+// Uwaga: jeśli sb.js dorobi window.escapeHtml, ten lokalny zostanie nadpisany
+if (typeof window.escapeHtml !== 'function') {
+  window.escapeHtml = function(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+}
+const escapeHtml = window.escapeHtml;
+
 const weekPlan=[
   {name:'Pn',num:6,type:'Spokojny',cls:'spokojny',color:'#5090e0',km:10,done:true},
   {name:'Wt',num:7,type:'Interwały',cls:'interwaly',color:'#e8b840',km:10,done:true},
@@ -2285,7 +2300,7 @@ async function _loadProfileMsgs() {
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
     return `<div style="display:flex;justify-content:${isAthlete?'flex-end':'flex-start'};margin-bottom:8px;">
       <div style="max-width:80%;background:${isAthlete?'var(--accent)':'var(--card2)'};border-radius:${isAthlete?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:10px 13px;">
-        <div style="font-size:13px;line-height:1.5;">${m.body}</div>
+        <div style="font-size:13px;line-height:1.5;">${escapeHtml(m.body)}</div>
         <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:DM Mono,monospace;">${time}</div>
       </div>
     </div>`;
@@ -2705,7 +2720,7 @@ function renderGoals(goals) {
     return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;">
       <div style="font-size:20px;">🏁</div>
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:500;">${g.name||'—'}</div>
+        <div style="font-size:13px;font-weight:500;">${escapeHtml(g.name)||'—'}</div>
         <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${dateStr}${days !== null && days >= 0 ? ' · ' + days + ' dni' : ''}</div>
         ${linkedBadge}
       </div>
@@ -3015,7 +3030,7 @@ async function loadMessages() {
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
     return `<div class="pchat-msg-row ${isAthlete?'me':'them'}" id="msg-${m.id}">
-      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${m.body}</div>
+      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${escapeHtml(m.body)}</div>
       <div class="pchat-time-lbl">${date} · ${time}</div>
     </div>`;
   }).join('');
@@ -3630,8 +3645,8 @@ async function loadCoaches() {
     return `<div class="ob-coach-card ${isSel?'selected':''}" id="ob-coach-${c.id}" onclick="selectCoach('${c.id}', this)">
       <div style="width:40px;height:40px;border-radius:50%;background:${isSel?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;color:#fff;flex-shrink:0;transition:background 0.15s;">${initials}</div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name||'Trener'}</div>
-        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${c.specialization}</div>`:''}
+        <div style="font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(c.full_name)||'Trener'}</div>
+        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${escapeHtml(c.specialization)}</div>`:''}
       </div>
       <div class="ob-check" style="${isSel?'background:var(--accent);border-color:var(--accent);':''}">${isSel?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>
     </div>`;
@@ -3686,8 +3701,8 @@ async function openChangeCoach() {
     return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', document.getElementById('chg-coach-${c.id}'))" style="${isSelected?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);cursor:pointer;':'cursor:pointer;'}">
       <div style="width:38px;height:38px;border-radius:50%;background:${isSelected?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${initials}</div>
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:600;color:var(--fg);">${c.full_name}</div>
-        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${c.specialization}</div>`:''}
+        <div style="font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(c.full_name)}</div>
+        ${c.specialization?`<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${escapeHtml(c.specialization)}</div>`:''}
       </div>
       <div class="ob-coach-check" style="width:20px;height:20px;border-radius:50%;border:2px solid ${isSelected?'var(--accent)':'rgba(255,255,255,0.15)'};display:flex;align-items:center;justify-content:center;">${isSelected?'<div style="width:10px;height:10px;border-radius:50%;background:var(--accent);"></div>':''}</div>
     </div>`;
@@ -5122,7 +5137,7 @@ function renderLogsDb(data) {
           <span style="font-size:11px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">km</span>
           ${detParts.length ? '<span style="font-size:10px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;margin-left:6px;">'+detParts.join(' · ')+'</span>' : ''}
         </div>` : ''}
-        ${l.comment ? `<div style="font-size:11px;color:rgba(255,255,255,0.7);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"${l.comment}"</div>` : ''}
+        ${l.comment ? `<div style="font-size:11px;color:rgba(255,255,255,0.7);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"${escapeHtml(l.comment)}"</div>` : ''}
         ${screensHtml}
         ${l.strava_link ? `<div style="margin-top:6px;"><a href="${l.strava_link}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:DM Mono,monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}
       </div>
@@ -5571,7 +5586,7 @@ async function loadStravaActivities() {
     return `<div style="background:rgba(252,76,2,0.05);border:1px solid rgba(252,76,2,0.15);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="#FC4C02" style="flex-shrink:0;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+        <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.name)}</div>
         <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">${date} · ${km} km · ${pace}/km</div>
       </div>
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#FC4C02;flex-shrink:0;">${km}<span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;font-weight:400;"> km</span></div>
@@ -6516,7 +6531,7 @@ function loadChallenges() {
         <img src="${BASE}${ch.badge}.webp" style="width:48px;height:48px;border-radius:10px;flex-shrink:0;${earned?'box-shadow:0 0 12px '+col+'55;':'filter:grayscale(0.4) brightness(0.7);'}" onerror="this.style.display='none'">
         <div style="flex:1;min-width:0;">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <div style="font-size:14px;font-weight:600;">${ch.title}</div>
+            <div style="font-size:14px;font-weight:600;">${escapeHtml(ch.title)}</div>
             ${earned ? `<span style="color:#3db870;font-size:13px;">✓</span>` : ''}
             <span style="font-size:8px;letter-spacing:0.12em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">${isMonthly?'MIESIĄC':'TYDZIEŃ'}</span>
           </div>
@@ -7122,7 +7137,7 @@ async function openNotifications() {
         return `<div onclick="${notifClick}" style="padding:12px;border-radius:12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?readBg:unreadBg};border:1px solid ${n.read?'transparent':'rgba(232,86,30,0.20)'};cursor:${notifClick?'pointer':'default'};transition:all 0.18s ease;position:relative;" onmouseover="this.style.background='${hoverBg}';this.style.borderColor='rgba(255,255,255,0.10)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='${n.read?readBg:unreadBg}';this.style.borderColor='${n.read?'transparent':'rgba(232,86,30,0.20)'}';this.style.transform='translateX(0)'">
           ${iconHtml}
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;font-weight:${n.read?'400':'500'};">${(n.message || '').replace(/^[\s🧠📊📈📋✨🤖]+/,'').trim()}</div>
+            <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;font-weight:${n.read?'400':'500'};">${escapeHtml((n.message || '').replace(/^[\s🧠📊📈📋✨🤖]+/,'').trim())}</div>
             <div style="font-size:9.5px;color:var(--muted);font-family:DM Mono,monospace;margin-top:5px;letter-spacing:0.04em;">${time}</div>
           </div>
           ${!n.read ? '<div style="width:8px;height:8px;border-radius:50%;background:#e8561e;flex-shrink:0;margin-top:6px;box-shadow:0 0 8px rgba(232,86,30,0.6);"></div>' : ''}
@@ -7653,7 +7668,7 @@ async function loadStats() {
         <div style="width:3px;height:36px;background:${color};border-radius:2px;flex-shrink:0;"></div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:500;">${type}</div>
-          <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${date}${l.comment?'  ·  <span style="font-style:italic;">'+l.comment.slice(0,30)+'...</span>':''}</div>
+          <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">${date}${l.comment?'  ·  <span style="font-style:italic;">'+escapeHtml(l.comment.slice(0,30))+'...</span>':''}</div>
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;">${dist}</div>

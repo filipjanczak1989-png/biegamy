@@ -1341,7 +1341,7 @@ async function generateTrainingPlan() {
     console.error('[generateTrainingPlan] error:', err);
     statusEl.style.background = 'rgba(232,86,30,0.1)';
     statusEl.style.borderColor = 'rgba(232,86,30,0.3)';
-    statusEl.innerHTML = `<div style="color:#e8561e;">❌ ${err.message}</div>`;
+    statusEl.innerHTML = `<div style="color:#e8561e;">❌ ${escapeHtml(err.message)}</div>`;
     goBtn.disabled = false;
     goBtn.style.opacity = '1';
   }
@@ -1940,7 +1940,7 @@ async function loadStravaPanel() {
         const date = new Date(a.start_date).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'2-digit'});
         return `<div style="background:rgba(252,76,2,0.05);border:1px solid rgba(252,76,2,0.15);border-left:3px solid #FC4C02;border-radius:8px;padding:9px 12px;display:flex;align-items:center;gap:10px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${a.name}</div>
+            <div style="font-size:12px;font-weight:500;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(a.name)}</div>
             <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">${date} · ${pace}/km${hr}</div>
           </div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#FC4C02;flex-shrink:0;">${km} <span style="font-size:10px;color:var(--muted);font-family:'DM Sans',sans-serif;">km</span></div>
@@ -2136,7 +2136,7 @@ function renderPanelGoals(goals) {
     return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:10px;">
       <div style="font-size:16px;">🏁</div>
       <div style="flex:1;">
-        <div style="font-size:12px;font-weight:500;">${g.name||'—'}</div>
+        <div style="font-size:12px;font-weight:500;">${escapeHtml(g.name)||'—'}</div>
         <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${dateStr}${days !== null && days >= 0 ? ' · ' + days + ' dni' : ''}</div>
       </div>
       <button onclick="deletePanelGoal(${i})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;">✕</button>
@@ -2687,7 +2687,7 @@ function renderLogs_db(logs) {
             </div>
           </div>
           ${det ? `<div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">${det}</div>` : ''}
-          ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${l.comment}"</div>` : ''}
+          ${l.comment ? `<div style="font-size:12px;color:rgba(240,237,232,0.7);font-style:italic;margin-bottom:6px;">"${escapeHtml(l.comment)}"</div>` : ''}
           ${l.attachment_url ? `<div style="margin-bottom:6px;display:flex;flex-wrap:wrap;gap:4px;">${l.attachment_url.split(',').map(url => `<img src="${url}" style="width:calc(50% - 2px);max-height:140px;object-fit:cover;border-radius:6px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">`).join('')}</div>` : ''}
           ${l.strava_link ? `<a href="${l.strava_link}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:'DM Mono',monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;margin-bottom:6px;display:block;">↗ Strava/Garmin</a>` : ''}
           ${l.coach_gif ? `<div style="margin-bottom:6px;"><img src="${l.coach_gif}" style="max-width:100%;max-height:160px;border-radius:8px;" onerror="this.style.display='none'"></div>` : ''}
@@ -3851,7 +3851,7 @@ async function _loadCComments(logId) {
       const t=new Date(cm.created_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       return '<div style="display:flex;gap:10px;margin-bottom:12px;">'
         +'<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;">'+ini+'</div>'
-        +'<div style="flex:1;background:var(--card2);border-radius:10px;padding:8px 12px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">'+nm+'</div><div style="font-size:13px;line-height:1.5;">'+cm.body+'</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">'+t+'</div></div>'
+        +'<div style="flex:1;background:var(--card2);border-radius:10px;padding:8px 12px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">'+escapeHtml(nm)+'</div><div style="font-size:13px;line-height:1.5;">'+escapeHtml(cm.body)+'</div><div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">'+t+'</div></div>'
         +'</div>';
     }).join('');
     el.scrollTop=el.scrollHeight;
@@ -3975,7 +3975,7 @@ async function loadCoachMsgsList() {
     return `<div class="pchat-row" onclick="openCoachChat('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')">
       <div class="pchat-av" style="background:${bg};">${ini}<div class="pchat-dot ${dotCls}"></div></div>
       <div class="pchat-info">
-        <div class="pchat-name">${a.full_name||'Zawodnik'}${a.unread?'<span class="pchat-new-tag">nowe</span>':''}</div>
+        <div class="pchat-name">${escapeHtml(a.full_name)||'Zawodnik'}${a.unread?'<span class="pchat-new-tag">nowe</span>':''}</div>
         <div class="pchat-preview">${prev}</div>
       </div>
       <div class="pchat-meta">
@@ -4037,14 +4037,27 @@ async function loadCoachChat() {
       const isCoach = m.sender === 'coach';
       const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
       const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-      // Konwertuj stary format [zdjęcie] <a href="URL"> na <img>
-      let body = m.body;
-      if (body.includes('[zdjęcie]')) {
-        body = body.replace(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/g,
-          (_, url) => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${url}','_blank')" />`);
+      // Bezpieczna obsługa: najpierw wyciągnij URL ze starego formatu [zdjęcie] <a href="URL">,
+      // escapuj resztę, potem dodaj <img> tylko dla zaufanych hostów
+      let bodyHtml = '';
+      const rawBody = m.body || '';
+      const imgMatch = rawBody.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
+      if (imgMatch) {
+        const url = imgMatch[1];
+        const safe = (url.startsWith('https://media.tenor.com/') || url.startsWith('https://media1.tenor.com/') || url.startsWith('https://afqojgkaveykxbltxzwm.supabase.co/'));
+        const before = escapeHtml(rawBody.slice(0, imgMatch.index));
+        const after = escapeHtml(rawBody.slice(imgMatch.index + imgMatch[0].length));
+        if (safe) {
+          bodyHtml = before + `<img src="${escapeHtml(url)}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${escapeHtml(url)}','_blank')" />` + after;
+        } else {
+          // Niebezpieczny URL - pokaż tylko link tekstowy
+          bodyHtml = before + '[zdjęcie: ' + escapeHtml(url) + ']' + after;
+        }
+      } else {
+        bodyHtml = escapeHtml(rawBody);
       }
       return `<div class="pchat-msg-row ${isCoach?'me':'them'}">
-        <div class="pchat-bubble" oncontextmenu="deleteCoachMsg(event,'${m.id}','${isCoach}')" style="cursor:pointer;">${body}</div>
+        <div class="pchat-bubble" oncontextmenu="deleteCoachMsg(event,'${m.id}','${isCoach}')" style="cursor:pointer;">${bodyHtml}</div>
         <div class="pchat-time-lbl">${date} · ${time}</div>
       </div>`;
     }).join('');
@@ -4373,11 +4386,11 @@ async function loadAnalytics() {
       }).join('');
       return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
         <!-- Header -->
-        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" onclick="openAthleteStatsModal('${a.id}','${a.full_name||'Zawodnik'}','${a.goal||''}')">
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" data-athlete-id="${escapeHtml(a.id)}" data-athlete-name="${escapeHtml(a.full_name||'Zawodnik')}" data-athlete-goal="${escapeHtml(a.goal||'')}" onclick="openAthleteStatsModal(this.dataset.athleteId, this.dataset.athleteName, this.dataset.athleteGoal)">
           <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);flex-shrink:0;">${initials}</div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;">${name}</div>
-            ${a.daysToRace!==null?`<div style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;">🏁 ${a.raceName} · ${a.daysToRace} dni</div>`:''}
+            <div style="font-size:13px;font-weight:500;">${escapeHtml(name)}</div>
+            ${a.daysToRace!==null?`<div style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;">🏁 ${escapeHtml(a.raceName)} · ${a.daysToRace} dni</div>`:''}
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--accent);">${a.totalKm}</div>
@@ -5160,7 +5173,7 @@ async function searchAthleteByEmail() {
   if (!data) {
     // email może nie być w athletes — szukaj przez dedicated view lub kolumnę
     res.innerHTML = `<div style="background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:8px;padding:12px;font-size:11px;color:#e05050;font-family:'DM Mono',monospace;">
-      Nie znaleziono zawodnika z emailem <strong>${email}</strong>.<br>
+      Nie znaleziono zawodnika z emailem <strong>${escapeHtml(email)}</strong>.<br>
       <span style="color:#66636e;margin-top:4px;display:block;">Upewnij się że zawodnik zarejestrował się w BiegaMy i podałeś poprawny email.</span>
     </div>`;
     return;
@@ -5171,13 +5184,13 @@ async function searchAthleteByEmail() {
     return;
   }
   if (data.coach_id === _coachId) {
-    res.innerHTML = `<div style="background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;font-size:11px;color:#3db870;font-family:'DM Mono',monospace;">✓ ${data.full_name||'Zawodnik'} jest już w Twojej grupie.</div>`;
+    res.innerHTML = `<div style="background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;font-size:11px;color:#3db870;font-family:'DM Mono',monospace;">✓ ${escapeHtml(data.full_name)||'Zawodnik'} jest już w Twojej grupie.</div>`;
     return;
   }
 
   _foundAthleteId = data.id;
   res.innerHTML = `<div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.3);border-radius:8px;padding:12px;">
-    <div style="font-size:13px;font-weight:500;color:#f0ede8;">${data.full_name||'Zawodnik'}</div>
+    <div style="font-size:13px;font-weight:500;color:#f0ede8;">${escapeHtml(data.full_name)||'Zawodnik'}</div>
     <div style="font-size:10px;color:#66636e;font-family:'DM Mono',monospace;margin-top:2px;">${email}</div>
   </div>`;
   btn.style.display = 'block';
