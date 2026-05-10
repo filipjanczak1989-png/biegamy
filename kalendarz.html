@@ -4221,7 +4221,7 @@ function _openDayScreen(ds) {
   const bannerKey = raceGoal ? 'Start' : typeName;
   const bannerFile = bannerMap[bannerKey];
   if (bannerFile && bannerImg && bannerWrap) {
-    const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/banners/';
+    const baseUrl = (window.SB_URL || 'https://afqojgkaveykxbltxzwm.supabase.co') + '/storage/v1/object/public/biegamy-assets/';
     bannerImg.src = baseUrl + bannerFile;
     bannerImg.alt = typeName || bannerKey;
     bannerWrap.style.display = '';
