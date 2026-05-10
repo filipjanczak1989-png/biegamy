@@ -141,4 +141,64 @@
       return { ok: false, error: e.message };
     }
   };
+
+  // ─── SECURITY: HTML escape (anti-XSS) ───────────────────────────────
+  // Używaj WSZĘDZIE gdzie wstawiasz user-content do innerHTML
+  // np. ${escapeHtml(m.body)}, ${escapeHtml(g.name)}
+  window.escapeHtml = function(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
+  // ─── LOGGING: production silence ────────────────────────────────────
+  // Na localhost/dev działa normalnie. Na produkcji log/warn/info/debug = no-op.
+  // Error zostaje (chcesz widzieć błędy). Użycie: LOG.log(...) zamiast console.log
+  const _isLocal = location.hostname === 'localhost'
+                || location.hostname.startsWith('192.168.')
+                || location.hostname.startsWith('127.')
+                || location.hostname === '';
+  window.LOG = _isLocal
+    ? console
+    : { log: function(){}, warn: function(){}, info: function(){}, debug: function(){}, error: console.error.bind(console) };
+
+  // ─── UX: toast zamiast alert() ──────────────────────────────────────
+  // Użycie: showToast('Zapisano') | showToast('Błąd!', 'error') | showToast('Uwaga', 'warn')
+  // Typy: 'info' (default), 'success', 'error', 'warn'
+  if (!document.getElementById('_biegamy_toast_styles')) {
+    const _style = document.createElement('style');
+    _style.id = '_biegamy_toast_styles';
+    _style.textContent = '@keyframes _toastIn{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}@keyframes _toastOut{to{opacity:0;transform:translateX(-50%) translateY(20px);}}';
+    if (document.head) document.head.appendChild(_style);
+    else document.addEventListener('DOMContentLoaded', function(){ document.head.appendChild(_style); });
+  }
+
+  window.showToast = function(msg, type) {
+    type = type || 'info';
+    const colors = {
+      success: 'rgba(61,184,112,0.95)',
+      error:   'rgba(232,86,30,0.95)',
+      info:    'rgba(91,140,255,0.95)',
+      warn:    'rgba(232,184,64,0.95)'
+    };
+    const t = document.createElement('div');
+    t.style.cssText =
+      'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);' +
+      'background:' + (colors[type] || colors.info) + ';color:#fff;' +
+      'padding:12px 20px;border-radius:12px;font-family:\'DM Sans\',sans-serif;' +
+      'font-size:14px;font-weight:500;z-index:99999;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,0.3);' +
+      'animation:_toastIn 0.3s ease-out;max-width:90vw;text-align:center;' +
+      'pointer-events:none;';
+    t.textContent = msg; // textContent = automatyczny escape HTML (anti-XSS)
+    document.body.appendChild(t);
+    setTimeout(function() {
+      t.style.animation = '_toastOut 0.3s ease-in forwards';
+      setTimeout(function() { try { t.remove(); } catch(e){} }, 300);
+    }, 2500);
+  };
 })();
