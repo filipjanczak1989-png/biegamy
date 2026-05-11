@@ -622,6 +622,23 @@ async function init() {
     banner.style.cssText = 'background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;padding:8px 16px;margin:8px 16px;border-radius:8px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.04em;text-align:center;';
     banner.innerHTML = '👁️ TRYB PODGLĄDU · zawodnik: ' + athleteIdOverride.substring(0, 8) + '...';
     document.body.insertBefore(banner, document.getElementById('rl-content'));
+  } else {
+    // ✨ FIX: zmapuj auth.user.id → athletes.id (w ai_reports używamy athletes.id, nie auth uid)
+    // Bez tego mapowania zawodnik nie znajduje żadnych raportów.
+    const authUid = _athleteId;
+    const { data: athRow, error: athErr } = await _sb.from('athletes')
+      .select('id')
+      .eq('user_id', authUid)
+      .maybeSingle();
+    if (athErr) {
+      console.error('[raporty] błąd mapowania user_id→athletes.id:', athErr);
+    }
+    if (athRow?.id) {
+      console.log('[raporty] ✅ Zmapowano auth.uid', authUid.substring(0,8) + '...', '→ athletes.id', athRow.id.substring(0,8) + '...');
+      _athleteId = athRow.id;
+    } else {
+      console.warn('[raporty] ⚠️ Brak rekordu w athletes dla auth.uid', authUid, '— raportów nie da się pobrać');
+    }
   }
   
   // Ustaw globalnie dla reszty funkcji
