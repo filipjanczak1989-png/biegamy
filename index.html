@@ -579,7 +579,7 @@ body.loading::after {
     <!-- CTA -->
     <div class="hero-cta-wrap">
       <button class="hero-cta" onclick="dismissHero()">Zaczynamy →</button>
-      <button class="hero-skip" onclick="dismissHero()">Już mam konto</button>
+      <button class="hero-skip" onclick="skipToLogin()">Już mam konto</button>
     </div>
   </div>
 </div>
@@ -746,8 +746,14 @@ async function checkSession() {
   }
 }
 
-// Dismiss hero - oznacz że user widział, pokaż formularz
+// Dismiss hero - pierwszy raz idzie na o-nas, oznacz że user widział landing
 function dismissHero() {
+  localStorage.setItem('biegamy_seen_landing', 'true');
+  window.location.href = 'o-nas.html';
+}
+
+// "Już mam konto" - pomija o-nas, od razu na formularz logowania na index
+function skipToLogin() {
   localStorage.setItem('biegamy_seen_landing', 'true');
   document.body.classList.remove('show-hero');
 }
@@ -1111,6 +1117,7 @@ window.loginGoogle = loginGoogle;
 window.continueSession = continueSession;
 window.logoutSession = logoutSession;
 window.dismissHero = dismissHero;
+window.skipToLogin = skipToLogin;
 
 }); // end DOMContentLoaded
 </script>
