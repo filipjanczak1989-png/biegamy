@@ -4936,13 +4936,24 @@ async function loadLogs() {
     // Skeleton loader
     const logList = document.getElementById('log-list');
     if (logList && !logList.dataset.loaded) Anim.skeleton(logList, 3);
-    const { data } = await sb
+    const { data, error } = await sb
       .from('training_logs')
       .select('*')
       .eq('athlete_id', _athleteId)
       .not('training_type', 'like', '__badge__%')
       .order('logged_at', { ascending: false })
       .limit(5);
+    
+    // ✨ Diagnostic - pokaż w konsoli co jest w bazie dla tego zawodnika
+    console.log('[loadLogs] athlete_id:', _athleteId, '| pobrano logów:', data?.length || 0, '| error:', error?.message || 'none');
+    if (data && data.length > 0) {
+      console.log('[loadLogs] ostatni log:', { 
+        id: data[0].id, 
+        type: data[0].training_type, 
+        date: data[0].logged_at, 
+        dist: data[0].distance_km 
+      });
+    }
     if (data && data.length > 0) {
       try { renderLogsDb(data); } catch(e) { console.error('renderLogsDb error:', e); }
       try { checkBadges(data); } catch(e) { console.error('checkBadges error:', e); }
