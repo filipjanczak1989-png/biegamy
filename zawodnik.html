@@ -886,7 +886,7 @@ body > *{position:relative;z-index:1;}
       <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#e8561e;border-radius:9px;border:2px solid var(--bg);font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;"></div></div>
     </div>
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
-      <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">—</span>
+      <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"></span>
       <img id="av-photo" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;border-radius:50%;">
     </div>
     <div id="av-menu" style="display:none;position:absolute;top:52px;right:0;background:#1a1a22;border:1px solid rgba(212,80,26,0.6);border-radius:14px;padding:8px;z-index:10000;min-width:180px;box-shadow:0 12px 40px rgba(0,0,0,0.95),0 0 0 1px rgba(255,255,255,0.04);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);">
@@ -3284,7 +3284,7 @@ async function loadAvatarTopbar(athleteId) {
   const { data: ath } = await sb.from('athletes').select('avatar_url').eq('id', athleteId).maybeSingle();
   if (!ath?.avatar_url) {
     photo.style.display = 'none';
-    if (ini) ini.style.display = '';
+    if (ini) ini.style.display = 'flex'; // ✨ FIX: 'flex' nie '' (span ma default inline który łamie centrowanie)
     return;
   }
   const img = new Image();
@@ -3293,7 +3293,7 @@ async function loadAvatarTopbar(athleteId) {
     photo.style.display = 'block';
     if (ini) ini.style.display = 'none';
   };
-  img.onerror = () => { photo.style.display = 'none'; if (ini) ini.style.display = ''; };
+  img.onerror = () => { photo.style.display = 'none'; if (ini) ini.style.display = 'flex'; }; // ✨ FIX
   img.src = ath.avatar_url;
 }
 

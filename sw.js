@@ -13,7 +13,7 @@
 //   - skipWaiting + clients.claim → user dostaje nową wersję natychmiast
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'biegamy-2026-05-11-c858c3f';
+const CACHE_VERSION = 'biegamy-2026-05-11-iconfix';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
@@ -35,7 +35,12 @@ const PRECACHE_URLS = [
   '/terms.html',
   '/sb.js',
   '/manifest.json',
-  '/offline.html',
+  '/offline.html'
+];
+
+// Opcjonalne pliki — jeśli nie istnieją, NIE pokazuj ostrzeżenia
+// Klaudiusz oczekuje że zostaną dodane w przyszłości (PWA ikony)
+const OPTIONAL_PRECACHE_URLS = [
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
@@ -47,11 +52,16 @@ self.addEventListener('install', (event) => {
     caches.open(STATIC_CACHE)
       .then((cache) => {
         // Precache - tolerujemy częściowe niepowodzenie (np. brak jakiegoś pliku)
-        return Promise.allSettled(
+        const requiredPromise = Promise.allSettled(
           PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
             console.warn(`[SW] Precache failed for ${url}:`, err.message);
           }))
         );
+        // Opcjonalne - cisza jeśli plik nie istnieje (PWA ikony jeszcze nie wgrane)
+        const optionalPromise = Promise.allSettled(
+          OPTIONAL_PRECACHE_URLS.map((url) => cache.add(url).catch(() => {}))
+        );
+        return Promise.all([requiredPromise, optionalPromise]);
       })
       .then(() => self.skipWaiting())
   );
