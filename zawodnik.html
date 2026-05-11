@@ -5510,7 +5510,15 @@ async function saveLog() {
     }
   } else {
     // INSERT nowego logu
-    ({ error } = await sb.from('training_logs').insert({...logData, athlete_id: _athleteId, attachment_url: attachmentUrl}));
+    const insertPayload = {...logData, athlete_id: _athleteId, attachment_url: attachmentUrl};
+    const insertResult = await sb.from('training_logs').insert(insertPayload);
+    error = insertResult.error;
+    if (error) {
+      console.error('[saveLog INSERT] error:', error);
+      console.error('[saveLog INSERT] payload był:', insertPayload);
+      // Pokaż detail w toast i konsoli
+      alert('Błąd zapisu logu:\n\nCode: ' + (error.code || '?') + '\nMessage: ' + (error.message || '?') + '\nDetails: ' + (error.details || '?') + '\nHint: ' + (error.hint || '?'));
+    }
   }
 
   if (error) {
