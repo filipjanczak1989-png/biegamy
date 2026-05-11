@@ -4672,19 +4672,16 @@ async function loadNutritionWidget() {
     return;
   }
 
-  // Pobierz target kcal z profilu (athletes.tdee/profile_data)
+  // Pobierz target kcal z nutrition_profiles (zawodnik ma do tego RLS)
   let targetKcal = null;
   try {
-    const { data: prof } = await sb.from('athletes')
-      .select('tdee, profile_data')
-      .eq('id', _athleteId)
+    const { data: prof } = await sb.from('nutrition_profiles')
+      .select('tdee, goal')
+      .eq('athlete_id', _athleteId)
       .maybeSingle();
-    if (prof) {
-      const tdee = prof.tdee || prof.profile_data?.tdee;
-      const goal = prof.profile_data?.goal || 'maintain';
-      if (tdee) {
-        targetKcal = tdee + (goal === 'deficit' ? -300 : goal === 'surplus' ? 300 : 0);
-      }
+    if (prof && prof.tdee) {
+      const goalAdjust = prof.goal === 'deficit' ? -300 : prof.goal === 'surplus' ? 300 : 0;
+      targetKcal = prof.tdee + goalAdjust;
     }
   } catch (e) {
     // bez targetu, pokażemy tylko surowe kcal
@@ -9686,13 +9683,14 @@ async function awardBadge(badgeId) {
   const badge = BADGES.find(b => b.id === badgeId);
   if (badge) setTimeout(() => showBadgePopup(badge), 400);
   // Wpisz do social feed jako event
-  await sb.from('training_logs').insert({
+  const { error: badgeLogErr } = await sb.from('training_logs').insert({
     athlete_id: _athleteId,
     training_type: '__badge__',
     comment: badgeId,
     logged_at: new Date().toISOString(),
     distance_km: null
   });
+  if (badgeLogErr) console.warn('[badge log insert]', badgeLogErr);
   // Powiadomienie dla mnie (żebym widział w dzwonku)
   try {
     const badgeName = badge ? badge.name : badgeId;
