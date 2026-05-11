@@ -4803,13 +4803,16 @@ async function openAIReportModal(reportId) {
   // Visibility status
   const visEl = document.getElementById('airm-visibility-status');
   const sendBtn = document.getElementById('airm-send-btn');
+  const unsendBtn = document.getElementById('airm-unsend-btn');
   if (report.visible_to_athlete && report.sent_at) {
     const sentDate = new Date(report.sent_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
     if (visEl) visEl.textContent = '✓ Wysłany ' + sentDate;
     if (sendBtn) sendBtn.textContent = '📤 Wyślij ponownie';
+    if (unsendBtn) unsendBtn.style.display = 'inline-block'; // pokaż cofnij
   } else {
     if (visEl) visEl.textContent = '🔒 Tylko Ty';
     if (sendBtn) sendBtn.textContent = '📤 Wyślij';
+    if (unsendBtn) unsendBtn.style.display = 'none'; // ukryj cofnij
   }
   
   // PDF button — pokaz tylko dla weekly/monthly (dzienny za krotki)
@@ -4960,6 +4963,29 @@ async function deleteAIReport() {
 
 window.deleteAIReport = deleteAIReport;
 
+// ✨ Cofnij wysłanie - ukrywa raport przed zawodnikiem, ale nie kasuje
+async function unsendAIReport() {
+  if (!_currentReportInModal) return;
+  if (!confirm('Cofnąć wysłanie? Raport zniknie z aplikacji zawodnika, ale zostanie u Ciebie. Możesz go potem edytować i wysłać ponownie.')) return;
+  
+  const { error } = await sb.from('ai_reports').update({
+    visible_to_athlete: false,
+    sent_at: null,
+    read_by_athlete: null
+  }).eq('id', _currentReportInModal.id);
+  
+  if (error) {
+    showToast('Błąd: ' + error.message);
+    return;
+  }
+  
+  showToast('↩ Cofnięto wysłanie. Raport jest teraz tylko u Ciebie.');
+  await openAIReportModal(_currentReportInModal.id);
+  if (typeof loadPanelAI === 'function') loadPanelAI();
+}
+
+window.unsendAIReport = unsendAIReport;
+
 function toggleAIReportEdit() {
   const content = document.getElementById('airm-content');
   const textarea = document.getElementById('airm-edit-textarea');
@@ -5016,7 +5042,7 @@ async function saveAIReportEdit() {
   }
   const tldrMatch = _currentReportInModal.report_type === 'daily'
     ? newMd.match(/##\s*Co dzisiaj\s*\n+([^\n#]+)/)
-    : newMd.match(/##\s*TL;DR\s*\n+([^\n#]+)/);
+    : newMd.match(/##\s*(?:Wstęp|TL;DR)\s*\n+([^\n#]+)/);
   const newSummary = tldrMatch ? tldrMatch[1].trim().substring(0, 300) : _currentReportInModal.summary;
   
   const { error } = await sb.from('ai_reports').update({
@@ -5636,6 +5662,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
       <button id="airm-cancel-btn" onclick="cancelAIReportEdit()" style="display:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:rgba(240,237,232,0.6);border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">Anuluj</button>
       <button id="airm-pdf-btn" onclick="exportAIReportToPDF()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f0ede8;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">📄 PDF</button>
       <button id="airm-delete-btn" onclick="deleteAIReport()" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">🗑</button>
+      <button id="airm-unsend-btn" onclick="unsendAIReport()" style="display:none;background:rgba(252,176,64,0.12);border:1px solid rgba(252,176,64,0.35);color:#fcb040;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">↩ Cofnij wysłanie</button>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
         <span id="airm-visibility-status" style="font-size:10px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;"></span>
         <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.08em;font-weight:600;text-transform:uppercase;">📤 Wyślij</button>
