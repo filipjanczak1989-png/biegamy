@@ -9682,15 +9682,6 @@ async function awardBadge(badgeId) {
   // Wyświetl pop-up
   const badge = BADGES.find(b => b.id === badgeId);
   if (badge) setTimeout(() => showBadgePopup(badge), 400);
-  // Wpisz do social feed jako event
-  const { error: badgeLogErr } = await sb.from('training_logs').insert({
-    athlete_id: _athleteId,
-    training_type: '__badge__',
-    comment: badgeId,
-    logged_at: new Date().toISOString(),
-    distance_km: null
-  });
-  if (badgeLogErr) console.warn('[badge log insert]', badgeLogErr);
   // Powiadomienie dla mnie (żebym widział w dzwonku)
   try {
     const badgeName = badge ? badge.name : badgeId;
