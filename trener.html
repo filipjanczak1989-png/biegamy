@@ -4875,11 +4875,14 @@ function mdToHtmlPremium(md) {
   let html = md;
   
   // ━━━━━━ Wycinki PRZED konwersją na HTML (działają na markdownie) ━━━━━━
-  // Wytnij linie PRIORITY (różne formaty)
+  // Wytnij linie PRIORITY/PRIORYTET (różne formaty)
   html = html
     .replace(/^\s*PRIORITY:\s*(green|yellow|red|low|medium|high)\s*$/gmi, '')
     .replace(/^\s*\*{0,2}PRIORITY\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '')
-    .replace(/^\s*#{1,4}\s*PRIORITY[\s:]*$/gmi, '');
+    .replace(/^\s*#{1,4}\s*PRIORITY[\s:]*$/gmi, '')
+    .replace(/^\s*PRIORYTET:\s*(zielony|żółty|czerwony|niski|średni|wysoki)\s*$/gmi, '')
+    .replace(/^\s*\*{0,2}PRIORYTET\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*PRIORYTET[\s:]*$/gmi, '');
   
   // Wytnij headery RED FLAGS / Czerwone flagi (puste sekcje na końcu)
   html = html
@@ -5001,9 +5004,16 @@ async function saveAIReportEdit() {
   saveBtn.disabled = true;
   saveBtn.textContent = '⏳ Zapisuję...';
   
-  // Wyciągnij priority i summary z nowego markdownu
-  const priorityMatch = newMd.match(/PRIORITY:\s*(green|yellow|red)/i);
-  const newPriority = priorityMatch ? priorityMatch[1].toLowerCase() : _currentReportInModal.priority;
+  // Wyciągnij priority i summary z nowego markdownu (PL + EN)
+  let newPriority = _currentReportInModal.priority;
+  const priorityMatchPL = newMd.match(/PRIORYTET:\s*(zielony|żółty|czerwony)/i);
+  if (priorityMatchPL) {
+    const polMap = { 'zielony': 'green', 'żółty': 'yellow', 'czerwony': 'red' };
+    newPriority = polMap[priorityMatchPL[1].toLowerCase()] || newPriority;
+  } else {
+    const priorityMatchEN = newMd.match(/PRIORITY:\s*(green|yellow|red)/i);
+    if (priorityMatchEN) newPriority = priorityMatchEN[1].toLowerCase();
+  }
   const tldrMatch = _currentReportInModal.report_type === 'daily'
     ? newMd.match(/##\s*Co dzisiaj\s*\n+([^\n#]+)/)
     : newMd.match(/##\s*TL;DR\s*\n+([^\n#]+)/);

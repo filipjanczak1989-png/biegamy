@@ -465,11 +465,14 @@ function mdToHtml(md) {
   
   let html = md;
   
-  // Wytnij linie PRIORITY (różne formaty)
+  // Wytnij linie PRIORITY/PRIORYTET (różne formaty)
   html = html
     .replace(/^\s*PRIORITY:\s*(green|yellow|red|low|medium|high)\s*$/gmi, '')
     .replace(/^\s*\*{0,2}PRIORITY\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '')
-    .replace(/^\s*#{1,4}\s*PRIORITY[\s:]*$/gmi, '');
+    .replace(/^\s*#{1,4}\s*PRIORITY[\s:]*$/gmi, '')
+    .replace(/^\s*PRIORYTET:\s*(zielony|żółty|czerwony|niski|średni|wysoki)\s*$/gmi, '')
+    .replace(/^\s*\*{0,2}PRIORYTET\s*:?\s*\w+\s*\*{0,2}\s*$/gmi, '')
+    .replace(/^\s*#{1,4}\s*PRIORYTET[\s:]*$/gmi, '');
   
   // Wytnij headery RED FLAGS / Red flags / 🚨 Czerwone flagi
   html = html
