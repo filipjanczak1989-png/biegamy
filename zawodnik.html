@@ -1588,6 +1588,47 @@ body > *{position:relative;z-index:1;}
 <script src="sb.js"></script>
 
 <script>
+// ✨ DIAGNOSTYKA: globalny intercept fetch - loguje detail każdego błędu 400/500
+// To pomoże zlokalizować ukryte bugi typu "POST training_logs 400" bez detail
+(function() {
+  if (window._fetchIntercepted) return;
+  window._fetchIntercepted = true;
+  const _origFetch = window.fetch;
+  window.fetch = async function(...args) {
+    // Złap stack trace PRZED await (żeby pokazać kto wywołał)
+    const stackTrace = new Error().stack;
+    const resp = await _origFetch.apply(this, args);
+    if (resp.status >= 400 && resp.status < 600) {
+      const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
+      const method = args[1]?.method || (typeof args[0] === 'object' ? args[0].method : 'GET');
+      // Tylko Supabase
+      if (url && url.includes('supabase.co/rest/v1/')) {
+        try {
+          const cloned = resp.clone();
+          const body = await cloned.text();
+          // Spróbuj odczytać body req też
+          let reqBody = '';
+          if (args[1]?.body) {
+            try { reqBody = typeof args[1].body === 'string' ? args[1].body.substring(0, 500) : '[stream]'; } catch(_){}
+          }
+          // Wyciągnij użyteczne linie ze stack trace (pomiń supabase.js i intercept)
+          const stackLines = (stackTrace || '').split('\n')
+            .filter(l => !l.includes('supabase.js') && !l.includes('_fetchIntercepted'))
+            .slice(1, 6)
+            .join('\n');
+          console.error('[Supabase ' + resp.status + ']', method, url.split('/rest/v1/')[1], 
+            '\n  Response:', body.substring(0, 500), 
+            reqBody ? '\n  Request body: ' + reqBody : '',
+            '\n  Stack:', stackLines);
+        } catch(e) { /* ignore */ }
+      }
+    }
+    return resp;
+  };
+})();
+</script>
+
+<script>
 // ── PILL TYPU TRENINGU (uniwersalna komponenta) ──────────────────
 // Mała, subtelna odznaka z ikonką w kafelku — pokazuje typ treningu
 // bez dominacji UI. Zwraca HTML string (bezpieczny — używa SVG hardcoded).
