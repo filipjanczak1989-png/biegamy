@@ -5514,10 +5514,27 @@ async function saveLog() {
     const insertResult = await sb.from('training_logs').insert(insertPayload);
     error = insertResult.error;
     if (error) {
-      console.error('[saveLog INSERT] error:', error);
-      console.error('[saveLog INSERT] payload był:', insertPayload);
-      // Pokaż detail w toast i konsoli
-      alert('Błąd zapisu logu:\n\nCode: ' + (error.code || '?') + '\nMessage: ' + (error.message || '?') + '\nDetails: ' + (error.details || '?') + '\nHint: ' + (error.hint || '?'));
+      // ✨ SPECJALNY HANDLING dla cooldown (3h między logami) - to NIE jest błąd, to feature
+      if (error.message && error.message.startsWith('COOLDOWN:')) {
+        const remainingSec = parseInt(error.message.split(':')[1]) || 0;
+        const remainingMin = Math.ceil(remainingSec / 60);
+        const h = Math.floor(remainingMin / 60);
+        const m = remainingMin % 60;
+        const timeStr = h > 0 ? `${h}h ${m}min` : `${m} min`;
+        // Pokaż przyjazny komunikat
+        alert(
+          '⏱️ Trzeba poczekać\n\n' +
+          'Ostatni log treningowy zapisałeś niedawno.\n' +
+          'Pozostało jeszcze: ' + timeStr + '\n\n' +
+          'To ograniczenie chroni przed przypadkowymi duplikatami.\n' +
+          'Jeśli chcesz zalogować nowy trening teraz — usuń poprzedni log.'
+        );
+        error.message = 'Cooldown — zaczekaj ' + timeStr; // dla toast
+      } else {
+        console.error('[saveLog INSERT] error:', error);
+        console.error('[saveLog INSERT] payload był:', JSON.stringify(insertPayload, null, 2));
+        // Dla innych błędów - normalny toast (bez alert popupa)
+      }
     }
   }
 
