@@ -610,6 +610,109 @@
   }
 
   // ==========================================================
+  // FLYING EVENTS — pule tekstów (60+ wariantów na bieg)
+  // ==========================================================
+  const FLYING_TEXT_POOL = {
+    intro: [
+      '🌅 Świt nad polem...',
+      '🌫️ Mgła snuje się nad rzędami',
+      '🐓 Kogut piał pół godziny temu',
+      '☕ Para z kubka unosi się ku niebu',
+      '🌾 Cisza. Tylko świerszcze i kroki.',
+      '🌅 Wschód słońca dotyka horyzontu',
+      '💫 Ostatnie gwiazdy gasną',
+      '🪶 Wieczorne ptaki jeszcze nie wstały',
+      '🌬️ Lekki wiatr od strony lasu',
+      '🌄 Niebo robi się różowe'
+    ],
+    burek: [
+      '🐕 Burek się obudził!',
+      '🐕 Burek otrzepał się z rosy',
+      '🐕 Burek truchta obok — nie wytrzymał',
+      '🐕 Burek wyprzedza... znowu',
+      '🐕 Burek zatrzymał się przy bruździe',
+      '🐕 Burek szczeka radośnie',
+      '🐕 Burek poluje na motyla i Cię gubi',
+      '🐕 Burek pokazuje jak się biega',
+      '🐕 Burek znalazł patyk. Niesie.',
+      '🐕 Burek się zmęczył pierwszy'
+    ],
+    mietek: [
+      '👀 Mietek wystaje zza płotu',
+      '🍺 Mietek otwiera kolejne piwo',
+      '😒 Mietek kręci głową',
+      '👀 Mietek mówi do żony: "patrz, znowu lata"',
+      '🍺 Mietek wzrusza ramionami',
+      '😏 Mietek puszcza dym z papierosa',
+      '👀 Mietek tylko obserwuje. Tylko.',
+      '🚬 Mietek strzepuje popiół na biegnący świat',
+      '😒 Mietek bierze łyk i odwraca wzrok',
+      '🍻 Mietek do butelki: "to się jeszcze nie skończy dobrze"'
+    ],
+    mid_run: [
+      '💨 Pierwszy pot na czole',
+      '🫁 Oddech zaczyna boleć',
+      '🦵 Nogi mówią "ojej, znowu?"',
+      '💪 Determinacja: nadal jest',
+      '⚡ Tętno: czuję jak wali',
+      '😅 "Ile to jest 200 metrów?"',
+      '🌡️ Robi się gorąco',
+      '💧 Kropla potu spada na nos',
+      '🧠 "Anna. Anna obiecałem."',
+      '😤 Janusz zaciska zęby',
+      '🌱 Pole pachnie ziemią',
+      '👟 Trampek się trochę otarł'
+    ],
+    sun_rising: [
+      '🌅 Słońce wyżej',
+      '☀️ Pierwsze promienie na twarzy',
+      '🌤️ Niebo robi się złote',
+      '🌄 Cień Janusza się skraca',
+      '☀️ Dzień się otwiera',
+      '🌅 Mgła ustępuje światłu',
+      '🌞 Słońce mówi "dzień dobry"',
+      '☀️ Pole zaczyna mienić się rosą'
+    ],
+    achievement: [
+      '🫁 Drugi oddech!',
+      '⚡ Endorfiny dają znać',
+      '🔥 Coś się włącza w głowie',
+      '💎 "Mogę. Naprawdę mogę."',
+      '🌟 Pierwszy raz: euforia',
+      '👑 Janusz przekracza barierę',
+      '🎯 To jest TO uczucie',
+      '🚀 Drugi wiatr w żaglach'
+    ],
+    finish: [
+      '🏁 Finisz zbliża się...',
+      '🏁 Ostatnie 50 metrów',
+      '🏁 Już prawie...',
+      '🏁 Widać metę',
+      '🏁 Jeszcze jeden krok',
+      '🏁 Mietek wstrzymuje oddech',
+      '🏁 Burek czeka na końcu',
+      '🏁 Anna w oknie się uśmiecha'
+    ]
+  };
+
+  // Pamięć użytych tekstów per kategoria (żeby nie powtarzać w obrębie sesji)
+  const usedTexts = {};
+
+  function pickFlyingText(category) {
+    const pool = FLYING_TEXT_POOL[category];
+    if (!pool || pool.length === 0) return '...';
+
+    if (!usedTexts[category]) usedTexts[category] = new Set();
+    // Reset jak wyczerpaliśmy całą pulę
+    if (usedTexts[category].size >= pool.length) usedTexts[category].clear();
+
+    const available = pool.filter(t => !usedTexts[category].has(t));
+    const chosen = available[Math.floor(Math.random() * available.length)];
+    usedTexts[category].add(chosen);
+    return chosen;
+  }
+
+  // ==========================================================
   // BIEG — CINEMATIC RUN SCENE v0.2
   // ==========================================================
   async function startRun(type) {
@@ -632,15 +735,16 @@
     void scene.offsetHeight;
     scene.classList.add('active');
 
-    // Lista eventów "w locie" — wyświetlanych w trakcie biegu
+    // Lista eventów "w locie" — generowana na nowo dla każdego biegu, z losowaniem!
     const flyingEvents = [
-      { at: 0.10, text: '🌅 Świt nad polem...', type: 'narration' },
-      { at: 0.20, text: '🐕 Burek się obudził!', type: 'burek' },
-      { at: 0.35, text: '👀 Mietek wystaje zza płotu', type: 'mietek' },
-      { at: 0.50, text: '💨 Pierwszy pot na czole', type: 'narration' },
-      { at: 0.65, text: '🌅 Słońce wyżej', type: 'narration' },
-      { at: 0.80, text: '🫁 Drugi oddech!', type: 'achievement' },
-      { at: 0.92, text: '🏁 Finish line zbliża się...', type: 'narration' }
+      { at: 0.08, text: pickFlyingText('intro'),         type: 'intro' },
+      { at: 0.22, text: pickFlyingText('burek'),         type: 'burek' },
+      { at: 0.38, text: pickFlyingText('mid_run'),       type: 'midrun' },
+      { at: 0.50, text: pickFlyingText('mietek'),        type: 'mietek' },
+      { at: 0.62, text: pickFlyingText('mid_run'),       type: 'midrun' },
+      { at: 0.74, text: pickFlyingText('sun_rising'),    type: 'sun' },
+      { at: 0.85, text: pickFlyingText('achievement'),   type: 'achievement' },
+      { at: 0.94, text: pickFlyingText('finish'),        type: 'finish' }
     ];
 
     // Animacja sceny
