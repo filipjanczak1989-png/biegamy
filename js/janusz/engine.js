@@ -749,7 +749,7 @@
       return `
         <div class="workout-card" style="${equipped ? 'border-color:var(--success);border-left-color:var(--success);' : ''}">
           <div style="display:flex;gap:1rem;align-items:flex-start;">
-            <div style="width:100px;height:80px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;background-image:url('assets/janusz/${it.image_file}');background-size:contain;background-position:center;background-repeat:no-repeat;"></div>
+            <div style="width:120px;height:110px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;background-image:url('assets/janusz/${it.image_file}');background-size:88% auto;background-position:center 55%;background-repeat:no-repeat;"></div>
             <div style="flex:1;min-width:0;">
               <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.4rem;">
                 <strong style="color:var(--cream);">${escapeHtml(it.name)}</strong>
