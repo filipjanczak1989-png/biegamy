@@ -69,17 +69,17 @@
     const feel = (log.feel || '').toLowerCase();
     const distance = Number(log.distance_km) || 0;
 
-    // Bazowe bonusy per typ treningu
+    // Bazowe bonusy per typ treningu (zbalansowane v0.3.1)
     const base = {
-      'long': { morale: 22, determinacja: 3, kondycja: 1, kapital: 8 },
-      'long_short': { morale: 16, determinacja: 2, kondycja: 1, kapital: 5 },
-      'intervals': { morale: 18, determinacja: 2, kondycja: 1, kapital: 4 },
-      'tempo': { morale: 14, kondycja: 1, kapital: 3 },
-      'race': { morale: 30, determinacja: 4, kapital: 15 },
-      'easy': { morale: 8, energia: 5, kapital: 1 },
-      'cross': { morale: 6, energia: 8 },
-      'other': { morale: 7, kapital: 2 }
-    }[type] || { morale: 5 };
+      'long': { morale: 12, determinacja: 2, kondycja: 1, kapital: 5 },
+      'long_short': { morale: 9, determinacja: 1, kondycja: 1, kapital: 3 },
+      'intervals': { morale: 10, determinacja: 2, kondycja: 1, kapital: 3 },
+      'tempo': { morale: 8, kondycja: 1, kapital: 2 },
+      'race': { morale: 18, determinacja: 3, kapital: 10 },
+      'easy': { morale: 4, energia: 3, kapital: 1 },
+      'cross': { morale: 3, energia: 5 },
+      'other': { morale: 4, kapital: 1 }
+    }[type] || { morale: 3 };
 
     const bonus = { ...base };
 
@@ -97,7 +97,7 @@
       // Kontuzja w realu = Janusz odpoczywa solidarnie
       return {
         type: 'injury_solidarity',
-        bonus: { energia: 30, morale: 3, determinacja: 1 },
+        bonus: { energia: 20, morale: 2 },
         flavor: 'NARRATOR|Twój kolega-trener się oszczędza. Janusz też wziął wolne — kładzie się obok Burka. Razem patrzą w okno. Razem czekają na lepszą chwilę.'
       };
     }
