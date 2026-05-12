@@ -3700,14 +3700,11 @@ const _coachNotifications = []; // local store for new registrations
 
 async function loadAppStats() {
   try {
-    // Total athletes
-    const { count: total } = await sb.from('athletes').select('*', { count: 'exact', head: true });
-    // New today
-    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-    const { count: today } = await sb.from('athletes').select('*', { count: 'exact', head: true })
-      .gte('created_at', todayStart.toISOString());
-    _appStats.totalUsers = total || 0;
-    _appStats.newToday = today || 0;
+    // Użyj VIEW (nie ujawnia rekordów, tylko liczby)
+    const { data, error } = await sb.from('v_athlete_stats').select('*').single();
+    if (error) throw error;
+    _appStats.totalUsers = data?.total_count || 0;
+    _appStats.newToday = data?.today_count || 0;
 
     // Update quick stats if visible
     const el = document.getElementById('app-stats-bar');
@@ -4504,10 +4501,11 @@ async function loadAnalytics() {
   // Render app stats in analytics section
   const appEl = document.getElementById('analytics-app-stats');
   if (appEl) {
-    const { count: total } = await sb.from('athletes').select('*', { count:'exact', head:true });
+    // total + newWeek z VIEW (bez ujawniania rekordów), myCount z bezpośredniego count
+    const { data: appStats } = await sb.from('v_athlete_stats').select('*').single();
+    const total = appStats?.total_count || 0;
+    const newWeek = appStats?.week_count || 0;
     const { count: myCount } = await sb.from('athletes').select('*', { count:'exact', head:true }).eq('coach_id', _coachId);
-    const wS = new Date(); wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1); wS.setHours(0,0,0,0);
-    const { count: newWeek } = await sb.from('athletes').select('*', { count:'exact', head:true }).gte('created_at', wS.toISOString());
     appEl.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;">'
       + '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;text-align:center;">'
       + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:28px;color:var(--accent);line-height:1;">' + (total||0) + '</div>'
