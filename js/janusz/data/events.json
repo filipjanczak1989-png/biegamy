@@ -1,5 +1,37 @@
 [
   {
+    "key": "mama_karmienie",
+    "trigger": "run_complete",
+    "name": "MAMA KRYSIA",
+    "avatar": "mama-portrait.webp",
+    "text": "Mama stoi w drzwiach z drewnianą łyżką. Patrzy na zdyszanego Janusza i kiwa głową:<br><br><em>\"Synek, znowu te biegania. Zjedz coś! Schudłeś! Pierogi z grzybami zrobiłam!\"</em><br><br>Janusz nie ma siły protestować. Wchodzi do kuchni.",
+    "effects": { "energia": 8, "morale": 5 }
+  },
+  {
+    "key": "mama_zalamana",
+    "trigger": "run_complete",
+    "name": "MAMA KRYSIA",
+    "avatar": "mama-portrait.webp",
+    "text": "Mama załamuje ręce w oknie kuchennym widząc syna w dresie:<br><br><em>\"Ojej Boże, znowu! Pani Halinka z kościoła pyta czy z tobą wszystko w porządku. Mówię jej: 'Halinka, on chyba zwariował.'\"</em>",
+    "effects": { "morale": -3, "determinacja": 2 }
+  },
+  {
+    "key": "mama_modlitwa",
+    "trigger": "run_complete",
+    "name": "MAMA KRYSIA",
+    "avatar": "mama-portrait.webp",
+    "text": "Mama klęczy przy obrazie świętego Antoniego:<br><br><em>\"Święty Antoni, dopilnuj żeby syn się nie zabił od tego biegania. Daj mu rozum z powrotem.\"</em><br><br>Janusz słyszy przez okno i uśmiecha się cicho. Mama go modli. To jest pomoc.",
+    "effects": { "morale": 6, "determinacja": 1 }
+  },
+  {
+    "key": "mama_kanapki",
+    "trigger": "run_complete",
+    "name": "MAMA KRYSIA",
+    "avatar": "mama-portrait.webp",
+    "text": "Janusz wraca z biegu, a na ganku już czekają na niego dwie kanapki z masłem i białym serem oraz szklanka kompotu. Mama mówi cicho z kuchni:<br><br><em>\"Wzięłam i przygotowałam. Bo wiesz... biegasz.\"</em><br><br>Jej akceptacja to zwycięstwo większe niż każdy bieg.",
+    "effects": { "energia": 12, "morale": 10 }
+  },
+  {
     "key": "burek_overtake",
     "trigger": "run_complete",
     "name": "BUREK",
