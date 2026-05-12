@@ -339,6 +339,40 @@
     renderGame();
     // Po renderze, asynchronicznie ładuj niewykorzystane treningi
     loadAndShowUnusedWorkouts();
+    // Inicjalizacja shop + achievementy
+    initShopAndAchievements();
+  }
+
+  async function initShopAndAchievements() {
+    if (JR.shop && JR.shop.ensureStarterShoes && JR.athlete) {
+      try {
+        const added = await JR.shop.ensureStarterShoes(SB, JR.athlete.id);
+        if (added) console.log('[JR v0.4] Klapki Kubota założone Januszowi 👟');
+      } catch (e) { console.warn('[JR shop] starter shoes', e); }
+    }
+    // Sprawdź achievementy które gracz mógł osiągnąć (np. po zainstalowaniu update)
+    if (JR.achievements && JR.achievements.checkAll) {
+      try {
+        const newly = await JR.achievements.checkAll(SB);
+        if (newly && newly.length > 0) {
+          // Pokaż każde z osobna, z opóźnieniem
+          for (let i = 0; i < newly.length; i++) {
+            setTimeout(() => showAchievementUnlock(newly[i]), i * 4000);
+          }
+          // Update state players w razie nagród kapital
+          await refreshPlayerState();
+        }
+      } catch (e) { console.warn('[JR ach] checkAll', e); }
+    }
+  }
+
+  async function refreshPlayerState() {
+    try {
+      const { data: p } = await SB.from('jr_players').select('*').eq('id', JR.player.id).single();
+      if (p) JR.player = p;
+      const { data: a } = await SB.from('jr_athletes').select('*').eq('id', JR.athlete.id).single();
+      if (a) JR.athlete = a;
+    } catch (e) { console.warn('[JR] refreshPlayerState', e); }
   }
 
   async function loadAndShowUnusedWorkouts() {
@@ -475,6 +509,19 @@
         card.style.transform = 'translateX(20px)';
         setTimeout(() => card.remove(), 500);
       }
+
+      // Sprawdź achievementy (trener_widzi etc.)
+      setTimeout(async () => {
+        try {
+          const newly = await JR.achievements?.checkAll?.(SB);
+          if (newly && newly.length > 0) {
+            await refreshPlayerState();
+            for (let i = 0; i < newly.length; i++) {
+              setTimeout(() => showAchievementUnlock(newly[i]), i * 4500);
+            }
+          }
+        } catch (e) { console.warn('[JR ach after workout]', e); }
+      }, 1500);
     } catch (err) {
       console.error('[JR] claim error', err);
       btn.disabled = false;
@@ -609,11 +656,19 @@
           </span>
         </button>
 
-        <button class="action-btn" id="btn-stats">
-          <span class="action-icon">📊</span>
+        <button class="action-btn" id="btn-shop">
+          <span class="action-icon">🏪</span>
           <span class="action-text">
-            <strong>Pełne statystyki</strong>
-            <small>Historia biegów, achievementy, kolekcja</small>
+            <strong>Sklep z butami</strong>
+            <small>Kup nowe buty dla Janusza · Kapitał: ${JR.player.kapital} zł</small>
+          </span>
+        </button>
+
+        <button class="action-btn" id="btn-trophies">
+          <span class="action-icon">🏆</span>
+          <span class="action-text">
+            <strong>Trofea i osiągnięcia</strong>
+            <small>Twoje sukcesy z Januszem</small>
           </span>
         </button>
       </div>
@@ -628,9 +683,196 @@
     document.getElementById('btn-run-short')?.addEventListener('click', () => startRun('short'));
     document.getElementById('btn-run-medium')?.addEventListener('click', () => startRun('medium'));
     document.getElementById('btn-rest')?.addEventListener('click', rest);
-    document.getElementById('btn-stats')?.addEventListener('click', () => {
-      toast('Statystyki — coming soon w v0.2', 'success');
+    document.getElementById('btn-shop')?.addEventListener('click', openShop);
+    document.getElementById('btn-trophies')?.addEventListener('click', openTrophies);
+  }
+
+  // ==========================================================
+  // SHOP — modal z butami
+  // ==========================================================
+  async function openShop() {
+    if (!JR.shop) { toast('Sklep niedostępny', 'danger'); return; }
+    const modal = document.getElementById('event-modal');
+    const content = document.getElementById('event-modal-content');
+
+    content.innerHTML = `
+      <div class="dialog-header">
+        <div class="dialog-name">🏪 SKLEP Z BUTAMI</div>
+      </div>
+      <div class="dialog-text" style="margin-bottom:1rem;">
+        Kapitał: <strong style="color:var(--accent-soft);">${JR.player.kapital} zł</strong>
+      </div>
+      <div id="shop-list" style="display:flex;flex-direction:column;gap:0.75rem;max-height:60vh;overflow-y:auto;">
+        <div style="text-align:center;color:var(--text-muted);padding:1rem;">Ładowanie...</div>
+      </div>
+      <div class="dialog-choices">
+        <button class="choice-btn" id="shop-close">Wracam do treningu ▸</button>
+      </div>
+    `;
+    modal.classList.add('active');
+    document.getElementById('shop-close').addEventListener('click', () => {
+      modal.classList.remove('active');
+      renderGame();
     });
+
+    const items = await JR.shop.fetchCatalog(SB, JR.athlete.id);
+    const list = document.getElementById('shop-list');
+    if (!items || items.length === 0) {
+      list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1rem;">Sklep pusty. Sprawdź czy migracja v0.4 została wykonana.</div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(it => {
+      const tempoLabel = it.tempo_modifier_pct > 0
+        ? `<span style="color:var(--success);">+${it.tempo_modifier_pct}% tempo</span>`
+        : it.tempo_modifier_pct < 0
+          ? `<span style="color:var(--danger);">${it.tempo_modifier_pct}% tempo</span>`
+          : '<span style="color:var(--text-muted);">tempo neutralne</span>';
+
+      const owned = it.owned_count > 0;
+      const equipped = it.is_equipped;
+      const canAfford = JR.player.kapital >= it.price;
+
+      let buttonHtml;
+      if (equipped) {
+        buttonHtml = `<button class="workout-btn-claim" disabled style="background:var(--success);">✓ Założone</button>`;
+      } else if (owned) {
+        buttonHtml = `<button class="workout-btn-claim" data-action="equip" data-eq-id="${it.equipment_id}">Załóż ▸</button>`;
+      } else if (it.price === 0) {
+        buttonHtml = `<button class="workout-btn-claim" data-action="buy" data-key="${it.item_key}">Weź za darmo ▸</button>`;
+      } else if (canAfford) {
+        buttonHtml = `<button class="workout-btn-claim" data-action="buy" data-key="${it.item_key}">Kup za ${it.price} zł ▸</button>`;
+      } else {
+        buttonHtml = `<button class="workout-btn-claim" disabled>Brak ${it.price - JR.player.kapital} zł</button>`;
+      }
+
+      return `
+        <div class="workout-card" style="${equipped ? 'border-color:var(--success);border-left-color:var(--success);' : ''}">
+          <div style="display:flex;gap:1rem;align-items:flex-start;">
+            <div style="width:100px;height:80px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;background-image:url('assets/janusz/${it.image_file}');background-size:contain;background-position:center;background-repeat:no-repeat;"></div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.4rem;">
+                <strong style="color:var(--cream);">${escapeHtml(it.name)}</strong>
+                <span class="workout-type">${tempoLabel}</span>
+              </div>
+              <div style="font-size:0.85rem;color:var(--text-muted);margin:0.3rem 0;line-height:1.4;">${escapeHtml(it.description || '')}</div>
+              ${it.flavor_text ? `<div style="font-size:0.8rem;color:var(--cream-soft);font-style:italic;margin-bottom:0.4rem;">"${escapeHtml(it.flavor_text)}"</div>` : ''}
+              ${owned ? `<div style="font-size:0.75rem;color:var(--text-muted);">Trwałość: ${it.best_durability}/${it.durability_max}</div>` : ''}
+            </div>
+          </div>
+          <div style="margin-top:0.75rem;">${buttonHtml}</div>
+        </div>
+      `;
+    }).join('');
+
+    // Bind buttons
+    list.querySelectorAll('button[data-action]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.dataset.action;
+        btn.disabled = true;
+        if (action === 'buy') {
+          const key = btn.dataset.key;
+          const result = await JR.shop.buyItem(SB, key, JR.athlete.id);
+          if (result.ok) {
+            // Załóż automatycznie
+            await JR.shop.equipItem(SB, result.equipment_id);
+            await refreshPlayerState();
+            toast(`Kupiłeś i założyłeś nowe buty! 👟`, 'success');
+            openShop(); // re-render
+          } else {
+            toast(`Błąd: ${result.error || 'nieznany'}`, 'danger');
+            btn.disabled = false;
+          }
+        } else if (action === 'equip') {
+          const eqId = btn.dataset.eqId;
+          const result = await JR.shop.equipItem(SB, eqId);
+          if (result.ok) {
+            toast('Założone! 👟', 'success');
+            openShop();
+          } else {
+            toast(`Błąd: ${result.error || 'nieznany'}`, 'danger');
+            btn.disabled = false;
+          }
+        }
+      });
+    });
+  }
+
+  // ==========================================================
+  // TROPHIES — modal z achievementami
+  // ==========================================================
+  async function openTrophies() {
+    if (!JR.achievements) { toast('Trofea niedostępne', 'danger'); return; }
+    const modal = document.getElementById('event-modal');
+    const content = document.getElementById('event-modal-content');
+
+    content.innerHTML = `
+      <div class="dialog-header">
+        <div class="dialog-name">🏆 TROFEA</div>
+      </div>
+      <div id="trophies-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:0.75rem;max-height:60vh;overflow-y:auto;padding:0.25rem;">
+        <div style="text-align:center;color:var(--text-muted);padding:1rem;grid-column:1/-1;">Ładowanie...</div>
+      </div>
+      <div class="dialog-choices">
+        <button class="choice-btn" id="trophies-close">Wracam do treningu ▸</button>
+      </div>
+    `;
+    modal.classList.add('active');
+    document.getElementById('trophies-close').addEventListener('click', () => {
+      modal.classList.remove('active');
+      renderGame();
+    });
+
+    const all = await JR.achievements.fetchAll(SB);
+    const list = document.getElementById('trophies-list');
+
+    if (!all || all.length === 0) {
+      list.innerHTML = `<div style="text-align:center;color:var(--text-muted);padding:1rem;grid-column:1/-1;">Trofea niedostępne. Sprawdź migrację v0.4.</div>`;
+      return;
+    }
+
+    const unlocked = all.filter(a => a.unlocked).length;
+    const total = all.length;
+
+    list.innerHTML = `
+      <div style="grid-column:1/-1;text-align:center;color:var(--cream);font-size:0.95rem;margin-bottom:0.5rem;">
+        Odblokowane: <strong style="color:var(--accent-soft);">${unlocked}/${total}</strong>
+      </div>
+    ` + all.map(a => {
+      const filter = a.unlocked ? 'none' : 'grayscale(100%) brightness(0.4)';
+      const opacity = a.unlocked ? '1' : '0.5';
+      return `
+        <div style="background:rgba(0,0,0,0.35);border-radius:12px;padding:0.85rem;text-align:center;${a.unlocked ? 'border:1px solid rgba(232,86,30,0.4);' : 'border:1px solid rgba(244,234,213,0.06);'}">
+          <div style="width:100%;aspect-ratio:1;background-image:url('assets/janusz/${a.image_file || 'logo.webp'}');background-size:contain;background-position:center;background-repeat:no-repeat;filter:${filter};opacity:${opacity};margin-bottom:0.5rem;"></div>
+          <div style="font-size:0.85rem;color:${a.unlocked ? 'var(--cream)' : 'var(--text-muted)'};font-weight:bold;margin-bottom:0.25rem;">${escapeHtml(a.name)}</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);line-height:1.35;">${escapeHtml(a.description)}</div>
+          ${a.unlocked ? `<div style="font-size:0.65rem;color:var(--success);margin-top:0.3rem;">✓ ${new Date(a.unlocked_at).toLocaleDateString('pl-PL')}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ==========================================================
+  // ACHIEVEMENT UNLOCK — toast/modal pokazujący nową plakietkę
+  // ==========================================================
+  function showAchievementUnlock(achievement) {
+    const overlay = document.createElement('div');
+    overlay.className = 'ach-unlock-overlay';
+    overlay.innerHTML = `
+      <div class="ach-unlock-card">
+        <div class="ach-unlock-banner">🏆 ODBLOKOWANO TROFEUM</div>
+        <div class="ach-unlock-icon" style="background-image:url('assets/janusz/${achievement.image_file}');"></div>
+        <div class="ach-unlock-name">${escapeHtml(achievement.name)}</div>
+        <div class="ach-unlock-rewards">
+          ${achievement.reward_kapital > 0 ? `<span class="ach-reward-chip">+${achievement.reward_kapital} zł</span>` : ''}
+          ${achievement.reward_morale > 0 ? `<span class="ach-reward-chip">+${achievement.reward_morale} morale</span>` : ''}
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    setTimeout(() => overlay.classList.add('show'), 20);
+    setTimeout(() => overlay.classList.add('hide'), 3500);
+    setTimeout(() => overlay.remove(), 4000);
   }
 
   // ==========================================================
@@ -865,6 +1107,12 @@
       .update(updates).eq('id', JR.athlete.id).select().single();
     if (updated) JR.athlete = updated;
 
+    // Zmniejsz trwałość założonych butów (1 punkt per krótki bieg, 2 per średni)
+    if (JR.shop && JR.shop.reduceDurabilityOfEquipped) {
+      const wear = type === 'medium' ? 2 : 1;
+      try { await JR.shop.reduceDurabilityOfEquipped(SB, JR.athlete.id, wear); } catch {}
+    }
+
     // Fade out sceny
     scene.classList.add('fadeout');
     await sleep(700);
@@ -874,6 +1122,21 @@
     // Pokaż event z biegu
     const event = pickRunEvent(type, completed);
     showEventModal(event, completed);
+
+    // Sprawdź achievementy — w tle, z opóźnieniem żeby nie nachodzić na modal
+    setTimeout(async () => {
+      try {
+        const moraleBeforeRun = JR.athlete.morale - (completed ? 2 : -4);
+        const ctx = { lastRunMoraleLow: completed && moraleBeforeRun < 30 };
+        const newly = await JR.achievements?.checkAll?.(SB, ctx);
+        if (newly && newly.length > 0) {
+          await refreshPlayerState();
+          for (let i = 0; i < newly.length; i++) {
+            setTimeout(() => showAchievementUnlock(newly[i]), i * 4500);
+          }
+        }
+      } catch (e) { console.warn('[JR ach after run]', e); }
+    }, 1500);
   }
 
   // ==========================================================
