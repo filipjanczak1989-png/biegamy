@@ -1251,9 +1251,68 @@
   }
 
   // ==========================================================
+  // CINEMATIC MOMENTS — mapa kluczowych eventów na grafiki
+  // ==========================================================
+  // Każdy event/sytuacja może mieć dedykowany "moment" — pełnowymiarową
+  // grafikę cutscene wyświetlaną nad tekstem w event modal.
+  // Jeśli grafika nie istnieje, automatycznie używamy portretu.
+  // ==========================================================
+  const EVENT_MOMENTS = {
+    // Achievementy
+    'drugi_oddech':         'moment-drugi-oddech.webp',
+    'piec_k':               'moment-janusz-meta.webp',
+    'anna_dumna':           'moment-anna-przytula.webp',
+    'mietek_wkurzony':      'moment-mietek-zaskoczony.webp',
+    'pierwszy_km':          'moment-pierwszy-pot.webp',
+
+    // Eventy po biegu (przez event.key z events.json)
+    'second_wind':          'moment-drugi-oddech.webp',
+    'pierwszy_pot':         'moment-pierwszy-pot.webp',
+    'anna_sms':             'moment-anna-przytula.webp',
+    'mietek_zauwaza':       'moment-mietek-zaskoczony.webp',
+    'mama_zalamana':        'moment-mama-zalamana.webp',
+    'burek_czeka':          'moment-burek-czeka.webp',
+    'anna_daje_kase':       'moment-piec-zeta.webp',
+    'mietek_szanuje':       'moment-mietek-piwo-dla-janusza.webp',
+
+    // Eventy ze sklepu (kupione buty)
+    'shoe_buy_brooks_pierwsze':  'moment-janusz-buty-nowe.webp',
+    'shoe_buy_vaporfly':         'moment-janusz-buty-nowe.webp',
+  };
+
+  function getCinematicForEvent(eventKey) {
+    return EVENT_MOMENTS[eventKey] || null;
+  }
+
+  // ==========================================================
   // EVENTY
   // ==========================================================
   function pickRunEvent(type, completed) {
+    const runsCount = JR.athlete?.total_runs || 0;
+
+    // Specjalne first-time momenty z cinematic graphic
+    if (completed && runsCount === 0 && Math.random() < 0.6) {
+      return {
+        text: 'Janusz wyciera czoło rękawem dresu i patrzy na to z dziwnym uśmiechem. To jest jego PIERWSZY pot z biegu. Coś się właśnie wydarzyło w jego głowie.',
+        name: 'NARRATOR',
+        avatar: 'janusz-portrait.webp',
+        key: 'pierwszy_pot',
+        effects: { morale: 3 }
+      };
+    }
+
+    // Co kilka biegów — szansa na "drugi oddech" (z cinematic)
+    if (completed && runsCount >= 3 && runsCount <= 12 && Math.random() < 0.18) {
+      return {
+        text: 'Coś dziwnego się dzieje. Nogi przestały boleć. Płuca pracują same. Janusz uświadamia sobie: TO JEST TO uczucie, o którym pisali biegacze.',
+        name: 'NARRATOR',
+        avatar: 'janusz-portrait.webp',
+        key: 'second_wind',
+        effects: { morale: 8, determinacja: 1 }
+      };
+    }
+
+    // Eventy z JSON
     const pool = JR.events.filter(e => {
       if (e.trigger === 'run_complete' && completed) return true;
       if (e.trigger === 'run_giveup' && !completed) return true;
@@ -1263,8 +1322,8 @@
 
     if (pool.length === 0) {
       return completed
-        ? { text: 'Janusz dał radę! Stoi zdyszany na polu i patrzy w niebo.', name: 'NARRATOR', avatar: 'janusz-portrait.webp' }
-        : { text: 'Janusz musiał przerwać. Siada na płocie i łapie oddech.', name: 'NARRATOR', avatar: 'janusz-portrait.webp' };
+        ? { text: 'Janusz dał radę! Stoi zdyszany na polu i patrzy w niebo.', name: 'NARRATOR', avatar: 'janusz-portrait.webp', key: 'default_complete' }
+        : { text: 'Janusz musiał przerwać. Siada na płocie i łapie oddech.', name: 'NARRATOR', avatar: 'janusz-portrait.webp', key: 'default_giveup' };
     }
 
     return randomFromArray(pool);
@@ -1287,7 +1346,22 @@
       effectsHtml = `<div style="margin-top:1rem;padding:0.75rem;background:rgba(0,0,0,0.3);border-radius:8px;font-size:0.95rem;">${parts.join(' · ')}</div>`;
     }
 
+    // Cinematic moment — jeśli event ma dedykowany "moment" image, pokaż go
+    // Pobiera z event.cinematic (explicit), event.key (przez mapę), lub null
+    const cinematicFile = event.cinematic
+      || (event.key && getCinematicForEvent(event.key))
+      || null;
+
+    const cinematicHtml = cinematicFile
+      ? `<div class="event-cinematic">
+           <img src="assets/janusz/${cinematicFile}"
+                onerror="this.parentElement.style.display='none'"
+                alt="${escapeHtml(event.name || 'moment')}">
+         </div>`
+      : '';
+
     content.innerHTML = `
+      ${cinematicHtml}
       <div class="dialog-header">
         <div class="dialog-avatar" style="background-image:url('assets/janusz/${event.avatar || 'janusz-portrait.webp'}')"></div>
         <div class="dialog-name">${event.name || 'NARRATOR'}</div>
