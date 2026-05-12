@@ -90,7 +90,7 @@
   // ==========================================================
   // STAŁE GRY
   // ==========================================================
-  const ENERGY_REGEN_PER_HOUR = 20; // +20 energii/godzinę offline
+  const ENERGY_REGEN_PER_HOUR = 8; // +8 energii/godzinę offline (~12h do pełnej)
   const RUN_REAL_DURATION_MS = 8000; // 8 sekund realtime na bieg po polu (MVP, łatwo zmienić)
   const PHASE_1_GOAL_KM = 5.0; // 5 km bez przerwy → przejście do Fazy 2
 
@@ -342,14 +342,38 @@
   }
 
   async function loadAndShowUnusedWorkouts() {
+    console.log('%c[JR v0.3] Ładuję treningi z BiegaMy...', 'color:#e8561e;font-weight:bold');
+
     if (!JR.workouts || !JR.workouts.fetchUnused) {
-      console.warn('[JR] Moduł workouts niedostępny');
+      console.warn('[JR v0.3] ❌ Moduł workouts.js niedostępny — sprawdź czy plik jest wgrany');
+      showWorkoutsEmpty('Moduł workouts.js nie jest wgrany. Sprawdź czy plik jest w js/janusz/workouts.js');
       return;
     }
-    const logs = await JR.workouts.fetchUnused(SB, 5);
-    if (logs && logs.length > 0) {
-      renderUnusedWorkouts(logs);
+
+    try {
+      const logs = await JR.workouts.fetchUnused(SB, 5);
+      console.log('[JR v0.3] Znalezione treningi:', logs?.length || 0, logs);
+
+      if (logs && logs.length > 0) {
+        renderUnusedWorkouts(logs);
+      } else {
+        showWorkoutsEmpty('Brak nieodebranych treningów. Po Twoim następnym biegu/treningu w BiegaMy pojawi się tu nowa karta.');
+      }
+    } catch (err) {
+      console.error('[JR v0.3] Błąd ładowania treningów:', err);
+      showWorkoutsEmpty('Nie udało się załadować treningów. Sprawdź migrację SQL (jr_workout_bonuses + jr_get_unused_training_logs).');
     }
+  }
+
+  function showWorkoutsEmpty(message) {
+    const slot = document.getElementById('workouts-slot');
+    if (!slot) return;
+    slot.innerHTML = `
+      <div class="section-title">🏃 Treningi z BiegaMy</div>
+      <div style="background:rgba(232,86,30,0.05);border:1px dashed rgba(232,86,30,0.3);border-radius:12px;padding:1rem;text-align:center;color:var(--text-muted);font-size:0.9rem;">
+        ${message}
+      </div>
+    `;
   }
 
   function renderUnusedWorkouts(logs) {
@@ -561,19 +585,19 @@
 
       <div class="section-title">Co robisz, trenerze?</div>
       <div class="actions">
-        <button class="action-btn" id="btn-run-short" ${a.energia < 15 ? 'disabled' : ''}>
+        <button class="action-btn" id="btn-run-short" ${a.energia < 25 ? 'disabled' : ''}>
           <span class="action-icon">🥔</span>
           <span class="action-text">
             <strong>Wyślij Janusza na pole (200 m)</strong>
-            <small>Krótki bieg · −15 energii · ~8 sekund</small>
+            <small>Krótki bieg · −25 energii · ~8 sekund</small>
           </span>
         </button>
 
-        <button class="action-btn" id="btn-run-medium" ${a.energia < 30 || a.kondycja < 2 ? 'disabled' : ''}>
+        <button class="action-btn" id="btn-run-medium" ${a.energia < 45 || a.kondycja < 2 ? 'disabled' : ''}>
           <span class="action-icon">🌅</span>
           <span class="action-text">
             <strong>Dwa kółka wokół pola (400 m)</strong>
-            <small>Średni bieg · −30 energii · wymaga Kondycja ≥ 2</small>
+            <small>Średni bieg · −45 energii · wymaga Kondycja ≥ 2</small>
           </span>
         </button>
 
@@ -581,7 +605,7 @@
           <span class="action-icon">🛋️</span>
           <span class="action-text">
             <strong>Odpocznij i zjedz coś</strong>
-            <small>+25 energii · −5 morale (mama gada)</small>
+            <small>+18 energii · −8 morale (mama gada)</small>
           </span>
         </button>
 
@@ -720,8 +744,8 @@
     JR.runInProgress = true;
 
     const config = {
-      short: { distance: 0.2, energyCost: 15, duration: RUN_REAL_DURATION_MS, title: 'Bieg po polu', subtitle: '200 metrów wokół pola ziemniaków' },
-      medium: { distance: 0.4, energyCost: 30, duration: RUN_REAL_DURATION_MS * 1.8, title: 'Dwa kółka', subtitle: '400 metrów — pierwszy prawdziwy trening' }
+      short: { distance: 0.2, energyCost: 25, duration: RUN_REAL_DURATION_MS, title: 'Bieg po polu', subtitle: '200 metrów wokół pola ziemniaków' },
+      medium: { distance: 0.4, energyCost: 45, duration: RUN_REAL_DURATION_MS * 1.8, title: 'Dwa kółka', subtitle: '400 metrów — pierwszy prawdziwy trening' }
     }[type];
 
     if (!config) { JR.runInProgress = false; return; }
@@ -819,10 +843,10 @@
     if (completed) {
       updates.total_km = Number(JR.athlete.total_km) + config.distance;
       updates.longest_run_km = Math.max(Number(JR.athlete.longest_run_km), config.distance);
-      if (Math.random() < 0.3) updates.kondycja = JR.athlete.kondycja + 1;
-      updates.morale = Math.min(100, JR.athlete.morale + 5);
+      if (Math.random() < 0.18) updates.kondycja = JR.athlete.kondycja + 1;
+      updates.morale = Math.min(100, JR.athlete.morale + 2);
     } else {
-      updates.morale = Math.max(0, JR.athlete.morale - 3);
+      updates.morale = Math.max(0, JR.athlete.morale - 4);
     }
 
     // Zapisz bieg
@@ -1038,15 +1062,15 @@
   // ==========================================================
   async function rest() {
     const updates = {
-      energia: Math.min(100, JR.athlete.energia + 25),
-      morale: Math.max(0, JR.athlete.morale - 5),
+      energia: Math.min(100, JR.athlete.energia + 18),
+      morale: Math.max(0, JR.athlete.morale - 8),
       energia_updated_at: new Date().toISOString()
     };
     const { data } = await SB.from('jr_athletes')
       .update(updates).eq('id', JR.athlete.id).select().single();
     if (data) JR.athlete = data;
 
-    toast('Mama: "Schudłeś, zjedz coś!" (+25 energii, -5 morale)', 'success');
+    toast('Mama: "Schudłeś, zjedz coś!" (+18 energii, -8 morale)', 'success');
     renderGame();
   }
 
