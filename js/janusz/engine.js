@@ -1,18 +1,14 @@
 // ==========================================================
-// JANUSZ RUN — Game Engine v0.1 (MVP Faza 1)
+// JANUSZ RUN — Game Engine v0.1.1 (MVP Faza 1)
 // ==========================================================
-// Pattern z BiegaMy: window.sb z sb.js, vanilla JS, async/await
+// Pattern z BiegaMy: SB_URL / SB_KEY z sb.js, vanilla JS, async/await
+// Klienta Supabase tworzymy tutaj (bo BiegaMy robi to w każdej stronie osobno)
 // ==========================================================
 
 (function() {
   'use strict';
 
-  // === Sprawdzenie Supabase ===
-  const SB = window.sb;
-  if (!SB) {
-    console.error('[JR] Brak window.sb. Sprawdź czy sb.js jest załadowany przed engine.js');
-    return;
-  }
+  let SB = null; // klient Supabase, utworzony w bootstrap()
 
   // === Globalny namespace ===
   window.JR = window.JR || {};
@@ -20,6 +16,76 @@
   JR.athlete = null;
   JR.events = [];
   JR.runInProgress = false;
+
+  // ==========================================================
+  // BOOTSTRAP: czekamy na SDK Supabase, tworzymy klienta, ruszamy
+  // ==========================================================
+  async function bootstrap() {
+    // 1. Sprawdź czy mamy klucze z sb.js
+    if (!window.SB_URL || !window.SB_KEY) {
+      console.error('[JR] Brak SB_URL/SB_KEY z sb.js. Sprawdź czy sb.js jest wczytany.');
+      showFatalError('Brak konfiguracji Supabase. Spróbuj odświeżyć stronę.');
+      return;
+    }
+
+    // 2. Załaduj Supabase SDK z CDN (jeśli nie jest jeszcze dostępne)
+    if (typeof window.supabase === 'undefined') {
+      try {
+        await loadScript('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2');
+      } catch (err) {
+        console.error('[JR] Nie udało się załadować Supabase SDK', err);
+        showFatalError('Brak połączenia z bazą. Sprawdź internet i odśwież.');
+        return;
+      }
+    }
+
+    // 3. Stwórz klienta — taki sam jak w innych stronach BiegaMy
+    try {
+      SB = window.supabase.createClient(window.SB_URL, window.SB_KEY);
+      // Udostępnij globalnie jako window.sb (na wypadek gdyby inne kawałki chciały korzystać)
+      if (!window.sb) window.sb = SB;
+    } catch (err) {
+      console.error('[JR] Błąd tworzenia klienta Supabase', err);
+      showFatalError('Błąd inicjalizacji bazy danych.');
+      return;
+    }
+
+    // 4. Start właściwej gry
+    await init();
+  }
+
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      // Sprawdź czy już wczytany
+      const existing = Array.from(document.scripts).find(s => s.src === src);
+      if (existing) {
+        if (existing.dataset.loaded === 'true') return resolve();
+        existing.addEventListener('load', resolve);
+        existing.addEventListener('error', reject);
+        return;
+      }
+      const script = document.createElement('script');
+      script.src = src;
+      script.onload = () => { script.dataset.loaded = 'true'; resolve(); };
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  }
+
+  function showFatalError(msg) {
+    hideLoading();
+    const overlay = document.getElementById('cold-open');
+    if (overlay) {
+      const content = overlay.querySelector('.cold-open-content');
+      if (content) {
+        content.innerHTML = `
+          <div class="cold-open-meta">BŁĄD</div>
+          <div class="cold-open-narration">${msg}</div>
+          <button class="btn-start" onclick="location.reload()">Spróbuj ponownie ▸</button>
+        `;
+      }
+    }
+  }
 
   // ==========================================================
   // STAŁE GRY
@@ -672,9 +738,9 @@
   // START
   // ==========================================================
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', bootstrap);
   } else {
-    init();
+    bootstrap();
   }
 
 })();
