@@ -444,61 +444,100 @@
   }
 
   // ==========================================================
-  // BIEG
+  // BIEG — CINEMATIC RUN SCENE v0.2
   // ==========================================================
   async function startRun(type) {
     if (JR.runInProgress) return;
     JR.runInProgress = true;
 
     const config = {
-      short: { distance: 0.2, energyCost: 15, duration: RUN_REAL_DURATION_MS, title: 'Bieg po polu (200 m)' },
-      medium: { distance: 0.4, energyCost: 30, duration: RUN_REAL_DURATION_MS * 1.8, title: 'Dwa kółka (400 m)' }
+      short: { distance: 0.2, energyCost: 15, duration: RUN_REAL_DURATION_MS, title: 'Bieg po polu', subtitle: '200 metrów wokół pola ziemniaków' },
+      medium: { distance: 0.4, energyCost: 30, duration: RUN_REAL_DURATION_MS * 1.8, title: 'Dwa kółka', subtitle: '400 metrów — pierwszy prawdziwy trening' }
     }[type];
 
     if (!config) { JR.runInProgress = false; return; }
 
-    // Zaktualizuj energię
     const newEnergia = Math.max(0, JR.athlete.energia - config.energyCost);
 
-    // Pokaż overlay
-    const overlay = document.getElementById('run-overlay');
-    const titleEl = document.getElementById('run-title');
-    const subtitleEl = document.getElementById('run-subtitle');
-    const fillEl = document.getElementById('run-progress-fill');
-    const timeEl = document.getElementById('run-time');
+    // Zbuduj scenę biegu (pełnoekranowa)
+    const scene = buildRunScene(config);
+    document.body.appendChild(scene);
+    // Force reflow → trigger fade-in
+    void scene.offsetHeight;
+    scene.classList.add('active');
 
-    titleEl.textContent = config.title;
-    subtitleEl.textContent = randomFromArray([
-      'Janusz okrąża pole ziemniaków...',
-      'Burek się przygląda...',
-      'Mietek otwiera firankę za płotem...',
-      'Mgła rozprasza się powoli...',
-      'Słychać tylko ciężki oddech i kroki...'
-    ]);
-    fillEl.style.width = '0%';
-    timeEl.textContent = '0:00';
-    overlay.classList.add('active');
+    // Lista eventów "w locie" — wyświetlanych w trakcie biegu
+    const flyingEvents = [
+      { at: 0.10, text: '🌅 Świt nad polem...', type: 'narration' },
+      { at: 0.20, text: '🐕 Burek się obudził!', type: 'burek' },
+      { at: 0.35, text: '👀 Mietek wystaje zza płotu', type: 'mietek' },
+      { at: 0.50, text: '💨 Pierwszy pot na czole', type: 'narration' },
+      { at: 0.65, text: '🌅 Słońce wyżej', type: 'narration' },
+      { at: 0.80, text: '🫁 Drugi oddech!', type: 'achievement' },
+      { at: 0.92, text: '🏁 Finish line zbliża się...', type: 'narration' }
+    ];
 
-    // Animacja progress baru
+    // Animacja sceny
     const startTime = Date.now();
-    const progressInterval = setInterval(() => {
+    let lastEventIdx = -1;
+    const elBurek = scene.querySelector('.scene-burek');
+    const elMietek = scene.querySelector('.scene-mietek');
+
+    const animInterval = setInterval(() => {
       const elapsed = Date.now() - startTime;
-      const percent = Math.min(100, (elapsed / config.duration) * 100);
+      const progress = Math.min(1, elapsed / config.duration);
       const seconds = Math.floor(elapsed / 1000);
-      fillEl.style.width = percent + '%';
-      timeEl.textContent = `0:${String(seconds).padStart(2, '0')}`;
-      if (percent >= 100) clearInterval(progressInterval);
+
+      // HUD: czas i dystans
+      scene.querySelector('.hud-time').textContent =
+        `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+      const distM = Math.floor(config.distance * 1000 * progress);
+      scene.querySelector('.hud-distance').textContent = `${distM} m`;
+
+      // Tętno — wahanie 120-165 z lekkim wzrostem w trakcie biegu
+      const baseHR = 120 + Math.floor(45 * progress);
+      const hr = baseHR + Math.floor(Math.sin(elapsed / 200) * 4);
+      scene.querySelector('.hud-hr').textContent = `${hr} bpm`;
+
+      // Progres "okrążenia" — wskaźnik na dole
+      scene.querySelector('.scene-progress-fill').style.width = (progress * 100) + '%';
+
+      // Zmiana koloru nieba (sky overlay)
+      const skyEl = scene.querySelector('.scene-sky-overlay');
+      if (skyEl) {
+        const skyAlpha = 0.4 * (1 - progress); // świt fade → poranek
+        skyEl.style.opacity = skyAlpha;
+      }
+
+      // Wyzwól event w locie
+      for (let i = lastEventIdx + 1; i < flyingEvents.length; i++) {
+        if (progress >= flyingEvents[i].at) {
+          showFlyingEvent(scene, flyingEvents[i]);
+          // Specjalne efekty
+          if (flyingEvents[i].type === 'burek') triggerBurekRun(elBurek);
+          if (flyingEvents[i].type === 'mietek') triggerMietekPeek(elMietek);
+          lastEventIdx = i;
+        }
+      }
+
+      if (progress >= 1) {
+        clearInterval(animInterval);
+      }
     }, 100);
 
     // Czekaj na koniec biegu
     await sleep(config.duration);
-    clearInterval(progressInterval);
+    clearInterval(animInterval);
 
     // Wylosuj rezultat
     const determinacjaFactor = JR.athlete.determinacja / 10;
     const energyFactor = JR.athlete.energia / 100;
     const successChance = 0.5 + (determinacjaFactor * 0.3) + (energyFactor * 0.2);
     const completed = Math.random() < successChance;
+
+    // Pokaż finalny moment — Janusz zatrzymuje się, dyszy
+    scene.classList.add('finishing');
+    await sleep(1200);
 
     // Aktualizuj statystyki
     const updates = {
@@ -510,11 +549,7 @@
     if (completed) {
       updates.total_km = Number(JR.athlete.total_km) + config.distance;
       updates.longest_run_km = Math.max(Number(JR.athlete.longest_run_km), config.distance);
-      // Lekki progres kondycji co kilka biegów
-      if (Math.random() < 0.3) {
-        updates.kondycja = JR.athlete.kondycja + 1;
-      }
-      // Morale w górę
+      if (Math.random() < 0.3) updates.kondycja = JR.athlete.kondycja + 1;
       updates.morale = Math.min(100, JR.athlete.morale + 5);
     } else {
       updates.morale = Math.max(0, JR.athlete.morale - 3);
@@ -533,19 +568,100 @@
 
     // Update athlete
     const { data: updated } = await SB.from('jr_athletes')
-      .update(updates)
-      .eq('id', JR.athlete.id)
-      .select()
-      .single();
+      .update(updates).eq('id', JR.athlete.id).select().single();
     if (updated) JR.athlete = updated;
 
-    // Ukryj overlay
-    overlay.classList.remove('active');
+    // Fade out sceny
+    scene.classList.add('fadeout');
+    await sleep(700);
+    scene.remove();
     JR.runInProgress = false;
 
     // Pokaż event z biegu
     const event = pickRunEvent(type, completed);
     showEventModal(event, completed);
+  }
+
+  // ==========================================================
+  // SCENE BUILDER — buduje DOM pełnoekranowej sceny biegu
+  // ==========================================================
+  function buildRunScene(config) {
+    const scene = document.createElement('div');
+    scene.className = 'run-scene';
+    scene.innerHTML = `
+      <div class="scene-bg-layer scene-bg-far"></div>
+      <div class="scene-bg-layer scene-bg-mid"></div>
+      <div class="scene-bg-layer scene-bg-near"></div>
+      <div class="scene-sky-overlay"></div>
+
+      <div class="scene-character scene-janusz">
+        <div class="scene-janusz-sprite"></div>
+        <div class="scene-dust"></div>
+      </div>
+
+      <div class="scene-character scene-burek"></div>
+      <div class="scene-character scene-mietek"></div>
+
+      <div class="scene-hud">
+        <div class="hud-corner hud-tl">
+          <div class="hud-label">CZAS</div>
+          <div class="hud-value hud-time">0:00</div>
+        </div>
+        <div class="hud-corner hud-tr">
+          <div class="hud-label">DYSTANS</div>
+          <div class="hud-value hud-distance">0 m</div>
+        </div>
+        <div class="hud-corner hud-bl">
+          <div class="hud-label">${config.title.toUpperCase()}</div>
+          <div class="hud-sub">${config.subtitle}</div>
+        </div>
+        <div class="hud-corner hud-br">
+          <div class="hud-label">TĘTNO</div>
+          <div class="hud-value hud-hr">120 bpm</div>
+        </div>
+      </div>
+
+      <div class="scene-flying-events"></div>
+
+      <div class="scene-progress">
+        <div class="scene-progress-fill"></div>
+      </div>
+
+      <div class="scene-finish-overlay">
+        <div class="finish-text">Janusz dyszy ciężko...</div>
+      </div>
+    `;
+    return scene;
+  }
+
+  // ==========================================================
+  // FLYING EVENTS w trakcie biegu
+  // ==========================================================
+  function showFlyingEvent(scene, event) {
+    const container = scene.querySelector('.scene-flying-events');
+    const el = document.createElement('div');
+    el.className = 'flying-event flying-event-' + event.type;
+    el.textContent = event.text;
+    container.appendChild(el);
+    setTimeout(() => el.classList.add('show'), 20);
+    setTimeout(() => el.classList.add('hide'), 2200);
+    setTimeout(() => el.remove(), 2700);
+  }
+
+  function triggerBurekRun(burekEl) {
+    if (!burekEl) return;
+    burekEl.classList.remove('active');
+    void burekEl.offsetHeight; // reflow
+    burekEl.classList.add('active');
+    setTimeout(() => burekEl.classList.remove('active'), 4500);
+  }
+
+  function triggerMietekPeek(mietekEl) {
+    if (!mietekEl) return;
+    mietekEl.classList.remove('active');
+    void mietekEl.offsetHeight;
+    mietekEl.classList.add('active');
+    setTimeout(() => mietekEl.classList.remove('active'), 3500);
   }
 
   // ==========================================================
