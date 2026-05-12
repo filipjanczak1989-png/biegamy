@@ -770,28 +770,52 @@
       btn.addEventListener('click', async () => {
         const action = btn.dataset.action;
         btn.disabled = true;
+        const origText = btn.textContent;
+        btn.textContent = '⏳ Przetwarzam...';
+
         if (action === 'buy') {
           const key = btn.dataset.key;
+          console.log('[JR shop] Próba zakupu:', key);
           const result = await JR.shop.buyItem(SB, key, JR.athlete.id);
+          console.log('[JR shop] Wynik zakupu:', result);
+
           if (result.ok) {
             // Załóż automatycznie
-            await JR.shop.equipItem(SB, result.equipment_id);
+            const equipResult = await JR.shop.equipItem(SB, result.equipment_id);
+            console.log('[JR shop] Wynik założenia:', equipResult);
             await refreshPlayerState();
             toast(`Kupiłeś i założyłeś nowe buty! 👟`, 'success');
             openShop(); // re-render
           } else {
-            toast(`Błąd: ${result.error || 'nieznany'}`, 'danger');
+            // Czytelny komunikat błędu po polsku
+            const errMap = {
+              'not_enough_kapital': `Brak kasy! Potrzebujesz ${result.needed} zł, masz ${result.have} zł.`,
+              'already_owned': 'Już masz tę parę butów!',
+              'no_player': 'Błąd: profil gracza nieznaleziony.',
+              'athlete_not_yours': 'Błąd: ten zawodnik nie jest Twój.',
+              'item_not_found': 'Błąd: ten przedmiot nie istnieje w sklepie.'
+            };
+            const msg = errMap[result.error] || `Błąd: ${result.error || 'nieznany'}`;
+            toast(msg, 'danger');
             btn.disabled = false;
+            btn.textContent = origText;
           }
         } else if (action === 'equip') {
           const eqId = btn.dataset.eqId;
+          console.log('[JR shop] Próba założenia eq:', eqId);
           const result = await JR.shop.equipItem(SB, eqId);
+          console.log('[JR shop] Wynik założenia:', result);
           if (result.ok) {
             toast('Założone! 👟', 'success');
             openShop();
           } else {
-            toast(`Błąd: ${result.error || 'nieznany'}`, 'danger');
+            const errMap = {
+              'not_yours_or_missing': 'Błąd: przedmiot nie znaleziony.',
+              'durability_zero': 'Te buty są zniszczone! Kup nowe.'
+            };
+            toast(errMap[result.error] || `Błąd: ${result.error || 'nieznany'}`, 'danger');
             btn.disabled = false;
+            btn.textContent = origText;
           }
         }
       });
@@ -1146,9 +1170,10 @@
     const scene = document.createElement('div');
     scene.className = 'run-scene';
 
-    // Losowo zdecyduj czy traktor pojawi się w tym biegu (1 na 3 biegi)
-    const showTractor = Math.random() < 0.33;
+    // Losowo zdecyduj czy traktor pojawi się w tym biegu (50% szans — częściej widoczny)
+    const showTractor = Math.random() < 0.50;
     const tractorHtml = showTractor ? `<div class="scene-tractor"></div>` : '';
+    if (showTractor) console.log('[JR] 🚜 Traktor zaraz przejedzie...');
 
     // Ptaki — losowa liczba (2-4) i losowe pozycje
     const birdCount = 2 + Math.floor(Math.random() * 3);
@@ -1156,7 +1181,7 @@
     for (let i = 0; i < birdCount; i++) {
       const delay = (i * 1.8 + Math.random() * 1.2).toFixed(1);
       const topPos = (12 + Math.random() * 28).toFixed(0); // 12% - 40% od góry (nad polem)
-      const scale = (0.6 + Math.random() * 0.5).toFixed(2);
+      const scale = (0.9 + Math.random() * 0.6).toFixed(2); // większe ptaki: 0.9-1.5x
       const duration = (8 + Math.random() * 4).toFixed(1);
       birdsHtml += `
         <div class="scene-bird" style="top:${topPos}%;animation-delay:${delay}s;animation-duration:${duration}s;transform:scale(${scale});">
@@ -1269,8 +1294,11 @@
     'second_wind':          'moment-drugi-oddech.webp',
     'pierwszy_pot':         'moment-pierwszy-pot.webp',
     'anna_sms':             'moment-anna-przytula.webp',
-    'mietek_zauwaza':       'moment-mietek-zaskoczony.webp',
+    'mietek_curtain':       'moment-mietek-zaskoczony.webp',
     'mama_zalamana':        'moment-mama-zalamana.webp',
+    'mama_karmienie':       'mama-portrait.webp',
+    'mama_modlitwa':        'mama-portrait.webp',
+    'mama_kanapki':         'mama-portrait.webp',
     'burek_czeka':          'moment-burek-czeka.webp',
     'anna_daje_kase':       'moment-piec-zeta.webp',
     'mietek_szanuje':       'moment-mietek-piwo-dla-janusza.webp',
