@@ -337,6 +337,169 @@
     document.getElementById('intro').classList.remove('active');
     document.getElementById('game').classList.add('active');
     renderGame();
+    // Po renderze, asynchronicznie ładuj niewykorzystane treningi
+    loadAndShowUnusedWorkouts();
+  }
+
+  async function loadAndShowUnusedWorkouts() {
+    if (!JR.workouts || !JR.workouts.fetchUnused) {
+      console.warn('[JR] Moduł workouts niedostępny');
+      return;
+    }
+    const logs = await JR.workouts.fetchUnused(SB, 5);
+    if (logs && logs.length > 0) {
+      renderUnusedWorkouts(logs);
+    }
+  }
+
+  function renderUnusedWorkouts(logs) {
+    const slot = document.getElementById('workouts-slot');
+    if (!slot) return;
+
+    const cardsHtml = logs.map(log => {
+      const preview = JR.workouts.preview(log);
+      const date = new Date(log.logged_at);
+      const dateStr = date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+      const timeAgo = formatTimeAgo(date);
+
+      const distance = Number(log.distance_km).toFixed(1);
+      const duration = log.duration || '—';
+      const type = log.training_type || preview.type;
+      const feel = log.feel || '';
+
+      const bonusBadges = Object.entries(preview.bonus).map(([k, v]) => {
+        const label = { morale: 'morale', determinacja: 'determinacja', kondycja: 'kondycja',
+                        energia: 'energia', kapital: 'zł' }[k] || k;
+        const sign = v > 0 ? '+' : '';
+        return `<span class="workout-bonus-chip">${sign}${v} ${label}</span>`;
+      }).join('');
+
+      const coachCommentHtml = log.coach_comment
+        ? `<div class="workout-coach-comment">💬 Twój komentarz: <em>"${escapeHtml(log.coach_comment).slice(0, 120)}"</em></div>`
+        : '';
+
+      const feelHtml = feel
+        ? `<span class="workout-feel">${feelEmoji(feel)} ${escapeHtml(feel)}</span>`
+        : '';
+
+      return `
+        <div class="workout-card" data-log-id="${log.id}">
+          <div class="workout-header">
+            <div class="workout-date">${dateStr} · ${timeAgo}</div>
+            <div class="workout-type">${escapeHtml(type)}</div>
+          </div>
+          <div class="workout-stats">
+            <span class="workout-stat-main">${distance} km</span>
+            <span class="workout-stat-sub">${duration}</span>
+            ${feelHtml}
+          </div>
+          ${coachCommentHtml}
+          <div class="workout-bonus-preview">
+            <div class="workout-bonus-label">Janusz dostanie:</div>
+            <div class="workout-bonus-chips">${bonusBadges}</div>
+          </div>
+          <button class="workout-btn-claim" data-log-id="${log.id}">
+            🥔 Przekaż Januszowi ▸
+          </button>
+        </div>
+      `;
+    }).join('');
+
+    slot.innerHTML = `
+      <div class="section-title">
+        🏃 Twoje nieodebrane treningi
+        <span style="color:var(--text-muted);font-weight:normal;">(${logs.length})</span>
+      </div>
+      <div class="workouts-list">
+        ${cardsHtml}
+      </div>
+    `;
+
+    // Bind buttons
+    slot.querySelectorAll('.workout-btn-claim').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const logId = btn.dataset.logId;
+        const log = logs.find(l => l.id === logId);
+        if (log) await claimWorkoutBonus(log, btn);
+      });
+    });
+  }
+
+  async function claimWorkoutBonus(log, btn) {
+    try {
+      btn.disabled = true;
+      btn.textContent = '⏳ Przekazuję...';
+
+      const result = await JR.workouts.applyBonus(SB, log, JR.player, JR.athlete);
+      JR.athlete = result.athlete;
+      JR.player = result.player;
+
+      // Pokaż event w modal
+      const eventObj = {
+        text: result.flavor,
+        name: result.speaker || 'NARRATOR',
+        avatar: avatarForSpeaker(result.speaker),
+        effects: result.bonus
+      };
+      showEventModal(eventObj, true);
+
+      // Usuń kartę treningu z UI
+      const card = btn.closest('.workout-card');
+      if (card) {
+        card.style.transition = 'all 0.5s ease';
+        card.style.opacity = '0';
+        card.style.transform = 'translateX(20px)';
+        setTimeout(() => card.remove(), 500);
+      }
+    } catch (err) {
+      console.error('[JR] claim error', err);
+      btn.disabled = false;
+      btn.textContent = '🥔 Przekaż Januszowi ▸';
+      toast('Nie udało się przekazać bonusu. Spróbuj ponownie.', 'danger');
+    }
+  }
+
+  function avatarForSpeaker(speaker) {
+    const map = {
+      'JANUSZ': 'janusz-portrait.webp',
+      'BUREK': 'burek-portrait.webp',
+      'MIETEK': 'mietek-portrait.webp',
+      'HENIU': 'heniu-portrait.webp',
+      'ANNA': 'anna-portrait.webp',
+      'NARRATOR': 'janusz-portrait.webp'
+    };
+    return map[speaker] || 'janusz-portrait.webp';
+  }
+
+  function feelEmoji(feel) {
+    const f = String(feel).toLowerCase();
+    if (f.match(/super|świetnie|bomba|extra/)) return '🔥';
+    if (f.match(/dobrze|ok|nieźle/)) return '👍';
+    if (f.match(/ciężko|trudno|słabo|kiepsko/)) return '😤';
+    if (f.match(/kontuzj|ból|boli/)) return '🤕';
+    return '🏃';
+  }
+
+  function formatTimeAgo(date) {
+    const now = new Date();
+    const diffMs = now - date;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffHours < 1) return 'przed chwilą';
+    if (diffHours < 24) return `${diffHours} h temu`;
+    if (diffDays === 1) return 'wczoraj';
+    if (diffDays < 7) return `${diffDays} dni temu`;
+    return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
   function renderGame() {
@@ -354,6 +517,9 @@
 
     const content = document.getElementById('game-content');
     content.innerHTML = `
+      <!-- Slot na sekcję "nieodebrane treningi" — ładuje się asynchronicznie -->
+      <div id="workouts-slot"></div>
+
       <div class="athlete-card">
         <div class="athlete-header">
           <div class="athlete-avatar" style="background-image:url('assets/janusz/janusz-portrait.webp')"></div>
