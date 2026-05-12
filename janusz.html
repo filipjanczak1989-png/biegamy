@@ -807,6 +807,148 @@
     .finish-text { font-size: 1.2rem; }
   }
 
+  /* ==========================================================
+     WORKOUTS — Sekcja nieodebranych treningów z BiegaMy v0.3
+     ========================================================== */
+  .workouts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .workout-card {
+    background: linear-gradient(135deg, rgba(232,86,30,0.08), rgba(30,58,95,0.12));
+    border: 1px solid rgba(232,86,30,0.25);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+  }
+  .workout-card::before {
+    content: '';
+    position: absolute;
+    top: -30px;
+    right: -30px;
+    width: 90px;
+    height: 90px;
+    background: radial-gradient(circle, rgba(232,86,30,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .workout-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .workout-date {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .workout-type {
+    background: rgba(232,86,30,0.2);
+    color: var(--accent-soft);
+    padding: 0.2rem 0.65rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: lowercase;
+    letter-spacing: 0.02em;
+  }
+
+  .workout-stats {
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    margin-bottom: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .workout-stat-main {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--cream);
+    font-variant-numeric: tabular-nums;
+  }
+  .workout-stat-sub {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .workout-feel {
+    color: var(--cream-soft);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .workout-coach-comment {
+    background: rgba(0,0,0,0.25);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: var(--cream-soft);
+    margin-bottom: 0.7rem;
+    line-height: 1.5;
+  }
+  .workout-coach-comment em { color: var(--accent-soft); font-style: italic; }
+
+  .workout-bonus-preview {
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  .workout-bonus-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 0.4rem;
+  }
+  .workout-bonus-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .workout-bonus-chip {
+    background: rgba(107, 142, 78, 0.25);
+    color: #b8d896;
+    padding: 0.2rem 0.6rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: 1px solid rgba(107, 142, 78, 0.4);
+  }
+
+  .workout-btn-claim {
+    width: 100%;
+    background: var(--accent);
+    color: var(--cream);
+    border: none;
+    padding: 0.85rem;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(232,86,30,0.3);
+  }
+  .workout-btn-claim:hover:not(:disabled) {
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(232,86,30,0.45);
+  }
+  .workout-btn-claim:active { transform: translateY(0); }
+  .workout-btn-claim:disabled { opacity: 0.6; cursor: not-allowed; }
+
   @media (max-width: 480px) {
     .cold-open-narration { font-size: 1rem; }
     #cold-open { padding: 1.5rem 1rem; }
@@ -866,7 +1008,8 @@
 <!-- Sb shared keys (Twój pattern z BiegaMy) -->
 <script src="sb.js"></script>
 
-<!-- Game engine -->
+<!-- Janusz Run modules -->
+<script src="js/janusz/workouts.js"></script>
 <script src="js/janusz/engine.js"></script>
 
 </body>
