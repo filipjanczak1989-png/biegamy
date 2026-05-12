@@ -1145,11 +1145,40 @@
   function buildRunScene(config) {
     const scene = document.createElement('div');
     scene.className = 'run-scene';
+
+    // Losowo zdecyduj czy traktor pojawi się w tym biegu (1 na 3 biegi)
+    const showTractor = Math.random() < 0.33;
+    const tractorHtml = showTractor ? `<div class="scene-tractor"></div>` : '';
+
+    // Ptaki — losowa liczba (2-4) i losowe pozycje
+    const birdCount = 2 + Math.floor(Math.random() * 3);
+    let birdsHtml = '';
+    for (let i = 0; i < birdCount; i++) {
+      const delay = (i * 1.8 + Math.random() * 1.2).toFixed(1);
+      const topPos = (12 + Math.random() * 28).toFixed(0); // 12% - 40% od góry (nad polem)
+      const scale = (0.6 + Math.random() * 0.5).toFixed(2);
+      const duration = (8 + Math.random() * 4).toFixed(1);
+      birdsHtml += `
+        <div class="scene-bird" style="top:${topPos}%;animation-delay:${delay}s;animation-duration:${duration}s;transform:scale(${scale});">
+          <svg viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg">
+            <path class="bird-wing-l" d="M 30 15 Q 18 4 6 12 Q 18 10 30 15" fill="rgba(40,30,20,0.85)"/>
+            <path class="bird-wing-r" d="M 30 15 Q 42 4 54 12 Q 42 10 30 15" fill="rgba(40,30,20,0.85)"/>
+          </svg>
+        </div>
+      `;
+    }
+
     scene.innerHTML = `
       <div class="scene-bg-layer scene-bg-far"></div>
       <div class="scene-bg-layer scene-bg-mid"></div>
       <div class="scene-bg-layer scene-bg-near"></div>
       <div class="scene-sky-overlay"></div>
+
+      <!-- Ptaki przelatujące (SVG, w warstwie midground) -->
+      ${birdsHtml}
+
+      <!-- Traktor — pojawia się rzadko, jedzie po horyzoncie -->
+      ${tractorHtml}
 
       <div class="scene-character scene-janusz">
         <div class="scene-janusz-sprite"></div>
