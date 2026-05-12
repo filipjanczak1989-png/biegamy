@@ -1020,6 +1020,100 @@
   .workout-btn-claim:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* ==========================================================
+     PTAKI — SVG sylwetki przelatujące przez ekran v0.4.1
+     ========================================================== */
+  .scene-bird {
+    position: absolute;
+    left: -8%;
+    width: 60px;
+    height: 30px;
+    z-index: 8;
+    opacity: 0;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    animation: birdFly linear infinite;
+  }
+  .scene-bird svg {
+    width: 100%;
+    height: 100%;
+  }
+  .scene-bird .bird-wing-l,
+  .scene-bird .bird-wing-r {
+    transform-origin: 30px 15px;
+    animation: birdFlap 0.4s ease-in-out infinite;
+  }
+  .scene-bird .bird-wing-r {
+    animation-delay: 0.02s;
+  }
+  @keyframes birdFly {
+    0%   { left: -8%; top: var(--bird-top, 20%); opacity: 0; }
+    8%   { opacity: 1; }
+    50%  { transform: translateY(-15px) scale(var(--bird-scale, 0.8)); }
+    92%  { opacity: 1; }
+    100% { left: 108%; transform: translateY(0) scale(var(--bird-scale, 0.8)); opacity: 0; }
+  }
+  @keyframes birdFlap {
+    0%, 100% { transform: rotate(0deg) scaleY(1); }
+    50%      { transform: rotate(-8deg) scaleY(0.6); }
+  }
+
+  /* ==========================================================
+     TRAKTOR — jedzie powoli po horyzoncie (rzadki event)
+     ========================================================== */
+  .scene-tractor {
+    position: absolute;
+    right: -25vw;
+    bottom: 28%;
+    width: 12vw;
+    max-width: 180px;
+    min-width: 90px;
+    height: 8vh;
+    max-height: 100px;
+    z-index: 6;
+    pointer-events: none;
+    opacity: 0;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4)) brightness(0.85) contrast(1.1);
+    animation: tractorCrawl 22s linear forwards 4s;
+  }
+  /* Traktor jako SVG inline — żeby nie wymagać dodatkowej grafiki */
+  .scene-tractor::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 100'><g transform='scale(-1,1) translate(-200,0)'><rect x='40' y='30' width='70' height='35' rx='3' fill='%23a04020'/><rect x='42' y='32' width='66' height='10' rx='2' fill='%23c05030'/><polygon points='110,30 130,30 130,55 110,55' fill='%23802818'/><rect x='115' y='35' width='12' height='15' fill='%23c8d4e0' opacity='0.85'/><circle cx='65' cy='75' r='18' fill='%23202020'/><circle cx='65' cy='75' r='10' fill='%23404040'/><circle cx='130' cy='80' r='13' fill='%23202020'/><circle cx='130' cy='80' r='7' fill='%23404040'/><rect x='105' y='12' width='6' height='22' fill='%23404040'/><circle cx='108' cy='10' r='4' fill='%23606060'/><rect x='30' y='40' width='12' height='25' fill='%23802818'/></g></svg>");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+  }
+  /* Dym z komina traktora */
+  .scene-tractor::after {
+    content: '';
+    position: absolute;
+    top: 5%;
+    right: 18%;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(60, 50, 40, 0.6);
+    box-shadow:
+      -8px -10px 0 -1px rgba(80, 70, 60, 0.5),
+      -16px -22px 0 -2px rgba(100, 90, 80, 0.4),
+      -24px -36px 0 -3px rgba(120, 110, 100, 0.3);
+    animation: tractorSmoke 1.5s ease-in-out infinite;
+  }
+  @keyframes tractorSmoke {
+    0%, 100% { opacity: 0.7; transform: translateY(0); }
+    50%      { opacity: 1; transform: translateY(-4px); }
+  }
+  @keyframes tractorCrawl {
+    0%   { right: -25vw; opacity: 0; }
+    6%   { opacity: 0.85; }
+    50%  { right: 50vw; opacity: 0.95; }
+    94%  { opacity: 0.85; }
+    100% { right: 120vw; opacity: 0; }
+  }
+
+  /* ==========================================================
      ACHIEVEMENT UNLOCK — premium reveal animation v0.4
      ========================================================== */
   .ach-unlock-overlay {
@@ -1166,11 +1260,11 @@
 <!-- Sb shared keys (Twój pattern z BiegaMy) -->
 <script src="sb.js"></script>
 
-<!-- Janusz Run modules (v0.4) -->
-<script src="js/janusz/workouts.js?v=040"></script>
-<script src="js/janusz/shop.js?v=040"></script>
-<script src="js/janusz/achievements.js?v=040"></script>
-<script src="js/janusz/engine.js?v=040"></script>
+<!-- Janusz Run modules (v0.4.1) -->
+<script src="js/janusz/workouts.js?v=041"></script>
+<script src="js/janusz/shop.js?v=041"></script>
+<script src="js/janusz/achievements.js?v=041"></script>
+<script src="js/janusz/engine.js?v=041"></script>
 
 </body>
 </html>
