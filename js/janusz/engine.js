@@ -748,16 +748,16 @@
 
       return `
         <div class="workout-card" style="${equipped ? 'border-color:var(--success);border-left-color:var(--success);' : ''}">
-          <div style="display:flex;gap:1rem;align-items:flex-start;">
-            <div style="width:120px;height:110px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;background-image:url('assets/janusz/${it.image_file}');background-size:88% auto;background-position:center 55%;background-repeat:no-repeat;"></div>
-            <div style="flex:1;min-width:0;">
+          <div style="display:flex;gap:1rem;align-items:stretch;">
+            <div style="width:130px;min-height:130px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;background-image:url('assets/janusz/${it.image_file}');background-size:90% auto;background-position:center center;background-repeat:no-repeat;align-self:stretch;"></div>
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
               <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.4rem;">
                 <strong style="color:var(--cream);">${escapeHtml(it.name)}</strong>
                 <span class="workout-type">${tempoLabel}</span>
               </div>
               <div style="font-size:0.85rem;color:var(--text-muted);margin:0.3rem 0;line-height:1.4;">${escapeHtml(it.description || '')}</div>
               ${it.flavor_text ? `<div style="font-size:0.8rem;color:var(--cream-soft);font-style:italic;margin-bottom:0.4rem;">"${escapeHtml(it.flavor_text)}"</div>` : ''}
-              ${owned ? `<div style="font-size:0.75rem;color:var(--text-muted);">Trwałość: ${it.best_durability}/${it.durability_max}</div>` : ''}
+              ${owned ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:auto;">Trwałość: ${it.best_durability}/${it.durability_max}</div>` : ''}
             </div>
           </div>
           <div style="margin-top:0.75rem;">${buttonHtml}</div>
