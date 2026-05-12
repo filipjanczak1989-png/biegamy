@@ -640,36 +640,35 @@
   /* MIETEK — pełna postać, idzie przez ekran z prawej w lewo */
   .scene-mietek {
     position: absolute;
-    bottom: 8%;
-    right: -30vw;
-    width: 18vw;
-    max-width: 240px;
-    min-width: 120px;
-    height: 50vh;
-    max-height: 480px;
+    bottom: 10%;
+    right: -35vw;
+    width: 28vw;
+    max-width: 380px;
+    min-width: 200px;
+    height: 60vh;
+    max-height: 580px;
     background-image: url('assets/janusz/mietek-walk.webp');
     background-size: contain;
     background-position: center bottom;
     background-repeat: no-repeat;
     z-index: 12;
-    /* Białe tło zostaje, ale dodajemy cień i lekkie ściemnienie żeby się wpasował */
     filter:
-      drop-shadow(0 12px 16px rgba(0, 0, 0, 0.6))
-      drop-shadow(0 0 4px rgba(0, 0, 0, 0.4))
-      brightness(0.92)
+      drop-shadow(0 14px 18px rgba(0, 0, 0, 0.65))
+      drop-shadow(0 0 6px rgba(0, 0, 0, 0.4))
+      brightness(0.94)
       contrast(1.08);
     opacity: 0;
-    transform: scaleX(-1); /* Lustro — Mietek idzie w lewą stronę zamiast w prawą */
+    transform: scaleX(-1);
   }
   .scene-mietek.active {
     animation: mietekWalk 7s linear forwards, mietekStep 0.7s ease-in-out infinite;
   }
   @keyframes mietekWalk {
-    0%   { right: -30vw; opacity: 0; }
+    0%   { right: -35vw; opacity: 0; }
     8%   { opacity: 1; }
-    50%  { right: 45vw; opacity: 1; }
+    50%  { right: 42vw; opacity: 1; }
     92%  { opacity: 1; }
-    100% { right: 120vw; opacity: 0; }
+    100% { right: 125vw; opacity: 0; }
   }
   /* Mietek "kroczy" — drobne podskakiwanie symulujące chód */
   @keyframes mietekStep {
@@ -868,7 +867,7 @@
   @media (max-width: 600px) {
     .scene-janusz { left: 12%; width: 40vw; }
     .scene-burek { width: 22vw; }
-    .scene-mietek { width: 24vw; }
+    .scene-mietek { width: 36vw; max-width: 280px; }
     .hud-label { font-size: 0.55rem; }
     .hud-value { font-size: 1rem; }
     .hud-sub { font-size: 0.7rem; }
