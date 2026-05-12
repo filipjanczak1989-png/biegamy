@@ -1786,7 +1786,11 @@ function openModal() {
       const m = t.duration_min % 60;
       document.getElementById('l-time').value = h + ':' + String(m).padStart(2,'0') + ':00';
     }
-    if (t.pace) document.getElementById('l-pace').value = t.pace;
+    if (t.pace) {
+      // Plan może mieć "6:00", "6:00-6:20", "6:00-6:20/km" — wyciągnij pierwszą wartość m:ss
+      const _paceMatch = String(t.pace).match(/(\d{1,2}:\d{2})/);
+      document.getElementById('l-pace').value = _paceMatch ? _paceMatch[1] : '';
+    }
     if (t.heart_rate) {
       const hr = t.heart_rate.toString().split('-')[0];
       document.getElementById('l-hr').value = hr;
@@ -5412,7 +5416,7 @@ async function saveLog() {
     if (!noDistTypes.includes(_logType)) { toast('Podaj dystans (km)'); return; }
   }
   if (dist > 300) { toast('Dystans wygląda nieprawidłowo'); return; }
-  if (pace && !/^\d{1,2}:\d{2}$/.test(pace)) { toast('Tempo w formacie m:ss (np. 5:30)'); return; }
+  if (pace && !/^\d{1,2}:\d{2}$/.test(pace)) { console.error('[saveLog] invalid pace format:', pace); toast('Tempo w formacie m:ss (np. 5:30)'); return; }
   if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
 
   _savingLog = true;
