@@ -471,6 +471,342 @@
   }
   .run-time { color: var(--accent-soft); font-size: 1.1rem; font-weight: bold; }
 
+  /* ==========================================================
+     RUN SCENE — Cinematic side-scroller v0.2
+     ========================================================== */
+  .run-scene {
+    position: fixed;
+    inset: 0;
+    z-index: 800;
+    background: #1a0f08;
+    overflow: hidden;
+    opacity: 0;
+    transition: opacity 0.6s ease;
+  }
+  .run-scene.active { opacity: 1; }
+  .run-scene.fadeout { opacity: 0; transition: opacity 0.7s ease; }
+
+  /* Parallax background layers — trzy warstwy z różnymi prędkościami */
+  .scene-bg-layer {
+    position: absolute;
+    inset: 0;
+    background-image: url('assets/janusz/field-loop.webp');
+    background-size: auto 100%;
+    background-position: 0 center;
+    background-repeat: repeat-x;
+    will-change: background-position;
+  }
+  .scene-bg-far {
+    opacity: 0.55;
+    filter: blur(3px) brightness(0.85);
+    animation: scrollBg 32s linear infinite;
+    transform: scale(1.05);
+  }
+  .scene-bg-mid {
+    opacity: 0.85;
+    filter: brightness(0.95);
+    animation: scrollBg 18s linear infinite;
+  }
+  .scene-bg-near {
+    opacity: 1;
+    animation: scrollBg 9s linear infinite;
+    transform: translateY(8%) scale(1.15);
+    transform-origin: bottom;
+  }
+  @keyframes scrollBg {
+    from { background-position: 0 center; }
+    to { background-position: -1920px center; }
+  }
+
+  /* Sky overlay — fade z świtu w poranek */
+  .scene-sky-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg,
+      rgba(232, 86, 30, 0.35) 0%,
+      rgba(255, 180, 100, 0.18) 30%,
+      transparent 55%);
+    pointer-events: none;
+    transition: opacity 1s ease;
+    z-index: 5;
+  }
+  .run-scene.finishing .scene-sky-overlay {
+    background: linear-gradient(180deg,
+      rgba(0,0,0,0.7) 0%,
+      rgba(0,0,0,0.3) 60%,
+      rgba(0,0,0,0.6) 100%);
+    opacity: 1;
+  }
+
+  /* JANUSZ — sprite animation z 3 klatek */
+  .scene-janusz {
+    position: absolute;
+    left: 18%;
+    bottom: 12%;
+    width: 28vw;
+    max-width: 380px;
+    min-width: 180px;
+    height: 56vh;
+    max-height: 600px;
+    z-index: 20;
+    animation: januszBob 0.42s ease-in-out infinite;
+    will-change: transform;
+  }
+  .scene-janusz-sprite {
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/janusz/janusz-run-1.webp');
+    background-size: contain;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    animation: januszSprite 0.42s steps(1) infinite;
+    filter: drop-shadow(0 12px 16px rgba(0,0,0,0.45));
+  }
+  @keyframes januszSprite {
+    0%   { background-image: url('assets/janusz/janusz-run-1.webp'); }
+    33%  { background-image: url('assets/janusz/janusz-run-2.webp'); }
+    66%  { background-image: url('assets/janusz/janusz-run-3.webp'); }
+    100% { background-image: url('assets/janusz/janusz-run-1.webp'); }
+  }
+  @keyframes januszBob {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    25%      { transform: translateY(-8px) rotate(0deg); }
+    50%      { transform: translateY(0) rotate(1deg); }
+    75%      { transform: translateY(-6px) rotate(0deg); }
+  }
+  .run-scene.finishing .scene-janusz {
+    animation: januszStop 0.6s ease-out forwards;
+  }
+  .run-scene.finishing .scene-janusz-sprite {
+    animation: none;
+    background-image: url('assets/janusz/janusz-run-2.webp');
+    filter: drop-shadow(0 12px 20px rgba(0,0,0,0.6)) brightness(0.7);
+  }
+  @keyframes januszStop {
+    to { transform: translateY(0) rotate(-2deg) scale(0.96); }
+  }
+
+  /* Dust pod stopami */
+  .scene-dust {
+    position: absolute;
+    bottom: 0;
+    left: 30%;
+    width: 50%;
+    height: 16px;
+    background: radial-gradient(ellipse at center,
+      rgba(200, 170, 120, 0.5) 0%,
+      transparent 70%);
+    filter: blur(4px);
+    animation: dustPuff 0.42s ease-in-out infinite;
+  }
+  @keyframes dustPuff {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50%      { opacity: 0.7; transform: scale(1.15); }
+  }
+
+  /* BUREK — pojawia się z prawej, przebiega obok, znika z lewej */
+  .scene-burek {
+    position: absolute;
+    bottom: 8%;
+    right: -25vw;
+    width: 16vw;
+    max-width: 220px;
+    min-width: 110px;
+    height: 28vh;
+    max-height: 280px;
+    background-image: url('assets/janusz/burek-run.webp');
+    background-size: contain;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    z-index: 15;
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.4));
+    opacity: 0;
+  }
+  .scene-burek.active {
+    animation: burekRun 4.5s linear forwards, burekBob 0.32s ease-in-out infinite;
+  }
+  @keyframes burekRun {
+    0%   { right: -25vw; opacity: 0; }
+    10%  { opacity: 1; }
+    50%  { right: 35vw; opacity: 1; }
+    90%  { opacity: 1; }
+    100% { right: 110vw; opacity: 0; }
+  }
+  @keyframes burekBob {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+
+  /* MIETEK — wystaje zza dolnej krawędzi po prawej */
+  .scene-mietek {
+    position: absolute;
+    bottom: -40vh;
+    right: 4%;
+    width: 22vw;
+    max-width: 280px;
+    min-width: 140px;
+    height: 40vh;
+    max-height: 380px;
+    background-image: url('assets/janusz/mietek-peek.webp');
+    background-size: contain;
+    background-position: center bottom;
+    background-repeat: no-repeat;
+    z-index: 18;
+    filter: drop-shadow(0 -4px 12px rgba(0,0,0,0.4));
+    opacity: 0;
+  }
+  .scene-mietek.active {
+    animation: mietekPeek 3.5s ease-in-out forwards;
+  }
+  @keyframes mietekPeek {
+    0%   { bottom: -40vh; opacity: 0; }
+    15%  { bottom: -8vh; opacity: 1; }
+    65%  { bottom: -6vh; opacity: 1; }
+    85%  { bottom: -10vh; opacity: 0.7; }
+    100% { bottom: -40vh; opacity: 0; }
+  }
+
+  /* HUD — narożniki */
+  .scene-hud {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 50;
+  }
+  .hud-corner {
+    position: absolute;
+    color: var(--cream);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    background: rgba(0,0,0,0.45);
+    backdrop-filter: blur(10px);
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(244,234,213,0.12);
+  }
+  .hud-tl { top: 1rem; left: 1rem; }
+  .hud-tr { top: 1rem; right: 1rem; text-align: right; }
+  .hud-bl { bottom: 3rem; left: 1rem; max-width: 60vw; }
+  .hud-br { bottom: 3rem; right: 1rem; text-align: right; }
+  .hud-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+    font-weight: bold;
+  }
+  .hud-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--cream);
+    font-variant-numeric: tabular-nums;
+  }
+  .hud-tr .hud-value, .hud-br .hud-value { color: var(--accent-soft); }
+  .hud-sub {
+    font-size: 0.78rem;
+    color: var(--cream-soft);
+    opacity: 0.8;
+    margin-top: 0.1rem;
+  }
+
+  /* Flying events — pojawiające się w trakcie biegu */
+  .scene-flying-events {
+    position: absolute;
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 40;
+    width: 90vw;
+    max-width: 480px;
+    pointer-events: none;
+  }
+  .flying-event {
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(244,234,213,0.15);
+    border-left: 3px solid var(--accent);
+    color: var(--cream);
+    padding: 0.85rem 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+    font-size: 1rem;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+    transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .flying-event.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  .flying-event.hide {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.95);
+  }
+  .flying-event-achievement { border-left-color: var(--success); }
+  .flying-event-burek { border-left-color: #c89968; }
+  .flying-event-mietek { border-left-color: #8a8068; }
+
+  /* Progress bar na dole */
+  .scene-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(0,0,0,0.5);
+    z-index: 60;
+  }
+  .scene-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-soft));
+    width: 0%;
+    box-shadow: 0 0 12px rgba(232,86,30,0.7);
+    transition: width 0.1s linear;
+  }
+
+  /* Finish overlay — pojawia się w fazie "finishing" */
+  .scene-finish-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 70;
+    pointer-events: none;
+    transition: background 0.8s ease;
+  }
+  .finish-text {
+    font-size: 1.6rem;
+    color: var(--cream);
+    text-shadow: 0 2px 12px rgba(0,0,0,0.9);
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease 0.3s, transform 0.6s ease 0.3s;
+    font-style: italic;
+  }
+  .run-scene.finishing .scene-finish-overlay {
+    background: rgba(0,0,0,0.55);
+  }
+  .run-scene.finishing .finish-text {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* Mobile tweaks */
+  @media (max-width: 600px) {
+    .scene-janusz { left: 12%; width: 40vw; }
+    .scene-burek { width: 22vw; }
+    .scene-mietek { width: 30vw; }
+    .hud-label { font-size: 0.55rem; }
+    .hud-value { font-size: 1rem; }
+    .hud-sub { font-size: 0.7rem; }
+    .hud-bl { max-width: 50vw; }
+    .flying-event { font-size: 0.9rem; padding: 0.7rem 1rem; }
+    .finish-text { font-size: 1.2rem; }
+  }
+
   @media (max-width: 480px) {
     .cold-open-narration { font-size: 1rem; }
     #cold-open { padding: 1.5rem 1rem; }
@@ -518,17 +854,6 @@
 
   <div class="game-content" id="game-content"></div>
 </section>
-
-<!-- Run overlay -->
-<div class="run-overlay" id="run-overlay">
-  <div class="run-content">
-    <div class="run-emoji" id="run-emoji">🏃‍♂️</div>
-    <div class="run-title" id="run-title">Bieg po polu</div>
-    <div class="run-subtitle" id="run-subtitle">Janusz okrąża pole ziemniaków...</div>
-    <div class="run-progress"><div class="run-progress-fill" id="run-progress-fill"></div></div>
-    <div class="run-time" id="run-time">0:00</div>
-  </div>
-</div>
 
 <!-- Event modal -->
 <div class="modal-overlay" id="event-modal">
