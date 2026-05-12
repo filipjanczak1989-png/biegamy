@@ -1019,6 +1019,94 @@
   .workout-btn-claim:active { transform: translateY(0); }
   .workout-btn-claim:disabled { opacity: 0.6; cursor: not-allowed; }
 
+  /* ==========================================================
+     ACHIEVEMENT UNLOCK — premium reveal animation v0.4
+     ========================================================== */
+  .ach-unlock-overlay {
+    position: fixed;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-30px) scale(0.85);
+    z-index: 9000;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+      transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .ach-unlock-overlay.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  .ach-unlock-overlay.hide {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-30px) scale(0.9);
+  }
+  .ach-unlock-card {
+    background: linear-gradient(135deg, rgba(20, 15, 8, 0.92), rgba(40, 25, 12, 0.95));
+    backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 215, 100, 0.4);
+    border-radius: 18px;
+    padding: 1.25rem 1.5rem;
+    text-align: center;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.6),
+      0 0 80px rgba(255, 200, 80, 0.25),
+      inset 0 1px 0 rgba(255, 220, 140, 0.2);
+    min-width: 280px;
+    max-width: 90vw;
+    animation: achGlow 2s ease-in-out infinite;
+  }
+  @keyframes achGlow {
+    0%, 100% { box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 80px rgba(255, 200, 80, 0.25), inset 0 1px 0 rgba(255, 220, 140, 0.2); }
+    50%      { box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 100px rgba(255, 215, 100, 0.45), inset 0 1px 0 rgba(255, 220, 140, 0.3); }
+  }
+  .ach-unlock-banner {
+    font-size: 0.7rem;
+    letter-spacing: 0.25em;
+    color: #ffd966;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+    font-weight: bold;
+    text-shadow: 0 0 12px rgba(255, 215, 100, 0.5);
+  }
+  .ach-unlock-icon {
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 0.75rem;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+    animation: achIconBob 1.5s ease-in-out infinite;
+  }
+  @keyframes achIconBob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50%      { transform: translateY(-4px) rotate(2deg); }
+  }
+  .ach-unlock-name {
+    font-size: 1.15rem;
+    color: var(--cream);
+    font-weight: bold;
+    margin-bottom: 0.6rem;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  }
+  .ach-unlock-rewards {
+    display: flex;
+    justify-content: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .ach-reward-chip {
+    background: rgba(255, 215, 100, 0.18);
+    color: #ffd966;
+    padding: 0.25rem 0.7rem;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    border: 1px solid rgba(255, 215, 100, 0.3);
+  }
+
   @media (max-width: 480px) {
     .cold-open-narration { font-size: 1rem; }
     #cold-open { padding: 1.5rem 1rem; }
@@ -1078,9 +1166,11 @@
 <!-- Sb shared keys (Twój pattern z BiegaMy) -->
 <script src="sb.js"></script>
 
-<!-- Janusz Run modules (v0.3.1) -->
-<script src="js/janusz/workouts.js?v=031"></script>
-<script src="js/janusz/engine.js?v=031"></script>
+<!-- Janusz Run modules (v0.4) -->
+<script src="js/janusz/workouts.js?v=040"></script>
+<script src="js/janusz/shop.js?v=040"></script>
+<script src="js/janusz/achievements.js?v=040"></script>
+<script src="js/janusz/engine.js?v=040"></script>
 
 </body>
 </html>
