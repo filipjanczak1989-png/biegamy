@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Janusz Run · BiegaMy</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/webp" href="assets/janusz/logo.webp">
+
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-soft: #1a1a1a;
+    --cream: #f4ead5;
+    --cream-soft: #e8dfc8;
+    --accent: #e8561e;
+    --accent-soft: #f08050;
+    --navy: #1e3a5f;
+    --text: #f4ead5;
+    --text-muted: #9a8f7a;
+    --success: #6b8e4e;
+    --danger: #a83232;
+    --shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow-x: hidden; }
+
+  body {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== LOADING SCREEN ===== */
+  #loading {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.6s ease;
+  }
+  #loading.fade { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 48px; height: 48px;
+    border: 3px solid var(--bg-soft);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ===== COLD OPEN SCENE ===== */
+  #cold-open {
+    position: relative;
+    min-height: 100vh;
+    background-image: url('assets/janusz/cold-open.webp');
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2rem;
+  }
+  #cold-open::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom,
+      rgba(0,0,0,0) 0%,
+      rgba(0,0,0,0) 50%,
+      rgba(0,0,0,0.6) 85%,
+      rgba(0,0,0,0.85) 100%);
+  }
+  .cold-open-content {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  .cold-open-meta {
+    font-size: 0.85rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--cream-soft);
+    opacity: 0.7;
+    margin-bottom: 0.5rem;
+    animation: fadeUp 1.2s ease-out;
+  }
+  .cold-open-narration {
+    font-size: 1.15rem;
+    line-height: 1.7;
+    color: var(--cream);
+    margin-bottom: 1.5rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    animation: fadeUp 1.2s ease-out 0.4s both;
+  }
+  .cold-open-narration strong { color: var(--accent-soft); font-weight: normal; }
+  .cold-open-narration .pause { display: block; height: 0.8rem; }
+
+  .btn-start {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--cream);
+    border: none;
+    padding: 1rem 2.5rem;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    transition: all 0.2s;
+    animation: fadeUp 1.2s ease-out 1.2s both;
+    border-radius: 4px;
+  }
+  .btn-start:hover {
+    background: var(--accent-soft);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(232,86,30,0.4);
+  }
+  .btn-start:active { transform: translateY(0); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ===== INTRO DIALOG ===== */
+  #intro {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #1a1410 0%, #0a0a0a 100%);
+    padding: 2rem 1rem;
+  }
+  #intro.active { display: block; animation: fadeIn 0.6s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .dialog-container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding-top: 1rem;
+  }
+
+  .dialog-card {
+    background: var(--bg-soft);
+    border: 1px solid rgba(244,234,213,0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.5s ease-out;
+  }
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .dialog-avatar {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 2px solid var(--accent);
+    flex-shrink: 0;
+  }
+  .dialog-name {
+    font-size: 1.1rem;
+    color: var(--accent-soft);
+    font-weight: bold;
+    letter-spacing: 0.05em;
+  }
+  .dialog-text {
+    font-size: 1.05rem;
+    line-height: 1.7;
+    color: var(--cream);
+  }
+  .dialog-text em { color: var(--text-muted); font-style: italic; }
+
+  .dialog-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .choice-btn {
+    background: transparent;
+    border: 1px solid rgba(244,234,213,0.2);
+    color: var(--cream);
+    padding: 1rem 1.25rem;
+    font-family: inherit;
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  .choice-btn:hover {
+    background: rgba(232,86,30,0.1);
+    border-color: var(--accent);
+    transform: translateX(4px);
+  }
+
+  .name-input {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(244,234,213,0.2);
+    color: var(--cream);
+    padding: 0.85rem 1rem;
+    font-family: inherit;
+    font-size: 1.05rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+  }
+  .name-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ===== GAME MAIN ===== */
+  #game {
+    display: none;
+    min-height: 100vh;
+    padding-bottom: 2rem;
+  }
+  #game.active { display: block; animation: fadeIn 0.4s ease-out; }
+
+  .game-header {
+    background: var(--bg-soft);
+    border-bottom: 1px solid rgba(244,234,213,0.08);
+    padding: 1rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  .game-header-inner {
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+  }
+  .back-btn {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+  }
+  .back-btn:hover { color: var(--accent); }
+  .header-logo {
+    height: 28px;
+    width: auto;
+  }
+  .kapital {
+    color: var(--accent-soft);
+    font-weight: bold;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+
+  .game-content {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+  }
+
+  /* Athlete card */
+  .athlete-card {
+    background: var(--bg-soft);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+  }
+  .athlete-header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .athlete-avatar {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    background-size: cover;
+    background-position: center;
+    border: 3px solid var(--accent);
+    flex-shrink: 0;
+  }
+  .athlete-info h2 {
+    font-size: 1.3rem;
+    color: var(--cream);
+    margin-bottom: 0.25rem;
+  }
+  .athlete-info .meta {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .stat {
+    background: rgba(0,0,0,0.3);
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.25rem;
+  }
+  .stat-value {
+    font-size: 1.2rem;
+    color: var(--cream);
+    font-weight: bold;
+  }
+  .stat-bar {
+    height: 4px;
+    background: rgba(244,234,213,0.1);
+    border-radius: 2px;
+    margin-top: 0.4rem;
+    overflow: hidden;
+  }
+  .stat-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.6s ease;
+  }
+
+  /* Action buttons */
+  .section-title {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin: 1.5rem 0 0.75rem;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .action-btn {
+    background: var(--bg-soft);
+    border: 1px solid rgba(244,234,213,0.1);
+    color: var(--cream);
+    padding: 1.25rem;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    border-radius: 12px;
+    text-align: left;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .action-btn:hover:not(:disabled) {
+    background: rgba(232,86,30,0.08);
+    border-color: var(--accent);
+  }
+  .action-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .action-icon { font-size: 1.5rem; }
+  .action-text { flex: 1; }
+  .action-text strong { display: block; color: var(--cream); margin-bottom: 0.2rem; }
+  .action-text small { color: var(--text-muted); font-size: 0.85rem; }
+
+  /* Event modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 600;
+    padding: 1rem;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease-out; }
+  .modal {
+    background: var(--bg-soft);
+    border-radius: 12px;
+    max-width: 480px;
+    width: 100%;
+    padding: 1.5rem;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.4s ease-out;
+  }
+
+  /* Toast notifications */
+  .toast-container {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+    pointer-events: none;
+  }
+  .toast {
+    background: var(--bg-soft);
+    border-left: 3px solid var(--accent);
+    color: var(--cream);
+    padding: 0.85rem 1.25rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-size: 0.95rem;
+    max-width: 90vw;
+    animation: toastIn 0.3s ease-out, toastOut 0.3s ease-out 3s forwards;
+  }
+  .toast.success { border-left-color: var(--success); }
+  .toast.danger { border-left-color: var(--danger); }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateY(20px); }
+  }
+
+  /* Run in progress overlay */
+  .run-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+  }
+  .run-overlay.active { display: flex; }
+  .run-content {
+    text-align: center;
+    max-width: 400px;
+    padding: 2rem;
+  }
+  .run-emoji { font-size: 4rem; margin-bottom: 1rem; animation: bounce 1s ease-in-out infinite; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .run-title { font-size: 1.4rem; color: var(--cream); margin-bottom: 0.5rem; }
+  .run-subtitle { color: var(--text-muted); margin-bottom: 1.5rem; }
+  .run-progress {
+    width: 100%;
+    height: 8px;
+    background: var(--bg-soft);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+  .run-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+  .run-time { color: var(--accent-soft); font-size: 1.1rem; font-weight: bold; }
+
+  @media (max-width: 480px) {
+    .cold-open-narration { font-size: 1rem; }
+    #cold-open { padding: 1.5rem 1rem; }
+    .header-logo { height: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading"><div class="spinner"></div></div>
+
+<!-- COLD OPEN SCENE -->
+<section id="cold-open">
+  <div class="cold-open-content">
+    <div class="cold-open-meta">Hrubieszów · 5:47 rano · Wtorek</div>
+    <div class="cold-open-narration">
+      To jest <strong>Janusz</strong>. 47 lat. 112 kilogramów.
+      <span class="pause"></span>
+      Wczoraj na imieninach Halinki obiecał córce, że schudnie.
+      <span class="pause"></span>
+      Dziś o świcie stoi na polu ziemniaków wuja. Burek śpi mu u stóp.
+      Mietek jeszcze nie wstał, ale jak wstanie — będzie się śmiał.
+      <span class="pause"></span>
+      <em>Dzisiaj zaczyna swoją podróż. Która zaprowadzi go dalej, niż ktokolwiek mógł się spodziewać.</em>
+    </div>
+    <button class="btn-start" onclick="JR.startIntro()">Zacznij ▸</button>
+  </div>
+</section>
+
+<!-- INTRO DIALOG -->
+<section id="intro">
+  <div class="dialog-container" id="intro-content"></div>
+</section>
+
+<!-- MAIN GAME -->
+<section id="game">
+  <header class="game-header">
+    <div class="game-header-inner">
+      <a href="index.html" class="back-btn">← BiegaMy</a>
+      <img src="assets/janusz/logo.webp" alt="Janusz Run" class="header-logo">
+      <div class="kapital" id="kapital">100 zł</div>
+    </div>
+  </header>
+
+  <div class="game-content" id="game-content"></div>
+</section>
+
+<!-- Run overlay -->
+<div class="run-overlay" id="run-overlay">
+  <div class="run-content">
+    <div class="run-emoji" id="run-emoji">🏃‍♂️</div>
+    <div class="run-title" id="run-title">Bieg po polu</div>
+    <div class="run-subtitle" id="run-subtitle">Janusz okrąża pole ziemniaków...</div>
+    <div class="run-progress"><div class="run-progress-fill" id="run-progress-fill"></div></div>
+    <div class="run-time" id="run-time">0:00</div>
+  </div>
+</div>
+
+<!-- Event modal -->
+<div class="modal-overlay" id="event-modal">
+  <div class="modal" id="event-modal-content"></div>
+</div>
+
+<!-- Toasts -->
+<div class="toast-container" id="toasts"></div>
+
+<!-- Sb shared keys (Twój pattern z BiegaMy) -->
+<script src="sb.js"></script>
+
+<!-- Game engine -->
+<script src="js/janusz/engine.js"></script>
+
+</body>
+</html>
