@@ -2161,11 +2161,18 @@ window._raceDates = [];
 // ── LOAD ATHLETES INTO SELECT (trener) ───────────────────────────
 async function initRole() {
   if (_urlRoleFromUrl) return; // URL ma rolę — ufamy jej
-  // Brak roli w URL — sprawdź w sesji
+  // Brak roli w URL — sprawdź najpierw w tabeli coaches (źródło prawdy)
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { window.location.href = 'index.html'; return; }
-  const role = session.user.user_metadata?.role || 'athlete';
-  if (role === 'coach') {
+  
+  // ✨ FIX: Sprawdź w tabeli coaches zamiast user_metadata
+  // (user_metadata może być pusty / nieaktualny)
+  const { data: coachRow } = await sb.from('coaches')
+    .select('id').eq('id', session.user.id).maybeSingle();
+  
+  const isCoach = !!coachRow || session.user.user_metadata?.role === 'coach';
+  
+  if (isCoach) {
     // Coach bez roli w URL — przekieruj z rolą
     const params = new URLSearchParams(window.location.search);
     params.set('role', 'coach');
