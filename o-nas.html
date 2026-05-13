@@ -248,6 +248,53 @@ nav.scrolled{border-bottom-color:var(--line);}
 }
 .btn-ghost:hover{border-color:var(--paper);}
 
+/* Secondary button — Zaloguj w hero, mocniejszy niż ghost */
+.btn-secondary{
+  padding:18px 28px;
+  background:transparent;
+  border:1.5px solid var(--accent);
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;letter-spacing:0.18em;text-transform:uppercase;font-weight:500;
+  display:inline-flex;align-items:center;gap:10px;
+  transition:all 0.2s ease;
+}
+.btn-secondary:hover{background:var(--accent);color:var(--paper);}
+
+/* Floating sticky "Zaloguj" — widoczny gdy scrollujesz */
+.sticky-login{
+  position:fixed;
+  bottom:24px;
+  right:24px;
+  z-index:1000;
+  padding:14px 22px;
+  background:var(--accent);
+  color:var(--paper);
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:0.18em;text-transform:uppercase;font-weight:500;
+  border-radius:50px;
+  box-shadow:0 8px 24px rgba(232,86,30,0.4), 0 2px 8px rgba(0,0,0,0.3);
+  display:inline-flex;align-items:center;gap:8px;
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration:none;
+  opacity:0;
+  transform:translateY(20px);
+  pointer-events:none;
+}
+.sticky-login.visible{
+  opacity:1;
+  transform:translateY(0);
+  pointer-events:auto;
+}
+.sticky-login:hover{
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(232,86,30,0.55), 0 4px 12px rgba(0,0,0,0.4);
+}
+.sticky-login svg{width:14px;height:14px;}
+@media(max-width:640px){
+  .sticky-login{bottom:16px;right:16px;padding:12px 18px;font-size:10px;}
+}
+
 /* HERO RIGHT - photo + stats overlay */
 .hero-right{
   position:relative;
@@ -1009,8 +1056,8 @@ footer{
     </p>
     <div class="hero-actions">
       <a href="#formularz" class="btn-primary"><span>Zacznij z nami</span> <span>→</span></a>
+      <a href="index.html" class="btn-secondary"><span>Mam już konto</span> <span>↗</span></a>
       <a href="#oferta" class="btn-ghost">Oferta <span>↓</span></a>
-      <a href="index.html" class="btn-ghost btn-login-alt"><span>Zaloguj</span> <span>↗</span></a>
     </div>
 
     <div class="hero-strip">
@@ -1094,7 +1141,7 @@ footer{
         <div class="coach-creds">Maraton 2:55 · 238 km dobówka · Top 10 świat</div>
         <!-- ⬇️ CYTAT KASI - DO PODMIANY -->
         <p class="coach-quote">
-          „Jak zaczynałam, nie wierzyłam że pobiegnę 5 km. Dziś biegam 240. Nie ma nic czego nie da się zbudować — tylko nikt nie chce czekać."
+          „Jak zaczynałam, nie wierzyłam że pobiegnę 5 km. Dziś biegam blisko 240. Nie ma nic czego nie da się zbudować — tylko nikt nie chce czekać."
         </p>
         <p class="coach-text">
           Z celu 20 minut na 5 km do Top 10 na świecie w biegu dobowym. Dowód że długoterminowe myślenie działa — i że każdy zaczyna z zera, nieważne kiedy w życiu.
@@ -1454,6 +1501,30 @@ footer{
     <span>Made with <span style="color:var(--accent);">♥</span> in Polska</span>
   </div>
 </footer>
+
+<!-- Floating "Mam konto / Zaloguj" — widoczny po przescrollowaniu hero -->
+<a href="index.html" class="sticky-login" id="sticky-login" aria-label="Zaloguj się do aplikacji">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+  <span>Mam konto</span>
+</a>
+
+<script>
+  // Pokaż sticky login button po przescrollowaniu o ~70vh (poniżej hero)
+  (function(){
+    var btn = document.getElementById('sticky-login');
+    if (!btn) return;
+    var threshold = window.innerHeight * 0.6;
+    var ticking = false;
+    function onScroll(){
+      if (window.scrollY > threshold) btn.classList.add('visible');
+      else btn.classList.remove('visible');
+      ticking = false;
+    }
+    window.addEventListener('scroll', function(){
+      if (!ticking) { requestAnimationFrame(onScroll); ticking = true; }
+    }, {passive:true});
+  })();
+</script>
 
 <script>
 // Nav shadow on scroll
