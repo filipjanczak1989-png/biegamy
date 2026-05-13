@@ -364,21 +364,6 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div id="fresh-feedbacks-list"></div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════ -->
-<!-- 📋 NOWE ZGŁOSZENIA Z ANKIETY (intake_forms)                  -->
-<!-- ═══════════════════════════════════════════════════════════ -->
-<div id="intake-forms-wrap" class="fi" style="display:none;margin:0 16px 16px;">
-  <div class="sec-hdr" style="margin-bottom:10px;">
-    <div class="sec-title" style="display:flex;align-items:center;gap:8px;">
-      <span style="color:#8b5cf6;">📋</span>
-      <span>Nowe zgłoszenia</span>
-      <span id="intake-forms-count" style="background:#8b5cf6;color:#fff;border-radius:10px;padding:1px 8px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:0.04em;">0</span>
-    </div>
-    <button class="sec-action" onclick="loadIntakeForms()" style="color:#8b5cf6;">↻ Odśwież</button>
-  </div>
-  <div id="intake-forms-list"></div>
-</div>
-
 <div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><div style="display:flex;gap:8px;"><button class="sec-action" onclick="openTemplateModal()" style="color:var(--green);">📋 Szablon</button><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div></div>
 <div class="ath-list" id="ath-list"></div>
 
@@ -841,16 +826,6 @@ async function generateAIReportFromPanel(periodDays) {
   const coachNote = await pickCoachNote(periodDays);
   if (coachNote === null) return; // user anulował
   
-  // Rozpakuj coachNote — może być stringiem (stary format) lub obiektem {note, attachments}
-  let coachNoteTextR = '';
-  let coachAttachmentsR = [];
-  if (typeof coachNote === 'string') {
-    coachNoteTextR = coachNote;
-  } else if (coachNote && typeof coachNote === 'object') {
-    coachNoteTextR = coachNote.note || '';
-    coachAttachmentsR = Array.isArray(coachNote.attachments) ? coachNote.attachments : [];
-  }
-  
   window._currentAthleteIdForAI = id;
   const btns = document.querySelectorAll('.pai-gen-btn');
   const targetBtn = document.querySelector('.pai-gen-btn[data-period="' + periodDays + '"]');
@@ -871,8 +846,7 @@ async function generateAIReportFromPanel(periodDays) {
       period_days: periodDays
     };
     if (targetDate) body.target_date = targetDate;
-    if (coachNoteTextR) body.coach_note = coachNoteTextR; // komentarz trenera
-    if (coachAttachmentsR.length > 0) body.coach_attachments = coachAttachmentsR; // ✨ screeny dla AI
+    if (coachNote) body.coach_note = coachNote; // ← NOWE
     
     const r = await fetch(window.SB_FN_URL + '/generate-athlete-report', {
       method: 'POST',
@@ -975,19 +949,8 @@ function pickCoachNote(options) {
             maxlength="2000"
           ></textarea>
           
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:14px;">
             <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;" id="cn-counter">0 / 2000</div>
-          </div>
-          
-          <!-- ✨ UPLOAD SCREENÓW dla AI -->
-          <div style="background:rgba(139,92,246,0.05);border:1px dashed rgba(139,92,246,0.3);border-radius:8px;padding:10px;margin-bottom:14px;">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-              <div style="font-size:10px;color:#8b5cf6;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">📷 Screeny dla Klaudiusza <span style="color:var(--muted);">(opcjonalne, max 3)</span></div>
-              <button onclick="document.getElementById('cn-file-input').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#8b5cf6;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:6px;cursor:pointer;">+ Dodaj</button>
-            </div>
-            <input type="file" id="cn-file-input" accept="image/*" multiple style="display:none;" onchange="window._cnHandleFiles(this.files)">
-            <div id="cn-attachments" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-            <div style="font-size:9px;color:var(--muted);font-family:'Inter',sans-serif;margin-top:6px;line-height:1.4;">Wrzuć screeny z Messengera, Stravy, Garmin Connect — cokolwiek co AI powinno zobaczyć (komentarz Stravy, krytyczny trening, wyniki badań).</div>
           </div>
           
           <div style="display:flex;flex-direction:column;gap:8px;">
@@ -1015,74 +978,7 @@ function pickCoachNote(options) {
     
     window._cnSubmit = () => {
       const note = (ta?.value || '').trim();
-      const attachments = window._cnAttachmentUrls || [];
-      // Zwracamy obiekt jeśli są attachments, string jeśli nie (back-compat)
-      if (attachments.length > 0) {
-        window._cnResolve({ note: note || '', attachments });
-      } else {
-        window._cnResolve(note || '');
-      }
-    };
-    
-    // ✨ Upload screenów handler
-    window._cnAttachmentUrls = [];
-    window._cnHandleFiles = async (files) => {
-      if (!files || files.length === 0) return;
-      const MAX_FILES = 3;
-      const remaining = MAX_FILES - window._cnAttachmentUrls.length;
-      if (remaining <= 0) {
-        showToast('Maks 3 screeny');
-        return;
-      }
-      const filesToUpload = Array.from(files).slice(0, remaining);
-      const wrap = document.getElementById('cn-attachments');
-      
-      for (const file of filesToUpload) {
-        if (!file.type.startsWith('image/')) {
-          showToast('Tylko obrazki');
-          continue;
-        }
-        if (file.size > 8 * 1024 * 1024) {
-          showToast('Max 8 MB per screen');
-          continue;
-        }
-        
-        // Pokaż preview z loadingiem
-        const previewId = 'cn-prev-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-        const previewHtml = `<div id="${previewId}" style="position:relative;width:60px;height:60px;border-radius:6px;background:rgba(0,0,0,0.4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">
-          <div style="font-size:10px;color:var(--muted);">⏳</div>
-        </div>`;
-        wrap.insertAdjacentHTML('beforeend', previewHtml);
-        
-        try {
-          const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-          const path = (_coachId || 'coach') + '/coach_note_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
-          const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: true, contentType: file.type });
-          if (upErr) {
-            showToast('Błąd uploadu: ' + upErr.message);
-            document.getElementById(previewId)?.remove();
-            continue;
-          }
-          const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-          const url = urlData.publicUrl;
-          window._cnAttachmentUrls.push(url);
-          
-          // Zmień preview na obrazek z X
-          const prev = document.getElementById(previewId);
-          if (prev) {
-            prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="window.open('${url}','_blank')" />
-              <button onclick="window._cnRemoveAttachment('${url}','${previewId}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.7);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>`;
-          }
-        } catch (err) {
-          console.error('cn upload error:', err);
-          document.getElementById(previewId)?.remove();
-        }
-      }
-    };
-    
-    window._cnRemoveAttachment = (url, previewId) => {
-      window._cnAttachmentUrls = window._cnAttachmentUrls.filter(u => u !== url);
-      document.getElementById(previewId)?.remove();
+      window._cnResolve(note || ''); // pusty string = pomiń, nie null
     };
     
     window._cnResolve = (val) => {
@@ -1090,9 +986,6 @@ function pickCoachNote(options) {
       if (m) m.parentElement.remove();
       delete window._cnSubmit;
       delete window._cnResolve;
-      delete window._cnHandleFiles;
-      delete window._cnRemoveAttachment;
-      delete window._cnAttachmentUrls;
       resolve(val);
     };
     
@@ -1486,132 +1379,12 @@ async function openCreateTrainingPlanModal() {
   document.getElementById('tp-create-go-btn').disabled = false;
   document.getElementById('tp-create-go-btn').style.opacity = '1';
   
-  // ✨ v47: Reset pól kontekstu AI
-  const coachNoteEl = document.getElementById('tp-coach-note');
-  if (coachNoteEl) coachNoteEl.value = '';
-  const attEl = document.getElementById('tp-coach-attachments');
-  if (attEl) attEl.innerHTML = '';
-  window._tpAttachmentUrls = [];
-  
   // Ładuj cele startowe zawodnika z race_goals
   await loadAthleteGoalsIntoModal();
   
   document.getElementById('tp-create-modal').style.display = 'flex';
 }
 window.openCreateTrainingPlanModal = openCreateTrainingPlanModal;
-
-// ✨ v47: Handler uploadu screenów do modala generowania planu
-window._tpAttachmentUrls = [];
-
-window._tpHandleFiles = async function(files) {
-  if (!files || files.length === 0) return;
-  const MAX_FILES = 3;
-  const remaining = MAX_FILES - window._tpAttachmentUrls.length;
-  if (remaining <= 0) {
-    showToast('Maks 3 screeny');
-    return;
-  }
-  const filesToUpload = Array.from(files).slice(0, remaining);
-  const wrap = document.getElementById('tp-coach-attachments');
-  
-  for (const file of filesToUpload) {
-    if (!file.type.startsWith('image/')) { showToast('Tylko obrazki'); continue; }
-    if (file.size > 8 * 1024 * 1024) { showToast('Max 8 MB per screen'); continue; }
-    
-    console.log('[tp-upload] start:', file.name, file.size, file.type);
-    
-    const previewId = 'tp-prev-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    
-    // Stwórz preview Z LOKALNYM URL (od razu pokaż obrazek z FileReader, nie czekaj na Supabase)
-    const localUrl = URL.createObjectURL(file);
-    wrap.insertAdjacentHTML('beforeend', `
-      <div id="${previewId}" style="position:relative;width:72px;height:72px;border-radius:8px;border:2px dashed rgba(139,92,246,0.4);overflow:hidden;background:#000;">
-        <img src="${localUrl}" style="width:100%;height:100%;object-fit:cover;display:block;opacity:0.5;" alt="upload">
-        <div id="${previewId}-status" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);font-size:18px;animation:tpspin 1s linear infinite;">⏳</div>
-      </div>
-    `);
-    
-    try {
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-      // PATH używamy coach_id (nie athletes.id) - musimy mieć RLS który to pozwala
-      const path = (_coachId || 'coach') + '/plan_note_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
-      console.log('[tp-upload] path:', path);
-      
-      const { data: upData, error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, { 
-        upsert: true, 
-        contentType: file.type 
-      });
-      
-      if (upErr) {
-        console.error('[tp-upload] FAIL:', upErr);
-        showToast('Błąd: ' + upErr.message);
-        const statusEl = document.getElementById(`${previewId}-status`);
-        if (statusEl) {
-          statusEl.style.animation = '';
-          statusEl.innerHTML = '<span style="color:#ef4444;font-size:24px;">✕</span>';
-          statusEl.style.background = 'rgba(239,68,68,0.7)';
-        }
-        setTimeout(() => document.getElementById(previewId)?.remove(), 2000);
-        continue;
-      }
-      
-      console.log('[tp-upload] uploaded:', upData);
-      
-      const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-      const url = urlData.publicUrl;
-      console.log('[tp-upload] public URL:', url);
-      
-      // Sprawdź czy URL jest dostępny PUBLICZNIE (HEAD request)
-      try {
-        const testResp = await fetch(url, { method: 'HEAD' });
-        console.log('[tp-upload] HEAD status:', testResp.status);
-        if (!testResp.ok) {
-          throw new Error(`URL niedostępny (${testResp.status})`);
-        }
-      } catch (testErr) {
-        console.warn('[tp-upload] URL test failed:', testErr.message);
-        // Pokażemy obrazek mimo to - może AI go pobierze i tak (bucket może mieć RLS ale signed URL pomoże)
-      }
-      
-      window._tpAttachmentUrls.push(url);
-      
-      // Zamień preview na zielony "DODANO" z PRAWDZIWYM URL (z Supabase, nie local)
-      const prev = document.getElementById(previewId);
-      if (prev) {
-        prev.style.border = '2px solid #22c55e';
-        prev.innerHTML = `
-          <img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.src='${localUrl}';this.style.opacity='0.5';">
-          <button type="button" onclick="window._tpRemoveAttachment('${url}','${previewId}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.85);border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;font-weight:bold;">✕</button>
-          <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,#22c55e);color:#fff;font-size:9px;text-align:center;padding:10px 2px 3px;font-family:'DM Mono',monospace;letter-spacing:0.05em;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,0.8);">✓ DODANO</div>
-        `;
-      }
-      
-      showToast(`✓ Screen ${window._tpAttachmentUrls.length}/3 dodany — AI to zobaczy`);
-      
-      const counterEl = document.getElementById('tp-coach-counter');
-      if (counterEl) counterEl.textContent = `(${window._tpAttachmentUrls.length}/3 — AI zobaczy)`;
-      
-    } catch (err) {
-      console.error('[tp-upload] EXCEPTION:', err);
-      const statusEl = document.getElementById(`${previewId}-status`);
-      if (statusEl) {
-        statusEl.style.animation = '';
-        statusEl.innerHTML = '<span style="color:#ef4444;font-size:24px;">✕</span>';
-        statusEl.style.background = 'rgba(239,68,68,0.7)';
-      }
-      setTimeout(() => document.getElementById(previewId)?.remove(), 2000);
-      showToast('Błąd: ' + (err.message || 'upload nie powiódł się'));
-    }
-  }
-};
-
-window._tpRemoveAttachment = function(url, previewId) {
-  window._tpAttachmentUrls = window._tpAttachmentUrls.filter(u => u !== url);
-  document.getElementById(previewId)?.remove();
-  const counterEl = document.getElementById('tp-coach-counter');
-  if (counterEl) counterEl.textContent = window._tpAttachmentUrls.length > 0 ? `(${window._tpAttachmentUrls.length}/3 — AI zobaczy)` : '';
-  showToast('Screen usunięty');
-};
 
 // ── Pobierz race_goals zawodnika i pokaż jako klikalne kafelki ─────────
 async function loadAthleteGoalsIntoModal() {
@@ -1750,10 +1523,13 @@ async function generateTrainingPlan() {
   const targetDate = document.getElementById('tp-target-date').value || null;
   const targetTime = document.getElementById('tp-target-time').value.trim() || null;
 
-  // ✨ v47: Kontekst dla AI bierzemy BEZPOŚREDNIO z modala (textarea + screeny)
-  // Filip nie musi już klikać przez drugi modal — wszystko w jednym miejscu
-  const coachNoteText = (document.getElementById('tp-coach-note')?.value || '').trim();
-  const coachAttachments = Array.isArray(window._tpAttachmentUrls) ? window._tpAttachmentUrls : [];
+  // Krok komentarz trenera — daje Klaudiuszowi szerszy kontekst przed planem
+  const coachNote = await pickCoachNote({
+    context: 'plan',
+    planType: _tpSelectedType,
+    targetRace: targetRace
+  });
+  if (coachNote === null) return; // user anulował
 
   // UI: loading
   const goBtn = document.getElementById('tp-create-go-btn');
@@ -1761,13 +1537,7 @@ async function generateTrainingPlan() {
   goBtn.disabled = true;
   goBtn.style.opacity = '0.6';
   statusEl.style.display = 'block';
-  // Informacja co dokładnie idzie do AI
-  const ctxInfo = [];
-  if (coachNoteText) ctxInfo.push(`📝 komentarz (${coachNoteText.length} znaków)`);
-  if (coachAttachments.length > 0) ctxInfo.push(`📷 ${coachAttachments.length} screen${coachAttachments.length > 1 ? 'y' : ''}`);
-  const ctxText = ctxInfo.length > 0 ? `<div style="margin-top:6px;font-size:9px;color:#8b5cf6;">AI dostaje: ${ctxInfo.join(' + ')}</div>` : '';
-  
-  statusEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>AI generuje plan... (10-30 sek)</div>${ctxText}`;
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>AI generuje plan... (10-30 sek)</div>';
 
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -1782,8 +1552,7 @@ async function generateTrainingPlan() {
       target_race_date: targetDate,
       target_time: targetTime
     };
-    if (coachNoteText) body.coach_note = coachNoteText; // komentarz trenera
-    if (coachAttachments.length > 0) body.coach_attachments = coachAttachments; // ✨ screeny dla AI
+    if (coachNote) body.coach_note = coachNote; // ← NOWE
     
     const resp = await fetch(fnUrl, {
       method: 'POST',
@@ -2776,8 +2545,6 @@ async function loadAthletes() {
   
   // Załaduj świeże opinie zawodników (po loadAthletes — wymaga _dbAthletes)
   loadFreshFeedbacks();
-  // ✨ v47: Załaduj nowe zgłoszenia z ankiety
-  loadIntakeForms();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2882,282 +2649,6 @@ async function loadFreshFeedbacks() {
 }
 
 window.loadFreshFeedbacks = loadFreshFeedbacks;
-
-// ═══════════════════════════════════════════════════════════════
-// 📋 INTAKE FORMS — nowe zgłoszenia z ankiety biegamy.run/ankieta
-// ═══════════════════════════════════════════════════════════════
-async function loadIntakeForms() {
-  const wrap = document.getElementById('intake-forms-wrap');
-  const list = document.getElementById('intake-forms-list');
-  const countEl = document.getElementById('intake-forms-count');
-  if (!wrap || !list) return;
-  
-  try {
-    const { data, error } = await sb
-      .from('athlete_intake_forms')
-      .select('id, created_at, full_name, email, phone, gender, birth_year, running_since, km_per_week_now, main_goal, target_race_name, training_days_per_week, status')
-      .eq('status', 'submitted')
-      .order('created_at', { ascending: false });
-    
-    if (error) {
-      console.warn('loadIntakeForms error:', error.message);
-      wrap.style.display = 'none';
-      return;
-    }
-    
-    if (!data || data.length === 0) {
-      wrap.style.display = 'none';
-      return;
-    }
-    
-    wrap.style.display = 'block';
-    countEl.textContent = String(data.length);
-    
-    list.innerHTML = data.map(form => {
-      const date = new Date(form.created_at);
-      const dateStr = date.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' }) + ' ' + date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-      const goals = Array.isArray(form.main_goal) ? form.main_goal : [];
-      const goalLabels = {
-        pb: '🏆 Życiówka', race_prep: '🏁 Start docelowy', weight_loss: '⚖️ Forma',
-        health: '💚 Zdrowie', endurance: '🔋 Wytrzymałość', ultra: '🏔️ Ultra', other: '✨ Inne'
-      };
-      const goalsHtml = goals.slice(0,3).map(g => `<span style="background:rgba(139,92,246,0.12);color:#a78bfa;font-size:9px;padding:2px 7px;border-radius:50px;font-family:'DM Mono',monospace;letter-spacing:0.04em;">${goalLabels[g] || g}</span>`).join('');
-      const initials = (form.full_name || '?').split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
-      
-      return `
-        <div onclick="openIntakeFormDetails('${form.id}')" style="background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(139,92,246,0.02));border:1px solid rgba(139,92,246,0.2);border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(139,92,246,0.5)';this.style.background='linear-gradient(135deg,rgba(139,92,246,0.1),rgba(139,92,246,0.04))'" onmouseout="this.style.borderColor='rgba(139,92,246,0.2)';this.style.background='linear-gradient(135deg,rgba(139,92,246,0.06),rgba(139,92,246,0.02))'">
-          <div style="display:flex;align-items:flex-start;gap:11px;">
-            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;flex-shrink:0;">${escapeHtml(initials)}</div>
-            <div style="flex:1;min-width:0;">
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;">
-                <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(form.full_name || 'Bez imienia')}</div>
-                <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.04em;flex-shrink:0;">${dateStr}</div>
-              </div>
-              <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;margin-bottom:6px;">
-                ${form.gender || '?'} · ${form.birth_year ? `${new Date().getFullYear() - form.birth_year}lat` : '?'} · ${form.km_per_week_now || '?'}km/tyg · ${form.training_days_per_week || '?'}dni
-              </div>
-              ${goalsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;">${goalsHtml}</div>` : ''}
-              ${form.target_race_name ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#a78bfa;letter-spacing:0.04em;">🏁 ${escapeHtml(form.target_race_name)}</div>` : ''}
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  } catch (e) {
-    console.error('loadIntakeForms exception:', e);
-    wrap.style.display = 'none';
-  }
-}
-window.loadIntakeForms = loadIntakeForms;
-
-// ─── PODGLĄD ANKIETY ─────────────────────────────────────────────
-async function openIntakeFormDetails(intakeId) {
-  const { data: form, error } = await sb
-    .from('athlete_intake_forms')
-    .select('*')
-    .eq('id', intakeId)
-    .maybeSingle();
-  
-  if (error || !form) {
-    showToast('Błąd ładowania ankiety');
-    return;
-  }
-  
-  const age = form.birth_year ? (new Date().getFullYear() - form.birth_year) : null;
-  const goalLabels = {
-    pb: 'Życiówka', race_prep: 'Start docelowy', weight_loss: 'Forma/odchudzanie',
-    health: 'Zdrowie', endurance: 'Wytrzymałość', ultra: 'Ultra/góry', other: 'Inne'
-  };
-  const blockerLabels = {
-    no_time: 'Brak czasu', no_motivation: 'Brak motywacji', injuries: 'Kontuzje',
-    dont_know_how: 'Nie wiem jak', lonely: 'Brak partnera'
-  };
-  const communicationLabels = {
-    app_chat: '💬 Czat w aplikacji', whatsapp: '📱 WhatsApp', phone: '📞 Telefon', email: '✉️ Email'
-  };
-  const contactFreqLabels = {
-    daily: 'Codziennie', few_per_week: '2-3x/tydz', weekly: 'Raz w tygodniu', on_demand: 'Na żądanie'
-  };
-  
-  // Helper do sekcji
-  const row = (label, value) => value ? `<div style="display:flex;margin-bottom:6px;font-size:12px;line-height:1.5;"><span style="color:var(--muted);width:140px;flex-shrink:0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;">${label}</span><span style="color:var(--fg);flex:1;">${value}</span></div>` : '';
-  
-  const goals = Array.isArray(form.main_goal) ? form.main_goal.map(g => goalLabels[g] || g).join(', ') : '';
-  const trainingTimes = Array.isArray(form.preferred_training_time) ? form.preferred_training_time.join(', ') : '';
-  
-  const html = `
-    <div id="intake-detail-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9700;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;backdrop-filter:blur(8px);" onclick="if(event.target===this)closeIntakeDetailModal()">
-      <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(139,92,246,0.3);border-radius:14px;max-width:720px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6);margin-top:20px;">
-        
-        <!-- Header -->
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">
-          <div style="flex:1;min-width:0;">
-            <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;margin-bottom:4px;">📋 ZGŁOSZENIE Z ANKIETY</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);letter-spacing:0.02em;">${escapeHtml(form.full_name || 'Bez imienia')}</div>
-            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:0.04em;">${new Date(form.created_at).toLocaleString('pl-PL')}</div>
-          </div>
-          <button onclick="closeIntakeDetailModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
-        </div>
-        
-        <!-- KONTAKT -->
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">👤 Kontakt</div>
-          ${row('Email', form.email ? `<a href="mailto:${escapeHtml(form.email)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(form.email)}</a>` : null)}
-          ${row('Telefon', form.phone ? `<a href="tel:${escapeHtml(form.phone)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(form.phone)}</a>` : null)}
-          ${row('Płeć', form.gender)}
-          ${row('Wiek', age ? `${age} lat (${form.birth_year})` : null)}
-        </div>
-        
-        <!-- CIAŁO -->
-        ${(form.height_cm || form.weight_kg || form.blood_tests_status || form.current_injuries || form.chronic_conditions) ? `
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">💪 Ciało</div>
-          ${row('Wzrost', form.height_cm ? `${form.height_cm} cm` : null)}
-          ${row('Waga', form.weight_kg ? `${form.weight_kg} kg` : null)}
-          ${row('Badania krwi', form.blood_tests_status)}
-          ${form.blood_tests_screen_url ? row('Screen', `<a href="${escapeHtml(form.blood_tests_screen_url)}" target="_blank" style="color:var(--accent);text-decoration:none;">📷 Zobacz</a>`) : ''}
-          ${row('Kontuzje', form.current_injuries ? escapeHtml(form.current_injuries) : null)}
-          ${row('Choroby', form.chronic_conditions ? escapeHtml(form.chronic_conditions) : null)}
-        </div>` : ''}
-        
-        <!-- BIEGANIE -->
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🏃 Bieganie</div>
-          ${row('Od kiedy', form.running_since)}
-          ${row('Km / tydz', form.km_per_week_now)}
-          ${row('Najdłuższy', form.longest_distance_km ? `${form.longest_distance_km} km${form.longest_distance_time ? ` w ${form.longest_distance_time}` : ''}` : null)}
-          ${row('Regularność', form.running_regularity)}
-          ${row('PB 5k / 10k', [form.pb_5k, form.pb_10k].filter(Boolean).join(' / '))}
-          ${row('PB Półm / Mar', [form.pb_half, form.pb_marathon].filter(Boolean).join(' / '))}
-          ${row('Teren', form.preferred_terrain)}
-        </div>
-        
-        <!-- STYL ŻYCIA -->
-        ${(form.sleep_hours || form.work_hours_daily || form.supplementation || form.diet_type || trainingTimes) ? `
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🏠 Styl życia</div>
-          ${row('Sen', form.sleep_hours ? `${form.sleep_hours}${form.sleep_bedtime ? ` (${form.sleep_bedtime}-${form.sleep_wakeup || '?'})` : ''}` : null)}
-          ${row('Praca', form.work_hours_daily ? `${form.work_hours_daily}h ${form.work_type || ''}` : null)}
-          ${row('Suplementacja', form.supplementation ? escapeHtml(form.supplementation) : null)}
-          ${row('Dieta', form.diet_type ? escapeHtml(form.diet_type) : null)}
-          ${row('Pora treningu', trainingTimes)}
-        </div>` : ''}
-        
-        <!-- CELE -->
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🎯 Cele</div>
-          ${row('Główny cel', goals)}
-          ${row('Start docelowy', form.target_race_name ? `${escapeHtml(form.target_race_name)}${form.target_race_date ? ` (${form.target_race_date})` : ''}${form.target_race_time ? ` cel: ${form.target_race_time}` : ''}` : null)}
-          ${row('Inne starty', form.race_goals_year ? escapeHtml(form.race_goals_year) : null)}
-          ${row('Mocne strony', form.strong_points ? escapeHtml(form.strong_points) : null)}
-          ${row('Słabe strony', form.weak_points ? escapeHtml(form.weak_points) : null)}
-          ${row('Blokada', blockerLabels[form.main_blocker] || form.main_blocker)}
-        </div>
-        
-        <!-- WSPÓŁPRACA -->
-        <div style="margin-bottom:18px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🤝 Współpraca</div>
-          ${row('Dni / tydz', form.training_days_per_week)}
-          ${row('Siłownia', form.gym_one_day_yes === true ? 'Tak' : form.gym_one_day_yes === false ? 'Nie' : null)}
-          ${row('Pasek tętna', form.has_hr_monitor ? 'Tak' : 'Nie')}
-          ${row('Zegarek', form.garmin_model ? escapeHtml(form.garmin_model) : null)}
-          ${row('Strava', form.has_strava ? 'Tak' : 'Nie')}
-          ${row('Komunikacja', communicationLabels[form.preferred_communication] || form.preferred_communication)}
-          ${row('Częstotliwość', contactFreqLabels[form.contact_frequency] || form.contact_frequency)}
-          ${row('Widoczność', form.visible_to_others === true ? 'Publiczny' : form.visible_to_others === false ? 'Prywatny' : 'Zdecyduje później')}
-          ${row('Tematy tabu', form.topics_to_avoid ? escapeHtml(form.topics_to_avoid) : null)}
-        </div>
-        
-        <!-- WIADOMOŚĆ -->
-        ${form.additional_message ? `
-        <div style="margin-bottom:18px;background:rgba(232,86,30,0.05);border:1px solid rgba(232,86,30,0.2);border-radius:8px;padding:12px;">
-          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">✉️ Wiadomość dodatkowa</div>
-          <div style="font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;color:var(--fg);white-space:pre-wrap;">${escapeHtml(form.additional_message)}</div>
-        </div>` : ''}
-        
-        <!-- ZGODY -->
-        <div style="margin-bottom:20px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.04em;line-height:1.6;">
-          ${form.consent_data_processing ? '✓ Zgoda na dane osobowe' : '✗ Brak zgody na dane'}<br>
-          ${form.consent_health_data ? '✓ Zgoda na dane zdrowotne' : '✗ Brak zgody na zdrowotne'}<br>
-          ${form.consent_marketing ? '✓ Zgoda na marketing' : '○ Bez zgody na marketing (OK)'}
-        </div>
-        
-        <!-- PRZYCISKI AKCJI -->
-        <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:16px;">
-          <button onclick="rejectIntakeForm('${form.id}')" style="flex:1;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:600;">✕ Odrzuć</button>
-          <button onclick="acceptIntakeForm('${form.id}','${escapeHtml(form.full_name || '?')}')" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(34,197,94,0.35);">✓ Akceptuj → utwórz zawodnika</button>
-        </div>
-      </div>
-    </div>
-  `;
-  
-  const wrap = document.createElement('div');
-  wrap.innerHTML = html;
-  document.body.appendChild(wrap);
-  document.body.style.overflow = 'hidden';
-}
-window.openIntakeFormDetails = openIntakeFormDetails;
-
-function closeIntakeDetailModal() {
-  const m = document.getElementById('intake-detail-modal');
-  if (m) m.parentElement.remove();
-  document.body.style.overflow = '';
-}
-window.closeIntakeDetailModal = closeIntakeDetailModal;
-
-// ─── AKCEPTUJ ANKIETĘ → UTWÓRZ ZAWODNIKA ─────────────────────────
-async function acceptIntakeForm(intakeId, fullName) {
-  if (!confirm(`Akceptujesz zgłoszenie ${fullName}?\n\nTo utworzy nowego zawodnika w bazie z danymi z ankiety.`)) return;
-  
-  try {
-    const { data, error } = await sb.rpc('accept_intake_form', { p_intake_id: intakeId });
-    if (error) {
-      showToast('Błąd: ' + error.message);
-      return;
-    }
-    
-    showToast('✓ Zawodnik utworzony!');
-    closeIntakeDetailModal();
-    
-    // Odśwież listę zgłoszeń i zawodników
-    await loadIntakeForms();
-    await loadAthletes();
-  } catch (e) {
-    console.error('acceptIntakeForm error:', e);
-    showToast('Błąd: ' + (e.message || 'nieznany'));
-  }
-}
-window.acceptIntakeForm = acceptIntakeForm;
-
-// ─── ODRZUĆ ANKIETĘ ──────────────────────────────────────────────
-async function rejectIntakeForm(intakeId) {
-  const reason = prompt('Powód odrzucenia (opcjonalnie):');
-  if (reason === null) return; // anulowane
-  
-  try {
-    const { error } = await sb
-      .from('athlete_intake_forms')
-      .update({
-        status: 'rejected',
-        rejected_at: new Date().toISOString(),
-        rejection_reason: reason || null
-      })
-      .eq('id', intakeId);
-    
-    if (error) {
-      showToast('Błąd: ' + error.message);
-      return;
-    }
-    
-    showToast('Zgłoszenie odrzucone');
-    closeIntakeDetailModal();
-    await loadIntakeForms();
-  } catch (e) {
-    console.error('rejectIntakeForm error:', e);
-    showToast('Błąd');
-  }
-}
-window.rejectIntakeForm = rejectIntakeForm;
 
 async function openFeedbackFromList(reportId, athleteId) {
   // Oznacz jako przeczytane (jeśli jeszcze nie)
@@ -3409,12 +2900,19 @@ function renderLogs_db(logs) {
   const bc = {good:'rgba(61,184,112,0.3)',mid:'rgba(232,184,64,0.3)',bad:'rgba(224,80,80,0.3)'};
   const typeColors = {Spokojny:'#5090e0','Bieg spokojny':'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870'};
   window._coachLogs = logs;
+  const athleteId = window._selectedAthleteId;
   document.getElementById('lcon').innerHTML = logs.length === 0
     ? '<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px;">Brak logów</div>'
     : logs.map((l, idx) => {
       const type = l.training_type || 'Trening';
       const color = typeColors[type] || 'var(--muted)';
-      const date = new Date(l.logged_at).toLocaleDateString('pl-PL', {weekday:'short',day:'numeric',month:'short'});
+      const dateObj = new Date(l.logged_at);
+      const date = dateObj.toLocaleDateString('pl-PL', {weekday:'short',day:'numeric',month:'short'});
+      // ✨ v47: data klikalna → otwiera kalendarz na tym dniu
+      const dateIso = l.logged_at ? l.logged_at.split('T')[0] : '';
+      const calLink = dateIso && athleteId 
+        ? `kalendarz.html?role=coach&athlete=${athleteId}&date=${dateIso}` 
+        : '';
       const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
       const pace = l.pace ? l.pace + '/km' : '';
       const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
@@ -3428,7 +2926,7 @@ function renderLogs_db(logs) {
               <div style="font-size:13px;font-weight:500;">${type}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
-              <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>
+              ${calLink ? `<a href="${calLink}" title="Zobacz w kalendarzu (${date})" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;text-decoration:none;background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.25);padding:3px 8px;border-radius:5px;transition:all 0.15s;letter-spacing:0.04em;" onmouseover="this.style.background='rgba(232,86,30,0.2)';this.style.borderColor='rgba(232,86,30,0.5)'" onmouseout="this.style.background='rgba(232,86,30,0.1)';this.style.borderColor='rgba(232,86,30,0.25)'">📅 ${date}</a>` : `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>`}
               <span style="font-size:16px;">${fe[l.feel]||''}</span>
               ${reaction}
             </div>
@@ -6539,23 +6037,6 @@ if ('serviceWorker' in navigator) {
         <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Cel czasowy</label>
         <input type="text" id="tp-target-time" placeholder="3:30:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
       </div>
-    </div>
-
-    <!-- ✨ Kontekst dla AI: textarea + upload screenów -->
-    <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:11px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;font-weight:600;">💬 Kontekst dla AI <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">(opcjonalne)</span> <span id="tp-coach-counter" style="color:#22c55e;font-weight:600;letter-spacing:0.04em;"></span></div>
-        <button type="button" onclick="document.getElementById('tp-coach-files').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#8b5cf6;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 9px;border-radius:5px;cursor:pointer;font-weight:600;">📷 Dodaj screen</button>
-      </div>
-      <textarea 
-        id="tp-coach-note" 
-        placeholder="np. kontuzja od tygodnia, mało spał ostatnio, wraca po przerwie, lub kontekst z Messengera..."
-        style="width:100%;min-height:60px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:11px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;"
-        maxlength="2000"
-      ></textarea>
-      <input type="file" id="tp-coach-files" accept="image/*" multiple style="display:none;" onchange="window._tpHandleFiles(this.files)">
-      <div id="tp-coach-attachments" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;"></div>
-      <div style="font-family:'Inter',sans-serif;font-size:9px;color:var(--muted);margin-top:6px;line-height:1.4;">Screeny z Messengera, Stravy, badań krwi — AI je przeanalizuje przy generowaniu planu. Max 3.</div>
     </div>
 
     <!-- Co bierzemy pod uwagę (info box) -->

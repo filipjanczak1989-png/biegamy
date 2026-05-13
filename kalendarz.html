@@ -175,6 +175,27 @@ nav{
 }
 .day-col.drop-target{background:rgba(232,86,30,0.13);border-color:var(--accent);}
 
+/* ✨ v47: Jump target — gdy klikasz log w panelu trenera */
+.day-header.jump-target{
+  background:linear-gradient(135deg,rgba(232,86,30,0.25),rgba(232,86,30,0.1)) !important;
+  box-shadow:inset 0 0 0 2px rgba(232,86,30,0.6) !important;
+  animation:jumpPulse 1.5s ease-in-out 3;
+}
+.day-header.jump-target .day-num{color:var(--accent) !important;font-weight:700;}
+.day-col.jump-target-col{
+  background:rgba(232,86,30,0.12) !important;
+  box-shadow:inset 0 0 0 2px rgba(232,86,30,0.5) !important;
+  animation:jumpPulseCol 1.5s ease-in-out 3;
+}
+@keyframes jumpPulse{
+  0%,100%{transform:scale(1);}
+  50%{transform:scale(1.03);box-shadow:inset 0 0 0 3px rgba(232,86,30,0.9), 0 0 20px rgba(232,86,30,0.4);}
+}
+@keyframes jumpPulseCol{
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(232,86,30,0.5);}
+  50%{box-shadow:inset 0 0 0 3px rgba(232,86,30,0.85), 0 0 24px rgba(232,86,30,0.35);}
+}
+
 /* ── TRAINING CARDS — premium ───────────────────────────────────────── */
 .training-card{
   background:linear-gradient(145deg,rgba(20,18,28,0.95),rgba(12,11,18,0.98));
@@ -1193,7 +1214,15 @@ let trainings = {}; // dane z Supabase
 const monthNames = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
 const dayNames = ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'];
 
-let currentWeekStart = getWeekStart(new Date()); // aktualny tydzień
+// ✨ v47: Jeśli URL ma ?date=YYYY-MM-DD — startuj na tygodniu tego dnia
+const _initialDate = (() => {
+  const urlDate = new URLSearchParams(window.location.search).get('date');
+  if (urlDate && /^\d{4}-\d{2}-\d{2}$/.test(urlDate)) {
+    return new Date(urlDate + 'T00:00:00');
+  }
+  return new Date();
+})();
+let currentWeekStart = getWeekStart(_initialDate); // aktualny tydzień (lub z URL)
 let editingDate = null;
 let editingIndex = null;
 let selectedType = 'Bieg spokojny';
@@ -1402,6 +1431,8 @@ function render() {
     const ds = typeof d === 'string' ? d : dateStr(d);
     const dObj = new Date(ds + 'T00:00:00');
     const isToday = ds === dateStr(new Date());
+    // ✨ v47: dzień docelowy z URL ?date — podświetlenie
+    const isJumpTarget = ds === window._calJumpToDate;
     const ts = trainings[ds] || [];
     let km = ts.reduce((s,t)=>s+(t.dist||0),0);
     // ✨ v47: dorzuć km z logów które nie mają powiązanego planu (orphan logs)
@@ -1416,7 +1447,7 @@ function render() {
     const kcalBadge = dayMeals > 0
       ? `<div class="day-kcal" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:8px;padding:4px 8px 4px 4px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--accent);transition:all 0.15s;overflow:hidden;" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,86,30,0.08))';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04))';this.style.transform='translateY(0)'"><div style="width:22px;height:22px;border-radius:6px;background-image:url('${dayImg}');background-size:cover;background-position:center;flex-shrink:0;border:1px solid rgba(232,86,30,0.4);box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div><span>${Math.round(dayKcal)} kcal · ${dayMeals}</span></div>`
       : `<div class="day-kcal-empty" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:5px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--muted);">+ jedzenie</div>`;
-    return `<div class="day-header ${isToday?'today':''}">
+    return `<div class="day-header ${isToday?'today':''} ${isJumpTarget?'jump-target':''}" ${isJumpTarget?'data-jump="true"':''}>
       <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
       <div class="day-num">${dObj.getDate()} ${monthNames[dObj.getMonth()]}</div>
       ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
@@ -1428,6 +1459,8 @@ function render() {
   document.getElementById('week-body').innerHTML = days.map(d => {
     const ds = typeof d === 'string' ? d : dateStr(d);
     const isToday = ds === dateStr(new Date());
+    // ✨ v47: dzień docelowy z URL ?date
+    const isJumpTarget = ds === window._calJumpToDate;
     const ts = trainings[ds] || [];
 
     // Sprawdź czy to dzień startu — dla trenera tylko gdy wybrany zawodnik
@@ -1546,7 +1579,7 @@ function render() {
       </div>`;
     }).join('');
 
-    return `<div class="day-col ${isToday?'today':''}"
+    return `<div class="day-col ${isToday?'today':''} ${isJumpTarget?'jump-target-col':''}" ${isJumpTarget?'id="jump-target-day"':''}
       ondragover="event.preventDefault();this.classList.add('drag-over')"
       ondragleave="this.classList.remove('drag-over')"
       ondrop="dragDrop(event,'${ds}')">
@@ -1560,6 +1593,18 @@ function render() {
   }).join('');
   // Jeśli aktywny widok mobilny — odśwież też
   if (typeof _calView !== 'undefined' && _calView === 'mobile') renderMobile();
+  
+  // ✨ v47: Jeśli przyszliśmy z URL ?date — przewiń do tego dnia
+  if (window._calJumpToDate) {
+    setTimeout(() => {
+      const target = document.getElementById('jump-target-day');
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+      // Wyczyść flag po 5s — żeby highlight nie wracał przy nawigacji między tygodniami
+      setTimeout(() => { window._calJumpToDate = null; }, 5000);
+    }, 200);
+  }
 }
 
 // ── WEEK NAV ──────────────────────────────────────────────────────────────────
@@ -2185,9 +2230,15 @@ const _urlRoleFromUrl = new URLSearchParams(window.location.search).get('role');
 // Jeśli brak parametru role w URL — będzie wykryty z sesji w initRole()
 let _urlRole = _urlRoleFromUrl || 'athlete'; // bezpieczny default to athlete
 const _urlAthlete = new URLSearchParams(window.location.search).get('athlete') || null;
+// ✨ v47: opcjonalny parametr ?date=YYYY-MM-DD — skok do tygodnia tego dnia
+const _urlDate = new URLSearchParams(window.location.search).get('date') || null;
 const _backUrl = _urlRole === 'coach' ? 'trener.html' : 'zawodnik.html';
 // Jeśli trener przyszedł z wybranym zawodnikiem — ustaw od razu
 if (_urlAthlete) window._calSelectedAthleteId = _urlAthlete;
+// ✨ v47: jeśli URL ma ?date=YYYY-MM-DD — ustaw currentWeekStart na tydzień tego dnia
+if (_urlDate && /^\d{4}-\d{2}-\d{2}$/.test(_urlDate)) {
+  window._calJumpToDate = _urlDate; // zapamiętaj żeby podświetlić ten dzień
+}
 function goBack() {
   window.location.href = _backUrl;
 }
