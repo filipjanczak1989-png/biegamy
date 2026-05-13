@@ -1403,7 +1403,12 @@ function render() {
     const dObj = new Date(ds + 'T00:00:00');
     const isToday = ds === dateStr(new Date());
     const ts = trainings[ds] || [];
-    const km = ts.reduce((s,t)=>s+(t.dist||0),0);
+    let km = ts.reduce((s,t)=>s+(t.dist||0),0);
+    // ✨ v47: dorzuć km z logów które nie mają powiązanego planu (orphan logs)
+    const dayLogsHdr = (window._calLogs && window._calLogs[ds]) || [];
+    if (!ts.some(t => t.status === 'done') && dayLogsHdr.length > 0) {
+      km += dayLogsHdr.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+    }
     const dayKcal = getDayKcal(ds);
     const dayMeals = getDayMealCount(ds);
     // Miniaturka grafiki gdy są posiłki (deterministyczna z daty)
@@ -1467,6 +1472,39 @@ function render() {
 
     // Miniatury z logów dla tego dnia
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
+    
+    // ✨ v47: Karty dla logów BEZ powiązanego treningu w planie
+    // (np. zawodnicy bez planu którzy logują swoje biegi)
+    const planTrainingIds = new Set(ts.map(t => t._id).filter(Boolean));
+    const orphanLogs = dayLogs.filter(l => {
+      // Jeśli log nie jest dopasowany do żadnego zaplanowanego treningu z 'done'
+      // (heurystyka: ts pusty LUB żaden ts nie ma status='done')
+      const hasMatchingDoneTraining = ts.some(t => t.status === 'done');
+      return !hasMatchingDoneTraining;
+    });
+    
+    // Renderuj orphan logi jako standalone karty (zielone, bez planu)
+    const orphanLogCards = orphanLogs.map(log => {
+      const type = log.training_type || 'Trening';
+      const tc = typeColors[type] || 'spokojny';
+      const dist = log.distance_km ? parseFloat(log.distance_km).toFixed(1) : '';
+      const pace = log.pace || '';
+      const hr = log.heart_rate || '';
+      const dur = log.duration || '';
+      const feel = log.feel;
+      const feelIcon = feel === 'good' ? '😊' : feel === 'mid' ? '😐' : feel === 'bad' ? '😓' : '';
+      
+      return `<div class="training-card done ${type==='Odpoczynek'?'rest-card':''}" style="border-left:3px solid rgba(61,184,112,0.5);background:rgba(61,184,112,0.04);">
+        <div class="card-type ${tc}" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>${type.toUpperCase()}</span>
+          ${feelIcon ? `<span style="font-size:13px;">${feelIcon}</span>` : ''}
+        </div>
+        ${dist ? `<div class="card-main">${dist} km</div>` : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
+        ${(pace || hr || dur) ? `<div class="card-pace">${pace?pace+'/km':''} ${hr?'· ♥ '+hr:''} ${dur?'· '+dur+' min':''}</div>` : ''}
+        <div class="card-status done" style="background:rgba(61,184,112,0.15);color:rgba(61,184,112,1);font-size:9px;padding:2px 6px;border-radius:3px;margin-top:4px;display:inline-block;">✓ Wykonany (bez planu)</div>
+      </div>`;
+    }).join('');
+    
     const logThumbs = dayLogs.filter(l => l.attachment_url).map(l => {
       const logId = l.id || '';
       return l.attachment_url.split(',').map((url, urlIdx) =>
@@ -1514,6 +1552,7 @@ function render() {
       ondrop="dragDrop(event,'${ds}')">
       ${raceCard}
       ${cards}
+      ${orphanLogCards}
       ${stravaHtml}
       ${logThumbsHtml}
       <div class="add-training-btn" onclick="openModal('${ds}',null)">+ Dodaj trening</div>
