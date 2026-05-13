@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T19:08Z · Klaudiusz · intake · clickable profiles all over -->
+<!-- BiegaMy build: 2026-05-13T19:30Z · Klaudiusz collapsed-by-default · clickable profiles -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -7178,12 +7178,12 @@ document.addEventListener('keydown', (e) => {
       }
 
       if (data) {
-        // Sprawdź czy dziś już zwinięte
-        const collapsedKey = `kb_collapsed_${today}`;
-        if (localStorage.getItem(collapsedKey) === '1') {
-          kbRenderCollapsed(data.content_json, today);
-        } else {
+        // Domyślnie ZWINIĘTY. Otwiera się tylko jeśli user kliknął "rozwiń" dziś.
+        const expandedKey = `kb_expanded_${today}`;
+        if (localStorage.getItem(expandedKey) === '1') {
           kbRender(data.content_json, data.generated_at);
+        } else {
+          kbRenderCollapsed(data.content_json, today);
         }
       } else {
         kbRenderEmpty('Brief na dziś jeszcze nie został wygenerowany.', true);
@@ -7448,14 +7448,13 @@ document.addEventListener('keydown', (e) => {
 
   window.kbCollapse = function(){
     const today = new Date().toISOString().slice(0,10);
-    localStorage.setItem(`kb_collapsed_${today}`, '1');
-    // Wywołaj kbLoad żeby się przerenderował w stanie zwiniętym
+    localStorage.removeItem(`kb_expanded_${today}`);
     kbLoad();
   };
 
   window.kbExpand = function(){
     const today = new Date().toISOString().slice(0,10);
-    localStorage.removeItem(`kb_collapsed_${today}`);
+    localStorage.setItem(`kb_expanded_${today}`, '1');
     kbLoad();
   };
 
