@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T18:11Z · Klaudiusz v1.0 collapse+archive · intake panel -->
+<!-- BiegaMy build: 2026-05-13T18:42Z · Klaudiusz collapse+archive · intake panel · community clickable profiles -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -4167,49 +4167,54 @@ function coachSocialSearch(q) {
 }
 async function _coachDoSearch(q) {
   const el=document.getElementById('coach-search-results');if(!el)return;
-  // Pobierz is_public + coach_id, filtruj client-side: publiczni LUB swoi
-  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id').ilike('full_name','%'+q+'%').limit(30);
-  const filtered = (data||[]).filter(function(a){
-    return a.is_public === true || a.coach_id === _coachId;
-  }).slice(0,15);
+  // Pokazuje WSZYSTKICH zawodników (publicznych i prywatnych) — klik otwiera profil
+  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,goal,is_public,coach_id,avatar_url').ilike('full_name','%'+q+'%').limit(20);
+  const filtered = data||[];
   if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wynik\u00f3w</div>';return;}
   el.innerHTML=filtered.map(function(a){
     const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
-      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+nm+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div></div>';
+    const lockIcon = a.is_public ? '' : '<span style="margin-left:6px;font-size:11px;opacity:0.6;" title="Profil prywatny">🔒</span>';
+    const av = a.avatar_url
+      ? '<img src="'+a.avatar_url+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML=\'<div style=&quot;width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;&quot;>'+ini+'</div>\'">'
+      : '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>';
+    return '<div onclick="location.href=\'profil.html?id='+a.id+'\'" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      +av
+      +'<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;display:flex;align-items:center;">'+nm+lockIcon+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div>'
+      +'<div style="color:var(--muted);font-size:14px;flex-shrink:0;">›</div></div>';
   }).join('');
 }
 async function loadCoachSuggestedProfiles() {
   const el=document.getElementById('coach-search-results');if(!el)return;
-  // Pobierz więcej, filtruj client-side: publiczni LUB swoi
-  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id').limit(30);
-  const filtered = (data||[]).filter(function(a){
-    return a.is_public === true || a.coach_id === _coachId;
-  }).slice(0,10);
+  // Wszyscy zawodnicy widoczni — klik otwiera profil (prywatni z 🔒)
+  const {data}=await sb.from('athletes').select('id,full_name,pb_marathon,is_public,coach_id,avatar_url').order('created_at',{ascending:false}).limit(15);
+  const filtered = data||[];
   if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak profili</div>';return;}
-  el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Publiczni i Twoi zawodnicy</div>'
+  el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Społeczność BiegaMy</div>'
     +filtered.map(function(a){const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
-      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+nm+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div></div>';
+    const lockIcon = a.is_public ? '' : '<span style="margin-left:6px;font-size:11px;opacity:0.6;" title="Profil prywatny">🔒</span>';
+    const av = a.avatar_url
+      ? '<img src="'+a.avatar_url+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML=\'<div style=&quot;width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;&quot;>'+ini+'</div>\'">'
+      : '<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>';
+    return '<div onclick="location.href=\'profil.html?id='+a.id+'\'" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      +av
+      +'<div style="flex:1;min-width:0;"><div style="font-size:14px;font-weight:600;display:flex;align-items:center;">'+nm+lockIcon+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div>'
+      +'<div style="color:var(--muted);font-size:14px;flex-shrink:0;">›</div></div>';
   }).join('');
 }
 async function loadCoachRanking() {
   const el=document.getElementById('coach-ranking-content');if(!el)return;
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const wS=new Date();wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1);wS.setHours(0,0,0,0);
-  // Pobierz logi razem z athlete (is_public, coach_id) i odfiltruj — pokazujemy publicznych LUB swoich
+  // Wszyscy widoczni — ranking obejmuje też prywatnych
   const {data:logs}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').gte('logged_at',wS.toISOString());
-  const km={};const elev={};const nm={};
+  const km={};const elev={};const nm={};const pub={};
   (logs||[]).forEach(function(l){
     if(!l.athletes) return;
-    const visible = l.athletes.is_public === true || l.athletes.coach_id === _coachId;
-    if(!visible) return;
     const id=l.athlete_id;
     km[id]=(km[id]||0)+(parseFloat(l.distance_km)||0);
     elev[id]=(elev[id]||0)+(parseInt(l.elevation_gain)||0);
     nm[id]=l.athletes.full_name||'Biegacz';
+    pub[id]=l.athletes.is_public;
   });
   const sorted=Object.keys(km).sort(function(a,b){return km[b]-km[a];}).slice(0,10);
   if(!sorted.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych w tym tygodniu</div>';return;}
@@ -4218,10 +4223,11 @@ async function loadCoachRanking() {
     +sorted.map(function(id,i){
       const name=nm[id];const k=km[id].toFixed(1);const e=elev[id];
       const ini=name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-      return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
+      const lockIcon = pub[id] ? '' : '<span style="margin-left:5px;font-size:10px;opacity:0.6;">🔒</span>';
+      return '<div onclick="location.href=\'profil.html?id='+id+'\'" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
         +'<div style="font-size:20px;width:28px;text-align:center;flex-shrink:0;">'+(medals[i]||(i+1)+'.')+'</div>'
         +'<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
-        +'<div style="flex:1;font-size:14px;font-weight:600;">'+name+'</div>'
+        +'<div style="flex:1;font-size:14px;font-weight:600;display:flex;align-items:center;">'+name+lockIcon+'</div>'
         +'<div style="text-align:right;">'
         +'<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--accent);line-height:1;">'+k+'<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">km</span></div>'
         +(e?'<div style="font-size:10px;color:#3db870;font-family:DM Mono,monospace;">&#x25B2;'+e+' m</div>':'')
