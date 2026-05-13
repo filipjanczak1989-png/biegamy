@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T18:42Z · Klaudiusz collapse+archive · intake panel · community clickable profiles -->
+<!-- BiegaMy build: 2026-05-13T19:08Z · Klaudiusz · intake · clickable profiles all over -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -2678,7 +2678,7 @@ async function loadFreshFeedbacks() {
       + 'border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;gap:12px;align-items:flex-start;" '
       + 'onmouseover="this.style.borderColor=\'rgba(232,86,30,0.5)\';this.style.transform=\'translateX(2px)\'" '
       + 'onmouseout="this.style.borderColor=\'rgba(232,86,30,0.25)\';this.style.transform=\'\'">'
-      + '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#FF6B2C);color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;">' + initials + '</div>'
+      + '<div onclick="event.stopPropagation();location.href=\'profil.html?id=' + r.athlete_id + '\'" title="Zobacz profil" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#FF6B2C);color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform=\'scale(1.1)\'" onmouseout="this.style.transform=\'\'">' + initials + '</div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">'
           + '<span style="font-size:13px;color:var(--fg);font-weight:600;">' + athName + '</span>'
@@ -4020,32 +4020,35 @@ async function loadCoachSocialFeed() {
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const { data: logs } = await sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)')
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id,avatar_url)')
     .order('logged_at', { ascending: false }).limit(60);
   if (!logs || !logs.length) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
-  // Filtruj: trener widzi tylko zawodników publicznych LUB swoich
-  const visibleLogs = logs.filter(function(l) {
-    if (!l.athletes) return false;
-    return l.athletes.is_public === true || l.athletes.coach_id === _coachId;
-  }).slice(0, 30);
+  // Społeczność — pokazujemy WSZYSTKICH (publicznych + prywatnych)
+  // RLS i tak rozdaje tylko widoczne logi (publiczni + Twoi)
+  const visibleLogs = (logs || []).filter(function(l) { return !!l.athletes; }).slice(0, 30);
   if (!visibleLogs.length) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
     return;
   }
   const tc = { Spokojny:'#5090e0','Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840',Tempo:'#f06030',Wybieganie:'#3db870',Regeneracja:'#9a6fe8' };
   function buildCard(l) {
-    // Filtr widoczności: trener widzi tylko zawodników publicznych LUB swoich
-    // (filtrowanie odbywa się powyżej w visibleLogs)
+    const athId = l.athlete_id;
     const name = (l.athletes && l.athletes.full_name) || 'Biegacz';
+    const isPub = l.athletes && l.athletes.is_public === true;
+    const avUrl = l.athletes && l.athletes.avatar_url;
     const ini = name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     const date = new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
     const type = l.training_type || 'Trening';
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'&#x1F60A;',mid:'&#x1F610;',bad:'&#x1F613;'}[l.feel]||'';
+    const lockIcon = isPub ? '' : '<span style="margin-left:5px;font-size:10px;opacity:0.6;" title="Profil prywatny">🔒</span>';
+    const avInner = avUrl
+      ? '<img src="'+avUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+ini+'\'">'
+      : ini;
     let screensHtml = '';
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
@@ -4060,8 +4063,8 @@ async function loadCoachSocialFeed() {
       +'</div>';
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;">'
       +'<div style="display:flex;align-items:center;gap:10px;">'
-      +'<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+name+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<div onclick="location.href=\'profil.html?id='+athId+'\'" title="Zobacz profil" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;cursor:pointer;overflow:hidden;transition:transform 0.15s;" onmouseover="this.style.transform=\'scale(1.08)\'" onmouseout="this.style.transform=\'\'">'+avInner+'</div>'
+      +'<div style="flex:1;min-width:0;cursor:pointer;" onclick="location.href=\'profil.html?id='+athId+'\'"><div style="font-size:13px;font-weight:600;display:flex;align-items:center;">'+name+lockIcon+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
       +(typeof window.renderTypePill === 'function' ? window.renderTypePill(type, {size:'sm'}) : '<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+type+'</span>')
       +'</div>'
       +(dist?'<div style="display:flex;gap:16px;align-items:baseline;margin-top:10px;">'
@@ -5601,8 +5604,8 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
   <div class="pchat-view" id="t-chat-view">
     <div class="pchat-view-hdr">
       <button class="pchat-back" onclick="closeTChatView()">‹</button>
-      <div class="pchat-view-av" id="t-chat-av">MK</div>
-      <div class="pchat-view-name" id="chat-athlete-name">Zawodnik</div>
+      <div class="pchat-view-av" id="t-chat-av" onclick="if(_currentChatAthleteId){location.href='profil.html?id='+_currentChatAthleteId;}" style="cursor:pointer;" title="Zobacz profil">MK</div>
+      <div class="pchat-view-name" id="chat-athlete-name" onclick="if(_currentChatAthleteId){location.href='profil.html?id='+_currentChatAthleteId;}" style="cursor:pointer;" title="Zobacz profil">Zawodnik</div>
     </div>
     <div class="pchat-thread" id="chat-thread"></div>
     <div class="pchat-input-area">

@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BiegaMy build: 2026-05-13T19:08Z · races · clickable participant avatars -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -709,13 +710,13 @@ function renderRaceCard(race) {
       const inner = a.avatar_url
         ? `<img src="${escAttr(a.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${ini}'">`
         : ini;
-      return `<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#ff7a45);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;" title="${escAttr(a.full_name||'')}">${inner}</div>`;
+      return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#ff7a45);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
     }).join('');
     const moreCount = totalCount - parts.length;
     const more = moreCount > 0
-      ? `<div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg2);border:2px solid #0a0810;margin-left:-8px;font-family:DM Mono,monospace;font-weight:600;flex-shrink:0;">+${moreCount}</div>`
+      ? `<div onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')" style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg2);border:2px solid #0a0810;margin-left:-8px;font-family:DM Mono,monospace;font-weight:600;flex-shrink:0;cursor:pointer;">+${moreCount}</div>`
       : '';
-    avatarsHtml = `<div style="display:flex;align-items:center;flex-shrink:0;cursor:pointer;" onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')">${avList}${more}</div>`;
+    avatarsHtml = `<div style="display:flex;align-items:center;flex-shrink:0;">${avList}${more}</div>`;
   }
 
   const countLabel = totalCount > 0
