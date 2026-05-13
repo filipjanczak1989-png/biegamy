@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- BiegaMy build: 2026-05-13T-wieczor-3 · attachments jsonb (img/audio) + renderer compat -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- PWA Meta Tags -->
@@ -2383,9 +2384,10 @@ async function _loadProfileMsgs() {
   thread.innerHTML = data.map(m => {
     const isAthlete = m.sender === 'athlete';
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
+    const bodyHtml = _renderMessageBody(m);
     return `<div style="display:flex;justify-content:${isAthlete?'flex-end':'flex-start'};margin-bottom:8px;">
       <div style="max-width:80%;background:${isAthlete?'var(--accent)':'var(--card2)'};border-radius:${isAthlete?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:10px 13px;">
-        <div style="font-size:13px;line-height:1.5;">${escapeHtml(m.body)}</div>
+        <div style="font-size:13px;line-height:1.5;">${bodyHtml}</div>
         <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:DM Mono,monospace;">${time}</div>
       </div>
     </div>`;
@@ -3086,6 +3088,71 @@ function _showMsgToast(msg) {
   setTimeout(() => t.remove(), 6000);
 }
 
+// ─── Wspólny renderer body wiadomości ───
+// Rozumie:
+//   1) NOWY format: m.attachments = [{type, url, duration?}] + m.body jako czysty tekst
+//   2) STARY format: m.body z surowym HTML (<img src=...>, <div class="voice-msg">...</div>)
+function _renderMessageBody(m) {
+  const TRUSTED_HOSTS = [
+    'https://afqojgkaveykxbltxzwm.supabase.co/',
+    'https://media.tenor.com/',
+    'https://media1.tenor.com/'
+  ];
+  const isTrusted = (url) => typeof url === 'string' && TRUSTED_HOSTS.some(h => url.startsWith(h));
+  const esc = (s) => (typeof escapeHtml === 'function' ? escapeHtml(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
+
+  const parts = [];
+
+  if (m && Array.isArray(m.attachments) && m.attachments.length) {
+    for (const att of m.attachments) {
+      if (!att || !isTrusted(att.url)) continue;
+      const safeUrl = esc(att.url);
+      if (att.type === 'image') {
+        parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
+      } else if (att.type === 'audio') {
+        const dur = Number.isFinite(+att.duration) ? `${+att.duration}s` : '';
+        parts.push(`<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${safeUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${esc(dur)}</span></div>`);
+      }
+    }
+  }
+
+  const rawBody = (m && m.body) || '';
+
+  if (!parts.length && rawBody) {
+    if (rawBody.includes('class="msg-recall"')) {
+      parts.push('<span class="msg-recall">Wiadomość cofnięta</span>');
+      return parts.join('');
+    }
+    const voiceMatch = rawBody.match(/<button[^>]*onclick="playVoiceMsg\(this,'([^']+)'\)"[^>]*>[^<]*<\/button>[\s\S]*?<span class="voice-duration">([^<]*)<\/span>/);
+    if (voiceMatch && isTrusted(voiceMatch[1])) {
+      const safeUrl = esc(voiceMatch[1]);
+      const safeDur = esc(voiceMatch[2]);
+      parts.push(`<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${safeUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${safeDur}</span></div>`);
+      return parts.join('');
+    }
+    const imgRe = /<img\s+src="([^"]+)"[^>]*\/?>/g;
+    let imgMatched = false;
+    let im;
+    while ((im = imgRe.exec(rawBody)) !== null) {
+      if (isTrusted(im[1])) {
+        const safeUrl = esc(im[1]);
+        parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
+        imgMatched = true;
+      }
+    }
+    if (imgMatched) return parts.join('');
+    const oldImg = rawBody.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
+    if (oldImg && isTrusted(oldImg[1])) {
+      const safeUrl = esc(oldImg[1]);
+      parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
+      return parts.join('');
+    }
+  }
+
+  if (rawBody) parts.push(esc(rawBody));
+  return parts.join('') || '<span style="opacity:0.5;font-style:italic;">(pusta wiadomość)</span>';
+}
+
 async function loadMessages() {
   const thread = document.getElementById('msgs-thread');
   if (!_athleteId) {
@@ -3114,8 +3181,9 @@ async function loadMessages() {
     const isAthlete = m.sender === 'athlete';
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+    const bodyHtml = _renderMessageBody(m);
     return `<div class="pchat-msg-row ${isAthlete?'me':'them'}" id="msg-${m.id}">
-      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${escapeHtml(m.body)}</div>
+      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${bodyHtml}</div>
       <div class="pchat-time-lbl">${date} · ${time}</div>
     </div>`;
   }).join('');
@@ -3156,8 +3224,13 @@ async function clearAllMessages() {
 async function sendGif(url, pickerId) {
   document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
   if (!_athleteId) return;
-  const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
-  await sb.from('messages').insert({athlete_id:_athleteId,sender:'athlete',body,sent_at:new Date().toISOString()});
+  await sb.from('messages').insert({
+    athlete_id: _athleteId,
+    sender: 'athlete',
+    body: '',
+    attachments: [{ type: 'image', url }],
+    sent_at: new Date().toISOString()
+  });
   await loadMessages();
 }
 
@@ -3170,8 +3243,13 @@ async function uploadVoiceMsg(blob, duration, sender, mimeType) {
   const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
   const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
-  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
-  await sb.from('messages').insert({athlete_id:_athleteId, sender:sender, body, sent_at:new Date().toISOString()});
+  await sb.from('messages').insert({
+    athlete_id: _athleteId,
+    sender: sender,
+    body: '',
+    attachments: [{ type: 'audio', url: urlData.publicUrl, duration }],
+    sent_at: new Date().toISOString()
+  });
   await loadMessages();
 }
 
@@ -3197,11 +3275,11 @@ async function sendFileMessage(input) {
     urls.push(urlData.publicUrl);
   }
   if (!urls.length) return;
-  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" />`).join('');
   await sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
-    body,
+    body: '',
+    attachments: urls.map(url => ({ type: 'image', url })),
     sent_at: new Date().toISOString()
   });
   input.value = '';
