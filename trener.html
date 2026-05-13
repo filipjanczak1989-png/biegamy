@@ -826,6 +826,16 @@ async function generateAIReportFromPanel(periodDays) {
   const coachNote = await pickCoachNote(periodDays);
   if (coachNote === null) return; // user anulował
   
+  // Rozpakuj coachNote — może być stringiem (stary format) lub obiektem {note, attachments}
+  let coachNoteTextR = '';
+  let coachAttachmentsR = [];
+  if (typeof coachNote === 'string') {
+    coachNoteTextR = coachNote;
+  } else if (coachNote && typeof coachNote === 'object') {
+    coachNoteTextR = coachNote.note || '';
+    coachAttachmentsR = Array.isArray(coachNote.attachments) ? coachNote.attachments : [];
+  }
+  
   window._currentAthleteIdForAI = id;
   const btns = document.querySelectorAll('.pai-gen-btn');
   const targetBtn = document.querySelector('.pai-gen-btn[data-period="' + periodDays + '"]');
@@ -846,7 +856,8 @@ async function generateAIReportFromPanel(periodDays) {
       period_days: periodDays
     };
     if (targetDate) body.target_date = targetDate;
-    if (coachNote) body.coach_note = coachNote; // ← NOWE
+    if (coachNoteTextR) body.coach_note = coachNoteTextR; // komentarz trenera
+    if (coachAttachmentsR.length > 0) body.coach_attachments = coachAttachmentsR; // ✨ screeny dla AI
     
     const r = await fetch(window.SB_FN_URL + '/generate-athlete-report', {
       method: 'POST',
@@ -949,8 +960,19 @@ function pickCoachNote(options) {
             maxlength="2000"
           ></textarea>
           
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;margin-bottom:10px;">
             <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;" id="cn-counter">0 / 2000</div>
+          </div>
+          
+          <!-- ✨ UPLOAD SCREENÓW dla AI -->
+          <div style="background:rgba(139,92,246,0.05);border:1px dashed rgba(139,92,246,0.3);border-radius:8px;padding:10px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div style="font-size:10px;color:#8b5cf6;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;">📷 Screeny dla Klaudiusza <span style="color:var(--muted);">(opcjonalne, max 3)</span></div>
+              <button onclick="document.getElementById('cn-file-input').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#8b5cf6;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:6px;cursor:pointer;">+ Dodaj</button>
+            </div>
+            <input type="file" id="cn-file-input" accept="image/*" multiple style="display:none;" onchange="window._cnHandleFiles(this.files)">
+            <div id="cn-attachments" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+            <div style="font-size:9px;color:var(--muted);font-family:'Inter',sans-serif;margin-top:6px;line-height:1.4;">Wrzuć screeny z Messengera, Stravy, Garmin Connect — cokolwiek co AI powinno zobaczyć (komentarz Stravy, krytyczny trening, wyniki badań).</div>
           </div>
           
           <div style="display:flex;flex-direction:column;gap:8px;">
@@ -978,7 +1000,74 @@ function pickCoachNote(options) {
     
     window._cnSubmit = () => {
       const note = (ta?.value || '').trim();
-      window._cnResolve(note || ''); // pusty string = pomiń, nie null
+      const attachments = window._cnAttachmentUrls || [];
+      // Zwracamy obiekt jeśli są attachments, string jeśli nie (back-compat)
+      if (attachments.length > 0) {
+        window._cnResolve({ note: note || '', attachments });
+      } else {
+        window._cnResolve(note || '');
+      }
+    };
+    
+    // ✨ Upload screenów handler
+    window._cnAttachmentUrls = [];
+    window._cnHandleFiles = async (files) => {
+      if (!files || files.length === 0) return;
+      const MAX_FILES = 3;
+      const remaining = MAX_FILES - window._cnAttachmentUrls.length;
+      if (remaining <= 0) {
+        showToast('Maks 3 screeny');
+        return;
+      }
+      const filesToUpload = Array.from(files).slice(0, remaining);
+      const wrap = document.getElementById('cn-attachments');
+      
+      for (const file of filesToUpload) {
+        if (!file.type.startsWith('image/')) {
+          showToast('Tylko obrazki');
+          continue;
+        }
+        if (file.size > 8 * 1024 * 1024) {
+          showToast('Max 8 MB per screen');
+          continue;
+        }
+        
+        // Pokaż preview z loadingiem
+        const previewId = 'cn-prev-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+        const previewHtml = `<div id="${previewId}" style="position:relative;width:60px;height:60px;border-radius:6px;background:rgba(0,0,0,0.4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;">
+          <div style="font-size:10px;color:var(--muted);">⏳</div>
+        </div>`;
+        wrap.insertAdjacentHTML('beforeend', previewHtml);
+        
+        try {
+          const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+          const path = (_coachId || 'coach') + '/coach_note_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+          const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: true, contentType: file.type });
+          if (upErr) {
+            showToast('Błąd uploadu: ' + upErr.message);
+            document.getElementById(previewId)?.remove();
+            continue;
+          }
+          const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
+          const url = urlData.publicUrl;
+          window._cnAttachmentUrls.push(url);
+          
+          // Zmień preview na obrazek z X
+          const prev = document.getElementById(previewId);
+          if (prev) {
+            prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="window.open('${url}','_blank')" />
+              <button onclick="window._cnRemoveAttachment('${url}','${previewId}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.7);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1;">✕</button>`;
+          }
+        } catch (err) {
+          console.error('cn upload error:', err);
+          document.getElementById(previewId)?.remove();
+        }
+      }
+    };
+    
+    window._cnRemoveAttachment = (url, previewId) => {
+      window._cnAttachmentUrls = window._cnAttachmentUrls.filter(u => u !== url);
+      document.getElementById(previewId)?.remove();
     };
     
     window._cnResolve = (val) => {
@@ -986,6 +1075,9 @@ function pickCoachNote(options) {
       if (m) m.parentElement.remove();
       delete window._cnSubmit;
       delete window._cnResolve;
+      delete window._cnHandleFiles;
+      delete window._cnRemoveAttachment;
+      delete window._cnAttachmentUrls;
       resolve(val);
     };
     
@@ -1530,6 +1622,16 @@ async function generateTrainingPlan() {
     targetRace: targetRace
   });
   if (coachNote === null) return; // user anulował
+  
+  // Rozpakuj coachNote — może być stringiem (stary format) lub obiektem {note, attachments}
+  let coachNoteText = '';
+  let coachAttachments = [];
+  if (typeof coachNote === 'string') {
+    coachNoteText = coachNote;
+  } else if (coachNote && typeof coachNote === 'object') {
+    coachNoteText = coachNote.note || '';
+    coachAttachments = Array.isArray(coachNote.attachments) ? coachNote.attachments : [];
+  }
 
   // UI: loading
   const goBtn = document.getElementById('tp-create-go-btn');
@@ -1552,7 +1654,8 @@ async function generateTrainingPlan() {
       target_race_date: targetDate,
       target_time: targetTime
     };
-    if (coachNote) body.coach_note = coachNote; // ← NOWE
+    if (coachNoteText) body.coach_note = coachNoteText; // komentarz trenera
+    if (coachAttachments.length > 0) body.coach_attachments = coachAttachments; // ✨ screeny dla AI
     
     const resp = await fetch(fnUrl, {
       method: 'POST',
