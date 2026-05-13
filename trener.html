@@ -328,6 +328,17 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
 </div>
 
+<!-- ━━━━━━━━ KLAUDIUSZ BRIEF DNIA ━━━━━━━━ -->
+<div class="sec-hdr fi" style="margin-top:8px;">
+  <div class="sec-title">🟠 Klaudiusz</div>
+  <div class="sec-meta" id="kbDate">—</div>
+</div>
+<div class="kb-wrap fi" id="kbWrap">
+  <div class="kb-card">
+    <div class="kb-loading">Wczytuję brief dnia<span class="kb-loading-dots"></span></div>
+  </div>
+</div>
+
 <div class="quick-stats fi">
   <div class="qs-card"><div class="qs-val a" id="stat-count">—</div><div class="qs-lbl">Zawodników</div></div>
   <div class="qs-card"><div class="qs-val g" id="stat-logs">—</div><div class="qs-lbl">Nowe logi</div></div>
@@ -6385,6 +6396,75 @@ if ('serviceWorker' in navigator) {
 .note-action-btn.resolve:hover { background: rgba(61,184,112,0.1); }
 .note-action-btn.delete { color: #e05050; border-color: rgba(224,80,80,0.3); }
 .note-action-btn.delete:hover { background: rgba(224,80,80,0.1); }
+
+/* ━━━━━━━━ KLAUDIUSZ BRIEF CARD ━━━━━━━━ */
+.kb-wrap{padding:0 16px;margin-bottom:24px;}
+.kb-card{
+  background:linear-gradient(180deg, rgba(232,86,30,0.08) 0%, var(--card) 60%);
+  border:1px solid rgba(232,86,30,0.25);
+  border-radius:16px;
+  overflow:hidden;
+  position:relative;
+}
+.kb-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+.kb-hdr{display:flex;align-items:center;gap:14px;padding:18px 20px 14px;border-bottom:1px solid var(--border);}
+.kb-hdr-text{flex:1;min-width:0;}
+.kb-hdr-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;line-height:1;}
+.kb-hdr-name span{color:var(--accent);}
+.kb-hdr-sub{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;margin-top:5px;}
+.kb-refresh{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all 0.15s;flex-shrink:0;}
+.kb-refresh:hover{color:var(--accent);border-color:rgba(232,86,30,0.3);}
+.kb-refresh.spinning{animation:kb-spin 1s linear infinite;}
+@keyframes kb-spin{to{transform:rotate(360deg);}}
+.kb-greeting{padding:18px 20px 8px;font-size:16px;color:var(--fg);line-height:1.55;}
+.kb-greeting b{color:var(--fg);font-weight:600;}
+.kb-block{padding:8px 20px 14px;}
+.kb-block-hdr{display:flex;align-items:center;gap:10px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;margin:18px 0 12px;font-weight:500;}
+.kb-block-hdr .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+.kb-block-hdr.red{color:var(--red);}
+.kb-block-hdr.red .dot{background:var(--red);box-shadow:0 0 10px rgba(224,80,80,0.5);}
+.kb-block-hdr.yellow{color:var(--yellow);}
+.kb-block-hdr.yellow .dot{background:var(--yellow);}
+.kb-block-hdr.green{color:var(--green);}
+.kb-block-hdr.green .dot{background:var(--green);}
+.kb-item{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-left:3px solid;border-radius:8px;padding:14px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.kb-item:hover{background:rgba(255,255,255,0.04);border-color:var(--border2);}
+.kb-item.red{border-left-color:var(--red);}
+.kb-item.yellow{border-left-color:var(--yellow);}
+.kb-item.green{border-left-color:var(--green);}
+.kb-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.kb-item-name{font-size:15px;font-weight:600;color:var(--fg);}
+.kb-item-meta{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;}
+.kb-item-desc{font-size:13.5px;color:#b8b3bf;line-height:1.55;}
+.kb-green-list{display:flex;flex-wrap:wrap;gap:7px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:8px;padding:12px 14px;}
+.kb-chip{font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--green);background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:14px;padding:4px 10px;cursor:default;}
+.kb-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:6px;}
+.kb-stat{text-align:center;}
+.kb-stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent);}
+.kb-stat-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;margin-top:6px;}
+.kb-actions{padding:16px 20px 20px;}
+.kb-actions-hdr{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-weight:500;}
+.kb-action{background:rgba(232,86,30,0.04);border:1px solid rgba(232,86,30,0.15);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.kb-action:hover{background:rgba(232,86,30,0.08);border-color:rgba(232,86,30,0.3);}
+.kb-action-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.kb-action-icon{width:26px;height:26px;border-radius:50%;background:rgba(232,86,30,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0;}
+.kb-action-to{font-size:13.5px;font-weight:600;color:var(--fg);}
+.kb-action-text{font-size:13.5px;color:#c8c3cf;line-height:1.55;font-style:italic;}
+.kb-action-text::before{content:'„';color:var(--accent);}
+.kb-action-text::after{content:'"';color:var(--accent);}
+.kb-footer{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;}
+.kb-empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:14px;line-height:1.5;}
+.kb-empty-btn{margin-top:14px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;font-weight:600;}
+.kb-empty-btn:hover{background:var(--accent2);}
+.kb-loading{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px;}
+.kb-loading-dots{display:inline-block;margin-left:6px;}
+.kb-loading-dots::after{content:'...';animation:kb-dots 1.5s infinite;}
+@keyframes kb-dots{0%,20%{content:'.';}40%{content:'..';}60%,100%{content:'...';}}
+.kb-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(61,184,112,0.95);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px 18px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:9999;opacity:0;transition:opacity 0.2s;}
+.kb-toast.show{opacity:1;}
 </style>
 
 <!-- FAB pływający -->
@@ -6925,6 +7005,277 @@ document.addEventListener('keydown', (e) => {
     closeNotesModal();
   }
 });
+</script>
+
+<!-- ━━━━━━━━━━ KLAUDIUSZ BRIEF DNIA ━━━━━━━━━━ -->
+<script>
+(function(){
+  const KB_DATE_NAMES = ['NDZ','PON','WT','ŚR','CZW','PT','SOB'];
+  const KB_MONTH_NAMES = ['STY','LUT','MAR','KWI','MAJ','CZE','LIP','SIE','WRZ','PAŹ','LIS','GRU'];
+
+  function kbFormatDate(d){
+    const dt = d ? new Date(d) : new Date();
+    return `${KB_DATE_NAMES[dt.getDay()]} · ${dt.getDate()} ${KB_MONTH_NAMES[dt.getMonth()]}`;
+  }
+
+  function kbEscape(s){
+    if (s == null) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function kbToast(msg, isError){
+    const t = document.createElement('div');
+    t.className = 'kb-toast';
+    if (isError) t.style.background = 'rgba(224,80,80,0.95)';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    requestAnimationFrame(()=> t.classList.add('show'));
+    setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(), 250); }, 2500);
+  }
+
+  async function kbLoad(){
+    const dateEl = document.getElementById('kbDate');
+    if (dateEl) dateEl.textContent = kbFormatDate();
+    try {
+      const today = new Date().toISOString().slice(0,10);
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { kbRenderEmpty('Zaloguj się żeby zobaczyć brief.', false); return; }
+
+      const { data, error } = await sb
+        .from('daily_briefs')
+        .select('*')
+        .eq('coach_id', user.id)
+        .eq('brief_date', today)
+        .maybeSingle();
+
+      if (error) {
+        console.error('[Klaudiusz] DB error:', error);
+        kbRenderError(error.message);
+        return;
+      }
+
+      if (data) {
+        kbRender(data.content_json, data.generated_at);
+      } else {
+        kbRenderEmpty('Brief na dziś jeszcze nie został wygenerowany.', true);
+      }
+    } catch(e) {
+      console.error('[Klaudiusz] Load error:', e);
+      kbRenderError(e.message || String(e));
+    }
+  }
+
+  function kbRenderEmpty(msg, showButton){
+    const wrap = document.getElementById('kbWrap');
+    if (!wrap) return;
+    wrap.innerHTML = `
+      <div class="kb-card">
+        <div class="kb-empty">
+          ${kbEscape(msg)}
+          ${showButton ? '<br><button class="kb-empty-btn" onclick="kbGenerate()">⚡ Wygeneruj brief</button>' : ''}
+        </div>
+      </div>`;
+  }
+
+  function kbRenderError(msg){
+    const wrap = document.getElementById('kbWrap');
+    if (!wrap) return;
+    wrap.innerHTML = `
+      <div class="kb-card">
+        <div class="kb-empty" style="color:var(--red)">
+          Błąd: ${kbEscape(msg)}
+          <br>
+          <button class="kb-empty-btn" onclick="kbLoad()">↻ Spróbuj ponownie</button>
+        </div>
+      </div>`;
+  }
+
+  function kbRender(brief, generatedAt){
+    if (!brief) { kbRenderEmpty('Brief jest pusty.', true); return; }
+    const time = generatedAt ? new Date(generatedAt).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}) : '—';
+    const athleteCount = (brief.urgent?.length||0) + (brief.warning?.length||0) + (brief.ok_count||0);
+
+    let html = `
+      <div class="kb-card">
+        <div class="kb-hdr">
+          <div class="kb-hdr-text">
+            <div class="kb-hdr-name">BRIEF <span>DNIA</span></div>
+            <div class="kb-hdr-sub">Wygenerowano o ${time} · ${athleteCount} zawodników</div>
+          </div>
+          <button class="kb-refresh" onclick="kbGenerate(true)" title="Wygeneruj ponownie">↻</button>
+        </div>
+        <div class="kb-greeting">${kbEscape(brief.greeting||'')}</div>`;
+
+    // PILNE
+    if (brief.urgent?.length){
+      html += `<div class="kb-block">
+        <div class="kb-block-hdr red"><span class="dot"></span>Pilne · ${brief.urgent.length}</div>`;
+      for (const it of brief.urgent){
+        html += `<div class="kb-item red" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}">
+          <div class="kb-item-top">
+            <div class="kb-item-name">${kbEscape(it.name||'')}</div>
+            <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
+          </div>
+          <div class="kb-item-desc">${kbEscape(it.desc||'')}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // UWAGA
+    if (brief.warning?.length){
+      html += `<div class="kb-block">
+        <div class="kb-block-hdr yellow"><span class="dot"></span>Uwaga · ${brief.warning.length}</div>`;
+      for (const it of brief.warning){
+        html += `<div class="kb-item yellow" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}">
+          <div class="kb-item-top">
+            <div class="kb-item-name">${kbEscape(it.name||'')}</div>
+            <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
+          </div>
+          <div class="kb-item-desc">${kbEscape(it.desc||'')}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    // OK
+    if (brief.ok_chips?.length || brief.ok_count){
+      const extras = Math.max(0, (brief.ok_count||0) - (brief.ok_chips?.length||0));
+      html += `<div class="kb-block">
+        <div class="kb-block-hdr green"><span class="dot"></span>Wszystko OK · ${brief.ok_count||0}</div>
+        <div class="kb-green-list">`;
+      for (const name of (brief.ok_chips||[])){
+        html += `<span class="kb-chip">${kbEscape(name)}</span>`;
+      }
+      if (extras > 0) html += `<span class="kb-chip">+${extras}</span>`;
+      html += `</div></div>`;
+    }
+
+    // STATS
+    const s = brief.stats||{};
+    html += `<div class="kb-stats">
+      <div class="kb-stat"><div class="kb-stat-val">${s.km_week||0}</div><div class="kb-stat-lbl">KM tydzień</div></div>
+      <div class="kb-stat"><div class="kb-stat-val">${s.regularity_pct||0}%</div><div class="kb-stat-lbl">Regularność</div></div>
+      <div class="kb-stat"><div class="kb-stat-val">${s.pending_intakes||0}</div><div class="kb-stat-lbl">Ankiety</div></div>
+    </div>`;
+
+    // AKCJE
+    if (brief.actions?.length){
+      html += `<div class="kb-actions">
+        <div class="kb-actions-hdr">Sugerowane wiadomości</div>`;
+      for (const a of brief.actions){
+        html += `<div class="kb-action" data-athlete-id="${kbEscape(a.athlete_id||'')}" data-athlete-name="${kbEscape(a.to||'')}" data-msg-text="${kbEscape(a.text||'')}">
+          <div class="kb-action-top">
+            <div class="kb-action-icon">${kbEscape((a.icon||a.to||'?').charAt(0).toUpperCase())}</div>
+            <div class="kb-action-to">Do ${kbEscape(a.to||'')}</div>
+          </div>
+          <div class="kb-action-text">${kbEscape(a.text||'')}</div>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    html += `<div class="kb-footer">
+      <span>Model · Claude Haiku 4.5</span>
+      <span>BiegaMy.run</span>
+    </div></div>`;
+
+    const wrap = document.getElementById('kbWrap');
+    if (!wrap) return;
+    wrap.innerHTML = html;
+
+    // Bindowanie kliknięć
+    wrap.querySelectorAll('.kb-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-athlete-id');
+        const name = el.getAttribute('data-athlete-name');
+        if (id && name) kbOpenAthlete(id, name);
+      });
+    });
+    wrap.querySelectorAll('.kb-action').forEach(el => {
+      el.addEventListener('click', () => {
+        const id = el.getAttribute('data-athlete-id');
+        const name = el.getAttribute('data-athlete-name');
+        const text = el.getAttribute('data-msg-text');
+        if (id && text) kbUseMessage(id, name, text);
+      });
+    });
+  }
+
+  // ━━ EXPORTOWANE (onclick) ━━
+
+  window.kbLoad = kbLoad;
+
+  window.kbGenerate = async function(force){
+    const wrap = document.getElementById('kbWrap');
+    if (!wrap) return;
+    wrap.innerHTML = `<div class="kb-card"><div class="kb-loading">Klaudiusz analizuje Twoich zawodników<span class="kb-loading-dots"></span></div></div>`;
+
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { kbRenderError('Nie jesteś zalogowany'); return; }
+
+      const res = await fetch(`${window.SB_FN_URL}/generate-coach-brief`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+          'apikey': window.SB_KEY,
+        },
+        body: JSON.stringify({}),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success){
+        kbRenderError(json.error || `HTTP ${res.status}`);
+        return;
+      }
+      kbRender(json.brief, new Date().toISOString());
+      kbToast('✓ Brief gotowy');
+    } catch(e) {
+      console.error('[Klaudiusz] Generate error:', e);
+      kbRenderError(e.message || String(e));
+    }
+  };
+
+  function kbOpenAthlete(athleteId, athleteName){
+    if (typeof openCoachChat === 'function') {
+      openCoachChat(athleteId, athleteName || 'Zawodnik');
+    } else {
+      console.log('[Klaudiusz] openCoachChat not found, athlete:', athleteId);
+      kbToast('Nie znaleziono otwarcia czatu', true);
+    }
+  }
+
+  function kbUseMessage(athleteId, athleteName, text){
+    if (typeof openCoachChat === 'function') {
+      openCoachChat(athleteId, athleteName || 'Zawodnik');
+      // Prefill po otwarciu panelu
+      setTimeout(()=>{
+        const input = document.getElementById('coach-msg-input');
+        if (input) {
+          input.value = text;
+          input.focus();
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          kbToast('✓ Wiadomość gotowa — sprawdź i wyślij');
+        } else {
+          navigator.clipboard.writeText(text);
+          kbToast('✓ Skopiowano do schowka');
+        }
+      }, 500);
+    } else {
+      navigator.clipboard.writeText(text);
+      kbToast('✓ Skopiowano do schowka');
+    }
+  }
+
+  // START
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', kbLoad);
+  } else {
+    kbLoad();
+  }
+})();
 </script>
 
 </body>
