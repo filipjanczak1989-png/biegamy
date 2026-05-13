@@ -1471,12 +1471,69 @@ async function openCreateTrainingPlanModal() {
   document.getElementById('tp-create-go-btn').disabled = false;
   document.getElementById('tp-create-go-btn').style.opacity = '1';
   
+  // ✨ v47: Reset pól kontekstu AI
+  const coachNoteEl = document.getElementById('tp-coach-note');
+  if (coachNoteEl) coachNoteEl.value = '';
+  const attEl = document.getElementById('tp-coach-attachments');
+  if (attEl) attEl.innerHTML = '';
+  window._tpAttachmentUrls = [];
+  
   // Ładuj cele startowe zawodnika z race_goals
   await loadAthleteGoalsIntoModal();
   
   document.getElementById('tp-create-modal').style.display = 'flex';
 }
 window.openCreateTrainingPlanModal = openCreateTrainingPlanModal;
+
+// ✨ v47: Handler uploadu screenów do modala generowania planu
+window._tpAttachmentUrls = [];
+
+window._tpHandleFiles = async function(files) {
+  if (!files || files.length === 0) return;
+  const MAX_FILES = 3;
+  const remaining = MAX_FILES - window._tpAttachmentUrls.length;
+  if (remaining <= 0) {
+    showToast('Maks 3 screeny');
+    return;
+  }
+  const filesToUpload = Array.from(files).slice(0, remaining);
+  const wrap = document.getElementById('tp-coach-attachments');
+  
+  for (const file of filesToUpload) {
+    if (!file.type.startsWith('image/')) { showToast('Tylko obrazki'); continue; }
+    if (file.size > 8 * 1024 * 1024) { showToast('Max 8 MB per screen'); continue; }
+    
+    const previewId = 'tp-prev-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+    wrap.insertAdjacentHTML('beforeend', `<div id="${previewId}" style="position:relative;width:48px;height:48px;border-radius:5px;background:rgba(0,0,0,0.4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;"><div style="font-size:9px;color:var(--muted);">⏳</div></div>`);
+    
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = (_coachId || 'coach') + '/plan_note_' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '.' + ext;
+      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: true, contentType: file.type });
+      if (upErr) {
+        showToast('Błąd uploadu: ' + upErr.message);
+        document.getElementById(previewId)?.remove();
+        continue;
+      }
+      const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
+      const url = urlData.publicUrl;
+      window._tpAttachmentUrls.push(url);
+      
+      const prev = document.getElementById(previewId);
+      if (prev) {
+        prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="window.open('${url}','_blank')" /><button type="button" onclick="window._tpRemoveAttachment('${url}','${previewId}')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.75);border:none;color:#fff;width:16px;height:16px;border-radius:50%;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;">✕</button>`;
+      }
+    } catch (err) {
+      console.error('tp upload error:', err);
+      document.getElementById(previewId)?.remove();
+    }
+  }
+};
+
+window._tpRemoveAttachment = function(url, previewId) {
+  window._tpAttachmentUrls = window._tpAttachmentUrls.filter(u => u !== url);
+  document.getElementById(previewId)?.remove();
+};
 
 // ── Pobierz race_goals zawodnika i pokaż jako klikalne kafelki ─────────
 async function loadAthleteGoalsIntoModal() {
@@ -1615,23 +1672,10 @@ async function generateTrainingPlan() {
   const targetDate = document.getElementById('tp-target-date').value || null;
   const targetTime = document.getElementById('tp-target-time').value.trim() || null;
 
-  // Krok komentarz trenera — daje Klaudiuszowi szerszy kontekst przed planem
-  const coachNote = await pickCoachNote({
-    context: 'plan',
-    planType: _tpSelectedType,
-    targetRace: targetRace
-  });
-  if (coachNote === null) return; // user anulował
-  
-  // Rozpakuj coachNote — może być stringiem (stary format) lub obiektem {note, attachments}
-  let coachNoteText = '';
-  let coachAttachments = [];
-  if (typeof coachNote === 'string') {
-    coachNoteText = coachNote;
-  } else if (coachNote && typeof coachNote === 'object') {
-    coachNoteText = coachNote.note || '';
-    coachAttachments = Array.isArray(coachNote.attachments) ? coachNote.attachments : [];
-  }
+  // ✨ v47: Kontekst dla AI bierzemy BEZPOŚREDNIO z modala (textarea + screeny)
+  // Filip nie musi już klikać przez drugi modal — wszystko w jednym miejscu
+  const coachNoteText = (document.getElementById('tp-coach-note')?.value || '').trim();
+  const coachAttachments = Array.isArray(window._tpAttachmentUrls) ? window._tpAttachmentUrls : [];
 
   // UI: loading
   const goBtn = document.getElementById('tp-create-go-btn');
@@ -6133,6 +6177,23 @@ if ('serviceWorker' in navigator) {
         <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Cel czasowy</label>
         <input type="text" id="tp-target-time" placeholder="3:30:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
       </div>
+    </div>
+
+    <!-- ✨ Kontekst dla AI: textarea + upload screenów -->
+    <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:11px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;font-weight:600;">💬 Kontekst dla AI <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">(opcjonalne)</span></div>
+        <button type="button" onclick="document.getElementById('tp-coach-files').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#8b5cf6;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 9px;border-radius:5px;cursor:pointer;font-weight:600;">📷 Dodaj screen</button>
+      </div>
+      <textarea 
+        id="tp-coach-note" 
+        placeholder="np. kontuzja od tygodnia, mało spał ostatnio, wraca po przerwie, lub kontekst z Messengera..."
+        style="width:100%;min-height:60px;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:6px;padding:8px 10px;color:var(--fg);font-family:'Inter',sans-serif;font-size:11px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;"
+        maxlength="2000"
+      ></textarea>
+      <input type="file" id="tp-coach-files" accept="image/*" multiple style="display:none;" onchange="window._tpHandleFiles(this.files)">
+      <div id="tp-coach-attachments" style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px;"></div>
+      <div style="font-family:'Inter',sans-serif;font-size:9px;color:var(--muted);margin-top:6px;line-height:1.4;">Screeny z Messengera, Stravy, badań krwi — AI je przeanalizuje przy generowaniu planu. Max 3.</div>
     </div>
 
     <!-- Co bierzemy pod uwagę (info box) -->
