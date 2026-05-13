@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BiegaMy build: 2026-05-13T18:11Z · Klaudiusz v1.0 collapse+archive · intake panel -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -336,6 +337,19 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="kb-wrap fi" id="kbWrap">
   <div class="kb-card">
     <div class="kb-loading">Wczytuję brief dnia<span class="kb-loading-dots"></span></div>
+  </div>
+</div>
+
+<!-- Modal archiwum briefów -->
+<div class="kb-arch-modal" id="kbArchModal">
+  <div class="kb-arch-inner">
+    <div class="kb-arch-hdr">
+      <div class="kb-arch-title">Archiwum <span>briefów</span></div>
+      <button class="kb-arch-close" onclick="kbCloseArchive()">×</button>
+    </div>
+    <div class="kb-arch-list" id="kbArchList">
+      <div class="kb-arch-empty">Wczytuję...</div>
+    </div>
   </div>
 </div>
 
@@ -6490,6 +6504,41 @@ if ('serviceWorker' in navigator) {
 .kb-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(61,184,112,0.95);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px 18px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:9999;opacity:0;transition:opacity 0.2s;}
 .kb-toast.show{opacity:1;}
 
+/* ━━━━━━━━ KLAUDIUSZ — COLLAPSE & ARCHIWUM ━━━━━━━━ */
+.kb-close{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.15s;flex-shrink:0;margin-left:6px;line-height:1;}
+.kb-close:hover{color:var(--red);border-color:rgba(224,80,80,0.4);background:rgba(224,80,80,0.06);}
+.kb-collapsed{background:linear-gradient(135deg, rgba(232,86,30,0.06), var(--card));border:1px solid rgba(232,86,30,0.18);border-radius:14px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.15s;}
+.kb-collapsed:hover{border-color:rgba(232,86,30,0.35);background:linear-gradient(135deg, rgba(232,86,30,0.1), var(--card));}
+.kb-coll-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px rgba(232,86,30,0.6);flex-shrink:0;}
+.kb-coll-text{flex:1;min-width:0;}
+.kb-coll-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;color:var(--fg);line-height:1;}
+.kb-coll-title span{color:var(--accent);}
+.kb-coll-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;margin-top:3px;}
+.kb-coll-sub b{color:var(--red);font-weight:500;}
+.kb-coll-sub i{color:var(--yellow);font-style:normal;font-weight:500;}
+.kb-coll-arrow{color:var(--muted);font-size:14px;flex-shrink:0;transition:color 0.15s;}
+.kb-collapsed:hover .kb-coll-arrow{color:var(--accent);}
+.kb-arch-modal{position:fixed;inset:0;z-index:9100;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);}
+.kb-arch-modal.open{display:flex;}
+.kb-arch-inner{background:var(--card2);border-top:2px solid var(--accent);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding-bottom:24px;}
+.kb-arch-hdr{position:sticky;top:0;background:var(--card2);padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:2;}
+.kb-arch-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;flex:1;}
+.kb-arch-title span{color:var(--accent);}
+.kb-arch-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;}
+.kb-arch-list{padding:10px 16px;}
+.kb-arch-item{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.kb-arch-item:hover{background:rgba(255,255,255,0.05);border-color:rgba(232,86,30,0.3);}
+.kb-arch-item.today{border-color:rgba(232,86,30,0.4);background:rgba(232,86,30,0.05);}
+.kb-arch-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.kb-arch-item-date{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;}
+.kb-arch-item-badge{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;}
+.kb-arch-item-summary{font-size:12px;color:var(--muted);line-height:1.5;}
+.kb-arch-item-stats{display:flex;gap:10px;margin-top:6px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--muted);}
+.kb-arch-item-stats b{color:var(--fg);font-weight:500;}
+.kb-arch-empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:13px;}
+.kb-back-banner{background:rgba(78,140,214,0.08);border:1px solid rgba(78,140,214,0.25);border-radius:10px;padding:10px 14px;margin:0 16px 8px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:12px;color:var(--blue);font-family:'DM Mono',monospace;letter-spacing:0.05em;}
+.kb-back-banner:hover{background:rgba(78,140,214,0.15);}
+
 /* ━━━━━━━━ PANEL ZGŁOSZEŃ (ankiety) ━━━━━━━━ */
 .intake-section{padding:0 16px;margin-bottom:20px;}
 .intake-empty{padding:14px 16px;background:var(--card);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:12px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.05em;}
@@ -7120,7 +7169,13 @@ document.addEventListener('keydown', (e) => {
       }
 
       if (data) {
-        kbRender(data.content_json, data.generated_at);
+        // Sprawdź czy dziś już zwinięte
+        const collapsedKey = `kb_collapsed_${today}`;
+        if (localStorage.getItem(collapsedKey) === '1') {
+          kbRenderCollapsed(data.content_json, today);
+        } else {
+          kbRender(data.content_json, data.generated_at);
+        }
       } else {
         kbRenderEmpty('Brief na dziś jeszcze nie został wygenerowany.', true);
       }
@@ -7160,14 +7215,28 @@ document.addEventListener('keydown', (e) => {
     const time = generatedAt ? new Date(generatedAt).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}) : '—';
     const athleteCount = (brief.urgent?.length||0) + (brief.warning?.length||0) + (brief.ok_count||0);
 
-    let html = `
+    // Czy to archiwalny brief (nie z dziś)?
+    const briefDateStr = brief._brief_date || new Date(generatedAt).toISOString().slice(0,10);
+    const todayStr = new Date().toISOString().slice(0,10);
+    const isArchive = briefDateStr !== todayStr;
+    const dateLabel = isArchive ? kbFormatDate(briefDateStr) : 'Dzisiejszy';
+
+    let html = '';
+
+    // Banner powrotu jak oglądamy archiwum
+    if (isArchive) {
+      html += `<div class="kb-back-banner" onclick="kbLoad()">← Wróć do dzisiejszego briefa</div>`;
+    }
+
+    html += `
       <div class="kb-card">
         <div class="kb-hdr">
           <div class="kb-hdr-text">
-            <div class="kb-hdr-name">BRIEF <span>DNIA</span></div>
+            <div class="kb-hdr-name">${isArchive ? 'BRIEF · ' + kbEscape(dateLabel) : 'BRIEF <span>DNIA</span>'}</div>
             <div class="kb-hdr-sub">Wygenerowano o ${time} · ${athleteCount} zawodników</div>
           </div>
-          <button class="kb-refresh" onclick="kbGenerate(true)" title="Wygeneruj ponownie">↻</button>
+          ${isArchive ? '' : '<button class="kb-refresh" onclick="kbGenerate(true)" title="Wygeneruj ponownie">↻</button>'}
+          <button class="kb-close" onclick="kbCollapse()" title="Zwiń">×</button>
         </div>
         <div class="kb-greeting">${kbEscape(brief.greeting||'')}</div>`;
 
@@ -7242,7 +7311,7 @@ document.addEventListener('keydown', (e) => {
 
     html += `<div class="kb-footer">
       <span>Model · Claude Haiku 4.5</span>
-      <span>BiegaMy.run</span>
+      <button class="kb-archive-btn" onclick="kbOpenArchive()">📂 Archiwum</button>
     </div></div>`;
 
     const wrap = document.getElementById('kbWrap');
@@ -7333,6 +7402,167 @@ document.addEventListener('keydown', (e) => {
       kbToast('✓ Skopiowano do schowka');
     }
   }
+
+  // ━━ COLLAPSE & ARCHIWUM ━━
+
+  function kbFormatDate(dateStr){
+    // dateStr format: YYYY-MM-DD
+    const dt = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
+    const day = dt.getDate();
+    const month = KB_MONTH_NAMES[dt.getMonth()];
+    return `${day} ${month}`;
+  }
+
+  function kbRenderCollapsed(brief, dateStr){
+    const wrap = document.getElementById('kbWrap');
+    if (!wrap) return;
+    const urgCount = brief?.urgent?.length || 0;
+    const warnCount = brief?.warning?.length || 0;
+    const okCount = brief?.ok_count || 0;
+    const dateLabel = kbFormatDate(dateStr);
+
+    let badges = [];
+    if (urgCount > 0) badges.push(`<b>🚨 ${urgCount} pilne</b>`);
+    if (warnCount > 0) badges.push(`<i>⚠️ ${warnCount} uwagi</i>`);
+    if (okCount > 0 && urgCount === 0 && warnCount === 0) badges.push(`✅ wszystko OK · ${okCount}`);
+
+    wrap.innerHTML = `
+      <div class="kb-collapsed" onclick="kbExpand()">
+        <div class="kb-coll-dot"></div>
+        <div class="kb-coll-text">
+          <div class="kb-coll-title">BRIEF · <span>${kbEscape(dateLabel)}</span></div>
+          <div class="kb-coll-sub">${badges.join(' · ') || 'Kliknij żeby zobaczyć'}</div>
+        </div>
+        <div class="kb-coll-arrow">▼</div>
+      </div>`;
+  }
+
+  window.kbCollapse = function(){
+    const today = new Date().toISOString().slice(0,10);
+    localStorage.setItem(`kb_collapsed_${today}`, '1');
+    // Wywołaj kbLoad żeby się przerenderował w stanie zwiniętym
+    kbLoad();
+  };
+
+  window.kbExpand = function(){
+    const today = new Date().toISOString().slice(0,10);
+    localStorage.removeItem(`kb_collapsed_${today}`);
+    kbLoad();
+  };
+
+  window.kbOpenArchive = async function(){
+    const modal = document.getElementById('kbArchModal');
+    const list = document.getElementById('kbArchList');
+    if (!modal || !list) return;
+
+    list.innerHTML = '<div class="kb-arch-empty">Wczytuję archiwum...</div>';
+    modal.classList.add('open');
+
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { list.innerHTML = '<div class="kb-arch-empty">Niezalogowany</div>'; return; }
+
+      const since = new Date();
+      since.setDate(since.getDate() - 14);
+      const sinceStr = since.toISOString().slice(0,10);
+
+      const { data, error } = await sb
+        .from('daily_briefs')
+        .select('brief_date, content_json, generated_at')
+        .eq('coach_id', user.id)
+        .gte('brief_date', sinceStr)
+        .order('brief_date', { ascending: false });
+
+      if (error) {
+        list.innerHTML = `<div class="kb-arch-empty" style="color:var(--red)">Błąd: ${kbEscape(error.message)}</div>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<div class="kb-arch-empty">Brak briefów w ostatnich 14 dniach.<br>Wygeneruj pierwszy żeby zacząć budować historię.</div>';
+        return;
+      }
+
+      const today = new Date().toISOString().slice(0,10);
+      list.innerHTML = data.map(b => {
+        const brief = b.content_json || {};
+        const urgCount = brief?.urgent?.length || 0;
+        const warnCount = brief?.warning?.length || 0;
+        const okCount = brief?.ok_count || 0;
+        const isToday = b.brief_date === today;
+        const greeting = brief?.greeting ? brief.greeting.slice(0,140) + (brief.greeting.length > 140 ? '...' : '') : '';
+
+        return `
+          <div class="kb-arch-item ${isToday ? 'today' : ''}" data-brief-date="${kbEscape(b.brief_date)}">
+            <div class="kb-arch-item-top">
+              <div class="kb-arch-item-date">${kbEscape(kbFormatDate(b.brief_date))}</div>
+              ${isToday ? '<div class="kb-arch-item-badge">DZIŚ</div>' : ''}
+            </div>
+            <div class="kb-arch-item-summary">${kbEscape(greeting)}</div>
+            <div class="kb-arch-item-stats">
+              ${urgCount > 0 ? `<span style="color:var(--red);">🚨 ${urgCount}</span>` : ''}
+              ${warnCount > 0 ? `<span style="color:var(--yellow);">⚠️ ${warnCount}</span>` : ''}
+              ${okCount > 0 ? `<span style="color:var(--green);">✅ <b>${okCount}</b></span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Bindowanie kliknięć
+      list.querySelectorAll('.kb-arch-item').forEach(el => {
+        el.addEventListener('click', () => {
+          const briefDate = el.getAttribute('data-brief-date');
+          kbLoadArchive(briefDate);
+        });
+      });
+    } catch(e) {
+      console.error('[Klaudiusz] Archive error:', e);
+      list.innerHTML = `<div class="kb-arch-empty" style="color:var(--red)">Błąd: ${kbEscape(e.message)}</div>`;
+    }
+  };
+
+  window.kbCloseArchive = function(){
+    document.getElementById('kbArchModal').classList.remove('open');
+  };
+
+  async function kbLoadArchive(briefDate){
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await sb
+        .from('daily_briefs')
+        .select('*')
+        .eq('coach_id', user.id)
+        .eq('brief_date', briefDate)
+        .maybeSingle();
+
+      if (error || !data) {
+        kbToast('Nie udało się załadować briefa', true);
+        return;
+      }
+
+      // Dorzucam date do brief żeby render wiedział że to archiwum
+      const briefWithDate = { ...data.content_json, _brief_date: briefDate };
+      kbRender(briefWithDate, data.generated_at);
+      kbCloseArchive();
+    } catch(e) {
+      console.error('[Klaudiusz] Load archive error:', e);
+      kbToast('Błąd: ' + e.message, true);
+    }
+  }
+
+  // Esc i klik w tło zamyka modal archiwum
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('kbArchModal');
+    if (modal && e.target === modal) kbCloseArchive();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('kbArchModal');
+      if (modal && modal.classList.contains('open')) kbCloseArchive();
+    }
+  });
 
   // START
   if (document.readyState === 'loading') {
