@@ -375,6 +375,30 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div id="fresh-feedbacks-list"></div>
 </div>
 
+<!-- ━━━━━━━━ NOWE ZGŁOSZENIA Z ANKIETY ━━━━━━━━ -->
+<div class="sec-hdr fi" id="intake-sec-hdr" style="display:none;">
+  <div class="sec-title">📋 Nowe zgłoszenia · <span id="intake-count" style="color:var(--accent);">0</span></div>
+  <button class="sec-action" onclick="loadPendingIntakes()">↻ Odśwież</button>
+</div>
+<div class="intake-section fi" id="intake-section"></div>
+
+<!-- Modal szczegółów ankiety -->
+<div class="intake-modal" id="intake-modal">
+  <div class="intake-modal-inner">
+    <div class="intake-modal-hdr">
+      <div class="intake-modal-name" id="intake-modal-name">—</div>
+      <button class="intake-modal-close" onclick="closeIntakeModal()">×</button>
+    </div>
+    <div class="intake-modal-body" id="intake-modal-body">
+      <div style="padding:40px;text-align:center;color:var(--muted);">Wczytuję...</div>
+    </div>
+    <div class="intake-modal-actions">
+      <button class="intake-btn intake-btn-reject" id="intake-btn-reject" onclick="rejectIntake()">✕ Odrzuć</button>
+      <button class="intake-btn intake-btn-accept" id="intake-btn-accept" onclick="acceptIntake()">✓ Akceptuj</button>
+    </div>
+  </div>
+</div>
+
 <div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><div style="display:flex;gap:8px;"><button class="sec-action" onclick="openTemplateModal()" style="color:var(--green);">📋 Szablon</button><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div></div>
 <div class="ath-list" id="ath-list"></div>
 
@@ -6465,6 +6489,47 @@ if ('serviceWorker' in navigator) {
 @keyframes kb-dots{0%,20%{content:'.';}40%{content:'..';}60%,100%{content:'...';}}
 .kb-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(61,184,112,0.95);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px 18px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:9999;opacity:0;transition:opacity 0.2s;}
 .kb-toast.show{opacity:1;}
+
+/* ━━━━━━━━ PANEL ZGŁOSZEŃ (ankiety) ━━━━━━━━ */
+.intake-section{padding:0 16px;margin-bottom:20px;}
+.intake-empty{padding:14px 16px;background:var(--card);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:12px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.05em;}
+.intake-card{background:var(--card);border:1px solid rgba(232,86,30,0.3);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;position:relative;}
+.intake-card:hover{background:var(--card2);border-color:var(--accent);}
+.intake-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:var(--accent);border-radius:2px;}
+.intake-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.intake-av{width:40px;height:40px;border-radius:50%;background:rgba(232,86,30,0.15);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent);flex-shrink:0;}
+.intake-meta{flex:1;min-width:0;}
+.intake-name{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:2px;}
+.intake-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.03em;}
+.intake-badge{font-size:9px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:20px;background:rgba(232,86,30,0.15);color:var(--accent);border:1px solid rgba(232,86,30,0.3);letter-spacing:0.08em;text-transform:uppercase;}
+.intake-stats{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+.intake-stat{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;}
+.intake-stat b{color:var(--fg);font-weight:600;}
+.intake-goals{display:flex;flex-wrap:wrap;gap:5px;}
+.intake-goal-chip{font-size:10px;font-family:'DM Mono',monospace;color:var(--fg);background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.25);border-radius:14px;padding:3px 8px;letter-spacing:0.04em;}
+
+/* Modal ankiety */
+.intake-modal{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);}
+.intake-modal.open{display:flex;}
+.intake-modal-inner{background:var(--card2);border-top:2px solid var(--accent);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+.intake-modal-hdr{position:sticky;top:0;background:var(--card2);padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:2;}
+.intake-modal-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;flex:1;}
+.intake-modal-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;}
+.intake-modal-body{padding:14px 20px 100px;}
+.intake-section-block{margin-bottom:18px;}
+.intake-section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.intake-row{display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;font-size:13px;line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.04);gap:14px;}
+.intake-row:last-child{border-bottom:none;}
+.intake-row-label{color:var(--muted);flex-shrink:0;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.04em;}
+.intake-row-value{color:var(--fg);text-align:right;word-break:break-word;flex:1;}
+.intake-row-value.empty{color:var(--muted2);font-style:italic;}
+.intake-modal-actions{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(180deg, transparent, var(--card2) 30%);padding:20px 20px calc(env(safe-area-inset-bottom,0px) + 20px);display:flex;gap:10px;justify-content:center;max-width:480px;margin:0 auto;}
+.intake-btn{flex:1;max-width:180px;padding:13px 18px;border:none;border-radius:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;font-weight:600;cursor:pointer;transition:all 0.15s;}
+.intake-btn-accept{background:var(--green);color:#07070a;}
+.intake-btn-accept:hover{background:#4dd680;}
+.intake-btn-reject{background:transparent;color:var(--red);border:1px solid rgba(224,80,80,0.4);}
+.intake-btn-reject:hover{background:rgba(224,80,80,0.1);}
+.intake-btn:disabled{opacity:0.5;cursor:not-allowed;}
 </style>
 
 <!-- FAB pływający -->
@@ -7274,6 +7339,321 @@ document.addEventListener('keydown', (e) => {
     document.addEventListener('DOMContentLoaded', kbLoad);
   } else {
     kbLoad();
+  }
+})();
+</script>
+
+<!-- ━━━━━━━━━━ PANEL ZGŁOSZEŃ (ankiety) ━━━━━━━━━━ -->
+<script>
+(function(){
+  let _currentIntakeId = null;
+  let _intakes = [];
+
+  function escHtml(s){
+    if (s == null || s === '') return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function fmtDate(d){
+    if (!d) return '—';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('pl-PL', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+  }
+
+  function ageYears(birthYear){
+    if (!birthYear) return null;
+    const now = new Date().getFullYear();
+    return now - birthYear;
+  }
+
+  function initials(name){
+    if (!name) return '?';
+    return name.split(' ').filter(Boolean).map(x => x[0]).join('').toUpperCase().slice(0,2);
+  }
+
+  function arrJoin(a){
+    if (!a) return '';
+    if (Array.isArray(a)) return a.filter(Boolean).join(', ');
+    return String(a);
+  }
+
+  window.loadPendingIntakes = async function(){
+    const hdr = document.getElementById('intake-sec-hdr');
+    const sec = document.getElementById('intake-section');
+    if (!sec) return;
+
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { hdr.style.display = 'none'; sec.innerHTML = ''; return; }
+
+      const { data, error } = await sb
+        .from('athlete_intake_forms')
+        .select('id, full_name, email, phone, birth_year, gender, submitted_at, target_race_name, target_race_date, main_goal, km_per_week_now, longest_distance_km, pb_5k, pb_10k, pb_half, pb_marathon')
+        .eq('status', 'submitted')
+        .order('submitted_at', { ascending: false });
+
+      if (error) {
+        console.error('[Intake] load error:', error);
+        hdr.style.display = 'flex';
+        document.getElementById('intake-count').textContent = '!';
+        sec.innerHTML = `<div class="intake-empty" style="color:var(--red)">Błąd ładowania: ${escHtml(error.message)}</div>`;
+        return;
+      }
+
+      _intakes = data || [];
+
+      if (_intakes.length === 0) {
+        hdr.style.display = 'none';
+        sec.innerHTML = '';
+        return;
+      }
+
+      hdr.style.display = 'flex';
+      document.getElementById('intake-count').textContent = _intakes.length;
+
+      sec.innerHTML = _intakes.map(it => {
+        const age = ageYears(it.birth_year);
+        const goals = arrJoin(it.main_goal);
+        const goalChips = goals
+          ? goals.split(',').slice(0,3).map(g => `<span class="intake-goal-chip">${escHtml(g.trim())}</span>`).join('')
+          : '';
+        return `
+          <div class="intake-card" onclick="openIntakeModal('${it.id}')">
+            <div class="intake-top">
+              <div class="intake-av">${initials(it.full_name)}</div>
+              <div class="intake-meta">
+                <div class="intake-name">${escHtml(it.full_name || '—')}</div>
+                <div class="intake-sub">${escHtml(it.email || '')}${age ? ' · ' + age + ' lat' : ''}</div>
+              </div>
+              <div class="intake-badge">NOWY</div>
+            </div>
+            <div class="intake-stats">
+              <div class="intake-stat">📅 <b>${fmtDate(it.submitted_at)}</b></div>
+              ${it.km_per_week_now ? `<div class="intake-stat">📊 <b>${escHtml(it.km_per_week_now)}</b> km/tydz</div>` : ''}
+              ${it.pb_5k ? `<div class="intake-stat">🏃 5k <b>${escHtml(it.pb_5k)}</b></div>` : ''}
+            </div>
+            ${goalChips ? `<div class="intake-goals">${goalChips}</div>` : ''}
+          </div>
+        `;
+      }).join('');
+
+    } catch(e) {
+      console.error('[Intake] load exception:', e);
+      hdr.style.display = 'flex';
+      sec.innerHTML = `<div class="intake-empty" style="color:var(--red)">Błąd: ${escHtml(e.message)}</div>`;
+    }
+  };
+
+  window.openIntakeModal = async function(intakeId){
+    _currentIntakeId = intakeId;
+    const modal = document.getElementById('intake-modal');
+    const body = document.getElementById('intake-modal-body');
+    const name = document.getElementById('intake-modal-name');
+
+    body.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted);">Wczytuję szczegóły...</div>';
+    name.textContent = '...';
+    modal.classList.add('open');
+
+    try {
+      const { data, error } = await sb
+        .from('athlete_intake_forms')
+        .select('*')
+        .eq('id', intakeId)
+        .single();
+
+      if (error) throw new Error(error.message);
+
+      name.textContent = data.full_name || 'Zgłoszenie';
+      body.innerHTML = renderIntakeDetails(data);
+    } catch(e) {
+      body.innerHTML = `<div style="padding:20px;color:var(--red);">Błąd: ${escHtml(e.message)}</div>`;
+    }
+  };
+
+  function row(label, value, fallback){
+    const isEmpty = value == null || value === '' || (Array.isArray(value) && value.length === 0);
+    const display = isEmpty ? (fallback || '—') : (Array.isArray(value) ? arrJoin(value) : String(value));
+    return `<div class="intake-row">
+      <div class="intake-row-label">${escHtml(label)}</div>
+      <div class="intake-row-value ${isEmpty ? 'empty' : ''}">${escHtml(display)}</div>
+    </div>`;
+  }
+
+  function block(title, html){
+    return `<div class="intake-section-block">
+      <div class="intake-section-title">${escHtml(title)}</div>
+      ${html}
+    </div>`;
+  }
+
+  function renderIntakeDetails(d){
+    const age = ageYears(d.birth_year);
+
+    return [
+      block('📞 Kontakt', [
+        row('Email', d.email),
+        row('Telefon', d.phone),
+        row('Komunikacja', d.preferred_communication),
+        row('Częstotliwość', d.contact_frequency),
+      ].join('')),
+
+      block('🫀 Ciało', [
+        row('Płeć', d.gender),
+        row('Wiek', age ? age + ' lat' : null),
+        row('Wzrost', d.height_cm ? d.height_cm + ' cm' : null),
+        row('Waga', d.weight_kg ? d.weight_kg + ' kg' : null),
+        row('Badania krwi', d.blood_tests_status),
+      ].join('')),
+
+      block('🏃 Bieganie', [
+        row('Biega od', d.running_since),
+        row('Aktualnie km/tydz', d.km_per_week_now),
+        row('Najdłuższy dystans', d.longest_distance_km ? d.longest_distance_km + ' km' : null),
+        row('Czas najdłuższego', d.longest_distance_time),
+        row('Teren najdłuższego', d.longest_terrain),
+        row('Preferowany teren', d.preferred_terrain),
+        row('Regularność', d.running_regularity),
+      ].join('')),
+
+      block('🏆 Rekordy życiowe', [
+        row('5k', d.pb_5k),
+        row('10k', d.pb_10k),
+        row('Półmaraton', d.pb_half),
+        row('Maraton', d.pb_marathon),
+      ].join('')),
+
+      block('🎯 Cel', [
+        row('Główny cel', d.main_goal),
+        row('Docelowe zawody', d.target_race_name),
+        row('Data zawodów', d.target_race_date),
+        row('Docelowy czas', d.target_race_time),
+        row('Plany roczne', d.race_goals_year),
+        row('Mocne strony', d.strong_points),
+        row('Słabe strony', d.weak_points),
+        row('Główny blocker', d.main_blocker),
+      ].join('')),
+
+      block('💪 Trening', [
+        row('Dni/tydzień', d.training_days_per_week),
+        row('Pora treningu', d.preferred_training_time),
+        row('Siłownia 1x/tydz', d.gym_one_day_yes === true ? 'TAK' : (d.gym_one_day_yes === false ? 'NIE' : null)),
+        row('Pulsometr', d.has_hr_monitor ? 'TAK' : 'NIE'),
+        row('Garmin', d.has_garmin ? `TAK (${d.garmin_model || ''})` : 'NIE'),
+        row('Strava', d.has_strava ? `TAK (${d.strava_url || ''})` : 'NIE'),
+      ].join('')),
+
+      block('😴 Styl życia', [
+        row('Sen', d.sleep_hours),
+        row('Zasypia', d.sleep_bedtime),
+        row('Wstaje', d.sleep_wakeup),
+        row('Praca h/dzień', d.work_hours_daily),
+        row('Typ pracy', d.work_type),
+        row('Suplementacja', d.supplementation),
+        row('Dieta', d.diet_type),
+        row('Kcal/dzień', d.diet_kcal_estimate),
+      ].join('')),
+
+      block('🩹 Zdrowie i notatki', [
+        row('Aktualne kontuzje', d.current_injuries),
+        row('Choroby przewlekłe', d.chronic_conditions),
+        row('Tematy do unikania', d.topics_to_avoid),
+        row('Wiadomość od zawodnika', d.additional_message),
+      ].join('')),
+    ].join('');
+  }
+
+  window.closeIntakeModal = function(){
+    document.getElementById('intake-modal').classList.remove('open');
+    _currentIntakeId = null;
+  };
+
+  window.acceptIntake = async function(){
+    if (!_currentIntakeId) return;
+    const btn = document.getElementById('intake-btn-accept');
+    const btnR = document.getElementById('intake-btn-reject');
+    btn.disabled = true; btnR.disabled = true;
+    btn.textContent = '⏳ Akceptuję...';
+
+    try {
+      const { data, error } = await sb.rpc('accept_intake_form', { p_intake_id: _currentIntakeId });
+      if (error) throw new Error(error.message);
+
+      btn.textContent = '✓ Akceptuj';
+      btn.disabled = false; btnR.disabled = false;
+      closeIntakeModal();
+
+      if (typeof kbToast === 'function') kbToast('✓ Zawodnik przyjęty do drużyny');
+
+      // Odśwież listę zgłoszeń i listę zawodników
+      await loadPendingIntakes();
+      if (typeof loadAthletes === 'function') {
+        await loadAthletes();
+      } else if (typeof refreshAthletes === 'function') {
+        await refreshAthletes();
+      }
+    } catch(e) {
+      console.error('[Intake] accept error:', e);
+      btn.textContent = '✓ Akceptuj';
+      btn.disabled = false; btnR.disabled = false;
+      alert('Błąd akceptacji: ' + e.message);
+    }
+  };
+
+  window.rejectIntake = async function(){
+    if (!_currentIntakeId) return;
+    const reason = prompt('Powód odrzucenia (opcjonalnie):');
+    if (reason === null) return; // anulowane
+
+    const btn = document.getElementById('intake-btn-reject');
+    const btnA = document.getElementById('intake-btn-accept');
+    btn.disabled = true; btnA.disabled = true;
+    btn.textContent = '⏳ Odrzucam...';
+
+    try {
+      const { error } = await sb
+        .from('athlete_intake_forms')
+        .update({
+          status: 'rejected',
+          rejected_at: new Date().toISOString(),
+          rejection_reason: reason || null,
+        })
+        .eq('id', _currentIntakeId);
+
+      if (error) throw new Error(error.message);
+
+      btn.textContent = '✕ Odrzuć';
+      btn.disabled = false; btnA.disabled = false;
+      closeIntakeModal();
+
+      if (typeof kbToast === 'function') kbToast('Zgłoszenie odrzucone');
+      await loadPendingIntakes();
+    } catch(e) {
+      console.error('[Intake] reject error:', e);
+      btn.textContent = '✕ Odrzuć';
+      btn.disabled = false; btnA.disabled = false;
+      alert('Błąd odrzucenia: ' + e.message);
+    }
+  };
+
+  // Zamknij modal klikiem w tło
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('intake-modal');
+    if (e.target === modal) closeIntakeModal();
+  });
+
+  // Esc zamyka modal
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('intake-modal');
+      if (modal && modal.classList.contains('open')) closeIntakeModal();
+    }
+  });
+
+  // START — załaduj po DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadPendingIntakes);
+  } else {
+    loadPendingIntakes();
   }
 })();
 </script>
