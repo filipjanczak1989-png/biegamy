@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Ankieta · BiegaMy.run</title>
+<meta name="description" content="Wypełnij ankietę startową — Filip i Kasia zaproponują Ci plan dopasowany do Twoich celów.">
+<link rel="icon" type="image/png" href="logo.png">
+
+<style>
+:root{
+  --bg:#0f0f12;
+  --paper:#f0ede8;
+  --fg:#f0ede8;
+  --muted:#8a857c;
+  --line:rgba(240,237,232,0.12);
+  --accent:#e8561e;
+  --accent-soft:rgba(232,86,30,0.1);
+  --green:#22c55e;
+  --red:#ef4444;
+  --card:#13131a;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',sans-serif;-webkit-font-smoothing:antialiased;}
+
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ════════════════════════════════════════════════ */
+/* HEADER */
+/* ════════════════════════════════════════════════ */
+.top-nav{
+  position:sticky;top:0;z-index:50;
+  background:rgba(15,15,18,0.85);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.top-nav-inner{
+  max-width:780px;margin:0 auto;padding:14px 20px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+}
+.brand{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:22px;letter-spacing:0.04em;
+  color:var(--accent);
+  text-decoration:none;
+}
+.brand span{color:var(--fg);}
+.nav-back{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--muted);text-decoration:none;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.nav-back:hover{color:var(--accent);}
+
+/* ════════════════════════════════════════════════ */
+/* PROGRESS BAR */
+/* ════════════════════════════════════════════════ */
+.progress-wrap{
+  max-width:780px;margin:0 auto;padding:20px 20px 0;
+}
+.progress-info{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:8px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
+}
+.progress-section{color:var(--muted);}
+.progress-percent{color:var(--accent);font-weight:600;}
+.progress-bar{
+  height:3px;background:rgba(240,237,232,0.08);border-radius:2px;overflow:hidden;
+}
+.progress-fill{
+  height:100%;background:var(--accent);
+  transition:width 0.4s cubic-bezier(0.4,0,0.2,1);
+  border-radius:2px;
+}
+
+/* ════════════════════════════════════════════════ */
+/* INTRO + KOŃCOWE */
+/* ════════════════════════════════════════════════ */
+.intro{
+  max-width:680px;margin:0 auto;padding:40px 20px 20px;text-align:center;
+}
+.intro h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:48px;line-height:1;letter-spacing:0.02em;
+  margin-bottom:18px;
+}
+.intro h1 span{color:var(--accent);}
+.intro p{
+  font-size:15px;line-height:1.7;color:var(--muted);
+  margin-bottom:14px;
+}
+.intro-signature{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:0.1em;color:var(--accent);
+  margin-top:24px;
+}
+.intro .duration{
+  display:inline-block;
+  background:var(--accent-soft);
+  border:1px solid rgba(232,86,30,0.3);
+  border-radius:50px;
+  padding:6px 14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--accent);
+  margin-top:14px;
+}
+
+/* ════════════════════════════════════════════════ */
+/* FORMULARZ */
+/* ════════════════════════════════════════════════ */
+.form-wrap{
+  max-width:680px;margin:0 auto;padding:30px 20px 100px;
+}
+.section{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:28px 24px;
+  margin-bottom:20px;
+  display:none;
+}
+.section.active{display:block;animation:fadeIn 0.4s ease;}
+@keyframes fadeIn{
+  from{opacity:0;transform:translateY(8px);}
+  to{opacity:1;transform:translateY(0);}
+}
+.section-header{
+  margin-bottom:24px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--line);
+}
+.section-num{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:6px;
+}
+.section-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:28px;letter-spacing:0.02em;line-height:1.1;
+}
+.section-sub{
+  font-size:13px;color:var(--muted);margin-top:8px;line-height:1.5;
+}
+
+/* Field */
+.field{margin-bottom:20px;}
+.field-label{
+  display:block;
+  font-size:14px;font-weight:500;
+  margin-bottom:8px;
+  color:var(--fg);
+}
+.field-label .req{color:var(--accent);margin-left:4px;}
+.field-hint{
+  font-size:11px;color:var(--muted);
+  margin-top:5px;line-height:1.4;
+}
+.field-hint a{color:var(--accent);text-decoration:none;border-bottom:1px dashed var(--accent);}
+
+input[type="text"], input[type="email"], input[type="tel"], 
+input[type="number"], input[type="date"], input[type="time"],
+select, textarea {
+  width:100%;
+  background:rgba(0,0,0,0.3);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:11px 14px;
+  color:var(--fg);
+  font-family:'Inter',sans-serif;
+  font-size:14px;
+  outline:none;
+  transition:border-color 0.2s, background 0.2s;
+}
+input:focus, select:focus, textarea:focus{
+  border-color:var(--accent);
+  background:rgba(0,0,0,0.5);
+}
+textarea{min-height:90px;resize:vertical;line-height:1.5;}
+select{
+  appearance:none;
+  background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%238a857c' width='16' height='16'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:36px;
+}
+
+/* Radio / Checkbox */
+.options{display:flex;flex-direction:column;gap:6px;}
+.opt{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 14px;
+  background:rgba(0,0,0,0.2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.opt:hover{border-color:rgba(232,86,30,0.4);background:rgba(0,0,0,0.4);}
+.opt input{
+  width:18px;height:18px;
+  accent-color:var(--accent);
+  margin:0;cursor:pointer;
+  flex-shrink:0;
+}
+.opt span{font-size:14px;color:var(--fg);}
+.opt.selected{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+}
+
+/* Multi-checkbox row */
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:520px){
+  .row{grid-template-columns:1fr;}
+}
+
+/* Numeric + unit */
+.num-with-unit{
+  display:flex;gap:8px;align-items:center;
+}
+.num-with-unit input{flex:1;}
+.num-with-unit .unit{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--muted);
+  letter-spacing:0.1em;text-transform:uppercase;
+  flex-shrink:0;
+}
+
+/* Upload */
+.upload-zone{
+  border:1px dashed rgba(232,86,30,0.3);
+  border-radius:10px;
+  padding:18px;
+  text-align:center;
+  cursor:pointer;
+  transition:all 0.2s;
+  background:var(--accent-soft);
+}
+.upload-zone:hover{border-color:var(--accent);background:rgba(232,86,30,0.15);}
+.upload-zone-text{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:0.1em;color:var(--accent);
+  text-transform:uppercase;
+}
+.upload-zone-sub{
+  font-size:11px;color:var(--muted);margin-top:4px;
+}
+.upload-preview{
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;
+}
+.upload-preview .ph{
+  position:relative;width:70px;height:70px;border-radius:8px;overflow:hidden;
+  border:1px solid var(--line);
+}
+.upload-preview .ph img{width:100%;height:100%;object-fit:cover;}
+.upload-preview .ph button{
+  position:absolute;top:2px;right:2px;
+  background:rgba(0,0,0,0.75);border:none;color:#fff;
+  width:20px;height:20px;border-radius:50%;cursor:pointer;
+  font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+
+/* Nav buttons */
+.section-nav{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:30px;
+  padding-top:20px;
+  border-top:1px solid var(--line);
+  gap:12px;
+}
+.btn{
+  padding:12px 22px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:0.16em;text-transform:uppercase;font-weight:500;
+  border:none;border-radius:8px;
+  cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;
+  transition:all 0.2s;
+}
+.btn-prev{background:transparent;border:1px solid var(--line);color:var(--muted);}
+.btn-prev:hover{border-color:var(--paper);color:var(--paper);}
+.btn-next{background:var(--accent);color:var(--paper);font-weight:600;}
+.btn-next:hover{background:#d4501a;transform:translateY(-1px);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* Save indicator */
+.save-indicator{
+  position:fixed;bottom:18px;right:18px;
+  background:rgba(34,197,94,0.15);
+  border:1px solid rgba(34,197,94,0.4);
+  color:var(--green);
+  padding:8px 12px;border-radius:50px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;
+  opacity:0;transform:translateY(20px);
+  transition:all 0.3s;
+  z-index:100;
+}
+.save-indicator.show{opacity:1;transform:translateY(0);}
+.save-indicator .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+/* Success state */
+.success-page{
+  max-width:560px;margin:0 auto;padding:60px 20px;text-align:center;
+  display:none;
+}
+.success-page.active{display:block;}
+.success-icon{
+  width:80px;height:80px;margin:0 auto 24px;
+  background:rgba(34,197,94,0.15);
+  border:2px solid var(--green);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;
+}
+.success-page h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:42px;letter-spacing:0.02em;margin-bottom:14px;
+}
+.success-page p{
+  font-size:14px;line-height:1.7;color:var(--muted);margin-bottom:14px;
+}
+.success-cta{
+  display:inline-block;margin-top:30px;
+  padding:14px 28px;
+  background:var(--accent);color:var(--paper);
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  letter-spacing:0.18em;text-transform:uppercase;font-weight:600;
+  border-radius:8px;text-decoration:none;
+}
+
+/* Consent box */
+.consent-box{
+  background:rgba(232,86,30,0.05);
+  border:1px solid rgba(232,86,30,0.3);
+  border-radius:10px;
+  padding:16px;margin-bottom:14px;
+}
+.consent-text{
+  font-size:12px;color:var(--muted);line-height:1.6;
+  margin-top:6px;
+}
+
+/* Error message */
+.field-error{
+  display:none;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;color:var(--red);
+  letter-spacing:0.1em;text-transform:uppercase;
+  margin-top:6px;
+}
+.field-error.show{display:block;}
+.field.error input, .field.error select, .field.error textarea{
+  border-color:var(--red);
+}
+
+/* ════════════════════════════════════════════════ */
+/* MOBILE */
+/* ════════════════════════════════════════════════ */
+@media(max-width:520px){
+  .section{padding:22px 18px;}
+  .section-title{font-size:24px;}
+  .intro h1{font-size:38px;}
+  .btn{padding:11px 16px;font-size:10px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- HEADER -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<nav class="top-nav">
+  <div class="top-nav-inner">
+    <a href="o-nas.html" class="brand">Biega<span>My</span>.run</a>
+    <a href="o-nas.html" class="nav-back">
+      <span>←</span><span>O nas</span>
+    </a>
+  </div>
+</nav>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- PROGRESS BAR -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div class="progress-wrap" id="progress-wrap" style="display:none;">
+  <div class="progress-info">
+    <span class="progress-section" id="progress-label">Sekcja 1 z 7</span>
+    <span class="progress-percent" id="progress-percent">0%</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- INTRO -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div class="intro" id="intro-page">
+  <h1>Ankieta startowa<br><span>BiegaMy</span>.run</h1>
+  <p>Cześć Skarbie! 🤍 Świetnie że jesteś. Wypełnij tę ankietę żebyśmy mogli ułożyć Ci plan szyty na miarę — Twoich celów, Twojego ciała, Twojego życia.</p>
+  <p>Wiem że pytania wyglądają na dużo. Ale każde z nich ma znaczenie i pomoże nam dać Ci to czego naprawdę potrzebujesz. <strong style="color:var(--fg);">Na spokojnie</strong> — ankieta się sama zapisuje, możesz wrócić.</p>
+  <div class="duration">⏱️ ~10 minut</div>
+  <p class="intro-signature">— Filip & Kasia<br>BiegaMy.run</p>
+  <button class="success-cta" onclick="startForm()" style="border:none;cursor:pointer;margin-top:30px;">Zaczynam →</button>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- FORMULARZ -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div class="form-wrap" id="form-wrap" style="display:none;">
+
+  <!-- SEKCJA 1: Podstawy -->
+  <div class="section" data-section="1">
+    <div class="section-header">
+      <div class="section-num">Sekcja 1 z 7</div>
+      <div class="section-title">Cześć! 👋 Zacznijmy od podstaw</div>
+      <div class="section-sub">Podstawowe info żebyśmy wiedzieli z kim mamy przyjemność.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Imię i nazwisko <span class="req">*</span></label>
+      <input type="text" id="f_full_name" placeholder="np. Anna Kowalska">
+      <div class="field-error">Wymagane</div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Email <span class="req">*</span></label>
+        <input type="email" id="f_email" placeholder="anna@gmail.com">
+        <div class="field-error">Wymagane</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Telefon <span class="req">*</span></label>
+        <input type="tel" id="f_phone" placeholder="+48 600 123 456">
+        <div class="field-error">Wymagane</div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Płeć <span class="req">*</span></label>
+        <select id="f_gender">
+          <option value="">— wybierz —</option>
+          <option value="K">Kobieta</option>
+          <option value="M">Mężczyzna</option>
+          <option value="inne">Inna / wolę nie podawać</option>
+        </select>
+        <div class="field-error">Wymagane</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Rok urodzenia <span class="req">*</span></label>
+        <input type="number" id="f_birth_year" min="1940" max="2020" placeholder="1990">
+        <div class="field-error">Wymagane</div>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <span></span>
+      <button class="btn btn-next" onclick="nextSection(1)">Dalej →</button>
+    </div>
+  </div>
+
+  <!-- SEKCJA 2: Ciało -->
+  <div class="section" data-section="2">
+    <div class="section-header">
+      <div class="section-num">Sekcja 2 z 7</div>
+      <div class="section-title">Twoje ciało 💪</div>
+      <div class="section-sub">Pomaga dobrać objętość, kalorie, suplementację. Wszystko opcjonalne — możesz pominąć co chcesz.</div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Wzrost</label>
+        <div class="num-with-unit">
+          <input type="number" id="f_height" min="120" max="220" placeholder="172">
+          <span class="unit">cm</span>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Waga</label>
+        <div class="num-with-unit">
+          <input type="number" id="f_weight" min="35" max="200" step="0.1" placeholder="65">
+          <span class="unit">kg</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Aktualne badania krwi (morfologia, ferrytyna, żelazo)?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="blood_tests" value="recent_6mc"><span>Tak — robione w ostatnich 6 miesiącach</span></label>
+        <label class="opt"><input type="radio" name="blood_tests" value="over_year"><span>Tak ale ponad rok temu</span></label>
+        <label class="opt"><input type="radio" name="blood_tests" value="never"><span>Nigdy / dawno</span></label>
+        <label class="opt"><input type="radio" name="blood_tests" value="dont_remember"><span>Nie pamiętam</span></label>
+      </div>
+    </div>
+
+    <div class="field" id="blood-upload-wrap" style="display:none;">
+      <label class="field-label">Możesz dodać screen wyników? <span style="color:var(--muted);font-weight:400;">(opcjonalne, dla Klaudiusza AI)</span></label>
+      <div class="upload-zone" onclick="document.getElementById('f_blood_file').click()">
+        <div class="upload-zone-text">📷 Wrzuć screen wyników</div>
+        <div class="upload-zone-sub">Tylko Filip i Kasia to zobaczą</div>
+      </div>
+      <input type="file" id="f_blood_file" accept="image/*" style="display:none;" onchange="handleBloodUpload(this.files)">
+      <div class="upload-preview" id="blood-preview"></div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy masz aktualnie jakieś kontuzje?</label>
+      <textarea id="f_injuries" placeholder="np. Naciągnięte ścięgno Achillesa od miesiąca, kolano czasem boli przy zbieganiu... Lub po prostu: 'nie mam'"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy chorujesz na coś co wpływa na bieganie?</label>
+      <textarea id="f_chronic" placeholder="np. astma, cukrzyca, problemy z tarczycą, niska ferrytyna. Lub: 'nie chorują'"></textarea>
+      <div class="field-hint">Klaudiusz AI dostosuje plan. Dane bezpieczne, tylko trener widzi.</div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-prev" onclick="prevSection(2)">← Wstecz</button>
+      <button class="btn btn-next" onclick="nextSection(2)">Dalej →</button>
+    </div>
+  </div>
+
+  <!-- SEKCJA 3: Bieganie -->
+  <div class="section" data-section="3">
+    <div class="section-header">
+      <div class="section-num">Sekcja 3 z 7</div>
+      <div class="section-title">Twoje bieganie 🏃</div>
+      <div class="section-sub">Najważniejsza sekcja — żebyśmy nie ustawili Ci za wysoko ani za nisko poprzeczki.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Od kiedy biegasz? <span class="req">*</span></label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="running_since" value="<1y"><span>Mniej niż rok</span></label>
+        <label class="opt"><input type="radio" name="running_since" value="1-3y"><span>1-3 lata</span></label>
+        <label class="opt"><input type="radio" name="running_since" value="3-5y"><span>3-5 lat</span></label>
+        <label class="opt"><input type="radio" name="running_since" value="5y+"><span>5 lat i więcej</span></label>
+      </div>
+      <div class="field-error">Wymagane</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Ile km tygodniowo robisz OBECNIE? <span class="req">*</span></label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="km_per_week" value="0-20"><span>0-20 km</span></label>
+        <label class="opt"><input type="radio" name="km_per_week" value="20-40"><span>20-40 km</span></label>
+        <label class="opt"><input type="radio" name="km_per_week" value="40-60"><span>40-60 km</span></label>
+        <label class="opt"><input type="radio" name="km_per_week" value="60-80"><span>60-80 km</span></label>
+        <label class="opt"><input type="radio" name="km_per_week" value="80+"><span>80+ km</span></label>
+      </div>
+      <div class="field-hint">Realnie — nie ile chcesz, tylko ile robisz teraz.</div>
+      <div class="field-error">Wymagane</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy biegasz regularnie?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="regularity" value="regular"><span>Tak, regularnie 3-7x w tygodniu</span></label>
+        <label class="opt"><input type="radio" name="regularity" value="recent_break"><span>Miałem ostatnio przerwę (kilka tygodni)</span></label>
+        <label class="opt"><input type="radio" name="regularity" value="returning"><span>Wracam po dłuższej przerwie (miesiące/rok+)</span></label>
+        <label class="opt"><input type="radio" name="regularity" value="never_consistent"><span>Biegam nieregularnie</span></label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Najdłuższy dystans (km)</label>
+        <input type="number" id="f_longest_km" step="0.1" placeholder="21.1">
+      </div>
+      <div class="field">
+        <label class="field-label">W jakim czasie?</label>
+        <input type="text" id="f_longest_time" placeholder="2:15:00">
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Życiówki (jeśli masz)</label>
+      <div class="row">
+        <input type="text" id="f_pb_5k" placeholder="5km: 22:30">
+        <input type="text" id="f_pb_10k" placeholder="10km: 48:15">
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <input type="text" id="f_pb_half" placeholder="Półmaraton: 1:45:00">
+        <input type="text" id="f_pb_marathon" placeholder="Maraton: 3:50:00">
+      </div>
+      <div class="field-hint">Wpisz tylko to co masz. Resztę zostaw puste.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Preferowany teren</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="terrain" value="roads"><span>🛣️ Drogi / asfalt</span></label>
+        <label class="opt"><input type="radio" name="terrain" value="forest"><span>🌲 Lasy / parki</span></label>
+        <label class="opt"><input type="radio" name="terrain" value="mountains"><span>🏔️ Góry / podbiegi</span></label>
+        <label class="opt"><input type="radio" name="terrain" value="mixed"><span>🔀 Mieszany — wszystko</span></label>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-prev" onclick="prevSection(3)">← Wstecz</button>
+      <button class="btn btn-next" onclick="nextSection(3)">Dalej →</button>
+    </div>
+  </div>
+
+  <!-- SEKCJA 4: Styl życia -->
+  <div class="section" data-section="4">
+    <div class="section-header">
+      <div class="section-num">Sekcja 4 z 7</div>
+      <div class="section-title">Twój styl życia 🏠</div>
+      <div class="section-sub">Trening to nie wszystko — sen, praca, dieta to też klocki układanki.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Ile godzin śpisz?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="sleep" value="<6"><span>Mniej niż 6h — wyzwanie</span></label>
+        <label class="opt"><input type="radio" name="sleep" value="6-7"><span>6-7 godzin</span></label>
+        <label class="opt"><input type="radio" name="sleep" value="7-8"><span>7-8 godzin — optimum</span></label>
+        <label class="opt"><input type="radio" name="sleep" value="8+"><span>Powyżej 8 godzin</span></label>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Idziesz spać o</label>
+        <input type="time" id="f_bedtime" placeholder="23:00">
+      </div>
+      <div class="field">
+        <label class="field-label">Wstajesz o</label>
+        <input type="time" id="f_wakeup" placeholder="07:00">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Ile godzin pracujesz dziennie?</label>
+        <input type="number" id="f_work_hours" min="0" max="16" placeholder="8">
+      </div>
+      <div class="field">
+        <label class="field-label">Typ pracy</label>
+        <select id="f_work_type">
+          <option value="">— wybierz —</option>
+          <option value="office">🪑 Biurowa</option>
+          <option value="physical">💪 Fizyczna</option>
+          <option value="mixed">🔀 Mieszana</option>
+          <option value="shift">🌙 Zmianowa</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy stosujesz suplementację?</label>
+      <textarea id="f_supplementation" placeholder="np. magnez, witamina D3+K2, kreatyna, BCAA... Lub: 'nie biorę nic'"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy jesteś na diecie? Jaki kierunek?</label>
+      <textarea id="f_diet" placeholder="np. niska węglowodanowa, wegetariańska, deficyt kaloryczny... Lub: 'nie pilnuję'"></textarea>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Preferowane godziny treningu <span style="color:var(--muted);font-weight:400;">(wielokrotny wybór)</span></label>
+      <div class="options">
+        <label class="opt"><input type="checkbox" name="training_time" value="morning"><span>🌅 Rano przed pracą</span></label>
+        <label class="opt"><input type="checkbox" name="training_time" value="lunch"><span>☀️ W przerwie obiadowej</span></label>
+        <label class="opt"><input type="checkbox" name="training_time" value="evening"><span>🌙 Wieczorem po pracy</span></label>
+        <label class="opt"><input type="checkbox" name="training_time" value="weekend"><span>📅 Długie biegi w weekendy</span></label>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-prev" onclick="prevSection(4)">← Wstecz</button>
+      <button class="btn btn-next" onclick="nextSection(4)">Dalej →</button>
+    </div>
+  </div>
+
+  <!-- SEKCJA 5: Cele -->
+  <div class="section" data-section="5">
+    <div class="section-header">
+      <div class="section-num">Sekcja 5 z 7</div>
+      <div class="section-title">Twoje cele 🎯</div>
+      <div class="section-sub">Najważniejsza rzecz — wiedzieć dokąd zmierzamy razem.</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Główny cel na ten rok <span class="req">*</span> <span style="color:var(--muted);font-weight:400;">(można wiele)</span></label>
+      <div class="options">
+        <label class="opt"><input type="checkbox" name="main_goal" value="pb"><span>🏆 Życiówka — szybciej!</span></label>
+        <label class="opt"><input type="checkbox" name="main_goal" value="race_prep"><span>🏁 Przygotowanie do konkretnego startu</span></label>
+        <label class="opt"><input type="checkbox" name="main_goal" value="weight_loss"><span>⚖️ Schudnąć / forma</span></label>
+        <label class="opt"><input type="checkbox" name="main_goal" value="health"><span>💚 Zdrowie / kondycja</span></label>
+        <label class="opt"><input type="checkbox" name="main_goal" value="endurance"><span>🔋 Wytrzymałość — dłuższe dystanse</span></label>
+        <label class="opt"><input type="checkbox" name="main_goal" value="ultra"><span>🏔️ Ultra — góry / długie biegi</span></label>
+        <label class="opt"><input type="checkbox" name="main_goal" value="other"><span>✨ Coś innego</span></label>
+      </div>
+      <div class="field-error">Wymagane</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Konkretny start docelowy (jeśli masz)</label>
+      <div class="row">
+        <input type="text" id="f_target_race_name" placeholder="np. Maraton Warszawski">
+        <input type="date" id="f_target_race_date">
+      </div>
+      <input type="text" id="f_target_race_time" placeholder="Cel czasowy: np. 3:30:00" style="margin-top:8px;">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Twoje cele startowe na ten rok</label>
+      <textarea id="f_race_goals_year" placeholder="np. Półmaraton wrocławski w czerwcu - chcę zejść poniżej 1:50. Marathon poznański w październiku - PB."></textarea>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">3 mocne strony jako biegacz</label>
+        <textarea id="f_strong_points" placeholder="np. wytrzymałość mentalna, dobre tempo na płaskim, regularność..."></textarea>
+      </div>
+      <div class="field">
+        <label class="field-label">3 słabe strony / co chcesz poprawić</label>
+        <textarea id="f_weak_points" placeholder="np. brak siły w nogach, źle radzę sobie w upale, technika..."></textarea>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Co Cię najbardziej blokuje?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="blocker" value="no_time"><span>⏰ Brak czasu</span></label>
+        <label class="opt"><input type="radio" name="blocker" value="no_motivation"><span>😴 Brak motywacji</span></label>
+        <label class="opt"><input type="radio" name="blocker" value="injuries"><span>🩹 Kontuzje / zdrowie</span></label>
+        <label class="opt"><input type="radio" name="blocker" value="dont_know_how"><span>❓ Nie wiem jak trenować</span></label>
+        <label class="opt"><input type="radio" name="blocker" value="lonely"><span>😔 Brak partnera do treningu</span></label>
+      </div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-prev" onclick="prevSection(5)">← Wstecz</button>
+      <button class="btn btn-next" onclick="nextSection(5)">Dalej →</button>
+    </div>
+  </div>
+
+  <!-- SEKCJA 6: Współpraca -->
+  <div class="section" data-section="6">
+    <div class="section-header">
+      <div class="section-num">Sekcja 6 z 7</div>
+      <div class="section-title">Jak będziemy razem pracować 🤝</div>
+      <div class="section-sub">Sprzęt, komunikacja, częstotliwość kontaktu.</div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label class="field-label">Ile dni w tygodniu chcesz trenować? <span class="req">*</span></label>
+        <input type="number" id="f_training_days" min="1" max="7" placeholder="4">
+        <div class="field-error">Wymagane</div>
+      </div>
+      <div class="field">
+        <label class="field-label">Czy możesz 1 dzień na siłownię?</label>
+        <select id="f_gym_one_day">
+          <option value="">— wybierz —</option>
+          <option value="yes">Tak — mam dostęp</option>
+          <option value="home">Tak — ćwiczenia w domu</option>
+          <option value="no">Nie mogę</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy używasz paska tętna?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="hr_monitor" value="yes"><span>Tak — pasek piersiowy</span></label>
+        <label class="opt"><input type="radio" name="hr_monitor" value="watch"><span>Tak — przez zegarek</span></label>
+        <label class="opt"><input type="radio" name="hr_monitor" value="no"><span>Nie używam</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy masz Garmina / Polara / inny zegarek sportowy?</label>
+      <input type="text" id="f_garmin_model" placeholder="np. Garmin Forerunner 255, Coros Pace 3, brak...">
+      <div class="field-hint">Model pomaga nam wiedzieć jakie dane masz dostępne (HR, VO2max, kadencja).</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy masz Stravę?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="strava" value="yes_public"><span>Tak — profil publiczny</span></label>
+        <label class="opt"><input type="radio" name="strava" value="yes_private"><span>Tak — profil prywatny</span></label>
+        <label class="opt"><input type="radio" name="strava" value="no"><span>Nie korzystam</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Preferowana komunikacja</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="communication" value="app_chat"><span>💬 Czat w aplikacji BiegaMy</span></label>
+        <label class="opt"><input type="radio" name="communication" value="whatsapp"><span>📱 WhatsApp</span></label>
+        <label class="opt"><input type="radio" name="communication" value="phone"><span>📞 Telefon</span></label>
+        <label class="opt"><input type="radio" name="communication" value="email"><span>✉️ Email</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Częstotliwość kontaktu</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="contact_freq" value="daily"><span>Codziennie — pełne wsparcie</span></label>
+        <label class="opt"><input type="radio" name="contact_freq" value="few_per_week"><span>2-3 razy w tygodniu</span></label>
+        <label class="opt"><input type="radio" name="contact_freq" value="weekly"><span>Raz w tygodniu — podsumowanie</span></label>
+        <label class="opt"><input type="radio" name="contact_freq" value="on_demand"><span>Tylko gdy mam pytanie</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy chcesz być widoczny dla innych w BiegaMy?</label>
+      <div class="options">
+        <label class="opt"><input type="radio" name="visible" value="true"><span>👥 Tak — chcę poznać innych biegaczy</span></label>
+        <label class="opt"><input type="radio" name="visible" value="false"><span>🔒 Nie — profil prywatny</span></label>
+        <label class="opt"><input type="radio" name="visible" value="later"><span>🤔 Zdecyduję później</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Tematy o których NIE chcesz pisać <span style="color:var(--muted);font-weight:400;">(opcjonalne)</span></label>
+      <textarea id="f_topics_avoid" placeholder="np. waga, ciało, pewne problemy zdrowotne, sytuacja życiowa... Wszystko co dla Ciebie tabu w czacie z trenerem."></textarea>
+      <div class="field-hint">Klaudiusz i my respektujemy. Nikt Cię nie będzie o to pytał.</div>
+    </div>
+
+    <div class="section-nav">
+      <button class="btn btn-prev" onclick="prevSection(6)">← Wstecz</button>
+      <button class="btn btn-next" onclick="nextSection(6)">Dalej →</button>
+    </div>
+  </div>
+
+  <!-- SEKCJA 7: Zgody + wiadomość -->
+  <div class="section" data-section="7">
+    <div class="section-header">
+      <div class="section-num">Sekcja 7 z 7 — ostatnia!</div>
+      <div class="section-title">Jeszcze chwilka 📜</div>
+      <div class="section-sub">Wolna wiadomość + zgody. Bez zgód niestety nie możemy nic robić (RODO).</div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Czy chcesz nam coś jeszcze powiedzieć?</label>
+      <textarea id="f_additional" placeholder="Wszystko co warto wiedzieć — sytuacja życiowa, oczekiwania, obawy, marzenia. Lub po prostu cześć :)" style="min-height:120px;"></textarea>
+    </div>
+
+    <div style="margin-top:24px;">
+      <div class="consent-box">
+        <label class="opt" style="background:transparent;border:none;">
+          <input type="checkbox" id="consent_data">
+          <span><strong>Zgoda na przetwarzanie danych osobowych</strong> <span style="color:var(--accent);">*</span></span>
+        </label>
+        <div class="consent-text">
+          Wyrażam zgodę na przetwarzanie moich danych osobowych przez BiegaMy.run w celu świadczenia usług coachingu biegowego, w zgodzie z RODO. Administratorem danych jest BiegaMy.run. Mam prawo do wglądu, sprostowania i usunięcia danych w każdym momencie.
+        </div>
+      </div>
+
+      <div class="consent-box">
+        <label class="opt" style="background:transparent;border:none;">
+          <input type="checkbox" id="consent_health">
+          <span><strong>Zgoda na zapisywanie danych zdrowotnych</strong> <span style="color:var(--accent);">*</span></span>
+        </label>
+        <div class="consent-text">
+          Wyrażam zgodę na zapisywanie i przetwarzanie moich danych zdrowotnych (kontuzje, choroby, suplementacja, dane biometryczne) w celu dostosowania planu treningowego. Dane są chronione, dostępne tylko dla trenera (Filip i Kasia) oraz systemu AI BiegaMy.
+        </div>
+      </div>
+
+      <div class="consent-box">
+        <label class="opt" style="background:transparent;border:none;">
+          <input type="checkbox" id="consent_marketing">
+          <span><strong>Zgoda na kontakt mailowy/SMS</strong> <span style="color:var(--muted);font-weight:400;">(opcjonalne)</span></span>
+        </label>
+        <div class="consent-text">
+          Wyrażam zgodę na otrzymywanie newslettera, informacji o wydarzeniach BiegaMy i okazjonalnych wiadomości. Mogę cofnąć zgodę w każdej chwili.
+        </div>
+      </div>
+    </div>
+
+    <div class="field-error" id="final-error" style="margin-top:14px;font-family:Inter,sans-serif;text-transform:none;font-size:13px;">Wymagane są obie pierwsze zgody.</div>
+
+    <div class="section-nav">
+      <button class="btn btn-prev" onclick="prevSection(7)">← Wstecz</button>
+      <button class="btn btn-next" id="submit-btn" onclick="submitForm()">Wyślij ankietę ✓</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- SUCCESS -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<div class="success-page" id="success-page">
+  <div class="success-icon">✓</div>
+  <h1>Dziękujemy! 🤍</h1>
+  <p>Ankieta dotarła do Filipa i Kasi. <strong style="color:var(--fg);">Odezwiemy się w ciągu 24-48 godzin</strong> — zwykle szybciej.</p>
+  <p>W międzyczasie możesz zalogować się do aplikacji i poznać interfejs. Twój profil utworzymy po krótkiej rozmowie.</p>
+  <p style="color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.14em;margin-top:30px;">— FILIP & KASIA<br>BIEGAMY.RUN</p>
+  <a href="index.html" class="success-cta">Zaloguj się do aplikacji →</a>
+</div>
+
+<!-- Save indicator -->
+<div class="save-indicator" id="save-indicator">
+  <div class="dot"></div>
+  <span>Zapisano</span>
+</div>
+
+<script src="sb.js"></script>
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════════════
+const STORAGE_KEY = 'biegamy_intake_session';
+const sb = window.sb;
+let _sessionToken = null;
+let _intakeId = null;
+let _currentSection = 1;
+const TOTAL_SECTIONS = 7;
+let _saveTimer = null;
+let _bloodTestUrl = null;
+
+// ════════════════════════════════════════════════════════════════════
+// SESSION TOKEN
+// ════════════════════════════════════════════════════════════════════
+function getOrCreateSessionToken() {
+  let token = localStorage.getItem(STORAGE_KEY);
+  if (!token) {
+    token = 'sk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 18);
+    localStorage.setItem(STORAGE_KEY, token);
+  }
+  return token;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// LIFECYCLE
+// ════════════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  _sessionToken = getOrCreateSessionToken();
+  await loadDraft();
+  setupAutoSave();
+  setupRadioVisuals();
+});
+
+async function loadDraft() {
+  try {
+    const { data, error } = await sb
+      .from('athlete_intake_forms')
+      .select('*')
+      .eq('session_token', _sessionToken)
+      .eq('status', 'draft')
+      .maybeSingle();
+    
+    if (error) {
+      console.warn('[intake] loadDraft error:', error.message);
+      return;
+    }
+    if (!data) return;
+    
+    _intakeId = data.id;
+    
+    // Hydrate form fields
+    hydrateForm(data);
+    
+    console.log('[intake] Wczytano draft', _intakeId);
+  } catch (e) {
+    console.error('[intake] loadDraft exception:', e);
+  }
+}
+
+function hydrateForm(d) {
+  if (d.full_name) document.getElementById('f_full_name').value = d.full_name;
+  if (d.email) document.getElementById('f_email').value = d.email;
+  if (d.phone) document.getElementById('f_phone').value = d.phone;
+  if (d.gender) document.getElementById('f_gender').value = d.gender;
+  if (d.birth_year) document.getElementById('f_birth_year').value = d.birth_year;
+  if (d.height_cm) document.getElementById('f_height').value = d.height_cm;
+  if (d.weight_kg) document.getElementById('f_weight').value = d.weight_kg;
+  if (d.blood_tests_status) setRadio('blood_tests', d.blood_tests_status);
+  if (d.current_injuries) document.getElementById('f_injuries').value = d.current_injuries;
+  if (d.chronic_conditions) document.getElementById('f_chronic').value = d.chronic_conditions;
+  if (d.running_since) setRadio('running_since', d.running_since);
+  if (d.km_per_week_now) setRadio('km_per_week', d.km_per_week_now);
+  if (d.running_regularity) setRadio('regularity', d.running_regularity);
+  if (d.longest_distance_km) document.getElementById('f_longest_km').value = d.longest_distance_km;
+  if (d.longest_distance_time) document.getElementById('f_longest_time').value = d.longest_distance_time;
+  if (d.pb_5k) document.getElementById('f_pb_5k').value = d.pb_5k;
+  if (d.pb_10k) document.getElementById('f_pb_10k').value = d.pb_10k;
+  if (d.pb_half) document.getElementById('f_pb_half').value = d.pb_half;
+  if (d.pb_marathon) document.getElementById('f_pb_marathon').value = d.pb_marathon;
+  if (d.preferred_terrain) setRadio('terrain', d.preferred_terrain);
+  if (d.sleep_hours) setRadio('sleep', d.sleep_hours);
+  if (d.sleep_bedtime) document.getElementById('f_bedtime').value = d.sleep_bedtime;
+  if (d.sleep_wakeup) document.getElementById('f_wakeup').value = d.sleep_wakeup;
+  if (d.work_hours_daily) document.getElementById('f_work_hours').value = d.work_hours_daily;
+  if (d.work_type) document.getElementById('f_work_type').value = d.work_type;
+  if (d.supplementation) document.getElementById('f_supplementation').value = d.supplementation;
+  if (d.diet_type) document.getElementById('f_diet').value = d.diet_type;
+  if (d.preferred_training_time && Array.isArray(d.preferred_training_time)) {
+    d.preferred_training_time.forEach(v => setCheckbox('training_time', v));
+  }
+  if (d.main_goal && Array.isArray(d.main_goal)) {
+    d.main_goal.forEach(v => setCheckbox('main_goal', v));
+  }
+  if (d.target_race_name) document.getElementById('f_target_race_name').value = d.target_race_name;
+  if (d.target_race_date) document.getElementById('f_target_race_date').value = d.target_race_date;
+  if (d.target_race_time) document.getElementById('f_target_race_time').value = d.target_race_time;
+  if (d.race_goals_year) document.getElementById('f_race_goals_year').value = d.race_goals_year;
+  if (d.strong_points) document.getElementById('f_strong_points').value = d.strong_points;
+  if (d.weak_points) document.getElementById('f_weak_points').value = d.weak_points;
+  if (d.main_blocker) setRadio('blocker', d.main_blocker);
+  if (d.training_days_per_week) document.getElementById('f_training_days').value = d.training_days_per_week;
+  if (d.gym_one_day_yes !== null) document.getElementById('f_gym_one_day').value = d.gym_one_day_yes ? 'yes' : 'no';
+  if (d.garmin_model) document.getElementById('f_garmin_model').value = d.garmin_model;
+  if (d.topics_to_avoid) document.getElementById('f_topics_avoid').value = d.topics_to_avoid;
+  if (d.preferred_communication) setRadio('communication', d.preferred_communication);
+  if (d.contact_frequency) setRadio('contact_freq', d.contact_frequency);
+  if (d.additional_message) document.getElementById('f_additional').value = d.additional_message;
+  if (d.blood_tests_screen_url) _bloodTestUrl = d.blood_tests_screen_url;
+}
+
+function setRadio(name, value) {
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (el) {
+    el.checked = true;
+    el.closest('.opt').classList.add('selected');
+  }
+}
+
+function setCheckbox(name, value) {
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if (el) {
+    el.checked = true;
+    el.closest('.opt').classList.add('selected');
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+// AUTO-SAVE
+// ════════════════════════════════════════════════════════════════════
+function setupAutoSave() {
+  document.addEventListener('input', () => debouncedSave());
+  document.addEventListener('change', () => debouncedSave());
+}
+
+function debouncedSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveDraft, 1200);
+}
+
+async function saveDraft() {
+  const payload = collectFormData('draft');
+  
+  try {
+    let result;
+    if (_intakeId) {
+      result = await sb.from('athlete_intake_forms').update(payload).eq('id', _intakeId).select('id').maybeSingle();
+    } else {
+      payload.session_token = _sessionToken;
+      result = await sb.from('athlete_intake_forms').insert(payload).select('id').maybeSingle();
+      if (result.data) _intakeId = result.data.id;
+    }
+    
+    if (result.error) {
+      console.warn('[intake] saveDraft error:', result.error.message);
+      return;
+    }
+    
+    showSaveIndicator();
+  } catch (e) {
+    console.error('[intake] saveDraft exception:', e);
+  }
+}
+
+function showSaveIndicator() {
+  const ind = document.getElementById('save-indicator');
+  ind.classList.add('show');
+  clearTimeout(window._indicatorTimer);
+  window._indicatorTimer = setTimeout(() => ind.classList.remove('show'), 1500);
+}
+
+// ════════════════════════════════════════════════════════════════════
+// COLLECT DATA
+// ════════════════════════════════════════════════════════════════════
+function collectFormData(status) {
+  const get = id => document.getElementById(id)?.value.trim() || null;
+  const getNum = id => {
+    const v = document.getElementById(id)?.value;
+    return v ? Number(v) : null;
+  };
+  const getRadio = name => {
+    const el = document.querySelector(`input[name="${name}"]:checked`);
+    return el ? el.value : null;
+  };
+  const getCheckboxes = name => {
+    return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(e => e.value);
+  };
+  
+  const gymVal = get('f_gym_one_day');
+  const visibleVal = getRadio('visible');
+  
+  return {
+    status: status,
+    full_name: get('f_full_name'),
+    email: get('f_email'),
+    phone: get('f_phone'),
+    gender: get('f_gender'),
+    birth_year: getNum('f_birth_year'),
+    height_cm: getNum('f_height'),
+    weight_kg: getNum('f_weight'),
+    blood_tests_status: getRadio('blood_tests'),
+    blood_tests_screen_url: _bloodTestUrl,
+    current_injuries: get('f_injuries'),
+    chronic_conditions: get('f_chronic'),
+    running_since: getRadio('running_since'),
+    km_per_week_now: getRadio('km_per_week'),
+    longest_distance_km: getNum('f_longest_km'),
+    longest_distance_time: get('f_longest_time'),
+    running_regularity: getRadio('regularity'),
+    pb_5k: get('f_pb_5k'),
+    pb_10k: get('f_pb_10k'),
+    pb_half: get('f_pb_half'),
+    pb_marathon: get('f_pb_marathon'),
+    preferred_terrain: getRadio('terrain'),
+    sleep_hours: getRadio('sleep'),
+    sleep_bedtime: get('f_bedtime'),
+    sleep_wakeup: get('f_wakeup'),
+    work_hours_daily: getNum('f_work_hours'),
+    work_type: get('f_work_type'),
+    supplementation: get('f_supplementation'),
+    diet_type: get('f_diet'),
+    preferred_training_time: getCheckboxes('training_time'),
+    main_goal: getCheckboxes('main_goal'),
+    target_race_name: get('f_target_race_name'),
+    target_race_date: get('f_target_race_date'),
+    target_race_time: get('f_target_race_time'),
+    race_goals_year: get('f_race_goals_year'),
+    strong_points: get('f_strong_points'),
+    weak_points: get('f_weak_points'),
+    main_blocker: getRadio('blocker'),
+    training_days_per_week: getNum('f_training_days'),
+    gym_one_day_yes: gymVal === 'yes' || gymVal === 'home' ? true : (gymVal === 'no' ? false : null),
+    has_hr_monitor: getRadio('hr_monitor') === 'yes' || getRadio('hr_monitor') === 'watch',
+    garmin_model: get('f_garmin_model'),
+    has_strava: ['yes_public','yes_private'].includes(getRadio('strava')),
+    visible_to_others: visibleVal === 'true' ? true : (visibleVal === 'false' ? false : null),
+    topics_to_avoid: get('f_topics_avoid'),
+    preferred_communication: getRadio('communication'),
+    contact_frequency: getRadio('contact_freq'),
+    additional_message: get('f_additional')
+  };
+}
+
+// ════════════════════════════════════════════════════════════════════
+// RADIO/CHECKBOX VISUALS
+// ════════════════════════════════════════════════════════════════════
+function setupRadioVisuals() {
+  document.addEventListener('change', (e) => {
+    if (e.target.matches('input[type="radio"]')) {
+      const name = e.target.name;
+      document.querySelectorAll(`input[name="${name}"]`).forEach(r => {
+        r.closest('.opt')?.classList.remove('selected');
+      });
+      e.target.closest('.opt')?.classList.add('selected');
+      
+      // Special: blood test upload visibility
+      if (name === 'blood_tests' && (e.target.value === 'recent_6mc' || e.target.value === 'over_year')) {
+        document.getElementById('blood-upload-wrap').style.display = 'block';
+      } else if (name === 'blood_tests') {
+        document.getElementById('blood-upload-wrap').style.display = 'none';
+      }
+    }
+    if (e.target.matches('input[type="checkbox"]') && e.target.closest('.opt')) {
+      if (e.target.checked) {
+        e.target.closest('.opt').classList.add('selected');
+      } else {
+        e.target.closest('.opt').classList.remove('selected');
+      }
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+// BLOOD TESTS UPLOAD
+// ════════════════════════════════════════════════════════════════════
+async function handleBloodUpload(files) {
+  if (!files || files.length === 0) return;
+  const file = files[0];
+  if (!file.type.startsWith('image/')) return;
+  if (file.size > 8 * 1024 * 1024) {
+    alert('Maksymalnie 8 MB');
+    return;
+  }
+  
+  const preview = document.getElementById('blood-preview');
+  preview.innerHTML = '<div class="ph"><div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:var(--muted);">⏳</div></div>';
+  
+  try {
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = 'intake_blood/' + _sessionToken + '_' + Date.now() + '.' + ext;
+    const { error } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: true, contentType: file.type });
+    if (error) {
+      alert('Błąd uploadu: ' + error.message);
+      preview.innerHTML = '';
+      return;
+    }
+    const { data } = sb.storage.from('training-screenshots').getPublicUrl(path);
+    _bloodTestUrl = data.publicUrl;
+    
+    preview.innerHTML = `<div class="ph">
+      <img src="${_bloodTestUrl}" alt="Screen badań">
+      <button type="button" onclick="removeBloodScreen()">✕</button>
+    </div>`;
+    
+    debouncedSave();
+  } catch (e) {
+    console.error('blood upload error:', e);
+    preview.innerHTML = '';
+  }
+}
+
+function removeBloodScreen() {
+  _bloodTestUrl = null;
+  document.getElementById('blood-preview').innerHTML = '';
+  document.getElementById('f_blood_file').value = '';
+  debouncedSave();
+}
+
+// ════════════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════════════
+function startForm() {
+  document.getElementById('intro-page').style.display = 'none';
+  document.getElementById('form-wrap').style.display = 'block';
+  document.getElementById('progress-wrap').style.display = 'block';
+  showSection(1);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showSection(n) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  const sec = document.querySelector(`.section[data-section="${n}"]`);
+  if (sec) sec.classList.add('active');
+  _currentSection = n;
+  updateProgress();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function updateProgress() {
+  const pct = Math.round(((_currentSection - 1) / TOTAL_SECTIONS) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-percent').textContent = pct + '%';
+  document.getElementById('progress-label').textContent = `Sekcja ${_currentSection} z ${TOTAL_SECTIONS}`;
+}
+
+function nextSection(currentNum) {
+  if (!validateSection(currentNum)) return;
+  if (currentNum < TOTAL_SECTIONS) {
+    showSection(currentNum + 1);
+  }
+}
+
+function prevSection(currentNum) {
+  if (currentNum > 1) showSection(currentNum - 1);
+}
+
+function validateSection(n) {
+  // Wyczyść poprzednie błędy
+  document.querySelectorAll('.field').forEach(f => f.classList.remove('error'));
+  document.querySelectorAll('.field-error').forEach(e => e.classList.remove('show'));
+  
+  let valid = true;
+  
+  function require(id, type='value') {
+    const el = document.getElementById(id);
+    if (!el) return true;
+    const v = el.value.trim();
+    if (!v) {
+      el.closest('.field').classList.add('error');
+      el.closest('.field').querySelector('.field-error')?.classList.add('show');
+      valid = false;
+      return false;
+    }
+    return true;
+  }
+  
+  function requireRadio(name, parentSelector) {
+    const checked = document.querySelector(`input[name="${name}"]:checked`);
+    if (!checked) {
+      const field = document.querySelector(parentSelector);
+      if (field) {
+        field.classList.add('error');
+        field.querySelector('.field-error')?.classList.add('show');
+      }
+      valid = false;
+      return false;
+    }
+    return true;
+  }
+  
+  if (n === 1) {
+    require('f_full_name');
+    require('f_email');
+    require('f_phone');
+    require('f_gender');
+    require('f_birth_year');
+  } else if (n === 3) {
+    requireRadio('running_since', '.section[data-section="3"] .field:nth-of-type(1)');
+    requireRadio('km_per_week', '.section[data-section="3"] .field:nth-of-type(2)');
+  } else if (n === 5) {
+    const goals = document.querySelectorAll('input[name="main_goal"]:checked');
+    if (goals.length === 0) {
+      const field = document.querySelector('.section[data-section="5"] .field:nth-of-type(1)');
+      field?.classList.add('error');
+      field?.querySelector('.field-error')?.classList.add('show');
+      valid = false;
+    }
+  } else if (n === 6) {
+    require('f_training_days');
+  }
+  
+  return valid;
+}
+
+// ════════════════════════════════════════════════════════════════════
+// SUBMIT
+// ════════════════════════════════════════════════════════════════════
+async function submitForm() {
+  // Walidacja zgód
+  const consentData = document.getElementById('consent_data').checked;
+  const consentHealth = document.getElementById('consent_health').checked;
+  const consentMarketing = document.getElementById('consent_marketing').checked;
+  
+  const errorEl = document.getElementById('final-error');
+  if (!consentData || !consentHealth) {
+    errorEl.classList.add('show');
+    errorEl.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+  errorEl.classList.remove('show');
+  
+  // Zapisz finalnie jako submitted
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Wysyłam...';
+  
+  const payload = collectFormData('submitted');
+  payload.consent_data_processing = consentData;
+  payload.consent_health_data = consentHealth;
+  payload.consent_marketing = consentMarketing;
+  payload.consent_at = new Date().toISOString();
+  payload.submitted_at = new Date().toISOString();
+  
+  try {
+    let result;
+    if (_intakeId) {
+      result = await sb.from('athlete_intake_forms').update(payload).eq('id', _intakeId);
+    } else {
+      payload.session_token = _sessionToken;
+      result = await sb.from('athlete_intake_forms').insert(payload);
+    }
+    
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+    
+    // Wyślij maila do Was przez Formspree (opcjonalnie - można dodać)
+    // ...
+    
+    // Wyczyść local storage żeby user nie miał draftu na kolejnej wizycie
+    localStorage.removeItem(STORAGE_KEY);
+    
+    // Pokaż success page
+    document.getElementById('form-wrap').style.display = 'none';
+    document.getElementById('progress-wrap').style.display = 'none';
+    document.getElementById('success-page').classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+    
+  } catch (e) {
+    console.error('[intake] submit error:', e);
+    alert('Coś poszło nie tak: ' + e.message + '\n\nNapisz na biegamy.run@gmail.com');
+    btn.disabled = false;
+    btn.textContent = 'Wyślij ankietę ✓';
+  }
+}
+</script>
+
+</body>
+</html>
