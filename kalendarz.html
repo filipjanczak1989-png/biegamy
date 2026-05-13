@@ -1,7 +1,7 @@
 <!DOCTYPE html>
+<!-- BiegaMy build: 2026-05-13T-wieczor-3d · BUG2 prefill+update log z istniejacego + BUG3 edycja log-bez-planu -->
 <html lang="pl">
 <head>
-<!-- BiegaMy build: 2026-05-13T-wieczor-3c · SELECT training_logs + comment/elevation_gain/strava_link -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- PWA Meta Tags -->
@@ -2852,19 +2852,49 @@ function openLogModal(e, ds, idx) {
   _logTrainingId = t?._id || null;
   _logDate2 = ds;
   _logType2 = t?.type || 'Bieg spokojny';
+
+  // ✨ BUG 2 fix: sprawdź czy log dla tej daty już istnieje
+  // window._calLogs[ds] zawiera tylko logi BIEŻĄCEGO użytkownika (athlete) lub wybranego zawodnika (coach)
+  // — to wystarczy bo zawodnik widzi tylko swoje logi (RLS)
+  const existingLog = (window._calLogs && window._calLogs[ds] && window._calLogs[ds][0]) || null;
+  window._existingLogId = existingLog ? existingLog.id : null;
+
   // Reset pól
   ['lm-dist','lm-time','lm-pace','lm-hr','lm-strava','lm-comment'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
-  // Prefill z planu trenera
-  if (t) {
+
+  // Prefill — PRIORYTET istniejący log > plan trenera
+  if (existingLog) {
+    const distEl = document.getElementById('lm-dist');
+    const paceEl = document.getElementById('lm-pace');
+    const timeEl = document.getElementById('lm-time');
+    const hrEl = document.getElementById('lm-hr');
+    const stravaEl = document.getElementById('lm-strava');
+    const commentEl = document.getElementById('lm-comment');
+    if (distEl && existingLog.distance_km) distEl.value = existingLog.distance_km;
+    if (paceEl && existingLog.pace) paceEl.value = existingLog.pace;
+    if (timeEl && existingLog.duration) timeEl.value = existingLog.duration;
+    if (hrEl && existingLog.heart_rate) hrEl.value = existingLog.heart_rate;
+    if (stravaEl && existingLog.strava_link) stravaEl.value = existingLog.strava_link;
+    if (commentEl && existingLog.comment) commentEl.value = existingLog.comment;
+    // Typ z logu zamiast z planu
+    if (existingLog.training_type) _logType2 = existingLog.training_type;
+    // Feel z logu
+    _logFeel = existingLog.feel || 'mid';
+  } else if (t) {
+    // Prefill z planu trenera (tylko jak nie ma logu)
     const distEl = document.getElementById('lm-dist');
     const paceEl = document.getElementById('lm-pace');
     const timeEl = document.getElementById('lm-time');
     if (distEl && (t.dist || t.distance_km)) distEl.value = t.dist || t.distance_km;
     if (paceEl && t.pace) paceEl.value = t.pace;
     if (timeEl && (t.time || t.duration_min)) timeEl.value = t.time || t.duration_min;
+    _logFeel = 'mid';
+  } else {
+    _logFeel = 'mid';
   }
+
   // Zaznacz typ na pillsach
   document.querySelectorAll('.type-pill').forEach(b => {
     const active = b.textContent.trim().includes(_logType2) || b.onclick?.toString().includes("'" + _logType2 + "'");
@@ -2872,22 +2902,33 @@ function openLogModal(e, ds, idx) {
     b.style.borderColor = active ? 'var(--accent)' : '';
     b.style.color = active ? 'var(--accent)' : '';
   });
-  _logFeel = 'mid';
   document.querySelectorAll('.feel-log-btn').forEach(b => {
-    b.style.borderColor = b.dataset.feel === 'mid' ? 'rgba(232,184,64,0.4)' : 'var(--border)';
+    b.classList.remove('active-good','active-mid','active-bad');
+    if (b.dataset.feel === _logFeel) b.classList.add('active-' + _logFeel);
   });
   const ocrLabel = document.getElementById('ocr-file-label');
   if (ocrLabel) ocrLabel.textContent = 'AI odczyta dane automatycznie';
   const ocrArea = document.getElementById('ocr-upload-area');
   if (ocrArea) ocrArea.style.borderColor = 'var(--border)';
-  // Resetuj type pills do domyślnego
+
+  // Resetuj type pills do typu logu/planu/domyślnego
   document.querySelectorAll('.lm-type-pill').forEach((b,i) => {
-    b.style.background = i===0 ? 'rgba(80,144,224,0.12)' : 'transparent';
-    b.style.borderColor = i===0 ? 'rgba(80,144,224,0.4)' : 'var(--border)';
-    b.style.color = i===0 ? '#5090e0' : 'var(--muted)';
+    const lbl = (b.textContent||'').trim();
+    const isActive = lbl === _logType2 || (i === 0 && !_logType2);
+    b.style.background = isActive ? 'rgba(80,144,224,0.12)' : 'transparent';
+    b.style.borderColor = isActive ? 'rgba(80,144,224,0.4)' : 'var(--border)';
+    b.style.color = isActive ? '#5090e0' : 'var(--muted)';
   });
-  window._logType2 = 'Bieg spokojny';
-  document.getElementById('log-modal-title').textContent = '📝 Log: ' + (_logType2 || 'Trening');
+  window._logType2 = _logType2;
+
+  // ✨ Title zmienia się w zależności czy edytujemy czy logujemy nowy
+  const titleEl = document.getElementById('log-modal-title');
+  if (titleEl) {
+    titleEl.textContent = existingLog
+      ? '✏️ Edytuj log: ' + (_logType2 || 'Trening')
+      : '📝 Log: ' + (_logType2 || 'Trening');
+  }
+
   const modal = document.getElementById('log-modal-bg');
   modal.style.opacity = '0';
   modal.style.display = 'flex';
@@ -2898,6 +2939,7 @@ function openLogModal(e, ds, idx) {
 }
 
 function closeLogModal() {
+  window._existingLogId = null; // ✨ reset żeby kolejne otwarcie miało czysty stan
   const modal = document.getElementById('log-modal-bg');
   modal.style.opacity = '0';
   setTimeout(() => { modal.style.display = 'none'; }, 200);
@@ -2981,16 +3023,33 @@ async function saveLog() {
   if (!session) { notify('Zaloguj się'); return; }
   const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   if (!ath) { notify('Błąd konta'); return; }
-  await sb.from('training_logs').insert({
-    athlete_id: ath.id,
-    training_type: _logType2,
-    distance_km: dist,
-    duration: time,
-    pace, heart_rate: hr,
-    strava_link: strava,
-    comment, feel: _logFeel,
-    logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
-  });
+
+  // ✨ BUG 2 fix: UPDATE istniejący log albo INSERT nowy
+  const existingLogId = window._existingLogId || null;
+  if (existingLogId) {
+    const { error: updErr } = await sb.from('training_logs').update({
+      training_type: _logType2,
+      distance_km: dist,
+      duration: time,
+      pace, heart_rate: hr,
+      strava_link: strava,
+      comment, feel: _logFeel
+    }).eq('id', existingLogId);
+    if (updErr) { notify('Błąd: ' + updErr.message); return; }
+  } else {
+    const { error: insErr } = await sb.from('training_logs').insert({
+      athlete_id: ath.id,
+      training_type: _logType2,
+      distance_km: dist,
+      duration: time,
+      pace, heart_rate: hr,
+      strava_link: strava,
+      comment, feel: _logFeel,
+      logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
+    });
+    if (insErr) { notify('Błąd: ' + insErr.message); return; }
+  }
+
   // Oznacz trening jako wykonany i zaktualizuj dystans z logu
   if (_logTrainingId) {
     const updateData = { status: 'done' };
@@ -3012,10 +3071,14 @@ async function saveLog() {
     time: time || '',
     type: _logType2 || '',
   };
+  window._existingLogId = null; // reset
   closeLogModal();
   await loadTrainingsFromDB();
-  notify('Log zapisany ✓');
-  setTimeout(() => { if (window.PRS) window.PRS.launch(_prsKal); }, 400);
+  notify(existingLogId ? 'Log zaktualizowany ✓' : 'Log zapisany ✓');
+  // PRS pokaż tylko dla NOWEGO loga (nie dla edycji)
+  if (!existingLogId) {
+    setTimeout(() => { if (window.PRS) window.PRS.launch(_prsKal); }, 400);
+  }
 }
 
 // ── DRAG & DROP ───────────────────────────────────────────────────
@@ -4461,9 +4524,11 @@ function _openDayScreen(ds) {
             setTimeout(() => {
               const items = trainings[dsv] || [];
               if (items.length > 0) {
+                // Jest plan → edytuj plan (modal-planu z prefill)
                 openModal(dsv, 0);
               } else {
-                openModal(dsv);
+                // ✨ BUG 3 fix: brak planu, ale jest log → edytuj log (openLogModal z prefill)
+                openLogModal({stopPropagation:()=>{}}, dsv, 0);
               }
             }, 250);
           });
