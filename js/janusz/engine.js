@@ -108,8 +108,9 @@
 
       // 2. Załaduj eventy z JSON
       try {
-        const res = await fetch('js/janusz/data/events.json');
+        const res = await fetch('js/janusz/data/events.json?v=060&t=' + Date.now(), { cache: 'no-store' });
         JR.events = await res.json();
+        console.log('[JR v0.6] Załadowano eventów:', JR.events.length);
       } catch (e) {
         console.warn('[JR] Nie udało się załadować events.json, używam fallback', e);
         JR.events = getFallbackEvents();
@@ -344,6 +345,19 @@
   }
 
   async function initShopAndAchievements() {
+    // Sprawdź day reset (czy minęło >18h od ostatniego biegu)
+    try {
+      await SB.rpc('jr_check_day_reset');
+    } catch (e) { console.warn('[JR] day reset check', e); }
+
+    // Załaduj dostępność akcji życiowych
+    if (JR.actions && JR.actions.canPerform) {
+      try {
+        JR.actionsAvailable = await JR.actions.canPerform(SB);
+        console.log('[JR v0.6] Akcje dostępne:', JR.actionsAvailable);
+      } catch (e) { console.warn('[JR actions] init', e); }
+    }
+
     if (JR.shop && JR.shop.ensureStarterShoes && JR.athlete) {
       try {
         const added = await JR.shop.ensureStarterShoes(SB, JR.athlete.id);
@@ -364,6 +378,9 @@
         }
       } catch (e) { console.warn('[JR ach] checkAll', e); }
     }
+
+    // Re-render po załadowaniu wszystkiego (dla aktualnego stanu)
+    renderGame();
   }
 
   async function refreshPlayerState() {
@@ -583,15 +600,46 @@
     document.getElementById('kapital').textContent = `${JR.player.kapital} zł`;
 
     const a = JR.athlete;
+    const p = JR.player;
     const tempoMin = Math.floor(a.tempo_seconds / 60);
     const tempoSec = String(a.tempo_seconds % 60).padStart(2, '0');
+
+    // ==========================================================
+    // STAN PSYCHICZNY — kluczowy nowy komponent v0.6
+    // ==========================================================
+    const state = JR.states ? JR.states.compute(a, p) : { key: 'normalnie', label: '😐 Stan', tone: 'neutral', desc: '', flavor: ['—'] };
+    const stateFlavor = JR.states ? JR.states.getFlavor(state) : '';
+    const stateCinematic = state.cinematic
+      ? `<div class="state-cinematic" style="background-image:url('assets/janusz/${state.cinematic}')"></div>`
+      : '';
+
+    // Sprawdź dostępność biegów
+    const shortRunCheck = JR.states ? JR.states.canRun(a, p, 'short') : { allowed: true };
+    const mediumRunCheck = JR.states ? JR.states.canRun(a, p, 'medium') : { allowed: true };
+
+    // Sprawdź dostępność akcji życiowych (z cache JR.actionsAvailable)
+    const av = JR.actionsAvailable || {};
 
     const content = document.getElementById('game-content');
     content.innerHTML = `
       <!-- Slot na sekcję "nieodebrane treningi" — ładuje się asynchronicznie -->
       <div id="workouts-slot"></div>
 
-      <div class="athlete-card">
+      <!-- STAN PSYCHICZNY — premium card -->
+      <div class="state-card state-tone-${state.tone}">
+        ${stateCinematic}
+        <div class="state-body">
+          <div class="state-header">
+            <div class="state-label">${state.label}</div>
+            <div class="state-day">Dzień ${p.current_day || 1}</div>
+          </div>
+          <div class="state-flavor">${stateFlavor}</div>
+          ${state.desc ? `<div class="state-desc">${state.desc}</div>` : ''}
+        </div>
+      </div>
+
+      <!-- Karta Janusza ze statystykami (kompaktowa) -->
+      <div class="athlete-card athlete-card-compact">
         <div class="athlete-header">
           <div class="athlete-avatar" style="background-image:url('assets/janusz/janusz-portrait.webp')"></div>
           <div class="athlete-info">
@@ -624,27 +672,28 @@
             <div class="stat-value">${a.determinacja}/10</div>
           </div>
           <div class="stat">
-            <div class="stat-label">Łącznie km</div>
-            <div class="stat-value">${Number(a.total_km).toFixed(1)} km</div>
+            <div class="stat-label">Wiedza</div>
+            <div class="stat-value">${a.wiedza || 0}/10</div>
           </div>
         </div>
       </div>
 
-      <div class="section-title">Co robisz, trenerze?</div>
+      <!-- SEKCJA 1: TRENING -->
+      <div class="section-title">🏃 Trening</div>
       <div class="actions">
-        <button class="action-btn" id="btn-run-short" ${a.energia < 25 ? 'disabled' : ''}>
+        <button class="action-btn" id="btn-run-short" ${!shortRunCheck.allowed ? 'disabled' : ''}>
           <span class="action-icon">🥔</span>
           <span class="action-text">
             <strong>Wyślij Janusza na pole (200 m)</strong>
-            <small>Krótki bieg · −25 energii · ~8 sekund</small>
+            <small>${shortRunCheck.allowed ? 'Krótki bieg · −25 energii · ~8 sekund' : shortRunCheck.message}</small>
           </span>
         </button>
 
-        <button class="action-btn" id="btn-run-medium" ${a.energia < 45 || a.kondycja < 2 ? 'disabled' : ''}>
+        <button class="action-btn" id="btn-run-medium" ${!mediumRunCheck.allowed ? 'disabled' : ''}>
           <span class="action-icon">🌅</span>
           <span class="action-text">
             <strong>Dwa kółka wokół pola (400 m)</strong>
-            <small>Średni bieg · −45 energii · wymaga Kondycja ≥ 2</small>
+            <small>${mediumRunCheck.allowed ? 'Średni bieg · −45 energii · wymaga Kondycja ≥ 2' : mediumRunCheck.message}</small>
           </span>
         </button>
 
@@ -655,7 +704,22 @@
             <small>+18 energii · −8 morale (mama gada)</small>
           </span>
         </button>
+      </div>
 
+      <!-- SEKCJA 2: ŻYCIE (akcje społeczne) -->
+      <div class="section-title">💝 Życie</div>
+      <div class="actions">
+        ${renderLifeActionButton('anna_call', av)}
+        ${renderLifeActionButton('mama_prayer', av)}
+        ${renderLifeActionButton('mietek_drink', av)}
+        ${renderLifeActionButton('burek_walk', av)}
+        ${(a.total_runs >= 5) ? renderLifeActionButton('read', av) : ''}
+        ${(a.runs_today >= 3 || a.energia < 20) ? renderLifeActionButton('sleep', av) : ''}
+      </div>
+
+      <!-- SEKCJA 3: SKLEP I TROFEA -->
+      <div class="section-title">🏆 Postęp</div>
+      <div class="actions">
         <button class="action-btn" id="btn-shop">
           <span class="action-icon">🏪</span>
           <span class="action-text">
@@ -679,12 +743,125 @@
       </div>
     `;
 
-    // Eventy na przyciski
-    document.getElementById('btn-run-short')?.addEventListener('click', () => startRun('short'));
-    document.getElementById('btn-run-medium')?.addEventListener('click', () => startRun('medium'));
+    // Eventy na przyciski biegowe
+    document.getElementById('btn-run-short')?.addEventListener('click', () => {
+      if (!shortRunCheck.allowed) {
+        showBlockedRunModal(state, shortRunCheck);
+        return;
+      }
+      startRun('short', shortRunCheck.bonusMultiplier);
+    });
+    document.getElementById('btn-run-medium')?.addEventListener('click', () => {
+      if (!mediumRunCheck.allowed) {
+        showBlockedRunModal(state, mediumRunCheck);
+        return;
+      }
+      startRun('medium', mediumRunCheck.bonusMultiplier);
+    });
     document.getElementById('btn-rest')?.addEventListener('click', rest);
     document.getElementById('btn-shop')?.addEventListener('click', openShop);
     document.getElementById('btn-trophies')?.addEventListener('click', openTrophies);
+
+    // Eventy na akcje życiowe
+    document.querySelectorAll('[data-action-key]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.actionKey;
+        if (!btn.disabled) performLifeAction(key);
+      });
+    });
+  }
+
+  // ==========================================================
+  // LIFE ACTIONS — pomocnicze
+  // ==========================================================
+  function renderLifeActionButton(key, available) {
+    if (!JR.actions) return '';
+    const action = JR.actions.get(key);
+    if (!action) return '';
+
+    const isAvailable = key === 'sleep' ? true : (available[key] === true);
+    const nextAt = available[key.replace('_call', '_next').replace('_prayer', '_next').replace('_drink', '_next').replace('_walk', '_next').replace('read', 'read_next')];
+    const cooldownText = !isAvailable && nextAt ? JR.actions.formatCooldown(nextAt) : '';
+    const sublabel = isAvailable ? action.sublabel : `⏳ Dostępne ${cooldownText}`;
+
+    return `
+      <button class="action-btn ${isAvailable ? '' : 'action-cooldown'}" data-action-key="${key}" ${isAvailable ? '' : 'disabled'}>
+        <span class="action-icon">${action.icon}</span>
+        <span class="action-text">
+          <strong>${action.label}</strong>
+          <small>${sublabel}</small>
+        </span>
+      </button>
+    `;
+  }
+
+  async function performLifeAction(key) {
+    if (!JR.actions) return;
+    const action = JR.actions.get(key);
+    if (!action) return;
+
+    const result = await JR.actions.perform(SB, key);
+    if (!result.ok) {
+      const errMap = {
+        'cooldown': 'Ta akcja jest jeszcze w cooldown.',
+        'no_player': 'Brak profilu gracza.',
+        'unknown_action': 'Nieznana akcja.'
+      };
+      toast(errMap[result.error] || `Błąd: ${result.error}`, 'danger');
+      return;
+    }
+
+    // Odśwież dane
+    await refreshPlayerState();
+    JR.actionsAvailable = await JR.actions.canPerform(SB);
+
+    // Pokaż event modal z flavor textem
+    const flavor = JR.actions.getFlavor(key);
+    const event = {
+      text: flavor,
+      name: action.speaker,
+      avatar: action.avatar,
+      effects: action.effects,
+      cinematic: action.cinematic
+    };
+    showEventModal(event, true);
+
+    // Specjalny case: sleep → reset stanu (nowy dzień)
+    if (key === 'sleep') {
+      toast(`💤 Dzień ${result.current_day}. Nowy poranek.`, 'success');
+    }
+  }
+
+  function showBlockedRunModal(state, check) {
+    const modal = document.getElementById('event-modal');
+    const content = document.getElementById('event-modal-content');
+
+    const cinematicHtml = state.cinematic
+      ? `<div class="event-cinematic"><img src="assets/janusz/${state.cinematic}" onerror="this.parentElement.style.display='none'" alt="${state.label}"></div>`
+      : '';
+
+    let janusz_says = check.message;
+    if (check.reason === 'zalamany') {
+      janusz_says = 'Nie idę. Nie ma sensu. Mietek się tylko śmieje, Anna gdzieś w mieście, a ja co? Latam wokół ziemniaków jak idiota?<br><br><em>Pomóż mu — zadzwoń do Anny, pomódl się z mamą, zrób cokolwiek.</em>';
+    } else if (check.reason === 'wypalony') {
+      janusz_says = 'Zrobiłem dziś 3 biegi. Nogi mówią dość. Mózg też. <strong>Trzeba spać.</strong>';
+    }
+
+    content.innerHTML = `
+      ${cinematicHtml}
+      <div class="dialog-header">
+        <div class="dialog-avatar" style="background-image:url('assets/janusz/janusz-portrait.webp')"></div>
+        <div class="dialog-name">JANUSZ</div>
+      </div>
+      <div class="dialog-text">${janusz_says}</div>
+      <div class="dialog-choices">
+        <button class="choice-btn" id="event-close">Rozumiem ▸</button>
+      </div>
+    `;
+    modal.classList.add('active');
+    document.getElementById('event-close').addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
   }
 
   // ==========================================================
@@ -747,10 +924,10 @@
       }
 
       return `
-        <div class="workout-card" style="${equipped ? 'border-color:var(--success);border-left-color:var(--success);' : ''}">
-          <div style="display:flex;gap:1rem;align-items:stretch;">
-            <div style="width:130px;min-height:130px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;background-image:url('assets/janusz/${it.image_file}');background-size:90% auto;background-position:center center;background-repeat:no-repeat;align-self:stretch;"></div>
-            <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+        <div class="workout-card shop-item-card" style="${equipped ? 'border-color:var(--success);border-left-color:var(--success);' : ''}">
+          <div class="shop-item-grid">
+            <div class="shop-item-image" style="background-image:url('assets/janusz/${it.image_file}');"></div>
+            <div class="shop-item-info">
               <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:0.4rem;">
                 <strong style="color:var(--cream);">${escapeHtml(it.name)}</strong>
                 <span class="workout-type">${tempoLabel}</span>
@@ -1005,9 +1182,10 @@
   // ==========================================================
   // BIEG — CINEMATIC RUN SCENE v0.2
   // ==========================================================
-  async function startRun(type) {
+  async function startRun(type, bonusMultiplier) {
     if (JR.runInProgress) return;
     JR.runInProgress = true;
+    JR.stateBonusMultiplier = bonusMultiplier || 1.0;
 
     const config = {
       short: { distance: 0.2, energyCost: 25, duration: RUN_REAL_DURATION_MS, title: 'Bieg po polu', subtitle: '200 metrów wokół pola ziemniaków' },
@@ -1100,17 +1278,21 @@
     await sleep(1200);
 
     // Aktualizuj statystyki
+    const bonusMult = JR.stateBonusMultiplier || 1.0;
     const updates = {
       energia: newEnergia,
       energia_updated_at: new Date().toISOString(),
-      total_runs: JR.athlete.total_runs + 1
+      total_runs: JR.athlete.total_runs + 1,
+      runs_today: (JR.athlete.runs_today || 0) + 1
     };
 
     if (completed) {
       updates.total_km = Number(JR.athlete.total_km) + config.distance;
       updates.longest_run_km = Math.max(Number(JR.athlete.longest_run_km), config.distance);
-      if (Math.random() < 0.18) updates.kondycja = JR.athlete.kondycja + 1;
-      updates.morale = Math.min(100, JR.athlete.morale + 2);
+      // Bonus multiplier wpływa na szansę kondycji i morale gain
+      if (Math.random() < (0.18 * bonusMult)) updates.kondycja = JR.athlete.kondycja + 1;
+      const moraleGain = Math.round(2 * bonusMult);
+      updates.morale = Math.min(100, JR.athlete.morale + moraleGain);
     } else {
       updates.morale = Math.max(0, JR.athlete.morale - 4);
     }
