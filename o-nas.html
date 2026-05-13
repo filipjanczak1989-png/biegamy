@@ -267,14 +267,14 @@ nav.scrolled{border-bottom-color:var(--line);}
   bottom:24px;
   right:24px;
   z-index:1000;
-  padding:14px 22px;
+  padding:16px 24px;
   background:var(--accent);
   color:var(--paper);
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;letter-spacing:0.18em;text-transform:uppercase;font-weight:500;
+  font-size:12px;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;
   border-radius:50px;
-  box-shadow:0 8px 24px rgba(232,86,30,0.4), 0 2px 8px rgba(0,0,0,0.3);
-  display:inline-flex;align-items:center;gap:8px;
+  box-shadow:0 8px 24px rgba(232,86,30,0.45), 0 2px 8px rgba(0,0,0,0.3);
+  display:inline-flex;align-items:center;gap:10px;
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   text-decoration:none;
   opacity:0;
@@ -292,7 +292,7 @@ nav.scrolled{border-bottom-color:var(--line);}
 }
 .sticky-login svg{width:14px;height:14px;}
 @media(max-width:640px){
-  .sticky-login{bottom:16px;right:16px;padding:12px 18px;font-size:10px;}
+  .sticky-login{bottom:16px;right:16px;padding:12px 18px;font-size:10px;letter-spacing:0.12em;}
 }
 
 /* HERO RIGHT - photo + stats overlay */
@@ -1056,7 +1056,7 @@ footer{
     </p>
     <div class="hero-actions">
       <a href="#formularz" class="btn-primary"><span>Zacznij z nami</span> <span>→</span></a>
-      <a href="index.html" class="btn-secondary"><span>Mam już konto</span> <span>↗</span></a>
+      <a href="index.html" class="btn-secondary"><span>Zaloguj do aplikacji</span> <span>↗</span></a>
       <a href="#oferta" class="btn-ghost">Oferta <span>↓</span></a>
     </div>
 
@@ -1505,7 +1505,7 @@ footer{
 <!-- Floating "Mam konto / Zaloguj" — widoczny po przescrollowaniu hero -->
 <a href="index.html" class="sticky-login" id="sticky-login" aria-label="Zaloguj się do aplikacji">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-  <span>Mam konto</span>
+  <span>Zaloguj do aplikacji</span>
 </a>
 
 <script>
