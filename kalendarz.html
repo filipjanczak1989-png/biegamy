@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+<!-- BiegaMy build: 2026-05-13T-wieczor-3c · SELECT training_logs + comment/elevation_gain/strava_link -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <!-- PWA Meta Tags -->
@@ -2344,7 +2345,9 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type').not('training_type', 'like', '__badge__%').order('logged_at');
+  // NOTE: `calories` świadomie pominięte — pole nie jest nigdzie zapisywane,
+  // potencjalnie nie istnieje w bazie. Render w _openDayScreen i tak ma fallback (puste).
+  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type, comment, elevation_gain, strava_link').not('training_type', 'like', '__badge__%').order('logged_at');
   if (_urlRole === 'athlete') {
     const { data: ath2 } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
