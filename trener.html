@@ -364,6 +364,21 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div id="fresh-feedbacks-list"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- 📋 NOWE ZGŁOSZENIA Z ANKIETY (intake_forms)                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="intake-forms-wrap" class="fi" style="display:none;margin:0 16px 16px;">
+  <div class="sec-hdr" style="margin-bottom:10px;">
+    <div class="sec-title" style="display:flex;align-items:center;gap:8px;">
+      <span style="color:#8b5cf6;">📋</span>
+      <span>Nowe zgłoszenia</span>
+      <span id="intake-forms-count" style="background:#8b5cf6;color:#fff;border-radius:10px;padding:1px 8px;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;letter-spacing:0.04em;">0</span>
+    </div>
+    <button class="sec-action" onclick="loadIntakeForms()" style="color:#8b5cf6;">↻ Odśwież</button>
+  </div>
+  <div id="intake-forms-list"></div>
+</div>
+
 <div class="sec-hdr fi"><div class="sec-title">Zawodnicy</div><div style="display:flex;gap:8px;"><button class="sec-action" onclick="openTemplateModal()" style="color:var(--green);">📋 Szablon</button><button class="sec-action" onclick="openAthModal()">+ Dodaj</button></div></div>
 <div class="ath-list" id="ath-list"></div>
 
@@ -1504,7 +1519,7 @@ window._tpHandleFiles = async function(files) {
     if (file.size > 8 * 1024 * 1024) { showToast('Max 8 MB per screen'); continue; }
     
     const previewId = 'tp-prev-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
-    wrap.insertAdjacentHTML('beforeend', `<div id="${previewId}" style="position:relative;width:48px;height:48px;border-radius:5px;background:rgba(0,0,0,0.4);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;"><div style="font-size:9px;color:var(--muted);">⏳</div></div>`);
+    wrap.insertAdjacentHTML('beforeend', `<div id="${previewId}" style="position:relative;width:72px;height:72px;border-radius:8px;background:rgba(139,92,246,0.1);border:2px dashed rgba(139,92,246,0.4);display:flex;align-items:center;justify-content:center;overflow:hidden;"><div style="font-size:11px;color:#8b5cf6;font-family:'DM Mono',monospace;animation:tpspin 1s linear infinite;">⏳</div></div>`);
     
     try {
       const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
@@ -1521,11 +1536,21 @@ window._tpHandleFiles = async function(files) {
       
       const prev = document.getElementById(previewId);
       if (prev) {
-        prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="window.open('${url}','_blank')" /><button type="button" onclick="window._tpRemoveAttachment('${url}','${previewId}')" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.75);border:none;color:#fff;width:16px;height:16px;border-radius:50%;cursor:pointer;font-size:9px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;">✕</button>`;
+        prev.style.border = '2px solid rgba(34,197,94,0.6)';
+        prev.style.background = 'transparent';
+        prev.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;" onclick="window.open('${url}','_blank')" /><button type="button" onclick="window._tpRemoveAttachment('${url}','${previewId}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.85);border:none;color:#fff;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;font-weight:bold;">✕</button><div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(34,197,94,0.85));color:#fff;font-size:8px;text-align:center;padding:8px 2px 2px;font-family:'DM Mono',monospace;letter-spacing:0.04em;">✓ DODANO</div>`;
       }
+      
+      // Toast sukces
+      showToast(`✓ Screen ${window._tpAttachmentUrls.length}/3 dodany`);
+      
+      // Update countera w label
+      const counterEl = document.getElementById('tp-coach-counter');
+      if (counterEl) counterEl.textContent = `(${window._tpAttachmentUrls.length}/3)`;
     } catch (err) {
       console.error('tp upload error:', err);
       document.getElementById(previewId)?.remove();
+      showToast('Błąd uploadu');
     }
   }
 };
@@ -1533,6 +1558,9 @@ window._tpHandleFiles = async function(files) {
 window._tpRemoveAttachment = function(url, previewId) {
   window._tpAttachmentUrls = window._tpAttachmentUrls.filter(u => u !== url);
   document.getElementById(previewId)?.remove();
+  const counterEl = document.getElementById('tp-coach-counter');
+  if (counterEl) counterEl.textContent = window._tpAttachmentUrls.length > 0 ? `(${window._tpAttachmentUrls.length}/3)` : '';
+  showToast('Screen usunięty');
 };
 
 // ── Pobierz race_goals zawodnika i pokaż jako klikalne kafelki ─────────
@@ -2692,6 +2720,8 @@ async function loadAthletes() {
   
   // Załaduj świeże opinie zawodników (po loadAthletes — wymaga _dbAthletes)
   loadFreshFeedbacks();
+  // ✨ v47: Załaduj nowe zgłoszenia z ankiety
+  loadIntakeForms();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2796,6 +2826,282 @@ async function loadFreshFeedbacks() {
 }
 
 window.loadFreshFeedbacks = loadFreshFeedbacks;
+
+// ═══════════════════════════════════════════════════════════════
+// 📋 INTAKE FORMS — nowe zgłoszenia z ankiety biegamy.run/ankieta
+// ═══════════════════════════════════════════════════════════════
+async function loadIntakeForms() {
+  const wrap = document.getElementById('intake-forms-wrap');
+  const list = document.getElementById('intake-forms-list');
+  const countEl = document.getElementById('intake-forms-count');
+  if (!wrap || !list) return;
+  
+  try {
+    const { data, error } = await sb
+      .from('athlete_intake_forms')
+      .select('id, created_at, full_name, email, phone, gender, birth_year, running_since, km_per_week_now, main_goal, target_race_name, training_days_per_week, status')
+      .eq('status', 'submitted')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.warn('loadIntakeForms error:', error.message);
+      wrap.style.display = 'none';
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      wrap.style.display = 'none';
+      return;
+    }
+    
+    wrap.style.display = 'block';
+    countEl.textContent = String(data.length);
+    
+    list.innerHTML = data.map(form => {
+      const date = new Date(form.created_at);
+      const dateStr = date.toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' }) + ' ' + date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+      const goals = Array.isArray(form.main_goal) ? form.main_goal : [];
+      const goalLabels = {
+        pb: '🏆 Życiówka', race_prep: '🏁 Start docelowy', weight_loss: '⚖️ Forma',
+        health: '💚 Zdrowie', endurance: '🔋 Wytrzymałość', ultra: '🏔️ Ultra', other: '✨ Inne'
+      };
+      const goalsHtml = goals.slice(0,3).map(g => `<span style="background:rgba(139,92,246,0.12);color:#a78bfa;font-size:9px;padding:2px 7px;border-radius:50px;font-family:'DM Mono',monospace;letter-spacing:0.04em;">${goalLabels[g] || g}</span>`).join('');
+      const initials = (form.full_name || '?').split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase();
+      
+      return `
+        <div onclick="openIntakeFormDetails('${form.id}')" style="background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(139,92,246,0.02));border:1px solid rgba(139,92,246,0.2);border-radius:10px;padding:11px 12px;margin-bottom:8px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(139,92,246,0.5)';this.style.background='linear-gradient(135deg,rgba(139,92,246,0.1),rgba(139,92,246,0.04))'" onmouseout="this.style.borderColor='rgba(139,92,246,0.2)';this.style.background='linear-gradient(135deg,rgba(139,92,246,0.06),rgba(139,92,246,0.02))'">
+          <div style="display:flex;align-items:flex-start;gap:11px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:0.04em;flex-shrink:0;">${escapeHtml(initials)}</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:3px;">
+                <div style="font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(form.full_name || 'Bez imienia')}</div>
+                <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.04em;flex-shrink:0;">${dateStr}</div>
+              </div>
+              <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;margin-bottom:6px;">
+                ${form.gender || '?'} · ${form.birth_year ? `${new Date().getFullYear() - form.birth_year}lat` : '?'} · ${form.km_per_week_now || '?'}km/tyg · ${form.training_days_per_week || '?'}dni
+              </div>
+              ${goalsHtml ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px;">${goalsHtml}</div>` : ''}
+              ${form.target_race_name ? `<div style="font-family:'DM Mono',monospace;font-size:9px;color:#a78bfa;letter-spacing:0.04em;">🏁 ${escapeHtml(form.target_race_name)}</div>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {
+    console.error('loadIntakeForms exception:', e);
+    wrap.style.display = 'none';
+  }
+}
+window.loadIntakeForms = loadIntakeForms;
+
+// ─── PODGLĄD ANKIETY ─────────────────────────────────────────────
+async function openIntakeFormDetails(intakeId) {
+  const { data: form, error } = await sb
+    .from('athlete_intake_forms')
+    .select('*')
+    .eq('id', intakeId)
+    .maybeSingle();
+  
+  if (error || !form) {
+    showToast('Błąd ładowania ankiety');
+    return;
+  }
+  
+  const age = form.birth_year ? (new Date().getFullYear() - form.birth_year) : null;
+  const goalLabels = {
+    pb: 'Życiówka', race_prep: 'Start docelowy', weight_loss: 'Forma/odchudzanie',
+    health: 'Zdrowie', endurance: 'Wytrzymałość', ultra: 'Ultra/góry', other: 'Inne'
+  };
+  const blockerLabels = {
+    no_time: 'Brak czasu', no_motivation: 'Brak motywacji', injuries: 'Kontuzje',
+    dont_know_how: 'Nie wiem jak', lonely: 'Brak partnera'
+  };
+  const communicationLabels = {
+    app_chat: '💬 Czat w aplikacji', whatsapp: '📱 WhatsApp', phone: '📞 Telefon', email: '✉️ Email'
+  };
+  const contactFreqLabels = {
+    daily: 'Codziennie', few_per_week: '2-3x/tydz', weekly: 'Raz w tygodniu', on_demand: 'Na żądanie'
+  };
+  
+  // Helper do sekcji
+  const row = (label, value) => value ? `<div style="display:flex;margin-bottom:6px;font-size:12px;line-height:1.5;"><span style="color:var(--muted);width:140px;flex-shrink:0;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;">${label}</span><span style="color:var(--fg);flex:1;">${value}</span></div>` : '';
+  
+  const goals = Array.isArray(form.main_goal) ? form.main_goal.map(g => goalLabels[g] || g).join(', ') : '';
+  const trainingTimes = Array.isArray(form.preferred_training_time) ? form.preferred_training_time.join(', ') : '';
+  
+  const html = `
+    <div id="intake-detail-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9700;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;backdrop-filter:blur(8px);" onclick="if(event.target===this)closeIntakeDetailModal()">
+      <div style="background:linear-gradient(135deg,#1a1a22,#13131a);border:1px solid rgba(139,92,246,0.3);border-radius:14px;max-width:720px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6);margin-top:20px;">
+        
+        <!-- Header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+          <div style="flex:1;min-width:0;">
+            <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#8b5cf6;margin-bottom:4px;">📋 ZGŁOSZENIE Z ANKIETY</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--fg);letter-spacing:0.02em;">${escapeHtml(form.full_name || 'Bez imienia')}</div>
+            <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);margin-top:3px;letter-spacing:0.04em;">${new Date(form.created_at).toLocaleString('pl-PL')}</div>
+          </div>
+          <button onclick="closeIntakeDetailModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:14px;flex-shrink:0;">✕</button>
+        </div>
+        
+        <!-- KONTAKT -->
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">👤 Kontakt</div>
+          ${row('Email', form.email ? `<a href="mailto:${escapeHtml(form.email)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(form.email)}</a>` : null)}
+          ${row('Telefon', form.phone ? `<a href="tel:${escapeHtml(form.phone)}" style="color:var(--accent);text-decoration:none;">${escapeHtml(form.phone)}</a>` : null)}
+          ${row('Płeć', form.gender)}
+          ${row('Wiek', age ? `${age} lat (${form.birth_year})` : null)}
+        </div>
+        
+        <!-- CIAŁO -->
+        ${(form.height_cm || form.weight_kg || form.blood_tests_status || form.current_injuries || form.chronic_conditions) ? `
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">💪 Ciało</div>
+          ${row('Wzrost', form.height_cm ? `${form.height_cm} cm` : null)}
+          ${row('Waga', form.weight_kg ? `${form.weight_kg} kg` : null)}
+          ${row('Badania krwi', form.blood_tests_status)}
+          ${form.blood_tests_screen_url ? row('Screen', `<a href="${escapeHtml(form.blood_tests_screen_url)}" target="_blank" style="color:var(--accent);text-decoration:none;">📷 Zobacz</a>`) : ''}
+          ${row('Kontuzje', form.current_injuries ? escapeHtml(form.current_injuries) : null)}
+          ${row('Choroby', form.chronic_conditions ? escapeHtml(form.chronic_conditions) : null)}
+        </div>` : ''}
+        
+        <!-- BIEGANIE -->
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🏃 Bieganie</div>
+          ${row('Od kiedy', form.running_since)}
+          ${row('Km / tydz', form.km_per_week_now)}
+          ${row('Najdłuższy', form.longest_distance_km ? `${form.longest_distance_km} km${form.longest_distance_time ? ` w ${form.longest_distance_time}` : ''}` : null)}
+          ${row('Regularność', form.running_regularity)}
+          ${row('PB 5k / 10k', [form.pb_5k, form.pb_10k].filter(Boolean).join(' / '))}
+          ${row('PB Półm / Mar', [form.pb_half, form.pb_marathon].filter(Boolean).join(' / '))}
+          ${row('Teren', form.preferred_terrain)}
+        </div>
+        
+        <!-- STYL ŻYCIA -->
+        ${(form.sleep_hours || form.work_hours_daily || form.supplementation || form.diet_type || trainingTimes) ? `
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🏠 Styl życia</div>
+          ${row('Sen', form.sleep_hours ? `${form.sleep_hours}${form.sleep_bedtime ? ` (${form.sleep_bedtime}-${form.sleep_wakeup || '?'})` : ''}` : null)}
+          ${row('Praca', form.work_hours_daily ? `${form.work_hours_daily}h ${form.work_type || ''}` : null)}
+          ${row('Suplementacja', form.supplementation ? escapeHtml(form.supplementation) : null)}
+          ${row('Dieta', form.diet_type ? escapeHtml(form.diet_type) : null)}
+          ${row('Pora treningu', trainingTimes)}
+        </div>` : ''}
+        
+        <!-- CELE -->
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🎯 Cele</div>
+          ${row('Główny cel', goals)}
+          ${row('Start docelowy', form.target_race_name ? `${escapeHtml(form.target_race_name)}${form.target_race_date ? ` (${form.target_race_date})` : ''}${form.target_race_time ? ` cel: ${form.target_race_time}` : ''}` : null)}
+          ${row('Inne starty', form.race_goals_year ? escapeHtml(form.race_goals_year) : null)}
+          ${row('Mocne strony', form.strong_points ? escapeHtml(form.strong_points) : null)}
+          ${row('Słabe strony', form.weak_points ? escapeHtml(form.weak_points) : null)}
+          ${row('Blokada', blockerLabels[form.main_blocker] || form.main_blocker)}
+        </div>
+        
+        <!-- WSPÓŁPRACA -->
+        <div style="margin-bottom:18px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;margin-bottom:8px;">🤝 Współpraca</div>
+          ${row('Dni / tydz', form.training_days_per_week)}
+          ${row('Siłownia', form.gym_one_day_yes === true ? 'Tak' : form.gym_one_day_yes === false ? 'Nie' : null)}
+          ${row('Pasek tętna', form.has_hr_monitor ? 'Tak' : 'Nie')}
+          ${row('Zegarek', form.garmin_model ? escapeHtml(form.garmin_model) : null)}
+          ${row('Strava', form.has_strava ? 'Tak' : 'Nie')}
+          ${row('Komunikacja', communicationLabels[form.preferred_communication] || form.preferred_communication)}
+          ${row('Częstotliwość', contactFreqLabels[form.contact_frequency] || form.contact_frequency)}
+          ${row('Widoczność', form.visible_to_others === true ? 'Publiczny' : form.visible_to_others === false ? 'Prywatny' : 'Zdecyduje później')}
+          ${row('Tematy tabu', form.topics_to_avoid ? escapeHtml(form.topics_to_avoid) : null)}
+        </div>
+        
+        <!-- WIADOMOŚĆ -->
+        ${form.additional_message ? `
+        <div style="margin-bottom:18px;background:rgba(232,86,30,0.05);border:1px solid rgba(232,86,30,0.2);border-radius:8px;padding:12px;">
+          <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;">✉️ Wiadomość dodatkowa</div>
+          <div style="font-family:'Inter',sans-serif;font-size:13px;line-height:1.6;color:var(--fg);white-space:pre-wrap;">${escapeHtml(form.additional_message)}</div>
+        </div>` : ''}
+        
+        <!-- ZGODY -->
+        <div style="margin-bottom:20px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.04em;line-height:1.6;">
+          ${form.consent_data_processing ? '✓ Zgoda na dane osobowe' : '✗ Brak zgody na dane'}<br>
+          ${form.consent_health_data ? '✓ Zgoda na dane zdrowotne' : '✗ Brak zgody na zdrowotne'}<br>
+          ${form.consent_marketing ? '✓ Zgoda na marketing' : '○ Bez zgody na marketing (OK)'}
+        </div>
+        
+        <!-- PRZYCISKI AKCJI -->
+        <div style="display:flex;gap:8px;border-top:1px solid var(--border);padding-top:16px;">
+          <button onclick="rejectIntakeForm('${form.id}')" style="flex:1;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:#ef4444;padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:600;">✕ Odrzuć</button>
+          <button onclick="acceptIntakeForm('${form.id}','${escapeHtml(form.full_name || '?')}')" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:12px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;box-shadow:0 4px 12px rgba(34,197,94,0.35);">✓ Akceptuj → utwórz zawodnika</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  const wrap = document.createElement('div');
+  wrap.innerHTML = html;
+  document.body.appendChild(wrap);
+  document.body.style.overflow = 'hidden';
+}
+window.openIntakeFormDetails = openIntakeFormDetails;
+
+function closeIntakeDetailModal() {
+  const m = document.getElementById('intake-detail-modal');
+  if (m) m.parentElement.remove();
+  document.body.style.overflow = '';
+}
+window.closeIntakeDetailModal = closeIntakeDetailModal;
+
+// ─── AKCEPTUJ ANKIETĘ → UTWÓRZ ZAWODNIKA ─────────────────────────
+async function acceptIntakeForm(intakeId, fullName) {
+  if (!confirm(`Akceptujesz zgłoszenie ${fullName}?\n\nTo utworzy nowego zawodnika w bazie z danymi z ankiety.`)) return;
+  
+  try {
+    const { data, error } = await sb.rpc('accept_intake_form', { p_intake_id: intakeId });
+    if (error) {
+      showToast('Błąd: ' + error.message);
+      return;
+    }
+    
+    showToast('✓ Zawodnik utworzony!');
+    closeIntakeDetailModal();
+    
+    // Odśwież listę zgłoszeń i zawodników
+    await loadIntakeForms();
+    await loadAthletes();
+  } catch (e) {
+    console.error('acceptIntakeForm error:', e);
+    showToast('Błąd: ' + (e.message || 'nieznany'));
+  }
+}
+window.acceptIntakeForm = acceptIntakeForm;
+
+// ─── ODRZUĆ ANKIETĘ ──────────────────────────────────────────────
+async function rejectIntakeForm(intakeId) {
+  const reason = prompt('Powód odrzucenia (opcjonalnie):');
+  if (reason === null) return; // anulowane
+  
+  try {
+    const { error } = await sb
+      .from('athlete_intake_forms')
+      .update({
+        status: 'rejected',
+        rejected_at: new Date().toISOString(),
+        rejection_reason: reason || null
+      })
+      .eq('id', intakeId);
+    
+    if (error) {
+      showToast('Błąd: ' + error.message);
+      return;
+    }
+    
+    showToast('Zgłoszenie odrzucone');
+    closeIntakeDetailModal();
+    await loadIntakeForms();
+  } catch (e) {
+    console.error('rejectIntakeForm error:', e);
+    showToast('Błąd');
+  }
+}
+window.rejectIntakeForm = rejectIntakeForm;
 
 async function openFeedbackFromList(reportId, athleteId) {
   // Oznacz jako przeczytane (jeśli jeszcze nie)
@@ -6182,7 +6488,7 @@ if ('serviceWorker' in navigator) {
     <!-- ✨ Kontekst dla AI: textarea + upload screenów -->
     <div style="background:rgba(139,92,246,0.06);border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:11px;margin-bottom:12px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:8px;">
-        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;font-weight:600;">💬 Kontekst dla AI <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">(opcjonalne)</span></div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.14em;text-transform:uppercase;color:#8b5cf6;font-weight:600;">💬 Kontekst dla AI <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;">(opcjonalne)</span> <span id="tp-coach-counter" style="color:#22c55e;font-weight:600;letter-spacing:0.04em;"></span></div>
         <button type="button" onclick="document.getElementById('tp-coach-files').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#8b5cf6;font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 9px;border-radius:5px;cursor:pointer;font-weight:600;">📷 Dodaj screen</button>
       </div>
       <textarea 
