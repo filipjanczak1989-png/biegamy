@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T-wieczor-3e · brief X + collapse + archive + UUID validation -->
+<!-- BiegaMy build: 2026-05-13T-wieczor-3f · brief X/collapse/archive + UUID + plan modal merged -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -1427,6 +1427,9 @@ async function openCreateTrainingPlanModal() {
   document.getElementById('tp-create-status').style.display = 'none';
   document.getElementById('tp-create-go-btn').disabled = false;
   document.getElementById('tp-create-go-btn').style.opacity = '1';
+
+  // Reset komentarza i screenów (świeży modal)
+  if (typeof window.resetTpPlanModal === 'function') window.resetTpPlanModal();
   
   // Ładuj cele startowe zawodnika z race_goals
   await loadAthleteGoalsIntoModal();
@@ -1561,6 +1564,102 @@ function selectTpType(btn) {
 }
 window.selectTpType = selectTpType;
 
+// ━━━━━━━━ SCREENY W MODALU NOWY PLAN ━━━━━━━━
+window._tpUploadedScreens = [];
+
+window.tpHandleScreens = async function(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  if (!window._tpUploadedScreens) window._tpUploadedScreens = [];
+
+  const preview = document.getElementById('tp-screens-preview');
+  const counterEl = document.getElementById('tp-screens-counter');
+  const addBtn = document.getElementById('tp-screens-add');
+
+  for (const file of files) {
+    if (window._tpUploadedScreens.length >= 3) {
+      if (typeof kbToast === 'function') kbToast('Max 3 screeny', true);
+      else alert('Max 3 screeny');
+      break;
+    }
+    if (!file.type.startsWith('image/')) continue;
+
+    // Instant preview
+    const tempUrl = URL.createObjectURL(file);
+    const tile = document.createElement('div');
+    tile.className = 'tp-screen-tile';
+    tile.style.cssText = 'position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:2px solid rgba(139,92,246,0.3);opacity:0.5;';
+    tile.innerHTML = '<img src="'+tempUrl+'" style="width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:9px;font-family:DM Mono,monospace;">⏳</div>';
+    preview.appendChild(tile);
+
+    try {
+      const ts = Date.now();
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = 'coach-context/' + ts + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
+      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: false, contentType: file.type });
+      if (upErr) throw new Error(upErr.message);
+      const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) throw new Error('Brak public URL');
+
+      window._tpUploadedScreens.push(publicUrl);
+
+      tile.style.opacity = '1';
+      tile.style.borderColor = '#3db870';
+      tile.innerHTML = '<img src="'+publicUrl+'" style="width:100%;height:100%;object-fit:cover;">'
+        + '<button type="button" onclick="tpRemoveScreen(\''+publicUrl.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\', this)" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.75);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>'
+        + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(61,184,112,0.92);color:#fff;font-size:7.5px;font-family:DM Mono,monospace;letter-spacing:0.06em;text-align:center;padding:2px 0;font-weight:600;">✓ DODANO</div>';
+
+      if (counterEl) counterEl.textContent = '(' + window._tpUploadedScreens.length + '/3 — AI zobaczy)';
+      if (window._tpUploadedScreens.length >= 3 && addBtn) {
+        addBtn.style.opacity = '0.4';
+        addBtn.style.pointerEvents = 'none';
+      }
+      if (typeof kbToast === 'function') kbToast('✓ Screen ' + window._tpUploadedScreens.length + '/3 dodany');
+    } catch(e) {
+      console.error('[tp-screens] upload error:', e);
+      tile.style.borderColor = '#e05050';
+      tile.innerHTML = '<div style="width:100%;height:100%;background:rgba(224,80,80,0.15);display:flex;align-items:center;justify-content:center;color:#e05050;font-size:9px;text-align:center;padding:4px;font-family:DM Mono,monospace;">Błąd</div>';
+      setTimeout(function(){ tile.remove(); }, 2000);
+    }
+  }
+  const input = document.getElementById('tp-screens-input');
+  if (input) input.value = '';
+};
+
+window.tpRemoveScreen = function(url, btn) {
+  if (!window._tpUploadedScreens) window._tpUploadedScreens = [];
+  const idx = window._tpUploadedScreens.indexOf(url);
+  if (idx >= 0) window._tpUploadedScreens.splice(idx, 1);
+  const tile = btn?.parentElement;
+  if (tile) tile.remove();
+  const counterEl = document.getElementById('tp-screens-counter');
+  const addBtn = document.getElementById('tp-screens-add');
+  if (counterEl) counterEl.textContent = '(' + window._tpUploadedScreens.length + '/3 — AI zobaczy)';
+  if (addBtn) {
+    addBtn.style.opacity = '1';
+    addBtn.style.pointerEvents = 'auto';
+  }
+};
+
+window.resetTpPlanModal = function() {
+  // Wyczyść textareę, screeny, counter przy każdym nowym otwarciu modala
+  const ta = document.getElementById('tp-coach-note');
+  if (ta) ta.value = '';
+  const noteCounter = document.getElementById('tp-note-counter');
+  if (noteCounter) noteCounter.textContent = '0 / 2000';
+  window._tpUploadedScreens = [];
+  const preview = document.getElementById('tp-screens-preview');
+  if (preview) preview.innerHTML = '';
+  const screensCounter = document.getElementById('tp-screens-counter');
+  if (screensCounter) screensCounter.textContent = '(0/3 — AI zobaczy)';
+  const addBtn = document.getElementById('tp-screens-add');
+  if (addBtn) {
+    addBtn.style.opacity = '1';
+    addBtn.style.pointerEvents = 'auto';
+  }
+};
+
 async function generateTrainingPlan() {
   const athleteId = window._selectedAthleteId;
   if (!athleteId) { alert('Wybierz zawodnika'); return; }
@@ -1572,13 +1671,9 @@ async function generateTrainingPlan() {
   const targetDate = document.getElementById('tp-target-date').value || null;
   const targetTime = document.getElementById('tp-target-time').value.trim() || null;
 
-  // Krok komentarz trenera — daje Klaudiuszowi szerszy kontekst przed planem
-  const coachNote = await pickCoachNote({
-    context: 'plan',
-    planType: _tpSelectedType,
-    targetRace: targetRace
-  });
-  if (coachNote === null) return; // user anulował
+  // Komentarz + screeny — czytane BEZPOŚREDNIO z modala (nie ma drugiego pop-upu)
+  const coachNote = (document.getElementById('tp-coach-note')?.value || '').trim();
+  const coachScreens = Array.isArray(window._tpUploadedScreens) ? window._tpUploadedScreens.slice() : [];
 
   // UI: loading
   const goBtn = document.getElementById('tp-create-go-btn');
@@ -1586,7 +1681,10 @@ async function generateTrainingPlan() {
   goBtn.disabled = true;
   goBtn.style.opacity = '0.6';
   statusEl.style.display = 'block';
-  statusEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>AI generuje plan... (10-30 sek)</div>';
+  const screensInfo = coachScreens.length > 0
+    ? `AI dostaje: 📝 komentarz + 📷 ${coachScreens.length} screen${coachScreens.length>1?'y':''}`
+    : (coachNote ? 'AI dostaje: 📝 komentarz' : 'AI generuje plan...');
+  statusEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>'+screensInfo+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">10-30 sek</div></div>';
 
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -1601,7 +1699,8 @@ async function generateTrainingPlan() {
       target_race_date: targetDate,
       target_time: targetTime
     };
-    if (coachNote) body.coach_note = coachNote; // ← NOWE
+    if (coachNote) body.coach_note = coachNote;
+    if (coachScreens.length > 0) body.coach_attachments = coachScreens; // ← screeny dla AI
     
     const resp = await fetch(fnUrl, {
       method: 'POST',
@@ -6148,6 +6247,24 @@ if ('serviceWorker' in navigator) {
         <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Cel czasowy</label>
         <input type="text" id="tp-target-time" placeholder="3:30:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
       </div>
+    </div>
+
+    <!-- 💬 Kontekst dla Klaudiusza (textarea + screeny) -->
+    <div style="background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(124,58,237,0.04));border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#a78bfa;font-family:'DM Mono',monospace;font-weight:600;">💬 Kontekst dla Klaudiusza <span style="color:var(--muted);font-weight:400;">(opcjonalnie)</span></div>
+        <div id="tp-note-counter" style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">0 / 2000</div>
+      </div>
+      <textarea id="tp-coach-note" placeholder="np. po ultra w górach w weekend, trzeba się rozkręcić. Lub: ma kontuzję ścięgna, omijaj interwały. Lub: wraca po przerwie, spokojnie..." style="width:100%;min-height:80px;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:7px;padding:9px 11px;color:var(--fg);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;" maxlength="2000" oninput="document.getElementById('tp-note-counter').textContent=this.value.length+' / 2000';"></textarea>
+
+      <!-- Screeny -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;margin-bottom:6px;">
+        <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#a78bfa;font-family:'DM Mono',monospace;font-weight:500;">📷 Screeny dla AI <span id="tp-screens-counter" style="color:var(--muted);font-weight:400;">(0/3 — AI zobaczy)</span></div>
+        <input type="file" id="tp-screens-input" accept="image/*" multiple style="display:none;" onchange="tpHandleScreens(this.files)">
+        <button type="button" id="tp-screens-add" onclick="document.getElementById('tp-screens-input').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:500;">+ Dodaj</button>
+      </div>
+      <div id="tp-screens-preview" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      <div style="font-size:9.5px;color:var(--muted);margin-top:6px;line-height:1.45;font-family:'Inter',sans-serif;">Screeny z Garmin/Strava, plany w obrazku, zdjęcia tras — Klaudiusz "zobaczy" je przy generowaniu.</div>
     </div>
 
     <!-- Co bierzemy pod uwagę (info box) -->
