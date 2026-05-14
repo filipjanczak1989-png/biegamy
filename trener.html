@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T-wieczor-3j · czat textarea zawijanie + openCoachChat logi/scroll fix -->
+<!-- BiegaMy build: 2026-05-13T-wieczor-3k · czat: t-chat-view przeniesiony do body (zawsze widoczny) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -4491,7 +4491,7 @@ async function loadCoachMsgsList() {
 function stripHtmlChat(h){const t=document.createElement('div');t.innerHTML=h;return t.textContent||t.innerText||'';}
 function relTimeChat(iso){if(!iso)return'';const d=(Date.now()-new Date(iso))/1000;if(d<60)return'teraz';if(d<3600)return Math.floor(d/60)+' min';if(d<86400)return Math.floor(d/3600)+' godz.';return Math.floor(d/86400)+' dni';}
 function filterPchatList(q){document.querySelectorAll('.pchat-row').forEach(r=>{const n=r.querySelector('.pchat-name')?.textContent?.toLowerCase()||'';r.style.display=n.includes(q.toLowerCase())?'':'none';});}
-function closeTChatView(){const v=document.getElementById('t-chat-view');if(v)v.style.display='none';document.body.style.overflow='';loadCoachMsgsList();}
+function closeTChatView(){const v=document.getElementById('t-chat-view');if(v)v.style.display='none';loadCoachMsgsList();}
 
 // Auto-resize textarea czatu — rośnie do max-height, potem scroll
 function tAutosizeChat(el) {
@@ -4530,9 +4530,13 @@ async function openCoachChat(athleteId, athleteName) {
   const avEl = document.getElementById('t-chat-av'); if(avEl) avEl.textContent = ini;
   const v = document.getElementById('t-chat-view');
   if(v) {
+    // ✨ FIX: przenieś t-chat-view do <body> żeby był widoczny niezależnie od rodzica
+    // (rodzic msgs-panel-section może mieć display:none gdy user jest na innej zakładce)
+    if (v.parentElement !== document.body) {
+      document.body.appendChild(v);
+      console.log('[openCoachChat] t-chat-view przeniesiony do body');
+    }
     v.style.display='flex';
-    // Force re-flow i scroll top, bo czasem fixed elementy mają problem z zalegającym scrollem
-    document.body.style.overflow = 'hidden';
     v.scrollTop = 0;
     console.log('[openCoachChat] t-chat-view shown, display:', v.style.display);
   } else {
