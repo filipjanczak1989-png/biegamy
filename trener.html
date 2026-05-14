@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T-wieczor-3g · brief: _dbAthletes na window + wzmocniony resolver + retry inputu -->
+<!-- BiegaMy build: 2026-05-13T-wieczor-3h · openAthleteProfile() uniwersalna · klikalne awatary wszedzie -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -2908,6 +2908,117 @@ async function deleteAthlete(id, name) {
   await loadAthletes();
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 🎯 UNIWERSALNA FUNKCJA — otwórz profil zawodnika
+// Używana WSZĘDZIE gdzie awatar/imie/karta zawodnika ma być klikalna:
+// - lista zawodników (kafelki)
+// - awatar w czacie (pchat-av)
+// - brief Klaudiusza (PILNE/UWAGA + ok_chips)
+// - drill-downy raportów, społeczność, etc
+//
+// Akceptuje:
+//   - string rawId (uuid, może zepsuty)
+//   - opcjonalny athleteName (do lookup po nazwie jeśli UUID zły)
+//   - opcjonalne options { openChat: false, openModal: false }
+//
+// Domyślnie: otwiera boczny panel (selA_db) — to "główny" profil
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+const _ATHLETE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function resolveAthleteIdSafe(rawId, athleteName) {
+  // Już poprawny UUID? Sprawdź czy istnieje w _dbAthletes
+  if (typeof rawId === 'string' && _ATHLETE_UUID_RE.test(rawId)) {
+    if ((window._dbAthletes||[]).some(a => a.id === rawId)) return rawId;
+    return rawId; // poprawny format — może niezsynchronizowane jeszcze
+  }
+
+  // Strip pierwszy znak (37 → 36)
+  if (typeof rawId === 'string' && rawId.length === 37) {
+    const stripped = rawId.slice(1);
+    if (_ATHLETE_UUID_RE.test(stripped)) {
+      console.warn('[openAthlete] Strip prefix:', rawId, '→', stripped);
+      return stripped;
+    }
+  }
+
+  // Regex extract — UUID wewnątrz dowolnego stringa
+  if (typeof rawId === 'string') {
+    const m = rawId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+    if (m) {
+      console.warn('[openAthlete] Extracted UUID:', rawId, '→', m[0]);
+      return m[0];
+    }
+  }
+
+  // Lookup po nazwie w _dbAthletes
+  if (athleteName && typeof athleteName === 'string' && Array.isArray(window._dbAthletes)) {
+    const target = athleteName.toLowerCase().trim();
+    let match = window._dbAthletes.find(a => a.full_name && a.full_name.toLowerCase().trim() === target);
+    if (!match) {
+      const firstName = target.split(' ')[0];
+      match = window._dbAthletes.find(a => {
+        const dbFirst = (a.full_name||'').toLowerCase().trim().split(' ')[0];
+        return dbFirst === firstName;
+      });
+    }
+    if (match && _ATHLETE_UUID_RE.test(match.id)) {
+      console.warn('[openAthlete] Found by name:', athleteName, '→', match.id);
+      return match.id;
+    }
+  }
+
+  console.error('[openAthlete] Cannot resolve:', rawId, 'name:', athleteName);
+  return null;
+}
+
+async function openAthleteProfile(rawId, athleteName, options) {
+  options = options || {};
+  console.log('[openAthlete] CALL:', { rawId, athleteName, options });
+
+  const realId = resolveAthleteIdSafe(rawId, athleteName);
+  if (!realId) {
+    if (typeof showToast === 'function') {
+      showToast('Nie znaleziono zawodnika: ' + (athleteName||'?'));
+    } else if (typeof kbToast === 'function') {
+      kbToast('Nie znaleziono zawodnika: ' + (athleteName||'?'), true);
+    }
+    return false;
+  }
+
+  // Czat?
+  if (options.openChat && typeof openCoachChat === 'function') {
+    openCoachChat(realId, athleteName || 'Zawodnik');
+    return true;
+  }
+
+  // Modal społeczności? (bottom-sheet z drill-downem)
+  if (options.openModal && typeof openAthleteStatsModal === 'function') {
+    // potrzeba name + goal — jeśli nie ma, pobierz z _dbAthletes
+    const a = (window._dbAthletes||[]).find(x => x.id === realId);
+    const name = athleteName || a?.full_name || 'Zawodnik';
+    const goal = a?.goal || '';
+    openAthleteStatsModal(realId, name, goal);
+    return true;
+  }
+
+  // Domyślnie: otwórz boczny panel (selA_db)
+  if (typeof selA_db === 'function') {
+    await selA_db(realId);
+    // Scroll do panelu
+    const panel = document.getElementById('panel');
+    if (panel && panel.classList.contains('on')) {
+      requestAnimationFrame(() => panel.scrollIntoView({behavior:'smooth', block:'start'}));
+    }
+    return true;
+  }
+
+  return false;
+}
+
+window.openAthleteProfile = openAthleteProfile;
+window.resolveAthleteIdSafe = resolveAthleteIdSafe;
+
 // ── SELECT ATHLETE ────────────────────────────────────────────────
 // Otwórz panel bezpośrednio na zakładce Logi (z badge'a)
 async function selA_db_logs(athleteId) {
@@ -4363,8 +4474,8 @@ async function loadCoachMsgsList() {
     const prev=a.lastMsg?stripHtmlChat(a.lastMsg.body).slice(0,48):'Brak wiadomości';
     const tStr=a.lastMsg?relTimeChat(a.lastMsg.sent_at):'';
     const dotCls=a.unread?'orange':(idx<2?'green':'grey');
-    return `<div class="pchat-row" onclick="openCoachChat('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')">
-      <div class="pchat-av" style="background:${bg};">${ini}<div class="pchat-dot ${dotCls}"></div></div>
+    return `<div class="pchat-row" onclick="openCoachChat('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')" style="cursor:pointer;">
+      <div class="pchat-av" style="background:${bg};cursor:pointer;" onclick="event.stopPropagation();openAthleteProfile('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')" title="Otwórz profil zawodnika">${ini}<div class="pchat-dot ${dotCls}"></div></div>
       <div class="pchat-info">
         <div class="pchat-name">${escapeHtml(a.full_name)||'Zawodnik'}${a.unread?'<span class="pchat-new-tag">nowe</span>':''}</div>
         <div class="pchat-preview">${prev}</div>
@@ -6658,7 +6769,13 @@ if ('serviceWorker' in navigator) {
 .kb-item-meta{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;}
 .kb-item-desc{font-size:13.5px;color:#b8b3bf;line-height:1.55;}
 .kb-green-list{display:flex;flex-wrap:wrap;gap:7px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:8px;padding:12px 14px;}
-.kb-chip{font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--green);background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:14px;padding:4px 10px;cursor:default;}
+.kb-chip{font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--green);background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:14px;padding:4px 10px;cursor:default;transition:all 0.15s;}
+.kb-chip[data-athlete-name]{cursor:pointer;}
+.kb-chip[data-athlete-name]:hover{background:rgba(61,184,112,0.18);border-color:rgba(61,184,112,0.4);transform:translateY(-1px);}
+.kb-item-chat-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);font-size:13px;width:28px;height:28px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;transition:all 0.15s;flex-shrink:0;}
+.kb-item-chat-btn:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.05);}
+.kb-item{transition:all 0.15s;}
+.kb-item:hover{background:rgba(255,255,255,0.04);transform:translateX(2px);}
 .kb-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:6px;}
 .kb-stat{text-align:center;}
 .kb-stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent);}
@@ -7427,10 +7544,13 @@ document.addEventListener('keydown', (e) => {
       html += `<div class="kb-block">
         <div class="kb-block-hdr red"><span class="dot"></span>Pilne · ${brief.urgent.length}</div>`;
       for (const it of brief.urgent){
-        html += `<div class="kb-item red" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}">
+        html += `<div class="kb-item red" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}" style="cursor:pointer;">
           <div class="kb-item-top">
             <div class="kb-item-name">${kbEscape(it.name||'')}</div>
-            <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
+              <button class="kb-item-chat-btn" title="Otwórz czat" onclick="event.stopPropagation();openAthleteProfile(this.parentElement.parentElement.parentElement.dataset.athleteId, this.parentElement.parentElement.parentElement.dataset.athleteName, {openChat:true})">💬</button>
+            </div>
           </div>
           <div class="kb-item-desc">${kbEscape(it.desc||'')}</div>
         </div>`;
@@ -7443,10 +7563,13 @@ document.addEventListener('keydown', (e) => {
       html += `<div class="kb-block">
         <div class="kb-block-hdr yellow"><span class="dot"></span>Uwaga · ${brief.warning.length}</div>`;
       for (const it of brief.warning){
-        html += `<div class="kb-item yellow" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}">
+        html += `<div class="kb-item yellow" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}" style="cursor:pointer;">
           <div class="kb-item-top">
             <div class="kb-item-name">${kbEscape(it.name||'')}</div>
-            <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
+              <button class="kb-item-chat-btn" title="Otwórz czat" onclick="event.stopPropagation();openAthleteProfile(this.parentElement.parentElement.parentElement.dataset.athleteId, this.parentElement.parentElement.parentElement.dataset.athleteName, {openChat:true})">💬</button>
+            </div>
           </div>
           <div class="kb-item-desc">${kbEscape(it.desc||'')}</div>
         </div>`;
@@ -7461,9 +7584,10 @@ document.addEventListener('keydown', (e) => {
         <div class="kb-block-hdr green"><span class="dot"></span>Wszystko OK · ${brief.ok_count||0}</div>
         <div class="kb-green-list">`;
       for (const name of (brief.ok_chips||[])){
-        html += `<span class="kb-chip">${kbEscape(name)}</span>`;
+        // ok_chips nie ma ID w danych — używamy lookup po nazwie
+        html += `<span class="kb-chip" data-athlete-name="${kbEscape(name)}" style="cursor:pointer;" title="Otwórz profil ${kbEscape(name)}">${kbEscape(name)}</span>`;
       }
-      if (extras > 0) html += `<span class="kb-chip">+${extras}</span>`;
+      if (extras > 0) html += `<span class="kb-chip" style="opacity:0.6;">+${extras}</span>`;
       html += `</div></div>`;
     }
 
@@ -7505,7 +7629,15 @@ document.addEventListener('keydown', (e) => {
       el.addEventListener('click', () => {
         const id = el.getAttribute('data-athlete-id');
         const name = el.getAttribute('data-athlete-name');
-        if (id && name) kbOpenAthlete(id, name);
+        // Klik na kartę → otwiera PROFIL (osobny button 💬 w środku otwiera czat)
+        openAthleteProfile(id, name);
+      });
+    });
+    // OK chips — klikalne (lookup po nazwie)
+    wrap.querySelectorAll('.kb-chip[data-athlete-name]').forEach(el => {
+      el.addEventListener('click', () => {
+        const name = el.getAttribute('data-athlete-name');
+        if (name) openAthleteProfile(null, name);
       });
     });
     wrap.querySelectorAll('.kb-action').forEach(el => {
