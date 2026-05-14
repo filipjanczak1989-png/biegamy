@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BiegaMy build: 2026-05-14-wieczor-3m · profil: bypass prywatnosci dla trenera zawodnika -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -303,6 +304,22 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
   </div>
 </div>
 
+<!-- DANE OSOBISTE (data urodzenia) - tylko własny profil -->
+<div class="section" id="personal-data-section" style="display:none;">
+  <div class="section-hdr">
+    <div class="section-title">Dane <span>osobiste</span></div>
+  </div>
+  <div onclick="editDateOfBirth()" id="dob-card" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div style="font-size:22px;flex-shrink:0;">🎂</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;">Data urodzenia</div>
+      <div style="font-size:14px;font-weight:600;" id="dob-value">—</div>
+    </div>
+    <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;flex-shrink:0;">✎ edytuj</div>
+  </div>
+  <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;">Odblokowuje odznakę <strong style="color:var(--accent);">urodzinowy_run</strong> 🎉</div>
+</div>
+
 <!-- CELE / STARTY -->
 <div class="section" id="goals-section">
   <div class="section-hdr">
@@ -474,10 +491,15 @@ let _profileData = null;
   // Sprawdź prywatność cudzego profilu przed załadowaniem
   if (!_isOwnProfile) {
     const { data: privCheck } = await sb.from('athletes')
-      .select('is_public,full_name')
+      .select('is_public,full_name,coach_id')
       .eq('id', _targetId)
       .maybeSingle();
-    if (privCheck && !privCheck.is_public) {
+
+    // ✨ Bypass prywatności dla trenera tego zawodnika
+    // Jeśli zalogowany user (auth.uid) jest coach_id zawodnika — pełen dostęp niezależnie od is_public
+    const isCoachOfTarget = _isCoach && privCheck?.coach_id === session.user.id;
+
+    if (privCheck && !privCheck.is_public && !isCoachOfTarget) {
       const initials = (privCheck.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       document.getElementById('profile-name').textContent = privCheck.full_name || 'Biegacz';
       document.getElementById('av-initials').textContent = initials;
@@ -494,6 +516,11 @@ let _profileData = null;
       await loadFriendStatus();
       renderActionBtns();
       return;
+    }
+
+    // Coach-of-target — dodaj subtelny info, że to dostęp trenerski (nie public)
+    if (isCoachOfTarget && !privCheck.is_public) {
+      console.log('[profil] Trener-swojego-zawodnika bypass dla:', privCheck.full_name);
     }
   }
 
@@ -512,11 +539,14 @@ let _profileData = null;
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
   const { data: ath } = await sb.from('athletes')
-    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public')
+    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth')
     .eq('id', _targetId)
     .maybeSingle();
   if (!ath) return;
   _profileData = ath;
+
+  // Data urodzenia (tylko własny profil)
+  renderDOB(ath);
 
   // Imię
   const name = ath.full_name || 'Biegacz';
@@ -584,6 +614,61 @@ async function savePB(key, val) {
   if (_profileData) _profileData[key] = val;
   showToast('Zyciówka zapisana ✓');
   renderPBs(_profileData);
+}
+
+// ── DATA URODZENIA (dla odznaki urodzinowy_run) ──
+function renderDOB(ath) {
+  // Pokazuj tylko na własnym profilu
+  const sec = document.getElementById('personal-data-section');
+  if (!sec) return;
+  if (!_isOwnProfile) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const valEl = document.getElementById('dob-value');
+  if (!valEl) return;
+  if (ath?.date_of_birth) {
+    const d = new Date(ath.date_of_birth);
+    valEl.textContent = d.toLocaleDateString('pl-PL', {day:'numeric', month:'long', year:'numeric'});
+    valEl.style.color = 'var(--fg)';
+  } else {
+    valEl.textContent = '+ Dodaj datę urodzenia';
+    valEl.style.color = 'var(--accent)';
+  }
+}
+
+async function editDateOfBirth() {
+  if (!_myId) return;
+  const current = _profileData?.date_of_birth || '';
+  const val = prompt('Podaj datę urodzenia (format: DD.MM.RRRR, np. 15.06.1989):', 
+    current ? new Date(current).toLocaleDateString('pl-PL').replaceAll('/','.') : '');
+  if (val === null) return; // anulowano
+  if (val.trim() === '') {
+    // Usuń datę
+    const { error } = await sb.from('athletes').update({ date_of_birth: null }).eq('id', _myId);
+    if (error) { showToast('Błąd: ' + error.message); return; }
+    if (_profileData) _profileData.date_of_birth = null;
+    showToast('Data usunięta');
+    renderDOB(_profileData);
+    return;
+  }
+  // Parse DD.MM.RRRR lub DD/MM/RRRR
+  const m = val.trim().match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+  if (!m) {
+    showToast('Nieprawidłowy format. Użyj: DD.MM.RRRR');
+    return;
+  }
+  const day = parseInt(m[1]), month = parseInt(m[2]), year = parseInt(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31 || year < 1900 || year > new Date().getFullYear()) {
+    showToast('Nieprawidłowa data');
+    return;
+  }
+  // Format ISO YYYY-MM-DD
+  const iso = year + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+  const { error } = await sb.from('athletes').update({ date_of_birth: iso }).eq('id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (_profileData) _profileData.date_of_birth = iso;
+  showToast('Data zapisana ✓');
+  renderDOB(_profileData);
 }
 
 function renderGoals(ath) {
