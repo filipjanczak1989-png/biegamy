@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BiegaMy build: 2026-05-14-wieczor-7 · odznaki klikalne z modalem 2 sekcje (Za co + Jak zdobyc) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -42,6 +43,27 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
 }
 .top-back-btn:hover{border-color:var(--accent);background:rgba(232,86,30,0.1);}
 
+/* ✨ Modal szczegółów odznaki */
+#badge-detail-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;overflow-y:auto;animation:bdfade 0.2s ease;}
+#badge-detail-modal.show{display:flex;}
+#badge-detail-card{background:linear-gradient(135deg,rgba(28,22,40,0.98),rgba(15,12,24,0.99));border:1px solid var(--border);border-radius:20px;padding:24px 22px;max-width:380px;width:100%;text-align:center;position:relative;animation:bdpop 0.25s ease;max-height:92vh;overflow-y:auto;margin:auto;}
+#bd-close{position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.06);border:none;color:var(--fg);width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:1;}
+#bd-img{width:120px;height:120px;border-radius:18px;margin:6px auto 14px;display:block;box-shadow:0 0 28px rgba(232,86,30,0.4);}
+#bd-name{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;color:var(--fg);line-height:1.1;margin-bottom:4px;}
+#bd-cat{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--muted);margin-bottom:10px;}
+#bd-rarity{display:inline-block;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;font-family:'DM Mono',monospace;padding:4px 12px;border-radius:10px;margin-bottom:14px;}
+#bd-earned-section{display:none;background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.25);border-radius:12px;padding:12px 14px;margin:6px 0 12px;text-align:left;}
+#bd-earned-section.show{display:block;}
+#bd-earned-hdr{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:#3db870;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+#bd-earned-date{font-size:13px;color:var(--fg);font-weight:600;margin-bottom:4px;}
+#bd-earned-context{font-size:12px;color:var(--fg2);line-height:1.5;}
+#bd-howto-section{background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:12px;padding:12px 14px;margin:6px 0 14px;text-align:left;}
+#bd-howto-hdr{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+#bd-desc{font-size:13px;color:var(--fg);line-height:1.5;}
+#bd-status{font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.1em;padding:8px 12px;border-radius:10px;}
+@keyframes bdfade{from{opacity:0}to{opacity:1}}
+@keyframes bdpop{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
 </style>
 </head>
 <body>
@@ -52,6 +74,27 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
 <div id="content">
   <div id="badges-section-content">
     <div style="text-align:center;padding:48px 0;color:var(--muted);font-size:13px;">Ładowanie...</div>
+  </div>
+</div>
+
+<!-- ✨ Modal szczegółów odznaki -->
+<div id="badge-detail-modal" onclick="if(event.target===this)closeBadgeDetail()">
+  <div id="badge-detail-card">
+    <button id="bd-close" onclick="closeBadgeDetail()">×</button>
+    <img id="bd-img" src="" alt="">
+    <div id="bd-name"></div>
+    <div id="bd-cat"></div>
+    <div id="bd-rarity"></div>
+    <div id="bd-earned-section">
+      <div id="bd-earned-hdr"><span style="font-size:14px;">✓</span> Za co zdobyta</div>
+      <div id="bd-earned-date"></div>
+      <div id="bd-earned-context"></div>
+    </div>
+    <div id="bd-howto-section">
+      <div id="bd-howto-hdr"><span style="font-size:14px;">🎯</span> Jak zdobyć</div>
+      <div id="bd-desc"></div>
+    </div>
+    <div id="bd-status"></div>
   </div>
 </div>
 <script>
@@ -67,6 +110,7 @@ window._earnedBadges = new Set();
 
 const RARITY_COLOR = {common:'#e8a040',rare:'#aac8ff',epic:'#c87ef0',legendary:'#ffcc00'};
 const RARITY_LABEL = {common:'Common',rare:'Rare',epic:'Epic',legendary:'Legendary'};
+const RARITY_BG = {common:'rgba(232,160,64,0.15)',rare:'rgba(170,200,255,0.15)',epic:'rgba(200,126,240,0.15)',legendary:'rgba(255,204,0,0.15)'};
 const BASE_URL = window.SB_URL + '/storage/v1/object/public/biegamy-assets/badges/';
 const BASE_ASSETS = window.SB_URL + '/storage/v1/object/public/biegamy-assets/';
 
@@ -247,7 +291,7 @@ function renderBadgesSection() {
       if (!isEarned) continue; // Tylko zdobyte
       const col = RARITY_COLOR[b.rarity] || '#fff';
       html += `
-        <div style="background:#13111f;border:1px solid ${col}55;border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 0 16px ${col}18;">
+        <div onclick="showBadgeDetail('${b.id}',false)" style="background:#13111f;border:1px solid ${col}55;border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 0 16px ${col}18;cursor:pointer;transition:transform 0.15s, border-color 0.15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='${col}'" onmouseout="this.style.transform='';this.style.borderColor='${col}55'">
           <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy"
             style="width:56px;height:56px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px ${col}44;"
             onerror="this.style.opacity='0.2'">
@@ -264,12 +308,13 @@ function renderBadgesSection() {
     html += `<div style="font-size:9px;letter-spacing:0.25em;text-transform:uppercase;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.2);margin-bottom:10px;">Do zdobycia (${locked.length})</div>`;
     html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">`;
     for (const b of locked) {
+      const isHidden = !!b.hidden;
       html += `
-        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;opacity:0.3;" title="${b.desc}">
+        <div onclick="showBadgeDetail('${b.id}',${isHidden})" style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;opacity:0.45;cursor:pointer;transition:opacity 0.15s, transform 0.15s;padding:4px;" onmouseover="this.style.opacity='0.85';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='0.45';this.style.transform=''">
           <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy"
             style="width:40px;height:40px;border-radius:8px;object-fit:cover;filter:grayscale(1) brightness(0.4);"
             onerror="this.style.opacity='0.1'">
-          <div style="font-size:8px;color:var(--muted);line-height:1.2;">${b.name}</div>
+          <div style="font-size:8px;color:var(--muted);line-height:1.2;">${isHidden?'?':b.name}</div>
         </div>`;
     }
     html += `</div>`;
@@ -277,6 +322,123 @@ function renderBadgesSection() {
 
   container.innerHTML = html;
 }
+
+// ✨ Modal szczegółów odznaki — Adam wymagał
+async function showBadgeDetail(badgeId, isHidden) {
+  const badge = BADGES.find(b => b.id === badgeId);
+  if (!badge) return;
+  const modal = document.getElementById('badge-detail-modal');
+  if (!modal) return;
+
+  const earned = window._earnedBadges.has(badgeId);
+  const col = RARITY_COLOR[badge.rarity] || '#fff';
+  const bg = RARITY_BG[badge.rarity] || 'rgba(255,255,255,0.1)';
+
+  const earnedSec = document.getElementById('bd-earned-section');
+  const status = document.getElementById('bd-status');
+  const img = document.getElementById('bd-img');
+  const nameEl = document.getElementById('bd-name');
+  const catEl = document.getElementById('bd-cat');
+  const rarEl = document.getElementById('bd-rarity');
+  const descEl = document.getElementById('bd-desc');
+
+  // Sekretne + niezdobyte → ukryj treść
+  if (isHidden && !earned) {
+    img.src = '';
+    img.style.opacity = '0.15';
+    img.alt = '?';
+    nameEl.textContent = 'Odznaka sekretna';
+    catEl.textContent = badge.cat || '';
+    rarEl.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
+    rarEl.style.background = bg;
+    rarEl.style.color = col;
+    descEl.textContent = '🔒 Ta odznaka jest sekretem. Zdobądź ją, żeby zobaczyć opis.';
+    earnedSec.classList.remove('show');
+    status.textContent = 'JESZCZE DO ODKRYCIA';
+    status.style.color = 'var(--muted)';
+    status.style.background = 'rgba(255,255,255,0.04)';
+  } else {
+    img.src = BASE_URL + badge.id + '.webp';
+    img.style.opacity = earned ? '1' : '0.4';
+    img.alt = badge.name;
+    nameEl.textContent = badge.name;
+    catEl.textContent = badge.cat || '';
+    rarEl.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
+    rarEl.style.background = bg;
+    rarEl.style.color = col;
+    descEl.textContent = badge.desc || 'Brak opisu';
+
+    if (earned) {
+      earnedSec.classList.add('show');
+      const dateEl = document.getElementById('bd-earned-date');
+      const ctxEl = document.getElementById('bd-earned-context');
+      dateEl.textContent = 'Wczytuję...';
+      ctxEl.textContent = '';
+
+      try {
+        const { data: achievement } = await _sb.from('achievements')
+          .select('earned_at')
+          .eq('athlete_id', _athleteId)
+          .eq('badge_id', badgeId)
+          .maybeSingle();
+
+        if (achievement?.earned_at) {
+          const earnedDate = new Date(achievement.earned_at);
+          const dateLong = earnedDate.toLocaleDateString('pl-PL', {day:'numeric', month:'long', year:'numeric'});
+          dateEl.textContent = '📅 ' + dateLong;
+
+          // Spróbuj znaleźć trening z tego samego dnia
+          const dayStart = new Date(earnedDate); dayStart.setHours(0,0,0,0);
+          const dayEnd = new Date(earnedDate); dayEnd.setHours(23,59,59,999);
+
+          const { data: closestLog } = await _sb.from('training_logs')
+            .select('training_type, distance_km, pace, logged_at')
+            .eq('athlete_id', _athleteId)
+            .gte('logged_at', dayStart.toISOString())
+            .lte('logged_at', dayEnd.toISOString())
+            .not('training_type', 'like', '__badge__%')
+            .order('logged_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (closestLog) {
+            const parts = [];
+            if (closestLog.training_type) parts.push(closestLog.training_type);
+            if (closestLog.distance_km) parts.push(closestLog.distance_km + ' km');
+            if (closestLog.pace) parts.push(closestLog.pace);
+            ctxEl.innerHTML = '🏃 Po treningu: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
+          } else {
+            ctxEl.textContent = 'Odznaka przyznana automatycznie po spełnieniu warunku.';
+          }
+        } else {
+          dateEl.textContent = 'Data nieznana';
+        }
+      } catch(e) {
+        console.warn('[badge] error:', e.message);
+        dateEl.textContent = 'Data nieznana';
+      }
+
+      status.innerHTML = '✓ ZDOBYTA';
+      status.style.color = '#3db870';
+      status.style.background = 'rgba(61,184,112,0.1)';
+    } else {
+      earnedSec.classList.remove('show');
+      status.textContent = '○ JESZCZE DO ZDOBYCIA';
+      status.style.color = 'var(--muted)';
+      status.style.background = 'rgba(255,255,255,0.04)';
+    }
+  }
+
+  modal.classList.add('show');
+}
+
+function closeBadgeDetail() {
+  const m = document.getElementById('badge-detail-modal');
+  if (m) m.classList.remove('show');
+}
+
+window.showBadgeDetail = showBadgeDetail;
+window.closeBadgeDetail = closeBadgeDetail;
 
 async function init() {
   const { data: { session } } = await _sb.auth.getSession();
