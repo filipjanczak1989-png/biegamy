@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-5 · czat textarea (zawijanie + widoczny tekst) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -251,7 +250,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-msg-row{display:flex;flex-direction:column;gap:3px;width:100%;}
 .pchat-msg-row.me{align-items:flex-end;}
 .pchat-msg-row.them{align-items:flex-start;}
-.pchat-bubble{max-width:75%;padding:10px 14px;font-size:13px;line-height:1.55;word-break:break-word;position:relative;white-space:pre-wrap;}
+.pchat-bubble{max-width:75%;padding:10px 14px;font-size:13px;line-height:1.55;word-break:break-word;position:relative;}
 .pchat-msg-row.me .pchat-bubble{background:linear-gradient(135deg,#d4501a,#e06030);color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 3px 14px rgba(212,80,26,0.35);}
 .pchat-msg-row.them .pchat-bubble{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:18px 18px 18px 4px;}
 .pchat-bubble img,.pchat-bubble video{max-width:100%;border-radius:10px;display:block;margin:2px 0;}
@@ -259,12 +258,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-msg-recall{font-size:11px;color:var(--muted);font-style:italic;opacity:0.5;}
 .pchat-input-area{position:absolute;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;z-index:58;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
-.pchat-input-row{display:flex;gap:6px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 14px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;}
+.pchat-input-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:24px;padding:5px 5px 5px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,80,26,0.12);}
-.pchat-input-row textarea,.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif;font-size:16px;outline:none;padding:8px 0;resize:none;line-height:1.4;max-height:120px;overflow-y:auto;font-weight:400;caret-color:#e8561e;box-sizing:border-box;}
-.pchat-input-row textarea::placeholder,.pchat-input-row input::placeholder{color:rgba(240,237,232,0.4);-webkit-text-fill-color:rgba(240,237,232,0.4);}
-.pchat-input-row textarea:focus,.pchat-input-row input:focus{color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;}
-.pchat-input-row textarea:-webkit-autofill,.pchat-input-row input:-webkit-autofill{-webkit-text-fill-color:#f0ede8 !important;-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.05) inset !important;}
+.pchat-input-row input{flex:1;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;padding:4px 0;}
+.pchat-input-row input::placeholder{color:var(--muted);}
 .pchat-act{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:5px;border-radius:50%;transition:all 0.15s;flex-shrink:0;}
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
 .pchat-send{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;box-shadow:0 2px 8px rgba(212,80,26,0.4);}
@@ -484,7 +481,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika żeby zobaczyć chat.</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <textarea id="panel-msg-input" placeholder="Napisz wiadomość..." rows="1" style="flex:1;background:var(--card2);border:1px solid var(--border);color:#f0ede8;-webkit-text-fill-color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:10px;outline:none;resize:none;line-height:1.4;max-height:100px;overflow-y:auto;box-sizing:border-box;caret-color:#e8561e;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendPanelMessage();}" oninput="tAutosizeChat(this)"></textarea>
+        <input id="panel-msg-input" type="text" placeholder="Napisz wiadomość..." style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:8px;outline:none;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')sendPanelMessage()">
         <button onclick="sendPanelMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyślij →</button>
       </div>
     </div>
@@ -4270,14 +4267,6 @@ function stripHtmlChat(h){const t=document.createElement('div');t.innerHTML=h;re
 function relTimeChat(iso){if(!iso)return'';const d=(Date.now()-new Date(iso))/1000;if(d<60)return'teraz';if(d<3600)return Math.floor(d/60)+' min';if(d<86400)return Math.floor(d/3600)+' godz.';return Math.floor(d/86400)+' dni';}
 function filterPchatList(q){document.querySelectorAll('.pchat-row').forEach(r=>{const n=r.querySelector('.pchat-name')?.textContent?.toLowerCase()||'';r.style.display=n.includes(q.toLowerCase())?'':'none';});}
 function closeTChatView(){const v=document.getElementById('t-chat-view');if(v)v.style.display='none';loadCoachMsgsList();}
-
-// Auto-resize textarea czatu trenera (rośnie do max-height, potem scroll)
-function tAutosizeChat(el) {
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, parseInt(getComputedStyle(el).maxHeight) || 120) + 'px';
-}
-window.tAutosizeChat = tAutosizeChat;
 // ── Fix klawiatury na mobile dla czatu trenera ──
 let _coachChatVvpHandler = null;
 function setupCoachChatViewportFix() {
@@ -4537,7 +4526,6 @@ async function sendCoachMessage() {
   const body = input?.value?.trim();
   if (!body || !_currentChatAthleteId) return;
   input.value = '';
-  input.style.height = ''; // reset textarea auto-resize
   const { error } = await sb.from('messages').insert({
     athlete_id: _currentChatAthleteId,
     sender: 'coach',
@@ -5452,7 +5440,6 @@ async function sendPanelMessage() {
   const body = input?.value?.trim();
   if (!body || !athleteId) return;
   input.value = '';
-  input.style.height = ''; // reset textarea auto-resize
   const { error } = await sb.from('messages').insert({
     athlete_id: athleteId,
     sender: 'coach',
@@ -5612,7 +5599,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
         <button class="pchat-act" onclick="toggleEmojiPickerCoach()">😊</button>
         <button class="pchat-act" onclick="toggleGifPickerCoach()" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.05em;">GIF</button>
         <button id="t-voice-btn" class="pchat-act voice-btn-t" onclick="toggleVoiceCoach()">🎤</button>
-        <textarea id="coach-msg-input" placeholder="Napisz wiadomość..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendCoachMessage();}" oninput="tAutosizeChat(this)"></textarea>
+        <input id="coach-msg-input" type="text" placeholder="Napisz wiadomość..." onkeydown="if(event.key==='Enter')sendCoachMessage()">
         <button class="pchat-send" onclick="sendCoachMessage()">↑</button>
       </div>
     </div>
