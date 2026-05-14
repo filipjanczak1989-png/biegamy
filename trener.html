@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T-wieczor-3f · brief X/collapse/archive + UUID + plan modal merged -->
+<!-- BiegaMy build: 2026-05-13T-wieczor-3g · brief: _dbAthletes na window + wzmocniony resolver + retry inputu -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -2667,6 +2667,7 @@ async function loadAthletes() {
   if (error) { console.error(error); return; }
   
   _dbAthletes = data || [];
+  window._dbAthletes = _dbAthletes; // ✨ dla kbResolveAthleteId (brief lookup po nazwie)
   
   // Update stats
   const countEl = document.getElementById('stat-count');
@@ -7563,26 +7564,58 @@ document.addEventListener('keydown', (e) => {
   // Próbuje naprawić zepsute UUID (np. "072e76d23-..." → "72e76d23-...")
   // albo znaleźć zawodnika po nazwie w _dbAthletes
   function kbResolveAthleteId(brokenId, athleteName){
-    if (kbIsValidUUID(brokenId)) return brokenId;
+    console.log('[Klaudiusz] kbResolveAthleteId IN:', brokenId, '| name:', athleteName);
 
-    // Próba 1: edge function dodał dodatkowy znak na początku (np. typ '0' przed UUID)
+    // ⚡ Już poprawny UUID
+    if (kbIsValidUUID(brokenId)) {
+      console.log('[Klaudiusz] UUID OK, brak naprawy potrzebnej');
+      return brokenId;
+    }
+
+    // Próba 1: strip pierwszy znak (37 → 36 znaków)
     if (typeof brokenId === 'string' && brokenId.length === 37) {
       const stripped = brokenId.slice(1);
       if (kbIsValidUUID(stripped)) {
         console.warn('[Klaudiusz] Naprawiono ID (strip pierwszy znak):', brokenId, '→', stripped);
+        // Bonus: sprawdź czy istnieje w _dbAthletes (jeśli tak — pewne)
+        if (Array.isArray(window._dbAthletes) && window._dbAthletes.some(a => a.id === stripped)) {
+          console.log('[Klaudiusz] Strip potwierdzony w _dbAthletes');
+        }
         return stripped;
       }
     }
 
-    // Próba 2: znajdź w _dbAthletes po nazwisku
-    if (athleteName && Array.isArray(window._dbAthletes)) {
-      const match = window._dbAthletes.find(a =>
-        a.full_name && a.full_name.toLowerCase().trim() === athleteName.toLowerCase().trim()
+    // Próba 2: regex - wyciągnij jakikolwiek poprawny UUID z stringa
+    if (typeof brokenId === 'string') {
+      const m = brokenId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (m) {
+        console.warn('[Klaudiusz] Wyciągnięto UUID regexem:', brokenId, '→', m[0]);
+        return m[0];
+      }
+    }
+
+    // Próba 3: znajdź w _dbAthletes po nazwisku
+    if (athleteName && Array.isArray(window._dbAthletes) && window._dbAthletes.length > 0) {
+      const target = athleteName.toLowerCase().trim();
+      // dopasowanie pełne
+      let match = window._dbAthletes.find(a =>
+        a.full_name && a.full_name.toLowerCase().trim() === target
       );
+      // dopasowanie po pierwszym imieniu
+      if (!match) {
+        const firstName = target.split(' ')[0];
+        match = window._dbAthletes.find(a => {
+          const dbFirst = (a.full_name || '').toLowerCase().trim().split(' ')[0];
+          return dbFirst === firstName;
+        });
+      }
       if (match && kbIsValidUUID(match.id)) {
         console.warn('[Klaudiusz] Znaleziono ID po nazwie:', athleteName, '→', match.id);
         return match.id;
       }
+      console.warn('[Klaudiusz] Nie znaleziono po nazwie. _dbAthletes:', window._dbAthletes.map(a => a.full_name));
+    } else if (athleteName) {
+      console.warn('[Klaudiusz] _dbAthletes nie załadowane (' + (window._dbAthletes||[]).length + ' rekordów)');
     }
 
     console.error('[Klaudiusz] Nie udało się rozwiązać ID:', brokenId, 'name:', athleteName);
@@ -7604,31 +7637,48 @@ document.addEventListener('keydown', (e) => {
   }
 
   function kbUseMessage(athleteId, athleteName, text){
+    console.log('[Klaudiusz] kbUseMessage CALLED:', { athleteId, athleteName, textPreview: text?.slice(0,40) });
     const realId = kbResolveAthleteId(athleteId, athleteName);
     if (!realId) {
       navigator.clipboard.writeText(text);
       kbToast('✓ Skopiowano (nie znaleziono ' + (athleteName||'zawodnika') + ')');
       return;
     }
-    if (typeof openCoachChat === 'function') {
-      openCoachChat(realId, athleteName || 'Zawodnik');
-      // Prefill po otwarciu panelu
-      setTimeout(()=>{
-        const input = document.getElementById('coach-msg-input');
-        if (input) {
-          input.value = text;
-          input.focus();
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-          kbToast('✓ Wiadomość gotowa — sprawdź i wyślij');
-        } else {
-          navigator.clipboard.writeText(text);
-          kbToast('✓ Skopiowano do schowka');
-        }
-      }, 500);
-    } else {
+    if (typeof openCoachChat !== 'function') {
       navigator.clipboard.writeText(text);
       kbToast('✓ Skopiowano do schowka');
+      return;
     }
+
+    // Otwórz czat z zawodnikiem (async)
+    const openPromise = openCoachChat(realId, athleteName || 'Zawodnik');
+
+    // Czekaj na pojawienie się inputu — retry przez 2s
+    const tryFill = (attempts) => {
+      const input = document.getElementById('coach-msg-input')
+                  || document.getElementById('panel-msg-input');
+      if (input) {
+        input.value = text;
+        input.focus();
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        console.log('[Klaudiusz] ✓ Wiadomość wkleona w', input.id);
+        kbToast('✓ Wiadomość gotowa — sprawdź i wyślij');
+        return;
+      }
+      if (attempts > 0) {
+        setTimeout(() => tryFill(attempts - 1), 200);
+      } else {
+        // Nie udało się znaleźć inputu — skopiuj do schowka
+        console.warn('[Klaudiusz] Nie znaleziono inputu po 10 próbach');
+        navigator.clipboard.writeText(text);
+        kbToast('✓ Skopiowano do schowka (otwórz czat z ' + (athleteName||'zawodnikiem') + ')');
+      }
+    };
+
+    // Pierwsza próba po 300ms (czas na render), potem co 200ms maks 10 razy = 2.3s
+    Promise.resolve(openPromise).then(() => {
+      setTimeout(() => tryFill(10), 300);
+    });
   }
 
   // ━━ COLLAPSE & ARCHIWUM ━━
