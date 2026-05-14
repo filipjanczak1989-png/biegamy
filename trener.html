@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-4 · ankieta zawsze dostępna w panelu (📋), bypass autosave race -->
+<!-- BiegaMy build: 2026-05-14-wieczor-5 · czat textarea (zawijanie + widoczny tekst) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -259,10 +259,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-msg-recall{font-size:11px;color:var(--muted);font-style:italic;opacity:0.5;}
 .pchat-input-area{position:absolute;bottom:env(safe-area-inset-bottom,0px);left:0;right:0;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;z-index:58;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
-.pchat-input-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:24px;padding:5px 5px 5px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
+.pchat-input-row{display:flex;gap:6px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 14px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,80,26,0.12);}
-.pchat-input-row input{flex:1;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;padding:4px 0;}
-.pchat-input-row input::placeholder{color:var(--muted);}
+.pchat-input-row textarea,.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif;font-size:16px;outline:none;padding:8px 0;resize:none;line-height:1.4;max-height:120px;overflow-y:auto;font-weight:400;caret-color:#e8561e;box-sizing:border-box;}
+.pchat-input-row textarea::placeholder,.pchat-input-row input::placeholder{color:rgba(240,237,232,0.4);-webkit-text-fill-color:rgba(240,237,232,0.4);}
+.pchat-input-row textarea:focus,.pchat-input-row input:focus{color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;}
+.pchat-input-row textarea:-webkit-autofill,.pchat-input-row input:-webkit-autofill{-webkit-text-fill-color:#f0ede8 !important;-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.05) inset !important;}
 .pchat-act{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:5px;border-radius:50%;transition:all 0.15s;flex-shrink:0;}
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
 .pchat-send{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;box-shadow:0 2px 8px rgba(212,80,26,0.4);}
@@ -340,19 +342,6 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div>
 </div>
 
-<!-- Modal archiwum briefów -->
-<div class="kb-arch-modal" id="kbArchModal">
-  <div class="kb-arch-inner">
-    <div class="kb-arch-hdr">
-      <div class="kb-arch-title">Archiwum <span>briefów</span></div>
-      <button class="kb-arch-close" onclick="kbCloseArchive()">×</button>
-    </div>
-    <div class="kb-arch-list" id="kbArchList">
-      <div class="kb-arch-empty">Wczytuję...</div>
-    </div>
-  </div>
-</div>
-
 <div class="quick-stats fi">
   <div class="qs-card"><div class="qs-val a" id="stat-count">—</div><div class="qs-lbl">Zawodników</div></div>
   <div class="qs-card"><div class="qs-val g" id="stat-logs">—</div><div class="qs-lbl">Nowe logi</div></div>
@@ -421,9 +410,6 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div class="panel-hdr">
     <div class="panel-av" id="pav">MK</div>
     <div><div class="panel-name" id="pname">Marek Kowalski</div><div class="panel-meta" id="pmeta">Cel: ... PB: ...</div></div>
-    <button id="p-intake-btn" onclick="openAthleteIntake()" title="Otwórz ankietę startową" style="display:none;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);color:#a78bfa;width:36px;height:36px;border-radius:10px;cursor:pointer;display:none;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;font-size:16px;" onmouseover="this.style.background='rgba(139,92,246,0.22)'" onmouseout="this.style.background='rgba(139,92,246,0.12)'">
-      📋
-    </button>
     <button onclick="viewAsAthlete()" title="Zobacz jako zawodnik" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;" onmouseover="this.style.background='rgba(232,86,30,0.22)'" onmouseout="this.style.background='rgba(232,86,30,0.12)'">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
@@ -498,7 +484,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika żeby zobaczyć chat.</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <textarea id="panel-msg-input" placeholder="Napisz wiadomość..." rows="1" style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:8px;outline:none;resize:none;overflow-y:auto;max-height:100px;line-height:1.4;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendPanelMessage();}" oninput="tAutosizeChat(this)"></textarea>
+        <textarea id="panel-msg-input" placeholder="Napisz wiadomość..." rows="1" style="flex:1;background:var(--card2);border:1px solid var(--border);color:#f0ede8;-webkit-text-fill-color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:10px;outline:none;resize:none;line-height:1.4;max-height:100px;overflow-y:auto;box-sizing:border-box;caret-color:#e8561e;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendPanelMessage();}" oninput="tAutosizeChat(this)"></textarea>
         <button onclick="sendPanelMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyślij →</button>
       </div>
     </div>
@@ -770,23 +756,6 @@ function viewAsAthlete(){
   window.open('raporty.html?athlete_id=' + id, '_blank');
 }
 window.viewAsAthlete = viewAsAthlete;
-
-// ✨ Otwiera ankietę startową wybranego zawodnika (w modalu intake-modal)
-function openAthleteIntake() {
-  const btn = document.getElementById('p-intake-btn');
-  const intakeId = btn?.dataset.intakeId;
-  if (!intakeId) {
-    showToast('Brak ankiety dla tego zawodnika');
-    return;
-  }
-  if (typeof window.openIntakeModal === 'function') {
-    window.openIntakeModal(intakeId);
-  } else {
-    showToast('Modal niedostępny — odśwież stronę');
-  }
-}
-window.openAthleteIntake = openAthleteIntake;
-
 function ptab(n,el){
   ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp','no','di'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
@@ -1447,9 +1416,6 @@ async function openCreateTrainingPlanModal() {
   document.getElementById('tp-create-status').style.display = 'none';
   document.getElementById('tp-create-go-btn').disabled = false;
   document.getElementById('tp-create-go-btn').style.opacity = '1';
-
-  // Reset komentarza i screenów (świeży modal)
-  if (typeof window.resetTpPlanModal === 'function') window.resetTpPlanModal();
   
   // Ładuj cele startowe zawodnika z race_goals
   await loadAthleteGoalsIntoModal();
@@ -1584,102 +1550,6 @@ function selectTpType(btn) {
 }
 window.selectTpType = selectTpType;
 
-// ━━━━━━━━ SCREENY W MODALU NOWY PLAN ━━━━━━━━
-window._tpUploadedScreens = [];
-
-window.tpHandleScreens = async function(fileList) {
-  const files = Array.from(fileList || []);
-  if (!files.length) return;
-  if (!window._tpUploadedScreens) window._tpUploadedScreens = [];
-
-  const preview = document.getElementById('tp-screens-preview');
-  const counterEl = document.getElementById('tp-screens-counter');
-  const addBtn = document.getElementById('tp-screens-add');
-
-  for (const file of files) {
-    if (window._tpUploadedScreens.length >= 3) {
-      if (typeof kbToast === 'function') kbToast('Max 3 screeny', true);
-      else alert('Max 3 screeny');
-      break;
-    }
-    if (!file.type.startsWith('image/')) continue;
-
-    // Instant preview
-    const tempUrl = URL.createObjectURL(file);
-    const tile = document.createElement('div');
-    tile.className = 'tp-screen-tile';
-    tile.style.cssText = 'position:relative;width:72px;height:72px;border-radius:8px;overflow:hidden;border:2px solid rgba(139,92,246,0.3);opacity:0.5;';
-    tile.innerHTML = '<img src="'+tempUrl+'" style="width:100%;height:100%;object-fit:cover;"><div style="position:absolute;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#c4b5fd;font-size:9px;font-family:DM Mono,monospace;">⏳</div>';
-    preview.appendChild(tile);
-
-    try {
-      const ts = Date.now();
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-      const path = 'coach-context/' + ts + '-' + Math.random().toString(36).slice(2,8) + '.' + ext;
-      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: false, contentType: file.type });
-      if (upErr) throw new Error(upErr.message);
-      const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-      const publicUrl = urlData?.publicUrl;
-      if (!publicUrl) throw new Error('Brak public URL');
-
-      window._tpUploadedScreens.push(publicUrl);
-
-      tile.style.opacity = '1';
-      tile.style.borderColor = '#3db870';
-      tile.innerHTML = '<img src="'+publicUrl+'" style="width:100%;height:100%;object-fit:cover;">'
-        + '<button type="button" onclick="tpRemoveScreen(\''+publicUrl.replace(/\\/g,'\\\\').replace(/'/g,"\\'")+'\', this)" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.75);border:none;color:#fff;width:18px;height:18px;border-radius:50%;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>'
-        + '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(61,184,112,0.92);color:#fff;font-size:7.5px;font-family:DM Mono,monospace;letter-spacing:0.06em;text-align:center;padding:2px 0;font-weight:600;">✓ DODANO</div>';
-
-      if (counterEl) counterEl.textContent = '(' + window._tpUploadedScreens.length + '/3 — AI zobaczy)';
-      if (window._tpUploadedScreens.length >= 3 && addBtn) {
-        addBtn.style.opacity = '0.4';
-        addBtn.style.pointerEvents = 'none';
-      }
-      if (typeof kbToast === 'function') kbToast('✓ Screen ' + window._tpUploadedScreens.length + '/3 dodany');
-    } catch(e) {
-      console.error('[tp-screens] upload error:', e);
-      tile.style.borderColor = '#e05050';
-      tile.innerHTML = '<div style="width:100%;height:100%;background:rgba(224,80,80,0.15);display:flex;align-items:center;justify-content:center;color:#e05050;font-size:9px;text-align:center;padding:4px;font-family:DM Mono,monospace;">Błąd</div>';
-      setTimeout(function(){ tile.remove(); }, 2000);
-    }
-  }
-  const input = document.getElementById('tp-screens-input');
-  if (input) input.value = '';
-};
-
-window.tpRemoveScreen = function(url, btn) {
-  if (!window._tpUploadedScreens) window._tpUploadedScreens = [];
-  const idx = window._tpUploadedScreens.indexOf(url);
-  if (idx >= 0) window._tpUploadedScreens.splice(idx, 1);
-  const tile = btn?.parentElement;
-  if (tile) tile.remove();
-  const counterEl = document.getElementById('tp-screens-counter');
-  const addBtn = document.getElementById('tp-screens-add');
-  if (counterEl) counterEl.textContent = '(' + window._tpUploadedScreens.length + '/3 — AI zobaczy)';
-  if (addBtn) {
-    addBtn.style.opacity = '1';
-    addBtn.style.pointerEvents = 'auto';
-  }
-};
-
-window.resetTpPlanModal = function() {
-  // Wyczyść textareę, screeny, counter przy każdym nowym otwarciu modala
-  const ta = document.getElementById('tp-coach-note');
-  if (ta) ta.value = '';
-  const noteCounter = document.getElementById('tp-note-counter');
-  if (noteCounter) noteCounter.textContent = '0 / 2000';
-  window._tpUploadedScreens = [];
-  const preview = document.getElementById('tp-screens-preview');
-  if (preview) preview.innerHTML = '';
-  const screensCounter = document.getElementById('tp-screens-counter');
-  if (screensCounter) screensCounter.textContent = '(0/3 — AI zobaczy)';
-  const addBtn = document.getElementById('tp-screens-add');
-  if (addBtn) {
-    addBtn.style.opacity = '1';
-    addBtn.style.pointerEvents = 'auto';
-  }
-};
-
 async function generateTrainingPlan() {
   const athleteId = window._selectedAthleteId;
   if (!athleteId) { alert('Wybierz zawodnika'); return; }
@@ -1691,9 +1561,13 @@ async function generateTrainingPlan() {
   const targetDate = document.getElementById('tp-target-date').value || null;
   const targetTime = document.getElementById('tp-target-time').value.trim() || null;
 
-  // Komentarz + screeny — czytane BEZPOŚREDNIO z modala (nie ma drugiego pop-upu)
-  const coachNote = (document.getElementById('tp-coach-note')?.value || '').trim();
-  const coachScreens = Array.isArray(window._tpUploadedScreens) ? window._tpUploadedScreens.slice() : [];
+  // Krok komentarz trenera — daje Klaudiuszowi szerszy kontekst przed planem
+  const coachNote = await pickCoachNote({
+    context: 'plan',
+    planType: _tpSelectedType,
+    targetRace: targetRace
+  });
+  if (coachNote === null) return; // user anulował
 
   // UI: loading
   const goBtn = document.getElementById('tp-create-go-btn');
@@ -1701,10 +1575,7 @@ async function generateTrainingPlan() {
   goBtn.disabled = true;
   goBtn.style.opacity = '0.6';
   statusEl.style.display = 'block';
-  const screensInfo = coachScreens.length > 0
-    ? `AI dostaje: 📝 komentarz + 📷 ${coachScreens.length} screen${coachScreens.length>1?'y':''}`
-    : (coachNote ? 'AI dostaje: 📝 komentarz' : 'AI generuje plan...');
-  statusEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:6px;"><div style="display:flex;align-items:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>'+screensInfo+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">10-30 sek</div></div>';
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;"><div style="width:14px;height:14px;border:2px solid rgba(34,197,94,0.3);border-top-color:#22c55e;border-radius:50%;animation:tpspin 0.8s linear infinite;"></div>AI generuje plan... (10-30 sek)</div>';
 
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -1719,8 +1590,7 @@ async function generateTrainingPlan() {
       target_race_date: targetDate,
       target_time: targetTime
     };
-    if (coachNote) body.coach_note = coachNote;
-    if (coachScreens.length > 0) body.coach_attachments = coachScreens; // ← screeny dla AI
+    if (coachNote) body.coach_note = coachNote; // ← NOWE
     
     const resp = await fetch(fnUrl, {
       method: 'POST',
@@ -2687,7 +2557,6 @@ async function loadAthletes() {
   if (error) { console.error(error); return; }
   
   _dbAthletes = data || [];
-  window._dbAthletes = _dbAthletes; // ✨ dla kbResolveAthleteId (brief lookup po nazwie)
   
   // Update stats
   const countEl = document.getElementById('stat-count');
@@ -2928,117 +2797,6 @@ async function deleteAthlete(id, name) {
   await loadAthletes();
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 🎯 UNIWERSALNA FUNKCJA — otwórz profil zawodnika
-// Używana WSZĘDZIE gdzie awatar/imie/karta zawodnika ma być klikalna:
-// - lista zawodników (kafelki)
-// - awatar w czacie (pchat-av)
-// - brief Klaudiusza (PILNE/UWAGA + ok_chips)
-// - drill-downy raportów, społeczność, etc
-//
-// Akceptuje:
-//   - string rawId (uuid, może zepsuty)
-//   - opcjonalny athleteName (do lookup po nazwie jeśli UUID zły)
-//   - opcjonalne options { openChat: false, openModal: false }
-//
-// Domyślnie: otwiera boczny panel (selA_db) — to "główny" profil
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-const _ATHLETE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function resolveAthleteIdSafe(rawId, athleteName) {
-  // Już poprawny UUID? Sprawdź czy istnieje w _dbAthletes
-  if (typeof rawId === 'string' && _ATHLETE_UUID_RE.test(rawId)) {
-    if ((window._dbAthletes||[]).some(a => a.id === rawId)) return rawId;
-    return rawId; // poprawny format — może niezsynchronizowane jeszcze
-  }
-
-  // Strip pierwszy znak (37 → 36)
-  if (typeof rawId === 'string' && rawId.length === 37) {
-    const stripped = rawId.slice(1);
-    if (_ATHLETE_UUID_RE.test(stripped)) {
-      console.warn('[openAthlete] Strip prefix:', rawId, '→', stripped);
-      return stripped;
-    }
-  }
-
-  // Regex extract — UUID wewnątrz dowolnego stringa
-  if (typeof rawId === 'string') {
-    const m = rawId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-    if (m) {
-      console.warn('[openAthlete] Extracted UUID:', rawId, '→', m[0]);
-      return m[0];
-    }
-  }
-
-  // Lookup po nazwie w _dbAthletes
-  if (athleteName && typeof athleteName === 'string' && Array.isArray(window._dbAthletes)) {
-    const target = athleteName.toLowerCase().trim();
-    let match = window._dbAthletes.find(a => a.full_name && a.full_name.toLowerCase().trim() === target);
-    if (!match) {
-      const firstName = target.split(' ')[0];
-      match = window._dbAthletes.find(a => {
-        const dbFirst = (a.full_name||'').toLowerCase().trim().split(' ')[0];
-        return dbFirst === firstName;
-      });
-    }
-    if (match && _ATHLETE_UUID_RE.test(match.id)) {
-      console.warn('[openAthlete] Found by name:', athleteName, '→', match.id);
-      return match.id;
-    }
-  }
-
-  console.error('[openAthlete] Cannot resolve:', rawId, 'name:', athleteName);
-  return null;
-}
-
-async function openAthleteProfile(rawId, athleteName, options) {
-  options = options || {};
-  console.log('[openAthlete] CALL:', { rawId, athleteName, options });
-
-  const realId = resolveAthleteIdSafe(rawId, athleteName);
-  if (!realId) {
-    if (typeof showToast === 'function') {
-      showToast('Nie znaleziono zawodnika: ' + (athleteName||'?'));
-    } else if (typeof kbToast === 'function') {
-      kbToast('Nie znaleziono zawodnika: ' + (athleteName||'?'), true);
-    }
-    return false;
-  }
-
-  // Czat?
-  if (options.openChat && typeof openCoachChat === 'function') {
-    openCoachChat(realId, athleteName || 'Zawodnik');
-    return true;
-  }
-
-  // Modal społeczności? (bottom-sheet z drill-downem)
-  if (options.openModal && typeof openAthleteStatsModal === 'function') {
-    // potrzeba name + goal — jeśli nie ma, pobierz z _dbAthletes
-    const a = (window._dbAthletes||[]).find(x => x.id === realId);
-    const name = athleteName || a?.full_name || 'Zawodnik';
-    const goal = a?.goal || '';
-    openAthleteStatsModal(realId, name, goal);
-    return true;
-  }
-
-  // Domyślnie: otwórz boczny panel (selA_db)
-  if (typeof selA_db === 'function') {
-    await selA_db(realId);
-    // Scroll do panelu
-    const panel = document.getElementById('panel');
-    if (panel && panel.classList.contains('on')) {
-      requestAnimationFrame(() => panel.scrollIntoView({behavior:'smooth', block:'start'}));
-    }
-    return true;
-  }
-
-  return false;
-}
-
-window.openAthleteProfile = openAthleteProfile;
-window.resolveAthleteIdSafe = resolveAthleteIdSafe;
-
 // ── SELECT ATHLETE ────────────────────────────────────────────────
 // Otwórz panel bezpośrednio na zakładce Logi (z badge'a)
 async function selA_db_logs(athleteId) {
@@ -3111,28 +2869,6 @@ async function selA_db(athleteId) {
   await loadAthleteTrainings(athleteId);
   await loadAthleteLogs(athleteId);
   await loadPanelPB();
-  // ✨ Sprawdź czy zawodnik ma jakąkolwiek ankietę (submitted/accepted/rejected) → pokaż button 📋
-  try {
-    const { data: intakeRow } = await sb
-      .from('athlete_intake_forms')
-      .select('id, status')
-      .eq('created_athlete_id', athleteId)
-      .in('status', ['submitted', 'accepted', 'rejected'])
-      .order('submitted_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const btn = document.getElementById('p-intake-btn');
-    if (btn) {
-      if (intakeRow && intakeRow.id) {
-        btn.style.display = 'flex';
-        btn.dataset.intakeId = intakeRow.id;
-        btn.title = 'Ankieta startowa (status: ' + intakeRow.status + ')';
-      } else {
-        btn.style.display = 'none';
-        btn.dataset.intakeId = '';
-      }
-    }
-  } catch(e) { console.warn('[panel] intake check error:', e.message); }
   // Odśwież listę raportów AI dla TEGO zawodnika (inaczej widać raporty poprzedniego)
   if (typeof loadPanelAI === 'function') loadPanelAI();
   // Odśwież listę planów treningowych dla TEGO zawodnika (inaczej widać plany poprzedniego)
@@ -4516,8 +4252,8 @@ async function loadCoachMsgsList() {
     const prev=a.lastMsg?stripHtmlChat(a.lastMsg.body).slice(0,48):'Brak wiadomości';
     const tStr=a.lastMsg?relTimeChat(a.lastMsg.sent_at):'';
     const dotCls=a.unread?'orange':(idx<2?'green':'grey');
-    return `<div class="pchat-row" onclick="openCoachChat('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')" style="cursor:pointer;">
-      <div class="pchat-av" style="background:${bg};cursor:pointer;" onclick="event.stopPropagation();openAthleteProfile('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')" title="Otwórz profil zawodnika">${ini}<div class="pchat-dot ${dotCls}"></div></div>
+    return `<div class="pchat-row" onclick="openCoachChat('${a.id}','${(a.full_name||'Zawodnik').replace(/'/g,"\'")}')">
+      <div class="pchat-av" style="background:${bg};">${ini}<div class="pchat-dot ${dotCls}"></div></div>
       <div class="pchat-info">
         <div class="pchat-name">${escapeHtml(a.full_name)||'Zawodnik'}${a.unread?'<span class="pchat-new-tag">nowe</span>':''}</div>
         <div class="pchat-preview">${prev}</div>
@@ -4535,7 +4271,7 @@ function relTimeChat(iso){if(!iso)return'';const d=(Date.now()-new Date(iso))/10
 function filterPchatList(q){document.querySelectorAll('.pchat-row').forEach(r=>{const n=r.querySelector('.pchat-name')?.textContent?.toLowerCase()||'';r.style.display=n.includes(q.toLowerCase())?'':'none';});}
 function closeTChatView(){const v=document.getElementById('t-chat-view');if(v)v.style.display='none';loadCoachMsgsList();}
 
-// Auto-resize textarea czatu — rośnie do max-height, potem scroll
+// Auto-resize textarea czatu trenera (rośnie do max-height, potem scroll)
 function tAutosizeChat(el) {
   if (!el) return;
   el.style.height = 'auto';
@@ -4563,99 +4299,14 @@ function setupCoachChatViewportFix() {
 }
 
 async function openCoachChat(athleteId, athleteName) {
-  console.log('[openCoachChat] CALL:', { athleteId, athleteName });
-  if (!athleteId) { console.error('[openCoachChat] athleteId is missing!'); return; }
   _currentChatAthleteId = athleteId;
-  const nameEl = document.getElementById('chat-athlete-name');
-  if (nameEl) nameEl.textContent = athleteName || 'Zawodnik';
-  const ini = (athleteName||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('chat-athlete-name').textContent = athleteName;
+  const ini = athleteName.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   const avEl = document.getElementById('t-chat-av'); if(avEl) avEl.textContent = ini;
-  const v = document.getElementById('t-chat-view');
-  if(v) {
-    // ✨ FIX: przenieś t-chat-view do <body> żeby był widoczny niezależnie od rodzica
-    // (rodzic msgs-panel-section może mieć display:none gdy user jest na innej zakładce)
-    if (v.parentElement !== document.body) {
-      document.body.appendChild(v);
-      console.log('[openCoachChat] t-chat-view przeniesiony do body');
-    }
-    v.style.display='flex';
-    v.scrollTop = 0;
-    console.log('[openCoachChat] t-chat-view shown, display:', v.style.display);
-  } else {
-    console.error('[openCoachChat] t-chat-view NOT FOUND in DOM');
-  }
+  const v = document.getElementById('t-chat-view'); if(v) v.style.display='flex';
   setupCoachChatViewportFix();
   await loadCoachChat();
   const _cht = document.getElementById('chat-thread'); if(_cht) requestAnimationFrame(()=>{ _cht.scrollTop = _cht.scrollHeight; });
-}
-
-// ━━━ RENDERER WIADOMOŚCI (NOWY format attachments jsonb + STARY HTML compat) ━━━
-function _renderMessageBody(m) {
-  const TRUSTED_HOSTS = [
-    'https://afqojgkaveykxbltxzwm.supabase.co/',
-    'https://media.tenor.com/',
-    'https://media1.tenor.com/'
-  ];
-  const isTrusted = (url) => typeof url === 'string' && TRUSTED_HOSTS.some(h => url.startsWith(h));
-  const esc = (s) => (typeof escapeHtml === 'function' ? escapeHtml(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
-
-  const parts = [];
-
-  // 1) NOWY format — attachments jsonb
-  if (m && Array.isArray(m.attachments) && m.attachments.length) {
-    for (const att of m.attachments) {
-      if (!att || !isTrusted(att.url)) continue;
-      const safeUrl = esc(att.url);
-      if (att.type === 'image') {
-        parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
-      } else if (att.type === 'audio') {
-        const dur = Number.isFinite(+att.duration) ? `${+att.duration}s` : '';
-        parts.push(`<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${safeUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${esc(dur)}</span></div>`);
-      }
-    }
-  }
-
-  const rawBody = (m && m.body) || '';
-
-  // 2) STARY format — body z surowym HTML (kompatybilność wstecz)
-  if (!parts.length && rawBody) {
-    // Wiadomość cofnięta
-    if (rawBody.includes('class="msg-recall"')) {
-      parts.push('<span class="msg-recall">Wiadomość cofnięta</span>');
-      return parts.join('');
-    }
-    // Voice-msg stary format
-    const voiceMatch = rawBody.match(/<button[^>]*onclick="playVoiceMsg\(this,'([^']+)'\)"[^>]*>[^<]*<\/button>[\s\S]*?<span class="voice-duration">([^<]*)<\/span>/);
-    if (voiceMatch && isTrusted(voiceMatch[1])) {
-      const safeUrl = esc(voiceMatch[1]);
-      const safeDur = esc(voiceMatch[2]);
-      parts.push(`<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${safeUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${safeDur}</span></div>`);
-      return parts.join('');
-    }
-    // <img src="URL"> jeden lub wiele
-    const imgRe = /<img\s+src="([^"]+)"[^>]*\/?>/g;
-    let imgMatched = false;
-    let im;
-    while ((im = imgRe.exec(rawBody)) !== null) {
-      if (isTrusted(im[1])) {
-        const safeUrl = esc(im[1]);
-        parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
-        imgMatched = true;
-      }
-    }
-    if (imgMatched) return parts.join('');
-    // [zdjęcie] <a href="URL">...</a>
-    const oldImg = rawBody.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
-    if (oldImg && isTrusted(oldImg[1])) {
-      const safeUrl = esc(oldImg[1]);
-      parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
-      return parts.join('');
-    }
-  }
-
-  // 3) Czysty tekst — escape
-  if (rawBody) parts.push(esc(rawBody));
-  return parts.join('') || '<span style="opacity:0.5;font-style:italic;">(pusta wiadomość)</span>';
 }
 
 async function loadCoachChat() {
@@ -4674,7 +4325,25 @@ async function loadCoachChat() {
       const isCoach = m.sender === 'coach';
       const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
       const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-      const bodyHtml = _renderMessageBody(m);
+      // Bezpieczna obsługa: najpierw wyciągnij URL ze starego formatu [zdjęcie] <a href="URL">,
+      // escapuj resztę, potem dodaj <img> tylko dla zaufanych hostów
+      let bodyHtml = '';
+      const rawBody = m.body || '';
+      const imgMatch = rawBody.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
+      if (imgMatch) {
+        const url = imgMatch[1];
+        const safe = (url.startsWith('https://media.tenor.com/') || url.startsWith('https://media1.tenor.com/') || url.startsWith('https://afqojgkaveykxbltxzwm.supabase.co/'));
+        const before = escapeHtml(rawBody.slice(0, imgMatch.index));
+        const after = escapeHtml(rawBody.slice(imgMatch.index + imgMatch[0].length));
+        if (safe) {
+          bodyHtml = before + `<img src="${escapeHtml(url)}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${escapeHtml(url)}','_blank')" />` + after;
+        } else {
+          // Niebezpieczny URL - pokaż tylko link tekstowy
+          bodyHtml = before + '[zdjęcie: ' + escapeHtml(url) + ']' + after;
+        }
+      } else {
+        bodyHtml = escapeHtml(rawBody);
+      }
       return `<div class="pchat-msg-row ${isCoach?'me':'them'}">
         <div class="pchat-bubble" oncontextmenu="deleteCoachMsg(event,'${m.id}','${isCoach}')" style="cursor:pointer;">${bodyHtml}</div>
         <div class="pchat-time-lbl">${date} · ${time}</div>
@@ -4785,13 +4454,8 @@ async function searchGifsCoach(q) {
 async function sendCoachGif(url) {
   document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
   if (!_currentChatAthleteId) return;
-  await sb.from('messages').insert({
-    athlete_id: _currentChatAthleteId,
-    sender: 'coach',
-    body: '',
-    attachments: [{type:'image', url}],
-    sent_at: new Date().toISOString()
-  });
+  const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
+  await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
   _notifyCoachMessage(_currentChatAthleteId, '[GIF]');
   await loadCoachChat();
 }
@@ -4820,13 +4484,8 @@ async function toggleVoiceCoach() {
       const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
       if (error) { showToast('Błąd: '+error.message); return; }
       const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
-      await sb.from('messages').insert({
-        athlete_id: _currentChatAthleteId,
-        sender: 'coach',
-        body: '',
-        attachments: [{type:'audio', url: urlData.publicUrl, duration: dur}],
-        sent_at: new Date().toISOString()
-      });
+      const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${dur}s</span></div>`;
+      await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
       _notifyCoachMessage(_currentChatAthleteId, '[wiadomość głosowa]');
       await loadCoachChat();
     };
@@ -4860,12 +4519,11 @@ async function sendCoachFile(input) {
     urls.push(urlData.publicUrl);
   }
   if (!urls.length) return;
-  const attachments = urls.map(url => ({type:'image', url}));
+  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${url}','_blank')" />`).join('');
   await sb.from('messages').insert({
     athlete_id: _currentChatAthleteId,
     sender: 'coach',
-    body: '',
-    attachments,
+    body,
     sent_at: new Date().toISOString()
   });
   _notifyCoachMessage(_currentChatAthleteId, '[zdjęcie]');
@@ -4879,7 +4537,7 @@ async function sendCoachMessage() {
   const body = input?.value?.trim();
   if (!body || !_currentChatAthleteId) return;
   input.value = '';
-  input.style.height = ''; // reset auto-resize do oryginalnej wysokości
+  input.style.height = ''; // reset textarea auto-resize
   const { error } = await sb.from('messages').insert({
     athlete_id: _currentChatAthleteId,
     sender: 'coach',
@@ -5794,7 +5452,7 @@ async function sendPanelMessage() {
   const body = input?.value?.trim();
   if (!body || !athleteId) return;
   input.value = '';
-  input.style.height = ''; // reset auto-resize
+  input.style.height = ''; // reset textarea auto-resize
   const { error } = await sb.from('messages').insert({
     athlete_id: athleteId,
     sender: 'coach',
@@ -5954,7 +5612,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
         <button class="pchat-act" onclick="toggleEmojiPickerCoach()">😊</button>
         <button class="pchat-act" onclick="toggleGifPickerCoach()" style="font-family:'DM Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.05em;">GIF</button>
         <button id="t-voice-btn" class="pchat-act voice-btn-t" onclick="toggleVoiceCoach()">🎤</button>
-        <textarea id="coach-msg-input" placeholder="Napisz wiadomość..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendCoachMessage();}" oninput="tAutosizeChat(this)" style="resize:none;overflow-y:auto;max-height:120px;line-height:1.4;"></textarea>
+        <textarea id="coach-msg-input" placeholder="Napisz wiadomość..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendCoachMessage();}" oninput="tAutosizeChat(this)"></textarea>
         <button class="pchat-send" onclick="sendCoachMessage()">↑</button>
       </div>
     </div>
@@ -6429,24 +6087,6 @@ if ('serviceWorker' in navigator) {
       </div>
     </div>
 
-    <!-- 💬 Kontekst dla Klaudiusza (textarea + screeny) -->
-    <div style="background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(124,58,237,0.04));border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:12px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-        <div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:#a78bfa;font-family:'DM Mono',monospace;font-weight:600;">💬 Kontekst dla Klaudiusza <span style="color:var(--muted);font-weight:400;">(opcjonalnie)</span></div>
-        <div id="tp-note-counter" style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">0 / 2000</div>
-      </div>
-      <textarea id="tp-coach-note" placeholder="np. po ultra w górach w weekend, trzeba się rozkręcić. Lub: ma kontuzję ścięgna, omijaj interwały. Lub: wraca po przerwie, spokojnie..." style="width:100%;min-height:80px;background:rgba(0,0,0,0.35);border:1px solid var(--border);border-radius:7px;padding:9px 11px;color:var(--fg);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5;resize:vertical;outline:none;box-sizing:border-box;" maxlength="2000" oninput="document.getElementById('tp-note-counter').textContent=this.value.length+' / 2000';"></textarea>
-
-      <!-- Screeny -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;margin-bottom:6px;">
-        <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#a78bfa;font-family:'DM Mono',monospace;font-weight:500;">📷 Screeny dla AI <span id="tp-screens-counter" style="color:var(--muted);font-weight:400;">(0/3 — AI zobaczy)</span></div>
-        <input type="file" id="tp-screens-input" accept="image/*" multiple style="display:none;" onchange="tpHandleScreens(this.files)">
-        <button type="button" id="tp-screens-add" onclick="document.getElementById('tp-screens-input').click()" style="background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.4);color:#c4b5fd;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:500;">+ Dodaj</button>
-      </div>
-      <div id="tp-screens-preview" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-      <div style="font-size:9.5px;color:var(--muted);margin-top:6px;line-height:1.45;font-family:'Inter',sans-serif;">Screeny z Garmin/Strava, plany w obrazku, zdjęcia tras — Klaudiusz "zobaczy" je przy generowaniu.</div>
-    </div>
-
     <!-- Co bierzemy pod uwagę (info box) -->
     <div style="background:rgba(34,197,94,0.05);border:1px solid rgba(34,197,94,0.15);border-radius:8px;padding:9px 11px;margin-bottom:12px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.03em;line-height:1.5;">
       🧠 Plan generowany w oparciu o: PB, logi (km, tempo, HR, odczucia), screenshoty Garmin/Strava, poprzednie plany, raporty z opiniami zawodnika, Twoje edycje.
@@ -6837,15 +6477,7 @@ if ('serviceWorker' in navigator) {
 .kb-item-meta{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.08em;}
 .kb-item-desc{font-size:13.5px;color:#b8b3bf;line-height:1.55;}
 .kb-green-list{display:flex;flex-wrap:wrap;gap:7px;background:rgba(61,184,112,0.05);border:1px solid rgba(61,184,112,0.15);border-radius:8px;padding:12px 14px;}
-.kb-chip{font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--green);background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:14px;padding:4px 10px;cursor:default;transition:all 0.15s;}
-.kb-chip[data-athlete-name]{cursor:pointer;}
-.kb-chip[data-athlete-name]:hover{background:rgba(61,184,112,0.18);border-color:rgba(61,184,112,0.4);transform:translateY(-1px);}
-.kb-item-chat-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);font-size:13px;width:28px;height:28px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;transition:all 0.15s;flex-shrink:0;}
-.kb-item-chat-btn:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.05);}
-.kb-item{transition:all 0.15s;}
-.kb-item:hover{background:rgba(255,255,255,0.04);transform:translateX(2px);}
-.kb-item-msg-preview{font-size:11.5px;color:#c8c3cf;font-family:'Inter',sans-serif;font-style:italic;background:rgba(232,86,30,0.06);border-left:2px solid rgba(232,86,30,0.45);border-radius:0 6px 6px 0;padding:6px 10px;margin-top:8px;line-height:1.45;}
-.kb-item.yellow .kb-item-msg-preview{background:rgba(232,184,64,0.06);border-left-color:rgba(232,184,64,0.45);}
+.kb-chip{font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;color:var(--green);background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:14px;padding:4px 10px;cursor:default;}
 .kb-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:6px;}
 .kb-stat{text-align:center;}
 .kb-stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--accent);}
@@ -6870,43 +6502,6 @@ if ('serviceWorker' in navigator) {
 @keyframes kb-dots{0%,20%{content:'.';}40%{content:'..';}60%,100%{content:'...';}}
 .kb-toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(61,184,112,0.95);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:10px 18px;border-radius:24px;box-shadow:0 4px 16px rgba(0,0,0,0.4);z-index:9999;opacity:0;transition:opacity 0.2s;}
 .kb-toast.show{opacity:1;}
-
-/* ━━━━━━━━ KLAUDIUSZ — COLLAPSE & ARCHIWUM ━━━━━━━━ */
-.kb-close{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all 0.15s;flex-shrink:0;margin-left:6px;line-height:1;}
-.kb-close:hover{color:var(--red);border-color:rgba(224,80,80,0.4);background:rgba(224,80,80,0.06);}
-.kb-collapsed{background:linear-gradient(135deg, rgba(232,86,30,0.06), var(--card));border:1px solid rgba(232,86,30,0.18);border-radius:14px;padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:all 0.15s;}
-.kb-collapsed:hover{border-color:rgba(232,86,30,0.35);background:linear-gradient(135deg, rgba(232,86,30,0.1), var(--card));}
-.kb-coll-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px rgba(232,86,30,0.6);flex-shrink:0;}
-.kb-coll-text{flex:1;min-width:0;}
-.kb-coll-title{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:0.04em;color:var(--fg);line-height:1;}
-.kb-coll-title span{color:var(--accent);}
-.kb-coll-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;margin-top:3px;}
-.kb-coll-sub b{color:var(--red);font-weight:500;}
-.kb-coll-sub i{color:var(--yellow);font-style:normal;font-weight:500;}
-.kb-coll-arrow{color:var(--muted);font-size:14px;flex-shrink:0;transition:color 0.15s;}
-.kb-collapsed:hover .kb-coll-arrow{color:var(--accent);}
-.kb-archive-btn{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:5px 10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;cursor:pointer;transition:all 0.15s;}
-.kb-archive-btn:hover{color:var(--accent);border-color:rgba(232,86,30,0.3);}
-.kb-arch-modal{position:fixed;inset:0;z-index:9100;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);}
-.kb-arch-modal.open{display:flex;}
-.kb-arch-inner{background:var(--card2);border-top:2px solid var(--accent);border-radius:24px 24px 0 0;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;padding-bottom:24px;}
-.kb-arch-hdr{position:sticky;top:0;background:var(--card2);padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;z-index:2;}
-.kb-arch-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;flex:1;}
-.kb-arch-title span{color:var(--accent);}
-.kb-arch-close{background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;}
-.kb-arch-list{padding:10px 16px;}
-.kb-arch-item{background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
-.kb-arch-item:hover{background:rgba(255,255,255,0.05);border-color:rgba(232,86,30,0.3);}
-.kb-arch-item.today{border-color:rgba(232,86,30,0.4);background:rgba(232,86,30,0.05);}
-.kb-arch-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
-.kb-arch-item-date{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;}
-.kb-arch-item-badge{font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;color:var(--accent);text-transform:uppercase;}
-.kb-arch-item-summary{font-size:12px;color:var(--muted);line-height:1.5;}
-.kb-arch-item-stats{display:flex;gap:10px;margin-top:6px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--muted);}
-.kb-arch-item-stats b{color:var(--fg);font-weight:500;}
-.kb-arch-empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:13px;}
-.kb-back-banner{background:rgba(78,140,214,0.08);border:1px solid rgba(78,140,214,0.25);border-radius:10px;padding:10px 14px;margin:0 16px 8px;display:flex;align-items:center;gap:10px;cursor:pointer;font-size:12px;color:var(--blue);font-family:'DM Mono',monospace;letter-spacing:0.05em;}
-.kb-back-banner:hover{background:rgba(78,140,214,0.15);}
 
 /* ━━━━━━━━ PANEL ZGŁOSZEŃ (ankiety) ━━━━━━━━ */
 .intake-section{padding:0 16px;margin-bottom:20px;}
@@ -7538,13 +7133,7 @@ document.addEventListener('keydown', (e) => {
       }
 
       if (data) {
-        // Domyślnie ZWINIĘTY. Otwiera się tylko jeśli user kliknął "rozwiń" dziś.
-        const expandedKey = `kb_expanded_${today}`;
-        if (localStorage.getItem(expandedKey) === '1') {
-          kbRender(data.content_json, data.generated_at);
-        } else {
-          kbRenderCollapsed(data.content_json, today);
-        }
+        kbRender(data.content_json, data.generated_at);
       } else {
         kbRenderEmpty('Brief na dziś jeszcze nie został wygenerowany.', true);
       }
@@ -7584,28 +7173,14 @@ document.addEventListener('keydown', (e) => {
     const time = generatedAt ? new Date(generatedAt).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'}) : '—';
     const athleteCount = (brief.urgent?.length||0) + (brief.warning?.length||0) + (brief.ok_count||0);
 
-    // Czy to archiwalny brief (nie z dziś)?
-    const briefDateStr = brief._brief_date || new Date(generatedAt).toISOString().slice(0,10);
-    const todayStr = new Date().toISOString().slice(0,10);
-    const isArchive = briefDateStr !== todayStr;
-    const dateLabel = isArchive ? kbFormatDateArch(briefDateStr) : 'Dzisiejszy';
-
-    let html = '';
-
-    // Banner powrotu jak oglądamy archiwum
-    if (isArchive) {
-      html += `<div class="kb-back-banner" onclick="kbLoad()">← Wróć do dzisiejszego briefa</div>`;
-    }
-
-    html += `
+    let html = `
       <div class="kb-card">
         <div class="kb-hdr">
           <div class="kb-hdr-text">
-            <div class="kb-hdr-name">${isArchive ? 'BRIEF · ' + kbEscape(dateLabel) : 'BRIEF <span>DNIA</span>'}</div>
+            <div class="kb-hdr-name">BRIEF <span>DNIA</span></div>
             <div class="kb-hdr-sub">Wygenerowano o ${time} · ${athleteCount} zawodników</div>
           </div>
-          ${isArchive ? '' : '<button class="kb-refresh" onclick="kbGenerate(true)" title="Wygeneruj ponownie">↻</button>'}
-          <button class="kb-close" onclick="kbCollapse()" title="Zwiń">×</button>
+          <button class="kb-refresh" onclick="kbGenerate(true)" title="Wygeneruj ponownie">↻</button>
         </div>
         <div class="kb-greeting">${kbEscape(brief.greeting||'')}</div>`;
 
@@ -7614,22 +7189,12 @@ document.addEventListener('keydown', (e) => {
       html += `<div class="kb-block">
         <div class="kb-block-hdr red"><span class="dot"></span>Pilne · ${brief.urgent.length}</div>`;
       for (const it of brief.urgent){
-        const msg = it.suggested_msg || '';
-        const hasMsg = msg.trim().length > 0;
-        const btnTitle = hasMsg ? 'Otwórz czat i wklej wiadomość' : 'Otwórz czat';
-        const btnAction = hasMsg
-          ? `kbUseMessage(this.parentElement.parentElement.parentElement.dataset.athleteId, this.parentElement.parentElement.parentElement.dataset.athleteName, this.parentElement.parentElement.parentElement.dataset.msgText)`
-          : `openAthleteProfile(this.parentElement.parentElement.parentElement.dataset.athleteId, this.parentElement.parentElement.parentElement.dataset.athleteName, {openChat:true})`;
-        html += `<div class="kb-item red" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}" data-msg-text="${kbEscape(msg)}" style="cursor:pointer;">
+        html += `<div class="kb-item red" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}">
           <div class="kb-item-top">
             <div class="kb-item-name">${kbEscape(it.name||'')}</div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
-              <button class="kb-item-chat-btn" title="${btnTitle}" onclick="event.stopPropagation();${btnAction}">💬</button>
-            </div>
+            <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
           </div>
           <div class="kb-item-desc">${kbEscape(it.desc||'')}</div>
-          ${hasMsg ? `<div class="kb-item-msg-preview" title="Klik 💬 wklei tę wiadomość w czacie">💬 "${kbEscape(msg)}"</div>` : ''}
         </div>`;
       }
       html += `</div>`;
@@ -7640,22 +7205,12 @@ document.addEventListener('keydown', (e) => {
       html += `<div class="kb-block">
         <div class="kb-block-hdr yellow"><span class="dot"></span>Uwaga · ${brief.warning.length}</div>`;
       for (const it of brief.warning){
-        const msg = it.suggested_msg || '';
-        const hasMsg = msg.trim().length > 0;
-        const btnTitle = hasMsg ? 'Otwórz czat i wklej wiadomość' : 'Otwórz czat';
-        const btnAction = hasMsg
-          ? `kbUseMessage(this.parentElement.parentElement.parentElement.dataset.athleteId, this.parentElement.parentElement.parentElement.dataset.athleteName, this.parentElement.parentElement.parentElement.dataset.msgText)`
-          : `openAthleteProfile(this.parentElement.parentElement.parentElement.dataset.athleteId, this.parentElement.parentElement.parentElement.dataset.athleteName, {openChat:true})`;
-        html += `<div class="kb-item yellow" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}" data-msg-text="${kbEscape(msg)}" style="cursor:pointer;">
+        html += `<div class="kb-item yellow" data-athlete-id="${kbEscape(it.athlete_id||'')}" data-athlete-name="${kbEscape(it.name||'')}">
           <div class="kb-item-top">
             <div class="kb-item-name">${kbEscape(it.name||'')}</div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
-              <button class="kb-item-chat-btn" title="${btnTitle}" onclick="event.stopPropagation();${btnAction}">💬</button>
-            </div>
+            <div class="kb-item-meta">${kbEscape(it.meta||'')}</div>
           </div>
           <div class="kb-item-desc">${kbEscape(it.desc||'')}</div>
-          ${hasMsg ? `<div class="kb-item-msg-preview" title="Klik 💬 wklei tę wiadomość w czacie">💬 "${kbEscape(msg)}"</div>` : ''}
         </div>`;
       }
       html += `</div>`;
@@ -7668,10 +7223,9 @@ document.addEventListener('keydown', (e) => {
         <div class="kb-block-hdr green"><span class="dot"></span>Wszystko OK · ${brief.ok_count||0}</div>
         <div class="kb-green-list">`;
       for (const name of (brief.ok_chips||[])){
-        // ok_chips nie ma ID w danych — używamy lookup po nazwie
-        html += `<span class="kb-chip" data-athlete-name="${kbEscape(name)}" style="cursor:pointer;" title="Otwórz profil ${kbEscape(name)}">${kbEscape(name)}</span>`;
+        html += `<span class="kb-chip">${kbEscape(name)}</span>`;
       }
-      if (extras > 0) html += `<span class="kb-chip" style="opacity:0.6;">+${extras}</span>`;
+      if (extras > 0) html += `<span class="kb-chip">+${extras}</span>`;
       html += `</div></div>`;
     }
 
@@ -7701,7 +7255,7 @@ document.addEventListener('keydown', (e) => {
 
     html += `<div class="kb-footer">
       <span>Model · Claude Haiku 4.5</span>
-      <button class="kb-archive-btn" onclick="kbOpenArchive()">📂 Archiwum</button>
+      <span>BiegaMy.run</span>
     </div></div>`;
 
     const wrap = document.getElementById('kbWrap');
@@ -7713,15 +7267,7 @@ document.addEventListener('keydown', (e) => {
       el.addEventListener('click', () => {
         const id = el.getAttribute('data-athlete-id');
         const name = el.getAttribute('data-athlete-name');
-        // Klik na kartę → otwiera PROFIL (osobny button 💬 w środku otwiera czat)
-        openAthleteProfile(id, name);
-      });
-    });
-    // OK chips — klikalne (lookup po nazwie)
-    wrap.querySelectorAll('.kb-chip[data-athlete-name]').forEach(el => {
-      el.addEventListener('click', () => {
-        const name = el.getAttribute('data-athlete-name');
-        if (name) openAthleteProfile(null, name);
+        if (id && name) kbOpenAthlete(id, name);
       });
     });
     wrap.querySelectorAll('.kb-action').forEach(el => {
@@ -7770,297 +7316,36 @@ document.addEventListener('keydown', (e) => {
     }
   };
 
-  // ━━ UUID VALIDATION (fix edge function bug) ━━
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-  function kbIsValidUUID(id){
-    return typeof id === 'string' && UUID_RE.test(id);
-  }
-
-  // Próbuje naprawić zepsute UUID (np. "072e76d23-..." → "72e76d23-...")
-  // albo znaleźć zawodnika po nazwie w _dbAthletes
-  function kbResolveAthleteId(brokenId, athleteName){
-    console.log('[Klaudiusz] kbResolveAthleteId IN:', brokenId, '| name:', athleteName);
-
-    // ⚡ Już poprawny UUID
-    if (kbIsValidUUID(brokenId)) {
-      console.log('[Klaudiusz] UUID OK, brak naprawy potrzebnej');
-      return brokenId;
-    }
-
-    // Próba 1: strip pierwszy znak (37 → 36 znaków)
-    if (typeof brokenId === 'string' && brokenId.length === 37) {
-      const stripped = brokenId.slice(1);
-      if (kbIsValidUUID(stripped)) {
-        console.warn('[Klaudiusz] Naprawiono ID (strip pierwszy znak):', brokenId, '→', stripped);
-        // Bonus: sprawdź czy istnieje w _dbAthletes (jeśli tak — pewne)
-        if (Array.isArray(window._dbAthletes) && window._dbAthletes.some(a => a.id === stripped)) {
-          console.log('[Klaudiusz] Strip potwierdzony w _dbAthletes');
-        }
-        return stripped;
-      }
-    }
-
-    // Próba 2: regex - wyciągnij jakikolwiek poprawny UUID z stringa
-    if (typeof brokenId === 'string') {
-      const m = brokenId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-      if (m) {
-        console.warn('[Klaudiusz] Wyciągnięto UUID regexem:', brokenId, '→', m[0]);
-        return m[0];
-      }
-    }
-
-    // Próba 3: znajdź w _dbAthletes po nazwisku
-    if (athleteName && Array.isArray(window._dbAthletes) && window._dbAthletes.length > 0) {
-      const target = athleteName.toLowerCase().trim();
-      // dopasowanie pełne
-      let match = window._dbAthletes.find(a =>
-        a.full_name && a.full_name.toLowerCase().trim() === target
-      );
-      // dopasowanie po pierwszym imieniu
-      if (!match) {
-        const firstName = target.split(' ')[0];
-        match = window._dbAthletes.find(a => {
-          const dbFirst = (a.full_name || '').toLowerCase().trim().split(' ')[0];
-          return dbFirst === firstName;
-        });
-      }
-      if (match && kbIsValidUUID(match.id)) {
-        console.warn('[Klaudiusz] Znaleziono ID po nazwie:', athleteName, '→', match.id);
-        return match.id;
-      }
-      console.warn('[Klaudiusz] Nie znaleziono po nazwie. _dbAthletes:', window._dbAthletes.map(a => a.full_name));
-    } else if (athleteName) {
-      console.warn('[Klaudiusz] _dbAthletes nie załadowane (' + (window._dbAthletes||[]).length + ' rekordów)');
-    }
-
-    console.error('[Klaudiusz] Nie udało się rozwiązać ID:', brokenId, 'name:', athleteName);
-    return null;
-  }
-
   function kbOpenAthlete(athleteId, athleteName){
-    const realId = kbResolveAthleteId(athleteId, athleteName);
-    if (!realId) {
-      kbToast('Nie udało się znaleźć zawodnika: ' + (athleteName||'?'), true);
-      return;
-    }
     if (typeof openCoachChat === 'function') {
-      openCoachChat(realId, athleteName || 'Zawodnik');
+      openCoachChat(athleteId, athleteName || 'Zawodnik');
     } else {
-      console.log('[Klaudiusz] openCoachChat not found, athlete:', realId);
+      console.log('[Klaudiusz] openCoachChat not found, athlete:', athleteId);
       kbToast('Nie znaleziono otwarcia czatu', true);
     }
   }
 
   function kbUseMessage(athleteId, athleteName, text){
-    console.log('[Klaudiusz] kbUseMessage CALLED:', { athleteId, athleteName, textPreview: text?.slice(0,40) });
-    const realId = kbResolveAthleteId(athleteId, athleteName);
-    if (!realId) {
-      navigator.clipboard.writeText(text);
-      kbToast('✓ Skopiowano (nie znaleziono ' + (athleteName||'zawodnika') + ')');
-      return;
-    }
-    if (typeof openCoachChat !== 'function') {
+    if (typeof openCoachChat === 'function') {
+      openCoachChat(athleteId, athleteName || 'Zawodnik');
+      // Prefill po otwarciu panelu
+      setTimeout(()=>{
+        const input = document.getElementById('coach-msg-input');
+        if (input) {
+          input.value = text;
+          input.focus();
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          kbToast('✓ Wiadomość gotowa — sprawdź i wyślij');
+        } else {
+          navigator.clipboard.writeText(text);
+          kbToast('✓ Skopiowano do schowka');
+        }
+      }, 500);
+    } else {
       navigator.clipboard.writeText(text);
       kbToast('✓ Skopiowano do schowka');
-      return;
-    }
-
-    // Otwórz czat z zawodnikiem (async)
-    const openPromise = openCoachChat(realId, athleteName || 'Zawodnik');
-
-    // Czekaj na pojawienie się inputu — retry przez 2s
-    const tryFill = (attempts) => {
-      const input = document.getElementById('coach-msg-input')
-                  || document.getElementById('panel-msg-input');
-      if (input) {
-        input.value = text;
-        input.focus();
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        console.log('[Klaudiusz] ✓ Wiadomość wkleona w', input.id);
-        kbToast('✓ Wiadomość gotowa — sprawdź i wyślij');
-        return;
-      }
-      if (attempts > 0) {
-        setTimeout(() => tryFill(attempts - 1), 200);
-      } else {
-        // Nie udało się znaleźć inputu — skopiuj do schowka
-        console.warn('[Klaudiusz] Nie znaleziono inputu po 10 próbach');
-        navigator.clipboard.writeText(text);
-        kbToast('✓ Skopiowano do schowka (otwórz czat z ' + (athleteName||'zawodnikiem') + ')');
-      }
-    };
-
-    // Pierwsza próba po 300ms (czas na render), potem co 200ms maks 10 razy = 2.3s
-    Promise.resolve(openPromise).then(() => {
-      setTimeout(() => tryFill(10), 300);
-    });
-  }
-
-  // ✨ Eksport żeby inline onclick (z briefu) widział funkcję
-  window.kbUseMessage = kbUseMessage;
-  window.kbOpenAthlete = kbOpenAthlete;
-
-  // ━━ COLLAPSE & ARCHIWUM ━━
-
-  function kbFormatDateArch(dateStr){
-    // dateStr format: YYYY-MM-DD
-    const dt = dateStr ? new Date(dateStr + 'T00:00:00') : new Date();
-    const day = dt.getDate();
-    const month = KB_MONTH_NAMES[dt.getMonth()];
-    return `${day} ${month}`;
-  }
-
-  function kbRenderCollapsed(brief, dateStr){
-    const wrap = document.getElementById('kbWrap');
-    if (!wrap) return;
-    const urgCount = brief?.urgent?.length || 0;
-    const warnCount = brief?.warning?.length || 0;
-    const okCount = brief?.ok_count || 0;
-    const dateLabel = kbFormatDateArch(dateStr);
-
-    let badges = [];
-    if (urgCount > 0) badges.push(`<b>🚨 ${urgCount} pilne</b>`);
-    if (warnCount > 0) badges.push(`<i>⚠️ ${warnCount} uwagi</i>`);
-    if (okCount > 0 && urgCount === 0 && warnCount === 0) badges.push(`✅ wszystko OK · ${okCount}`);
-
-    wrap.innerHTML = `
-      <div class="kb-collapsed" onclick="kbExpand()">
-        <div class="kb-coll-dot"></div>
-        <div class="kb-coll-text">
-          <div class="kb-coll-title">BRIEF · <span>${kbEscape(dateLabel)}</span></div>
-          <div class="kb-coll-sub">${badges.join(' · ') || 'Kliknij żeby zobaczyć'}</div>
-        </div>
-        <div class="kb-coll-arrow">▼</div>
-      </div>`;
-  }
-
-  window.kbCollapse = function(){
-    const today = new Date().toISOString().slice(0,10);
-    localStorage.removeItem(`kb_expanded_${today}`);
-    kbLoad();
-  };
-
-  window.kbExpand = function(){
-    const today = new Date().toISOString().slice(0,10);
-    localStorage.setItem(`kb_expanded_${today}`, '1');
-    kbLoad();
-  };
-
-  window.kbOpenArchive = async function(){
-    const modal = document.getElementById('kbArchModal');
-    const list = document.getElementById('kbArchList');
-    if (!modal || !list) return;
-
-    list.innerHTML = '<div class="kb-arch-empty">Wczytuję archiwum...</div>';
-    modal.classList.add('open');
-
-    try {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) { list.innerHTML = '<div class="kb-arch-empty">Niezalogowany</div>'; return; }
-
-      const since = new Date();
-      since.setDate(since.getDate() - 14);
-      const sinceStr = since.toISOString().slice(0,10);
-
-      const { data, error } = await sb
-        .from('daily_briefs')
-        .select('brief_date, content_json, generated_at')
-        .eq('coach_id', user.id)
-        .gte('brief_date', sinceStr)
-        .order('brief_date', { ascending: false });
-
-      if (error) {
-        list.innerHTML = `<div class="kb-arch-empty" style="color:var(--red)">Błąd: ${kbEscape(error.message)}</div>`;
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        list.innerHTML = '<div class="kb-arch-empty">Brak briefów w ostatnich 14 dniach.<br>Wygeneruj pierwszy żeby zacząć budować historię.</div>';
-        return;
-      }
-
-      const today = new Date().toISOString().slice(0,10);
-      list.innerHTML = data.map(b => {
-        const brief = b.content_json || {};
-        const urgCount = brief?.urgent?.length || 0;
-        const warnCount = brief?.warning?.length || 0;
-        const okCount = brief?.ok_count || 0;
-        const isToday = b.brief_date === today;
-        const greeting = brief?.greeting ? brief.greeting.slice(0,140) + (brief.greeting.length > 140 ? '...' : '') : '';
-
-        return `
-          <div class="kb-arch-item ${isToday ? 'today' : ''}" data-brief-date="${kbEscape(b.brief_date)}">
-            <div class="kb-arch-item-top">
-              <div class="kb-arch-item-date">${kbEscape(kbFormatDateArch(b.brief_date))}</div>
-              ${isToday ? '<div class="kb-arch-item-badge">DZIŚ</div>' : ''}
-            </div>
-            <div class="kb-arch-item-summary">${kbEscape(greeting)}</div>
-            <div class="kb-arch-item-stats">
-              ${urgCount > 0 ? `<span style="color:var(--red);">🚨 ${urgCount}</span>` : ''}
-              ${warnCount > 0 ? `<span style="color:var(--yellow);">⚠️ ${warnCount}</span>` : ''}
-              ${okCount > 0 ? `<span style="color:var(--green);">✅ <b>${okCount}</b></span>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      // Bindowanie kliknięć
-      list.querySelectorAll('.kb-arch-item').forEach(el => {
-        el.addEventListener('click', () => {
-          const briefDate = el.getAttribute('data-brief-date');
-          kbLoadArchive(briefDate);
-        });
-      });
-    } catch(e) {
-      console.error('[Klaudiusz] Archive error:', e);
-      list.innerHTML = `<div class="kb-arch-empty" style="color:var(--red)">Błąd: ${kbEscape(e.message)}</div>`;
-    }
-  };
-
-  window.kbCloseArchive = function(){
-    const m = document.getElementById('kbArchModal');
-    if (m) m.classList.remove('open');
-  };
-
-  async function kbLoadArchive(briefDate){
-    try {
-      const { data: { user } } = await sb.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await sb
-        .from('daily_briefs')
-        .select('*')
-        .eq('coach_id', user.id)
-        .eq('brief_date', briefDate)
-        .maybeSingle();
-
-      if (error || !data) {
-        kbToast('Nie udało się załadować briefa', true);
-        return;
-      }
-
-      // Dorzucam date do brief żeby render wiedział że to archiwum
-      const briefWithDate = { ...data.content_json, _brief_date: briefDate };
-      kbRender(briefWithDate, data.generated_at);
-      kbCloseArchive();
-    } catch(e) {
-      console.error('[Klaudiusz] Load archive error:', e);
-      kbToast('Błąd: ' + e.message, true);
     }
   }
-
-  // Esc i klik w tło zamyka modal archiwum
-  document.addEventListener('click', (e) => {
-    const modal = document.getElementById('kbArchModal');
-    if (modal && e.target === modal) kbCloseArchive();
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const modal = document.getElementById('kbArchModal');
-      if (modal && modal.classList.contains('open')) kbCloseArchive();
-    }
-  });
 
   // START
   if (document.readyState === 'loading') {

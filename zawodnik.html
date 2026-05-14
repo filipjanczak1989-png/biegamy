@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-3n · awatary klikalne FIX (escape ID) -->
+<!-- BiegaMy build: 2026-05-14-wieczor-5 · czat textarea (Kevin) + modal szczegolow odznak (Adam) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -676,17 +676,19 @@ body > *{position:relative;z-index:1;}
 .pchat-msg-row{display:flex;flex-direction:column;gap:3px;}
 .pchat-msg-row.me{align-items:flex-end;}
 .pchat-msg-row.them{align-items:flex-start;}
-.pchat-bubble{max-width:72%;padding:11px 15px;font-size:13px;line-height:1.55;word-break:break-word;overflow-wrap:break-word;position:relative;}
+.pchat-bubble{max-width:72%;padding:11px 15px;font-size:13px;line-height:1.55;word-break:break-word;overflow-wrap:break-word;position:relative;white-space:pre-wrap;}
 .pchat-msg-row.me .pchat-bubble{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 3px 16px var(--glow-o);}
 .pchat-bubble img,.pchat-bubble video{max-width:100%;border-radius:10px;display:block;margin:2px 0;}
 .pchat-msg-row.them .pchat-bubble{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.09);border-radius:18px 18px 18px 4px;}
 .pchat-time-lbl{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;padding:0 4px;}
 .pchat-input-area{flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
-.pchat-input-row{display:flex;gap:6px;align-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:24px;padding:5px 5px 5px 12px;transition:border-color 0.2s,box-shadow 0.2s;}
+.pchat-input-row{display:flex;gap:6px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 14px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
-.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;padding:4px 0;}
-.pchat-input-row input::placeholder{color:var(--muted);}
+.pchat-input-row textarea,.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif;font-size:16px;outline:none;padding:8px 0;resize:none;line-height:1.4;max-height:120px;overflow-y:auto;font-weight:400;caret-color:#e8561e;box-sizing:border-box;}
+.pchat-input-row textarea::placeholder,.pchat-input-row input::placeholder{color:rgba(240,237,232,0.4);-webkit-text-fill-color:rgba(240,237,232,0.4);}
+.pchat-input-row textarea:focus,.pchat-input-row input:focus{color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;}
+.pchat-input-row textarea:-webkit-autofill,.pchat-input-row input:-webkit-autofill{-webkit-text-fill-color:#f0ede8 !important;-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.05) inset !important;}
 .pchat-act{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:17px;padding:5px;border-radius:50%;transition:all 0.15s;flex-shrink:0;}
 .pchat-act:hover{color:var(--fg);background:rgba(255,255,255,0.06);}
 .pchat-send{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;box-shadow:0 2px 10px var(--glow-o);}
@@ -1119,7 +1121,7 @@ body > *{position:relative;z-index:1;}
       <button class="pchat-act" onclick="toggleEmojiPicker('z-emoji-picker')">😊</button>
       <button class="pchat-act" onclick="toggleGifPicker('z-gif-picker')" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:0.05em;">GIF</button>
       <button id="z-voice-btn" class="pchat-act voice-btn" onclick="toggleVoice('z-voice-btn','athlete')">🎤</button>
-      <input id="msg-input" type="text" placeholder="Napisz do trenera..." onkeydown="if(event.key==='Enter')sendMessage()">
+      <textarea id="msg-input" placeholder="Napisz do trenera..." rows="1" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="zAutosizeChat(this)"></textarea>
       <button class="pchat-send" onclick="sendMessage()">↑</button>
     </div>
   </div>
@@ -1283,13 +1285,12 @@ body > *{position:relative;z-index:1;}
       <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Trener</div>
       <button onclick="openChangeCoach()" style="font-size:10px;font-family:DM Mono,monospace;color:var(--accent);background:none;border:none;cursor:pointer;letter-spacing:0.1em;text-transform:uppercase;">✏️ Zmień</button>
     </div>
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onclick="showSection('msgs');setTimeout(function(){if(typeof openChatThread==='function')openChatThread('coach',null,null);},250);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'" title="Otwórz czat z trenerem">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">
       <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;" id="coach-avatar-lbl">F</div>
-      <div style="flex:1;">
+      <div>
         <div style="font-size:13px;font-weight:500;" id="profile-coach-name">BiegaMy Coaching</div>
         <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;">biegamy.run</div>
       </div>
-      <div style="font-size:18px;color:var(--muted);flex-shrink:0;">›</div>
     </div>
 
     <!-- Strava -->
@@ -2385,10 +2386,9 @@ async function _loadProfileMsgs() {
   thread.innerHTML = data.map(m => {
     const isAthlete = m.sender === 'athlete';
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
-    const bodyHtml = _renderMessageBody(m);
     return `<div style="display:flex;justify-content:${isAthlete?'flex-end':'flex-start'};margin-bottom:8px;">
       <div style="max-width:80%;background:${isAthlete?'var(--accent)':'var(--card2)'};border-radius:${isAthlete?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:10px 13px;">
-        <div style="font-size:13px;line-height:1.5;">${bodyHtml}</div>
+        <div style="font-size:13px;line-height:1.5;">${escapeHtml(m.body)}</div>
         <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:DM Mono,monospace;">${time}</div>
       </div>
     </div>`;
@@ -3089,71 +3089,6 @@ function _showMsgToast(msg) {
   setTimeout(() => t.remove(), 6000);
 }
 
-// ─── Wspólny renderer body wiadomości ───
-// Rozumie:
-//   1) NOWY format: m.attachments = [{type, url, duration?}] + m.body jako czysty tekst
-//   2) STARY format: m.body z surowym HTML (<img src=...>, <div class="voice-msg">...</div>)
-function _renderMessageBody(m) {
-  const TRUSTED_HOSTS = [
-    'https://afqojgkaveykxbltxzwm.supabase.co/',
-    'https://media.tenor.com/',
-    'https://media1.tenor.com/'
-  ];
-  const isTrusted = (url) => typeof url === 'string' && TRUSTED_HOSTS.some(h => url.startsWith(h));
-  const esc = (s) => (typeof escapeHtml === 'function' ? escapeHtml(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])));
-
-  const parts = [];
-
-  if (m && Array.isArray(m.attachments) && m.attachments.length) {
-    for (const att of m.attachments) {
-      if (!att || !isTrusted(att.url)) continue;
-      const safeUrl = esc(att.url);
-      if (att.type === 'image') {
-        parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
-      } else if (att.type === 'audio') {
-        const dur = Number.isFinite(+att.duration) ? `${+att.duration}s` : '';
-        parts.push(`<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${safeUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${esc(dur)}</span></div>`);
-      }
-    }
-  }
-
-  const rawBody = (m && m.body) || '';
-
-  if (!parts.length && rawBody) {
-    if (rawBody.includes('class="msg-recall"')) {
-      parts.push('<span class="msg-recall">Wiadomość cofnięta</span>');
-      return parts.join('');
-    }
-    const voiceMatch = rawBody.match(/<button[^>]*onclick="playVoiceMsg\(this,'([^']+)'\)"[^>]*>[^<]*<\/button>[\s\S]*?<span class="voice-duration">([^<]*)<\/span>/);
-    if (voiceMatch && isTrusted(voiceMatch[1])) {
-      const safeUrl = esc(voiceMatch[1]);
-      const safeDur = esc(voiceMatch[2]);
-      parts.push(`<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${safeUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${safeDur}</span></div>`);
-      return parts.join('');
-    }
-    const imgRe = /<img\s+src="([^"]+)"[^>]*\/?>/g;
-    let imgMatched = false;
-    let im;
-    while ((im = imgRe.exec(rawBody)) !== null) {
-      if (isTrusted(im[1])) {
-        const safeUrl = esc(im[1]);
-        parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
-        imgMatched = true;
-      }
-    }
-    if (imgMatched) return parts.join('');
-    const oldImg = rawBody.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
-    if (oldImg && isTrusted(oldImg[1])) {
-      const safeUrl = esc(oldImg[1]);
-      parts.push(`<img src="${safeUrl}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${safeUrl}','_blank')" onerror="this.style.display='none'" />`);
-      return parts.join('');
-    }
-  }
-
-  if (rawBody) parts.push(esc(rawBody));
-  return parts.join('') || '<span style="opacity:0.5;font-style:italic;">(pusta wiadomość)</span>';
-}
-
 async function loadMessages() {
   const thread = document.getElementById('msgs-thread');
   if (!_athleteId) {
@@ -3182,9 +3117,8 @@ async function loadMessages() {
     const isAthlete = m.sender === 'athlete';
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-    const bodyHtml = _renderMessageBody(m);
     return `<div class="pchat-msg-row ${isAthlete?'me':'them'}" id="msg-${m.id}">
-      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${bodyHtml}</div>
+      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${escapeHtml(m.body)}</div>
       <div class="pchat-time-lbl">${date} · ${time}</div>
     </div>`;
   }).join('');
@@ -3225,13 +3159,8 @@ async function clearAllMessages() {
 async function sendGif(url, pickerId) {
   document.querySelectorAll('.gif-picker').forEach(p=>p.classList.remove('open'));
   if (!_athleteId) return;
-  await sb.from('messages').insert({
-    athlete_id: _athleteId,
-    sender: 'athlete',
-    body: '',
-    attachments: [{ type: 'image', url }],
-    sent_at: new Date().toISOString()
-  });
+  const body = `<img src="${url}" style="max-width:100%;border-radius:8px;display:block;">`;
+  await sb.from('messages').insert({athlete_id:_athleteId,sender:'athlete',body,sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
@@ -3244,13 +3173,8 @@ async function uploadVoiceMsg(blob, duration, sender, mimeType) {
   const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
   const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
-  await sb.from('messages').insert({
-    athlete_id: _athleteId,
-    sender: sender,
-    body: '',
-    attachments: [{ type: 'audio', url: urlData.publicUrl, duration }],
-    sent_at: new Date().toISOString()
-  });
+  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
+  await sb.from('messages').insert({athlete_id:_athleteId, sender:sender, body, sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
@@ -3276,11 +3200,11 @@ async function sendFileMessage(input) {
     urls.push(urlData.publicUrl);
   }
   if (!urls.length) return;
+  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" />`).join('');
   await sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
-    body: '',
-    attachments: urls.map(url => ({ type: 'image', url })),
+    body,
     sent_at: new Date().toISOString()
   });
   input.value = '';
@@ -3294,6 +3218,7 @@ async function _origSendMessageFn() {
   if (!body) return;
   if (!_athleteId) { toast('Musisz być zalogowany'); return; }
   input.value = '';
+  input.style.height = ''; // reset textarea auto-resize
   const { error } = await sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',
@@ -3304,6 +3229,14 @@ async function _origSendMessageFn() {
   await loadMessages();
   toast('Wiadomość wysłana ✓');
 }
+
+// Auto-resize textarea czatu zawodnika (rośnie do max-height, potem scroll)
+function zAutosizeChat(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, parseInt(getComputedStyle(el).maxHeight) || 120) + 'px';
+}
+window.zAutosizeChat = zAutosizeChat;
 
 function toast(msg) {
   // Błędy — stary toast, sukcesy — animowany
@@ -6376,16 +6309,8 @@ async function loadSocialFeed(compact) {
     const col = tc[type] || '#66636e';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const feelEmoji = {good:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3db870" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M8 13s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',mid:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8b840" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>',bad:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e05050" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M16 16s-1.5-2-4-2-4 2-4 2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>'}[l.feel]||'';
-    // Bezpieczny escape ID: single quote w wartości, double quote dla atrybutu
-    const safeId = (athId || '').replace(/'/g, '');
-    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(\'' + safeId + '\')"');
-    const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.4)\';this.style.transform=\'translateY(-1px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'translateY(0)\'"';
-    const cursorStyle = isOwn ? '' : 'cursor:pointer;';
-    const transitionStyle = isOwn ? '' : 'transition:border-color 0.15s, transform 0.15s;';
-    const avClick = isOwn ? '' : (' onclick="event.stopPropagation();openAthleteProfile(\'' + safeId + '\')"');
-    const avCursor = isOwn ? '' : 'cursor:pointer;';
-    const nameClick = isOwn ? '' : (' onclick="event.stopPropagation();openAthleteProfile(\'' + safeId + '\')"');
-    const nameCursor = isOwn ? '' : 'cursor:pointer;';
+    const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(' + JSON.stringify(athId) + ')"');
+    const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
     const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
     const editBtns = (isOwn&&!compact)
       ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'        +'<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'        +'</div>' : '';
@@ -6399,13 +6324,13 @@ async function loadSocialFeed(compact) {
       +'<button onclick="event.stopPropagation();event.preventDefault();openComments(\''+l.id+'\')" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-left:auto;font-family:DM Mono,monospace;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span id="cc-'+l.id+'">0</span></button>'
       +'</div>');
     const cardH = (l.comment || screensHtml) ? '200px' : '160px';
-    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:'+_cardBgPos+';'+cursorStyle+transitionStyle+'">'
+    return '<div '+clickAttr+' '+hoverAttrs+' style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+_cardBg+');background-size:cover;background-position:'+_cardBgPos+';">'
       +'<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(7,5,12,0.0) 0%,rgba(7,5,12,0.45) 40%,rgba(7,5,12,0.97) 100%);pointer-events:none;"></div>'
       +'<div style="height:90px;"></div>'
       +'<div style="position:relative;z-index:1;padding:10px 14px 12px;">'
       +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">'
-      +'<div'+avClick+' style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;'+avCursor+'" '+(isOwn?'':'title="Otwórz profil zawodnika"')+'>'+(ath.avatar_url?('<img src="'+ath.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+ini+'\'">'):ini)+'</div>'
-      +'<div'+nameClick+' style="flex:1;min-width:0;'+nameCursor+'" '+(isOwn?'':'title="Otwórz profil zawodnika"')+'><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:'+(isOwn?'var(--accent)':'rgba(255,255,255,0.18)')+';border:1px solid rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;">'+(ath.avatar_url?('<img src="'+ath.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+ini+'\'">'):ini)+'</div>'
+      +'<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.9);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+(isOwn?'Ty':name)+followBadge+'</div><div style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;">'+date+'</div></div>'
       +'<span style="font-size:8px;letter-spacing:0.08em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:rgba(0,0,0,0.55);padding:3px 7px;border-radius:6px;border:1px solid '+col+'55;flex-shrink:0;">'+type+'</span>'
       +editBtns+'</div>'
       +(dist
@@ -7080,26 +7005,16 @@ async function loadFriends() {
   var athMap = {};
   (athRes.data||[]).forEach(function(a){athMap[a.id]=a;});
 
-  function card(id, extra, behaviour) {
-    // behaviour: 'profile' (default — wszędzie klik = profil)
-    //            'chat'    — klik avatara = profil, klik imienia/reszty = otwórz czat
+  function card(id, extra) {
     var a = athMap[id]||{};
     var ini = (a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     var nm = (a.full_name||'Biegacz').replace(/</g,'&lt;');
     var avInner = a.avatar_url
       ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+ini+'\'">'
       : ini;
-    var avClick = 'onclick="event.stopPropagation();location.href=\'profil.html?id='+id+'\'"';
-    var nameClick;
-    if (behaviour === 'chat') {
-      // Klik imienia = otwórz czat z tym znajomym (peer)
-      nameClick = 'onclick="event.stopPropagation();showSection(\'msgs\');setTimeout(function(){if(typeof openChatThread===\'function\')openChatThread(\'peer\',\''+id+'\',\''+nm.replace(/'/g,"\\'")+'\');},250);"';
-    } else {
-      nameClick = 'onclick="event.stopPropagation();location.href=\'profil.html?id='+id+'\'"';
-    }
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:8px;">'
-      +'<div '+avClick+' style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">'+avInner+'</div>'
-      +'<div '+nameClick+' style="flex:1;cursor:pointer;"><div style="font-size:13px;font-weight:500;">'+nm+'</div></div>'
+      +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;">'+avInner+'</div>'
+      +'<div onclick="location.href=\"profil.html?id='+id+'\"" style="flex:1;cursor:pointer;"><div style="font-size:13px;font-weight:500;">'+nm+'</div></div>'
       +(extra||'')
       +'</div>';
   }
@@ -7118,7 +7033,7 @@ async function loadFriends() {
     html += '<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;margin-top:8px;">Znajomi ('+accepted.length+')</div>';
     html += accepted.map(function(r){
       var oid = r.requester_id===_athleteId?r.addressee_id:r.requester_id;
-      return card(oid,'<svg onclick="event.stopPropagation();location.href=\'profil.html?id='+oid+'\'" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="cursor:pointer;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>', 'chat');
+      return card(oid,'<svg onclick="location.href=\"profil.html?id='+oid+'\"" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" style="cursor:pointer;flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>');
     }).join('');
   }
   if (pending_out.length) {
@@ -7178,11 +7093,6 @@ async function unfollowAthlete(targetId, cardEl) {
 // ── PROFIL PUBLICZNY ZAWODNIKA ────────────────────────────────────
 
 async function openAthleteProfile(athleteId) {
-  console.log('[openAthleteProfile] kliknięto, ID:', athleteId);
-  if (!athleteId) {
-    console.error('[openAthleteProfile] PUSTE ID! Nie mogę otworzyć profilu.');
-    return;
-  }
   location.href = 'profil.html?id=' + athleteId;
 }
 
@@ -7666,20 +7576,6 @@ function closeChatThread() {
 function chatThreadProfileClick() {
   if (_chatMode==='peer' && _chatPeerId) {
     location.href = 'profil.html?id=' + _chatPeerId;
-  } else if (_chatMode==='coach') {
-    // ✨ BUG 2 fix: trener nie ma profilu w profil.html — otwieramy sekcję Profil
-    // gdzie jest pełna info o trenerze (kółko + nazwa + opcja Zmień)
-    if (typeof showSection === 'function') {
-      showSection('profile');
-      // Scroll do sekcji "Trener" jeśli istnieje
-      setTimeout(function(){
-        const trainerHdr = Array.from(document.querySelectorAll('#section-profile div'))
-          .find(function(el){ return el.textContent && el.textContent.trim() === 'Trener'; });
-        if (trainerHdr && trainerHdr.scrollIntoView) {
-          trainerHdr.scrollIntoView({behavior:'smooth', block:'center'});
-        }
-      }, 200);
-    }
   }
 }
 
@@ -7761,6 +7657,7 @@ async function _sendPeerMsgZ() {
   var body=inp.value.trim();
   if(!body) return;
   inp.value='';
+  inp.style.height = ''; // reset textarea auto-resize
 
   // Find send button (closest button with paper plane svg in input area)
   var sendBtn = document.querySelector('.pchat-input-area button[onclick*="sendMessage"]')
@@ -9717,6 +9614,28 @@ if ('serviceWorker' in navigator) {
   </div>
 </div>
 
+<!-- ✨ Modal szczegółów odznaki (klik na kafelek) -->
+<div id="badge-detail-modal" style="display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:20px;animation:bdfade 0.2s ease;" onclick="if(event.target===this)closeBadgeDetail()">
+  <div id="badge-detail-card" style="background:linear-gradient(135deg,rgba(28,22,40,0.98),rgba(15,12,24,0.99));border:1px solid var(--border);border-radius:20px;padding:24px 22px;max-width:340px;width:100%;text-align:center;position:relative;animation:bdpop 0.25s ease;">
+    <button onclick="closeBadgeDetail()" style="position:absolute;top:10px;right:10px;background:rgba(255,255,255,0.06);border:none;color:var(--fg);width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;">×</button>
+    <img id="bd-img" src="" alt="" style="width:120px;height:120px;border-radius:18px;margin:6px auto 14px;display:block;box-shadow:0 0 28px var(--glow-o);">
+    <div id="bd-name" style="font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;color:var(--fg);line-height:1.1;margin-bottom:4px;"></div>
+    <div id="bd-cat" style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--muted);margin-bottom:14px;"></div>
+    <div id="bd-rarity" style="display:inline-block;font-size:10px;letter-spacing:0.18em;text-transform:uppercase;font-family:DM Mono,monospace;padding:4px 12px;border-radius:10px;margin-bottom:14px;"></div>
+    <div style="background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:12px;padding:12px 14px;margin:6px 0 14px;">
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--accent);margin-bottom:6px;">Jak zdobyć</div>
+      <div id="bd-desc" style="font-size:14px;color:var(--fg);line-height:1.45;"></div>
+    </div>
+    <div id="bd-status" style="font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.1em;padding:8px 12px;border-radius:10px;"></div>
+  </div>
+</div>
+
+<style>
+@keyframes bdfade{from{opacity:0}to{opacity:1}}
+@keyframes bdpop{from{opacity:0;transform:scale(0.9) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.badge-item{cursor:pointer !important;}
+</style>
+
 <script>
 // ══════════════════════════════════════════════════════════════════
 // DEFINICJE ODZNAK
@@ -9864,6 +9783,78 @@ function showBadgePopup(badge) {
   popup.classList.add('show');
   setTimeout(() => popup.classList.remove('show'), 3800);
 }
+
+// ✨ Modal szczegółów odznaki — klikalny z listy odznak (Adam wymagał)
+async function showBadgeDetail(badgeId, isHidden) {
+  const badge = BADGES.find(b => b.id === badgeId);
+  if (!badge) return;
+  const modal = document.getElementById('badge-detail-modal');
+  if (!modal) return;
+  const earned = window._earnedBadges.has(badgeId);
+  const col = RARITY_COLOR[badge.rarity] || '#fff';
+  const bg = RARITY_BG[badge.rarity] || 'rgba(255,255,255,0.1)';
+
+  // Hidden + not earned → pokaż jako sekret
+  if (isHidden && !earned) {
+    document.getElementById('bd-img').src = '';
+    document.getElementById('bd-img').style.opacity = '0.15';
+    document.getElementById('bd-img').alt = '?';
+    document.getElementById('bd-name').textContent = 'Odznaka sekretna';
+    document.getElementById('bd-cat').textContent = badge.cat || '';
+    const rar = document.getElementById('bd-rarity');
+    rar.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
+    rar.style.background = bg;
+    rar.style.color = col;
+    document.getElementById('bd-desc').textContent = '🔒 Ta odznaka jest sekretem. Zdobądź ją, żeby zobaczyć opis.';
+    const status = document.getElementById('bd-status');
+    status.textContent = 'JESZCZE DO ODKRYCIA';
+    status.style.color = 'var(--muted)';
+    status.style.background = 'rgba(255,255,255,0.04)';
+  } else {
+    document.getElementById('bd-img').src = BASE_URL + badge.id + '.webp';
+    document.getElementById('bd-img').style.opacity = earned ? '1' : '0.4';
+    document.getElementById('bd-img').alt = badge.name;
+    document.getElementById('bd-name').textContent = badge.name;
+    document.getElementById('bd-cat').textContent = badge.cat || '';
+    const rar = document.getElementById('bd-rarity');
+    rar.textContent = RARITY_LABEL[badge.rarity] || badge.rarity;
+    rar.style.background = bg;
+    rar.style.color = col;
+    document.getElementById('bd-desc').textContent = badge.desc || 'Brak opisu';
+    const status = document.getElementById('bd-status');
+    if (earned) {
+      // Spróbuj pobrać datę zdobycia
+      let dateStr = '';
+      try {
+        const { data } = await sb.from('achievements')
+          .select('earned_at')
+          .eq('athlete_id', _athleteId)
+          .eq('badge_id', badgeId)
+          .maybeSingle();
+        if (data?.earned_at) {
+          dateStr = ' · ' + new Date(data.earned_at).toLocaleDateString('pl-PL', {day:'numeric', month:'long', year:'numeric'});
+        }
+      } catch(e) {}
+      status.innerHTML = '✓ ZDOBYTA' + dateStr;
+      status.style.color = '#3db870';
+      status.style.background = 'rgba(61,184,112,0.1)';
+    } else {
+      status.textContent = '○ JESZCZE DO ZDOBYCIA';
+      status.style.color = 'var(--muted)';
+      status.style.background = 'rgba(255,255,255,0.04)';
+    }
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeBadgeDetail() {
+  const m = document.getElementById('badge-detail-modal');
+  if (m) m.style.display = 'none';
+}
+
+window.showBadgeDetail = showBadgeDetail;
+window.closeBadgeDetail = closeBadgeDetail;
 
 // ── Zapisz odznakę w Supabase + wyświetl pop-up ───────────────────
 async function awardBadge(badgeId) {
@@ -10246,12 +10237,12 @@ function renderBadgesSection() {
       const isHidden = b.hidden && !earned;
       // Ukryte (sekretne) — pokaż "?" zamiast nazwy do zdobycia
       if (isHidden) {
-        html += `<div class="badge-item locked" title="Sekret — zdobądź żeby się dowiedzieć" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);">
+        html += `<div class="badge-item locked" onclick="showBadgeDetail('${b.id}',true)" title="Sekret — zdobądź żeby się dowiedzieć" style="background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);cursor:pointer;">
           <div style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:36px;color:var(--muted);opacity:0.6;">?</div>
           <div class="badge-item-name" style="color:var(--muted);">Sekret</div>
         </div>`;
       } else {
-        html += `<div class="badge-item${earned?' earned':' locked'}" title="${b.desc}">
+        html += `<div class="badge-item${earned?' earned':' locked'}" onclick="showBadgeDetail('${b.id}',false)" title="${b.desc}">
           ${earned ? '<div class="badge-new-dot" style="display:none;"></div>' : ''}
           <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy" onerror="this.style.opacity='0.2'">
           <div class="badge-item-name">${b.name}</div>
@@ -10291,19 +10282,13 @@ function _renderBadgeEvent(l, ath) {
   const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
   const col = RARITY_COLOR[badge.rarity] || '#fff';
   const date = l.logged_at ? new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
-  // ✨ BUG 1 fix: klik na kartę / awatar / imię → profil zawodnika
-  const isOwn = ath?.id === _athleteId;
-  const cardClick = isOwn ? '' : ('onclick="openAthleteProfile(\'' + (ath?.id || '') + '\')"');
-  const avClick = isOwn ? '' : (' onclick="event.stopPropagation();openAthleteProfile(\'' + (ath?.id || '') + '\')"');
-  const nameClick = isOwn ? '' : (' onclick="event.stopPropagation();openAthleteProfile(\'' + (ath?.id || '') + '\')"');
-  const cursorStyle = isOwn ? '' : 'cursor:pointer;';
-  return `<div ${cardClick} style="position:relative;overflow:hidden;border:1px solid ${col}33;border-radius:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));${cursorStyle}transition:border-color 0.15s;" ${isOwn?'':'onmouseover="this.style.borderColor=\''+col+'88\'" onmouseout="this.style.borderColor=\''+col+'33\'"'}>
+  return `<div style="position:relative;overflow:hidden;border:1px solid ${col}33;border-radius:14px;margin-bottom:12px;background:linear-gradient(135deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));">
     <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,${col},${col}44);"></div>
     <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
-      <div${avClick} style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;overflow:hidden;color:#fff;${cursorStyle}" ${isOwn?'':'title="Otwórz profil"'}>${ath?.avatar_url ? '<img src="'+ath.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+ini+'\'">' : ini}</div>
-      <div${nameClick} style="flex:1;min-width:0;${cursorStyle}" ${isOwn?'':'title="Otwórz profil"'}>
-        <div style="font-size:12px;font-weight:600;">${isOwn ? 'Ty' : name}</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">zdobył${isOwn?'eś':''} odznakę · ${date}</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);border:1px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:13px;flex-shrink:0;">${ini}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:600;">${name}</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">zdobył odznakę · ${date}</div>
       </div>
       <img src="${BASE_URL}${badge.id}.webp" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;box-shadow:0 0 12px ${col}55;" loading="lazy">
     </div>
