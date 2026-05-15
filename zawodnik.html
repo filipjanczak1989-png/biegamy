@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-15-prefill · modal log auto-wypelnia plan trenera (z bazy fallback) + opis w komentarzu -->
+<!-- BiegaMy build: 2026-05-15-prefill-2 · modal log autowypelnia plan + usuniety tekst "przyznana automatycznie" w odznakach -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -9948,8 +9948,8 @@ async function showBadgeDetail(badgeId, isHidden) {
             if (closestLog.pace) parts.push(closestLog.pace);
             ctxEl.innerHTML = '🏃 Po treningu: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
           } else {
-            // Brak treningu tego dnia — odznaka mogła być agregowana
-            ctxEl.textContent = 'Odznaka przyznana automatycznie po spełnieniu warunku.';
+            // Brak treningu tego dnia — pusty context
+            ctxEl.textContent = '';
           }
         } else {
           dateEl.textContent = 'Data nieznana';

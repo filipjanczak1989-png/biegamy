@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-7 · odznaki klikalne z modalem 2 sekcje (Za co + Jak zdobyc) -->
+<!-- BiegaMy build: 2026-05-15-cleanup · usuniety tekst "przyznana automatycznie" gdy brak treningu -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -81,7 +81,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
 <div id="badge-detail-modal" onclick="if(event.target===this)closeBadgeDetail()">
   <div id="badge-detail-card">
     <button id="bd-close" onclick="closeBadgeDetail()">×</button>
-    <img id="bd-img" src="" alt="">
+    <img id="bd-img" src="" alt="" onerror="this.style.opacity='0.15';this.style.background='rgba(255,255,255,0.04)';">
     <div id="bd-name"></div>
     <div id="bd-cat"></div>
     <div id="bd-rarity"></div>
@@ -290,11 +290,16 @@ function renderBadgesSection() {
       const isEarned = window._earnedBadges.has(b.id);
       if (!isEarned) continue; // Tylko zdobyte
       const col = RARITY_COLOR[b.rarity] || '#fff';
+      const safeName = (b.name||'?').replace(/'/g,"\\'");
+      const initial = (b.name||'?').charAt(0).toUpperCase();
       html += `
         <div onclick="showBadgeDetail('${b.id}',false)" style="background:#13111f;border:1px solid ${col}55;border-radius:14px;padding:12px 8px;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;box-shadow:0 0 16px ${col}18;cursor:pointer;transition:transform 0.15s, border-color 0.15s;" onmouseover="this.style.transform='translateY(-2px)';this.style.borderColor='${col}'" onmouseout="this.style.transform='';this.style.borderColor='${col}55'">
-          <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy"
-            style="width:56px;height:56px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px ${col}44;"
-            onerror="this.style.opacity='0.2'">
+          <div style="position:relative;width:56px;height:56px;">
+            <img src="${BASE_URL}${encodeURIComponent(b.id)}.webp" alt="${safeName}" loading="lazy"
+              style="width:56px;height:56px;border-radius:10px;object-fit:cover;box-shadow:0 0 12px ${col}44;display:block;"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div style="display:none;width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,${col}33,${col}11);border:1px solid ${col}44;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;color:${col};box-shadow:0 0 12px ${col}44;">${initial}</div>
+          </div>
           <div style="font-size:11px;font-weight:600;line-height:1.2;">${b.name}</div>
           <span style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;font-family:'DM Mono',monospace;color:${col};background:${col}18;padding:2px 6px;border-radius:4px;">${RARITY_LABEL[b.rarity]}</span>
         </div>`;
@@ -309,11 +314,15 @@ function renderBadgesSection() {
     html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px;">`;
     for (const b of locked) {
       const isHidden = !!b.hidden;
+      const initial = (b.name||'?').charAt(0).toUpperCase();
       html += `
         <div onclick="showBadgeDetail('${b.id}',${isHidden})" style="display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;opacity:0.45;cursor:pointer;transition:opacity 0.15s, transform 0.15s;padding:4px;" onmouseover="this.style.opacity='0.85';this.style.transform='translateY(-1px)'" onmouseout="this.style.opacity='0.45';this.style.transform=''">
-          <img src="${BASE_URL}${b.id}.webp" alt="${b.name}" loading="lazy"
-            style="width:40px;height:40px;border-radius:8px;object-fit:cover;filter:grayscale(1) brightness(0.4);"
-            onerror="this.style.opacity='0.1'">
+          <div style="position:relative;width:40px;height:40px;">
+            <img src="${BASE_URL}${encodeURIComponent(b.id)}.webp" alt="${(b.name||'?').replace(/'/g,"\\'")}" loading="lazy"
+              style="width:40px;height:40px;border-radius:8px;object-fit:cover;filter:grayscale(1) brightness(0.4);display:block;"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div style="display:none;width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,0.06);border:1px dashed rgba(255,255,255,0.15);align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:rgba(255,255,255,0.4);">${isHidden?'?':initial}</div>
+          </div>
           <div style="font-size:8px;color:var(--muted);line-height:1.2;">${isHidden?'?':b.name}</div>
         </div>`;
     }
@@ -358,7 +367,7 @@ async function showBadgeDetail(badgeId, isHidden) {
     status.style.color = 'var(--muted)';
     status.style.background = 'rgba(255,255,255,0.04)';
   } else {
-    img.src = BASE_URL + badge.id + '.webp';
+    img.src = BASE_URL + encodeURIComponent(badge.id) + '.webp';
     img.style.opacity = earned ? '1' : '0.4';
     img.alt = badge.name;
     nameEl.textContent = badge.name;
@@ -408,7 +417,7 @@ async function showBadgeDetail(badgeId, isHidden) {
             if (closestLog.pace) parts.push(closestLog.pace);
             ctxEl.innerHTML = '🏃 Po treningu: <strong>' + (parts.join(' · ') || 'aktywność') + '</strong>';
           } else {
-            ctxEl.textContent = 'Odznaka przyznana automatycznie po spełnieniu warunku.';
+            ctxEl.textContent = '';
           }
         } else {
           dateEl.textContent = 'Data nieznana';
