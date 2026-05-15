@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-15-aiplan-onemodal · AI plan: jeden modal (coachNote+screeny inline, podglad zastepuje formularz) -->
+<!-- BiegaMy build: 2026-05-15-brief-collapsed · brief domyslnie zwiniety przy wejsciu w trener panel -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -7607,6 +7607,9 @@ document.addEventListener('keydown', (e) => {
         if (text) kbUseMessage(id, name, text);
       });
     });
+
+    // 🤍 Domyślnie zwinięty - Filip woli widzieć panel czysty, expand jak chce zobaczyć brief
+    if (typeof kbCollapse === 'function') kbCollapse();
   }
 
   // Klik 💬 w karcie urgent/warning → otwórz czat + wklej (jeśli suggested_msg) / sam czat (jeśli puste)
