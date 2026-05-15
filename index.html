@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- BiegaMy build: 2026-05-15-no-coach-signup · usunieto formularz rejestracji trenera (Filip dodaje recznie przez Supabase) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -639,41 +640,9 @@ body.loading::after {
         <input type="password" id="reg-password" placeholder="••••••••" autocomplete="new-password">
       </div>
 
-      <!-- WYBÓR ROLI -->
-      <div class="field">
-        <label>Rejestruję się jako</label>
-        <div class="role-row">
-          <div class="role-btn sel" id="role-athlete" onclick="selectRole('athlete')">
-            <div class="role-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M7.5 13.5 10 11l2 3 2-2 2 4"/><path d="m6 20 3.5-3 2.5 3"/><path d="M12 14c1.5-1 3-2 4.5-1.5"/><path d="M8.5 10.5 10 8l3 1"/></svg>
-            </div>
-            <div class="role-label">Zawodnik</div>
-          </div>
-          <div class="role-btn" id="role-coach" onclick="selectRole('coach')">
-            <div class="role-icon">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-            </div>
-            <div class="role-label">Trener</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Specjalizacja trenera -->
-      <div class="field" id="coach-spec-field" style="display:none;">
-        <label>Specjalizacja <span style="color:var(--muted);font-weight:400;">(opcjonalnie)</span></label>
-        <input type="text" id="reg-spec" placeholder="np. Bieganie długodystansowe">
-      </div>
-
-      <!-- Kod dostępu trenera -->
-      <div class="field" id="coach-pass-field" style="display:none;">
-        <label>Kod dostępu trenera <span style="color:var(--red);font-weight:500;">*</span></label>
-        <input type="password" id="reg-coach-pass" placeholder="Kod dostępu"
-          style="border-color:rgba(232,86,30,0.3);"
-          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(232,86,30,0.3)'">
-        <div style="font-size:10px;color:var(--muted);margin-top:5px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">
-          Konta trenerów są dostępne wyłącznie na zaproszenie.
-        </div>
-      </div>
+      <!-- WYBÓR ROLI — usunięte 15 maja 2026: rejestracja TYLKO dla zawodników.
+           Trenerów dodaje Filip ręcznie przez Supabase Dashboard.
+           role='athlete' jest defaultem dla wszystkich nowych kont. -->
 
       <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
@@ -712,19 +681,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
 const VERIFY_COACH_FN_URL = SB_FN_URL + '/verify-coach-code';
-let selectedRole = 'athlete';
+// Rola na sztywno — rejestracja tylko jako zawodnik.
+// Trenerów dodaje Filip ręcznie przez Supabase Dashboard (od 15 maja 2026).
+const selectedRole = 'athlete';
 let currentTab = 'login';
 
-// ── WYBÓR ROLI ────────────────────────────────────────────────────────────────
-function selectRole(role) {
-  selectedRole = role;
-  document.getElementById('role-athlete').classList.toggle('sel', role === 'athlete');
-  document.getElementById('role-coach').classList.toggle('sel', role === 'coach');
-  document.getElementById('coach-spec-field').style.display = role === 'coach' ? 'block' : 'none';
-  document.getElementById('coach-pass-field').style.display = role === 'coach' ? 'block' : 'none';
-  const btn = document.getElementById('btn-register');
-  btn.textContent = role === 'coach' ? 'Utwórz konto trenera →' : 'Utwórz konto →';
-}
+// selectRole(role) — placeholder dla kompatybilności wstecznej, no-op
+function selectRole() { /* no-op — rola na sztywno 'athlete' */ }
 
 // ── CHECK IF ALREADY LOGGED IN ────────────────────────────────────────────────
 async function checkSession() {
@@ -825,7 +788,7 @@ function setLoading(btnId, loading) {
     if (btnId === 'btn-login') {
       btn.innerHTML = 'Zaloguj się →';
     } else {
-      btn.innerHTML = selectedRole === 'coach' ? 'Utwórz konto trenera →' : 'Utwórz konto →';
+      btn.innerHTML = 'Utwórz konto →';
     }
   }
 }
@@ -938,19 +901,10 @@ async function register() {
   const name = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
-  const spec = document.getElementById('reg-spec')?.value.trim() || null;
-  const coachPass = document.getElementById('reg-coach-pass')?.value || '';
 
   if (!name || !email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('Wpisz poprawny adres e-mail'); return; }
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }
-
-  // Sprawdź tylko czy kod NIE JEST PUSTY — faktyczna weryfikacja po stronie serwera
-  // (edge function verify-coach-code z env var COACH_ACCESS_CODE)
-  if (selectedRole === 'coach' && !coachPass.trim()) {
-    showAlert('Podaj kod dostępu trenera');
-    return;
-  }
 
   hideAlert();
   _registering = true;
@@ -960,7 +914,7 @@ async function register() {
     email,
     password,
     options: {
-      data: { full_name: name, role: selectedRole }
+      data: { full_name: name, role: 'athlete' }
     }
   });
 
@@ -973,30 +927,6 @@ async function register() {
     };
     showAlert(msgs[error.message] || error.message);
     return;
-  }
-
-  // Jeśli trener i mamy sesję — zweryfikuj kod przez edge function (server-side)
-  // Edge function sama wstawi rekord do `coaches` używając service role.
-  if (selectedRole === 'coach' && data.session) {
-    const verifyResult = await verifyCoachCode(data.session.access_token, coachPass, name, spec);
-    if (!verifyResult.success) {
-      // Kod zły — wyloguj usera, pokaż błąd. Konto auth zostaje (może się zalogować jako zawodnik).
-      await sb.auth.signOut();
-      setLoading('btn-register', false);
-      _registering = false;
-      showAlert(verifyResult.error || 'Nieprawidłowy kod dostępu. Skontaktuj się z BiegaMy.');
-      document.getElementById('reg-coach-pass').value = '';
-      document.getElementById('reg-coach-pass').focus();
-      return;
-    }
-  } else if (selectedRole === 'coach' && !data.session) {
-    // Email confirmation włączone — zachowaj kod do weryfikacji po loginie
-    // (jednorazowy, czyszczony po użyciu lub po 24h)
-    try {
-      localStorage.setItem('biegamy_pending_coach_code', coachPass);
-      localStorage.setItem('biegamy_pending_coach_spec', spec || '');
-      localStorage.setItem('biegamy_pending_coach_ts', String(Date.now()));
-    } catch(e) {}
   }
 
   setLoading('btn-register', false);
