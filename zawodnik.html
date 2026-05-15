@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-8c · iOS Kevin fix #4: WYLACZONY setupChatViewportFix - psul layout, iOS sam ogarnia 100dvh -->
+<!-- BiegaMy build: 2026-05-15-prefill · modal log auto-wypelnia plan trenera (z bazy fallback) + opis w komentarzu -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -1813,7 +1813,7 @@ async function markDone(btn){
   toast('Trening oznaczony jako wykonany ✓');
   await updateWeekProgress();
 }
-function openModal() {
+async function openModal() {
   _editingLogId = null;
   // Ustaw jawnie datę na dziś (unikaj problemów z timezone)
   const _todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD locale-safe
@@ -1822,32 +1822,32 @@ function openModal() {
   document.getElementById('modal-sub').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   _updateLogDateDisplay();
   document.getElementById('modal-bg').classList.add('open');
-  // Auto-wypełnij z dzisiejszego treningu jeśli istnieje
-  if (window._todayTraining) {
-    const t = window._todayTraining;
-    const typeMap = {'Spokojny':'Spokojny','Bieg spokojny':'Spokojny','Interwały':'Interwały','Tempo':'Tempo','Wybieganie':'Wybieganie','Regeneracja':'Regeneracja','Zastępczy':'Zastępczy'};
-    const typeName = typeMap[t.type] || t.type;
-    document.querySelectorAll('.type-pill').forEach(p => {
-      p.classList.remove('on');
-      if (p.textContent.trim().includes(typeName)) p.classList.add('on');
-    });
-    window._logType = typeName || 'Spokojny';
-    if (t.distance_km) document.getElementById('l-dist').value = t.distance_km;
-    if (t.duration_min) {
-      const h = Math.floor(t.duration_min/60);
-      const m = t.duration_min % 60;
-      document.getElementById('l-time').value = h + ':' + String(m).padStart(2,'0') + ':00';
-    }
-    if (t.pace) {
-      // Plan może mieć "6:00", "6:00-6:20", "6:00-6:20/km" — wyciągnij pierwszą wartość m:ss
-      const _paceMatch = String(t.pace).match(/(\d{1,2}:\d{2})/);
-      document.getElementById('l-pace').value = _paceMatch ? _paceMatch[1] : '';
-    }
-    if (t.heart_rate) {
-      const hr = t.heart_rate.toString().split('-')[0];
-      document.getElementById('l-hr').value = hr;
+
+  // Reset pól przed prefillowaniem (jak w openModalForDate)
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
+  document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
+  window._logType = 'Spokojny';
+
+  // Reset wierszy interwałów (zostaw 1 pusty)
+  const ivList = document.getElementById('intervals-list');
+  if (ivList) {
+    const rows = ivList.querySelectorAll('.interval-row');
+    rows.forEach((r, i) => { if (i > 0) r.remove(); });
+    const firstRow = ivList.querySelector('.interval-row');
+    if (firstRow) {
+      const distInp = firstRow.querySelector('.iv-dist'); if (distInp) distInp.value = '';
+      const timeInp = firstRow.querySelector('.iv-time'); if (timeInp) timeInp.value = '';
+      const paceEl = firstRow.querySelector('.iv-pace'); if (paceEl) paceEl.textContent = '—/km';
     }
   }
+  const ivSummary = document.getElementById('iv-summary');
+  if (ivSummary) ivSummary.textContent = '—';
+
+  // Użyj uniwersalnej funkcji prefill (sprawdza cache, fallback z bazy)
+  await _prefillLogFromDate(_todayStr);
 }
 
 let _logDate = null;
@@ -1894,14 +1894,16 @@ function openModalForDate(dateStr, e) {
 }
 
 async function _prefillLogFromDate(dateStr) {
-  // Sprawdź czy to dzisiejszy trening (już załadowany)
-  const today = new Date().toISOString().split('T')[0];
+  // Sprawdź czy to dzisiejszy trening (już załadowany w cache)
+  const today = new Date().toLocaleDateString('sv-SE');
   let training = null;
 
   if (dateStr === today && window._todayTraining) {
     training = window._todayTraining;
-  } else if (_athleteId) {
-    // Pobierz trening dla tej daty z bazy
+  }
+  
+  // Jeśli brak w cache, pobierz z bazy (np. modal otwarty przed pełnym init)
+  if (!training && _athleteId) {
     const { data } = await sb.from('trainings')
       .select('*')
       .eq('athlete_id', _athleteId)
@@ -1911,6 +1913,8 @@ async function _prefillLogFromDate(dateStr) {
       .limit(1)
       .maybeSingle();
     training = data;
+    // Cache dla dzisiejszego dnia jeśli puste było
+    if (training && dateStr === today) window._todayTraining = training;
   }
 
   if (!training) return;
@@ -1926,8 +1930,17 @@ async function _prefillLogFromDate(dateStr) {
     if (p.textContent.trim().includes(typeName)) p.classList.add('on');
   });
   window._logType = typeName || 'Spokojny';
+  
+  // Pokaż/ukryj sekcję interwałów na podstawie typu
+  const ivSection = document.getElementById('intervals-section');
+  if (ivSection) ivSection.style.display = (typeName === 'Interwały') ? '' : 'none';
+  
   if (training.distance_km) document.getElementById('l-dist').value = training.distance_km;
-  if (training.pace) document.getElementById('l-pace').value = training.pace;
+  if (training.pace) {
+    // Plan może mieć "6:00", "6:00-6:20", "6:00-6:20/km" — wyciągnij pierwszą wartość m:ss
+    const _paceMatch = String(training.pace).match(/(\d{1,2}:\d{2})/);
+    document.getElementById('l-pace').value = _paceMatch ? _paceMatch[1] : '';
+  }
   if (training.duration_min) {
     const h = Math.floor(training.duration_min/60);
     const m2 = training.duration_min % 60;
@@ -1936,6 +1949,17 @@ async function _prefillLogFromDate(dateStr) {
   if (training.heart_rate) {
     const hr = training.heart_rate.toString().split('-')[0];
     document.getElementById('l-hr').value = hr;
+  }
+  
+  // Pokaż opis trenera w komentarzu jako placeholder (zawodnik widzi co planował trener)
+  const commentEl = document.getElementById('l-comment');
+  if (commentEl && training.description) {
+    commentEl.placeholder = '📋 Plan trenera: ' + training.description.slice(0, 200);
+  }
+  
+  // Przelicz tempo automatycznie jeśli dystans + czas są oba wypełnione
+  if (typeof calcPaceAuto === 'function') {
+    try { calcPaceAuto(); } catch(e) {}
   }
 }
 function closeModal(){

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-13T-wieczor-3d · BUG2 prefill+update log z istniejacego + BUG3 edycja log-bez-planu -->
+<!-- BiegaMy build: 2026-05-15-prefill · modal log dopisany opis trenera w komentarzu (placeholder) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -2887,9 +2887,14 @@ function openLogModal(e, ds, idx) {
     const distEl = document.getElementById('lm-dist');
     const paceEl = document.getElementById('lm-pace');
     const timeEl = document.getElementById('lm-time');
+    const commentEl = document.getElementById('lm-comment');
     if (distEl && (t.dist || t.distance_km)) distEl.value = t.dist || t.distance_km;
     if (paceEl && t.pace) paceEl.value = t.pace;
     if (timeEl && (t.time || t.duration_min)) timeEl.value = t.time || t.duration_min;
+    // Pokaż opis trenera w komentarzu jako placeholder
+    if (commentEl && (t.description || t.notes)) {
+      commentEl.placeholder = '📋 Plan trenera: ' + (t.description || t.notes).slice(0, 200);
+    }
     _logFeel = 'mid';
   } else {
     _logFeel = 'mid';
