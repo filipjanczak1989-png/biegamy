@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-15-prefill-2 · modal log autowypelnia plan + usuniety tekst "przyznana automatycznie" w odznakach -->
+<!-- BiegaMy build: 2026-05-15-chat-fix · czat zawodnika: ukryta nav w widoku czatu + przywrocony viewport fix dla klawiatury -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -1135,7 +1135,7 @@ body > *{position:relative;z-index:1;}
 <!-- SEKCJA: WIADOMOŚCI -->
 <div id="section-msgs" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);height:100dvh;height:100vh;background:var(--bg);z-index:55;flex-direction:column;max-width:420px;width:100%;overflow:hidden;">
   <!-- CZAT: lista konwersacji (trener + znajomi) -->
-  <div id="chat-list-view" style="flex:1;display:flex;flex-direction:column;min-height:0;">
+  <div id="chat-list-view" style="flex:1;display:flex;flex-direction:column;min-height:0;overflow:hidden;">
     <div style="flex-shrink:0;padding:max(52px,env(safe-area-inset-top,52px)) 16px 10px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;">Wiadomości</div>
       <button onclick="showSection('home')" style="background:rgba(255,255,255,0.07);border:none;color:var(--muted);width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;">✕</button>
@@ -1144,7 +1144,7 @@ body > *{position:relative;z-index:1;}
   </div>
 
   <!-- CZAT: aktywny wątek (coach lub peer) -->
-  <div id="chat-thread-view" style="flex:1;display:none;flex-direction:column;min-height:0;">
+  <div id="chat-thread-view" style="flex:1;display:none;flex-direction:column;min-height:0;overflow:hidden;position:relative;">
     <div class="pchat-view-hdr" style="flex-shrink:0;padding:max(12px,env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:12px;position:relative;z-index:5;">
       <button type="button" id="chat-back-btn" style="background:rgba(255,255,255,0.07);border:none;color:var(--fg2);width:36px;height:36px;border-radius:50%;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;position:relative;z-index:10;-webkit-tap-highlight-color:rgba(255,255,255,0.1);">‹</button>
       <div class="pchat-view-av" id="z-coach-av" style="cursor:pointer;" title="Otwórz profil">F</div>
@@ -1179,8 +1179,8 @@ body > *{position:relative;z-index:1;}
 
   </div><!-- /chat-thread-view -->
 
-  <!-- Nawigacja wewnątrz czatu -->
-  <nav style="flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:10px 0 max(20px,env(safe-area-inset-bottom,0px));">
+  <!-- Nawigacja wewnątrz czatu - UKRYWANA gdy chat-thread-view jest otwarte -->
+  <nav id="msgs-bottom-nav" style="flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);display:flex;padding:10px 0 max(20px,env(safe-area-inset-bottom,0px));">
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="showSection('home');return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Dziś</span>
@@ -7393,6 +7393,11 @@ async function showSection_msgs_init() {
   var threadView = document.getElementById('chat-thread-view');
   if(listView) listView.style.display='flex';
   if(threadView) threadView.style.display='none';
+  
+  // Pokaż dolną nawigację (ukryta tylko w widoku konkretnego czatu)
+  var bottomNav = document.getElementById('msgs-bottom-nav');
+  if (bottomNav) bottomNav.style.display = 'flex';
+  
   await loadChatConvList();
   // Auto-refresh listy co 8s
   if (window._zChatListTimer) clearInterval(window._zChatListTimer);
@@ -7525,15 +7530,11 @@ function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoac
 
 
 // ── Fix klawiatury na mobile: visualViewport API ──
-// Gdy klawiatura wyskakuje, height:100vh na iOS Safari NIE zmienia się,
-// więc input wpada pod klawiaturę. Ten handler dynamicznie dostosowuje sekcję.
+// Gdy klawiatura wyskakuje, section-msgs (height:100dvh) na Androidzie często nie kompensuje,
+// więc input wpada pod klawiaturę. Ten handler dynamicznie dostosowuje wysokość sekcji.
 let _chatVvpHandler = null;
 function setupChatViewportFix() {
-  // ⚠️ WYŁĄCZONY 14 maja 2026 wieczor-8c
-  // Powodował znikanie chat-thread-view na iOS Kevin (iPhone Safari)
-  // Section ma już height:100dvh w inline style, iOS Safari sam to obsługuje poprawnie
-  // Zostawiamy tylko scroll do dołu po fokusie na input
-  
+  // 1) Auto-scroll thread do dołu po fokusie na input (zawsze)
   var inp = document.getElementById('msg-input');
   if (inp && !inp._scrollAttached) {
     inp._scrollAttached = true;
@@ -7544,7 +7545,41 @@ function setupChatViewportFix() {
       }, 300);
     });
   }
-  return;
+  
+  // 2) visualViewport handler - dostosowuje wysokość section-msgs do klawiatury
+  if (!window.visualViewport) return; // brak wsparcia (stare przeglądarki)
+  
+  // Cleanup jeśli już raz dodany
+  if (_chatVvpHandler) {
+    window.visualViewport.removeEventListener('resize', _chatVvpHandler);
+    window.visualViewport.removeEventListener('scroll', _chatVvpHandler);
+  }
+  
+  _chatVvpHandler = function() {
+    var section = document.getElementById('section-msgs');
+    if (!section || section.style.display === 'none') return;
+    
+    // Pokazuj tylko gdy chat-thread-view jest aktywny
+    var threadView = document.getElementById('chat-thread-view');
+    if (!threadView || threadView.style.display === 'none') {
+      // Lista konwersacji - zostaw 100dvh
+      section.style.height = '';
+      return;
+    }
+    
+    var vvh = window.visualViewport.height;
+    section.style.height = vvh + 'px';
+    
+    // Scroll thread do dołu (do najnowszych wiadomości) gdy klawiatura zmienia rozmiar
+    var thread = document.getElementById('msgs-thread');
+    if (thread) thread.scrollTop = thread.scrollHeight;
+  };
+  
+  window.visualViewport.addEventListener('resize', _chatVvpHandler);
+  window.visualViewport.addEventListener('scroll', _chatVvpHandler);
+  
+  // Wywołaj raz na start
+  _chatVvpHandler();
 }
 
 async function openChatThread(mode, pid, name) {
@@ -7557,6 +7592,10 @@ async function openChatThread(mode, pid, name) {
   var threadView = document.getElementById('chat-thread-view');
   if(listView) listView.style.display='none';
   if(threadView) threadView.style.display='flex';
+
+  // Ukryj dolną nawigację w widoku czatu (mamy ‹ wstecz w headerze) - daje miejsce inputowi
+  var bottomNav = document.getElementById('msgs-bottom-nav');
+  if (bottomNav) bottomNav.style.display = 'none';
 
   // ── Fix mobile: input nad klawiaturą (visualViewport API) ──
   // Reaguje na pojawienie się klawiatury na iOS Safari + Android Chrome
