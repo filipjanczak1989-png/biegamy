@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-4 · ankieta: fix race condition autosave nadpisuje submit -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -37,23 +36,28 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',sa
   border-bottom:1px solid var(--line);
 }
 .top-nav-inner{
-  max-width:780px;margin:0 auto;padding:14px 20px;
+  max-width:1240px;margin:0 auto;padding:16px 24px;
   display:flex;align-items:center;justify-content:space-between;gap:16px;
 }
 .brand{
   font-family:'Bebas Neue',sans-serif;
-  font-size:22px;letter-spacing:0.04em;
+  font-size:24px;letter-spacing:0.04em;
   color:var(--accent);
   text-decoration:none;
+  display:inline-flex;align-items:center;gap:2px;
 }
 .brand span{color:var(--fg);}
 .nav-back{
   font-family:'JetBrains Mono',monospace;
-  font-size:11px;letter-spacing:0.14em;text-transform:uppercase;
+  font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
   color:var(--muted);text-decoration:none;
-  display:inline-flex;align-items:center;gap:6px;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;
+  border:1px solid transparent;
+  border-radius:50px;
+  transition:all 0.2s;
 }
-.nav-back:hover{color:var(--accent);}
+.nav-back:hover{color:var(--accent);border-color:rgba(232,86,30,0.3);background:var(--accent-soft);}
 
 /* ════════════════════════════════════════════════ */
 /* PROGRESS BAR */
@@ -79,36 +83,211 @@ html,body{background:var(--bg);color:var(--fg);font-family:'Inter','Segoe UI',sa
 }
 
 /* ════════════════════════════════════════════════ */
-/* INTRO + KOŃCOWE */
+/* HERO Z GRAFIKĄ */
+/* ════════════════════════════════════════════════ */
+.hero{
+  max-width:1240px;margin:0 auto;
+  padding:60px 24px 50px;
+  display:grid;
+  grid-template-columns:1.05fr 0.95fr;
+  gap:60px;
+  align-items:center;
+  min-height:calc(100vh - 60px);
+  position:relative;
+  z-index:2;
+}
+.hero-left{
+  display:flex;flex-direction:column;justify-content:center;
+  max-width:580px;
+}
+.hero-tag{
+  display:inline-flex;align-items:center;gap:9px;
+  align-self:flex-start;
+  background:var(--accent-soft);
+  border:1px solid rgba(232,86,30,0.35);
+  border-radius:50px;
+  padding:8px 16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:0.2em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;
+  margin-bottom:28px;
+  animation:fadeInUp 0.6s ease;
+}
+.hero-tag .pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulseDot 1.5s ease-in-out infinite;}
+@keyframes pulseDot{
+  0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(232,86,30,0.5);}
+  50%{opacity:0.5;box-shadow:0 0 0 8px rgba(232,86,30,0);}
+}
+.hero h1{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(46px,7.5vw,76px);
+  line-height:0.96;letter-spacing:0.005em;
+  margin-bottom:26px;
+  animation:fadeInUp 0.7s ease 0.1s both;
+}
+.hero h1 span{color:var(--accent);display:block;}
+.hero-lead{
+  font-size:16px;line-height:1.65;color:var(--muted);
+  margin-bottom:26px;max-width:520px;
+  animation:fadeInUp 0.7s ease 0.2s both;
+}
+.hero-lead strong{color:var(--fg);font-weight:600;}
+.hero-points{
+  display:flex;flex-wrap:wrap;gap:10px;
+  margin:0 0 36px;
+  animation:fadeInUp 0.7s ease 0.3s both;
+}
+.hero-point{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(240,237,232,0.04);
+  border:1px solid var(--line);
+  border-radius:50px;
+  padding:8px 15px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:0.06em;
+  color:var(--muted);
+  transition:border-color 0.2s, color 0.2s;
+}
+.hero-point:hover{border-color:rgba(232,86,30,0.3);color:var(--fg);}
+.hero-point .em{color:var(--accent);}
+.hero-cta-row{
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  animation:fadeInUp 0.7s ease 0.4s both;
+}
+.hero-cta{
+  padding:17px 32px;
+  background:var(--accent);color:var(--paper);
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;letter-spacing:0.18em;text-transform:uppercase;font-weight:600;
+  border:none;border-radius:50px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:11px;
+  box-shadow:0 10px 28px rgba(232,86,30,0.4);
+  transition:transform 0.2s,box-shadow 0.2s,background 0.2s;
+}
+.hero-cta:hover{transform:translateY(-2px);background:#ff6a32;box-shadow:0 14px 36px rgba(232,86,30,0.55);}
+.hero-cta:active{transform:translateY(0);}
+.hero-cta svg{width:14px;height:14px;}
+.hero-time{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--muted);letter-spacing:0.1em;
+  display:inline-flex;align-items:center;gap:6px;
+}
+.hero-time::before{content:'·';color:var(--accent);font-size:18px;}
+.hero-signature{
+  margin-top:auto;padding-top:32px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;color:var(--accent);letter-spacing:0.12em;
+  animation:fadeInUp 0.7s ease 0.5s both;
+}
+.hero-signature .sig-line{
+  display:inline-block;width:32px;height:1px;background:var(--accent);
+  vertical-align:middle;margin-right:12px;
+}
+.hero-signature em{color:var(--muted);font-style:normal;letter-spacing:0.08em;}
+
+/* GRAFIKA */
+.hero-right{
+  position:relative;
+  width:100%;
+  max-width:560px;
+  margin:0 auto;
+  animation:fadeIn 1s ease 0.3s both;
+}
+.hero-graphic{
+  width:100%;
+  position:relative;
+}
+.hero-graphic svg{width:100%;height:100%;display:block;}
+.hero-img{
+  width:100%;
+  height:auto;
+  display:block;
+  position:relative;
+  z-index:2;
+  border-radius:18px;
+  box-shadow:
+    0 24px 70px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(240,237,232,0.05),
+    0 0 40px rgba(232,86,30,0.15);
+  animation:fadeInImg 0.9s ease 0.4s both;
+}
+@keyframes fadeInImg{
+  from{opacity:0;transform:translateY(20px) scale(0.96);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+
+/* Animated glow za grafiką */
+.hero-graphic::before{
+  content:'';
+  position:absolute;
+  inset:-10% -10% -10% -10%;
+  background:radial-gradient(circle at 30% 50%, rgba(232,86,30,0.18) 0%, transparent 60%);
+  filter:blur(50px);
+  animation:pulseGlow 5s ease-in-out infinite;
+  pointer-events:none;
+  z-index:1;
+}
+@keyframes pulseGlow{
+  0%,100%{opacity:0.6;transform:scale(1);}
+  50%{opacity:1;transform:scale(1.08);}
+}
+
+@keyframes fadeInUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* Grid background dla hero */
+.hero-bg-grid{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(240,237,232,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240,237,232,0.025) 1px, transparent 1px);
+  background-size:64px 64px;
+  mask-image:radial-gradient(circle at 60% 50%, black 25%, transparent 70%);
+  -webkit-mask-image:radial-gradient(circle at 60% 50%, black 25%, transparent 70%);
+  z-index:1;
+}
+
+/* MOBILE hero */
+@media(max-width:900px){
+  .hero{
+    grid-template-columns:1fr;
+    gap:36px;
+    padding:34px 20px 40px;
+    min-height:auto;
+  }
+  .hero-left{max-width:100%;}
+  .hero-right{
+    max-width:340px;
+    order:-1;
+  }
+  .hero h1{font-size:46px;}
+  .hero-lead{font-size:15px;}
+  .hero-cta-row{justify-content:flex-start;}
+  .hero-signature{margin-top:36px;padding-top:24px;border-top:1px solid var(--line);}
+  .hero-img{border-radius:14px;}
+}
+
+@media(max-width:520px){
+  .hero{padding:24px 16px 32px;gap:28px;}
+  .hero h1{font-size:42px;}
+  .hero-tag{font-size:9px;padding:7px 14px;margin-bottom:22px;}
+  .hero-cta{padding:15px 26px;font-size:11px;width:100%;justify-content:center;}
+  .hero-cta-row{flex-direction:column;align-items:stretch;gap:12px;}
+  .hero-time::before{display:none;}
+  .hero-time{justify-content:center;}
+  .hero-right{max-width:280px;}
+}
+
+/* ════════════════════════════════════════════════ */
+/* INTRO / SUCCESS PAGE */
 /* ════════════════════════════════════════════════ */
 .intro{
-  max-width:680px;margin:0 auto;padding:40px 20px 20px;text-align:center;
-}
-.intro h1{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:48px;line-height:1;letter-spacing:0.02em;
-  margin-bottom:18px;
-}
-.intro h1 span{color:var(--accent);}
-.intro p{
-  font-size:15px;line-height:1.7;color:var(--muted);
-  margin-bottom:14px;
-}
-.intro-signature{
-  font-family:'JetBrains Mono',monospace;
-  font-size:11px;letter-spacing:0.1em;color:var(--accent);
-  margin-top:24px;
-}
-.intro .duration{
-  display:inline-block;
-  background:var(--accent-soft);
-  border:1px solid rgba(232,86,30,0.3);
-  border-radius:50px;
-  padding:6px 14px;
-  font-family:'JetBrains Mono',monospace;
-  font-size:10px;letter-spacing:0.14em;text-transform:uppercase;
-  color:var(--accent);
-  margin-top:14px;
+  position:relative;
+  overflow:hidden;
 }
 
 /* ════════════════════════════════════════════════ */
@@ -368,7 +547,6 @@ select{
 @media(max-width:520px){
   .section{padding:22px 18px;}
   .section-title{font-size:24px;}
-  .intro h1{font-size:38px;}
   .btn{padding:11px 16px;font-size:10px;}
 }
 </style>
@@ -402,12 +580,125 @@ select{
 <!-- INTRO -->
 <!-- ═════════════════════════════════════════════════════════════════ -->
 <div class="intro" id="intro-page">
-  <h1>Ankieta startowa<br><span>BiegaMy</span>.run</h1>
-  <p>Cześć Skarbie! 🤍 Świetnie że jesteś. Wypełnij tę ankietę żebyśmy mogli ułożyć Ci plan szyty na miarę — Twoich celów, Twojego ciała, Twojego życia.</p>
-  <p>Wiem że pytania wyglądają na dużo. Ale każde z nich ma znaczenie i pomoże nam dać Ci to czego naprawdę potrzebujesz. <strong style="color:var(--fg);">Na spokojnie</strong> — ankieta się sama zapisuje, możesz wrócić.</p>
-  <div class="duration">⏱️ ~10 minut</div>
-  <p class="intro-signature">— Filip & Kasia<br>BiegaMy.run</p>
-  <button class="success-cta" onclick="startForm()" style="border:none;cursor:pointer;margin-top:30px;">Zaczynam →</button>
+  <div class="hero-bg-grid"></div>
+  <div class="hero">
+    
+    <!-- LEWA: Tekst -->
+    <div class="hero-left">
+      <div class="hero-tag">
+        <span class="pulse"></span>
+        <span>Ankieta startowa</span>
+      </div>
+      
+      <h1>
+        Twój plan.<br>
+        <span>Twoje cele.</span>
+        Twoja droga.
+      </h1>
+      
+      <p class="hero-lead">
+        Wypełnij ankietę — <strong>Filip i Kasia</strong> ułożą Ci plan biegowy dopasowany do Twojego ciała, celów i stylu życia. Bez gotowców. Bez schematów. <strong>Indywidualnie.</strong>
+      </p>
+      
+      <div class="hero-points">
+        <span class="hero-point"><span class="em">⏱️</span> ~10 minut</span>
+        <span class="hero-point"><span class="em">💾</span> Auto-zapis</span>
+        <span class="hero-point"><span class="em">🔒</span> RODO compliant</span>
+      </div>
+      
+      <div class="hero-cta-row">
+        <button class="hero-cta" onclick="startForm()">
+          <span>Zaczynam ankietę</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <span class="hero-time">Odpowiemy w 24-48h</span>
+      </div>
+      
+      <div class="hero-signature">
+        <span class="sig-line"></span>FILIP & KASIA<br>
+        <em>BiegaMy.run · Środa Wielkopolska</em>
+      </div>
+    </div>
+    
+    <!-- PRAWA: Grafika (ankieta.webp lub fallback SVG) -->
+    <div class="hero-right">
+      <div class="hero-graphic">
+        <!-- 
+          Twoja grafika ankieta.webp ładuje się tutaj.
+          Jeśli plik nie istnieje — pokazuje się fallback SVG poniżej.
+          Wrzuć ankieta.webp do tego samego folderu co ankieta.html (root repo).
+          Optymalne wymiary: kwadrat ~800x800px lub 1200x1200px (responsive).
+        -->
+        <img 
+          src="ankieta.webp" 
+          alt="Bieganie z BiegaMy" 
+          class="hero-img"
+          onerror="this.style.display='none';document.getElementById('hero-svg-fallback').style.display='block';"
+        >
+        
+        <!-- Fallback SVG (gdyby ankieta.webp nie istniała) -->
+        <div id="hero-svg-fallback" style="display:none;width:100%;height:100%;">
+        <svg viewBox="0 0 520 520" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="orange-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#e8561e" stop-opacity="1"/>
+              <stop offset="100%" stop-color="#ff7a45" stop-opacity="1"/>
+            </linearGradient>
+            <linearGradient id="orange-grad-soft" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#e8561e" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#e8561e" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          
+          <circle cx="260" cy="260" r="240" fill="none" stroke="rgba(240,237,232,0.05)" stroke-width="1" stroke-dasharray="2 4"/>
+          <circle cx="260" cy="260" r="180" fill="none" stroke="rgba(240,237,232,0.07)" stroke-width="1"/>
+          <circle cx="260" cy="260" r="120" fill="none" stroke="rgba(240,237,232,0.09)" stroke-width="1"/>
+          <circle cx="260" cy="260" r="60" fill="none" stroke="rgba(232,86,30,0.2)" stroke-width="1"/>
+          
+          <g opacity="0.4">
+            <line x1="100" y1="220" x2="180" y2="220" stroke="url(#orange-grad-soft)" stroke-width="2"/>
+            <line x1="80" y1="260" x2="180" y2="260" stroke="url(#orange-grad-soft)" stroke-width="2"/>
+            <line x1="100" y1="300" x2="180" y2="300" stroke="url(#orange-grad-soft)" stroke-width="2"/>
+            <line x1="120" y1="340" x2="180" y2="340" stroke="url(#orange-grad-soft)" stroke-width="2"/>
+            <line x1="90" y1="380" x2="170" y2="380" stroke="url(#orange-grad-soft)" stroke-width="2"/>
+          </g>
+          
+          <g stroke="url(#orange-grad)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none">
+            <circle cx="320" cy="160" r="22" fill="url(#orange-grad)" stroke="none"/>
+            <line x1="320" y1="182" x2="290" y2="280"/>
+            <path d="M 305 215 L 245 240 L 215 200" stroke-width="6"/>
+            <path d="M 308 215 L 365 200 L 395 230" stroke-width="6"/>
+            <path d="M 295 280 L 340 295 L 370 360 L 405 380" stroke-width="7"/>
+            <path d="M 285 280 L 245 340 L 215 415 L 175 425" stroke-width="7"/>
+            <ellipse cx="408" cy="383" rx="14" ry="6" fill="url(#orange-grad)" stroke="none" transform="rotate(15 408 383)"/>
+            <ellipse cx="173" cy="428" rx="14" ry="6" fill="url(#orange-grad)" stroke="none" transform="rotate(-10 173 428)"/>
+          </g>
+          
+          <g fill="#e8561e">
+            <circle cx="420" cy="120" r="3" opacity="0.6">
+              <animate attributeName="opacity" values="0.2;0.8;0.2" dur="2.5s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="450" cy="190" r="2" opacity="0.5">
+              <animate attributeName="opacity" values="0.2;0.7;0.2" dur="3s" repeatCount="indefinite" begin="0.5s"/>
+            </circle>
+            <circle cx="120" cy="140" r="3" opacity="0.5">
+              <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2.8s" repeatCount="indefinite" begin="1s"/>
+            </circle>
+            <circle cx="90" cy="180" r="2" opacity="0.4">
+              <animate attributeName="opacity" values="0.2;0.6;0.2" dur="2.3s" repeatCount="indefinite" begin="1.5s"/>
+            </circle>
+          </g>
+          
+          <g opacity="0.4">
+            <text x="430" y="430" font-family="JetBrains Mono, monospace" font-size="11" fill="#e8561e" letter-spacing="2">26.2</text>
+            <text x="60" y="100" font-family="JetBrains Mono, monospace" font-size="9" fill="rgba(240,237,232,0.4)" letter-spacing="2">RUN</text>
+          </g>
+        </svg>
+        </div>
+      </div>
+    </div>
+    
+  </div>
 </div>
 
 <!-- ═════════════════════════════════════════════════════════════════ -->
@@ -502,7 +793,7 @@ select{
     </div>
 
     <div class="field" id="blood-upload-wrap" style="display:none;">
-      <label class="field-label">Możesz dodać screen wyników? <span style="color:var(--muted);font-weight:400;">(opcjonalne, dla Klaudiusza AI)</span></label>
+      <label class="field-label">Możesz dodać screen wyników? <span style="color:var(--muted);font-weight:400;">(opcjonalne)</span></label>
       <div class="upload-zone" onclick="document.getElementById('f_blood_file').click()">
         <div class="upload-zone-text">📷 Wrzuć screen wyników</div>
         <div class="upload-zone-sub">Tylko Filip i Kasia to zobaczą</div>
@@ -519,7 +810,7 @@ select{
     <div class="field">
       <label class="field-label">Czy chorujesz na coś co wpływa na bieganie?</label>
       <textarea id="f_chronic" placeholder="np. astma, cukrzyca, problemy z tarczycą, niska ferrytyna. Lub: 'nie chorują'"></textarea>
-      <div class="field-hint">Klaudiusz AI dostosuje plan. Dane bezpieczne, tylko trener widzi.</div>
+      <div class="field-hint">Wszystkie dane bezpieczne, tylko trener widzi.</div>
     </div>
 
     <div class="section-nav">
@@ -827,7 +1118,7 @@ select{
     <div class="field">
       <label class="field-label">Tematy o których NIE chcesz pisać <span style="color:var(--muted);font-weight:400;">(opcjonalne)</span></label>
       <textarea id="f_topics_avoid" placeholder="np. waga, ciało, pewne problemy zdrowotne, sytuacja życiowa... Wszystko co dla Ciebie tabu w czacie z trenerem."></textarea>
-      <div class="field-hint">Klaudiusz i my respektujemy. Nikt Cię nie będzie o to pytał.</div>
+      <div class="field-hint">Respektujemy. Nikt Cię nie będzie o to pytał.</div>
     </div>
 
     <div class="section-nav">
@@ -866,7 +1157,7 @@ select{
           <span><strong>Zgoda na zapisywanie danych zdrowotnych</strong> <span style="color:var(--accent);">*</span></span>
         </label>
         <div class="consent-text">
-          Wyrażam zgodę na zapisywanie i przetwarzanie moich danych zdrowotnych (kontuzje, choroby, suplementacja, dane biometryczne) w celu dostosowania planu treningowego. Dane są chronione, dostępne tylko dla trenera (Filip i Kasia) oraz systemu AI BiegaMy.
+          Wyrażam zgodę na zapisywanie i przetwarzanie moich danych zdrowotnych (kontuzje, choroby, suplementacja, dane biometryczne) w celu dostosowania planu treningowego. Dane są chronione, dostępne tylko dla trenera (Filip i Kasia).
         </div>
       </div>
 
@@ -909,6 +1200,7 @@ select{
   <span>Zapisano</span>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sb.js"></script>
 <script>
 'use strict';
@@ -917,14 +1209,13 @@ select{
 // STATE
 // ════════════════════════════════════════════════════════════════════
 const STORAGE_KEY = 'biegamy_intake_session';
-const sb = window.sb;
+let sb = null; // załadowane w DOMContentLoaded
 let _sessionToken = null;
 let _intakeId = null;
 let _currentSection = 1;
 const TOTAL_SECTIONS = 7;
 let _saveTimer = null;
 let _bloodTestUrl = null;
-let _isSubmitted = false;  // ✨ Po submicie blokuje autosave (race condition fix)
 
 // ════════════════════════════════════════════════════════════════════
 // SESSION TOKEN
@@ -942,7 +1233,32 @@ function getOrCreateSessionToken() {
 // LIFECYCLE
 // ════════════════════════════════════════════════════════════════════
 window.addEventListener('DOMContentLoaded', async () => {
+  // Czekaj aż supabase-js + sb.js się załadują
+  let attempts = 0;
+  while (!window.sb && attempts < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    attempts++;
+  }
+  
+  if (!window.sb) {
+    console.error('[intake] Supabase client nie został załadowany');
+    alert('Coś poszło nie tak z połączeniem. Odśwież stronę (F5) lub napisz na biegamy.run@gmail.com');
+    return;
+  }
+  
+  // ✨ v47: Token sesji DO PRZED inicjalizacją klienta — używamy w nagłówku
   _sessionToken = getOrCreateSessionToken();
+  
+  // ✨ v47: Tworzymy DEDYKOWANY klient z nagłówkiem x-intake-token
+  // Dzięki temu RLS może zweryfikować że anon ma dostęp tylko do SWOJEJ ankiety
+  sb = window.supabase.createClient(window.SB_URL, window.SB_KEY, {
+    global: {
+      headers: {
+        'x-intake-token': _sessionToken
+      }
+    }
+  });
+  
   await loadDraft();
   setupAutoSave();
   setupRadioVisuals();
@@ -1045,10 +1361,8 @@ function setCheckbox(name, value) {
 // AUTO-SAVE
 // ════════════════════════════════════════════════════════════════════
 function setupAutoSave() {
-  // ✨ Nazwany listener — żeby można go było usunąć w submitForm
-  window._inputListener = () => debouncedSave();
-  document.addEventListener('input', window._inputListener);
-  document.addEventListener('change', window._inputListener);
+  document.addEventListener('input', () => debouncedSave());
+  document.addEventListener('change', () => debouncedSave());
 }
 
 function debouncedSave() {
@@ -1057,33 +1371,13 @@ function debouncedSave() {
 }
 
 async function saveDraft() {
-  // ✨ Warstwa 1: Lokalny flag — po submicie NIE zapisuj drafta
-  if (_isSubmitted) {
-    console.log('[intake] saveDraft skipped (już submitted)');
-    return;
-  }
-  
-  // ✨ Warstwa 2: Server-side check — jeśli rekord już ma status submitted/accepted/rejected,
-  // NIE nadpisuj statusu na draft (race: ktoś inny zmienił status, lub Twój submit zdążył)
-  if (_intakeId) {
-    const { data: currentStatus } = await sb.from('athlete_intake_forms')
-      .select('status')
-      .eq('id', _intakeId)
-      .maybeSingle();
-    if (currentStatus && currentStatus.status !== 'draft') {
-      console.log('[intake] saveDraft skipped (status=' + currentStatus.status + ', nie nadpisujemy)');
-      _isSubmitted = true; // ustaw flag żeby nie sprawdzać znowu
-      return;
-    }
-  }
-  
+  if (!sb) return; // jeszcze nie zainicjalizowane
   const payload = collectFormData('draft');
   
   try {
     let result;
     if (_intakeId) {
-      result = await sb.from('athlete_intake_forms').update(payload).eq('id', _intakeId).eq('status', 'draft').select('id').maybeSingle();
-      // ☝ Dodatkowy filtr .eq('status', 'draft') — UPDATE wykona się TYLKO jeśli rekord wciąż jest draftem
+      result = await sb.from('athlete_intake_forms').update(payload).eq('id', _intakeId).select('id').maybeSingle();
     } else {
       payload.session_token = _sessionToken;
       result = await sb.from('athlete_intake_forms').insert(payload).select('id').maybeSingle();
@@ -1368,17 +1662,6 @@ async function submitForm() {
   }
   errorEl.classList.remove('show');
   
-  // ✨ WARSTWA 2A: Natychmiast blokuj autosave PRZED submitem żeby nie było race
-  _isSubmitted = true;
-  clearTimeout(_saveTimer); // anuluj pending autosave
-  
-  // ✨ WARSTWA 2B: Usuń listenery żeby nie strzelały nawet jeśli flag się zgubi
-  if (window._inputListener) {
-    document.removeEventListener('input', window._inputListener);
-    document.removeEventListener('change', window._inputListener);
-    window._inputListener = null;
-  }
-  
   // Zapisz finalnie jako submitted
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
@@ -1394,32 +1677,18 @@ async function submitForm() {
   try {
     let result;
     if (_intakeId) {
-      result = await sb.from('athlete_intake_forms').update(payload).eq('id', _intakeId).select('id, status').maybeSingle();
+      result = await sb.from('athlete_intake_forms').update(payload).eq('id', _intakeId);
     } else {
       payload.session_token = _sessionToken;
-      result = await sb.from('athlete_intake_forms').insert(payload).select('id, status').maybeSingle();
-      if (result.data) _intakeId = result.data.id;
+      result = await sb.from('athlete_intake_forms').insert(payload);
     }
     
     if (result.error) {
       throw new Error(result.error.message);
     }
     
-    // ✨ WARSTWA 3: Weryfikacja że status FAKTYCZNIE jest submitted w bazie
-    const { data: verify } = await sb.from('athlete_intake_forms')
-      .select('status, submitted_at')
-      .eq('id', _intakeId)
-      .maybeSingle();
-    
-    if (!verify || verify.status !== 'submitted') {
-      console.error('[intake] WERYFIKACJA NIEUDANA: status =', verify?.status);
-      // Retry — wymuś submitted jeszcze raz
-      await sb.from('athlete_intake_forms')
-        .update({ status: 'submitted', submitted_at: new Date().toISOString() })
-        .eq('id', _intakeId);
-      console.log('[intake] retry submit done');
-    }
-    console.log('[intake] ✅ Submit OK, status w bazie:', verify?.status, 'submitted_at:', verify?.submitted_at);
+    // Wyślij maila do Was przez Formspree (opcjonalnie - można dodać)
+    // ...
     
     // Wyczyść local storage żeby user nie miał draftu na kolejnej wizycie
     localStorage.removeItem(STORAGE_KEY);
@@ -1432,8 +1701,6 @@ async function submitForm() {
     
   } catch (e) {
     console.error('[intake] submit error:', e);
-    // Cofnij flag — pozwól ponowić
-    _isSubmitted = false;
     alert('Coś poszło nie tak: ' + e.message + '\n\nNapisz na biegamy.run@gmail.com');
     btn.disabled = false;
     btn.textContent = 'Wyślij ankietę ✓';
