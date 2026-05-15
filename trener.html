@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-15-brief-collapsed · brief domyslnie zwiniety przy wejsciu w trener panel -->
+<!-- BiegaMy build: 2026-05-15-rpc-stats · v_athlete_stats VIEW -> get_app_stats RPC (Security Linter ERROR fix) -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -3971,8 +3971,8 @@ const _coachNotifications = []; // local store for new registrations
 
 async function loadAppStats() {
   try {
-    // Użyj VIEW (nie ujawnia rekordów, tylko liczby)
-    const { data, error } = await sb.from('v_athlete_stats').select('*').single();
+    // RPC function - zwraca zagregowane liczby, SECURITY DEFINER świadomie (tylko COUNT)
+    const { data, error } = await sb.rpc('get_app_stats').single();
     if (error) throw error;
     _appStats.totalUsers = data?.total_count || 0;
     _appStats.newToday = data?.today_count || 0;
@@ -4838,8 +4838,8 @@ async function loadAnalytics() {
   // Render app stats in analytics section
   const appEl = document.getElementById('analytics-app-stats');
   if (appEl) {
-    // total + newWeek z VIEW (bez ujawniania rekordów), myCount z bezpośredniego count
-    const { data: appStats } = await sb.from('v_athlete_stats').select('*').single();
+    // total + newWeek z RPC (zagregowane, nie ujawnia rekordów), myCount z bezpośredniego count
+    const { data: appStats } = await sb.rpc('get_app_stats').single();
     const total = appStats?.total_count || 0;
     const newWeek = appStats?.week_count || 0;
     const { count: myCount } = await sb.from('athletes').select('*', { count:'exact', head:true }).eq('coach_id', _coachId);
