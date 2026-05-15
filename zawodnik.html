@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-8 · iOS Kevin fix #2: flex-layout naprawiony, textarea zmie\u015bci si\u0119 na iPhone z 4 buttonami obok -->
+<!-- BiegaMy build: 2026-05-14-wieczor-8c · iOS Kevin fix #4: WYLACZONY setupChatViewportFix - psul layout, iOS sam ogarnia 100dvh -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -535,15 +535,47 @@ body > *{position:relative;z-index:1;}
 .field input,.field textarea,.field select{
   width:100%;background:rgba(255,255,255,0.04);
   border:1px solid rgba(255,255,255,0.09);
-  color:var(--fg);font-family:'DM Sans',sans-serif;font-size:15px;
+  color:#f0ede8 !important;
+  -webkit-text-fill-color:#f0ede8 !important;
+  caret-color:#e8561e !important;
+  font-family:'DM Sans',sans-serif;font-size:16px;
   padding:12px 14px;border-radius:13px;outline:none;
   transition:border-color 0.2s,box-shadow 0.2s;
+  -webkit-appearance:none;appearance:none;
+  -webkit-user-select:text !important;user-select:text !important;
+  opacity:1 !important;
+}
+.field input::placeholder,.field textarea::placeholder{
+  color:rgba(240,237,232,0.45) !important;
+  -webkit-text-fill-color:rgba(240,237,232,0.45) !important;
+  opacity:1 !important;
 }
 .field input:focus,.field textarea:focus,.field select:focus{
   border-color:var(--accent);
   box-shadow:0 0 0 3px rgba(232,86,30,0.1),0 0 16px rgba(232,86,30,0.06);
+  color:#f0ede8 !important;
+  -webkit-text-fill-color:#f0ede8 !important;
 }
 .field textarea{resize:vertical;min-height:80px;}
+/* iOS Safari kuloodporny fallback - cała aplikacja */
+@supports (-webkit-touch-callout: none) {
+  input, textarea, [contenteditable] {
+    color: #f0ede8 !important;
+    -webkit-text-fill-color: #f0ede8 !important;
+    caret-color: #e8561e !important;
+    opacity: 1 !important;
+  }
+  input::placeholder, textarea::placeholder {
+    color: rgba(240,237,232,0.45) !important;
+    -webkit-text-fill-color: rgba(240,237,232,0.45) !important;
+  }
+}
+@media (prefers-color-scheme: dark) {
+  input, textarea, [contenteditable] {
+    color: #f0ede8 !important;
+    -webkit-text-fill-color: #f0ede8 !important;
+  }
+}
 .f-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
 /* Type pills */
@@ -7473,31 +7505,22 @@ function _convRow(mode, pid, name, ini, avatarUrl, preview, time, unread, isCoac
 // więc input wpada pod klawiaturę. Ten handler dynamicznie dostosowuje sekcję.
 let _chatVvpHandler = null;
 function setupChatViewportFix() {
-  if (!window.visualViewport) return; // brak wsparcia (stare przeglądarki)
+  // ⚠️ WYŁĄCZONY 14 maja 2026 wieczor-8c
+  // Powodował znikanie chat-thread-view na iOS Kevin (iPhone Safari)
+  // Section ma już height:100dvh w inline style, iOS Safari sam to obsługuje poprawnie
+  // Zostawiamy tylko scroll do dołu po fokusie na input
   
-  // Cleanup jeśli już raz dodany
-  if (_chatVvpHandler) {
-    window.visualViewport.removeEventListener('resize', _chatVvpHandler);
-    window.visualViewport.removeEventListener('scroll', _chatVvpHandler);
+  var inp = document.getElementById('msg-input');
+  if (inp && !inp._scrollAttached) {
+    inp._scrollAttached = true;
+    inp.addEventListener('focus', function() {
+      setTimeout(function() {
+        var thread = document.getElementById('msgs-thread');
+        if (thread) thread.scrollTop = thread.scrollHeight;
+      }, 300);
+    });
   }
-  
-  _chatVvpHandler = function() {
-    var section = document.getElementById('section-msgs');
-    if (!section || section.style.display === 'none') return;
-    
-    var vvh = window.visualViewport.height; // wysokość widocznego obszaru (bez klawiatury)
-    section.style.height = vvh + 'px';
-    
-    // Scroll thread do dołu (do najnowszych wiadomości) gdy klawiatura zmienia rozmiar
-    var thread = document.getElementById('msgs-thread');
-    if (thread) thread.scrollTop = thread.scrollHeight;
-  };
-  
-  window.visualViewport.addEventListener('resize', _chatVvpHandler);
-  window.visualViewport.addEventListener('scroll', _chatVvpHandler);
-  
-  // Wywołaj raz na start
-  _chatVvpHandler();
+  return;
 }
 
 async function openChatThread(mode, pid, name) {
