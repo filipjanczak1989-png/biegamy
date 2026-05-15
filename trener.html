@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-6 · brief pelny (X+Archiwum+suggested_msg+chat-btn) + ankieta panel + klikalne awatary -->
+<!-- BiegaMy build: 2026-05-15-aiplan-screens · AI plan: jeden modal + upload screen\u00f3w (Garmin/Strava) jako input dla AI -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -1439,9 +1439,95 @@ async function openCreateTrainingPlanModal() {
   // Ładuj cele startowe zawodnika z race_goals
   await loadAthleteGoalsIntoModal();
   
+  // Reset wgranych screenów dla AI
+  window._tpScreenUrls = [];
+  const screensList = document.getElementById('tp-screens-list');
+  if (screensList) { screensList.style.display = 'none'; screensList.innerHTML = ''; }
+  const screensStatus = document.getElementById('tp-screens-status');
+  if (screensStatus) { screensStatus.style.display = 'none'; screensStatus.textContent = ''; }
+  
   document.getElementById('tp-create-modal').style.display = 'flex';
 }
 window.openCreateTrainingPlanModal = openCreateTrainingPlanModal;
+
+// ═══════════════════════════════════════════════════════════════════════
+// 📸 Upload screenów dla AI planu — przechowujemy URL-e w window._tpScreenUrls
+// ═══════════════════════════════════════════════════════════════════════
+window._tpScreenUrls = window._tpScreenUrls || [];
+
+async function tpHandleScreensUpload(input) {
+  if (!input.files || !input.files.length) return;
+  const athleteId = window._selectedAthleteId;
+  if (!athleteId) { showToast?.('Wybierz najpierw zawodnika'); return; }
+
+  const statusEl = document.getElementById('tp-screens-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '⏳ Wgrywam ' + input.files.length + ' plik(ów)...';
+  
+  const base = Date.now();
+  let uploaded = 0;
+  for (let i = 0; i < input.files.length; i++) {
+    const file = input.files[i];
+    if (!file.type.startsWith('image/')) continue;
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = athleteId + '/ai-plan-input/' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + ext;
+    
+    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {
+      upsert: true,
+      contentType: file.type
+    });
+    if (upErr) {
+      console.warn('[tpScreens] upload error:', upErr.message);
+      continue;
+    }
+    const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
+    if (urlData?.publicUrl) {
+      window._tpScreenUrls.push(urlData.publicUrl);
+      uploaded++;
+    }
+  }
+  
+  statusEl.textContent = uploaded > 0
+    ? '✅ Wgrano ' + uploaded + ' screen(ów) — będą podane AI razem z planem'
+    : '❌ Nie udało się wgrać żadnego pliku';
+  statusEl.style.color = uploaded > 0 ? '#22c55e' : '#e8561e';
+  
+  tpRenderScreenThumbs();
+  input.value = ''; // reset input żeby można było wgrać te same pliki ponownie
+}
+window.tpHandleScreensUpload = tpHandleScreensUpload;
+
+function tpRenderScreenThumbs() {
+  const list = document.getElementById('tp-screens-list');
+  if (!list) return;
+  if (!window._tpScreenUrls || !window._tpScreenUrls.length) {
+    list.style.display = 'none';
+    list.innerHTML = '';
+    return;
+  }
+  list.style.display = 'flex';
+  list.innerHTML = window._tpScreenUrls.map((url, idx) => `
+    <div style="position:relative;width:58px;height:58px;border-radius:6px;overflow:hidden;border:1px solid var(--border);">
+      <img src="${url}" style="width:100%;height:100%;object-fit:cover;display:block;" alt="">
+      <button onclick="tpRemoveScreen(${idx})" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.75);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;">✕</button>
+    </div>
+  `).join('');
+}
+window.tpRenderScreenThumbs = tpRenderScreenThumbs;
+
+function tpRemoveScreen(idx) {
+  if (!window._tpScreenUrls) return;
+  window._tpScreenUrls.splice(idx, 1);
+  tpRenderScreenThumbs();
+  const statusEl = document.getElementById('tp-screens-status');
+  if (statusEl && window._tpScreenUrls.length === 0) {
+    statusEl.style.display = 'none';
+  } else if (statusEl) {
+    statusEl.textContent = '📸 ' + window._tpScreenUrls.length + ' screen(ów) gotowych dla AI';
+    statusEl.style.color = 'var(--muted)';
+  }
+}
+window.tpRemoveScreen = tpRemoveScreen;
 
 // ── Pobierz race_goals zawodnika i pokaż jako klikalne kafelki ─────────
 async function loadAthleteGoalsIntoModal() {
@@ -1550,6 +1636,12 @@ window.selectAthleteGoal = selectAthleteGoal;
 
 function closeCreateTrainingPlanModal() {
   document.getElementById('tp-create-modal').style.display = 'none';
+  // Reset HTML do formularza (na wypadek gdyby został podgląd po wygenerowaniu)
+  if (window._tpOriginalCreateModalHtml) {
+    const modal = document.getElementById('tp-create-modal');
+    const innerCard = modal.querySelector('div');
+    if (innerCard) innerCard.innerHTML = window._tpOriginalCreateModalHtml;
+  }
 }
 window.closeCreateTrainingPlanModal = closeCreateTrainingPlanModal;
 
@@ -1611,6 +1703,11 @@ async function generateTrainingPlan() {
     };
     if (coachNote) body.coach_note = coachNote; // ← NOWE
     
+    // 📸 Dołącz wgrane screeny dla AI (publiczne URL-e)
+    if (window._tpScreenUrls && window._tpScreenUrls.length > 0) {
+      body.screenshot_urls = window._tpScreenUrls.slice();
+    }
+    
     const resp = await fetch(fnUrl, {
       method: 'POST',
       headers: {
@@ -1624,12 +1721,12 @@ async function generateTrainingPlan() {
     if (!resp.ok) throw new Error(data.error || 'Błąd generowania');
 
     statusEl.innerHTML = `<div style="color:#22c55e;">✅ Plan wygenerowany — ${data.workouts_count} treningów, ${data.total_distance_km} km</div>`;
-    setTimeout(() => {
-      closeCreateTrainingPlanModal();
-      loadPanelTrainingPlans();
-      // Otwórz od razu podgląd
-      openViewTrainingPlanModal(data.plan_id);
-    }, 1200);
+    
+    // ✨ Zamiast otwierać drugi modal: wczytujemy podgląd planu w TYM SAMYM modalu
+    setTimeout(async () => {
+      await renderPlanPreviewInCreateModal(data.plan_id);
+      loadPanelTrainingPlans(); // odśwież listę w tle
+    }, 600);
 
   } catch (err) {
     console.error('[generateTrainingPlan] error:', err);
@@ -1641,6 +1738,92 @@ async function generateTrainingPlan() {
   }
 }
 window.generateTrainingPlan = generateTrainingPlan;
+
+// ── Renderuj podgląd wygenerowanego planu WEWNĄTRZ tp-create-modal ──
+async function renderPlanPreviewInCreateModal(planId) {
+  _tpCurrentPlanId = planId;
+  
+  // Zapisz oryginalny HTML formularza (raz, do późniejszego restore)
+  const modal = document.getElementById('tp-create-modal');
+  const innerCard = modal.querySelector('div');
+  if (innerCard && !window._tpOriginalCreateModalHtml) {
+    window._tpOriginalCreateModalHtml = innerCard.innerHTML;
+  }
+  
+  // Pobierz plan + workouts
+  const { data: plan } = await sb.from('training_plans').select('*').eq('id', planId).maybeSingle();
+  if (!plan) {
+    document.getElementById('tp-create-status').innerHTML = '<div style="color:#e8561e;">❌ Błąd ładowania podglądu</div>';
+    return;
+  }
+  
+  const { data: workouts } = await sb.from('trainings')
+    .select('*')
+    .eq('plan_id', planId)
+    .order('date');
+  
+  // Statystyki
+  const totalKm = (workouts || []).reduce((s, w) => s + (parseFloat(w.distance_km) || 0), 0);
+  const totalCount = (workouts || []).length;
+  const typeIcons = {Spokojny:'🏃',Interwały:'⚡',Tempo:'🔥',Wybieganie:'🛤️',Regeneracja:'💚',Odpoczynek:'😴'};
+  
+  if (!innerCard) return;
+  
+  // Lista workoutów (kompaktowa)
+  const workoutsHtml = (workouts || []).map(w => {
+    const dateStr = new Date(w.date).toLocaleDateString('pl', { weekday: 'short', day: 'numeric', month: 'short' });
+    const icon = typeIcons[w.type] || '🏃';
+    const details = [w.distance_km ? w.distance_km + 'km' : '', w.pace || '', w.duration_min ? w.duration_min + 'min' : ''].filter(Boolean).join(' · ');
+    return `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+            <span style="font-size:13px;">${icon}</span>
+            <span style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.06em;">${dateStr.toUpperCase()}</span>
+          </div>
+          <div style="font-size:11px;color:var(--fg);font-weight:600;">${escapeHtml(w.type || '')}</div>
+          ${details ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:1px;">${details}</div>` : ''}
+          ${w.description ? `<div style="font-size:10px;color:var(--fg2);margin-top:4px;line-height:1.4;">${escapeHtml(w.description.slice(0, 120))}${w.description.length > 120 ? '…' : ''}</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+  
+  // Zastąp całe wnętrze modalu podglądem
+  innerCard.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div>
+        <div style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#22c55e;font-family:'DM Mono',monospace;margin-bottom:2px;">✅ Plan gotowy</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.04em;color:var(--fg);">${escapeHtml(plan.title || 'Plan treningowy')}</div>
+      </div>
+      <button onclick="closeCreateTrainingPlanModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
+    </div>
+    
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px;">
+      <div style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:7px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#22c55e;line-height:1;">${totalCount}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-top:2px;">TRENINGÓW</div>
+      </div>
+      <div style="background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.25);border-radius:7px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#e8561e;line-height:1;">${totalKm.toFixed(0)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-top:2px;">KM ŁĄCZNIE</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);line-height:1;">${(plan.plan_type || '').toUpperCase()}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-top:2px;">TYP</div>
+      </div>
+    </div>
+    
+    <div style="max-height:50vh;overflow-y:auto;margin-bottom:12px;padding-right:4px;">
+      ${workoutsHtml || '<div style="text-align:center;color:var(--muted);font-size:11px;padding:20px;">Brak treningów</div>'}
+    </div>
+    
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeCreateTrainingPlanModal()" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);padding:11px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zamknij</button>
+      <button onclick="closeCreateTrainingPlanModal();openViewTrainingPlanModal('${planId}');" style="flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:11px;border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;">Edytuj plan →</button>
+    </div>
+  `;
+}
+window.renderPlanPreviewInCreateModal = renderPlanPreviewInCreateModal;
 
 // ── MODAL: PODGLĄD PLANU ────────────────────────────────────────────
 async function openViewTrainingPlanModal(planId) {
@@ -6183,6 +6366,21 @@ if ('serviceWorker' in navigator) {
         <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Cel czasowy</label>
         <input type="text" id="tp-target-time" placeholder="3:30:00" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;box-sizing:border-box;">
       </div>
+    </div>
+
+    <!-- 📸 Screeny dla AI (Garmin/Strava/sesje treningowe) -->
+    <div style="margin-bottom:12px;">
+      <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:6px;">📸 Doklej screeny do AI <span style="text-transform:none;letter-spacing:0;color:rgba(255,255,255,0.35);">(opcjonalne)</span></label>
+      
+      <!-- Lista wgranych screenów (thumbnails) -->
+      <div id="tp-screens-list" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+      
+      <!-- Button + input -->
+      <label for="tp-screens-input" style="display:flex;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.03);border:1px dashed rgba(255,255,255,0.18);border-radius:7px;padding:10px;cursor:pointer;font-family:'DM Mono',monospace;font-size:10px;color:var(--fg2);letter-spacing:0.05em;transition:all 0.15s;" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='rgba(255,255,255,0.18)';this.style.color='var(--fg2)'">
+        <span style="font-size:13px;">📎</span> Doklej screen (Garmin / Strava / zegarek)
+      </label>
+      <input type="file" id="tp-screens-input" accept="image/*" multiple style="display:none;" onchange="tpHandleScreensUpload(this)">
+      <div id="tp-screens-status" style="display:none;margin-top:6px;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:0.05em;"></div>
     </div>
 
     <!-- Co bierzemy pod uwagę (info box) -->
