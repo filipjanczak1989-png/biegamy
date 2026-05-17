@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-15-chat-fix · czat zawodnika: ukryta nav w widoku czatu + przywrocony viewport fix dla klawiatury -->
+<!-- BiegaMy build: 2026-05-16-upload-debug · dodane szczegolowe logi w saveLog dla diagnozy uploadu screenu -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -5516,6 +5516,8 @@ async function saveLog() {
     ? window._pendingFiles
     : (() => { const fi = document.getElementById('l-file'); return fi.files.length > 0 ? Array.from(fi.files) : []; })();
   
+  console.log('[saveLog] Pliki do uploadu:', filesToUpload.length, '_athleteId:', _athleteId);
+  
   // Najpierw zaczynamy od istniejących URLi (po ewentualnych usunięciach)
   const allUrls = (window._existingAttachments || []).slice();
   
@@ -5526,14 +5528,19 @@ async function saveLog() {
       const file = filesToUpload[i];
       const ext = file.name.split('.').pop();
       const path = _athleteId + '/' + base + '_' + i + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+      console.log('[saveLog] Upload pliku ' + (i+1) + '/' + filesToUpload.length + ':', file.name, '→', path, '(' + Math.round(file.size/1024) + ' KB)');
       const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
       if (!upErr) {
         const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
         allUrls.push(urlData.publicUrl);
+        console.log('[saveLog] ✅ Upload OK:', urlData.publicUrl);
       } else {
+        console.error('[saveLog] ❌ Upload BŁĄD:', upErr);
         toast('Błąd uploadu: ' + upErr.message);
       }
     }
+  } else {
+    console.log('[saveLog] Brak plików do uploadu lub brak _athleteId');
   }
   
   if (allUrls.length) attachmentUrl = allUrls.join(',');
@@ -5542,6 +5549,8 @@ async function saveLog() {
   if (_editingLogId && allUrls.length === 0 && (window._existingAttachments?.length === 0)) {
     attachmentUrl = null; // wyraźne wyczyszczenie
   }
+  
+  console.log('[saveLog] Finalny attachmentUrl:', attachmentUrl);
 
   // Wyznacz datę logu — użyj lokalnej strefy czasowej
   const now = new Date();
