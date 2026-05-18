@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-18-push-prompt-v2 · trigger po 1 logu zamiast 24h delay, mocniejszy banner, reset cooldownu (v2) -->
+<!-- BiegaMy build: 2026-05-16-upload-debug · dodane szczegolowe logi w saveLog dla diagnozy uploadu screenu -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -3918,85 +3918,12 @@ async function saveCoachChange() {
 
 // Global image pool — add run16.webp etc. here as you upload them
 const _runImgs = (function() {
-  const imgs = [
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run31.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run32.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run33.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run34.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run35.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run36.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run37.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run38.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run39.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run40.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run41.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run42.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run43.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run44.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run45.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run46.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run47.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run48.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run49.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run50.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run51.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run52.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run53.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run54.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run55.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run56.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run57.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run58.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run59.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run60.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run61.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run62.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run63.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run64.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run65.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run66.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run67.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run68.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run69.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run70.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run71.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run72.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run73.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run74.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run75.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run76.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run77.webp'
-  ];
+  // Pula obrazków run1.webp ... run77.webp w bucketcie biegamy-assets
+  const imgs = [];
+  for (let i = 1; i <= 77; i++) {
+    imgs.push(assetUrl('run' + i + '.webp'));
+  }
+  // Shuffle (Fisher-Yates) — każde załadowanie strony daje inny porządek
   for (let i = imgs.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [imgs[i], imgs[j]] = [imgs[j], imgs[i]];
@@ -4933,18 +4860,17 @@ async function loadWeekPlan() {
 
   const typeColors = {Spokojny:'#5090e0',Interwały:'#e8b840',Tempo:'#d4501a',Wybieganie:'#9a6fe8',Regeneracja:'#3db870',Odpoczynek:'#44424a',Start:'#3db870'};
   const typeBgMap={
-    'Tempo':        {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',      p:'center 30%'},
-    'Interwały':    {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg',      p:'center 30%'},
-    'Spokojny':     {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg', p:'center 15%'},
-    'Bieg spokojny':{u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg', p:'center 15%'},
-    'Wybieganie':   {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s3.jpg',           p:'center 15%'},
-    'Regeneracja':  {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',p:'center 20%'},
-    'Odpoczynek':   {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg',p:'center 20%'},
-    'Start':        {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg',     p:'center 30%'},
-    'Wzmacniający': {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s1.jpg',           p:'center 35%'},
-    'Zastępczy':    {u:'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/ob-s4.jpg',           p:'center 15%'},
+    'Tempo':        {u:assetUrl('card-tempo.jpg'),      p:'center 30%'},
+    'Interwały':    {u:assetUrl('card-tempo.jpg'),      p:'center 30%'},
+    'Spokojny':     {u:assetUrl('card-wybieganie.jpg'), p:'center 15%'},
+    'Bieg spokojny':{u:assetUrl('card-wybieganie.jpg'), p:'center 15%'},
+    'Wybieganie':   {u:assetUrl('ob-s3.jpg'),           p:'center 15%'},
+    'Regeneracja':  {u:assetUrl('card-regeneracja.jpg'),p:'center 20%'},
+    'Odpoczynek':   {u:assetUrl('card-regeneracja.jpg'),p:'center 20%'},
+    'Start':        {u:assetUrl('card-wyscig.jpg'),     p:'center 30%'},
+    'Wzmacniający': {u:assetUrl('ob-s1.jpg'),           p:'center 35%'},
+    'Zastępczy':    {u:assetUrl('ob-s4.jpg'),           p:'center 15%'},
   };
-  const _allDayImgs=['https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-tempo.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wybieganie.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-regeneracja.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/card-wyscig.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/home-social.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-1b.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3a.jpg','https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/banner-3b.jpg'];
   function _dayImgFor(type,i){
     if(typeBgMap[type]) return typeBgMap[type];
     return _runImgs[i%_runImgs.length];
@@ -5052,7 +4978,7 @@ async function loadLogs() {
     await loadCoachMessage();
     await loadTodayTraining();
     loadPendingDuelsBanner(); // banner pending/active duels w "Dziś"
-    maybeShowPushPrompt(); // banner push (po 1. zalogowanym treningu, klucz dismiss v2)
+    maybeShowPushPrompt(); // banner push (po 24h od first seen)
     await loadWeekPlan();
     loadNutritionWidget(); // widget kcal dziś
     loadHomeSocialPreview();
@@ -6048,40 +5974,41 @@ window.toggleEmailReports = toggleEmailReports;
 
 // ─── AUTO-PROMPT PUSH NOTIFICATIONS ──────────────────────────────────
 // Pokazuje banner "Włącz powiadomienia" w "Dziś" jeśli user:
-// - zapisał co najmniej 1 trening (najlepszy moment psychologicznie — moment największej motywacji)
+// - używa apki min. 24h
 // - nie ma jeszcze subskrypcji
-// - nie odrzucił banneru w ostatnich 30 dniach (klucz v2 — reset dla obecnych aktywnych po wdrożeniu polerki)
+// - nie odrzucił banneru w ostatnich 30 dniach
 // - nie zablokował powiadomień w przeglądarce
 
 async function maybeShowPushPrompt() {
   if (!_athleteId) return;
   if (!window.isPushSupported || !window.isPushSupported()) return;
-
+  
   const perm = window.getPushPermission();
   // Nie pokazuj jeśli odmówił w przeglądarce
   if (perm === 'denied') return;
   // Nie pokazuj jeśli już subscrybowany
   if (await window.isPushSubscribed()) return;
-
-  // NOWY trigger: pokaż dopiero gdy user zalogował co najmniej 1 trening
-  // (po 1. logu = moment największej motywacji + filtruje "ciekawskich" którzy nigdy nie zalogują)
-  try {
-    const { count, error } = await sb.from('training_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('athlete_id', _athleteId);
-    if (error) { console.warn('[pushPrompt] log count error:', error); return; }
-    if (!count || count < 1) return;
-  } catch (e) {
-    console.warn('[pushPrompt] log count exception:', e);
+  
+  // Sprawdź "first seen" timestamp
+  const firstSeenKey = 'biegamy_first_seen';
+  const dismissedKey = 'biegamy_push_prompt_dismissed';
+  
+  let firstSeen = parseInt(localStorage.getItem(firstSeenKey) || '0');
+  if (!firstSeen) {
+    // Pierwsza wizyta — zapisz timestamp, nie pokazuj jeszcze
+    localStorage.setItem(firstSeenKey, Date.now().toString());
     return;
   }
-
-  // Sprawdź czy nie odrzucił w ostatnich 30 dniach (klucz v2 — reset po wdrożeniu polerki 18.05)
-  const dismissedKey = 'biegamy_push_prompt_dismissed_v2';
+  
+  // Czekamy 24h od pierwszej wizyty
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  if (Date.now() - firstSeen < ONE_DAY) return;
+  
+  // Sprawdź czy nie odrzucił w ostatnich 30 dniach
   const dismissedAt = parseInt(localStorage.getItem(dismissedKey) || '0');
   const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
   if (dismissedAt && (Date.now() - dismissedAt < THIRTY_DAYS)) return;
-
+  
   // Pokaż banner
   showPushPrompt();
 }
@@ -6089,19 +6016,12 @@ async function maybeShowPushPrompt() {
 function showPushPrompt() {
   const target = document.getElementById('push-prompt-banner');
   if (!target) return;
-  // Dodaj @keyframes raz (jednorazowo, jeśli nie istnieje)
-  if (!document.getElementById('push-prompt-styles')) {
-    const st = document.createElement('style');
-    st.id = 'push-prompt-styles';
-    st.textContent = '@keyframes bellNudge{0%,60%,100%{transform:rotate(0);}10%,30%{transform:rotate(-12deg);}20%{transform:rotate(12deg);}}';
-    document.head.appendChild(st);
-  }
-  target.innerHTML = '<div style="background:linear-gradient(135deg,rgba(232,86,30,0.32),rgba(255,122,69,0.14));border:1.5px solid rgba(232,86,30,0.65);border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(232,86,30,0.18);">'
+  target.innerHTML = '<div style="background:linear-gradient(135deg,rgba(232,86,30,0.18),rgba(255,122,69,0.08));border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;">'
     + '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;">'
-      + '<div style="font-size:26px;flex-shrink:0;animation:bellNudge 2.2s ease-in-out 1s infinite;transform-origin:50% 20%;">🔔</div>'
+      + '<div style="font-size:24px;flex-shrink:0;">🔔</div>'
       + '<div style="flex:1;min-width:0;">'
-        + '<div style="font-size:13px;font-weight:700;color:var(--fg);letter-spacing:0.01em;">Włącz powiadomienia</div>'
-        + '<div style="font-size:11px;color:var(--fg2);margin-top:3px;line-height:1.5;">Nie przegap wiadomości od trenera, komentarzy i wyzwań.</div>'
+        + '<div style="font-size:13px;font-weight:600;color:var(--fg);">Włącz powiadomienia</div>'
+        + '<div style="font-size:11px;color:var(--fg2);margin-top:3px;line-height:1.5;">Bądź na bieżąco z wiadomościami od trenera, komentarzami i wyzwaniami.</div>'
       + '</div>'
     + '</div>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'
@@ -6125,7 +6045,7 @@ async function acceptPushPrompt() {
 }
 
 function dismissPushPrompt() {
-  localStorage.setItem('biegamy_push_prompt_dismissed_v2', Date.now().toString());
+  localStorage.setItem('biegamy_push_prompt_dismissed', Date.now().toString());
   hidePushPrompt();
 }
 
