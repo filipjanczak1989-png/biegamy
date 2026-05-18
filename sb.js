@@ -9,6 +9,7 @@
 // Eksponuje globalnie:
 //   window.SB_URL, SB_KEY, SB_FN_URL — config
 //   window.sb — klient Supabase
+//   window.assetUrl(path) — URL do publicznego pliku w biegamy-assets
 //   window.VAPID_PUBLIC_KEY — public key (NIE secret, OK w przeglądarce)
 //   window.isPushSupported() / getPushPermission() / isPushSubscribed()
 //   window.subscribeToPush(athleteId) / window.unsubscribeFromPush()
@@ -20,6 +21,17 @@
   window.SB_URL = 'https://afqojgkaveykxbltxzwm.supabase.co';
   window.SB_KEY = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';
   window.SB_FN_URL = window.SB_URL + '/functions/v1';
+
+  // ─── ASSET URL HELPER ───────────────────────────────────────────────
+  // Buduje URL do publicznego zasobu w bucketcie biegamy-assets.
+  // Użycie: assetUrl('banner1.webp') → https://[supabase]/storage/v1/object/public/biegamy-assets/banner1.webp
+  // Dzięki temu zmiana projektu/klucza Supabase = zmiana TYLKO window.SB_URL powyżej.
+  window.assetUrl = function(path) {
+    if (!path) return '';
+    // Obetnij wiodący slash, gdyby ktoś go dodał
+    const clean = String(path).replace(/^\/+/, '');
+    return window.SB_URL + '/storage/v1/object/public/biegamy-assets/' + clean;
+  };
 
   // ⚠️ ZAMIEŃ NA SWÓJ VAPID PUBLIC KEY
   // To NIE jest secret — może być publicznie widoczne.
