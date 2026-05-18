@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- BiegaMy build: 2026-05-14-wieczor-3m · profil: bypass prywatnosci dla trenera zawodnika -->
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -17,6 +16,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
 <link rel="shortcut icon" href="favicon.ico">
 <title>Profil Biegacza · BiegaMy</title>
+<!-- build: 2026-05-18-coach-picker -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -320,6 +320,22 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
   <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;">Odblokowuje odznakę <strong style="color:var(--accent);">urodzinowy_run</strong> 🎉</div>
 </div>
 
+<!-- TRENER - tylko własny profil -->
+<div class="section" id="coach-section" style="display:none;">
+  <div class="section-hdr">
+    <div class="section-title">Tre<span>ner</span></div>
+  </div>
+  <div onclick="openCoachPicker()" id="coach-card" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div id="coach-icon" style="font-size:22px;flex-shrink:0;">🏃</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;">Twój trener</div>
+      <div style="font-size:14px;font-weight:600;" id="coach-value">—</div>
+    </div>
+    <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;flex-shrink:0;">✎ zmień</div>
+  </div>
+  <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;line-height:1.5;">Zmiana trenera nie usuwa Twoich treningów ani celów.</div>
+</div>
+
 <!-- CELE / STARTY -->
 <div class="section" id="goals-section">
   <div class="section-hdr">
@@ -491,15 +507,10 @@ let _profileData = null;
   // Sprawdź prywatność cudzego profilu przed załadowaniem
   if (!_isOwnProfile) {
     const { data: privCheck } = await sb.from('athletes')
-      .select('is_public,full_name,coach_id')
+      .select('is_public,full_name')
       .eq('id', _targetId)
       .maybeSingle();
-
-    // ✨ Bypass prywatności dla trenera tego zawodnika
-    // Jeśli zalogowany user (auth.uid) jest coach_id zawodnika — pełen dostęp niezależnie od is_public
-    const isCoachOfTarget = _isCoach && privCheck?.coach_id === session.user.id;
-
-    if (privCheck && !privCheck.is_public && !isCoachOfTarget) {
+    if (privCheck && !privCheck.is_public) {
       const initials = (privCheck.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       document.getElementById('profile-name').textContent = privCheck.full_name || 'Biegacz';
       document.getElementById('av-initials').textContent = initials;
@@ -516,11 +527,6 @@ let _profileData = null;
       await loadFriendStatus();
       renderActionBtns();
       return;
-    }
-
-    // Coach-of-target — dodaj subtelny info, że to dostęp trenerski (nie public)
-    if (isCoachOfTarget && !privCheck.is_public) {
-      console.log('[profil] Trener-swojego-zawodnika bypass dla:', privCheck.full_name);
     }
   }
 
@@ -539,7 +545,7 @@ let _profileData = null;
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
   const { data: ath } = await sb.from('athletes')
-    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth')
+    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth,coach_id')
     .eq('id', _targetId)
     .maybeSingle();
   if (!ath) return;
@@ -547,6 +553,9 @@ async function loadProfile() {
 
   // Data urodzenia (tylko własny profil)
   renderDOB(ath);
+
+  // Trener (tylko własny profil)
+  renderCoach(ath);
 
   // Imię
   const name = ath.full_name || 'Biegacz';
@@ -633,6 +642,132 @@ function renderDOB(ath) {
   } else {
     valEl.textContent = '+ Dodaj datę urodzenia';
     valEl.style.color = 'var(--accent)';
+  }
+}
+
+// ── TRENER ───────────────────────────────────────────────────────
+// Lista dostępnych trenerów (hardcoded — przy 3-cim trenerze dopisać tutaj + opcję w modalu)
+const COACHES = {
+  'bd9cbbac-c98d-4ac7-8610-9daf754b2de5': { name: 'Filip Jańczak', icon: '🧡' },
+  '33dfd590-603e-4957-99f1-c9a3ff9a7360': { name: 'Katarzyna Chojnacka', icon: '🤍' }
+};
+
+function renderCoach(ath) {
+  const sec = document.getElementById('coach-section');
+  if (!sec) return;
+  if (!_isOwnProfile) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const valEl = document.getElementById('coach-value');
+  const iconEl = document.getElementById('coach-icon');
+  if (!valEl || !iconEl) return;
+
+  if (ath?.coach_id && COACHES[ath.coach_id]) {
+    const c = COACHES[ath.coach_id];
+    valEl.textContent = c.name;
+    valEl.style.color = 'var(--fg)';
+    iconEl.textContent = c.icon;
+  } else if (ath?.coach_id) {
+    // Coach_id istnieje, ale nieznany w hardcoded liście — fallback
+    valEl.textContent = 'Trener (nieznany)';
+    valEl.style.color = 'var(--fg)';
+    iconEl.textContent = '🏃';
+  } else {
+    valEl.textContent = '+ Wybierz trenera';
+    valEl.style.color = 'var(--accent)';
+    iconEl.textContent = '🏃';
+  }
+}
+
+function openCoachPicker() {
+  if (!_myId || !_isOwnProfile) return;
+  const currentId = _profileData?.coach_id || null;
+
+  // Buduj opcje
+  let optionsHtml = '';
+  Object.keys(COACHES).forEach(function(uid){
+    const c = COACHES[uid];
+    const isCurrent = (uid === currentId);
+    const borderColor = isCurrent ? 'var(--accent)' : 'var(--border)';
+    const bgColor = isCurrent ? 'rgba(232,86,30,0.08)' : 'var(--card)';
+    const checkMark = isCurrent ? '<div style="font-size:18px;color:var(--accent);flex-shrink:0;">✓</div>' : '';
+    optionsHtml +=
+      '<div onclick="selectCoach(\'' + uid + '\')" style="background:' + bgColor + ';border:1px solid ' + borderColor + ';border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'' + borderColor + '\'">' +
+        '<div style="font-size:22px;flex-shrink:0;">' + c.icon + '</div>' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:14px;font-weight:600;color:var(--fg);">' + escHtml(c.name) + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">trener BiegaMy</div>' +
+        '</div>' +
+        checkMark +
+      '</div>';
+  });
+
+  // Opcja "bez trenera"
+  const noneIsCurrent = !currentId;
+  const noneBorder = noneIsCurrent ? 'var(--accent)' : 'var(--border)';
+  const noneBg = noneIsCurrent ? 'rgba(232,86,30,0.08)' : 'var(--card)';
+  const noneCheck = noneIsCurrent ? '<div style="font-size:18px;color:var(--accent);flex-shrink:0;">✓</div>' : '';
+  optionsHtml +=
+    '<div onclick="selectCoach(null)" style="background:' + noneBg + ';border:1px solid ' + noneBorder + ';border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'' + noneBorder + '\'">' +
+      '<div style="font-size:22px;flex-shrink:0;">🏃</div>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:14px;font-weight:600;color:var(--fg);">Bez trenera</div>' +
+        '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">biegam samodzielnie</div>' +
+      '</div>' +
+      noneCheck +
+    '</div>';
+
+  // Modal (prosty overlay, taki sam pattern jak inne modale)
+  const overlay = document.createElement('div');
+  overlay.id = 'coach-picker-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:1000;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s;';
+  overlay.onclick = function(e){ if(e.target === overlay) closeCoachPicker(); };
+  overlay.innerHTML =
+    '<div style="background:var(--bg);border-top:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:80vh;overflow-y:auto;padding:20px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">' +
+        '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;letter-spacing:0.03em;">Wybierz <span style="color:var(--accent);">trenera</span></div>' +
+        '<button onclick="closeCoachPicker()" style="background:none;border:none;color:var(--muted);font-size:24px;cursor:pointer;padding:0 6px;line-height:1;">×</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;">Swój wybór możesz zmienić w każdej chwili. Treningi i cele zostają niezależnie od trenera.</div>' +
+      optionsHtml +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function closeCoachPicker() {
+  const o = document.getElementById('coach-picker-overlay');
+  if (o) o.remove();
+}
+
+async function selectCoach(newCoachId) {
+  if (!_myId) return;
+  const currentId = _profileData?.coach_id || null;
+  if (newCoachId === currentId) { closeCoachPicker(); return; }
+
+  // Potwierdzenie tylko przy ZMIANIE z trenera na innego/brak (nie przy pierwszym wyborze z null→trener)
+  if (currentId) {
+    const fromName = COACHES[currentId]?.name || 'obecnego trenera';
+    const toName = newCoachId ? (COACHES[newCoachId]?.name || 'nowego trenera') : 'biegania bez trenera';
+    if (!confirm('Zmienić z "' + fromName + '" na "' + toName + '"?')) return;
+  }
+
+  const { error } = await sb.from('athletes')
+    .update({ coach_id: newCoachId })
+    .eq('id', _myId);
+
+  if (error) {
+    showToast('Błąd: ' + error.message);
+    return;
+  }
+
+  if (_profileData) _profileData.coach_id = newCoachId;
+  closeCoachPicker();
+  renderCoach(_profileData);
+
+  if (newCoachId) {
+    showToast('Trener przypisany ✓');
+  } else {
+    showToast('Biegasz teraz samodzielnie ✓');
   }
 }
 
