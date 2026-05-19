@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <!-- BiegaMy build: 2026-05-15-prefill · modal log dopisany opis trenera w komentarzu (placeholder) -->
 <html lang="pl">
 <head>
@@ -856,7 +856,7 @@ html { scroll-behavior: smooth; }
       <div id="nav-goals-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
     <button onclick="openGoalModal()" style="background:transparent;border:1px dashed rgba(255,255,255,0.1);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;border-radius:8px;display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.borderColor='rgba(232,86,30,0.4)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> + Cel</button>
     </div>
-    <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Nowy trening</button>
+    <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Nowy trening</button>
     <button class="btn btn-ghost" id="btn-templates" onclick="openTemplatesModal()" style="display:none;">Szablony</button>
     <button class="btn btn-ghost" id="btn-copy-week" onclick="openCopyWeekModal()" style="display:none;">📋 Kopiuj tydzień</button>
     <button class="btn btn-ghost" id="btn-week-template" onclick="openWeekTemplateModal()" style="display:none;">Tydzień</button>
@@ -1050,7 +1050,7 @@ html { scroll-behavior: smooth; }
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
-      <button class="btn btn-primary" onclick="saveTraining()"><img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Zapisz trening</button>
+      <button class="btn btn-primary" onclick="saveTraining()"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Zapisz trening</button>
     </div>
   </div>
 </div>
@@ -1324,7 +1324,7 @@ function getDayMealCount(ds) {
 // FOOD IMAGES — pula 55 grafik (z nutrition.html)
 // ════════════════════════════════════════════════════════════
 const FOOD_IMG_COUNT = 55;
-const FOOD_IMG_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const FOOD_IMG_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 
 // Deterministyczna grafika z seeda (np. data → ten sam obraz dla danego dnia)
 function getFoodImageFromSeed(seed) {
@@ -3900,7 +3900,7 @@ loadTrainingsFromDB().then(() => setView(_calView));
   </a>
   <a id="bnav-log" class="nav-it">
     <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;margin-top:-16px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <span class="nav-lbl" style="margin-top:2px;">Log</span>
   </a>
@@ -3960,7 +3960,7 @@ if (_isCoach) {
 // ══════════════════════════════════════════════════════
 // TILES VIEW — miesięczny widok kafelkowy
 // ══════════════════════════════════════════════════════
-const HERO_BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const HERO_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 
 // Zakresy per sezon
 const HERO_SEASONS = {
@@ -4887,7 +4887,7 @@ document.addEventListener('keydown', e => {
 </style>
 <script>
 const PRS = (() => {
-  const BASE = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/prs/';
+  const BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/prs/';
   const FINAL = BASE + 'prs_final.webp';
   const SETS = ['set1','set2','set3','set4','set5','set6','set7','set8'];
   const SLIDE_TYPES = ['dystans','tempo','czas'];

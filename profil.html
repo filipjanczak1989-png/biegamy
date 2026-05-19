@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pl">
 <head>
 <meta charset="UTF-8">
@@ -215,16 +215,16 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     <!-- Kafelki po prawej -->
     <div class="p-tiles-right">
       <button class="p-tile-btn" onclick="_tileWyzwania()" title="Wyzwania">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="_tileCzat()" title="Czat">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="_tileOdznaki()" title="Odznaki">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="_tileRaces()" title="Starty">
-        <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
     </div>
   </div>
@@ -1084,83 +1084,83 @@ async function uploadAvatar(input) {
 // Global image pool — add run16.webp etc. here as you upload them
 const _runImgs = (function() {
   const imgs = [
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run1.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run2.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run3.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run4.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run5.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run6.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run7.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run8.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run9.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run10.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run11.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run12.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run13.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run14.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run15.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run16.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run17.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run18.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run19.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run20.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run21.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run22.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run23.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run24.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run25.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run26.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run27.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run28.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run29.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run30.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run31.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run32.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run33.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run34.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run35.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run36.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run37.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run38.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run39.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run40.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run41.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run42.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run43.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run44.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run45.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run46.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run47.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run48.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run49.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run50.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run51.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run52.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run53.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run54.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run55.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run56.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run57.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run58.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run59.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run60.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run61.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run62.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run63.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run64.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run65.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run66.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run67.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run68.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run69.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run70.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run71.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run72.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run73.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run74.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run75.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run76.webp',
-    'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/run77.webp'
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run1.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run2.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run3.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run4.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run5.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run6.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run7.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run8.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run9.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run10.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run11.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run12.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run13.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run14.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run15.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run16.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run17.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run18.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run19.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run20.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run21.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run22.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run23.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run24.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run25.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run26.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run27.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run28.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run29.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run30.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run31.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run32.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run33.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run34.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run35.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run36.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run37.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run38.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run39.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run40.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run41.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run42.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run43.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run44.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run45.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run46.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run47.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run48.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run49.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run50.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run51.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run52.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run53.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run54.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run55.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run56.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run57.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run58.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run59.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run60.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run61.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run62.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run63.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run64.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run65.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run66.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run67.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run68.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run69.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run70.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run71.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run72.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run73.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run74.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run75.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run76.webp',
+    'https://filipjanczak1989-png.github.io/biegamy-assets/run77.webp'
   ];
   for (let i = imgs.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -1882,7 +1882,7 @@ async function quickFollow(targetId, btn, isFollowing) {
 }
 
 // ── HERO SLIDESHOW ───────────────────────────────────────────────
-const BASE_ASSETS = 'https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/';
+const BASE_ASSETS = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 const _pHeroSets = [
   ['aa1','aa2','aa3','aa4','aa5'],
   ['ab1','ab2','ab3','ab4','ab5'],
@@ -2626,7 +2626,7 @@ function goToStats(){ if(_targetId) location.href='statystyki.html?id='+_targetI
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
     <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;margin-top:2px;">Log</span>
   </a>
@@ -2697,7 +2697,7 @@ function goToStats(){ if(_targetId) location.href='statystyki.html?id='+_targetI
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
     <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://afqojgkaveykxbltxzwm.supabase.co/storage/v1/object/public/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;margin-top:2px;">Log</span>
   </a>

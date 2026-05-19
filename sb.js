@@ -1,4 +1,4 @@
-// ════════════════════════════════════════════════════════════════════
+﻿// ════════════════════════════════════════════════════════════════════
 // BiegaMy — Supabase client + Push helpers (single source of truth)
 // ════════════════════════════════════════════════════════════════════
 // Załączany w <head> KAŻDEJ strony PO supabase-js CDN:
@@ -30,7 +30,7 @@
     if (!path) return '';
     // Obetnij wiodący slash, gdyby ktoś go dodał
     const clean = String(path).replace(/^\/+/, '');
-    return window.SB_URL + '/storage/v1/object/public/biegamy-assets/' + clean;
+    return 'https://filipjanczak1989-png.github.io/biegamy-assets/' + clean;
   };
 
   // ⚠️ ZAMIEŃ NA SWÓJ VAPID PUBLIC KEY
