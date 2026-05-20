@@ -6551,12 +6551,14 @@ async function _loadComments(logId) {
       const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
       const own=cm.athlete_id===_athleteId;
       const t=new Date(cm.created_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-      const avInner=av?'<img src="'+av+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+ini+'\'">':ini;
+      const nmSafe=escapeHtml(nm);
+      const iniSafe=escapeHtml(ini);
+      const avInner=av?'<img src="'+escapeHtml(av)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentElement.textContent=\''+iniSafe+'\'">':iniSafe;
       const avClick=own?'':' onclick="location.href=\'profil.html?id='+cm.athlete_id+'\'" ';
       return '<div style="display:flex;gap:10px;margin-bottom:12px;">'
         +'<div'+avClick+' style="width:32px;height:32px;border-radius:50%;background:'+(own?'var(--accent)':'rgba(255,255,255,0.08)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;'+(own?'':'cursor:pointer;')+'">'+avInner+'</div>'
         +'<div style="flex:1;background:var(--card2);border-radius:10px;padding:8px 12px;">'
-        +'<div'+avClick+' style="font-size:12px;font-weight:600;margin-bottom:2px;'+(own?'':'cursor:pointer;')+'">'+nm+'</div>'
+        +'<div'+avClick+' style="font-size:12px;font-weight:600;margin-bottom:2px;'+(own?'':'cursor:pointer;')+'">'+nmSafe+'</div>'
         +'<div style="font-size:13px;line-height:1.5;">'+renderMessageBody(cm.body)+'</div>'
         +'<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">'+t+'</div>'
         +'</div>'
@@ -6568,7 +6570,7 @@ async function _loadComments(logId) {
     if(e.message&&e.message.includes('does not exist')){
       el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Brak tabeli log_comments w Supabase</div>';
     } else {
-      el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Błąd: '+e.message+'</div>';
+      el.innerHTML='<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center;">Błąd: '+escapeHtml(e.message)+'</div>';
     }
   }
 }
