@@ -3255,13 +3255,18 @@ async function searchCoachGif(q) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Szukam...</div>';
   try {
-    const r = await fetch('https://api.giphy.com/v1/gifs/search?api_key=sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh&q='+encodeURIComponent(q)+'&limit=12&rating=g');
+    const { data: { session } } = await window.sb.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Musisz być zalogowany</div>'; return; }
+    const r = await fetch('https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/gif-search?q='+encodeURIComponent(q)+'&limit=12', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     const d = await r.json();
-    grid.innerHTML = (d.data||[]).map(g => {
-      const url = g.images.fixed_height_small.url;
-      return `<img src="${url}" style="width:100%;border-radius:6px;cursor:pointer;aspect-ratio:1;object-fit:cover;" onclick="selectCoachGif('${url}')" onerror="this.style.display='none'">`;
+    grid.innerHTML = (d.results||[]).map(g => {
+      const url = g.preview || g.url || '';
+      return `<img src="${url}" style="width:100%;border-radius:6px;cursor:pointer;aspect-ratio:1;object-fit:cover;" onclick="selectCoachGif('${g.url||url}')" onerror="this.style.display='none'">`;
     }).join('');
-    if (!d.data?.length) grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Brak wyników</div>';
+    if (!d.results?.length) grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Błąd ładowania</div>'; }
 }
 function selectCoachGif(url) {
@@ -4706,13 +4711,17 @@ async function searchGifsCoach(q) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=12&media_filter=tinygif,gif`);
+    const { data: { session } } = await window.sb.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Musisz być zalogowany</div>'; return; }
+    const r = await fetch(`https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/gif-search?q=${encodeURIComponent(q||'running')}&limit=12`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
-      const media = g.media?.[0] || {};
-      const sm = media.tinygif?.url || media.nanogif?.url || media.gif?.url || '';
-      const lg = media.gif?.url || media.tinygif?.url || sm;
-      return `<img class="gif-item" src="${sm}" onclick="sendCoachGif('${lg}')" alt="${g.content_description||'gif'}">`;
+      const sm = g.preview || g.url || '';
+      const lg = g.url || g.preview || sm;
+      return `<img class="gif-item" src="${sm}" onclick="sendCoachGif('${lg}')" alt="${g.alt||'gif'}">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd</div>'; }
 }

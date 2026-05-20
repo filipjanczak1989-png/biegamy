@@ -6513,12 +6513,16 @@ async function cmSearchGifs(q) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=8&media_filter=tinygif,gif`);
+    const { data: { session } } = await window.sb.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Musisz być zalogowany</div>'; return; }
+    const r = await fetch(`https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/gif-search?q=${encodeURIComponent(q||'running')}&limit=8`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
-      const media = g.media?.[0] || {};
-      const sm = media.tinygif?.url || media.nanogif?.url || media.gif?.url || '';
-      const lg = media.gif?.url || media.tinygif?.url || sm;
+      const sm = g.preview || g.url || '';
+      const lg = g.url || g.preview || sm;
       return `<img src="${sm}" onclick="sendCommentGif('${lg}')" alt="" style="width:100%;border-radius:8px;cursor:pointer;aspect-ratio:16/9;object-fit:cover;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) {
@@ -8300,13 +8304,17 @@ async function searchGifs(q, pickerId) {
   if (!grid) return;
   grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;font-family:DM Mono,monospace;">Szukam...</div>';
   try {
-    const r = await fetch(`https://g.tenor.com/v1/search?q=${encodeURIComponent(q||'running')}&key=LIVDSRZULELA&limit=12&media_filter=tinygif,gif`);
+    const { data: { session } } = await window.sb.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Musisz być zalogowany</div>'; return; }
+    const r = await fetch(`https://afqojgkaveykxbltxzwm.supabase.co/functions/v1/gif-search?q=${encodeURIComponent(q||'running')}&limit=12`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
-      const media = g.media?.[0] || {};
-      const sm = media.tinygif?.url || media.nanogif?.url || media.gif?.url || '';
-      const lg = media.gif?.url || media.tinygif?.url || sm;
-      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.content_description||'gif'}">`;
+      const sm = g.preview || g.url || '';
+      const lg = g.url || g.preview || sm;
+      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.alt||'gif'}">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>'; }
 }
