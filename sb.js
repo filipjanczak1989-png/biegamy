@@ -1,4 +1,4 @@
-﻿// ════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════
 // BiegaMy — Supabase client + Push helpers (single source of truth)
 // ════════════════════════════════════════════════════════════════════
 // Załączany w <head> KAŻDEJ strony PO supabase-js CDN:
@@ -13,6 +13,10 @@
 //   window.VAPID_PUBLIC_KEY — public key (NIE secret, OK w przeglądarce)
 //   window.isPushSupported() / getPushPermission() / isPushSubscribed()
 //   window.subscribeToPush(athleteId) / window.unsubscribeFromPush()
+//   window.escapeHtml(s) — anti-XSS escape
+//   window.renderMessageBody(rawBody) — bezpieczny render wiadomości czatu
+//   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
+//   window.showToast(msg, type) — toast UI zamiast alert()
 // ════════════════════════════════════════════════════════════════════
 
 (function() {
@@ -23,20 +27,16 @@
   window.SB_FN_URL = window.SB_URL + '/functions/v1';
 
   // ─── ASSET URL HELPER ───────────────────────────────────────────────
-  // Buduje URL do publicznego zasobu w bucketcie biegamy-assets.
-  // Użycie: assetUrl('banner1.webp') → https://[supabase]/storage/v1/object/public/biegamy-assets/banner1.webp
-  // Dzięki temu zmiana projektu/klucza Supabase = zmiana TYLKO window.SB_URL powyżej.
+  // Buduje URL do publicznego zasobu w bucketcie biegamy-assets (GitHub Pages).
+  // Użycie: assetUrl('banner1.webp') → https://filipjanczak1989-png.github.io/biegamy-assets/banner1.webp
   window.assetUrl = function(path) {
     if (!path) return '';
-    // Obetnij wiodący slash, gdyby ktoś go dodał
     const clean = String(path).replace(/^\/+/, '');
     return 'https://filipjanczak1989-png.github.io/biegamy-assets/' + clean;
   };
 
-  // ⚠️ ZAMIEŃ NA SWÓJ VAPID PUBLIC KEY
+  // ⚠️ VAPID PUBLIC KEY
   // To NIE jest secret — może być publicznie widoczne.
-  // Wygeneruj na https://vapidkeys.com/
-  // Public key wkleisz tutaj, Private key dodasz do Supabase Edge Functions Secrets.
   window.VAPID_PUBLIC_KEY = 'BATC1Y7rglazNCcKQXV1bqaNA_SnxC3003c5_eSKDBaUykhbZSUevTQDL-KMyVDs55oNBJogJkx4g_5irwUObTk';
 
   // Klient Supabase (tylko jeśli SDK jest załadowane)
@@ -82,7 +82,6 @@
   };
 
   // SUBSCRIBE — pyta o pozwolenie i zapisuje endpoint do bazy
-  // Zwraca: { ok: true } | { ok: false, error: '...' }
   window.subscribeToPush = async function(athleteId) {
     if (!window.isPushSupported()) {
       return { ok: false, error: 'Twoja przeglądarka nie wspiera powiadomień' };
@@ -95,13 +94,11 @@
     }
 
     try {
-      // Zapytaj o pozwolenie
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
         return { ok: false, error: 'Pozwolenie odrzucone przez użytkownika' };
       }
 
-      // Subscribe przez SW
       const reg = await navigator.serviceWorker.ready;
       const existing = await reg.pushManager.getSubscription();
 
@@ -115,7 +112,6 @@
         });
       }
 
-      // Zapisz do bazy
       const subJson = sub.toJSON();
       const { error } = await window.sb.from('push_subscriptions').upsert({
         athlete_id: athleteId,
@@ -145,7 +141,6 @@
       if (sub) {
         const endpoint = sub.endpoint;
         await sub.unsubscribe();
-        // Usuń z bazy
         await window.sb.from('push_subscriptions').delete().eq('endpoint', endpoint);
       }
       return { ok: true };
@@ -165,6 +160,53 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  };
+
+  // ─── MESSAGE RENDERING (czat: tekst + obrazki + voice + GIF) ────────
+  // Bezpiecznie renderuje treść wiadomości z czata.
+  // Obsługuje: obrazki (stary i nowy format), voice messages, cofnięte wiadomości.
+  // Pozostały tekst escapowany (anti-XSS).
+  // Whitelist hostów media: Supabase, Tenor, GitHub Pages.
+  function _isSafeMediaUrl(url) {
+    return url.startsWith('https://media.tenor.com/')
+        || url.startsWith('https://media1.tenor.com/')
+        || url.startsWith('https://afqojgkaveykxbltxzwm.supabase.co/')
+        || url.startsWith('https://filipjanczak1989-png.github.io/');
+  }
+  function _renderImgTag(url) {
+    const safe = window.escapeHtml(url);
+    return '<img src="' + safe + '" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open(\'' + safe + '\',\'_blank\')" />';
+  }
+  window.renderMessageBody = function(rawBody) {
+    if (!rawBody) return '';
+    const body = String(rawBody);
+
+    // 1. Wiadomość cofnięta (zaufana - zapisana przez aplikację)
+    if (body.startsWith('<span class="msg-recall">') && body.endsWith('</span>')) {
+      return body;
+    }
+    // 2. Voice message (zaufana - zapisana przez aplikację)
+    if (body.startsWith('<div class="voice-msg">')) {
+      return body;
+    }
+    // 3. Stary format: [zdjęcie] <a href="URL">tekst</a>
+    const oldImg = body.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
+    if (oldImg) {
+      const url = oldImg[1];
+      const before = window.escapeHtml(body.slice(0, oldImg.index));
+      const after = window.escapeHtml(body.slice(oldImg.index + oldImg[0].length));
+      return before + (_isSafeMediaUrl(url) ? _renderImgTag(url) : '[zdjęcie: ' + window.escapeHtml(url) + ']') + after;
+    }
+    // 4. Nowy format: <img src="URL" ...>
+    const newImg = body.match(/<img\s+src="([^"]+)"[^>]*\/?>/);
+    if (newImg) {
+      const url = newImg[1];
+      const before = window.escapeHtml(body.slice(0, newImg.index));
+      const after = window.escapeHtml(body.slice(newImg.index + newImg[0].length));
+      return before + (_isSafeMediaUrl(url) ? _renderImgTag(url) : '[zdjęcie: ' + window.escapeHtml(url) + ']') + after;
+    }
+    // 5. Zwykły tekst — wszystko escapujemy (anti-XSS)
+    return window.escapeHtml(body);
   };
 
   // ─── LOGGING: production silence ────────────────────────────────────
@@ -206,7 +248,7 @@
       'box-shadow:0 8px 24px rgba(0,0,0,0.3);' +
       'animation:_toastIn 0.3s ease-out;max-width:90vw;text-align:center;' +
       'pointer-events:none;';
-    t.textContent = msg; // textContent = automatyczny escape HTML (anti-XSS)
+    t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(function() {
       t.style.animation = '_toastOut 0.3s ease-in forwards';

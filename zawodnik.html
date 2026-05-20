@@ -2461,8 +2461,7 @@ async function _loadProfileMsgs() {
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL', { hour:'2-digit', minute:'2-digit' });
     return `<div style="display:flex;justify-content:${isAthlete?'flex-end':'flex-start'};margin-bottom:8px;">
       <div style="max-width:80%;background:${isAthlete?'var(--accent)':'var(--card2)'};border-radius:${isAthlete?'14px 14px 4px 14px':'14px 14px 14px 4px'};padding:10px 13px;">
-        <div style="font-size:13px;line-height:1.5;">${escapeHtml(m.body)}</div>
-        <div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:DM Mono,monospace;">${time}</div>
+        <div style="font-size:13px;line-height:1.5;">${renderMessageBody(m.body)}</div><div style="font-size:9px;color:rgba(255,255,255,0.45);margin-top:3px;text-align:right;font-family:DM Mono,monospace;">${time}</div>
       </div>
     </div>`;
   }).join('');
@@ -3191,7 +3190,7 @@ async function loadMessages() {
     const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
     const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
     return `<div class="pchat-msg-row ${isAthlete?'me':'them'}" id="msg-${m.id}">
-      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${escapeHtml(m.body)}</div>
+      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${renderMessageBody(m.body)}</div>
       <div class="pchat-time-lbl">${date} · ${time}</div>
     </div>`;
   }).join('');
@@ -6558,7 +6557,7 @@ async function _loadComments(logId) {
         +'<div'+avClick+' style="width:32px;height:32px;border-radius:50%;background:'+(own?'var(--accent)':'rgba(255,255,255,0.08)')+';display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:12px;flex-shrink:0;overflow:hidden;color:#fff;'+(own?'':'cursor:pointer;')+'">'+avInner+'</div>'
         +'<div style="flex:1;background:var(--card2);border-radius:10px;padding:8px 12px;">'
         +'<div'+avClick+' style="font-size:12px;font-weight:600;margin-bottom:2px;'+(own?'':'cursor:pointer;')+'">'+nm+'</div>'
-        +'<div style="font-size:13px;line-height:1.5;">'+cm.body+'</div>'
+        +'<div style="font-size:13px;line-height:1.5;">'+renderMessageBody(cm.body)+'</div>'
         +'<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:4px;">'+t+'</div>'
         +'</div>'
         +(own?'<button onclick="deleteComment(\''+cm.id+'\',\''+logId+'\')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:2px;flex-shrink:0;align-self:flex-start;">\xd7</button>':'')

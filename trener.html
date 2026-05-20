@@ -4608,25 +4608,7 @@ async function loadCoachChat() {
       const isCoach = m.sender === 'coach';
       const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
       const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-      // Bezpieczna obsługa: najpierw wyciągnij URL ze starego formatu [zdjęcie] <a href="URL">,
-      // escapuj resztę, potem dodaj <img> tylko dla zaufanych hostów
-      let bodyHtml = '';
-      const rawBody = m.body || '';
-      const imgMatch = rawBody.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
-      if (imgMatch) {
-        const url = imgMatch[1];
-        const safe = (url.startsWith('https://media.tenor.com/') || url.startsWith('https://media1.tenor.com/') || url.startsWith('https://afqojgkaveykxbltxzwm.supabase.co/'));
-        const before = escapeHtml(rawBody.slice(0, imgMatch.index));
-        const after = escapeHtml(rawBody.slice(imgMatch.index + imgMatch[0].length));
-        if (safe) {
-          bodyHtml = before + `<img src="${escapeHtml(url)}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${escapeHtml(url)}','_blank')" />` + after;
-        } else {
-          // Niebezpieczny URL - pokaż tylko link tekstowy
-          bodyHtml = before + '[zdjęcie: ' + escapeHtml(url) + ']' + after;
-        }
-      } else {
-        bodyHtml = escapeHtml(rawBody);
-      }
+      const bodyHtml = renderMessageBody(m.body);
       return `<div class="pchat-msg-row ${isCoach?'me':'them'}">
         <div class="pchat-bubble" oncontextmenu="deleteCoachMsg(event,'${m.id}','${isCoach}')" style="cursor:pointer;">${bodyHtml}</div>
         <div class="pchat-time-lbl">${date} · ${time}</div>
