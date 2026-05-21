@@ -3536,7 +3536,7 @@ function openTemplateModal() {
     const div = document.createElement('div');
     div.className = 'tpl-ath-item';
     div.innerHTML = `<input type="checkbox" id="tpl-chk-${a.id}" value="${a.id}" onchange="tplUpdateCount()">
-      <label for="tpl-chk-${a.id}">${name}</label>`;
+      <label for="tpl-chk-${a.id}">${escapeHtml(name)}</label>`;
     athList.appendChild(div);
   });
   tplUpdateCount();
