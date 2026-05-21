@@ -49,9 +49,24 @@ A narrative RPG engine integrated with real training data. Key files:
 
 Game attributes: `energia`, `morale`, `determinacja`, `kapital` (currency), `kondycja`. All game logic and UI is in Polish.
 
-### Security Notes
-- XSS: use `renderMessageBody()` (unified renderer, added May 2026) for any user-generated content — never set `innerHTML` directly with untrusted data
-- All community posts and chat messages must go through this renderer
+### Security Notes — XSS Defense
+
+Never set `innerHTML` with untrusted data without escape/validation. Use the right helper from `sb.js` (all exposed as `window.X`):
+
+- **`escapeHtml(s)`** — generic escape `&<>"'`. Most user-input rendered as text or in HTML attributes (names, comments, descriptions, race goals, training types).
+- **`renderMessageBody(body)`** — chat messages with mixed media (`messages` / `log_comments` / `peer_messages`). Whitelist of trusted media tags + escape of text.
+- **`safeUrlAttr(url)`** — `<img src>` / `<video src>` / any auto-loaded resource. Whitelist hosts (Supabase, GH Pages, `media*.tenor.com`, `media*.giphy.com`) + https-only. Returns `''` for untrusted.
+- **`safeExternalHref(url)`** — `<a href>` for external links (e.g. Strava). Any https/http URL accepted; blocks `javascript:` / `data:` / `vbscript:`.
+
+**JS-in-attribute anti-pattern**: `onclick="fn('${url}',…)"` is NOT safe even with `escapeHtml`, because the browser decodes HTML entities before the JS parser sees them — escaped quotes still break out of the JS string. Use the dataset pattern instead:
+
+```html
+<button data-url="${safeUrlAttr(url)}" onclick="fn(this.dataset.url)">
+```
+
+**CSS `background-image:url('${url}')`**: also needs validation beyond `escapeHtml`. Parse via `new URL()`, check protocol is `https:`/`http:`, percent-encode `['"()\\<>]`. See `nutrition.html` for reference.
+
+Full XSS audit closed May 2026 — see `git log --grep "(anti-XSS)"` for the trail.
 
 ## Conventions
 - Polish-first naming: variable names, comments, and UI text are in Polish throughout the game layer and much of the main app
