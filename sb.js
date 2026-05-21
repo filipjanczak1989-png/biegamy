@@ -16,6 +16,7 @@
 //   window.escapeHtml(s) — anti-XSS escape
 //   window.renderMessageBody(rawBody) — bezpieczny render wiadomości czatu
 //   window.safeUrlAttr(url) — escape URL dla atrybutu src/href (whitelist hostów, https-only)
+//   window.safeExternalHref(url) — escape URL dla <a href> do linków zewnętrznych (https/http-only, bez whitelisty hostów)
 //   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
 //   window.showToast(msg, type) — toast UI zamiast alert()
 // ════════════════════════════════════════════════════════════════════
@@ -237,6 +238,25 @@
     if (!url.startsWith('https://')) return '';
     if (!_isSafeMediaUrl(url)) return '';
     return window.escapeHtml(url);
+  };
+
+  // ─── SAFE EXTERNAL HREF (anti-XSS dla <a href> do linków zewnętrznych) ──
+  // Zwraca URL gotowy do wstawienia jako wartość atrybutu href w <a>.
+  // - Inny threat model niż safeUrlAttr: <a href> nie ładuje zasobu automatycznie,
+  //   więc whitelist hostów NIE jest potrzebna (link do dowolnego HTTPS to normalne).
+  // - Jedyny XSS-vector: protokoły executable (javascript:, data:, vbscript:) → odrzucone.
+  // - Akceptuje https:// i http:// (każdy host); wynik escape'owany HTML.
+  // - Niezaufany/malformed URL → '' (link będzie martwy zamiast wykonywać kod).
+  //
+  // Użycie:
+  //   <a href="${safeExternalHref(l.strava_link)}" target="_blank" rel="noopener">↗ Strava</a>
+  window.safeExternalHref = function(url) {
+    if (!url || typeof url !== 'string') return '';
+    try {
+      const u = new URL(url);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+      return window.escapeHtml(url);
+    } catch { return ''; }
   };
 
   // ─── LOGGING: production silence ────────────────────────────────────
