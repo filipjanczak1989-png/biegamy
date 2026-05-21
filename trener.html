@@ -4270,7 +4270,7 @@ async function loadCoachSocialFeed() {
     if (l.attachment_url) {
       const urls = l.attachment_url.split(',').filter(Boolean);
       if (urls.length) screensHtml = '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">'
-        +urls.map(function(url){return '<img src="'+url+'" onclick="window.open(\''+url+'\',\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
+        +urls.map(function(url){var safe=safeUrlAttr(url);if(!safe)return '';return '<img src="'+safe+'" data-url="'+safe+'" onclick="window.open(this.dataset.url,\'_blank\')" style="width:calc(50% - 3px);max-height:140px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">';}).join('')+'</div>';
     }
     const reactBar = '<div style="display:flex;align-items:center;border-top:1px solid var(--border);margin-top:10px;padding-top:8px;">'
       +'<button onclick="coachToggleReact(\''+l.id+'\',\'fire\')" id="creact-fire-'+l.id+'" style="background:none;border:none;cursor:pointer;padding:4px 8px;font-size:14px;border-radius:8px;display:flex;align-items:center;gap:3px;">&#x1F525; <span id="crc-fire-'+l.id+'" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);">0</span></button>'
