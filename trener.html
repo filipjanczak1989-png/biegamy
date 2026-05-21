@@ -3453,7 +3453,7 @@ function openAthModal() {
   m.removeAttribute('hidden');
   m.style.removeProperty('display');
   m.classList.add('ath-modal-show');
-  ['ath-name','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
+  ['ath-name','ath-email','ath-goal','ath-target-date','ath-pb-mar','ath-pb-half','ath-pb-10k','ath-pb-5k'].forEach(id => {
     document.getElementById(id).value = '';
   });
 }
@@ -3467,17 +3467,38 @@ function closeAthModal() {
 async function saveAthlete() {
   const name = document.getElementById('ath-name').value.trim();
   if (!name) { showToast('Wpisz imię i nazwisko'); return; }
-  
+
+  const email = document.getElementById('ath-email').value.trim().toLowerCase();
+  if (!email) { showToast('Wpisz email'); return; }
+  if (!/.+@.+\..+/.test(email)) { showToast('Niepoprawny email'); return; }
+
   // Get fresh session if needed
   if (!_coachId) {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) { showToast('Zaloguj się ponownie'); return; }
     _coachId = session.user.id;
   }
-  
+
+  // Sprawdź czy zawodnik z tym mailem już istnieje
+  const { data: existingArr } = await sb.from('athletes')
+    .select('id, coach_id')
+    .ilike('email', email)
+    .limit(1);
+  const existing = existingArr && existingArr[0];
+
+  if (existing) {
+    if (existing.coach_id === _coachId) {
+      showToast('Masz już tego zawodnika w grupie');
+    } else {
+      showToast('Email u innego trenera, dogadajcie się offline');
+    }
+    return;
+  }
+
   const { data, error } = await sb.from('athletes').insert({
     coach_id: _coachId,
     full_name: name,
+    email: email,
     goal: document.getElementById('ath-goal').value.trim() || null,
     target_race: document.getElementById('ath-goal').value.trim() || null,
     target_date: document.getElementById('ath-target-date').value || null,
@@ -3490,7 +3511,7 @@ async function saveAthlete() {
 
   // Also save name to profiles if user exists
   if (error) { showToast('Błąd: ' + error.message); return; }
-  
+
   showToast(name + ' dodany ✓');
   closeAthModal();
   await loadAthletes();
