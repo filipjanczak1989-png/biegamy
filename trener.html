@@ -1422,12 +1422,14 @@ async function openCreateTrainingPlanModal() {
   const screensStatus = document.getElementById('tp-screens-status');
   if (screensStatus) { screensStatus.style.display = 'none'; screensStatus.textContent = ''; }
   
-  // Reset coach note textarea
+  // Coach note textarea — pre-fill trwałym briefem Klaudiusza z DB (zapisany przez pickCoachNote lub poprzednie generate)
   const coachNoteEl = document.getElementById('tp-coach-note');
-  if (coachNoteEl) coachNoteEl.value = '';
   const cnCounter = document.getElementById('tp-coach-note-counter');
-  if (cnCounter) cnCounter.textContent = '0 / 2000';
-  
+  const { data: _briefAth } = await sb.from('athletes').select('klaudiusz_brief').eq('id', window._selectedAthleteId).maybeSingle();
+  const _tpBrief = _briefAth?.klaudiusz_brief || '';
+  if (coachNoteEl) coachNoteEl.value = _tpBrief;
+  if (cnCounter) cnCounter.textContent = _tpBrief.length + ' / 2000';
+
   document.getElementById('tp-create-modal').style.display = 'flex';
 }
 window.openCreateTrainingPlanModal = openCreateTrainingPlanModal;
@@ -1669,6 +1671,9 @@ async function generateTrainingPlan() {
   try {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) throw new Error('Brak sesji');
+
+    // Zapisz trwały brief Klaudiusza (textarea pre-fill + edycja w modal'u)
+    await sb.from('athletes').update({ klaudiusz_brief: coachNote || null }).eq('id', athleteId);
 
     const fnUrl = (window.SB_FN_URL || (window.SB_URL + '/functions/v1')) + '/generate-training-plan';
     const body = {
