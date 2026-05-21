@@ -4396,8 +4396,8 @@ async function _coachDoSearch(q) {
   el.innerHTML=filtered.map(function(a){
     const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
-      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+nm+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div></div>';
+      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+escapeHtml(ini)+'</div>'
+      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+escapeHtml(nm)+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+escapeHtml(a.pb_marathon)+'</div>':'')+'</div></div>';
   }).join('');
 }
 async function loadCoachSuggestedProfiles() {
@@ -4411,8 +4411,8 @@ async function loadCoachSuggestedProfiles() {
   el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Publiczni i Twoi zawodnicy</div>'
     +filtered.map(function(a){const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
-      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+ini+'</div>'
-      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+nm+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+a.pb_marathon+'</div>':'')+'</div></div>';
+      +'<div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:15px;flex-shrink:0;">'+escapeHtml(ini)+'</div>'
+      +'<div style="flex:1;"><div style="font-size:14px;font-weight:600;">'+escapeHtml(nm)+'</div>'+(a.pb_marathon?'<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">M: '+escapeHtml(a.pb_marathon)+'</div>':'')+'</div></div>';
   }).join('');
 }
 async function loadCoachRanking() {
@@ -4440,8 +4440,8 @@ async function loadCoachRanking() {
       const ini=name.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
       return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
         +'<div style="font-size:20px;width:28px;text-align:center;flex-shrink:0;">'+(medals[i]||(i+1)+'.')+'</div>'
-        +'<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
-        +'<div style="flex:1;font-size:14px;font-weight:600;">'+name+'</div>'
+        +'<div style="width:36px;height:36px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+escapeHtml(ini)+'</div>'
+        +'<div style="flex:1;font-size:14px;font-weight:600;">'+escapeHtml(name)+'</div>'
         +'<div style="text-align:right;">'
         +'<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:var(--accent);line-height:1;">'+k+'<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">km</span></div>'
         +(e?'<div style="font-size:10px;color:#3db870;font-family:DM Mono,monospace;">&#x25B2;'+e+' m</div>':'')
