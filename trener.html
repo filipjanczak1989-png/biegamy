@@ -3264,7 +3264,10 @@ async function searchCoachGif(q) {
     const d = await r.json();
     grid.innerHTML = (d.results||[]).map(g => {
       const url = g.preview || g.url || '';
-      return `<img src="${url}" style="width:100%;border-radius:6px;cursor:pointer;aspect-ratio:1;object-fit:cover;" onclick="selectCoachGif('${g.url||url}')" onerror="this.style.display='none'">`;
+      const safeSm = safeUrlAttr(url);
+      const safeLg = safeUrlAttr(g.url || url);
+      if (!safeSm || !safeLg) return '';
+      return `<img src="${safeSm}" data-url="${safeLg}" style="width:100%;border-radius:6px;cursor:pointer;aspect-ratio:1;object-fit:cover;" onclick="selectCoachGif(this.dataset.url)" onerror="this.style.display='none'">`;
     }).join('');
     if (!d.results?.length) grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:10px;grid-column:span 3;">Błąd ładowania</div>'; }
@@ -4721,7 +4724,10 @@ async function searchGifsCoach(q) {
     grid.innerHTML = (d.results||[]).map(g => {
       const sm = g.preview || g.url || '';
       const lg = g.url || g.preview || sm;
-      return `<img class="gif-item" src="${sm}" onclick="sendCoachGif('${lg}')" alt="${g.alt||'gif'}">`;
+      const safeSm = safeUrlAttr(sm);
+      const safeLg = safeUrlAttr(lg);
+      if (!safeSm || !safeLg) return '';
+      return `<img class="gif-item" src="${safeSm}" data-url="${safeLg}" onclick="sendCoachGif(this.dataset.url)" alt="${escapeHtml(g.alt||'gif')}">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd</div>'; }
 }

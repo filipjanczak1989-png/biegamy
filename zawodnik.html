@@ -6528,7 +6528,10 @@ async function cmSearchGifs(q) {
     grid.innerHTML = (d.results||[]).map(g => {
       const sm = g.preview || g.url || '';
       const lg = g.url || g.preview || sm;
-      return `<img src="${sm}" onclick="sendCommentGif('${lg}')" alt="" style="width:100%;border-radius:8px;cursor:pointer;aspect-ratio:16/9;object-fit:cover;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">`;
+      const safeSm = safeUrlAttr(sm);
+      const safeLg = safeUrlAttr(lg);
+      if (!safeSm || !safeLg) return '';
+      return `<img src="${safeSm}" data-url="${safeLg}" onclick="sendCommentGif(this.dataset.url)" alt="" style="width:100%;border-radius:8px;cursor:pointer;aspect-ratio:16/9;object-fit:cover;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) {
     grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>';
@@ -8319,7 +8322,10 @@ async function searchGifs(q, pickerId) {
     grid.innerHTML = (d.results||[]).map(g => {
       const sm = g.preview || g.url || '';
       const lg = g.url || g.preview || sm;
-      return `<img class="gif-item" src="${sm}" onclick="sendGif('${lg}','${pickerId}')" alt="${g.alt||'gif'}">`;
+      const safeSm = safeUrlAttr(sm);
+      const safeLg = safeUrlAttr(lg);
+      if (!safeSm || !safeLg) return '';
+      return `<img class="gif-item" src="${safeSm}" data-url="${safeLg}" data-picker="${escapeHtml(pickerId)}" onclick="sendGif(this.dataset.url,this.dataset.picker)" alt="${escapeHtml(g.alt||'gif')}">`;
     }).join('') || '<div style="color:var(--muted);font-size:11px;padding:8px;">Brak wyników</div>';
   } catch(e) { grid.innerHTML = '<div style="color:var(--muted);font-size:11px;padding:8px;">Błąd ładowania GIFów</div>'; }
 }
