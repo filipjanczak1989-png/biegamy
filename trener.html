@@ -4478,7 +4478,7 @@ async function loadCoachMsgsList() {
       <div class="pchat-av" style="background:${bg};cursor:pointer;" onclick="event.stopPropagation();openAthleteProfile('${a.id}','${safeName}')" title="Otwórz profil zawodnika">${ini}<div class="pchat-dot ${dotCls}"></div></div>
       <div class="pchat-info">
         <div class="pchat-name">${escapeHtml(a.full_name)||'Zawodnik'}${a.unread?'<span class="pchat-new-tag">nowe</span>':''}</div>
-        <div class="pchat-preview">${prev}</div>
+        <div class="pchat-preview">${escapeHtml(prev)}</div>
       </div>
       <div class="pchat-meta">
         <div class="pchat-time">${tStr}</div>
