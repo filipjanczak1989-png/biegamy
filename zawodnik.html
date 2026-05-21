@@ -6893,7 +6893,7 @@ async function _doSearch(q) {
     .limit(20);
   const results = (data || []).filter(a => a.id !== _athleteId);
   if (!results.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + q + '"</div>';
+    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + escapeHtml(q) + '"</div>';
     return;
   }
   const { data: myF } = await sb.from('follows').select('following_id').eq('follower_id', _athleteId);
@@ -6909,8 +6909,8 @@ function _buildAthleteCards(athletes, fSet) {
     var isF = fSet.has(a.id);
     var fsStatus = window._friendStatuses ? (window._friendStatuses[a.id] || null) : null;
     var av = a.avatar_url
-      ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">'
-      : ini;
+      ? '<img src="'+escapeHtml(a.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\'">'
+      : escapeHtml(ini);
 
     var followBtn = '<button data-tid="'+a.id+'" data-isf="'+isF+'" onclick="event.stopPropagation();var t=this.dataset.tid,f=this.dataset.isf===\'true\';toggleFollow(t,this,f)" style="background:'+(isF?'transparent':'rgba(91,140,255,0.12)')+';border:1px solid '+(isF?'var(--border)':'rgba(91,140,255,0.35)')+';color:'+(isF?'var(--muted)':'#5b8cff')+';font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;">'+(isF?'\u2713 Obserwujesz':'+ Obserwuj')+'</button>';
 
@@ -6933,9 +6933,9 @@ function _buildAthleteCards(athletes, fSet) {
     return '<div data-pid="'+a.id+'" onclick="openAthleteProfile(this.dataset.pid)" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
       + '<div style="flex:1;min-width:0;">'
-      + '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + name + privBadge + '</div>'
-      + (!isPrivate && a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;">M: ' + a.pb_marathon + '</div>' : '')
-      + (!isPrivate && a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + a.goal + '</div>' : '')
+      + '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(name) + privBadge + '</div>'
+      + (!isPrivate && a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;">M: ' + escapeHtml(a.pb_marathon) + '</div>' : '')
+      + (!isPrivate && a.goal && !a.pb_marathon ? '<div style="font-size:10px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(a.goal) + '</div>' : '')
       + '</div>'
       + '<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0;" onclick="event.stopPropagation();">' + friendBtn + followBtn + '</div>'
       + '</div>';
