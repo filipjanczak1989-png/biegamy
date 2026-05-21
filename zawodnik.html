@@ -4911,7 +4911,7 @@ async function loadWeekPlan() {
           <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;color:${isToday?'#fff':'var(--fg)'};">${dayNum}</div>
         </div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:${isToday?'700':'500'};color:${isRest?'var(--muted)':'var(--fg)'};">${isRest?'Odpoczynek':t.type}</div>
+          <div style="font-size:13px;font-weight:${isToday?'700':'500'};color:${isRest?'var(--muted)':'var(--fg)'};">${isRest?'Odpoczynek':escapeHtml(t.type)}</div>
           ${dist>0?`<div style="font-size:11px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;font-weight:600;">${dist} km</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
@@ -4932,7 +4932,7 @@ async function loadWeekPlan() {
             <div style="font-size:18px;font-family:DM Mono,monospace;color:var(--fg);margin-top:2px;">${t.pace}</div>
           </div>`:''}
         </div>`:''}
-        ${descDisplay!=='<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>'?`<div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.65;font-family:'DM Sans',sans-serif;">${descDisplay}</div>`:''}
+        ${descDisplay!=='<span style="color:var(--muted);font-style:italic;">Brak opisu od trenera.</span>'?`<div style="font-size:13px;color:rgba(240,237,232,0.6);line-height:1.65;font-family:'DM Sans',sans-serif;">${escapeHtml(descDisplay)}</div>`:''}
         ${!isDone&&!isRest?`<button onclick="openModalForDate('${t.date}',event)" style="margin-top:12px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(224,85,32,0.35);">↓ Zaloguj wynik</button>`:''}
       </div>
     </div></div>`;
