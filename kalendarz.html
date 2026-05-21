@@ -3674,7 +3674,7 @@ function renderTemplatesList() {
       <div style="width:3px;height:40px;background:${color};border-radius:2px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${t.name}</div>
-        <div style="font-size:10px;color:${color};font-family:'DM Mono',monospace;margin-bottom:2px;">${t.type}</div>
+        <div style="font-size:10px;color:${color};font-family:'DM Mono',monospace;margin-bottom:2px;">${escapeHtml(t.type)}</div>
         ${meta ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${meta}</div>` : ''}
         ${t.desc ? `<div style="font-size:10px;color:rgba(240,237,232,0.5);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</div>` : ''}
       </div>

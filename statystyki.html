@@ -510,7 +510,7 @@ function renderPie() {
     const color = TYPE_COLORS[type] || '#e8561e';
     return '<div class="pie-legend-item">'
       + '<div class="pie-legend-dot" style="background:'+color+';"></div>'
-      + '<div class="pie-legend-name">'+type+'</div>'
+      + '<div class="pie-legend-name">'+escapeHtml(type)+'</div>'
       + '<div class="pie-legend-val">'+val.toFixed(0)+' km · '+pct+'%</div>'
       + '</div>';
   }).join('');
