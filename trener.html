@@ -929,16 +929,24 @@ async function generateAIReportFromPanel(periodDays) {
 //   options.targetRace: dla planu (np. 'maraton')
 //
 // Backward-compat: pickCoachNote(periodDays) — liczba traktowana jako raport
-function pickCoachNote(options) {
+async function pickCoachNote(options) {
   // Stara sygnatura: pickCoachNote(7) → {context:'report', periodDays:7}
   if (typeof options === 'number') {
     options = { context: 'report', periodDays: options };
   }
   options = options || {};
-  
+
   const ctx = options.context || 'report';
   const isPlan = ctx === 'plan';
-  
+
+  // Fetch trwały brief Klaudiusza z athletes (pre-fill + save target)
+  let _brief = '';
+  const _athId = window._selectedAthleteId;
+  if (_athId) {
+    const { data } = await sb.from('athletes').select('klaudiusz_brief').eq('id', _athId).maybeSingle();
+    _brief = data?.klaudiusz_brief || '';
+  }
+
   return new Promise((resolve) => {
     const athleteName = (window._selectedAthleteName || 'zawodnika');
     
@@ -947,14 +955,14 @@ function pickCoachNote(options) {
       const planLabel = options.planType ? options.planType.replace(/_/g,' ') : 'planu';
       const raceText = options.targetRace ? ` · ${options.targetRace}` : '';
       title = 'Coś co Klaudiusz powinien wiedzieć?';
-      subtitle = `Plan <strong style="color:#8b5cf6;">${planLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>${raceText}. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie, plany dnia. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em>`;
+      subtitle = `Plan <strong style="color:#8b5cf6;">${planLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>${raceText}. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie, plany dnia. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em> <em style="color:#8b5cf6;display:block;margin-top:6px;font-style:normal;font-size:10px;">💡 To trwały brief tego zawodnika — zapisanie nadpisze go w bazie.</em>`;
       placeholder = 'np. ostatnio dużo pracował, mało spał. Lub: po ultra w górach w weekend, trzeba się rozkręcić. Lub: ma kontuzję ścięgna achilles, omijaj interwały. Lub: wraca po przerwie, trzeba spokojnie...';
       submitLabel = '✨ Generuj plan z komentarzem';
       skipLabel = 'Pomiń — generuj bez komentarza';
     } else {
       const periodLabel = options.periodDays === 1 ? 'dziennego' : options.periodDays === 7 ? 'tygodniowego' : options.periodDays === 30 ? 'miesięcznego' : ((options.periodDays||'') + ' dni');
       title = 'Coś co warto żeby Klaudiusz wiedział?';
-      subtitle = `Raport <strong style="color:#8b5cf6;">${periodLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em>`;
+      subtitle = `Raport <strong style="color:#8b5cf6;">${periodLabel}</strong> dla <strong>${escapeHtml(athleteName)}</strong>. Możesz dorzucić kontekst którego nie ma w danych — kontuzje, sytuacja życiowa, ostatnie starty, samopoczucie. <em>To opcjonalne, pomiń jeśli nie potrzeba.</em> <em style="color:#8b5cf6;display:block;margin-top:6px;font-style:normal;font-size:10px;">💡 To trwały brief tego zawodnika — zapisanie nadpisze go w bazie.</em>`;
       placeholder = 'np. po ultra w górach w weekend, trochę przeciążony. Lub: ma słabe wyniki krwi, suplementuje witaminy. Lub: ma ksywę Łysy, śmieje się że na szybkich akcentach poczuje wiatr we włosach...';
       submitLabel = '✨ Generuj z komentarzem';
       skipLabel = 'Pomiń — generuj bez komentarza';
@@ -1001,6 +1009,9 @@ function pickCoachNote(options) {
     // Counter
     const ta = document.getElementById('cn-textarea');
     const counter = document.getElementById('cn-counter');
+    // Pre-fill trwałym briefem + update counter
+    if (ta) ta.value = _brief;
+    if (counter) counter.textContent = _brief.length + ' / 2000';
     if (ta && counter) {
       ta.addEventListener('input', () => {
         counter.textContent = ta.value.length + ' / 2000';
@@ -1009,8 +1020,12 @@ function pickCoachNote(options) {
       setTimeout(() => ta.focus(), 100);
     }
     
-    window._cnSubmit = () => {
+    window._cnSubmit = async () => {
       const note = (ta?.value || '').trim();
+      if (_athId) {
+        const { error } = await sb.from('athletes').update({ klaudiusz_brief: note || null }).eq('id', _athId);
+        if (error) showToast('Błąd zapisu briefu');
+      }
       window._cnResolve(note || ''); // pusty string = pomiń, nie null
     };
     
