@@ -6834,16 +6834,16 @@ async function loadFollowing() {
     const name = a.full_name || 'Biegacz';
     const ini = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const avInner = a.avatar_url
-      ? '<img src="'+a.avatar_url+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+ini+'\'">'
-      : ini;
+      ? '<img src="'+escapeHtml(a.avatar_url)+'" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.outerHTML=\''+escapeHtml(ini)+'\'">'
+      : escapeHtml(ini);
     return `<div onclick="openAthleteProfile('${a.id}')" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
       <div style="width:40px;height:40px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;overflow:hidden;color:#fff;">${avInner}</div>
       <div style="flex:1;">
-        <div style="font-size:14px;font-weight:600;">${name}</div>
-        ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">${a.goal}</div>` : ''}
+        <div style="font-size:14px;font-weight:600;">${escapeHtml(name)}</div>
+        ${a.goal ? `<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:1px;">${escapeHtml(a.goal)}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
-        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">M: ${a.pb_marathon}</div>` : ''}
+        ${a.pb_marathon ? `<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">M: ${escapeHtml(a.pb_marathon)}</div>` : ''}
         <button onclick="event.stopPropagation();unfollowAthlete('${a.id}',this.closest('[onclick]'))" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.08em;text-transform:uppercase;padding:4px 8px;border-radius:6px;cursor:pointer;">Przestań</button>
       </div>
     </div>`;
