@@ -782,66 +782,29 @@ async function loadPanelAI() {
   }
   target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;">Ładowanie raportów...</div>';
 
-  // Fetch brief Klaudiusza + reports równolegle
-  const [briefRes, reportsRes] = await Promise.all([
-    sb.from('athletes').select('klaudiusz_brief').eq('id', id).maybeSingle(),
-    sb.from('ai_reports')
-      .select('id, generated_at, report_type, priority, summary, read_by_coach, visible_to_athlete, sent_at, athlete_feedback, athlete_reaction')
-      .eq('athlete_id', id)
-      .order('generated_at', { ascending: false })
-      .limit(10)
-  ]);
-  const brief = briefRes.data?.klaudiusz_brief || '';
-  const { data: reports, error } = reportsRes;
-
-  // HTML sekcji briefu — zawsze pokazany, niezależnie od liczby raportów
-  const briefHtml = `
-    <section style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);">🟠 Brief Klaudiusza</div>
-        <span id="kb-brief-status" style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);"></span>
-      </div>
-      <textarea id="kb-brief-textarea" rows="3" placeholder="Trwały kontekst — kontuzje, preferencje, cele. Klaudiusz uwzględni przy KAŻDYM planie/raporcie/briefie." style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:8px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:10px;outline:none;resize:vertical;margin-bottom:10px;">${escapeHtml(brief || '')}</textarea>
-      <button onclick="saveKlaudiuszBrief()" style="background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 14px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz brief</button>
-    </section>`;
+  const { data: reports, error } = await sb.from('ai_reports')
+    .select('id, generated_at, report_type, priority, summary, read_by_coach, visible_to_athlete, sent_at, athlete_feedback, athlete_reaction')
+    .eq('athlete_id', id)
+    .order('generated_at', { ascending: false })
+    .limit(10);
 
   if (error) {
-    target.innerHTML = briefHtml + '<div style="padding:20px 0;text-align:center;color:var(--red);font-size:11px;">Błąd: ' + escapeHtml(error.message) + '</div>';
+    target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--red);font-size:11px;">Błąd: ' + escapeHtml(error.message) + '</div>';
     return;
   }
 
   if (!reports || reports.length === 0) {
-    target.innerHTML = briefHtml + '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak raportów. Wygeneruj pierwszy ↓</div>';
+    target.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak raportów. Wygeneruj pierwszy ↓</div>';
     return;
   }
 
-  let html = briefHtml;
+  let html = '';
   reports.forEach(r => {
     html += renderAIReportCard(r, { mode: 'verbose' });
   });
 
   target.innerHTML = html;
 }
-
-window.saveKlaudiuszBrief = async function() {
-  const id = window._selectedAthleteId;
-  if (!id) { showToast('Wybierz zawodnika'); return; }
-  const textarea = document.getElementById('kb-brief-textarea');
-  const status = document.getElementById('kb-brief-status');
-  if (!textarea) return;
-  const brief = textarea.value.trim();
-  const { error } = await sb.from('athletes').update({ klaudiusz_brief: brief || null }).eq('id', id);
-  if (error) {
-    showToast('Błąd: ' + error.message);
-    if (status) status.textContent = error.message;
-    return;
-  }
-  showToast('Brief zapisany ✓');
-  if (status) {
-    status.textContent = 'Zapisano ✓';
-    setTimeout(() => { if (status) status.textContent = ''; }, 3000);
-  }
-};
 
 async function generateAIReportFromPanel(periodDays) {
   const id = window._selectedAthleteId;
