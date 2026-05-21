@@ -6351,7 +6351,7 @@ async function loadSocialFeed(compact) {
         +'<span style="font-family:Bebas Neue,sans-serif;font-size:24px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+dist+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">KM</span></span>'
         +(l.pace?'<span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;text-shadow:0 1px 6px rgba(0,0,0,0.9);">'+l.pace+'<span style="font-size:9px;color:rgba(255,255,255,0.55);font-family:DM Mono,monospace;margin-left:2px;">/KM</span></span>':'')
         +(feelEmoji?'<div style="margin-left:auto;">'+feelEmoji+'</div>':'')+'</div>':'')
-      +(l.comment?'<div style="font-size:11px;color:rgba(255,255,255,0.75);font-family:DM Sans,sans-serif;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"'+l.comment+'"</div>':'')
+      +(l.comment?'<div style="font-size:11px;color:rgba(255,255,255,0.75);font-family:DM Sans,sans-serif;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"'+escapeHtml(l.comment)+'"</div>':'')
       +(screensHtml?'<div style="margin-top:6px;">'+screensHtml+'</div>':'')
       +commentBtn
       +'</div>'
