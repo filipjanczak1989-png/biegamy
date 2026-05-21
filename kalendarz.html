@@ -1469,7 +1469,7 @@ function render() {
     const raceGoalForDay = showRace && window._goals && window._goals.find(g => g.date === ds);
     const raceCard = raceGoalForDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08));border:2px solid rgba(61,184,112,0.6);border-radius:8px;padding:10px 12px;margin-bottom:4px;cursor:pointer;" onclick="openGoalModal('${raceGoalForDay.id}')">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">🏁 CEL STARTOWY</div>
-      <div style="font-size:14px;font-weight:700;color:var(--fg);">${raceGoalForDay.name}</div>
+      <div style="font-size:14px;font-weight:700;color:var(--fg);">${escapeHtml(raceGoalForDay.name)}</div>
       <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">kliknij aby edytować</div>
     </div>` : '';
 
@@ -2689,7 +2689,7 @@ function renderGoals() {
     return `<div style="display:inline-flex;align-items:center;gap:6px;background:${bg};border:1px solid ${borderColor};border-radius:6px;padding:6px 10px;cursor:pointer;transition:all 0.15s;" onclick="openGoalModal('${g.id}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${borderColor}'">
       <span style="font-size:13px;">🏁</span>
       ${athleteStr}
-      <span style="font-size:11px;font-weight:600;color:var(--fg);">${g.name}</span>
+      <span style="font-size:11px;font-weight:600;color:var(--fg);">${escapeHtml(g.name)}</span>
       <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'})}</span>
       <span style="font-size:10px;font-weight:600;color:${dayColor};font-family:'DM Mono',monospace;background:${dayColor.replace('var(--','rgba(').replace(')',',0.12)')};padding:1px 5px;border-radius:3px;">${daysStr}</span>
     </div>`;
@@ -4403,7 +4403,7 @@ function _openDayScreen(ds) {
   const typeCol  = typeColors[typeName] || '#888';
   const badge    = document.getElementById('ds-type-badge');
   if (typeName && typeName !== 'Odpoczynek') {
-    badge.innerHTML = `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:${typeCol};background:rgba(0,0,0,0.55);border:1px solid ${typeCol}55;padding:4px 10px;border-radius:8px;backdrop-filter:blur(4px);">${typeName}</span>`;
+    badge.innerHTML = `<span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;color:${typeCol};background:rgba(0,0,0,0.55);border:1px solid ${typeCol}55;padding:4px 10px;border-radius:8px;backdrop-filter:blur(4px);">${escapeHtml(typeName)}</span>`;
   } else {
     badge.innerHTML = '';
   }
