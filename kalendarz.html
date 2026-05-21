@@ -1498,7 +1498,7 @@ function render() {
           ? `<div class="card-main">${displayDist} km</div>`
           : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
         ${(displayPace||displayHr)?`<div class="card-pace">${displayPace?displayPace+'/km':''} ${displayHr?'· ♥ '+displayHr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
-        ${t.desc?`<div class="card-desc">${t.desc}</div>`:''}
+        ${t.desc?`<div class="card-desc">${escapeHtml(t.desc)}</div>`:''}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;
@@ -4470,7 +4470,7 @@ function _openDayScreen(ds) {
     if (planItem.type && planItem.dist) rows.push(`<strong style="color:#fff;">${planItem.type}</strong> &mdash; ${planItem.dist} km`);
     else if (planItem.type) rows.push(`<strong style="color:#fff;">${planItem.type}</strong>`);
     if (planItem.pace) rows.push(`Tempo: <span style="color:#fff;">${planItem.pace}/km</span>`);
-    if (planItem.desc || planItem.description) rows.push(`<span style="color:rgba(240,237,232,0.6);">${planItem.desc||planItem.description}</span>`);
+    if (planItem.desc || planItem.description) rows.push(`<span style="color:rgba(240,237,232,0.6);">${escapeHtml(planItem.desc||planItem.description)}</span>`);
     coachText.innerHTML = rows.join('<br>');
   } else {
     coachCard.style.display = 'none';
