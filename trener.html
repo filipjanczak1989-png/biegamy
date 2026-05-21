@@ -4290,7 +4290,7 @@ async function loadCoachSocialFeed() {
         +(l.elevation_gain?'<div><span style="font-family:Bebas Neue,sans-serif;font-size:18px;line-height:1;color:#3db870;">&#x25B2;'+l.elevation_gain+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:2px;">m</span></div>':'')
         +(feelEmoji?'<div style="margin-left:auto;font-size:20px;">'+feelEmoji+'</div>':'')
         +'</div>':'')
-      +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">"'+l.comment+'"</div>':'')
+      +(l.comment?'<div style="font-size:12px;color:rgba(240,237,232,0.6);font-family:DM Sans,sans-serif;font-style:italic;margin-top:6px;">"'+escapeHtml(l.comment)+'"</div>':'')
       +screensHtml+reactBar+'</div>';
   }
   const rendered = visibleLogs.map(buildCard).filter(Boolean).join('');
