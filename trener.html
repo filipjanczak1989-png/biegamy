@@ -5232,6 +5232,11 @@ function mdToHtmlPremium(md) {
     .replace(/^(\s*#{1,4}\s+)Tl\s*;?\s*dr\s*:?\s*$/gmi, '$1Wstęp');
   
   // ━━━━━━ Konwersja na HTML ━━━━━━
+  // SECURITY: escape user inputu PRZED konwersją markdown. Wszystkie poniższe
+  // substytucje wstawiają $1/$2 wyłącznie do text content (nigdy do atrybutów),
+  // więc escape tylko &<> wystarczy. NIE dodawaj substytucji typu
+  // [text](url)→<a href="$2">$1</a> ani ![](url)→<img src="$2"> bez:
+  // (a) escape " i ' tutaj, ORAZ (b) walidacji URL przez safeUrlAttr/safeExternalHref.
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // H3 (## w markdown) — sekcja z border-top + pomarańczowym akcentem na lewej krawędzi
   html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
