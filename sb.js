@@ -166,12 +166,19 @@
   // Bezpiecznie renderuje treść wiadomości z czata.
   // Obsługuje: obrazki (stary i nowy format), voice messages, cofnięte wiadomości.
   // Pozostały tekst escapowany (anti-XSS).
-  // Whitelist hostów media: Supabase, Tenor, GitHub Pages.
+  // Whitelist hostów media: Supabase, GitHub Pages, Tenor (media*.tenor.com), Giphy (media*.giphy.com).
   function _isSafeMediaUrl(url) {
-    return url.startsWith('https://media.tenor.com/')
-        || url.startsWith('https://media1.tenor.com/')
-        || url.startsWith('https://afqojgkaveykxbltxzwm.supabase.co/')
-        || url.startsWith('https://filipjanczak1989-png.github.io/');
+    try {
+      const u = new URL(url);
+      if (u.protocol !== 'https:') return false;
+      const h = u.hostname;
+      return /^media\d*\.tenor\.com$/.test(h)
+          || /^media\d*\.giphy\.com$/.test(h)
+          || h === 'afqojgkaveykxbltxzwm.supabase.co'
+          || h === 'filipjanczak1989-png.github.io';
+    } catch {
+      return false;
+    }
   }
   function _renderImgTag(url) {
     const safe = window.escapeHtml(url);
