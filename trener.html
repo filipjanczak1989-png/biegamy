@@ -3215,7 +3215,7 @@ function renderLogs_db(logs) {
             style="background:var(--accent);border:none;color:var(--fg);cursor:pointer;font-size:14px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;">↑</button>
         </div>
         <div id="cgif-preview-${idx}" style="padding:${l.coach_gif?'0 12px 8px':'0'};">
-          ${l.coach_gif ? `<div style="display:flex;align-items:center;gap:6px;"><img src="${l.coach_gif}" style="height:36px;border-radius:4px;"><button onclick="removeCoachGif('${l.id}',${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;">✕ usuń GIF</button></div>` : ''}
+          ${l.coach_gif ? `<div style="display:flex;align-items:center;gap:6px;"><img src="${safeUrlAttr(l.coach_gif)}" style="height:36px;border-radius:4px;"><button onclick="removeCoachGif('${l.id}',${idx})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;">✕ usuń GIF</button></div>` : ''}
         </div>
       </div>`;
     }).join('');
