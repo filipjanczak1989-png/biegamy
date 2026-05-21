@@ -800,35 +800,7 @@ async function loadPanelAI() {
 
   let html = '';
   reports.forEach(r => {
-    const date = new Date(r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    const priorityColors = {
-      red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: '🚨 PILNE' },
-      yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: '⚠ UWAGA' },
-      green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: '✓ OK' }
-    };
-    const pc = priorityColors[r.priority] || priorityColors.green;
-    const isUnread = !r.read_by_coach;
-    const typeIcon = r.report_type === 'daily' ? '📅' : r.report_type === 'weekly' ? '📊' : r.report_type === 'monthly' ? '📈' : '📄';
-    const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : r.report_type === 'monthly' ? 'Miesięczny' : 'Raport';
-    const sentBadge = r.visible_to_athlete && r.sent_at 
-      ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(139,92,246,0.15);color:#a78bfa;letter-spacing:0.06em;">📤 WYSŁANY</span>'
-      : '';
-    const feedbackBadge = (r.athlete_feedback || r.athlete_reaction)
-      ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(232,86,30,0.15);color:#e8561e;letter-spacing:0.06em;font-weight:600;">💬 OPINIA</span>'
-      : '';
-    
-    html += '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">'
-        + '<span style="font-size:14px;">' + typeIcon + '</span>'
-        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;">' + typeLabel + '</span>'
-        + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pc.text + '</span>'
-        + sentBadge
-        + feedbackBadge
-        + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
-        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
-      + '</div>'
-      + '<div style="font-size:12px;color:var(--fg);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escapeHtml(r.summary || 'Raport AI') + '</div>'
-    + '</div>';
+    html += renderAIReportCard(r, { mode: 'verbose' });
   });
 
   target.innerHTML = html;
@@ -4994,23 +4966,7 @@ async function loadAthleteAIReports(athleteId) {
   // Render listy
   let html = '';
   reports.forEach(r => {
-    const date = new Date(r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-    const priorityColors = {
-      red: { bg: 'rgba(224,80,80,0.15)', fg: '#e05050', text: 'PILNE' },
-      yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e', text: 'UWAGA' },
-      green: { bg: 'rgba(61,184,112,0.15)', fg: '#3db870', text: 'OK' }
-    };
-    const pc = priorityColors[r.priority] || priorityColors.green;
-    const isUnread = !r.read_by_coach;
-    
-    html += '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
-      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
-        + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pc.text + '</span>'
-        + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
-        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
-      + '</div>'
-      + '<div style="font-size:12px;color:var(--fg);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + escapeHtml(r.summary || 'Raport AI') + '</div>'
-    + '</div>';
+    html += renderAIReportCard(r);
   });
 
   target.innerHTML = html;

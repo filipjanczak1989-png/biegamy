@@ -15,6 +15,7 @@
 //   window.subscribeToPush(athleteId) / window.unsubscribeFromPush()
 //   window.escapeHtml(s) — anti-XSS escape
 //   window.renderMessageBody(rawBody) — bezpieczny render wiadomości czatu
+//   window.renderAIReportCard(r, opts) — pigułka raportu AI (panel/modal)
 //   window.safeUrlAttr(url) — escape URL dla atrybutu src/href (whitelist hostów, https-only)
 //   window.safeExternalHref(url) — escape URL dla <a href> do linków zewnętrznych (https/http-only, bez whitelisty hostów)
 //   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
@@ -199,6 +200,61 @@
     </span>`;
   }
   window.renderTypePill = renderTypePill;
+
+  // ── UI helper: AI report card renderer ────────────────────────────
+  // Renderuje kartę raportu AI (klikalną → openAIReportModal).
+  // opts.mode: 'verbose' (panel trenera — typ-meta, badge wysłany/opinia)
+  //          | 'compact' (modal zawodnika — minimal) — default 'compact'.
+  // opts.cardBg: override tła (default zależy od mode).
+  // Wymaga: window.escapeHtml, openAIReportModal (handler w callerze).
+  function renderAIReportCard(r, opts) {
+    opts = opts || {};
+    const isVerbose = opts.mode === 'verbose';
+    const cardBg = opts.cardBg || (isVerbose ? 'rgba(255,255,255,0.03)' : 'var(--card2)');
+
+    const date = new Date(r.generated_at).toLocaleDateString('pl-PL', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+
+    const priorityColors = {
+      red:    { bg: 'rgba(224,80,80,0.15)', fg: '#e05050' },
+      yellow: { bg: 'rgba(232,172,30,0.15)', fg: '#e8ac1e' },
+      green:  { bg: 'rgba(61,184,112,0.15)', fg: '#3db870' }
+    };
+    const priorityText = isVerbose
+      ? { red: '🚨 PILNE', yellow: '⚠ UWAGA', green: '✓ OK' }
+      : { red: 'PILNE', yellow: 'UWAGA', green: 'OK' };
+    const pc = priorityColors[r.priority] || priorityColors.green;
+    const pt = priorityText[r.priority] || priorityText.green;
+    const isUnread = !r.read_by_coach;
+
+    let typeMeta = '', sentBadge = '', feedbackBadge = '';
+    if (isVerbose) {
+      const typeIcon  = r.report_type === 'daily' ? '📅' : r.report_type === 'weekly' ? '📊' : r.report_type === 'monthly' ? '📈' : '📄';
+      const typeLabel = r.report_type === 'daily' ? 'Dzienny' : r.report_type === 'weekly' ? 'Tygodniowy' : r.report_type === 'monthly' ? 'Miesięczny' : 'Raport';
+      typeMeta = '<span style="font-size:14px;">' + typeIcon + '</span>'
+               + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.05em;">' + typeLabel + '</span>';
+      sentBadge = (r.visible_to_athlete && r.sent_at)
+        ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(139,92,246,0.15);color:#a78bfa;letter-spacing:0.06em;">📤 WYSŁANY</span>'
+        : '';
+      feedbackBadge = (r.athlete_feedback || r.athlete_reaction)
+        ? '<span style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;background:rgba(232,86,30,0.15);color:#e8561e;letter-spacing:0.06em;font-weight:600;">💬 OPINIA</span>'
+        : '';
+    }
+
+    const headerFlexWrap = isVerbose ? 'flex-wrap:wrap;' : '';
+
+    return '<div onclick="openAIReportModal(\'' + r.id + '\')" style="background:' + cardBg + ';border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(139,92,246,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;' + headerFlexWrap + '">'
+        + typeMeta
+        + '<span style="background:' + pc.bg + ';color:' + pc.fg + ';font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;">' + pt + '</span>'
+        + sentBadge
+        + feedbackBadge
+        + (isUnread ? '<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);"></span>' : '')
+        + '<span style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-left:auto;">' + date + '</span>'
+      + '</div>'
+      + '<div style="font-size:12px;color:var(--fg);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + window.escapeHtml(r.summary || 'Raport AI') + '</div>'
+    + '</div>';
+  }
+  window.renderAIReportCard = renderAIReportCard;
 
   // ─── MESSAGE RENDERING (czat: tekst + obrazki + voice + GIF) ────────
   // Bezpiecznie renderuje treść wiadomości z czata.
