@@ -5260,7 +5260,7 @@ function renderLogsDb(data) {
         </div>` : ''}
         ${l.comment ? `<div style="font-size:11px;color:rgba(255,255,255,0.7);font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">"${escapeHtml(l.comment)}"</div>` : ''}
         ${screensHtml}
-        ${l.strava_link ? `<div style="margin-top:6px;"><a href="${l.strava_link}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:DM Mono,monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}
+        ${l.strava_link ? `<div style="margin-top:6px;"><a href="${safeExternalHref(l.strava_link)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-family:DM Mono,monospace;color:var(--accent);text-decoration:none;letter-spacing:0.08em;border:1px solid rgba(212,80,26,0.3);padding:3px 10px;border-radius:6px;">↗ Strava / Garmin</a></div>` : ''}
       </div>
     </div>`;
   }).join('');
