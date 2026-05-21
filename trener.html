@@ -730,7 +730,7 @@ function renderTypePill(type, opts) {
     <span style="width:${iconBoxSize};height:${iconBoxSize};border-radius:5px;background:${m.color}2e;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
       <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${m.icon}</svg>
     </span>
-    <span style="font-size:${fontSize};letter-spacing:0.12em;text-transform:uppercase;font-weight:500;">${type}</span>
+    <span style="font-size:${fontSize};letter-spacing:0.12em;text-transform:uppercase;font-weight:500;">${(window.escapeHtml||String)(type)}</span>
   </span>`;
 }
 window.renderTypePill = renderTypePill;
@@ -4285,7 +4285,7 @@ async function loadCoachSocialFeed() {
       +'<div style="display:flex;align-items:center;gap:10px;">'
       +'<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.08);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:14px;flex-shrink:0;">'+ini+'</div>'
       +'<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;">'+name+'</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+date+'</div></div>'
-      +(typeof window.renderTypePill === 'function' ? window.renderTypePill(type, {size:'sm'}) : '<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+type+'</span>')
+      +(typeof window.renderTypePill === 'function' ? window.renderTypePill(type, {size:'sm'}) : '<span style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:'+col+';font-family:DM Mono,monospace;background:'+col+'18;padding:3px 7px;border-radius:6px;flex-shrink:0;">'+(window.escapeHtml||String)(type)+'</span>')
       +'</div>'
       +(dist?'<div style="display:flex;gap:16px;align-items:baseline;margin-top:10px;">'
         +'<div><span style="font-family:Bebas Neue,sans-serif;font-size:28px;line-height:1;">'+dist+'</span><span style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-left:3px;">KM</span></div>'
