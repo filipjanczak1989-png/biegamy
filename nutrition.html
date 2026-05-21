@@ -7182,8 +7182,20 @@ async function doSearch(q) {
         : '<span class="sr-source-tag usda">USDA</span>';
       const kcal = Math.round(food.kcal_per_100 || 0);
       const fiber = food.fiber_g_per_100 ? ` · F:${Math.round(food.fiber_g_per_100*10)/10}g` : '';
-      const imgHtml = food.image_url 
-        ? `<div class="sr-thumb" style="background-image:url('${food.image_url}')"></div>`
+      // Walidacja URL dla CSS background-image (anti-XSS):
+      // - parsowanie przez URL() odrzuca malformed/javascript:/data:
+      // - percent-encode znaków które mogą wyłamać CSS url() lub style attr
+      let safeImg = '';
+      if (food.image_url) {
+        try {
+          const u = new URL(food.image_url);
+          if (u.protocol === 'https:' || u.protocol === 'http:') {
+            safeImg = u.href.replace(/['"()\\<>]/g, encodeURIComponent);
+          }
+        } catch {}
+      }
+      const imgHtml = safeImg
+        ? `<div class="sr-thumb" style="background-image:url('${safeImg}')"></div>`
         : `<div class="sr-thumb sr-thumb-placeholder">🍽</div>`;
       
       // ✨ Badge "często jadane" jeśli zawodnik już używał tego produktu
