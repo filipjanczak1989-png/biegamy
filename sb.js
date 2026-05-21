@@ -15,6 +15,7 @@
 //   window.subscribeToPush(athleteId) / window.unsubscribeFromPush()
 //   window.escapeHtml(s) — anti-XSS escape
 //   window.renderMessageBody(rawBody) — bezpieczny render wiadomości czatu
+//   window.safeUrlAttr(url) — escape URL dla atrybutu src/href (whitelist hostów, https-only)
 //   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
 //   window.showToast(msg, type) — toast UI zamiast alert()
 // ════════════════════════════════════════════════════════════════════
@@ -214,6 +215,28 @@
     }
     // 5. Zwykły tekst — wszystko escapujemy (anti-XSS)
     return window.escapeHtml(body);
+  };
+
+  // ─── SAFE URL FOR ATTRIBUTES (anti-XSS dla src/href) ────────────────
+  // Zwraca URL gotowy do wstawienia jako wartość atrybutu src/href w HTML.
+  // - Tylko HTTPS + tylko hosty z whitelist _isSafeMediaUrl
+  //   (Supabase storage, GH Pages, media*.tenor.com, media*.giphy.com)
+  // - Niezaufany/nieprawidłowy URL → '' (atrybut zostaje pusty, nie ładuje nic)
+  // - Wynik jest escape'owany HTML — bezpiecznie wstawić jako `src="${safeUrlAttr(url)}"`
+  //
+  // Użycie:
+  //   const safe = safeUrlAttr(l.attachment_url);
+  //   safe ? '<img src="'+safe+'">' : '<span>nieufny URL</span>'
+  //
+  // UWAGA: dla URL-i wstawianych do JS w atrybucie (np. onclick="open('${url}',…)")
+  // sam HTML-escape nie wystarczy — przeglądarka dekoduje encje przed parsowaniem JS.
+  // Bezpieczny wzorzec to przekazanie URL przez data-attribute:
+  //   `<button data-url="${safeUrlAttr(url)}" onclick="window.open(this.dataset.url,'_blank')">`
+  window.safeUrlAttr = function(url) {
+    if (!url || typeof url !== 'string') return '';
+    if (!url.startsWith('https://')) return '';
+    if (!_isSafeMediaUrl(url)) return '';
+    return window.escapeHtml(url);
   };
 
   // ─── LOGGING: production silence ────────────────────────────────────
