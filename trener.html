@@ -2892,10 +2892,10 @@ async function renderDbAthletes(list) {
     return `
     <div class="ath-card fi" onclick="selA_db('${sid}')" data-athlete-id="${sid}" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
       <div class="ath-stripe" style="background:var(--accent)"></div>
-      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${initials}</div>
+      <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${escapeHtml(initials)}</div>
       <div class="ath-info">
-        <div class="ath-name">${name}</div>
-        <div class="ath-goal">${a.goal||''} ${a.pb_marathon?'· PB: '+a.pb_marathon:''}</div>
+        <div class="ath-name">${escapeHtml(name)}</div>
+        <div class="ath-goal">${escapeHtml(a.goal||'')} ${a.pb_marathon?'· PB: '+escapeHtml(a.pb_marathon):''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         ${a.hasMissed
