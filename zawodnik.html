@@ -5135,8 +5135,8 @@ async function loadCoachMessage() {
   let body = last.body || '';
   el.style.fontStyle = '';
 
-  // Zawsze renderuj HTML — GIFy, zdjęcia, głosówki renderują się jako el. medialne
-  el.innerHTML = body;
+  // Renderuj przez bezpieczny renderer (whitelist media + escape tekstu) — anti-XSS
+  el.innerHTML = renderMessageBody(body);
   el.style.color = '';
   el.style.fontStyle = '';
   // Dodaj style do obrazków w wiadomości
