@@ -6955,19 +6955,6 @@ async function acceptFriendFromSearch(targetId, btn) {
   _sendNotification(targetId,'friend_accepted',myName+' zaakceptował(a) Twoje zaproszenie');
 }
 
-async function rejectFriend(requesterId) {
-  await sb.from('friendships').delete().eq('requester_id',requesterId).eq('addressee_id',_athleteId);
-  loadFriends();
-}
-
-async function checkFriendRequests() {
-  if (!_athleteId) return;
-  var res = await sb.from('notifications').select('type').eq('athlete_id',_athleteId).eq('read',false);
-  var count = (res.data||[]).filter(function(n){return n.type==='friend_request';}).length;
-  var badge = document.getElementById('friends-badge');
-  if (badge) badge.style.display = count>0 ? 'block' : 'none';
-}
-
 async function loadFriends() {
   if (!_athleteId) return;
   var el = document.getElementById('social-friends-content');
