@@ -164,6 +164,42 @@
       .replace(/'/g, '&#39;');
   };
 
+  // ── UI helper: type pill renderer (anti-XSS) ──────────────────────
+  // Renderuje pigułkę z typem treningu (kolor + ikonka SVG + tekst).
+  // Używana w karcie loga, modal-u treningu, week-strip i kalendarzu.
+  // Type escape'owany defensywnie — bo to user-input z athletes.training_type.
+  function renderTypePill(type, opts) {
+    if (!type) return '';
+    opts = opts || {};
+    const size = opts.size || 'md';
+    const map = {
+      'Spokojny':       {color:'#5090e0', icon:'<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/>'},
+      'Bieg spokojny':  {color:'#5090e0', icon:'<circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/>'},
+      'Interwały':      {color:'#e8b840', icon:'<polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>'},
+      'Tempo':          {color:'#f06030', icon:'<circle cx="12" cy="13" r="8"/><polyline points="12 9 12 13 15 15"/><line x1="9" y1="3" x2="15" y2="3"/>'},
+      'Wybieganie':     {color:'#3db870', icon:'<path d="M3 18 C 6 14, 9 10, 12 10 C 15 10, 18 14, 21 18"/><path d="M9 14 L 9 14.5"/><path d="M15 14 L 15 14.5"/>'},
+      'Regeneracja':    {color:'#9a6fe8', icon:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>'},
+      'Wzmacniający':   {color:'#f0a830', icon:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'},
+      'Zastępczy':      {color:'#888888', icon:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>'},
+      'Start':          {color:'#3db870', icon:'<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/>'},
+      'Odpoczynek':     {color:'#888888', icon:'<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'},
+    };
+    const m = map[type] || {color:'#888888', icon:'<circle cx="12" cy="12" r="9"/>'};
+    const padX = size==='sm' ? '5px 9px 5px 5px' : '6px 12px 6px 6px';
+    const iconBoxSize = size==='sm' ? '18px' : '24px';
+    const iconSize = size==='sm' ? '12' : '14';
+    const fontSize = size==='sm' ? '9px' : '10px';
+    const gap = size==='sm' ? '6px' : '8px';
+    const radius = size==='sm' ? '6px' : '8px';
+    return `<span style="display:inline-flex;align-items:center;gap:${gap};background:linear-gradient(90deg,#1a1a1a,#0d0d0d);border:1px solid ${m.color}88;border-radius:${radius};padding:${padX};box-shadow:0 0 8px ${m.color}26;color:#fff;font-family:'DM Mono',monospace;">
+      <span style="width:${iconBoxSize};height:${iconBoxSize};border-radius:5px;background:${m.color}2e;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="${iconSize}" height="${iconSize}" viewBox="0 0 24 24" fill="none" stroke="${m.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${m.icon}</svg>
+      </span>
+      <span style="font-size:${fontSize};letter-spacing:0.12em;text-transform:uppercase;font-weight:500;">${(window.escapeHtml||String)(type)}</span>
+    </span>`;
+  }
+  window.renderTypePill = renderTypePill;
+
   // ─── MESSAGE RENDERING (czat: tekst + obrazki + voice + GIF) ────────
   // Bezpiecznie renderuje treść wiadomości z czata.
   // Obsługuje: obrazki (stary i nowy format), voice messages, cofnięte wiadomości.
