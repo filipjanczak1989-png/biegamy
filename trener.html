@@ -2269,16 +2269,6 @@ window.doCopyToAthlete = doCopyToAthlete;
 window.loadPanelTrainingPlans = loadPanelTrainingPlans;
 
 // ── HELPER: escape HTML ────────────────────────────────────────────
-function escapeHtml(s) {
-  if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 // CSS animation dla spinnera
 (function() {
   if (document.getElementById('tpspin-style')) return;
@@ -7776,10 +7766,7 @@ document.addEventListener('keydown', (e) => {
   let _currentIntakeId = null;
   let _intakes = [];
 
-  function escHtml(s){
-    if (s == null || s === '') return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  function escHtml(s) { return window.escapeHtml(s); }
 
   function fmtDate(d){
     if (!d) return '—';

@@ -1812,10 +1812,6 @@ function updateDayMealsTotals(meals) {
   document.getElementById('meals-total-f').textContent = Math.round(totals.f);
 }
 
-function escapeHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
 // Edycja posiłku
 function openCalMealEdit(mealId) {
   const meals = window._calMeals[window._currentDayKey] || [];

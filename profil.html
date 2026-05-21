@@ -2279,7 +2279,7 @@ async function openRaceDetails(raceName) {
 
 function openAthleteProfile(id) { if(id) location.href = 'profil.html?id=' + id; }
 // ── HELPERS ─────────────────────────────────────────────────────────────
-function escHtml(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escHtml(s) { return window.escapeHtml(s); }
 function escAttr(s) { return (s||'').replace(/"/g,'&quot;'); }
 function showToast(msg) {
   const t = document.getElementById('toast');

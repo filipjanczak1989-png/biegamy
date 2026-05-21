@@ -7720,10 +7720,6 @@ function showToast(msg) {
   showToast._tm = setTimeout(() => t.classList.remove('show'), 1800);
 }
 
-function escapeHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' }[c]));
-}
-
 // Count-up animation — smooth zmiana liczby kcal (premium feel)
 function animateValue(el, target, duration) {
   if (!el) return;
