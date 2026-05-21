@@ -3897,9 +3897,9 @@ async function sendTemplate() {
     for (const athleteId of targets) {
       _sendTrainingNotif(athleteId, 'training_added', 'Trener dodał nowy plan treningowy');
     }
-    const msg = athleteVal === '__ALL__'
-      ? `Plan wysłany do ${targets.length} zawodników ✓${skipped>0?' ('+skipped+' już istniało)':''}`
-      : `Plan tygodnia wysłany ✓`;
+    const msg = targets.length === 1
+      ? `Plan tygodnia wysłany ✓`
+      : `Plan wysłany do ${targets.length} zawodników ✓${skipped>0?' ('+skipped+' już istniało)':''}`;
     showToast(msg);
     closeTemplateModal();
   }
