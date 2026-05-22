@@ -4618,14 +4618,6 @@ async function deleteCoachMsg(e, msgId, isCoach) {
   document.body.appendChild(menu);
   setTimeout(() => document.addEventListener('click', () => menu.remove(), {once:true}), 50);
   return;
-  // old code below - never reached
-}
-async function _deleteCoachMsg_old(e, msgId, isCoach) {
-  e.preventDefault();
-  if (isCoach !== 'true') return;
-  if (!confirm('Usunąć tę wiadomość?')) return;
-  await sb.from('messages').delete().eq('id', msgId);
-  await loadCoachChat();
 }
 
 async function clearCoachChat() {
