@@ -285,23 +285,9 @@ body{padding:0 0 100px;min-height:100vh;}
 const RA_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 const RA_COUNT = 26;
 
-// ═══════════════════════════════════════════════════════════════
-// CYTATY MOTYWACYJNE — biblioteka w sb.js (window.MOTIVATIONAL_QUOTES)
-// Single source of truth — patrz sb.js, używana też przez zawodnik.html
-// ═══════════════════════════════════════════════════════════════
-const QUOTES_LIB = window.MOTIVATIONAL_QUOTES || [];
-
-// Wybierz 1 cytat na dziś (deterministycznie — ten sam przez cały dzień)
-function getDailyQuote() {
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  const idx = seed % QUOTES_LIB.length;
-  return QUOTES_LIB[idx];
-}
-
-// Wstaw cytat do DOM gdy ready
+// Wstaw cytat do DOM gdy ready (cytat z sb.js window.QUOTES_LIBRARY)
 function renderDailyQuote() {
-  const q = getDailyQuote();
+  const q = window.getDailyQuote();
   const tEl = document.getElementById('quote-text');
   const aEl = document.getElementById('quote-author');
   if (tEl && aEl) {

@@ -3982,121 +3982,13 @@ function _tileMonthNav(dir) {
   renderTiles();
 }
 
-// ── CYTATY DNIA ─────────────────────────────────────────────────────
-const DAILY_QUOTES = [
-  { text: "Nie musisz być szybki. Musisz tylko nie przestawać.", author: "BiegaMy" },
-  { text: "Każdy kilometr to wybór. Każdy wybór to charakter.", author: "BiegaMy" },
-  { text: "Ciało osiągnie to, w co uwierzy umysł.", author: "Bill Bowerman" },
-  { text: "Biegnij kiedy możesz, idź kiedy musisz, pełznij jeśli trzeba.", author: "Dean Karnazes" },
-  { text: "Ból jest tymczasowy. Rezygnacja trwa wiecznie.", author: "L. Armstrong" },
-  { text: "Najlepszy trening to ten, który właśnie skończyłeś.", author: "BiegaMy" },
-  { text: "Twoje nogi nie poddadzą się pierwsze. Twój umysł — tak.", author: "H. Gebrselassie" },
-  { text: "Każdy poranek daje ci szansę, żeby być lepszym niż wczoraj.", author: "BiegaMy" },
-  { text: "Nie porównuj swojego rozdziału 1 z czyjimś rozdziałem 20.", author: "BiegaMy" },
-  { text: "Tempo się mija, charakter pozostaje.", author: "BiegaMy" },
-  { text: "Trudne drogi prowadzą do pięknych miejsc.", author: "BiegaMy" },
-  { text: "Progres, nie perfekcja.", author: "BiegaMy" },
-  { text: "Nie śnij o byciu szybszym. Wstań i zacznij biegać.", author: "E. Kipchoge" },
-  { text: "Twoje jedyne ograniczenie to ty sam.", author: "BiegaMy" },
-  { text: "Bieganie to medytacja w ruchu.", author: "BiegaMy" },
-  { text: "Kiedy twoje nogi bolą, biegnij sercem.", author: "BiegaMy" },
-  { text: "Każdy trening to inwestycja w siebie.", author: "BiegaMy" },
-  { text: "Nie ma złej pogody — jest tylko nieodpowiedni ubiór.", author: "Polskie przysłowie" },
-  { text: "Siła pochodzi z walki i niepoddawania się.", author: "BiegaMy" },
-  { text: "Biegaj tak, jakby twoje życie od tego zależało.", author: "BiegaMy" },
-  { text: "Małe kroki. Wielka odległość.", author: "BiegaMy" },
-  { text: "Sukces to suma małych wysiłków powtarzanych dzień po dniu.", author: "R. Collier" },
-  { text: "Trening dzisiaj to wyniki jutro.", author: "BiegaMy" },
-  { text: "Nie zapomnisz biegów, na które się zmusiłeś.", author: "BiegaMy" },
-  { text: "Każdy bieg zaczyna się od pierwszego kroku.", author: "BiegaMy" },
-  { text: "Cierpliwość, wytrwałość i pot — trio sukcesu.", author: "N. Hill" },
-  { text: "Formy nie możesz kupić. Musisz na nią zapracować.", author: "BiegaMy" },
-  { text: "Kiedy myślisz, że nie możesz — biegnij jeszcze chwilę.", author: "BiegaMy" },
-  { text: "Bieganie uczy pokory. I siły jednocześnie.", author: "BiegaMy" },
-  { text: "Każde zawody zaczynają się na treningu.", author: "BiegaMy" },
-  { text: "Nie ma skrótu do szczytu.", author: "BiegaMy" },
-  { text: "Dyscyplina to most między celami a osiągnięciami.", author: "Jim Rohn" },
-  { text: "Biegaj własną ścieżką. Inni mają swoje.", author: "BiegaMy" },
-  { text: "Nawet powolny bieg bije szybki odpoczynek.", author: "BiegaMy" },
-  { text: "Twoje ciało może zrobić prawie wszystko. Przekonaj umysł.", author: "BiegaMy" },
-  { text: "Jutrzejszy wynik zależy od dzisiejszego treningu.", author: "BiegaMy" },
-  { text: "Bieganie to chwila tylko dla siebie.", author: "BiegaMy" },
-  { text: "Najciemniej przed świtem. Biegaj przez tę ciemność.", author: "BiegaMy" },
-  { text: "To, co robisz codziennie, definiuje, kim jesteś.", author: "BiegaMy" },
-  { text: "Każdy kilometr to zwycięstwo nad wczorajszym sobą.", author: "BiegaMy" },
-  { text: "Wielkie rzeczy nigdy nie rodzą się z komfortu.", author: "BiegaMy" },
-  { text: "Wytrwałość to nie sprint. To maraton.", author: "BiegaMy" },
-  { text: "Biegaj z pasją lub wcale.", author: "BiegaMy" },
-  { text: "Zaufaj procesowi. Wyniki przyjdą.", author: "BiegaMy" },
-  { text: "Twoje ciało jest twoim narzędziem. Szanuj je.", author: "BiegaMy" },
-  { text: "Biegaj dla zdrowia, zostań dla miłości do sportu.", author: "BiegaMy" },
-  { text: "Nie pytaj czy dasz radę. Pytaj jak.", author: "BiegaMy" },
-  { text: "Każdy trening zapisuje się w sercu na zawsze.", author: "BiegaMy" },
-  { text: "Bieganie jest proste. Zrezygnowanie jest trudne.", author: "BiegaMy" },
-  { text: "Nawet maraton zaczyna się od jednego kroku.", author: "BiegaMy" },
-  { text: "Nie liczy się to, jak szybko biegniesz. Liczy się, że biegniesz.", author: "BiegaMy" },
-];
-
-
-const DAY_SCREEN_QUOTES = [
-  { text: "Dziś jest dobry dzień żeby być lepszym niż wczoraj.", author: "BiegaMy" },
-  { text: "Każdy trening to rozmowa z samym sobą.", author: "BiegaMy" },
-  { text: "Nie musisz być idealny. Musisz być konsekwentny.", author: "BiegaMy" },
-  { text: "Zmęczenie jest tymczasowe. Duma z ukończonego treningu — wieczna.", author: "BiegaMy" },
-  { text: "Twoje ciało wie jak biegać. Pozwól mu.", author: "BiegaMy" },
-  { text: "Bieganie zaczyna się w głowie. Reszta to technikalia.", author: "BiegaMy" },
-  { text: "Jeden krok na raz. Jeden trening na raz.", author: "BiegaMy" },
-  { text: "Nie ma złego treningu. Jest tylko ten, którego nie zrobiłeś.", author: "BiegaMy" },
-  { text: "Silniejszy nie znaczy szybszy. Szybszy znaczy mądrzejszy.", author: "BiegaMy" },
-  { text: "Każde wyjście na trening to inwestycja w jutrzejszego siebie.", author: "BiegaMy" },
-  { text: "Pokonujesz bariery, których inni nigdy nie postawili.", author: "BiegaMy" },
-  { text: "Rytm oddechu to twoja muzyka.", author: "BiegaMy" },
-  { text: "Nie biegasz po nagrodę. Biegasz bo to kim jesteś.", author: "BiegaMy" },
-  { text: "Każdy pot jest dowodem twojej pracy.", author: "BiegaMy" },
-  { text: "Trening który planujesz to cel. Trening który robisz — to charakter.", author: "BiegaMy" },
-  { text: "Twoje nogi pamiętają każdy kilometr. Doceniaj je.", author: "BiegaMy" },
-  { text: "Najpierw ból. Potem moc. Potem uzależnienie.", author: "BiegaMy" },
-  { text: "Nie porównuj swojego tempa. Porównuj swoją determinację.", author: "BiegaMy" },
-  { text: "Biegasz by żyć lepiej. Żyjesz by biegać dalej.", author: "BiegaMy" },
-  { text: "Dziś możesz. Jutro będziesz chciał móc więcej.", author: "BiegaMy" },
-  { text: "Każdy maraton zaczął się od kogoś, kto powiedział: spróbuję.", author: "BiegaMy" },
-  { text: "Tempo mija. Wspomnienia zostają.", author: "BiegaMy" },
-  { text: "Słuchaj swojego ciała. Ale nie słuchaj swojego lenistwa.", author: "BiegaMy" },
-  { text: "Świt najlepiej smakuje po nocnym treningu.", author: "BiegaMy" },
-  { text: "Twój największy rywal biegnie w twoich butach.", author: "BiegaMy" },
-  { text: "Nie wszystkie bitwy są widoczne. Ta wewnętrzna jest najważniejsza.", author: "BiegaMy" },
-  { text: "Robisz to co inni tylko planują.", author: "BiegaMy" },
-  { text: "Kiedy nogi mówią stop — serce mówi jeszcze jeden krok.", author: "BiegaMy" },
-  { text: "Każdy wymagający trening zbliża cię do wersji, którą chcesz być.", author: "BiegaMy" },
-  { text: "Bieganie to wolność. Cele to kierunek.", author: "BiegaMy" },
-  { text: "Nie biegniesz by uciec. Biegniesz by dotrzeć.", author: "BiegaMy" },
-  { text: "Twoje ciało jest silniejsze niż twój umysł myśli.", author: "BiegaMy" },
-  { text: "Każdy dzień treningu to cegiełka do twojego najlepszego wyniku.", author: "BiegaMy" },
-  { text: "Pasja bez dyscypliny to marzenie. Dyscyplina bez pasji to więzienie.", author: "BiegaMy" },
-  { text: "Zrób dziś coś, z czego jutrzejsze ja będzie dumne.", author: "BiegaMy" },
-  { text: "Nie liczy się meta. Liczy się droga do niej.", author: "BiegaMy" },
-  { text: "Każde wyjście na trening to zwycięstwo nad kanapą.", author: "BiegaMy" },
-  { text: "Twój rekord czeka na ciebie gdzieś za horyzontem.", author: "BiegaMy" },
-  { text: "Biegasz. To już wystarczy.", author: "BiegaMy" },
-  { text: "Dziś zmęczony. Jutro silniejszy.", author: "BiegaMy" },
-  { text: "Nie ma złej pogody — są tylko za dobre wymówki.", author: "BiegaMy" },
-  { text: "Spokojny bieg to też bieg. I jest potrzebny.", author: "BiegaMy" },
-  { text: "Twój plan jest mądrzejszy od twojego nastroju.", author: "BiegaMy" },
-  { text: "Zaufaj treningowi. Zaufaj sobie.", author: "BiegaMy" },
-  { text: "Ciało adaptuje się do tego, co mu dajesz. Dawaj mu wszystko.", author: "BiegaMy" },
-  { text: "Każdy kilometr ma swój sens, nawet jeśli go nie widzisz.", author: "BiegaMy" },
-  { text: "Bieganie to nie kara. To nagroda dla tych, którzy tego chcą.", author: "BiegaMy" },
-  { text: "Idziesz powoli? Wyprzedzasz każdego, kto siedzi.", author: "BiegaMy" },
-  { text: "Twoje nogi zaniosą cię tam, gdzie marzenia mówią idź.", author: "BiegaMy" },
-  { text: "Po drugiej stronie wysiłku jest to, czego szukasz.", author: "BiegaMy" },
-];
+// ── CYTATY DNIA — z sb.js window.QUOTES_LIBRARY (single source of truth) ──
 function _showDailyQuote() {
   const wrap = document.getElementById('daily-quote-wrap');
   const textEl = document.getElementById('daily-quote-text');
   const authorEl = document.getElementById('daily-quote-author');
   if (!wrap || !textEl) return;
-  const daysSinceEpoch = Math.floor((new Date() - new Date('2020-01-01')) / 86400000);
-  const q = DAILY_QUOTES[daysSinceEpoch % DAILY_QUOTES.length];
+  const q = window.getDailyQuote();
   textEl.textContent = '„' + q.text + '”';
   authorEl.textContent = '— ' + q.author;
   wrap.style.display = 'block';
@@ -4409,7 +4301,7 @@ function _openDayScreen(ds) {
   }
 
   // ── KARTA: Cytat dnia
-  const _dayQ = DAY_SCREEN_QUOTES[Math.floor((new Date(ds + 'T00:00:00') - new Date('2020-01-01')) / 86400000) % DAY_SCREEN_QUOTES.length];
+  const _dayQ = window.getDailyQuote(Math.floor((new Date(ds + 'T00:00:00') - new Date()) / 86400000));
   const dsQuoteEl = document.getElementById('ds-quote-card');
   if (dsQuoteEl) {
     dsQuoteEl.querySelector('.ds-quote-text').textContent = '„' + _dayQ.text + '”';

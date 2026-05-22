@@ -20,8 +20,7 @@
 //   window.safeExternalHref(url) — escape URL dla <a href> do linków zewnętrznych (https/http-only, bez whitelisty hostów)
 //   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
 //   window.showToast(msg, type) — toast UI zamiast alert()
-//   window.MOTIVATIONAL_QUOTES — biblioteka cytatów (~33, {text, author}) — używana przez zawodnik.html + raporty.html
-//   window.QUOTES_LIBRARY — większa biblioteka cytatów (64, {text, author}) — następca MOTIVATIONAL_QUOTES (migracja w commicie 2)
+//   window.QUOTES_LIBRARY — biblioteka cytatów (64, {text, author}) — single source of truth (zawodnik/raporty/kalendarz)
 //   window.getDailyQuote(offsetDays=0) — 1 cytat per dzień (deterministyczny seed YYYYMMDD)
 //   window.getDailyQuoteSet(count=5) — N deterministycznie zshuffle'owanych cytatów (Mulberry32)
 // ════════════════════════════════════════════════════════════════════
@@ -401,62 +400,6 @@
       setTimeout(function() { try { t.remove(); } catch(e){} }, 300);
     }, 2500);
   };
-
-  // ─── MOTIVATIONAL QUOTES LIBRARY ────────────────────────────────────
-  // 33 cytatów: rap, sport, biegacze, klasyki, BiegaMy autorskie
-  // Używane przez: zawodnik.html (_heroQuotesLibrary, hero carousel 5/dzień)
-  //                + raporty.html (QUOTES_LIB, 1 cytat/dzień)
-  // Format: { text: '...', author: '...' }
-  window.MOTIVATIONAL_QUOTES = [
-    // Polskie raperzy
-    { text: 'Każdy dzień to nowa walka. Nie odpuszczaj.', author: 'Quebonafide' },
-    { text: 'Dyscyplina przebije talent kiedy talent nie ma dyscypliny.', author: 'Taco Hemingway' },
-    { text: 'Zostaw wszystko na trasie. Resztę dorobi czas.', author: 'O.S.T.R.' },
-    { text: 'Nie ma drogi na skróty do miejsca, do którego warto dotrzeć.', author: 'Mata' },
-    { text: 'Robisz wynik, kiedy nikt nie patrzy.', author: 'Pezet' },
-    { text: 'Nie boję się tego, kto trenował 10 000 kopnięć raz. Boję się tego, kto trenował jedno kopnięcie 10 000 razy.', author: 'Bruce Lee' },
-
-    // Polscy biegacze i trenerzy
-    { text: 'Bieg to medytacja w ruchu.', author: 'Marcin Świerc' },
-    { text: 'Nie chodzi o to, żeby być najszybszym. Chodzi o to, żeby nigdy się nie poddać.', author: 'Robert Korzeniowski' },
-    { text: 'Granica jest tylko w głowie. Nogi jeszcze sporo wytrzymają.', author: 'Joanna Jóźwik' },
-
-    // Influencerzy fitness
-    { text: 'Najtrudniejszy krok to ten pierwszy. Reszta sama się zrobi.', author: 'Akop Szostak' },
-    { text: 'Twoje ciało może wszystko. To Twoja głowa musisz przekonać.', author: 'David Goggins' },
-    { text: 'Bądź lepszy o 1% każdego dnia. Po roku jesteś 37x lepszy.', author: 'James Clear' },
-
-    // Sportowe legendy
-    { text: 'Trudno cię pokonać, kiedy nigdy się nie poddajesz.', author: 'Babe Ruth' },
-    { text: 'Cierpienie jest opcjonalne. Ból jest nieunikniony.', author: 'Haruki Murakami' },
-    { text: 'Nie chodzi o to ile razy upadasz. Chodzi o to ile razy wstajesz.', author: 'Vince Lombardi' },
-    { text: 'Jedyna granica twojej wytrzymałości jest tam gdzie postanowisz przestać.', author: 'Eliud Kipchoge' },
-    { text: 'Nie liczę swoich brzuszków, dopóki nie zacznie boleć. Wtedy zaczynam liczyć — bo wtedy się liczą.', author: 'Muhammad Ali' },
-
-    // Polskie klasyki i autorskie
-    { text: 'Pot to słabość opuszczająca ciało.', author: 'Stara szkoła' },
-    { text: 'Zacznij. Reszta jest łatwiejsza niż myślisz.', author: 'BiegaMy' },
-    { text: 'Kilometr po kilometrze. Tak buduje się formę.', author: 'BiegaMy' },
-    { text: 'Najgorszy bieg jest lepszy niż żaden bieg.', author: 'BiegaMy' },
-    { text: 'Plan na dziś > marzenia o jutrze.', author: 'BiegaMy' },
-    { text: 'Ciało robi to, co głowa pozwoli mu robić.', author: 'BiegaMy' },
-
-    // Kpop/influ na czasie
-    { text: 'Zaufaj procesowi. Wszystko ma swój czas.', author: 'Drake' },
-    { text: 'Nie szukasz wymówek. Szukasz drogi.', author: 'Kobe Bryant' },
-    { text: 'Ciężka praca przebije talent, jeśli talent nie pracuje ciężko.', author: 'Tim Notke' },
-
-    // Filozofia treningu
-    { text: 'Wstań wcześnie. Trenuj. Powtórz. To wszystko.', author: 'Jocko Willink' },
-    { text: 'Sukces to suma małych wysiłków powtarzanych dzień po dniu.', author: 'Robert Collier' },
-    { text: 'Nie ma magicznej tabletki. Jest plan i robota.', author: 'Mat Fraser' },
-
-    // Krótkie kopniaki
-    { text: 'Idziesz po medal czy po wymówkę?', author: 'BiegaMy' },
-    { text: 'Buty założone. Reszta to detale.', author: 'BiegaMy' },
-    { text: 'Twój największy rywal patrzy na Ciebie z lustra.', author: 'BiegaMy' },
-    { text: 'Dziś nie? To kiedy?', author: 'BiegaMy' },
-  ];
 
   // ═══════════════════════════════════════════════════════════════
   // 📜 CYTATY MOTYWACYJNE — single source of truth

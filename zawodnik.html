@@ -3440,26 +3440,15 @@ let _athleteId = null;
 
 
 // ── MOTYWACJA DNIA ────────────────────────────────────────────────
-const _QUOTES = [
-  {icon:'🔥', text:'"Nie ma złej pogody na trening, są tylko złe usprawiedliwienia."', source:'— zasada biegaczy'},
-  {icon:'💪', text:'"Każdy kilometr na treningu to inwestycja w dzień startu."', source:'— BiegaMy'},
-  {icon:'🏃', text:'"Ból jest tymczasowy. Duma z ukończenia trwa wiecznie."', source:'— Lance Armstrong'},
-  {icon:'⚡', text:'"Nie porównuj swojego rozdziału 1 z czyimś rozdziałem 20."', source:'— zasada sportu'},
-  {icon:'🎯', text:'"Konsekwencja pokonuje intensywność."', source:'— zasada treningowa'},
-  {icon:'🌟', text:'"Każdy bieg, nawet najkrótszy, przybliża cię do celu."', source:'— BiegaMy'},
-  {icon:'🏆', text:'"Twoje nogi będą robić to, co nakaże im głowa."', source:'— maraton 40. km'},
-  {icon:'❤️', text:'"Biegnij dziś, żeby jutro czuć się wolnym."', source:'— BiegaMy'},
-  {icon:'🚀', text:'"Najgorszy trening to ten, którego nie było."', source:'— zasada biegaczy'},
-  {icon:'💯', text:'"Nie musisz być szybki. Musisz być dalej niż wczoraj."', source:'— BiegaMy'},
-];
-
 async function loadDailyMotivation() {
   const el = document.getElementById('daily-motivation');
   if (!el) return;
-  
-  // Cytat — rotacja dzienna (deterministyczna na podstawie dnia roku)
-  const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
-  const q = _QUOTES[dayOfYear % _QUOTES.length];
+
+  // Cytat — z window.QUOTES_LIBRARY (sb.js), bez emoji, w cudzysłowach
+  const q = (() => {
+    const base = window.getDailyQuote();
+    return { icon: '', text: '"' + base.text + '"', source: '— ' + base.author };
+  })();
   
   // Sprawdź czy są dane o innych zawodnikach — statystyka społeczna
   let socialText = null;
@@ -4041,32 +4030,8 @@ const _heroSets = [
 const _heroDay = new Date().getDay(); // 0-6
 const _heroCards = _heroSets[_heroDay].map(n => BASE_ASSETS + n + '.webp');
 
-// ═══════════════════════════════════════════════════════════════
-// CYTATY MOTYWACYJNE — biblioteka w sb.js (window.MOTIVATIONAL_QUOTES)
-// Single source of truth — patrz sb.js, używana też przez raporty.html
-// ═══════════════════════════════════════════════════════════════
-const _heroQuotesLibrary = window.MOTIVATIONAL_QUOTES || [];
-
-// Wybierz 5 cytatów na dziś (deterministycznie z daty — ten sam zestaw w ciągu dnia)
-const _heroQuotes = (() => {
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-  // Deterministyczny shuffle (Mulberry32)
-  let s = seed;
-  const rand = () => {
-    s |= 0; s = (s + 0x6D2B79F5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-  const arr = [..._heroQuotesLibrary];
-  // Fisher-Yates shuffle z deterministycznym RNG
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr.slice(0, 5);
-})();
+// 5 cytatów na dziś (z window.QUOTES_LIBRARY przez sb.js helper)
+const _heroQuotes = window.getDailyQuoteSet(5);
 
 let _heroIdx = 0;
 let _heroTimer = null;
