@@ -286,47 +286,10 @@ const RA_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 const RA_COUNT = 26;
 
 // ═══════════════════════════════════════════════════════════════
-// CYTATY MOTYWACYJNE — 1 per dzień, deterministycznie z daty
+// CYTATY MOTYWACYJNE — biblioteka w sb.js (window.MOTIVATIONAL_QUOTES)
+// Single source of truth — patrz sb.js, używana też przez zawodnik.html
 // ═══════════════════════════════════════════════════════════════
-const QUOTES_LIB = [
-  // Polski rap
-  { text: 'Każdy dzień to nowa walka. Nie odpuszczaj.', author: 'Quebonafide' },
-  { text: 'Dyscyplina przebije talent kiedy talent nie ma dyscypliny.', author: 'Taco Hemingway' },
-  { text: 'Zostaw wszystko na trasie. Resztę dorobi czas.', author: 'O.S.T.R.' },
-  { text: 'Nie ma drogi na skróty do miejsca, do którego warto dotrzeć.', author: 'Mata' },
-  { text: 'Robisz wynik, kiedy nikt nie patrzy.', author: 'Pezet' },
-  // Polski sport
-  { text: 'Bieg to medytacja w ruchu.', author: 'Marcin Świerc' },
-  { text: 'Nie chodzi o to, żeby być najszybszym. Chodzi o to, żeby nigdy się nie poddać.', author: 'Robert Korzeniowski' },
-  { text: 'Granica jest tylko w głowie. Nogi jeszcze sporo wytrzymają.', author: 'Joanna Jóźwik' },
-  // Influ fitness
-  { text: 'Najtrudniejszy krok to ten pierwszy. Reszta sama się zrobi.', author: 'Akop Szostak' },
-  { text: 'Twoje ciało może wszystko. To Twoja głowa musisz przekonać.', author: 'David Goggins' },
-  { text: 'Bądź lepszy o 1% każdego dnia. Po roku jesteś 37x lepszy.', author: 'James Clear' },
-  // Klasyki
-  { text: 'Nie boję się tego, kto trenował 10 000 kopnięć raz. Boję się tego, kto trenował jedno kopnięcie 10 000 razy.', author: 'Bruce Lee' },
-  { text: 'Trudno cię pokonać, kiedy nigdy się nie poddajesz.', author: 'Babe Ruth' },
-  { text: 'Cierpienie jest opcjonalne. Ból jest nieunikniony.', author: 'Haruki Murakami' },
-  { text: 'Nie chodzi o to ile razy upadasz. Chodzi o to ile razy wstajesz.', author: 'Vince Lombardi' },
-  { text: 'Jedyna granica twojej wytrzymałości jest tam gdzie postanowisz przestać.', author: 'Eliud Kipchoge' },
-  // Filozofia treningu
-  { text: 'Wstań wcześnie. Trenuj. Powtórz. To wszystko.', author: 'Jocko Willink' },
-  { text: 'Sukces to suma małych wysiłków powtarzanych dzień po dniu.', author: 'Robert Collier' },
-  { text: 'Zaufaj procesowi. Wszystko ma swój czas.', author: 'Drake' },
-  { text: 'Nie szukasz wymówek. Szukasz drogi.', author: 'Kobe Bryant' },
-  { text: 'Ciężka praca przebije talent, jeśli talent nie pracuje ciężko.', author: 'Tim Notke' },
-  // Autorskie BiegaMy
-  { text: 'Pot to słabość opuszczająca ciało.', author: 'Stara szkoła' },
-  { text: 'Zacznij. Reszta jest łatwiejsza niż myślisz.', author: 'BiegaMy' },
-  { text: 'Kilometr po kilometrze. Tak buduje się formę.', author: 'BiegaMy' },
-  { text: 'Najgorszy bieg jest lepszy niż żaden bieg.', author: 'BiegaMy' },
-  { text: 'Plan na dziś > marzenia o jutrze.', author: 'BiegaMy' },
-  { text: 'Ciało robi to, co głowa pozwoli mu robić.', author: 'BiegaMy' },
-  { text: 'Idziesz po medal czy po wymówkę?', author: 'BiegaMy' },
-  { text: 'Buty założone. Reszta to detale.', author: 'BiegaMy' },
-  { text: 'Twój największy rywal patrzy na Ciebie z lustra.', author: 'BiegaMy' },
-  { text: 'Dziś nie? To kiedy?', author: 'BiegaMy' },
-];
+const QUOTES_LIB = window.MOTIVATIONAL_QUOTES || [];
 
 // Wybierz 1 cytat na dziś (deterministycznie — ten sam przez cały dzień)
 function getDailyQuote() {
