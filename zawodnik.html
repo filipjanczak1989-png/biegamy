@@ -1567,6 +1567,13 @@ body > *{position:relative;z-index:1;}
         </div>
       </div>
 
+      <!-- SKANER TRENINGU -->
+      <div id="ocr-row" style="margin-bottom:14px;">
+        <input type="file" id="ocr-file" accept="image/*" style="display:none;">
+        <button type="button" id="ocr-btn" onclick="document.getElementById('ocr-file').click()" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;box-shadow:0 4px 12px rgba(139,92,246,0.35);">📷 Skanuj trening</button>
+        <div id="ocr-status" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;text-align:center;min-height:14px;"></div>
+      </div>
+
       <!-- DYSTANS + CZAS -->
       <div class="f-row" id="log-form">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
@@ -1947,6 +1954,101 @@ function selFeel(el,t){
   document.querySelectorAll('.feel-btn').forEach(b=>b.className='feel-btn');
   el.classList.add('sel-'+t);feel=t;
 }
+window._ocrSetup = function() {
+  const fileInput = document.getElementById('ocr-file');
+  if (!fileInput || fileInput._ocrBound) return;
+  fileInput._ocrBound = true;
+
+  const btn = document.getElementById('ocr-btn');
+  const statusEl = document.getElementById('ocr-status');
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+
+    // Walidacja rozmiaru — max 5MB (chroni przed slow upload + Anthropic API limit)
+    if (file.size > 5*1024*1024) {
+      statusEl.style.color = 'var(--red)';
+      statusEl.textContent = 'Plik za duży (max 5MB)';
+      fileInput.value = '';
+      return;
+    }
+
+    if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Skanuję screen...'; }
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.7'; }
+
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) {
+        if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Zaloguj się ponownie'; }
+        return;
+      }
+
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+      });
+
+      const resp = await fetch(window.SB_FN_URL + '/ocr-training-screen', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_base64: base64, media_type: file.type || 'image/jpeg' })
+      });
+      const json = await resp.json();
+
+      if (!resp.ok || !json.ok) {
+        if (json._error === 'no_training_data' || json.error === 'no_training_data') {
+          if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = 'Brak danych treningowych — wpisz ręcznie'; }
+        } else {
+          if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Nie udało się odczytać'; }
+        }
+        return;
+      }
+
+      // Pre-fill pól TYLKO jeśli puste
+      let filled = 0;
+      const fields = [['l-dist', json.distance_km], ['l-time', json.duration], ['l-pace', json.pace], ['l-hr', json.heart_rate], ['l-elevation', json.elevation_gain]];
+      for (const [id, val] of fields) {
+        const el = document.getElementById(id);
+        if (el && !el.value && val != null && val !== '') { el.value = val; filled++; }
+      }
+
+      // Ustaw training_type przez selType (znajdź pasujący pill button)
+      if (json.training_type && typeof window.selType === 'function') {
+        const pills = document.querySelectorAll('.type-pill');
+        for (const pill of pills) {
+          if (pill.textContent.includes(json.training_type)) { window.selType(pill, json.training_type); break; }
+        }
+      }
+
+      // Dodaj file do _pendingFiles → poleci jako attachment przy saveLog
+      if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(file);
+      else window._pendingFiles = [file];
+
+      if (statusEl) {
+        statusEl.style.color = 'var(--green)';
+        const sufix = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
+        statusEl.textContent = `Wczytałem ${filled} ${sufix}`;
+      }
+    } catch (e) {
+      console.error('[ocr] error:', e);
+      if (statusEl) { statusEl.style.color = 'var(--red)'; statusEl.textContent = 'Nie udało się odczytać'; }
+    } finally {
+      if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+      fileInput.value = '';
+    }
+  });
+};
+
+// Setup raz po DOM ready (modal-bg z #ocr-file istnieje w DOM bez względu na to czy modal otwarty)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => window._ocrSetup());
+} else {
+  window._ocrSetup();
+}
+
 let _logType = 'Spokojny';
 
 function selType(el, type) {
