@@ -1991,10 +1991,11 @@ window._ocrSetup = function() {
         r.readAsDataURL(file);
       });
 
+      const today_iso = new Date().toISOString().split('T')[0];
       const resp = await fetch(window.SB_FN_URL + '/ocr-training-screen', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_base64: base64, media_type: file.type || 'image/jpeg' })
+        body: JSON.stringify({ image_base64: base64, media_type: file.type || 'image/jpeg', today_iso })
       });
       const json = await resp.json();
 
@@ -2013,6 +2014,32 @@ window._ocrSetup = function() {
       for (const [id, val] of fields) {
         const el = document.getElementById(id);
         if (el && !el.value && val != null && val !== '') { el.value = val; filled++; }
+      }
+
+      // Parse activity_date z OCR + ewentualny auto-shift _logDate (cap 7 dni wstecz)
+      let _ocrDateInfo = '';
+      if (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) {
+        const todayMs = new Date(today_iso + 'T12:00:00Z').getTime();
+        const activityMs = new Date(json.activity_date + 'T12:00:00Z').getTime();
+        const daysOffset = Math.floor((activityMs - todayMs) / 86400000);
+        if (daysOffset === 0) {
+          _ocrDateInfo = ' · Dzisiaj';
+        } else if (daysOffset >= -7 && daysOffset < 0) {
+          // Shift: trening sprzed do 7 dni → ustaw _logDate + modal-sub
+          _logDate = json.activity_date;
+          if (typeof _updateLogDateDisplay === 'function') _updateLogDateDisplay();
+          const [_y, _m, _d] = json.activity_date.split('-').map(Number);
+          const _dt = new Date(_y, _m-1, _d);
+          const _modalSub = document.getElementById('modal-sub');
+          if (_modalSub) _modalSub.textContent = _dt.toLocaleDateString('pl-PL', {weekday:'long', day:'numeric', month:'long'});
+          const _dm = String(_d).padStart(2,'0') + '/' + String(_m).padStart(2,'0');
+          _ocrDateInfo = daysOffset === -1
+            ? ` · Trening z ${_dm} (wczoraj)`
+            : ` · Trening z ${_dm} (${Math.abs(daysOffset)} dni temu)`;
+        } else {
+          // daysOffset < -7 (zbyt stary) lub > 0 (przyszłość) → nie shift, ostrzeż
+          _ocrDateInfo = ' · ⚠ Sprawdź datę';
+        }
       }
 
       // Ustaw training_type przez selType (znajdź pasujący pill button)
@@ -2042,9 +2069,9 @@ window._ocrSetup = function() {
       if (typeof _updateUploadLabel === 'function') _updateUploadLabel();
 
       if (statusEl) {
-        statusEl.style.color = 'var(--green)';
+        statusEl.style.color = _ocrDateInfo.includes('⚠') ? '#e8561e' : 'var(--green)';
         const sufix = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
-        statusEl.textContent = `Wczytałem ${filled} ${sufix}`;
+        statusEl.textContent = `Wczytałem ${filled} ${sufix}${_ocrDateInfo}`;
       }
     } catch (e) {
       console.error('[ocr] error:', e);
