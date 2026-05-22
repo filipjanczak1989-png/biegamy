@@ -7639,7 +7639,6 @@ async function _loadPeerThreadZ(tid, silent) {
 }
 
 // Override sendMessage — delegate to peer if in peer mode
-var _origSendMessage = null;
 function sendMessage() {
   if (_chatMode==='peer' && _chatPeerId) {
     _sendPeerMsgZ();
