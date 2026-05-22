@@ -735,69 +735,13 @@
     };
   };
 
-  // ═══════════════════════════════════════════════════════════════
-  // 🔍 ZOOM CONTROLS — accessibility feature (floating widget)
-  // ═══════════════════════════════════════════════════════════════
-  // Floating widget bottom-right z A-/A+/aktualny%. Persystencja w
-  // localStorage.zoomLevel. Działa wszędzie via document.body.style.zoom.
-  // ═══════════════════════════════════════════════════════════════
-
-  const ZOOM_LEVELS = [90, 100, 110, 125, 150];
-
-  window._applyZoom = function(level) {
-    const lvl = parseInt(level) || 100;
-    if (lvl === 100) {
-      document.body.style.zoom = '';
-    } else {
-      document.body.style.zoom = (lvl / 100).toString();
+  // Cleanup po usunięciu zoom feature — kasuje stary localStorage flag i resetuje zoom
+  try {
+    if (localStorage.getItem('zoomLevel')) {
+      localStorage.removeItem('zoomLevel');
+      if (document.body && document.body.style.zoom) {
+        document.body.style.zoom = '';
+      }
     }
-    // Update UI if widget renderowany
-    const txt = document.getElementById('zoom-level-text');
-    if (txt) txt.textContent = lvl + '%';
-    const minus = document.getElementById('zoom-btn-minus');
-    const plus = document.getElementById('zoom-btn-plus');
-    if (minus) minus.style.opacity = lvl <= ZOOM_LEVELS[0] ? '0.35' : '1';
-    if (plus) plus.style.opacity = lvl >= ZOOM_LEVELS[ZOOM_LEVELS.length - 1] ? '0.35' : '1';
-  };
-
-  window._zoomChange = function(direction) {
-    let current = parseInt(localStorage.getItem('zoomLevel') || '100');
-    const idx = ZOOM_LEVELS.indexOf(current);
-    let newIdx;
-    if (direction === '+') newIdx = Math.min(idx + 1, ZOOM_LEVELS.length - 1);
-    else newIdx = Math.max(idx - 1, 0);
-    if (idx === -1) newIdx = ZOOM_LEVELS.indexOf(100); // fallback do 100% jeśli stale value
-    const newLevel = ZOOM_LEVELS[newIdx];
-    try { localStorage.setItem('zoomLevel', String(newLevel)); } catch(e) {}
-    window._applyZoom(newLevel);
-  };
-
-  window._initZoom = function() {
-    // 1. Apply saved zoom level (przed wywołaniem widget render)
-    let saved = parseInt(localStorage.getItem('zoomLevel') || '100');
-    if (!ZOOM_LEVELS.includes(saved)) saved = 100; // sanitize
-
-    // 2. Inject widget HTML jeśli nie ma
-    if (document.getElementById('zoom-widget')) return;
-
-    const widget = document.createElement('div');
-    widget.id = 'zoom-widget';
-    widget.style.cssText = 'position:fixed;bottom:18px;right:14px;z-index:9998;background:rgba(20,15,30,0.92);backdrop-filter:blur(10px);border:1px solid rgba(232,86,30,0.35);border-radius:24px;padding:5px;display:flex;align-items:center;gap:2px;box-shadow:0 4px 16px rgba(0,0,0,0.4);font-family:"DM Mono",monospace;';
-    widget.innerHTML = ''
-      + '<button id="zoom-btn-minus" onclick="window._zoomChange(\'-\')" title="Zmniejsz" style="width:32px;height:32px;background:transparent;border:none;color:#e8561e;font-size:18px;font-weight:700;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="if(this.style.opacity!==\'0.35\')this.style.background=\'rgba(232,86,30,0.15)\'" onmouseout="this.style.background=\'transparent\'">A−</button>'
-      + '<div id="zoom-level-text" style="min-width:40px;text-align:center;font-size:11px;color:#fff;font-weight:600;letter-spacing:0.03em;padding:0 4px;">100%</div>'
-      + '<button id="zoom-btn-plus" onclick="window._zoomChange(\'+\')" title="Powiększ" style="width:32px;height:32px;background:transparent;border:none;color:#e8561e;font-size:18px;font-weight:700;cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all 0.15s;" onmouseover="if(this.style.opacity!==\'0.35\')this.style.background=\'rgba(232,86,30,0.15)\'" onmouseout="this.style.background=\'transparent\'">A+</button>';
-
-    document.body.appendChild(widget);
-
-    // 3. Apply saved level (przy okazji aktualizuje widget UI)
-    window._applyZoom(saved);
-  };
-
-  // Auto-init przy DOMContentLoaded (lub od razu jeśli już ready)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => window._initZoom());
-  } else {
-    setTimeout(() => window._initZoom(), 50);
-  }
+  } catch(e) {}
 })();
