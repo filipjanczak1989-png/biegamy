@@ -21,6 +21,9 @@
 //   window.LOG — production-silent console (debug/log/info/warn → no-op na prod)
 //   window.showToast(msg, type) — toast UI zamiast alert()
 //   window.MOTIVATIONAL_QUOTES — biblioteka cytatów (~33, {text, author}) — używana przez zawodnik.html + raporty.html
+//   window.QUOTES_LIBRARY — większa biblioteka cytatów (64, {text, author}) — następca MOTIVATIONAL_QUOTES (migracja w commicie 2)
+//   window.getDailyQuote(offsetDays=0) — 1 cytat per dzień (deterministyczny seed YYYYMMDD)
+//   window.getDailyQuoteSet(count=5) — N deterministycznie zshuffle'owanych cytatów (Mulberry32)
 // ════════════════════════════════════════════════════════════════════
 
 (function() {
@@ -454,4 +457,111 @@
     { text: 'Twój największy rywal patrzy na Ciebie z lustra.', author: 'BiegaMy' },
     { text: 'Dziś nie? To kiedy?', author: 'BiegaMy' },
   ];
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📜 CYTATY MOTYWACYJNE — single source of truth
+  // ═══════════════════════════════════════════════════════════════
+  window.QUOTES_LIBRARY = [
+    // Polscy raperzy
+    { text: "Każdy dzień to nowa walka, każdy oddech nowa szansa.", author: "Quebonafide" },
+    { text: "Dyscyplina przebije talent kiedy talent nie ma dyscypliny.", author: "Taco Hemingway" },
+    { text: "Zostaw wszystko na trasie, nie zostawiaj nic na potem.", author: "O.S.T.R." },
+    { text: "Nie ma drogi na skróty do żadnego miejsca wartego dotarcia.", author: "Mata" },
+    { text: "Robisz wynik wtedy gdy nikt nie patrzy.", author: "Pezet" },
+    { text: "Jeden krok dalej niż wczoraj, to już jest progres.", author: "Białas" },
+    { text: "Sercem się biegnie, nie nogami.", author: "Kortez" },
+    { text: "Wstajesz, ścierasz krew z brwi i znowu w ring.", author: "Sokół" },
+    { text: "Czasem trzeba przegrać żeby zrozumieć po co się walczy.", author: "Eldo" },
+
+    // Polscy biegacze i trenerzy
+    { text: "Bieg to medytacja w ruchu. Każdy krok to myśl uwolniona od ciężaru.", author: "Marcin Świerc" },
+    { text: "Nie chodzi o to żeby być najszybszym, chodzi o to żeby się nie poddawać.", author: "Robert Korzeniowski" },
+    { text: "Biegnij dla siebie, nie dla innych. To Twoja droga.", author: "Iwona Lewandowska" },
+    { text: "Każdy maraton zaczyna się w głowie, nie w nogach.", author: "Henryk Szost" },
+    { text: "Ból na treningu to inwestycja w sukces na zawodach.", author: "Adam Kszczot" },
+    { text: "Pasja bez dyscypliny to tylko marzenie.", author: "Anita Włodarczyk" },
+
+    // Międzynarodowe legendy biegania
+    { text: "No human is limited.", author: "Eliud Kipchoge" },
+    { text: "Tylko dyscyplinowany umysł wygrywa w życiu.", author: "Eliud Kipchoge" },
+    { text: "Bieganie to życie. Wszystko jest biegiem.", author: "Haile Gebrselassie" },
+    { text: "Możesz biec dalej niż myślisz. Granice są w głowie.", author: "Mo Farah" },
+    { text: "Powinieneś biec dla siebie, nie żeby kogoś pokonać.", author: "Steve Prefontaine" },
+    { text: "Zrezygnowanie jest na zawsze. Ból jest tymczasowy.", author: "Lance Armstrong" },
+    { text: "Góra to nie cel, góra to świątynia.", author: "Kilian Jornet" },
+    { text: "Najgłębsza ciemność jest tuż przed świtem.", author: "Courtney Dauwalter" },
+    { text: "Trzeba wierzyć w siebie kiedy nikt inny nie wierzy.", author: "Usain Bolt" },
+    { text: "Marzenia bez pracy to halucynacje.", author: "Jakob Ingebrigtsen" },
+
+    // Sportowe legendy
+    { text: "Nigdy nie pozwól żeby strach przed porażką cię paraliżował.", author: "Michael Jordan" },
+    { text: "Marzenia nie działają, jeśli ty nie pracujesz.", author: "Kobe Bryant" },
+    { text: "Bądź sobą — wszyscy inni są zajęci.", author: "Oscar Wilde" },
+    { text: "Niemożliwe to tylko duże słowo używane przez słabych.", author: "Muhammad Ali" },
+    { text: "Każdy mistrz był kiedyś początkującym.", author: "Muhammad Ali" },
+    { text: "Sukces to nie szczęście. To wstawanie o 5 rano gdy nikt nie patrzy.", author: "Cristiano Ronaldo" },
+    { text: "Talent wygrywa mecze, ale praca zespołowa i inteligencja wygrywają mistrzostwa.", author: "Michael Jordan" },
+    { text: "Jeśli się zatrzymasz, to skończysz. Jeśli pójdziesz dalej, jest szansa.", author: "Roger Federer" },
+
+    // Filozofia stoicka i Wschód
+    { text: "Nie chodzi o to ile długo żyjesz, ale jak.", author: "Seneka" },
+    { text: "Przeszkoda jest drogą.", author: "Marek Aureliusz" },
+    { text: "Masz władzę nad swoim umysłem, nie nad zewnętrznymi zdarzeniami. Zrozum to, a znajdziesz siłę.", author: "Marek Aureliusz" },
+    { text: "Nie żądaj żeby rzeczy działy się tak jak chcesz. Chciej żeby się działy tak jak są.", author: "Epiktet" },
+    { text: "Jutrzejszy dzień jest najmniej pewną rzeczą w życiu.", author: "Marek Aureliusz" },
+    { text: "Najlepszą zemstą jest nie być podobnym do tego, kto cię skrzywdził.", author: "Marek Aureliusz" },
+    { text: "Lepiej zwyciężyć siebie samego niż wygrać tysiąc bitw.", author: "Budda" },
+    { text: "Tysiącletnia podróż zaczyna się od jednego kroku.", author: "Lao Tzu" },
+    { text: "Walcz tylko z przeciwnikiem którego można pokonać.", author: "Sun Tzu" },
+
+    // Trenerzy i myśliciele sportowi
+    { text: "Wszystko jest treningiem.", author: "Bill Bowerman" },
+    { text: "Mile run nie ma magii. Bieg ma magię.", author: "Arthur Lydiard" },
+    { text: "Bądź jak woda.", author: "Bruce Lee" },
+    { text: "Nie modlę się o lekkie życie, modlę się o siłę by znieść trudne.", author: "Bruce Lee" },
+    { text: "Im więcej się pocisz na treningu, tym mniej krwawisz w walce.", author: "Stare przysłowie wojskowe" },
+    { text: "Najwięksi nigdy nie idą sami. Mają wokół siebie ludzi którzy wiedzą jak ciężko jest.", author: "Vince Lombardi" },
+
+    // Polskie klasyki
+    { text: "Marzenia są jak dzieci — nawet gdy nas zmęczą, ich nie porzucisz.", author: "Stachura" },
+    { text: "Człowiek jest kowalem swojego losu.", author: "Stare przysłowie" },
+    { text: "Nie cofaj się. Idź. Tylko tym sposobem znajdziesz drogę.", author: "Wojaczek" },
+
+    // Krótkie kopniaki
+    { text: "Płacz w treningu, śmiej się na mecie.", author: "Anonim" },
+    { text: "Słabsza wersja Ciebie z wczoraj — to ona jest Twoim przeciwnikiem.", author: "Stara mądrość" },
+    { text: "Wytrwałość bije talent w 9 przypadkach na 10.", author: "Stara mądrość" },
+    { text: "Robisz to dla siebie. Nikt inny nie zrobi tego za Ciebie.", author: "Anonim" },
+    { text: "Jutro będziesz wdzięczny za to co zrobiłeś dziś.", author: "Anonim" },
+    { text: "Ciało robi to, do czego głowa go zmusi.", author: "Stara mądrość" },
+    { text: "Najtrudniej jest wyjść z domu. Reszta to formalność.", author: "Anonim" },
+    { text: "Każdy bieg to nowy rozdział. Stare zostaw za sobą.", author: "Anonim" },
+    { text: "Nie liczy się szybkość. Liczy się że biegniesz.", author: "Anonim" },
+    { text: "Wstałeś — już wygrałeś z większością.", author: "Anonim" },
+    { text: "Pierwsze 3 km kłamią. Prawdziwy bieg zaczyna się od 4-ego.", author: "Stara mądrość" },
+    { text: "Trudno bo trudne. Łatwo by każdy mógł.", author: "Anonim" },
+    { text: "Gorzej już nie będzie. Może być tylko lepiej.", author: "Anonim" }
+  ];
+
+  // Helper: 1 cytat per dzień (deterministyczny, seed = YYYYMMDD)
+  window.getDailyQuote = function(offsetDays = 0) {
+    const today = new Date();
+    today.setDate(today.getDate() + offsetDays);
+    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    return window.QUOTES_LIBRARY[seed % window.QUOTES_LIBRARY.length];
+  };
+
+  // Helper: N deterministycznie zshuffle'owanych cytatów dnia (Mulberry32)
+  window.getDailyQuoteSet = function(count = 5) {
+    const today = new Date();
+    const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+    let s = seed;
+    const rand = () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const arr = [...window.QUOTES_LIBRARY];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr.slice(0, count);
+  };
 })();
