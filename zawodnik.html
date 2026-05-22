@@ -3565,7 +3565,7 @@ window._renderWeather = function(data) {
       + badge
       + '<div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;">' + label + '</div>'
       + '<div style="font-size:24px;line-height:1;margin:2px 0;">' + d.icon + '</div>'
-      + '<div style="font-family:Bebas Neue,sans-serif;font-size:14px;color:var(--fg);line-height:1;margin-top:3px;">' + d.temp_min + '°/' + d.temp_max + '°</div>'
+      + '<div style="font-family:Bebas Neue,sans-serif;font-size:14px;color:var(--fg);line-height:1;margin-top:3px;">' + d.temp_max + '°<span style="font-size:11px;color:var(--muted);">/' + d.temp_min + '°</span></div>'
       + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">💧' + d.precip_pct + '% · 🌬' + d.wind_kmh + '</div>'
       + '</div>';
   };
