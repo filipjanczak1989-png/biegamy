@@ -534,7 +534,7 @@
     let ath;
     try {
       const { data } = await sb.from('athletes')
-        .select('date_of_birth, city, goal, pb_5k, pb_10k, pb_half, pb_marathon')
+        .select('date_of_birth, city, goal, pb_5k, pb_10k, pb_half, pb_marathon, full_name')
         .eq('id', athleteId)
         .maybeSingle();
       ath = data;
@@ -563,69 +563,116 @@
       document.head.appendChild(st);
     }
 
+    const firstName = (currentData.full_name || '').split(' ')[0] || 'Biegacz';
+
     const wrap = document.createElement('div');
     wrap.innerHTML = `
-      <div id="profile-completion-modal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:16px;animation:pcfade 0.25s ease;overflow-y:auto;">
-        <div style="background:linear-gradient(140deg,#1c1626,#0f0c18);border:1px solid rgba(139,92,246,0.35);border-radius:18px;padding:24px 22px;max-width:440px;width:100%;max-height:92vh;overflow-y:auto;animation:pcpop 0.3s ease;box-shadow:0 20px 60px rgba(139,92,246,0.2);">
+      <div id="profile-completion-modal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:16px;animation:pcfade 0.25s ease;overflow-y:auto;" onclick="if(event.target===this)window._pcClose()">
+        <div style="background:linear-gradient(140deg,#241b34,#16111f);border:1px solid rgba(139,92,246,0.45);border-radius:20px;padding:0;max-width:460px;width:100%;max-height:92vh;overflow:hidden;animation:pcpop 0.3s ease;box-shadow:0 24px 80px rgba(139,92,246,0.25), 0 4px 20px rgba(0,0,0,0.4);position:relative;display:flex;flex-direction:column;">
 
-          <div style="text-align:center;margin-bottom:20px;">
-            <div style="font-size:36px;line-height:1;margin-bottom:8px;">🏃</div>
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1.1;letter-spacing:0.02em;">Uzupełnij profil</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:'Inter',sans-serif;line-height:1.5;">Pomoże mi dopasować plan, raporty i pogodę.</div>
+          <!-- CLOSE BUTTON -->
+          <button onclick="window._pcClose()" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:2;transition:all 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.15)';this.style.color='#fff'" onmouseout="this.style.background='rgba(255,255,255,0.08)';this.style.color='rgba(255,255,255,0.7)'">✕</button>
+
+          <!-- HEADER -->
+          <div style="background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(232,86,30,0.08));padding:28px 24px 22px;border-bottom:1px solid rgba(255,255,255,0.06);text-align:center;">
+            <img src="icon-192.png" alt="BiegaMy" style="width:64px;height:64px;border-radius:14px;margin:0 auto 10px;display:block;box-shadow:0 4px 20px rgba(139,92,246,0.3);">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;line-height:1;letter-spacing:0.03em;margin-bottom:6px;">Cześć, ${firstName.replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'}[c]))}!</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter','DM Sans',sans-serif;line-height:1.5;max-width:340px;margin:0 auto;">Uzupełnij profil, żebym mógł dopasować plan, raporty i pogodę do Twoich treningów.</div>
           </div>
 
-          <!-- NIEZBĘDNE -->
-          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:10px;">Niezbędne</div>
+          <!-- BODY (scrollable) -->
+          <div style="padding:22px 24px;overflow-y:auto;flex:1;">
 
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">📅 Data urodzenia *</label>
-            <input type="date" id="pc-dob" value="${currentData.date_of_birth || ''}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
-          </div>
-
-          <div style="margin-bottom:18px;">
-            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">📍 Miasto *</label>
-            <input type="text" id="pc-city" placeholder="np. Wrocław" value="${(currentData.city || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
-          </div>
-
-          <!-- OPCJONALNE -->
-          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Opcjonalne (możesz pominąć)</div>
-
-          <div style="margin-bottom:12px;">
-            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">🎯 Cel biegowy</label>
-            <input type="text" id="pc-goal" placeholder="np. Maraton, 10km PB, regularność..." value="${(currentData.goal || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
-          </div>
-
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
-            <div>
-              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ 5km</label>
-              <input type="text" id="pc-pb-5k" placeholder="np. 22:30" value="${(currentData.pb_5k || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+            <!-- PROGRESS -->
+            <div style="margin-bottom:20px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div style="font-size:10px;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;">Postęp</div>
+                <div id="pc-progress-text" style="font-size:11px;color:#a78bfa;font-family:'DM Mono',monospace;font-weight:600;">0 / 6</div>
+              </div>
+              <div style="height:6px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">
+                <div id="pc-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#8b5cf6,#a78bfa);border-radius:3px;transition:width 0.3s ease;"></div>
+              </div>
             </div>
-            <div>
-              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ 10km</label>
-              <input type="text" id="pc-pb-10k" placeholder="np. 48:15" value="${(currentData.pb_10k || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+
+            <!-- NIEZBĘDNE -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+              <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(139,92,246,0.4));"></div>
+              <div style="font-size:10px;color:#a78bfa;font-family:'DM Mono',monospace;letter-spacing:0.2em;text-transform:uppercase;font-weight:700;">Niezbędne</div>
+              <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(139,92,246,0.4),transparent);"></div>
             </div>
-            <div>
-              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ Półmaraton</label>
-              <input type="text" id="pc-pb-half" placeholder="np. 1:48:30" value="${(currentData.pb_half || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+
+            <div style="margin-bottom:14px;">
+              <label style="display:block;font-size:13px;color:#fff;margin-bottom:6px;font-family:'DM Sans',sans-serif;font-weight:600;">📅 Data urodzenia <span style="color:#e8561e;">*</span></label>
+              <input type="date" id="pc-dob" value="${currentData.date_of_birth || ''}" oninput="window._pcUpdateProgress()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all 0.15s;" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 4px rgba(139,92,246,0.18)';this.style.background='rgba(255,255,255,0.08)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';this.style.background='rgba(255,255,255,0.06)'">
             </div>
-            <div>
-              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ Maraton</label>
-              <input type="text" id="pc-pb-marathon" placeholder="np. 3:55:00" value="${(currentData.pb_marathon || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+
+            <div style="margin-bottom:22px;">
+              <label style="display:block;font-size:13px;color:#fff;margin-bottom:6px;font-family:'DM Sans',sans-serif;font-weight:600;">📍 Miasto <span style="color:#e8561e;">*</span></label>
+              <input type="text" id="pc-city" placeholder="np. Wrocław" value="${(currentData.city || '').replace(/"/g,'&quot;')}" oninput="window._pcUpdateProgress()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:all 0.15s;" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 4px rgba(139,92,246,0.18)';this.style.background='rgba(255,255,255,0.08)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';this.style.background='rgba(255,255,255,0.06)'">
             </div>
+
+            <!-- OPCJONALNE -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+              <div style="flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.12));"></div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;letter-spacing:0.2em;text-transform:uppercase;font-weight:600;">Opcjonalne</div>
+              <div style="flex:1;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.12),transparent);"></div>
+            </div>
+
+            <div style="margin-bottom:14px;">
+              <label style="display:block;font-size:13px;color:rgba(255,255,255,0.85);margin-bottom:6px;font-family:'DM Sans',sans-serif;font-weight:500;">🎯 Cel biegowy</label>
+              <input type="text" id="pc-goal" placeholder="np. Maraton, 10km PB, regularność..." value="${(currentData.goal || '').replace(/"/g,'&quot;')}" oninput="window._pcUpdateProgress()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:10px;padding:11px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:all 0.15s;" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 4px rgba(139,92,246,0.18)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)';this.style.boxShadow='none'">
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-bottom:8px;font-family:'DM Sans',sans-serif;font-weight:500;">⏱ Życiówki</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                ${['5k','10k','half','marathon'].map((k,i) => {
+                  const labels = {'5k':'5 km','10k':'10 km','half':'Półmaraton','marathon':'Maraton'};
+                  const placeholders = {'5k':'np. 22:30','10k':'np. 48:15','half':'np. 1:48:30','marathon':'np. 3:55:00'};
+                  const val = (currentData['pb_'+k] || '').replace(/"/g,'&quot;');
+                  return `<div>
+                    <label style="display:block;font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">${labels[k]}</label>
+                    <input type="text" id="pc-pb-${k}" placeholder="${placeholders[k]}" value="${val}" oninput="window._pcUpdateProgress()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:all 0.15s;" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.15)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)';this.style.boxShadow='none'">
+                  </div>`;
+                }).join('')}
+              </div>
+            </div>
+
+            <div id="pc-error" style="font-size:12px;color:#fb923c;text-align:center;margin-bottom:12px;display:none;font-family:'DM Sans',sans-serif;font-weight:500;padding:8px;background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.3);border-radius:8px;"></div>
+
           </div>
 
-          <div id="pc-error" style="font-size:11px;color:#e8561e;text-align:center;margin-bottom:10px;display:none;font-family:'DM Mono',monospace;"></div>
-
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <button onclick="window._pcSubmit('${athleteId}')" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;">Zapisz profil</button>
-            <button onclick="window._pcDismiss()" style="background:transparent;color:var(--muted);border:none;padding:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Wypełnię później</button>
+          <!-- FOOTER (sticky) -->
+          <div style="padding:18px 24px 22px;background:linear-gradient(180deg,transparent,rgba(0,0,0,0.3));border-top:1px solid rgba(255,255,255,0.06);">
+            <button id="pc-submit-btn" onclick="window._pcSubmit('${athleteId}')" style="width:100%;background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;border-radius:12px;padding:14px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;letter-spacing:0.03em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;box-shadow:0 4px 16px rgba(139,92,246,0.3);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 24px rgba(139,92,246,0.4)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(139,92,246,0.3)'">
+              <span>Zapisz profil</span>
+              <span style="font-size:16px;">→</span>
+            </button>
+            <div style="text-align:center;margin-top:12px;">
+              <a onclick="window._pcDismiss()" style="font-size:12px;color:rgba(255,255,255,0.55);font-family:'DM Sans',sans-serif;cursor:pointer;text-decoration:underline;text-underline-offset:3px;" onmouseover="this.style.color='rgba(255,255,255,0.85)'" onmouseout="this.style.color='rgba(255,255,255,0.55)'">Wypełnię później</a>
+            </div>
           </div>
 
         </div>
       </div>
     `;
     document.body.appendChild(wrap);
-    setTimeout(() => document.getElementById('pc-dob')?.focus(), 100);
+    setTimeout(() => { document.getElementById('pc-dob')?.focus(); window._pcUpdateProgress(); }, 100);
+
+    window._pcUpdateProgress = function() {
+      const fields = ['pc-dob', 'pc-city', 'pc-goal', 'pc-pb-5k', 'pc-pb-10k', 'pc-pb-half', 'pc-pb-marathon'];
+      const total = fields.length;
+      let filled = 0;
+      fields.forEach(id => {
+        const v = (document.getElementById(id)?.value || '').trim();
+        if (v) filled++;
+      });
+      const pct = Math.round((filled / total) * 100);
+      const txt = document.getElementById('pc-progress-text');
+      const bar = document.getElementById('pc-progress-bar');
+      if (txt) txt.textContent = filled + ' / ' + total;
+      if (bar) bar.style.width = pct + '%';
+    };
 
     window._pcSubmit = async (id) => {
       const dob = document.getElementById('pc-dob')?.value || '';
@@ -680,6 +727,7 @@
       document.getElementById('profile-completion-modal')?.parentElement?.remove();
       delete window._pcSubmit;
       delete window._pcDismiss;
+      delete window._pcUpdateProgress;
       delete window._pcClose;
     };
   };

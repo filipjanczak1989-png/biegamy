@@ -3561,12 +3561,12 @@ window._renderWeather = function(data) {
     const label = i === 0 ? 'Dziś' : i === 1 ? 'Jutro' : DAY_LABELS[date.getDay()];
     const badge = d.is_bad ? '<div style="position:absolute;top:4px;right:4px;font-size:8px;color:#e8561e;">⚠</div>' : '';
     const border = d.is_bad ? 'border:1px solid rgba(232,86,30,0.3);' : 'border:1px solid var(--border);';
-    return '<div style="position:relative;background:rgba(0,0,0,0.2);' + border + 'border-radius:10px;padding:8px 6px;text-align:center;">'
+    return '<div style="position:relative;background:rgba(255,255,255,0.04);' + border + 'border-radius:10px;padding:10px 6px;text-align:center;">'
       + badge
-      + '<div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;">' + label + '</div>'
-      + '<div style="font-size:24px;line-height:1;margin:2px 0;">' + d.icon + '</div>'
-      + '<div style="font-family:Bebas Neue,sans-serif;font-size:14px;color:var(--fg);line-height:1;margin-top:3px;">' + d.temp_max + '°<span style="font-size:11px;color:var(--muted);">/' + d.temp_min + '°</span></div>'
-      + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">💧' + d.precip_pct + '% · 🌬' + d.wind_kmh + '</div>'
+      + '<div style="font-size:10px;color:#fff;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;font-weight:600;">' + label + '</div>'
+      + '<div style="font-size:30px;line-height:1;margin:3px 0;">' + d.icon + '</div>'
+      + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;color:#fff;line-height:1;margin-top:4px;letter-spacing:0.02em;">' + d.temp_max + '°<span style="font-size:12px;color:rgba(255,255,255,0.55);margin-left:2px;">/' + d.temp_min + '°</span></div>'
+      + '<div style="font-size:10px;color:rgba(255,255,255,0.7);font-family:DM Mono,monospace;margin-top:4px;">💧' + d.precip_pct + '% · 🌬' + d.wind_kmh + '</div>'
       + '</div>';
   };
 
