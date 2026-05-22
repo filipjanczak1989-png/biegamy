@@ -3712,6 +3712,7 @@ async function initAuth() {
     await loadLogs();
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
+    if (typeof window.loadWeather === 'function') window.loadWeather();
     setTimeout(() => { if (_athleteId && typeof window.checkProfileCompletion === 'function') window.checkProfileCompletion(_athleteId); }, 2000);
   } else {
     // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
@@ -8305,7 +8306,6 @@ document.addEventListener('touchstart', (e) => {
   btn.addEventListener('touchcancel', reset, {once:true});
 }, {passive: true});
 setTimeout(() => loadDailyMotivation(), 200);
-setTimeout(() => window.loadWeather(), 300);
 
 // Obsługa ?tab= z kalendarza
 const _tabParam = new URLSearchParams(window.location.search).get('tab');
