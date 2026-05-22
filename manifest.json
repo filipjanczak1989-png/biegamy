@@ -85,6 +85,20 @@
       "short_name": "Zawodnik",
       "url": "/zawodnik.html",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dodaj trening",
+      "short_name": "Trening",
+      "description": "Dodaj nowy log treningowy",
+      "url": "/zawodnik.html?action=add-log",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Społeczność",
+      "short_name": "Feed",
+      "description": "Zobacz aktywności społeczności",
+      "url": "/zawodnik.html?section=social",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
