@@ -2027,6 +2027,20 @@ window._ocrSetup = function() {
       if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(file);
       else window._pendingFiles = [file];
 
+      // Render thumbnail (analog do appendFile linia 2231-2244)
+      const _ocrList = document.getElementById('file-preview-list');
+      if (_ocrList) {
+        const _ocrIdx = window._pendingFiles.length - 1;
+        const _ocrUrl = URL.createObjectURL(file);
+        const _ocrDiv = document.createElement('div');
+        _ocrDiv.style.cssText = 'position:relative;width:60px;height:60px;';
+        _ocrDiv.innerHTML = `<img src="${_ocrUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
+          <button onclick="removeFile(${_ocrIdx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
+        _ocrList.appendChild(_ocrDiv);
+      }
+      if (typeof _updateUploadLabel === 'function') _updateUploadLabel();
+
       if (statusEl) {
         statusEl.style.color = 'var(--green)';
         const sufix = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
