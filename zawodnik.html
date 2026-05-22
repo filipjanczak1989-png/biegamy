@@ -3712,6 +3712,7 @@ async function initAuth() {
     await loadLogs();
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
+    setTimeout(() => { if (_athleteId && typeof window.checkProfileCompletion === 'function') window.checkProfileCompletion(_athleteId); }, 2000);
   } else {
     // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
     const fromTrener = new URLSearchParams(window.location.search).get('from') === 'trener';

@@ -507,4 +507,180 @@
     }
     return arr.slice(0, count);
   };
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🚀 PROFILE COMPLETION MODAL — DOB + miasto + cel + PB (opcjonalne)
+  // ═══════════════════════════════════════════════════════════════
+  // Sprawdza athletes.date_of_birth/city/goal/pb_X; jeśli DOB lub city
+  // puste i localStorage flag nie blokuje → pokazuje modal.
+  // Skip ustawia flagę na 7 dni.
+  // ID prefix `pc-` żeby uniknąć kolizji z nutrition.html `ob-*` oraz
+  // static `#onboarding-modal` w zawodnik.html (kreator nowego profilu).
+  // ═══════════════════════════════════════════════════════════════
+
+  window.checkProfileCompletion = async function(athleteId) {
+    if (!athleteId) return;
+
+    // Sprawdź flag dismissal
+    try {
+      const until = parseInt(localStorage.getItem('profile_completion_dismissed_until') || '0');
+      if (until > Date.now()) {
+        console.log('[profile-completion] Dismissed until', new Date(until).toISOString().slice(0,10));
+        return;
+      }
+    } catch(e) {}
+
+    // Pobierz pola z athletes
+    let ath;
+    try {
+      const { data } = await sb.from('athletes')
+        .select('date_of_birth, city, goal, pb_5k, pb_10k, pb_half, pb_marathon')
+        .eq('id', athleteId)
+        .maybeSingle();
+      ath = data;
+    } catch(e) { console.error('[profile-completion] fetch err', e); return; }
+
+    if (!ath) return;
+
+    // Sprawdź czy mamy gap w niezbędnych polach
+    const needsDOB = !ath.date_of_birth;
+    const needsCity = !ath.city || !ath.city.trim();
+    if (!needsDOB && !needsCity) {
+      console.log('[profile-completion] All required filled, skip');
+      return;
+    }
+
+    // Pokaż modal
+    window._showProfileCompletionModal(athleteId, ath);
+  };
+
+  window._showProfileCompletionModal = function(athleteId, currentData) {
+    // Wstrzyknij keyframes jeśli nie ma
+    if (!document.getElementById('profile-completion-kf')) {
+      const st = document.createElement('style');
+      st.id = 'profile-completion-kf';
+      st.textContent = '@keyframes pcfade{from{opacity:0}to{opacity:1}}@keyframes pcpop{from{transform:translateY(20px) scale(0.96);opacity:0}to{transform:none;opacity:1}}';
+      document.head.appendChild(st);
+    }
+
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <div id="profile-completion-modal" style="position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:16px;animation:pcfade 0.25s ease;overflow-y:auto;">
+        <div style="background:linear-gradient(140deg,#1c1626,#0f0c18);border:1px solid rgba(139,92,246,0.35);border-radius:18px;padding:24px 22px;max-width:440px;width:100%;max-height:92vh;overflow-y:auto;animation:pcpop 0.3s ease;box-shadow:0 20px 60px rgba(139,92,246,0.2);">
+
+          <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:36px;line-height:1;margin-bottom:8px;">🏃</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1.1;letter-spacing:0.02em;">Uzupełnij profil</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;font-family:'Inter',sans-serif;line-height:1.5;">Pomoże mi dopasować plan, raporty i pogodę.</div>
+          </div>
+
+          <!-- NIEZBĘDNE -->
+          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#8b5cf6;font-family:'DM Mono',monospace;margin-bottom:10px;">Niezbędne</div>
+
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">📅 Data urodzenia *</label>
+            <input type="date" id="pc-dob" value="${currentData.date_of_birth || ''}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+          </div>
+
+          <div style="margin-bottom:18px;">
+            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">📍 Miasto *</label>
+            <input type="text" id="pc-city" placeholder="np. Wrocław" value="${(currentData.city || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+          </div>
+
+          <!-- OPCJONALNE -->
+          <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;">Opcjonalne (możesz pominąć)</div>
+
+          <div style="margin-bottom:12px;">
+            <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">🎯 Cel biegowy</label>
+            <input type="text" id="pc-goal" placeholder="np. Maraton, 10km PB, regularność..." value="${(currentData.goal || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;">
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ 5km</label>
+              <input type="text" id="pc-pb-5k" placeholder="np. 22:30" value="${(currentData.pb_5k || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ 10km</label>
+              <input type="text" id="pc-pb-10k" placeholder="np. 48:15" value="${(currentData.pb_10k || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ Półmaraton</label>
+              <input type="text" id="pc-pb-half" placeholder="np. 1:48:30" value="${(currentData.pb_half || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+            </div>
+            <div>
+              <label style="display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">⏱ Maraton</label>
+              <input type="text" id="pc-pb-marathon" placeholder="np. 3:55:00" value="${(currentData.pb_marathon || '').replace(/"/g,'&quot;')}" style="width:100%;box-sizing:border-box;background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;outline:none;">
+            </div>
+          </div>
+
+          <div id="pc-error" style="font-size:11px;color:#e8561e;text-align:center;margin-bottom:10px;display:none;font-family:'DM Mono',monospace;"></div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <button onclick="window._pcSubmit('${athleteId}')" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);color:#fff;border:none;border-radius:10px;padding:12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;font-weight:600;">Zapisz profil</button>
+            <button onclick="window._pcDismiss()" style="background:transparent;color:var(--muted);border:none;padding:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Wypełnię później</button>
+          </div>
+
+        </div>
+      </div>
+    `;
+    document.body.appendChild(wrap);
+    setTimeout(() => document.getElementById('pc-dob')?.focus(), 100);
+
+    window._pcSubmit = async (id) => {
+      const dob = document.getElementById('pc-dob')?.value || '';
+      const city = (document.getElementById('pc-city')?.value || '').trim();
+      const goal = (document.getElementById('pc-goal')?.value || '').trim();
+      const pb5k = (document.getElementById('pc-pb-5k')?.value || '').trim();
+      const pb10k = (document.getElementById('pc-pb-10k')?.value || '').trim();
+      const pbHalf = (document.getElementById('pc-pb-half')?.value || '').trim();
+      const pbM = (document.getElementById('pc-pb-marathon')?.value || '').trim();
+
+      const errEl = document.getElementById('pc-error');
+
+      // Walidacja: oba wymagane
+      if (!dob || !city) {
+        if (errEl) { errEl.textContent = 'Data urodzenia i miasto są wymagane'; errEl.style.display = 'block'; }
+        return;
+      }
+
+      // Build update object — tylko wypełnione pola
+      const update = { date_of_birth: dob, city };
+      if (goal) update.goal = goal;
+      if (pb5k) update.pb_5k = pb5k;
+      if (pb10k) update.pb_10k = pb10k;
+      if (pbHalf) update.pb_half = pbHalf;
+      if (pbM) update.pb_marathon = pbM;
+
+      const { error } = await sb.from('athletes').update(update).eq('id', id);
+      if (error) {
+        if (errEl) { errEl.textContent = 'Błąd: ' + error.message; errEl.style.display = 'block'; }
+        return;
+      }
+
+      if (typeof showToast === 'function') showToast('Profil zapisany ✓');
+      window._pcClose();
+
+      // Odśwież pogodę bo city jest nowe
+      if (typeof window.loadWeather === 'function') {
+        try {
+          const keys = Object.keys(sessionStorage).filter(k => k.startsWith('weather:'));
+          keys.forEach(k => sessionStorage.removeItem(k));
+        } catch(e) {}
+        window.loadWeather();
+      }
+    };
+
+    window._pcDismiss = () => {
+      try { localStorage.setItem('profile_completion_dismissed_until', String(Date.now() + 7*24*3600*1000)); } catch(e) {}
+      window._pcClose();
+    };
+
+    window._pcClose = () => {
+      document.getElementById('profile-completion-modal')?.parentElement?.remove();
+      delete window._pcSubmit;
+      delete window._pcDismiss;
+      delete window._pcClose;
+    };
+  };
 })();
