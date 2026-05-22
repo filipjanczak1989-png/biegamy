@@ -2,7 +2,7 @@
   "name": "BiegaMy",
   "short_name": "BiegaMy",
   "description": "Profesjonalne wsparcie biegowe od Filipa i Kasi. Treningi, wyzwania, plany startów — wszystko w jednym miejscu.",
-  "start_url": "/zawodnik.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -75,24 +75,15 @@
   ],
   "shortcuts": [
     {
-      "name": "Dodaj trening",
-      "short_name": "Trening",
-      "description": "Dodaj nowy log treningowy",
-      "url": "/zawodnik.html?action=add-log",
+      "name": "Panel trenera",
+      "short_name": "Trener",
+      "url": "/trener.html",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Społeczność",
-      "short_name": "Feed",
-      "description": "Zobacz aktywności społeczności",
-      "url": "/zawodnik.html?section=social",
-      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Statystyki",
-      "short_name": "Stats",
-      "description": "Twoje statystyki biegowe",
-      "url": "/statystyki.html",
+      "name": "Mój profil zawodnika",
+      "short_name": "Zawodnik",
+      "url": "/zawodnik.html",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
