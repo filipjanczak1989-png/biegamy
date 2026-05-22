@@ -1131,6 +1131,10 @@ body > *{position:relative;z-index:1;}
     </div>
     <div class="nav-lbl" style="margin-top:2px;">Log</div>
   </a>
+  <a class="nav-it" href="#" onclick="showSection('forma');return false;" id="nav-forma">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+    <div class="nav-lbl">Forma</div>
+  </a>
   <a class="nav-it" href="#" onclick="showSection('social');return false;" id="nav-social">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
     <div class="nav-lbl">Spo&#x142;eczno&#x15B;&#x107;</div>
@@ -2394,7 +2398,7 @@ function showSection(name) {
   });
 
   // Hide all overlay sections
-  ['section-msgs','section-profile','section-stats','section-social'].forEach(id => {
+  ['section-msgs','section-profile','section-stats','section-social','section-forma'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.style.display = 'none';
   });
@@ -2488,6 +2492,10 @@ function showSection(name) {
     document.getElementById('section-social').style.display = 'block';
     activateNav('nav-social');
     loadSocialFeed();
+  } else if (name === 'forma') {
+    document.getElementById('section-forma').style.display = 'block';
+    activateNav('nav-forma');
+    window.loadFormaSection();
   } else if (name === 'aireports') {
     // Po refaktoryzacji: raporty są na osobnej stronie raporty.html
     window.location.href = 'raporty.html';
@@ -3593,6 +3601,99 @@ window._weatherSetCity = async function() {
     keys.forEach(k => sessionStorage.removeItem(k));
   } catch(e) {}
   window.loadWeather();
+};
+
+// ── FORMA (Faza A — mockup z hardcoded data) ─────────────────────
+window.loadFormaSection = async function() {
+  // Lazy-load Chart.js (analog do innych miejsc)
+  if (typeof Chart === 'undefined') {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      s.onload = resolve;
+      s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  // MOCKUP DATA — 90 dni TRIMP + CTL/ATL/TSB
+  const days = 90;
+  const today = new Date();
+  const labels = [];
+  const ctlData = [];
+  const atlData = [];
+  const tsbData = [];
+  const trimpData = [];
+
+  // Symuluj rosnącą bazę z mikrocyklami (build/recovery)
+  let ctl = 25, atl = 30;
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    labels.push(d.toISOString().slice(5,10)); // MM-DD
+
+    // Fake training: większość dni 30-80 TRIMP, 1-2 dni 0 (rest)
+    const trimp = Math.random() < 0.2 ? 0 : Math.round(30 + Math.random() * 70 + i * 0.3);
+    trimpData.push(trimp);
+
+    ctl = ctl + (trimp - ctl) / 42;
+    atl = atl + (trimp - atl) / 7;
+
+    ctlData.push(Math.round(ctl * 10) / 10);
+    atlData.push(Math.round(atl * 10) / 10);
+    tsbData.push(Math.round((ctl - atl) * 10) / 10);
+  }
+
+  // Update kafelki
+  const lastCtl = ctlData[ctlData.length - 1];
+  const lastAtl = atlData[atlData.length - 1];
+  const lastTsb = tsbData[tsbData.length - 1];
+  document.getElementById('forma-ctl-val').textContent = Math.round(lastCtl);
+  document.getElementById('forma-atl-val').textContent = Math.round(lastAtl);
+  document.getElementById('forma-tsb-val').textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
+
+  // Update strefę interpretacji
+  const zoneEl = document.getElementById('forma-zone');
+  let zoneText, zoneColor;
+  if (lastTsb >= 15) { zoneText = '⚠️ Bardzo wypoczęty — możliwy spadek formy bez treningu'; zoneColor = '#fbbf24'; }
+  else if (lastTsb >= 5) { zoneText = '🟢 Forma świeża — gotowy do startów lub mocnych treningów'; zoneColor = '#4ade80'; }
+  else if (lastTsb >= -10) { zoneText = '🔵 Trening neutralny — kontynuuj plan'; zoneColor = '#60a5fa'; }
+  else if (lastTsb >= -30) { zoneText = '🟠 Wyraźne obciążenie — uważaj na regenerację'; zoneColor = '#fb923c'; }
+  else { zoneText = '🔴 Przeciążenie — ryzyko kontuzji, odpocznij'; zoneColor = '#f87171'; }
+  zoneEl.textContent = zoneText;
+  zoneEl.style.color = zoneColor;
+  zoneEl.style.background = `${zoneColor}14`;
+  zoneEl.style.borderColor = `${zoneColor}40`;
+
+  // Wykres
+  const ctx = document.getElementById('forma-chart').getContext('2d');
+  if (window._formaChart) window._formaChart.destroy();
+  window._formaChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        { label: 'TRIMP (dzienny)', data: trimpData, type: 'bar', backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', borderWidth: 0, yAxisID: 'y1', order: 3 },
+        { label: 'CTL', data: ctlData, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
+        { label: 'ATL', data: atlData, borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
+        { label: 'TSB', data: tsbData, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, yAxisID: 'y', order: 0 },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'DM Mono' }, boxWidth: 12 } },
+        tooltip: { backgroundColor: 'rgba(20,15,30,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10, titleFont: { family: 'DM Mono', size: 11 }, bodyFont: { family: 'DM Sans', size: 12 } },
+      },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxRotation: 0, autoSkipPadding: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { position: 'left', ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        y1: { position: 'right', ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { display: false }, beginAtZero: true }
+      }
+    }
+  });
 };
 
 // ── AVATAR HELPERS ────────────────────────────────────────────────
@@ -9753,6 +9854,52 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+<!-- ═══════════════════════════ SEKCJA FORMY (Faza A mockup) ═══════════════════════════ -->
+<div id="section-forma" style="display:none;padding:16px;">
+  <div style="text-align:center;margin-bottom:16px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:0.04em;">📈 Twoja forma</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:4px;">CTL · ATL · TSB — 90 dni</div>
+  </div>
+
+  <!-- 3 kafelki: aktualne wartości CTL/ATL/TSB -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+    <div style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-size:9px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">CTL</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#60a5fa;line-height:1;" id="forma-ctl-val">42</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:3px;">forma długa</div>
+    </div>
+    <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-size:9px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">ATL</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#f87171;line-height:1;" id="forma-atl-val">38</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:3px;">zmęczenie</div>
+    </div>
+    <div style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:12px;padding:12px;text-align:center;">
+      <div style="font-size:9px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">TSB</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;line-height:1;" id="forma-tsb-val">+4</div>
+      <div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:3px;">forma świeża</div>
+    </div>
+  </div>
+
+  <!-- Strefa formy — interpretacja TSB -->
+  <div id="forma-zone" style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);border-radius:10px;padding:10px 14px;margin-bottom:16px;text-align:center;font-size:12px;color:#4ade80;font-family:'Inter',sans-serif;">
+    🟢 Forma świeża — gotowy do startów lub mocnych treningów
+  </div>
+
+  <!-- Canvas dla Chart.js -->
+  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
+    <canvas id="forma-chart" style="max-height:260px;"></canvas>
+  </div>
+
+  <!-- Legenda interpretacji -->
+  <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;font-size:11px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.6;">
+    <div style="font-weight:600;color:#fff;margin-bottom:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">📖 Jak czytać formę:</div>
+    <div><span style="color:#60a5fa;font-weight:600;">CTL</span> — Twój trening długoterminowy (42 dni). Rośnie = baza się buduje.</div>
+    <div><span style="color:#f87171;font-weight:600;">ATL</span> — Świeże zmęczenie (7 dni). Wysokie = niedawno ciężko trenowałeś.</div>
+    <div><span style="color:#4ade80;font-weight:600;">TSB</span> = CTL − ATL — Twoja forma. <strong>+5..+15 = idealne na start.</strong></div>
+  </div>
+</div>
+
 </body>
 </html><!-- ═══════════════════════════════════════════════════════════════════
      SYSTEM ODZNAK — wstrzyknięty po section-social
