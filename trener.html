@@ -2908,7 +2908,6 @@ async function renderDbAthletes(list) {
     const name = a.full_name || a.goal || 'Zawodnik';
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const sid = String(a.id);
-    const sname = name.replace(/'/g,"&#39;");
     return `
     <div class="ath-card fi" onclick="selA_db('${sid}')" data-athlete-id="${sid}" style="animation-delay:${0.04+i*0.04}s;cursor:pointer;">
       <div class="ath-stripe" style="background:var(--accent)"></div>
@@ -2923,7 +2922,7 @@ async function renderDbAthletes(list) {
           : a.newLogs > 0
             ? `<div data-badge="new" onclick="event.stopPropagation();selA_db_logs('${sid}')" style="background:var(--green);color:#0a1a0f;font-size:9px;border-radius:10px;padding:3px 8px;font-family:'DM Mono',monospace;font-weight:600;cursor:pointer;">🆕 ${a.newLogs} log</div>`
             : '<div class="ath-dot off"></div>'}
-        <button onclick="event.stopPropagation();deleteAthlete('${sid}','${sname}')" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
+        <button data-athlete-id="${sid}" data-athlete-name="${escapeHtml(name)}" onclick="event.stopPropagation();deleteAthlete(this.dataset.athleteId, this.dataset.athleteName)" style="background:none;border:none;color:#66636e;cursor:pointer;font-size:16px;padding:2px 4px;line-height:1;" title="Usuń zawodnika">🗑</button>
       </div>
     </div>`;
   }).join('');
