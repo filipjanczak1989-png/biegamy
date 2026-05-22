@@ -2069,6 +2069,11 @@ async function editWorkout(workoutId) {
           <button onclick="closeEditWorkoutModal()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);width:28px;height:28px;border-radius:7px;cursor:pointer;font-size:13px;">✕</button>
         </div>
 
+        <div style="margin-bottom:12px;">
+          <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">📅 Data</label>
+          <input type="date" id="ew-date" value="${w.date}" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.12);border-radius:8px;padding:10px 12px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;outline:none;">
+        </div>
+
         <div style="margin-bottom:10px;">
           <label style="display:block;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Typ</label>
           <select id="ew-type" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:8px;border-radius:7px;outline:none;cursor:pointer;box-sizing:border-box;">
@@ -2139,6 +2144,9 @@ async function saveEditedWorkout(workoutId) {
     target_hr_zone: parseInt(document.getElementById('ew-zone').value) || null,
     edited_by_coach: true
   };
+  // Edytowalna data — uwzględnij tylko jeśli input ma wartość (Chrome allows clear)
+  const dateVal = document.getElementById('ew-date').value;
+  if (dateVal) updates.date = dateVal;
 
   const { error } = await sb.from('training_plan_workouts')
     .update(updates).eq('id', workoutId);
