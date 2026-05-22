@@ -7376,10 +7376,7 @@ document.addEventListener('keydown', (e) => {
     return `${KB_DATE_NAMES[dt.getDay()]} · ${dt.getDate()} ${KB_MONTH_NAMES[dt.getMonth()]}`;
   }
 
-  function kbEscape(s){
-    if (s == null) return '';
-    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
+  function kbEscape(s) { return window.escapeHtml(s); }
 
   function kbToast(msg, isError){
     const t = document.createElement('div');
