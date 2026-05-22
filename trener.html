@@ -3458,7 +3458,18 @@ async function saveAthlete() {
   }).select();
 
   // Also save name to profiles if user exists
-  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (error) {
+    // 23505 = Postgres unique_violation. Race: drugi insert wszedł
+    // między nasz ilike check a ten insert. DB-level UNIQUE index
+    // (athletes_email_unique_idx) rejected drugi → identyczny komunikat
+    // jak gdy ilike złapał duplikat.
+    if (error.code === '23505') {
+      showToast('Email u innego trenera, dogadajcie się offline');
+    } else {
+      showToast('Błąd: ' + error.message);
+    }
+    return;
+  }
 
   showToast(name + ' dodany ✓');
   closeAthModal();
