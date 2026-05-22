@@ -336,6 +336,11 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
   <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;line-height:1.5;">Zmiana trenera nie usuwa Twoich treningów ani celów.</div>
 </div>
 
+<!-- MIASTO (publiczne) -->
+<div class="section" id="profile-city" style="display:none;">
+  <!-- renderCity fills here -->
+</div>
+
 <!-- CELE / STARTY -->
 <div class="section" id="goals-section">
   <div class="section-hdr">
@@ -545,7 +550,7 @@ let _profileData = null;
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
   const { data: ath } = await sb.from('athletes')
-    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth,coach_id')
+    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth,coach_id,city')
     .eq('id', _targetId)
     .maybeSingle();
   if (!ath) return;
@@ -556,6 +561,9 @@ async function loadProfile() {
 
   // Trener (tylko własny profil)
   renderCoach(ath);
+
+  // Miasto (publiczne, ukryte dla obcych bez city)
+  renderCity(ath);
 
   // Imię
   const name = ath.full_name || 'Biegacz';
@@ -676,6 +684,33 @@ function renderCoach(ath) {
     valEl.textContent = '+ Wybierz trenera';
     valEl.style.color = 'var(--accent)';
     iconEl.textContent = '🏃';
+  }
+}
+
+function renderCity(ath) {
+  const sec = document.getElementById('profile-city');
+  if (!sec) return;
+  const hasCity = !!(ath?.city && String(ath.city).trim());
+  // Ukryj sekcję dla obcego profilu bez miasta (nie pokazuj pustki)
+  if (!_isOwnProfile && !hasCity) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+
+  const valStr = hasCity ? ath.city : 'Dodaj miasto';
+  const valColor = hasCity ? 'var(--fg)' : 'var(--accent)';
+  if (_isOwnProfile) {
+    sec.innerHTML =
+      '<div onclick="editCity()" title="Klik by edytować" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+      + '<div style="font-size:22px;flex-shrink:0;">📍</div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;">Miasto</div><div style="font-size:14px;font-weight:600;color:' + valColor + ';">' + escHtml(valStr) + '</div></div>'
+      + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;flex-shrink:0;">✎ edytuj</div>'
+      + '</div>';
+  } else {
+    // View-only dla obcego profilu (gdy hasCity = true)
+    sec.innerHTML =
+      '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">'
+      + '<div style="font-size:22px;flex-shrink:0;">📍</div>'
+      + '<div style="flex:1;min-width:0;"><div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;">Miasto</div><div style="font-size:14px;font-weight:600;color:var(--fg);">' + escHtml(valStr) + '</div></div>'
+      + '</div>';
   }
 }
 
@@ -804,6 +839,28 @@ async function editDateOfBirth() {
   if (_profileData) _profileData.date_of_birth = iso;
   showToast('Data zapisana ✓');
   renderDOB(_profileData);
+}
+
+async function editCity() {
+  if (!_myId) return;
+  const current = _profileData?.city || '';
+  const val = prompt('Podaj miasto (np. Wrocław):', current);
+  if (val === null) return; // anulowano
+  const trimmed = val.trim();
+  if (trimmed === '') {
+    // Czyszczenie — UPDATE city: null
+    const { error } = await sb.from('athletes').update({ city: null }).eq('id', _myId);
+    if (error) { showToast('Błąd: ' + error.message); return; }
+    if (_profileData) _profileData.city = null;
+    showToast('Miasto usunięte');
+    renderCity(_profileData);
+    return;
+  }
+  const { error } = await sb.from('athletes').update({ city: trimmed }).eq('id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (_profileData) _profileData.city = trimmed;
+  showToast('Miasto zapisane ✓');
+  renderCity(_profileData);
 }
 
 function renderGoals(ath) {
