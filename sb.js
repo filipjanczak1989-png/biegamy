@@ -626,14 +626,17 @@
             <div style="margin-bottom:20px;">
               <div style="font-size:13px;color:rgba(255,255,255,0.85);margin-bottom:8px;font-family:'DM Sans',sans-serif;font-weight:500;">⏱ Życiówki</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-                ${['5k','10k','half','marathon'].map((k,i) => {
-                  const labels = {'5k':'5 km','10k':'10 km','half':'Półmaraton','marathon':'Maraton'};
-                  const placeholders = {'5k':'np. 22:30','10k':'np. 48:15','half':'np. 1:48:30','marathon':'np. 3:55:00'};
+                ${[
+                  {k:'5k', label:'5 km', placeholder:'np. 22:30'},
+                  {k:'10k', label:'10 km', placeholder:'np. 48:15'},
+                  {k:'half', label:'Półmaraton', placeholder:'np. 1:48:30'},
+                  {k:'marathon', label:'Maraton', placeholder:'np. 3:55:00'}
+                ].map(({k, label, placeholder}) => {
                   const val = (currentData['pb_'+k] || '').replace(/"/g,'&quot;');
-                  return `<div>
-                    <label style="display:block;font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;font-family:'DM Mono',monospace;letter-spacing:0.05em;">${labels[k]}</label>
-                    <input type="text" id="pc-pb-${k}" placeholder="${placeholders[k]}" value="${val}" oninput="window._pcUpdateProgress()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 11px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:all 0.15s;" onfocus="this.style.borderColor='#8b5cf6';this.style.boxShadow='0 0 0 3px rgba(139,92,246,0.15)'" onblur="this.style.borderColor='rgba(255,255,255,0.1)';this.style.boxShadow='none'">
-                  </div>`;
+                  return '<div>'
+                    + '<label style="display:block;font-size:11px;color:rgba(255,255,255,0.6);margin-bottom:4px;font-family:\'DM Mono\',monospace;letter-spacing:0.05em;">' + label + '</label>'
+                    + '<input type="text" id="pc-pb-' + k + '" placeholder="' + placeholder + '" value="' + val + '" oninput="window._pcUpdateProgress()" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1.5px solid rgba(255,255,255,0.1);border-radius:8px;padding:9px 11px;color:#fff;font-family:\'DM Sans\',sans-serif;font-size:13px;outline:none;transition:all 0.15s;" onfocus="this.style.borderColor=\'#8b5cf6\';this.style.boxShadow=\'0 0 0 3px rgba(139,92,246,0.15)\'" onblur="this.style.borderColor=\'rgba(255,255,255,0.1)\';this.style.boxShadow=\'none\'">'
+                    + '</div>';
                 }).join('')}
               </div>
             </div>
