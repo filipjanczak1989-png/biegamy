@@ -2226,14 +2226,6 @@ function calcTimeAuto() {
   if(timeLbl) timeLbl.textContent = '← auto';
 }
 function goToMyProfile() {
-  if (_athleteId) {
-    location.href = 'profil.html?id=' + _athleteId;
-  } else {
-    showSection('profile');
-  }
-}
-
-function goToMyProfile() {
   if (_athleteId) { location.href = 'profil.html?id=' + _athleteId; }
   else { showSection('profile'); }
 }
