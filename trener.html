@@ -4450,15 +4450,30 @@ async function loadCoachMsgsList() {
   });
   const avColors=['#d4501a','#5090e0','#3db870','#e8b840','#9a6fe8','#e05050'];
   const rows = document.getElementById('t-chat-rows') || list;
+
+  // Delegated click listener — attach raz na rows, przeżywa innerHTML resety
+  if (!rows._pchatListenerAttached) {
+    rows.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const action = target.dataset.action;
+      const athleteId = target.dataset.athleteId;
+      const athleteName = target.dataset.athleteName;
+      if (action === 'open-chat') openCoachChat(athleteId, athleteName);
+      else if (action === 'open-profile') openAthleteProfile(athleteId, athleteName);
+    });
+    rows._pchatListenerAttached = true;
+  }
+
   rows.innerHTML = withPrev.map((a,idx)=>{
     const ini=(a.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     const bg=avColors[idx%avColors.length];
     const prev=a.lastMsg?stripHtmlChat(a.lastMsg.body).slice(0,48):'Brak wiadomości';
     const tStr=a.lastMsg?relTimeChat(a.lastMsg.sent_at):'';
     const dotCls=a.unread?'orange':(idx<2?'green':'grey');
-    const safeName = (a.full_name||'Zawodnik').replace(/'/g,"\\'");
-    return `<div class="pchat-row" onclick="openCoachChat('${a.id}','${safeName}')">
-      <div class="pchat-av" style="background:${bg};cursor:pointer;" onclick="event.stopPropagation();openAthleteProfile('${a.id}','${safeName}')" title="Otwórz profil zawodnika">${ini}<div class="pchat-dot ${dotCls}"></div></div>
+    const safeName = escapeHtml(a.full_name || 'Zawodnik');
+    return `<div class="pchat-row" data-action="open-chat" data-athlete-id="${a.id}" data-athlete-name="${safeName}">
+      <div class="pchat-av" style="background:${bg};cursor:pointer;" data-action="open-profile" data-athlete-id="${a.id}" data-athlete-name="${safeName}" title="Otwórz profil zawodnika">${escapeHtml(ini)}<div class="pchat-dot ${dotCls}"></div></div>
       <div class="pchat-info">
         <div class="pchat-name">${escapeHtml(a.full_name)||'Zawodnik'}${a.unread?'<span class="pchat-new-tag">nowe</span>':''}</div>
         <div class="pchat-preview">${escapeHtml(prev)}</div>
