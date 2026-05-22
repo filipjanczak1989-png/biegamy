@@ -972,6 +972,15 @@ body > *{position:relative;z-index:1;}
 </div>
 
 
+<!-- ───── WIDGET POGODY (3 dni) ───── -->
+<div id="weather-widget" class="fade-in" style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">🌤 Pogoda</div>
+    <div id="weather-city" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;"></div>
+  </div>
+  <div id="weather-days" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
+</div>
+
 <div id="home-tiles-row" style="display:flex;gap:10px;margin:0 16px 6px;">
 <div class="today-hero fade-in" style="flex:1;margin:0;">
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
@@ -2390,6 +2399,9 @@ function showSection(name) {
     if (el) el.style.display = 'none';
   });
 
+  // Weather widget — pokazuj tylko na home
+  document.getElementById('weather-widget')?.style.setProperty('display', name === 'home' ? '' : 'none');
+
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
     const _htr=document.getElementById('home-tiles-row');if(_htr)_htr.style.display='none';
@@ -3483,6 +3495,84 @@ async function loadDailyMotivation() {
   document.getElementById('motiv-text').textContent = socialText || q.text;
   document.getElementById('motiv-source').textContent = socialText ? 'Twój plan' : q.source;
 }
+
+window.loadWeather = async function() {
+  const wrap = document.getElementById('weather-widget');
+  if (!wrap || !_athleteId) return;
+
+  // Pobierz city zalogowanego usera
+  let city = null;
+  try {
+    const { data: ath } = await sb.from('athletes').select('city').eq('id', _athleteId).maybeSingle();
+    city = ath?.city?.trim() || null;
+  } catch(e) { console.error('[weather] city fetch err', e); return; }
+
+  if (!city) {
+    // Brak city → pokaż CTA "Dodaj miasto w profilu"
+    wrap.style.display = 'block';
+    wrap.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;"><div style="font-size:12px;color:var(--muted);">🌤 Dodaj miasto w profilu by zobaczyć pogodę</div><a href="profil.html" style="font-size:10px;color:var(--accent);text-decoration:none;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;">Profil →</a></div>';
+    return;
+  }
+
+  // Sprawdź sessionStorage cache (30 min TTL)
+  const cacheKey = 'weather:' + city.toLowerCase();
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+    if (cached && Date.now() - cached.ts < 30 * 60 * 1000) {
+      _renderWeather(cached.data);
+      return;
+    }
+  } catch(e) {}
+
+  // Fetch z EF
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const resp = await fetch(window.SB_FN_URL + '/get-weather', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city }),
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) {
+      console.warn('[weather] EF error:', json);
+      wrap.style.display = 'none';
+      return;
+    }
+    try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: json })); } catch(e) {}
+    _renderWeather(json);
+  } catch(e) {
+    console.error('[weather] fetch err', e);
+    wrap.style.display = 'none';
+  }
+};
+
+window._renderWeather = function(data) {
+  const wrap = document.getElementById('weather-widget');
+  const cityEl = document.getElementById('weather-city');
+  const daysEl = document.getElementById('weather-days');
+  if (!wrap || !cityEl || !daysEl) return;
+
+  cityEl.textContent = data.city;
+
+  const DAY_LABELS = ['Niedz', 'Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob'];
+  const dayHtml = (d, i) => {
+    const date = new Date(d.date + 'T12:00:00');
+    const label = i === 0 ? 'Dziś' : i === 1 ? 'Jutro' : DAY_LABELS[date.getDay()];
+    const badge = d.is_bad ? '<div style="position:absolute;top:4px;right:4px;font-size:8px;color:#e8561e;">⚠</div>' : '';
+    const border = d.is_bad ? 'border:1px solid rgba(232,86,30,0.3);' : 'border:1px solid var(--border);';
+    return '<div style="position:relative;background:rgba(0,0,0,0.2);' + border + 'border-radius:10px;padding:8px 6px;text-align:center;">'
+      + badge
+      + '<div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:2px;">' + label + '</div>'
+      + '<div style="font-size:24px;line-height:1;margin:2px 0;">' + d.icon + '</div>'
+      + '<div style="font-family:Bebas Neue,sans-serif;font-size:14px;color:var(--fg);line-height:1;margin-top:3px;">' + d.temp_min + '°/' + d.temp_max + '°</div>'
+      + '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">💧' + d.precip_pct + '% · 🌬' + d.wind_kmh + '</div>'
+      + '</div>';
+  };
+
+  daysEl.innerHTML = data.days.map(dayHtml).join('');
+  wrap.style.display = 'block';
+};
 
 // ── AVATAR HELPERS ────────────────────────────────────────────────
 function setAvBtn(initials) {
@@ -8198,6 +8288,7 @@ document.addEventListener('touchstart', (e) => {
   btn.addEventListener('touchcancel', reset, {once:true});
 }, {passive: true});
 setTimeout(() => loadDailyMotivation(), 200);
+setTimeout(() => window.loadWeather(), 300);
 
 // Obsługa ?tab= z kalendarza
 const _tabParam = new URLSearchParams(window.location.search).get('tab');
