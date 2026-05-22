@@ -5237,7 +5237,7 @@ async function doCopyWeek() {
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
       .then(function(reg) {
         // Wykryj update i powiadom usera
         reg.addEventListener('updatefound', function() {
@@ -5248,10 +5248,23 @@ if ('serviceWorker' in navigator) {
                 // Nowa wersja gotowa — auto-reload
                 console.log('[PWA] New version available, reloading...');
                 newWorker.postMessage({ type: 'SKIP_WAITING' });
+                // Fallback gdy controllerchange nie odpali w 5s
+                setTimeout(function() {
+                  if (!refreshing) {
+                    console.warn('[PWA] controllerchange nie odpalił, force reload');
+                    window.location.reload();
+                  }
+                }, 5000);
               }
             });
           }
         });
+        // Periodic update check co 60s (tylko gdy karta widoczna)
+        setInterval(function() {
+          if (document.visibilityState === 'visible' && typeof reg.update === 'function') {
+            reg.update();
+          }
+        }, 60000);
       })
       .catch(function(err) {
         console.warn('[PWA] Service worker registration failed:', err);
