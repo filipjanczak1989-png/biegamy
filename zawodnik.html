@@ -976,7 +976,7 @@ body > *{position:relative;z-index:1;}
 <div id="weather-widget" class="fade-in" style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:none;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;">🌤 Pogoda</div>
-    <div id="weather-city" style="font-size:11px;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-weight:500;"></div>
+    <div id="weather-city" onclick="window._weatherSetCity()" title="Klik by zmienić miasto" style="font-size:11px;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-weight:500;cursor:pointer;padding:2px 8px;border-radius:6px;transition:all 0.15s;border:1px dashed transparent;" onmouseover="this.style.borderColor='rgba(232,86,30,0.4)';this.style.background='rgba(232,86,30,0.08)'" onmouseout="this.style.borderColor='transparent';this.style.background='transparent'"></div>
   </div>
   <div id="weather-days" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
 </div>
@@ -3576,7 +3576,9 @@ window._renderWeather = function(data) {
 
 window._weatherSetCity = async function() {
   if (!_athleteId) return;
-  const val = prompt('Podaj miasto (np. Wrocław):', '');
+  // Prefill z aktualnej wartości w widgecie (DOM jako single source post-fetch)
+  const current = document.getElementById('weather-city')?.textContent?.trim() || '';
+  const val = prompt('Podaj miasto (np. Wrocław):', current);
   if (val === null) return; // anulowano
   const trimmed = val.trim();
   if (!trimmed) return; // pusty input — nic nie rób
@@ -3585,8 +3587,11 @@ window._weatherSetCity = async function() {
   const { error } = await sb.from('athletes').update({ city: trimmed }).eq('id', _athleteId);
   if (error) { (window.showToast || alert)('Błąd: ' + error.message); return; }
   (window.showToast || alert)('Miasto zapisane ✓');
-  // Clear stale cache (na wszelki wypadek) + re-fetch
-  try { sessionStorage.removeItem('weather:' + trimmed.toLowerCase()); } catch(e) {}
+  // Clear ALL weather cache keys (defensive — różne city = różne keys)
+  try {
+    const keys = Object.keys(sessionStorage).filter(k => k.startsWith('weather:'));
+    keys.forEach(k => sessionStorage.removeItem(k));
+  } catch(e) {}
   window.loadWeather();
 };
 
@@ -3713,7 +3718,6 @@ async function initAuth() {
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
     if (typeof window.loadWeather === 'function') window.loadWeather();
-    setTimeout(() => { if (_athleteId && typeof window.checkProfileCompletion === 'function') window.checkProfileCompletion(_athleteId); }, 2000);
   } else {
     // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
     const fromTrener = new URLSearchParams(window.location.search).get('from') === 'trener';

@@ -2695,7 +2695,6 @@ async function initAuth() {
   await loadAthletes();
   // Inicjalizuj toggle powiadomień push
   if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
-  setTimeout(() => { if (_coachId && typeof window.checkProfileCompletion === 'function') window.checkProfileCompletion(_coachId); }, 2000);
 }
 
 // ── LOAD ATHLETES FROM DB ─────────────────────────────────────────
