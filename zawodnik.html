@@ -3605,67 +3605,123 @@ window._weatherSetCity = async function() {
 
 // ── FORMA (Faza A — mockup z hardcoded data) ─────────────────────
 window.loadFormaSection = async function() {
-  // Lazy-load Chart.js (analog do innych miejsc)
+  if (!_athleteId) return;
+
+  // Lazy-load Chart.js
   if (typeof Chart === 'undefined') {
     await new Promise((resolve, reject) => {
       const s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-      s.onload = resolve;
-      s.onerror = reject;
+      s.onload = resolve; s.onerror = reject;
       document.head.appendChild(s);
     });
   }
 
-  // MOCKUP DATA — 90 dni TRIMP + CTL/ATL/TSB
-  const days = 90;
+  // ── Fetch 90 dni training_logs ──
   const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate() - 90);
+
+  const { data: logs, error } = await sb.from('training_logs')
+    .select('logged_at,duration,training_type,feel,distance_km')
+    .eq('athlete_id', _athleteId)
+    .not('training_type', 'like', '__badge__%')
+    .gte('logged_at', start.toISOString())
+    .order('logged_at', { ascending: true });
+
+  if (error) { console.error('[forma] fetch err', error); return; }
+
+  // ── Effort factors (training_type) ──
+  const EFFORT_FACTORS = {
+    'odpoczynek': 0,
+    'regeneracja': 1.0,
+    'spokojny': 1.5,
+    'bieg spokojny': 1.5,
+    'wybieganie': 2.0,
+    'długi': 2.5,
+    'wzmacniający': 1.5,
+    'zastępczy': 1.5,
+    'tempo': 3.5,
+    'progresja': 3.0,
+    'interwały': 4.5,
+    'start': 5.0,
+    'wyścig': 5.0,
+  };
+  const FEEL_MODIFIERS = { 'good': 1.0, 'mid': 1.1, 'bad': 1.3 };
+
+  // ── Parser duration ──
+  function durationToMinutes(durStr) {
+    if (!durStr || typeof durStr !== 'string') return 0;
+    const t = durStr.trim(); if (!t) return 0;
+    if (/^\d+$/.test(t)) return parseInt(t, 10);
+    const p = t.split(':').map(x => parseInt(x, 10) || 0);
+    if (p.length === 2) return p[0] + p[1] / 60;
+    if (p.length === 3) return p[0] * 60 + p[1] + p[2] / 60;
+    return 0;
+  }
+
+  // ── TRIMP per log ──
+  function computeTRIMP(log) {
+    const dur = durationToMinutes(log.duration);
+    const effortKey = (log.training_type || '').toLowerCase().trim();
+    const effort = EFFORT_FACTORS[effortKey] !== undefined ? EFFORT_FACTORS[effortKey] : 1.5;
+    const feelMod = FEEL_MODIFIERS[log.feel] || 1.0;
+    return Math.round(dur * effort * feelMod);
+  }
+
+  // ── Build daily TRIMP map ──
+  const dailyTRIMP = {};
+  (logs || []).forEach(log => {
+    const dateStr = log.logged_at.split('T')[0];
+    dailyTRIMP[dateStr] = (dailyTRIMP[dateStr] || 0) + computeTRIMP(log);
+  });
+
+  // ── Compute series CTL/ATL/TSB (EMA) ──
   const labels = [];
   const ctlData = [];
   const atlData = [];
   const tsbData = [];
   const trimpData = [];
+  let ctl = 0, atl = 0;
+  const CTL_DAYS = 42, ATL_DAYS = 7;
 
-  // Symuluj rosnącą bazę z mikrocyklami (build/recovery)
-  let ctl = 25, atl = 30;
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    labels.push(d.toISOString().slice(5,10)); // MM-DD
-
-    // Fake training: większość dni 30-80 TRIMP, 1-2 dni 0 (rest)
-    const trimp = Math.random() < 0.2 ? 0 : Math.round(30 + Math.random() * 70 + i * 0.3);
+  for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().slice(0,10);
+    const trimp = dailyTRIMP[dateStr] || 0;
+    ctl = ctl + (trimp - ctl) / CTL_DAYS;
+    atl = atl + (trimp - atl) / ATL_DAYS;
+    labels.push(dateStr.slice(5));
     trimpData.push(trimp);
-
-    ctl = ctl + (trimp - ctl) / 42;
-    atl = atl + (trimp - atl) / 7;
-
     ctlData.push(Math.round(ctl * 10) / 10);
     atlData.push(Math.round(atl * 10) / 10);
     tsbData.push(Math.round((ctl - atl) * 10) / 10);
   }
 
-  // Update kafelki
-  const lastCtl = ctlData[ctlData.length - 1];
-  const lastAtl = atlData[atlData.length - 1];
-  const lastTsb = tsbData[tsbData.length - 1];
+  // ── Update kafelki ──
+  const lastCtl = ctlData[ctlData.length - 1] || 0;
+  const lastAtl = atlData[atlData.length - 1] || 0;
+  const lastTsb = tsbData[tsbData.length - 1] || 0;
   document.getElementById('forma-ctl-val').textContent = Math.round(lastCtl);
   document.getElementById('forma-atl-val').textContent = Math.round(lastAtl);
   document.getElementById('forma-tsb-val').textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
 
-  // Update strefę interpretacji
+  // ── Strefa interpretacji ──
   const zoneEl = document.getElementById('forma-zone');
   let zoneText, zoneColor;
-  if (lastTsb >= 15) { zoneText = '⚠️ Bardzo wypoczęty — możliwy spadek formy bez treningu'; zoneColor = '#fbbf24'; }
+  if ((logs || []).length < 5) {
+    zoneText = 'ℹ️ Za mało danych — loguj więcej treningów, by zobaczyć formę';
+    zoneColor = 'rgba(255,255,255,0.7)';
+  } else if (lastTsb >= 15) { zoneText = '⚠️ Bardzo wypoczęty — możliwy spadek formy bez treningu'; zoneColor = '#fbbf24'; }
   else if (lastTsb >= 5) { zoneText = '🟢 Forma świeża — gotowy do startów lub mocnych treningów'; zoneColor = '#4ade80'; }
   else if (lastTsb >= -10) { zoneText = '🔵 Trening neutralny — kontynuuj plan'; zoneColor = '#60a5fa'; }
   else if (lastTsb >= -30) { zoneText = '🟠 Wyraźne obciążenie — uważaj na regenerację'; zoneColor = '#fb923c'; }
   else { zoneText = '🔴 Przeciążenie — ryzyko kontuzji, odpocznij'; zoneColor = '#f87171'; }
   zoneEl.textContent = zoneText;
   zoneEl.style.color = zoneColor;
-  zoneEl.style.background = `${zoneColor}14`;
-  zoneEl.style.borderColor = `${zoneColor}40`;
+  zoneEl.style.background = zoneColor.startsWith('rgba') ? 'rgba(255,255,255,0.04)' : `${zoneColor}14`;
+  zoneEl.style.borderColor = zoneColor.startsWith('rgba') ? 'rgba(255,255,255,0.1)' : `${zoneColor}40`;
 
-  // Wykres
+  // ── Render Chart ──
   const ctx = document.getElementById('forma-chart').getContext('2d');
   if (window._formaChart) window._formaChart.destroy();
   window._formaChart = new Chart(ctx, {
@@ -3674,9 +3730,9 @@ window.loadFormaSection = async function() {
       labels: labels,
       datasets: [
         { label: 'TRIMP (dzienny)', data: trimpData, type: 'bar', backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', borderWidth: 0, yAxisID: 'y1', order: 3 },
-        { label: 'CTL', data: ctlData, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
-        { label: 'ATL', data: atlData, borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
-        { label: 'TSB', data: tsbData, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, yAxisID: 'y', order: 0 },
+        { label: 'CTL (forma długa)', data: ctlData, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
+        { label: 'ATL (zmęczenie)', data: atlData, borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
+        { label: 'TSB (forma świeża)', data: tsbData, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, yAxisID: 'y', order: 0 },
       ]
     },
     options: {
