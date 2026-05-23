@@ -562,7 +562,8 @@
     // Edge: za mało danych
     if (logsCount < 5) {
       return {
-        headline: '📝 Buduj swoją historię',
+        icon: '📝',
+        headline: 'Buduj swoją historię',
         subline: 'Loguj więcej treningów, by zobaczyć formę i otrzymywać wskazówki.',
         recommendation: null,
         color: 'rgba(255,255,255,0.7)'
@@ -578,7 +579,8 @@
     // Rule 1: Race w 0-7 dni — taper time
     if (daysToRace !== null && daysToRace >= 0 && daysToRace <= 7) {
       return {
-        headline: '🏁 ' + upcomingRace.name.toUpperCase() + ' ZA ' + daysToRace + (daysToRace === 1 ? ' DZIEŃ' : ' DNI'),
+        icon: '🏁',
+        headline: upcomingRace.name.toUpperCase() + ' ZA ' + daysToRace + (daysToRace === 1 ? ' DZIEŃ' : ' DNI'),
         subline: 'Czas na taper. Lekkie treningi, krótkie tempa, sporo snu. TSB powinien rosnąć w stronę +10.',
         recommendation: lastTsb < 5
           ? '⚠ TSB jest niski (' + Math.round(lastTsb) + ') — odpocznij, nie forsuj w tym tygodniu.'
@@ -590,7 +592,8 @@
     // Rule 2: Race w 8-14 dni — ostatni mocny tydzień
     if (daysToRace !== null && daysToRace > 7 && daysToRace <= 14) {
       return {
-        headline: '🏁 ' + upcomingRace.name.toUpperCase() + ' ZA ' + daysToRace + ' DNI',
+        icon: '🎯',
+        headline: upcomingRace.name.toUpperCase() + ' ZA ' + daysToRace + ' DNI',
         subline: 'Ostatni mocny tydzień przed taperem. 1-2 quality sesje, potem zacznij obniżać objętość.',
         recommendation: '✓ Wykonaj zaplanowane mocne sesje, w przyszłym tygodniu zacznij taper.',
         color: '#fb923c'
@@ -600,7 +603,8 @@
     // Rule 3: Heavy fatigue (TSB < -25)
     if (lastTsb < -25) {
       return {
-        headline: '🚨 WYSOKIE OBCIĄŻENIE',
+        icon: '🚨',
+        headline: 'WYSOKIE OBCIĄŻENIE',
         subline: 'TSB ' + Math.round(lastTsb) + ' · Twój organizm potrzebuje regeneracji. Ryzyko kontuzji rośnie.',
         recommendation: '⚠ Dorzuć 1-2 dni regeneracji. Zmęczenie (ATL ' + Math.round(lastAtl) + ') znacznie przekracza bazę (CTL ' + Math.round(lastCtl) + ').',
         color: '#f87171'
@@ -610,7 +614,8 @@
     // Rule 4: Fresh & ready (TSB +5 to +15)
     if (lastTsb >= 5 && lastTsb <= 15) {
       return {
-        headline: '⚡ ŚWIEŻY · GOTOWY DO STARTU',
+        icon: '⚡',
+        headline: 'ŚWIEŻY · GOTOWY DO STARTU',
         subline: 'TSB +' + Math.round(lastTsb) + ' · idealne okno na mocną sesję, start lub PB attempt. CTL ' + trendStr + ' vs 30 dni.',
         recommendation: ctlTrend > 5
           ? '✓ Baza rośnie — wykorzystaj formę na quality trening.'
@@ -624,7 +629,8 @@
     // Rule 5: Over-rested (TSB > +15)
     if (lastTsb > 15) {
       return {
-        headline: '⚠ BARDZO WYPOCZĘTY',
+        icon: '⚠️',
+        headline: 'BARDZO WYPOCZĘTY',
         subline: 'TSB +' + Math.round(lastTsb) + ' · możesz tracić formę bez treningu. Wróć do regularnej aktywności.',
         recommendation: '✓ Zacznij od spokojnych treningów, stopniowo dorzucaj intensywność.',
         color: '#fbbf24'
@@ -634,7 +640,8 @@
     // Rule 6: Steady state (TSB -10 to +5)
     if (lastTsb >= -10) {
       return {
-        headline: '🔵 W TRENINGU · ' + trendStr,
+        icon: '🔵',
+        headline: 'W TRENINGU · ' + trendStr,
         subline: 'Trenujesz w normalnym rytmie. CTL ' + Math.round(lastCtl) + ' · forma ' + (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb) + ' · zmęczenie ' + Math.round(lastAtl) + '.',
         recommendation: ctlTrend > 10
           ? '✓ Świetny progress — baza buduje się solidnie.'
@@ -647,7 +654,8 @@
 
     // Rule 7: Moderate fatigue (TSB -10 to -25) — fallback
     return {
-      headline: '🟠 OBCIĄŻENIE',
+      icon: '🟠',
+      headline: 'OBCIĄŻENIE',
       subline: 'TSB ' + Math.round(lastTsb) + ' · uważaj na regenerację. Pilnuj snu i jedzenia.',
       recommendation: '⚠ Rozważ łatwiejszy tydzień, jeśli nie czujesz świeżości w nogach.',
       color: '#fb923c'
@@ -797,27 +805,52 @@
     if (typeof window.formaStory === 'function') {
       const story = window.formaStory(logs || [], raceMarkers, lastCtl, lastAtl, lastTsb, ctl30dAgo);
       const storyContainer = document.getElementById(px + '-story');
+      const iconEl = document.getElementById(px + '-story-icon');
       const headlineEl = document.getElementById(px + '-story-headline');
       const sublineEl = document.getElementById(px + '-story-subline');
+      const recWrapEl = document.getElementById(px + '-story-rec-wrap');
       const recEl = document.getElementById(px + '-story-rec');
+      const bgEl = document.getElementById(px + '-story-bg');
 
+      // Helper: hex → rgb csv dla dynamic radial gradient
+      const hexToRgb = (hex) => {
+        const h = (hex || '').replace('#', '');
+        if (h.length !== 6) return '232,86,30';
+        return parseInt(h.substr(0,2), 16) + ',' + parseInt(h.substr(2,2), 16) + ',' + parseInt(h.substr(4,2), 16);
+      };
+
+      if (iconEl) iconEl.textContent = story.icon || '📊';
       if (headlineEl) {
         headlineEl.textContent = story.headline;
-        headlineEl.style.color = story.color;
+        headlineEl.style.color = '#fff';  // premium: headline zawsze biały, kolor poprzez ikonę i bg
       }
       if (sublineEl) sublineEl.textContent = story.subline;
-      if (recEl) {
+
+      if (recWrapEl && recEl) {
         if (story.recommendation) {
           recEl.textContent = story.recommendation;
-          recEl.style.display = 'block';
+          recWrapEl.style.display = 'block';
+          recWrapEl.style.borderLeftColor = story.color || '#e8561e';
+          const recLabel = recWrapEl.querySelector('div:first-child');
+          if (recLabel) recLabel.style.color = story.color || '#e8561e';
         } else {
-          recEl.style.display = 'none';
+          recWrapEl.style.display = 'none';
         }
       }
-      // Background tint via color (subtle gradient)
-      if (storyContainer && story.color && !story.color.startsWith('rgba')) {
-        storyContainer.style.background = 'linear-gradient(135deg, ' + story.color + '14, rgba(255,255,255,0.02))';
-        storyContainer.style.borderColor = story.color + '40';
+
+      // Dynamic radial gradient bg (2 punkty emanujące kolorem rule)
+      if (bgEl && story.color) {
+        const c = story.color.startsWith('rgba') ? '232,86,30' : hexToRgb(story.color);
+        bgEl.style.background =
+          'radial-gradient(circle at 30% 20%, rgba(' + c + ',0.18) 0%, transparent 50%), ' +
+          'radial-gradient(circle at 70% 80%, rgba(' + c + ',0.12) 0%, transparent 50%)';
+      }
+
+      // Fade animation na re-render
+      if (storyContainer) {
+        storyContainer.classList.remove('story-update');
+        void storyContainer.offsetWidth; // force reflow
+        storyContainer.classList.add('story-update');
       }
     }
 
