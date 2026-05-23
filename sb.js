@@ -865,6 +865,12 @@
       + '</div>';
   };
 
+  // ═══════════════════════════════════════════════════════════════
+  // 🔗 FILE METADATA — WeakMap dla "side data" przy plikach (OCR tracking)
+  // Cross-browser safe (NIE mutuje native File object, iOS Safari tolerant)
+  // ═══════════════════════════════════════════════════════════════
+  window._fileMeta = window._fileMeta || new WeakMap();
+
   // Cleanup po usunięciu zoom feature — kasuje stary localStorage flag i resetuje zoom
   try {
     if (localStorage.getItem('zoomLevel')) {

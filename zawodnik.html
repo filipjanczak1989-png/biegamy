@@ -2116,10 +2116,14 @@ window._ocrSetup = function() {
         }
       }
 
-      // Mark file z OCR metadata — dla removeFile reset on delete
-      file._fromOcr = true;
-      file._ocrFields = ocrFields;
-      file._ocrActivityDate = (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) ? json.activity_date : null;
+      // Metadata via WeakMap (cross-browser safe, NIE mutuje native File — iOS Safari rzuca TypeError przy mutacji)
+      if (window._fileMeta) {
+        window._fileMeta.set(file, {
+          fromOcr: true,
+          ocrFields: ocrFields,
+          ocrActivityDate: (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) ? json.activity_date : null,
+        });
+      }
 
       // Dodaj file do _pendingFiles → poleci jako attachment przy saveLog
       if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(file);
@@ -2362,17 +2366,20 @@ function removeFile(idx, el) {
   const removed = window._pendingFiles[idx];
 
   // Jeśli file był OCR-sourced — wyczyść pola które OCR wypełnił + zresetuj _logDate jeśli OCR-shifted
-  if (removed?._fromOcr) {
-    if (Array.isArray(removed._ocrFields)) {
-      removed._ocrFields.forEach(id => {
+  const meta = removed && window._fileMeta?.get(removed);
+  if (meta?.fromOcr) {
+    if (Array.isArray(meta.ocrFields)) {
+      meta.ocrFields.forEach(id => {
         const e = document.getElementById(id);
         if (e) e.value = '';
       });
     }
-    if (removed._ocrActivityDate && typeof _logDate !== 'undefined' && _logDate === removed._ocrActivityDate) {
+    if (meta.ocrActivityDate && typeof _logDate !== 'undefined' && _logDate === meta.ocrActivityDate) {
       _logDate = null;
       if (typeof _updateLogDateDisplay === 'function') _updateLogDateDisplay();
     }
+    // Cleanup WeakMap entry (file będzie GC'd później niezależnie, ale explicit delete = pewność)
+    window._fileMeta.delete(removed);
   }
 
   window._pendingFiles.splice(idx, 1);
