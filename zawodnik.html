@@ -2015,6 +2015,80 @@ window._ocrSetup = function() {
     });
   }
 
+  // === [diag-ocr] TEMP DIAGNOSTIC — usunąć po debugowaniu date parsing ===
+  window._diagOCR = async (file) => {
+    console.group('[diag-ocr] OCR call dla: ' + (file?.name || 'unnamed'));
+    try {
+      if (!file) { console.error('[diag-ocr] brak file'); console.groupEnd(); return null; }
+      if (!window.SB_FN_URL) { console.error('[diag-ocr] SB_FN_URL nie załadowany'); console.groupEnd(); return null; }
+
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { console.error('[diag-ocr] brak session'); console.groupEnd(); return null; }
+
+      const today = new Date();
+      const todayIso = today.toISOString().split('T')[0];
+      console.log('[diag-ocr] browser local time:', today.toString());
+      console.log('[diag-ocr] today_iso wysyłane do EF:', todayIso);
+      console.log('[diag-ocr] tz offset (min):', today.getTimezoneOffset(), '(Polska CEST = -120)');
+
+      const blob = await _ocrCompressImage(file, 1920, 0.85);
+      console.log('[diag-ocr] compress:', (file.size/1024/1024).toFixed(2), 'MB →', (blob.size/1024/1024).toFixed(2), 'MB');
+
+      const base64 = await new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(',')[1]);
+        r.onerror = rej;
+        r.readAsDataURL(blob);
+      });
+
+      const t0 = performance.now();
+      const resp = await fetch(window.SB_FN_URL + '/ocr-training-screen', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: [{ image_base64: base64, media_type: 'image/jpeg' }],
+          today_iso: todayIso
+        })
+      });
+      const ms = Math.round(performance.now() - t0);
+      const json = await resp.json();
+
+      console.log('[diag-ocr] EF status:', resp.status, '| ms:', ms);
+      console.log('[diag-ocr] FULL response:', json);
+      console.log('[diag-ocr] activity_date raw:', JSON.stringify(json.activity_date));
+      console.log('[diag-ocr] activity_date type:', typeof json.activity_date);
+
+      const regexOK = json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date);
+      console.log('[diag-ocr] regex YYYY-MM-DD:', regexOK ? '✅ PASS' : '❌ FAIL');
+
+      if (regexOK) {
+        const parsed = new Date(json.activity_date + 'T12:00:00');
+        const diffDays = Math.round((parsed - today) / 86400000);
+        console.log('[diag-ocr] parsed date:', parsed.toDateString(), '| diff vs today:', diffDays, 'dni');
+        if (diffDays > 0) console.warn('[diag-ocr] ⚠️ DATA Z PRZYSZŁOŚCI');
+        if (diffDays < -30) console.warn('[diag-ocr] ⚠️ Data > 30 dni wstecz');
+      }
+
+      console.log('[diag-ocr] inne pola:', {
+        distance_km: json.distance_km,
+        duration_text: json.duration_text,
+        duration_seconds: json.duration_seconds,
+        avg_hr: json.avg_hr,
+        calories: json.calories,
+        source_app: json.source_app
+      });
+
+      console.groupEnd();
+      return json;
+    } catch (e) {
+      console.error('[diag-ocr] error:', e);
+      console.groupEnd();
+      return null;
+    }
+  };
+  console.log('[diag-ocr] helper ready: window._diagOCR(file)');
+  // === [/diag-ocr] ===
+
   fileInput.addEventListener('change', async () => {
     const files = Array.from(fileInput.files || []);
     if (files.length === 0) return;
