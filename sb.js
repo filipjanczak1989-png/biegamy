@@ -854,8 +854,45 @@
       }
     }
 
-    // Build annotations dla race markers + "Dziś" marker
+    // Build annotations: strefy TSB (boxy tła) + Dziś + "Tu jesteś" + race markers
     const annotations = {
+      // STREFA: przeciążenie (TSB < -30) — czerwone
+      zone_critical: {
+        type: 'box',
+        yMin: -100,
+        yMax: -30,
+        backgroundColor: 'rgba(248,113,113,0.08)',
+        borderWidth: 0,
+        drawTime: 'beforeDatasetsDraw',
+      },
+      // STREFA: obciążenie (-30 do -10) — pomarańczowe
+      zone_high: {
+        type: 'box',
+        yMin: -30,
+        yMax: -10,
+        backgroundColor: 'rgba(251,146,60,0.06)',
+        borderWidth: 0,
+        drawTime: 'beforeDatasetsDraw',
+      },
+      // STREFA: optimum (+5 do +15) — zielone
+      zone_optimum: {
+        type: 'box',
+        yMin: 5,
+        yMax: 15,
+        backgroundColor: 'rgba(74,222,128,0.08)',
+        borderWidth: 0,
+        drawTime: 'beforeDatasetsDraw',
+      },
+      // STREFA: over-rested (> +15) — żółte
+      zone_overrested: {
+        type: 'box',
+        yMin: 15,
+        yMax: 100,
+        backgroundColor: 'rgba(251,191,36,0.07)',
+        borderWidth: 0,
+        drawTime: 'beforeDatasetsDraw',
+      },
+      // Linia "Dziś"
       today: {
         type: 'line',
         xMin: todayDateStr.slice(5),
@@ -874,7 +911,29 @@
           borderRadius: 4,
           yAdjust: -8,
         }
-      }
+      },
+      // MARKER "Tu jesteś" — duża kropka na końcu TSB linii z kolorem per strefa
+      you_are_here: {
+        type: 'point',
+        xValue: todayDateStr.slice(5),
+        yValue: lastTsb,
+        backgroundColor: lastTsb >= 5 && lastTsb <= 15 ? '#4ade80' : lastTsb > 15 ? '#fbbf24' : lastTsb >= -10 ? '#60a5fa' : lastTsb >= -30 ? '#fb923c' : '#f87171',
+        borderColor: '#fff',
+        borderWidth: 3,
+        radius: 8,
+        drawTime: 'afterDatasetsDraw',
+        label: {
+          display: true,
+          content: 'Tu jesteś',
+          position: 'top',
+          backgroundColor: 'rgba(20,15,30,0.9)',
+          color: '#fff',
+          font: { size: 9, family: 'DM Mono', weight: 'bold' },
+          padding: { top: 3, bottom: 3, left: 7, right: 7 },
+          borderRadius: 5,
+          yAdjust: -20,
+        }
+      },
     };
     raceMarkers.forEach((race, idx) => {
       const raceLabelDate = race.date.slice(5);
@@ -921,7 +980,10 @@
           maintainAspectRatio: false,
           interaction: { mode: 'index', intersect: false },
           plugins: {
-            legend: { labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'DM Mono' }, boxWidth: 12 } },
+            legend: {
+              labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'DM Mono' }, boxWidth: 10, padding: 12 },
+              position: 'bottom',
+            },
             tooltip: { backgroundColor: 'rgba(20,15,30,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10, titleFont: { family: 'DM Mono', size: 11 }, bodyFont: { family: 'DM Sans', size: 12 } },
             annotation: { annotations: annotations }
           },
