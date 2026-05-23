@@ -115,6 +115,36 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       </div>
     </section>
 
+    <!-- v1.1: Types pie 2 grids (7 dni) -->
+    <section style="margin-top:24px;">
+      <h2 class="section-title">🏃 TYPY TRENINGÓW · 7 DNI</h2>
+      <div class="dual-grid">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+          <div class="mini-title">TY</div>
+          <div id="cmp-me-types-content"></div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+          <div class="mini-title" id="friend-name-types">PRZYJACIEL</div>
+          <div id="cmp-friend-types-content"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- v1.1: Heatmap 13 tyg 2 grids (overflow-x:auto żeby na mobilu scrollować bez ścisku) -->
+    <section style="margin-top:24px;">
+      <h2 class="section-title">📅 AKTYWNOŚĆ · 13 TYGODNI</h2>
+      <div class="dual-grid">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;overflow-x:auto;">
+          <div class="mini-title">TY</div>
+          <div id="cmp-me-heatmap"></div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;overflow-x:auto;">
+          <div class="mini-title" id="friend-name-heatmap">PRZYJACIEL</div>
+          <div id="cmp-friend-heatmap"></div>
+        </div>
+      </div>
+    </section>
+
     <!-- Bottom actions -->
     <div style="text-align:center;margin:32px 0 20px;">
       <button onclick="changeFriend()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 24px;border-radius:8px;cursor:pointer;">Wybierz innego →</button>
@@ -224,6 +254,8 @@ async function renderCompare() {
   document.getElementById('friend-name-legend').textContent = friendNameUpper;
   document.getElementById('friend-name-weekly').textContent = friendNameUpper;
   document.getElementById('friend-name-kcal').textContent = friendNameUpper;
+  const _ftEl = document.getElementById('friend-name-types'); if (_ftEl) _ftEl.textContent = friendNameUpper;
+  const _fhEl = document.getElementById('friend-name-heatmap'); if (_fhEl) _fhEl.textContent = friendNameUpper;
 
   renderAthleteCard('me-card', meProf, myLogs, myWeight, '#e8561e', 'TY');
   renderAthleteCard('friend-card', friendProf, friendLogs, friendWeight, '#a78bfa', 'PRZYJACIEL');
@@ -238,6 +270,18 @@ async function renderCompare() {
   if (typeof window._renderFormaKcalWeekly === 'function') {
     window._renderFormaKcalWeekly(myLogs, 'cmp-me', myWeight);
     window._renderFormaKcalWeekly(friendLogs, 'cmp-friend', friendWeight);
+  }
+
+  // v1.1: Types pie 2x
+  if (typeof window._renderFormaTypes === 'function') {
+    window._renderFormaTypes(myLogs, 'cmp-me');
+    window._renderFormaTypes(friendLogs, 'cmp-friend');
+  }
+
+  // v1.1: Heatmap 13 tyg 2x
+  if (typeof window._renderFormaHeatmap === 'function') {
+    window._renderFormaHeatmap(myLogs, 'cmp-me', myWeight);
+    window._renderFormaHeatmap(friendLogs, 'cmp-friend', friendWeight);
   }
 }
 
