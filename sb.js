@@ -1128,6 +1128,7 @@
     window._renderFormaWeekly(logs || [], px);
     window._renderFormaTypes(logs || [], px);
     window._renderFormaHeatmap(logs || [], px, weightKg);
+    window._renderFormaKcalWeekly(logs || [], px, weightKg);
   };
 
   // Weekly bars renderer — parametryzowany prefix
@@ -1315,6 +1316,49 @@
 
     const gridHtml = '<div style="position:relative;display:grid;grid-template-columns:18px repeat(13,' + cellSize + 'px);grid-template-rows:repeat(7,' + cellSize + 'px);gap:' + gap + 'px;padding-top:12px;">' + monthLabels + labels + cells + '</div>';
     el.innerHTML = gridHtml + legend;
+  };
+
+  // Kalorie weekly bars — 8 tygodni sum kcal (analog do _renderFormaWeekly ale dla kcal)
+  window._renderFormaKcalWeekly = function(logs, idPrefix, weightKg) {
+    const px = idPrefix || 'forma';
+    const el = document.getElementById(px + '-kcal-weekly');
+    if (!el) return;
+    if (!weightKg || weightKg <= 0) {
+      el.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,0.5);text-align:center;padding:14px;">🔥 Brak danych — wpisz wagę w sekcji <a href="nutrition.html" style="color:var(--accent);text-decoration:underline;">Odżywianie</a></div>';
+      return;
+    }
+
+    // 8 tygodni — buckets Monday-Sunday
+    const buckets = [];
+    const today = new Date();
+    for (let i = 7; i >= 0; i--) {
+      const weekStart = new Date(today);
+      const dow = today.getDay();
+      const mondayOffset = dow === 0 ? -6 : 1 - dow;
+      weekStart.setDate(today.getDate() + mondayOffset - i * 7);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 7);
+
+      const weekLogs = logs.filter(l => {
+        const d = new Date(l.logged_at);
+        return d >= weekStart && d < weekEnd;
+      });
+
+      const kcal = weekLogs.reduce((sum, log) => sum + window.formaCalories(log, weightKg), 0);
+      const lbl = (weekStart.getMonth() + 1) + '/' + weekStart.getDate();
+      buckets.push({ kcal, lbl });
+    }
+
+    const max = Math.max(...buckets.map(b => b.kcal), 1);
+    el.innerHTML = buckets.map(b => {
+      const h = Math.max((b.kcal / max) * 100, 2);
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">'
+        + '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">' + (b.kcal > 0 ? b.kcal : '') + '</div>'
+        + '<div style="width:100%;background:linear-gradient(180deg,#fbbf24,#f59e0b);border-radius:4px 4px 0 0;height:' + h + '%;min-height:2px;"></div>'
+        + '<div style="font-size:9px;color:rgba(255,255,255,0.4);font-family:DM Mono,monospace;">' + b.lbl + '</div>'
+        + '</div>';
+    }).join('');
   };
 
   // ═══════════════════════════════════════════════════════════════

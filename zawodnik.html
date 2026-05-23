@@ -1593,7 +1593,7 @@ body > *{position:relative;z-index:1;}
       <!-- DYSTANS + CZAS -->
       <div class="f-row" id="log-form">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
-        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto()" inputmode="numeric"></div>
+        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span> <span id="l-kcal-auto" style="color:#fbbf24;font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto()" inputmode="numeric"></div>
       </div>
 
       <!-- DATA LOGU -->
@@ -2449,6 +2449,29 @@ function calcPaceAuto() {
   const ps = String(Math.round(paceSecPerKm % 60)).padStart(2,'0');
   document.getElementById('l-pace').value = pm + ':' + ps;
   if(lbl) lbl.textContent = '← auto';
+}
+async function calcKcalAuto() {
+  // Lazy-load weight from nutrition_profiles ONCE per session
+  if (window._athleteWeight === undefined) {
+    window._athleteWeight = 0; // sentinel: loading-in-progress, reset jeśli udany fetch
+    try {
+      if (_athleteId) {
+        const { data } = await sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _athleteId).maybeSingle();
+        window._athleteWeight = data?.weight_kg || 0;
+      }
+    } catch(e) { /* keep 0 */ }
+  }
+  const weight = window._athleteWeight;
+  const el = document.getElementById('l-kcal-auto');
+  if (!el) return;
+  if (!weight) { el.textContent = ''; return; }
+
+  const time = document.getElementById('l-time').value;
+  if (!time || time.length < 3) { el.textContent = ''; return; }
+
+  const log = { duration: time, training_type: (typeof _logType !== 'undefined' ? _logType : 'Spokojny') };
+  const kcal = (typeof window.formaCalories === 'function') ? window.formaCalories(log, weight) : 0;
+  el.textContent = kcal > 0 ? '🔥 ~' + kcal + ' kcal' : '';
 }
 function calcTimeAuto() {
   const dist = parseFloat(document.getElementById('l-dist').value);
@@ -9944,6 +9967,12 @@ if ('serviceWorker' in navigator) {
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
     <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">🗓 Aktywność (13 tygodni)</div>
     <div id="forma-heatmap" style="overflow-x:auto;"></div>
+  </div>
+
+  <!-- Kalorie weekly bars — 8 ostatnich tygodni sum kcal (wymaga weight w nutrition_profiles) -->
+  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">🔥 Kalorie (8 ostatnich)</div>
+    <div id="forma-kcal-weekly" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
   </div>
 
   <!-- Typy treningów ostatnie 7 dni — pie chart -->
