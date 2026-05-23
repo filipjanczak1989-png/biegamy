@@ -565,6 +565,8 @@
   };
 
   window.formaCalories = function(log, weightKg) {
+    // Priority: stored value (manual input lub OCR) > MET compute z weight
+    if (log && log.calories && log.calories > 0) return log.calories;
     if (!weightKg || weightKg <= 0) return 0;
     const dur = window.formaDurationToMin(log.duration);
     const key = (log.training_type || '').toLowerCase().trim();
@@ -753,7 +755,7 @@
     start.setDate(start.getDate() - 90);
 
     const { data: logs, error } = await sb.from('training_logs')
-      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,elevation_gain')
+      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,elevation_gain,calories')
       .eq('athlete_id', athleteId)
       .not('training_type', 'like', '__badge__%')
       .gte('logged_at', start.toISOString())

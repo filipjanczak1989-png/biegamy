@@ -2605,7 +2605,7 @@ async function openTrainingsList(){
   fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTr(this)" style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
   var li=document.createElement('div');li.id='tr-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(fb);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  var r=await sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
+  var r=await sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url,calories').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
   _allTr=r.data||[];renderTr('');
 }
 function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});btn.style.background='rgba(232,86,30,0.15)';btn.style.borderColor='rgba(232,86,30,0.4)';btn.style.color='var(--accent)';renderTr(btn.dataset.type||'');}

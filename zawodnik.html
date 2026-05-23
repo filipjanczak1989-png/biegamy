@@ -1593,7 +1593,7 @@ body > *{position:relative;z-index:1;}
       <!-- DYSTANS + CZAS -->
       <div class="f-row" id="log-form">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
-        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span> <span id="l-kcal-auto" style="color:#fbbf24;font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto()" inputmode="numeric"></div>
+        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto()" inputmode="numeric"></div>
       </div>
 
       <!-- DATA LOGU -->
@@ -1614,10 +1614,19 @@ body > *{position:relative;z-index:1;}
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
-      <!-- PRZEWYŻSZENIE + KALORIE -->
+      <!-- PRZEWYŻSZENIE -->
       <div class="f-row">
         <div class="field"><label>Przewyższenie (m) <span style="font-size:9px;color:#3db870;">▲</span></label><input type="number" id="l-elevation" placeholder="120" inputmode="numeric" min="0"></div>
-        <div class="field"><label>Kalorie 🔥 <span style="font-size:9px;color:#fbbf24;">auto z MET</span></label><input type="number" id="l-calories" placeholder="auto" inputmode="numeric" min="0" max="5000"></div>
+        <div class="field"></div>
+      </div>
+
+      <!-- KALORIE — opcjonalne, auto-suggest z MET pokazany jako podpis w label -->
+      <div style="margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;margin-bottom:4px;">
+          <span>🔥 Kalorie spalone</span>
+          <span id="l-kcal-suggest" style="color:#e8561e;font-size:9px;letter-spacing:0;text-transform:none;font-family:'Inter',sans-serif;font-style:italic;"></span>
+        </label>
+        <input type="number" id="l-calories" min="0" max="10000" placeholder="opcjonalnie — auto z MET jeśli puste" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:#fff;font-family:'DM Mono',monospace;font-size:14px;outline:none;">
       </div>
 
       <!-- SAMOPOCZUCIE -->
@@ -1809,7 +1818,7 @@ async function openModal() {
   document.getElementById('modal-bg').classList.add('open');
 
   // Reset pól przed prefillowaniem (jak w openModalForDate)
-  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-calories','l-comment','l-strava'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
@@ -1867,7 +1876,7 @@ function openModalForDate(dateStr, e) {
   document.getElementById('modal-bg').classList.add('open');
 
   // Reset pól przed prefillowaniem
-  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-comment','l-strava'].forEach(id => {
+  ['l-dist','l-time','l-pace','l-hr','l-elevation','l-calories','l-comment','l-strava'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
@@ -2079,7 +2088,7 @@ window._ocrSetup = function() {
       // Pre-fill pól TYLKO jeśli puste
       let filled = 0;
       const ocrFields = [];  // track które pola OCR faktycznie wypełnił (dla reset on remove)
-      const fields = [['l-dist', json.distance_km], ['l-time', json.duration], ['l-pace', json.pace], ['l-hr', json.heart_rate], ['l-elevation', json.elevation_gain]];
+      const fields = [['l-dist', json.distance_km], ['l-time', json.duration], ['l-pace', json.pace], ['l-hr', json.heart_rate], ['l-elevation', json.elevation_gain], ['l-calories', json.calories]];
       for (const [id, val] of fields) {
         const el = document.getElementById(id);
         if (el && !el.value && val != null && val !== '') { el.value = val; ocrFields.push(id); filled++; }
@@ -2451,9 +2460,14 @@ function calcPaceAuto() {
   if(lbl) lbl.textContent = '← auto';
 }
 async function calcKcalAuto() {
+  const calInput = document.getElementById('l-calories');
+  const suggestEl = document.getElementById('l-kcal-suggest');
+  const timeEl = document.getElementById('l-time');
+  if (!suggestEl || !timeEl) return;
+
   // Lazy-load weight from nutrition_profiles ONCE per session
   if (window._athleteWeight === undefined) {
-    window._athleteWeight = 0; // sentinel: loading-in-progress, reset jeśli udany fetch
+    window._athleteWeight = 0;
     try {
       if (_athleteId) {
         const { data } = await sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _athleteId).maybeSingle();
@@ -2461,22 +2475,16 @@ async function calcKcalAuto() {
       }
     } catch(e) { /* keep 0 */ }
   }
-  const weight = window._athleteWeight;
-  const el = document.getElementById('l-kcal-auto');
-  if (!el) return;
-  if (!weight) { el.textContent = ''; return; }
 
-  const time = document.getElementById('l-time').value;
-  if (!time || time.length < 3) { el.textContent = ''; return; }
-
-  const log = { duration: time, training_type: (typeof _logType !== 'undefined' ? _logType : 'Spokojny') };
-  const kcal = (typeof window.formaCalories === 'function') ? window.formaCalories(log, weight) : 0;
-  el.textContent = kcal > 0 ? '🔥 ~' + kcal + ' kcal' : '';
-  // Auto-fill l-calories input value JEŚLI puste (user może override manualnie)
-  const calInput = document.getElementById('l-calories');
-  if (calInput && !calInput.value && kcal > 0) {
-    calInput.value = kcal;
+  if (!window._athleteWeight || typeof window.formaCalories !== 'function') {
+    suggestEl.textContent = '';
+    return;
   }
+
+  const log = { duration: timeEl.value, training_type: (typeof _logType !== 'undefined' ? _logType : 'Spokojny') };
+  const kcal = window.formaCalories(log, window._athleteWeight);
+  // Suggest only — NIE wypełnia input (user widzi auto-podpowiedź ale wpisuje ręcznie lub zostawia puste)
+  suggestEl.textContent = kcal > 0 ? '· auto: ~' + kcal + ' kcal' : '';
 }
 function calcTimeAuto() {
   const dist = parseFloat(document.getElementById('l-dist').value);
