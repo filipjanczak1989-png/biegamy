@@ -547,6 +547,12 @@
     return Math.round(dur * effort * feelMod);
   };
 
+  // Single source of truth dla training_type colors (używane w _renderFormaTypes, statystyki.html, future heatmap)
+  window.TRAINING_TYPE_COLORS = {
+    'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
+    'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888','Progresja':'#e8b840','Start':'#dc2626','Wyścig':'#dc2626','Trening':'#e8561e'
+  };
+
   // Core forma renderer — parametryzowany athleteId + idPrefix dla reuse w zawodnik.html + trener.html
   window.renderFormaForAthlete = async function(athleteId, idPrefix) {
     if (!athleteId) return;
@@ -578,7 +584,7 @@
     start.setDate(start.getDate() - 90);
 
     const { data: logs, error } = await sb.from('training_logs')
-      .select('logged_at,duration,training_type,feel,distance_km')
+      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,elevation_gain')
       .eq('athlete_id', athleteId)
       .not('training_type', 'like', '__badge__%')
       .gte('logged_at', start.toISOString())
@@ -812,10 +818,7 @@
     const today = new Date();
     const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
 
-    const TYPE_COLORS = {
-      'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
-      'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888','Progresja':'#e8b840','Start':'#dc2626','Wyścig':'#dc2626','Trening':'#e8561e'
-    };
+    const TYPE_COLORS = window.TRAINING_TYPE_COLORS || {};
 
     const counts = {};
     logs.forEach(l => {
