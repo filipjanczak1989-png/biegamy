@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Porównanie · BiegaMy</title>
+<meta name="theme-color" content="#07070a">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sb.js"></script>
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.97);--card2:rgba(24,20,32,0.98);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.05);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.42);
+  --accent:#e8561e;--accent2:#ff7a45;--muted:rgba(240,237,232,0.38);
+  --green:#3db870;--blue:#5b8cff;--yellow:#e8b840;--red:#e05050;--purple:#9b6dff;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;overflow-x:hidden;padding-bottom:40px;}
+
+/* Header */
+.header{position:sticky;top:0;z-index:10;background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 16px 0;}
+.header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;}
+.back-btn{background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--fg2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;text-decoration:none;flex-shrink:0;}
+
+/* Section titles */
+.section-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--fg3);margin-bottom:10px;}
+
+/* Compare hero — 2 cols desktop, stacked mobile */
+.compare-hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;}
+.athlete-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;}
+
+/* Dual grid for weekly bars + kcal */
+.dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.mini-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;color:var(--fg3);margin-bottom:6px;text-transform:uppercase;}
+
+/* Mobile breakpoint */
+@media (max-width: 700px) {
+  .compare-hero { grid-template-columns: 1fr; }
+  .dual-grid { grid-template-columns: 1fr; }
+}
+
+/* Picker tile hover */
+.picker-tile{transition:border-color 0.15s,background 0.15s;}
+.picker-tile:hover{border-color:var(--accent) !important;background:rgba(232,86,30,0.05) !important;}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a class="back-btn" href="zawodnik.html#section-forma">←</a>
+    <h1 style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;font-size:22px;flex:1;">PORÓWNANIE FORMY</h1>
+  </div>
+</header>
+
+<main style="max-width:900px;margin:0 auto;padding:20px 16px;">
+
+  <!-- Friend picker fallback gdy brak ?friend lub niepoprawny -->
+  <div id="picker-fallback" style="display:none;">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;margin-bottom:16px;">WYBIERZ ZNAJOMEGO</h2>
+    <div id="picker-list"></div>
+  </div>
+
+  <!-- Compare view (rendered po ?friend=ID) -->
+  <div id="compare-view" style="display:none;">
+
+    <!-- Hero z 2 athletes side-by-side -->
+    <section class="compare-hero">
+      <div class="athlete-card" id="me-card"></div>
+      <div class="athlete-card" id="friend-card"></div>
+    </section>
+
+    <!-- TSB chart 90d 2 lines -->
+    <section style="margin-top:24px;">
+      <h2 class="section-title">📈 Trend formy · 90 dni</h2>
+      <div style="position:relative;height:300px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+        <canvas id="compare-chart"></canvas>
+      </div>
+      <p style="text-align:center;margin-top:8px;font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;letter-spacing:0.05em;">
+        <span style="color:#e8561e;">━ Ty</span> &nbsp;vs&nbsp; <span style="color:#a78bfa;">━ <span id="friend-name-legend"></span></span>
+      </p>
+    </section>
+
+    <!-- Weekly km bars 2 grids -->
+    <section style="margin-top:24px;">
+      <h2 class="section-title">🏃 Kilometraż · 8 tygodni</h2>
+      <div class="dual-grid">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+          <div class="mini-title">TY</div>
+          <div id="cmp-me-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+          <div class="mini-title" id="friend-name-weekly">PRZYJACIEL</div>
+          <div id="cmp-friend-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kalorie weekly bars 2 grids -->
+    <section style="margin-top:24px;">
+      <h2 class="section-title">🔥 Kalorie spalone · 8 tygodni</h2>
+      <div class="dual-grid">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+          <div class="mini-title">TY</div>
+          <div id="cmp-me-kcal-weekly" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
+          <div class="mini-title" id="friend-name-kcal">PRZYJACIEL</div>
+          <div id="cmp-friend-kcal-weekly" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom actions -->
+    <div style="text-align:center;margin:32px 0 20px;">
+      <button onclick="changeFriend()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 24px;border-radius:8px;cursor:pointer;">Wybierz innego →</button>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+const _sb = window.sb;
+let _myAthleteId = null;
+let _friendId = null;
+let _friendName = '';
+
+const params = new URLSearchParams(location.search);
+_friendId = params.get('friend');
+
+async function init() {
+  // Auth check
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) { location.href = 'zawodnik.html'; return; }
+
+  // Fetch my athlete ID
+  const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+  if (!me) { location.href = 'zawodnik.html'; return; }
+  _myAthleteId = me.id;
+
+  // Verify _friendId is a friend (defensive, prevent random ?friend=X exploits)
+  if (_friendId) {
+    const { data: rel } = await _sb.from('friendships')
+      .select('id')
+      .or('and(requester_id.eq.' + _myAthleteId + ',addressee_id.eq.' + _friendId + '),and(requester_id.eq.' + _friendId + ',addressee_id.eq.' + _myAthleteId + ')')
+      .eq('status', 'accepted')
+      .maybeSingle();
+    if (!rel) {
+      // Not a friend → fallback to picker (zero info leak)
+      _friendId = null;
+    }
+  }
+
+  if (_friendId) {
+    await renderCompare();
+  } else {
+    await renderPicker();
+  }
+}
+
+async function renderPicker() {
+  document.getElementById('picker-fallback').style.display = 'block';
+  const { data: friendships } = await _sb.from('friendships')
+    .select('requester_id,addressee_id')
+    .or('requester_id.eq.' + _myAthleteId + ',addressee_id.eq.' + _myAthleteId)
+    .eq('status', 'accepted');
+
+  const listEl = document.getElementById('picker-list');
+  if (!friendships || friendships.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--fg3);font-style:italic;padding:16px;font-family:Inter,sans-serif;">Brak znajomych. Dodaj kogoś w <a href="zawodnik.html?tab=social" style="color:var(--accent);">Społeczność</a>.</p>';
+    return;
+  }
+
+  const friendIds = friendships.map(f => f.requester_id === _myAthleteId ? f.addressee_id : f.requester_id);
+  const { data: friends } = await _sb.from('athletes')
+    .select('id, full_name, avatar_url')
+    .in('id', friendIds)
+    .order('full_name', { ascending: true });
+
+  const escapeHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
+
+  listEl.innerHTML = (friends || []).map(f => {
+    const initials = (f.full_name || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    const nameEsc = escapeHtml(f.full_name || 'Bez imienia');
+    const avatarHtml = f.avatar_url
+      ? '<img src="' + escapeHtml(f.avatar_url) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
+      : '<span style="width:40px;height:40px;border-radius:50%;background:rgba(232,86,30,0.2);display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:13px;color:var(--accent);flex-shrink:0;">' + initials + '</span>';
+    return '<a class="picker-tile" href="compare.html?friend=' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;text-decoration:none;color:var(--fg);">'
+      + avatarHtml
+      + '<span style="flex:1;font-family:Inter,sans-serif;font-size:14px;">' + nameEsc + '</span>'
+      + '<span style="color:var(--fg3);">→</span>'
+      + '</a>';
+  }).join('');
+}
+
+async function renderCompare() {
+  document.getElementById('compare-view').style.display = 'block';
+
+  const ninetyDaysAgo = new Date(); ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const startISO = ninetyDaysAgo.toISOString();
+
+  const [meProf, friendProf, myLogs, friendLogs, myWeight, friendWeight] = await Promise.all([
+    _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _myAthleteId).maybeSingle().then(r => r.data),
+    _sb.from('athletes').select('full_name,avatar_url,race_goals').eq('id', _friendId).maybeSingle().then(r => r.data),
+    _sb.from('training_logs').select('logged_at,duration,training_type,feel,distance_km,calories').eq('athlete_id', _myAthleteId).not('training_type', 'like', '__badge__%').gte('logged_at', startISO).order('logged_at', { ascending: true }).then(r => r.data || []),
+    _sb.from('training_logs').select('logged_at,duration,training_type,feel,distance_km,calories').eq('athlete_id', _friendId).not('training_type', 'like', '__badge__%').gte('logged_at', startISO).order('logged_at', { ascending: true }).then(r => r.data || []),
+    _sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _myAthleteId).maybeSingle().then(r => r.data?.weight_kg || 0).catch(() => 0),
+    _sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _friendId).maybeSingle().then(r => r.data?.weight_kg || 0).catch(() => 0)
+  ]);
+
+  if (!friendProf) {
+    document.querySelector('main').innerHTML = '<p style="color:var(--red);padding:20px;font-family:Inter,sans-serif;">Nie znaleziono zawodnika lub nie masz uprawnień.</p>';
+    return;
+  }
+
+  _friendName = friendProf.full_name || 'Znajomy';
+  const escapeHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
+  const friendNameUpper = escapeHtml(_friendName.toUpperCase());
+  document.getElementById('friend-name-legend').textContent = friendNameUpper;
+  document.getElementById('friend-name-weekly').textContent = friendNameUpper;
+  document.getElementById('friend-name-kcal').textContent = friendNameUpper;
+
+  renderAthleteCard('me-card', meProf, myLogs, myWeight, '#e8561e', 'TY');
+  renderAthleteCard('friend-card', friendProf, friendLogs, friendWeight, '#a78bfa', 'PRZYJACIEL');
+
+  await renderCompareChart(myLogs, friendLogs, _friendName);
+
+  if (typeof window._renderFormaWeekly === 'function') {
+    window._renderFormaWeekly(myLogs, 'cmp-me');
+    window._renderFormaWeekly(friendLogs, 'cmp-friend');
+  }
+
+  if (typeof window._renderFormaKcalWeekly === 'function') {
+    window._renderFormaKcalWeekly(myLogs, 'cmp-me', myWeight);
+    window._renderFormaKcalWeekly(friendLogs, 'cmp-friend', friendWeight);
+  }
+}
+
+function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const stats = window.computeFormaStats(logs, weight);
+  const race = window.computeNextRace(profile.race_goals);
+  const initials = (profile.full_name || '?').split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase();
+  const tsbStr = stats.tsb > 0 ? '+' + stats.tsb : String(stats.tsb);
+  const escapeHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
+  const nameEsc = escapeHtml(profile.full_name || '?');
+
+  const avatarHtml = profile.avatar_url
+    ? '<img src="' + escapeHtml(profile.avatar_url) + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + ';">'
+    : '<span style="width:48px;height:48px;border-radius:50%;background:' + accentColor + '22;border:2px solid ' + accentColor + ';display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:15px;color:' + accentColor + ';">' + initials + '</span>';
+
+  const raceHtml = race
+    ? '<div style="background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-family:DM Mono,monospace;font-size:10px;padding:6px 10px;border-radius:6px;margin-bottom:12px;text-align:center;letter-spacing:0.05em;">🏁 ' + escapeHtml(race.name) + ' · ' + (race.daysLeft === 0 ? 'DZIŚ!' : race.daysLeft + ' dni') + '</div>'
+    : '';
+
+  el.innerHTML = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;">'
+    + avatarHtml
+    + '<div style="flex:1;min-width:0;">'
+    +   '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.15em;color:' + accentColor + ';text-transform:uppercase;font-weight:700;">' + roleLabel + '</div>'
+    +   '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;letter-spacing:0.03em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + nameEsc + '</div>'
+    + '</div>'
+    + '</div>'
+    + raceHtml
+    + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
+    +   '<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">'
+    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;">TSB</div>'
+    +     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:' + accentColor + ';line-height:1.1;">' + tsbStr + '</div>'
+    +   '</div>'
+    +   '<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">'
+    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;">CTL</div>'
+    +     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;line-height:1.1;">' + stats.ctl + '</div>'
+    +   '</div>'
+    +   '<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">'
+    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;">ATL</div>'
+    +     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;line-height:1.1;">' + stats.atl + '</div>'
+    +   '</div>'
+    + '</div>';
+}
+
+async function renderCompareChart(myLogs, friendLogs, friendName) {
+  // Lazy-load Chart.js
+  if (typeof Chart === 'undefined') {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  if (typeof window.computeFormaSeries !== 'function') {
+    console.error('[compare] computeFormaSeries undefined — sb.js not loaded?');
+    return;
+  }
+
+  const meSer = window.computeFormaSeries(myLogs, 90);
+  const friSer = window.computeFormaSeries(friendLogs, 90);
+
+  // Krótsze etykiety na X (MM-DD)
+  const shortLabels = meSer.labels.map(l => l.slice(5));
+
+  const ctx = document.getElementById('compare-chart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: shortLabels,
+      datasets: [
+        { label: 'Ty — TSB', data: meSer.tsbData, borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true },
+        { label: friendName + ' — TSB', data: friSer.tsbData, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(20,15,30,0.95)',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          padding: 10,
+          titleFont: { family: 'DM Mono', size: 11 },
+          bodyFont: { family: 'DM Sans', size: 12 }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        }
+      }
+    }
+  });
+}
+
+function changeFriend() {
+  location.href = 'compare.html';
+}
+
+init();
+</script>
+</body>
+</html>
