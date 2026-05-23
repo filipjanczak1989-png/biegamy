@@ -2075,10 +2075,11 @@ window._ocrSetup = function() {
 
       // Pre-fill pól TYLKO jeśli puste
       let filled = 0;
+      const ocrFields = [];  // track które pola OCR faktycznie wypełnił (dla reset on remove)
       const fields = [['l-dist', json.distance_km], ['l-time', json.duration], ['l-pace', json.pace], ['l-hr', json.heart_rate], ['l-elevation', json.elevation_gain]];
       for (const [id, val] of fields) {
         const el = document.getElementById(id);
-        if (el && !el.value && val != null && val !== '') { el.value = val; filled++; }
+        if (el && !el.value && val != null && val !== '') { el.value = val; ocrFields.push(id); filled++; }
       }
 
       // Parse activity_date z OCR + ewentualny auto-shift _logDate (cap 7 dni wstecz)
@@ -2114,6 +2115,11 @@ window._ocrSetup = function() {
           if (pill.textContent.includes(json.training_type)) { window.selType(pill, json.training_type); break; }
         }
       }
+
+      // Mark file z OCR metadata — dla removeFile reset on delete
+      file._fromOcr = true;
+      file._ocrFields = ocrFields;
+      file._ocrActivityDate = (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) ? json.activity_date : null;
 
       // Dodaj file do _pendingFiles → poleci jako attachment przy saveLog
       if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(file);
@@ -2353,6 +2359,22 @@ function appendFile(input) {
 }
 
 function removeFile(idx, el) {
+  const removed = window._pendingFiles[idx];
+
+  // Jeśli file był OCR-sourced — wyczyść pola które OCR wypełnił + zresetuj _logDate jeśli OCR-shifted
+  if (removed?._fromOcr) {
+    if (Array.isArray(removed._ocrFields)) {
+      removed._ocrFields.forEach(id => {
+        const e = document.getElementById(id);
+        if (e) e.value = '';
+      });
+    }
+    if (removed._ocrActivityDate && typeof _logDate !== 'undefined' && _logDate === removed._ocrActivityDate) {
+      _logDate = null;
+      if (typeof _updateLogDateDisplay === 'function') _updateLogDateDisplay();
+    }
+  }
+
   window._pendingFiles.splice(idx, 1);
   el.remove();
   if (typeof _updateUploadLabel === 'function') {
@@ -2468,6 +2490,7 @@ function showSection(name) {
     // ✅ Fix wycieków: kafelek raportów AI i nutrition widget (oba siedzą w głównym layout, nie w overlayowych sekcjach)
     document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
     document.getElementById('nut-widget')?.style.setProperty('display','none');
+    document.getElementById('strava-home-banner')?.style.setProperty('display','none');
   }
 
   function activateNav(id) {
