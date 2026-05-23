@@ -1614,10 +1614,10 @@ body > *{position:relative;z-index:1;}
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
-      <!-- PRZEWYŻSZENIE -->
+      <!-- PRZEWYŻSZENIE + KALORIE -->
       <div class="f-row">
         <div class="field"><label>Przewyższenie (m) <span style="font-size:9px;color:#3db870;">▲</span></label><input type="number" id="l-elevation" placeholder="120" inputmode="numeric" min="0"></div>
-        <div class="field"></div>
+        <div class="field"><label>Kalorie 🔥 <span style="font-size:9px;color:#fbbf24;">auto z MET</span></label><input type="number" id="l-calories" placeholder="auto" inputmode="numeric" min="0" max="5000"></div>
       </div>
 
       <!-- SAMOPOCZUCIE -->
@@ -2472,6 +2472,11 @@ async function calcKcalAuto() {
   const log = { duration: time, training_type: (typeof _logType !== 'undefined' ? _logType : 'Spokojny') };
   const kcal = (typeof window.formaCalories === 'function') ? window.formaCalories(log, weight) : 0;
   el.textContent = kcal > 0 ? '🔥 ~' + kcal + ' kcal' : '';
+  // Auto-fill l-calories input value JEŚLI puste (user może override manualnie)
+  const calInput = document.getElementById('l-calories');
+  if (calInput && !calInput.value && kcal > 0) {
+    calInput.value = kcal;
+  }
 }
 function calcTimeAuto() {
   const dist = parseFloat(document.getElementById('l-dist').value);
@@ -5557,6 +5562,7 @@ function editLog(idx) {
   document.getElementById('l-pace').value = l.pace || '';
   document.getElementById('l-hr').value = l.heart_rate || '';
   const elevEl = document.getElementById('l-elevation'); if (elevEl) elevEl.value = l.elevation_gain || '';
+  const calEl = document.getElementById('l-calories'); if (calEl) calEl.value = l.calories || '';
   document.getElementById('l-comment').value = l.comment || '';
   document.getElementById('l-strava').value = l.strava_link || '';
 
@@ -5745,6 +5751,7 @@ async function saveLog() {
     pace: pace || null,
     heart_rate: parseInt(document.getElementById('l-hr').value) || null,
     elevation_gain: parseInt(document.getElementById('l-elevation')?.value) || null,
+    calories: parseInt(document.getElementById('l-calories')?.value) || null,
     comment: document.getElementById('l-comment').value || null,
     strava_link: document.getElementById('l-strava').value || null,
     feel: feel || 'mid',
