@@ -426,6 +426,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('cl',this)">Strefy</button>
     <button class="ptab" onclick="ptab('pb',this)">PB/Cele</button>
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
+    <button class="ptab" onclick="ptab('fo',this)" style="color:#8b5cf6;">📈 Forma</button>
     <button class="ptab" onclick="ptab('di',this)" style="color:#3db870;">🥗 Dieta</button>
     <button class="ptab" onclick="ptab('no',this)" style="color:#e8561e;">📝 Notatki</button>
     <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
@@ -494,6 +495,43 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <div id="pst" style="display:none;">
       <div id="pst-content">
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika aby zobaczyć statystyki.</div>
+      </div>
+    </div>
+
+    <!-- ZAKŁADKA FORMA — CTL/ATL/TSB dla wybranego zawodnika -->
+    <div id="pfo" style="display:none;">
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.04em;">📈 Forma zawodnika</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:3px;">CTL · ATL · TSB — 90 dni</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px;">
+        <div style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:8px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">CTL</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#60a5fa;line-height:1;" id="pfo-ctl-val">—</div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:2px;">forma długa</div>
+        </div>
+        <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:8px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">ATL</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f87171;line-height:1;" id="pfo-atl-val">—</div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:2px;">zmęczenie</div>
+        </div>
+        <div style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:8px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;">TSB</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#4ade80;line-height:1;" id="pfo-tsb-val">—</div>
+          <div style="font-size:8px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:2px;">forma świeża</div>
+        </div>
+      </div>
+      <div id="pfo-zone" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 12px;margin-bottom:14px;text-align:center;font-size:11px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;">Wybierz zawodnika</div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;margin-bottom:14px;">
+        <canvas id="pfo-chart" style="max-height:220px;"></canvas>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;margin-bottom:14px;">
+        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:10px;">📊 Stres tygodnia (8 ostatnich)</div>
+        <div id="pfo-weekly-bars" style="display:flex;align-items:flex-end;gap:5px;height:100px;"></div>
+      </div>
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;">
+        <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:10px;">🥧 Typy treningów (7 dni)</div>
+        <div id="pfo-types-content"></div>
       </div>
     </div>
 
@@ -743,7 +781,7 @@ function openAthleteIntake() {
 }
 window.openAthleteIntake = openAthleteIntake;
 function ptab(n,el){
-  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp','no','di'].forEach(t=>{
+  ['ov','pl','lg','ms','cl','pb','st','str','ai','au','tp','no','di','fo'].forEach(t=>{
     const el2 = document.getElementById('p'+t);
     if(el2) el2.style.display = t===n ? 'block' : 'none';
   });
@@ -757,6 +795,7 @@ function ptab(n,el){
   if (n === 'au') loadPanelAuto();
   if (n === 'tp') loadPanelTrainingPlans();
   if (n === 'di') loadPanelDiet();
+  if (n === 'fo') loadPanelForma();
   if (n === 'no') {
     const id = window._selectedAthleteId;
     if (id && typeof loadCoachNotesForAthlete === 'function') {
@@ -2385,6 +2424,22 @@ async function loadStravaPanel() {
     </div>
   `;
 }
+
+// ── FORMA PANEL — CTL/ATL/TSB dla wybranego zawodnika (core w sb.js) ──
+async function loadPanelForma() {
+  const id = window._selectedAthleteId;
+  if (!id) {
+    const zone = document.getElementById('pfo-zone');
+    if (zone) zone.textContent = 'Wybierz zawodnika';
+    return;
+  }
+  if (typeof window.renderFormaForAthlete !== 'function') {
+    console.warn('[loadPanelForma] renderFormaForAthlete not loaded (sb.js)');
+    return;
+  }
+  await window.renderFormaForAthlete(id, 'pfo');
+}
+window.loadPanelForma = loadPanelForma;
 
 // ── STATS PANEL ──────────────────────────────────────────────────
 async function loadPanelStats() {
