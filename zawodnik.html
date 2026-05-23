@@ -9859,6 +9859,29 @@ if ('serviceWorker' in navigator) {
     <div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:4px;">CTL · ATL · TSB — 90 dni</div>
   </div>
 
+  <!-- Hero TSB — primary metric tile (zamiast 3 kafelek CTL/ATL/TSB) -->
+  <div id="forma-hero" style="position:relative;background:rgba(20,15,30,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:24px 22px;margin-bottom:16px;text-align:center;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:6px;">
+      <div id="forma-hero-dot" style="width:14px;height:14px;border-radius:50%;background:#60a5fa;flex-shrink:0;box-shadow:0 0 12px rgba(96,165,250,0.5);transition:all 0.4s ease;"></div>
+      <div id="forma-hero-val" style="font-family:'Bebas Neue',sans-serif;font-size:52px;color:#fff;line-height:1;letter-spacing:0.02em;">—</div>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;color:rgba(255,255,255,0.65);text-transform:uppercase;margin-bottom:18px;">
+      TSB · <span id="forma-hero-zone-label" style="color:#60a5fa;font-weight:700;">—</span>
+    </div>
+    <!-- Position scale bar -->
+    <div style="position:relative;height:4px;background:linear-gradient(90deg,rgba(248,113,113,0.5) 0%,rgba(251,146,60,0.4) 33%,rgba(255,255,255,0.1) 50%,rgba(74,222,128,0.5) 78%,rgba(251,191,36,0.5) 100%);border-radius:2px;margin:0 8px 8px;">
+      <div id="forma-hero-scale-dot" style="position:absolute;top:50%;left:50%;width:10px;height:10px;border-radius:50%;background:#60a5fa;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 2px 8px rgba(0,0,0,0.5);transition:left 0.5s cubic-bezier(0.4,0,0.2,1),background 0.4s ease;"></div>
+      <div id="forma-hero-scale-arrow-left" style="display:none;position:absolute;top:50%;left:-12px;transform:translateY(-50%);color:#f87171;font-size:11px;line-height:1;">◀</div>
+      <div id="forma-hero-scale-arrow-right" style="display:none;position:absolute;top:50%;right:-12px;transform:translateY(-50%);color:#fbbf24;font-size:11px;line-height:1;">▶</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.5);margin:0 8px 16px;">
+      <span>-30</span><span>0</span><span>+15</span>
+    </div>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.55);letter-spacing:0.06em;">
+      CTL <span id="forma-hero-ctl" style="color:#fff;">—</span> · ATL <span id="forma-hero-atl" style="color:#fff;">—</span>
+    </div>
+  </div>
+
   <!-- Storytelling header — premium glassmorphism z radial gradient + duża ikona pulse + callout zalecenie -->
   <div id="forma-story" style="position:relative;overflow:hidden;background:rgba(20,15,30,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 24px;margin-bottom:16px;text-align:center;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);">
     <div id="forma-story-bg" style="position:absolute;inset:0;background:radial-gradient(circle at 30% 20%, rgba(232,86,30,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(232,86,30,0.1) 0%, transparent 50%);transition:all 0.6s ease;pointer-events:none;"></div>
@@ -9868,25 +9891,6 @@ if ('serviceWorker' in navigator) {
     <div id="forma-story-rec-wrap" style="position:relative;display:none;margin-top:18px;padding:12px 14px;background:rgba(255,255,255,0.05);border-left:3px solid #e8561e;border-radius:8px;text-align:left;">
       <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;margin-bottom:4px;font-weight:700;">💡 Zalecenie</div>
       <div id="forma-story-rec" style="font-family:'Inter',sans-serif;font-size:12.5px;color:rgba(255,255,255,0.9);line-height:1.5;"></div>
-    </div>
-  </div>
-
-  <!-- 3 kafelki: aktualne wartości CTL/ATL/TSB -->
-  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
-    <div style="background:rgba(96,165,250,0.12);border:1px solid rgba(96,165,250,0.3);border-radius:12px;padding:12px;text-align:center;">
-      <div style="font-size:9px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">CTL</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#60a5fa;line-height:1;" id="forma-ctl-val">42</div>
-      <div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:3px;">forma długa</div>
-    </div>
-    <div style="background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);border-radius:12px;padding:12px;text-align:center;">
-      <div style="font-size:9px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">ATL</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#f87171;line-height:1;" id="forma-atl-val">38</div>
-      <div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:3px;">zmęczenie</div>
-    </div>
-    <div style="background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);border-radius:12px;padding:12px;text-align:center;">
-      <div style="font-size:9px;color:rgba(255,255,255,0.65);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:4px;">TSB</div>
-      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#4ade80;line-height:1;" id="forma-tsb-val">+4</div>
-      <div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-top:3px;">forma świeża</div>
     </div>
   </div>
 

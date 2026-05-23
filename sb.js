@@ -553,6 +553,22 @@
     'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888','Progresja':'#e8b840','Start':'#dc2626','Wyścig':'#dc2626','Trening':'#e8561e'
   };
 
+  // Zone label + color helpers — używane przez hero TSB tile + chart marker
+  window.formaZoneLabel = function(tsb) {
+    if (tsb < -30) return 'PRZECIĄŻENIE';
+    if (tsb < -10) return 'OBCIĄŻENIE';
+    if (tsb < 5) return 'NEUTRALNA';
+    if (tsb <= 15) return 'OPTIMUM';
+    return 'WYPOCZĘTY';
+  };
+  window.formaZoneColor = function(tsb) {
+    if (tsb < -30) return '#f87171';  // red
+    if (tsb < -10) return '#fb923c';  // orange
+    if (tsb < 5) return '#60a5fa';    // blue (neutral)
+    if (tsb <= 15) return '#4ade80';  // green
+    return '#fbbf24';                  // yellow
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // 📖 STORYTELLING — coach voice + data voice + recommendation
   // ═══════════════════════════════════════════════════════════════
@@ -766,16 +782,50 @@
       }
     }
 
-    // Update kafelki
+    // Update Hero TSB tile (replaces 3 kafelki)
     const lastCtl = ctlData[ctlData.length - 1] || 0;
     const lastAtl = atlData[atlData.length - 1] || 0;
     const lastTsb = tsbData[tsbData.length - 1] || 0;
-    const ctlEl = document.getElementById(px + '-ctl-val');
-    const atlEl = document.getElementById(px + '-atl-val');
-    const tsbEl = document.getElementById(px + '-tsb-val');
-    if (ctlEl) ctlEl.textContent = Math.round(lastCtl);
-    if (atlEl) atlEl.textContent = Math.round(lastAtl);
-    if (tsbEl) tsbEl.textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
+    const zoneColor = (typeof window.formaZoneColor === 'function') ? window.formaZoneColor(lastTsb) : '#60a5fa';
+    const zoneLabel = (typeof window.formaZoneLabel === 'function') ? window.formaZoneLabel(lastTsb) : '—';
+
+    // Big TSB value
+    const heroValEl = document.getElementById(px + '-hero-val');
+    if (heroValEl) heroValEl.textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
+
+    // Dot (left of big number)
+    const heroDotEl = document.getElementById(px + '-hero-dot');
+    if (heroDotEl) {
+      heroDotEl.style.background = zoneColor;
+      heroDotEl.style.boxShadow = '0 0 12px ' + zoneColor + '80';
+    }
+
+    // Zone label
+    const heroZoneEl = document.getElementById(px + '-hero-zone-label');
+    if (heroZoneEl) {
+      heroZoneEl.textContent = zoneLabel;
+      heroZoneEl.style.color = zoneColor;
+    }
+
+    // Scale bar dot position (clamp to -30..+15, arrows for out-of-range)
+    const scaleMin = -30, scaleMax = 15, scaleRange = scaleMax - scaleMin;
+    const clampedTsb = Math.max(scaleMin, Math.min(scaleMax, lastTsb));
+    const dotPct = ((clampedTsb - scaleMin) / scaleRange) * 100;
+    const scaleDotEl = document.getElementById(px + '-hero-scale-dot');
+    if (scaleDotEl) {
+      scaleDotEl.style.left = dotPct + '%';
+      scaleDotEl.style.background = zoneColor;
+    }
+    const leftArrowEl = document.getElementById(px + '-hero-scale-arrow-left');
+    if (leftArrowEl) leftArrowEl.style.display = (lastTsb < scaleMin) ? 'block' : 'none';
+    const rightArrowEl = document.getElementById(px + '-hero-scale-arrow-right');
+    if (rightArrowEl) rightArrowEl.style.display = (lastTsb > scaleMax) ? 'block' : 'none';
+
+    // CTL/ATL mini sub-text
+    const heroCtlEl = document.getElementById(px + '-hero-ctl');
+    if (heroCtlEl) heroCtlEl.textContent = Math.round(lastCtl);
+    const heroAtlEl = document.getElementById(px + '-hero-atl');
+    if (heroAtlEl) heroAtlEl.textContent = Math.round(lastAtl);
 
     // Strefa interpretacji
     const zoneEl = document.getElementById(px + '-zone');
