@@ -3750,6 +3750,130 @@ window.loadFormaSection = async function() {
       }
     }
   });
+
+  // ── 2 dodatkowe sekcje ──
+  window._renderFormaWeekly(logs || []);
+  window._renderFormaTypes(logs || []);
+};
+
+// ── FORMA helpers — weekly bars + types pie ────────────────────
+function _formaDurationToMin(s) {
+  if (!s || typeof s !== 'string') return 0;
+  const t = s.trim(); if (!t) return 0;
+  if (/^\d+$/.test(t)) return parseInt(t, 10);
+  const p = t.split(':').map(x => parseInt(x, 10) || 0);
+  if (p.length === 2) return p[0] + p[1] / 60;
+  if (p.length === 3) return p[0] * 60 + p[1] + p[2] / 60;
+  return 0;
+}
+
+function _formaTRIMP(log) {
+  const factors = {'odpoczynek':0,'regeneracja':1.0,'spokojny':1.5,'bieg spokojny':1.5,'wybieganie':2.0,'długi':2.5,'wzmacniający':1.5,'zastępczy':1.5,'tempo':3.5,'progresja':3.0,'interwały':4.5,'start':5.0,'wyścig':5.0};
+  const feels = {'good':1.0,'mid':1.1,'bad':1.3};
+  const dur = _formaDurationToMin(log.duration);
+  const key = (log.training_type || '').toLowerCase().trim();
+  const f = (factors[key] !== undefined) ? factors[key] : 1.5;
+  const fm = feels[log.feel] || 1.0;
+  return Math.round(dur * f * fm);
+}
+
+window._renderFormaWeekly = function(logs) {
+  const el = document.getElementById('forma-weekly-bars');
+  if (!el) return;
+
+  // 8 tygodni — buckets per week (poniedziałek-niedziela)
+  const buckets = [];
+  const today = new Date();
+  for (let i = 7; i >= 0; i--) {
+    const weekStart = new Date(today);
+    // poniedziałek bieżącego tygodnia
+    const dow = today.getDay(); // 0=niedziela
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    weekStart.setDate(today.getDate() + mondayOffset - i * 7);
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    const weekLogs = logs.filter(l => {
+      const d = new Date(l.logged_at);
+      return d >= weekStart && d < weekEnd;
+    });
+
+    const trimp = weekLogs.reduce((sum, log) => sum + _formaTRIMP(log), 0);
+    const lbl = (weekStart.getMonth() + 1) + '/' + weekStart.getDate();
+    buckets.push({ trimp, lbl });
+  }
+
+  const max = Math.max(...buckets.map(b => b.trimp), 1);
+  el.innerHTML = buckets.map(b => {
+    const h = Math.max((b.trimp / max) * 100, 2);
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">'
+      + '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">' + (b.trimp || '') + '</div>'
+      + '<div style="width:100%;background:linear-gradient(180deg,#e8561e,#ff7a3d);border-radius:4px 4px 0 0;height:' + h + '%;min-height:2px;"></div>'
+      + '<div style="font-size:9px;color:rgba(255,255,255,0.4);font-family:DM Mono,monospace;">' + b.lbl + '</div>'
+      + '</div>';
+  }).join('');
+};
+
+window._renderFormaTypes = function(logs) {
+  const el = document.getElementById('forma-types-content');
+  if (!el) return;
+
+  const today = new Date();
+  const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+
+  const TYPE_COLORS = {
+    'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
+    'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888','Progresja':'#e8b840','Start':'#dc2626','Wyścig':'#dc2626','Trening':'#e8561e'
+  };
+
+  const counts = {};
+  logs.forEach(l => {
+    const d = new Date(l.logged_at);
+    if (d < weekAgo) return;
+    const t = l.training_type || 'Trening';
+    const km = parseFloat(l.distance_km) || 0;
+    counts[t] = (counts[t] || 0) + km;
+  });
+
+  const total = Object.values(counts).reduce((s, v) => s + v, 0);
+  if (total === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,0.5);text-align:center;padding:20px;">Brak treningów w ostatnich 7 dniach</div>';
+    return;
+  }
+
+  // Render SVG pie
+  const cx = 60, cy = 60, r = 50;
+  let startAngle = -Math.PI / 2;
+  let paths = '';
+  let legend = '';
+  Object.entries(counts).sort((a,b) => b[1] - a[1]).forEach(([type, km]) => {
+    const pct = km / total;
+    const endAngle = startAngle + pct * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(startAngle);
+    const y1 = cy + r * Math.sin(startAngle);
+    const x2 = cx + r * Math.cos(endAngle);
+    const y2 = cy + r * Math.sin(endAngle);
+    const largeArc = pct > 0.5 ? 1 : 0;
+    const color = TYPE_COLORS[type] || '#e8561e';
+    if (pct >= 0.999) {
+      paths += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + color + '"/>';
+    } else {
+      paths += '<path d="M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + x2 + ' ' + y2 + ' Z" fill="' + color + '"/>';
+    }
+    startAngle = endAngle;
+
+    legend += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;">'
+      + '<div style="width:10px;height:10px;background:' + color + ';border-radius:2px;flex-shrink:0;"></div>'
+      + '<div style="flex:1;color:rgba(255,255,255,0.85);">' + type + '</div>'
+      + '<div style="color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">' + km.toFixed(1) + ' km</div>'
+      + '</div>';
+  });
+
+  el.innerHTML = '<div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">'
+    + '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;">' + paths + '</svg>'
+    + '<div style="flex:1;min-width:120px;">' + legend + '</div>'
+    + '</div>';
 };
 
 // ── AVATAR HELPERS ────────────────────────────────────────────────
@@ -9953,6 +10077,18 @@ if ('serviceWorker' in navigator) {
     <div><span style="color:#60a5fa;font-weight:600;">CTL</span> — Twój trening długoterminowy (42 dni). Rośnie = baza się buduje.</div>
     <div><span style="color:#f87171;font-weight:600;">ATL</span> — Świeże zmęczenie (7 dni). Wysokie = niedawno ciężko trenowałeś.</div>
     <div><span style="color:#4ade80;font-weight:600;">TSB</span> = CTL − ATL — Twoja forma. <strong>+5..+15 = idealne na start.</strong></div>
+  </div>
+
+  <!-- Stres tygodnia 8 tygodni — CSS bar chart -->
+  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">📊 Stres tygodnia (8 ostatnich)</div>
+    <div id="forma-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+  </div>
+
+  <!-- Typy treningów ostatnie 7 dni — pie chart -->
+  <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">🥧 Typy treningów (7 dni)</div>
+    <div id="forma-types-content"></div>
   </div>
 </div>
 
