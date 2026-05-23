@@ -547,6 +547,31 @@
     return Math.round(dur * effort * feelMod);
   };
 
+  // MET factors — kalkulacja kalorii spalonych per trening (formula: MET × kg × hours)
+  window.FORMA_MET_FACTORS = {
+    'odpoczynek': 0,
+    'regeneracja': 6,
+    'spokojny': 8.5,
+    'bieg spokojny': 8.5,
+    'wybieganie': 9,
+    'długi': 9.5,
+    'wzmacniający': 5,
+    'zastępczy': 6,
+    'tempo': 11,
+    'progresja': 11,
+    'interwały': 13,
+    'start': 14,
+    'wyścig': 14,
+  };
+
+  window.formaCalories = function(log, weightKg) {
+    if (!weightKg || weightKg <= 0) return 0;
+    const dur = window.formaDurationToMin(log.duration);
+    const key = (log.training_type || '').toLowerCase().trim();
+    const met = (window.FORMA_MET_FACTORS[key] !== undefined) ? window.FORMA_MET_FACTORS[key] : 8;
+    return Math.round(met * weightKg * (dur / 60));
+  };
+
   // Single source of truth dla training_type colors (używane w _renderFormaTypes, statystyki.html, future heatmap)
   window.TRAINING_TYPE_COLORS = {
     'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
@@ -749,6 +774,13 @@
         .filter(r => r.ms >= todayMs && r.ms <= sixtyDaysLater)
         .sort((a, b) => a.ms - b.ms);
     } catch(e) { console.warn('[forma] race_goals parse err', e); }
+
+    // Fetch weight_kg dla calorie calc (heatmap tooltip) — soft fail jeśli brak nutrition_profiles
+    let weightKg = 0;
+    try {
+      const { data: nutProfile } = await sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', athleteId).maybeSingle();
+      weightKg = nutProfile?.weight_kg || 0;
+    } catch(e) { console.warn('[forma] nutrition_profiles fetch err', e); }
 
     // Build daily TRIMP map
     const dailyTRIMP = {};
@@ -1095,7 +1127,7 @@
     // 2 dodatkowe sekcje — pass prefix
     window._renderFormaWeekly(logs || [], px);
     window._renderFormaTypes(logs || [], px);
-    window._renderFormaHeatmap(logs || [], px);
+    window._renderFormaHeatmap(logs || [], px, weightKg);
   };
 
   // Weekly bars renderer — parametryzowany prefix
@@ -1196,17 +1228,22 @@
   };
 
   // Heatmap aktywności — 13 tygodni × 7 dni grid (GitHub-style)
-  window._renderFormaHeatmap = function(logs, idPrefix) {
+  window._renderFormaHeatmap = function(logs, idPrefix, weightKg) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-heatmap');
     if (!el) return;
 
-    // Recompute dailyTRIMP map (powtórzenie z renderFormaForAthlete ale standalone API)
+    // Recompute dailyTRIMP + dailyKcal map (kcal display jeśli weightKg > 0)
     const dailyTRIMP = {};
+    const dailyKcal = {};
+    const hasKcal = weightKg && weightKg > 0;
     (logs || []).forEach(log => {
       const dateStr = (log.logged_at || '').split('T')[0];
       if (!dateStr) return;
       dailyTRIMP[dateStr] = (dailyTRIMP[dateStr] || 0) + window.formaTRIMP(log);
+      if (hasKcal) {
+        dailyKcal[dateStr] = (dailyKcal[dateStr] || 0) + window.formaCalories(log, weightKg);
+      }
     });
 
     // Anchor: Monday of current week (Polish convention, Mon=1, Sun=0)
@@ -1246,6 +1283,7 @@
         date.setDate(weekStart.getDate() + d);
         const dateStr = date.toISOString().slice(0, 10);
         const trimp = dailyTRIMP[dateStr] || 0;
+        const kcal = hasKcal ? (dailyKcal[dateStr] || 0) : 0;
         const level = window.formaIntensityLevel(trimp);
         const color = window.formaIntensityColor(level);
         const isFuture = date.getTime() > today.getTime();
@@ -1253,7 +1291,7 @@
         const titleAttr = isFuture
           ? dayDateLabel + ' — przyszłość'
           : trimp > 0
-            ? dayDateLabel + ' · TRIMP ' + trimp
+            ? dayDateLabel + ' · TRIMP ' + trimp + (kcal > 0 ? ' · ' + kcal + ' kcal' : '')
             : dayDateLabel + ' · brak treningu';
         const opacity = isFuture ? 0.25 : 1;
         cells += '<div title="' + titleAttr + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';opacity:' + opacity + ';cursor:default;transition:transform 0.15s;" onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
