@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Narzędzia · BiegaMy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sb.js"></script>
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.97);--card2:rgba(24,20,32,0.98);
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.05);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.42);
+  --accent:#e8561e;--accent2:#ff7a45;--muted:rgba(240,237,232,0.38);
+  --green:#3db870;--blue:#5b8cff;--yellow:#e8b840;--red:#e05050;--purple:#9b6dff;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;overflow-x:hidden;padding-bottom:90px;}
+
+/* ── HEADER ── */
+.header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,0) 16px 0;
+}
+.header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;}
+.back-btn{background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--fg2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;text-decoration:none;flex-shrink:0;}
+.header-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;}
+.header-title span{color:var(--accent);}
+
+.content{padding:20px 16px;max-width:480px;margin:0 auto;}
+
+/* ── HERO STATS (4 grid) ── */
+.hero-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;}
+.hero-stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;position:relative;overflow:hidden;}
+.hero-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),transparent);}
+.hs-val{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;color:var(--fg);}
+.hs-val .unit{font-size:13px;color:var(--muted);margin-left:4px;}
+.hs-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-top:6px;}
+
+/* ── SECTION ── */
+.section{margin-bottom:24px;}
+.section-title{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;}
+.section-title .toggle{display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.section-title .toggle button{background:transparent;border:none;color:var(--muted);font-family:DM Mono,monospace;font-size:9px;padding:5px 10px;cursor:pointer;letter-spacing:0.08em;text-transform:uppercase;}
+.section-title .toggle button.active{background:rgba(232,86,30,0.15);color:var(--accent);}
+
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;}
+
+/* ── BAR CHART ── */
+.chart-bars{display:flex;align-items:flex-end;justify-content:space-around;gap:6px;height:140px;padding:0 4px;margin-bottom:8px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;min-width:0;}
+.bar-val{font-size:9px;font-family:DM Mono,monospace;color:var(--fg2);height:12px;}
+.bar{width:100%;background:linear-gradient(to top,var(--accent),var(--accent2));border-radius:4px 4px 0 0;min-height:2px;transition:height 0.3s ease;position:relative;}
+.bar.zero{background:rgba(255,255,255,0.06);}
+.bar-lbl{font-size:9px;font-family:DM Mono,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;}
+.chart-empty{text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;}
+
+/* ── PIE CHART ── */
+.pie-wrap{display:flex;align-items:center;gap:18px;}
+.pie-svg{flex-shrink:0;}
+.pie-legend{flex:1;display:flex;flex-direction:column;gap:8px;}
+.pie-legend-item{display:flex;align-items:center;gap:8px;font-size:11px;}
+.pie-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+.pie-legend-name{flex:1;color:var(--fg2);}
+.pie-legend-val{font-family:DM Mono,monospace;color:var(--fg);font-size:10px;}
+
+/* ── CALC ── */
+.calc-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;}
+.calc-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.calc-field label{display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;}
+.calc-field input,.calc-field select{width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;}
+.calc-field input.result{border-color:rgba(232,86,30,0.3);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;cursor:default;}
+.calc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);}
+.calc-row:last-child{border-bottom:none;}
+.calc-row-name{font-size:13px;}
+.calc-row-time{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--accent);line-height:1;}
+.calc-row-pace{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;}
+
+.zone-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.zone-bar{width:3px;height:40px;border-radius:2px;flex-shrink:0;}
+.zone-info{flex:1;}
+.zone-name{font-size:11px;font-weight:600;margin-bottom:1px;}
+.zone-name .range{font-family:'Bebas Neue',sans-serif;font-size:16px;}
+.zone-name .bpm{font-size:9px;color:var(--muted);font-family:DM Mono,monospace;}
+.zone-desc{font-size:10px;color:var(--muted);}
+
+.split-pill{background:var(--card2);border-radius:8px;padding:6px 10px;font-family:DM Mono,monospace;font-size:10px;text-align:center;}
+.split-pill .km{color:var(--muted);font-size:8px;margin-bottom:2px;}
+
+/* ── BOTTOM NAV ── */
+nav.botnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);}
+nav.botnav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;}
+nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;}
+
+.top-back-btn {
+  display:flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);
+  color:var(--fg);border-radius:12px;padding:8px 14px;
+  font-size:13px;font-family:'DM Mono',monospace;letter-spacing:0.05em;
+  cursor:pointer;text-decoration:none;
+  position:fixed;top:max(16px,env(safe-area-inset-top,16px));left:16px;
+  z-index:100;backdrop-filter:blur(12px);
+  transition:border-color 0.15s,background 0.15s;
+}
+.top-back-btn:hover{border-color:var(--accent);background:rgba(232,86,30,0.1);}
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a class="back-btn" href="javascript:history.back()">‹</a>
+    <div class="header-title">Narz<span>ędzia</span></div>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Note: hero stats + weekly bars + types pie usunięte → analytics w sekcji Forma (zawodnik.html) -->
+  <div style="background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:12px;padding:14px;margin-bottom:20px;text-align:center;">
+    <div style="font-size:11px;color:rgba(255,255,255,0.75);font-family:'Inter',sans-serif;line-height:1.5;">
+      🧮 4 kalkulatory biegowe — tempo, prognoza Riegel, strefy tętna (Karvonen), strefy tempa (Daniels VDOT)
+    </div>
+    <a href="zawodnik.html" style="display:inline-block;margin-top:8px;font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;border:1px solid rgba(232,86,30,0.4);padding:6px 12px;border-radius:8px;">📈 Analytics → Forma</a>
+  </div>
+
+  <!-- KALKULATOR TEMPA -->
+  <div class="section">
+    <div class="section-title">Kalkulator tempa</div>
+    <div class="card">
+      <div class="calc-grid-3">
+        <div class="calc-field">
+          <label>Dystans km</label>
+          <input id="calc-pace-dist" type="number" placeholder="10" step="0.1" oninput="calcPace()">
+        </div>
+        <div class="calc-field">
+          <label>Czas</label>
+          <input id="calc-pace-time" type="text" placeholder="1:00:00" maxlength="7" oninput="autoColonTime(this);calcPace()">
+        </div>
+        <div class="calc-field">
+          <label>Tempo /km</label>
+          <input id="calc-pace-result" type="text" placeholder="6:00" readonly class="result">
+        </div>
+      </div>
+      <div id="pace-splits" style="display:none;">
+        <div style="font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Splity (co 5 km)</div>
+        <div id="pace-splits-content" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGNOZA RIEGEL -->
+  <div class="section">
+    <div class="section-title">Prognoza czasów (Riegel)</div>
+    <div class="card">
+      <div class="calc-grid-2">
+        <div class="calc-field">
+          <label>Dystans bazowy</label>
+          <select id="calc-riegel-dist" onchange="calcRiegel()">
+            <option value="5">5 km</option>
+            <option value="10" selected>10 km</option>
+            <option value="21.097">Półmaraton</option>
+            <option value="42.195">Maraton</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>Twój czas</label>
+          <input id="calc-riegel-time" type="text" placeholder="45:00" maxlength="7" oninput="autoColonTime(this);calcRiegel()">
+        </div>
+      </div>
+      <div id="riegel-result"></div>
+    </div>
+  </div>
+
+  <!-- STREFY TĘTNA -->
+  <div class="section">
+    <div class="section-title">Strefy tętna (Karvonen)</div>
+    <div class="card">
+      <div class="calc-grid-2">
+        <div class="calc-field">
+          <label>Wiek</label>
+          <input id="calc-age" type="number" placeholder="30" min="10" max="80" oninput="calcZones()">
+        </div>
+        <div class="calc-field">
+          <label>HR spoczynkowe</label>
+          <input id="calc-rhr" type="number" placeholder="60" min="30" max="100" oninput="calcZones()">
+        </div>
+      </div>
+      <div id="zones-result"><div class="chart-empty">Wpisz wiek i HR spoczynkowe</div></div>
+    </div>
+  </div>
+
+  <!-- STREFY TEMPA Z CZASÓW (Daniels) -->
+  <div class="section">
+    <div class="section-title">Strefy tempa z czasów</div>
+    <div class="card">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+        Wpisz swój aktualny czas na jednym dystansie — obliczymy strefy tempa biegowego wg Jacka Daniels'a (VDOT).
+      </div>
+      <div class="calc-grid-2">
+        <div class="calc-field">
+          <label>Dystans</label>
+          <select id="calc-pz-dist" onchange="calcPaceZones()">
+            <option value="5">5 km</option>
+            <option value="10" selected>10 km</option>
+            <option value="21.097">Półmaraton</option>
+            <option value="42.195">Maraton</option>
+          </select>
+        </div>
+        <div class="calc-field">
+          <label>Twój czas</label>
+          <input id="calc-pz-time" type="text" placeholder="45:00" maxlength="7" oninput="autoColonTime(this);calcPaceZones()">
+        </div>
+      </div>
+      <div id="pace-zones-result"><div class="chart-empty">Wpisz czas, aby obliczyć strefy</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="botnav">
+  <a href="zawodnik.html">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>Dziś</span>
+  </a>
+  <a href="kalendarz.html?role=athlete">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    <span>Plan</span>
+  </a>
+  <a href="zawodnik.html">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
+      <img src="" id="nav-img-stat" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    </div>
+    <span style="margin-top:2px;">Log</span>
+  </a>
+  <a href="zawodnik.html?tab=social">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <span>Społeczność</span>
+  </a>
+  <a id="nav-profile-link" href="#" onclick="goToProfile();return false;">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8561e" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    <span style="color:#e8561e;">Profil</span>
+  </a>
+</nav>
+
+<script>
+const _sb = window.sb;
+// Ustaw src dla nav-img (dynamicznie z sb.js)
+(function(){
+  const navImg = document.getElementById('nav-img-stat');
+  if (navImg) navImg.src = window.SB_URL + '/storage/v1/object/public/biegamy-assets/bm-nav.webp';
+})();
+
+const params = new URLSearchParams(location.search);
+const _targetId = params.get('id');
+let _logs = [];
+let _period = 'weeks';
+
+// ── HELPERS ──
+function _parseTimeToSecs(t) {
+  if (!t || !t.includes(':')) return null;
+  const parts = t.split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+  if (parts.length === 2) return parts[0]*60 + parts[1];
+  return null;
+}
+function _secsToTime(secs) {
+  secs = Math.round(secs);
+  const h = Math.floor(secs/3600);
+  const m = Math.floor((secs%3600)/60);
+  const s = secs%60;
+  if (h>0) return h+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  return m+':'+String(s).padStart(2,'0');
+}
+function autoColonTime(el) {
+  // Pozostawiamy cyfry i obecne dwukropki; rekonstruujemy format MM:SS lub H:MM:SS
+  let raw = el.value;
+  // Usuń wszystko poza cyframi i dwukropkiem
+  raw = raw.replace(/[^0-9:]/g,'');
+  // Usuń dwukropki - i tak zbudujemy je ponownie
+  let v = raw.replace(/:/g,'');
+  // Zbuduj format
+  if (v.length === 0) { el.value = ''; return; }
+  if (v.length === 1) {
+    // 1 cyfra - bez formatowania (czeka na drugą)
+    el.value = v;
+  } else if (v.length === 2) {
+    // 2 cyfry - dodaj dwukropek (np. "45" → "45:" - czeka na sekundy)
+    el.value = v + ':';
+  } else if (v.length === 3) {
+    // 3 cyfry - MM:SS np. "450" → "4:50"
+    el.value = v.slice(0,1) + ':' + v.slice(1);
+  } else if (v.length === 4) {
+    // 4 cyfry - MM:SS np. "4500" → "45:00"
+    el.value = v.slice(0,2) + ':' + v.slice(2);
+  } else if (v.length === 5) {
+    // 5 cyfr - H:MM:SS np. "14500" → "1:45:00"
+    el.value = v.slice(0,1) + ':' + v.slice(1,3) + ':' + v.slice(3);
+  } else {
+    // 6+ cyfr - HH:MM:SS np. "104500" → "10:45:00"
+    el.value = v.slice(0,2) + ':' + v.slice(2,4) + ':' + v.slice(4,6);
+  }
+}
+
+// ── PROFIL LINK ──
+let _myAthleteId = null;
+async function goToProfile() {
+  if (_myAthleteId) location.href = 'profil.html?id='+_myAthleteId;
+  else location.href = 'zawodnik.html';
+}
+
+// ── LOAD ──
+async function init() {
+  if (!_targetId) {
+    // brak ID → spróbuj wziąć własne
+    const { data: { session } } = await _sb.auth.getSession();
+    if (session) {
+      const { data: ath } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+      if (ath) location.href = 'narzedzia.html?id='+ath.id;
+      else location.href = 'zawodnik.html';
+      return;
+    }
+    location.href = 'zawodnik.html';
+    return;
+  }
+
+  // mój athlete id (dla nav profile link)
+  const { data: { session } } = await _sb.auth.getSession();
+  if (session) {
+    const { data: me } = await _sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    if (me) _myAthleteId = me.id;
+  }
+
+  // Narzędzia są self-contained — kalkulatory działają na user input, nie pobieramy logs
+}
+
+function renderHero() {
+  let totalKm = 0, totalSec = 0, distFromPace = 0;
+  _logs.forEach(l => {
+    const km = parseFloat(l.distance_km) || 0;
+    totalKm += km;
+    if (l.pace) {
+      const ps = _parseTimeToSecs(l.pace);
+      if (ps && km > 0) { totalSec += ps * km; distFromPace += km; }
+    }
+  });
+  document.getElementById('hs-total').innerHTML = totalKm.toFixed(0)+'<span class="unit">km</span>';
+  document.getElementById('hs-trainings').textContent = _logs.length;
+  document.getElementById('hs-avg-dist').innerHTML = (_logs.length ? (totalKm/_logs.length).toFixed(1) : '—')+'<span class="unit">km</span>';
+  if (distFromPace > 0) {
+    document.getElementById('hs-avg-pace').innerHTML = _secsToTime(totalSec/distFromPace)+'<span class="unit">/km</span>';
+  } else {
+    document.getElementById('hs-avg-pace').innerHTML = '—<span class="unit">/km</span>';
+  }
+}
+
+// ── BARS (tygodnie / miesiące) ──
+function setPeriod(p) {
+  _period = p;
+  document.getElementById('tg-weeks').classList.toggle('active', p==='weeks');
+  document.getElementById('tg-months').classList.toggle('active', p==='months');
+  document.getElementById('period-title').textContent = p==='weeks' ? 'Ostatnie 8 tygodni' : 'Ostatnie 6 miesięcy';
+  renderBars();
+}
+
+function renderBars() {
+  const wrap = document.getElementById('bars-wrap');
+  if (!_logs.length) { wrap.innerHTML = '<div class="chart-empty">Brak danych</div>'; return; }
+
+  let buckets;
+  if (_period === 'weeks') buckets = _bucketsByWeek(8);
+  else buckets = _bucketsByMonth(6);
+
+  const max = Math.max(...buckets.map(b => b.km), 1);
+  const html = '<div class="chart-bars">' + buckets.map(b => {
+    const h = (b.km / max) * 100;
+    return '<div class="bar-wrap">'
+      + '<div class="bar-val">'+(b.km > 0 ? b.km.toFixed(0) : '')+'</div>'
+      + '<div class="bar '+(b.km===0?'zero':'')+'" style="height:'+Math.max(h,2)+'%;"></div>'
+      + '<div class="bar-lbl">'+b.lbl+'</div>'
+      + '</div>';
+  }).join('') + '</div>';
+  wrap.innerHTML = html;
+}
+
+function _bucketsByWeek(n) {
+  const buckets = [];
+  const now = new Date();
+  // Poniedziałek tego tygodnia
+  const dow = (now.getDay() + 6) % 7;
+  const monday = new Date(now); monday.setDate(now.getDate() - dow); monday.setHours(0,0,0,0);
+  for (let i = n-1; i >= 0; i--) {
+    const start = new Date(monday); start.setDate(monday.getDate() - i*7);
+    const end = new Date(start); end.setDate(start.getDate() + 7);
+    const km = _logs.filter(l => {
+      const d = new Date(l.logged_at);
+      return d >= start && d < end;
+    }).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+    buckets.push({ km, lbl: String(start.getDate()).padStart(2,'0')+'.'+String(start.getMonth()+1).padStart(2,'0') });
+  }
+  return buckets;
+}
+
+function _bucketsByMonth(n) {
+  const buckets = [];
+  const now = new Date();
+  const months = ['Sty','Lut','Mar','Kwi','Maj','Cze','Lip','Sie','Wrz','Paź','Lis','Gru'];
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    const next = new Date(d.getFullYear(), d.getMonth()+1, 1);
+    const km = _logs.filter(l => {
+      const ld = new Date(l.logged_at);
+      return ld >= d && ld < next;
+    }).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+    buckets.push({ km, lbl: months[d.getMonth()] });
+  }
+  return buckets;
+}
+
+// ── PIE ──
+const TYPE_COLORS = {
+  'Spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff',
+  'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888',
+  'Trening':'#e8561e'
+};
+
+function renderPie() {
+  const wrap = document.getElementById('pie-wrap');
+  if (!_logs.length) { wrap.innerHTML = '<div class="chart-empty">Brak danych</div>'; return; }
+
+  const counts = {};
+  _logs.forEach(l => {
+    const t = l.training_type || 'Trening';
+    counts[t] = (counts[t] || 0) + (parseFloat(l.distance_km) || 0);
+  });
+  const total = Object.values(counts).reduce((a,b)=>a+b, 0);
+  if (total === 0) { wrap.innerHTML = '<div class="chart-empty">Brak danych</div>'; return; }
+
+  const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
+  const cx = 60, cy = 60, r = 48;
+  let cumAngle = -Math.PI/2;
+  let paths = '';
+  entries.forEach(([type, val]) => {
+    const angle = (val / total) * Math.PI * 2;
+    const x1 = cx + r * Math.cos(cumAngle);
+    const y1 = cy + r * Math.sin(cumAngle);
+    cumAngle += angle;
+    const x2 = cx + r * Math.cos(cumAngle);
+    const y2 = cy + r * Math.sin(cumAngle);
+    const largeArc = angle > Math.PI ? 1 : 0;
+    const color = TYPE_COLORS[type] || '#e8561e';
+    paths += '<path d="M '+cx+' '+cy+' L '+x1+' '+y1+' A '+r+' '+r+' 0 '+largeArc+' 1 '+x2+' '+y2+' Z" fill="'+color+'" stroke="#0d0d0d" stroke-width="1.5"/>';
+  });
+
+  const legend = entries.map(([type, val]) => {
+    const pct = (val / total * 100).toFixed(0);
+    const color = TYPE_COLORS[type] || '#e8561e';
+    return '<div class="pie-legend-item">'
+      + '<div class="pie-legend-dot" style="background:'+color+';"></div>'
+      + '<div class="pie-legend-name">'+escapeHtml(type)+'</div>'
+      + '<div class="pie-legend-val">'+val.toFixed(0)+' km · '+pct+'%</div>'
+      + '</div>';
+  }).join('');
+
+  wrap.innerHTML = '<div class="pie-wrap"><svg class="pie-svg" width="120" height="120" viewBox="0 0 120 120">'+paths+'</svg><div class="pie-legend">'+legend+'</div></div>';
+}
+
+// ── KALKULATOR TEMPA ──
+function calcPace() {
+  const dist = parseFloat(document.getElementById('calc-pace-dist').value);
+  const timeStr = document.getElementById('calc-pace-time').value;
+  const resultEl = document.getElementById('calc-pace-result');
+  const splitsEl = document.getElementById('pace-splits');
+  const splitsContent = document.getElementById('pace-splits-content');
+
+  const secs = _parseTimeToSecs(timeStr);
+  if (!secs || !dist || dist <= 0) {
+    resultEl.value = '';
+    splitsEl.style.display = 'none';
+    return;
+  }
+  const paceSecs = secs / dist;
+  resultEl.value = _secsToTime(paceSecs);
+
+  if (dist >= 5) {
+    splitsEl.style.display = 'block';
+    const numSplits = Math.floor(dist / 5);
+    let html = '';
+    for (let i = 1; i <= numSplits; i++) {
+      const ss = paceSecs * 5 * i;
+      html += '<div class="split-pill"><div class="km">'+(i*5)+' km</div><div>'+_secsToTime(ss)+'</div></div>';
+    }
+    splitsContent.innerHTML = html;
+  } else {
+    splitsEl.style.display = 'none';
+  }
+}
+
+// ── RIEGEL ──
+function calcRiegel() {
+  const distA = parseFloat(document.getElementById('calc-riegel-dist').value);
+  const timeStr = document.getElementById('calc-riegel-time').value;
+  const el = document.getElementById('riegel-result');
+
+  const secsA = _parseTimeToSecs(timeStr);
+  if (!secsA || !distA) {
+    el.innerHTML = '<div class="chart-empty">Wpisz czas dla wybranego dystansu</div>';
+    return;
+  }
+
+  const targets = [
+    { name:'5 km', dist:5 }, { name:'10 km', dist:10 },
+    { name:'Półmaraton', dist:21.097 }, { name:'Maraton', dist:42.195 }
+  ].filter(t => Math.abs(t.dist - distA) > 0.01);
+
+  const paceA = secsA / distA;
+  const rows = targets.map(t => {
+    const secsB = secsA * Math.pow(t.dist / distA, 1.06);
+    const paceB = secsB / t.dist;
+    return '<div class="calc-row">'
+      + '<div class="calc-row-name">'+t.name+'</div>'
+      + '<div style="text-align:right;">'
+        + '<div class="calc-row-time">'+_secsToTime(secsB)+'</div>'
+        + '<div class="calc-row-pace">'+_secsToTime(paceB)+'/km</div>'
+      + '</div></div>';
+  }).join('');
+
+  el.innerHTML = '<div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:8px;">Na podstawie '+_secsToTime(secsA)+' na '+distA+' km · tempo '+_secsToTime(paceA)+'/km</div>'+rows;
+}
+
+// ── STREFY TĘTNA ──
+function calcZones() {
+  const age = parseInt(document.getElementById('calc-age').value);
+  const rhr = parseInt(document.getElementById('calc-rhr').value);
+  const el = document.getElementById('zones-result');
+  if (!age || !rhr || age<10 || age>90 || rhr<30 || rhr>120) {
+    el.innerHTML = '<div class="chart-empty">Wpisz wiek i HR spoczynkowe</div>';
+    return;
+  }
+  const hrMax = 220 - age;
+  const hrr = hrMax - rhr;
+  const zones = [
+    { name:'Z1 Regeneracja',     pct:[50,60],  color:'#3db870', desc:'Trucht, rozmowa możliwa' },
+    { name:'Z2 Tlenowa baza',    pct:[60,70],  color:'#5090e0', desc:'Spokojny bieg, długie dystanse' },
+    { name:'Z3 Tempo',           pct:[70,80],  color:'#e8b840', desc:'Komfortowo trudne' },
+    { name:'Z4 Próg mleczanowy', pct:[80,90],  color:'#f06030', desc:'Ciężkie, 10km–półmaraton' },
+    { name:'Z5 VO2max',          pct:[90,100], color:'#e05050', desc:'Maksymalny wysiłek, interwały' }
+  ];
+  const rows = zones.map(z => {
+    const lo = Math.round(rhr + hrr * z.pct[0] / 100);
+    const hi = Math.round(rhr + hrr * z.pct[1] / 100);
+    return '<div class="zone-row">'
+      + '<div class="zone-bar" style="background:'+z.color+';"></div>'
+      + '<div class="zone-info">'
+        + '<div class="zone-name">'+z.name+' <span class="range" style="color:'+z.color+';">'+lo+'–'+hi+'</span> <span class="bpm">bpm</span></div>'
+        + '<div class="zone-desc">'+z.desc+'</div>'
+      + '</div></div>';
+  }).join('');
+  el.innerHTML = '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">HR max: <strong style="color:var(--fg);">'+hrMax+'</strong> bpm · Rezerwa: <strong style="color:var(--fg);">'+hrr+'</strong> bpm</div>'+rows;
+}
+
+// ── STREFY TEMPA Z CZASÓW (Jack Daniels VDOT) ─────────────────────
+function calcPaceZones() {
+  const dist = parseFloat(document.getElementById('calc-pz-dist').value);
+  const timeStr = document.getElementById('calc-pz-time').value;
+  const el = document.getElementById('pace-zones-result');
+  const secs = _parseTimeToSecs(timeStr);
+
+  if (!secs || !dist || dist <= 0) {
+    el.innerHTML = '<div class="chart-empty">Wpisz czas, aby obliczyć strefy</div>';
+    return;
+  }
+
+  // Daniels VDOT (uproszczone) — race velocity → VDOT → tempa stref
+  // velocity = m/min
+  const velocityMperMin = (dist * 1000) / (secs / 60);
+  // Daniels equation:
+  // VO2 = -4.60 + 0.182258 * v + 0.000104 * v^2
+  const vo2 = -4.60 + 0.182258 * velocityMperMin + 0.000104 * Math.pow(velocityMperMin, 2);
+  // Race intensity %VO2max — różne dla różnych dystansów
+  // 5km ~ 98%, 10km ~ 92%, HM ~ 85%, M ~ 80%
+  let raceIntensity;
+  if (Math.abs(dist - 5) < 0.5) raceIntensity = 0.98;
+  else if (Math.abs(dist - 10) < 0.5) raceIntensity = 0.92;
+  else if (Math.abs(dist - 21.097) < 0.5) raceIntensity = 0.85;
+  else if (Math.abs(dist - 42.195) < 0.5) raceIntensity = 0.80;
+  else raceIntensity = 0.85;
+  const vdot = vo2 / raceIntensity;
+
+  // Funkcja: %vVDOT → tempo (sec/km)
+  // velocity z procentem VDOT (Daniels): v dla danego %VO2max
+  function paceForPct(pct) {
+    const targetVO2 = vdot * pct;
+    // odwrócenie quadratic: 0.000104 v² + 0.182258 v - (4.60 + targetVO2) = 0
+    const a = 0.000104, b = 0.182258, c = -(4.60 + targetVO2);
+    const disc = b*b - 4*a*c;
+    if (disc < 0) return null;
+    const v = (-b + Math.sqrt(disc)) / (2 * a);  // m/min
+    if (v <= 0) return null;
+    // tempo = czas na 1 km (sec)
+    return 60 * 1000 / v;
+  }
+
+  // Strefy biegowe wg Daniels:
+  // E (Easy)        59-74% VDOT  → najwolniejsze
+  // M (Marathon)    75-84%
+  // T (Threshold)   83-88%
+  // I (Interval)    95-100%
+  // R (Repetition)  ~105% (najszybsze, krótkie)
+  const zones = [
+    { name:'E · Spokojny',    pctLo:0.59, pctHi:0.74, color:'#3db870', desc:'Wybiegania, regeneracja' },
+    { name:'M · Maratoński',  pctLo:0.75, pctHi:0.84, color:'#5090e0', desc:'Tempo na maraton' },
+    { name:'T · Próg LT',     pctLo:0.83, pctHi:0.88, color:'#e8b840', desc:'Tempa, ~30-40 min' },
+    { name:'I · Interwały',   pctLo:0.95, pctHi:1.00, color:'#f06030', desc:'VO2max, 3-5 min' },
+    { name:'R · Repetycje',   pctLo:1.03, pctHi:1.08, color:'#e05050', desc:'Krótkie szybkie odcinki' }
+  ];
+
+  let html = '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">VDOT: <strong style="color:var(--fg);">'+vdot.toFixed(1)+'</strong> · z czasu '+_secsToTime(secs)+' na '+dist+' km</div>';
+
+  zones.forEach(function(z) {
+    const paceLo = paceForPct(z.pctLo);
+    const paceHi = paceForPct(z.pctHi);
+    if (!paceLo || !paceHi) return;
+    // Tempo wolniejsze ma większą wartość sec/km, więc wolniejszy = "od"
+    const slow = Math.max(paceLo, paceHi);
+    const fast = Math.min(paceLo, paceHi);
+    html += '<div class="zone-row">'
+      + '<div class="zone-bar" style="background:'+z.color+';"></div>'
+      + '<div class="zone-info">'
+        + '<div class="zone-name">'+z.name+' <span class="range" style="color:'+z.color+';">'+_secsToTime(fast)+'–'+_secsToTime(slow)+'</span> <span class="bpm">/km</span></div>'
+        + '<div class="zone-desc">'+z.desc+'</div>'
+      + '</div></div>';
+  });
+
+  el.innerHTML = html;
+}
+
+init();
+</script>
+</body>
+</html>

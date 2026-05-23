@@ -26,6 +26,7 @@ const PRECACHE_URLS = [
   '/trener.html',
   '/profil.html',
   '/statystyki.html',
+  '/narzedzia.html',
   '/odznaki.html',
   '/wyzwania.html',
   '/kalendarz.html',

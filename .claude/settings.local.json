@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ja\\\\biegamy\" -Force)",
+      "Bash(Select-Object Name, Attributes)",
+      "Bash(git -C \"C:\\\\Users\\\\ja\\\\biegamy\" log --oneline -10)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(node *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git pull *)",
+      "Bash(git push *)",
+      "Bash(awk -F: '{print $NF}')",
+      "Bash(awk '$1 >= 2 {print}')",
+      "Bash(awk '/^function drawRunner/,/^}/' C:/Users/ja/biegamy/wieza.html)",
+      "Bash(awk '/^function spawnParticles/,/^}/' C:/Users/ja/biegamy/wieza.html)",
+      "Bash(awk '/^function spawnPopup/,/^}/' C:/Users/ja/biegamy/wieza.html)",
+      "Bash(awk '/^function spawnShockwave/,/^}/' C:/Users/ja/biegamy/wieza.html)",
+      "Bash(awk '/^function getRunnerState/,/^}/' C:/Users/ja/biegamy/wieza.html)",
+      "Bash(awk '/^function loop/,/^}/' C:/Users/ja/biegamy/wieza.html)",
+      "Bash(awk *)",
+      "Bash(echo \"exit $?\")",
+      "Bash(git fetch *)",
+      "Bash(echo \"exit: $?\")"
+    ]
+  }
+}
