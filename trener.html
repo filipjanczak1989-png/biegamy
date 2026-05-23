@@ -507,25 +507,45 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.04em;">📈 Forma zawodnika</div>
         <div style="font-size:11px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:3px;">CTL · ATL · TSB — 90 dni</div>
       </div>
-      <!-- Hero TSB dla trenera — primary metric (smaller proportions) -->
-      <div id="pfo-hero" style="position:relative;background:rgba(20,15,30,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:18px 16px;margin-bottom:14px;text-align:center;">
-        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:4px;">
-          <div id="pfo-hero-dot" style="width:12px;height:12px;border-radius:50%;background:#60a5fa;flex-shrink:0;box-shadow:0 0 10px rgba(96,165,250,0.5);transition:all 0.4s ease;"></div>
-          <div id="pfo-hero-val" style="font-family:'Bebas Neue',sans-serif;font-size:42px;color:#fff;line-height:1;letter-spacing:0.02em;">—</div>
+      <!-- Premium P2 — 3 kafelki TSB/CTL/ATL dla trenera (smaller proportions) -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div id="pfo-tsb-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 10px;transition:all 0.3s ease;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">
+            <span id="pfo-tsb-dot" style="width:7px;height:7px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 6px currentColor;color:#4ade80;"></span>
+            <span style="font-size:8px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">TSB</span>
+          </div>
+          <div id="pfo-tsb-val" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;line-height:1;margin-bottom:5px;">—</div>
+          <div id="pfo-tsb-label" style="font-size:9px;font-family:'Inter',sans-serif;color:rgba(255,255,255,0.7);font-style:italic;margin-bottom:8px;line-height:1.2;">—</div>
+          <div style="position:relative;height:3px;background:linear-gradient(90deg, rgba(248,113,113,0.4), rgba(251,146,60,0.3), rgba(255,255,255,0.1), rgba(74,222,128,0.6), rgba(251,191,36,0.4));border-radius:2px;overflow:visible;">
+            <div id="pfo-tsb-indicator" style="position:absolute;top:50%;transform:translate(-50%,-50%);width:8px;height:8px;background:#fff;border:2px solid #4ade80;border-radius:50%;left:60%;box-shadow:0 0 5px rgba(74,222,128,0.6);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:7px;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;margin-top:3px;">
+            <span>-30</span><span>0</span><span>+15</span>
+          </div>
         </div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;color:rgba(255,255,255,0.65);text-transform:uppercase;margin-bottom:14px;">
-          TSB · <span id="pfo-hero-zone-label" style="color:#60a5fa;font-weight:700;">—</span>
+        <div id="pfo-ctl-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 10px;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">
+            <span id="pfo-ctl-arrow" style="font-size:10px;color:#60a5fa;">→</span>
+            <span style="font-size:8px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">CTL</span>
+          </div>
+          <div id="pfo-ctl-val" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#60a5fa;line-height:1;margin-bottom:5px;">—</div>
+          <div id="pfo-ctl-label" style="font-size:9px;font-family:'Inter',sans-serif;color:rgba(255,255,255,0.7);font-style:italic;margin-bottom:8px;line-height:1.2;">—</div>
+          <div style="position:relative;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+            <div id="pfo-ctl-fill" style="position:absolute;left:0;top:0;height:100%;width:50%;background:linear-gradient(90deg, #60a5fa, #a78bfa);transition:width 0.6s ease;"></div>
+          </div>
+          <div id="pfo-ctl-trend" style="font-size:8px;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-top:3px;text-align:right;">—</div>
         </div>
-        <div style="position:relative;height:3px;background:linear-gradient(90deg,rgba(248,113,113,0.5) 0%,rgba(251,146,60,0.4) 33%,rgba(255,255,255,0.1) 50%,rgba(74,222,128,0.5) 78%,rgba(251,191,36,0.5) 100%);border-radius:2px;margin:0 6px 6px;">
-          <div id="pfo-hero-scale-dot" style="position:absolute;top:50%;left:50%;width:8px;height:8px;border-radius:50%;background:#60a5fa;border:2px solid #fff;transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(0,0,0,0.5);transition:left 0.5s cubic-bezier(0.4,0,0.2,1),background 0.4s ease;"></div>
-          <div id="pfo-hero-scale-arrow-left" style="display:none;position:absolute;top:50%;left:-10px;transform:translateY(-50%);color:#f87171;font-size:10px;line-height:1;">◀</div>
-          <div id="pfo-hero-scale-arrow-right" style="display:none;position:absolute;top:50%;right:-10px;transform:translateY(-50%);color:#fbbf24;font-size:10px;line-height:1;">▶</div>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.5);margin:0 6px 12px;">
-          <span>-30</span><span>0</span><span>+15</span>
-        </div>
-        <div style="font-family:'DM Mono',monospace;font-size:9px;color:rgba(255,255,255,0.55);letter-spacing:0.06em;">
-          CTL <span id="pfo-hero-ctl" style="color:#fff;">—</span> · ATL <span id="pfo-hero-atl" style="color:#fff;">—</span>
+        <div id="pfo-atl-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 10px;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:6px;">
+            <span id="pfo-atl-arrow" style="font-size:10px;color:#f87171;">→</span>
+            <span style="font-size:8px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">ATL</span>
+          </div>
+          <div id="pfo-atl-val" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#f87171;line-height:1;margin-bottom:5px;">—</div>
+          <div id="pfo-atl-label" style="font-size:9px;font-family:'Inter',sans-serif;color:rgba(255,255,255,0.7);font-style:italic;margin-bottom:8px;line-height:1.2;">—</div>
+          <div style="position:relative;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;">
+            <div id="pfo-atl-fill" style="position:absolute;left:0;top:0;height:100%;width:50%;background:linear-gradient(90deg, rgba(74,222,128,0.6), rgba(251,191,36,0.7), rgba(248,113,113,0.8));transition:width 0.6s ease;"></div>
+          </div>
+          <div id="pfo-atl-trend" style="font-size:8px;color:rgba(255,255,255,0.55);font-family:'DM Mono',monospace;margin-top:3px;text-align:right;">—</div>
         </div>
       </div>
 
@@ -540,7 +560,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
           <div id="pfo-story-rec" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.9);line-height:1.45;"></div>
         </div>
       </div>
-      <div id="pfo-zone" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 12px;margin-bottom:14px;text-align:center;font-size:11px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;">Wybierz zawodnika</div>
+      <div id="pfo-zone" style="display:none;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:9px;padding:9px 12px;margin-bottom:14px;text-align:center;font-size:11px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;">Wybierz zawodnika</div>
       <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;margin-bottom:14px;">
         <canvas id="pfo-chart" style="max-height:220px;"></canvas>
       </div>

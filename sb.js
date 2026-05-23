@@ -782,50 +782,82 @@
       }
     }
 
-    // Update Hero TSB tile (replaces 3 kafelki)
+    // ── Update 3 kafelki premium (TSB + CTL + ATL) ──
     const lastCtl = ctlData[ctlData.length - 1] || 0;
     const lastAtl = atlData[atlData.length - 1] || 0;
     const lastTsb = tsbData[tsbData.length - 1] || 0;
-    const zoneColor = (typeof window.formaZoneColor === 'function') ? window.formaZoneColor(lastTsb) : '#60a5fa';
-    const zoneLabel = (typeof window.formaZoneLabel === 'function') ? window.formaZoneLabel(lastTsb) : '—';
 
-    // Big TSB value
-    const heroValEl = document.getElementById(px + '-hero-val');
-    if (heroValEl) heroValEl.textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
+    // TSB: status color + label + scale position
+    const tsbValEl = document.getElementById(px + '-tsb-val');
+    const tsbDotEl = document.getElementById(px + '-tsb-dot');
+    const tsbLabelEl = document.getElementById(px + '-tsb-label');
+    const tsbIndicatorEl = document.getElementById(px + '-tsb-indicator');
+    if (tsbValEl) tsbValEl.textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
 
-    // Dot (left of big number)
-    const heroDotEl = document.getElementById(px + '-hero-dot');
-    if (heroDotEl) {
-      heroDotEl.style.background = zoneColor;
-      heroDotEl.style.boxShadow = '0 0 12px ' + zoneColor + '80';
+    let tsbColor, tsbLabelText;
+    if (lastTsb >= 5 && lastTsb <= 15) { tsbColor = '#4ade80'; tsbLabelText = 'optimum'; }
+    else if (lastTsb > 15) { tsbColor = '#fbbf24'; tsbLabelText = 'wypoczęty'; }
+    else if (lastTsb >= -10) { tsbColor = '#60a5fa'; tsbLabelText = 'trening'; }
+    else if (lastTsb >= -30) { tsbColor = '#fb923c'; tsbLabelText = 'obciążenie'; }
+    else { tsbColor = '#f87171'; tsbLabelText = 'przeciążenie'; }
+
+    if (tsbDotEl) { tsbDotEl.style.background = tsbColor; tsbDotEl.style.color = tsbColor; }
+    if (tsbLabelEl) tsbLabelEl.textContent = tsbLabelText;
+    if (tsbValEl) tsbValEl.style.color = tsbColor;
+
+    // TSB position on scale -30 (0%) to +20 (100%), clamp
+    const tsbPct = Math.max(0, Math.min(100, ((lastTsb + 30) / 50) * 100));
+    if (tsbIndicatorEl) {
+      tsbIndicatorEl.style.left = tsbPct + '%';
+      tsbIndicatorEl.style.borderColor = tsbColor;
+      tsbIndicatorEl.style.boxShadow = '0 0 6px ' + tsbColor + 'AA';
     }
 
-    // Zone label
-    const heroZoneEl = document.getElementById(px + '-hero-zone-label');
-    if (heroZoneEl) {
-      heroZoneEl.textContent = zoneLabel;
-      heroZoneEl.style.color = zoneColor;
-    }
+    // Compute CTL/ATL trend vs 30d ago
+    const todayIdx = ctlData.length - 1 - cappedMaxFuture;
+    const idx30 = Math.max(0, todayIdx - 30);
+    const ctl30dAgo = ctlData[idx30] || 0;
+    const atl30dAgo = atlData[idx30] || 0;
+    const ctlTrend = ctl30dAgo > 0 ? Math.round((lastCtl - ctl30dAgo) / ctl30dAgo * 100) : 0;
+    const atlTrend = atl30dAgo > 0 ? Math.round((lastAtl - atl30dAgo) / atl30dAgo * 100) : 0;
 
-    // Scale bar dot position (clamp to -30..+15, arrows for out-of-range)
-    const scaleMin = -30, scaleMax = 15, scaleRange = scaleMax - scaleMin;
-    const clampedTsb = Math.max(scaleMin, Math.min(scaleMax, lastTsb));
-    const dotPct = ((clampedTsb - scaleMin) / scaleRange) * 100;
-    const scaleDotEl = document.getElementById(px + '-hero-scale-dot');
-    if (scaleDotEl) {
-      scaleDotEl.style.left = dotPct + '%';
-      scaleDotEl.style.background = zoneColor;
+    // CTL tile
+    const ctlValEl = document.getElementById(px + '-ctl-val');
+    const ctlArrowEl = document.getElementById(px + '-ctl-arrow');
+    const ctlLabelEl = document.getElementById(px + '-ctl-label');
+    const ctlFillEl = document.getElementById(px + '-ctl-fill');
+    const ctlTrendEl = document.getElementById(px + '-ctl-trend');
+    if (ctlValEl) ctlValEl.textContent = Math.round(lastCtl);
+    if (ctlArrowEl) {
+      ctlArrowEl.textContent = ctlTrend > 2 ? '↗' : ctlTrend < -2 ? '↘' : '→';
+      ctlArrowEl.style.color = ctlTrend > 2 ? '#4ade80' : ctlTrend < -2 ? '#f87171' : '#60a5fa';
     }
-    const leftArrowEl = document.getElementById(px + '-hero-scale-arrow-left');
-    if (leftArrowEl) leftArrowEl.style.display = (lastTsb < scaleMin) ? 'block' : 'none';
-    const rightArrowEl = document.getElementById(px + '-hero-scale-arrow-right');
-    if (rightArrowEl) rightArrowEl.style.display = (lastTsb > scaleMax) ? 'block' : 'none';
+    if (ctlLabelEl) ctlLabelEl.textContent = ctlTrend > 5 ? 'rośnie' : ctlTrend < -5 ? 'spada' : 'stabilna';
+    if (ctlFillEl) {
+      const ctlFillPct = 50 + Math.max(-50, Math.min(50, ctlTrend));
+      ctlFillEl.style.width = ctlFillPct + '%';
+    }
+    if (ctlTrendEl) ctlTrendEl.textContent = (ctlTrend > 0 ? '+' : '') + ctlTrend + '% vs 30d';
 
-    // CTL/ATL mini sub-text
-    const heroCtlEl = document.getElementById(px + '-hero-ctl');
-    if (heroCtlEl) heroCtlEl.textContent = Math.round(lastCtl);
-    const heroAtlEl = document.getElementById(px + '-hero-atl');
-    if (heroAtlEl) heroAtlEl.textContent = Math.round(lastAtl);
+    // ATL tile
+    const atlValEl = document.getElementById(px + '-atl-val');
+    const atlArrowEl = document.getElementById(px + '-atl-arrow');
+    const atlLabelEl = document.getElementById(px + '-atl-label');
+    const atlFillEl = document.getElementById(px + '-atl-fill');
+    const atlTrendEl = document.getElementById(px + '-atl-trend');
+    if (atlValEl) atlValEl.textContent = Math.round(lastAtl);
+    if (atlArrowEl) {
+      atlArrowEl.textContent = atlTrend > 2 ? '↗' : atlTrend < -2 ? '↘' : '→';
+      atlArrowEl.style.color = atlTrend > 2 ? '#f87171' : atlTrend < -2 ? '#4ade80' : '#60a5fa';
+    }
+    if (atlLabelEl) {
+      atlLabelEl.textContent = lastAtl > lastCtl * 1.2 ? 'zmęczony' : lastAtl < lastCtl * 0.7 ? 'wypoczęty' : 'normalny';
+    }
+    if (atlFillEl) {
+      const ratio = lastCtl > 0 ? Math.min(100, (lastAtl / lastCtl) * 70) : 50;
+      atlFillEl.style.width = ratio + '%';
+    }
+    if (atlTrendEl) atlTrendEl.textContent = (atlTrend > 0 ? '+' : '') + atlTrend + '% vs 30d';
 
     // Strefa interpretacji
     const zoneEl = document.getElementById(px + '-zone');
@@ -846,12 +878,7 @@
     }
 
     // ── Storytelling header ──
-    // Compute ctl30dAgo (z series ctlData, index = today - 30, clamp do 0)
-    // ctlData zawiera past + future days; today index = liczba past days w pętli (od start do today inclusive)
-    const todayIdx = ctlData.length - 1 - cappedMaxFuture; // last past day index
-    const idx30 = Math.max(0, todayIdx - 30);
-    const ctl30dAgo = ctlData[idx30] || 0;
-
+    // ctl30dAgo + todayIdx + idx30 obliczone wcześniej w 3-tile block (CTL trend)
     if (typeof window.formaStory === 'function') {
       const story = window.formaStory(logs || [], raceMarkers, lastCtl, lastAtl, lastTsb, ctl30dAgo);
       const storyContainer = document.getElementById(px + '-story');
