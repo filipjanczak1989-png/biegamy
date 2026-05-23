@@ -3617,6 +3617,16 @@ window.loadFormaSection = async function() {
     });
   }
 
+  // Lazy-load annotation plugin dla race markers
+  if (typeof Chart !== 'undefined' && !Chart.registry?.plugins?.get('annotation')) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
   // ── Fetch 90 dni training_logs ──
   const today = new Date();
   const start = new Date(today);
@@ -3630,6 +3640,20 @@ window.loadFormaSection = async function() {
     .order('logged_at', { ascending: true });
 
   if (error) { console.error('[forma] fetch err', error); return; }
+
+  // ── Fetch race_goals (markery startów) ──
+  const { data: ath } = await sb.from('athletes').select('race_goals').eq('id', _athleteId).maybeSingle();
+  let raceMarkers = [];
+  try {
+    const rg = ath?.race_goals ? JSON.parse(ath.race_goals) : [];
+    const todayMs = today.getTime();
+    const sixtyDaysLater = todayMs + 60 * 24 * 60 * 60 * 1000;
+    raceMarkers = (Array.isArray(rg) ? rg : [])
+      .filter(r => r && r.date && r.name)
+      .map(r => ({ date: r.date, name: r.name, ms: new Date(r.date).getTime() }))
+      .filter(r => r.ms >= todayMs && r.ms <= sixtyDaysLater)
+      .sort((a, b) => a.ms - b.ms);
+  } catch(e) { console.warn('[forma] race_goals parse err', e); }
 
   // ── Build daily TRIMP map (helpers w sb.js: window.formaTRIMP) ──
   const dailyTRIMP = {};
@@ -3683,6 +3707,32 @@ window.loadFormaSection = async function() {
   zoneEl.style.background = zoneColor.startsWith('rgba') ? 'rgba(255,255,255,0.04)' : `${zoneColor}14`;
   zoneEl.style.borderColor = zoneColor.startsWith('rgba') ? 'rgba(255,255,255,0.1)' : `${zoneColor}40`;
 
+  // ── Build annotations dla race markers ──
+  const annotations = {};
+  raceMarkers.forEach((race, idx) => {
+    // Znajdź label index w labels array (format "MM-DD" w main chart)
+    const raceLabelDate = race.date.slice(5); // "2026-05-31" → "05-31"
+    annotations['race_' + idx] = {
+      type: 'line',
+      xMin: raceLabelDate,
+      xMax: raceLabelDate,
+      borderColor: '#e8561e',
+      borderWidth: 2,
+      borderDash: [6, 4],
+      label: {
+        display: true,
+        content: '🏁 ' + race.name,
+        position: 'start',
+        backgroundColor: 'rgba(232,86,30,0.95)',
+        color: '#fff',
+        font: { size: 10, family: 'DM Mono', weight: 'bold' },
+        padding: { top: 4, bottom: 4, left: 8, right: 8 },
+        borderRadius: 6,
+        yAdjust: -5,
+      }
+    };
+  });
+
   // ── Render Chart ──
   const ctx = document.getElementById('forma-chart').getContext('2d');
   if (window._formaChart) window._formaChart.destroy();
@@ -3704,6 +3754,7 @@ window.loadFormaSection = async function() {
       plugins: {
         legend: { labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'DM Mono' }, boxWidth: 12 } },
         tooltip: { backgroundColor: 'rgba(20,15,30,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10, titleFont: { family: 'DM Mono', size: 11 }, bodyFont: { family: 'DM Sans', size: 12 } },
+        annotation: { annotations: annotations }
       },
       scales: {
         x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxRotation: 0, autoSkipPadding: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
