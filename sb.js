@@ -574,6 +574,47 @@
     return Math.round(met * weightKg * (dur / 60));
   };
 
+  // Compute forma summary stats — używane przez compare athletes feature (CTL/ATL/TSB + weekly metrics)
+  window.computeFormaStats = function(logs, weightKg) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const start = new Date(today); start.setDate(start.getDate() - 90);
+
+    // Daily TRIMP map
+    const dailyTRIMP = {};
+    (logs || []).forEach(log => {
+      const dateStr = (log.logged_at || '').split('T')[0];
+      if (!dateStr) return;
+      dailyTRIMP[dateStr] = (dailyTRIMP[dateStr] || 0) + window.formaTRIMP(log);
+    });
+
+    // EMA loop (CTL 42d, ATL 7d) from start to today
+    let ctl = 0, atl = 0;
+    for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().slice(0, 10);
+      const trimp = dailyTRIMP[dateStr] || 0;
+      ctl = ctl + (trimp - ctl) / 42;
+      atl = atl + (trimp - atl) / 7;
+    }
+
+    // Weekly metrics (last 7 days)
+    const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
+    const weekLogs = (logs || []).filter(l => new Date(l.logged_at) >= weekAgo);
+    const weekKm = weekLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+    const weekTrimp = weekLogs.reduce((s, l) => s + window.formaTRIMP(l), 0);
+    const weekKcal = (weightKg && weightKg > 0) ? weekLogs.reduce((s, l) => s + window.formaCalories(l, weightKg), 0) : 0;
+
+    return {
+      ctl: Math.round(ctl),
+      atl: Math.round(atl),
+      tsb: Math.round(ctl - atl),
+      weekKm: Math.round(weekKm * 10) / 10,
+      weekTrimp,
+      weekKcal,
+      weekTrainings: weekLogs.length,
+      totalLogs: (logs || []).length
+    };
+  };
+
   // Single source of truth dla training_type colors (używane w _renderFormaTypes, statystyki.html, future heatmap)
   window.TRAINING_TYPE_COLORS = {
     'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
