@@ -615,6 +615,78 @@
     };
   };
 
+  // ────────────────────────────────────────────────────────────────────────
+  // computeFormaSeries — time-series CTL/ATL/TSB/TRIMP per day
+  // Reusable dla compare.html, future AI reports, future viz
+  // Input: logs array (sorted by logged_at asc), days window (default 90)
+  // Output: { labels, ctlData, atlData, tsbData, trimpData } — same length arrays
+  // ────────────────────────────────────────────────────────────────────────
+  window.computeFormaSeries = function(logs, daysWindow) {
+    daysWindow = daysWindow || 90;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(start.getDate() - daysWindow + 1);
+
+    // Bucketize logs per ISO date (YYYY-MM-DD)
+    const dailyTrimp = {};
+    for (const log of (logs || [])) {
+      if (!log.logged_at) continue;
+      if ((log.training_type || '').startsWith('__badge__')) continue;
+      const d = new Date(log.logged_at);
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      const trimp = (typeof window.formaTRIMP === 'function') ? window.formaTRIMP(log) : 0;
+      dailyTrimp[key] = (dailyTrimp[key] || 0) + trimp;
+    }
+
+    const labels = [], ctlData = [], atlData = [], tsbData = [], trimpData = [];
+    const CTL_TAU = 42, ATL_TAU = 7;
+    const ctlAlpha = 1 - Math.exp(-1 / CTL_TAU);
+    const atlAlpha = 1 - Math.exp(-1 / ATL_TAU);
+    let ctl = 0, atl = 0;
+
+    for (let i = 0; i < daysWindow; i++) {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      const trimp = dailyTrimp[key] || 0;
+      ctl = ctl + ctlAlpha * (trimp - ctl);
+      atl = atl + atlAlpha * (trimp - atl);
+      labels.push(key);
+      ctlData.push(Math.round(ctl * 10) / 10);
+      atlData.push(Math.round(atl * 10) / 10);
+      tsbData.push(Math.round((ctl - atl) * 10) / 10);
+      trimpData.push(Math.round(trimp));
+    }
+
+    return { labels, ctlData, atlData, tsbData, trimpData };
+  };
+
+  // ────────────────────────────────────────────────────────────────────────
+  // computeNextRace — z race_goals JSON wyciągnij najbliższy upcoming start
+  // Input: raceGoals (array of {name, date, ...} lub stringified JSON)
+  // Output: { name, date, daysLeft } | null
+  // ────────────────────────────────────────────────────────────────────────
+  window.computeNextRace = function(raceGoals) {
+    let goals = raceGoals;
+    if (typeof goals === 'string') {
+      try { goals = JSON.parse(goals); } catch(e) { return null; }
+    }
+    if (!Array.isArray(goals) || goals.length === 0) return null;
+    const now = new Date();
+    const upcoming = goals
+      .filter(g => g.date && new Date(g.date) >= now)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (!upcoming.length) return null;
+    const nearest = upcoming[0];
+    const daysLeft = Math.ceil((new Date(nearest.date) - now) / 86400000);
+    return {
+      name: nearest.name || 'Start',
+      date: nearest.date,
+      daysLeft: daysLeft
+    };
+  };
+
   // Single source of truth dla training_type colors (używane w _renderFormaTypes, statystyki.html, future heatmap)
   window.TRAINING_TYPE_COLORS = {
     'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
