@@ -3996,8 +3996,9 @@ window._runCompareWith = async function(friendId, friendName) {
     + renderMetric('ATL', my.atl, friend.atl, 'lower')
     + renderMetric('KM/TYDZ', my.weekKm, friend.weekKm, 'neutral')
     + renderMetric('TRIMP/TYDZ', my.weekTrimp, friend.weekTrimp, 'neutral')
-    + '<div style="margin-top:10px;text-align:center;">'
+    + '<div style="margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">'
     +   '<button onclick="window.openCompareModal()" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;">Wybierz innego</button>'
+    +   '<a href="compare.html?friend=' + friendId + '" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;text-decoration:none;">Pełny widok →</a>'
     + '</div>';
 
   resultEl.innerHTML = html;
