@@ -553,6 +553,25 @@
     'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888','Progresja':'#e8b840','Start':'#dc2626','Wyścig':'#dc2626','Trening':'#e8561e'
   };
 
+  // Intensity helpers — używane przez heatmap aktywności (GitHub-style)
+  window.formaIntensityLevel = function(trimp) {
+    if (!trimp || trimp === 0) return 0;
+    if (trimp <= 30) return 1;
+    if (trimp <= 60) return 2;
+    if (trimp <= 100) return 3;
+    return 4;
+  };
+  window.formaIntensityColor = function(level) {
+    const colors = [
+      'rgba(255,255,255,0.04)',  // 0 — brak treningu
+      'rgba(74,222,128,0.25)',   // 1 — lekki (1-30 TRIMP)
+      'rgba(74,222,128,0.55)',   // 2 — średni (31-60)
+      'rgba(232,86,30,0.65)',    // 3 — wysoki (61-100)
+      'rgba(248,113,113,0.75)',  // 4 — bardzo wysoki (100+)
+    ];
+    return colors[level] || colors[0];
+  };
+
   // Zone label + color helpers — używane przez hero TSB tile + chart marker
   window.formaZoneLabel = function(tsb) {
     if (tsb < -30) return 'PRZECIĄŻENIE';
@@ -1076,6 +1095,7 @@
     // 2 dodatkowe sekcje — pass prefix
     window._renderFormaWeekly(logs || [], px);
     window._renderFormaTypes(logs || [], px);
+    window._renderFormaHeatmap(logs || [], px);
   };
 
   // Weekly bars renderer — parametryzowany prefix
@@ -1173,6 +1193,90 @@
       + '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;">' + paths + '</svg>'
       + '<div style="flex:1;min-width:120px;">' + legend + '</div>'
       + '</div>';
+  };
+
+  // Heatmap aktywności — 13 tygodni × 7 dni grid (GitHub-style)
+  window._renderFormaHeatmap = function(logs, idPrefix) {
+    const px = idPrefix || 'forma';
+    const el = document.getElementById(px + '-heatmap');
+    if (!el) return;
+
+    // Recompute dailyTRIMP map (powtórzenie z renderFormaForAthlete ale standalone API)
+    const dailyTRIMP = {};
+    (logs || []).forEach(log => {
+      const dateStr = (log.logged_at || '').split('T')[0];
+      if (!dateStr) return;
+      dailyTRIMP[dateStr] = (dailyTRIMP[dateStr] || 0) + window.formaTRIMP(log);
+    });
+
+    // Anchor: Monday of current week (Polish convention, Mon=1, Sun=0)
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dow = today.getDay();
+    const mondayOffset = dow === 0 ? -6 : 1 - dow;
+    const currentMonday = new Date(today);
+    currentMonday.setDate(today.getDate() + mondayOffset);
+
+    // Start grid: 12 weeks ago Monday → 13 columns total
+    const startMonday = new Date(currentMonday);
+    startMonday.setDate(currentMonday.getDate() - 12 * 7);
+
+    // Cell sizing per prefix
+    const cellSize = px === 'pfo' ? 9 : 11;
+    const gap = px === 'pfo' ? 2 : 3;
+
+    // Day labels (Polish)
+    const dayLabels = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+
+    // Build grid HTML
+    let cells = '';
+    let monthLabels = '';
+    let lastMonth = -1;
+    for (let w = 0; w < 13; w++) {
+      // Month label dla pierwszej kolumny każdego nowego miesiąca
+      const weekStart = new Date(startMonday);
+      weekStart.setDate(startMonday.getDate() + w * 7);
+      const monthIdx = weekStart.getMonth();
+      if (monthIdx !== lastMonth) {
+        const monthName = weekStart.toLocaleDateString('pl-PL', { month: 'short' });
+        monthLabels += '<div style="position:absolute;left:' + (w * (cellSize + gap)) + 'px;top:0;font-size:8px;color:rgba(255,255,255,0.4);font-family:DM Mono,monospace;">' + monthName + '</div>';
+        lastMonth = monthIdx;
+      }
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(weekStart);
+        date.setDate(weekStart.getDate() + d);
+        const dateStr = date.toISOString().slice(0, 10);
+        const trimp = dailyTRIMP[dateStr] || 0;
+        const level = window.formaIntensityLevel(trimp);
+        const color = window.formaIntensityColor(level);
+        const isFuture = date.getTime() > today.getTime();
+        const dayDateLabel = date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+        const titleAttr = isFuture
+          ? dayDateLabel + ' — przyszłość'
+          : trimp > 0
+            ? dayDateLabel + ' · TRIMP ' + trimp
+            : dayDateLabel + ' · brak treningu';
+        const opacity = isFuture ? 0.25 : 1;
+        cells += '<div title="' + titleAttr + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';opacity:' + opacity + ';cursor:default;transition:transform 0.15s;" onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
+      }
+    }
+
+    // Day labels column (1)
+    let labels = '';
+    for (let d = 0; d < 7; d++) {
+      labels += '<div style="font-size:8px;color:rgba(255,255,255,0.4);font-family:DM Mono,monospace;line-height:' + cellSize + 'px;grid-column:1;grid-row:' + (d + 1) + ';padding-right:4px;">' + (d % 2 === 0 ? dayLabels[d] : '') + '</div>';
+    }
+
+    // Legend
+    let legend = '<div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-top:10px;font-size:9px;color:rgba(255,255,255,0.5);font-family:DM Mono,monospace;">';
+    legend += '<span>Mniej</span>';
+    for (let l = 0; l < 5; l++) {
+      legend += '<div style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + window.formaIntensityColor(l) + ';border-radius:2px;"></div>';
+    }
+    legend += '<span>Więcej</span>';
+    legend += '</div>';
+
+    const gridHtml = '<div style="position:relative;display:grid;grid-template-columns:18px repeat(13,' + cellSize + 'px);grid-template-rows:repeat(7,' + cellSize + 'px);gap:' + gap + 'px;padding-top:12px;">' + monthLabels + labels + cells + '</div>';
+    el.innerHTML = gridHtml + legend;
   };
 
   // ═══════════════════════════════════════════════════════════════
