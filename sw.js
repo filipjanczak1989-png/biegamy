@@ -30,6 +30,7 @@ const PRECACHE_URLS = [
   '/odznaki.html',
   '/wyzwania.html',
   '/kalendarz.html',
+  '/compare.html',
   '/races.html',
   '/gra.html',
   '/o-nas.html',
