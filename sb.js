@@ -579,7 +579,7 @@
     if (logsCount < 5) {
       return {
         icon: '📝',
-        headline: 'Buduj swoją historię',
+        headline: 'BUDUJ HISTORIĘ',
         subline: 'Loguj więcej treningów, by zobaczyć formę i otrzymywać wskazówki.',
         recommendation: null,
         color: 'rgba(255,255,255,0.7)'
@@ -645,7 +645,7 @@
     // Rule 5: Over-rested (TSB > +15)
     if (lastTsb > 15) {
       return {
-        icon: '⚠️',
+        icon: '🌿',
         headline: 'BARDZO WYPOCZĘTY',
         subline: 'TSB +' + Math.round(lastTsb) + ' · możesz tracić formę bez treningu. Wróć do regularnej aktywności.',
         recommendation: '✓ Zacznij od spokojnych treningów, stopniowo dorzucaj intensywność.',
@@ -656,7 +656,7 @@
     // Rule 6: Steady state (TSB -10 to +5)
     if (lastTsb >= -10) {
       return {
-        icon: '🔵',
+        icon: '📈',
         headline: 'W TRENINGU · ' + trendStr,
         subline: 'Trenujesz w normalnym rytmie. CTL ' + Math.round(lastCtl) + ' · forma ' + (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb) + ' · zmęczenie ' + Math.round(lastAtl) + '.',
         recommendation: ctlTrend > 10
@@ -670,7 +670,7 @@
 
     // Rule 7: Moderate fatigue (TSB -10 to -25) — fallback
     return {
-      icon: '🟠',
+      icon: '⚠',
       headline: 'OBCIĄŻENIE',
       subline: 'TSB ' + Math.round(lastTsb) + ' · uważaj na regenerację. Pilnuj snu i jedzenia.',
       recommendation: '⚠ Rozważ łatwiejszy tydzień, jeśli nie czujesz świeżości w nogach.',
