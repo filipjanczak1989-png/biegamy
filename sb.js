@@ -509,6 +509,44 @@
   };
 
 
+  // ═══════════════════════════════════════════════════════════════
+  // 📈 FORMA HELPERS — TRIMP calculation (CTL/ATL/TSB feature)
+  // ═══════════════════════════════════════════════════════════════
+  window.FORMA_EFFORT_FACTORS = {
+    'odpoczynek': 0,
+    'regeneracja': 1.0,
+    'spokojny': 1.5,
+    'bieg spokojny': 1.5,
+    'wybieganie': 2.0,
+    'długi': 2.5,
+    'wzmacniający': 1.5,
+    'zastępczy': 1.5,
+    'tempo': 3.5,
+    'progresja': 3.0,
+    'interwały': 4.5,
+    'start': 5.0,
+    'wyścig': 5.0,
+  };
+  window.FORMA_FEEL_MODIFIERS = { 'good': 1.0, 'mid': 1.1, 'bad': 1.3 };
+
+  window.formaDurationToMin = function(s) {
+    if (!s || typeof s !== 'string') return 0;
+    const t = s.trim(); if (!t) return 0;
+    if (/^\d+$/.test(t)) return parseInt(t, 10);
+    const p = t.split(':').map(x => parseInt(x, 10) || 0);
+    if (p.length === 2) return p[0] + p[1] / 60;
+    if (p.length === 3) return p[0] * 60 + p[1] + p[2] / 60;
+    return 0;
+  };
+
+  window.formaTRIMP = function(log) {
+    const dur = window.formaDurationToMin(log.duration);
+    const key = (log.training_type || '').toLowerCase().trim();
+    const effort = (window.FORMA_EFFORT_FACTORS[key] !== undefined) ? window.FORMA_EFFORT_FACTORS[key] : 1.5;
+    const feelMod = window.FORMA_FEEL_MODIFIERS[log.feel] || 1.0;
+    return Math.round(dur * effort * feelMod);
+  };
+
   // Cleanup po usunięciu zoom feature — kasuje stary localStorage flag i resetuje zoom
   try {
     if (localStorage.getItem('zoomLevel')) {
