@@ -2702,11 +2702,22 @@ function showSection(name) {
     document.getElementById('week-strip')?.style.setProperty('display','');
     activateNav('nav-home');
     // Zawsze przeładuj przy powrocie na home
+    // Trener-view → skip athlete-specific reloads (spójne z initAuth logic)
+    const _isFromTrenerHome = (new URLSearchParams(window.location.search).get('from') === 'trener')
+                           || sessionStorage.getItem('_fromTrener') === '1';
     if (_athleteId) {
       loadWeekPlan();
-      loadNutritionWidget();
-      loadHomeSocialPreview();
-      loadHomeAIReportsTile();
+      if (!_isFromTrenerHome) {
+        loadNutritionWidget();
+        loadHomeSocialPreview();
+        loadHomeAIReportsTile();
+      } else {
+        // Trener wraca z forma/social do home → ukryj widgety re-show'ed przez showSection's general code
+        document.getElementById('weather-widget')?.style.setProperty('display','none');
+        document.getElementById('nut-widget')?.style.setProperty('display','none');
+        document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
+        document.getElementById('strava-home-banner')?.style.setProperty('display','none');
+      }
     }
     requestAnimationFrame(() => {
       document.querySelectorAll('.today-hero,.week-sum,.nut-widget,.coach-box').forEach((el,i) => {
@@ -5511,9 +5522,21 @@ async function loadLogs() {
     loadPendingDuelsBanner(); // banner pending/active duels w "Dziś"
     maybeShowPushPrompt(); // banner push (po 1. zalogowanym treningu, klucz dismiss v2)
     await loadWeekPlan();
-    loadNutritionWidget(); // widget kcal dziś
-    loadHomeSocialPreview();
-    loadHomeAIReportsTile();
+    // Trener-view (?from=trener) → skip athlete-specific widgets (kcal/AI raport/social feed)
+    // Trener widzi swój hero + tygodniowy plan, ale nie powinien dostawać widget'ów które są "athlete tooling"
+    const _isFromTrener = (new URLSearchParams(window.location.search).get('from') === 'trener')
+                       || sessionStorage.getItem('_fromTrener') === '1';
+    if (!_isFromTrener) {
+      loadNutritionWidget(); // widget kcal dziś
+      loadHomeSocialPreview();
+      loadHomeAIReportsTile();
+    } else {
+      // Trener-view: explicit hide widgety które mogłyby zostać z poprzednich state'ów
+      document.getElementById('weather-widget')?.style.setProperty('display','none');
+      document.getElementById('nut-widget')?.style.setProperty('display','none');
+      document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
+      document.getElementById('strava-home-banner')?.style.setProperty('display','none');
+    }
     await updateWeekProgress();
     await checkNewMessages();
     checkNotifications();
