@@ -1419,8 +1419,15 @@
             annotation: { annotations: annotations }
           },
           scales: {
-            x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxRotation: 0, autoSkipPadding: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-            y: { position: 'left', ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+            x: {
+              ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 10 }, maxRotation: 0, autoSkipPadding: 20 },
+              grid: { display: false }
+            },
+            y: {
+              position: 'left',
+              ticks: { color: 'rgba(255,255,255,0.75)', font: { size: 12, weight: '500' } },
+              grid: { color: 'rgba(255,255,255,0.04)' }
+            }
           }
         }
       });
