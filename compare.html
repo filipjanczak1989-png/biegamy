@@ -327,7 +327,8 @@ async function renderCompare() {
       const myGoals = typeof meProf.race_goals === 'string' ? JSON.parse(meProf.race_goals) : meProf.race_goals;
       const todayMs = Date.now();
       const ninetyDaysAgo = todayMs - 90 * 86400000;
-      const upcomingMs = todayMs + 30 * 86400000; // +30 dni horyzont
+      const upcomingMs = todayMs + 14 * 86400000; // v5: chart projection ma 14 dni
+      const chartSpanMs = 104 * 86400000; // 90 historical + 14 projection
       const raceMarkers = (myGoals || []).filter(r => {
         if (!r.date) return false;
         const t = new Date(r.date).getTime();
@@ -339,7 +340,7 @@ async function renderCompare() {
       } else {
         const markers = raceMarkers.map(r => {
           const tMs = new Date(r.date).getTime();
-          const pctX = ((tMs - ninetyDaysAgo) / (todayMs - ninetyDaysAgo)) * 100;
+          const pctX = ((tMs - ninetyDaysAgo) / chartSpanMs) * 100;
           if (pctX < 0 || pctX > 100) return null;
           const daysFromNow = Math.round((tMs - todayMs) / 86400000);
           return { pctX: pctX, name: r.name, daysFromNow: daysFromNow };
@@ -548,19 +549,39 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
   const cmpToggles = getCompareToggles();
   const tsbFill = !cmpToggles.ctl && !cmpToggles.atl;
 
+  // v5 Strava-style: 14-day projection per athlete
+  const myLastCTL = meSer.ctlData[meSer.ctlData.length - 1] || 0;
+  const myLastATL = meSer.atlData[meSer.atlData.length - 1] || 0;
+  const friLastCTL = friSer.ctlData[friSer.ctlData.length - 1] || 0;
+  const friLastATL = friSer.atlData[friSer.atlData.length - 1] || 0;
+  const myProj = (typeof window.computeFormaProjection === 'function')
+    ? window.computeFormaProjection(myLastCTL, myLastATL, 14) : null;
+  const friProj = (typeof window.computeFormaProjection === 'function')
+    ? window.computeFormaProjection(friLastCTL, friLastATL, 14) : null;
+  const extLabels = myProj ? shortLabels.concat(myProj.labels) : shortLabels;
+  const padToProj = (arr) => myProj ? arr.concat(new Array(myProj.labels.length).fill(null)) : arr;
+  const padFromHist = (projArr) => myProj ? new Array(shortLabels.length).fill(null).concat(projArr) : [];
+
   const ctx = document.getElementById('compare-chart').getContext('2d');
   if (window._compareChartInstance) window._compareChartInstance.destroy();
   window._compareChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: shortLabels,
+      labels: extLabels,
       datasets: [
-        cmpToggles.ctl && { label: 'Ty — CTL', data: meSer.ctlData, borderColor: 'rgba(232,86,30,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
-        cmpToggles.ctl && { label: friendName + ' — CTL', data: friSer.ctlData, borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
-        cmpToggles.atl && { label: 'Ty — ATL', data: meSer.atlData, borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
-        cmpToggles.atl && { label: friendName + ' — ATL', data: friSer.atlData, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
-        cmpToggles.tsb && { label: 'Ty — TSB', data: meSer.tsbData, borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 1 },
-        cmpToggles.tsb && { label: friendName + ' — TSB', data: friSer.tsbData, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 2 }
+        cmpToggles.ctl && { label: 'Ty — CTL', data: padToProj(meSer.ctlData), borderColor: 'rgba(232,86,30,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        cmpToggles.ctl && { label: friendName + ' — CTL', data: padToProj(friSer.ctlData), borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        cmpToggles.atl && { label: 'Ty — ATL', data: padToProj(meSer.atlData), borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        cmpToggles.atl && { label: friendName + ' — ATL', data: padToProj(friSer.atlData), borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        cmpToggles.tsb && { label: 'Ty — TSB', data: padToProj(meSer.tsbData), borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 1 },
+        cmpToggles.tsb && { label: friendName + ' — TSB', data: padToProj(friSer.tsbData), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 2 },
+        // Projection — dashed, hidden z legend filter
+        cmpToggles.tsb && myProj && { label: 'Ty TSB proj', data: padFromHist(myProj.tsbData), borderColor: 'rgba(232,86,30,0.5)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: false, order: 10 },
+        cmpToggles.tsb && friProj && { label: friendName + ' TSB proj', data: padFromHist(friProj.tsbData), borderColor: 'rgba(167,139,250,0.5)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: false, order: 10 },
+        cmpToggles.ctl && myProj && { label: 'Ty CTL proj', data: padFromHist(myProj.ctlData), borderColor: 'rgba(232,86,30,0.35)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 11 },
+        cmpToggles.ctl && friProj && { label: friendName + ' CTL proj', data: padFromHist(friProj.ctlData), borderColor: 'rgba(167,139,250,0.35)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 11 },
+        cmpToggles.atl && myProj && { label: 'Ty ATL proj', data: padFromHist(myProj.atlData), borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 12 },
+        cmpToggles.atl && friProj && { label: friendName + ' ATL proj', data: padFromHist(friProj.atlData), borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 12 }
       ].filter(Boolean)
     },
     options: {
@@ -577,7 +598,8 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
             boxWidth: 12,
             padding: 8,
             usePointStyle: true,
-            pointStyle: 'line'
+            pointStyle: 'line',
+            filter: (item) => !item.text.includes(' proj')
           }
         },
         tooltip: {
@@ -591,12 +613,13 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
       },
       scales: {
         x: {
-          ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
-          grid: { color: 'rgba(255,255,255,0.04)' }
+          ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 8 },
+          grid: { display: false }
         },
         y: {
-          ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } },
-          grid: { color: 'rgba(255,255,255,0.05)' }
+          position: 'left',
+          ticks: { color: 'rgba(255,255,255,0.75)', font: { size: 12, weight: '500' } },
+          grid: { color: 'rgba(255,255,255,0.04)' }
         }
       }
     }
