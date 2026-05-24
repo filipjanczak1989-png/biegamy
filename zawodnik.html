@@ -4128,7 +4128,8 @@ async function initAuth() {
             const badge=document.createElement('div');
             badge.id='race-countdown';
             badge.style.cssText='display:inline-flex;align-items:center;gap:6px;background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);color:var(--green);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;font-family:DM Mono,monospace;padding:4px 10px;border-radius:4px;margin-bottom:10px;';
-            badge.textContent='🏁 '+(nearest.name||'Start')+' · '+(daysLeft===0?'DZIŚ!':daysLeft+' dni');
+            const esc = (window.escapeHtml || (s => String(s).replace(/[&<>"\']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c])));
+            badge.innerHTML = '🏁 ' + esc(nearest.name||'Start') + ' · ' + (daysLeft===0?'DZIŚ!':daysLeft+' dni') + ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'race_countdown\')" title="Co to za odliczanie?" style="background:rgba(61,184,112,0.2);border:1px solid rgba(61,184,112,0.4);color:var(--green);width:16px;height:16px;border-radius:50%;cursor:pointer;font-size:9px;font-family:DM Mono,monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;margin-left:4px;">i</button>';
             heroInner.insertBefore(badge,heroInner.firstChild);
           }
         }
@@ -10199,6 +10200,7 @@ if ('serviceWorker' in navigator) {
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">
     <!-- TSB — forma świeża, status indicator -->
     <div id="forma-tsb-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 12px;transition:all 0.3s ease;">
+      <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="position:absolute;top:6px;right:6px;background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;z-index:2;">i</button>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
         <span id="forma-tsb-dot" style="width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 8px currentColor;color:#4ade80;"></span>
         <span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">TSB</span>
@@ -10214,6 +10216,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- CTL — forma długa, trend indicator -->
     <div id="forma-ctl-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 12px;">
+      <button onclick="event.stopPropagation();window.showMetricTooltip('ctl')" title="Co to CTL?" style="position:absolute;top:6px;right:6px;background:rgba(96,165,250,0.15);border:1px solid rgba(96,165,250,0.35);color:#60a5fa;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;z-index:2;">i</button>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
         <span id="forma-ctl-arrow" style="font-size:11px;color:#60a5fa;">→</span>
         <span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">CTL</span>
@@ -10227,6 +10230,7 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- ATL — zmęczenie, level indicator -->
     <div id="forma-atl-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 12px;">
+      <button onclick="event.stopPropagation();window.showMetricTooltip('atl')" title="Co to ATL?" style="position:absolute;top:6px;right:6px;background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.35);color:#f87171;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;z-index:2;">i</button>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
         <span id="forma-atl-arrow" style="font-size:11px;color:#f87171;">→</span>
         <span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">ATL</span>
@@ -10259,6 +10263,11 @@ if ('serviceWorker' in navigator) {
 
   <!-- Canvas dla Chart.js -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:10px;">
+      📈 Trend formy · 90 dni
+      <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      <button onclick="event.stopPropagation();window.showMetricTooltip('zones')" title="Strefy TSB" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+    </div>
     <canvas id="forma-chart" style="max-height:260px;"></canvas>
   </div>
 
@@ -10272,25 +10281,37 @@ if ('serviceWorker' in navigator) {
 
   <!-- Stres tygodnia 8 tygodni — CSS bar chart -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">📊 Stres tygodnia (8 ostatnich)</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
+      📊 Stres tygodnia (8 ostatnich)
+      <button onclick="event.stopPropagation();window.showMetricTooltip('weekly_km')" title="Co to stres tygodnia?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+    </div>
     <div id="forma-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
   </div>
 
   <!-- Heatmap aktywności (GitHub-style) — 13 tygodni × 7 dni -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">🗓 Aktywność (13 tygodni)</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
+      🗓 Aktywność (13 tygodni)
+      <button onclick="event.stopPropagation();window.showMetricTooltip('heatmap')" title="Co to heatmap?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+    </div>
     <div id="forma-heatmap" style="overflow-x:auto;"></div>
   </div>
 
   <!-- Kalorie weekly bars — 8 ostatnich tygodni sum kcal (wymaga weight w nutrition_profiles) -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">🔥 Kalorie (8 ostatnich)</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
+      🔥 Kalorie (8 ostatnich)
+      <button onclick="event.stopPropagation();window.showMetricTooltip('kalorie')" title="Skąd kalorie?" style="background:rgba(251,146,60,0.15);border:1px solid rgba(251,146,60,0.35);color:#fb923c;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+    </div>
     <div id="forma-kcal-weekly" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
   </div>
 
   <!-- Typy treningów ostatnie 7 dni — pie chart -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">🥧 Typy treningów (7 dni)</div>
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
+      🥧 Typy treningów (7 dni)
+      <button onclick="event.stopPropagation();window.showMetricTooltip('types_pie')" title="Po co miks typów?" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+    </div>
     <div id="forma-types-content"></div>
   </div>
 
