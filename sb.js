@@ -1349,19 +1349,19 @@
         type: 'line',
         xMin: raceLabelDate,
         xMax: raceLabelDate,
-        borderColor: '#e8561e',
-        borderWidth: 2,
-        borderDash: [6, 4],
+        borderColor: 'rgba(232,86,30,0.35)',
+        borderWidth: 1,
+        borderDash: [3, 5],
         label: {
           display: true,
           content: '🏁 ' + race.name,
-          position: 'start',
-          backgroundColor: 'rgba(232,86,30,0.95)',
+          position: 'end',
+          backgroundColor: 'rgba(232,86,30,0.85)',
           color: '#fff',
-          font: { size: 10, family: 'DM Mono', weight: 'bold' },
-          padding: { top: 4, bottom: 4, left: 8, right: 8 },
-          borderRadius: 6,
-          yAdjust: -5,
+          font: { size: 9, family: 'DM Mono', weight: 'bold' },
+          padding: { top: 3, bottom: 3, left: 6, right: 6 },
+          borderRadius: 4,
+          yAdjust: 12,
         }
       };
     });
