@@ -79,9 +79,44 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;">📈 Trend formy · 90 dni
         <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
       </h2>
+      <!-- v4 Strava-style toggle (wpływa na OBA athletów) -->
+      <div id="compare-toggles" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;">
+        <label data-metric="tsb" style="display:flex;align-items:center;gap:6px;cursor:pointer;color:rgba(255,255,255,0.85);transition:color 0.15s;">
+          <span class="compare-toggle-dot" style="width:10px;height:10px;border-radius:50%;background:#4ade80;display:inline-block;transition:opacity 0.2s;"></span>
+          <span class="compare-toggle-label">FORMA ŚWIEŻA</span>
+          <span class="compare-toggle-switch" style="width:24px;height:13px;background:rgba(74,222,128,0.4);border-radius:7px;position:relative;transition:background 0.2s;">
+            <span style="position:absolute;top:1.5px;left:12px;width:10px;height:10px;border-radius:50%;background:#fff;transition:left 0.2s;"></span>
+          </span>
+        </label>
+        <label data-metric="ctl" style="display:flex;align-items:center;gap:6px;cursor:pointer;color:rgba(255,255,255,0.4);transition:color 0.15s;">
+          <span class="compare-toggle-dot" style="width:10px;height:10px;border-radius:50%;background:#60a5fa;display:inline-block;opacity:0.3;transition:opacity 0.2s;"></span>
+          <span class="compare-toggle-label">FORMA DŁUGA</span>
+          <span class="compare-toggle-switch" style="width:24px;height:13px;background:rgba(255,255,255,0.1);border-radius:7px;position:relative;transition:background 0.2s;">
+            <span style="position:absolute;top:1.5px;left:1.5px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.6);transition:left 0.2s;"></span>
+          </span>
+        </label>
+        <label data-metric="atl" style="display:flex;align-items:center;gap:6px;cursor:pointer;color:rgba(255,255,255,0.4);transition:color 0.15s;">
+          <span class="compare-toggle-dot" style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block;opacity:0.3;transition:opacity 0.2s;"></span>
+          <span class="compare-toggle-label">ZMĘCZENIE</span>
+          <span class="compare-toggle-switch" style="width:24px;height:13px;background:rgba(255,255,255,0.1);border-radius:7px;position:relative;transition:background 0.2s;">
+            <span style="position:absolute;top:1.5px;left:1.5px;width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.6);transition:left 0.2s;"></span>
+          </span>
+        </label>
+      </div>
       <div style="position:relative;height:300px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
         <canvas id="compare-chart"></canvas>
         <div id="compare-races" style="display:none;"></div>
+      </div>
+      <!-- v4 TRIMP bars dla obu athletów osobno -->
+      <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="height:50px;position:relative;">
+          <canvas id="cmp-me-trimp-bars" style="max-height:50px;"></canvas>
+          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:#e8561e;letter-spacing:0.1em;margin-top:2px;">TY · TRIMP</div>
+        </div>
+        <div style="height:50px;position:relative;">
+          <canvas id="cmp-friend-trimp-bars" style="max-height:50px;"></canvas>
+          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:#a78bfa;letter-spacing:0.1em;margin-top:2px;">PRZYJACIEL · TRIMP</div>
+        </div>
       </div>
       <p style="text-align:center;margin-top:8px;font-size:10px;color:var(--fg3);line-height:1.4;">
         <b style="color:#e8561e;">━ Ty</b> vs <b style="color:#a78bfa;">━ <span id="friend-name-legend"></span></b> · TSB grube, CTL cienkie, ATL kropkowane
@@ -281,6 +316,10 @@ async function renderCompare() {
 
   await renderCompareChart(myLogs, friendLogs, _friendName);
 
+  // v4: TRIMP bars per athlete (osobny mini-canvas każdy)
+  renderCmpTrimpBars(myLogs, 'cmp-me-trimp-bars', '#e8561e');
+  renderCmpTrimpBars(friendLogs, 'cmp-friend-trimp-bars', '#a78bfa');
+
   // Race markers POD chartem (tylko moje race goals, friend's omitted żeby nie przeładować)
   const compareRacesEl = document.getElementById('compare-races');
   if (compareRacesEl && meProf && meProf.race_goals) {
@@ -432,6 +471,9 @@ async function renderCompare() {
   const myStats = window.computeFormaStats(myLogs, myWeight);
   const friendStats = window.computeFormaStats(friendLogs, friendWeight);
   renderCompareDeltas(myStats, friendStats, _friendName, meProf, friendProf);
+
+  // v4: toggle handlers (idempotent przez flagę)
+  initCompareToggles();
 }
 
 function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) {
@@ -503,22 +545,23 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
   // Krótsze etykiety na X (MM-DD)
   const shortLabels = meSer.labels.map(l => l.slice(5));
 
+  const cmpToggles = getCompareToggles();
+  const tsbFill = !cmpToggles.ctl && !cmpToggles.atl;
+
   const ctx = document.getElementById('compare-chart').getContext('2d');
-  new Chart(ctx, {
+  if (window._compareChartInstance) window._compareChartInstance.destroy();
+  window._compareChartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels: shortLabels,
       datasets: [
-        // CTL — dyskretne tło (cienkie linie z opacity)
-        { label: 'Ty — CTL', data: meSer.ctlData, borderColor: 'rgba(232,86,30,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
-        { label: friendName + ' — CTL', data: friSer.ctlData, borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
-        // ATL — dyskretne tło, dash
-        { label: 'Ty — ATL', data: meSer.atlData, borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
-        { label: friendName + ' — ATL', data: friSer.atlData, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
-        // TSB — główny przekaz, wyraźne z fill
-        { label: 'Ty — TSB', data: meSer.tsbData, borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, order: 1 },
-        { label: friendName + ' — TSB', data: friSer.tsbData, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, order: 2 }
-      ]
+        cmpToggles.ctl && { label: 'Ty — CTL', data: meSer.ctlData, borderColor: 'rgba(232,86,30,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        cmpToggles.ctl && { label: friendName + ' — CTL', data: friSer.ctlData, borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        cmpToggles.atl && { label: 'Ty — ATL', data: meSer.atlData, borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        cmpToggles.atl && { label: friendName + ' — ATL', data: friSer.atlData, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        cmpToggles.tsb && { label: 'Ty — TSB', data: meSer.tsbData, borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 1 },
+        cmpToggles.tsb && { label: friendName + ' — TSB', data: friSer.tsbData, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 2 }
+      ].filter(Boolean)
     },
     options: {
       responsive: true,
@@ -630,6 +673,99 @@ function renderCompareDeltas(myStats, friendStats, friendName, meProf, friendPro
   }
 
   el.innerHTML = bullets.map(b => '<div style="margin-bottom:10px;padding-left:8px;border-left:2px solid var(--accent);padding-top:2px;padding-bottom:2px;">' + b + '</div>').join('');
+}
+
+// v4: TRIMP bars per athlete w compare (2 osobne mini-charty)
+function renderCmpTrimpBars(logs, canvasId, accentColor) {
+  const el = document.getElementById(canvasId);
+  if (!el || typeof Chart === 'undefined') return;
+  const ctx = el.getContext('2d');
+  const chartKey = '_cmpTrimpChart_' + canvasId;
+  if (window[chartKey]) window[chartKey].destroy();
+
+  const today = new Date();
+  const days = 90;
+  const labels = [];
+  const trimpData = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    d.setHours(0,0,0,0);
+    const lbl = (d.getMonth()+1) + '/' + d.getDate();
+    labels.push(lbl);
+    const dayLogs = logs.filter(l => {
+      const ld = new Date(l.logged_at);
+      return ld >= d && ld < new Date(d.getTime() + 86400000);
+    });
+    const trimp = dayLogs.reduce((s, log) => s + window.formaTRIMP(log), 0);
+    trimpData.push(trimp);
+  }
+
+  window[chartKey] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'TRIMP',
+        data: trimpData,
+        backgroundColor: accentColor + '4D',
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { enabled: false } },
+      scales: {
+        x: { display: false, grid: { display: false } },
+        y: { position: 'left', ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 8 }, maxTicksLimit: 2 }, grid: { color: 'rgba(255,255,255,0.04)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// v4: Compare toggle state (localStorage shared dla całego compare view)
+function getCompareToggles() {
+  try { const s = localStorage.getItem('compare_v4_toggles'); if (s) return JSON.parse(s); } catch(e) {}
+  return { tsb: true, ctl: false, atl: false };
+}
+function saveCompareToggles(t) {
+  try { localStorage.setItem('compare_v4_toggles', JSON.stringify(t)); } catch(e) {}
+}
+function applyCmpToggleVisualState(metric, isOn) {
+  const label = document.querySelector('#compare-toggles label[data-metric="' + metric + '"]');
+  if (!label) return;
+  const dot = label.querySelector('.compare-toggle-dot');
+  const switchBg = label.querySelector('.compare-toggle-switch');
+  const switchDot = switchBg ? switchBg.querySelector('span') : null;
+  const accentByMetric = { tsb: 'rgba(74,222,128,0.4)', ctl: 'rgba(96,165,250,0.4)', atl: 'rgba(248,113,113,0.4)' };
+  if (isOn) {
+    label.style.color = 'rgba(255,255,255,0.85)';
+    if (dot) dot.style.opacity = '1';
+    if (switchBg) switchBg.style.background = accentByMetric[metric] || 'rgba(255,255,255,0.4)';
+    if (switchDot) { switchDot.style.left = '12px'; switchDot.style.background = '#fff'; }
+  } else {
+    label.style.color = 'rgba(255,255,255,0.4)';
+    if (dot) dot.style.opacity = '0.3';
+    if (switchBg) switchBg.style.background = 'rgba(255,255,255,0.1)';
+    if (switchDot) { switchDot.style.left = '1.5px'; switchDot.style.background = 'rgba(255,255,255,0.6)'; }
+  }
+}
+function initCompareToggles() {
+  const t = getCompareToggles();
+  ['tsb','ctl','atl'].forEach(m => applyCmpToggleVisualState(m, t[m]));
+  if (window._compareTogglesInit) return;
+  window._compareTogglesInit = true;
+  document.querySelectorAll('#compare-toggles label').forEach(label => {
+    label.addEventListener('click', () => {
+      const metric = label.dataset.metric;
+      const current = getCompareToggles();
+      current[metric] = !current[metric];
+      saveCompareToggles(current);
+      applyCmpToggleVisualState(metric, current[metric]);
+      if (typeof renderCompare === 'function') renderCompare();
+    });
+  });
 }
 
 function changeFriend() {
