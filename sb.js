@@ -1262,44 +1262,8 @@
       }
     }
 
-    // Build annotations: strefy TSB (boxy tła) + Dziś + "Tu jesteś" + race markers
+    // Build annotations: Dziś + "Tu jesteś" (Strava-pure — race markers w osobnym DIV pod chartem)
     const annotations = {
-      // STREFA: przeciążenie (TSB < -30) — czerwone
-      zone_critical: {
-        type: 'box',
-        yMin: -100,
-        yMax: -30,
-        backgroundColor: 'rgba(248,113,113,0.04)',
-        borderWidth: 0,
-        drawTime: 'beforeDatasetsDraw',
-      },
-      // STREFA: obciążenie (-30 do -10) — pomarańczowe
-      zone_high: {
-        type: 'box',
-        yMin: -30,
-        yMax: -10,
-        backgroundColor: 'rgba(251,146,60,0.03)',
-        borderWidth: 0,
-        drawTime: 'beforeDatasetsDraw',
-      },
-      // STREFA: optimum (+5 do +15) — zielone
-      zone_optimum: {
-        type: 'box',
-        yMin: 5,
-        yMax: 15,
-        backgroundColor: 'rgba(74,222,128,0.04)',
-        borderWidth: 0,
-        drawTime: 'beforeDatasetsDraw',
-      },
-      // STREFA: over-rested (> +15) — żółte
-      zone_overrested: {
-        type: 'box',
-        yMin: 15,
-        yMax: 100,
-        backgroundColor: 'rgba(251,191,36,0.035)',
-        borderWidth: 0,
-        drawTime: 'beforeDatasetsDraw',
-      },
       // Linia "Dziś"
       today: {
         type: 'line',
@@ -1343,29 +1307,6 @@
         }
       },
     };
-    raceMarkers.forEach((race, idx) => {
-      const raceLabelDate = race.date.slice(5);
-      annotations['race_' + idx] = {
-        type: 'line',
-        xMin: raceLabelDate,
-        xMax: raceLabelDate,
-        borderColor: 'rgba(232,86,30,0.35)',
-        borderWidth: 1,
-        borderDash: [3, 5],
-        label: {
-          display: true,
-          content: '🏁 ' + race.name,
-          position: 'end',
-          backgroundColor: 'rgba(232,86,30,0.85)',
-          color: '#fff',
-          font: { size: 9, family: 'DM Mono', weight: 'bold' },
-          padding: { top: 3, bottom: 3, left: 6, right: 6 },
-          borderRadius: 4,
-          yAdjust: 12,
-        }
-      };
-    });
-
     // Render Chart — per-prefix instance żeby zawodnik i trener panel mogły coexist
     const chartEl = document.getElementById(px + '-chart');
     if (chartEl) {
