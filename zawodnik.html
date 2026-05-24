@@ -10172,21 +10172,14 @@ if ('serviceWorker' in navigator) {
 
 <!-- ═══════════════════════════ SEKCJA FORMY (Faza A mockup) ═══════════════════════════ -->
 <div id="section-forma" style="display:none;padding:16px;">
-  <!-- v5: Solo hero banner dla Forma section (solo-hero.png) -->
+  <!-- v5: Solo hero banner dla Forma section (solo-hero.png, bez tekstu — title pod chartem) -->
   <div class="forma-hero-banner" style="position:relative;width:calc(100% - 32px);margin:0 16px 16px;height:100px;background-image:url('https://raw.githubusercontent.com/filipjanczak1989-png/biegamy-assets/main/solo-hero.png');background-size:cover;background-position:center 35%;overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,0.08);">
-    <!-- Gradient overlay -->
-    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.12) 0%,rgba(0,0,0,0.45) 100%);border-radius:14px;"></div>
-    <!-- Tekst hero -->
-    <div style="position:relative;z-index:2;padding:18px 20px;height:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;">
-      <h2 style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.06em;font-size:24px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.4);margin:0;line-height:1.1;">TWOJA FORMA</h2>
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.85);margin-top:3px;text-shadow:0 1px 4px rgba(0,0,0,0.4);">Wykres formy 90 dni</div>
-    </div>
+    <!-- Subtelny gradient dla głębi -->
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.25) 100%);border-radius:14px;"></div>
   </div>
   <style>
     @media (max-width: 700px) {
       .forma-hero-banner { height: 80px !important; margin: 0 12px 14px !important; width: calc(100% - 24px) !important; }
-      .forma-hero-banner h2 { font-size: 20px !important; }
-      .forma-hero-banner > div:last-child { padding: 14px 16px !important; }
     }
   </style>
   <div style="text-align:center;margin-bottom:16px;">
