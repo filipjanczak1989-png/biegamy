@@ -1381,8 +1381,8 @@
             x: { display: false, grid: { display: false } },
             y: {
               position: 'left',
-              ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, maxTicksLimit: 3 },
-              grid: { color: 'rgba(255,255,255,0.04)' },
+              ticks: { color: 'rgba(255,255,255,0.6)', font: { size: 10, weight: '500' }, maxTicksLimit: 3 },
+              grid: { color: 'rgba(255,255,255,0.03)' },
               beginAtZero: true
             }
           }
