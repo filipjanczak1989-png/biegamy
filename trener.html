@@ -2502,6 +2502,66 @@ async function loadStravaPanel() {
 }
 
 // ── FORMA PANEL — CTL/ATL/TSB dla wybranego zawodnika (core w sb.js) ──
+// v4: Stan toggle'i — localStorage per athlete (per trener context)
+function getPfoToggles() {
+  try {
+    const aid = window._selectedAthleteId || 'default';
+    const stored = localStorage.getItem('pfo_v4_toggles_' + aid);
+    if (stored) return JSON.parse(stored);
+  } catch(e) {}
+  return { tsb: true, ctl: false, atl: false };
+}
+
+function savePfoToggles(toggles) {
+  try {
+    const aid = window._selectedAthleteId || 'default';
+    localStorage.setItem('pfo_v4_toggles_' + aid, JSON.stringify(toggles));
+  } catch(e) {}
+}
+
+function applyPfoToggleVisualState(metric, isOn) {
+  const label = document.querySelector('#pfo-toggles label[data-metric="' + metric + '"]');
+  if (!label) return;
+  const dot = label.querySelector('.pfo-toggle-dot');
+  const switchBg = label.querySelector('.pfo-toggle-switch');
+  const switchDot = switchBg ? switchBg.querySelector('span') : null;
+  const accentByMetric = { tsb: 'rgba(74,222,128,0.4)', ctl: 'rgba(96,165,250,0.4)', atl: 'rgba(248,113,113,0.4)' };
+  if (isOn) {
+    label.style.color = 'rgba(255,255,255,0.85)';
+    if (dot) dot.style.opacity = '1';
+    if (switchBg) switchBg.style.background = accentByMetric[metric] || 'rgba(255,255,255,0.4)';
+    if (switchDot) { switchDot.style.left = '12px'; switchDot.style.background = '#fff'; }
+  } else {
+    label.style.color = 'rgba(255,255,255,0.4)';
+    if (dot) dot.style.opacity = '0.3';
+    if (switchBg) switchBg.style.background = 'rgba(255,255,255,0.1)';
+    if (switchDot) { switchDot.style.left = '1.5px'; switchDot.style.background = 'rgba(255,255,255,0.6)'; }
+  }
+}
+
+function initPfoToggles() {
+  // Update visual state ZAWSZE (np. po zmianie zawodnika — inne localStorage state)
+  const t = getPfoToggles();
+  ['tsb','ctl','atl'].forEach(m => applyPfoToggleVisualState(m, t[m]));
+
+  // Attach click handlers TYLKO RAZ (idempotent przez flagę globalną)
+  if (window._pfoTogglesInit) return;
+  window._pfoTogglesInit = true;
+
+  document.querySelectorAll('#pfo-toggles label').forEach(label => {
+    label.addEventListener('click', () => {
+      const metric = label.dataset.metric;
+      const current = getPfoToggles();
+      current[metric] = !current[metric];
+      savePfoToggles(current);
+      applyPfoToggleVisualState(metric, current[metric]);
+      if (window._selectedAthleteId && typeof window.renderFormaForAthlete === 'function') {
+        window.renderFormaForAthlete(window._selectedAthleteId, 'pfo', { visibleMetrics: current });
+      }
+    });
+  });
+}
+
 async function loadPanelForma() {
   const id = window._selectedAthleteId;
   if (!id) {
@@ -2513,7 +2573,8 @@ async function loadPanelForma() {
     console.warn('[loadPanelForma] renderFormaForAthlete not loaded (sb.js)');
     return;
   }
-  await window.renderFormaForAthlete(id, 'pfo');
+  await window.renderFormaForAthlete(id, 'pfo', { visibleMetrics: getPfoToggles() });
+  initPfoToggles();
 }
 window.loadPanelForma = loadPanelForma;
 
