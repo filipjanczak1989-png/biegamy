@@ -76,7 +76,10 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- TSB chart 90d 2 lines -->
     <section style="margin-top:24px;">
-      <h2 class="section-title">📈 Trend formy · 90 dni</h2>
+      <h2 class="section-title" style="display:flex;align-items:center;gap:8px;">📈 Trend formy · 90 dni
+        <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="event.stopPropagation();window.showMetricTooltip('zones')" title="Strefy TSB" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.35);color:#a78bfa;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      </h2>
       <div style="position:relative;height:300px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
         <canvas id="compare-chart"></canvas>
       </div>
@@ -87,7 +90,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- Weekly km bars 2 grids -->
     <section style="margin-top:24px;">
-      <h2 class="section-title">🏃 Kilometraż · 8 tygodni</h2>
+      <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">🏃 Kilometraż · 8 tygodni
+        <button onclick="window.showMetricTooltip('weekly_km')" title="Co to kilometraż?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
           <div class="mini-title">TY</div>
@@ -102,7 +107,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- Kalorie weekly bars 2 grids -->
     <section style="margin-top:24px;">
-      <h2 class="section-title">🔥 Kalorie spalone · 8 tygodni</h2>
+      <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">🔥 Kalorie spalone · 8 tygodni
+        <button onclick="window.showMetricTooltip('kalorie')" title="Co to kalorie?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
           <div class="mini-title">TY</div>
@@ -117,7 +124,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- v1.1: Types pie 2 grids (7 dni) -->
     <section style="margin-top:24px;">
-      <h2 class="section-title">🏃 TYPY TRENINGÓW · 7 DNI</h2>
+      <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">🏃 TYPY TRENINGÓW · 7 DNI
+        <button onclick="window.showMetricTooltip('types_pie')" title="Co to typy treningów?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
           <div class="mini-title">TY</div>
@@ -132,7 +141,9 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- v1.1: Heatmap 13 tyg 2 grids (overflow-x:auto żeby na mobilu scrollować bez ścisku) -->
     <section style="margin-top:24px;">
-      <h2 class="section-title">📅 AKTYWNOŚĆ · 13 TYGODNI</h2>
+      <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">📅 AKTYWNOŚĆ · 13 TYGODNI
+        <button onclick="window.showMetricTooltip('heatmap')" title="Co to aktywność?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;overflow-x:auto;">
           <div class="mini-title">TY</div>
@@ -295,6 +306,11 @@ function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) 
   const escapeHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
   const nameEsc = escapeHtml(profile.full_name || '?');
 
+  const isMe = elId === 'me-card';
+  const tsbBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'tsb\')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+  const ctlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'ctl\')" title="Co to CTL?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+  const atlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'atl\')" title="Co to ATL?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+
   const avatarHtml = profile.avatar_url
     ? '<img src="' + escapeHtml(profile.avatar_url) + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + ';">'
     : '<span style="width:48px;height:48px;border-radius:50%;background:' + accentColor + '22;border:2px solid ' + accentColor + ';display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:15px;color:' + accentColor + ';">' + initials + '</span>';
@@ -313,15 +329,15 @@ function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) 
     + raceHtml
     + '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">'
     +   '<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">'
-    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;">TSB</div>'
+    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;display:inline-flex;gap:4px;align-items:center;justify-content:center;">TSB' + tsbBtn + '</div>'
     +     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;color:' + accentColor + ';line-height:1.1;">' + tsbStr + '</div>'
     +   '</div>'
     +   '<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">'
-    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;">CTL</div>'
+    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;display:inline-flex;gap:4px;align-items:center;justify-content:center;">CTL' + ctlBtn + '</div>'
     +     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;line-height:1.1;">' + stats.ctl + '</div>'
     +   '</div>'
     +   '<div style="text-align:center;padding:8px;background:rgba(255,255,255,0.03);border-radius:8px;">'
-    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;">ATL</div>'
+    +     '<div style="font-family:DM Mono,monospace;font-size:8px;color:var(--fg3);letter-spacing:0.1em;display:inline-flex;gap:4px;align-items:center;justify-content:center;">ATL' + atlBtn + '</div>'
     +     '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;line-height:1.1;">' + stats.atl + '</div>'
     +   '</div>'
     + '</div>';
