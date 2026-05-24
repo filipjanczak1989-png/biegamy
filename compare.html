@@ -371,8 +371,8 @@ async function renderCompare() {
 
   // v1.1: Heatmap 13 tyg 2x
   if (typeof window._renderFormaHeatmap === 'function') {
-    window._renderFormaHeatmap(myLogs, 'cmp-me', myWeight);
-    window._renderFormaHeatmap(friendLogs, 'cmp-friend', friendWeight);
+    window._renderFormaHeatmap(myLogs, 'cmp-me', myWeight, true);
+    window._renderFormaHeatmap(friendLogs, 'cmp-friend', friendWeight, true);
   }
 }
 
