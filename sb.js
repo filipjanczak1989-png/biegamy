@@ -687,6 +687,94 @@
     };
   };
 
+  // ─────────────────────────────────────────────────────────────────────
+  // METRIC_TOOLTIPS — content store dla v2 "jak dla debida"
+  // Używane przez showMetricTooltip() w zawodnik.html + compare.html
+  // Każda metryka ma 3 sekcje: "Co to jest" / "Jak czytać" / "Co robić"
+  // ─────────────────────────────────────────────────────────────────────
+  window.METRIC_TOOLTIPS = {
+    tsb: {
+      title: 'TSB · Świeżość formy',
+      sections: [
+        { heading: 'Co to jest', body: 'TSB to <b>wskaźnik świeżości</b> Twojej formy. Pokazuje różnicę między długoterminowym treningiem (CTL, ostatnie 6 tygodni) a krótkoterminowym zmęczeniem (ATL, ostatnie 7 dni).<br><br>Jeśli ostatnio sporo trenowałeś = ATL wysoki = TSB spada. Jeśli odpoczywałeś po build-upie = ATL niski + CTL trzyma = TSB rośnie.' },
+        { heading: 'Jak czytać', body: '<b>Linia w górę = jesteś świeższy.</b> (Tak, brzmi nieintuicyjnie — bo zmęczenie "rośnie" gdy linia idzie w dół. To bilans świeżości, nie obciążenia. Wyższy = lepszy.)<br><br>Strefy:<br>🟡 <b>TSB &gt; +25</b> — Over-rested, możesz tracić formę<br>🟢 <b>TSB +5 do +15</b> — Optimum, gotowość startowa<br>⚪ <b>TSB -10 do +5</b> — Neutralna, normalny rytm<br>🟠 <b>TSB -10 do -30</b> — Obciążenie, celowy build-up<br>🔴 <b>TSB &lt; -30</b> — Przeciążenie, ryzyko kontuzji' },
+        { heading: 'Co robić', body: '• <b>Przed startem</b> (10-14 dni): celuj w TSB +5 do +15 dzień przed<br>• <b>W okresie budowania</b>: TSB -10 do -20 to idealny stres treningowy<br>• <b>Czujesz wypalenie + TSB &lt; -25</b>: dorzucisz 2-3 dni regeneracji<br>• <b>TSB &gt; +20 bez startu w planie</b>: dorzuć intensywność, tracisz formę' }
+      ]
+    },
+    ctl: {
+      title: 'CTL · Forma długoterminowa',
+      sections: [
+        { heading: 'Co to jest', body: 'CTL to Twoja <b>forma długoterminowa</b> — średnie obciążenie treningowe z ostatnich ~6 tygodni, ważone w stronę świeższych treningów.<br><br>Im więcej i regularniej trenujesz, tym wyższe CTL. To <b>pojemność</b>, którą organizm wytrzymuje w trybie ciągłym.' },
+        { heading: 'Jak czytać', body: 'Wartość rośnie wolno (tygodniami systematyczności) i spada wolno (też tygodniami przerwy). Brak jednoznacznych "stref" — każdy zawodnik ma własną bazę.<br><br>Punkty odniesienia hobbysta-amator:<br>• <b>CTL 30-50</b> — biegacz rekreacyjny, 3-4 treningi/tydz<br>• <b>CTL 50-80</b> — średnio-zaawansowany, 5-6 treningów/tydz<br>• <b>CTL 80-110</b> — zaawansowany, sezonowy peak<br>• <b>CTL &gt; 110</b> — poziom (sub)elity, ryzyko bez monitoringu' },
+        { heading: 'Co robić', body: '• <b>Patrz na trend</b>, nie wartość. Rosnące CTL = budujesz formę. Stałe = utrzymujesz. Spadające &gt; 2 tygodnie = tracisz bazę.<br>• <b>Nie podnoś CTL &gt; 5-7 punktów/tydz</b> — próg ryzyka kontuzji (zasada 7% Coggan)<br>• <b>Po starcie</b> CTL spada o 5-15 punktów przez taper — to OK, wróci' }
+      ]
+    },
+    atl: {
+      title: 'ATL · Zmęczenie krótkoterminowe',
+      sections: [
+        { heading: 'Co to jest', body: 'ATL to <b>zmęczenie krótkoterminowe</b> — średnie obciążenie z ostatnich ~7 dni. Reaguje szybko na to co właśnie zrobiłeś.<br><br>Po ciężkim tygodniu ATL skoczy w górę. Po 2-3 dniach regeneracji szybko spadnie.' },
+        { heading: 'Jak czytać', body: 'Wartość zmienna z dnia na dzień. <b>Wysokie ATL</b> = jesteś w okresie obciążenia. <b>Niskie ATL</b> = świeży, zregenerowany.<br><br>ATL sam w sobie nie mówi czy to "dobrze" — kontekst daje porównanie z CTL (czyli wskaźnik TSB).' },
+        { heading: 'Co robić', body: '• <b>ATL znacznie wyższe niż CTL</b> (np. ATL 70 / CTL 50) = jesteś przemęczony względem swojej bazy. TSB ujemne = patrz tam.<br>• <b>ATL niskie + CTL wysokie</b> = świeży na peak formy. Dobry moment na start.<br>• <b>ATL śledzi tygodniowy trening</b> — jeśli nie spada mimo "lekkiego tygodnia", sprawdź czy faktycznie odpoczywasz.' }
+      ]
+    },
+    trimp: {
+      title: 'TRIMP · Jednostka obciążenia',
+      sections: [
+        { heading: 'Co to jest', body: 'TRIMP (Training Impulse) to <b>jednostka obciążenia</b> pojedynczego treningu. Łączy w jednej liczbie: długość treningu × intensywność × samopoczucie.<br><br>60 minut spokojnego = ~50 TRIMP. 60 minut interwałów = ~120 TRIMP. 3h długi bieg = ~150 TRIMP.' },
+        { heading: 'Jak czytać', body: 'Im wyższy TRIMP, tym ciężej organizm pracował. To <b>waluta</b> której organizm "zapłaci" obciążeniem (ATL) i regeneracją.<br><br>Każdy TRIMP dnia wpływa na: TSB (jak czujesz się jutro), CTL (jak forma rośnie), heatmap (intensywność dnia).' },
+        { heading: 'Co robić', body: '• <b>Tygodniowy TRIMP</b> = suma wszystkich dni. Trzymaj progres ~5-10% tygodniowo.<br>• <b>Pojedynczy trening &gt; 200 TRIMP</b> = bardzo ciężki, wymaga 24-48h regeneracji<br>• <b>Dzień z 0 TRIMP</b> = pełna regeneracja, OK 1-2× tygodniowo' }
+      ]
+    },
+    zones: {
+      title: 'Strefy formy · Kolorowe pasy',
+      sections: [
+        { heading: 'Co to jest', body: 'Strefy formy to <b>kolorowe tła</b> na wykresie TSB — pokazują w jakim stanie treningowym aktualnie jesteś. Każda strefa = inna decyzja treningowa.' },
+        { heading: 'Jak czytać', body: 'Od dołu do góry wykresu:<br><br>🔴 <b>Przeciążenie</b> (TSB &lt; -30) — ryzyko kontuzji, dramatyczny deficyt regeneracji<br>🟠 <b>Obciążenie</b> (TSB -30 do -10) — celowy build-up, organizm pod presją<br>⚪ <b>Neutralna</b> (TSB -10 do +5) — normalny rytm treningowy<br>🟢 <b>Optimum</b> (TSB +5 do +15) — gotowość startowa<br>🟡 <b>Over-rested</b> (TSB &gt; +25) — za dużo odpoczynku, forma się "psuje"<br><br>"Tu jesteś" duża kropka = aktualny moment na wykresie.' },
+        { heading: 'Co robić', body: '• <b>W zielonej + start w planie</b> = idealne taperowanie. Nie psuj.<br>• <b>W pomarańczowej &gt; 2 tyg</b> = sprawdź sen, jedzenie. OK ale stresujące dla organizmu.<br>• <b>Wpadasz w czerwoną</b> = STOP. 3-5 dni lekkiego treningu lub odpoczynku. Lepiej teraz niż kontuzja.<br>• <b>W żółtej &gt; tydzień bez startu</b> = wracaj do treningu, tracisz bazę.' }
+      ]
+    },
+    weekly_km: {
+      title: 'Kilometraż tygodniowy',
+      sections: [
+        { heading: 'Co to jest', body: 'Suma <b>kilometrów przebiegniętych</b> w każdym z ostatnich 8 tygodni. Najprostszy wskaźnik objętości treningu.' },
+        { heading: 'Jak czytać', body: 'Wysokość słupka = km tygodnia. Porównuj tygodnie obok siebie — szukasz trendu, nie pojedynczego rekordu.<br><br>Idealny pattern: 3 tygodnie progresji (~10% wzrost) + 1 tydzień regeneracyjny (~20% niżej). Cykl 4-tygodniowy.' },
+        { heading: 'Co robić', body: '• <b>Skok &gt; 15% tydzień-do-tygodnia</b> = ryzyko kontuzji. Cofnij się do progresji 5-10%.<br>• <b>Plateau przez 4+ tygodnie</b> = czas na progresję lub zmianę bodźca (więcej intensywności).<br>• <b>Drop &gt; 30%</b> = sprawdź czy intencjonalny (taper, regeneracja), czy "wypadek" (choroba, kontuzja, motywacja).<br>• <b>Long run</b> to zwykle 25-35% tygodniowego kilometrażu — sprawdź czy się mieścisz.' }
+      ]
+    },
+    kalorie: {
+      title: 'Kalorie spalone',
+      sections: [
+        { heading: 'Co to jest', body: 'Sumaryczny <b>wydatek energetyczny</b> treningów. Liczone z OCR screenów (gdy dostępne) lub szacowane wzorem MET × waga × czas (gdy brak danych z zegarka).' },
+        { heading: 'Jak czytać', body: 'Tygodniowe słupki — porównuj objętość energetyczną tygodni. Wartości zależne od wagi: 70kg biegacz spala ~60% mniej niż 90kg na tej samej trasie.<br><br>Punkty odniesienia (przy biegu spokojnym):<br>• 30 min biegu = ~300-450 kcal<br>• 1h biegu = ~600-900 kcal<br>• Long run 2h = ~1200-1800 kcal' },
+        { heading: 'Co robić', body: '• <b>Łącz z nutrition tracker</b> — jeśli widzisz tydzień 4000+ kcal spalonego treningu, sprawdź czy jesz wystarczająco. Deficyt &gt; 500 kcal/dzień długoterminowo = ryzyko spadku formy.<br>• <b>Po dużym wydatku</b> (long run, race) zwiększ białko i węglowodany przez 24-48h.<br>• <b>Wzór MET</b> to szacunek — z OCR dane z zegarka są dokładniejsze (uwzględniają HR, elevation).' }
+      ]
+    },
+    heatmap: {
+      title: 'Heatmap · 13 tygodni',
+      sections: [
+        { heading: 'Co to jest', body: 'Heatmap to <b>GitHub-style mapa cieplna</b> — 13 tygodni × 7 dni. Każda komórka = jeden dzień, kolor pokazuje intensywność treningu (TRIMP).' },
+        { heading: 'Jak czytać', body: '5 poziomów intensywności:<br><br>⬜ <b>0</b> — brak treningu (regeneracja lub odpoczynek)<br>🟩 <b>1-30 TRIMP</b> — lekki (spokojny bieg, krótka aktywność)<br>🟢 <b>31-60 TRIMP</b> — średni (typowy trening 60min)<br>🟠 <b>61-100 TRIMP</b> — wysoki (tempo, długi, interwały)<br>🔴 <b>&gt; 100 TRIMP</b> — bardzo wysoki (long, ciężki interwałowy, race)<br><br>Hover na komórkę = data, TRIMP, kcal.' },
+        { heading: 'Co robić', body: '• <b>Patrz na pattern, nie pojedyncze dni</b> — szukasz mieszanki kolorów. Same zielone = brak intensywności. Same czerwone = brak regeneracji.<br>• <b>Białe dni 2× w tygodniu</b> = zdrowa regeneracja. 0 białych dni &gt; 2 tygodnie = ryzyko przemęczenia.<br>• <b>Dwa czerwone z rzędu</b> = sprawdź czy następny jest biały/zielony. Twardy-twardy-twardy = receptura na kontuzję.' }
+      ]
+    },
+    types_pie: {
+      title: 'Typy treningów · 7 dni',
+      sections: [
+        { heading: 'Co to jest', body: 'Wykres kołowy pokazujący <b>podział kilometrażu wg typu treningu</b> w ostatnich 7 dniach. Spokojny, tempo, interwały, długi, regeneracja itd.' },
+        { heading: 'Jak czytać', body: 'Większa wycinka = więcej km tego typu. Kolory zgodne z resztą aplikacji (każdy typ ma swoją barwę).<br><br>Zdrowy podział hobbysty (orientacyjnie):<br>• <b>70-80%</b> spokojny / wybieganie / regeneracja<br>• <b>15-20%</b> tempo / progresja<br>• <b>5-10%</b> interwały / wyścig<br>• <b>+</b> długi 1× tygodniowo (osobno, ~25-30% tygodniowego km)' },
+        { heading: 'Co robić', body: '• <b>100% spokojny</b> &gt; 2 tygodnie = brak intensywności = forma się "płaszczy". Dorzuć 1× tempo lub interwał.<br>• <b>&gt; 30% intensywny</b> (tempo+interwały) = duże ryzyko przemęczenia/kontuzji. Łatwiej, łatwiej, łatwiej.<br>• <b>Brak długiego</b> &gt; 2 tygodnie (jeśli plan ma) = zawęża się baza wytrzymałości.' }
+      ]
+    },
+    race_countdown: {
+      title: 'Odliczanie do startu',
+      sections: [
+        { heading: 'Co to jest', body: 'Odliczanie do <b>najbliższego startu</b> zapisanego w Twoich celach startowych. Pokazuje nazwę startu + liczbę dni do daty.' },
+        { heading: 'Jak czytać', body: 'Pojawia się tylko gdy masz upcoming start w profil → cele. Aktualizuje się codziennie.<br><br>Strefy taperu (orientacyjnie):<br>• <b>&gt; 28 dni</b> — build phase, normalna progresja<br>• <b>14-28 dni</b> — peak phase, ostatnie ciężkie tygodnie<br>• <b>7-14 dni</b> — taper start, redukcja objętości o 20-40%<br>• <b>0-7 dni</b> — final taper, lekkie treningi, race readiness check<br>• <b>DZIŚ!</b> — race day, powodzenia 🏁' },
+        { heading: 'Co robić', body: '• <b>Dodaj kolejny start</b> w profil → cele żeby countdown szedł dalej po wyścigu.<br>• <b>W taperze</b> patrz na TSB — celuj w +5 do +15 dzień przed startem.<br>• <b>48h przed</b> zero ciężkich treningów. Krótkie wybieganie + pasta party.<br>• <b>Race day</b> — śpisz, jesz znanymi rzeczami, nie testujesz nowości.' }
+      ]
+    }
+  };
+
   // Single source of truth dla training_type colors (używane w _renderFormaTypes, statystyki.html, future heatmap)
   window.TRAINING_TYPE_COLORS = {
     'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
