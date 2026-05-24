@@ -50,12 +50,26 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 </head>
 <body>
 
-<header class="header">
-  <div class="header-inner">
-    <a class="back-btn" href="zawodnik.html#section-forma">←</a>
-    <h1 style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;font-size:22px;flex:1;">PORÓWNANIE FORMY</h1>
+<!-- v5: Strava-style hero banner -->
+<div class="compare-hero-banner" style="position:relative;width:100%;height:140px;background-image:url('https://raw.githubusercontent.com/filipjanczak1989-png/biegamy-assets/main/compare-hero.png');background-size:cover;background-position:center 35%;overflow:hidden;">
+  <!-- Gradient overlay dla czytelności tekstu nakładkowego -->
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.1) 0%,rgba(0,0,0,0.45) 100%);"></div>
+  <!-- Header treść nad bannerem (back btn + tytuł) -->
+  <div style="position:relative;z-index:2;max-width:900px;margin:0 auto;padding:14px 16px;display:flex;align-items:center;gap:12px;height:100%;box-sizing:border-box;">
+    <a href="zawodnik.html#section-forma" style="background:rgba(0,0,0,0.35);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.2);color:#fff;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:18px;flex-shrink:0;transition:all 0.15s;">←</a>
+    <div style="flex:1;">
+      <h1 style="font-family:'Bebas Neue',sans-serif;letter-spacing:0.06em;font-size:26px;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,0.4);margin:0;line-height:1.1;">PORÓWNANIE FORMY</h1>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.85);margin-top:4px;text-shadow:0 1px 4px rgba(0,0,0,0.4);">Strava-style · TY vs PRZYJACIEL</div>
+    </div>
   </div>
-</header>
+</div>
+
+<style>
+@media (max-width: 700px) {
+  .compare-hero-banner { height: 110px !important; }
+  .compare-hero-banner h1 { font-size: 22px !important; }
+}
+</style>
 
 <main style="max-width:900px;margin:0 auto;padding:20px 16px;">
 
