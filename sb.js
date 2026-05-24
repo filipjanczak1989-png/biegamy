@@ -995,9 +995,11 @@
   };
 
   // Core forma renderer — parametryzowany athleteId + idPrefix dla reuse w zawodnik.html + trener.html
-  window.renderFormaForAthlete = async function(athleteId, idPrefix) {
+  window.renderFormaForAthlete = async function(athleteId, idPrefix, options) {
     if (!athleteId) return;
     const px = idPrefix || 'forma';
+    // v4: visibleMetrics — domyślnie wszystkie ON (backward-compat dla starych wywołań)
+    const vm = (options && options.visibleMetrics) ? options.visibleMetrics : { tsb: true, ctl: true, atl: true };
 
     // Lazy-load Chart.js
     if (typeof Chart === 'undefined') {
@@ -1354,11 +1356,10 @@
         data: {
           labels: labels,
           datasets: [
-            { label: 'TRIMP (dzienny)', data: trimpData, type: 'bar', backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.15)', borderWidth: 0, yAxisID: 'y1', order: 3 },
-            { label: 'CTL (forma długa)', data: ctlData, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
-            { label: 'ATL (zmęczenie)', data: atlData, borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
-            { label: 'TSB (forma świeża)', data: tsbData, borderColor: '#4ade80', backgroundColor: 'rgba(74,222,128,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, yAxisID: 'y', order: 0 },
-          ]
+            vm.ctl && { label: 'CTL (forma długa)', data: ctlData, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
+            vm.atl && { label: 'ATL (zmęczenie)', data: atlData, borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
+            vm.tsb && { label: 'TSB (forma świeża)', data: tsbData, borderColor: '#4ade80', backgroundColor: (vm.ctl || vm.atl) ? 'transparent' : 'rgba(74,222,128,0.12)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: !vm.ctl && !vm.atl, yAxisID: 'y', order: 0 },
+          ].filter(Boolean)
         },
         options: {
           responsive: true,
@@ -1374,8 +1375,7 @@
           },
           scales: {
             x: { ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 9 }, maxRotation: 0, autoSkipPadding: 20 }, grid: { color: 'rgba(255,255,255,0.04)' } },
-            y: { position: 'left', ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } },
-            y1: { position: 'right', ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 9 } }, grid: { display: false }, beginAtZero: true }
+            y: { position: 'left', ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
           }
         }
       });
