@@ -158,6 +158,12 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       </div>
     </section>
 
+    <!-- v3 fix #5: Co was różni — konkretne deltas -->
+    <section style="margin-top:24px;">
+      <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">💡 Co was różni</h2>
+      <div id="cmp-deltas" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:'Inter',sans-serif;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.85);"></div>
+    </section>
+
     <!-- Bottom actions -->
     <div style="text-align:center;margin:32px 0 20px;">
       <button onclick="changeFriend()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 24px;border-radius:8px;cursor:pointer;">Wybierz innego →</button>
@@ -374,6 +380,11 @@ async function renderCompare() {
     window._renderFormaHeatmap(myLogs, 'cmp-me', myWeight, true);
     window._renderFormaHeatmap(friendLogs, 'cmp-friend', friendWeight, true);
   }
+
+  // v3 fix #5: Co was różni — wylicz stats jeszcze raz (renderAthleteCard liczy lokalnie, my potrzebujemy tu)
+  const myStats = window.computeFormaStats(myLogs, myWeight);
+  const friendStats = window.computeFormaStats(friendLogs, friendWeight);
+  renderCompareDeltas(myStats, friendStats, _friendName, meProf, friendProf);
 }
 
 function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) {
@@ -500,6 +511,78 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
       }
     }
   });
+}
+
+function renderCompareDeltas(myStats, friendStats, friendName, meProf, friendProf) {
+  const el = document.getElementById('cmp-deltas');
+  if (!el) return;
+  const escapeHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
+  const fnEsc = escapeHtml(friendName);
+
+  const bullets = [];
+
+  // 1. TSB comparison (świeżość — różnica >= 3 pkt)
+  const tsbDiff = myStats.tsb - friendStats.tsb;
+  if (Math.abs(tsbDiff) >= 3) {
+    if (tsbDiff > 0) {
+      bullets.push(`<b style="color:#4ade80;">✓ TY jesteś świeższy</b> — TSB <b>${myStats.tsb > 0 ? '+' : ''}${myStats.tsb}</b> vs ${fnEsc} <b>${friendStats.tsb > 0 ? '+' : ''}${friendStats.tsb}</b>. Różnica <b>${Math.abs(tsbDiff)}</b> pkt.`);
+    } else {
+      bullets.push(`<b style="color:#a78bfa;">✓ ${fnEsc} świeższy</b> — TSB <b>${friendStats.tsb > 0 ? '+' : ''}${friendStats.tsb}</b> vs Ty <b>${myStats.tsb > 0 ? '+' : ''}${myStats.tsb}</b>. Różnica <b>${Math.abs(tsbDiff)}</b> pkt.`);
+    }
+  } else {
+    bullets.push(`<b style="color:rgba(255,255,255,0.6);">≈ Podobna świeżość</b> — TSB różnica <b>${Math.abs(tsbDiff)}</b> pkt (mała).`);
+  }
+
+  // 2. CTL comparison (forma długa — kto trenuje regularniej, próg 10%)
+  const ctlDiff = Math.round(((friendStats.ctl - myStats.ctl) / Math.max(myStats.ctl, 1)) * 100);
+  if (Math.abs(ctlDiff) >= 10) {
+    if (ctlDiff > 0) {
+      bullets.push(`📈 <b>${fnEsc} ma wyższą formę długoterminową</b> — CTL <b>${friendStats.ctl}</b> vs Ty <b>${myStats.ctl}</b> (<b>+${ctlDiff}%</b>). Trenuje regularniej.`);
+    } else {
+      bullets.push(`📈 <b>TY masz wyższą formę długoterminową</b> — CTL <b>${myStats.ctl}</b> vs ${fnEsc} <b>${friendStats.ctl}</b> (<b>+${Math.abs(ctlDiff)}%</b>). Trenujesz regularniej.`);
+    }
+  } else {
+    bullets.push(`📈 <b>Podobna baza CTL</b> — Ty <b>${myStats.ctl}</b> vs ${fnEsc} <b>${friendStats.ctl}</b> (<b>±${Math.abs(ctlDiff)}%</b>).`);
+  }
+
+  // 3. ATL comparison (obciążenie — kto bardziej obciążony aktualnie, próg 15%)
+  const atlDiff = Math.round(((friendStats.atl - myStats.atl) / Math.max(myStats.atl, 1)) * 100);
+  if (Math.abs(atlDiff) >= 15) {
+    if (atlDiff > 0) {
+      bullets.push(`🔥 <b>${fnEsc} bardziej obciążony ostatnio</b> — ATL <b>${friendStats.atl}</b> vs Ty <b>${myStats.atl}</b> (<b>+${atlDiff}%</b>). Ciężki tydzień u niej/niego.`);
+    } else {
+      bullets.push(`🔥 <b>TY bardziej obciążony ostatnio</b> — ATL <b>${myStats.atl}</b> vs ${fnEsc} <b>${friendStats.atl}</b> (<b>+${Math.abs(atlDiff)}%</b>). Twój ciężki tydzień.`);
+    }
+  }
+
+  // 4. Weekly TRIMP (intensywność tego tygodnia, próg 15%)
+  const trimpDiff = Math.round(((friendStats.weekTrimp - myStats.weekTrimp) / Math.max(myStats.weekTrimp, 1)) * 100);
+  if (Math.abs(trimpDiff) >= 15 && myStats.weekTrimp > 0 && friendStats.weekTrimp > 0) {
+    if (trimpDiff > 0) {
+      bullets.push(`📊 <b>${fnEsc} trenuje intensywniej w tym tyg</b> — <b>${friendStats.weekTrimp}</b> TRIMP vs Ty <b>${myStats.weekTrimp}</b> (<b>+${trimpDiff}%</b>).`);
+    } else {
+      bullets.push(`📊 <b>TY trenujesz intensywniej w tym tyg</b> — <b>${myStats.weekTrimp}</b> TRIMP vs ${fnEsc} <b>${friendStats.weekTrimp}</b> (<b>+${Math.abs(trimpDiff)}%</b>).`);
+    }
+  }
+
+  // 5. Najbliższy start
+  const myRace = window.computeNextRace(meProf && meProf.race_goals);
+  const friendRace = window.computeNextRace(friendProf && friendProf.race_goals);
+  const myRaceName = myRace ? escapeHtml(myRace.name) : '';
+  const friendRaceName = friendRace ? escapeHtml(friendRace.name) : '';
+  if (myRace && friendRace) {
+    if (myRace.daysLeft < friendRace.daysLeft) {
+      bullets.push(`🏁 <b>TY masz bliżej startu</b> — ${myRaceName} za <b>${myRace.daysLeft}</b> dni vs ${fnEsc}: ${friendRaceName} za ${friendRace.daysLeft} dni.`);
+    } else if (friendRace.daysLeft < myRace.daysLeft) {
+      bullets.push(`🏁 <b>${fnEsc} ma bliżej startu</b> — ${friendRaceName} za <b>${friendRace.daysLeft}</b> dni vs Ty: ${myRaceName} za ${myRace.daysLeft} dni.`);
+    }
+  } else if (myRace && !friendRace) {
+    bullets.push(`🏁 <b>TY masz start w planie</b> — ${myRaceName} za <b>${myRace.daysLeft}</b> dni. ${fnEsc} bez startów.`);
+  } else if (!myRace && friendRace) {
+    bullets.push(`🏁 <b>${fnEsc} ma start w planie</b> — ${friendRaceName} za <b>${friendRace.daysLeft}</b> dni. TY bez startów.`);
+  }
+
+  el.innerHTML = bullets.map(b => '<div style="margin-bottom:10px;padding-left:8px;border-left:2px solid var(--accent);padding-top:2px;padding-bottom:2px;">' + b + '</div>').join('');
 }
 
 function changeFriend() {
