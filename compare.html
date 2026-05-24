@@ -273,14 +273,53 @@ async function renderCompare() {
 
   await renderCompareChart(myLogs, friendLogs, _friendName);
 
+  // Globalmax skalowanie — żeby słupki side-by-side były porównywalne
+  // Liczę dla obu athletów wspólny max TRIMP/kcal per tydzień (8 weeks)
+  function _calcWeeklyMaxTRIMP(logs) {
+    const today = new Date();
+    let maxT = 0;
+    for (let i = 7; i >= 0; i--) {
+      const ws = new Date(today);
+      const dow = today.getDay();
+      const monOff = dow === 0 ? -6 : 1 - dow;
+      ws.setDate(today.getDate() + monOff - i * 7);
+      ws.setHours(0,0,0,0);
+      const we = new Date(ws); we.setDate(ws.getDate() + 7);
+      const wlogs = (logs||[]).filter(l => { const d = new Date(l.logged_at); return d >= ws && d < we; });
+      const trimp = wlogs.reduce((s, log) => s + window.formaTRIMP(log), 0);
+      if (trimp > maxT) maxT = trimp;
+    }
+    return maxT;
+  }
+  function _calcWeeklyMaxKcal(logs, weight) {
+    if (!weight || weight <= 0) return 0;
+    const today = new Date();
+    let maxK = 0;
+    for (let i = 7; i >= 0; i--) {
+      const ws = new Date(today);
+      const dow = today.getDay();
+      const monOff = dow === 0 ? -6 : 1 - dow;
+      ws.setDate(today.getDate() + monOff - i * 7);
+      ws.setHours(0,0,0,0);
+      const we = new Date(ws); we.setDate(ws.getDate() + 7);
+      const wlogs = (logs||[]).filter(l => { const d = new Date(l.logged_at); return d >= ws && d < we; });
+      const kcal = wlogs.reduce((s, log) => s + window.formaCalories(log, weight), 0);
+      if (kcal > maxK) maxK = kcal;
+    }
+    return maxK;
+  }
+
+  const globalMaxTRIMP = Math.max(_calcWeeklyMaxTRIMP(myLogs), _calcWeeklyMaxTRIMP(friendLogs), 1);
+  const globalMaxKcal = Math.max(_calcWeeklyMaxKcal(myLogs, myWeight), _calcWeeklyMaxKcal(friendLogs, friendWeight), 1);
+
   if (typeof window._renderFormaWeekly === 'function') {
-    window._renderFormaWeekly(myLogs, 'cmp-me');
-    window._renderFormaWeekly(friendLogs, 'cmp-friend');
+    window._renderFormaWeekly(myLogs, 'cmp-me', globalMaxTRIMP);
+    window._renderFormaWeekly(friendLogs, 'cmp-friend', globalMaxTRIMP);
   }
 
   if (typeof window._renderFormaKcalWeekly === 'function') {
-    window._renderFormaKcalWeekly(myLogs, 'cmp-me', myWeight);
-    window._renderFormaKcalWeekly(friendLogs, 'cmp-friend', friendWeight);
+    window._renderFormaKcalWeekly(myLogs, 'cmp-me', myWeight, globalMaxKcal);
+    window._renderFormaKcalWeekly(friendLogs, 'cmp-friend', friendWeight, globalMaxKcal);
   }
 
   // v1.1: Types pie 2x
