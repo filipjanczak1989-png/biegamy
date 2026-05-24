@@ -775,6 +775,63 @@
     }
   };
 
+  // ─────────────────────────────────────────────────────────────────────
+  // showMetricTooltip(key) — uniwersalny modal "jak dla debida"
+  // Wstrzykuje modal do body, zamyka klik backdrop / ESC / × button
+  // ─────────────────────────────────────────────────────────────────────
+  window.showMetricTooltip = function(key) {
+    const data = window.METRIC_TOOLTIPS && window.METRIC_TOOLTIPS[key];
+    if (!data) { console.warn('[tooltip] brak content dla key:', key); return; }
+
+    // Remove existing modal jeśli był
+    document.getElementById('metric-tooltip-modal')?.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'metric-tooltip-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);animation:tipFadeIn 0.2s ease;';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    const sectionsHtml = data.sections.map(s =>
+      '<div style="margin-bottom:16px;">' +
+        '<div style="font-family:\'DM Mono\',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;font-weight:700;margin-bottom:6px;">' + s.heading + '</div>' +
+        '<div style="font-family:\'Inter\',sans-serif;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.88);">' + s.body + '</div>' +
+      '</div>'
+    ).join('');
+
+    modal.innerHTML = '<div style="max-width:520px;width:100%;max-height:85vh;overflow-y:auto;background:linear-gradient(140deg,#1a1422,#13101a);border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.6);">' +
+      '<div style="display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);">' +
+        '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;letter-spacing:0.04em;color:#fff;">' + data.title + '</div>' +
+        '<button onclick="document.getElementById(\'metric-tooltip-modal\')?.remove()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;flex-shrink:0;">×</button>' +
+      '</div>' +
+      sectionsHtml +
+    '</div>';
+
+    document.body.appendChild(modal);
+
+    // ESC close
+    const escHandler = (e) => {
+      if (e.key === 'Escape') {
+        modal.remove();
+        document.removeEventListener('keydown', escHandler);
+      }
+    };
+    document.addEventListener('keydown', escHandler);
+  };
+
+  // Helper do generowania (i) icon HTML — używany inline w templates
+  window.tooltipIconHtml = function(key, style) {
+    style = style || '';
+    return '<button onclick="event.stopPropagation();window.showMetricTooltip(\'' + key + '\')" title="Co to znaczy?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;flex-shrink:0;' + style + '">i</button>';
+  };
+
+  // Inject CSS animacja fadeIn raz (jeśli sb.js loaded multiple times — guard)
+  if (typeof document !== 'undefined' && !document.getElementById('tip-anim-style')) {
+    const s = document.createElement('style');
+    s.id = 'tip-anim-style';
+    s.textContent = '@keyframes tipFadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}';
+    document.head.appendChild(s);
+  }
+
   // Single source of truth dla training_type colors (używane w _renderFormaTypes, statystyki.html, future heatmap)
   window.TRAINING_TYPE_COLORS = {
     'Spokojny':'#3db870','Bieg spokojny':'#3db870','Tempo':'#e8b840','Interwały':'#e05050','Długi':'#5b8cff','Wybieganie':'#5b8cff',
