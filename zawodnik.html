@@ -3870,8 +3870,69 @@ window._weatherSetCity = async function() {
 };
 
 // ── FORMA — thin wrapper (core w sb.js: window.renderFormaForAthlete) ──
-window.loadFormaSection = function() {
-  return window.renderFormaForAthlete(_athleteId, 'forma');
+// v4: Stan toggle'i — localStorage per athlete
+function getFormaToggles() {
+  try {
+    const stored = localStorage.getItem('forma_v4_toggles_' + (_athleteId || 'default'));
+    if (stored) return JSON.parse(stored);
+  } catch(e) {}
+  return { tsb: true, ctl: false, atl: false }; // default Strava-style
+}
+
+function saveFormaToggles(toggles) {
+  try {
+    localStorage.setItem('forma_v4_toggles_' + (_athleteId || 'default'), JSON.stringify(toggles));
+  } catch(e) {}
+}
+
+function applyToggleVisualState(metric, isOn) {
+  const label = document.querySelector('#forma-toggles label[data-metric="' + metric + '"]');
+  if (!label) return;
+  const dot = label.querySelector('.forma-toggle-dot');
+  const switchBg = label.querySelector('.forma-toggle-switch');
+  const switchDot = switchBg ? switchBg.querySelector('span') : null;
+  const accentByMetric = { tsb: 'rgba(74,222,128,0.4)', ctl: 'rgba(96,165,250,0.4)', atl: 'rgba(248,113,113,0.4)' };
+  if (isOn) {
+    label.style.color = 'rgba(255,255,255,0.85)';
+    if (dot) dot.style.opacity = '1';
+    if (switchBg) switchBg.style.background = accentByMetric[metric] || 'rgba(255,255,255,0.4)';
+    if (switchDot) { switchDot.style.left = '12px'; switchDot.style.background = '#fff'; }
+  } else {
+    label.style.color = 'rgba(255,255,255,0.4)';
+    if (dot) dot.style.opacity = '0.3';
+    if (switchBg) switchBg.style.background = 'rgba(255,255,255,0.1)';
+    if (switchDot) { switchDot.style.left = '1.5px'; switchDot.style.background = 'rgba(255,255,255,0.6)'; }
+  }
+}
+
+function initFormaToggles() {
+  if (window._formaTogglesInit) {
+    // Update visual state ale nie attachuj handlerów drugi raz
+    const t = getFormaToggles();
+    ['tsb','ctl','atl'].forEach(m => applyToggleVisualState(m, t[m]));
+    return;
+  }
+  window._formaTogglesInit = true;
+  const toggles = getFormaToggles();
+  ['tsb','ctl','atl'].forEach(m => applyToggleVisualState(m, toggles[m]));
+
+  document.querySelectorAll('#forma-toggles label').forEach(label => {
+    label.addEventListener('click', () => {
+      const metric = label.dataset.metric;
+      const current = getFormaToggles();
+      current[metric] = !current[metric];
+      saveFormaToggles(current);
+      applyToggleVisualState(metric, current[metric]);
+      if (_athleteId && typeof window.renderFormaForAthlete === 'function') {
+        window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: current });
+      }
+    });
+  });
+}
+
+window.loadFormaSection = async function() {
+  await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles() });
+  initFormaToggles();
 };
 
 // ── COMPARE ATHLETES (Faza 6) ──────────────────────────────────────
