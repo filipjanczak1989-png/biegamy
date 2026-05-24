@@ -1307,6 +1307,50 @@
         }
       },
     };
+
+    // Render race markers POD chartem w osobnym DIV (Strava-style) — szuka #PREFIX-races
+    const racesContainerEl = document.getElementById(px + '-races');
+    if (racesContainerEl) {
+      if (!raceMarkers || raceMarkers.length === 0) {
+        racesContainerEl.innerHTML = '';
+        racesContainerEl.style.display = 'none';
+      } else {
+        const escHtml = window.escapeHtml || (s => String(s).replace(/[<>"&]/g, c => ({'<':'&lt;','>':'&gt;','"':'&quot;','&':'&amp;'})[c]));
+        const labelToIdx = {};
+        labels.forEach((lbl, i) => { labelToIdx[lbl] = i; });
+
+        const markers = raceMarkers.map(race => {
+          const raceLabelDate = race.date.slice(5);
+          const idx = labelToIdx[raceLabelDate];
+          if (idx === undefined) return null;
+          const pctX = (idx / (labels.length - 1)) * 100;
+          return {
+            pctX: pctX,
+            name: race.name,
+            date: race.date,
+            daysFromNow: Math.round((new Date(race.date).getTime() - Date.now()) / 86400000)
+          };
+        }).filter(m => m !== null);
+
+        if (markers.length === 0) {
+          racesContainerEl.innerHTML = '';
+          racesContainerEl.style.display = 'none';
+        } else {
+          racesContainerEl.style.display = 'block';
+          racesContainerEl.innerHTML = '<div style="position:relative;height:28px;margin-top:4px;">' +
+            markers.map(m => {
+              const safeName = escHtml(m.name);
+              const daysLabel = m.daysFromNow >= 0 ? ('za ' + m.daysFromNow + ' dni') : (Math.abs(m.daysFromNow) + ' dni temu');
+              return '<div style="position:absolute;left:' + m.pctX.toFixed(2) + '%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">' +
+                '<div style="font-size:14px;line-height:1;">🏁</div>' +
+                '<div title="' + safeName + ' (' + daysLabel + ')" style="font-size:8px;font-family:DM Mono,monospace;color:#e8561e;letter-spacing:0.05em;white-space:nowrap;background:rgba(232,86,30,0.12);padding:1px 5px;border-radius:3px;border:1px solid rgba(232,86,30,0.3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">' + safeName + '</div>' +
+              '</div>';
+            }).join('') +
+          '</div>';
+        }
+      }
+    }
+
     // Render Chart — per-prefix instance żeby zawodnik i trener panel mogły coexist
     const chartEl = document.getElementById(px + '-chart');
     if (chartEl) {
