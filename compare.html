@@ -83,8 +83,8 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       <div style="position:relative;height:300px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
         <canvas id="compare-chart"></canvas>
       </div>
-      <p style="text-align:center;margin-top:8px;font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;letter-spacing:0.05em;">
-        <span style="color:#e8561e;">━ Ty</span> &nbsp;vs&nbsp; <span style="color:#a78bfa;">━ <span id="friend-name-legend"></span></span>
+      <p style="text-align:center;margin-top:8px;font-size:10px;color:var(--fg3);line-height:1.4;">
+        <b style="color:#e8561e;">━ Ty</b> vs <b style="color:#a78bfa;">━ <span id="friend-name-legend"></span></b> · TSB grube, CTL cienkie, ATL kropkowane
       </p>
     </section>
 
@@ -410,8 +410,15 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
     data: {
       labels: shortLabels,
       datasets: [
-        { label: 'Ty — TSB', data: meSer.tsbData, borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true },
-        { label: friendName + ' — TSB', data: friSer.tsbData, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true }
+        // CTL — dyskretne tło (cienkie linie z opacity)
+        { label: 'Ty — CTL', data: meSer.ctlData, borderColor: 'rgba(232,86,30,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        { label: friendName + ' — CTL', data: friSer.ctlData, borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        // ATL — dyskretne tło, dash
+        { label: 'Ty — ATL', data: meSer.atlData, borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        { label: friendName + ' — ATL', data: friSer.atlData, borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        // TSB — główny przekaz, wyraźne z fill
+        { label: 'Ty — TSB', data: meSer.tsbData, borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, order: 1 },
+        { label: friendName + ' — TSB', data: friSer.tsbData, borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: true, order: 2 }
       ]
     },
     options: {
@@ -419,7 +426,18 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: {
+            color: 'rgba(255,255,255,0.7)',
+            font: { size: 9, family: 'DM Mono' },
+            boxWidth: 12,
+            padding: 8,
+            usePointStyle: true,
+            pointStyle: 'line'
+          }
+        },
         tooltip: {
           backgroundColor: 'rgba(20,15,30,0.95)',
           borderColor: 'rgba(255,255,255,0.1)',
