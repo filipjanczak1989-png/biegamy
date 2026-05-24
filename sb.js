@@ -1345,6 +1345,51 @@
       }
     }
 
+    // v4: TRIMP bars w osobnym mini-chart canvasie POD głównym chartem — szuka #PREFIX-trimp-bars
+    const trimpBarsEl = document.getElementById(px + '-trimp-bars');
+    if (trimpBarsEl && typeof Chart !== 'undefined') {
+      const trimpCtx = trimpBarsEl.getContext('2d');
+      const trimpChartKey = '_formaTrimpChart_' + px;
+      if (window[trimpChartKey]) window[trimpChartKey].destroy();
+      window[trimpChartKey] = new Chart(trimpCtx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'TRIMP',
+            data: trimpData,
+            backgroundColor: 'rgba(255,255,255,0.15)',
+            borderColor: 'rgba(255,255,255,0.25)',
+            borderWidth: 0,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: 'rgba(20,15,30,0.95)',
+              borderColor: 'rgba(255,255,255,0.1)',
+              borderWidth: 1,
+              padding: 8,
+              titleFont: { family: 'DM Mono', size: 10 },
+              bodyFont: { family: 'DM Sans', size: 11 }
+            }
+          },
+          scales: {
+            x: { display: false, grid: { display: false } },
+            y: {
+              position: 'left',
+              ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 9 }, maxTicksLimit: 3 },
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              beginAtZero: true
+            }
+          }
+        }
+      });
+    }
+
     // Render Chart — per-prefix instance żeby zawodnik i trener panel mogły coexist
     const chartEl = document.getElementById(px + '-chart');
     if (chartEl) {
