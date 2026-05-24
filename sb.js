@@ -839,12 +839,32 @@
   };
 
   // Intensity helpers — używane przez heatmap aktywności (GitHub-style)
-  window.formaIntensityLevel = function(trimp) {
+  // thresholds opcjonalne — default statyczne progi (zachowanie zawodnik.html)
+  window.formaIntensityLevel = function(trimp, thresholds) {
     if (!trimp || trimp === 0) return 0;
-    if (trimp <= 30) return 1;
-    if (trimp <= 60) return 2;
-    if (trimp <= 100) return 3;
+    const t = thresholds || { l1: 30, l2: 60, l3: 100 };
+    if (trimp <= t.l1) return 1;
+    if (trimp <= t.l2) return 2;
+    if (trimp <= t.l3) return 3;
     return 4;
+  };
+
+  // Helper — wylicz percentile thresholds z logów athlete'a (dni > 0 TRIMP)
+  // null gdy < 5 dni danych — fallback do statycznych progów
+  window.formaComputePercentileThresholds = function(logs) {
+    const dailyTRIMP = {};
+    for (const log of (logs || [])) {
+      if (!log.logged_at) continue;
+      if ((log.training_type || '').startsWith('__badge__')) continue;
+      const d = new Date(log.logged_at);
+      const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+      const t = window.formaTRIMP(log);
+      dailyTRIMP[key] = (dailyTRIMP[key] || 0) + t;
+    }
+    const values = Object.values(dailyTRIMP).filter(v => v > 0).sort((a, b) => a - b);
+    if (values.length < 5) return null;
+    const pct = (p) => values[Math.floor(values.length * p)];
+    return { l1: pct(0.25), l2: pct(0.50), l3: pct(0.80) };
   };
   window.formaIntensityColor = function(level) {
     const colors = [
@@ -1490,10 +1510,13 @@
   };
 
   // Heatmap aktywności — 13 tygodni × 7 dni grid (GitHub-style)
-  window._renderFormaHeatmap = function(logs, idPrefix, weightKg) {
+  window._renderFormaHeatmap = function(logs, idPrefix, weightKg, useGlobalPercentile) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-heatmap');
     if (!el) return;
+
+    // Percentile thresholds liczone raz dla całych logów (per athlete) — opcjonalnie
+    const thresholds = useGlobalPercentile ? window.formaComputePercentileThresholds(logs) : null;
 
     // Recompute dailyTRIMP + dailyKcal map (kcal display jeśli weightKg > 0)
     const dailyTRIMP = {};
@@ -1546,7 +1569,7 @@
         const dateStr = date.toISOString().slice(0, 10);
         const trimp = dailyTRIMP[dateStr] || 0;
         const kcal = hasKcal ? (dailyKcal[dateStr] || 0) : 0;
-        const level = window.formaIntensityLevel(trimp);
+        const level = window.formaIntensityLevel(trimp, thresholds);
         const color = window.formaIntensityColor(level);
         const isFuture = date.getTime() > today.getTime();
         const dayDateLabel = date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
