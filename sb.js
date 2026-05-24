@@ -663,6 +663,32 @@
   };
 
   // ────────────────────────────────────────────────────────────────────────
+  // computeFormaProjection — N dni do przodu CTL/ATL/TSB przy ZAŁOŻENIU braku treningów
+  // Strava-style "what if I rest from today" — dashed line w przyszłość
+  // EMA: CTL_t = CTL_t-1 + (TRIMP - CTL_t-1) * (1/42), ATL analog z 1/7
+  // ────────────────────────────────────────────────────────────────────────
+  window.computeFormaProjection = function(currentCTL, currentATL, daysForward) {
+    const days = daysForward || 14;
+    const projection = { labels: [], ctlData: [], atlData: [], tsbData: [] };
+    let ctl = currentCTL;
+    let atl = currentATL;
+    const today = new Date();
+    for (let i = 1; i <= days; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const lbl = (d.getMonth()+1) + '-' + String(d.getDate()).padStart(2,'0');
+      // Założenie TRIMP = 0 (brak treningu)
+      ctl = ctl + (0 - ctl) * (1/42);
+      atl = atl + (0 - atl) * (1/7);
+      projection.labels.push(lbl);
+      projection.ctlData.push(Math.round(ctl * 10) / 10);
+      projection.atlData.push(Math.round(atl * 10) / 10);
+      projection.tsbData.push(Math.round((ctl - atl) * 10) / 10);
+    }
+    return projection;
+  };
+
+  // ────────────────────────────────────────────────────────────────────────
   // computeNextRace — z race_goals JSON wyciągnij najbliższy upcoming start
   // Input: raceGoals (array of {name, date, ...} lub stringified JSON)
   // Output: { name, date, daysLeft } | null
