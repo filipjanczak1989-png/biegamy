@@ -1328,6 +1328,17 @@
       },
     };
 
+    // v5 Strava-style: 14-day projection (dashed line) — "co jutro jeśli odpoczynę"
+    // Liczone tu (poza chart block) bo race markers + TRIMP bars muszą się alignować z chart canvas
+    const lastCTL = ctlData[ctlData.length - 1] || 0;
+    const lastATL = atlData[atlData.length - 1] || 0;
+    const projection = (typeof window.computeFormaProjection === 'function')
+      ? window.computeFormaProjection(lastCTL, lastATL, 14)
+      : null;
+    const extendedLabels = projection ? labels.concat(projection.labels) : labels;
+    const padNullsToProj = (arr) => projection ? arr.concat(new Array(projection.labels.length).fill(null)) : arr;
+    const padNullsFromHist = (projArr) => projection ? new Array(labels.length).fill(null).concat(projArr) : [];
+
     // Render race markers POD chartem w osobnym DIV (Strava-style) — szuka #PREFIX-races
     const racesContainerEl = document.getElementById(px + '-races');
     if (racesContainerEl) {
@@ -1343,7 +1354,7 @@
           const raceLabelDate = race.date.slice(5);
           const idx = labelToIdx[raceLabelDate];
           if (idx === undefined) return null;
-          const pctX = (idx / (labels.length - 1)) * 100;
+          const pctX = (idx / (extendedLabels.length - 1)) * 100;
           return {
             pctX: pctX,
             name: race.name,
@@ -1380,10 +1391,10 @@
       window[trimpChartKey] = new Chart(trimpCtx, {
         type: 'bar',
         data: {
-          labels: labels,
+          labels: extendedLabels,
           datasets: [{
             label: 'TRIMP',
-            data: trimpData,
+            data: padNullsToProj(trimpData),
             backgroundColor: 'rgba(255,255,255,0.15)',
             borderColor: 'rgba(255,255,255,0.25)',
             borderWidth: 0,
@@ -1425,11 +1436,15 @@
       window[chartKey] = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
+          labels: extendedLabels,
           datasets: [
-            vm.ctl && { label: 'CTL (forma długa)', data: ctlData, borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
-            vm.atl && { label: 'ATL (zmęczenie)', data: atlData, borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
-            vm.tsb && { label: 'TSB (forma świeża)', data: tsbData, borderColor: '#4ade80', backgroundColor: (vm.ctl || vm.atl) ? 'transparent' : 'rgba(74,222,128,0.12)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: !vm.ctl && !vm.atl, yAxisID: 'y', order: 0 },
+            vm.ctl && { label: 'CTL (forma długa)', data: padNullsToProj(ctlData), borderColor: '#60a5fa', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 2 },
+            vm.atl && { label: 'ATL (zmęczenie)', data: padNullsToProj(atlData), borderColor: '#f87171', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 2, yAxisID: 'y', order: 1 },
+            vm.tsb && { label: 'TSB (forma świeża)', data: padNullsToProj(tsbData), borderColor: '#4ade80', backgroundColor: (vm.ctl || vm.atl) ? 'transparent' : 'rgba(74,222,128,0.12)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: !vm.ctl && !vm.atl, yAxisID: 'y', order: 0 },
+            // Projection (dashed) — hidden z legend filter
+            vm.ctl && projection && { label: 'CTL projection', data: padNullsFromHist(projection.ctlData), borderColor: 'rgba(96,165,250,0.5)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [5,5], yAxisID: 'y', order: 5 },
+            vm.atl && projection && { label: 'ATL projection', data: padNullsFromHist(projection.atlData), borderColor: 'rgba(248,113,113,0.5)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [5,5], yAxisID: 'y', order: 5 },
+            vm.tsb && projection && { label: 'TSB projection', data: padNullsFromHist(projection.tsbData), borderColor: 'rgba(74,222,128,0.5)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1.5, borderDash: [5,5], yAxisID: 'y', order: 5 },
           ].filter(Boolean)
         },
         options: {
@@ -1438,7 +1453,13 @@
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: {
-              labels: { color: 'rgba(255,255,255,0.7)', font: { size: 10, family: 'DM Mono' }, boxWidth: 10, padding: 12 },
+              labels: {
+                color: 'rgba(255,255,255,0.7)',
+                font: { size: 10, family: 'DM Mono' },
+                boxWidth: 10,
+                padding: 12,
+                filter: (item) => !item.text.includes('projection')
+              },
               position: 'bottom',
             },
             tooltip: { backgroundColor: 'rgba(20,15,30,0.95)', borderColor: 'rgba(255,255,255,0.1)', borderWidth: 1, padding: 10, titleFont: { family: 'DM Mono', size: 11 }, bodyFont: { family: 'DM Sans', size: 12 } },
