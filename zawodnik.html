@@ -2657,8 +2657,10 @@ function showSection(name) {
     if (el) el.style.display = 'none';
   });
 
-  // Weather widget — pokazuj tylko na home
-  document.getElementById('weather-widget')?.style.setProperty('display', name === 'home' ? '' : 'none');
+  // Weather widget — pokazuj tylko na home (i tylko gdy NIE trener-view)
+  // v5: respect _isFromTrener (Option 1) — trener-view ma ukrytą pogodę nawet w home
+  const _isFromTrenerW = (new URLSearchParams(window.location.search).get('from') === 'trener') || sessionStorage.getItem('_fromTrener') === '1';
+  document.getElementById('weather-widget')?.style.setProperty('display', (name === 'home' && !_isFromTrenerW) ? '' : 'none');
 
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
