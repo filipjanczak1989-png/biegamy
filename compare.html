@@ -103,6 +103,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
           <div id="cmp-friend-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
         </div>
       </div>
+      <div id="cmp-weekly-delta" style="text-align:center;margin-top:10px;padding:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:0.05em;"></div>
     </section>
 
     <!-- Kalorie weekly bars 2 grids -->
@@ -120,6 +121,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
           <div id="cmp-friend-kcal-weekly" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
         </div>
       </div>
+      <div id="cmp-kcal-delta" style="text-align:center;margin-top:10px;padding:8px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:0.05em;"></div>
     </section>
 
     <!-- v1.1: Types pie 2 grids (7 dni) -->
@@ -320,6 +322,45 @@ async function renderCompare() {
   if (typeof window._renderFormaKcalWeekly === 'function') {
     window._renderFormaKcalWeekly(myLogs, 'cmp-me', myWeight, globalMaxKcal);
     window._renderFormaKcalWeekly(friendLogs, 'cmp-friend', friendWeight, globalMaxKcal);
+  }
+
+  // Delta summary weekly TRIMP — reuse helper (max tygodnia z 8 ostatnich)
+  const myAvgTRIMP = _calcWeeklyMaxTRIMP(myLogs);
+  const friendAvgTRIMP = _calcWeeklyMaxTRIMP(friendLogs);
+  const _fnEsc = escapeHtml(_friendName);
+  const wkDeltaEl = document.getElementById('cmp-weekly-delta');
+  if (wkDeltaEl) {
+    if (myAvgTRIMP === 0 && friendAvgTRIMP === 0) {
+      wkDeltaEl.textContent = 'Brak danych do porównania';
+    } else if (myAvgTRIMP === 0) {
+      wkDeltaEl.innerHTML = '<b style="color:#a78bfa;">' + _fnEsc + '</b> trenuje. Ty nic w 8 tyg.';
+    } else if (friendAvgTRIMP === 0) {
+      wkDeltaEl.innerHTML = '<b style="color:#e8561e;">TY</b> trenujesz. <b>' + _fnEsc + '</b> nic w 8 tyg.';
+    } else {
+      const diff = Math.round(((friendAvgTRIMP - myAvgTRIMP) / myAvgTRIMP) * 100);
+      const winner = diff > 0 ? _fnEsc : 'TY';
+      const winnerColor = diff > 0 ? '#a78bfa' : '#e8561e';
+      const absDiff = Math.abs(diff);
+      wkDeltaEl.innerHTML = '<b style="color:' + winnerColor + ';">' + winner + '</b> · max tydzień ' + absDiff + '% wyżej · TY ' + myAvgTRIMP + ' TRIMP vs ' + _fnEsc + ' ' + friendAvgTRIMP + ' TRIMP';
+    }
+  }
+
+  // Delta summary weekly kcal
+  const myMaxKcal = _calcWeeklyMaxKcal(myLogs, myWeight);
+  const friendMaxKcal = _calcWeeklyMaxKcal(friendLogs, friendWeight);
+  const kcalDeltaEl = document.getElementById('cmp-kcal-delta');
+  if (kcalDeltaEl) {
+    if (myMaxKcal === 0 && friendMaxKcal === 0) {
+      kcalDeltaEl.textContent = 'Brak danych do porównania kalorii';
+    } else if (myMaxKcal === 0 || friendMaxKcal === 0) {
+      kcalDeltaEl.innerHTML = '<b style="color:rgba(255,255,255,0.5);">Brak wagi lub treningów u jednego z was</b>';
+    } else {
+      const diff = Math.round(((friendMaxKcal - myMaxKcal) / myMaxKcal) * 100);
+      const winner = diff > 0 ? _fnEsc : 'TY';
+      const winnerColor = diff > 0 ? '#a78bfa' : '#e8561e';
+      const absDiff = Math.abs(diff);
+      kcalDeltaEl.innerHTML = '<b style="color:' + winnerColor + ';">' + winner + '</b> · max kcal/tydz ' + absDiff + '% wyżej · TY ' + myMaxKcal + ' kcal vs ' + _fnEsc + ' ' + friendMaxKcal + ' kcal';
+    }
   }
 
   // v1.1: Types pie 2x
