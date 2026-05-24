@@ -697,7 +697,7 @@
       title: 'TSB · Świeżość formy',
       sections: [
         { heading: 'Co to jest', body: 'TSB to <b>wskaźnik świeżości</b> Twojej formy. Pokazuje różnicę między długoterminowym treningiem (CTL, ostatnie 6 tygodni) a krótkoterminowym zmęczeniem (ATL, ostatnie 7 dni).<br><br>Jeśli ostatnio sporo trenowałeś = ATL wysoki = TSB spada. Jeśli odpoczywałeś po build-upie = ATL niski + CTL trzyma = TSB rośnie.' },
-        { heading: 'Jak czytać', body: '<b>Linia w górę = jesteś świeższy.</b> (Tak, brzmi nieintuicyjnie — bo zmęczenie "rośnie" gdy linia idzie w dół. To bilans świeżości, nie obciążenia. Wyższy = lepszy.)<br><br>Strefy:<br>🟡 <b>TSB &gt; +25</b> — Over-rested, możesz tracić formę<br>🟢 <b>TSB +5 do +15</b> — Optimum, gotowość startowa<br>⚪ <b>TSB -10 do +5</b> — Neutralna, normalny rytm<br>🟠 <b>TSB -10 do -30</b> — Obciążenie, celowy build-up<br>🔴 <b>TSB &lt; -30</b> — Przeciążenie, ryzyko kontuzji' },
+        { heading: 'Jak czytać', body: '<b>Linia w górę = jesteś świeższy.</b> (Tak, brzmi nieintuicyjnie — bo zmęczenie "rośnie" gdy linia idzie w dół. To bilans świeżości, nie obciążenia. Wyższy = lepszy.)<br><br>Wartości referencyjne:<br>🟡 <b>TSB &gt; +25</b> — Over-rested, możesz tracić formę<br>🟢 <b>TSB +5 do +15</b> — Optimum, gotowość startowa<br>⚪ <b>TSB -10 do +5</b> — Neutralna, normalny rytm<br>🟠 <b>TSB -10 do -30</b> — Obciążenie, celowy build-up<br>🔴 <b>TSB &lt; -30</b> — Przeciążenie, ryzyko kontuzji' },
         { heading: 'Co robić', body: '• <b>Przed startem</b> (10-14 dni): celuj w TSB +5 do +15 dzień przed<br>• <b>W okresie budowania</b>: TSB -10 do -20 to idealny stres treningowy<br>• <b>Czujesz wypalenie + TSB &lt; -25</b>: dorzucisz 2-3 dni regeneracji<br>• <b>TSB &gt; +20 bez startu w planie</b>: dorzuć intensywność, tracisz formę' }
       ]
     },
@@ -723,14 +723,6 @@
         { heading: 'Co to jest', body: 'TRIMP (Training Impulse) to <b>jednostka obciążenia</b> pojedynczego treningu. Łączy w jednej liczbie: długość treningu × intensywność × samopoczucie.<br><br>60 minut spokojnego = ~50 TRIMP. 60 minut interwałów = ~120 TRIMP. 3h długi bieg = ~150 TRIMP.' },
         { heading: 'Jak czytać', body: 'Im wyższy TRIMP, tym ciężej organizm pracował. To <b>waluta</b> której organizm "zapłaci" obciążeniem (ATL) i regeneracją.<br><br>Każdy TRIMP dnia wpływa na: TSB (jak czujesz się jutro), CTL (jak forma rośnie), heatmap (intensywność dnia).' },
         { heading: 'Co robić', body: '• <b>Tygodniowy TRIMP</b> = suma wszystkich dni. Trzymaj progres ~5-10% tygodniowo.<br>• <b>Pojedynczy trening &gt; 200 TRIMP</b> = bardzo ciężki, wymaga 24-48h regeneracji<br>• <b>Dzień z 0 TRIMP</b> = pełna regeneracja, OK 1-2× tygodniowo' }
-      ]
-    },
-    zones: {
-      title: 'Strefy formy · Kolorowe pasy',
-      sections: [
-        { heading: 'Co to jest', body: 'Strefy formy to <b>kolorowe tła</b> na wykresie TSB — pokazują w jakim stanie treningowym aktualnie jesteś. Każda strefa = inna decyzja treningowa.' },
-        { heading: 'Jak czytać', body: 'Od dołu do góry wykresu:<br><br>🔴 <b>Przeciążenie</b> (TSB &lt; -30) — ryzyko kontuzji, dramatyczny deficyt regeneracji<br>🟠 <b>Obciążenie</b> (TSB -30 do -10) — celowy build-up, organizm pod presją<br>⚪ <b>Neutralna</b> (TSB -10 do +5) — normalny rytm treningowy<br>🟢 <b>Optimum</b> (TSB +5 do +15) — gotowość startowa<br>🟡 <b>Over-rested</b> (TSB &gt; +25) — za dużo odpoczynku, forma się "psuje"<br><br>"Tu jesteś" duża kropka = aktualny moment na wykresie.' },
-        { heading: 'Co robić', body: '• <b>W zielonej + start w planie</b> = idealne taperowanie. Nie psuj.<br>• <b>W pomarańczowej &gt; 2 tyg</b> = sprawdź sen, jedzenie. OK ale stresujące dla organizmu.<br>• <b>Wpadasz w czerwoną</b> = STOP. 3-5 dni lekkiego treningu lub odpoczynku. Lepiej teraz niż kontuzja.<br>• <b>W żółtej &gt; tydzień bez startu</b> = wracaj do treningu, tracisz bazę.' }
       ]
     },
     weekly_km: {
