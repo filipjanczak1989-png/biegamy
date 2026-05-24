@@ -694,7 +694,7 @@
   // ─────────────────────────────────────────────────────────────────────
   window.METRIC_TOOLTIPS = {
     tsb: {
-      title: 'TSB · Świeżość formy',
+      title: 'TSB · Forma świeża',
       sections: [
         { heading: 'Co to jest', body: 'TSB to <b>wskaźnik świeżości</b> Twojej formy. Pokazuje różnicę między długoterminowym treningiem (CTL, ostatnie 6 tygodni) a krótkoterminowym zmęczeniem (ATL, ostatnie 7 dni).<br><br>Jeśli ostatnio sporo trenowałeś = ATL wysoki = TSB spada. Jeśli odpoczywałeś po build-upie = ATL niski + CTL trzyma = TSB rośnie.' },
         { heading: 'Jak czytać', body: '<b>Linia w górę = jesteś świeższy.</b> (Tak, brzmi nieintuicyjnie — bo zmęczenie "rośnie" gdy linia idzie w dół. To bilans świeżości, nie obciążenia. Wyższy = lepszy.)<br><br>Wartości referencyjne:<br>🟡 <b>TSB &gt; +25</b> — Over-rested, możesz tracić formę<br>🟢 <b>TSB +5 do +15</b> — Optimum, gotowość startowa<br>⚪ <b>TSB -10 do +5</b> — Neutralna, normalny rytm<br>🟠 <b>TSB -10 do -30</b> — Obciążenie, celowy build-up<br>🔴 <b>TSB &lt; -30</b> — Przeciążenie, ryzyko kontuzji' },
@@ -702,7 +702,7 @@
       ]
     },
     ctl: {
-      title: 'CTL · Forma długoterminowa',
+      title: 'CTL · Forma długa',
       sections: [
         { heading: 'Co to jest', body: 'CTL to Twoja <b>forma długoterminowa</b> — średnie obciążenie treningowe z ostatnich ~6 tygodni, ważone w stronę świeższych treningów.<br><br>Im więcej i regularniej trenujesz, tym wyższe CTL. To <b>pojemność</b>, którą organizm wytrzymuje w trybie ciągłym.' },
         { heading: 'Jak czytać', body: 'Wartość rośnie wolno (tygodniami systematyczności) i spada wolno (też tygodniami przerwy). Brak jednoznacznych "stref" — każdy zawodnik ma własną bazę.<br><br>Punkty odniesienia hobbysta-amator:<br>• <b>CTL 30-50</b> — biegacz rekreacyjny, 3-4 treningi/tydz<br>• <b>CTL 50-80</b> — średnio-zaawansowany, 5-6 treningów/tydz<br>• <b>CTL 80-110</b> — zaawansowany, sezonowy peak<br>• <b>CTL &gt; 110</b> — poziom (sub)elity, ryzyko bez monitoringu' },
@@ -710,7 +710,7 @@
       ]
     },
     atl: {
-      title: 'ATL · Zmęczenie krótkoterminowe',
+      title: 'ATL · Zmęczenie',
       sections: [
         { heading: 'Co to jest', body: 'ATL to <b>zmęczenie krótkoterminowe</b> — średnie obciążenie z ostatnich ~7 dni. Reaguje szybko na to co właśnie zrobiłeś.<br><br>Po ciężkim tygodniu ATL skoczy w górę. Po 2-3 dniach regeneracji szybko spadnie.' },
         { heading: 'Jak czytać', body: 'Wartość zmienna z dnia na dzień. <b>Wysokie ATL</b> = jesteś w okresie obciążenia. <b>Niskie ATL</b> = świeży, zregenerowany.<br><br>ATL sam w sobie nie mówi czy to "dobrze" — kontekst daje porównanie z CTL (czyli wskaźnik TSB).' },
