@@ -2098,13 +2098,18 @@ window._ocrSetup = function() {
         return;
       }
 
-      // Pre-fill pól TYLKO jeśli puste
+      // Pre-fill pól z OCR — NADPISUJE wszystkie pola dla których AI zwrócił dane
+      // (intent: user klika OCR żeby ZASTĄPIĆ ręczne wpisy danymi z screena)
       let filled = 0;
       const ocrFields = [];  // track które pola OCR faktycznie wypełnił (dla reset on remove)
       const fields = [['l-dist', json.distance_km], ['l-time', json.duration], ['l-pace', json.pace], ['l-hr', json.heart_rate], ['l-elevation', json.elevation_gain], ['l-calories', json.calories]];
       for (const [id, val] of fields) {
         const el = document.getElementById(id);
-        if (el && !el.value && val != null && val !== '') { el.value = val; ocrFields.push(id); filled++; }
+        if (el && val != null && val !== '' && val !== 0) {
+          el.value = val;
+          ocrFields.push(id);
+          filled++;
+        }
       }
 
       // Parse activity_date z OCR + ewentualny auto-shift _logDate (cap 7 dni wstecz)
