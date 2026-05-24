@@ -1392,7 +1392,7 @@
   };
 
   // Weekly bars renderer — parametryzowany prefix
-  window._renderFormaWeekly = function(logs, idPrefix) {
+  window._renderFormaWeekly = function(logs, idPrefix, globalMax) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-weekly-bars');
     if (!el) return;
@@ -1418,7 +1418,8 @@
       buckets.push({ trimp, lbl });
     }
 
-    const max = Math.max(...buckets.map(b => b.trimp), 1);
+    const localMax = Math.max(...buckets.map(b => b.trimp), 1);
+    const max = (globalMax && globalMax > 0) ? globalMax : localMax;
     el.innerHTML = buckets.map(b => {
       const h = Math.max((b.trimp / max) * 100, 2);
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">'
@@ -1579,7 +1580,7 @@
   };
 
   // Kalorie weekly bars — 8 tygodni sum kcal (analog do _renderFormaWeekly ale dla kcal)
-  window._renderFormaKcalWeekly = function(logs, idPrefix, weightKg) {
+  window._renderFormaKcalWeekly = function(logs, idPrefix, weightKg, globalMax) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-kcal-weekly');
     if (!el) return;
@@ -1610,7 +1611,8 @@
       buckets.push({ kcal, lbl });
     }
 
-    const max = Math.max(...buckets.map(b => b.kcal), 1);
+    const localMax = Math.max(...buckets.map(b => b.kcal), 1);
+    const max = (globalMax && globalMax > 0) ? globalMax : localMax;
     el.innerHTML = buckets.map(b => {
       const h = Math.max((b.kcal / max) * 100, 2);
       return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">'
