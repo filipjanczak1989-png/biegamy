@@ -2662,6 +2662,9 @@ function showSection(name) {
     if (el) el.style.display = 'none';
   });
 
+  // v5.1: globalna flaga aktualnej sekcji — używana przez async callbacki (_renderWeather)
+  window._currentSection = name;
+
   // Weather widget — pokazuj tylko na home (i tylko gdy NIE trener-view)
   // v5: respect _isFromTrener (Option 1) — trener-view ma ukrytą pogodę nawet w home
   const _isFromTrenerW = (new URLSearchParams(window.location.search).get('from') === 'trener') || sessionStorage.getItem('_fromTrener') === '1';
@@ -3852,7 +3855,14 @@ window._renderWeather = function(data) {
   };
 
   daysEl.innerHTML = data.days.map(dayHtml).join('');
-  wrap.style.display = 'block';
+  // v5.1: guard race condition — pokaż TYLKO jeśli user jest na home + nie trener-view
+  // (loadWeather() jest async, user mógł kliknąć FORMA/inną sekcję przed fetch'em)
+  const _isFromTrenerR = (new URLSearchParams(window.location.search).get('from') === 'trener') || sessionStorage.getItem('_fromTrener') === '1';
+  const _currentSec = window._currentSection || 'home'; // default home (initial load przed pierwszym showSection)
+  if (_currentSec === 'home' && !_isFromTrenerR) {
+    wrap.style.display = 'block';
+  }
+  // Inaczej zostaw 'none' — user jest gdzie indziej, nie wracamy do widoku pogody
 };
 
 window._weatherSetCity = async function() {
