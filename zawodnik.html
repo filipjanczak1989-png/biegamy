@@ -2533,6 +2533,70 @@ async function _makeThumbDataURL(file) {
   });
 }
 
+// v6.7-DEBUG TYMCZASOWY: wyświetla diagnostykę thumbnail render na ekranie
+// (bo F12 nie działa na Androidzie u Filipa). TODO: REMOVE po naprawie.
+window._dbgPanel = null;
+function _dbgShow(label, data) {
+  if (!window._dbgPanel) {
+    const p = document.createElement('div');
+    p.id = '_dbg-panel';
+    p.style.cssText = 'position:fixed;bottom:80px;left:8px;right:8px;background:rgba(232,86,30,0.95);color:#fff;font:11px/1.4 monospace;padding:10px;border-radius:8px;z-index:99999;max-height:50vh;overflow:auto;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+    p.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><b>🐛 DEBUG (Android)</b><span onclick="document.getElementById(\'_dbg-panel\').remove();window._dbgPanel=null" style="cursor:pointer;background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px;">×</span></div><div id="_dbg-content"></div>';
+    document.body.appendChild(p);
+    window._dbgPanel = p;
+  }
+  const content = document.getElementById('_dbg-content');
+  const entry = document.createElement('div');
+  entry.style.cssText = 'border-top:1px solid rgba(255,255,255,0.3);padding-top:4px;margin-top:4px;';
+  entry.innerHTML = '<b>' + label + ':</b><br>' + JSON.stringify(data, null, 1).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;');
+  content.appendChild(entry);
+  content.scrollTop = content.scrollHeight;
+}
+
+// Monkey-patch _makeThumbDataURL żeby logować co się dzieje
+const _originalMakeThumb = _makeThumbDataURL;
+_makeThumbDataURL = async function(file) {
+  _dbgShow('🟢 _makeThumbDataURL START', {
+    fileName: file.name || '(no name)',
+    fileType: file.type || '(no type)',
+    fileSize: (file.size / 1024).toFixed(1) + ' KB'
+  });
+  try {
+    const result = await _originalMakeThumb(file);
+    _dbgShow('🟢 _makeThumbDataURL DONE', {
+      resultType: result.substring(0, 30),
+      resultLength: result.length,
+      isDataURL: result.startsWith('data:'),
+      isBlob: result.startsWith('blob:')
+    });
+    // Po appendChild, sprawdź czy img faktycznie istnieje w DOM
+    setTimeout(() => {
+      const imgs = document.querySelectorAll('#file-preview-list img');
+      const lastImg = imgs[imgs.length - 1];
+      if (lastImg) {
+        _dbgShow('🔍 DOM IMG (po 100ms)', {
+          totalImgs: imgs.length,
+          srcType: lastImg.src.substring(0, 20),
+          naturalW: lastImg.naturalWidth,
+          naturalH: lastImg.naturalHeight,
+          complete: lastImg.complete,
+          offsetW: lastImg.offsetWidth,
+          offsetH: lastImg.offsetHeight,
+          display: getComputedStyle(lastImg).display,
+          visibility: getComputedStyle(lastImg).visibility,
+          opacity: getComputedStyle(lastImg).opacity
+        });
+      } else {
+        _dbgShow('🔴 BRAK IMG W DOM', { listExists: !!document.getElementById('file-preview-list') });
+      }
+    }, 100);
+    return result;
+  } catch (e) {
+    _dbgShow('🔴 _makeThumbDataURL ERROR', { error: e.message, stack: e.stack?.substring(0, 200) });
+    throw e;
+  }
+};
+
 async function appendFile(input) {
   if (!input.files[0]) return;
   const file = input.files[0];
