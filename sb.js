@@ -1403,6 +1403,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 800, easing: 'easeOutQuart' },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -1450,6 +1451,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 1200, easing: 'easeOutQuart' },
           interaction: { mode: 'index', intersect: false },
           plugins: {
             legend: {
