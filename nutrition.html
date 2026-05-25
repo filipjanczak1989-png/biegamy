@@ -1503,11 +1503,12 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   z-index: 100;
-  padding: 16px;
+  padding: 5vh 16px;
   animation: modalFade 0.25s ease-out;
+  overflow-y: auto;
 }
 @keyframes modalFade {
   from { opacity: 0; }
@@ -1522,14 +1523,18 @@ body {
   padding: 24px;
   max-width: 400px;
   width: 100%;
-  max-height: 90vh;
+  max-height: 90dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow:
     0 30px 80px rgba(0,0,0,0.7),
     0 0 0 1px rgba(255,255,255,0.04),
     inset 0 1px 0 rgba(255,255,255,0.06);
   position: relative;
   animation: modalSlide 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+@supports not (max-height: 90dvh) {
+  .modal-card { max-height: 90vh; }
 }
 @keyframes modalSlide {
   from { transform: translateY(20px) scale(0.98); opacity: 0; }
@@ -1731,7 +1736,22 @@ body {
 }
 .btn-secondary:active { transform: scale(0.98); }
 
-.btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+  position: sticky;
+  bottom: -24px; /* kompensuje padding modal-card 24px */
+  background: linear-gradient(180deg, transparent 0%, rgba(20,16,14,0.95) 30%);
+  padding: 12px 24px 24px;
+  margin-left: -24px;
+  margin-right: -24px;
+  z-index: 2;
+}
+.btn-row .btn-primary,
+.btn-row .btn-secondary {
+  flex: 1;
+}
 
 /* SCANNER */
 #scanner-video {
