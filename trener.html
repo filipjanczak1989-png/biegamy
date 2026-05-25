@@ -1843,7 +1843,7 @@ async function autoSaveAIWeekTemplates(planId, athleteId) {
     const athleteName = (athlete && athlete.full_name) || 'Zawodnik';
 
     const { data: workouts, error: wErr } = await sb.from('training_plan_workouts')
-      .select('date, type, distance_km, pace, target_pace, heart_rate, target_hr, description, duration_min, title')
+      .select('date, workout_type, target_distance_km, target_pace, target_hr_min, target_hr_max, target_hr_zone, target_duration_min, description, title')
       .eq('plan_id', planId)
       .order('date');
 
@@ -1882,7 +1882,7 @@ async function autoSaveAIWeekTemplates(planId, athleteId) {
     };
 
     for (const week of completeWeeks) {
-      const totalKm = week.workouts.reduce((s, w) => s + (parseFloat(w.distance_km) || 0), 0);
+      const totalKm = week.workouts.reduce((s, w) => s + (parseFloat(w.target_distance_km) || 0), 0);
       const weekName = 'AI Plan ' + athleteName + ' ' + formatDateShort(week.weekStart);
 
       const { data: parent, error: pErr } = await sb.from('coach_week_templates').insert({
@@ -1902,15 +1902,18 @@ async function autoSaveAIWeekTemplates(planId, athleteId) {
 
       const childRows = week.workouts.map(w => {
         const d = new Date(w.date + 'T00:00:00');
+        const hrStr = (w.target_hr_min && w.target_hr_max)
+          ? (w.target_hr_min + '-' + w.target_hr_max)
+          : (w.target_hr_zone ? 'Strefa ' + w.target_hr_zone : null);
         return {
           week_template_id: parent.id,
           day_of_week: d.getDay(),
-          training_type: w.type || 'Bieg spokojny',
+          training_type: w.workout_type || 'Bieg spokojny',
           title: w.title || null,
           description: w.description || null,
-          distance_km: w.distance_km,
-          target_pace: w.target_pace || w.pace || null,
-          target_hr: w.target_hr || w.heart_rate || null,
+          distance_km: w.target_distance_km,
+          target_pace: w.target_pace || null,
+          target_hr: hrStr,
         };
       });
 
