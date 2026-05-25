@@ -1454,6 +1454,15 @@
           animation: { duration: 1200, easing: 'easeOutQuart' },
           interaction: { mode: 'index', intersect: false },
           plugins: {
+            zoom: {
+              pan: { enabled: true, mode: 'x', threshold: 10 },
+              zoom: {
+                wheel: { enabled: true, speed: 0.1 },
+                pinch: { enabled: true },
+                mode: 'x'
+              },
+              limits: { x: { minRange: 7 } }
+            },
             legend: {
               labels: {
                 color: 'rgba(255,255,255,0.7)',
@@ -1480,6 +1489,34 @@
           }
         }
       });
+
+      // v5.2: Reset zoom button (Strava-style) — pojawia się gdy user zoomował
+      let resetBtnEl = document.getElementById(px + '-reset-zoom');
+      if (!resetBtnEl) {
+        const chartParent = chartEl.parentElement;
+        if (chartParent) {
+          chartParent.style.position = 'relative';
+          const btn = document.createElement('button');
+          btn.id = px + '-reset-zoom';
+          btn.textContent = '⟲ Reset';
+          btn.style.cssText = 'position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.5);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:4px 10px;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;border-radius:6px;cursor:pointer;opacity:0;transition:opacity 0.2s;pointer-events:none;z-index:5;';
+          btn.onclick = function() {
+            if (window[chartKey] && typeof window[chartKey].resetZoom === 'function') {
+              window[chartKey].resetZoom();
+              btn.style.opacity = '0';
+              btn.style.pointerEvents = 'none';
+            }
+          };
+          chartParent.appendChild(btn);
+          resetBtnEl = btn;
+        }
+      }
+      // Re-attach onZoom/onPan callbacks na każdy render (poprzedni chart instance był destroyed)
+      if (resetBtnEl && window[chartKey] && window[chartKey].options && window[chartKey].options.plugins && window[chartKey].options.plugins.zoom) {
+        const showBtn = function() { resetBtnEl.style.opacity = '1'; resetBtnEl.style.pointerEvents = 'auto'; };
+        window[chartKey].options.plugins.zoom.zoom.onZoom = showBtn;
+        window[chartKey].options.plugins.zoom.pan.onPan = showBtn;
+      }
     }
 
     // 2 dodatkowe sekcje — pass prefix
