@@ -3539,14 +3539,16 @@ function toggleMobileDay(contentId, headerEl) {
 }
 
 
-// ── SZABLONY ──────────────────────────────────────────────────────
-function openTemplatesModal() {
-  renderTemplatesList();
+// ── SZABLONY (v6: Supabase backed, per-coach RLS) ─────────────────
+let _templatesCache = null; // cache żeby nie fetchować przy każdym renderze
+
+async function openTemplatesModal() {
   const bg = document.getElementById('templates-modal-bg');
   const inner = document.getElementById('templates-modal-inner');
   bg.style.opacity = '1';
   bg.style.pointerEvents = 'all';
   if (inner) inner.style.transform = 'translateY(0)';
+  await renderTemplatesList();
 }
 function closeTemplatesModal() {
   const bg = document.getElementById('templates-modal-bg');
@@ -3556,86 +3558,151 @@ function closeTemplatesModal() {
   if (inner) inner.style.transform = 'translateY(10px)';
 }
 
-function getTemplates() {
-  try { return JSON.parse(localStorage.getItem('coach_templates') || '[]'); } catch(e) { return []; }
-}
-function saveTemplates(list) {
-  localStorage.setItem('coach_templates', JSON.stringify(list));
+async function getTemplates() {
+  if (_templatesCache !== null) return _templatesCache;
+  try {
+    const { data, error } = await sb
+      .from('coach_workout_templates')
+      .select('id, name, training_type, distance_km, target_pace, target_hr, description, source, used_count, created_at')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('[templates] fetch err', error); return []; }
+    // Map Supabase → format frontend (kompat z existing applyTemplate logic)
+    _templatesCache = (data || []).map(r => ({
+      id: r.id,
+      name: r.name,
+      type: r.training_type,
+      dist: r.distance_km,
+      pace: r.target_pace,
+      hr: r.target_hr,
+      desc: r.description,
+      source: r.source,
+      used_count: r.used_count,
+    }));
+    return _templatesCache;
+  } catch(e) {
+    console.error('[templates] exception', e);
+    return [];
+  }
 }
 
-function saveTemplate() {
+function invalidateTemplatesCache() {
+  _templatesCache = null;
+}
+
+async function saveTemplate() {
   const name = document.getElementById('tmpl-name').value.trim();
   if (!name) { notify('Podaj nazwę szablonu'); return; }
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { notify('Sesja wygasła — zaloguj się ponownie'); return; }
+
   const tmpl = {
-    id: Date.now(),
+    coach_id: user.id,
     name,
-    type: document.getElementById('tmpl-type').value,
-    dist: parseFloat(document.getElementById('tmpl-dist').value) || null,
-    pace: document.getElementById('tmpl-pace').value.trim() || null,
-    hr: document.getElementById('tmpl-hr').value.trim() || null,
-    desc: document.getElementById('tmpl-desc').value.trim() || null,
+    training_type: document.getElementById('tmpl-type').value,
+    distance_km: parseFloat(document.getElementById('tmpl-dist').value) || null,
+    target_pace: document.getElementById('tmpl-pace').value.trim() || null,
+    target_hr: document.getElementById('tmpl-hr').value.trim() || null,
+    description: document.getElementById('tmpl-desc').value.trim() || null,
+    source: 'manual',
   };
-  const list = getTemplates();
-  list.unshift(tmpl);
-  saveTemplates(list);
+
+  const { error } = await sb.from('coach_workout_templates').insert(tmpl);
+  if (error) {
+    console.error('[saveTemplate] err', error);
+    notify('Błąd zapisu: ' + error.message);
+    return;
+  }
+
   // Wyczyść pola
-  ['tmpl-name','tmpl-dist','tmpl-pace','tmpl-hr','tmpl-desc'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
+  ['tmpl-name','tmpl-dist','tmpl-pace','tmpl-hr','tmpl-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
   document.getElementById('tmpl-type').value = 'Bieg spokojny';
-  renderTemplatesList();
+
+  invalidateTemplatesCache();
+  await renderTemplatesList();
   notify('Szablon zapisany ✓');
 }
 
-function deleteTemplate(id) {
-  const list = getTemplates().filter(t => t.id !== id);
-  saveTemplates(list);
-  renderTemplatesList();
+async function deleteTemplate(id) {
+  if (!confirm('Usunąć ten szablon?')) return;
+  const { error } = await sb.from('coach_workout_templates').delete().eq('id', id);
+  if (error) {
+    notify('Błąd: ' + error.message);
+    return;
+  }
+  invalidateTemplatesCache();
+  await renderTemplatesList();
+  notify('Szablon usunięty');
 }
 
-function applyTemplate(id) {
-  const tmpl = getTemplates().find(t => t.id === id);
+async function applyTemplate(id) {
+  const list = await getTemplates();
+  const tmpl = list.find(t => t.id === id);
   if (!tmpl) return;
+
+  // Increment used_count (fire-and-forget — UI nie czeka)
+  sb.from('coach_workout_templates')
+    .update({ used_count: (tmpl.used_count || 0) + 1 })
+    .eq('id', id)
+    .then(() => invalidateTemplatesCache());
+
   closeTemplatesModal();
   // Otwórz modal treningu z wypełnionymi danymi z szablonu
   openModal(null);
   setTimeout(() => {
-    // Ustaw typ
+    // Ustaw typ (type-pill fuzzy match — kompat z istniejącym selType flow)
     const pill = Array.from(document.querySelectorAll('.type-pill')).find(p => {
       const txt = p.textContent.trim().toLowerCase();
-      return txt.includes(tmpl.type.toLowerCase().slice(0,5));
+      return txt.includes((tmpl.type || '').toLowerCase().slice(0,5));
     });
     if (pill) pill.click();
-    // Wypełnij pola
+    // Wypełnij pola (f-* IDs — istniejący modal w kalendarz.html)
     const fdist = document.getElementById('f-dist'); if(fdist && tmpl.dist) fdist.value = tmpl.dist;
     const fpace = document.getElementById('f-pace'); if(fpace && tmpl.pace) fpace.value = tmpl.pace;
     const fhr = document.getElementById('f-hr'); if(fhr && tmpl.hr) fhr.value = tmpl.hr;
     const fdesc = document.getElementById('f-desc'); if(fdesc && tmpl.desc) fdesc.value = tmpl.desc;
-  }, 80);
+  }, 100);
   notify('Szablon załadowany — wybierz datę i zawodnika');
 }
 
-function renderTemplatesList() {
-  const list = document.getElementById('templates-list');
-  if (!list) return;
-  const templates = getTemplates();
-  if (!templates.length) {
-    list.innerHTML = '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;padding:12px 0;text-align:center;">Brak szablonów. Dodaj pierwszy powyżej.</div>';
+async function renderTemplatesList() {
+  const wrap = document.getElementById('templates-list');
+  if (!wrap) return;
+
+  // Loading state
+  wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Ładowanie szablonów…</div>';
+
+  const list = await getTemplates();
+
+  if (list.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Brak zapisanych szablonów. Stwórz pierwszy powyżej ↑</div>';
     return;
   }
+
   const typeColors = {'Bieg spokojny':'#5090e0','Interwały':'#e8b840','Tempo':'#d4501a','Wybieganie':'#9a6fe8','Regeneracja':'#3db870','Wzmacniający':'#f0a830','Odpoczynek':'#44424a'};
-  list.innerHTML = templates.map(t => {
+
+  wrap.innerHTML = list.map(t => {
     const color = typeColors[t.type] || '#66636e';
+    const sourceBadge = t.source === 'from_ai_plan'
+      ? '<span style="display:inline-block;background:rgba(232,86,30,0.15);color:#e8561e;padding:2px 6px;border-radius:4px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-left:6px;vertical-align:middle;">AI</span>'
+      : '';
+    const usedStr = (t.used_count && t.used_count > 0) ? `<span style="color:var(--muted);font-size:9px;margin-left:6px;">używany ${t.used_count}×</span>` : '';
     const meta = [t.dist ? t.dist + ' km' : '', t.pace ? t.pace + '/km' : '', t.hr ? '♥ ' + t.hr : ''].filter(Boolean).join(' · ');
+
     return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
       <div style="width:3px;height:40px;background:${color};border-radius:2px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${t.name}</div>
-        <div style="font-size:10px;color:${color};font-family:'DM Mono',monospace;margin-bottom:2px;">${escapeHtml(t.type)}</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${escapeHtml(t.name)}${sourceBadge}${usedStr}</div>
+        <div style="font-size:10px;color:${color};font-family:'DM Mono',monospace;margin-bottom:2px;">${escapeHtml(t.type || '')}</div>
         ${meta ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${meta}</div>` : ''}
-        ${t.desc ? `<div style="font-size:10px;color:rgba(240,237,232,0.5);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</div>` : ''}
+        ${t.desc ? `<div style="font-size:10px;color:rgba(240,237,232,0.5);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(t.desc)}</div>` : ''}
       </div>
       <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-        <button onclick="applyTemplate(${t.id})" style="background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Użyj →</button>
-        <button onclick="deleteTemplate(${t.id})" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">Usuń</button>
+        <button onclick="applyTemplate('${t.id}')" style="background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Użyj →</button>
+        <button onclick="deleteTemplate('${t.id}')" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">Usuń</button>
       </div>
     </div>`;
   }).join('');
