@@ -5392,6 +5392,12 @@ window.PRS = PRS;
 
 // ── KOPIOWANIE TYGODNIA ────────────────────────────────────────────
 async function openCopyWeekModal() {
+  // v6.4: Guard — wymagaj wybranego konkretnego zawodnika
+  // Bez tego trener-mode pokazuje wpisy WSZYSTKICH athletes (chaos: 67 wpisów × 12 osób)
+  if (!window._calSelectedAthleteId) {
+    notify('Wybierz najpierw zawodnika z listy żeby skopiować jego tydzień');
+    return;
+  }
   const days = [];
   for (let i = 0; i < 7; i++) days.push(addDays(currentWeekStart, i));
   const trainCount = days.reduce((s, ds) => s + ((trainings[ds]||[]).length), 0);
