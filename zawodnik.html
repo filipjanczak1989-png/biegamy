@@ -2148,7 +2148,8 @@ window._ocrSetup = function() {
 
       // Multi-image: pętla po WSZYSTKICH original files — push do _pendingFiles + render thumbnail + metadata (tylko pierwszy z ocrFields żeby reset triggerował się raz)
       const ocrActivityDate = (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) ? json.activity_date : null;
-      files.forEach((f, fIdx) => {
+      for (let fIdx = 0; fIdx < files.length; fIdx++) {
+        const f = files[fIdx];
         if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(f);
         else window._pendingFiles = [f];
 
@@ -2165,7 +2166,8 @@ window._ocrSetup = function() {
         const _ocrList = document.getElementById('file-preview-list');
         if (_ocrList) {
           const _ocrIdx = window._pendingFiles.length - 1;
-          const _ocrUrl = URL.createObjectURL(f);
+          // v6.7 ANDROID FIX: pre-render thumb do 200x200 data URL
+          const _ocrUrl = await _makeThumbDataURL(f);
           const _ocrDiv = document.createElement('div');
           _ocrDiv.style.cssText = 'position:relative;width:60px;height:60px;';
           _ocrDiv.innerHTML = `<img src="${_ocrUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
@@ -2173,7 +2175,7 @@ window._ocrSetup = function() {
             <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
           _ocrList.appendChild(_ocrDiv);
         }
-      });
+      }
       if (typeof _updateUploadLabel === 'function') _updateUploadLabel();
 
       if (statusEl) {
@@ -2490,14 +2492,56 @@ function updateIvSummary() {
 window._pendingFiles = [];
 window._existingAttachments = window._existingAttachments || [];
 
-function appendFile(input) {
+// v6.7 ANDROID FIX: thumbnail downscale do 200x200 jako data URL.
+// Android Chrome buguje object-fit:cover na pionowych zdjęciach z aparatu w
+// małym kontenerze (1080x2400 → 60x60). Pre-rendering canvas → data URL
+// eliminuje problem (mały obrazek, brak blob URL lifecycle, brak object-fit edge case).
+// _pendingFiles dalej zawiera oryginalne pliki (saveLog upload bez zmian).
+async function _makeThumbDataURL(file) {
+  return new Promise((resolve) => {
+    try {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 200;
+          const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+          const w = Math.max(1, Math.round(img.width * scale));
+          const h = Math.max(1, Math.round(img.height * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch (e) {
+          URL.revokeObjectURL(url);
+          // Fallback: użyj oryginalny blob URL (lepiej niż nic)
+          resolve(URL.createObjectURL(file));
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        // Fallback dla videos lub nieczytelnych plików
+        resolve(URL.createObjectURL(file));
+      };
+      img.src = url;
+    } catch (e) {
+      resolve('');
+    }
+  });
+}
+
+async function appendFile(input) {
   if (!input.files[0]) return;
   const file = input.files[0];
   window._pendingFiles.push(file);
   // Podgląd
   const list = document.getElementById('file-preview-list');
   const idx = window._pendingFiles.length - 1;
-  const url = URL.createObjectURL(file);
+  // v6.7 ANDROID FIX: pre-render thumb do 200x200 data URL (zamiast pełnego blob)
+  const url = await _makeThumbDataURL(file);
   const div = document.createElement('div');
   div.style.cssText = 'position:relative;width:60px;height:60px;';
   div.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
