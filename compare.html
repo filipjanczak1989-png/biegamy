@@ -539,12 +539,22 @@ function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) 
 }
 
 async function renderCompareChart(myLogs, friendLogs, friendName) {
-  // Lazy-load Chart.js
+  // Lazy-load Chart.js + zoom plugin (v5.2)
   if (typeof Chart === 'undefined') {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
       s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-      s.onload = res; s.onerror = rej;
+      s.onload = function() {
+        const z = document.createElement('script');
+        z.src = 'https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';
+        z.onload = function() {
+          if (window.Chart && window.Chart.register && window.ChartZoom) Chart.register(ChartZoom);
+          res();
+        };
+        z.onerror = function() { res(); }; // zoom CDN fail = chart still works
+        document.head.appendChild(z);
+      };
+      s.onerror = rej;
       document.head.appendChild(s);
     });
   }
