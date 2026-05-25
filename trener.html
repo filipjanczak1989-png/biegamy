@@ -1797,7 +1797,17 @@ async function generateTrainingPlan() {
     if (!resp.ok) throw new Error(data.error || 'Błąd generowania');
 
     statusEl.innerHTML = `<div style="color:#22c55e;">✅ Plan wygenerowany — ${data.workouts_count} treningów, ${data.total_distance_km} km</div>`;
-    
+
+    // v6.5: Auto-save tygodni jako szablony (fire-and-forget, non-blocking)
+    autoSaveAIWeekTemplates(data.plan_id, athleteId).then(result => {
+      if (result.saved > 0) {
+        const prevHtml = statusEl.innerHTML;
+        statusEl.innerHTML = prevHtml + `<div style="color:#9a6fe8;font-size:11px;margin-top:6px;">📚 ${result.saved} tydzień${result.saved > 1 ? 'i' : ''} zapisan${result.saved > 1 ? 'e' : 'y'} jako szablon${result.saved > 1 ? 'y' : ''}</div>`;
+      } else if (result.errors > 0) {
+        console.warn('[autoSaveAI] errors during save:', result);
+      }
+    }).catch(e => console.error('[autoSaveAI] failed:', e));
+
     // ✨ Zamiast otwierać drugi modal: wczytujemy podgląd planu w TYM SAMYM modalu
     setTimeout(async () => {
       await renderPlanPreviewInCreateModal(data.plan_id);
@@ -1814,6 +1824,114 @@ async function generateTrainingPlan() {
   }
 }
 window.generateTrainingPlan = generateTrainingPlan;
+
+// ════════════════════════════════════════════════════════════════════
+// v6.5: Auto-save AI plan → szablony tygodniowe
+// Po sukcesie generate-training-plan grupuje workouts po tygodniach
+// (Pn-Nd), filtruje 7+ dni, INSERT do coach_week_templates + workouts.
+// Source = 'from_ai_plan', source_plan_id = planId (trackowanie origin).
+// ════════════════════════════════════════════════════════════════════
+async function autoSaveAIWeekTemplates(planId, athleteId) {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { saved: 0, skipped: 0, error: 'No session' };
+
+    const { data: athlete } = await sb.from('athletes')
+      .select('full_name')
+      .eq('id', athleteId)
+      .maybeSingle();
+    const athleteName = (athlete && athlete.full_name) || 'Zawodnik';
+
+    const { data: workouts, error: wErr } = await sb.from('training_plan_workouts')
+      .select('date, type, distance_km, pace, target_pace, heart_rate, target_hr, description, duration_min, title')
+      .eq('plan_id', planId)
+      .order('date');
+
+    if (wErr || !workouts || workouts.length === 0) {
+      console.error('[autoSaveAI] workouts fetch err', wErr);
+      return { saved: 0, skipped: 0, error: 'No workouts' };
+    }
+
+    // Grupuj po tygodniach (klucz: poniedziałek tygodnia ISO)
+    const weeksMap = {};
+    workouts.forEach(w => {
+      const d = new Date(w.date + 'T00:00:00');
+      const dow = d.getDay(); // 0=niedz, 1=pon, ..., 6=sob
+      const daysFromMonday = dow === 0 ? 6 : dow - 1;
+      const monday = new Date(d);
+      monday.setDate(d.getDate() - daysFromMonday);
+      const weekKey = monday.toISOString().slice(0, 10);
+      if (!weeksMap[weekKey]) weeksMap[weekKey] = [];
+      weeksMap[weekKey].push(w);
+    });
+
+    // Tylko kompletne tygodnie 7+ dni
+    const completeWeeks = Object.entries(weeksMap)
+      .filter(function(entry) { return entry[1].length >= 7; })
+      .map(function(entry) { return { weekStart: entry[0], workouts: entry[1] }; });
+
+    if (completeWeeks.length === 0) {
+      console.log('[autoSaveAI] No complete 7-day weeks to save');
+      return { saved: 0, skipped: 0 };
+    }
+
+    let saved = 0, errors = 0;
+    const formatDateShort = (dateStr) => {
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+    };
+
+    for (const week of completeWeeks) {
+      const totalKm = week.workouts.reduce((s, w) => s + (parseFloat(w.distance_km) || 0), 0);
+      const weekName = 'AI Plan ' + athleteName + ' ' + formatDateShort(week.weekStart);
+
+      const { data: parent, error: pErr } = await sb.from('coach_week_templates').insert({
+        coach_id: session.user.id,
+        name: weekName,
+        description: 'Auto-zapisany z AI plan (' + formatDateShort(week.weekStart) + ')',
+        total_distance_km: totalKm,
+        source: 'from_ai_plan',
+        source_plan_id: planId,
+      }).select('id').single();
+
+      if (pErr || !parent) {
+        console.error('[autoSaveAI] parent insert err', pErr);
+        errors++;
+        continue;
+      }
+
+      const childRows = week.workouts.map(w => {
+        const d = new Date(w.date + 'T00:00:00');
+        return {
+          week_template_id: parent.id,
+          day_of_week: d.getDay(),
+          training_type: w.type || 'Bieg spokojny',
+          title: w.title || null,
+          description: w.description || null,
+          distance_km: w.distance_km,
+          target_pace: w.target_pace || w.pace || null,
+          target_hr: w.target_hr || w.heart_rate || null,
+        };
+      });
+
+      const { error: cErr } = await sb.from('coach_week_template_workouts').insert(childRows);
+      if (cErr) {
+        console.error('[autoSaveAI] children insert err', cErr);
+        // Rollback parent
+        await sb.from('coach_week_templates').delete().eq('id', parent.id);
+        errors++;
+        continue;
+      }
+      saved++;
+    }
+
+    return { saved, skipped: 0, errors };
+  } catch (e) {
+    console.error('[autoSaveAI] exception', e);
+    return { saved: 0, skipped: 0, error: e.message };
+  }
+}
+window.autoSaveAIWeekTemplates = autoSaveAIWeekTemplates;
 
 // ── Renderuj podgląd wygenerowanego planu WEWNĄTRZ tp-create-modal ──
 async function renderPlanPreviewInCreateModal(planId) {
