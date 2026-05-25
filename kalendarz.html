@@ -1090,7 +1090,12 @@ html { scroll-behavior: smooth; }
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;">📋 Szablony treningów</div>
       <button onclick="closeTemplatesModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
-    <div style="padding:16px 20px;">
+    <!-- v6.3: Tabs Treningi / Tygodnie -->
+    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 20px;background:var(--surface);">
+      <button id="tpl-tab-workout" onclick="switchTplTab('workout')" style="flex:1;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:14px 0;cursor:pointer;border-bottom:2px solid var(--accent);">🏃 Treningi</button>
+      <button id="tpl-tab-week" onclick="switchTplTab('week')" style="flex:1;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:14px 0;cursor:pointer;border-bottom:2px solid transparent;">📅 Tygodnie</button>
+    </div>
+    <div id="tpl-content-workout" style="padding:16px 20px;">
       <!-- Zapisz aktualny trening jako szablon -->
       <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
         <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;">+ Nowy szablon</div>
@@ -1132,6 +1137,37 @@ html { scroll-behavior: smooth; }
       <!-- Lista szablonów -->
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Zapisane szablony</div>
       <div id="templates-list"></div>
+    </div>
+    <!-- v6.3: Tab content Tygodnie -->
+    <div id="tpl-content-week" style="padding:16px 20px;display:none;">
+      <!-- Zapisz aktualny tydzień jako szablon -->
+      <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
+        <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;">+ Zapisz aktualny tydzień</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4;">Snapshot 7 dni z aktualnie wyświetlanego tygodnia kalendarza. Możesz później zastosować go u dowolnego zawodnika.</div>
+        <input id="wtmpl-name" type="text" placeholder="Nazwa (np. Tydzień bazowy 60km, Taper)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:6px;outline:none;box-sizing:border-box;margin-bottom:8px;">
+        <textarea id="wtmpl-desc" placeholder="Opis (opcjonalny)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;resize:none;height:50px;line-height:1.5;box-sizing:border-box;margin-bottom:10px;"></textarea>
+        <div id="wtmpl-preview" style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:10px;line-height:1.6;">Ładowanie podglądu tygodnia…</div>
+        <button onclick="saveWeekTemplate()" style="width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:10px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Zapisz tydzień jako szablon →</button>
+      </div>
+      <!-- Lista zapisanych tygodniowych szablonów -->
+      <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:8px;">Zapisane szablony tygodni</div>
+      <div id="week-templates-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- v6.3: Mini-modal apply tygodniowy szablon (overlay nad templates-modal) -->
+<div id="apply-week-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeApplyWeekModal()">
+  <div style="background:var(--surface);border:1px solid var(--border-hi);border-radius:10px;width:380px;max-width:92vw;padding:20px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;margin-bottom:14px;">📅 Zastosuj szablon tygodnia</div>
+    <div id="apply-week-info" style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;"></div>
+    <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Zawodnik</label>
+    <select id="apply-week-athlete" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:9px 12px;border-radius:6px;outline:none;cursor:pointer;margin-bottom:10px;"></select>
+    <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Pierwszy dzień tygodnia (poniedziałek)</label>
+    <input type="date" id="apply-week-date" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:11px;padding:9px 12px;border-radius:6px;outline:none;box-sizing:border-box;margin-bottom:14px;">
+    <div style="display:flex;gap:8px;">
+      <button onclick="closeApplyWeekModal()" style="flex:1;background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:6px;">Anuluj</button>
+      <button onclick="confirmApplyWeekTemplate()" id="apply-week-btn" style="flex:2;background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;cursor:pointer;border-radius:6px;">Zastosuj plan →</button>
     </div>
   </div>
 </div>
@@ -3706,6 +3742,359 @@ async function renderTemplatesList() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// v6.3: Tygodniowe szablony — drugi tab w modal Szablony
+// ═══════════════════════════════════════════════════════════════════
+
+let _weekTemplatesCache = null;
+let _appliedWeekTemplateId = null;
+
+function switchTplTab(tab) {
+  const tabWorkout = document.getElementById('tpl-tab-workout');
+  const tabWeek = document.getElementById('tpl-tab-week');
+  const contentWorkout = document.getElementById('tpl-content-workout');
+  const contentWeek = document.getElementById('tpl-content-week');
+  if (tab === 'workout') {
+    tabWorkout.style.color = 'var(--accent)';
+    tabWorkout.style.borderBottomColor = 'var(--accent)';
+    tabWeek.style.color = 'var(--muted)';
+    tabWeek.style.borderBottomColor = 'transparent';
+    contentWorkout.style.display = 'block';
+    contentWeek.style.display = 'none';
+  } else {
+    tabWorkout.style.color = 'var(--muted)';
+    tabWorkout.style.borderBottomColor = 'transparent';
+    tabWeek.style.color = 'var(--accent)';
+    tabWeek.style.borderBottomColor = 'var(--accent)';
+    contentWorkout.style.display = 'none';
+    contentWeek.style.display = 'block';
+    // Ładuj week templates + preview aktualnego tygodnia
+    renderWeekTemplatesList();
+    refreshCurrentWeekPreview();
+  }
+}
+
+async function refreshCurrentWeekPreview() {
+  const preview = document.getElementById('wtmpl-preview');
+  if (!preview) return;
+
+  // currentWeekStart to STRING 'YYYY-MM-DD' (module-level w kalendarz.html)
+  const athleteId = window._calSelectedAthleteId;
+  if (!athleteId || !currentWeekStart) {
+    preview.innerHTML = '<span style="color:#e8561e;">⚠ Najpierw wybierz zawodnika i tydzień w kalendarzu</span>';
+    return;
+  }
+
+  const weekStartStr = currentWeekStart;
+  const weekStartDate = new Date(currentWeekStart + 'T00:00:00');
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setDate(weekStartDate.getDate() + 6);
+  const weekEndStr = weekEndDate.toISOString().slice(0, 10);
+
+  const { data, error } = await sb
+    .from('trainings')
+    .select('date, type, distance_km')
+    .eq('athlete_id', athleteId)
+    .gte('date', weekStartStr)
+    .lte('date', weekEndStr)
+    .order('date');
+
+  if (error) {
+    preview.innerHTML = '<span style="color:#e8561e;">Błąd: ' + error.message + '</span>';
+    return;
+  }
+  if (!data || data.length === 0) {
+    preview.innerHTML = '<span style="color:#e8561e;">⚠ Aktualny tydzień jest pusty — dodaj treningi przed zapisem</span>';
+    return;
+  }
+
+  const totalKm = data.reduce((s, t) => s + (parseFloat(t.distance_km) || 0), 0);
+  const dayNames = ['Nd','Pn','Wt','Śr','Cz','Pt','Sb'];
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const summary = data.map(t => {
+    const d = new Date(t.date + 'T00:00:00');
+    return `${dayNames[d.getDay()]} ${esc(t.type)}${t.distance_km ? ' ' + t.distance_km + 'km' : ''}`;
+  }).join(' · ');
+
+  preview.innerHTML = `📅 ${weekStartStr} → ${weekEndStr}<br>${summary}<br><strong style="color:var(--accent);">Łącznie ${totalKm.toFixed(1)} km, ${data.length} treningów</strong>`;
+}
+
+async function getWeekTemplates() {
+  if (_weekTemplatesCache !== null) return _weekTemplatesCache;
+  try {
+    const { data, error } = await sb
+      .from('coach_week_templates')
+      .select('id, name, description, total_distance_km, source, used_count, created_at')
+      .order('created_at', { ascending: false });
+    if (error) { console.error('[weekTemplates] fetch err', error); return []; }
+    _weekTemplatesCache = data || [];
+    return _weekTemplatesCache;
+  } catch(e) {
+    console.error('[weekTemplates] exception', e);
+    return [];
+  }
+}
+
+function invalidateWeekTemplatesCache() {
+  _weekTemplatesCache = null;
+}
+
+async function saveWeekTemplate() {
+  const name = document.getElementById('wtmpl-name').value.trim();
+  if (!name) { notify('Podaj nazwę tygodnia'); return; }
+
+  const athleteId = window._calSelectedAthleteId;
+  if (!athleteId || !currentWeekStart) { notify('Wybierz zawodnika i tydzień w kalendarzu'); return; }
+
+  const weekStartStr = currentWeekStart;
+  const weekStartDate = new Date(currentWeekStart + 'T00:00:00');
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setDate(weekStartDate.getDate() + 6);
+  const weekEndStr = weekEndDate.toISOString().slice(0, 10);
+
+  // Pobierz 7 dni z trainings table
+  const { data: trainings, error: tErr } = await sb
+    .from('trainings')
+    .select('date, type, distance_km, pace, heart_rate, description')
+    .eq('athlete_id', athleteId)
+    .gte('date', weekStartStr)
+    .lte('date', weekEndStr)
+    .order('date');
+
+  if (tErr) { notify('Błąd: ' + tErr.message); return; }
+  if (!trainings || trainings.length === 0) { notify('Aktualny tydzień jest pusty'); return; }
+
+  const desc = document.getElementById('wtmpl-desc').value.trim() || null;
+  const totalKm = trainings.reduce((s, t) => s + (parseFloat(t.distance_km) || 0), 0);
+
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) { notify('Sesja wygasła'); return; }
+
+  // INSERT parent
+  const { data: parent, error: pErr } = await sb
+    .from('coach_week_templates')
+    .insert({
+      coach_id: user.id,
+      name,
+      description: desc,
+      total_distance_km: totalKm,
+      source: 'manual',
+    })
+    .select('id')
+    .single();
+
+  if (pErr) { notify('Błąd zapisu: ' + pErr.message); return; }
+
+  // INSERT 7 child records
+  const childRows = trainings.map(t => {
+    const d = new Date(t.date + 'T00:00:00');
+    return {
+      week_template_id: parent.id,
+      day_of_week: d.getDay(),
+      training_type: t.type || 'Bieg spokojny',
+      title: null,
+      description: t.description,
+      distance_km: t.distance_km,
+      target_pace: t.pace,
+      target_hr: t.heart_rate,
+    };
+  });
+
+  const { error: cErr } = await sb.from('coach_week_template_workouts').insert(childRows);
+  if (cErr) {
+    // Rollback parent
+    await sb.from('coach_week_templates').delete().eq('id', parent.id);
+    notify('Błąd zapisu treningów: ' + cErr.message);
+    return;
+  }
+
+  document.getElementById('wtmpl-name').value = '';
+  document.getElementById('wtmpl-desc').value = '';
+
+  invalidateWeekTemplatesCache();
+  await renderWeekTemplatesList();
+  notify('Szablon tygodnia zapisany ✓');
+}
+
+async function deleteWeekTemplate(id) {
+  if (!confirm('Usunąć ten szablon tygodnia?')) return;
+  const { error } = await sb.from('coach_week_templates').delete().eq('id', id);
+  if (error) { notify('Błąd: ' + error.message); return; }
+  invalidateWeekTemplatesCache();
+  await renderWeekTemplatesList();
+  notify('Szablon usunięty');
+}
+
+async function renderWeekTemplatesList() {
+  const wrap = document.getElementById('week-templates-list');
+  if (!wrap) return;
+
+  wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Ładowanie…</div>';
+
+  const list = await getWeekTemplates();
+
+  if (list.length === 0) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Brak zapisanych tygodni. Stwórz pierwszy powyżej ↑</div>';
+    return;
+  }
+
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  wrap.innerHTML = list.map(t => {
+    const sourceBadge = t.source === 'from_ai_plan'
+      ? '<span style="display:inline-block;background:rgba(232,86,30,0.15);color:#e8561e;padding:2px 6px;border-radius:4px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-left:6px;font-family:DM Mono,monospace;">AI</span>'
+      : '';
+    const usedStr = (t.used_count && t.used_count > 0) ? `<span style="color:var(--muted);font-size:9px;margin-left:6px;">używany ${t.used_count}×</span>` : '';
+    const kmStr = t.total_distance_km ? `${t.total_distance_km}km` : '';
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+      <div style="width:3px;height:40px;background:#9a6fe8;border-radius:2px;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${esc(t.name)}${sourceBadge}${usedStr}</div>
+        ${kmStr ? `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${kmStr}</div>` : ''}
+        ${t.description ? `<div style="font-size:10px;color:rgba(240,237,232,0.5);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(t.description)}</div>` : ''}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+        <button onclick="openApplyWeekTemplate('${t.id}')" style="background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Użyj →</button>
+        <button onclick="deleteWeekTemplate('${t.id}')" style="background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-family:'DM Mono',monospace;font-size:9px;cursor:pointer;">Usuń</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openApplyWeekTemplate(id) {
+  const list = await getWeekTemplates();
+  const tmpl = list.find(t => t.id === id);
+  if (!tmpl) return;
+
+  _appliedWeekTemplateId = id;
+
+  const esc = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  document.getElementById('apply-week-info').innerHTML = `<strong>${esc(tmpl.name)}</strong>` + (tmpl.total_distance_km ? `<br>${tmpl.total_distance_km} km łącznie` : '');
+
+  const sel = document.getElementById('apply-week-athlete');
+  sel.innerHTML = '<option value="">— wybierz —</option>';
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    const { data: athletes } = await sb.from('athletes').select('id, full_name').eq('coach_id', session.user.id);
+    (athletes || []).forEach(a => {
+      const opt = document.createElement('option');
+      opt.value = a.id;
+      opt.textContent = a.full_name || 'Zawodnik';
+      sel.appendChild(opt);
+    });
+    if (window._calSelectedAthleteId) sel.value = window._calSelectedAthleteId;
+  }
+
+  // Default date — najbliższy poniedziałek
+  const now = new Date();
+  const day = now.getDay();
+  const diff = day === 0 ? 1 : (8 - day) % 7 || 7;
+  const nextMon = new Date(now);
+  nextMon.setDate(now.getDate() + (day === 1 ? 0 : diff));
+  document.getElementById('apply-week-date').value = nextMon.toISOString().slice(0, 10);
+
+  const modal = document.getElementById('apply-week-modal');
+  modal.style.opacity = '1';
+  modal.style.pointerEvents = 'all';
+}
+
+function closeApplyWeekModal() {
+  const modal = document.getElementById('apply-week-modal');
+  modal.style.opacity = '0';
+  modal.style.pointerEvents = 'none';
+  _appliedWeekTemplateId = null;
+}
+
+async function confirmApplyWeekTemplate() {
+  const athleteId = document.getElementById('apply-week-athlete').value;
+  const dateStr = document.getElementById('apply-week-date').value;
+
+  if (!athleteId) { notify('Wybierz zawodnika'); return; }
+  if (!dateStr) { notify('Wybierz datę'); return; }
+  if (!_appliedWeekTemplateId) { notify('Błąd: brak ID szablonu'); return; }
+
+  const btn = document.getElementById('apply-week-btn');
+  btn.textContent = 'Wysyłam…';
+  btn.disabled = true;
+
+  const { data: workouts, error: wErr } = await sb
+    .from('coach_week_template_workouts')
+    .select('day_of_week, training_type, title, description, distance_km, target_pace, target_hr')
+    .eq('week_template_id', _appliedWeekTemplateId)
+    .order('day_of_week');
+
+  if (wErr || !workouts || workouts.length === 0) {
+    btn.textContent = 'Zastosuj plan →';
+    btn.disabled = false;
+    notify('Błąd: ' + (wErr ? wErr.message : 'brak treningów w szablonie'));
+    return;
+  }
+
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { btn.textContent = 'Zastosuj plan →'; btn.disabled = false; return; }
+
+  const [yyyy, mm, dd] = dateStr.split('-').map(Number);
+  const weekStart = new Date(yyyy, mm-1, dd);
+
+  let sent = 0, skipped = 0, errors = 0;
+
+  for (const w of workouts) {
+    // day_of_week: 0=Nd, 1=Pn, ... 6=Sb
+    // weekStart to wybrana data (zazwyczaj Pn)
+    const startDow = weekStart.getDay();
+    let offset = w.day_of_week - startDow;
+    if (offset < 0) offset += 7;
+
+    const targetDate = new Date(weekStart);
+    targetDate.setDate(weekStart.getDate() + offset);
+    const targetDateStr = targetDate.toISOString().slice(0, 10);
+
+    const { data: existing } = await sb.from('trainings')
+      .select('id')
+      .eq('athlete_id', athleteId)
+      .eq('date', targetDateStr)
+      .maybeSingle();
+
+    if (existing) { skipped++; continue; }
+
+    const { error } = await sb.from('trainings').insert({
+      athlete_id: athleteId,
+      coach_id: session.user.id,
+      date: targetDateStr,
+      type: w.training_type,
+      distance_km: w.distance_km,
+      pace: w.target_pace,
+      heart_rate: w.target_hr,
+      description: w.description,
+      status: 'planned',
+    });
+
+    if (error) errors++; else sent++;
+  }
+
+  // Increment used_count (placeholder — TODO: RPC dla atomic increment)
+  const currentTmpl = (await getWeekTemplates()).find(t => t.id === _appliedWeekTemplateId);
+  if (currentTmpl) {
+    await sb.from('coach_week_templates')
+      .update({ used_count: (currentTmpl.used_count || 0) + 1 })
+      .eq('id', _appliedWeekTemplateId);
+  }
+
+  btn.textContent = 'Zastosuj plan →';
+  btn.disabled = false;
+
+  if (errors > 0) {
+    notify(`Wysłano ${sent}, błędy: ${errors}` + (skipped > 0 ? `, pominięte ${skipped}` : ''));
+  } else {
+    notify('Plan tygodnia zastosowany ✓' + (skipped > 0 ? ` (${skipped} już istniało)` : ''));
+  }
+
+  closeApplyWeekModal();
+  closeTemplatesModal();
+  invalidateWeekTemplatesCache();
+  if (typeof loadTrainingsFromDB === 'function') await loadTrainingsFromDB();
 }
 
 // Pokaż przycisk szablonów tylko dla trenera
