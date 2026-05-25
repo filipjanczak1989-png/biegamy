@@ -2492,110 +2492,30 @@ function updateIvSummary() {
 window._pendingFiles = [];
 window._existingAttachments = window._existingAttachments || [];
 
-// v6.7 ANDROID FIX: thumbnail downscale do 200x200 jako data URL.
-// Android Chrome buguje object-fit:cover na pionowych zdjęciach z aparatu w
-// małym kontenerze (1080x2400 → 60x60). Pre-rendering canvas → data URL
-// eliminuje problem (mały obrazek, brak blob URL lifecycle, brak object-fit edge case).
+// v6.8 ANDROID FIX (round 2): FileReader.readAsDataURL zamiast canvas.
+// Diagnoza z debug overlay 25/5 wieczór: Android Chrome NIE dekoduje
+// <img src=blob:...> dla zdjęć z aparatu Samsung (naturalWidth=0, complete=true
+// = decode failed). Canvas downscale failuje w img.onerror, fallback do
+// blob URL też nie dekodował, miniaturka pusta.
+//
+// FileReader czyta surowe bajty pliku → base64 data URL → embedded w <img src>.
+// Pomija Android Chrome blob decoder (winowajca). Działa zarówno dla zdjęć
+// jak i videos. Bez resize — Android Chrome radzi sobie z data URL nawet
+// pełnowymiarowych zdjęć w małym kontenerze.
+//
 // _pendingFiles dalej zawiera oryginalne pliki (saveLog upload bez zmian).
 async function _makeThumbDataURL(file) {
   return new Promise((resolve) => {
     try {
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const maxDim = 200;
-          const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
-          const w = Math.max(1, Math.round(img.width * scale));
-          const h = Math.max(1, Math.round(img.height * scale));
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
-          URL.revokeObjectURL(url);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
-        } catch (e) {
-          URL.revokeObjectURL(url);
-          // Fallback: użyj oryginalny blob URL (lepiej niż nic)
-          resolve(URL.createObjectURL(file));
-        }
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        // Fallback dla videos lub nieczytelnych plików
-        resolve(URL.createObjectURL(file));
-      };
-      img.src = url;
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || '');
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
     } catch (e) {
       resolve('');
     }
   });
 }
-
-// v6.7-DEBUG TYMCZASOWY: wyświetla diagnostykę thumbnail render na ekranie
-// (bo F12 nie działa na Androidzie u Filipa). TODO: REMOVE po naprawie.
-window._dbgPanel = null;
-function _dbgShow(label, data) {
-  if (!window._dbgPanel) {
-    const p = document.createElement('div');
-    p.id = '_dbg-panel';
-    p.style.cssText = 'position:fixed;bottom:80px;left:8px;right:8px;background:rgba(232,86,30,0.95);color:#fff;font:11px/1.4 monospace;padding:10px;border-radius:8px;z-index:99999;max-height:50vh;overflow:auto;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
-    p.innerHTML = '<div style="display:flex;justify-content:space-between;margin-bottom:6px;"><b>🐛 DEBUG (Android)</b><span onclick="document.getElementById(\'_dbg-panel\').remove();window._dbgPanel=null" style="cursor:pointer;background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px;">×</span></div><div id="_dbg-content"></div>';
-    document.body.appendChild(p);
-    window._dbgPanel = p;
-  }
-  const content = document.getElementById('_dbg-content');
-  const entry = document.createElement('div');
-  entry.style.cssText = 'border-top:1px solid rgba(255,255,255,0.3);padding-top:4px;margin-top:4px;';
-  entry.innerHTML = '<b>' + label + ':</b><br>' + JSON.stringify(data, null, 1).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;');
-  content.appendChild(entry);
-  content.scrollTop = content.scrollHeight;
-}
-
-// Monkey-patch _makeThumbDataURL żeby logować co się dzieje
-const _originalMakeThumb = _makeThumbDataURL;
-_makeThumbDataURL = async function(file) {
-  _dbgShow('🟢 _makeThumbDataURL START', {
-    fileName: file.name || '(no name)',
-    fileType: file.type || '(no type)',
-    fileSize: (file.size / 1024).toFixed(1) + ' KB'
-  });
-  try {
-    const result = await _originalMakeThumb(file);
-    _dbgShow('🟢 _makeThumbDataURL DONE', {
-      resultType: result.substring(0, 30),
-      resultLength: result.length,
-      isDataURL: result.startsWith('data:'),
-      isBlob: result.startsWith('blob:')
-    });
-    // Po appendChild, sprawdź czy img faktycznie istnieje w DOM
-    setTimeout(() => {
-      const imgs = document.querySelectorAll('#file-preview-list img');
-      const lastImg = imgs[imgs.length - 1];
-      if (lastImg) {
-        _dbgShow('🔍 DOM IMG (po 100ms)', {
-          totalImgs: imgs.length,
-          srcType: lastImg.src.substring(0, 20),
-          naturalW: lastImg.naturalWidth,
-          naturalH: lastImg.naturalHeight,
-          complete: lastImg.complete,
-          offsetW: lastImg.offsetWidth,
-          offsetH: lastImg.offsetHeight,
-          display: getComputedStyle(lastImg).display,
-          visibility: getComputedStyle(lastImg).visibility,
-          opacity: getComputedStyle(lastImg).opacity
-        });
-      } else {
-        _dbgShow('🔴 BRAK IMG W DOM', { listExists: !!document.getElementById('file-preview-list') });
-      }
-    }, 100);
-    return result;
-  } catch (e) {
-    _dbgShow('🔴 _makeThumbDataURL ERROR', { error: e.message, stack: e.stack?.substring(0, 200) });
-    throw e;
-  }
-};
 
 async function appendFile(input) {
   if (!input.files[0]) return;
