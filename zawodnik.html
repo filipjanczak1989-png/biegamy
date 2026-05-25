@@ -2984,7 +2984,7 @@ async function _loadStatsInProfile() {
     }, options:{plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}},y:{grid:{color:'rgba(42,42,50,0.5)'},ticks:{color:'#66636e',font:{size:9}}}}}});
   };
   if (!window.Chart) {
-    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';s.onload=renderChart;document.head.appendChild(s);
+    const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';s.onload=function(){const z=document.createElement('script');z.src='https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';z.onload=function(){if(window.Chart&&window.Chart.register&&window.ChartZoom){Chart.register(ChartZoom);}renderChart();};z.onerror=renderChart;document.head.appendChild(z);};document.head.appendChild(s);
   } else { renderChart(); }
 }
 
@@ -8433,7 +8433,16 @@ async function loadStats() {
   if(!window.Chart){
     const s=document.createElement('script');
     s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
-    s.onload=()=>_renderCharts(weeks,days30,typeCount,typeColors2);
+    s.onload=function(){
+      const z=document.createElement('script');
+      z.src='https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js';
+      z.onload=function(){
+        if (window.Chart && window.Chart.register && window.ChartZoom) Chart.register(ChartZoom);
+        _renderCharts(weeks,days30,typeCount,typeColors2);
+      };
+      z.onerror=function(){ _renderCharts(weeks,days30,typeCount,typeColors2); };
+      document.head.appendChild(z);
+    };
     document.head.appendChild(s);
   } else {
     _renderCharts(weeks,days30,typeCount,typeColors2);
