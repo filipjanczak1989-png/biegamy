@@ -1557,10 +1557,13 @@ async function tpHandleScreensUpload(input) {
       console.warn('[tpScreens] upload error:', upErr.message);
       continue;
     }
-    const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-    if (urlData?.publicUrl) {
-      window._tpScreenUrls.push(urlData.publicUrl);
+    // v6.8 W2 Step 4 Faza 1: signed URL (1h) dla AI-plan input — po flip bucket private (Faza 2) public URL przestanie działać
+    const signed = await window.storageSignedUrl(path);
+    if (signed) {
+      window._tpScreenUrls.push(signed);
       uploaded++;
+    } else {
+      console.warn('[AI-plan] Nie udało się podpisać', path);
     }
   }
   
