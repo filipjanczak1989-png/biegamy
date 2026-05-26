@@ -213,17 +213,13 @@ async function navigationHandler(request) {
 // ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────
 // Odbiór push z Web Push API
 self.addEventListener('push', (event) => {
-  console.log('[SW] push event RECEIVED');
-  console.log('[SW] event.data exists:', !!event.data);
   let data = {};
   try {
-    if (event.data) console.log('[SW] payload text:', event.data.text());
     data = event.data ? event.data.json() : {};
   } catch (e) {
     // Plain text fallback
     data = { title: 'BiegaMy', body: event.data ? event.data.text() : 'Nowa aktywność' };
   }
-  console.log('[SW] parsed payload:', JSON.stringify(data));
 
   const title = data.title || 'BiegaMy';
   const options = {
@@ -243,15 +239,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    (async () => {
-      try {
-        console.log('[SW] showNotification called:', title);
-        await self.registration.showNotification(title, options);
-        console.log('[SW] showNotification success');
-      } catch (e) {
-        console.error('[SW] showNotification ERROR:', (e && e.message) ? e.message : e);
-      }
-    })()
+    self.registration.showNotification(title, options)
   );
 });
 
