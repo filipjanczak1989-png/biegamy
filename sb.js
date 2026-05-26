@@ -155,6 +155,54 @@
     }
   };
 
+  // ─── PUSH AUTO-HEAL (W3, 2026-05-26): reconcile DB vs aktualna subskrypcja ──
+  // Wołane po initAuth (gdy znamy athleteId) + po SW 'push-resubscribed'.
+  // Tylko gdy permission=granted (NIGDY nie promptuje). Upsert-only (nie kasuje
+  // innych endpointów → ochrona multi-device; stale czyści send-push EF na 410).
+  window.reconcilePushSubscription = async function(athleteId) {
+    if (!athleteId || !window.isPushSupported()) return;
+    if (Notification.permission !== 'granted') { console.log('[push reconcile] skipped (permission denied/not subscribed)'); return; }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        // przeglądarka zgubiła subskrypcję — re-subscribe (permission już granted → brak promptu)
+        try {
+          sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(window.VAPID_PUBLIC_KEY) });
+        } catch (e) { console.warn('[push reconcile] re-subscribe failed', e); return; }
+      }
+      const subJson = sub.toJSON();
+      const { data: rows } = await window.sb.from('push_subscriptions').select('endpoint').eq('athlete_id', athleteId);
+      const eps = (rows || []).map(r => r.endpoint);
+      if (eps.includes(subJson.endpoint)) {
+        await window.sb.from('push_subscriptions').update({ last_used_at: new Date().toISOString() }).eq('athlete_id', athleteId).eq('endpoint', subJson.endpoint);
+        console.log('[push reconcile] match');
+      } else {
+        const { error } = await window.sb.from('push_subscriptions').upsert({
+          athlete_id: athleteId,
+          endpoint: subJson.endpoint,
+          p256dh: subJson.keys.p256dh,
+          auth: subJson.keys.auth,
+          user_agent: navigator.userAgent.slice(0, 200),
+          last_used_at: new Date().toISOString(),
+        }, { onConflict: 'endpoint' });
+        if (error) console.warn('[push reconcile] upsert failed:', error.message);
+        else console.log(eps.length ? '[push reconcile] upserted (endpoint changed)' : '[push reconcile] upserted (new)');
+      }
+    } catch (e) { console.warn('[push reconcile] error', e); }
+  };
+
+  // SW → main thread: po pushsubscriptionchange SW prosi o authenticated persist.
+  // Strony ustawiają window._pushAthleteId (initAuth) — tu używamy go do reconcile.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', function(event) {
+      if (event.data && event.data.type === 'push-resubscribed' && window._pushAthleteId) {
+        console.log('[push reconcile] SW push-resubscribed → reconcile');
+        window.reconcilePushSubscription(window._pushAthleteId);
+      }
+    });
+  }
+
   // ─── SECURITY: HTML escape (anti-XSS) ───────────────────────────────
   // Używaj WSZĘDZIE gdzie wstawiasz user-content do innerHTML
   // np. ${escapeHtml(m.body)}, ${escapeHtml(g.name)}

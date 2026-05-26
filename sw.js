@@ -333,3 +333,42 @@ self.addEventListener('message', (event) => {
     });
   }
 });
+
+// ─── PUSH SUBSCRIPTION AUTO-HEAL (W3, 2026-05-26) ────────────────────
+// Gdy przeglądarka rotuje/unieważnia subskrypcję push, odpala
+// pushsubscriptionchange. Bez handlera subskrypcja umiera cicho → DB ma
+// stary endpoint → push przestaje działać aż user ręcznie włączy.
+// Handler: re-subskrybuje (sub zostaje żywa) + best-effort postMessage do
+// otwartej karty, która (authenticated) zapisze nowy endpoint. Reszta:
+// reconcile w sb.js przy następnym otwarciu app (catch-all).
+// VAPID PUBLIC key (NIE secret) — identyczny z sb.js.
+const SW_VAPID_PUBLIC_KEY = 'BATC1Y7rglazNCcKQXV1bqaNA_SnxC3003c5_eSKDBaUykhbZSUevTQDL-KMyVDs55oNBJogJkx4g_5irwUObTk';
+function _swUrlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+self.addEventListener('pushsubscriptionchange', (event) => {
+  const oldEndpoint = event.oldSubscription && event.oldSubscription.endpoint;
+  console.log('[SW] pushsubscriptionchange', oldEndpoint ? oldEndpoint.slice(-20) : '(no old)');
+  event.waitUntil((async () => {
+    try {
+      let sub = event.newSubscription;
+      if (!sub) {
+        sub = await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: _swUrlBase64ToUint8Array(SW_VAPID_PUBLIC_KEY)
+        });
+      }
+      // SW nie ma auth session → nie zapisze do DB (RLS own-scoped).
+      // Powiadom otwarte karty, by zrobiły authenticated upsert.
+      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      wins.forEach((c) => c.postMessage({ type: 'push-resubscribed', oldEndpoint: oldEndpoint || null }));
+    } catch (e) {
+      console.warn('[SW] pushsubscriptionchange resubscribe failed', e);
+    }
+  })());
+});

@@ -4268,7 +4268,10 @@ async function sendTemplate() {
   }
 }
 
-setTimeout(async () => { await initAuth(); await checkUnreadMessages(); loadAppStats(); initRealtimeNotifications(); setInterval(checkUnreadMessages, 30000); loadRacesPendingBadge(); }, 100);
+setTimeout(async () => { await initAuth(); await checkUnreadMessages(); loadAppStats(); initRealtimeNotifications(); setInterval(checkUnreadMessages, 30000); loadRacesPendingBadge();
+  // W3 push auto-heal: reconcile DB vs aktualna subskrypcja (coach athlete id)
+  try { const _paid = await _ensureCoachAthleteId(); if (_paid) { window._pushAthleteId = _paid; if (typeof window.reconcilePushSubscription === 'function') window.reconcilePushSubscription(_paid); } } catch(e) {}
+}, 100);
 
 async function loadRacesPendingBadge() {
   try {

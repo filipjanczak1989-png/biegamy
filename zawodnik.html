@@ -4129,6 +4129,9 @@ async function initAuth() {
 
   if (ath) {
     _athleteId = ath.id;
+    // W3 push auto-heal: reconcile DB vs aktualna subskrypcja (fire-and-forget)
+    window._pushAthleteId = ath.id;
+    if (typeof window.reconcilePushSubscription === 'function') window.reconcilePushSubscription(ath.id);
     const name = ath.full_name || nameFromMeta;
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
