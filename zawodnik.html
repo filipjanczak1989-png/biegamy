@@ -3665,13 +3665,20 @@ async function uploadVoiceMsg(blob, duration, sender, mimeType) {
   const path = _athleteId + '/voice_' + Date.now() + '.' + ext;
   const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
-  const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
-  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
+  // v6.8 W2 Step 2b: store PATH w onclick (playVoice podpisze przy odtwarzaniu)
+  const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${path}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
   await sb.from('messages').insert({athlete_id:_athleteId, sender:sender, body, sent_at:new Date().toISOString()});
   await loadMessages();
 }
 
-function playVoice(btn, url) {
+// v6.8 W2 Step 2b: DUAL MODE — legacy https → as-is; PATH → validate + fresh signed URL (1h)
+async function playVoice(btn, urlOrPath) {
+  let url = urlOrPath;
+  if (!/^https?:\/\//i.test(urlOrPath)) {
+    if (!window._chatVoicePathValid(urlOrPath)) { console.warn('[playVoice] invalid voice path', urlOrPath); return; }
+    url = await window.storageSignedUrl(urlOrPath);
+    if (!url) return;
+  }
   const audio = new Audio(url);
   btn.textContent = '⏸️';
   audio.play();
@@ -3689,11 +3696,11 @@ async function sendFileMessage(input) {
     const path = _athleteId + '/msg_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + ext;
     const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
     if (upErr) { toast('Błąd: ' + upErr.message); continue; }
-    const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-    urls.push(urlData.publicUrl);
+    // v6.8 W2 Step 2b: store PATH (renderMessageBody → data-sp/observer podpisze)
+    urls.push(path);
   }
   if (!urls.length) return;
-  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;" onclick="window.open('${url}','_blank')" />`).join('');
+  const body = urls.map(p => `<img src="${p}">`).join('');
   await sb.from('messages').insert({
     athlete_id: _athleteId,
     sender: 'athlete',

@@ -5070,18 +5070,22 @@ async function toggleVoiceCoach() {
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
     _coachAudioChunks = [];
     _coachRecStart = Date.now();
-    _coachMediaRecorder = new MediaRecorder(stream);
+    // v6.8 W2 Step 2b: dynamic ext detection (parity z zawodnik.html _getBestAudioMime — Safari=mp4, Chrome=webm)
+    const _coachMime = (function(){ const types=['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4']; for (const t of types){ if (typeof MediaRecorder!=='undefined' && MediaRecorder.isTypeSupported(t)) return t; } return ''; })();
+    _coachMediaRecorder = _coachMime ? new MediaRecorder(stream, {mimeType:_coachMime}) : new MediaRecorder(stream);
     _coachMediaRecorder.ondataavailable = e => _coachAudioChunks.push(e.data);
     _coachMediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t=>t.stop());
-      const blob = new Blob(_coachAudioChunks, {type:'audio/webm'});
+      const usedMime = _coachMediaRecorder.mimeType || _coachMime || 'audio/webm';
+      const blob = new Blob(_coachAudioChunks, {type: usedMime});
       const dur = Math.round((Date.now()-_coachRecStart)/1000);
       if (!_currentChatAthleteId) return;
-      const path = _currentChatAthleteId + '/voice_coach_' + Date.now() + '.webm';
-      const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true,contentType:'audio/webm'});
+      const ext = usedMime.includes('mp4') ? 'mp4' : usedMime.includes('ogg') ? 'ogg' : 'webm';
+      const path = _currentChatAthleteId + '/voice_coach_' + Date.now() + '.' + ext;
+      const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType: usedMime});
       if (error) { showToast('Błąd: '+error.message); return; }
-      const {data:urlData} = sb.storage.from('training-screenshots').getPublicUrl(path);
-      const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${urlData.publicUrl}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${dur}s</span></div>`;
+      // v6.8 W2 Step 2b: store PATH w onclick (playVoiceMsg podpisze przy odtwarzaniu)
+      const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,'${path}')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${dur}s</span></div>`;
       await sb.from('messages').insert({athlete_id:_currentChatAthleteId,sender:'coach',body,sent_at:new Date().toISOString()});
       _notifyCoachMessage(_currentChatAthleteId, '[wiadomość głosowa]');
       await loadCoachChat();
@@ -5096,7 +5100,14 @@ async function recallCoachMsg(msgId) {
   await sb.from('messages').update({body:'<span class="msg-recall">Wiadomość cofnięta</span>'}).eq('id', msgId);
   await loadCoachChat();
 }
-function playVoiceMsg(btn, url) {
+// v6.8 W2 Step 2b: DUAL MODE — legacy https → as-is; PATH → validate + fresh signed URL (1h)
+async function playVoiceMsg(btn, urlOrPath) {
+  let url = urlOrPath;
+  if (!/^https?:\/\//i.test(urlOrPath)) {
+    if (!window._chatVoicePathValid(urlOrPath)) { console.warn('[playVoiceMsg] invalid voice path', urlOrPath); return; }
+    url = await window.storageSignedUrl(urlOrPath);
+    if (!url) return;
+  }
   const audio = new Audio(url);
   btn.textContent = '⏸️';
   audio.play();
@@ -5112,11 +5123,11 @@ async function sendCoachFile(input) {
     const path = _currentChatAthleteId + '/coach_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
     const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
     if (upErr) { showToast('Błąd: '+upErr.message); continue; }
-    const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-    urls.push(urlData.publicUrl);
+    // v6.8 W2 Step 2b: store PATH (renderMessageBody → data-sp/observer podpisze)
+    urls.push(path);
   }
   if (!urls.length) return;
-  const body = urls.map(url => `<img src="${url}" style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open('${url}','_blank')" />`).join('');
+  const body = urls.map(p => `<img src="${p}">`).join('');
   await sb.from('messages').insert({
     athlete_id: _currentChatAthleteId,
     sender: 'coach',

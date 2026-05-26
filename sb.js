@@ -301,13 +301,24 @@
       const after = window.escapeHtml(body.slice(oldImg.index + oldImg[0].length));
       return before + (_isSafeMediaUrl(url) ? _renderImgTag(url) : '[zdjęcie: ' + window.escapeHtml(url) + ']') + after;
     }
-    // 4. Nowy format: <img src="URL" ...>
-    const newImg = body.match(/<img\s+src="([^"]+)"[^>]*\/?>/);
-    if (newImg) {
-      const url = newImg[1];
-      const before = window.escapeHtml(body.slice(0, newImg.index));
-      const after = window.escapeHtml(body.slice(newImg.index + newImg[0].length));
-      return before + (_isSafeMediaUrl(url) ? _renderImgTag(url) : '[zdjęcie: ' + window.escapeHtml(url) + ']') + after;
+    // 4. Nowy format: JEDEN LUB WIĘCEJ <img src="URL|PATH"> — DUAL MODE (W2 Step 2b).
+    //    Walka po wszystkich <img> (fix: wcześniej tylko pierwszy). Tekst między/wokół escapowany.
+    //    legacy https (whitelist) → render; PATH → data-sp placeholder (Step 2a observer hydratuje
+    //    przez createSignedUrl); nieufny → tekst [zdjęcie: …].
+    if (/<img\s+src="[^"]+"[^>]*\/?>/.test(body)) {
+      const re = /<img\s+src="([^"]+)"[^>]*\/?>/g;
+      let out = '', last = 0, m;
+      while ((m = re.exec(body)) !== null) {
+        out += window.escapeHtml(body.slice(last, m.index));
+        const u = m[1];
+        const attrs = window._spImgSrc(u); // https-safe → src="…"; PATH → data-sp+placeholder; nieufny → ''
+        out += attrs
+          ? '<img ' + attrs + ' style="max-width:100%;border-radius:8px;margin:2px 0;display:block;cursor:pointer;" onclick="window.open(this.src,\'_blank\')" />'
+          : '[zdjęcie: ' + window.escapeHtml(u) + ']';
+        last = m.index + m[0].length;
+      }
+      out += window.escapeHtml(body.slice(last));
+      return out;
     }
     // 5. Zwykły tekst — wszystko escapujemy (anti-XSS)
     return window.escapeHtml(body);
@@ -1909,6 +1920,16 @@
     var attrs = window._spImgSrc(urlOrPath);
     if (!attrs) return '';
     return '<img ' + attrs + ' class="' + (className || '') + '" style="' + (extraStyles || '') + '">';
+  };
+
+  // v6.8 W2 Step 2b: walidacja PATH wiadomości głosowej PRZED createSignedUrl.
+  // Akceptuje TYLKO "uuid/filename.<audio-ext>" — odrzuca URL-e (http/https),
+  // schematy (javascript:), path traversal, obce rozszerzenia. Defense przy
+  // playVoice (które dostaje wartość z onclick w trusted body).
+  window._chatVoicePathValid = function(path) {
+    if (!path || typeof path !== 'string') return false;
+    // mp4 dodane: builder uploadVoiceMsg produkuje webm/ogg/mp4 (Safari=mp4) — regex musi je objąć
+    return /^[a-f0-9-]{36}\/[\w._-]+\.(webm|mp3|ogg|m4a|mp4)$/i.test(path);
   };
 
   window._resolveStorageImgs = function(container, bucket = 'training-screenshots') {
