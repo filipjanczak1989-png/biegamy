@@ -1540,7 +1540,7 @@ function render() {
       const logId = l.id || '';
       return l.attachment_url.split(',').map((url, urlIdx) =>
         `<div style="position:relative;width:calc(50% - 2px);">
-          <img src="${url}" style="width:100%;max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open('${url}','_blank')" onerror="this.style.display='none'">
+          <img ${window._spImgSrc(url)} style="width:100%;max-height:80px;object-fit:cover;border-radius:4px;cursor:pointer;" onclick="window.open(this.src,'_blank')" onerror="this.style.display='none'">
           <button onclick="event.stopPropagation();openMoveScreenModal('${logId}','${url}','${ds}')" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.6);border:none;border-radius:4px;color:#fff;font-size:9px;padding:2px 5px;cursor:pointer;font-family:'DM Mono',monospace;" title="Przesuń na inny dzień">↔</button>
         </div>`
       ).join('');
@@ -2103,8 +2103,8 @@ async function saveTraining() {
         const { error: upErr } = await sb.storage
           .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
         if (!upErr) {
-          const { data: urlData } = sb.storage.from('training-screenshots').getPublicUrl(path);
-          urls.push(urlData.publicUrl);
+          // v6.8 W2 Step 2a: store PATH zamiast publicURL (createSignedUrl przy renderze)
+          urls.push(path);
         }
       }
       if (urls.length) attachmentUrl = urls.join(',');

@@ -1527,11 +1527,11 @@ async function handleBloodUpload(files) {
       preview.innerHTML = '';
       return;
     }
-    const { data } = sb.storage.from('training-screenshots').getPublicUrl(path);
-    _bloodTestUrl = data.publicUrl;
-    
+    // v6.8 W2 Step 2a: store PATH (nie publicURL) — preview z lokalnego blob (bez serwera)
+    _bloodTestUrl = path;
+    const _localPreview = URL.createObjectURL(file);
     preview.innerHTML = `<div class="ph">
-      <img src="${_bloodTestUrl}" alt="Screen badań">
+      <img src="${_localPreview}" alt="Screen badań">
       <button type="button" onclick="removeBloodScreen()">✕</button>
     </div>`;
     

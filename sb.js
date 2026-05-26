@@ -1783,4 +1783,182 @@
       localStorage.removeItem('profile_completion_dismissed_until');
     }
   } catch(e) {}
+
+  // ============================================================
+  // v6.8: Storage helpers — signed URL generation z 1h expiry
+  //
+  // Po W2 Step 1: training-screenshots ma granular RLS (zawodnicy
+  // uploadują do własnego folderu, trenerzy do folderów swoich atletów).
+  // Po W2 Step 4 (planowane): bucket będzie private → getPublicUrl
+  // przestanie działać, zostają TYLKO signed URLs.
+  //
+  // Migracja: zapisujemy PATH (np. "athlete_uuid/file.jpg") zamiast
+  // pełnego URL w bazie. Przy renderze wywołujemy storageSignedUrl(path).
+  //
+  // DUAL MODE: w okresie Step 2-3 baza zawiera oba stany — stare
+  // permanentne URL ("https://...supabase.co/storage/v1/object/public/...")
+  // i nowe PATH. storageResolveUrl() obsługuje oba.
+  // ============================================================
+
+  window.storageSignedUrl = async function(path, bucket = 'training-screenshots', expiresIn = 3600) {
+    if (!path) return null;
+    try {
+      const { data, error } = await window.sb.storage
+        .from(bucket)
+        .createSignedUrl(path, expiresIn);
+      if (error) {
+        console.warn('[storageSignedUrl]', path, error.message);
+        return null;
+      }
+      return data?.signedUrl || null;
+    } catch (e) {
+      console.error('[storageSignedUrl] exception', path, e);
+      return null;
+    }
+  };
+
+  window.storageSignedUrls = async function(paths, bucket = 'training-screenshots', expiresIn = 3600) {
+    if (!Array.isArray(paths) || paths.length === 0) return [];
+    try {
+      const { data, error } = await window.sb.storage
+        .from(bucket)
+        .createSignedUrls(paths, expiresIn);
+      if (error) {
+        console.warn('[storageSignedUrls]', error.message);
+        return paths.map(() => null);
+      }
+      return (data || []).map(d => d?.signedUrl || null);
+    } catch (e) {
+      console.error('[storageSignedUrls] exception', e);
+      return paths.map(() => null);
+    }
+  };
+
+  // DUAL MODE resolver — bierze "URL lub PATH" i zwraca świeży URL.
+  // Wykrywa po prefiksie:
+  //   - "https://..." → traktuje jako stary public URL (zwraca as-is)
+  //   - cokolwiek innego → traktuje jako PATH, generuje signed URL
+  window.storageResolveUrl = async function(urlOrPath, bucket = 'training-screenshots', expiresIn = 3600) {
+    if (!urlOrPath) return null;
+    if (typeof urlOrPath !== 'string') return null;
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      return urlOrPath; // legacy public URL
+    }
+    return await window.storageSignedUrl(urlOrPath, bucket, expiresIn);
+  };
+
+  window.storageResolveUrls = async function(urlsOrPaths, bucket = 'training-screenshots', expiresIn = 3600) {
+    if (!Array.isArray(urlsOrPaths) || urlsOrPaths.length === 0) return [];
+    // Rozdziel na legacy URL (zostaw as-is) i PATH (batch signed URL)
+    const result = new Array(urlsOrPaths.length).fill(null);
+    const pathsToSign = [];
+    const pathsIndices = [];
+    for (let i = 0; i < urlsOrPaths.length; i++) {
+      const v = urlsOrPaths[i];
+      if (!v) continue;
+      if (typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://'))) {
+        result[i] = v; // legacy
+      } else {
+        pathsToSign.push(v);
+        pathsIndices.push(i);
+      }
+    }
+    if (pathsToSign.length > 0) {
+      const signed = await window.storageSignedUrls(pathsToSign, bucket, expiresIn);
+      for (let j = 0; j < signed.length; j++) {
+        result[pathsIndices[j]] = signed[j];
+      }
+    }
+    return result;
+  };
+
+  // ============================================================
+  // v6.8: Image placeholder resolver — MutationObserver auto-hydration
+  //
+  // Renderery są synchroniczne i ich src musi przejść przez safeUrlAttr
+  // (https + whitelist). Bare PATH zostałby odrzucony przez XSS sanitizer.
+  //
+  // Wzorzec: buildery emitują <img data-sp="PATH"> (lub <video data-sp>)
+  // z przezroczystym placeholderem jako src. MutationObserver na document.body
+  // wykrywa nowe [data-sp], batch-podpisuje przez storageSignedUrls i ustawia
+  // .src. Idempotent — po hydration usuwamy data-sp (observer nie złapie 2x).
+  //
+  // DUAL MODE: legacy https URL renderowane jak dotychczas (przez safeUrlAttr,
+  // bez data-sp). Tylko PATH (nowe uploady po W2 Step 2a) idą przez placeholder.
+  //
+  // Kill switch: window._spObserverEnabled = false wyłącza auto-hydration.
+  // Ręczne API window._resolveStorageImgs(container) zachowane (idempotent).
+  // ============================================================
+
+  // Przezroczysty 1x1 SVG — placeholder zanim signed URL dojdzie
+  var _SP_PLACEHOLDER = 'data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201%201%22%2F%3E';
+
+  // Zwraca atrybuty src dla <img>/<video>: legacy https → src="<safe>",
+  // PATH → data-sp + placeholder. '' = wartość nieufna/pusta (caller pomija).
+  window._spImgSrc = function(urlOrPath) {
+    if (!urlOrPath || typeof urlOrPath !== 'string') return '';
+    if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+      var safe = window.safeUrlAttr ? window.safeUrlAttr(urlOrPath) : '';
+      return safe ? 'src="' + safe + '"' : '';
+    }
+    return 'data-sp="' + window.escapeHtml(urlOrPath) + '" src="' + _SP_PLACEHOLDER + '"';
+  };
+
+  // Pełny <img> tag z DUAL MODE src. '' jeśli wartość nieufna/pusta.
+  window._makeStorageImgTag = function(urlOrPath, className, extraStyles) {
+    var attrs = window._spImgSrc(urlOrPath);
+    if (!attrs) return '';
+    return '<img ' + attrs + ' class="' + (className || '') + '" style="' + (extraStyles || '') + '">';
+  };
+
+  window._resolveStorageImgs = function(container, bucket = 'training-screenshots') {
+    if (!container) return;
+    const els = (container.querySelectorAll ? container.querySelectorAll('[data-sp]') : []); // <img> i <video>
+    if (!els || els.length === 0) return;
+    const paths = [];
+    const elements = [];
+    els.forEach(el => {
+      const p = el.getAttribute('data-sp');
+      if (p) { paths.push(p); elements.push(el); }
+    });
+    if (paths.length === 0) return;
+    window.storageSignedUrls(paths, bucket, 3600).then(urls => {
+      for (let i = 0; i < elements.length; i++) {
+        const url = urls[i];
+        const el = elements[i];
+        if (!el || !el.isConnected) continue;
+        el.removeAttribute('data-sp'); // idempotent — observer nie złapie 2x
+        // Walidacja: signed URL = supabase host → przejdzie safeUrlAttr
+        const safe = window.safeUrlAttr ? window.safeUrlAttr(url) : (url && url.startsWith('https://') ? url : '');
+        if (safe) { el.src = url; } else { el.style.display = 'none'; }
+      }
+    }).catch(e => { console.error('[_resolveStorageImgs] batch failed', e); });
+  };
+
+  // Auto-hydration observer (debounce 50ms)
+  window._spObserverEnabled = true;
+  (function _initSpObserver() {
+    let pending = null;
+    const flush = () => { pending = null; if (window._spObserverEnabled) window._resolveStorageImgs(document.body); };
+    const schedule = () => { if (!pending) pending = setTimeout(flush, 50); };
+    const start = () => {
+      if (!document.body) { setTimeout(start, 50); return; }
+      const obs = new MutationObserver((muts) => {
+        if (!window._spObserverEnabled) return;
+        for (const m of muts) {
+          for (const node of m.addedNodes) {
+            if (node.nodeType !== 1) continue;
+            if ((node.matches && node.matches('[data-sp]')) || (node.querySelector && node.querySelector('[data-sp]'))) {
+              schedule();
+              return;
+            }
+          }
+        }
+      });
+      obs.observe(document.body, { subtree: true, childList: true });
+      schedule(); // initial — placeholdery obecne już przy load
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+    else start();
+  })();
 })();
