@@ -1984,7 +1984,16 @@
     img._spfb = true;
     var orig = img.getAttribute('data-orig');
     if (!orig) { img.onerror = null; img.style.display = 'none'; return; }
-    img.onerror = function(){ img.onerror = null; img.style.display = 'none'; };  // oryginał też padł → hide
+    img.onerror = function() {  // Strategia 5: oryginał padł → retry 1× po 2s (świeży signed URL), potem hide
+      if (img._spRetried) { img.onerror = null; img.style.display = 'none'; return; }
+      img._spRetried = true;
+      setTimeout(function() {
+        window.storageResolveUrl(orig).then(function(u) {
+          var s = window.safeUrlAttr ? window.safeUrlAttr(u) : u;
+          if (s) img.src = u; else { img.onerror = null; img.style.display = 'none'; }
+        }).catch(function() { img.onerror = null; img.style.display = 'none'; });
+      }, 2000);
+    };
     window.storageResolveUrl(orig).then(function(u){ var s = window.safeUrlAttr ? window.safeUrlAttr(u) : u; if (s) img.src = u; else img.style.display = 'none'; }).catch(function(){ img.style.display = 'none'; });
   };
   // klik → ORYGINAŁ full-res (świeży signed URL).
