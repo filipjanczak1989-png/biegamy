@@ -2063,11 +2063,41 @@
     }).catch(e => { console.error('[_resolveStorageImgs] batch failed', e); });
   };
 
+  // ── Strategia 4 (2026-05-27): LAZY hydration — signed URL dopiero gdy element
+  // wjeżdża w viewport (IntersectionObserver). Feed nie ładuje wszystkich thumbów
+  // naraz — tylko widoczne. Fallback: brak IO → eager _resolveStorageImgs.
+  function _spSignOne(el, bucket) {
+    if (!el || !el.isConnected) return;
+    var path = el.getAttribute('data-sp');
+    if (!path) return;
+    el.removeAttribute('data-sp');  // idempotent
+    window.storageSignedUrl(path, bucket, 3600).then(function(url) {
+      if (!el.isConnected) return;
+      var safe = window.safeUrlAttr ? window.safeUrlAttr(url) : (url && url.indexOf('https://') === 0 ? url : '');
+      if (safe) el.src = url; else el.style.display = 'none';
+      // NIE dotykamy el.onerror — inline handler (_spThumbFallback z 2b) zostaje
+    }).catch(function(){ /* sign fail — placeholder zostaje; re-hydrate przy następnym renderze */ });
+  }
+  var _spIO = null;
+  window._spLazyHydrate = function(container, bucket) {
+    bucket = bucket || 'training-screenshots';
+    if (!container || !container.querySelectorAll) return;
+    var els = container.querySelectorAll('[data-sp]');
+    if (!els.length) return;
+    if (!('IntersectionObserver' in window)) { window._resolveStorageImgs(container, bucket); return; } // fallback eager
+    if (!_spIO) {
+      _spIO = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ if (e.isIntersecting) { _spIO.unobserve(e.target); _spSignOne(e.target, bucket); } });
+      }, { rootMargin: '300px' });
+    }
+    els.forEach(function(el){ _spIO.observe(el); });
+  };
+
   // Auto-hydration observer (debounce 50ms)
   window._spObserverEnabled = true;
   (function _initSpObserver() {
     let pending = null;
-    const flush = () => { pending = null; if (window._spObserverEnabled) window._resolveStorageImgs(document.body); };
+    const flush = () => { pending = null; if (window._spObserverEnabled) window._spLazyHydrate(document.body); };
     const schedule = () => { if (!pending) pending = setTimeout(flush, 50); };
     const start = () => {
       if (!document.body) { setTimeout(start, 50); return; }
