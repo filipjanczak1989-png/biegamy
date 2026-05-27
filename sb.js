@@ -2067,7 +2067,9 @@
         el.removeAttribute('data-sp'); // idempotent — observer nie złapie 2x
         // Walidacja: signed URL = supabase host → przejdzie safeUrlAttr
         const safe = window.safeUrlAttr ? window.safeUrlAttr(url) : (url && url.startsWith('https://') ? url : '');
-        if (safe) { el.src = url; } else { el.style.display = 'none'; }
+        if (safe) { el.src = url; }
+        else if (el.getAttribute('data-orig') && window._spThumbFallback) { window._spThumbFallback(el); }
+        else { el.style.display = 'none'; }
       }
     }).catch(e => { console.error('[_resolveStorageImgs] batch failed', e); });
   };
@@ -2083,9 +2085,13 @@
     window.storageSignedUrl(path, bucket, 3600).then(function(url) {
       if (!el.isConnected) return;
       var safe = window.safeUrlAttr ? window.safeUrlAttr(url) : (url && url.indexOf('https://') === 0 ? url : '');
-      if (safe) el.src = url; else el.style.display = 'none';
-      // NIE dotykamy el.onerror — inline handler (_spThumbFallback z 2b) zostaje
-    }).catch(function(){ /* sign fail — placeholder zostaje; re-hydrate przy następnym renderze */ });
+      if (safe) { el.src = url; return; }
+      // sign FAIL (brakujący thumb — np. 51 ImageScript-stragglerów) → fallback na oryginał (data-orig)
+      if (el.getAttribute('data-orig') && window._spThumbFallback) window._spThumbFallback(el);
+      else el.style.display = 'none';
+    }).catch(function(){
+      if (el.getAttribute('data-orig') && window._spThumbFallback) window._spThumbFallback(el);
+    });
   }
   var _spIO = null;
   window._spLazyHydrate = function(container, bucket) {
