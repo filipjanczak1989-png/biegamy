@@ -6053,13 +6053,24 @@ async function saveLog() {
       const up = await window.downscaleImage(file, 1600, 0.85);
       const shrunk = up !== file;
       const ext = shrunk ? 'jpg' : (file.name.split('.').pop() || 'jpg');
-      const path = _athleteId + '/' + base + '_' + i + '_' + Math.random().toString(36).slice(2,7) + '.' + ext;
+      const rand = Math.random().toString(36).slice(2,7);
+      const path = _athleteId + '/' + base + '_' + i + '_' + rand + '.' + ext;
       console.log('[saveLog] Upload ' + (i+1) + '/' + filesToUpload.length + ':', file.name, Math.round(file.size/1024)+'KB' + (shrunk ? '→'+Math.round(up.size/1024)+'KB' : '') + ' →', path);
       const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, up, {upsert:true, contentType: shrunk ? 'image/jpeg' : file.type});
       if (!upErr) {
         // v6.8 W2 Step 2a: store PATH zamiast publicURL (createSignedUrl przy renderze)
         allUrls.push(path);
         console.log('[saveLog] ✅ Upload OK (PATH):', path);
+        // Strategia 2a: thumbnail 200px JPEG → <athlete>/thumbs/<base>_<i>_<rand>.jpg (best-effort, nie blokuje zapisu)
+        try {
+          const thumb = await window.downscaleImage(up, 200, 0.7);
+          if (thumb !== up) {
+            const thumbPath = _athleteId + '/thumbs/' + base + '_' + i + '_' + rand + '.jpg';
+            const { error: thErr } = await sb.storage.from('training-screenshots').upload(thumbPath, thumb, {upsert:true, contentType:'image/jpeg'});
+            if (!thErr) console.log('[saveLog] ✅ thumb:', thumbPath, Math.round(thumb.size/1024)+'KB');
+            else console.warn('[saveLog] thumb upload err:', thErr.message);
+          }
+        } catch(e) { console.warn('[saveLog] thumb skip', e); }
       } else {
         console.error('[saveLog] ❌ Upload BŁĄD:', upErr);
         toast('Błąd uploadu: ' + upErr.message);
