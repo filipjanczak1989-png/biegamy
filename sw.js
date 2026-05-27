@@ -43,8 +43,8 @@ const PRECACHE_URLS = [
 // Opcjonalne pliki — jeśli nie istnieją, NIE pokazuj ostrzeżenia
 // Klaudiusz oczekuje że zostaną dodane w przyszłości (PWA ikony)
 const OPTIONAL_PRECACHE_URLS = [
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icon-192.png',
+  '/icon-512.png'
 ];
 
 // ─── INSTALL ─────────────────────────────────────────────────────────
@@ -238,10 +238,16 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'BiegaMy';
+  // FIX (2026-05-27): ikony są w root, NIE /icons/. Fallback na root + self-heal
+  //   starych payloadów z EF (data.icon='/icons/...') ZANIM EF send-push zostanie poprawiony.
+  let icon = data.icon || '/icon-192.png';
+  let badge = data.badge || '/icon-192.png';
+  if (icon.startsWith('/icons/'))  icon  = icon.replace('/icons/', '/');
+  if (badge.startsWith('/icons/')) badge = badge.replace('/icons/', '/');
   const options = {
     body: data.body || 'Masz nową aktywność',
-    icon: data.icon || '/icons/icon-192.png',
-    badge: data.badge || '/icons/icon-192.png',
+    icon: icon,
+    badge: badge,
     // UWAGA: każdy ai_report ma WŁASNY tag żeby nie zastępował się wzajemnie
     tag: data.tag || 'biegamy',
     data: {
