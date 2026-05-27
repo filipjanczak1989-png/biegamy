@@ -1428,6 +1428,7 @@ function render() {
   document.getElementById('week-header').innerHTML = days.map(d => {
     const ds = typeof d === 'string' ? d : dateStr(d);
     const dObj = new Date(ds + 'T00:00:00');
+    const w = window._calWeatherMap && window._calWeatherMap[ds];
     const isToday = ds === dateStr(new Date());
     // ✨ v47: dzień docelowy z URL ?date — podświetlenie
     const isJumpTarget = ds === window._calJumpToDate;
@@ -1448,6 +1449,7 @@ function render() {
     return `<div class="day-header ${isToday?'today':''} ${isJumpTarget?'jump-target':''}" ${isJumpTarget?'data-jump="true"':''}>
       <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
       <div class="day-num">${dObj.getDate()} ${monthNames[dObj.getMonth()]}</div>
+      ${w ? `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${w.is_bad?'#e8561e':'var(--muted)'};margin-top:2px;letter-spacing:0.04em;">${w.icon} ${w.temp_max}°</div>` : ''}
       ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
       ${kcalBadge}
     </div>`;
@@ -2404,6 +2406,42 @@ async function loadTrainingsFromDB() {
   await loadMealsForWeek();
 
   render();
+  if (!window._calWeatherLoaded) { window._calWeatherLoaded = true; loadCalendarWeather(); }
+}
+
+// ── POGODA W KALENDARZU (7 dni, reuse EF get-weather) ──────────────
+window._calWeatherMap = window._calWeatherMap || {};
+async function loadCalendarWeather() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    let city = null;
+    if (window._calSelectedAthleteId) {
+      const { data } = await sb.from('athletes').select('city').eq('id', window._calSelectedAthleteId).maybeSingle();
+      city = data?.city;
+    } else {
+      const { data } = await sb.from('athletes').select('city').eq('user_id', session.user.id).maybeSingle();
+      city = data?.city;
+    }
+    if (!city) return;
+    const cacheKey = '_weatherCache_cal_' + city + '_7';
+    let json = null;
+    try { const c = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+          if (c && Date.now() - c.ts < 30*60*1000) json = c.data; } catch(e){}
+    if (!json) {
+      const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/get-weather';
+      const resp = await fetch(fnUrl, { method:'POST',
+        headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+        body: JSON.stringify({ city, days: 7 }) });
+      json = await resp.json();
+      if (!json || !json.ok || !Array.isArray(json.days)) return;
+      try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: json })); } catch(e){}
+    }
+    const map = {};
+    json.days.forEach(d => { map[d.date] = { icon: d.icon, temp_max: d.temp_max, is_bad: d.is_bad }; });
+    window._calWeatherMap = map;
+    render();
+  } catch(e) { console.warn('[cal weather]', e); }
 }
 
 
@@ -3398,6 +3436,7 @@ function renderMobile() {
 
   container.innerHTML = days.map(function(ds) {
     const items = trainings[ds] || [];
+    const wM = window._calWeatherMap && window._calWeatherMap[ds];
     const d = new Date(ds + 'T12:00:00');
     const isToday = ds === today;
     const raceGoal = window._goals && window._goals.find(function(g){return g.date === ds;});
@@ -3553,6 +3592,7 @@ function renderMobile() {
       + '<div style="display:flex;align-items:baseline;gap:8px;">'
       + '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;line-height:1;color:' + titleColor + ';">' + dayNum + ' ' + monthStr + '</span>'
       + (totalKm > 0 ? '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:' + kmColor + ';">' + totalKm.toFixed(0) + ' km</span>' : '')
+      + (wM ? '<span style="font-size:12px;color:' + (wM.is_bad?'var(--accent)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-left:6px;">' + wM.icon + ' ' + wM.temp_max + '°</span>' : '')
       + '</div>'
       + (summaryText ? '<div style="font-size:10px;color:' + (isRaceDay?'var(--green)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-top:1px;letter-spacing:0.04em;">' + summaryText + '</div>' : '')
       + '</div>'
