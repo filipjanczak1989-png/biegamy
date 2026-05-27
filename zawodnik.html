@@ -6063,7 +6063,7 @@ async function saveLog() {
         console.log('[saveLog] ✅ Upload OK (PATH):', path);
         // Strategia 2a: thumbnail 200px JPEG → <athlete>/thumbs/<base>_<i>_<rand>.jpg (best-effort, nie blokuje zapisu)
         try {
-          const thumb = await window.downscaleImage(up, 400, 0.75);
+          const thumb = await window.downscaleImage(up, 600, 0.80);
           if (thumb !== up) {
             const thumbPath = _athleteId + '/thumbs/' + base + '_' + i + '_' + rand + '.jpg';
             const { error: thErr } = await sb.storage.from('training-screenshots').upload(thumbPath, thumb, {upsert:true, contentType:'image/jpeg'});
