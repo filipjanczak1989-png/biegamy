@@ -1980,6 +1980,34 @@
     return /^[a-f0-9-]{36}\/[\w._-]+\.(webm|mp3|ogg|m4a|mp4)$/i.test(path);
   };
 
+  // v6.9 (2026-05-27): downscale image → JPEG blob (max maxDim px) PRZED uploadem.
+  // Free-plan egress/storage opt. NIGDY nie rzuca — fallback resolve(file) gdy
+  // nie-image / HEIF nie do zdekodowania (Android canvas) / już mały / brak zysku.
+  window.downscaleImage = function(file, maxDim, quality) {
+    maxDim = maxDim || 1600; quality = quality || 0.85;
+    return new Promise(function(resolve) {
+      if (!file || !file.type || file.type.indexOf('image/') !== 0) { resolve(file); return; }
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function() {
+        URL.revokeObjectURL(url);
+        var scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+        if (scale >= 1 && file.size < 300 * 1024) { resolve(file); return; }
+        var c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob(function(blob) {
+          if (!blob || blob.size >= file.size) { resolve(file); return; }
+          resolve(blob);
+        }, 'image/jpeg', quality);
+      };
+      img.onerror = function() { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  };
+
   window._resolveStorageImgs = function(container, bucket = 'training-screenshots') {
     if (!container) return;
     const els = (container.querySelectorAll ? container.querySelectorAll('[data-sp]') : []); // <img> i <video>
