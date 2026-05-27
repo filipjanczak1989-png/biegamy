@@ -226,7 +226,7 @@ self.addEventListener('push', (event) => {
   //   data.icon bywa ABSOLUTNY ("https://biegamy.run/icons/...") więc replace BEZWARUNKOWY
   //   (łapie relatywną i absolutną formę; no-op gdy brak /icons/). EF send-push do poprawy u źródła.
   let icon  = (data.icon  || '/icon-192.png').replace('/icons/', '/');
-  let badge = (data.badge || '/icon-192.png').replace('/icons/', '/');
+  let badge = (data.badge || 'https://filipjanczak1989-png.github.io/biegamy-assets/icon-badge.png').replace('/icons/', '/');
   const options = {
     body: data.body || 'Masz nową aktywność',
     icon: icon,
