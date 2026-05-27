@@ -2003,6 +2003,32 @@
     window.storageResolveUrl(orig).then(function(u){ if (u) window.open(u, '_blank'); });
   };
 
+  // ── Upload z retry+backoff (2026-05-28): łagodzi transient throttle/breaker/network.
+  // Permanent errors (RLS/too-large/mime/duplicate) → bez retry. Zwraca {data,error} jak upload().
+  window.storageUploadRetry = async function(bucket, path, file, options, retries) {
+    retries = retries || 3;
+    var delays = [0, 1500, 4000];  // backoff: 0 / 1.5s / 4s
+    var lastErr = null;
+    for (var attempt = 0; attempt < retries; attempt++) {
+      if (delays[attempt] > 0) await new Promise(function(r){ setTimeout(r, delays[attempt]); });
+      try {
+        var res = await sb.storage.from(bucket).upload(path, file, options);
+        if (!res.error) return { data: res.data, error: null };
+        lastErr = res.error;
+        var msg = (res.error.message || '').toLowerCase();
+        if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('permission') ||
+            msg.includes('not authorized') || msg.includes('too large') || msg.includes('exceeded') || msg.includes('mime')) {
+          return { data: null, error: res.error };  // permanent — bez retry
+        }
+        console.warn('[uploadRetry] ' + path + ' attempt ' + (attempt + 1) + ' failed:', res.error.message, '(retry)');
+      } catch (e) {
+        lastErr = { message: (e && e.message) || 'Network error' };
+        console.warn('[uploadRetry] ' + path + ' attempt ' + (attempt + 1) + ' network err:', e && e.message);
+      }
+    }
+    return { data: null, error: lastErr };
+  };
+
   // Pełny <img> tag z DUAL MODE src. '' jeśli wartość nieufna/pusta.
   window._makeStorageImgTag = function(urlOrPath, className, extraStyles) {
     var attrs = window._spImgSrc(urlOrPath);

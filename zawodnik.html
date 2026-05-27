@@ -3534,7 +3534,7 @@ async function uploadAvatar(input) {
   const file = input.files[0];
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
   const path = 'avatars/' + _athleteId + '.' + ext;
-  const { error } = await sb.storage.from('biegamy-assets').upload(path, file, {upsert:true, contentType: file.type});
+  const { error } = await window.storageUploadRetry('biegamy-assets', path, file, {upsert:true, contentType: file.type});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
   const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
   if (urlData?.publicUrl) {
@@ -3663,7 +3663,7 @@ async function uploadVoiceMsg(blob, duration, sender, mimeType) {
   const ext = (mimeType||'').includes('mp4') ? 'mp4' : (mimeType||'').includes('ogg') ? 'ogg' : 'webm';
   const contentType = mimeType || 'audio/webm';
   const path = _athleteId + '/voice_' + Date.now() + '.' + ext;
-  const {error} = await sb.storage.from('training-screenshots').upload(path, blob, {upsert:true, contentType});
+  const {error} = await window.storageUploadRetry('training-screenshots', path, blob, {upsert:true, contentType});
   if (error) { toast('Błąd uploadu: '+error.message); return; }
   // v6.8 W2 Step 2b: store PATH w onclick (playVoice podpisze przy odtwarzaniu)
   const body = `<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,'${path}')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">${duration}s</span></div>`;
@@ -3694,7 +3694,7 @@ async function sendFileMessage(input) {
     const file = input.files[i];
     const ext = file.name.split('.').pop();
     const path = _athleteId + '/msg_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + ext;
-    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+    const { error: upErr } = await window.storageUploadRetry('training-screenshots', path, file, {upsert:true, contentType: file.type});
     if (upErr) { toast('Błąd: ' + upErr.message); continue; }
     // v6.8 W2 Step 2b: store PATH (renderMessageBody → data-sp/observer podpisze)
     urls.push(path);
@@ -4384,8 +4384,7 @@ async function obFinish() {
       try {
         const ext = (_obAvatarFile.name.split('.').pop() || 'jpg').toLowerCase();
         const path = 'avatars/' + _athleteId + '.' + ext;
-        const { error: upErr } = await sb.storage.from('biegamy-assets')
-          .upload(path, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
+        const { error: upErr } = await window.storageUploadRetry('biegamy-assets', path, _obAvatarFile, { upsert: true, contentType: _obAvatarFile.type });
         if (!upErr) {
           const { data: urlData } = sb.storage.from('biegamy-assets').getPublicUrl(path);
           if (urlData?.publicUrl) {
@@ -6056,7 +6055,7 @@ async function saveLog() {
       const rand = Math.random().toString(36).slice(2,7);
       const path = _athleteId + '/' + base + '_' + i + '_' + rand + '.' + ext;
       console.log('[saveLog] Upload ' + (i+1) + '/' + filesToUpload.length + ':', file.name, Math.round(file.size/1024)+'KB' + (shrunk ? '→'+Math.round(up.size/1024)+'KB' : '') + ' →', path);
-      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, up, {upsert:true, contentType: shrunk ? 'image/jpeg' : file.type});
+      const { error: upErr } = await window.storageUploadRetry('training-screenshots', path, up, {upsert:true, contentType: shrunk ? 'image/jpeg' : file.type});
       if (!upErr) {
         // v6.8 W2 Step 2a: store PATH zamiast publicURL (createSignedUrl przy renderze)
         allUrls.push(path);
@@ -6066,7 +6065,7 @@ async function saveLog() {
           const thumb = await window.downscaleImage(up, 600, 0.80);
           if (thumb !== up) {
             const thumbPath = _athleteId + '/thumbs/' + base + '_' + i + '_' + rand + '.jpg';
-            const { error: thErr } = await sb.storage.from('training-screenshots').upload(thumbPath, thumb, {upsert:true, contentType:'image/jpeg'});
+            const { error: thErr } = await window.storageUploadRetry('training-screenshots', thumbPath, thumb, {upsert:true, contentType:'image/jpeg'});
             if (!thErr) console.log('[saveLog] ✅ thumb:', thumbPath, Math.round(thumb.size/1024)+'KB');
             else console.warn('[saveLog] thumb upload err:', thErr.message);
           }
