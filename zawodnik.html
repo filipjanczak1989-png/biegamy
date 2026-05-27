@@ -80,35 +80,7 @@ body{
   -webkit-font-smoothing:antialiased;
 }
 
-/* Atmospheric runner silhouette in background */
-body::before{
-  content:'';
-  position:fixed;
-  bottom:80px;
-  right:-20px;
-  width:220px;
-  height:280px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 260'%3E%3Cg fill='none' stroke='rgba(232,86,30,0.06)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='120' cy='30' r='14'/%3E%3Cpath d='M120 44 l-8 36 l-20 40'/%3E%3Cpath d='M112 80 l32 0'/%3E%3Cpath d='M100 120 l-16 48'/%3E%3Cpath d='M144 80 l14 44 l20 36'/%3E%3Cpath d='M84 168 l8 48'/%3E%3Cpath d='M92 168 l-4 32 l16 28'/%3E%3Cpath d='M108 72 l-28 20 l-16 32'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:contain;
-  background-repeat:no-repeat;
-  pointer-events:none;
-  z-index:0;
-  opacity:1;
-}
-body::after{
-  content:'';
-  position:fixed;
-  top:160px;
-  left:-30px;
-  width:180px;
-  height:220px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 220'%3E%3Cg fill='none' stroke='rgba(78,140,214,0.05)' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='90' cy='28' r='12'/%3E%3Cpath d='M90 40 l6 32 l18 38'/%3E%3Cpath d='M96 72 l-28 2'/%3E%3Cpath d='M68 74 l-12 40 l-18 32'/%3E%3Cpath d='M114 110 l12 44'/%3E%3Cpath d='M96 140 l-8 44'/%3E%3Cpath d='M88 140 l4 28 l-12 24'/%3E%3Cpath d='M94 62 l24 18 l12 28'/%3E%3C/g%3E%3C/svg%3E");
-  background-size:contain;
-  background-repeat:no-repeat;
-  pointer-events:none;
-  z-index:0;
-  opacity:1;
-}
+/* (2026-05-28: usunięto dekoracyjne sylwetki biegacza body::before/::after — "dziecięce kreski") */
 
 /* Ensure content sits above bg decorations */
 body > *{position:relative;z-index:1;}
@@ -235,8 +207,6 @@ body > *{position:relative;z-index:1;}
   border-radius:var(--tile-radius-lg) var(--tile-radius-lg) 0 0;
   box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
 }
-/* Subtle runner illustration inside hero */
-
 .today-hero-inner{padding:20px 22px 22px;position:relative;z-index:1;}
 .today-label{font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin-bottom:6px;display:flex;align-items:center;gap:7px;opacity:0.9;}
 .pulse{width:5px;height:5px;border-radius:50%;background:var(--accent);animation:pulseAnim 2s ease-in-out infinite;box-shadow:0 0 6px var(--accent);}
@@ -718,9 +688,9 @@ body > *{position:relative;z-index:1;}
 .pchat-time-lbl{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;padding:0 4px;}
 .pchat-input-area{flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
-.pchat-input-row{display:flex;gap:4px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 10px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;overflow:hidden;}
+.pchat-input-row{display:flex;gap:4px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 10px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
-.pchat-input-row textarea,.pchat-input-row input,.pchat-input-row textarea#msg-input,textarea#msg-input{flex:1 1 0;min-width:60px !important;width:100% !important;background:transparent !important;background-color:transparent !important;border:none !important;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif !important;font-size:16px !important;outline:none !important;padding:8px 4px !important;resize:none !important;line-height:1.4 !important;max-height:120px !important;overflow-y:auto !important;font-weight:400 !important;caret-color:#e8561e !important;box-sizing:border-box !important;-webkit-appearance:none !important;appearance:none !important;-webkit-user-select:text !important;user-select:text !important;opacity:1 !important;display:block !important;}
+.pchat-input-row textarea,.pchat-input-row input,.pchat-input-row textarea#msg-input,textarea#msg-input{flex:1 1 0;min-width:0 !important;background:transparent !important;background-color:transparent !important;border:none !important;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif !important;font-size:16px !important;outline:none !important;padding:8px 4px !important;resize:none !important;line-height:1.4 !important;max-height:120px !important;overflow-y:auto !important;font-weight:400 !important;caret-color:#e8561e !important;box-sizing:border-box !important;-webkit-appearance:none !important;appearance:none !important;-webkit-user-select:text !important;user-select:text !important;opacity:1 !important;display:block !important;}
 .pchat-input-row textarea::placeholder,.pchat-input-row input::placeholder,textarea#msg-input::placeholder{color:rgba(240,237,232,0.45) !important;-webkit-text-fill-color:rgba(240,237,232,0.45) !important;opacity:1 !important;}
 .pchat-input-row textarea:focus,.pchat-input-row input:focus,textarea#msg-input:focus{color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;background:transparent !important;}
 .pchat-input-row textarea:-webkit-autofill,.pchat-input-row input:-webkit-autofill,textarea#msg-input:-webkit-autofill{-webkit-text-fill-color:#f0ede8 !important;-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.05) inset !important;}
