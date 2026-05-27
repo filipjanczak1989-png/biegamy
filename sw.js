@@ -222,12 +222,11 @@ self.addEventListener('push', (event) => {
   }
 
   const title = data.title || 'BiegaMy';
-  // FIX (2026-05-27): ikony są w root, NIE /icons/. Fallback na root + self-heal
-  //   starych payloadów z EF (data.icon='/icons/...') ZANIM EF send-push zostanie poprawiony.
-  let icon = data.icon || '/icon-192.png';
-  let badge = data.badge || '/icon-192.png';
-  if (icon.startsWith('/icons/'))  icon  = icon.replace('/icons/', '/');
-  if (badge.startsWith('/icons/')) badge = badge.replace('/icons/', '/');
+  // FIX (2026-05-27): ikony są w root, NIE /icons/ (404). Self-heal payloadów z EF —
+  //   data.icon bywa ABSOLUTNY ("https://biegamy.run/icons/...") więc replace BEZWARUNKOWY
+  //   (łapie relatywną i absolutną formę; no-op gdy brak /icons/). EF send-push do poprawy u źródła.
+  let icon  = (data.icon  || '/icon-192.png').replace('/icons/', '/');
+  let badge = (data.badge || '/icon-192.png').replace('/icons/', '/');
   const options = {
     body: data.body || 'Masz nową aktywność',
     icon: icon,
