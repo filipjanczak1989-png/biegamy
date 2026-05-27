@@ -200,10 +200,6 @@
         console.log('[push reconcile] SW push-resubscribed → reconcile');
         window.reconcilePushSubscription(window._pushAthleteId);
       }
-      // TEMP DEBUG (push delivery diag, 2026-05-27): most SW→główna konsola. TODO: REMOVE.
-      if (event.data && event.data.type === '__sw_debug_log') {
-        console.log(event.data.msg, event.data.data || '');
-      }
     });
   }
 

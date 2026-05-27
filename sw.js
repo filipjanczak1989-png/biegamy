@@ -213,27 +213,11 @@ async function navigationHandler(request) {
 // ─── PUSH NOTIFICATIONS ─────────────────────────────────────────────
 // Odbiór push z Web Push API
 self.addEventListener('push', (event) => {
-  // ─── TEMP DEBUG (push delivery diag, 2026-05-27): log do SW konsoli + postMessage
-  //     do otwartych kart → główna konsola F12. TODO: REMOVE po znalezieniu root cause.
-  const dbgLog = async (msg, data) => {
-    console.log('[SW push debug]', msg, data || '');
-    try {
-      const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
-      wins.forEach(c => c.postMessage({ type: '__sw_debug_log', msg: '[SW push debug] ' + msg, data: data }));
-    } catch (e) {}
-  };
-
-  dbgLog('push event RECEIVED');
-  dbgLog('event.data exists:', !!event.data);
-
   let data = {};
   try {
-    if (event.data) dbgLog('payload text (first 200 chars):', event.data.text().slice(0, 200));
     data = event.data ? event.data.json() : {};
-    dbgLog('parsed payload keys:', Object.keys(data));
   } catch (e) {
     // Plain text fallback
-    dbgLog('parse error:', e.message);
     data = { title: 'BiegaMy', body: event.data ? event.data.text() : 'Nowa aktywność' };
   }
 
@@ -260,17 +244,8 @@ self.addEventListener('push', (event) => {
     vibrate: [100, 50, 100],
   };
 
-  dbgLog('about to showNotification:', { title: title, body: options.body });
-
   event.waitUntil(
-    (async () => {
-      try {
-        await self.registration.showNotification(title, options);
-        dbgLog('showNotification SUCCESS');
-      } catch (e) {
-        dbgLog('showNotification ERROR:', e.message);
-      }
-    })()
+    self.registration.showNotification(title, options)
   );
 });
 
