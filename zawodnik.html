@@ -5748,22 +5748,22 @@ function _makeScreensCarousel(urls, carouselId) {
   if (!urls || !urls.length) return '';
   // v6.8 W2 Step 2a: DUAL MODE — legacy https przez safeUrlAttr, PATH przez
   // placeholder+data-sp (MutationObserver hydratuje). items[i] = atrybuty src.
-  const items = urls.map(function(u){return window._spImgSrc(u);}).filter(Boolean);
+  const items = urls.map(function(u){return window._spImgSrcThumb(u);}).filter(Boolean);
   if (!items.length) return '';
   var img2Style = 'min-width:calc(50% - 3px);width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:10px;cursor:pointer;flex-shrink:0;';
   if (items.length === 1) {
     return '<div style="margin-top:8px;">'
-      + '<img '+items[0]+' onclick="event.stopPropagation();window.open(this.src,\'_blank\')" style="width:110px;height:110px;object-fit:cover;border-radius:10px;cursor:pointer;display:block;" onerror="this.style.display=\'none\'">'
+      + '<img '+items[0]+' onclick="event.stopPropagation();window._spOpenOrig(this)" style="width:110px;height:110px;object-fit:cover;border-radius:10px;cursor:pointer;display:block;" onerror="window._spThumbFallback(this)">'
       + '</div>';
   }
   if (items.length === 2) {
     return '<div style="display:flex;gap:6px;margin-top:8px;">'
-      + items.map(function(a){ return '<img '+a+' onclick="event.stopPropagation();window.open(this.src,\'_blank\')" style="flex:1;width:calc(50% - 3px);height:110px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="this.style.display=\'none\'">'; }).join('')
+      + items.map(function(a){ return '<img '+a+' onclick="event.stopPropagation();window._spOpenOrig(this)" style="flex:1;width:calc(50% - 3px);height:110px;object-fit:cover;border-radius:10px;cursor:pointer;" onerror="window._spThumbFallback(this)">'; }).join('')
       + '</div>';
   }
   var id = carouselId;
   var imgs = items.map(function(a,i){
-    return '<img '+a+' onclick="event.stopPropagation();window.open(this.src,\'_blank\')" style="'+img2Style+'display:'+(i<2?'block':'none')+'" data-sc-idx="'+i+'" onerror="this.style.display=\'none\'">';
+    return '<img '+a+' onclick="event.stopPropagation();window._spOpenOrig(this)" style="'+img2Style+'display:'+(i<2?'block':'none')+'" data-sc-idx="'+i+'" onerror="window._spThumbFallback(this)">';
   }).join('');
   return '<div style="position:relative;margin-top:8px;" id="sc-wrap-'+id+'">'
     + '<div style="display:flex;gap:6px;overflow:hidden;" id="sc-track-'+id+'">' + imgs + '</div>'

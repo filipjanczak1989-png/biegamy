@@ -1963,6 +1963,37 @@
     return 'data-sp="' + window.escapeHtml(urlOrPath) + '" src="' + _SP_PLACEHOLDER + '"';
   };
 
+  // ── Strategia 2b (2026-05-27): feed = thumb (display) + oryginał (klik/fallback) ──
+  window.toThumbPath = function(path) {
+    if (!path || typeof path !== 'string' || path.indexOf('http') === 0) return path; // legacy URL → bez thumba
+    var m = path.match(/^([^/]+)\/(.+)\.[^.]+$/);
+    return m ? m[1] + '/thumbs/' + m[2] + '.jpg' : path;
+  };
+  // Atrybuty img dla feedu: data-sp=thumb (hydracja), data-orig=oryginał (klik/onerror).
+  window._spImgSrcThumb = function(origPath) {
+    if (!origPath || typeof origPath !== 'string') return '';
+    if (origPath.indexOf('http') === 0) {  // legacy https → render wprost, brak thumba
+      var safe = window.safeUrlAttr ? window.safeUrlAttr(origPath) : '';
+      return safe ? 'src="' + safe + '"' : '';
+    }
+    return 'data-sp="' + window.escapeHtml(window.toThumbPath(origPath)) + '" data-orig="' + window.escapeHtml(origPath) + '" src="' + _SP_PLACEHOLDER + '"';
+  };
+  // onerror: thumb brak (HEIF-skip/straggler) → załaduj oryginał (świeży signed URL). Guard 1×.
+  window._spThumbFallback = function(img) {
+    if (img._spfb) { img.onerror = null; img.style.display = 'none'; return; }
+    img._spfb = true;
+    var orig = img.getAttribute('data-orig');
+    if (!orig) { img.onerror = null; img.style.display = 'none'; return; }
+    img.onerror = function(){ img.onerror = null; img.style.display = 'none'; };  // oryginał też padł → hide
+    window.storageResolveUrl(orig).then(function(u){ var s = window.safeUrlAttr ? window.safeUrlAttr(u) : u; if (s) img.src = u; else img.style.display = 'none'; }).catch(function(){ img.style.display = 'none'; });
+  };
+  // klik → ORYGINAŁ full-res (świeży signed URL).
+  window._spOpenOrig = function(img) {
+    var orig = img.getAttribute('data-orig');
+    if (!orig) { if (img.src) window.open(img.src, '_blank'); return; }
+    window.storageResolveUrl(orig).then(function(u){ if (u) window.open(u, '_blank'); });
+  };
+
   // Pełny <img> tag z DUAL MODE src. '' jeśli wartość nieufna/pusta.
   window._makeStorageImgTag = function(urlOrPath, className, extraStyles) {
     var attrs = window._spImgSrc(urlOrPath);
