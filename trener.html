@@ -5283,8 +5283,7 @@ async function loadAnalytics() {
           <div style="width:6px;height:6px;border-radius:50%;background:${typeColors2[l.training_type]||'#66636e'};flex-shrink:0;"></div>
           <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;min-width:30px;">${ds}</div>
           <div style="font-size:11px;flex:1;">${l.training_type||'Trening'}</div>
-          <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--accent);">${parseFloat(l.distance_km||0).toFixed(1)}</div>
-          <div style="font-size:9px;color:var(--muted);">km</div>
+          ${l.distance_km?`<div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--accent);">${parseFloat(l.distance_km).toFixed(1)}</div><div style="font-size:9px;color:var(--muted);">km</div>`:''}
           ${l.pace?`<div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;">${l.pace}</div>`:''}
         </div>`;
       }).join('');
