@@ -6034,8 +6034,10 @@ async function saveLog() {
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i];
       // OCR downscale: max 1600px JPEG przed uploadem (Free-plan egress/storage). Fallback = oryginał.
+      console.log('[DIAG] file:', file.name, 'type:', file.type, 'size:', file.size, 'fromOcr:', window._fileMeta && window._fileMeta.get(file) && window._fileMeta.get(file).fromOcr);
       const up = await window.downscaleImage(file, 1600, 0.85);
       const shrunk = up !== file;
+      console.log('[DIAG] downscale original: shrunk=', shrunk, 'up.type=', up.type, 'up.size=', up.size);
       const ext = shrunk ? 'jpg' : (file.name.split('.').pop() || 'jpg');
       const rand = Math.random().toString(36).slice(2,7);
       const path = _athleteId + '/' + base + '_' + i + '_' + rand + '.' + ext;
@@ -6048,13 +6050,17 @@ async function saveLog() {
         // Strategia 2a: thumbnail 200px JPEG → <athlete>/thumbs/<base>_<i>_<rand>.jpg (best-effort, nie blokuje zapisu)
         try {
           const thumb = await window.downscaleImage(up, 600, 0.80);
+          console.log('[DIAG] thumb: thumb===up?', thumb === up, 'thumbSize:', thumb!==up ? thumb.size : 'SKIP (downscale returned same blob)');
           if (thumb !== up) {
             const thumbPath = _athleteId + '/thumbs/' + base + '_' + i + '_' + rand + '.jpg';
             const { error: thErr } = await window.storageUploadRetry('training-screenshots', thumbPath, thumb, {upsert:true, contentType:'image/jpeg'});
+            console.log('[DIAG] thumb upload result:', thErr ? 'FAIL '+thErr.message : 'OK '+thumbPath);
             if (!thErr) console.log('[saveLog] ✅ thumb:', thumbPath, Math.round(thumb.size/1024)+'KB');
             else console.warn('[saveLog] thumb upload err:', thErr.message);
+          } else {
+            console.warn('[DIAG] thumb upload SKIPPED — downscaleImage(up,600) returned same blob (HEIF? already small? toBlob fail?)');
           }
-        } catch(e) { console.warn('[saveLog] thumb skip', e); }
+        } catch(e) { console.warn('[saveLog] thumb skip', e); console.error('[DIAG] thumb generation threw:', e && e.message); }
       } else {
         console.error('[saveLog] ❌ Upload BŁĄD:', upErr);
         toast('Błąd uploadu: ' + upErr.message);
@@ -8187,6 +8193,8 @@ async function openChatThread(mode, pid, name) {
 }
 
 function closeChatThread() {
+  var _diagBN_before = document.getElementById('msgs-bottom-nav');
+  console.log('[DIAG] closeChatThread called; bottomNav display BEFORE:', _diagBN_before && _diagBN_before.style.display);
   _chatMode = null;
   _chatPeerId = null;
   // Cleanup peer auto-refresh
@@ -8213,6 +8221,7 @@ function closeChatThread() {
   // Reset visualViewport height (gdyby keyboard fix był aktywny)
   var section = document.getElementById('section-msgs');
   if (section) section.style.height = '';
+  console.log('[DIAG] closeChatThread done; bottomNav display AFTER:', bottomNav && bottomNav.style.display, 'listView display:', listView && listView.style.display, 'threadView display:', threadView && threadView.style.display);
   // Wczytaj listę (tryf-catch żeby nic nie zatrzymało)
   try { loadChatConvList(); } catch(e) { console.warn('loadChatConvList error:', e); }
 }
@@ -9616,14 +9625,22 @@ window.sendDuelChallenge = sendDuelChallenge;
 (function attachChatBindings(){
   function bindBack() {
     var btn = document.getElementById('chat-back-btn');
+    console.log('[DIAG] bindBack: btn found?', !!btn, 'already bound?', btn && btn._bound);
     if (!btn || btn._bound) return;
     btn._bound = true;
     var handler = function(ev){
+      console.log('[DIAG] back button clicked; event type:', ev && ev.type, 'closeChatThread typeof:', typeof closeChatThread);
       if (ev) { ev.preventDefault(); ev.stopPropagation(); }
-      closeChatThread();
+      try {
+        closeChatThread();
+        console.log('[DIAG] closeChatThread returned OK');
+      } catch (e) {
+        console.error('[DIAG] closeChatThread threw:', e && e.message, e);
+      }
     };
     btn.addEventListener('click', handler);
     btn.addEventListener('touchend', handler);
+    console.log('[DIAG] bindBack: listeners attached on btn');
   }
   function bindAvatar() {
     var av = document.getElementById('z-coach-av');
