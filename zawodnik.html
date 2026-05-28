@@ -2118,8 +2118,10 @@ window._ocrSetup = function() {
 
       // Multi-image: pętla po WSZYSTKICH original files — push do _pendingFiles + render thumbnail + metadata (tylko pierwszy z ocrFields żeby reset triggerował się raz)
       const ocrActivityDate = (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) ? json.activity_date : null;
+      console.log('[DIAG-OCR] start preview render, files:', files.length, '_pendingFiles before:', (window._pendingFiles||[]).length);
       for (let fIdx = 0; fIdx < files.length; fIdx++) {
         const f = files[fIdx];
+        console.log('[DIAG-OCR] file:', f.name, f.type, f.size);
         if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(f);
         else window._pendingFiles = [f];
 
@@ -2134,16 +2136,23 @@ window._ocrSetup = function() {
 
         // Thumbnail render
         const _ocrList = document.getElementById('file-preview-list');
+        console.log('[DIAG-OCR] _ocrList exists?', !!_ocrList, 'offsetParent (visible)?', _ocrList && _ocrList.offsetParent !== null, '_pendingFiles len:', window._pendingFiles.length);
         if (_ocrList) {
           const _ocrIdx = window._pendingFiles.length - 1;
           // v6.7 ANDROID FIX: pre-render thumb do 200x200 data URL
-          const _ocrUrl = await _makeThumbDataURL(f);
+          let _ocrUrl = '';
+          try {
+            _ocrUrl = await _makeThumbDataURL(f);
+            console.log('[DIAG-OCR] thumb url len:', _ocrUrl ? _ocrUrl.length : 'NULL', 'prefix:', _ocrUrl && _ocrUrl.substring(0, 30));
+          } catch(e) { console.error('[DIAG-OCR] _makeThumbDataURL THREW:', e && e.message); }
           const _ocrDiv = document.createElement('div');
           _ocrDiv.style.cssText = 'position:relative;width:60px;height:60px;';
           _ocrDiv.innerHTML = `<img src="${_ocrUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
             <button onclick="removeFile(${_ocrIdx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
             <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
           _ocrList.appendChild(_ocrDiv);
+          const _ocrImg = _ocrDiv.querySelector('img');
+          console.log('[DIAG-OCR] div appended; children:', _ocrList.children.length, 'img.complete:', _ocrImg && _ocrImg.complete, 'img.naturalWidth:', _ocrImg && _ocrImg.naturalWidth);
         }
       }
       if (typeof _updateUploadLabel === 'function') _updateUploadLabel();
@@ -2490,18 +2499,26 @@ async function _makeThumbDataURL(file) {
 async function appendFile(input) {
   if (!input.files[0]) return;
   const file = input.files[0];
+  console.log('[DIAG-MANUAL] file:', file.name, file.type, file.size);
   window._pendingFiles.push(file);
   // Podgląd
   const list = document.getElementById('file-preview-list');
   const idx = window._pendingFiles.length - 1;
+  console.log('[DIAG-MANUAL] list exists?', !!list, 'offsetParent (visible)?', list && list.offsetParent !== null, '_pendingFiles len:', window._pendingFiles.length);
   // v6.7 ANDROID FIX: pre-render thumb do 200x200 data URL (zamiast pełnego blob)
-  const url = await _makeThumbDataURL(file);
+  let url = '';
+  try {
+    url = await _makeThumbDataURL(file);
+    console.log('[DIAG-MANUAL] thumb url len:', url ? url.length : 'NULL', 'prefix:', url && url.substring(0, 30));
+  } catch(e) { console.error('[DIAG-MANUAL] _makeThumbDataURL THREW:', e && e.message); }
   const div = document.createElement('div');
   div.style.cssText = 'position:relative;width:60px;height:60px;';
   div.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
     <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
     <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
   list.appendChild(div);
+  const _img = div.querySelector('img');
+  console.log('[DIAG-MANUAL] div appended; children:', list.children.length, 'img.complete:', _img && _img.complete, 'img.naturalWidth:', _img && _img.naturalWidth);
   // Update label (uwzględnia existing)
   if (typeof _updateUploadLabel === 'function') {
     _updateUploadLabel();
@@ -8194,7 +8211,8 @@ async function openChatThread(mode, pid, name) {
 
 function closeChatThread() {
   var _diagBN_before = document.getElementById('msgs-bottom-nav');
-  console.log('[DIAG] closeChatThread called; bottomNav display BEFORE:', _diagBN_before && _diagBN_before.style.display);
+  var _diagSection = document.getElementById('section-msgs');
+  console.log('[DIAG-BACK] closeChatThread start; section-msgs display:', _diagSection && _diagSection.style.display, 'bottomNav display BEFORE:', _diagBN_before && _diagBN_before.style.display);
   _chatMode = null;
   _chatPeerId = null;
   // Cleanup peer auto-refresh
@@ -8221,7 +8239,7 @@ function closeChatThread() {
   // Reset visualViewport height (gdyby keyboard fix był aktywny)
   var section = document.getElementById('section-msgs');
   if (section) section.style.height = '';
-  console.log('[DIAG] closeChatThread done; bottomNav display AFTER:', bottomNav && bottomNav.style.display, 'listView display:', listView && listView.style.display, 'threadView display:', threadView && threadView.style.display);
+  console.log('[DIAG-BACK] closeChatThread done; bottomNav display AFTER:', bottomNav && bottomNav.style.display, 'listView display:', listView && listView.style.display, 'threadView display:', threadView && threadView.style.display);
   // Wczytaj listę (tryf-catch żeby nic nie zatrzymało)
   try { loadChatConvList(); } catch(e) { console.warn('loadChatConvList error:', e); }
 }
@@ -9625,22 +9643,22 @@ window.sendDuelChallenge = sendDuelChallenge;
 (function attachChatBindings(){
   function bindBack() {
     var btn = document.getElementById('chat-back-btn');
-    console.log('[DIAG] bindBack: btn found?', !!btn, 'already bound?', btn && btn._bound);
+    console.log('[DIAG-BACK] bindBack: btn found?', !!btn, 'already bound?', btn && btn._bound);
     if (!btn || btn._bound) return;
     btn._bound = true;
     var handler = function(ev){
-      console.log('[DIAG] back button clicked; event type:', ev && ev.type, 'closeChatThread typeof:', typeof closeChatThread);
+      console.log('[DIAG-BACK] clicked; event type:', ev && ev.type, 'closeChatThread typeof:', typeof closeChatThread);
       if (ev) { ev.preventDefault(); ev.stopPropagation(); }
       try {
         closeChatThread();
-        console.log('[DIAG] closeChatThread returned OK');
+        console.log('[DIAG-BACK] closeChatThread returned OK');
       } catch (e) {
-        console.error('[DIAG] closeChatThread threw:', e && e.message, e);
+        console.error('[DIAG-BACK] closeChatThread threw:', e && e.message, e);
       }
     };
     btn.addEventListener('click', handler);
     btn.addEventListener('touchend', handler);
-    console.log('[DIAG] bindBack: listeners attached on btn');
+    console.log('[DIAG-BACK] bindBack: listeners attached on btn');
   }
   function bindAvatar() {
     var av = document.getElementById('z-coach-av');
