@@ -6639,6 +6639,15 @@ if ('serviceWorker' in navigator) {
     refreshing = true;
     window.location.reload();
   });
+
+  // Push notification click → nawigacja do targetUrl z SW postMessage
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    var msg = event.data || {};
+    if (msg.type !== 'PUSH_NOTIFICATION_CLICK') return;
+    if (msg.targetUrl && msg.targetUrl !== location.pathname + location.search) {
+      try { location.assign(msg.targetUrl); } catch (e) { console.warn('[push-msg] navigate failed', e); }
+    }
+  });
 }
 </script>
 
