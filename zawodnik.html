@@ -8912,8 +8912,8 @@ if ('serviceWorker' in navigator) {
     const msg = event.data || {};
     if (msg.type !== 'PUSH_NOTIFICATION_CLICK') return;
 
-    // Otwarty raport AI? — przekieruj do raporty.html
-    if (msg.notifType === 'ai_report' || (msg.targetPath && msg.targetPath.includes('zawodnik.html'))) {
+    // ai_report → raporty.html z report_id (jeśli jest)
+    if (msg.notifType === 'ai_report') {
       const target = 'raporty.html' + (msg.reportId ? '?report_id=' + encodeURIComponent(msg.reportId) : '');
       try { location.assign(target); } catch (e) { console.warn('[push-msg] navigate failed', e); }
       return;
