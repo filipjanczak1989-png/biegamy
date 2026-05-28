@@ -8192,6 +8192,12 @@ function closeChatThread() {
   var threadView = document.getElementById('chat-thread-view');
   if (listView) listView.style.display = 'flex';
   if (threadView) threadView.style.display = 'none';
+  // Przywróć dolną nawigację (ukryta w openChatThread)
+  var bottomNav = document.getElementById('msgs-bottom-nav');
+  if (bottomNav) bottomNav.style.display = 'flex';
+  // Reset visualViewport height (gdyby keyboard fix był aktywny)
+  var section = document.getElementById('section-msgs');
+  if (section) section.style.height = '';
   // Wczytaj listę (tryf-catch żeby nic nie zatrzymało)
   try { loadChatConvList(); } catch(e) { console.warn('loadChatConvList error:', e); }
 }
