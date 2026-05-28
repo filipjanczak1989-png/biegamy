@@ -3696,6 +3696,21 @@ async function _origSendMessageFn() {
     sent_at: new Date().toISOString()
   });
   if (error) { toast('Błąd: ' + error.message); input.value = body; return; }
+  // Push do trenera: insert notification (target = trener-jako-athlete)
+  try {
+    const { data: me } = await sb.from('athletes').select('coach_id,full_name').eq('id', _athleteId).maybeSingle();
+    if (me?.coach_id) {
+      const { data: coachAth } = await sb.from('athletes').select('id').eq('user_id', me.coach_id).maybeSingle();
+      if (coachAth?.id) {
+        const preview = body.replace(/<[^>]+>/g,'').trim().slice(0,57);
+        sb.from('notifications').insert({
+          athlete_id: coachAth.id, type: 'athlete_message', from_athlete_id: _athleteId,
+          message: (me.full_name||'Zawodnik')+' wysłał wiadomość: "'+preview+'"',
+          read: false, created_at: new Date().toISOString()
+        }).then(()=>{});
+      }
+    }
+  } catch(e) { console.warn('Notif do trenera failed:', e.message); }
   await loadMessages();
   toast('Wiadomość wysłana ✓');
 }
