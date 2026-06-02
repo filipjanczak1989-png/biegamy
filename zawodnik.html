@@ -1642,54 +1642,6 @@ body > *{position:relative;z-index:1;}
 <script src="sb.js"></script>
 
 <script>
-// ✨ DIAG OVERLAY: mobile console (Samsung Android repro) — warunkowo ?debug=1
-// Intercept console.log/error/warn — pokazuje [DIAG-*] na ekranie + KOPIUJ button
-if (location.search.indexOf('debug=1') !== -1) {
-  (function(){
-    var _diagBuf = [];
-    var origLog = console.log, origErr = console.error, origWarn = console.warn;
-    function _diagPush(prefix, args) {
-      try {
-        var msg = Array.from(args).map(function(a){
-          try { return typeof a === 'object' && a !== null ? JSON.stringify(a) : String(a); } catch(e){ return String(a); }
-        }).join(' ');
-        if (msg.indexOf('[DIAG') === -1) return;
-        var line = prefix + msg;
-        _diagBuf.push(line);
-        var ov = document.getElementById('_diagOverlay');
-        if (ov) { ov.textContent += line + '\n'; ov.scrollTop = ov.scrollHeight; }
-      } catch(e){}
-    }
-    console.log = function(){ _diagPush('', arguments); origLog.apply(console, arguments); };
-    console.error = function(){ _diagPush('ERR ', arguments); origErr.apply(console, arguments); };
-    console.warn = function(){ _diagPush('WARN ', arguments); origWarn.apply(console, arguments); };
-    function _diagInit() {
-      if (document.getElementById('_diagOverlay')) return;
-      var ov = document.createElement('div');
-      ov.id = '_diagOverlay';
-      ov.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;background:rgba(0,0,0,0.92);color:#0f0;font:11px monospace;padding:8px;z-index:999999;white-space:pre-wrap;border-top:2px solid #0f0;-webkit-user-select:text;user-select:text;';
-      document.body.appendChild(ov);
-      if (_diagBuf.length) { ov.textContent = _diagBuf.join('\n') + '\n'; ov.scrollTop = ov.scrollHeight; }
-      var btn = document.createElement('button');
-      btn.textContent = 'KOPIUJ LOGI';
-      btn.style.cssText = 'position:fixed;top:8px;right:8px;z-index:9999999;background:#0f0;color:#000;border:0;padding:6px 10px;font:bold 12px monospace;border-radius:4px;cursor:pointer;';
-      btn.onclick = function(){
-        var txt = ov.textContent || '';
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(txt).then(function(){ btn.textContent = 'SKOPIOWANO!'; setTimeout(function(){ btn.textContent = 'KOPIUJ LOGI'; }, 2000); }).catch(function(e){ btn.textContent = 'ERR ' + (e && e.message ? e.message.slice(0,20) : 'copy'); });
-        } else {
-          var ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
-          try { document.execCommand('copy'); btn.textContent = 'SKOPIOWANO!'; } catch(e){ btn.textContent = 'ERR fallback'; }
-          ta.remove();
-        }
-      };
-      document.body.appendChild(btn);
-    }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _diagInit);
-    else _diagInit();
-  })();
-}
-
 // ✨ DIAGNOSTYKA: globalny intercept fetch - loguje detail każdego błędu 400/500
 // To pomoże zlokalizować ukryte bugi typu "POST training_logs 400" bez detail
 (function() {
@@ -2166,10 +2118,8 @@ window._ocrSetup = function() {
 
       // Multi-image: pętla po WSZYSTKICH original files — push do _pendingFiles + render thumbnail + metadata (tylko pierwszy z ocrFields żeby reset triggerował się raz)
       const ocrActivityDate = (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date)) ? json.activity_date : null;
-      console.log('[DIAG-OCR] start preview render, files:', files.length, '_pendingFiles before:', (window._pendingFiles||[]).length);
       for (let fIdx = 0; fIdx < files.length; fIdx++) {
         const f = files[fIdx];
-        console.log('[DIAG-OCR] file:', f.name, f.type, f.size);
         if (Array.isArray(window._pendingFiles)) window._pendingFiles.push(f);
         else window._pendingFiles = [f];
 
@@ -2184,31 +2134,16 @@ window._ocrSetup = function() {
 
         // Thumbnail render
         const _ocrList = document.getElementById('file-preview-list');
-        console.log('[DIAG-OCR] _ocrList exists?', !!_ocrList, 'offsetParent (visible)?', _ocrList && _ocrList.offsetParent !== null, '_pendingFiles len:', window._pendingFiles.length);
         if (_ocrList) {
           const _ocrIdx = window._pendingFiles.length - 1;
           // v6.7 ANDROID FIX: pre-render thumb do 200x200 data URL
-          let _ocrUrl = '';
-          console.log('[DIAG-OCR] file.type EXACT:', f.type, 'name:', f.name);
-          try {
-            _ocrUrl = await _makeThumbDataURL(f);
-            console.log('[DIAG-OCR] thumb url len:', _ocrUrl ? _ocrUrl.length : 'NULL', 'prefix:', _ocrUrl && _ocrUrl.substring(0, 30));
-            // Test: czy data URL faktycznie dekoduje się jako <img>?
-            if (_ocrUrl) {
-              const _testImg = new Image();
-              _testImg.onload = function(){ console.log('[DIAG-OCR] data URL RENDERUJE OK', _testImg.naturalWidth+'x'+_testImg.naturalHeight); };
-              _testImg.onerror = function(){ console.error('[DIAG-OCR] data URL NIE RENDERUJE — broken/HEIC/format'); };
-              _testImg.src = _ocrUrl;
-            }
-          } catch(e) { console.error('[DIAG-OCR] _makeThumbDataURL THREW:', e && e.message); }
+          const _ocrUrl = await _makeThumbDataURL(f);
           const _ocrDiv = document.createElement('div');
           _ocrDiv.style.cssText = 'position:relative;width:60px;height:60px;';
           _ocrDiv.innerHTML = `<img src="${_ocrUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
             <button onclick="removeFile(${_ocrIdx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
             <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
           _ocrList.appendChild(_ocrDiv);
-          const _ocrImg = _ocrDiv.querySelector('img');
-          console.log('[DIAG-OCR] div appended; children:', _ocrList.children.length, 'img.complete:', _ocrImg && _ocrImg.complete, 'img.naturalWidth:', _ocrImg && _ocrImg.naturalWidth);
         }
       }
       if (typeof _updateUploadLabel === 'function') _updateUploadLabel();
@@ -2555,33 +2490,18 @@ async function _makeThumbDataURL(file) {
 async function appendFile(input) {
   if (!input.files[0]) return;
   const file = input.files[0];
-  console.log('[DIAG-MANUAL] file:', file.name, file.type, file.size);
   window._pendingFiles.push(file);
   // Podgląd
   const list = document.getElementById('file-preview-list');
   const idx = window._pendingFiles.length - 1;
-  console.log('[DIAG-MANUAL] list exists?', !!list, 'offsetParent (visible)?', list && list.offsetParent !== null, '_pendingFiles len:', window._pendingFiles.length);
   // v6.7 ANDROID FIX: pre-render thumb do 200x200 data URL (zamiast pełnego blob)
-  let url = '';
-  console.log('[DIAG-MANUAL] file.type EXACT:', file.type, 'name:', file.name);
-  try {
-    url = await _makeThumbDataURL(file);
-    console.log('[DIAG-MANUAL] thumb url len:', url ? url.length : 'NULL', 'prefix:', url && url.substring(0, 30));
-    if (url) {
-      const _testImg = new Image();
-      _testImg.onload = function(){ console.log('[DIAG-MANUAL] data URL RENDERUJE OK', _testImg.naturalWidth+'x'+_testImg.naturalHeight); };
-      _testImg.onerror = function(){ console.error('[DIAG-MANUAL] data URL NIE RENDERUJE — broken/HEIC/format'); };
-      _testImg.src = url;
-    }
-  } catch(e) { console.error('[DIAG-MANUAL] _makeThumbDataURL THREW:', e && e.message); }
+  const url = await _makeThumbDataURL(file);
   const div = document.createElement('div');
   div.style.cssText = 'position:relative;width:60px;height:60px;';
   div.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
     <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
     <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
   list.appendChild(div);
-  const _img = div.querySelector('img');
-  console.log('[DIAG-MANUAL] div appended; children:', list.children.length, 'img.complete:', _img && _img.complete, 'img.naturalWidth:', _img && _img.naturalWidth);
   // Update label (uwzględnia existing)
   if (typeof _updateUploadLabel === 'function') {
     _updateUploadLabel();
@@ -6116,10 +6036,8 @@ async function saveLog() {
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i];
       // OCR downscale: max 1600px JPEG przed uploadem (Free-plan egress/storage). Fallback = oryginał.
-      console.log('[DIAG] file:', file.name, 'type:', file.type, 'size:', file.size, 'fromOcr:', window._fileMeta && window._fileMeta.get(file) && window._fileMeta.get(file).fromOcr);
       const up = await window.downscaleImage(file, 1600, 0.85);
       const shrunk = up !== file;
-      console.log('[DIAG] downscale original: shrunk=', shrunk, 'up.type=', up.type, 'up.size=', up.size);
       const ext = shrunk ? 'jpg' : (file.name.split('.').pop() || 'jpg');
       const rand = Math.random().toString(36).slice(2,7);
       const path = _athleteId + '/' + base + '_' + i + '_' + rand + '.' + ext;
@@ -6132,17 +6050,13 @@ async function saveLog() {
         // Strategia 2a: thumbnail 200px JPEG → <athlete>/thumbs/<base>_<i>_<rand>.jpg (best-effort, nie blokuje zapisu)
         try {
           const thumb = await window.downscaleImage(up, 600, 0.80);
-          console.log('[DIAG] thumb: thumb===up?', thumb === up, 'thumbSize:', thumb!==up ? thumb.size : 'SKIP (downscale returned same blob)');
           if (thumb !== up) {
             const thumbPath = _athleteId + '/thumbs/' + base + '_' + i + '_' + rand + '.jpg';
             const { error: thErr } = await window.storageUploadRetry('training-screenshots', thumbPath, thumb, {upsert:true, contentType:'image/jpeg'});
-            console.log('[DIAG] thumb upload result:', thErr ? 'FAIL '+thErr.message : 'OK '+thumbPath);
             if (!thErr) console.log('[saveLog] ✅ thumb:', thumbPath, Math.round(thumb.size/1024)+'KB');
             else console.warn('[saveLog] thumb upload err:', thErr.message);
-          } else {
-            console.warn('[DIAG] thumb upload SKIPPED — downscaleImage(up,600) returned same blob (HEIF? already small? toBlob fail?)');
           }
-        } catch(e) { console.warn('[saveLog] thumb skip', e); console.error('[DIAG] thumb generation threw:', e && e.message); }
+        } catch(e) { console.warn('[saveLog] thumb skip', e); }
       } else {
         console.error('[saveLog] ❌ Upload BŁĄD:', upErr);
         toast('Błąd uploadu: ' + upErr.message);
@@ -8275,9 +8189,6 @@ async function openChatThread(mode, pid, name) {
 }
 
 function closeChatThread() {
-  var _diagBN_before = document.getElementById('msgs-bottom-nav');
-  var _diagSection = document.getElementById('section-msgs');
-  console.log('[DIAG-BACK] closeChatThread start; section-msgs display:', _diagSection && _diagSection.style.display, 'bottomNav display BEFORE:', _diagBN_before && _diagBN_before.style.display);
   _chatMode = null;
   _chatPeerId = null;
   // Cleanup peer auto-refresh
@@ -8304,7 +8215,6 @@ function closeChatThread() {
   // Reset visualViewport height (gdyby keyboard fix był aktywny)
   var section = document.getElementById('section-msgs');
   if (section) section.style.height = '';
-  console.log('[DIAG-BACK] closeChatThread done; bottomNav display AFTER:', bottomNav && bottomNav.style.display, 'listView display:', listView && listView.style.display, 'threadView display:', threadView && threadView.style.display);
   // Wczytaj listę (tryf-catch żeby nic nie zatrzymało)
   try { loadChatConvList(); } catch(e) { console.warn('loadChatConvList error:', e); }
 }
@@ -9708,22 +9618,14 @@ window.sendDuelChallenge = sendDuelChallenge;
 (function attachChatBindings(){
   function bindBack() {
     var btn = document.getElementById('chat-back-btn');
-    console.log('[DIAG-BACK] bindBack: btn found?', !!btn, 'already bound?', btn && btn._bound);
     if (!btn || btn._bound) return;
     btn._bound = true;
     var handler = function(ev){
-      console.log('[DIAG-BACK] clicked; event type:', ev && ev.type, 'closeChatThread typeof:', typeof closeChatThread);
       if (ev) { ev.preventDefault(); ev.stopPropagation(); }
-      try {
-        closeChatThread();
-        console.log('[DIAG-BACK] closeChatThread returned OK');
-      } catch (e) {
-        console.error('[DIAG-BACK] closeChatThread threw:', e && e.message, e);
-      }
+      closeChatThread();
     };
     btn.addEventListener('click', handler);
     btn.addEventListener('touchend', handler);
-    console.log('[DIAG-BACK] bindBack: listeners attached on btn');
   }
   function bindAvatar() {
     var av = document.getElementById('z-coach-av');
