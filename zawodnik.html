@@ -2844,7 +2844,7 @@ async function _loadProfileMsgs() {
   if (!_athleteId) return;
   const thread = document.getElementById('profile-msgs-thread');
   if (!thread) return;
-  const { data } = await sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: false }).limit(200);
+  const { data } = await sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: false }).limit(50);
   if (!data) return;
   data.reverse();   // render od najstarszej do najnowszej
   const typeColors = { Spokojny:'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
@@ -3564,10 +3564,16 @@ async function loadMessages() {
     .select('*')
     .eq('athlete_id', _athleteId)
     .order('sent_at', { ascending: false })
-    .limit(200);
+    .limit(MSG_PAGE);
 
   if (error) { console.error(error); return; }
   if (data) data.reverse();   // render od najstarszej do najnowszej (jak dotąd)
+
+  // ── reset stanu paginacji: każde pełne przeładowanie = najnowsze MSG_PAGE + scroll na dół ──
+  _msgLoadingOlder = false;
+  _msgHasMore = !!(data && data.length === MSG_PAGE);
+  _msgOldestLoaded = (data && data.length) ? data[0].sent_at : null;
+  _msgPaginationActive = true;
 
   const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
     <button onclick="clearAllMessages()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
@@ -3578,19 +3584,75 @@ async function loadMessages() {
     return;
   }
 
-  if(thread) thread.innerHTML = headerHtml + data.map(m => {
-    const isAthlete = m.sender === 'athlete';
-    const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
-    const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
-    return `<div class="pchat-msg-row ${isAthlete?'me':'them'}" id="msg-${m.id}">
-      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${renderMessageBody(m.body)}</div>
-      <div class="pchat-time-lbl">${date} · ${time}</div>
-    </div>`;
-  }).join('');
+  if(thread) {
+    thread.innerHTML = headerHtml + data.map(_msgRowHtml).join('');
+    // idempotentne podpięcie scroll-paginacji (dociąganie starszych w górę)
+    if (!thread._scrollPagAttached) {
+      thread._scrollPagAttached = true;
+      thread.addEventListener('scroll', _onMsgThreadScroll, { passive: true });
+    }
+  }
 
   await sb.from('messages').update({read:true}).eq('athlete_id',_athleteId).eq('sender','coach').eq('read',false);
   requestAnimationFrame(() => { if(thread) { thread.scrollTop = thread.scrollHeight; } });
   await checkNewMessages();
+}
+
+function _msgRowHtml(m) {
+  const isAthlete = m.sender === 'athlete';
+  const time = new Date(m.sent_at).toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  const date = new Date(m.sent_at).toLocaleDateString('pl-PL',{day:'numeric',month:'short'});
+  return `<div class="pchat-msg-row ${isAthlete?'me':'them'}" id="msg-${m.id}">
+      <div class="pchat-bubble" oncontextmenu="deleteMsgPrompt(event,'${m.id}','${isAthlete}')" style="cursor:pointer;">${renderMessageBody(m.body)}</div>
+      <div class="pchat-time-lbl">${date} · ${time}</div>
+    </div>`;
+}
+
+function _onMsgThreadScroll() {
+  if (!_msgPaginationActive || _msgLoadingOlder || !_msgHasMore) return;
+  const thread = document.getElementById('msgs-thread');
+  if (!thread) return;
+  if (thread.scrollTop < 80) loadOlderMessages();
+}
+
+async function loadOlderMessages() {
+  if (_msgLoadingOlder || !_msgHasMore || !_msgOldestLoaded || !_athleteId) return;
+  const thread = document.getElementById('msgs-thread');
+  if (!thread) return;
+  _msgLoadingOlder = true;
+
+  const loader = document.createElement('div');
+  loader.id = '_msgOlderLoader';
+  loader.style.cssText = 'padding:8px 0;text-align:center;color:var(--muted);font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;';
+  loader.textContent = 'Ładowanie starszych…';
+  thread.insertBefore(loader, thread.firstChild);
+
+  const { data, error } = await sb
+    .from('messages')
+    .select('*')
+    .eq('athlete_id', _athleteId)
+    .lt('sent_at', _msgOldestLoaded)
+    .order('sent_at', { ascending: false })
+    .limit(MSG_PAGE);
+
+  loader.remove();
+
+  if (error) { console.error(error); _msgLoadingOlder = false; return; }
+  const older = (data || []).reverse(); // ascending: od najstarszej
+  if (!older.length) { _msgHasMore = false; _msgLoadingOlder = false; return; }
+
+  // ── zachowanie pozycji scrolla po prepend (bez tego czat „skacze") ──
+  const prevHeight = thread.scrollHeight;
+  const prevTop = thread.scrollTop;
+  const header = thread.firstElementChild; // „Wyczyść historię"
+  const html = older.map(_msgRowHtml).join('');
+  if (header) header.insertAdjacentHTML('afterend', html);
+  else thread.insertAdjacentHTML('afterbegin', html);
+  thread.scrollTop = prevTop + (thread.scrollHeight - prevHeight); // synchronicznie = bez migotania
+
+  _msgOldestLoaded = older[0].sent_at;
+  if (older.length < MSG_PAGE) _msgHasMore = false;
+  _msgLoadingOlder = false;
 }
 
 async function deleteMsgPrompt(e, msgId, isAthlete) {
@@ -7922,6 +7984,13 @@ async function openNotifications() {
 var _chatMode = null; // 'coach' | 'peer'
 var _chatPeerId = null;
 
+// ── paginacja czatu trenera (dociąganie starszych w górę) ──
+const MSG_PAGE = 50;
+let _msgOldestLoaded = null;      // sent_at (ISO) najstarszej wyrenderowanej = kursor
+let _msgHasMore = true;           // false gdy ostatni fetch < MSG_PAGE
+let _msgLoadingOlder = false;     // guard przed równoległym dociąganiem
+let _msgPaginationActive = false; // true tylko gdy aktywny czat trenera
+
 async function showSection_msgs_init() {
   // Pokaż listę konwersacji
   var listView = document.getElementById('chat-list-view');
@@ -8191,6 +8260,7 @@ async function openChatThread(mode, pid, name) {
 function closeChatThread() {
   _chatMode = null;
   _chatPeerId = null;
+  _msgPaginationActive = false; // wyłącz paginację po wyjściu z wątku
   // Cleanup peer auto-refresh
   if (window._zChatRefreshTimer) {
     clearInterval(window._zChatRefreshTimer);
@@ -8229,6 +8299,7 @@ async function _loadPeerThreadZ(tid, silent) {
   if (!_athleteId) return;
   var el = document.getElementById('msgs-thread');
   if (!el) return;
+  _msgPaginationActive = false; // paginacja `messages` tylko w czacie trenera
   var wasNearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 80;
 
   var res = await sb.from('peer_messages').select('id,from_id,body,sent_at')
