@@ -4933,8 +4933,9 @@ window.openAthleteProfile = openAthleteProfile;
 
 async function loadCoachChat() {
   if (!_currentChatAthleteId) return;
-  const { data } = await sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:true}).limit(50);
+  const { data } = await sb.from('messages').select('*').eq('athlete_id',_currentChatAthleteId).order('sent_at',{ascending:false}).limit(200);
   const thread = document.getElementById('chat-thread');
+  if (data) data.reverse();   // render od najstarszej do najnowszej (najnowsze nie wypadają poza limit)
 
   const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
     <button onclick="clearCoachChat()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
