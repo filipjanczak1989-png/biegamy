@@ -2924,8 +2924,9 @@ async function _loadProfileMsgs() {
   if (!_athleteId) return;
   const thread = document.getElementById('profile-msgs-thread');
   if (!thread) return;
-  const { data } = await sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: true }).limit(50);
+  const { data } = await sb.from('messages').select('*').eq('athlete_id', _athleteId).order('sent_at', { ascending: false }).limit(200);
   if (!data) return;
+  data.reverse();   // render od najstarszej do najnowszej
   const typeColors = { Spokojny:'#5090e0', Interwały:'#e8b840', Tempo:'#f06030', Wybieganie:'#3db870', Regeneracja:'#9a6fe8' };
   thread.innerHTML = data.map(m => {
     const isAthlete = m.sender === 'athlete';
@@ -3642,10 +3643,11 @@ async function loadMessages() {
     .from('messages')
     .select('*')
     .eq('athlete_id', _athleteId)
-    .order('sent_at', { ascending: true })
-    .limit(50);
+    .order('sent_at', { ascending: false })
+    .limit(200);
 
   if (error) { console.error(error); return; }
+  if (data) data.reverse();   // render od najstarszej do najnowszej (jak dotąd)
 
   const headerHtml = `<div style="display:flex;justify-content:flex-end;padding:0 0 8px;">
     <button onclick="clearAllMessages()" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;border-radius:8px;cursor:pointer;">Wyczyść historię</button>
