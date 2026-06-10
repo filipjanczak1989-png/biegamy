@@ -1861,36 +1861,52 @@
 
   window.storageSignedUrl = async function(path, bucket = 'training-screenshots', expiresIn = 3600) {
     if (!path) return null;
-    try {
-      const { data, error } = await window.sb.storage
-        .from(bucket)
-        .createSignedUrl(path, expiresIn);
-      if (error) {
-        console.warn('[storageSignedUrl]', path, error.message);
-        return null;
+    const delays = [0, 1200];
+    let lastErr = null;
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+      if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
+      try {
+        const { data, error } = await window.sb.storage
+          .from(bucket)
+          .createSignedUrl(path, expiresIn);
+        if (!error) return data?.signedUrl || null;
+        lastErr = error;
+        const msg = (error.message || '').toLowerCase();
+        // permanent — bez retry (brak pliku, brak uprawnień)
+        if (msg.includes('not found') || msg.includes('not authorized') || msg.includes('permission')) {
+          console.warn('[storageSignedUrl] permanent', path, error.message);
+          return null;
+        }
+        console.warn('[storageSignedUrl] attempt ' + (attempt+1), path, error.message, '(retry)');
+      } catch (e) {
+        lastErr = e;
+        console.warn('[storageSignedUrl] attempt ' + (attempt+1) + ' exception', path, e && e.message);
       }
-      return data?.signedUrl || null;
-    } catch (e) {
-      console.error('[storageSignedUrl] exception', path, e);
-      return null;
     }
+    console.error('[storageSignedUrl] failed all', path, lastErr && lastErr.message);
+    return null;
   };
 
   window.storageSignedUrls = async function(paths, bucket = 'training-screenshots', expiresIn = 3600) {
     if (!Array.isArray(paths) || paths.length === 0) return [];
-    try {
-      const { data, error } = await window.sb.storage
-        .from(bucket)
-        .createSignedUrls(paths, expiresIn);
-      if (error) {
-        console.warn('[storageSignedUrls]', error.message);
-        return paths.map(() => null);
+    const delays = [0, 1200];
+    let lastErr = null;
+    for (let attempt = 0; attempt < delays.length; attempt++) {
+      if (delays[attempt] > 0) await new Promise(r => setTimeout(r, delays[attempt]));
+      try {
+        const { data, error } = await window.sb.storage
+          .from(bucket)
+          .createSignedUrls(paths, expiresIn);
+        if (!error) return (data || []).map(d => d?.signedUrl || null);
+        lastErr = error;
+        console.warn('[storageSignedUrls] attempt ' + (attempt+1), error.message, '(retry)');
+      } catch (e) {
+        lastErr = e;
+        console.warn('[storageSignedUrls] attempt ' + (attempt+1) + ' exception', e && e.message);
       }
-      return (data || []).map(d => d?.signedUrl || null);
-    } catch (e) {
-      console.error('[storageSignedUrls] exception', e);
-      return paths.map(() => null);
     }
+    console.error('[storageSignedUrls] failed all', lastErr && lastErr.message);
+    return paths.map(() => null);
   };
 
   // DUAL MODE resolver — bierze "URL lub PATH" i zwraca świeży URL.
@@ -2085,7 +2101,7 @@
       if (p) { paths.push(p); elements.push(el); }
     });
     if (paths.length === 0) return;
-    window.storageSignedUrls(paths, bucket, 3600).then(urls => {
+    window.storageSignedUrls(paths, bucket, 21600).then(urls => {
       for (let i = 0; i < elements.length; i++) {
         const url = urls[i];
         const el = elements[i];
@@ -2103,21 +2119,26 @@
   // ── Strategia 4 (2026-05-27): LAZY hydration — signed URL dopiero gdy element
   // wjeżdża w viewport (IntersectionObserver). Feed nie ładuje wszystkich thumbów
   // naraz — tylko widoczne. Fallback: brak IO → eager _resolveStorageImgs.
-  function _spSignOne(el, bucket) {
-    if (!el || !el.isConnected) return;
+  async function _spSignOne(el, bucket) {
+    if (!el || !el.isConnected) return true; // znikł — przestań obserwować
     var path = el.getAttribute('data-sp');
-    if (!path) return;
-    el.removeAttribute('data-sp');  // idempotent
-    window.storageSignedUrl(path, bucket, 3600).then(function(url) {
-      if (!el.isConnected) return;
-      var safe = window.safeUrlAttr ? window.safeUrlAttr(url) : (url && url.indexOf('https://') === 0 ? url : '');
-      if (safe) { el.src = url; return; }
-      // sign FAIL (brakujący thumb — np. 51 ImageScript-stragglerów) → fallback na oryginał (data-orig)
-      if (el.getAttribute('data-orig') && window._spThumbFallback) window._spThumbFallback(el);
-      else el.style.display = 'none';
-    }).catch(function(){
-      if (el.getAttribute('data-orig') && window._spThumbFallback) window._spThumbFallback(el);
-    });
+    if (!path) return true;
+    var url = await window.storageSignedUrl(path, bucket, 21600);
+    if (!el.isConnected) return true;
+    var safe = window.safeUrlAttr ? window.safeUrlAttr(url) : (url && url.indexOf('https://') === 0 ? url : '');
+    if (safe) {
+      el.removeAttribute('data-sp');  // sukces — dopiero teraz
+      el.src = url;
+      return true;
+    }
+    // sign FAIL — jeśli jest data-orig (thumb mógł nie istnieć) → fallback od razu
+    if (el.getAttribute('data-orig') && window._spThumbFallback) {
+      el.removeAttribute('data-sp');
+      window._spThumbFallback(el);
+      return true;
+    }
+    // brak fallbacku → NIE pal: zostaw data-sp, pozwól IO spróbować znów przy następnym przecięciu viewportu
+    return false;
   }
   var _spIO = null;
   window._spLazyHydrate = function(container, bucket) {
@@ -2128,7 +2149,11 @@
     if (!('IntersectionObserver' in window)) { window._resolveStorageImgs(container, bucket); return; } // fallback eager
     if (!_spIO) {
       _spIO = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){ if (e.isIntersecting) { _spIO.unobserve(e.target); _spSignOne(e.target, bucket); } });
+        entries.forEach(function(e){
+          if (e.isIntersecting) {
+            _spSignOne(e.target, bucket).then(function(done){ if (done) _spIO.unobserve(e.target); });
+          }
+        });
       }, { rootMargin: '300px' });
     }
     els.forEach(function(el){ _spIO.observe(el); });
