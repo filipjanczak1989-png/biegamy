@@ -333,13 +333,33 @@
     if (!rawBody) return '';
     const body = String(rawBody);
 
-    // 1. Wiadomość cofnięta (zaufana - zapisana przez aplikację)
+    // 1. Wiadomość cofnięta — NIE ufamy zapisanemu HTML. Recall nie ma żadnych
+    //    zmiennych danych, więc zwracamy STAŁY bezpieczny HTML i ignorujemy
+    //    cokolwiek było w body (defense: nawet '<span class="msg-recall"><img
+    //    onerror=…></span>' renderuje się jako zwykłe "cofnięta"). [stored XSS fix #1]
     if (body.startsWith('<span class="msg-recall">') && body.endsWith('</span>')) {
-      return body;
+      return '<span class="msg-recall">Wiadomość cofnięta</span>';
     }
-    // 2. Voice message (zaufana - zapisana przez aplikację)
+    // 2. Voice message — NIE ufamy zapisanej strukturze. Parsujemy ŚCISŁYM regexem
+    //    tylko PATH głosu + długość (int), walidujemy path przez _chatVoicePathValid
+    //    i ODBUDOWUJEMY tag od zera z zahardkodowanym onclick + zwalidowanymi danymi.
+    //    Wszystko inne w body (np. <img onerror=…>) jest odrzucane — naprawia też
+    //    ewentualne już-zapisane payloady. [stored XSS fix #1]
     if (body.startsWith('<div class="voice-msg">')) {
-      return body;
+      var _vm = body.match(/onclick="playVoice(?:Msg)?\(this,'([^']+)'\)"/);
+      var _vpath = _vm && _vm[1];
+      if (_vpath && window._chatVoicePathValid && window._chatVoicePathValid(_vpath)) {
+        var _vd = body.match(/class="voice-duration">(\d{1,5})s</);
+        var _dur = _vd ? _vd[1] : '';
+        // _chatVoicePathValid gwarantuje brak ' " < > ( ) → _vpath bezpieczny w atrybucie i JS-stringu.
+        // Dwa warianty stylu odbudowane 1:1 (coach=biały pasek, athlete=accent) — wygląd identyczny.
+        if (body.indexOf('rgba(255,255,255') !== -1) {
+          return '<div class="voice-msg"><button class="voice-play" onclick="playVoiceMsg(this,\'' + _vpath + '\')">▶️</button><div style="flex:1;height:3px;background:rgba(255,255,255,0.2);border-radius:2px;"><div style="height:3px;background:rgba(255,255,255,0.7);width:100%;border-radius:2px;"></div></div><span class="voice-duration">' + _dur + 's</span></div>';
+        }
+        return '<div class="voice-msg"><button class="voice-play" onclick="playVoice(this,\'' + _vpath + '\')">▶️</button><div style="flex:1;height:3px;background:var(--border);border-radius:2px;"><div style="height:3px;background:var(--accent);width:100%;border-radius:2px;"></div></div><span class="voice-duration">' + _dur + 's</span></div>';
+      }
+      // path nie przechodzi walidacji → potencjalnie spreparowane body → bezpieczny tekst
+      return window.escapeHtml(body);
     }
     // 3. Stary format: [zdjęcie] <a href="URL">tekst</a>
     const oldImg = body.match(/\[zdjęcie\]\s*<a href="([^"]+)"[^>]*>[^<]*<\/a>/);
