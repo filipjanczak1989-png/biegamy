@@ -2009,7 +2009,7 @@ window._ocrSetup = function() {
     //    OCR to BONUS — zapis zdjęcia NIE zależy od niego. saveLog konsumuje _pendingFiles
     //    niezależnie. Kolejkujemy ORYGINAŁ (nie blob) — fallback nawet gdy kompresja padnie.
     //    Primary file (idx 0) dostaje ocrFields dopiero PO udanym OCR.
-    if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = `🔄 Dodaję ${files.length} ${wordZdj}...`; }
+    if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = `🔄 Dodawanie ${files.length} ${wordZdj}...`; }
     const _ocrList = document.getElementById('file-preview-list');
     let _primaryFile = null;
     for (let fIdx = 0; fIdx < files.length; fIdx++) {
@@ -2041,7 +2041,7 @@ window._ocrSetup = function() {
     // ── KROK 2: OCR best-effort — TYLKO pre-fill pól. Każdy błąd/0 pól → zdjęcie i tak zapisane.
     if (!window.SB_FN_URL) { console.error('[ocr] SB_FN_URL undefined'); _finishNoOcr('uzupełnij pola ręcznie (skan niedostępny)'); return; }
 
-    if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = `📤 Skanuję ${files.length} ${wordZdj}...`; }
+    if (statusEl) { statusEl.style.color = 'var(--muted)'; statusEl.textContent = `📤 Skanowanie ${files.length} ${wordZdj}...`; }
 
     // Kompresja best-effort — zły/za duży plik POMIJAMY w OCR (nie ubijamy batcha; zdjęcie zakolejkowane)
     const compressedBlobs = [];
@@ -2054,11 +2054,11 @@ window._ocrSetup = function() {
         console.warn('[ocr] compress fail file', i+1, '— pomijam w OCR', e && e.message);
       }
     }
-    if (compressedBlobs.length === 0) { _finishNoOcr('nie odczytałem pól, uzupełnij ręcznie'); return; }
+    if (compressedBlobs.length === 0) { _finishNoOcr('pola niewczytane, uzupełnij ręcznie'); return; }
 
     try {
       const { data: { session } } = await sb.auth.getSession();
-      if (!session) { _finishNoOcr('zaloguj się ponownie, by odczytać pola'); return; }
+      if (!session) { _finishNoOcr('zaloguj się ponownie, by wczytać pola'); return; }
 
       // Build images[] array (każdy blob → base64)
       const images = [];
@@ -2080,7 +2080,7 @@ window._ocrSetup = function() {
       });
       const json = await resp.json();
 
-      if (!resp.ok || !json.ok) { _finishNoOcr('nie odczytałem pól, uzupełnij ręcznie'); return; }
+      if (!resp.ok || !json.ok) { _finishNoOcr('pola niewczytane, uzupełnij ręcznie'); return; }
 
       // Pre-fill pól z OCR — NADPISUJE wszystkie pola dla których AI zwrócił dane
       // (intent: user klika OCR żeby ZASTĄPIĆ ręczne wpisy danymi z screena)
@@ -2141,12 +2141,12 @@ window._ocrSetup = function() {
         const sufix = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
         const sourceText = files.length > 1 ? ` z ${files.length} ${wordZdj}` : '';
         statusEl.textContent = filled > 0
-          ? `${savedWord} ✓ · wczytałem ${filled} ${sufix}${sourceText}${_ocrDateInfo}`
-          : `${savedWord} ✓ — nie odczytałem pól, uzupełnij ręcznie`;
+          ? `${savedWord} ✓ · wczytano ${filled} ${sufix}${sourceText}${_ocrDateInfo}`
+          : `${savedWord} ✓ — pola niewczytane, uzupełnij ręcznie`;
       }
     } catch (e) {
       console.warn('[ocr] error (zdjęcie zakolejkowane, zapis OK):', e);
-      _finishNoOcr('nie odczytałem pól, uzupełnij ręcznie');
+      _finishNoOcr('pola niewczytane, uzupełnij ręcznie');
     } finally {
       if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
       fileInput.value = '';
