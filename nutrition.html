@@ -4615,6 +4615,7 @@ async function prefetchFoodImages(names) {
 }
 
 let _athleteId = null;
+let _athleteRowId = null;   // athletes.id (training_logs.athlete_id = athletes.id, NIE user_id)
 let _profile = null;
 let _todayMeals = [];
 let _scannedProduct = null;  // produkt aktualnie pokazywany w modalu confirm
@@ -4672,6 +4673,11 @@ function getViewDateLabel() {
     return;
   }
   _athleteId = session.user.id;
+  // training_logs filtruje po athletes.id (NIE user_id) — zmapuj raz dla bilansu treningowego
+  try {
+    const { data: _athRow } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
+    _athleteRowId = _athRow && _athRow.id;
+  } catch (e) { console.warn('[nutrition] athlete row lookup', e); }
   await loadProfile();
   await loadTodayMeals();
   refreshDashboard();
@@ -5400,9 +5406,10 @@ async function loadTrainingContext(eatenKcal, target) {
   const endOfDay = new Date(_viewDate + 'T23:59:59.999');
   let burnedKcal = 0;
   try {
+    if (!_athleteRowId) throw new Error('brak athletes.id');
     const { data } = await sb.from('training_logs')
       .select('*')
-      .eq('athlete_id', _athleteId)
+      .eq('athlete_id', _athleteRowId)
       .gte('logged_at', startOfDay.toISOString())
       .lte('logged_at', endOfDay.toISOString());
     if (data) {
