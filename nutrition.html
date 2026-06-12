@@ -580,6 +580,11 @@ body {
 .recipe-head { position:relative; }
 .fav-star-lg { position:absolute; top:10px; right:12px; font-size:24px; padding:0; }
 .recipe-btn-secondary { background:transparent; color:#ff8a4c; border:1.5px solid rgba(232,86,30,0.45); box-shadow:none; }
+.fridge-row { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
+.fridge-input { width:100%; box-sizing:border-box; padding:11px 13px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:var(--fg); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; }
+.fridge-input::placeholder { color:var(--muted); }
+.fridge-input:focus { border-color:rgba(232,86,30,0.45); }
+.fridge-btn { margin:0; }
 .recipe-lib-card { max-width:560px; padding:0; }
 .recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(30,22,18,0.98), rgba(30,22,18,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
 .recipe-lib-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.03em; color:#fff; }
@@ -3541,6 +3546,10 @@ body {
 
   <!-- 🍳 Przepis — pod hero (remaining kcal + bias z nadchodzącego treningu) -->
   <button id="recipe-btn" class="recipe-btn" onclick="generateRecipe(this)">🍳 Zaproponuj przepis</button>
+  <div class="fridge-row">
+    <input id="fridge-input" type="text" maxlength="500" class="fridge-input" placeholder="🥗 Co masz w lodówce? (np. jajka, ser, pomidory)">
+    <button class="recipe-btn recipe-btn-secondary fridge-btn" onclick="generateFromIngredients(this)">Zrób z tego</button>
+  </div>
   <div id="recipe-card" style="display:none;"></div>
 
   <!-- QUOTE CARD — 1 cytat dnia + 4 grafiki rotujące w tle -->
@@ -5526,6 +5535,34 @@ async function generateRecipe(btn) {
     _renderRecipeCard(null, 'Błąd połączenia — spróbuj ponownie.');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = btn.dataset._orig || '🍳 Zaproponuj przepis'; }
+  }
+}
+
+async function generateFromIngredients(btn) {
+  const inp = document.getElementById('fridge-input');
+  const ingredients = ((inp && inp.value) || '').trim().slice(0, 500);
+  if (ingredients.length < 3) { _renderRecipeCard(null, 'Wpisz co masz w lodówce (np. jajka, ser, pomidory).'); return; }
+  if (btn) { btn.disabled = true; btn.dataset._o = btn.textContent; btn.textContent = '⏳ Kombinuję...'; }
+  try {
+    const base = await _recipeContext();
+    const context = { ...base, ingredients };
+    const { data: { session } } = await sb.auth.getSession();
+    const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1');
+    const r = await fetch(fnUrl + '/generate-recipe', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context }),
+    });
+    const j = await r.json();
+    if (j && j.ok && j.recipe) { await _loadFavs(); _renderRecipeCard(j.recipe); if (j.saved) _libLoaded = false; }
+    else if (j && j.error === 'inedible') _renderRecipeCard(null, 'Nie udało się — te składniki nie tworzą sensownego przepisu 🤔' + (j.reason ? ' (' + j.reason + ')' : ''));
+    else if (j && j.error === 'rate_limited') _renderRecipeCard(null, 'Limit 10 przepisów / 24h osiągnięty — wróć później 🍳');
+    else _renderRecipeCard(null, 'Nie udało się — spróbuj ponownie.');
+  } catch (e) {
+    console.warn('[fridge] generate', e);
+    _renderRecipeCard(null, 'Błąd połączenia — spróbuj ponownie.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = btn.dataset._o || 'Zrób z tego'; }
   }
 }
 
