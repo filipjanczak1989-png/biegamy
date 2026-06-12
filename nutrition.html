@@ -576,6 +576,9 @@ body {
 .lib-expand .recipe-head { padding:16px; }
 .lib-expand .recipe-emoji { font-size:40px; }
 .lib-expand .recipe-title { font-size:20px; }
+.fav-star { background:none; border:none; cursor:pointer; font-size:18px; line-height:1; padding:2px 4px; flex-shrink:0; }
+.recipe-head { position:relative; }
+.fav-star-lg { position:absolute; top:10px; right:12px; font-size:24px; padding:0; }
 .recipe-btn-secondary { background:transparent; color:#ff8a4c; border:1.5px solid rgba(232,86,30,0.45); box-shadow:none; }
 .recipe-lib-card { max-width:560px; padding:0; }
 .recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(30,22,18,0.98), rgba(30,22,18,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
@@ -5515,7 +5518,7 @@ async function generateRecipe(btn) {
       body: JSON.stringify({ context }),
     });
     const j = await r.json();
-    if (j && j.ok && j.recipe) { _renderRecipeCard(j.recipe); if (j.saved) _libLoaded = false; }
+    if (j && j.ok && j.recipe) { await _loadFavs(); _renderRecipeCard(j.recipe); if (j.saved) _libLoaded = false; }
     else if (j && j.error === 'rate_limited') _renderRecipeCard(null, 'Limit 10 przepisów / 24h osiągnięty — wróć później 🍳');
     else _renderRecipeCard(null, 'Nie udało się wygenerować — spróbuj ponownie.');
   } catch (e) {
@@ -5537,8 +5540,9 @@ function _recipeCardHtml(recipe) {
   }).join('') : '';
   const steps = Array.isArray(recipe.steps) ? recipe.steps.map(s => '<li>' + esc(String(s)) + '</li>').join('') : '';
   const tags = Array.isArray(recipe.tags) ? recipe.tags.map(t => '<span class="recipe-tag">' + esc(String(t)) + '</span>').join('') : '';
+  const star = recipe.id ? '<button class="fav-star fav-star-lg" data-rid="' + esc(String(recipe.id)) + '" onclick="event.stopPropagation(); toggleFavorite(this.dataset.rid)" aria-label="Ulubione">' + (_libFavs.has(recipe.id) ? '⭐' : '☆') + '</button>' : '';
   return '<div class="recipe-head"><span class="recipe-emoji">' + emoji + '</span>'
-    + '<div class="recipe-title">' + esc(recipe.title || 'Przepis') + '</div></div>'
+    + '<div class="recipe-title">' + esc(recipe.title || 'Przepis') + '</div>' + star + '</div>'
     + (recipe.description ? '<div class="recipe-desc">' + esc(recipe.description) + '</div>' : '')
     + '<div class="recipe-macros">🔥 ' + mv(recipe.kcal) + ' kcal · B ' + mv(recipe.protein_g) + ' · W ' + mv(recipe.carbs_g) + ' · T ' + mv(recipe.fat_g)
     + (recipe.prep_minutes ? ' · ⏱ ' + mv(recipe.prep_minutes) + ' min' : '') + '</div>'
@@ -5562,9 +5566,20 @@ function _renderRecipeCard(recipe, errMsg) {
 // ── 📚 Biblioteka przepisów — lazy, bucket per pora, tap→inline karta ──
 let _libLoaded = false;
 let _libRecipes = [];
+let _libFavs = new Set();
+let _favsLoaded = false;
 const _LIB_MEALS = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
 const _LIB_MEAL_LABEL = { 'śniadanie': '🌅 Śniadanie', 'obiad': '☀️ Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska', 'Inne': '🍽️ Inne' };
 const _LIB_BIAS = ['wysokowęglowe', 'wysokobiałkowe', 'zbalansowane'];
+
+async function _loadFavs() {
+  if (_favsLoaded) return;
+  try {
+    const { data } = await sb.from('recipe_favorites').select('recipe_id').eq('athlete_id', _athleteId);
+    _libFavs = new Set((data || []).map(f => f.recipe_id));
+    _favsLoaded = true;
+  } catch (e) { console.warn('[fav] load', e); }
+}
 
 async function loadRecipeLibrary() {
   if (_libLoaded) return;
@@ -5578,6 +5593,7 @@ async function loadRecipeLibrary() {
       .order('created_at', { ascending: false });
     if (error) throw error;
     _libRecipes = data || [];
+    await _loadFavs();
     _renderRecipeLibrary();
   } catch (e) {
     console.warn('[lib]', e);
@@ -5586,33 +5602,44 @@ async function loadRecipeLibrary() {
   }
 }
 
+function _libRowHtml(r) {
+  const esc = window.escapeHtml || ((s) => String(s));
+  const tags = Array.isArray(r.tags) ? r.tags : [];
+  const bias = _LIB_BIAS.find(b => tags.includes(b)) || '';
+  const star = _libFavs.has(r.id) ? '⭐' : '☆';
+  return '<div class="lib-row" data-id="' + esc(String(r.id)) + '" onclick="toggleLibRow(this)">'
+    + '<span class="lib-emoji">' + esc(r.emoji || '🍽️') + '</span>'
+    + '<span class="lib-title">' + esc(r.title || 'Przepis') + '</span>'
+    + '<span class="lib-kcal">' + (Number(r.kcal) || '—') + ' kcal</span>'
+    + (bias ? '<span class="recipe-tag">' + esc(bias) + '</span>' : '')
+    + '<button class="fav-star" data-rid="' + esc(String(r.id)) + '" onclick="event.stopPropagation(); toggleFavorite(this.dataset.rid)" aria-label="Ulubione">' + star + '</button>'
+    + '</div>'
+    + '<div class="lib-expand" style="display:none;"></div>';
+}
+
 function _renderRecipeLibrary() {
   const el = document.getElementById('recipe-library');
   if (!el) return;
   const esc = window.escapeHtml || ((s) => String(s));
   if (!_libRecipes.length) { el.innerHTML = '<div class="lib-empty">Brak przepisów — wygeneruj pierwszy 🍳</div>'; return; }
+  let html = '';
+  // ⭐ Ulubione na górze (tylko gdy są) — przepis pokazuje się TU i w swojej grupie pory
+  const favs = _libRecipes.filter(r => _libFavs.has(r.id));
+  if (favs.length) {
+    html += '<div class="lib-group">⭐ Ulubione <span class="lib-count">' + favs.length + '</span></div>';
+    for (const r of favs) html += _libRowHtml(r);
+  }
   const buckets = { 'śniadanie': [], 'obiad': [], 'kolacja': [], 'przekąska': [], 'Inne': [] };
   for (const r of _libRecipes) {
     const tags = Array.isArray(r.tags) ? r.tags : [];
     const meal = _LIB_MEALS.find(m => tags.includes(m)) || 'Inne';   // bucket po meal-tagu, brak → Inne
     buckets[meal].push(r);
   }
-  let html = '';
   for (const meal of [..._LIB_MEALS, 'Inne']) {
     const list = buckets[meal];
     if (!list.length) continue;
     html += '<div class="lib-group">' + esc(_LIB_MEAL_LABEL[meal]) + ' <span class="lib-count">' + list.length + '</span></div>';
-    for (const r of list) {
-      const tags = Array.isArray(r.tags) ? r.tags : [];
-      const bias = _LIB_BIAS.find(b => tags.includes(b)) || '';
-      html += '<div class="lib-row" data-id="' + esc(String(r.id)) + '" onclick="toggleLibRow(this)">'
-        + '<span class="lib-emoji">' + esc(r.emoji || '🍽️') + '</span>'
-        + '<span class="lib-title">' + esc(r.title || 'Przepis') + '</span>'
-        + '<span class="lib-kcal">' + (Number(r.kcal) || '—') + ' kcal</span>'
-        + (bias ? '<span class="recipe-tag">' + esc(bias) + '</span>' : '')
-        + '</div>'
-        + '<div class="lib-expand" style="display:none;"></div>';
-    }
+    for (const r of list) html += _libRowHtml(r);
   }
   el.innerHTML = html;
 }
@@ -5624,6 +5651,33 @@ function toggleLibRow(rowEl) {
   document.querySelectorAll('.lib-expand').forEach(e => { if (e !== exp) { e.style.display = 'none'; e.innerHTML = ''; } });
   const r = _libRecipes.find(x => String(x.id) === rowEl.dataset.id);
   if (r) { exp.innerHTML = _recipeCardHtml(r); exp.style.display = 'block'; }
+}
+
+function _applyFavStars(rid) {
+  const s = _libFavs.has(rid) ? '⭐' : '☆';
+  document.querySelectorAll('.fav-star[data-rid="' + rid + '"]').forEach(b => b.textContent = s);
+}
+
+async function toggleFavorite(rid) {
+  if (!rid) return;
+  const wasFav = _libFavs.has(rid);
+  if (wasFav) _libFavs.delete(rid); else _libFavs.add(rid);   // optymistycznie
+  _applyFavStars(rid);
+  if (document.getElementById('recipe-library')) _renderRecipeLibrary();   // odśwież sekcję ⭐ Ulubione
+  try {
+    if (wasFav) {
+      const { error } = await sb.from('recipe_favorites').delete().eq('athlete_id', _athleteId).eq('recipe_id', rid);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('recipe_favorites').insert({ athlete_id: _athleteId, recipe_id: rid });
+      if (error && error.code !== '23505') throw error;   // 23505 = już ulubiony (race) → idempotent
+    }
+  } catch (e) {
+    console.warn('[fav] toggle', e);
+    if (wasFav) _libFavs.add(rid); else _libFavs.delete(rid);   // rollback
+    _applyFavStars(rid);
+    if (document.getElementById('recipe-library')) _renderRecipeLibrary();
+  }
 }
 
 async function loadTrainingContext(eatenKcal, target) {
