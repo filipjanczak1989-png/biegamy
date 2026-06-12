@@ -7159,13 +7159,16 @@ async function loadWeekView() {
     : '—';
 }
 
+// Próg białka g/kg masy wg celu — biegacze potrzebują więcej (szczególnie na redukcji)
+const PROTEIN_GKG = { deficit: 1.8, maintain: 1.6, surplus: 1.4 };
+
 // ── GRADING — ocena dnia w skali dobry/średni/słaby
 // Algorytm: punkty (0-100) na podstawie 4 kryteriów:
 //   - kcal w zakresie ±15% od targetu (0-30pkt)
-//   - białko ≥ 1.2g / kg masy (0-25pkt)
+//   - białko ≥ 1.4-1.8g / kg wg celu diety (0-25pkt)
 //   - błonnik ≥ 25g (0-20pkt)
 //   - sól ≤ 5g i cukier ≤ 50g (0-25pkt)
-function gradeDay(d, target, weight) {
+function gradeDay(d, target, weight, goal) {
   if (d.kcal === 0) return null;  // pusty dzień
   let score = 0;
 
@@ -7179,8 +7182,8 @@ function gradeDay(d, target, weight) {
     score += 15; // bez targetu — neutralnie
   }
 
-  // białko — ≥ 1.2g / kg
-  const proteinTarget = weight ? weight * 1.2 : 70;
+  // białko — próg g/kg zależny od celu (deficit 1.8 / maintain 1.6 / surplus 1.4); fallback 70kg
+  const proteinTarget = (weight || 70) * (PROTEIN_GKG[goal] || 1.6);
   if (d.protein >= proteinTarget) score += 25;
   else if (d.protein >= proteinTarget * 0.7) score += 15;
   else score += 5;
@@ -7201,8 +7204,9 @@ function gradeDay(d, target, weight) {
 
 function renderDayGrading(days, target, todayKey) {
   const weight = _profile?.weight_kg || null;
+  const goal = _profile?.goal || null;
   const grids = days.map(d => {
-    const g = gradeDay(d, target, weight);
+    const g = gradeDay(d, target, weight, goal);
     if (!g) return { html: `
       <div class="dg-day">
         <div class="dg-day-label ${d.key === todayKey ? 'today' : ''}">${d.label}</div>
@@ -7235,6 +7239,7 @@ function renderDayGrading(days, target, todayKey) {
 // ── MACRO CARDS — 7 mini wykresów (kcal + B + W + T + błonnik + cukier + sól)
 function renderMacroCards(days, target, todayKey) {
   const weight = _profile?.weight_kg || 70;
+  const goal = _profile?.goal;
   const macros = [
     {
       key: 'kcal', label: 'kcal', icon: MACRO_ICONS.kcal,
@@ -7247,7 +7252,7 @@ function renderMacroCards(days, target, todayKey) {
     {
       key: 'protein', label: 'Białko', icon: MACRO_ICONS.protein,
       values: days.map(d => d.protein),
-      target: Math.round(weight * 1.2),
+      target: Math.round(weight * (PROTEIN_GKG[goal] || 1.6)),
       unit: 'g',
       compare: 'min',  // min = min target
       decimals: 0
