@@ -7509,7 +7509,7 @@ async function loadPanelDiet() {
   try {
     // Pobierz profil nutrition (cele kcal/makro)
     const { data: nProfile } = await sb.from('nutrition_profiles')
-      .select('target_kcal, target_protein_g, target_carbs_g, target_fat_g, weight_kg, height_cm, age, activity_level, goal')
+      .select('tdee, bmr, goal, weight_kg, height_cm, age, activity_level')
       .eq('athlete_id', nutriUid)
       .maybeSingle();
     
@@ -7577,7 +7577,10 @@ async function loadPanelDiet() {
       .map(([name, stats]) => ({ name, ...stats }));
     
     // Render
-    const targetKcal = nProfile?.target_kcal || 0;
+    const targetKcal = nProfile?.tdee
+      ? Math.round(nProfile.tdee + (nProfile.goal === 'deficit' ? -300 : nProfile.goal === 'surplus' ? 300 : 0))
+      : 0;
+    const goalLabel = nProfile ? ({deficit:'Redukcja', surplus:'Masa', maintain:'Utrzymanie'}[nProfile.goal] || '—') : '—';
     const todayPct = targetKcal > 0 ? Math.round((todayData.kcal / targetKcal) * 100) : 0;
     
     container.innerHTML = `
@@ -7590,20 +7593,20 @@ async function loadPanelDiet() {
       ` : `
         <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;margin-bottom:14px;">
           <div style="background:rgba(61,184,112,0.08);border:1px solid rgba(61,184,112,0.2);border-radius:7px;padding:8px;text-align:center;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#3db870;">${nProfile.target_kcal || '—'}</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#3db870;">${targetKcal || '—'}</div>
             <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">kcal cel</div>
           </div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.target_protein_g || '—'}g</div>
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">białko</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.tdee || '—'}</div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">TDEE</div>
           </div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.target_carbs_g || '—'}g</div>
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">węgle</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.weight_kg || '—'}<span style="font-size:11px;color:var(--muted);">kg</span></div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">waga</div>
           </div>
           <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
-            <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--fg);">${nProfile.target_fat_g || '—'}g</div>
-            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">tłuszcz</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);padding-top:3px;">${goalLabel}</div>
+            <div style="font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">cel</div>
           </div>
         </div>
       `}
