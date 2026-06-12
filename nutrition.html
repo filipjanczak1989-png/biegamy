@@ -585,6 +585,7 @@ body {
 .fridge-input::placeholder { color:var(--muted); }
 .fridge-input:focus { border-color:rgba(232,86,30,0.45); }
 .fridge-btn { margin:0; }
+.recipe-micros { font-size:11px; color:var(--muted); margin-top:4px; }
 .recipe-portion { display:flex; align-items:center; gap:6px; margin-top:12px; flex-wrap:wrap; }
 .rp-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-right:2px; }
 .rp-mult { padding:5px 10px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:transparent; color:var(--fg); font-size:12px; font-weight:700; cursor:pointer; }
@@ -5585,6 +5586,10 @@ function _recipeCardHtml(recipe) {
   const star = recipe.id ? '<button class="fav-star fav-star-lg" data-rid="' + esc(String(recipe.id)) + '" onclick="event.stopPropagation(); toggleFavorite(this.dataset.rid)" aria-label="Ulubione">' + (_libFavs.has(recipe.id) ? '⭐' : '☆') + '</button>' : '';
   const mealEN = _recipeMealTypeFromTags(recipe.tags);
   const kBase = Number(recipe.kcal) || 0;
+  const hasMicro = (recipe.fiber_g != null || recipe.sugar_g != null || recipe.salt_g != null);
+  const micro = hasMicro
+    ? '<div class="recipe-micros">🌾 <span class="rm-fiber">' + mv(recipe.fiber_g) + '</span>g błonnik · 🍬 <span class="rm-sugar">' + mv(recipe.sugar_g) + '</span>g cukier · 🧂 <span class="rm-salt">' + mv(recipe.salt_g) + '</span>g sól</div>'
+    : '';
   const portion = recipe.id ? (
       '<div class="recipe-portion"><span class="rp-label">Porcja</span>'
     + [0.5, 1, 1.5, 2].map(m => '<button class="rp-mult' + (m === 1 ? ' active' : '') + '" onclick="_recipeSetMult(this,' + m + ')">' + m + '×</button>').join('')
@@ -5593,12 +5598,14 @@ function _recipeCardHtml(recipe) {
   ) : '';
   return '<div class="recipe-scope" data-rid="' + esc(String(recipe.id || '')) + '"'
     + ' data-kcal="' + kBase + '" data-p="' + (recipe.protein_g ?? '') + '" data-c="' + (recipe.carbs_g ?? '') + '" data-f="' + (recipe.fat_g ?? '') + '"'
+    + ' data-fiber="' + (recipe.fiber_g ?? '') + '" data-sugar="' + (recipe.sugar_g ?? '') + '" data-salt="' + (recipe.salt_g ?? '') + '"'
     + ' data-name="' + esc(String(recipe.title || 'Przepis')) + '" data-meal="' + esc(mealEN) + '" data-mult="1">'
     + '<div class="recipe-head"><span class="recipe-emoji">' + emoji + '</span>'
     + '<div class="recipe-title">' + esc(recipe.title || 'Przepis') + '</div>' + star + '</div>'
     + (recipe.description ? '<div class="recipe-desc">' + esc(recipe.description) + '</div>' : '')
     + '<div class="recipe-macros">🔥 <span class="rm-kcal">' + mv(recipe.kcal) + '</span> kcal · B <span class="rm-p">' + mv(recipe.protein_g) + '</span> · W <span class="rm-c">' + mv(recipe.carbs_g) + '</span> · T <span class="rm-f">' + mv(recipe.fat_g) + '</span>'
     + (recipe.prep_minutes ? ' · ⏱ ' + mv(recipe.prep_minutes) + ' min' : '') + '</div>'
+    + micro
     + (ing ? '<div class="recipe-sub">Składniki</div><ul class="recipe-list">' + ing + '</ul>' : '')
     + (steps ? '<div class="recipe-sub">Przygotowanie</div><ol class="recipe-list">' + steps + '</ol>' : '')
     + (tags ? '<div class="recipe-tags">' + tags + '</div>' : '')
@@ -5623,6 +5630,9 @@ function _recipeSetMult(btn, m) {
   set('.rm-p', r1(base('p')));
   set('.rm-c', r1(base('c')));
   set('.rm-f', r1(base('f')));
+  set('.rm-fiber', r1(base('fiber')));
+  set('.rm-sugar', r1(base('sugar')));
+  set('.rm-salt', r1(base('salt')));
 }
 
 async function addRecipeToJournal(btn) {
@@ -5637,6 +5647,7 @@ async function addRecipeToJournal(btn) {
     meal_type: sc.dataset.meal || guessMealType(),
     kcal: num('kcal', false),
     protein_g: num('p', true), carbs_g: num('c', true), fat_g: num('f', true),
+    fiber_g: num('fiber', true), sugar_g: num('sugar', true), salt_g: num('salt', true),
     source: 'recipe',
     source_data: { recipe_id: sc.dataset.rid || null, multiplier: m },
   };
