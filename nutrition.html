@@ -5419,10 +5419,16 @@ async function quickAddMeal(idx) {
 
 // ── 🍳 Przepisy — kontekst + generacja + render (EF generate-recipe, cache-first) ──
 async function _recipeContext() {
+  // meal_type (PL) + target PER POSIŁEK — nie cały gap dnia (inaczej model robi 2700kcal makaron)
+  const _MEAL_PL = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'kolacja', snack: 'przekąska' };
+  const _MEAL_TARGET = { 'śniadanie': 500, 'obiad': 700, 'kolacja': 600, 'przekąska': 250 };
+  const _mt = (typeof guessMealType === 'function') ? guessMealType() : '';
+  const meal_type = _MEAL_PL[_mt] || _mt || undefined;   // PL hint; nieznany slot → as-is
   let remaining_kcal = null;
   if (_profile && _profile.tdee) {
     const adj = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
-    remaining_kcal = Math.max(0, Math.round((_profile.tdee + adj) - (window._nutEaten || 0)));
+    const gap = Math.max(0, Math.round((_profile.tdee + adj) - (window._nutEaten || 0)));
+    remaining_kcal = Math.min(_MEAL_TARGET[meal_type] || 550, gap);   // porcja posiłku, nie więcej niż realny gap dnia
   }
   let bias_tag = 'zbalansowane';
   let upcoming_training = null;
@@ -5442,13 +5448,11 @@ async function _recipeContext() {
       }
     } catch (e) { console.warn('[recipe] trainings ctx', e); }
   }
-  const _MEAL_PL = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'kolacja', snack: 'przekąska' };
-  const _mt = (typeof guessMealType === 'function') ? guessMealType() : '';
   return {
     remaining_kcal, bias_tag,
     goal: (_profile && _profile.goal) || 'maintain',
     upcoming_training,
-    meal_type: _MEAL_PL[_mt] || _mt || undefined,   // PL hint; nieznany slot → as-is
+    meal_type,
   };
 }
 
@@ -5471,6 +5475,7 @@ async function generateRecipe(btn) {
     });
     const j = await r.json();
     if (j && j.ok && j.recipe) _renderRecipeCard(j.recipe);
+    else if (j && j.error === 'rate_limited') _renderRecipeCard(null, 'Limit 10 przepisów / 24h osiągnięty — wróć później 🍳');
     else _renderRecipeCard(null, 'Nie udało się wygenerować — spróbuj ponownie.');
   } catch (e) {
     console.warn('[recipe] generate', e);
