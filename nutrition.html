@@ -564,6 +564,18 @@ body {
 .recipe-tags { padding:0 18px 16px; display:flex; flex-wrap:wrap; gap:6px; }
 .recipe-tag { font-size:9px; font-family:'DM Mono',monospace; letter-spacing:0.05em; color:#ff8a4c; background:rgba(232,86,30,0.12); border:1px solid rgba(232,86,30,0.3); border-radius:6px; padding:3px 8px; }
 .recipe-empty { padding:18px; text-align:center; color:var(--muted); font-size:12px; font-family:'DM Mono',monospace; }
+.lib-empty { padding:16px; text-align:center; color:var(--muted); font-size:12px; font-family:'DM Mono',monospace; }
+.lib-group { margin:14px 0 6px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--fg2); display:flex; align-items:center; gap:8px; }
+.lib-count { background:rgba(232,86,30,0.15); color:#ff8a4c; border-radius:10px; padding:1px 8px; font-size:9px; }
+.lib-row { display:flex; align-items:center; gap:10px; padding:11px 12px; margin-bottom:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; cursor:pointer; transition:border-color 0.15s; }
+.lib-row:hover { border-color:rgba(232,86,30,0.35); }
+.lib-emoji { font-size:24px; line-height:1; flex-shrink:0; }
+.lib-title { flex:1; font-size:13px; color:var(--fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lib-kcal { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); flex-shrink:0; }
+.lib-expand { margin:-2px 0 10px; border-radius:14px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); }
+.lib-expand .recipe-head { padding:16px; }
+.lib-expand .recipe-emoji { font-size:40px; }
+.lib-expand .recipe-title { font-size:20px; }
 
 /* SECTION */
 .section-header {
@@ -3563,6 +3575,12 @@ body {
   <!-- Legacy meal-list ukryta (zachowany dla quick search innych view) -->
   <div id="meals-list" style="display:none;"></div>
 
+  <!-- 📚 Biblioteka przepisów -->
+  <div class="section-header" style="margin-top:18px;">
+    <div class="section-title">📚 Biblioteka przepisów</div>
+  </div>
+  <div id="recipe-library"></div>
+
   </div><!-- /view-today -->
 
   <!-- VIEW: WEEK -->
@@ -4698,6 +4716,7 @@ function getViewDateLabel() {
   await loadProfile();
   await loadTodayMeals();
   refreshDashboard();
+  loadRecipeLibrary();   // lazy: 'today' to domyślny widok przy wejściu
 
   // Init pasek dni
   _dateBarWeekStart = getMonday(new Date(_viewDate + 'T00:00:00'));
@@ -5474,7 +5493,7 @@ async function generateRecipe(btn) {
       body: JSON.stringify({ context }),
     });
     const j = await r.json();
-    if (j && j.ok && j.recipe) _renderRecipeCard(j.recipe);
+    if (j && j.ok && j.recipe) { _renderRecipeCard(j.recipe); if (j.saved) _libLoaded = false; }
     else if (j && j.error === 'rate_limited') _renderRecipeCard(null, 'Limit 10 przepisów / 24h osiągnięty — wróć później 🍳');
     else _renderRecipeCard(null, 'Nie udało się wygenerować — spróbuj ponownie.');
   } catch (e) {
@@ -5485,11 +5504,8 @@ async function generateRecipe(btn) {
   }
 }
 
-function _renderRecipeCard(recipe, errMsg) {
-  const el = document.getElementById('recipe-card');
-  if (!el) return;
+function _recipeCardHtml(recipe) {
   const esc = window.escapeHtml || ((s) => String(s).replace(/[<>&"]/g, c => ({ '<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;' }[c])));
-  if (!recipe) { el.innerHTML = '<div class="recipe-empty">' + esc(errMsg || '—') + '</div>'; el.style.display = 'block'; return; }
   const emoji = esc(recipe.emoji || '🍽️');
   const mv = (v) => (v === null || v === undefined || v === '') ? '—' : esc(String(v));
   const ing = Array.isArray(recipe.ingredients) ? recipe.ingredients.map(i => {
@@ -5499,8 +5515,7 @@ function _renderRecipeCard(recipe, errMsg) {
   }).join('') : '';
   const steps = Array.isArray(recipe.steps) ? recipe.steps.map(s => '<li>' + esc(String(s)) + '</li>').join('') : '';
   const tags = Array.isArray(recipe.tags) ? recipe.tags.map(t => '<span class="recipe-tag">' + esc(String(t)) + '</span>').join('') : '';
-  el.innerHTML =
-    '<div class="recipe-head"><span class="recipe-emoji">' + emoji + '</span>'
+  return '<div class="recipe-head"><span class="recipe-emoji">' + emoji + '</span>'
     + '<div class="recipe-title">' + esc(recipe.title || 'Przepis') + '</div></div>'
     + (recipe.description ? '<div class="recipe-desc">' + esc(recipe.description) + '</div>' : '')
     + '<div class="recipe-macros">🔥 ' + mv(recipe.kcal) + ' kcal · B ' + mv(recipe.protein_g) + ' · W ' + mv(recipe.carbs_g) + ' · T ' + mv(recipe.fat_g)
@@ -5508,7 +5523,85 @@ function _renderRecipeCard(recipe, errMsg) {
     + (ing ? '<div class="recipe-sub">Składniki</div><ul class="recipe-list">' + ing + '</ul>' : '')
     + (steps ? '<div class="recipe-sub">Przygotowanie</div><ol class="recipe-list">' + steps + '</ol>' : '')
     + (tags ? '<div class="recipe-tags">' + tags + '</div>' : '');
+}
+
+function _renderRecipeCard(recipe, errMsg) {
+  const el = document.getElementById('recipe-card');
+  if (!el) return;
+  if (!recipe) {
+    const esc = window.escapeHtml || ((s) => String(s));
+    el.innerHTML = '<div class="recipe-empty">' + esc(errMsg || '—') + '</div>';
+    el.style.display = 'block'; return;
+  }
+  el.innerHTML = _recipeCardHtml(recipe);
   el.style.display = 'block';
+}
+
+// ── 📚 Biblioteka przepisów — lazy, bucket per pora, tap→inline karta ──
+let _libLoaded = false;
+let _libRecipes = [];
+const _LIB_MEALS = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
+const _LIB_MEAL_LABEL = { 'śniadanie': '🌅 Śniadanie', 'obiad': '☀️ Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska', 'Inne': '🍽️ Inne' };
+const _LIB_BIAS = ['wysokowęglowe', 'wysokobiałkowe', 'zbalansowane'];
+
+async function loadRecipeLibrary() {
+  if (_libLoaded) return;
+  _libLoaded = true;
+  const el = document.getElementById('recipe-library');
+  if (!el) return;
+  el.innerHTML = '<div class="lib-empty">Ładowanie...</div>';
+  try {
+    const { data, error } = await sb.from('recipes')
+      .select('id,emoji,title,kcal,protein_g,carbs_g,fat_g,prep_minutes,description,ingredients,steps,tags')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    _libRecipes = data || [];
+    _renderRecipeLibrary();
+  } catch (e) {
+    console.warn('[lib]', e);
+    _libLoaded = false;   // pozwól ponowić przy następnym wejściu
+    el.innerHTML = '<div class="lib-empty">Nie udało się wczytać biblioteki.</div>';
+  }
+}
+
+function _renderRecipeLibrary() {
+  const el = document.getElementById('recipe-library');
+  if (!el) return;
+  const esc = window.escapeHtml || ((s) => String(s));
+  if (!_libRecipes.length) { el.innerHTML = '<div class="lib-empty">Brak przepisów — wygeneruj pierwszy 🍳</div>'; return; }
+  const buckets = { 'śniadanie': [], 'obiad': [], 'kolacja': [], 'przekąska': [], 'Inne': [] };
+  for (const r of _libRecipes) {
+    const tags = Array.isArray(r.tags) ? r.tags : [];
+    const meal = _LIB_MEALS.find(m => tags.includes(m)) || 'Inne';   // bucket po meal-tagu, brak → Inne
+    buckets[meal].push(r);
+  }
+  let html = '';
+  for (const meal of [..._LIB_MEALS, 'Inne']) {
+    const list = buckets[meal];
+    if (!list.length) continue;
+    html += '<div class="lib-group">' + esc(_LIB_MEAL_LABEL[meal]) + ' <span class="lib-count">' + list.length + '</span></div>';
+    for (const r of list) {
+      const tags = Array.isArray(r.tags) ? r.tags : [];
+      const bias = _LIB_BIAS.find(b => tags.includes(b)) || '';
+      html += '<div class="lib-row" data-id="' + esc(String(r.id)) + '" onclick="toggleLibRow(this)">'
+        + '<span class="lib-emoji">' + esc(r.emoji || '🍽️') + '</span>'
+        + '<span class="lib-title">' + esc(r.title || 'Przepis') + '</span>'
+        + '<span class="lib-kcal">' + (Number(r.kcal) || '—') + ' kcal</span>'
+        + (bias ? '<span class="recipe-tag">' + esc(bias) + '</span>' : '')
+        + '</div>'
+        + '<div class="lib-expand" style="display:none;"></div>';
+    }
+  }
+  el.innerHTML = html;
+}
+
+function toggleLibRow(rowEl) {
+  const exp = rowEl.nextElementSibling;
+  if (!exp || !exp.classList.contains('lib-expand')) return;
+  if (exp.style.display !== 'none') { exp.style.display = 'none'; exp.innerHTML = ''; return; }
+  document.querySelectorAll('.lib-expand').forEach(e => { if (e !== exp) { e.style.display = 'none'; e.innerHTML = ''; } });
+  const r = _libRecipes.find(x => String(x.id) === rowEl.dataset.id);
+  if (r) { exp.innerHTML = _recipeCardHtml(r); exp.style.display = 'block'; }
 }
 
 async function loadTrainingContext(eatenKcal, target) {
@@ -6492,6 +6585,7 @@ function switchTab(tab) {
   document.getElementById('view-today').style.display = tab === 'today' ? '' : 'none';
   document.getElementById('view-week').style.display = tab === 'week' ? '' : 'none';
   document.getElementById('view-history').style.display = tab === 'history' ? '' : 'none';
+  if (tab === 'today') loadRecipeLibrary();   // powrót z innej zakładki → załaduj (flaga _libLoaded dedupuje)
   if (tab === 'week') loadWeekView();
   if (tab === 'history') loadHistoryView();
 }
