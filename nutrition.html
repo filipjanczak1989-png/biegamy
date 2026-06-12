@@ -576,6 +576,12 @@ body {
 .lib-expand .recipe-head { padding:16px; }
 .lib-expand .recipe-emoji { font-size:40px; }
 .lib-expand .recipe-title { font-size:20px; }
+.recipe-btn-secondary { background:transparent; color:#ff8a4c; border:1.5px solid rgba(232,86,30,0.45); box-shadow:none; }
+.recipe-lib-card { max-width:560px; padding:0; }
+.recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(30,22,18,0.98), rgba(30,22,18,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
+.recipe-lib-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.03em; color:#fff; }
+.recipe-lib-close { background:rgba(255,255,255,0.08); border:none; color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1; flex-shrink:0; }
+#recipe-library { padding:6px 18px 20px; }
 
 /* SECTION */
 .section-header {
@@ -3575,11 +3581,8 @@ body {
   <!-- Legacy meal-list ukryta (zachowany dla quick search innych view) -->
   <div id="meals-list" style="display:none;"></div>
 
-  <!-- 📚 Biblioteka przepisów -->
-  <div class="section-header" style="margin-top:18px;">
-    <div class="section-title">📚 Biblioteka przepisów</div>
-  </div>
-  <div id="recipe-library"></div>
+  <!-- 📚 Biblioteka przepisów — przycisk otwiera overlay -->
+  <button class="recipe-btn recipe-btn-secondary" onclick="openRecipeLibrary()">📚 Biblioteka przepisów</button>
 
   </div><!-- /view-today -->
 
@@ -4205,6 +4208,16 @@ body {
 <!-- ─────────────────────────────────────── -->
 <!-- MODAL: PROFILE -->
 <!-- ─────────────────────────────────────── -->
+<div id="recipe-library-modal" class="modal hidden" onclick="if(event.target===this) closeRecipeLibrary()">
+  <div class="modal-card recipe-lib-card">
+    <div class="recipe-lib-head">
+      <div class="recipe-lib-title">📚 Biblioteka przepisów</div>
+      <button class="recipe-lib-close" onclick="closeRecipeLibrary()" aria-label="Zamknij">✕</button>
+    </div>
+    <div id="recipe-library"></div>
+  </div>
+</div>
+
 <div id="profile-modal" class="modal hidden">
   <div class="modal-card">
     <div class="modal-icon-header">
@@ -4716,7 +4729,6 @@ function getViewDateLabel() {
   await loadProfile();
   await loadTodayMeals();
   refreshDashboard();
-  loadRecipeLibrary();   // lazy: 'today' to domyślny widok przy wejściu
 
   // Init pasek dni
   _dateBarWeekStart = getMonday(new Date(_viewDate + 'T00:00:00'));
@@ -4897,6 +4909,16 @@ function openProfileModal() {
 
 function closeProfileModal() {
   document.getElementById('profile-modal').classList.add('hidden');
+}
+
+function openRecipeLibrary() {
+  document.getElementById('recipe-library-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';   // scroll-lock (wzorzec z openOnboarding)
+  loadRecipeLibrary();   // lazy: pierwsze otwarcie ładuje (flaga _libLoaded); kolejne = instant
+}
+function closeRecipeLibrary() {
+  document.getElementById('recipe-library-modal').classList.add('hidden');
+  document.body.style.overflow = '';
 }
 
 async function saveProfile() {
@@ -6585,7 +6607,6 @@ function switchTab(tab) {
   document.getElementById('view-today').style.display = tab === 'today' ? '' : 'none';
   document.getElementById('view-week').style.display = tab === 'week' ? '' : 'none';
   document.getElementById('view-history').style.display = tab === 'history' ? '' : 'none';
-  if (tab === 'today') loadRecipeLibrary();   // powrót z innej zakładki → załaduj (flaga _libLoaded dedupuje)
   if (tab === 'week') loadWeekView();
   if (tab === 'history') loadHistoryView();
 }
