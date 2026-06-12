@@ -5479,10 +5479,9 @@ async function quickAddMeal(idx) {
 // ── 🍳 Przepisy — kontekst + generacja + render (EF generate-recipe, cache-first) ──
 async function _recipeContext() {
   // meal_type (PL) + target PER POSIŁEK — nie cały gap dnia (inaczej model robi 2700kcal makaron)
-  const _MEAL_PL = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'kolacja', snack: 'przekąska' };
   const _MEAL_TARGET = { 'śniadanie': 500, 'obiad': 700, 'kolacja': 600, 'przekąska': 250 };
   const _mt = (typeof guessMealType === 'function') ? guessMealType() : '';
-  const meal_type = _MEAL_PL[_mt] || _mt || undefined;   // PL hint; nieznany slot → as-is
+  const meal_type = MEAL_KEY2RECIPEPL[_mt] || _mt || undefined;   // klucz slotu → kategoria PL przepisu (SSOT)
   let remaining_kcal = null;
   if (_profile && _profile.tdee) {
     const adj = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
@@ -5608,8 +5607,7 @@ function _recipeCardHtml(recipe) {
 }
 
 function _recipeMealTypeFromTags(tags) {
-  const M = { 'śniadanie': 'breakfast', 'obiad': 'lunch', 'kolacja': 'dinner', 'przekąska': 'snack' };
-  if (Array.isArray(tags)) for (const t of tags) if (M[t]) return M[t];
+  if (Array.isArray(tags)) for (const t of tags) if (RECIPEPL2MEAL_KEY[t]) return RECIPEPL2MEAL_KEY[t];
   return '';
 }
 
@@ -5669,7 +5667,7 @@ let _libRecipes = [];
 let _libFavs = new Set();
 let _favsLoaded = false;
 const _LIB_MEALS = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
-const _LIB_MEAL_LABEL = { 'śniadanie': '🌅 Śniadanie', 'obiad': '☀️ Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska', 'Inne': '🍽️ Inne' };
+const _LIB_MEAL_LABEL = { 'śniadanie': '🌅 Śniadanie', 'obiad': '🍽 Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska', 'Inne': '🍽️ Inne' };
 const _LIB_BIAS = ['wysokowęglowe', 'wysokobiałkowe', 'zbalansowane'];
 
 async function _loadFavs() {
@@ -5989,11 +5987,26 @@ async function selectDate(ds) {
 // MEAL SLOTS — 5 slotów per meal_type (jak fitatu)
 // ════════════════════════════════════════════════════════════
 
+// ── SSOT pór posiłków — JEDEN słownik. 5 slotów: Śniadanie/Lunch/Obiad/Przekąska/Kolacja ──
+// Granice guess (maxHour): <11 breakfast · 11-14 lunch · 14-17 dinner · 17-19 snack · 19-24 evening (pełna doba, bez dziur)
+const MEAL = {
+  breakfast: { label: 'Śniadanie', icon: '🌅', maxHour: 11, defaultHour: 8  },
+  lunch:     { label: 'Lunch',     icon: '🌞', maxHour: 14, defaultHour: 12 },
+  dinner:    { label: 'Obiad',     icon: '🍽', maxHour: 17, defaultHour: 15 },
+  snack:     { label: 'Przekąska', icon: '🍎', maxHour: 19, defaultHour: 17 },
+  evening:   { label: 'Kolacja',   icon: '🌙', maxHour: 24, defaultHour: 20 },
+};
+const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack', 'evening'];
+// klucz slotu → kategoria PL przepisu (hint EF). lunch+dinner → 'obiad' (przepisy nie znają "lunch")
+const MEAL_KEY2RECIPEPL = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'obiad', snack: 'przekąska', evening: 'kolacja' };
+// tag PL przepisu → klucz slotu (insert do dziennika). obiad→dinner, kolacja→evening
+const RECIPEPL2MEAL_KEY = { 'śniadanie': 'breakfast', 'obiad': 'dinner', 'kolacja': 'evening', 'przekąska': 'snack' };
+
 const MEAL_TYPES = [
   { 
     key: 'breakfast', 
-    label: 'Śniadanie', 
-    defaultHour: 8,
+    label: MEAL.breakfast.label,
+    defaultHour: MEAL.breakfast.defaultHour,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="4"/>
       <line x1="12" y1="3" x2="12" y2="5"/>
@@ -6008,8 +6021,8 @@ const MEAL_TYPES = [
   },
   { 
     key: 'lunch', 
-    label: 'Lunch', 
-    defaultHour: 12,
+    label: MEAL.lunch.label,
+    defaultHour: MEAL.lunch.defaultHour,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="9"/>
       <polyline points="12 7 12 12 15 14"/>
@@ -6017,8 +6030,8 @@ const MEAL_TYPES = [
   },
   { 
     key: 'dinner', 
-    label: 'Obiad', 
-    defaultHour: 14,
+    label: MEAL.dinner.label,
+    defaultHour: MEAL.dinner.defaultHour,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M5 3v8a3 3 0 0 0 3 3v7"/>
       <line x1="5" y1="3" x2="5" y2="11"/>
@@ -6029,8 +6042,8 @@ const MEAL_TYPES = [
   },
   { 
     key: 'snack', 
-    label: 'Przekąska', 
-    defaultHour: 16,
+    label: MEAL.snack.label,
+    defaultHour: MEAL.snack.defaultHour,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 6 c 0 -2 -2 -3 -2 -3 c 0 0 -1 1 -1 2 c 0 1 1 2 3 2 z"/>
       <path d="M19 14 c 0 4 -3 7 -7 7 c -4 0 -7 -3 -7 -7 c 0 -3 2 -6 5 -6 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 3 5 6 z"/>
@@ -6038,8 +6051,8 @@ const MEAL_TYPES = [
   },
   { 
     key: 'evening', 
-    label: 'Kolacja', 
-    defaultHour: 19,
+    label: MEAL.evening.label,
+    defaultHour: MEAL.evening.defaultHour,
     iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 12.79 A 9 9 0 1 1 11.21 3 A 7 7 0 0 0 21 12.79 z"/>
     </svg>`
@@ -6154,7 +6167,7 @@ function renderMealsList() {
       </div>`;
     return;
   }
-  const icons = { breakfast: '🌅', lunch: '🌞', dinner: '🌙', snack: '🍎', meal: '🍽' };
+  const icons = { breakfast: MEAL.breakfast.icon, lunch: MEAL.lunch.icon, dinner: MEAL.dinner.icon, snack: MEAL.snack.icon, evening: MEAL.evening.icon, meal: '🍽' };
   // Mapa po id dla szybkiego dostępu z onclick handlera
   window._mealsById = {};
   _todayMeals.forEach(m => { window._mealsById[m.id] = m; });
@@ -6742,13 +6755,10 @@ function guessMealType() {
     window._pendingMealType = null;  // zużyj raz
     return t;
   }
-  // Domyślnie: bazuje na godzinie z getInsertTimestamp (uwzględnia _viewDate)
-  const ts = getInsertTimestamp();
-  const h = new Date(ts).getHours();
-  if (h < 11) return 'breakfast';
-  if (h < 16) return 'lunch';
-  if (h < 21) return 'dinner';
-  return 'snack';
+  // Domyślnie: godzina wg granic MEAL (SSOT) — pełna doba 0-24, produkuje też evening
+  const h = new Date(getInsertTimestamp()).getHours();
+  for (const k of MEAL_ORDER) if (h < MEAL[k].maxHour) return k;
+  return 'evening';
 }
 
 // ════════════════════════════════════════════════════════════
@@ -6943,7 +6953,7 @@ async function openDayDetails(dateKey) {
     document.getElementById('day-sub').textContent =
       `${Math.round(totalKcal)} kcal · B:${Math.round(totalP)}g W:${Math.round(totalC)}g T:${Math.round(totalF)}g · ${meals.length} ${meals.length === 1 ? 'posiłek' : meals.length < 5 ? 'posiłki' : 'posiłków'}`;
 
-    const icons = { breakfast: '🌅', lunch: '🌞', dinner: '🌙', snack: '🍎', meal: '🍽' };
+    const icons = { breakfast: MEAL.breakfast.icon, lunch: MEAL.lunch.icon, dinner: MEAL.dinner.icon, snack: MEAL.snack.icon, evening: MEAL.evening.icon, meal: '🍽' };
     document.getElementById('day-meals').innerHTML = meals.map(m => {
       const t = new Date(m.eaten_at);
       const time = t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
@@ -6995,7 +7005,6 @@ async function exportCSV() {
 
   // Generuj CSV — używamy ; jako separatora (lepsze dla Excel PL)
   const headers = ['Data', 'Godzina', 'Posiłek', 'Typ', 'Waga (g)', 'kcal', 'Białko (g)', 'Węgle (g)', 'Tłuszcz (g)', 'Błonnik (g)', 'Źródło'];
-  const typeMap = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'kolacja', snack: 'przekąska', meal: 'posiłek' };
   const sourceMap = { barcode: 'kod kreskowy', text: 'tekst', photo: 'zdjęcie AI', manual: 'ręcznie', database: 'baza' };
 
   const rows = data.map(m => {
@@ -7006,7 +7015,7 @@ async function exportCSV() {
       date,
       time,
       csvEscape(m.name || ''),
-      typeMap[m.meal_type] || m.meal_type || 'posiłek',
+      (MEAL[m.meal_type] ? MEAL[m.meal_type].label.toLowerCase() : (m.meal_type === 'meal' ? 'posiłek' : (m.meal_type || 'posiłek'))),
       m.weight_g ? Math.round(m.weight_g) : '',
       Math.round(m.kcal || 0),
       (parseFloat(m.protein_g) || 0).toFixed(1),
