@@ -6515,7 +6515,6 @@ function recalcMacrosForGrams(g) {
   const sugar = (p.sugar_per_100g || 0) * f;
   const salt = (p.salt_per_100g || 0) * f;
   const satFat = (p.saturated_fat_per_100g || 0) * f;
-  const sodium = (p.sodium_mg_per_100g || (salt * 400)) * f / (p.sodium_mg_per_100g ? 1 : f); // sól * 400 = sód mg
 
   // Spr. czy mamy sodium per_100g, jeśli tak to f, jeśli nie to z soli
   const sodiumDisplay = p.sodium_mg_per_100g ? Math.round(p.sodium_mg_per_100g * f) : Math.round(salt * 400);
