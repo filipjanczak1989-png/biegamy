@@ -585,6 +585,12 @@ body {
 .fridge-input::placeholder { color:var(--muted); }
 .fridge-input:focus { border-color:rgba(232,86,30,0.45); }
 .fridge-btn { margin:0; }
+.recipe-portion { display:flex; align-items:center; gap:6px; margin-top:12px; flex-wrap:wrap; }
+.rp-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-right:2px; }
+.rp-mult { padding:5px 10px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:transparent; color:var(--fg); font-size:12px; font-weight:700; cursor:pointer; }
+.rp-mult.active { background:linear-gradient(135deg,#e8561e,#ff8a4c); border-color:transparent; color:#fff; }
+.recipe-journal-btn { width:100%; margin-top:10px; padding:11px; border-radius:12px; cursor:pointer; background:rgba(232,86,30,0.14); color:#ff8a4c; border:1px solid rgba(232,86,30,0.4); font-family:'DM Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+.recipe-journal-btn:disabled { opacity:0.6; }
 .recipe-lib-card { max-width:560px; padding:0; }
 .recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(30,22,18,0.98), rgba(30,22,18,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
 .recipe-lib-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.03em; color:#fff; }
@@ -5578,14 +5584,71 @@ function _recipeCardHtml(recipe) {
   const steps = Array.isArray(recipe.steps) ? recipe.steps.map(s => '<li>' + esc(String(s)) + '</li>').join('') : '';
   const tags = Array.isArray(recipe.tags) ? recipe.tags.map(t => '<span class="recipe-tag">' + esc(String(t)) + '</span>').join('') : '';
   const star = recipe.id ? '<button class="fav-star fav-star-lg" data-rid="' + esc(String(recipe.id)) + '" onclick="event.stopPropagation(); toggleFavorite(this.dataset.rid)" aria-label="Ulubione">' + (_libFavs.has(recipe.id) ? '⭐' : '☆') + '</button>' : '';
-  return '<div class="recipe-head"><span class="recipe-emoji">' + emoji + '</span>'
+  const mealEN = _recipeMealTypeFromTags(recipe.tags);
+  const kBase = Number(recipe.kcal) || 0;
+  const portion = recipe.id ? (
+      '<div class="recipe-portion"><span class="rp-label">Porcja</span>'
+    + [0.5, 1, 1.5, 2].map(m => '<button class="rp-mult' + (m === 1 ? ' active' : '') + '" onclick="_recipeSetMult(this,' + m + ')">' + m + '×</button>').join('')
+    + '</div>'
+    + '<button class="recipe-journal-btn" onclick="addRecipeToJournal(this)">✓ Dodaj do dziennika</button>'
+  ) : '';
+  return '<div class="recipe-scope" data-rid="' + esc(String(recipe.id || '')) + '"'
+    + ' data-kcal="' + kBase + '" data-p="' + (recipe.protein_g ?? '') + '" data-c="' + (recipe.carbs_g ?? '') + '" data-f="' + (recipe.fat_g ?? '') + '"'
+    + ' data-name="' + esc(String(recipe.title || 'Przepis')) + '" data-meal="' + esc(mealEN) + '" data-mult="1">'
+    + '<div class="recipe-head"><span class="recipe-emoji">' + emoji + '</span>'
     + '<div class="recipe-title">' + esc(recipe.title || 'Przepis') + '</div>' + star + '</div>'
     + (recipe.description ? '<div class="recipe-desc">' + esc(recipe.description) + '</div>' : '')
-    + '<div class="recipe-macros">🔥 ' + mv(recipe.kcal) + ' kcal · B ' + mv(recipe.protein_g) + ' · W ' + mv(recipe.carbs_g) + ' · T ' + mv(recipe.fat_g)
+    + '<div class="recipe-macros">🔥 <span class="rm-kcal">' + mv(recipe.kcal) + '</span> kcal · B <span class="rm-p">' + mv(recipe.protein_g) + '</span> · W <span class="rm-c">' + mv(recipe.carbs_g) + '</span> · T <span class="rm-f">' + mv(recipe.fat_g) + '</span>'
     + (recipe.prep_minutes ? ' · ⏱ ' + mv(recipe.prep_minutes) + ' min' : '') + '</div>'
     + (ing ? '<div class="recipe-sub">Składniki</div><ul class="recipe-list">' + ing + '</ul>' : '')
     + (steps ? '<div class="recipe-sub">Przygotowanie</div><ol class="recipe-list">' + steps + '</ol>' : '')
-    + (tags ? '<div class="recipe-tags">' + tags + '</div>' : '');
+    + (tags ? '<div class="recipe-tags">' + tags + '</div>' : '')
+    + portion
+    + '</div>';
+}
+
+function _recipeMealTypeFromTags(tags) {
+  const M = { 'śniadanie': 'breakfast', 'obiad': 'lunch', 'kolacja': 'dinner', 'przekąska': 'snack' };
+  if (Array.isArray(tags)) for (const t of tags) if (M[t]) return M[t];
+  return '';
+}
+
+function _recipeSetMult(btn, m) {
+  const sc = btn.closest('.recipe-scope'); if (!sc) return;
+  sc.dataset.mult = m;
+  sc.querySelectorAll('.rp-mult').forEach(b => b.classList.toggle('active', b === btn));
+  const base = (key) => { const v = sc.dataset[key]; return (v === '' || v == null) ? null : Number(v); };
+  const r0 = (v) => v == null ? '—' : String(Math.round(v * m));
+  const r1 = (v) => v == null ? '—' : String(Math.round(v * m * 10) / 10);
+  const set = (sel, txt) => { const el = sc.querySelector(sel); if (el) el.textContent = txt; };
+  set('.rm-kcal', r0(base('kcal')));
+  set('.rm-p', r1(base('p')));
+  set('.rm-c', r1(base('c')));
+  set('.rm-f', r1(base('f')));
+}
+
+async function addRecipeToJournal(btn) {
+  const sc = btn.closest('.recipe-scope'); if (!sc) return;
+  const m = Number(sc.dataset.mult) || 1;
+  const num = (key, dec) => { const v = sc.dataset[key]; if (v === '' || v == null) return null;
+    return dec ? Math.round(Number(v) * m * 10) / 10 : Math.round(Number(v) * m); };
+  const meal = {
+    athlete_id: _athleteId,
+    eaten_at: getInsertTimestamp(),
+    name: sc.dataset.name || 'Przepis',
+    meal_type: sc.dataset.meal || guessMealType(),
+    kcal: num('kcal', false),
+    protein_g: num('p', true), carbs_g: num('c', true), fat_g: num('f', true),
+    source: 'recipe',
+    source_data: { recipe_id: sc.dataset.rid || null, multiplier: m },
+  };
+  btn.disabled = true;
+  const { error } = await sb.from('nutrition_meals').insert(meal);
+  btn.disabled = false;
+  if (error) { showToast('Błąd zapisu'); console.error(error); return; }
+  showToast('✓ Dodano: ' + (meal.kcal ?? 0) + ' kcal');
+  await loadTodayMeals(); refreshDashboard();
+  if (navigator.vibrate) navigator.vibrate([20, 30, 50]);
 }
 
 function _renderRecipeCard(recipe, errMsg) {
