@@ -739,6 +739,16 @@ function spendGems(n){
   updateWalletDisplay();
   return true;
 }
+// ── 💎 Gemy za treningi (ekonomia: per-log claim, anti-farm) ──
+const GEM_BASE_PER_LOG      = 5;   // za każdą sesję treningową
+const GEM_PER_2KM           = 1;   // +1💎 za każde pełne 2 km
+const GEM_DIST_CAP          = 15;  // max bonus dystansowy / sesję
+const GEM_INTERVAL_BONUS    = 3;   // +za sesję interwałową
+const GEM_WEEKLY_CAP        = 50;  // rolling 7-dniowy limit wypłat
+const GEM_CATCHUP_CAP       = 50;  // jednorazowy limit przy pierwszym claimie (burn nadmiar)
+const GEM_CLAIM_WINDOW_DAYS = 30;  // okno logów (reuse monthLogs z loadBonuses)
+const GEM_LEDGER_PRUNE_DAYS = 14;  // ile dni trzymać rejestr wypłat (>7 = zapas)
+
 function getOwned(category){ return getStat('owned_' + category, []) || []; }
 function addOwned(category, id){
   const list = getOwned(category);
@@ -1170,6 +1180,90 @@ function showSuggestedMode() {
 // ═════════════════════════════════════════════════
 // BONUSY Z TRENINGÓW
 // ═════════════════════════════════════════════════
+// ── 💎 Gemy za treningi: wycena + claim (per-log, burn catch-up / carry rolling, atomic) ──
+function gemForLog(log) {
+  const type = (log.training_type || '');
+  if (type.startsWith('__badge__') || type === 'Warm-up mentalny') return 0;
+  const km = parseFloat(log.distance_km) || 0;
+  const dist = Math.min(GEM_DIST_CAP, Math.floor(km / 2) * GEM_PER_2KM);
+  const interval = type.toLowerCase().includes('interw') ? GEM_INTERVAL_BONUS : 0;
+  return GEM_BASE_PER_LOG + dist + interval;
+}
+
+// dni (today - a) między 'YYYY-MM-DD'
+function _gemDayDiff(a, today) {
+  return Math.round((new Date(today) - new Date(a)) / 86400000);
+}
+
+// SYNCHRONICZNA (logi już pobrane). Jeden loadLocalStats + jeden saveLocalStats = atomowo.
+function _claimTrainingGems(logs) {
+  if (!Array.isArray(logs) || !logs.length) return;
+  const s = loadLocalStats();                          // jeden odczyt całego stanu
+  const claimed = new Set(s.gem_claimed_logs || []);
+  const firstRun = !s.gem_claim_init;
+  const today = todayKey();
+
+  // kandydaci: mają id, niepłacone, realny trening; najstarsze pierwsze (deterministycznie)
+  const unclaimed = logs
+    .filter(l => l && l.id && !claimed.has(l.id) && gemForLog(l) > 0)
+    .sort((a, b) => (a.logged_at || '').localeCompare(b.logged_at || ''));
+  if (!unclaimed.length) return;                       // nic do zrobienia → brak zapisu/toastu
+
+  // cap: catch-up (jednorazowy) albo rolling (50 − wypłacone w ostatnich 7 dniach)
+  let cap;
+  if (firstRun) {
+    cap = GEM_CATCHUP_CAP;
+  } else {
+    const awardedLast7 = (s.gem_awards || [])
+      .filter(a => _gemDayDiff(a.d, today) < 7)         // ODCZYT rolling PRZED prune/append
+      .reduce((x, a) => x + (a.n || 0), 0);
+    cap = Math.max(0, GEM_WEEKLY_CAP - awardedLast7);
+  }
+
+  // chód: najstarsze pierwsze. catch-up = claim WSZYSTKIE (burn nadmiar); rolling = stop na przekroczeniu (carry)
+  let paid = 0, count = 0;
+  const newClaimed = [];
+  for (const log of unclaimed) {
+    const g = gemForLog(log);
+    if (firstRun) {
+      newClaimed.push(log.id);                         // burn: oznacz claimed niezależnie od wypłaty
+      if (paid + g <= cap) { paid += g; count++; }     // ponad cap → claimed ale NIEpłacone
+    } else {
+      if (paid + g <= cap) { paid += g; count++; newClaimed.push(log.id); }
+      else break;                                      // carry: zostaw ten i nowsze unclaimed na przyszły tydzień
+    }
+  }
+
+  if (!newClaimed.length && paid === 0) return;        // rolling cap wyczerpany → nic nie zmieniaj
+
+  // ── ATOMOWY ZAPIS: init + claimed + awards + wallet RAZEM ──
+  s.gem_claim_init = true;
+  if (newClaimed.length) s.gem_claimed_logs = (s.gem_claimed_logs || []).concat(newClaimed);
+  if (paid > 0) {
+    s.wallet_gems = (s.wallet_gems || 0) + paid;
+    const awards = (s.gem_awards || []).slice();
+    awards.push({ d: today, n: paid });                // dopisz PO odczycie rolling
+    s.gem_awards = awards.filter(a => _gemDayDiff(a.d, today) < GEM_LEDGER_PRUNE_DAYS); // prune PO dopisaniu
+  }
+  saveLocalStats(s);                                   // jeden setItem → albo wszystko, albo nic
+
+  updateWalletDisplay();
+  if (paid > 0 && typeof _showGemToast === 'function') _showGemToast(paid, count); // toast z części 3
+}
+
+function _showGemToast(gems, count) {
+  const word = count === 1 ? 'trening' : (count >= 2 && count <= 4 ? 'treningi' : 'treningów');
+  const t = document.createElement('div');
+  t.innerHTML =
+    '<div style="font-size:13px;font-weight:700;letter-spacing:0.05em;margin-bottom:4px;">💎 Gemy za treningi!</div>'
+    + '<div style="font-size:16px;font-weight:700;">+' + gems + '💎</div>'
+    + '<div style="font-size:10px;margin-top:4px;opacity:0.85;">za ' + count + ' ' + word + '</div>';
+  t.style.cssText = 'position:fixed;top:12%;left:50%;transform:translateX(-50%);background:#a868e0;color:#fff;padding:14px 26px;border-radius:14px;z-index:9999;font-family:DM Mono,monospace;text-align:center;letter-spacing:0.04em;box-shadow:0 8px 32px rgba(0,0,0,0.5);';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+  if (navigator.vibrate) navigator.vibrate([40, 25, 40]);
+}
+
 async function loadBonuses() {
   if (!_athleteId) return;
   const wS = new Date(); wS.setDate(wS.getDate() - 7);
@@ -1185,7 +1279,7 @@ async function loadBonuses() {
   // Streak
   const m30 = new Date(); m30.setDate(m30.getDate() - 30);
   const { data: monthLogs } = await _sb.from('training_logs')
-    .select('logged_at, training_type')
+    .select('id, logged_at, training_type, distance_km')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', m30.toISOString());
   const realMonthLogs = (monthLogs || []).filter(l => !(l.training_type || '').startsWith('__badge__') && l.training_type !== 'Warm-up mentalny');
@@ -1237,6 +1331,9 @@ async function loadBonuses() {
   _bonuses.streak = streak;
   _bonuses.intervalCount = intervalCount;
   _bonuses.kmTier = kmTier;
+
+  // 💎 Gemy za treningi — BONUS; bonusy-do-runu (powyżej) już ustawione, claim nie może ich zepsuć
+  try { _claimTrainingGems(realMonthLogs); } catch (e) { console.warn('[gems] claim skip', e); }
 
   // ── UI listy bonusów (zachowane jak było, ale lepsze etykiety)
   const html = [
