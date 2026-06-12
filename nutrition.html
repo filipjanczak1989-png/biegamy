@@ -5858,7 +5858,8 @@ function estimateTrainingKcal(log) {
   if (type.includes('interw') || type.includes('sprint')) multiplier = Math.max(multiplier, 1.20);
   if (type.includes('rower') || type.includes('bike') || type.includes('cycl')) multiplier = 0.40;  // rowery mniej kcal/km
 
-  return weightKg * km * multiplier;
+  // clamp: literówka (np. distance_km=999) nie wypaczy bilansu dnia
+  return Math.min(weightKg * km * multiplier, 5000);
 }
 
 // ════════════════════════════════════════════════════════════
@@ -6148,6 +6149,7 @@ function addMealToSlotAI(mealType) {
 
 function renderMealsList() {
   const list = document.getElementById('meals-list');
+  if (!list) return;
   if (_todayMeals.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
@@ -7036,6 +7038,8 @@ async function exportCSV() {
 function csvEscape(s) {
   // Excel obsługuje "" jako escape dla " w CSV. Plus zawiń w cudzysłowy jeśli ma ; lub przecinek lub newline
   s = String(s || '');
+  // Anti-formula-injection: Excel wykonuje wartości od =/+/-/@ jako formułę → poprzedź apostrofem
+  if (/^[=+\-@]/.test(s)) s = "'" + s;
   if (s.includes('"') || s.includes(';') || s.includes(',') || s.includes('\n')) {
     return '"' + s.replace(/"/g, '""') + '"';
   }
@@ -8134,6 +8138,7 @@ function showToast(msg) {
 // Count-up animation — smooth zmiana liczby kcal (premium feel)
 function animateValue(el, target, duration) {
   if (!el) return;
+  if (!Number.isFinite(target)) { el.textContent = '—'; return; }
   duration = duration || 700;
   const start = parseInt(el.textContent.replace(/\D/g, ''), 10) || 0;
   if (start === target) { el.textContent = target; return; }
