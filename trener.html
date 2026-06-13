@@ -2723,7 +2723,7 @@ async function loadPanelStats() {
   const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
   const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
 
-  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km = a => a.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
   const km90=km(all), km30=km(logs30), km7=km(logs7);
   const sessions30=logs30.length;
 
@@ -2756,7 +2756,7 @@ async function loadPanelStats() {
   logs30.forEach(l=>{
     const d=new Date(l.logged_at);
     const ds=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');
-    if(days30[ds]!==undefined)days30[ds]+=parseFloat(l.distance_km)||0;
+    if(days30[ds]!==undefined && window.isRunType(l.training_type))days30[ds]+=parseFloat(l.distance_km)||0;
   });
 
   el.innerHTML = `
@@ -5213,9 +5213,10 @@ async function loadAnalytics() {
       .gte('logged_at', since30.toISOString())
       .order('logged_at', {ascending:false});
     const logs = logs30 || [];
-    const totalKm = logs.reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
+    const totalKm = logs.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
+    const subKm = logs.reduce((s,l) => s + (!window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
     // Tygodniowe km
-    const km7 = logs.filter(l=>new Date(l.logged_at)>=since7).reduce((s,l)=>s+(parseFloat(l.distance_km)||0),0);
+    const km7 = logs.filter(l=>new Date(l.logged_at)>=since7).reduce((s,l)=> s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
     // Typy
     const normalizeType2 = t => (t==='Bieg spokojny')?'Spokojny':t||'Spokojny';
     const typeCounts = {};
@@ -5233,7 +5234,7 @@ async function loadAnalytics() {
     } catch(e) {
       if(a.target_date&&new Date(a.target_date)>=new Date()){daysToRace=Math.ceil((new Date(a.target_date)-new Date())/86400000);raceName=a.goal||'';}
     }
-    return { ...a, totalKm: totalKm.toFixed(1), km7: km7.toFixed(1), sessions: logs.length, typeCounts, bestPace, logs: logs.slice(0,3), daysToRace, raceName };
+    return { ...a, totalKm: totalKm.toFixed(1), subKm: subKm.toFixed(1), km7: km7.toFixed(1), sessions: logs.length, typeCounts, bestPace, logs: logs.slice(0,3), daysToRace, raceName };
   }));
 
   // Sortuj po totalKm malejąco
@@ -5298,7 +5299,7 @@ async function loadAnalytics() {
           </div>
           <div style="text-align:right;flex-shrink:0;">
             <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;line-height:1;color:var(--accent);">${a.totalKm}</div>
-            <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">km · ${a.sessions} sesji</div>
+            <div style="font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;">km · ${a.sessions} sesji${parseFloat(a.subKm) > 0 ? ' · +' + a.subKm + ' zast.' : ''}</div>
           </div>
         </div>
         <!-- Bar -->
@@ -5911,7 +5912,7 @@ async function loadAthleteDetailStats(athleteId, container) {
   const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
   const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
 
-  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km = a => a.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
   const km30=km(logs30), km7=km(logs7), sessions30=logs30.length;
 
   const paces = logs30.filter(l=>l.pace).map(l=>{
