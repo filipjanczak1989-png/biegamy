@@ -1603,17 +1603,21 @@
     }
 
     // 2 dodatkowe sekcje — pass prefix
-    window._renderFormaWeekly(logs || [], px);
+    window._renderFormaWeekly(logs || [], px, undefined, !!(options && options.animate));
     window._renderFormaTypes(logs || [], px);
     window._renderFormaHeatmap(logs || [], px, weightKg);
     window._renderFormaKcalWeekly(logs || [], px, weightKg);
   };
 
   // Weekly bars renderer — parametryzowany prefix
-  window._renderFormaWeekly = function(logs, idPrefix, globalMax) {
+  window._renderFormaWeekly = function(logs, idPrefix, globalMax, animate) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-weekly-bars');
     if (!el) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const doAnim = !!animate && !reduce;
+    const esc = window.escapeHtml || (s => String(s));
+    const MON = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
 
     const buckets = [];
     const today = new Date();
@@ -1631,21 +1635,67 @@
         return d >= weekStart && d < weekEnd;
       });
 
-      const trimp = weekLogs.reduce((sum, log) => sum + window.formaTRIMP(log), 0);
+      const trimp = Math.round(weekLogs.reduce((sum, log) => sum + window.formaTRIMP(log), 0));
       const lbl = (weekStart.getMonth() + 1) + '/' + weekStart.getDate();
-      buckets.push({ trimp, lbl });
+      const endDt = new Date(weekEnd); endDt.setDate(endDt.getDate() - 1);
+      const m1 = MON[weekStart.getMonth()], m2 = MON[endDt.getMonth()];
+      const range = (m1 === m2) ? (weekStart.getDate() + '-' + endDt.getDate() + ' ' + m1)
+                                : (weekStart.getDate() + ' ' + m1 + '–' + endDt.getDate() + ' ' + m2);
+      buckets.push({ trimp, lbl, range, count: weekLogs.length });
     }
 
     const localMax = Math.max(...buckets.map(b => b.trimp), 1);
     const max = (globalMax && globalMax > 0) ? globalMax : localMax;
-    el.innerHTML = buckets.map(b => {
+    const peakIdx = buckets.reduce((mi, b, i, a) => b.trimp > a[mi].trimp ? i : mi, 0);
+    const curIdx = buckets.length - 1;
+
+    el.style.position = 'relative';  // kontener dla absolutnego tooltipa
+    el.innerHTML = buckets.map((b, i) => {
       const h = Math.max((b.trimp / max) * 100, 2);
-      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;">'
-        + '<div style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">' + (b.trimp || '') + '</div>'
-        + '<div style="width:100%;background:linear-gradient(180deg,#e8561e,#ff7a3d);border-radius:4px 4px 0 0;height:' + h + '%;min-height:2px;"></div>'
-        + '<div style="font-size:9px;color:rgba(255,255,255,0.4);font-family:DM Mono,monospace;">' + b.lbl + '</div>'
+      const isPeak = b.trimp > 0 && i === peakIdx;
+      const isCur = i === curIdx;
+      const grad = isPeak ? 'linear-gradient(180deg,#ff7a3d,#ffb27a)' : 'linear-gradient(180deg,#e8561e,#ff7a3d)';
+      const glow = isPeak ? 'box-shadow:0 0 10px rgba(255,122,61,0.45);' : '';
+      const barTrans = doAnim ? 'transition:height 0.55s cubic-bezier(0.215,0.61,0.355,1);transition-delay:' + (i * 45) + 'ms;' : '';
+      const valTrans = doAnim ? 'transition:opacity 0.3s ease;transition-delay:' + (i * 45 + 480) + 'ms;' : '';
+      return '<div class="fwb-bar-wrap" data-week="' + esc(b.range) + '" data-trimp="' + b.trimp + '" data-count="' + b.count + '" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end;cursor:pointer;">'
+        + '<div class="fwb-val" style="font-size:9px;color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;opacity:' + (doAnim ? 0 : 1) + ';' + valTrans + '">' + (b.trimp || '') + '</div>'
+        + '<div class="fwb-bar" style="width:100%;background:' + grad + ';border-radius:4px 4px 0 0;height:' + (doAnim ? 0 : h) + '%;min-height:2px;' + glow + barTrans + '"></div>'
+        + '<div style="font-size:9px;color:rgba(255,255,255,' + (isCur ? '0.85' : '0.4') + ');font-family:DM Mono,monospace;display:flex;align-items:center;gap:3px;">' + b.lbl + (isCur ? '<span style="width:4px;height:4px;border-radius:50%;background:#4ade80;display:inline-block;"></span>' : '') + '</div>'
         + '</div>';
-    }).join('');
+    }).join('')
+    + '<div class="fwb-tip" style="position:absolute;bottom:calc(100% + 8px);left:0;transform:translateX(-50%);pointer-events:none;opacity:0;transition:opacity 0.15s ease;background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;font-family:\'DM Mono\',monospace;font-size:10px;color:#fff;white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,0.45);"></div>';
+
+    // Draw-on-load: flip do docelowych wysokości po 1 klatce (CSS transition + stagger robią resztę)
+    if (doAnim) requestAnimationFrame(() => {
+      const bars = el.querySelectorAll('.fwb-bar'), vals = el.querySelectorAll('.fwb-val');
+      buckets.forEach((b, i) => {
+        if (bars[i]) bars[i].style.height = Math.max((b.trimp / max) * 100, 2) + '%';
+        if (vals[i]) vals[i].style.opacity = '1';
+      });
+    });
+
+    // Tooltip per słupek (hover desktop + tap mobile) — bind RAZ na kontener (przeżywa re-render innerHTML)
+    if (!el._fwbBound) {
+      el._fwbBound = true;
+      const showTip = (wrap) => {
+        const tip = el.querySelector('.fwb-tip'); if (!tip || !wrap) return;
+        const cn = +wrap.dataset.count;
+        const word = cn === 1 ? 'trening' : (cn >= 2 && cn <= 4 ? 'treningi' : 'treningów');
+        tip.innerHTML = esc(wrap.dataset.week) + ' · <b>' + wrap.dataset.trimp + ' TRIMP</b> · ' + cn + ' ' + word;
+        const r = wrap.getBoundingClientRect(), er = el.getBoundingClientRect();
+        let left = r.left - er.left + r.width / 2;
+        const half = tip.offsetWidth / 2, contW = el.clientWidth;
+        if (tip.offsetWidth < contW) left = Math.max(half, Math.min(left, contW - half));  // clamp w obrębie kontenera
+        tip.style.left = left + 'px';
+        tip.style.opacity = '1';
+      };
+      const hideTip = () => { const tip = el.querySelector('.fwb-tip'); if (tip) tip.style.opacity = '0'; };
+      el.addEventListener('pointerover', e => { const w = e.target.closest('.fwb-bar-wrap'); if (w) showTip(w); });
+      el.addEventListener('pointerout', e => { if (!e.relatedTarget || !el.contains(e.relatedTarget)) hideTip(); });
+      el.addEventListener('pointerdown', e => { const w = e.target.closest('.fwb-bar-wrap'); if (w) showTip(w); });
+      document.addEventListener('pointerdown', e => { if (!e.target.closest('#' + px + '-weekly-bars')) hideTip(); });
+    }
   };
 
   // Types pie renderer — parametryzowany prefix

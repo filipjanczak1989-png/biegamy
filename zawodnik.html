@@ -3905,7 +3905,7 @@ function initFormaToggles() {
 }
 
 window.loadFormaSection = async function() {
-  await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles() });
+  await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
   initFormaToggles();
 };
 
