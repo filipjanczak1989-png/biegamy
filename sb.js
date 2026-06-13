@@ -1099,6 +1099,24 @@
     };
   };
 
+  // Count-up kafelków Formy — znak-aware (TSB +/-), guard NaN, reduced-motion
+  window.formaCountUp = function(el, target, withSign) {
+    if (!el) return;
+    if (!Number.isFinite(target)) { el.textContent = '—'; return; }
+    const fmt = (n) => (withSign && n >= 0 ? '+' : '') + Math.round(n);
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { el.textContent = fmt(target); return; }
+    const start = parseInt((el.textContent || '').replace(/[^\d-]/g, ''), 10) || 0;
+    if (start === target) { el.textContent = fmt(target); return; }
+    const range = target - start, t0 = performance.now(), dur = 700;
+    (function step(now) {
+      const p = Math.min(1, (now - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(start + range * eased);
+      if (p < 1) requestAnimationFrame(step);
+    })(performance.now());
+  };
+
   // Core forma renderer — parametryzowany athleteId + idPrefix dla reuse w zawodnik.html + trener.html
   window.renderFormaForAthlete = async function(athleteId, idPrefix, options) {
     if (!athleteId) return;
@@ -1216,13 +1234,14 @@
     const lastCtl = ctlData[ctlData.length - 1] || 0;
     const lastAtl = atlData[atlData.length - 1] || 0;
     const lastTsb = tsbData[tsbData.length - 1] || 0;
+    const animTiles = !!(options && options.animate);
 
     // TSB: status color + label + scale position
     const tsbValEl = document.getElementById(px + '-tsb-val');
     const tsbDotEl = document.getElementById(px + '-tsb-dot');
     const tsbLabelEl = document.getElementById(px + '-tsb-label');
     const tsbIndicatorEl = document.getElementById(px + '-tsb-indicator');
-    if (tsbValEl) tsbValEl.textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb);
+    if (tsbValEl) { if (animTiles) window.formaCountUp(tsbValEl, Math.round(lastTsb), true); else tsbValEl.textContent = (lastTsb >= 0 ? '+' : '') + Math.round(lastTsb); }
 
     let tsbColor, tsbLabelText;
     if (lastTsb >= 5 && lastTsb <= 15) { tsbColor = '#4ade80'; tsbLabelText = 'optimum'; }
@@ -1257,7 +1276,7 @@
     const ctlLabelEl = document.getElementById(px + '-ctl-label');
     const ctlFillEl = document.getElementById(px + '-ctl-fill');
     const ctlTrendEl = document.getElementById(px + '-ctl-trend');
-    if (ctlValEl) ctlValEl.textContent = Math.round(lastCtl);
+    if (ctlValEl) { if (animTiles) window.formaCountUp(ctlValEl, Math.round(lastCtl), false); else ctlValEl.textContent = Math.round(lastCtl); }
     if (ctlArrowEl) {
       ctlArrowEl.textContent = ctlTrend > 2 ? '↗' : ctlTrend < -2 ? '↘' : '→';
       ctlArrowEl.style.color = ctlTrend > 2 ? '#4ade80' : ctlTrend < -2 ? '#f87171' : '#60a5fa';
@@ -1275,7 +1294,7 @@
     const atlLabelEl = document.getElementById(px + '-atl-label');
     const atlFillEl = document.getElementById(px + '-atl-fill');
     const atlTrendEl = document.getElementById(px + '-atl-trend');
-    if (atlValEl) atlValEl.textContent = Math.round(lastAtl);
+    if (atlValEl) { if (animTiles) window.formaCountUp(atlValEl, Math.round(lastAtl), false); else atlValEl.textContent = Math.round(lastAtl); }
     if (atlArrowEl) {
       atlArrowEl.textContent = atlTrend > 2 ? '↗' : atlTrend < -2 ? '↘' : '→';
       atlArrowEl.style.color = atlTrend > 2 ? '#f87171' : atlTrend < -2 ? '#4ade80' : '#60a5fa';
