@@ -602,6 +602,42 @@
     return window.RUN_TYPES.has((t || '').toLowerCase().trim());
   };
 
+  // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
+  // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
+  window.looksLikeBike = function(type, distKm, paceStr) {
+    if (!window.isRunType(type)) return false;          // nie-bieg → już Zastępczy/itd.
+    const d = parseFloat(distKm);
+    if (!(d >= 15)) return false;                        // krótkie → możliwy sprint/interwał
+    const m = /^(\d{1,2}):(\d{2})/.exec((paceStr || '').trim());
+    if (!m) return false;                                // brak/zły pace → nie oceniamy
+    const sec = (+m[1]) * 60 + (+m[2]);
+    return sec > 0 && sec < 200;                         // < 3:20/km
+  };
+
+  // Soft confirm 2-przyciskowy (promise). Klik w tło / "To bieg" = 'run'; "To rower" = 'bike'.
+  window.askBikeOrRun = function(distKm, paceStr) {
+    return new Promise((resolve) => {
+      document.getElementById('_bikeAsk')?.remove();
+      const m = document.createElement('div');
+      m.id = '_bikeAsk';
+      m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);';
+      const done = (v) => { m.remove(); resolve(v); };
+      const detail = (distKm ? Math.round(distKm) + ' km' : '') + (paceStr ? ' po ' + paceStr + '/km' : '');
+      m.innerHTML = '<div style="max-width:380px;width:100%;background:linear-gradient(140deg,#1a1422,#13101a);border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.6);text-align:center;">'
+        + '<div style="font-size:40px;line-height:1;margin-bottom:10px;">🚴</div>'
+        + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;margin-bottom:8px;">To wygląda na rower</div>'
+        + '<div style="font-family:\'Inter\',sans-serif;font-size:13px;color:rgba(255,255,255,0.7);line-height:1.5;margin-bottom:18px;">' + detail + ' — to tempo jest niemożliwe dla biegu. Zapisać jako trening zastępczy?</div>'
+        + '<div style="display:flex;gap:10px;">'
+        + '<button id="_baRun" style="flex:1;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.2);border-radius:10px;padding:12px;font-family:\'DM Mono\',monospace;font-size:12px;cursor:pointer;">To bieg</button>'
+        + '<button id="_baBike" style="flex:1;background:linear-gradient(135deg,#e8561e,#ff8a4c);color:#fff;border:none;border-radius:10px;padding:12px;font-family:\'DM Mono\',monospace;font-size:12px;font-weight:700;cursor:pointer;">To rower 🚴</button>'
+        + '</div></div>';
+      m.addEventListener('click', (e) => { if (e.target === m) done('run'); });  // klik w tło = soft "zostaw bieg"
+      document.body.appendChild(m);
+      document.getElementById('_baRun').onclick = () => done('run');
+      document.getElementById('_baBike').onclick = () => done('bike');
+    });
+  };
+
   // ═══════════════════════════════════════════════════════════════
   // 📈 FORMA HELPERS — TRIMP calculation (CTL/ATL/TSB feature)
   // ═══════════════════════════════════════════════════════════════
