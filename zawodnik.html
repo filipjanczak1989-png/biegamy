@@ -5949,6 +5949,11 @@ async function saveLog() {
   if (pace && !/^\d{1,2}:\d{2}$/.test(pace)) { console.error('[saveLog] invalid pace format:', pace); toast('Tempo w formacie m:ss (np. 5:30)'); return; }
   if (!_athleteId) { toast('Błąd sesji — zaloguj się ponownie'); return; }
 
+  // Soft-warning rower (tylko nowy log): bieg ≥15km & pace <3:20 → spytaj
+  if (!_editingLogId && window.looksLikeBike(_logType, dist, pace)) {
+    if (await window.askBikeOrRun(dist, pace) === 'bike') _logType = 'Zastępczy';
+  }
+
   _savingLog = true;
   try {
   const btn = document.getElementById('save-btn');

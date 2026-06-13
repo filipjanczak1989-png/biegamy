@@ -3099,6 +3099,10 @@ async function saveLog() {
 
   // ✨ BUG 2 fix: UPDATE istniejący log albo INSERT nowy
   const existingLogId = window._existingLogId || null;
+  // Soft-warning rower (tylko nowy log): bieg ≥15km & pace <3:20 → spytaj
+  if (!existingLogId && window.looksLikeBike(_logType2, dist, pace)) {
+    if (await window.askBikeOrRun(dist, pace) === 'bike') _logType2 = 'Zastępczy';
+  }
   if (existingLogId) {
     const { error: updErr } = await sb.from('training_logs').update({
       training_type: _logType2,
