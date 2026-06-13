@@ -2892,6 +2892,11 @@ function openLogModal(e, ds, idx) {
   ['lm-dist','lm-time','lm-pace','lm-hr','lm-strava','lm-comment'].forEach(id => {
     const el = document.getElementById(id); if(el) el.value = '';
   });
+  // reset stanu OCR (świeże otwarcie)
+  window._ocrFiles = [];
+  const _ocrTh = document.getElementById('ocr-thumbs'); if (_ocrTh) _ocrTh.innerHTML = '';
+  const _ocrFl = document.getElementById('ocr-file'); if (_ocrFl) _ocrFl.value = '';
+  const _ocrSt = document.getElementById('lm-ocr-status'); if (_ocrSt) _ocrSt.textContent = '';
 
   // Prefill — PRIORYTET istniejący log > plan trenera
   if (existingLog) {
@@ -2987,64 +2992,84 @@ function selectFeel(btn) {
   btn.classList.add('active-' + _logFeel);
 }
 
-function addOCRThumbs(input) {
-  const thumbs = document.getElementById('ocr-thumbs');
-  if (!thumbs) return;
-  Array.from(input.files).forEach(f => {
-    const url = URL.createObjectURL(f);
-    const img = document.createElement('img');
-    img.src = url; img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
-    thumbs.appendChild(img);
+// Resize+compress: max 1920px, JPEG 0.85 (HEIC iOS + duże zdjęcia)
+async function _calOcrCompressImage(file, maxDim = 1920, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const scale = Math.min(maxDim / img.width, maxDim / img.height, 1);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(blob => { blob ? resolve(blob) : reject(new Error('toBlob')); }, 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('img load')); };
+    img.src = objectUrl;
   });
-  // Zapisz pliki do późniejszego uploadu
-  window._ocrFiles = (window._ocrFiles||[]).concat(Array.from(input.files));
-}
-async function runOCR(input) {
-  if (!input.files.length) return;
-  const files = input.files;
-  const file = files[0];
-  // Miniatury
-  const thumbsEl = document.getElementById('ocr-thumbs');
-  thumbsEl.innerHTML = '';
-  Array.from(files).forEach(f => {
-    const url = URL.createObjectURL(f);
-    thumbsEl.innerHTML += `<img src="${url}" style="width:calc(50% - 3px);max-height:120px;object-fit:cover;border-radius:8px;">`;
-  });
-  const lbl = document.getElementById('ocr-file-label');
-  if (lbl) lbl.textContent = files.length === 1 ? '✓ ' + file.name : '✓ ' + files.length + ' pliki';
-  const area = document.getElementById('ocr-upload-area');
-  if (area) { area.style.background = 'rgba(61,184,112,0.08)'; area.style.borderColor = 'var(--green)'; }
-  document.getElementById('ocr-spinner').style.display = 'block';
-  // Konwertuj do base64
-  const base64 = await new Promise(res => {
-    const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.readAsDataURL(file);
-  });
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 300,
-        messages: [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } },
-          { type: 'text', text: 'To jest screen z aplikacji Garmin, Strava lub podobnej. Odczytaj dane treningowe i zwróć TYLKO JSON bez żadnego opisu ani backtick. Format: {"distance_km": liczba_lub_null, "duration": "H:MM:SS_lub_null", "pace": "M:SS_lub_null", "heart_rate": liczba_lub_null}' }
-        ]}]
-      })
-    });
-    const json = await resp.json();
-    const text = (json.content?.[0]?.text || '').replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(text);
-    if (parsed.distance_km) document.getElementById('lm-dist').value = parsed.distance_km;
-    if (parsed.duration) document.getElementById('lm-time').value = parsed.duration;
-    if (parsed.pace) document.getElementById('lm-pace').value = parsed.pace;
-    if (parsed.heart_rate) document.getElementById('lm-hr').value = parsed.heart_rate;
-    notify('Dane odczytane ✓ — sprawdź i potwierdź');
-  } catch(err) {
-    notify('Nie udało się odczytać — uzupełnij ręcznie');
-  }
-  document.getElementById('ocr-spinner').style.display = 'none';
 }
 
+// Upload screena + OCR auto-fill log-modal. Plik ZAWSZE zostaje do załącznika (saveLog); OCR best-effort.
+async function runLogOcr(input) {
+  if (!input.files || !input.files.length) return;
+  const files = Array.from(input.files);
+  // KROK 1: miniatury + zachowaj pliki (saveLog wgra je jako attachment)
+  const thumbsEl = document.getElementById('ocr-thumbs');
+  if (thumbsEl) files.forEach(f => {
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);';
+    thumbsEl.appendChild(img);
+  });
+  window._ocrFiles = (window._ocrFiles || []).concat(files);
+  const statusEl = document.getElementById('lm-ocr-status');
+  const setStatus = (txt, c) => { if (statusEl) { statusEl.textContent = txt; statusEl.style.color = c || 'var(--muted)'; } };
+  // KROK 2: OCR best-effort (1. plik)
+  if (!window.SB_FN_URL) { setStatus('Skan niedostępny — uzupełnij ręcznie'); input.value = ''; return; }
+  setStatus('📤 Skanowanie...');
+  try {
+    const blob = await _calOcrCompressImage(files[0], 1920, 0.85);
+    if (blob.size > 5 * 1024 * 1024) { setStatus('Zdjęcie za duże — uzupełnij ręcznie'); input.value = ''; return; }
+    const base64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(blob); });
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { setStatus('Zaloguj się, by wczytać pola'); input.value = ''; return; }
+    const today_iso = new Date().toISOString().split('T')[0];
+    const resp = await fetch(window.SB_FN_URL + '/ocr-training-screen', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ images: [{ image_base64: base64, media_type: 'image/jpeg' }], today_iso })
+    });
+    const json = await resp.json();
+    if (!resp.ok || !json.ok) { setStatus('Pola niewczytane — uzupełnij ręcznie'); input.value = ''; return; }
+    // Pre-fill 4 pól log-modal
+    let filled = 0;
+    for (const [id, val] of [['lm-dist', json.distance_km], ['lm-time', json.duration], ['lm-pace', json.pace], ['lm-hr', json.heart_rate]]) {
+      const el = document.getElementById(id);
+      if (el && val != null && val !== '' && val !== 0) { el.value = val; filled++; }
+    }
+    // Typ → pill (best-effort: dopasuj po wartości w onclick)
+    if (json.training_type) {
+      const pill = [...document.querySelectorAll('.lm-type-pill')].find(p => (p.getAttribute('onclick') || '').includes("'" + json.training_type + "'"));
+      if (pill) selLmType(pill, json.training_type);
+    }
+    // Data: z klikniętego dnia (_logDate2). Tylko OSTRZEŻENIE gdy screen z innego dnia.
+    let dateWarn = '';
+    if (json.activity_date && /^\d{4}-\d{2}-\d{2}$/.test(json.activity_date) && _logDate2 && json.activity_date !== _logDate2) {
+      dateWarn = ' · ⚠ screen z ' + json.activity_date.slice(8,10) + '/' + json.activity_date.slice(5,7) + ' (zapis na ' + _logDate2.slice(8,10) + '/' + _logDate2.slice(5,7) + ')';
+    }
+    const sfx = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
+    setStatus(filled > 0 ? '✓ wczytano ' + filled + ' ' + sfx + dateWarn : 'Pola niewczytane — uzupełnij ręcznie',
+              dateWarn ? '#e8561e' : (filled > 0 ? 'var(--green)' : 'var(--muted)'));
+  } catch (e) {
+    console.warn('[cal-ocr]', e); setStatus('Pola niewczytane — uzupełnij ręcznie');
+  } finally {
+    input.value = '';  // PWA fix: reset by ten sam plik re-firował change
+  }
+}
 async function saveLog() {
   const dist = parseFloat(document.getElementById('lm-dist').value) || null;
   const time = document.getElementById('lm-time').value.trim() || null;
@@ -3058,6 +3083,20 @@ async function saveLog() {
   const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   if (!ath) { notify('Błąd konta'); return; }
 
+  // Upload screenshotów z OCR (jeśli są) → training-screenshots, zapis PATH
+  let attachmentUrl = null;
+  const ocrFiles = window._ocrFiles || [];
+  if (ocrFiles.length) {
+    const urls = []; const base = Date.now();
+    for (let fi = 0; fi < ocrFiles.length; fi++) {
+      const f = ocrFiles[fi];
+      const path = ath.id + '/log_' + base + '_' + fi + '.' + ((f.name.split('.').pop()) || 'jpg');
+      const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, f, { upsert: true, contentType: f.type });
+      if (!upErr) urls.push(path);
+    }
+    if (urls.length) attachmentUrl = urls.join(',');
+  }
+
   // ✨ BUG 2 fix: UPDATE istniejący log albo INSERT nowy
   const existingLogId = window._existingLogId || null;
   if (existingLogId) {
@@ -3067,7 +3106,8 @@ async function saveLog() {
       duration: time,
       pace, heart_rate: hr,
       strava_link: strava,
-      comment, feel: _logFeel
+      comment, feel: _logFeel,
+      ...(attachmentUrl ? { attachment_url: attachmentUrl } : {})
     }).eq('id', existingLogId);
     if (updErr) { notify('Błąd: ' + updErr.message); return; }
   } else {
@@ -3079,6 +3119,7 @@ async function saveLog() {
       pace, heart_rate: hr,
       strava_link: strava,
       comment, feel: _logFeel,
+      attachment_url: attachmentUrl,
       logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
     });
     if (insErr) { notify('Błąd: ' + insErr.message); return; }
@@ -5530,10 +5571,11 @@ async function doCopyWeek() {
     <div style="padding:0 20px calc(env(safe-area-inset-bottom,0px) + 100px);">
       <!-- Upload screena — NA GÓRZE, główny element -->
       <div onclick="document.getElementById('ocr-file').click()" style="border:1px dashed var(--border);border-radius:12px;padding:14px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="font-size:13px;color:var(--muted);">📎 Dodaj załącznik (screen Garmin / Strava)</div>
+        <div style="font-size:13px;color:var(--muted);">📎 Wrzuć screen z zegarka — wczytam dystans, czas, tempo, tętno</div>
       </div>
+      <div id="lm-ocr-status" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px;font-family:'DM Mono',monospace;color:var(--muted);"></div>
       <div id="ocr-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>
-      <input type="file" id="ocr-file" accept="image/*" multiple style="display:none" onchange="addOCRThumbs(this)">
+      <input type="file" id="ocr-file" accept="image/*" multiple style="display:none" onchange="runLogOcr(this)">
 
       <!-- Typ treningu -->
       <div style="padding:0 0 12px;">
