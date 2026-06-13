@@ -2757,7 +2757,7 @@ async function _loadStatsInProfile() {
   const all = logs || [];
   const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
   const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
-  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km = a => a.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
   const km90=km(all), km30=km(logs30), km7=km(logs7);
   const sessions30=logs30.length;
   const elev30 = logs30.reduce((s,l) => s+(parseInt(l.elevation_gain)||0), 0);
@@ -5549,8 +5549,9 @@ async function updateWeekProgress() {
   const doneByStatus = (trainingsThisWeek||[]).filter(t => t.status === 'done').length;
   const logsCount = (logsThisWeek||[]).length;
   const done = Math.max(doneByStatus, Math.min(logsCount, planned));
-  const totalKm = (logsThisWeek||[]).reduce((s,l) => s + (parseFloat(l.distance_km)||0), 0);
-  const plannedKm = (trainingsThisWeek||[]).reduce((s,t) => s + (parseFloat(t.distance_km)||0), 0);
+  const totalKm = (logsThisWeek||[]).reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
+  const subKm = (logsThisWeek||[]).reduce((s,l) => s + (!window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
+  const plannedKm = (trainingsThisWeek||[]).reduce((s,t) => s + (window.isRunType(t.type) ? (parseFloat(t.distance_km)||0) : 0), 0);
 
   const pct = planned > 0 ? Math.min(100, Math.round((done / planned) * 100)) : 0;
   const circumference = 138.2;
@@ -5567,7 +5568,7 @@ async function updateWeekProgress() {
   if (pctEl) Anim.countUp(pctEl, pct, 800, '%');
   if (daysEl) daysEl.textContent = done + ' z ' + planned + ' zaplanowanych dni';
   if (kmEl) { const safeKm = isNaN(totalKm) ? 0 : totalKm; Anim.countUp(kmEl, safeKm, 900); }
-  if (kmLblEl) kmLblEl.textContent = plannedKm > 0 ? 'z ' + (isNaN(plannedKm) ? 0 : plannedKm).toFixed(0) + ' km' : 'km ten tydzień';
+  if (kmLblEl) kmLblEl.textContent = (plannedKm > 0 ? 'z ' + (isNaN(plannedKm) ? 0 : plannedKm).toFixed(0) + ' km' : 'km ten tydzień') + (subKm > 0 ? ' · +' + subKm.toFixed(0) + ' zast.' : '');
 }
 
 async function loadTodayTraining() {
@@ -7285,8 +7286,8 @@ function loadChallenges() {
     const earnedSet = new Set((achRes.data||[]).map(r => r.badge_id));
 
     // Oblicz postępy
-    const wkm = wl.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
-    const mkm = all.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+    const wkm = wl.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
+    const mkm = all.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
     const wsess = wl.length;
     const msess = all.length;
     const wknd = wl.filter(l => { const d = new Date(l.logged_at).getDay(); return d===6||d===0; }).length;
@@ -8294,7 +8295,7 @@ async function loadStats() {
   const logs30 = all.filter(l => new Date(l.logged_at) >= since30);
   const logs7  = all.filter(l => new Date(l.logged_at) >= since7);
 
-  const km = a => a.reduce((s,l) => s+(parseFloat(l.distance_km)||0), 0);
+  const km = a => a.reduce((s,l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km)||0) : 0), 0);
   const km90=km(all), km30=km(logs30), km7=km(logs7);
   const sessions30=logs30.length, sessions7=logs7.length;
 
@@ -8328,7 +8329,7 @@ async function loadStats() {
   logs30.forEach(l=>{
     const d=new Date(l.logged_at);
     const ds=d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0');
-    if(days30[ds]!==undefined)days30[ds]+=parseFloat(l.distance_km)||0;
+    if(days30[ds]!==undefined && window.isRunType(l.training_type))days30[ds]+=parseFloat(l.distance_km)||0;
   });
 
   el.innerHTML = `
@@ -9267,13 +9268,14 @@ async function _calculateDuelScores(d) {
   let cs = 0, os = 0;
   if (d.type === 'km') {
     (logs||[]).forEach(l => {
+      if (!window.isRunType(l.training_type)) return;
       const km = parseFloat(l.distance_km) || 0;
       if (l.athlete_id === d.challenger_id) cs += km;
       else os += km;
     });
   } else if (d.type === 'count') {
     (logs||[]).forEach(l => {
-      if ((parseFloat(l.distance_km) || 0) <= 0) return;
+      if (!window.isRunType(l.training_type) || (parseFloat(l.distance_km) || 0) <= 0) return;
       if (l.athlete_id === d.challenger_id) cs++;
       else os++;
     });
@@ -9283,7 +9285,7 @@ async function _calculateDuelScores(d) {
       let best = null;
       (logs||[]).forEach(l => {
         if (l.athlete_id !== athId) return;
-        if ((parseFloat(l.distance_km)||0) < 5) return;
+        if (!window.isRunType(l.training_type) || (parseFloat(l.distance_km)||0) < 5) return;
         const p = _parsePaceToSecs(l.pace);
         if (p && (best === null || p < best)) best = p;
       });
@@ -10754,7 +10756,7 @@ async function checkBadges(logs) {
   if (!_athleteId || !logs) return;
   await loadAchievements();
 
-  const total = logs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  const total = logs.reduce((s, l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0), 0);
   const count = logs.length;
 
   // PODSTAWOWE
@@ -10799,7 +10801,7 @@ async function checkBadges(logs) {
     const d = new Date(l.logged_at);
     return d >= weekStart && d < weekEnd;
   });
-  const weekKm   = weekLogs.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
+  const weekKm   = weekLogs.reduce((s, l) => s + (window.isRunType(l.training_type) ? (parseFloat(l.distance_km) || 0) : 0), 0);
   const weekDays = new Set(weekLogs.map(l => l.logged_at.slice(0,10))).size;
   const wknd = weekLogs.filter(l => { const d = new Date(l.logged_at); return d.getDay()===6||d.getDay()===0; }).length;
   const wkTempo = weekLogs.filter(l => l.training_type==='Tempo').length;
