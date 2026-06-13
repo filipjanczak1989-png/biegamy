@@ -5585,10 +5585,10 @@ function _recipeCardHtml(recipe) {
     + '<div class="recipe-macros">🔥 <span class="rm-kcal">' + mv(recipe.kcal) + '</span> kcal · B <span class="rm-p">' + mv(recipe.protein_g) + '</span> · W <span class="rm-c">' + mv(recipe.carbs_g) + '</span> · T <span class="rm-f">' + mv(recipe.fat_g) + '</span>'
     + (recipe.prep_minutes ? ' · ⏱ ' + mv(recipe.prep_minutes) + ' min' : '') + '</div>'
     + micro
+    + portion
     + (ing ? '<div class="recipe-sub">Składniki</div><ul class="recipe-list">' + ing + '</ul>' : '')
     + (steps ? '<div class="recipe-sub">Przygotowanie</div><ol class="recipe-list">' + steps + '</ol>' : '')
     + (tags ? '<div class="recipe-tags">' + tags + '</div>' : '')
-    + portion
     + '</div>';
 }
 
