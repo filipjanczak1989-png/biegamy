@@ -589,6 +589,20 @@
 
 
   // ═══════════════════════════════════════════════════════════════
+  // 🏃 RUN TYPES — allowlist do SUM KM (single source)
+  // Nie-bieg (zastępczy/wzmacniający/odpoczynek/nieznane) → wykluczone z km biegowych.
+  // NIE dotyczy TRIMP/TSB — te liczą z czasu (formaTRIMP), zastępczy ma własny effort.
+  // ⚠️ Nowy pill biegowy w przyszłości → dopisz tutaj, inaczej jego km znikną z sum.
+  // ═══════════════════════════════════════════════════════════════
+  window.RUN_TYPES = new Set([
+    'spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo',
+    'progresja', 'interwały', 'start', 'wyścig', 'regeneracja'
+  ]);
+  window.isRunType = function(t) {
+    return window.RUN_TYPES.has((t || '').toLowerCase().trim());
+  };
+
+  // ═══════════════════════════════════════════════════════════════
   // 📈 FORMA HELPERS — TRIMP calculation (CTL/ATL/TSB feature)
   // ═══════════════════════════════════════════════════════════════
   window.FORMA_EFFORT_FACTORS = {
