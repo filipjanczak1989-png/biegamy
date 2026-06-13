@@ -1605,7 +1605,7 @@
     // 2 dodatkowe sekcje — pass prefix
     window._renderFormaWeekly(logs || [], px, undefined, !!(options && options.animate));
     window._renderFormaTypes(logs || [], px);
-    window._renderFormaHeatmap(logs || [], px, weightKg);
+    window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate));
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
   };
 
@@ -1758,10 +1758,13 @@
   };
 
   // Heatmap aktywności — 13 tygodni × 7 dni grid (GitHub-style)
-  window._renderFormaHeatmap = function(logs, idPrefix, weightKg, useGlobalPercentile) {
+  window._renderFormaHeatmap = function(logs, idPrefix, weightKg, useGlobalPercentile, animate) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-heatmap');
     if (!el) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const doAnim = !!animate && !reduce;
+    const esc = window.escapeHtml || (s => String(s));
 
     // Percentile thresholds liczone raz dla całych logów (per athlete) — opcjonalnie
     const thresholds = useGlobalPercentile ? window.formaComputePercentileThresholds(logs) : null;
@@ -1827,7 +1830,12 @@
             ? dayDateLabel + ' · TRIMP ' + trimp + (kcal > 0 ? ' · ' + kcal + ' kcal' : '')
             : dayDateLabel + ' · brak treningu';
         const opacity = isFuture ? 0.25 : 1;
-        cells += '<div title="' + titleAttr + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';opacity:' + opacity + ';cursor:default;transition:transform 0.15s;" onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
+        const isToday = !isFuture && date.getTime() === today.getTime();
+        const ring = isToday ? 'outline:1.5px solid #4ade80;outline-offset:1px;' : '';
+        const animStyle = doAnim
+          ? 'opacity:0;transform:scale(0.6);transition:opacity 0.3s ease,transform 0.3s cubic-bezier(0.215,0.61,0.355,1);transition-delay:' + (w * 40) + 'ms;'
+          : 'opacity:' + opacity + ';transition:transform 0.15s;';
+        cells += '<div class="fhm-cell" data-tip="' + esc(titleAttr) + '" data-future="' + (isFuture ? 1 : 0) + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';cursor:default;' + ring + animStyle + '" onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
       }
     }
 
@@ -1846,8 +1854,39 @@
     legend += '<span>Więcej</span>';
     legend += '</div>';
 
-    const gridHtml = '<div style="position:relative;display:grid;grid-template-columns:18px repeat(13,' + cellSize + 'px);grid-template-rows:repeat(7,' + cellSize + 'px);gap:' + gap + 'px;padding-top:12px;">' + monthLabels + labels + cells + '</div>';
+    const tipHtml = '<div class="fwb-tip" style="position:absolute;left:0;top:0;transform:translateX(-50%);pointer-events:none;opacity:0;transition:opacity 0.15s ease;background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 9px;font-family:\'DM Mono\',monospace;font-size:10px;color:#fff;white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,0.45);"></div>';
+    const gridHtml = '<div class="fhm-grid" style="position:relative;display:grid;grid-template-columns:18px repeat(13,' + cellSize + 'px);grid-template-rows:repeat(7,' + cellSize + 'px);gap:' + gap + 'px;padding-top:12px;">' + monthLabels + labels + cells + tipHtml + '</div>';
     el.innerHTML = gridHtml + legend;
+
+    // Draw-on-load: column-sweep reveal po 1 klatce
+    if (doAnim) requestAnimationFrame(() => {
+      el.querySelectorAll('.fhm-cell').forEach(c => {
+        c.style.opacity = c.dataset.future === '1' ? '0.25' : '1';
+        c.style.transform = 'scale(1)';
+      });
+    });
+
+    // Tooltip per komórka (hover + tap) — bind RAZ na kontener
+    if (!el._fhmBound) {
+      el._fhmBound = true;
+      const showTip = (cell) => {
+        const grid = el.querySelector('.fhm-grid'); const tip = grid && grid.querySelector('.fwb-tip');
+        if (!tip || !cell) return;
+        tip.textContent = cell.dataset.tip || '';
+        const gr = grid.getBoundingClientRect(), cr = cell.getBoundingClientRect();
+        const half = tip.offsetWidth / 2;
+        let left = cr.left - gr.left + cr.width / 2;
+        left = Math.max(half, Math.min(left, grid.clientWidth - half));  // clamp X
+        let top = cr.top - gr.top - tip.offsetHeight - 6;
+        if (top < 0) top = cr.top - gr.top + cr.height + 6;  // flip pod komórkę
+        tip.style.left = left + 'px'; tip.style.top = top + 'px'; tip.style.opacity = '1';
+      };
+      const hideTip = () => { const t = el.querySelector('.fwb-tip'); if (t) t.style.opacity = '0'; };
+      el.addEventListener('pointerover', e => { const c = e.target.closest('.fhm-cell'); if (c) showTip(c); });
+      el.addEventListener('pointerout', e => { if (!e.relatedTarget || !el.contains(e.relatedTarget)) hideTip(); });
+      el.addEventListener('pointerdown', e => { const c = e.target.closest('.fhm-cell'); if (c) showTip(c); });
+      document.addEventListener('pointerdown', e => { if (!e.target.closest('#' + px + '-heatmap')) hideTip(); });
+    }
   };
 
   // Kalorie weekly bars — 8 tygodni sum kcal (analog do _renderFormaWeekly ale dla kcal)
