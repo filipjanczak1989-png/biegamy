@@ -1604,7 +1604,7 @@
 
     // 2 dodatkowe sekcje — pass prefix
     window._renderFormaWeekly(logs || [], px, undefined, !!(options && options.animate));
-    window._renderFormaTypes(logs || [], px);
+    window._renderFormaTypes(logs || [], px, !!(options && options.animate));
     window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate));
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
   };
@@ -1699,10 +1699,13 @@
   };
 
   // Types pie renderer — parametryzowany prefix
-  window._renderFormaTypes = function(logs, idPrefix) {
+  window._renderFormaTypes = function(logs, idPrefix, animate) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-types-content');
     if (!el) return;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const doAnim = !!animate && !reduce;
+    const esc = window.escapeHtml || (s => String(s));
 
     const today = new Date();
     const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 7);
@@ -1725,36 +1728,68 @@
     }
 
     const cx = 60, cy = 60, r = 50;
+    const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
     let startAngle = -Math.PI / 2;
     let paths = '';
     let legend = '';
-    Object.entries(counts).sort((a,b) => b[1] - a[1]).forEach(([type, km]) => {
+    entries.forEach(([type, km], si) => {
       const pct = km / total;
+      const tip = type + ' · ' + km.toFixed(1) + ' km · ' + Math.round(pct * 100) + '%';
+      const isTop = si === 0;
+      const stroke = isTop ? ' stroke="rgba(255,255,255,0.45)" stroke-width="1.5"' : '';
       const endAngle = startAngle + pct * 2 * Math.PI;
-      const x1 = cx + r * Math.cos(startAngle);
-      const y1 = cy + r * Math.sin(startAngle);
-      const x2 = cx + r * Math.cos(endAngle);
-      const y2 = cy + r * Math.sin(endAngle);
+      const x1 = cx + r * Math.cos(startAngle), y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(endAngle), y2 = cy + r * Math.sin(endAngle);
       const largeArc = pct > 0.5 ? 1 : 0;
       const color = TYPE_COLORS[type] || '#e8561e';
       if (pct >= 0.999) {
-        paths += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + color + '"/>';
+        paths += '<circle class="fpie-slice" data-tip="' + esc(tip) + '" cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="' + color + '"' + stroke + ' style="cursor:pointer;"/>';
       } else {
-        paths += '<path d="M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + x2 + ' ' + y2 + ' Z" fill="' + color + '"/>';
+        paths += '<path class="fpie-slice" data-tip="' + esc(tip) + '" d="M ' + cx + ' ' + cy + ' L ' + x1 + ' ' + y1 + ' A ' + r + ' ' + r + ' 0 ' + largeArc + ' 1 ' + x2 + ' ' + y2 + ' Z" fill="' + color + '"' + stroke + ' style="cursor:pointer;"/>';
       }
       startAngle = endAngle;
 
-      legend += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;">'
+      legend += '<div class="fpie-legrow" data-tip="' + esc(tip) + '" style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:11px;cursor:pointer;' + (isTop ? 'font-weight:600;' : '') + '">'
         + '<div style="width:10px;height:10px;background:' + color + ';border-radius:2px;flex-shrink:0;"></div>'
-        + '<div style="flex:1;color:rgba(255,255,255,0.85);">' + type + '</div>'
+        + '<div style="flex:1;color:rgba(255,255,255,0.85);">' + esc(type) + '</div>'
         + '<div style="color:rgba(255,255,255,0.6);font-family:DM Mono,monospace;">' + km.toFixed(1) + ' km</div>'
         + '</div>';
     });
 
+    const gStyle = doAnim ? 'opacity:0;transform:scale(0.7) rotate(-12deg);transform-box:view-box;transform-origin:60px 60px;transition:opacity 0.5s ease,transform 0.5s cubic-bezier(0.215,0.61,0.355,1);' : '';
+    const tipHtml = '<div class="fwb-tip" style="position:absolute;left:0;top:0;transform:translateX(-50%);pointer-events:none;opacity:0;transition:opacity 0.15s ease;background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 9px;font-family:\'DM Mono\',monospace;font-size:10px;color:#fff;white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,0.45);"></div>';
+    el.style.position = 'relative';
     el.innerHTML = '<div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">'
-      + '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;">' + paths + '</svg>'
+      + '<svg width="120" height="120" viewBox="0 0 120 120" style="flex-shrink:0;overflow:visible;"><g class="fpie-g" style="' + gStyle + '">' + paths + '</g></svg>'
       + '<div style="flex:1;min-width:120px;">' + legend + '</div>'
-      + '</div>';
+      + '</div>' + tipHtml;
+
+    // Draw-on-load: pop+settle całego pie po 1 klatce
+    if (doAnim) requestAnimationFrame(() => {
+      const g = el.querySelector('.fpie-g');
+      if (g) { g.style.opacity = '1'; g.style.transform = 'scale(1) rotate(0deg)'; }
+    });
+
+    // Tooltip per slice + wiersz legendy (hover + tap) — bind RAZ na kontener
+    if (!el._fpieBound) {
+      el._fpieBound = true;
+      const showTip = (node) => {
+        const tip = el.querySelector('.fwb-tip'); if (!tip || !node) return;
+        tip.textContent = node.dataset.tip || '';
+        const er = el.getBoundingClientRect(), nr = node.getBoundingClientRect();
+        const half = tip.offsetWidth / 2;
+        let left = nr.left - er.left + nr.width / 2;
+        left = Math.max(half, Math.min(left, el.clientWidth - half));  // clamp X
+        let top = nr.top - er.top - tip.offsetHeight - 6;
+        if (top < 0) top = nr.top - er.top + nr.height + 6;  // flip
+        tip.style.left = left + 'px'; tip.style.top = top + 'px'; tip.style.opacity = '1';
+      };
+      const hideTip = () => { const t = el.querySelector('.fwb-tip'); if (t) t.style.opacity = '0'; };
+      el.addEventListener('pointerover', e => { const n = e.target.closest('[data-tip]'); if (n) showTip(n); });
+      el.addEventListener('pointerout', e => { if (!e.relatedTarget || !el.contains(e.relatedTarget)) hideTip(); });
+      el.addEventListener('pointerdown', e => { const n = e.target.closest('[data-tip]'); if (n) showTip(n); });
+      document.addEventListener('pointerdown', e => { if (!e.target.closest('#' + px + '-types-content')) hideTip(); });
+    }
   };
 
   // Heatmap aktywności — 13 tygodni × 7 dni grid (GitHub-style)
