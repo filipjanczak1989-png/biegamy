@@ -7578,9 +7578,7 @@ async function loadPanelDiet() {
       .map(([name, stats]) => ({ name, ...stats }));
     
     // Render
-    const targetKcal = nProfile?.tdee
-      ? Math.round(nProfile.tdee + (nProfile.goal === 'deficit' ? -300 : nProfile.goal === 'surplus' ? 300 : 0))
-      : 0;
+    const targetKcal = window.computeTargetKcal(nProfile?.tdee, nProfile?.goal) || 0;
     const goalLabel = nProfile ? ({deficit:'Redukcja', surplus:'Masa', maintain:'Utrzymanie'}[nProfile.goal] || '—') : '—';
     const todayPct = targetKcal > 0 ? Math.round((todayData.kcal / targetKcal) * 100) : 0;
     

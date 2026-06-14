@@ -5177,8 +5177,7 @@ function refreshDashboard() {
   // Target i progress (jeśli profil)
   let target = null;
   if (_profile && _profile.tdee) {
-    const goalAdjust = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
-    target = _profile.tdee + goalAdjust;
+    target = window.computeTargetKcal(_profile.tdee, _profile.goal);
     document.getElementById('hero-target').textContent = 'cel: ' + target + ' kcal';
     const pct = Math.min(100, Math.round(totals.kcal / target * 100));
     document.getElementById('hero-progress-fill').style.width = pct + '%';
@@ -5486,8 +5485,7 @@ async function _recipeContext() {
   const meal_type = MEAL_KEY2RECIPEPL[_mt] || _mt || undefined;   // klucz slotu → kategoria PL przepisu (SSOT)
   let remaining_kcal = null;
   if (_profile && _profile.tdee) {
-    const adj = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
-    const gap = Math.max(0, Math.round((_profile.tdee + adj) - (window._nutEaten || 0)));
+    const gap = Math.max(0, Math.round(window.computeTargetKcal(_profile.tdee, _profile.goal) - (window._nutEaten || 0)));
     remaining_kcal = Math.min(_MEAL_TARGET[meal_type] || 550, gap);   // porcja posiłku, nie więcej niż realny gap dnia
   }
   let bias_tag = 'zbalansowane';
@@ -6484,7 +6482,7 @@ function recalcMacrosForGrams(g) {
 
   // % dziennego celu kcal
   if (_profile?.tdee) {
-    const target = _profile.tdee + (_profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0);
+    const target = window.computeTargetKcal(_profile.tdee, _profile.goal);
     const pct = Math.round((kcal / target) * 100);
     document.getElementById('pc-kcal-pct').innerHTML = `<b>${pct}%</b><br>celu dziennego`;
   } else {
@@ -6807,8 +6805,7 @@ async function loadHistoryView() {
   // Target i context
   let target = null;
   if (_profile && _profile.tdee) {
-    const goalAdjust = _profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0;
-    target = _profile.tdee + goalAdjust;
+    target = window.computeTargetKcal(_profile.tdee, _profile.goal);
   }
   const ctxEl = document.getElementById('hist-context');
   if (target) {
@@ -7114,9 +7111,7 @@ async function loadWeekView() {
     day.meals += 1;
   });
 
-  const target = _profile?.tdee
-    ? _profile.tdee + (_profile.goal === 'deficit' ? -300 : _profile.goal === 'surplus' ? 300 : 0)
-    : null;
+  const target = window.computeTargetKcal(_profile?.tdee, _profile?.goal);
   const todayKey = new Date().toISOString().slice(0, 10);
   const daysWithData = days.filter(d => d.kcal > 0);
 
