@@ -6735,6 +6735,112 @@ function switchCwiczeniaTab(tab) {
   });
 }
 
+const BREATH_TECHNIQUES = {
+  '478': { name: '4-7-8', cycles: 4, phases: [
+    { label: 'Wdech', sec: 4, scale: 1.0, cue: 'in' },
+    { label: 'Wstrzymaj', sec: 7, scale: 1.0, cue: 'hold' },
+    { label: 'Wydech', sec: 8, scale: 0.55, cue: 'out' } ] },
+  box: { name: 'Box', cycles: 6, phases: [
+    { label: 'Wdech', sec: 4, scale: 1.0, cue: 'in' },
+    { label: 'Wstrzymaj', sec: 4, scale: 1.0, cue: 'hold' },
+    { label: 'Wydech', sec: 4, scale: 0.55, cue: 'out' },
+    { label: 'Wstrzymaj', sec: 4, scale: 0.55, cue: 'hold' } ] }
+};
+
+const BREATH = {
+  st: null,
+  _reduce() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); },
+  _el(id) { return document.getElementById(id); },
+
+  open(key) {
+    const T = BREATH_TECHNIQUES[key];
+    if (!T) return;
+    this.st = { key, phaseIdx: 0, secLeft: 0, cycle: 1, timerId: null };
+    this._el('breath-title').textContent = T.name;
+    this._el('breath-cycle').textContent = 'Cykl 1/' + T.cycles;
+    this._el('breath-phase').textContent = 'Gotowy?';
+    this._el('breath-count').textContent = '';
+    const c = this._el('breath-circle');
+    c.style.transition = 'none';
+    c.style.transform = 'scale(0.55)';
+    this._el('breath-sound').textContent = (window.Anim && Anim._soundEnabled) ? '🔊' : '🔇';
+    this._setBtn('start');
+    this._el('breath-modal').style.display = 'flex';
+  },
+
+  close() { this.stop(); this._el('breath-modal').style.display = 'none'; },
+
+  start() {
+    if (!this.st) return;
+    this.st.phaseIdx = 0; this.st.cycle = 1;
+    this._enterPhase();
+    this.st.timerId = setInterval(() => this._tick(), 1000);
+    this._setBtn('pause');
+  },
+  pause() { this.stop(); this._setBtn('resume'); },
+  resume() {
+    if (!this.st) return;
+    this.st.timerId = setInterval(() => this._tick(), 1000);
+    this._setBtn('pause');
+  },
+  stop() { if (this.st && this.st.timerId) { clearInterval(this.st.timerId); this.st.timerId = null; } },
+
+  _enterPhase() {
+    const T = BREATH_TECHNIQUES[this.st.key];
+    const ph = T.phases[this.st.phaseIdx];
+    this.st.secLeft = ph.sec;
+    const c = this._el('breath-circle');
+    c.style.transition = 'transform ' + (this._reduce() ? 0 : ph.sec) + 's linear';
+    c.style.transform = 'scale(' + ph.scale + ')';
+    this._el('breath-phase').textContent = ph.label;
+    this._el('breath-count').textContent = ph.sec;
+    this._el('breath-cycle').textContent = 'Cykl ' + this.st.cycle + '/' + T.cycles;
+    if (window.Anim && Anim._playBreathCue) Anim._playBreathCue(ph.cue);
+    if (navigator.vibrate) { try { navigator.vibrate(50); } catch(e) {} }
+  },
+
+  _tick() {
+    this.st.secLeft--;
+    if (this.st.secLeft <= 0) {
+      const T = BREATH_TECHNIQUES[this.st.key];
+      this.st.phaseIdx++;
+      if (this.st.phaseIdx >= T.phases.length) {
+        this.st.phaseIdx = 0; this.st.cycle++;
+        if (this.st.cycle > T.cycles) { this._finish(); return; }
+      }
+      this._enterPhase();
+    } else {
+      this._el('breath-count').textContent = this.st.secLeft;
+    }
+  },
+
+  _finish() {
+    this.stop();
+    this._el('breath-phase').textContent = 'Gotowe 🌬️';
+    this._el('breath-count').textContent = '';
+    const c = this._el('breath-circle');
+    c.style.transition = this._reduce() ? 'none' : 'transform 0.6s ease';
+    c.style.transform = 'scale(0.7)';
+    if (window.Anim && Anim._playSuccess) Anim._playSuccess();
+    this._setBtn('start');
+  },
+
+  _setBtn(mode) {
+    const b = this._el('breath-action');
+    if (!b) return;
+    if (mode === 'start')  { b.textContent = '▶ Start'; b.onclick = () => BREATH.start(); }
+    if (mode === 'pause')  { b.textContent = '⏸ Pauza'; b.onclick = () => BREATH.pause(); }
+    if (mode === 'resume') { b.textContent = '▶ Wznów'; b.onclick = () => BREATH.resume(); }
+  },
+
+  toggleSound() {
+    const on = !(window.Anim && Anim._soundEnabled);
+    if (window.Anim && Anim.toggleSound) Anim.toggleSound(on);
+    this._el('breath-sound').textContent = on ? '🔊' : '🔇';
+  }
+};
+function openBreath(key) { BREATH.open(key); }
+
 // ── RAPORTY AI DLA ZAWODNIKA ─────────────────────────────────────
 async function loadHomeAIReportsTile() {
   if (!_athleteId) return;
@@ -8728,6 +8834,25 @@ const Anim = {
     } catch(e) {}
   },
 
+  _playBreathCue(kind) {
+    if (!this._soundEnabled) return;
+    const ctx = this._getCtx();
+    if (!ctx) return;
+    try {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      const t = ctx.currentTime;
+      if (kind === 'in')       { osc.frequency.setValueAtTime(330, t); osc.frequency.exponentialRampToValueAtTime(550, t + 0.25); }
+      else if (kind === 'out') { osc.frequency.setValueAtTime(550, t); osc.frequency.exponentialRampToValueAtTime(300, t + 0.30); }
+      else                     { osc.frequency.setValueAtTime(420, t); }
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.30);
+      osc.start(t); osc.stop(t + 0.32);
+    } catch(e) {}
+  },
+
   toggleSound(enabled) {
     this._soundEnabled = enabled;
     localStorage.setItem('bm_sound', enabled ? '1' : '0');
@@ -10227,8 +10352,41 @@ if ('serviceWorker' in navigator) {
     <button id="ctab-wzmacnianie" onclick="switchCwiczeniaTab('wzmacnianie')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 3px;cursor:pointer;">💪 Wzmacnianie</button>
   </div>
 
-  <div id="cw-tab-oddech" style="text-align:center;color:rgba(255,255,255,0.5);font-family:'Inter',sans-serif;font-size:13px;padding:40px 20px;">Wkrótce — ćwiczenia oddechowe</div>
+  <div id="cw-tab-oddech" style="padding:4px 0;">
+    <div style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:14px;line-height:1.4;">Krótkie sesje oddechowe — wycisz głowę przed snem albo skup się przed startem.</div>
+    <button onclick="openBreath('478')" style="display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:22px;">🌙</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;">4-7-8</span>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-bottom:8px;">Wycisz się przed snem — głęboki relaks układu nerwowego.</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">WDECH 4 · WSTRZYMAJ 7 · WYDECH 8 · 4 CYKLE</div>
+    </button>
+    <button onclick="openBreath('box')" style="display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:22px;">🎯</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;">Box / Kwadrat</span>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-bottom:8px;">Skup się przed startem — równy, kontrolowany rytm.</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">4 · 4 · 4 · 4 · 6 CYKLI</div>
+    </button>
+  </div>
   <div id="cw-tab-wzmacnianie" style="display:none;text-align:center;color:rgba(255,255,255,0.5);font-family:'Inter',sans-serif;font-size:13px;padding:40px 20px;">Wkrótce — ćwiczenia wzmacniające</div>
+</div>
+
+<div id="breath-modal" style="display:none;position:fixed;inset:0;z-index:200;background:radial-gradient(circle at 50% 38%, #1a1422 0%, #07050c 100%);flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <button id="breath-sound" onclick="BREATH.toggleSound()" style="position:absolute;top:16px;left:16px;background:rgba(255,255,255,0.08);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;">🔊</button>
+  <button onclick="BREATH.close()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;">✕</button>
+  <div id="breath-title" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:0.04em;margin-bottom:6px;">—</div>
+  <div id="breath-cycle" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:40px;">—</div>
+  <div style="position:relative;width:240px;height:240px;display:flex;align-items:center;justify-content:center;margin-bottom:40px;">
+    <div id="breath-circle" style="position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle, rgba(232,86,30,0.35) 0%, rgba(232,86,30,0.12) 70%);border:2px solid rgba(232,86,30,0.5);transform:scale(0.55);"></div>
+    <div style="position:relative;text-align:center;pointer-events:none;">
+      <div id="breath-phase" style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:0.03em;">Gotowy?</div>
+      <div id="breath-count" style="font-family:'DM Mono',monospace;font-size:40px;color:var(--accent);line-height:1.1;"></div>
+    </div>
+  </div>
+  <button id="breath-action" onclick="BREATH.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
 </div>
 
 <div id="section-forma" style="display:none;padding:16px;">
