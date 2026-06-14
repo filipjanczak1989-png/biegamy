@@ -6747,6 +6747,8 @@ const BREATH_TECHNIQUES = {
     { label: 'Wstrzymaj', sec: 4, scale: 0.55, cue: 'hold' } ] }
 };
 
+const WIMHOF = { name: 'Wim Hof', rounds: 3, breaths: 30, recoveryHoldSec: 15 };
+
 const BREATH = {
   st: null,
   _reduce() { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); },
@@ -6837,9 +6839,140 @@ const BREATH = {
     const on = !(window.Anim && Anim._soundEnabled);
     if (window.Anim && Anim.toggleSound) Anim.toggleSound(on);
     this._el('breath-sound').textContent = on ? '🔊' : '🔇';
+  },
+
+  // ── WIM HOF (izolowany pod-przepływ, reuse modal/koło/audio) ──
+  openWim() {
+    this.st = { wim: true, round: 1, phase: 'ready', timerId: null,
+                retentionTimes: [], breathNum: 0, breathHalf: 'out', retSec: 0, secLeft: 0 };
+    this._el('breath-title').textContent = WIMHOF.name;
+    this._el('breath-cycle').textContent = 'Runda 1/' + WIMHOF.rounds;
+    this._el('breath-phase').textContent = 'Gotowy?';
+    this._el('breath-count').textContent = '';
+    const c = this._el('breath-circle');
+    c.style.transition = 'none'; c.style.transform = 'scale(0.55)';
+    this._el('breath-sound').textContent = (window.Anim && Anim._soundEnabled) ? '🔊' : '🔇';
+    const s = this._el('breath-summary'); if (s) s.style.display = 'none';
+    this._setWimBtn('start');
+    this._el('breath-modal').style.display = 'flex';
+  },
+
+  _mmss(s) { const m = Math.floor(s / 60), ss = s % 60; return m + ':' + (ss < 10 ? '0' : '') + ss; },
+
+  _wimStart() {
+    if (!this.st) return;
+    this.st.round = 1;
+    this._el('breath-cycle').textContent = 'Runda 1/' + WIMHOF.rounds;
+    this._setWimBtn('running');
+    this._wimStartBreaths();
+  },
+
+  _wimStartBreaths() {
+    this.st.phase = 'breaths';
+    this.st.breathNum = 0; this.st.breathHalf = 'out';
+    this._el('breath-phase').textContent = 'Oddychaj';
+    this._wimBreathFlip();
+    this.st.timerId = setInterval(() => this._wimBreathFlip(), 750);
+  },
+
+  _wimBreathFlip() {
+    const c = this._el('breath-circle');
+    const d = this._reduce() ? 0 : 0.7;
+    if (this.st.breathHalf === 'out') {
+      this.st.breathHalf = 'in';
+      this.st.breathNum++;
+      if (this.st.breathNum > WIMHOF.breaths) { this._wimToRetention(); return; }
+      c.style.transition = 'transform ' + d + 's ease-in';
+      c.style.transform = 'scale(1.0)';
+      this._el('breath-count').textContent = this.st.breathNum + '/' + WIMHOF.breaths;
+      if (navigator.vibrate) { try { navigator.vibrate(30); } catch(e) {} }
+    } else {
+      this.st.breathHalf = 'out';
+      c.style.transition = 'transform ' + d + 's ease-out';
+      c.style.transform = 'scale(0.55)';
+    }
+  },
+
+  _wimToRetention() {
+    this.stop();
+    this.st.phase = 'retention'; this.st.retSec = 0;
+    const c = this._el('breath-circle');
+    c.style.transition = this._reduce() ? 'none' : 'transform 0.6s ease';
+    c.style.transform = 'scale(0.5)';
+    this._el('breath-phase').textContent = 'Wstrzymaj — puste płuca';
+    this._el('breath-count').textContent = '0:00';
+    if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('out');
+    if (navigator.vibrate) { try { navigator.vibrate(80); } catch(e) {} }
+    this._setWimBtn('hold');
+    this.st.timerId = setInterval(() => { this.st.retSec++; this._el('breath-count').textContent = this._mmss(this.st.retSec); }, 1000);
+  },
+
+  _wimEndRetention() {
+    if (!this.st || this.st.phase !== 'retention') return;
+    this.stop();
+    this.st.retentionTimes.push(this.st.retSec);
+    this._wimToRecovery();
+  },
+
+  _wimToRecovery() {
+    this.st.phase = 'recovery'; this.st.secLeft = WIMHOF.recoveryHoldSec;
+    const c = this._el('breath-circle');
+    c.style.transition = this._reduce() ? 'none' : 'transform 1.2s ease-in';
+    c.style.transform = 'scale(1.0)';
+    this._el('breath-phase').textContent = 'Wdech — trzymaj';
+    this._el('breath-count').textContent = WIMHOF.recoveryHoldSec;
+    if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('in');
+    if (navigator.vibrate) { try { navigator.vibrate(50); } catch(e) {} }
+    this._setWimBtn('running');
+    this.st.timerId = setInterval(() => this._wimRecTick(), 1000);
+  },
+
+  _wimRecTick() {
+    this.st.secLeft--;
+    if (this.st.secLeft <= 0) {
+      this.stop();
+      this.st.round++;
+      if (this.st.round > WIMHOF.rounds) { this._wimFinish(); return; }
+      this._el('breath-cycle').textContent = 'Runda ' + this.st.round + '/' + WIMHOF.rounds;
+      this._wimStartBreaths();
+    } else {
+      this._el('breath-count').textContent = this.st.secLeft;
+    }
+  },
+
+  _wimFinish() {
+    this.stop();
+    const c = this._el('breath-circle');
+    c.style.transition = this._reduce() ? 'none' : 'transform 0.6s ease';
+    c.style.transform = 'scale(0.7)';
+    this._el('breath-phase').textContent = 'Gotowe ❄️';
+    this._el('breath-count').textContent = '';
+    const s = this._el('breath-summary');
+    if (s) { s.innerHTML = this.st.retentionTimes.map((t, i) => 'Runda ' + (i + 1) + ': ' + this._mmss(t)).join('<br>'); s.style.display = 'block'; }
+    if (window.Anim && Anim._playSuccess) Anim._playSuccess();
+    this._setWimBtn('done');
+  },
+
+  _setWimBtn(mode) {
+    const b = this._el('breath-action');
+    if (!b) return;
+    if (mode === 'start')   { b.textContent = '▶ Start';   b.onclick = () => BREATH._wimStart(); }
+    if (mode === 'hold')    { b.textContent = 'Wdech ▶';   b.onclick = () => BREATH._wimEndRetention(); }
+    if (mode === 'running') { b.textContent = '⏹ Stop';    b.onclick = () => BREATH.close(); }
+    if (mode === 'done')    { b.textContent = '✓ Zakończ'; b.onclick = () => BREATH.close(); }
   }
 };
 function openBreath(key) { BREATH.open(key); }
+function openWim() {
+  if (localStorage.getItem('bm_wimhof_ok') === '1') { BREATH.openWim(); return; }
+  document.getElementById('wim-disclaimer').style.display = 'flex';
+}
+function wimAccept() {
+  localStorage.setItem('bm_wimhof_ok', '1');
+  document.getElementById('wim-disclaimer').style.display = 'none';
+  BREATH.openWim();
+}
+function wimShowInfo() { document.getElementById('wim-disclaimer').style.display = 'flex'; }
 
 // ── RAPORTY AI DLA ZAWODNIKA ─────────────────────────────────────
 async function loadHomeAIReportsTile() {
@@ -10370,6 +10503,15 @@ if ('serviceWorker' in navigator) {
       <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-bottom:8px;">Skup się przed startem — równy, kontrolowany rytm.</div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">4 · 4 · 4 · 4 · 6 CYKLI</div>
     </button>
+    <button onclick="openWim()" style="position:relative;display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-top:12px;cursor:pointer;">
+      <button onclick="event.stopPropagation();wimShowInfo()" title="Bezpieczeństwo" style="position:absolute;top:10px;right:10px;background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;padding:0;line-height:1;">i</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <span style="font-size:22px;">❄️</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;">Wim Hof</span>
+      </div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-bottom:8px;">Energia i odporność — serie szybkich oddechów + wstrzymanie. Tylko na siedząco/leżąco.</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">3 RUNDY · 30 ODDECHÓW · RETENCJA + RECOVERY</div>
+    </button>
   </div>
   <div id="cw-tab-wzmacnianie" style="display:none;text-align:center;color:rgba(255,255,255,0.5);font-family:'Inter',sans-serif;font-size:13px;padding:40px 20px;">Wkrótce — ćwiczenia wzmacniające</div>
 </div>
@@ -10387,6 +10529,23 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
   <button id="breath-action" onclick="BREATH.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
+  <div id="breath-summary" style="display:none;margin-top:18px;font-family:'DM Mono',monospace;font-size:12px;color:rgba(255,255,255,0.75);text-align:center;line-height:1.6;"></div>
+</div>
+
+<div id="wim-disclaimer" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(7,5,12,0.92);flex-direction:column;align-items:center;justify-content:center;padding:28px;">
+  <div style="max-width:340px;background:#14101c;border:1px solid rgba(232,86,30,0.4);border-radius:18px;padding:24px;">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:0.03em;margin-bottom:12px;text-align:center;">⚠️ Zanim zaczniesz</div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.8);font-family:'Inter',sans-serif;line-height:1.55;margin-bottom:18px;">
+      Metoda Wim Hofa to intensywna hiperwentylacja i wstrzymanie oddechu — może wywołać zawroty głowy lub omdlenie.<br><br>
+      • Ćwicz <b>wyłącznie na siedząco lub leżąco</b>.<br>
+      • <b>NIGDY</b> w wodzie, pod prysznicem, podczas prowadzenia auta ani na stojąco.<br>
+      • Przerwij natychmiast przy zawrotach głowy.<br>
+      • Odradzane przy: ciąży, padaczce, chorobach serca, nadciśnieniu.<br><br>
+      W razie wątpliwości skonsultuj się z lekarzem.
+    </div>
+    <button onclick="wimAccept()" style="display:block;width:100%;background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.05em;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:10px;">Rozumiem ▶</button>
+    <button onclick="document.getElementById('wim-disclaimer').style.display='none'" style="display:block;width:100%;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;font-size:13px;padding:10px;border-radius:12px;cursor:pointer;">Zamknij</button>
+  </div>
 </div>
 
 <div id="section-forma" style="display:none;padding:16px;">
