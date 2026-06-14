@@ -1537,6 +1537,8 @@
       }
     }
 
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     // v4: TRIMP bars w osobnym mini-chart canvasie POD głównym chartem — szuka #PREFIX-trimp-bars
     const trimpBarsEl = document.getElementById(px + '-trimp-bars');
     if (trimpBarsEl && typeof Chart !== 'undefined') {
@@ -1558,7 +1560,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: { duration: 800, easing: 'easeOutQuart' },
+          animation: reduce ? false : { duration: 800, easing: 'easeOutQuart' },
           plugins: {
             legend: { display: false },
             tooltip: {
@@ -1610,7 +1612,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          animation: { duration: 1200, easing: 'easeOutQuart' },
+          animation: reduce ? false : { duration: 1200, easing: 'easeOutQuart' },
           interaction: { mode: 'index', intersect: false },
           plugins: {
             zoom: {
