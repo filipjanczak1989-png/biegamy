@@ -602,6 +602,13 @@
     return window.RUN_TYPES.has((t || '').toLowerCase().trim());
   };
 
+  // Cel kcal = TDEE (maintenance, liczony triggerem DB calc_bmr_tdee) + korekta celu. Single source dla ±300.
+  window.GOAL_KCAL_ADJUST = { deficit: -300, surplus: 300, maintain: 0 };
+  window.computeTargetKcal = function(tdee, goal) {
+    if (!tdee) return null;                                 // brak tdee → null (callsite decyduje fallback)
+    return tdee + (window.GOAL_KCAL_ADJUST[goal] || 0);     // nieznany goal → 0
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {
