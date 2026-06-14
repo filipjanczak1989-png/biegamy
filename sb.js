@@ -609,6 +609,14 @@
     return tdee + (window.GOAL_KCAL_ADJUST[goal] || 0);     // nieznany goal → 0
   };
 
+  // Losowe tło oddechowe (20 grafik breath-bg-1..20.webp w biegamy-assets) + ciemny veil dla czytelności
+  // białego tekstu na jasnych grafikach. Zwraca string do element.style.backgroundImage (veil NA WIERZCHU, foto pod).
+  window.randomBreathBg = function(alphaTop, alphaBot) {
+    const n = 1 + Math.floor(Math.random() * 20);
+    return 'linear-gradient(180deg, rgba(7,5,12,' + alphaTop + '), rgba(7,5,12,' + alphaBot + ')), ' +
+           'url(https://filipjanczak1989-png.github.io/biegamy-assets/breath-bg-' + n + '.webp)';
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {

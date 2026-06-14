@@ -2649,6 +2649,8 @@ function showSection(name) {
   } else if (name === 'cwiczenia') {
     document.getElementById('section-cwiczenia').style.display = 'block';
     switchCwiczeniaTab('oddech');
+    const cwbg = document.getElementById('cw-tab-oddech');
+    if (cwbg && window.randomBreathBg) { cwbg.style.backgroundColor = '#07050c'; cwbg.style.backgroundImage = window.randomBreathBg(0.55, 0.75); cwbg.style.backgroundSize = 'cover'; cwbg.style.backgroundPosition = 'center'; cwbg.style.borderRadius = '14px'; }
   } else if (name === 'aireports') {
     // Po refaktoryzacji: raporty są na osobnej stronie raporty.html
     window.location.href = 'raporty.html';
@@ -6767,7 +6769,9 @@ const BREATH = {
     c.style.transform = 'scale(0.55)';
     this._el('breath-sound').textContent = (window.Anim && Anim._soundEnabled) ? '🔊' : '🔇';
     this._setBtn('start');
-    this._el('breath-modal').style.display = 'flex';
+    const m = this._el('breath-modal');
+    m.style.backgroundColor = '#07050c'; m.style.backgroundImage = window.randomBreathBg(0.66, 0.82); m.style.backgroundSize = 'cover'; m.style.backgroundPosition = 'center';
+    m.style.display = 'flex';
   },
 
   close() { this.stop(); this._el('breath-modal').style.display = 'none'; },
@@ -6854,7 +6858,9 @@ const BREATH = {
     this._el('breath-sound').textContent = (window.Anim && Anim._soundEnabled) ? '🔊' : '🔇';
     const s = this._el('breath-summary'); if (s) s.style.display = 'none';
     this._setWimBtn('start');
-    this._el('breath-modal').style.display = 'flex';
+    const m = this._el('breath-modal');
+    m.style.backgroundColor = '#07050c'; m.style.backgroundImage = window.randomBreathBg(0.66, 0.82); m.style.backgroundSize = 'cover'; m.style.backgroundPosition = 'center';
+    m.style.display = 'flex';
   },
 
   _mmss(s) { const m = Math.floor(s / 60), ss = s % 60; return m + ':' + (ss < 10 ? '0' : '') + ss; },
@@ -10487,7 +10493,7 @@ if ('serviceWorker' in navigator) {
 
   <div id="cw-tab-oddech" style="padding:4px 0;">
     <div style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:14px;line-height:1.4;">Krótkie sesje oddechowe — wycisz głowę przed snem albo skup się przed startem.</div>
-    <button onclick="openBreath('478')" style="display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;">
+    <button onclick="openBreath('478')" style="display:block;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-bottom:12px;cursor:pointer;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
         <span style="font-size:22px;">🌙</span>
         <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;">4-7-8</span>
@@ -10495,7 +10501,7 @@ if ('serviceWorker' in navigator) {
       <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-bottom:8px;">Wycisz się przed snem — głęboki relaks układu nerwowego.</div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">WDECH 4 · WSTRZYMAJ 7 · WYDECH 8 · 4 CYKLE</div>
     </button>
-    <button onclick="openBreath('box')" style="display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;cursor:pointer;">
+    <button onclick="openBreath('box')" style="display:block;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;cursor:pointer;">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
         <span style="font-size:22px;">🎯</span>
         <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;letter-spacing:0.03em;">Box / Kwadrat</span>
@@ -10503,7 +10509,7 @@ if ('serviceWorker' in navigator) {
       <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-bottom:8px;">Skup się przed startem — równy, kontrolowany rytm.</div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">4 · 4 · 4 · 4 · 6 CYKLI</div>
     </button>
-    <button onclick="openWim()" style="position:relative;display:block;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-top:12px;cursor:pointer;">
+    <button onclick="openWim()" style="position:relative;display:block;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:16px;margin-top:12px;cursor:pointer;">
       <button onclick="event.stopPropagation();wimShowInfo()" title="Bezpieczeństwo" style="position:absolute;top:10px;right:10px;background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;padding:0;line-height:1;">i</button>
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
         <span style="font-size:22px;">❄️</span>
