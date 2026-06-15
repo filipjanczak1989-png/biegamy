@@ -657,6 +657,15 @@
     return null;
   };
 
+  // RADIO BiegaMy — buildery URL. media z bucketu radio-audio (URL = slug + '.' + media_ext),
+  // cover z biegamy-assets (cover_slug = pełna nazwa pliku bez .webp, np. 'cover-park-wolnosci').
+  window.RADIO = {
+    MEDIA_BASE: window.SB_URL + '/storage/v1/object/public/radio-audio/',
+    COVER_BASE: 'https://filipjanczak1989-png.github.io/biegamy-assets/',
+    mediaUrl: function(t){ return (t && t.slug) ? (this.MEDIA_BASE + t.slug + '.' + (t.media_ext || 'mp4')) : ''; },
+    coverUrl: function(t){ return (t && t.cover_slug) ? (this.COVER_BASE + t.cover_slug + '.webp') : ''; }
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {

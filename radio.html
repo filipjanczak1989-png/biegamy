@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0c0c10">
+<title>Radio · BIEGAMY</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0c10; --card:#13131a; --card2:#1a1a22;
+  --fg:#f0ede8; --muted:rgba(240,237,232,0.55); --border:rgba(255,255,255,0.08);
+  --accent:#e8561e; --accent2:#FF6B2C; --green:#3db870;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+body{padding:0 0 200px;min-height:100vh;}
+.rad-hdr{display:flex;align-items:center;gap:12px;padding:16px;border-bottom:1px solid var(--border);}
+.rad-hdr a{background:rgba(255,255,255,0.07);border:none;color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;text-decoration:none;flex-shrink:0;}
+.rad-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;}
+.rad-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:14px 16px;}
+.rad-tab{flex:1;background:transparent;color:var(--muted);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:11px 4px;cursor:pointer;}
+.rad-tab.on{background:rgba(232,86,30,0.12);color:var(--accent);}
+.rad-tab + .rad-tab{border-left:1px solid var(--border);}
+.rad-wrap{padding:0 16px;}
+.rad-empty{text-align:center;color:var(--muted);font-size:13px;font-family:'Inter',sans-serif;padding:48px 20px;line-height:1.5;}
+.rad-card{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:10px;margin-bottom:10px;}
+.rad-cover{width:56px;height:56px;border-radius:10px;object-fit:cover;flex-shrink:0;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:22px;}
+.rad-meta{flex:1;min-width:0;}
+.rad-tt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rad-ar{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rad-play{background:var(--accent);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;}
+.rad-newpl{display:block;width:100%;background:rgba(255,255,255,0.06);border:1px dashed rgba(232,86,30,0.45);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:12px;}
+/* Player bar */
+#rad-player{position:fixed;left:0;right:0;bottom:0;background:rgba(16,14,22,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:none;z-index:60;}
+#rad-video{width:100%;max-height:200px;border-radius:12px;background:#000;display:none;margin-bottom:8px;}
+.rad-np{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+#rad-np-cover{width:40px;height:40px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.06);flex-shrink:0;}
+#rad-np-title{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#rad-audio{width:100%;}
+</style>
+</head>
+<body>
+<div class="rad-hdr">
+  <a href="zawodnik.html" title="Wróć">‹</a>
+  <div class="rad-title">📻 Radio BiegaMy</div>
+</div>
+
+<div class="rad-tabs">
+  <button class="rad-tab on" id="rtab-katalog" onclick="radioTab('katalog')">🎵 Katalog</button>
+  <button class="rad-tab" id="rtab-playlisty" onclick="radioTab('playlisty')">📂 Moje playlisty</button>
+</div>
+
+<div class="rad-wrap">
+  <div id="radio-catalog"><div class="rad-empty">Ładowanie…</div></div>
+  <div id="radio-playlists" style="display:none;"></div>
+</div>
+
+<!-- Player bar -->
+<div id="rad-player">
+  <video id="rad-video" controls playsinline preload="none"></video>
+  <div class="rad-np">
+    <img id="rad-np-cover" alt="" onerror="this.style.visibility='hidden'">
+    <div id="rad-np-title" style="flex:1;min-width:0;">—</div>
+    <button onclick="radioClosePlayer()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>
+  </div>
+  <audio id="rad-audio" controls preload="none"></audio>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sb.js"></script>
+<script>
+let _radioUid = null;
+let _radioTracks = [];
+
+async function radioInit(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { setTimeout(async () => {
+    const { data: { session: s2 } } = await sb.auth.getSession();
+    if (!s2) { window.location.href = 'index.html'; return; }
+    _radioUid = s2.user.id; radioLoad();
+  }, 1000); return; }
+  _radioUid = session.user.id;
+  radioLoad();
+}
+
+async function radioLoad(){
+  await Promise.all([loadCatalog(), loadPlaylists()]);
+}
+
+async function loadCatalog(){
+  const el = document.getElementById('radio-catalog');
+  const { data, error } = await sb.from('radio_tracks').select('*').order('created_at', { ascending: true });
+  if (error) { el.innerHTML = '<div class="rad-empty">Błąd ładowania katalogu.</div>'; return; }
+  _radioTracks = data || [];
+  if (!_radioTracks.length) { el.innerHTML = '<div class="rad-empty">Biblioteka jest pusta 🎵<br>Trener jeszcze nie wgrał żadnych utworów.</div>'; return; }
+  el.innerHTML = _radioTracks.map(function(t){
+    const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
+    const icon = t.is_video ? '🎬' : '🎵';
+    const coverHtml = cover ? '<img class="rad-cover" src="' + cover + '" alt="" onerror="this.outerHTML=\'<div class=&quot;rad-cover&quot;>' + icon + '</div>\'">' : '<div class="rad-cover">' + icon + '</div>';
+    return '<div class="rad-card">' + coverHtml
+      + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
+      + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + (t.is_video ? ' · wideo' : '') + '</div></div>'
+      + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')">▶</button></div>';
+  }).join('');
+}
+
+async function loadPlaylists(){
+  const el = document.getElementById('radio-playlists');
+  const { data, error } = await sb.from('radio_playlists').select('*').eq('owner_id', _radioUid).order('created_at', { ascending: true });
+  let html = '<button class="rad-newpl" onclick="radioNewPlaylist()">➕ Nowa playlista</button>';
+  if (error) { el.innerHTML = html + '<div class="rad-empty">Błąd ładowania playlist.</div>'; return; }
+  const pls = data || [];
+  if (!pls.length) { html += '<div class="rad-empty">Nie masz jeszcze playlist.<br>Stwórz pierwszą i dodawaj utwory z katalogu.</div>'; }
+  else {
+    html += pls.map(function(p){
+      return '<div class="rad-card" onclick="radioOpenPlaylist(\'' + p.id + '\')" style="cursor:pointer;">'
+        + '<div class="rad-cover">📂</div>'
+        + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(p.name) + '</div><div class="rad-ar">playlista</div></div>'
+        + '<span style="color:var(--muted);font-size:18px;flex-shrink:0;">›</span></div>';
+    }).join('');
+  }
+  el.innerHTML = html;
+}
+
+function radioTab(name){
+  ['katalog','playlisty'].forEach(function(t){
+    const btn = document.getElementById('rtab-' + t);
+    const panel = document.getElementById(t === 'katalog' ? 'radio-catalog' : 'radio-playlisty');
+    if (btn) btn.classList.toggle('on', t === name);
+  });
+  document.getElementById('radio-catalog').style.display = name === 'katalog' ? 'block' : 'none';
+  document.getElementById('radio-playlists').style.display = name === 'playlisty' ? 'block' : 'none';
+}
+
+function radioPlay(trackId){
+  const t = _radioTracks.find(function(x){ return x.id === trackId; });
+  if (!t) return;
+  const url = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.mediaUrl(t)) : '';
+  if (!url) return;
+  const player = document.getElementById('rad-player');
+  const vid = document.getElementById('rad-video');
+  const aud = document.getElementById('rad-audio');
+  const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
+  document.getElementById('rad-np-title').textContent = (t.title || t.slug) + (t.artist ? ' · ' + t.artist : '');
+  const npCover = document.getElementById('rad-np-cover');
+  if (cover) { npCover.src = cover; npCover.style.display = ''; } else { npCover.style.display = 'none'; }
+  // zatrzymaj poprzednie
+  try { vid.pause(); aud.pause(); } catch(e){}
+  if (t.is_video) {
+    aud.style.display = 'none'; aud.removeAttribute('src');
+    vid.src = url; vid.style.display = 'block';
+    player.style.display = 'block';
+    vid.play().catch(function(){});
+  } else {
+    vid.style.display = 'none'; vid.removeAttribute('src');
+    aud.src = url; aud.style.display = 'block';
+    player.style.display = 'block';
+    aud.play().catch(function(){});
+  }
+}
+
+function radioClosePlayer(){
+  const vid = document.getElementById('rad-video'), aud = document.getElementById('rad-audio');
+  try { vid.pause(); aud.pause(); } catch(e){}
+  vid.removeAttribute('src'); aud.removeAttribute('src');
+  document.getElementById('rad-player').style.display = 'none';
+}
+
+async function radioNewPlaylist(){
+  const name = (prompt('Nazwa playlisty:') || '').trim();
+  if (!name) return;
+  const { error } = await sb.from('radio_playlists').insert({ owner_id: _radioUid, name: name });
+  if (error) { alert('Błąd: ' + error.message); return; }
+  loadPlaylists();
+}
+
+function radioOpenPlaylist(playlistId){
+  // TODO KROK 2b: widok playlisty (utwory + dodaj/usuń/reorder + odtwarzanie po kolei)
+  alert('Szczegóły playlisty — wkrótce (KROK 2b).');
+}
+
+// TODO KROK 2b: dodawanie utworu z katalogu do playlisty (radio_playlist_tracks insert)
+
+radioInit();
+</script>
+</body>
+</html>
