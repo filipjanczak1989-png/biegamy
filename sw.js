@@ -110,6 +110,13 @@ self.addEventListener('fetch', (event) => {
   if (url.hostname.includes('strava.com')) return;
   if (url.hostname.includes('googleapis.com')) return;
 
+  // Pomiń pliki media (audio/wideo) — MUSZĄ iść bezpośrednio do sieci.
+  // <audio>/<video> odtwarza żądaniami zakresowymi (Range → 206 Partial Content).
+  // SW nie obsługuje Range, a cacheFirst zwracałby pełne 200 / nie cache'uje 206
+  // → odtwarzanie urywa się w tle / przy zgaszonym ekranie (iOS wymaga natywnego,
+  // range-capable zasobu dla background audio). Radio (radio-audio/*.mp4) gra przez to.
+  if (/\.(mp4|m4a|mp3|webm|ogg|wav|aac|mov|m4v)$/i.test(url.pathname)) return;
+
   // Strategia per typ zasobu
   if (isStaticAsset(request, url)) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
