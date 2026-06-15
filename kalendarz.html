@@ -1485,6 +1485,13 @@ function render() {
       const displayHr   = dayLog && dayLog.heart_rate ? dayLog.heart_rate : t.hr;
       const hasLog = !!dayLog;
 
+      let cwBtn = '';
+      if (_urlRole !== 'coach' && window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc)) {
+        const _pg = window.matchProgram ? window.matchProgram(t.desc) : null;
+        const _url = 'zawodnik.html?tab=cwiczenia&cw=wzmacnianie' + (_pg ? '&prog=' + _pg : '');
+        cwBtn = `<button class="card-cw" onclick="event.stopPropagation();location.href='${_url}'" style="margin-top:5px;background:rgba(255,255,255,0.08);border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:4px 8px;border-radius:6px;cursor:pointer;">💪 Ćwiczenia →</button>`;
+      }
+
       return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"
                    draggable="true"
                    ondragstart="dragStart(event,'${ds}',${i})"
@@ -1498,7 +1505,7 @@ function render() {
           : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
         ${(displayPace||displayHr)?`<div class="card-pace">${displayPace?displayPace+'/km':''} ${displayHr?'· ♥ '+displayHr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
         ${t.desc?`<div class="card-desc">${escapeHtml(t.desc)}</div>`:''}
-        ${(_urlRole!=='coach' && window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc))?`<button class="card-cw" onclick="event.stopPropagation();location.href='zawodnik.html?tab=cwiczenia'" style="margin-top:5px;background:rgba(255,255,255,0.08);border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:4px 8px;border-radius:6px;cursor:pointer;">💪 Ćwiczenia →</button>`:''}
+        ${cwBtn}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;

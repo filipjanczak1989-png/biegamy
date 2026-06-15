@@ -625,6 +625,17 @@
     return /przysiad|wykrok|plank|deska|mostek|glute|dead.?bug|martw|brzuszk|\bcore\b|wzmacniaj|jaskół|łydk|pompk|bird.?dog|side.?plank|stabiliz/.test((desc || '').toLowerCase());
   };
 
+  // Smart-match opisu planu → id programu ĆWICZENIA (lub null = brak pewnego dopasowania → lista).
+  // Kolejność = priorytet (specyficzne przed ogólnymi). Ids: rozgrzewka/core/nogi/stabilizacja/pelny.
+  window.matchProgram = function(desc) {
+    const d = (desc || '').toLowerCase();
+    if (/rozgrzew|przed startem|przed biegiem|aktywac/.test(d)) return 'rozgrzewka';
+    if (/\bcore\b|brzuch|plank|deska|dead.?bug|martw/.test(d)) return 'core';
+    if (/stabiliz|równowag|rownowag|jaskół|jaskol|balans|bird.?dog/.test(d)) return 'stabilizacja';
+    if (/nóg|\bnog|łydk|lydk|przysiad|wykrok|calf|wspięci|wspieci/.test(d)) return 'nogi';
+    return null;
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {

@@ -5630,7 +5630,15 @@ async function loadTodayTraining() {
   if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; if(divider) divider.style.display='block'; }
   if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
   const cwCta = document.getElementById('today-cwiczenia-cta');
-  if (cwCta) cwCta.style.display = (window.looksLikeStrength && window.looksLikeStrength(data.type, data.description)) ? 'block' : 'none';
+  if (cwCta) {
+    if (window.looksLikeStrength && window.looksLikeStrength(data.type, data.description)) {
+      const _prog = window.matchProgram ? window.matchProgram(data.description) : null;
+      cwCta.style.display = 'block';
+      cwCta.onclick = function(){ showSection('cwiczenia'); if (typeof switchCwiczeniaTab==='function') switchCwiczeniaTab('wzmacnianie'); if (_prog && typeof openProgram==='function') openProgram(_prog); };
+    } else {
+      cwCta.style.display = 'none';
+    }
+  }
 }
 
 async function loadCoachMessage() {
@@ -9304,10 +9312,20 @@ document.addEventListener('touchstart', (e) => {
 }, {passive: true});
 setTimeout(() => loadDailyMotivation(), 200);
 
-// Obsługa ?tab= z kalendarza
-const _tabParam = new URLSearchParams(window.location.search).get('tab');
+// Obsługa ?tab= z kalendarza (+ &cw=wzmacnianie / &prog=<id> deep-link do programu)
+const _qp = new URLSearchParams(window.location.search);
+const _tabParam = _qp.get('tab');
 if (_tabParam) {
-  setTimeout(() => showSection(_tabParam), 800);
+  setTimeout(() => {
+    showSection(_tabParam);
+    if (_tabParam === 'cwiczenia') {
+      const _cw = _qp.get('cw'), _prog = _qp.get('prog');
+      if (_cw === 'wzmacnianie' || _prog) {
+        if (typeof switchCwiczeniaTab === 'function') switchCwiczeniaTab('wzmacnianie');
+        if (_prog && typeof openProgram === 'function') openProgram(_prog);
+      }
+    }
+  }, 800);
 }
 
 // ════════════════════════════════════════════════════════════════════
