@@ -36,6 +36,7 @@ const PRECACHE_URLS = [
   '/o-nas.html',
   '/terms.html',
   '/sb.js',
+  '/theme.css',
   '/manifest.json',
   '/offline.html'
 ];

@@ -481,6 +481,18 @@
   };
 
   // ═══════════════════════════════════════════════════════════════
+  // 🎨 MOTYWY — przełączanie tokenów (theme.css html[data-theme])
+  // ═══════════════════════════════════════════════════════════════
+  window.setTheme = function(name){
+    try {
+      if (name && name !== 'default') { document.documentElement.setAttribute('data-theme', name); localStorage.setItem('bm_theme', name); }
+      else { document.documentElement.removeAttribute('data-theme'); localStorage.removeItem('bm_theme'); }
+    } catch(e){}
+  };
+  window.getTheme = function(){ try { return localStorage.getItem('bm_theme') || 'default'; } catch(e){ return 'default'; } };
+  (function(){ try { var t = localStorage.getItem('bm_theme'); if (t) document.documentElement.setAttribute('data-theme', t); } catch(e){} })();
+
+  // ═══════════════════════════════════════════════════════════════
   // 📜 CYTATY MOTYWACYJNE — single source of truth
   // ═══════════════════════════════════════════════════════════════
   window.QUOTES_LIBRARY = [
