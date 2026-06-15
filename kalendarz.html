@@ -1486,10 +1486,17 @@ function render() {
       const hasLog = !!dayLog;
 
       let cwBtn = '';
-      if (_urlRole !== 'coach' && window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc)) {
-        const _pg = window.matchProgram ? window.matchProgram(t.desc) : null;
-        const _url = 'zawodnik.html?tab=cwiczenia&cw=wzmacnianie' + (_pg ? '&prog=' + _pg : '');
-        cwBtn = `<button class="card-cw" onclick="event.stopPropagation();location.href='${_url}'" style="margin-top:5px;background:rgba(255,255,255,0.08);border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:4px 8px;border-radius:6px;cursor:pointer;">💪 Ćwiczenia →</button>`;
+      if (_urlRole !== 'coach') {
+        const _cwSt = "margin-top:5px;background:rgba(255,255,255,0.08);border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:4px 8px;border-radius:6px;cursor:pointer;";
+        if (window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc)) {
+          const _pg = window.matchProgram ? window.matchProgram(t.desc) : null;
+          const _url = 'zawodnik.html?tab=cwiczenia&cw=wzmacnianie' + (_pg ? '&prog=' + _pg : '');
+          cwBtn = `<button class="card-cw" onclick="event.stopPropagation();location.href='${_url}'" style="${_cwSt}">💪 Ćwiczenia →</button>`;
+        } else if (window.looksLikeBreath && window.looksLikeBreath(t.type, t.desc)) {
+          const _br = window.matchBreath ? window.matchBreath(t.desc) : null;
+          const _url = 'zawodnik.html?tab=cwiczenia' + (_br ? '&breath=' + _br : '');
+          cwBtn = `<button class="card-cw" onclick="event.stopPropagation();location.href='${_url}'" style="${_cwSt}">🌬️ Oddech →</button>`;
+        }
       }
 
       return `<div class="training-card ${statusCls} ${t.type==='Odpoczynek'?'rest-card':''}"

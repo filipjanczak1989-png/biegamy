@@ -636,6 +636,19 @@
     return null;
   };
 
+  // Detekcja treningu oddechowego (desc-only — brak typu „Oddechowy"; drille trenera odd* = Regeneracja+opis).
+  window.looksLikeBreath = function(type, desc) {
+    return /oddech|4-7-8|478|box breathing|wim hof|przeponow|hiperwentyl|breathing|kwadrat.*oddech|wstrzym.*oddech/.test((desc || '').toLowerCase());
+  };
+  // Smart-match opisu → technika oddechowa (lub null = ogólny oddech → lista 3 technik). Klucze: 478/box/wim.
+  window.matchBreath = function(desc) {
+    const d = (desc || '').toLowerCase();
+    if (/4-7-8|478|4 7 8/.test(d)) return '478';
+    if (/\bbox\b|box breathing|kwadrat/.test(d)) return 'box';
+    if (/wim hof|wim|retencj|hiperwentyl|lodow/.test(d)) return 'wim';
+    return null;
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {

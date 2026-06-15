@@ -5633,8 +5633,14 @@ async function loadTodayTraining() {
   if (cwCta) {
     if (window.looksLikeStrength && window.looksLikeStrength(data.type, data.description)) {
       const _prog = window.matchProgram ? window.matchProgram(data.description) : null;
+      cwCta.textContent = '💪 Otwórz ćwiczenia →';
       cwCta.style.display = 'block';
       cwCta.onclick = function(){ showSection('cwiczenia'); if (typeof switchCwiczeniaTab==='function') switchCwiczeniaTab('wzmacnianie'); if (_prog && typeof openProgram==='function') openProgram(_prog); };
+    } else if (window.looksLikeBreath && window.looksLikeBreath(data.type, data.description)) {
+      const _br = window.matchBreath ? window.matchBreath(data.description) : null;
+      cwCta.textContent = '🌬️ Ćwiczenia oddechowe →';
+      cwCta.style.display = 'block';
+      cwCta.onclick = function(){ showSection('cwiczenia'); if (typeof switchCwiczeniaTab==='function') switchCwiczeniaTab('oddech'); if (_br) { if (_br==='wim' && typeof openWim==='function') openWim(); else if (typeof openBreath==='function') openBreath(_br); } };
     } else {
       cwCta.style.display = 'none';
     }
@@ -9319,8 +9325,12 @@ if (_tabParam) {
   setTimeout(() => {
     showSection(_tabParam);
     if (_tabParam === 'cwiczenia') {
-      const _cw = _qp.get('cw'), _prog = _qp.get('prog');
-      if (_cw === 'wzmacnianie' || _prog) {
+      const _cw = _qp.get('cw'), _prog = _qp.get('prog'), _breath = _qp.get('breath');
+      if (_breath) {
+        if (typeof switchCwiczeniaTab === 'function') switchCwiczeniaTab('oddech');
+        if ((_breath === 'wim' || _breath === 'wimhof') && typeof openWim === 'function') openWim();
+        else if (typeof openBreath === 'function') openBreath(_breath);
+      } else if (_cw === 'wzmacnianie' || _prog) {
         if (typeof switchCwiczeniaTab === 'function') switchCwiczeniaTab('wzmacnianie');
         if (_prog && typeof openProgram === 'function') openProgram(_prog);
       }
