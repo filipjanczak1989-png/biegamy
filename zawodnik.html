@@ -6876,6 +6876,7 @@ const CIRCUIT = {
     if (!p) return;
     this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name };
     this._loadCfg();
+    this._ensureWeight();
     this._el('circuit-title').textContent = p.name;
     this._el('circuit-progress').textContent = p.exerciseIds.length + ' ćwiczeń';
     this._el('circuit-phase').textContent = 'Gotowy?'; this._el('circuit-phase').style.color = '#fff';
@@ -6885,6 +6886,7 @@ const CIRCUIT = {
     this._el('circuit-config').style.display = 'block';
     this._el('circuit-ringwrap').style.display = 'none';
     const sv = this._el('circuit-save'); if (sv) sv.style.display = 'none';
+    const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'none';
     const r = this._el('circuit-ring'); if (r) { r.style.transition = 'none'; r.style.strokeDashoffset = '0'; r.style.stroke = 'var(--accent)'; }
     this._setBtn('start');
     this._el('circuit-modal').style.display = 'flex';
@@ -6896,6 +6898,7 @@ const CIRCUIT = {
     if (!this.st) return;
     this._el('circuit-config').style.display = 'none';
     this._el('circuit-ringwrap').style.display = 'flex';
+    const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'none';
     this.st.idx = 0; this.st.round = 1;
     this._enterPhase('prep', CIRCUIT_CFG.prep);
     this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
@@ -6982,13 +6985,40 @@ const CIRCUIT = {
     }
   },
 
+  _totalSec: function(){ const N = this.st.ids.length, c = CIRCUIT_CFG; return c.prep + c.rounds * N * c.work + (c.rounds * N - 1) * c.rest; },
+  _fmt: function(s){ return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); },
+  _ensureWeight: async function(){
+    if (window._athleteWeight > 0) return;
+    try { const { data } = await sb.from('nutrition_profiles').select('weight_kg').eq('athlete_id', _athleteId).maybeSingle(); window._athleteWeight = (data && data.weight_kg) || 0; } catch(e) {}
+  },
+  _confetti: function(){
+    if (this._reduce()) return;                       // reduced-motion → bez animacji
+    const modal = this._el('circuit-modal'); if (!modal) return;
+    const cols = ['#4ade80','#e8561e','#ff7a3d','#fbbf24','#60a5fa'];
+    for (let i = 0; i < 40; i++){
+      const p = document.createElement('div');
+      const sz = 6 + Math.random() * 6;
+      p.style.cssText = 'position:fixed;top:-24px;left:' + (Math.random() * 100) + 'vw;width:' + sz + 'px;height:' + sz + 'px;background:' + cols[i % cols.length] + ';opacity:0.95;border-radius:2px;pointer-events:none;z-index:9998;transition:transform 2.2s cubic-bezier(0.2,0.6,0.3,1),opacity 2.2s ease-out;';
+      modal.appendChild(p);
+      requestAnimationFrame(function(){ p.style.transform = 'translateY(110vh) rotate(' + (Math.random() * 720 - 360) + 'deg)'; p.style.opacity = '0'; });
+      setTimeout(function(){ p.remove(); }, 2400);
+    }
+  },
+
   _finish: function(){
     this.stop();
     this._el('circuit-phase').textContent = 'Gotowe 💪'; this._el('circuit-phase').style.color = '#4ade80';
     this._el('circuit-count').textContent = '';
     this._hideMedia();
-    this._el('circuit-next').textContent = this.st.name + ' ukończony!';
+    this._el('circuit-next').textContent = this.st.name;
+    const dur = this._fmt(this._totalSec());
+    const kcal = (window.formaCalories) ? window.formaCalories({ training_type: 'Wzmacniający', duration: dur }, window._athleteWeight || 0) : 0;
+    if (this._el('cs-time')) this._el('cs-time').textContent = dur;
+    if (this._el('cs-kcal')) this._el('cs-kcal').textContent = kcal > 0 ? kcal : '—';
+    if (this._el('cs-ex'))   this._el('cs-ex').textContent = this.st.ids.length + '×' + CIRCUIT_CFG.rounds;
+    const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'block';
     if (window.Anim && Anim._playSuccess) Anim._playSuccess();
+    this._confetti();
     this._setBtn('save');
     const sv = this._el('circuit-save');
     if (sv) { sv.style.display = 'block'; sv.textContent = 'Zakończ bez zapisu'; sv.onclick = function(){ CIRCUIT.close(); }; }
@@ -7008,9 +7038,9 @@ const CIRCUIT = {
     if (!this.st || !_athleteId) return;
     const b = this._el('circuit-action');
     if (b) { b.disabled = true; b.textContent = 'Zapisuję…'; }
-    const N = this.st.ids.length, cfg = CIRCUIT_CFG;
-    const totalSec = cfg.prep + cfg.rounds * N * cfg.work + (cfg.rounds * N - 1) * cfg.rest;
-    const dur = Math.floor(totalSec / 60) + ':' + String(totalSec % 60).padStart(2, '0');
+    const cfg = CIRCUIT_CFG;
+    const dur = this._fmt(this._totalSec());
+    const kcal = (window.formaCalories) ? window.formaCalories({ training_type: 'Wzmacniający', duration: dur }, window._athleteWeight || 0) : 0;
     const now = new Date();
     const d = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     const off = -new Date(d + 'T12:00:00').getTimezoneOffset();
@@ -7022,6 +7052,7 @@ const CIRCUIT = {
       duration: dur,
       feel: 'mid',
       source: 'circuit',
+      calories: kcal > 0 ? kcal : null,
       comment: 'Obwód: ' + this.st.name + ' · ' + cfg.work + '/' + cfg.rest + 's · ' + cfg.rounds + ' rundy',
       logged_at: d + 'T12:00:00' + sign + hh + ':' + mm
     };
@@ -10907,6 +10938,14 @@ if ('serviceWorker' in navigator) {
     <div id="circuit-count" style="font-family:'DM Mono',monospace;font-size:44px;color:#fff;line-height:1;"></div>
   </div>
   <div id="circuit-next" style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:24px;text-align:center;min-height:18px;"></div>
+  <div id="circuit-summary" style="display:none;width:100%;max-width:300px;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+      <div style="text-align:center;"><div id="cs-time" style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#4ade80;line-height:1;">—</div><div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">Czas</div></div>
+      <div style="text-align:center;"><div id="cs-kcal" style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fbbf24;line-height:1;">—</div><div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">Kcal</div></div>
+      <div style="text-align:center;"><div id="cs-ex" style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#60a5fa;line-height:1;">—</div><div style="font-size:9px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;letter-spacing:0.12em;text-transform:uppercase;margin-top:3px;">Ćwiczeń</div></div>
+    </div>
+    <!-- WARSTWA 2 (później): #circuit-achievements — „Dziś wygrałeś"/PR-y. Slot gotowy, NIE implementować teraz. -->
+  </div>
   <button id="circuit-action" onclick="CIRCUIT.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
   <button id="circuit-save" onclick="CIRCUIT.close()" style="display:none;margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-decoration:underline;cursor:pointer;">Zakończ bez zapisu</button>
 </div>
