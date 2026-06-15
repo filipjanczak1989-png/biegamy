@@ -32,6 +32,9 @@ body{padding:0 0 200px;min-height:100vh;}
 .rad-tt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rad-ar{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rad-play{background:var(--accent);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;}
+.rad-like{background:rgba(255,255,255,0.06);border:none;color:var(--muted);border-radius:15px;height:30px;padding:0 9px;font-size:12px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:3px;font-family:'DM Mono',monospace;}
+.rad-like.on{color:var(--accent);background:rgba(232,86,30,0.12);}
+.rad-rank{width:24px;flex-shrink:0;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);}
 .rad-newpl{display:block;width:100%;background:rgba(255,255,255,0.06);border:1px dashed rgba(232,86,30,0.45);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:12px;}
 /* Player bar */
 #rad-player{position:fixed;left:0;right:0;bottom:0;background:rgba(16,14,22,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:none;z-index:60;}
@@ -53,11 +56,13 @@ body{padding:0 0 200px;min-height:100vh;}
 
 <div class="rad-tabs">
   <button class="rad-tab on" id="rtab-katalog" onclick="radioTab('katalog')">🎵 Katalog</button>
-  <button class="rad-tab" id="rtab-playlisty" onclick="radioTab('playlisty')">📂 Moje playlisty</button>
+  <button class="rad-tab" id="rtab-przeboje" onclick="radioTab('przeboje')">🏆 Przeboje</button>
+  <button class="rad-tab" id="rtab-playlisty" onclick="radioTab('playlisty')">📂 Playlisty</button>
 </div>
 
 <div class="rad-wrap">
   <div id="radio-catalog"><div class="rad-empty">Ładowanie…</div></div>
+  <div id="radio-top" style="display:none;"></div>
   <div id="radio-playlists" style="display:none;"></div>
 </div>
 
@@ -86,6 +91,9 @@ let _radioIdx = -1;        // indeks aktualnego w _radioQueue
 let _radioLoop = 'off';    // 'off' | 'all' | 'one'
 let _radioCurrentPlaylist = null;  // {id,name} gdy otwarty widok playlisty (do re-renderu)
 let _radioPlaylistTracks = [];     // kawałki otwartej playlisty (źródło kolejki)
+let _radioLikedSet = new Set();    // track_id polubione przez usera
+let _radioTopTracks = [];          // kawałki zakładki Przeboje (źródło kolejki)
+let _radioPlayTimer = null;        // timer 5s do zliczenia odtworzenia
 let _radioPlaylistRows = [];       // wiersze radio_playlist_tracks (id+position) — do reorderu
 
 async function radioInit(){
@@ -118,25 +126,88 @@ async function radioInit(){
 })();
 
 async function radioLoad(){
+  await loadLikes();
   await Promise.all([loadCatalog(), loadPlaylists()]);
+}
+
+async function loadLikes(){
+  _radioLikedSet = new Set();
+  const { data } = await sb.from('radio_likes').select('track_id').eq('user_id', _radioUid);
+  (data || []).forEach(function(r){ _radioLikedSet.add(r.track_id); });
+}
+
+function radioFmtDur(sec){
+  sec = parseInt(sec, 10) || 0;
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + ':' + (s < 10 ? '0' : '') + s;
+}
+
+// Wspólny budowniczy karty kawałka (katalog + przeboje). playOnclick = treść onclick przycisku ▶.
+function radioCardHtml(t, playOnclick, rank){
+  const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
+  const coverHtml = cover
+    ? '<img class="rad-cover" src="' + cover + '" alt="" onerror="this.outerHTML=\'<div class=&quot;rad-cover&quot;>🎵</div>\'">'
+    : '<div class="rad-cover">🎵</div>';
+  const dur = t.duration_sec ? (' · ' + radioFmtDur(t.duration_sec)) : '';
+  const liked = _radioLikedSet.has(t.id);
+  const rankHtml = rank ? ('<div class="rad-rank">' + rank + '</div>') : '';
+  return '<div class="rad-card">' + rankHtml + coverHtml
+    + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
+    + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + dur + ' · ▶ ' + (t.play_count || 0) + '</div></div>'
+    + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub">' + (liked ? '♥' : '♡') + ' <span>' + (t.like_count || 0) + '</span></button>'
+    + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
+    + '<button class="rad-play" onclick="' + playOnclick + '">▶</button></div>';
+}
+
+async function radioToggleLike(trackId, btn){
+  const liked = _radioLikedSet.has(trackId);
+  if (liked){
+    const { error } = await sb.from('radio_likes').delete().eq('track_id', trackId).eq('user_id', _radioUid);
+    if (error){ alert('Błąd: ' + error.message); return; }
+    _radioLikedSet.delete(trackId);
+  } else {
+    const { error } = await sb.from('radio_likes').insert({ track_id: trackId, user_id: _radioUid });
+    if (error && error.code !== '23505'){ alert('Błąd: ' + error.message); return; }
+    _radioLikedSet.add(trackId);
+  }
+  const nowLiked = _radioLikedSet.has(trackId);
+  const span = btn.querySelector('span');
+  let n = span ? (parseInt(span.textContent, 10) || 0) : 0;
+  n += nowLiked ? 1 : -1; if (n < 0) n = 0;
+  btn.innerHTML = (nowLiked ? '♥' : '♡') + ' <span>' + n + '</span>';
+  btn.classList.toggle('on', nowLiked);
+}
+
+async function loadTop(){
+  const el = document.getElementById('radio-top');
+  if (!window.RADIO){ el.innerHTML = '<div class="rad-empty">Odśwież aplikację.</div>'; return; }
+  const { data, error } = await sb.from('radio_top').select('*')
+    .order('like_count', { ascending: false })
+    .order('play_count', { ascending: false })
+    .order('title', { ascending: true });
+  if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania.</div>'; return; }
+  _radioTopTracks = data || [];
+  if (!_radioTopTracks.length){ el.innerHTML = '<div class="rad-empty">Brak danych.</div>'; return; }
+  el.innerHTML = _radioTopTracks.map(function(t, idx){
+    return radioCardHtml(t, 'radioPlayTopAt(' + idx + ')', idx + 1);
+  }).join('');
+}
+
+function radioPlayTopAt(idx){
+  if (!_radioTopTracks.length) return;
+  _radioQueue = _radioTopTracks.slice();
+  radioPlayAt(idx);
 }
 
 async function loadCatalog(){
   const el = document.getElementById('radio-catalog');
   if (!window.RADIO) { el.innerHTML = '<div class="rad-empty">Moduł radia nie załadował się 🔄<br>Odśwież aplikację (zamknij i otwórz / przeciągnij w dół).</div>'; return; }
-  const { data, error } = await sb.from('radio_tracks').select('*').order('created_at', { ascending: true });
+  const { data, error } = await sb.from('radio_top').select('*').order('created_at', { ascending: true });
   if (error) { el.innerHTML = '<div class="rad-empty">Błąd ładowania katalogu.</div>'; return; }
   _radioTracks = data || [];
   if (!_radioTracks.length) { el.innerHTML = '<div class="rad-empty">Biblioteka jest pusta 🎵<br>Trener jeszcze nie wgrał żadnych utworów.</div>'; return; }
   el.innerHTML = _radioTracks.map(function(t){
-    const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
-    const icon = t.is_video ? '🎬' : '🎵';
-    const coverHtml = cover ? '<img class="rad-cover" src="' + cover + '" alt="" onerror="this.outerHTML=\'<div class=&quot;rad-cover&quot;>' + icon + '</div>\'">' : '<div class="rad-cover">' + icon + '</div>';
-    return '<div class="rad-card">' + coverHtml
-      + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
-      + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + (t.is_video ? ' · wideo' : '') + '</div></div>'
-      + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
-      + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')">▶</button></div>';
+    return radioCardHtml(t, "radioPlay('" + t.id + "')");
   }).join('');
 }
 
@@ -159,13 +230,14 @@ async function loadPlaylists(){
 }
 
 function radioTab(name){
-  ['katalog','playlisty'].forEach(function(t){
+  const panels = { katalog: 'radio-catalog', przeboje: 'radio-top', playlisty: 'radio-playlists' };
+  Object.keys(panels).forEach(function(t){
     const btn = document.getElementById('rtab-' + t);
-    const panel = document.getElementById(t === 'katalog' ? 'radio-catalog' : 'radio-playlisty');
     if (btn) btn.classList.toggle('on', t === name);
+    const panel = document.getElementById(panels[t]);
+    if (panel) panel.style.display = (t === name) ? 'block' : 'none';
   });
-  document.getElementById('radio-catalog').style.display = name === 'katalog' ? 'block' : 'none';
-  document.getElementById('radio-playlists').style.display = name === 'playlisty' ? 'block' : 'none';
+  if (name === 'przeboje') loadTop();   // odśwież ranking przy wejściu
 }
 
 // Klik w katalogu: kolejka = cały katalog, start od klikniętego.
@@ -207,6 +279,14 @@ function radioPlayAt(i){
   aud.style.display = 'block';
   player.style.display = 'block';
   aud.play().catch(function(){});
+
+  // Zlicz odtworzenie po 5s ciągłego grania (Filip: próg 5s). Globalny licznik (bez per-user dedupe).
+  if (_radioPlayTimer) clearTimeout(_radioPlayTimer);
+  _radioPlayTimer = setTimeout(function(){
+    if (aud.paused) return;
+    sb.rpc('increment_play', { p_track_id: t.id });
+    t.play_count = (t.play_count || 0) + 1;
+  }, 5000);
 
   radioUpdateMediaSession(t, cover);
 }
