@@ -360,6 +360,7 @@ async function radioOpenTrack(trackId){
       + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub">' + (liked ? '♥' : '♡') + ' <span>' + (t.like_count || 0) + '</span></button>'
       + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
     + '</div>'
+    + (_radioIsCoach ? '<div style="text-align:center;margin:12px 0 0;"><button onclick="radioDeleteTrack(\'' + t.id + '\')" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.4);color:#e05050;border-radius:10px;padding:8px 16px;font-size:12px;font-family:DM Mono,monospace;cursor:pointer;">🗑 Usuń kawałek</button></div>' : '')
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;margin:20px 0 4px;">Komentarze</div>'
     + '<div id="rad-comments-list"><div class="rad-empty">Ładowanie…</div></div>'
     + '<div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">'
@@ -374,6 +375,24 @@ async function radioOpenTrack(trackId){
 function radioCloseTrack(){
   const o = document.getElementById('rad-track-ov');
   if (o) o.remove();
+}
+
+// Usuwanie kawałka (tylko trener). DB DELETE (RLS coach) → CASCADE czyści łapki/komentarze/playlisty.
+async function radioDeleteTrack(trackId){
+  const t = _radioTracks.find(function(x){ return x.id === trackId; })
+         || _radioTopTracks.find(function(x){ return x.id === trackId; });
+  if (!t) return;
+  if (!confirm('Usunąć „' + (t.title || t.slug) + '" na zawsze?\nZniknie z katalogu, playlist, łapek i komentarzy.')) return;
+  const { error } = await sb.from('radio_tracks').delete().eq('id', trackId);
+  if (error) { alert('Błąd usuwania: ' + error.message); return; }
+  // pliki best-effort (osierocone w buckecie są nieszkodliwe)
+  const files = [t.slug + '.' + (t.media_ext || 'mp3')];
+  if (t.cover_slug) files.push(t.cover_slug + '.webp');
+  sb.storage.from('radio-audio').remove(files).catch(function(){});
+  radioCloseTrack();
+  loadCatalog();
+  const top = document.getElementById('radio-top');
+  if (top && top.style.display !== 'none') loadTop();
 }
 
 async function loadTrackComments(trackId){
