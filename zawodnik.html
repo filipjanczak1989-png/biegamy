@@ -1010,6 +1010,7 @@ body > *{position:relative;z-index:1;}
   <div id="today-type-pill-wrap" style="display:none;margin-bottom:12px;"></div>
   <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.6;margin-bottom:12px;"></div>
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
+  <button id="today-cwiczenia-cta" onclick="showSection('cwiczenia')" style="display:none;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.06em;padding:11px;border-radius:12px;cursor:pointer;margin-bottom:10px;">💪 Otwórz ćwiczenia →</button>
   <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
 </div>
 
@@ -5595,6 +5596,7 @@ async function loadTodayTraining() {
     // Ukryj pill gdy brak treningu
     const tPillWrap = document.getElementById('today-type-pill-wrap');
     if (tPillWrap) tPillWrap.style.display = 'none';
+    const cwCta0 = document.getElementById('today-cwiczenia-cta'); if (cwCta0) cwCta0.style.display = 'none';
     window._todayTraining = null;
     return;
   }
@@ -5627,6 +5629,8 @@ async function loadTodayTraining() {
   
   if(meta && metaItems){ meta.innerHTML = metaItems; meta.style.display='flex'; if(divider) divider.style.display='block'; }
   if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
+  const cwCta = document.getElementById('today-cwiczenia-cta');
+  if (cwCta) cwCta.style.display = (window.looksLikeStrength && window.looksLikeStrength(data.type, data.description)) ? 'block' : 'none';
 }
 
 async function loadCoachMessage() {

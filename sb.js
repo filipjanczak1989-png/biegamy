@@ -617,6 +617,14 @@
            'url(https://filipjanczak1989-png.github.io/biegamy-assets/breath-bg-' + n + '.webp)';
   };
 
+  // Heurystyka „to trening wzmacniający" — typ == Wzmacniający LUB słowa-klucze w opisie.
+  // Drille trenera (sil*) mają type='Regeneracja' + opis siłowy → dlatego też skan opisu.
+  // Używane do deep-linku planu → sekcja ĆWICZENIA (zawodnik.html?tab=cwiczenia).
+  window.looksLikeStrength = function(type, desc) {
+    if ((type || '').toLowerCase().trim() === 'wzmacniający') return true;
+    return /przysiad|wykrok|plank|deska|mostek|glute|dead.?bug|martw|brzuszk|\bcore\b|wzmacniaj|jaskół|łydk|pompk|bird.?dog|side.?plank|stabiliz/.test((desc || '').toLowerCase());
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {

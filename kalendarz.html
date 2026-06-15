@@ -1498,6 +1498,7 @@ function render() {
           : '<div class="card-main" style="font-size:16px;color:var(--muted);">—</div>'}
         ${(displayPace||displayHr)?`<div class="card-pace">${displayPace?displayPace+'/km':''} ${displayHr?'· ♥ '+displayHr:''}${t.time?'· '+t.time+' min':''}</div>`:''}
         ${t.desc?`<div class="card-desc">${escapeHtml(t.desc)}</div>`:''}
+        ${(_urlRole!=='coach' && window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc))?`<button class="card-cw" onclick="event.stopPropagation();location.href='zawodnik.html?tab=cwiczenia'" style="margin-top:5px;background:rgba(255,255,255,0.08);border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:4px 8px;border-radius:6px;cursor:pointer;">💪 Ćwiczenia →</button>`:''}
         ${statusLabel?`<div class="card-status ${t.status}">${statusLabel}</div>`:''}
         ${t.status!=='done'&&t.type!=='Odpoczynek'?`<button class="card-approve" onclick="approveTraining(event,'${ds}',${i},${JSON.stringify(t._id||null)})">✓ Zatwierdź</button>`:''}
       </div>`;
