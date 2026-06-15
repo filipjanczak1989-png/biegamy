@@ -6735,7 +6735,7 @@ function switchCwiczeniaTab(tab) {
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
-  if (tab === 'wzmacnianie') renderWzmacnianie();
+  if (tab === 'wzmacnianie') { renderWzmProgramy(); closeProgram(); }
 }
 
 const EX_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
@@ -6761,11 +6761,45 @@ function renderExerciseCard(ex, isLast) {
     + '<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">' + ex.dose + '</div>'
     + '</div></div>';
 }
-function renderWzmacnianie() {
-  const el = document.getElementById('wzm-list');
+const PROGRAMS = [
+  { id:'rozgrzewka',   emoji:'🔥', name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
+  { id:'core',         emoji:'🧱', name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
+  { id:'nogi',         emoji:'🦵', name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
+  { id:'stabilizacja', emoji:'⚖️', name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
+  { id:'pelny',        emoji:'💪', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
+];
+
+function _progCard(p) {
+  return '<button onclick="openProgram(\'' + p.id + '\')" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;">'
+    + '<span style="font-size:30px;flex-shrink:0;">' + p.emoji + '</span>'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">' + p.name + '</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:\'Inter\',sans-serif;line-height:1.35;margin-bottom:4px;">' + p.desc + '</div>'
+    + '<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">' + p.exerciseIds.length + ' ĆWICZEŃ</div>'
+    + '</div>'
+    + '<span style="color:rgba(255,255,255,0.4);font-size:20px;flex-shrink:0;">›</span>'
+    + '</button>';
+}
+function renderWzmProgramy() {
+  const el = document.getElementById('wzm-programs');
   if (!el) return;
-  const ids = Object.keys(EXERCISES);
-  el.innerHTML = ids.map(function(id, i){ return renderExerciseCard(EXERCISES[id], i === ids.length - 1); }).join('');
+  el.innerHTML = '<div style="font-size:13px;color:rgba(255,255,255,0.6);font-family:\'Inter\',sans-serif;margin-bottom:14px;line-height:1.4;">Gotowe zestawy — wybierz program i zrób ćwiczenia po kolei. 2–3× w tygodniu.</div>'
+    + PROGRAMS.map(_progCard).join('');
+}
+function openProgram(id) {
+  const p = PROGRAMS.find(function(x){ return x.id === id; });
+  if (!p) return;
+  const d = document.getElementById('wzm-detail');
+  d.innerHTML = '<button onclick="closeProgram()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:14px;">‹ Programy</button>'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;">' + p.emoji + ' ' + p.name + '</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:\'Inter\',sans-serif;margin-bottom:16px;line-height:1.4;">' + p.desc + '</div>'
+    + p.exerciseIds.map(function(eid, i){ return renderExerciseCard(EXERCISES[eid], i === p.exerciseIds.length - 1); }).join('');
+  document.getElementById('wzm-programs').style.display = 'none';
+  d.style.display = 'block';
+}
+function closeProgram() {
+  const d = document.getElementById('wzm-detail'); if (d) d.style.display = 'none';
+  const pr = document.getElementById('wzm-programs'); if (pr) pr.style.display = 'block';
 }
 
 const BREATH_TECHNIQUES = {
@@ -10551,8 +10585,8 @@ if ('serviceWorker' in navigator) {
     </button>
   </div>
   <div id="cw-tab-wzmacnianie" style="display:none;padding:4px 0;">
-    <div style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:14px;line-height:1.4;">Trening siłowy dla biegacza — wzmacnia mięśnie, zapobiega kontuzjom. 2–3× w tygodniu, 2 min przerwy między seriami.</div>
-    <div id="wzm-list"></div>
+    <div id="wzm-programs"></div>
+    <div id="wzm-detail" style="display:none;"></div>
   </div>
 </div>
 
