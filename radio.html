@@ -385,8 +385,14 @@ function radioPlayAt(i){
   if (_radioPlayTimer) clearTimeout(_radioPlayTimer);
   _radioPlayTimer = setTimeout(function(){
     if (aud.paused) return;
-    sb.rpc('increment_play', { p_track_id: t.id });
-    t.play_count = (t.play_count || 0) + 1;
+    sb.rpc('increment_play', { p_track_id: t.id }).then(function(res){
+      if (res && res.error) {
+        console.warn('[radio] increment_play błąd:', res.error.code, res.error.message);
+        if (!window._radioPlayErrShown) { window._radioPlayErrShown = true; alert('Licznik odtworzeń — błąd: ' + res.error.message); }
+        return;
+      }
+      t.play_count = (t.play_count || 0) + 1;   // bump cache dopiero po sukcesie
+    });
   }, 5000);
 
   radioUpdateMediaSession(t, cover);
