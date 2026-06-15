@@ -1065,6 +1065,13 @@ html { scroll-behavior: smooth; }
           <div id="f-log-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
       </div>
+      <div class="field" id="f-move-wrap" style="display:none;">
+        <label>Przenieś na inny dzień</label>
+        <div style="display:flex;gap:8px;">
+          <input type="date" id="f-move-date" style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;">
+          <button type="button" onclick="moveTrainingToDate()" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:0 14px;border-radius:6px;cursor:pointer;white-space:nowrap;">📅 Przenieś</button>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Anuluj</button>
@@ -1763,9 +1770,11 @@ function openModal(ds, idx) {
     document.getElementById('f-desc').value = t.desc || t.description || '';
     const erefElE = document.getElementById('f-exercise-ref'); if (erefElE) erefElE.value = t.exercise_ref || '';
     document.getElementById('f-status').value = t.status||'planned';
+    const mw = document.getElementById('f-move-wrap'); if (mw) mw.style.display = 'block';
+    const md = document.getElementById('f-move-date'); if (md) md.value = editingDate || ds;
   } else {
     document.getElementById('modal-title').textContent = 'Nowy trening';
-
+    const mw = document.getElementById('f-move-wrap'); if (mw) mw.style.display = 'none';
   }
 
   document.getElementById('modal-bg').classList.add('open');
@@ -3322,24 +3331,38 @@ async function executeMoveScreen(logId, url, currentDs) {
   }
 }
 
-async function dragDrop(e, targetDs) {
-  e.preventDefault();
-  document.querySelectorAll('.day-col').forEach(c => c.classList.remove('drag-over'));
-  if (!_dragDs || _dragIdx === null || _dragDs === targetDs) { _dragDs=null; _dragIdx=null; return; }
-  const t = trainings[_dragDs] && trainings[_dragDs][_dragIdx];
+// Wspólny rdzeń przeniesienia treningu (desktop drag + mobilny przycisk) — JEDYNY zapis daty.
+async function moveTraining(srcDs, srcIdx, targetDs) {
+  if (!srcDs || srcIdx === null || srcIdx === undefined || srcDs === targetDs) return;
+  const t = trainings[srcDs] && trainings[srcDs][srcIdx];
   if (!t) return;
-  const dbId = t._id;
-  if (dbId) {
-    const { error } = await sb.from('trainings').update({ date: targetDs }).eq('id', dbId);
-    if (error) { notify('Błąd: ' + error.message); _dragDs=null; _dragIdx=null; return; }
+  if (t._id) {
+    const { error } = await sb.from('trainings').update({ date: targetDs }).eq('id', t._id);
+    if (error) { notify('Błąd: ' + error.message); return; }
   }
   if (!trainings[targetDs]) trainings[targetDs] = [];
   trainings[targetDs].push({...t});
-  trainings[_dragDs].splice(_dragIdx, 1);
-  if (!trainings[_dragDs].length) delete trainings[_dragDs];
-  _dragDs = null; _dragIdx = null;
+  trainings[srcDs].splice(srcIdx, 1);
+  if (!trainings[srcDs].length) delete trainings[srcDs];
   render();
   notify('Trening przeniesiony ✓');
+}
+
+async function dragDrop(e, targetDs) {
+  e.preventDefault();
+  document.querySelectorAll('.day-col').forEach(c => c.classList.remove('drag-over'));
+  const s = _dragDs, i = _dragIdx; _dragDs = null; _dragIdx = null;
+  await moveTraining(s, i, targetDs);
+}
+
+// Mobilny/uniwersalny przycisk „Przenieś na inny dzień" z modalu edycji.
+async function moveTrainingToDate() {
+  const inp = document.getElementById('f-move-date');
+  const newDate = inp && inp.value;
+  if (!newDate || editingIndex === null || editingDate === null) return;
+  if (newDate === editingDate) { closeModal(); return; }
+  await moveTraining(editingDate, editingIndex, newDate);
+  closeModal();
 }
 
 // ── COPY TRAINING ─────────────────────────────────────────────────
