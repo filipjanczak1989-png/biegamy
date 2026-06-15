@@ -35,6 +35,7 @@ body{padding:0 0 200px;min-height:100vh;}
 .rad-like{background:rgba(255,255,255,0.06);border:none;color:var(--muted);border-radius:15px;height:30px;padding:0 9px;font-size:12px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:3px;font-family:'DM Mono',monospace;}
 .rad-like.on{color:var(--accent);background:rgba(232,86,30,0.12);}
 .rad-rank{width:24px;flex-shrink:0;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);}
+.rad-open{display:flex;gap:12px;align-items:center;flex:1;min-width:0;cursor:pointer;}
 .rad-newpl{display:block;width:100%;background:rgba(255,255,255,0.06);border:1px dashed rgba(232,86,30,0.45);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:12px;}
 /* Player bar */
 #rad-player{position:fixed;left:0;right:0;bottom:0;background:rgba(16,14,22,0.97);backdrop-filter:blur(12px);border-top:1px solid var(--border);padding:10px 14px calc(env(safe-area-inset-bottom,0px) + 12px);display:none;z-index:60;}
@@ -94,6 +95,7 @@ let _radioPlaylistTracks = [];     // kawałki otwartej playlisty (źródło kol
 let _radioLikedSet = new Set();    // track_id polubione przez usera
 let _radioTopTracks = [];          // kawałki zakładki Przeboje (źródło kolejki)
 let _radioPlayTimer = null;        // timer 5s do zliczenia odtworzenia
+let _radioIsCoach = false;         // trener? (moderacja: usuwa każdy komentarz)
 let _radioPlaylistRows = [];       // wiersze radio_playlist_tracks (id+position) — do reorderu
 
 async function radioInit(){
@@ -126,7 +128,7 @@ async function radioInit(){
 })();
 
 async function radioLoad(){
-  await loadLikes();
+  await Promise.all([loadLikes(), radioCheckCoach()]);
   await Promise.all([loadCatalog(), loadPlaylists()]);
 }
 
@@ -134,6 +136,11 @@ async function loadLikes(){
   _radioLikedSet = new Set();
   const { data } = await sb.from('radio_likes').select('track_id').eq('user_id', _radioUid);
   (data || []).forEach(function(r){ _radioLikedSet.add(r.track_id); });
+}
+
+async function radioCheckCoach(){
+  const { data } = await sb.from('coaches').select('id').eq('id', _radioUid).maybeSingle();
+  _radioIsCoach = !!data;
 }
 
 function radioFmtDur(sec){
@@ -151,9 +158,10 @@ function radioCardHtml(t, playOnclick, rank){
   const dur = t.duration_sec ? (' · ' + radioFmtDur(t.duration_sec)) : '';
   const liked = _radioLikedSet.has(t.id);
   const rankHtml = rank ? ('<div class="rad-rank">' + rank + '</div>') : '';
-  return '<div class="rad-card">' + rankHtml + coverHtml
+  return '<div class="rad-card">' + rankHtml
+    + '<div class="rad-open" onclick="radioOpenTrack(\'' + t.id + '\')">' + coverHtml
     + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
-    + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + dur + ' · ▶ ' + (t.play_count || 0) + '</div></div>'
+    + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + dur + ' · ▶ ' + (t.play_count || 0) + ' · 💬 ' + (t.comment_count || 0) + '</div></div></div>'
     + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub">' + (liked ? '♥' : '♡') + ' <span>' + (t.like_count || 0) + '</span></button>'
     + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
     + '<button class="rad-play" onclick="' + playOnclick + '">▶</button></div>';
@@ -197,6 +205,99 @@ function radioPlayTopAt(idx){
   if (!_radioTopTracks.length) return;
   _radioQueue = _radioTopTracks.slice();
   radioPlayAt(idx);
+}
+
+// ── WIDOK SZCZEGÓŁÓW KAWAŁKA + KOMENTARZE ──────────────────────────
+async function radioOpenTrack(trackId){
+  let t = _radioTracks.find(function(x){ return x.id === trackId; })
+       || _radioTopTracks.find(function(x){ return x.id === trackId; });
+  if (!t){ const { data } = await sb.from('radio_top').select('*').eq('id', trackId).maybeSingle(); t = data; }
+  if (!t) return;
+  const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
+  const liked = _radioLikedSet.has(t.id);
+  const coverBig = cover
+    ? '<img src="' + cover + '" alt="" style="width:100%;max-width:300px;aspect-ratio:1;border-radius:18px;object-fit:cover;display:block;margin:8px auto;" onerror="this.style.display=\'none\'">'
+    : '<div style="width:300px;max-width:80%;aspect-ratio:1;border-radius:18px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:64px;margin:8px auto;">🎵</div>';
+  const ov = document.createElement('div');
+  ov.id = 'rad-track-ov';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;';
+  ov.innerHTML =
+    '<div style="padding:14px 16px calc(env(safe-area-inset-bottom,0px) + 120px);max-width:560px;margin:0 auto;">'
+    + '<button onclick="radioCloseTrack()" style="background:rgba(255,255,255,0.07);border:none;color:var(--fg);border-radius:10px;padding:8px 14px;font-family:DM Mono,monospace;font-size:12px;cursor:pointer;">‹ Wróć</button>'
+    + coverBig
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;text-align:center;letter-spacing:0.02em;">' + escapeHtml(t.title || t.slug) + '</div>'
+    + '<div style="text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;margin-top:2px;">' + (t.artist ? escapeHtml(t.artist) : '—') + ' · ' + radioFmtDur(t.duration_sec) + ' · ▶ ' + (t.play_count || 0) + '</div>'
+    + '<div style="display:flex;justify-content:center;gap:12px;margin:14px 0 4px;">'
+      + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')" title="Odtwórz">▶</button>'
+      + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub">' + (liked ? '♥' : '♡') + ' <span>' + (t.like_count || 0) + '</span></button>'
+      + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
+    + '</div>'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;margin:20px 0 4px;">Komentarze</div>'
+    + '<div id="rad-comments-list"><div class="rad-empty">Ładowanie…</div></div>'
+    + '<div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">'
+      + '<textarea id="rad-comment-input" maxlength="500" rows="2" placeholder="Dodaj komentarz…" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:9px 12px;font-size:14px;font-family:DM Sans,sans-serif;resize:vertical;outline:none;"></textarea>'
+      + '<button class="rad-play" onclick="radioAddComment(\'' + t.id + '\')" title="Wyślij">➤</button>'
+    + '</div>'
+    + '</div>';
+  document.body.appendChild(ov);
+  loadTrackComments(t.id);
+}
+
+function radioCloseTrack(){
+  const o = document.getElementById('rad-track-ov');
+  if (o) o.remove();
+}
+
+async function loadTrackComments(trackId){
+  const el = document.getElementById('rad-comments-list');
+  if (!el) return;
+  const { data, error } = await sb.from('radio_comments_view').select('*').eq('track_id', trackId).order('created_at', { ascending: true });
+  if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania komentarzy.</div>'; return; }
+  const rows = data || [];
+  if (!rows.length){ el.innerHTML = '<div class="rad-empty" style="padding:18px;">Brak komentarzy. Bądź pierwszy!</div>'; return; }
+  el.innerHTML = rows.map(function(c){
+    const canDel = (c.user_id === _radioUid) || _radioIsCoach;
+    const av = (c.author_avatar && window.safeUrlAttr) ? window.safeUrlAttr(c.author_avatar) : '';
+    const avatar = av
+      ? '<img src="' + av + '" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.visibility=\'hidden\'">'
+      : '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;">' + escapeHtml((c.author_name || '?').slice(0,1).toUpperCase()) + '</div>';
+    const coachTag = c.author_is_coach ? ' <span style="color:var(--accent);font-size:9px;font-family:DM Mono,monospace;">TRENER</span>' : '';
+    const del = canDel ? '<button onclick="radioDeleteComment(\'' + c.id + '\',\'' + trackId + '\')" title="Usuń" style="background:none;border:none;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:14px;">🗑</button>' : '';
+    return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
+      + avatar
+      + '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">' + escapeHtml(c.author_name) + coachTag + '</div>'
+      + '<div style="font-size:13px;color:var(--fg);white-space:pre-wrap;word-break:break-word;line-height:1.4;">' + escapeHtml(c.body) + '</div></div>'
+      + del + '</div>';
+  }).join('');
+}
+
+async function radioAddComment(trackId){
+  const inp = document.getElementById('rad-comment-input');
+  if (!inp) return;
+  const body = (inp.value || '').trim();
+  if (!body) return;
+  if (body.length > 500){ alert('Komentarz za długi (max 500 znaków).'); return; }
+  const { error } = await sb.from('radio_comments').insert({ track_id: trackId, user_id: _radioUid, body: body });
+  if (error){ alert('Błąd: ' + error.message); return; }
+  inp.value = '';
+  loadTrackComments(trackId);
+  radioBumpCommentCount(trackId, 1);
+}
+
+async function radioDeleteComment(commentId, trackId){
+  if (!confirm('Usunąć komentarz?')) return;
+  const { error } = await sb.from('radio_comments').delete().eq('id', commentId);
+  if (error){ alert('Błąd: ' + error.message); return; }
+  loadTrackComments(trackId);
+  radioBumpCommentCount(trackId, -1);
+}
+
+// Podbij cache comment_count (karta pokaże aktualną liczbę przy następnym renderze).
+function radioBumpCommentCount(trackId, delta){
+  [_radioTracks, _radioTopTracks].forEach(function(arr){
+    const t = arr.find(function(x){ return x.id === trackId; });
+    if (t){ t.comment_count = Math.max(0, (t.comment_count || 0) + delta); }
+  });
 }
 
 async function loadCatalog(){
