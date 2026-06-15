@@ -38,7 +38,9 @@ body{padding:0 0 200px;min-height:100vh;}
 #rad-video{width:100%;max-height:200px;border-radius:12px;background:#000;display:none;margin-bottom:8px;}
 .rad-np{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 #rad-np-cover{width:40px;height:40px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.06);flex-shrink:0;}
+#rad-np-ph{width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,0.06);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
 #rad-np-title{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#rad-loop-btn{background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:13px;cursor:pointer;flex-shrink:0;opacity:0.4;}
 #rad-audio{width:100%;}
 </style>
 </head>
@@ -62,8 +64,10 @@ body{padding:0 0 200px;min-height:100vh;}
 <div id="rad-player">
   <video id="rad-video" controls playsinline preload="none"></video>
   <div class="rad-np">
-    <img id="rad-np-cover" alt="" onerror="this.style.visibility='hidden'">
+    <img id="rad-np-cover" alt="" style="display:none;" onerror="this.style.display='none';var p=document.getElementById('rad-np-ph');if(p)p.style.display='flex';">
+    <div id="rad-np-ph">🎵</div>
     <div id="rad-np-title" style="flex:1;min-width:0;">—</div>
+    <button id="rad-loop-btn" onclick="radioToggleLoop()" title="Powtarzanie">↻</button>
     <button onclick="radioClosePlayer()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>
   </div>
   <audio id="rad-audio" controls preload="none"></audio>
@@ -74,6 +78,9 @@ body{padding:0 0 200px;min-height:100vh;}
 <script>
 let _radioUid = null;
 let _radioTracks = [];
+let _radioQueue = [];      // kontekst odtwarzania (kolejka track-obiektów)
+let _radioIdx = -1;        // indeks aktualnego w _radioQueue
+let _radioLoop = 'off';    // 'off' | 'all' | 'one'
 
 async function radioInit(){
   const { data: { session } } = await sb.auth.getSession();
@@ -85,6 +92,15 @@ async function radioInit(){
   _radioUid = session.user.id;
   radioLoad();
 }
+
+// 'ended' raz: loop 'one' → powtórz ten sam, inaczej następny (radioNext respektuje loop 'all').
+(function(){
+  const aud = document.getElementById('rad-audio');
+  if (aud) aud.addEventListener('ended', function(){
+    if (_radioLoop === 'one') { radioPlayAt(_radioIdx); return; }
+    radioNext();
+  });
+})();
 
 async function radioLoad(){
   await Promise.all([loadCatalog(), loadPlaylists()]);
@@ -136,32 +152,91 @@ function radioTab(name){
   document.getElementById('radio-playlists').style.display = name === 'playlisty' ? 'block' : 'none';
 }
 
+// Klik w katalogu: kolejka = cały katalog, start od klikniętego.
 function radioPlay(trackId){
-  const t = _radioTracks.find(function(x){ return x.id === trackId; });
-  if (!t) return;
+  const i = _radioTracks.findIndex(function(x){ return x.id === trackId; });
+  if (i < 0) return;
+  _radioQueue = _radioTracks.slice();
+  radioPlayAt(i);
+}
+
+// Rdzeń D1: dźwięk ZAWSZE przez <audio src=mp4> (ścieżka audio z mp4) — NIE <video>.
+// To zapewnia granie przy zgaszonym ekranie / w tle na iOS. Wideo całkowicie schowane.
+function radioPlayAt(i){
   if (!window.RADIO) { alert('Odśwież aplikację — moduł radia nie załadował się.'); return; }
+  if (i < 0 || i >= _radioQueue.length) return;
+  const t = _radioQueue[i];
+  if (!t) return;
   const url = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.mediaUrl(t)) : '';
   if (!url) return;
+  _radioIdx = i;
+
   const player = document.getElementById('rad-player');
   const vid = document.getElementById('rad-video');
   const aud = document.getElementById('rad-audio');
   const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
+
   document.getElementById('rad-np-title').textContent = (t.title || t.slug) + (t.artist ? ' · ' + t.artist : '');
+  // Cover: pokaż gdy jest, placeholder gdy null (struktura gotowa na cover_slug dograny później).
   const npCover = document.getElementById('rad-np-cover');
-  if (cover) { npCover.src = cover; npCover.style.display = ''; } else { npCover.style.display = 'none'; }
-  // zatrzymaj poprzednie
-  try { vid.pause(); aud.pause(); } catch(e){}
-  if (t.is_video) {
-    aud.style.display = 'none'; aud.removeAttribute('src');
-    vid.src = url; vid.style.display = 'block';
-    player.style.display = 'block';
-    vid.play().catch(function(){});
-  } else {
-    vid.style.display = 'none'; vid.removeAttribute('src');
-    aud.src = url; aud.style.display = 'block';
-    player.style.display = 'block';
-    aud.play().catch(function(){});
-  }
+  const npPh = document.getElementById('rad-np-ph');
+  if (cover) { npCover.src = cover; npCover.style.display = ''; if (npPh) npPh.style.display = 'none'; }
+  else { npCover.removeAttribute('src'); npCover.style.display = 'none'; if (npPh) npPh.style.display = 'flex'; }
+
+  // D1: wideo nieużywane jako źródło dźwięku — zatrzymaj i schowaj całkowicie.
+  try { vid.pause(); } catch(e){}
+  vid.removeAttribute('src'); vid.style.display = 'none';
+
+  aud.src = url;                 // <-- mp4; <audio> gra ścieżkę dźwiękową (klucz iOS)
+  aud.style.display = 'block';
+  player.style.display = 'block';
+  aud.play().catch(function(){});
+
+  radioUpdateMediaSession(t, cover);
+}
+
+function radioNext(){
+  if (!_radioQueue.length) return;
+  if (_radioIdx + 1 < _radioQueue.length) radioPlayAt(_radioIdx + 1);
+  else if (_radioLoop === 'all') radioPlayAt(0);   // zawijanie na koniec kolejki
+}
+
+function radioPrev(){
+  if (!_radioQueue.length) return;
+  const aud = document.getElementById('rad-audio');
+  if (aud.currentTime > 3) { aud.currentTime = 0; return; }  // >3s → restart bieżącego
+  if (_radioIdx - 1 >= 0) radioPlayAt(_radioIdx - 1);
+  else if (_radioLoop === 'all') radioPlayAt(_radioQueue.length - 1);
+}
+
+function radioToggleLoop(){
+  _radioLoop = _radioLoop === 'off' ? 'all' : _radioLoop === 'all' ? 'one' : 'off';
+  const b = document.getElementById('rad-loop-btn');
+  if (!b) return;
+  b.textContent = _radioLoop === 'one' ? '↻¹' : '↻';
+  b.style.opacity = _radioLoop === 'off' ? '0.4' : '1';
+  b.title = _radioLoop === 'off' ? 'Powtarzanie: wył.' : _radioLoop === 'all' ? 'Powtarzaj kolejkę' : 'Powtarzaj utwór';
+}
+
+function radioUpdateMediaSession(t, cover){
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: t.title || t.slug || 'BiegaMy Radio',
+      artist: t.artist || 'BiegaMy',
+      album: 'BiegaMy Radio',
+      artwork: cover ? [{ src: cover, sizes: '512x512', type: 'image/webp' }] : []
+    });
+    const aud = document.getElementById('rad-audio');
+    navigator.mediaSession.setActionHandler('play', function(){ aud.play().catch(function(){}); });
+    navigator.mediaSession.setActionHandler('pause', function(){ aud.pause(); });
+    navigator.mediaSession.setActionHandler('nexttrack', radioNext);
+    navigator.mediaSession.setActionHandler('previoustrack', radioPrev);
+    navigator.mediaSession.setActionHandler('seekto', function(d){
+      if (d.fastSeek && 'fastSeek' in aud) { aud.fastSeek(d.seekTime); return; }
+      aud.currentTime = d.seekTime;
+    });
+  } catch(e){}
 }
 
 function radioClosePlayer(){
@@ -169,6 +244,8 @@ function radioClosePlayer(){
   try { vid.pause(); aud.pause(); } catch(e){}
   vid.removeAttribute('src'); aud.removeAttribute('src');
   document.getElementById('rad-player').style.display = 'none';
+  _radioQueue = []; _radioIdx = -1;
+  if ('mediaSession' in navigator) { try { navigator.mediaSession.metadata = null; navigator.mediaSession.playbackState = 'none'; } catch(e){} }
 }
 
 async function radioNewPlaylist(){
