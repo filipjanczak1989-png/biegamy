@@ -6854,6 +6854,7 @@ const CIRCUIT = {
     this._el('circuit-next').textContent = '';
     this._el('circuit-config').style.display = 'block';
     this._el('circuit-ringwrap').style.display = 'none';
+    const sv = this._el('circuit-save'); if (sv) sv.style.display = 'none';
     const r = this._el('circuit-ring'); if (r) { r.style.transition = 'none'; r.style.strokeDashoffset = '0'; r.style.stroke = 'var(--accent)'; }
     this._setBtn('start');
     this._el('circuit-modal').style.display = 'flex';
@@ -6941,15 +6942,62 @@ const CIRCUIT = {
     this._el('circuit-img').style.display = 'none';
     this._el('circuit-next').textContent = this.st.name + ' ukończony!';
     if (window.Anim && Anim._playSuccess) Anim._playSuccess();
-    this._setBtn('done');
+    this._setBtn('save');
+    const sv = this._el('circuit-save');
+    if (sv) { sv.style.display = 'block'; sv.textContent = 'Zakończ bez zapisu'; sv.onclick = function(){ CIRCUIT.close(); }; }
   },
 
   _setBtn: function(mode){
     const b = this._el('circuit-action'); if (!b) return;
-    if (mode === 'start')  { b.textContent = '▶ Start';   b.onclick = function(){ CIRCUIT.start(); }; }
-    if (mode === 'pause')  { b.textContent = '⏸ Pauza';   b.onclick = function(){ CIRCUIT.pause(); }; }
-    if (mode === 'resume') { b.textContent = '▶ Wznów';   b.onclick = function(){ CIRCUIT.resume(); }; }
-    if (mode === 'done')   { b.textContent = '✓ Zakończ'; b.onclick = function(){ CIRCUIT.close(); }; }
+    b.disabled = false;
+    if (mode === 'start')  { b.textContent = '▶ Start';          b.onclick = function(){ CIRCUIT.start(); }; }
+    if (mode === 'pause')  { b.textContent = '⏸ Pauza';          b.onclick = function(){ CIRCUIT.pause(); }; }
+    if (mode === 'resume') { b.textContent = '▶ Wznów';          b.onclick = function(){ CIRCUIT.resume(); }; }
+    if (mode === 'save')   { b.textContent = '💾 Zapisz trening'; b.onclick = function(){ CIRCUIT.saveCircuitLog(); }; }
+    if (mode === 'done')   { b.textContent = '✓ Zakończ';        b.onclick = function(){ CIRCUIT.close(); }; }
+  },
+
+  saveCircuitLog: async function(){
+    if (!this.st || !_athleteId) return;
+    const b = this._el('circuit-action');
+    if (b) { b.disabled = true; b.textContent = 'Zapisuję…'; }
+    const N = this.st.ids.length, cfg = CIRCUIT_CFG;
+    const totalSec = cfg.prep + cfg.rounds * N * cfg.work + (cfg.rounds * N - 1) * cfg.rest;
+    const dur = Math.floor(totalSec / 60) + ':' + String(totalSec % 60).padStart(2, '0');
+    const now = new Date();
+    const d = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    const off = -new Date(d + 'T12:00:00').getTimezoneOffset();
+    const sign = off >= 0 ? '+' : '-', hh = String(Math.floor(Math.abs(off) / 60)).padStart(2, '0'), mm = String(Math.abs(off) % 60).padStart(2, '0');
+    const payload = {
+      athlete_id: _athleteId,
+      training_type: 'Wzmacniający',
+      distance_km: null,
+      duration: dur,
+      feel: 'mid',
+      comment: 'Obwód: ' + this.st.name + ' · ' + cfg.work + '/' + cfg.rest + 's · ' + cfg.rounds + ' rundy',
+      logged_at: d + 'T12:00:00' + sign + hh + ':' + mm
+    };
+    try {
+      const { error } = await sb.from('training_logs').insert(payload);
+      const sv = this._el('circuit-save');
+      if (error) {
+        if (error.message && error.message.indexOf('COOLDOWN:') === 0) {
+          this._el('circuit-next').textContent = 'Log pominięty — ostatni trening < 3h temu.';
+          if (sv) sv.style.display = 'none';
+          this._setBtn('done');
+          return;
+        }
+        this._el('circuit-next').textContent = 'Błąd zapisu — spróbuj ponownie.';
+        this._setBtn('save');
+        return;
+      }
+      this._el('circuit-next').textContent = '✓ Zapisano do dziennika!';
+      if (sv) sv.style.display = 'none';
+      this._setBtn('done');
+    } catch(e) {
+      this._el('circuit-next').textContent = 'Błąd połączenia — spróbuj ponownie.';
+      this._setBtn('save');
+    }
   }
 };
 function startCircuit(id){ CIRCUIT.open(id); }
@@ -10797,6 +10845,7 @@ if ('serviceWorker' in navigator) {
   </div>
   <div id="circuit-next" style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:24px;text-align:center;min-height:18px;"></div>
   <button id="circuit-action" onclick="CIRCUIT.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
+  <button id="circuit-save" onclick="CIRCUIT.close()" style="display:none;margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-decoration:underline;cursor:pointer;">Zakończ bez zapisu</button>
 </div>
 
 <div id="section-forma" style="display:none;padding:16px;">
