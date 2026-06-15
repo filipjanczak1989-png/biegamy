@@ -41,7 +41,7 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   z-index:100;backdrop-filter:blur(12px);
   transition:border-color 0.15s,background 0.15s;
 }
-.top-back-btn:hover{border-color:var(--accent);background:rgba(232,86,30,0.1);}
+.top-back-btn:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),0.1);}
 
 </style>
 </head>
@@ -109,10 +109,10 @@ async function loadDuels() {
 
     if (d.status === 'pending') {
       if (isChallenger) {
-        statusBadge = '<span style="background:rgba(232,86,30,0.15);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">⏳ Wysłano</span>';
+        statusBadge = '<span style="background:rgba(var(--accent-rgb),0.15);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">⏳ Wysłano</span>';
         actions = '<button onclick="cancelDuel(\'' + d.id + '\')" style="background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:7px;cursor:pointer;">Anuluj</button>';
       } else {
-        statusBadge = '<span style="background:rgba(232,86,30,0.2);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">📩 Wyzwał Cię!</span>';
+        statusBadge = '<span style="background:rgba(var(--accent-rgb),0.2);color:var(--accent);font-size:10px;padding:3px 8px;border-radius:6px;font-family:\'DM Mono\',monospace;font-weight:600;">📩 Wyzwał Cię!</span>';
         actions = '<div style="display:flex;gap:6px;"><button onclick="acceptDuel(\'' + d.id + '\')" style="background:var(--accent);border:none;color:#fff;font-size:11px;padding:7px 12px;border-radius:8px;cursor:pointer;font-weight:600;">✓ Przyjmij</button><button onclick="rejectDuel(\'' + d.id + '\')" style="background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:7px 10px;border-radius:8px;cursor:pointer;">✕</button></div>';
       }
     } else if (d.status === 'accepted') {
@@ -362,8 +362,8 @@ init();
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Plan</span>
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;margin-top:2px;">Log</span>
   </a>
