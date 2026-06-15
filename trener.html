@@ -30,7 +30,7 @@
   --border:rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.12);
   --accent:#e8561e;
-  --accent2:#ff7040;
+  --accent2:var(--accent2);
   --fg:#f0ede8;
   --muted:#5a5766;
   --muted2:#2a2830;
@@ -39,14 +39,14 @@
   --red:#e05050;
   --blue:#4e8cd6;
   --purple:#8a62d8;
-  --glow-o:rgba(232,86,30,0.3);
+  --glow-o:rgba(var(--accent-rgb),0.3);
   --glow-g:rgba(61,184,112,0.25);
 }
 *,*::before,*::after{box-sizing:border-box;}
 html{background:var(--bg);}
 body{
   background:var(--bg);
-  background-image:radial-gradient(ellipse 100% 35% at 50% -5%,rgba(232,86,30,0.08),transparent 70%);
+  background-image:radial-gradient(ellipse 100% 35% at 50% -5%,rgba(var(--accent-rgb),0.08),transparent 70%);
   -webkit-font-smoothing:antialiased;
 }
 
@@ -103,8 +103,8 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .auto-toggle input{opacity:0;width:0;height:0;}
 .auto-toggle-slider{position:absolute;inset:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:24px;transition:all 0.2s;}
 .auto-toggle-slider:before{content:"";position:absolute;height:18px;width:18px;left:2px;top:2px;background:#888;border-radius:50%;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);}
-.auto-toggle input:checked + .auto-toggle-slider{background:rgba(232,86,30,0.25);border-color:rgba(232,86,30,0.5);}
-.auto-toggle input:checked + .auto-toggle-slider:before{transform:translateX(20px);background:#e8561e;box-shadow:0 0 8px rgba(232,86,30,0.6);}
+.auto-toggle input:checked + .auto-toggle-slider{background:rgba(var(--accent-rgb),0.25);border-color:rgba(var(--accent-rgb),0.5);}
+.auto-toggle input:checked + .auto-toggle-slider:before{transform:translateX(20px);background:var(--accent);box-shadow:0 0 8px rgba(var(--accent-rgb),0.6);}
 .auto-toggle input:checked + .auto-toggle-slider.monthly{background:rgba(139,92,246,0.25);border-color:rgba(139,92,246,0.5);}
 .auto-toggle input:checked + .auto-toggle-slider.monthly:before{background:#8b5cf6;box-shadow:0 0 8px rgba(139,92,246,0.6);}
 .panel-body{padding:16px 18px;}
@@ -266,7 +266,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pchat-pickers{position:relative;}
 .pchat-input-row{display:flex;gap:6px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 14px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;}
 .pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(212,80,26,0.12);}
-.pchat-input-row textarea,.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif;font-size:16px;outline:none;padding:8px 0;resize:none;line-height:1.4;max-height:120px;overflow-y:auto;font-weight:400;caret-color:#e8561e;box-sizing:border-box;}
+.pchat-input-row textarea,.pchat-input-row input{flex:1;min-width:0;background:transparent;border:none;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif;font-size:16px;outline:none;padding:8px 0;resize:none;line-height:1.4;max-height:120px;overflow-y:auto;font-weight:400;caret-color:var(--accent);box-sizing:border-box;}
 .pchat-input-row textarea::placeholder,.pchat-input-row input::placeholder{color:rgba(240,237,232,0.4);-webkit-text-fill-color:rgba(240,237,232,0.4);}
 .pchat-input-row textarea:focus,.pchat-input-row input:focus{color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;}
 .pchat-input-row textarea:-webkit-autofill,.pchat-input-row input:-webkit-autofill{-webkit-text-fill-color:#f0ede8 !important;-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.05) inset !important;}
@@ -290,7 +290,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     color: #1a1a1a !important;
   }
   #airm-premium-header { 
-    border-bottom: 2px solid #e8561e !important; 
+    border-bottom: 2px solid var(--accent) !important; 
     padding: 30px 40px 24px !important;
   }
   #airm-premium-header div[id="airm-priority-badge"] {
@@ -355,26 +355,26 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <!-- Kafelek Kalendarza Startów -->
 <div class="fi" style="padding:0 16px;margin-bottom:16px;">
-  <button onclick="location.href='races.html'" style="width:100%;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.06));border:1px solid rgba(232,86,30,0.35);border-radius:16px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.6)'" onmouseout="this.style.borderColor='rgba(232,86,30,0.35)'">
-    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 10px rgba(232,86,30,0.4);" onerror="this.style.display='none'">
+  <button onclick="location.href='races.html'" style="width:100%;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.06));border:1px solid rgba(var(--accent-rgb),0.35);border-radius:16px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.6)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.35)'">
+    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:48px;height:48px;border-radius:50%;object-fit:cover;flex-shrink:0;box-shadow:0 2px 10px rgba(var(--accent-rgb),0.4);" onerror="this.style.display='none'">
     <div style="flex:1;min-width:0;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:var(--fg);line-height:1;">Kalendarz Startów</div>
       <div style="font-size:11px;color:rgba(240,237,232,0.6);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:3px;">Dodawaj i zatwierdzaj zawody</div>
     </div>
     <div id="races-pending-badge" style="display:none;background:var(--accent);color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0;"></div>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,86,30,0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
 </div>
 
 <!-- Baner Radio -->
 <div class="fi" style="padding:0 16px;margin-bottom:16px;">
-  <button onclick="location.href='radio.html'" style="width:100%;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.06));border:1px solid rgba(232,86,30,0.35);border-radius:16px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.6)'" onmouseout="this.style.borderColor='rgba(232,86,30,0.35)'">
-    <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#FF6B2C);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 2px 10px rgba(232,86,30,0.4);">📻</div>
+  <button onclick="location.href='radio.html'" style="width:100%;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.06));border:1px solid rgba(var(--accent-rgb),0.35);border-radius:16px;padding:14px 18px;cursor:pointer;display:flex;align-items:center;gap:14px;text-align:left;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.6)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.35)'">
+    <div style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 2px 10px rgba(var(--accent-rgb),0.4);">📻</div>
     <div style="flex:1;min-width:0;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:var(--fg);line-height:1;">Radio BiegaMy</div>
       <div style="font-size:11px;color:rgba(240,237,232,0.6);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:3px;">Wgrywaj kawałki i twórz katalog</div>
     </div>
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,86,30,0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
   </button>
 </div>
 
@@ -430,7 +430,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button id="p-intake-btn" onclick="openAthleteIntake()" title="Otwórz ankietę startową" style="background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.35);color:#a78bfa;width:36px;height:36px;border-radius:10px;cursor:pointer;display:none;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;font-size:16px;" onmouseover="this.style.background='rgba(139,92,246,0.22)'" onmouseout="this.style.background='rgba(139,92,246,0.12)'">
       📋
     </button>
-    <button onclick="viewAsAthlete()" title="Zobacz jako zawodnik" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;" onmouseover="this.style.background='rgba(232,86,30,0.22)'" onmouseout="this.style.background='rgba(232,86,30,0.12)'">
+    <button onclick="viewAsAthlete()" title="Zobacz jako zawodnik" style="background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:36px;height:36px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-right:8px;flex-shrink:0;" onmouseover="this.style.background='rgba(var(--accent-rgb),0.22)'" onmouseout="this.style.background='rgba(var(--accent-rgb),0.12)'">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     </button>
     <button class="panel-close" onclick="closePanel()">&#x2715;</button>
@@ -445,10 +445,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
     <button class="ptab" onclick="ptab('st',this)">Statystyki</button>
     <button class="ptab" onclick="ptab('fo',this)" style="color:#8b5cf6;">📈 Forma</button>
     <button class="ptab" onclick="ptab('di',this)" style="color:#3db870;">🥗 Dieta</button>
-    <button class="ptab" onclick="ptab('no',this)" style="color:#e8561e;">📝 Notatki</button>
+    <button class="ptab" onclick="ptab('no',this)" style="color:var(--accent);">📝 Notatki</button>
     <button class="ptab" onclick="ptab('ai',this)" style="color:#8b5cf6;">🧠 AI</button>
     <button class="ptab" onclick="ptab('tp',this)" style="color:#22c55e;">🏋️ Plany</button>
-    <button class="ptab" onclick="ptab('au',this)" style="color:#e8561e;">📅 Auto</button>
+    <button class="ptab" onclick="ptab('au',this)" style="color:var(--accent);">📅 Auto</button>
     <button class="ptab" onclick="ptab('str',this)" style="color:#FC4C02;">
       <svg width="10" height="10" viewBox="0 0 24 24" fill="#FC4C02" style="vertical-align:middle;margin-right:3px;"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>Strava
     </button>
@@ -505,7 +505,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;">Wybierz zawodnika żeby zobaczyć chat.</div>
       </div>
       <div style="display:flex;gap:8px;">
-        <textarea id="panel-msg-input" placeholder="Napisz wiadomość..." rows="1" style="flex:1;background:var(--card2);border:1px solid var(--border);color:#f0ede8;-webkit-text-fill-color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:10px;outline:none;resize:none;line-height:1.4;max-height:100px;overflow-y:auto;box-sizing:border-box;caret-color:#e8561e;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendPanelMessage();}" oninput="tAutosizeChat(this)"></textarea>
+        <textarea id="panel-msg-input" placeholder="Napisz wiadomość..." rows="1" style="flex:1;background:var(--card2);border:1px solid var(--border);color:#f0ede8;-webkit-text-fill-color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 12px;border-radius:10px;outline:none;resize:none;line-height:1.4;max-height:100px;overflow-y:auto;box-sizing:border-box;caret-color:var(--accent);" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendPanelMessage();}" oninput="tAutosizeChat(this)"></textarea>
         <button onclick="sendPanelMessage()" style="background:var(--accent);color:var(--fg);border:none;border-radius:8px;padding:9px 14px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;">Wyślij →</button>
       </div>
     </div>
@@ -565,12 +565,12 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
       <!-- Storytelling header dla trenera panel — premium glassmorphism analog -->
       <div id="pfo-story" style="display:none;position:relative;overflow:hidden;background:rgba(20,15,30,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:22px 18px;margin-bottom:14px;text-align:center;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);">
-        <div id="pfo-story-bg" style="position:absolute;inset:0;background:radial-gradient(circle at 30% 20%, rgba(232,86,30,0.15) 0%, transparent 50%);transition:all 0.6s ease;pointer-events:none;"></div>
+        <div id="pfo-story-bg" style="position:absolute;inset:0;background:radial-gradient(circle at 30% 20%, rgba(var(--accent-rgb),0.15) 0%, transparent 50%);transition:all 0.6s ease;pointer-events:none;"></div>
         <div id="pfo-story-icon" style="position:relative;font-size:44px;line-height:1;margin-bottom:10px;animation:storyPulse 2.4s ease-in-out infinite;">⏳</div>
         <div id="pfo-story-headline" style="position:relative;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.05em;color:#fff;margin-bottom:5px;line-height:1.05;">WCZYTUJĘ FORMĘ</div>
         <div id="pfo-story-subline" style="position:relative;font-family:'Inter',sans-serif;font-size:12px;font-style:italic;color:rgba(255,255,255,0.75);line-height:1.45;"></div>
-        <div id="pfo-story-rec-wrap" style="position:relative;display:none;margin-top:14px;padding:10px 12px;background:rgba(255,255,255,0.05);border-left:3px solid #e8561e;border-radius:6px;text-align:left;">
-          <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;margin-bottom:3px;font-weight:700;">💡 Zalecenie</div>
+        <div id="pfo-story-rec-wrap" style="position:relative;display:none;margin-top:14px;padding:10px 12px;background:rgba(255,255,255,0.05);border-left:3px solid var(--accent);border-radius:6px;text-align:left;">
+          <div style="font-family:'DM Mono',monospace;font-size:8px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;font-weight:700;">💡 Zalecenie</div>
           <div id="pfo-story-rec" style="font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.9);line-height:1.45;"></div>
         </div>
       </div>
@@ -645,7 +645,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
         <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;">📝 Moje notatki</div>
         <button class="notes-list-add" onclick="openNotesModal(window._selectedAthleteId)">+ Dodaj</button>
       </div>
-      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.5;background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.2);border-radius:8px;padding:10px;margin-bottom:14px;">
+      <div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;line-height:1.5;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:8px;padding:10px;margin-bottom:14px;">
         💡 Prywatne notatki — zawodnik ich NIE widzi. Klaudiusz wykorzysta je przy generowaniu planów i raportów.
       </div>
       <div id="coach-notes-list">
@@ -671,7 +671,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
       <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:14px;">📅 Auto-raporty</div>
       
       <!-- WEEKLY toggle -->
-      <div style="background:linear-gradient(135deg,rgba(232,86,30,0.08) 0%,rgba(232,86,30,0.02) 100%);border:1px solid rgba(232,86,30,0.2);border-radius:12px;padding:14px;margin-bottom:14px;">
+      <div style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08) 0%,rgba(var(--accent-rgb),0.02) 100%);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:12px;padding:14px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div>
             <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--fg);">Raport tygodniowy</div>
@@ -682,7 +682,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
             <span class="auto-toggle-slider"></span>
           </label>
         </div>
-        <div id="pau-weekly-config" style="display:none;border-top:1px solid rgba(232,86,30,0.15);padding-top:12px;margin-top:10px;">
+        <div id="pau-weekly-config" style="display:none;border-top:1px solid rgba(var(--accent-rgb),0.15);padding-top:12px;margin-top:10px;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div>
               <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:5px;">Dzień</label>
@@ -1434,7 +1434,7 @@ async function loadPanelTrainingPlans() {
     .limit(20);
 
   if (error) {
-    target.innerHTML = '<div style="padding:20px 0;text-align:center;color:#e8561e;font-size:11px;">Błąd: ' + error.message + '</div>';
+    target.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--accent);font-size:11px;">Błąd: ' + error.message + '</div>';
     return;
   }
 
@@ -1584,7 +1584,7 @@ async function tpHandleScreensUpload(input) {
   statusEl.textContent = uploaded > 0
     ? '✅ Wgrano ' + uploaded + ' screen(ów) — będą podane AI razem z planem'
     : '❌ Nie udało się wgrać żadnego pliku';
-  statusEl.style.color = uploaded > 0 ? '#22c55e' : '#e8561e';
+  statusEl.style.color = uploaded > 0 ? '#22c55e' : 'var(--accent)';
   
   tpRenderScreenThumbs();
   input.value = ''; // reset input żeby można było wgrać te same pliki ponownie
@@ -1833,9 +1833,9 @@ async function generateTrainingPlan() {
 
   } catch (err) {
     console.error('[generateTrainingPlan] error:', err);
-    statusEl.style.background = 'rgba(232,86,30,0.1)';
-    statusEl.style.borderColor = 'rgba(232,86,30,0.3)';
-    statusEl.innerHTML = `<div style="color:#e8561e;">❌ ${escapeHtml(err.message)}</div>`;
+    statusEl.style.background = 'rgba(var(--accent-rgb),0.1)';
+    statusEl.style.borderColor = 'rgba(var(--accent-rgb),0.3)';
+    statusEl.innerHTML = `<div style="color:var(--accent);">❌ ${escapeHtml(err.message)}</div>`;
     goBtn.disabled = false;
     goBtn.style.opacity = '1';
   }
@@ -1967,7 +1967,7 @@ async function renderPlanPreviewInCreateModal(planId) {
   // Pobierz plan + workouts
   const { data: plan } = await sb.from('training_plans').select('*').eq('id', planId).maybeSingle();
   if (!plan) {
-    document.getElementById('tp-create-status').innerHTML = '<div style="color:#e8561e;">❌ Błąd ładowania podglądu</div>';
+    document.getElementById('tp-create-status').innerHTML = '<div style="color:var(--accent);">❌ Błąd ładowania podglądu</div>';
     return;
   }
   
@@ -2017,8 +2017,8 @@ async function renderPlanPreviewInCreateModal(planId) {
         <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#22c55e;line-height:1;">${totalCount}</div>
         <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-top:2px;">TRENINGÓW</div>
       </div>
-      <div style="background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.25);border-radius:7px;padding:8px;text-align:center;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:#e8561e;line-height:1;">${totalKm.toFixed(0)}</div>
+      <div style="background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:7px;padding:8px;text-align:center;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);line-height:1;">${totalKm.toFixed(0)}</div>
         <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--muted);letter-spacing:0.1em;margin-top:2px;">KM ŁĄCZNIE</div>
       </div>
       <div style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:7px;padding:8px;text-align:center;">
@@ -2051,14 +2051,14 @@ async function openViewTrainingPlanModal(planId) {
   // Pobierz plan + workouts
   const { data: plan, error: pErr } = await sb.from('training_plans').select('*').eq('id', planId).maybeSingle();
   if (pErr || !plan) {
-    content.innerHTML = '<div style="padding:30px;color:#e8561e;font-family:DM Mono,monospace;">Błąd ładowania planu</div>';
+    content.innerHTML = '<div style="padding:30px;color:var(--accent);font-family:DM Mono,monospace;">Błąd ładowania planu</div>';
     return;
   }
 
   const { data: workouts, error: wErr } = await sb.from('training_plan_workouts')
     .select('*').eq('plan_id', planId).order('date');
   if (wErr) {
-    content.innerHTML = '<div style="padding:30px;color:#e8561e;font-family:DM Mono,monospace;">Błąd ładowania treningów</div>';
+    content.innerHTML = '<div style="padding:30px;color:var(--accent);font-family:DM Mono,monospace;">Błąd ładowania treningów</div>';
     return;
   }
 
@@ -2193,7 +2193,7 @@ function renderPlanView(plan, workouts) {
   if (plan.status === 'draft') {
     html += `
       <div style="position:sticky;bottom:0;background:linear-gradient(180deg,transparent 0%,#0c0c10 30%);padding:20px 0;margin-top:20px;display:flex;gap:8px;">
-        <button onclick="rejectTrainingPlan()" style="flex:1;background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.3);color:#e8561e;padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">❌ Odrzuć</button>
+        <button onclick="rejectTrainingPlan()" style="flex:1;background:rgba(var(--accent-rgb),0.1);border:1px solid rgba(var(--accent-rgb),0.3);color:var(--accent);padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:600;">❌ Odrzuć</button>
         <button onclick="approveTrainingPlanFlow()" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:14px;border-radius:10px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;font-weight:700;box-shadow:0 4px 14px rgba(34,197,94,0.4);">✅ Zatwierdź i wstaw do kalendarza</button>
       </div>`;
   } else if (plan.status === 'approved') {
@@ -3163,11 +3163,11 @@ async function loadFreshFeedbacks() {
     const feedbackText = (r.athlete_feedback || '(tylko reakcja)').substring(0, 140);
     
     html += '<div onclick="openFeedbackFromList(\'' + r.id + '\', \'' + r.athlete_id + '\')" '
-      + 'style="background:rgba(232,86,30,0.06);border:1px solid rgba(232,86,30,0.25);'
+      + 'style="background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.25);'
       + 'border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;display:flex;gap:12px;align-items:flex-start;" '
-      + 'onmouseover="this.style.borderColor=\'rgba(232,86,30,0.5)\';this.style.transform=\'translateX(2px)\'" '
-      + 'onmouseout="this.style.borderColor=\'rgba(232,86,30,0.25)\';this.style.transform=\'\'">'
-      + '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#FF6B2C);color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;">' + initials + '</div>'
+      + 'onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.5)\';this.style.transform=\'translateX(2px)\'" '
+      + 'onmouseout="this.style.borderColor=\'rgba(var(--accent-rgb),0.25)\';this.style.transform=\'\'">'
+      + '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:12px;font-weight:700;flex-shrink:0;">' + initials + '</div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">'
           + '<span style="font-size:13px;color:var(--fg);font-weight:600;">' + athName + '</span>'
@@ -3485,7 +3485,7 @@ function renderLogs_db(logs) {
               <div style="font-size:13px;font-weight:500;">${escapeHtml(type)}</div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
-              ${calLink ? `<a href="${calLink}" title="Zobacz w kalendarzu (${date})" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;text-decoration:none;background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.25);padding:3px 8px;border-radius:5px;transition:all 0.15s;letter-spacing:0.04em;" onmouseover="this.style.background='rgba(232,86,30,0.2)';this.style.borderColor='rgba(232,86,30,0.5)'" onmouseout="this.style.background='rgba(232,86,30,0.1)';this.style.borderColor='rgba(232,86,30,0.25)'">📅 ${date}</a>` : `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>`}
+              ${calLink ? `<a href="${calLink}" title="Zobacz w kalendarzu (${date})" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--accent);font-family:'DM Mono',monospace;text-decoration:none;background:rgba(var(--accent-rgb),0.1);border:1px solid rgba(var(--accent-rgb),0.25);padding:3px 8px;border-radius:5px;transition:all 0.15s;letter-spacing:0.04em;" onmouseover="this.style.background='rgba(var(--accent-rgb),0.2)';this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.background='rgba(var(--accent-rgb),0.1)';this.style.borderColor='rgba(var(--accent-rgb),0.25)'">📅 ${date}</a>` : `<div style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${date}</div>`}
               <span style="font-size:16px;">${fe[l.feel]||''}</span>
               ${reaction}
             </div>
@@ -4560,7 +4560,7 @@ function switchCoachSocialTab(tab) {
   ['feed','ranking','find'].forEach(function(t) {
     const btn = document.getElementById('cstab-' + t);
     const panel = document.getElementById('csocial-' + t);
-    if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
+    if (btn) { btn.style.background = t===tab?'rgba(var(--accent-rgb),0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
   if (tab==='feed') loadCoachSocialFeed();
@@ -5572,16 +5572,16 @@ function mdToHtmlPremium(md) {
   // (a) escape " i ' tutaj, ORAZ (b) walidacji URL przez safeUrlAttr/safeExternalHref.
   html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   // H3 (## w markdown) — sekcja z border-top + pomarańczowym akcentem na lewej krawędzi
-  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#e8561e;margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:var(--accent);margin:20px 0 8px;text-transform:uppercase;">$1</h4>');
   html = html.replace(/^## (.+)$/gm, '<h3 style="font-family:Bebas Neue,sans-serif;font-size:20px;letter-spacing:0.03em;color:#f0ede8;margin:28px 0 12px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);text-transform:uppercase;letter-spacing:0.06em;">$1</h3>');
   html = html.replace(/^# (.+)$/gm, '<h2 style="font-family:Bebas Neue,sans-serif;font-size:26px;color:#f0ede8;margin:24px 0 14px;">$1</h2>');
   // Bold + italic
   html = html.replace(/\*\*(.+?)\*\*/g, '<strong style="color:#f0ede8;font-weight:600;">$1</strong>');
   html = html.replace(/\*(.+?)\*/g, '<em style="color:rgba(240,237,232,0.7);">$1</em>');
   // Bullets
-  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-weight:700;">›</span>$1</li>');
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin:6px 0;list-style:none;padding-left:22px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:var(--accent);font-weight:700;">›</span>$1</li>');
   // Numbered
-  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:#e8561e;font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
+  html = html.replace(/^(\d+)\. (.+)$/gm, '<li style="margin:8px 0;list-style:none;padding-left:30px;position:relative;line-height:1.7;"><span style="position:absolute;left:0;color:var(--accent);font-family:DM Mono,monospace;font-size:11px;font-weight:700;top:3px;">$1.</span>$2</li>');
   // Wrap consecutive <li>
   html = html.replace(/(<li[^>]*>.+?<\/li>\s*)+/g, function(match) {
     return '<ul style="padding-left:0;margin:10px 0;">' + match + '</ul>';
@@ -6333,7 +6333,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
 
 <!-- MODAL: PEŁNY RAPORT AI (premium look dla weekly/monthly) -->
 <div id="ai-report-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:600;display:none;align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeAIReportModal()">
-  <div id="ai-report-modal-inner" style="background:#0c0c10;border-radius:24px 24px 0 0;border-top:1px solid rgba(232,86,30,0.5);width:100%;max-width:560px;max-height:94vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;box-shadow:0 -10px 60px rgba(232,86,30,0.15);">
+  <div id="ai-report-modal-inner" style="background:#0c0c10;border-radius:24px 24px 0 0;border-top:1px solid rgba(var(--accent-rgb),0.5);width:100%;max-width:560px;max-height:94vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.25s;display:flex;flex-direction:column;box-shadow:0 -10px 60px rgba(var(--accent-rgb),0.15);">
     <div style="width:36px;height:4px;background:rgba(255,255,255,0.15);border-radius:2px;margin:12px auto 0;flex-shrink:0;"></div>
 
     <!-- Toolbar -->
@@ -6346,7 +6346,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
       <button id="airm-unsend-btn" onclick="unsendAIReport()" style="display:none;background:rgba(252,176,64,0.12);border:1px solid rgba(252,176,64,0.35);color:#fcb040;border-radius:8px;padding:7px 12px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.06em;">↩ Cofnij wysłanie</button>
       <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
         <span id="airm-visibility-status" style="font-size:10px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;"></span>
-        <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,#e8561e,#FF6B2C);border:none;color:#fff;border-radius:8px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.08em;font-weight:600;text-transform:uppercase;">📤 Wyślij</button>
+        <button id="airm-send-btn" onclick="sendAIReportToAthlete()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:8px;padding:7px 14px;font-family:'DM Mono',monospace;font-size:10px;cursor:pointer;letter-spacing:0.08em;font-weight:600;text-transform:uppercase;">📤 Wyślij</button>
         <button onclick="closeAIReportModal()" style="background:none;border:none;color:rgba(240,237,232,0.4);font-size:22px;cursor:pointer;padding:4px;">✕</button>
       </div>
     </div>
@@ -6354,7 +6354,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
     <!-- Premium content (printable area) -->
     <div id="airm-print-area" style="flex:1;overflow-y:auto;background:#0c0c10;">
       <!-- Header raportu (premium) -->
-      <div id="airm-premium-header" style="padding:30px 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(232,86,30,0.06) 0%,transparent 100%);">
+      <div id="airm-premium-header" style="padding:30px 28px 24px;border-bottom:1px solid rgba(255,255,255,0.06);background:linear-gradient(180deg,rgba(var(--accent-rgb),0.06) 0%,transparent 100%);">
         <!-- Logo + brand -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
           <div style="display:flex;align-items:center;gap:10px;">
@@ -6381,17 +6381,17 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
 
       <!-- Badge: edytowane przez trenera -->
       <div style="padding:0 28px;">
-        <div id="airm-edited-badge" style="display:none;font-size:10px;padding:6px 12px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.06em;background:rgba(232,86,30,0.12);color:#e8561e;border:1px solid rgba(232,86,30,0.25);align-items:center;gap:6px;width:fit-content;"></div>
+        <div id="airm-edited-badge" style="display:none;font-size:10px;padding:6px 12px;border-radius:6px;font-family:'DM Mono',monospace;letter-spacing:0.06em;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.25);align-items:center;gap:6px;width:fit-content;"></div>
       </div>
       
       <!-- Treść raportu -->
       <div id="airm-content" style="padding:18px 28px 0;font-size:14px;line-height:1.7;color:rgba(240,237,232,0.85);"></div>
       
       <!-- Feedback od zawodnika (tylko jeśli istnieje) -->
-      <div id="airm-athlete-feedback" style="display:none;padding:24px 28px;border-top:1px solid rgba(232,86,30,0.2);margin-top:24px;background:rgba(232,86,30,0.04);">
-        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(232,86,30,0.8);font-family:'DM Mono',monospace;margin-bottom:12px;">💬 Opinia zawodnika</div>
+      <div id="airm-athlete-feedback" style="display:none;padding:24px 28px;border-top:1px solid rgba(var(--accent-rgb),0.2);margin-top:24px;background:rgba(var(--accent-rgb),0.04);">
+        <div style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(var(--accent-rgb),0.8);font-family:'DM Mono',monospace;margin-bottom:12px;">💬 Opinia zawodnika</div>
         <div id="airm-athlete-reaction" style="margin-bottom:10px;font-size:14px;"></div>
-        <div id="airm-athlete-feedback-text" style="font-size:13px;line-height:1.6;color:#f0ede8;font-style:italic;background:rgba(255,255,255,0.03);padding:12px 14px;border-left:3px solid #e8561e;border-radius:0 8px 8px 0;"></div>
+        <div id="airm-athlete-feedback-text" style="font-size:13px;line-height:1.6;color:#f0ede8;font-style:italic;background:rgba(255,255,255,0.03);padding:12px 14px;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;"></div>
         <div id="airm-athlete-feedback-meta" style="margin-top:8px;font-size:10px;color:rgba(240,237,232,0.4);font-family:'DM Mono',monospace;letter-spacing:0.06em;"></div>
       </div>
 
@@ -6587,7 +6587,7 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
     <div style="font-size:9px;letter-spacing:0.28em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Biegacze</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:0.03em;margin-bottom:16px;">Społeczność</div>
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
-      <button id="cstab-feed" onclick="switchCoachSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Aktywność</button>
+      <button id="cstab-feed" onclick="switchCoachSocialTab('feed')" style="flex:1;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Aktywność</button>
       <button id="cstab-ranking" onclick="switchCoachSocialTab('ranking')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Ranking</button>
       <button id="cstab-find" onclick="switchCoachSocialTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
     </div>
@@ -6814,7 +6814,7 @@ if ('serviceWorker' in navigator) {
   background: linear-gradient(135deg, #e8561e, #d4501a);
   color: #fff;
   border: none;
-  box-shadow: 0 6px 20px rgba(232,86,30,0.45), 0 0 0 4px rgba(232,86,30,0.1);
+  box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.45), 0 0 0 4px rgba(var(--accent-rgb),0.1);
   cursor: pointer;
   z-index: 49;
   display: flex;
@@ -6824,7 +6824,7 @@ if ('serviceWorker' in navigator) {
   font-weight: 300;
   transition: transform 0.15s, box-shadow 0.15s;
 }
-#notes-fab:hover { transform: scale(1.05); box-shadow: 0 8px 24px rgba(232,86,30,0.55), 0 0 0 6px rgba(232,86,30,0.12); }
+#notes-fab:hover { transform: scale(1.05); box-shadow: 0 8px 24px rgba(var(--accent-rgb),0.55), 0 0 0 6px rgba(var(--accent-rgb),0.12); }
 #notes-fab:active { transform: scale(0.95); }
 #notes-fab .fab-icon { line-height: 1; }
 #notes-fab .fab-tooltip {
@@ -6856,7 +6856,7 @@ if ('serviceWorker' in navigator) {
 }
 .notes-modal-card {
   background: linear-gradient(135deg, #1a1a22, #13131a);
-  border: 1px solid rgba(232,86,30,0.3);
+  border: 1px solid rgba(var(--accent-rgb),0.3);
   border-radius: 14px;
   padding: 18px;
   max-width: 480px;
@@ -6869,7 +6869,7 @@ if ('serviceWorker' in navigator) {
   font-size: 8px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #e8561e;
+  color: var(--accent);
   font-family: 'DM Mono', monospace;
   margin-bottom: 4px;
 }
@@ -6945,9 +6945,9 @@ if ('serviceWorker' in navigator) {
 }
 .notes-tag-chip:hover { color: var(--fg); border-color: rgba(255,255,255,0.2); }
 .notes-tag-chip.active {
-  background: rgba(232,86,30,0.15);
-  border-color: #e8561e;
-  color: #e8561e;
+  background: rgba(var(--accent-rgb),0.15);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .notes-modal-date {
   width: 100%;
@@ -6992,7 +6992,7 @@ if ('serviceWorker' in navigator) {
   text-transform: uppercase;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(232,86,30,0.4);
+  box-shadow: 0 4px 12px rgba(var(--accent-rgb),0.4);
 }
 .notes-btn-save:disabled {
   opacity: 0.5;
@@ -7023,9 +7023,9 @@ if ('serviceWorker' in navigator) {
   gap: 6px;
 }
 .notes-list-add {
-  background: rgba(232,86,30,0.12);
-  border: 1px solid rgba(232,86,30,0.3);
-  color: #e8561e;
+  background: rgba(var(--accent-rgb),0.12);
+  border: 1px solid rgba(var(--accent-rgb),0.3);
+  color: var(--accent);
   font-size: 10px;
   padding: 5px 10px;
   border-radius: 6px;
@@ -7033,10 +7033,10 @@ if ('serviceWorker' in navigator) {
   font-family: 'DM Mono', monospace;
   letter-spacing: 0.04em;
 }
-.notes-list-add:hover { background: rgba(232,86,30,0.2); border-color: rgba(232,86,30,0.5); }
+.notes-list-add:hover { background: rgba(var(--accent-rgb),0.2); border-color: rgba(var(--accent-rgb),0.5); }
 .note-card {
   background: rgba(255,255,255,0.03);
-  border-left: 2px solid #e8561e;
+  border-left: 2px solid var(--accent);
   border-radius: 0 7px 7px 0;
   padding: 8px 10px 10px;
   margin-bottom: 6px;
@@ -7081,7 +7081,7 @@ if ('serviceWorker' in navigator) {
 }
 .note-meta-event {
   font-size: 9px;
-  color: #e8561e;
+  color: var(--accent);
   font-family: 'DM Mono', monospace;
   margin-left: auto;
 }
@@ -7116,8 +7116,8 @@ if ('serviceWorker' in navigator) {
 /* ━━━━━━━━ KLAUDIUSZ BRIEF CARD ━━━━━━━━ */
 .kb-wrap{padding:0 16px;margin-bottom:24px;}
 .kb-card{
-  background:linear-gradient(180deg, rgba(232,86,30,0.08) 0%, var(--card) 60%);
-  border:1px solid rgba(232,86,30,0.25);
+  background:linear-gradient(180deg, rgba(var(--accent-rgb),0.08) 0%, var(--card) 60%);
+  border:1px solid rgba(var(--accent-rgb),0.25);
   border-radius:16px;
   overflow:hidden;
   position:relative;
@@ -7132,7 +7132,7 @@ if ('serviceWorker' in navigator) {
 .kb-hdr-name span{color:var(--accent);}
 .kb-hdr-sub{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;margin-top:5px;}
 .kb-refresh{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--muted);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all 0.15s;flex-shrink:0;}
-.kb-refresh:hover{color:var(--accent);border-color:rgba(232,86,30,0.3);}
+.kb-refresh:hover{color:var(--accent);border-color:rgba(var(--accent-rgb),0.3);}
 .kb-refresh.spinning{animation:kb-spin 1s linear infinite;}
 @keyframes kb-spin{to{transform:rotate(360deg);}}
 .kb-greeting{padding:18px 20px 8px;font-size:16px;color:var(--fg);line-height:1.55;}
@@ -7161,7 +7161,7 @@ if ('serviceWorker' in navigator) {
 .kb-chip[data-athlete-name]:hover{background:rgba(61,184,112,0.18);border-color:rgba(61,184,112,0.4);transform:translateY(-1px);}
 .kb-item-chat-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--fg);font-size:13px;width:28px;height:28px;border-radius:7px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;padding:0;transition:all 0.15s;flex-shrink:0;}
 .kb-item-chat-btn:hover{background:var(--accent);border-color:var(--accent);transform:scale(1.05);}
-.kb-item-msg-preview{font-size:11.5px;color:#c8c3cf;font-family:'Inter',sans-serif;font-style:italic;background:rgba(232,86,30,0.06);border-left:2px solid rgba(232,86,30,0.45);border-radius:0 6px 6px 0;padding:6px 10px;margin-top:8px;line-height:1.45;}
+.kb-item-msg-preview{font-size:11.5px;color:#c8c3cf;font-family:'Inter',sans-serif;font-style:italic;background:rgba(var(--accent-rgb),0.06);border-left:2px solid rgba(var(--accent-rgb),0.45);border-radius:0 6px 6px 0;padding:6px 10px;margin-top:8px;line-height:1.45;}
 .kb-item.yellow .kb-item-msg-preview{background:rgba(232,184,64,0.06);border-left-color:rgba(232,184,64,0.45);}
 .kb-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-top:6px;}
 .kb-stat{text-align:center;}
@@ -7169,10 +7169,10 @@ if ('serviceWorker' in navigator) {
 .kb-stat-lbl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;margin-top:6px;}
 .kb-actions{padding:16px 20px 20px;}
 .kb-actions-hdr{font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;font-weight:500;}
-.kb-action{background:rgba(232,86,30,0.04);border:1px solid rgba(232,86,30,0.15);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
-.kb-action:hover{background:rgba(232,86,30,0.08);border-color:rgba(232,86,30,0.3);}
+.kb-action{background:rgba(var(--accent-rgb),0.04);border:1px solid rgba(var(--accent-rgb),0.15);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;}
+.kb-action:hover{background:rgba(var(--accent-rgb),0.08);border-color:rgba(var(--accent-rgb),0.3);}
 .kb-action-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-.kb-action-icon{width:26px;height:26px;border-radius:50%;background:rgba(232,86,30,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0;}
+.kb-action-icon{width:26px;height:26px;border-radius:50%;background:rgba(var(--accent-rgb),0.15);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--accent);flex-shrink:0;}
 .kb-action-to{font-size:13.5px;font-weight:600;color:var(--fg);}
 .kb-action-text{font-size:13.5px;color:#c8c3cf;line-height:1.55;font-style:italic;}
 .kb-action-text::before{content:'„';color:var(--accent);}
@@ -7191,20 +7191,20 @@ if ('serviceWorker' in navigator) {
 /* ━━━━━━━━ PANEL ZGŁOSZEŃ (ankiety) ━━━━━━━━ */
 .intake-section{padding:0 16px;margin-bottom:20px;}
 .intake-empty{padding:14px 16px;background:var(--card);border:1px dashed var(--border);border-radius:12px;color:var(--muted);font-size:12px;text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.05em;}
-.intake-card{background:var(--card);border:1px solid rgba(232,86,30,0.3);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;position:relative;}
+.intake-card{background:var(--card);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:12px;padding:14px 16px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;position:relative;}
 .intake-card:hover{background:var(--card2);border-color:var(--accent);}
 .intake-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:var(--accent);border-radius:2px;}
 .intake-top{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
-.intake-av{width:40px;height:40px;border-radius:50%;background:rgba(232,86,30,0.15);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent);flex-shrink:0;}
+.intake-av{width:40px;height:40px;border-radius:50%;background:rgba(var(--accent-rgb),0.15);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--accent);flex-shrink:0;}
 .intake-meta{flex:1;min-width:0;}
 .intake-name{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:2px;}
 .intake-sub{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.03em;}
-.intake-badge{font-size:9px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:20px;background:rgba(232,86,30,0.15);color:var(--accent);border:1px solid rgba(232,86,30,0.3);letter-spacing:0.08em;text-transform:uppercase;}
+.intake-badge{font-size:9px;font-family:'DM Mono',monospace;padding:3px 8px;border-radius:20px;background:rgba(var(--accent-rgb),0.15);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);letter-spacing:0.08em;text-transform:uppercase;}
 .intake-stats{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
 .intake-stat{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.04em;}
 .intake-stat b{color:var(--fg);font-weight:600;}
 .intake-goals{display:flex;flex-wrap:wrap;gap:5px;}
-.intake-goal-chip{font-size:10px;font-family:'DM Mono',monospace;color:var(--fg);background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.25);border-radius:14px;padding:3px 8px;letter-spacing:0.04em;}
+.intake-goal-chip{font-size:10px;font-family:'DM Mono',monospace;color:var(--fg);background:rgba(var(--accent-rgb),0.1);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:14px;padding:3px 8px;letter-spacing:0.04em;}
 
 /* Modal ankiety */
 .intake-modal{position:fixed;inset:0;z-index:9000;display:none;align-items:flex-end;justify-content:center;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);}

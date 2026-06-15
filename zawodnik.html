@@ -30,7 +30,7 @@
   --border:rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.13);
   --accent:#e8561e;
-  --accent2:#ff7040;
+  --accent2:var(--accent2);
   --accent3:#ff9060;
   --fg:#f0ede8;
   --fg2:rgba(240,237,232,0.65);
@@ -42,8 +42,8 @@
   --red:#e05050;
   --blue:#4e8cd6;
   --purple:#8a62d8;
-  --glow-o:rgba(232,86,30,0.32);
-  --glow-o2:rgba(232,86,30,0.14);
+  --glow-o:rgba(var(--accent-rgb),0.32);
+  --glow-o2:rgba(var(--accent-rgb),0.14);
   --glow-g:rgba(61,184,112,0.25);
   --glow-b:rgba(78,140,214,0.2);
 
@@ -69,7 +69,7 @@ html{background:var(--bg);}
 body{
   background:var(--bg);
   background-image:
-    radial-gradient(ellipse 130% 55% at 50% -8%, rgba(232,86,30,0.13) 0%, transparent 62%),
+    radial-gradient(ellipse 130% 55% at 50% -8%, rgba(var(--accent-rgb),0.13) 0%, transparent 62%),
     radial-gradient(ellipse 70% 40% at 92% 55%, rgba(78,140,214,0.05) 0%, transparent 55%),
     radial-gradient(ellipse 55% 35% at 8% 80%, rgba(61,184,112,0.04) 0%, transparent 60%);
   color:var(--fg);
@@ -134,20 +134,20 @@ body > *{position:relative;z-index:1;}
   position:relative;transition:all 0.25s ease;
 }
 .notif-bell-z:hover{
-  border-color:rgba(232,86,30,0.5);
-  background:linear-gradient(135deg,rgba(232,86,30,0.10) 0%,rgba(232,86,30,0.03) 100%);
-  box-shadow:0 0 18px rgba(232,86,30,0.18);
+  border-color:rgba(var(--accent-rgb),0.5);
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),0.10) 0%,rgba(var(--accent-rgb),0.03) 100%);
+  box-shadow:0 0 18px rgba(var(--accent-rgb),0.18);
   transform:scale(1.04);
 }
 .notif-bell-z:hover svg{stroke:var(--accent);}
 .notif-bell-z.has-unread{
-  border-color:rgba(232,86,30,0.45);
-  background:linear-gradient(135deg,rgba(232,86,30,0.08) 0%,rgba(232,86,30,0.02) 100%);
+  border-color:rgba(var(--accent-rgb),0.45);
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08) 0%,rgba(var(--accent-rgb),0.02) 100%);
 }
 .notif-bell-z.has-unread svg{stroke:var(--accent);}
 @keyframes pulseDot {
-  0%, 100% { transform:scale(1); box-shadow:0 0 0 0 rgba(232,86,30,0.5); }
-  50% { transform:scale(1.08); box-shadow:0 0 0 6px rgba(232,86,30,0); }
+  0%, 100% { transform:scale(1); box-shadow:0 0 0 0 rgba(var(--accent-rgb),0.5); }
+  50% { transform:scale(1.08); box-shadow:0 0 0 6px rgba(var(--accent-rgb),0); }
 }
 #zawodnik-bell-dot{
   animation:pulseDot 2s ease-in-out infinite;
@@ -163,13 +163,13 @@ body > *{position:relative;z-index:1;}
 .topbar-avatar{
   width:44px;height:44px;border-radius:50%;
   border:2px solid var(--accent);
-  background:radial-gradient(circle,rgba(232,86,30,0.2),rgba(232,86,30,0.05));
+  background:radial-gradient(circle,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.05));
   display:flex;align-items:center;justify-content:center;
   font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--accent);
-  box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(232,86,30,0.08);
+  box-shadow:0 0 20px var(--glow-o),0 0 0 4px rgba(var(--accent-rgb),0.08);
   transition:all 0.2s;cursor:pointer;
 }
-.topbar-avatar:hover{box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.12);}
+.topbar-avatar:hover{box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(var(--accent-rgb),0.12);}
 
 /* ── SECTION HEADERS ─────────────────────────────────────────────────── */
 .sec-hdr{display:flex;align-items:center;justify-content:space-between;padding:0 20px;margin-bottom:10px;margin-top:8px;}
@@ -207,7 +207,7 @@ body > *{position:relative;z-index:1;}
   height:2px;
   background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 45%,rgba(78,140,214,0.45) 82%,transparent 100%);
   border-radius:var(--tile-radius-lg) var(--tile-radius-lg) 0 0;
-  box-shadow:0 0 28px rgba(232,86,30,0.6),0 0 60px rgba(232,86,30,0.18);
+  box-shadow:0 0 28px rgba(var(--accent-rgb),0.6),0 0 60px rgba(var(--accent-rgb),0.18);
 }
 .today-hero-inner{padding:20px 22px 22px;position:relative;z-index:1;}
 .today-label{font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;margin-bottom:6px;display:flex;align-items:center;gap:7px;opacity:0.9;}
@@ -254,10 +254,10 @@ body > *{position:relative;z-index:1;}
 .btn-primary{
   background:linear-gradient(135deg,#d44c18 0%,var(--accent) 45%,var(--accent2) 100%);
   color:#fff;grid-column:span 2;
-  box-shadow:0 4px 24px rgba(232,86,30,0.42),0 1px 0 rgba(255,255,255,0.1) inset;
+  box-shadow:0 4px 24px rgba(var(--accent-rgb),0.42),0 1px 0 rgba(255,255,255,0.1) inset;
   letter-spacing:0.18em;font-size:11px;
 }
-.btn-primary:hover{box-shadow:0 8px 32px rgba(232,86,30,0.55);}
+.btn-primary:hover{box-shadow:0 8px 32px rgba(var(--accent-rgb),0.55);}
 .btn-done{
   background:rgba(61,184,112,0.1);color:var(--green);
   border:1px solid rgba(61,184,112,0.28);
@@ -285,9 +285,9 @@ body > *{position:relative;z-index:1;}
 .day-card:hover{background:linear-gradient(135deg,rgba(24,21,34,0.95),rgba(15,14,22,0.98));border-color:rgba(255,255,255,0.11);}
 .day-card:active{transform:scale(0.985);}
 .day-card.today{
-  border-color:rgba(232,86,30,0.38);
-  background:linear-gradient(135deg,rgba(232,86,30,0.09),rgba(12,11,18,0.95));
-  box-shadow:0 0 28px rgba(232,86,30,0.12),0 4px 16px rgba(0,0,0,0.45);
+  border-color:rgba(var(--accent-rgb),0.38);
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),0.09),rgba(12,11,18,0.95));
+  box-shadow:0 0 28px rgba(var(--accent-rgb),0.12),0 4px 16px rgba(0,0,0,0.45);
 }
 .day-card.done{border-color:rgba(61,184,112,0.28);}
 .day-card.rest{opacity:0.45;}
@@ -343,8 +343,8 @@ body > *{position:relative;z-index:1;}
   position:relative;
 }
 .nut-widget:hover{
-  border-color:rgba(232,86,30,0.25);
-  box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 24px rgba(232,86,30,0.08);
+  border-color:rgba(var(--accent-rgb),0.25);
+  box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 24px rgba(var(--accent-rgb),0.08);
 }
 .nut-widget:active{transform:scale(0.99);}
 .nut-ring{position:relative;width:58px;height:58px;flex-shrink:0;}
@@ -371,16 +371,16 @@ body > *{position:relative;z-index:1;}
 .nut-empty-cta{
   font-size:9px;letter-spacing:0.16em;text-transform:uppercase;
   color:var(--accent);font-family:DM Mono,monospace;
-  padding:7px 12px;border:1px solid rgba(232,86,30,0.35);
-  border-radius:8px;background:rgba(232,86,30,0.08);
+  padding:7px 12px;border:1px solid rgba(var(--accent-rgb),0.35);
+  border-radius:8px;background:rgba(var(--accent-rgb),0.08);
   white-space:nowrap;
 }
 .nut-warn-tag{
   position:absolute;top:8px;right:10px;
   font-size:8px;letter-spacing:0.14em;text-transform:uppercase;
   color:#ff8a6c;font-family:DM Mono,monospace;font-weight:700;
-  padding:2px 6px;background:rgba(232,86,30,0.12);
-  border:1px solid rgba(232,86,30,0.32);border-radius:5px;
+  padding:2px 6px;background:rgba(var(--accent-rgb),0.12);
+  border:1px solid rgba(var(--accent-rgb),0.32);border-radius:5px;
 }
 
 /* ── COACH BOX ─────────────────────────────────────────────────────── */
@@ -426,14 +426,14 @@ body > *{position:relative;z-index:1;}
 .log-bar{width:3px;flex-shrink:0;}
 .log-bar.spokojny{background:linear-gradient(180deg,var(--blue),rgba(78,140,214,0.3));}
 .log-bar.interwaly{background:linear-gradient(180deg,var(--yellow),rgba(232,184,64,0.3));}
-.log-bar.tempo{background:linear-gradient(180deg,var(--accent),rgba(232,86,30,0.3));}
+.log-bar.tempo{background:linear-gradient(180deg,var(--accent),rgba(var(--accent-rgb),0.3));}
 .log-bar.wybieganie{background:linear-gradient(180deg,var(--purple),rgba(138,98,216,0.3));}
 .log-bar.regeneracja{background:linear-gradient(180deg,var(--green),rgba(61,184,112,0.3));}
 .log-content{flex:1;padding:13px 13px 13px 13px;display:flex;align-items:center;gap:11px;position:relative;z-index:1;}
 .log-icon-wrap{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .log-icon-wrap.spokojny{background:rgba(78,140,214,0.1);border:1px solid rgba(78,140,214,0.18);}
 .log-icon-wrap.interwaly{background:rgba(232,184,64,0.1);border:1px solid rgba(232,184,64,0.18);}
-.log-icon-wrap.tempo{background:rgba(232,86,30,0.1);border:1px solid rgba(232,86,30,0.18);}
+.log-icon-wrap.tempo{background:rgba(var(--accent-rgb),0.1);border:1px solid rgba(var(--accent-rgb),0.18);}
 .log-icon-wrap.wybieganie{background:rgba(138,98,216,0.1);border:1px solid rgba(138,98,216,0.18);}
 .log-icon-wrap.regeneracja{background:rgba(61,184,112,0.1);border:1px solid rgba(61,184,112,0.18);}
 .log-icon-svg{width:22px;height:22px;}
@@ -469,7 +469,7 @@ body > *{position:relative;z-index:1;}
   width:32px;height:2px;
   background:linear-gradient(90deg,transparent,var(--accent),transparent);
   border-radius:0 0 3px 3px;
-  box-shadow:0 0 14px rgba(232,86,30,0.75);
+  box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);
 }
 
 /* ── MODAL ──────────────────────────────────────────────────────────── */
@@ -494,7 +494,7 @@ body > *{position:relative;z-index:1;}
 /* Chat bubbles */
 .msg-bubble{max-width:72%;padding:10px 14px;border-radius:18px;font-size:13px;line-height:1.6;word-break:break-word;overflow-wrap:break-word;}
 .msg-bubble.coach{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-bottom-left-radius:4px;align-self:flex-start;}
-.msg-bubble.athlete{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px;align-self:flex-end;box-shadow:0 3px 14px rgba(232,86,30,0.28);}
+.msg-bubble.athlete{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px;align-self:flex-end;box-shadow:0 3px 14px rgba(var(--accent-rgb),0.28);}
 .msg-row{display:flex;flex-direction:column;gap:2px;}
 .msg-row.athlete{align-items:flex-end;}
 .msg-row.coach{align-items:flex-start;}
@@ -509,7 +509,7 @@ body > *{position:relative;z-index:1;}
   border:1px solid rgba(255,255,255,0.09);
   color:#f0ede8 !important;
   -webkit-text-fill-color:#f0ede8 !important;
-  caret-color:#e8561e !important;
+  caret-color:var(--accent) !important;
   font-family:'DM Sans',sans-serif;font-size:16px;
   padding:12px 14px;border-radius:13px;outline:none;
   transition:border-color 0.2s,box-shadow 0.2s;
@@ -524,7 +524,7 @@ body > *{position:relative;z-index:1;}
 }
 .field input:focus,.field textarea:focus,.field select:focus{
   border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(232,86,30,0.1),0 0 16px rgba(232,86,30,0.06);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1),0 0 16px rgba(var(--accent-rgb),0.06);
   color:#f0ede8 !important;
   -webkit-text-fill-color:#f0ede8 !important;
 }
@@ -534,7 +534,7 @@ body > *{position:relative;z-index:1;}
   input, textarea, [contenteditable] {
     color: #f0ede8 !important;
     -webkit-text-fill-color: #f0ede8 !important;
-    caret-color: #e8561e !important;
+    caret-color: var(--accent) !important;
     opacity: 1 !important;
   }
   input::placeholder, textarea::placeholder {
@@ -557,7 +557,7 @@ body > *{position:relative;z-index:1;}
   letter-spacing:0.06em;padding:8px 14px;border-radius:20px;cursor:pointer;
   transition:all 0.15s;
 }
-.type-pill.on{background:rgba(232,86,30,0.13);border-color:rgba(232,86,30,0.4);color:var(--accent);}
+.type-pill.on{background:rgba(var(--accent-rgb),0.13);border-color:rgba(var(--accent-rgb),0.4);color:var(--accent);}
 
 /* Feel buttons */
 .feel-grid{display:flex;flex-direction:row;gap:8px;}
@@ -600,7 +600,7 @@ body > *{position:relative;z-index:1;}
 .pb-lbl{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:4px;}
 .pb-val{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--fg);line-height:1;}
 .profile-avatar-wrap{text-align:center;padding:28px 20px 22px;}
-.profile-avatar{width:90px;height:90px;border-radius:50%;border:2px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);margin:0 auto 12px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(232,86,30,0.08);}
+.profile-avatar{width:90px;height:90px;border-radius:50%;border:2px solid var(--accent);background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--accent);margin:0 auto 12px;cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px var(--glow-o),0 0 0 5px rgba(var(--accent-rgb),0.08);}
 .profile-name{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;}
 .profile-email{font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;}
 .goals-list{display:flex;flex-direction:column;gap:8px;}
@@ -654,7 +654,7 @@ body > *{position:relative;z-index:1;}
 .pchat-sub{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;}
 .pchat-search-wrap{margin:10px 16px 4px;position:relative;}
 .pchat-search{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:14px;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:10px 12px 10px 36px;outline:none;box-sizing:border-box;transition:border-color 0.2s;}
-.pchat-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
+.pchat-search:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1);}
 .pchat-search-ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px;pointer-events:none;}
 .pchat-row{display:flex;align-items:center;padding:13px 20px;gap:13px;cursor:pointer;transition:background 0.12s;border-bottom:1px solid rgba(255,255,255,0.04);position:relative;}
 .pchat-row:hover{background:rgba(255,255,255,0.03);}
@@ -669,7 +669,7 @@ body > *{position:relative;z-index:1;}
 .pchat-meta{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
 .pchat-time{font-size:10px;color:var(--muted);font-family:DM Mono,monospace;}
 .pchat-badge{background:var(--accent);color:#fff;font-size:10px;border-radius:10px;min-width:20px;padding:2px 6px;font-family:DM Mono,monospace;font-weight:700;text-align:center;box-shadow:0 2px 8px var(--glow-o);}
-.pchat-new-tag{background:rgba(232,86,30,0.15);color:var(--accent);font-size:9px;border-radius:4px;padding:2px 6px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;}
+.pchat-new-tag{background:rgba(var(--accent-rgb),0.15);color:var(--accent);font-size:9px;border-radius:4px;padding:2px 6px;font-family:DM Mono,monospace;letter-spacing:0.08em;text-transform:uppercase;}
 .pchat-view{display:none;position:fixed;inset:0;background:var(--bg);z-index:56;flex-direction:column;max-width:420px;left:50%;transform:translateX(-50%);}
 .pchat-view-hdr{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(7,7,10,0.98);backdrop-filter:blur(12px);flex-shrink:0;}
 .pchat-back{background:none;border:none;color:var(--muted);cursor:pointer;font-size:26px;padding:0 4px;line-height:1;transition:color 0.15s;}
@@ -691,8 +691,8 @@ body > *{position:relative;z-index:1;}
 .pchat-input-area{flex-shrink:0;width:100%;background:rgba(7,7,10,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.07);padding:10px 14px 12px;box-sizing:border-box;}
 .pchat-pickers{position:relative;}
 .pchat-input-row{display:flex;gap:4px;align-items:flex-end;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);border-radius:18px;padding:6px 6px 6px 10px;transition:border-color 0.2s,box-shadow 0.2s;min-height:42px;}
-.pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
-.pchat-input-row textarea,.pchat-input-row input:not([type="file"]),.pchat-input-row textarea#msg-input,textarea#msg-input{flex:1 1 0;min-width:0 !important;background:transparent !important;background-color:transparent !important;border:none !important;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif !important;font-size:16px !important;outline:none !important;padding:8px 4px !important;resize:none !important;line-height:1.4 !important;max-height:120px !important;overflow-y:auto !important;font-weight:400 !important;caret-color:#e8561e !important;box-sizing:border-box !important;-webkit-appearance:none !important;appearance:none !important;-webkit-user-select:text !important;user-select:text !important;opacity:1 !important;display:block !important;}
+.pchat-input-row:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1);}
+.pchat-input-row textarea,.pchat-input-row input:not([type="file"]),.pchat-input-row textarea#msg-input,textarea#msg-input{flex:1 1 0;min-width:0 !important;background:transparent !important;background-color:transparent !important;border:none !important;color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;font-family:'DM Sans',sans-serif !important;font-size:16px !important;outline:none !important;padding:8px 4px !important;resize:none !important;line-height:1.4 !important;max-height:120px !important;overflow-y:auto !important;font-weight:400 !important;caret-color:var(--accent) !important;box-sizing:border-box !important;-webkit-appearance:none !important;appearance:none !important;-webkit-user-select:text !important;user-select:text !important;opacity:1 !important;display:block !important;}
 .pchat-input-row textarea::placeholder,.pchat-input-row input::placeholder,textarea#msg-input::placeholder{color:rgba(240,237,232,0.45) !important;-webkit-text-fill-color:rgba(240,237,232,0.45) !important;opacity:1 !important;}
 .pchat-input-row textarea:focus,.pchat-input-row input:focus,textarea#msg-input:focus{color:#f0ede8 !important;-webkit-text-fill-color:#f0ede8 !important;background:transparent !important;}
 .pchat-input-row textarea:-webkit-autofill,.pchat-input-row input:-webkit-autofill,textarea#msg-input:-webkit-autofill{-webkit-text-fill-color:#f0ede8 !important;-webkit-box-shadow:0 0 0 1000px rgba(255,255,255,0.05) inset !important;}
@@ -734,7 +734,7 @@ body > *{position:relative;z-index:1;}
 @keyframes obIn{from{opacity:0;transform:translateX(32px);}to{opacity:1;transform:translateX(0);}}
 .ob-hero{
   flex-shrink:0;
-  background:linear-gradient(180deg,rgba(232,86,30,0.1) 0%,transparent 100%);
+  background:linear-gradient(180deg,rgba(var(--accent-rgb),0.1) 0%,transparent 100%);
   padding:max(52px,env(safe-area-inset-top,0px)) 24px 24px;
 }
 .ob-progress{display:flex;gap:5px;margin-bottom:24px;}
@@ -749,7 +749,7 @@ body > *{position:relative;z-index:1;}
   width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
   border-radius:14px;padding:16px;font-family:'Bebas Neue',sans-serif;
   font-size:20px;letter-spacing:0.08em;cursor:pointer;
-  transition:all 0.15s;box-shadow:0 4px 24px rgba(232,86,30,0.35);
+  transition:all 0.15s;box-shadow:0 4px 24px rgba(var(--accent-rgb),0.35);
 }
 .ob-btn:active{transform:scale(0.98);}
 .ob-btn-ghost{
@@ -765,18 +765,18 @@ body > *{position:relative;z-index:1;}
   box-shadow:0 4px 16px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.03) inset;
 }
 .ob-card:active,.ob-card.sel{
-  background:rgba(232,86,30,0.09);border-color:rgba(232,86,30,0.45);
-  box-shadow:0 4px 24px rgba(232,86,30,0.18),0 1px 0 rgba(255,255,255,0.04) inset;
+  background:rgba(var(--accent-rgb),0.09);border-color:rgba(var(--accent-rgb),0.45);
+  box-shadow:0 4px 24px rgba(var(--accent-rgb),0.18),0 1px 0 rgba(255,255,255,0.04) inset;
 }
 .ob-card.sel::before{
   content:'';position:absolute;top:0;left:0;right:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(232,86,30,0.5),transparent);
+  background:linear-gradient(90deg,transparent,rgba(var(--accent-rgb),0.5),transparent);
 }
 .ob-card-icon{font-size:28px;flex-shrink:0;width:42px;text-align:center;}
 .ob-card-name{font-size:15px;font-weight:600;color:var(--fg);margin-bottom:2px;}
 .ob-card-sub{font-size:12px;color:var(--muted);line-height:1.4;}
 .ob-check{width:22px;height:22px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:auto;transition:all 0.18s;}
-.ob-card.sel .ob-check{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(232,86,30,0.35);}
+.ob-card.sel .ob-check{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(var(--accent-rgb),0.35);}
 .ob-field{margin-bottom:14px;}
 .ob-label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .ob-input{
@@ -785,7 +785,7 @@ body > *{position:relative;z-index:1;}
   padding:12px 14px;border-radius:12px;outline:none;box-sizing:border-box;
   transition:border-color 0.2s;
 }
-.ob-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.1);}
+.ob-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1);}
 .ob-pb-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;}
 .ob-pb-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;}
 .ob-pb-lbl{font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
@@ -794,19 +794,19 @@ body > *{position:relative;z-index:1;}
 .ob-avatar-wrap{text-align:center;padding:8px 0 20px;}
 .ob-avatar-circle{
   width:110px;height:110px;border-radius:50%;
-  border:2px solid rgba(232,86,30,0.4);
-  background:rgba(232,86,30,0.07);
+  border:2px solid rgba(var(--accent-rgb),0.4);
+  background:rgba(var(--accent-rgb),0.07);
   display:flex;align-items:center;justify-content:center;
   font-size:40px;margin:0 auto 14px;cursor:pointer;
   transition:all 0.2s;overflow:hidden;position:relative;
 }
-.ob-avatar-circle:hover{border-color:var(--accent);box-shadow:0 0 24px rgba(232,86,30,0.25);}
+.ob-avatar-circle:hover{border-color:var(--accent);box-shadow:0 0 24px rgba(var(--accent-rgb),0.25);}
 .ob-coach-card{
   display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.03);
   border:1px solid rgba(255,255,255,0.08);border-radius:13px;
   padding:14px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;
 }
-.ob-coach-card.selected{background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.38);}
+.ob-coach-card.selected{background:rgba(var(--accent-rgb),0.07);border-color:rgba(var(--accent-rgb),0.38);}
 
 /* ── ANIMATION SYSTEM ──────────────────────────────────────────────── */
 @keyframes pageEnter{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
@@ -862,7 +862,7 @@ body > *{position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
 #motiv-source{font-size:9px;color:#ff8855!important;font-family:DM Mono,monospace;margin-top:8px;letter-spacing:0.14em;}
 
-#daily-motivation{position:relative;margin:0 16px 16px;background:rgba(10,6,3,0.75)!important;border:1px solid rgba(232,86,30,0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);box-shadow:0 0 0 1px rgba(232,86,30,0.15),0 4px 28px rgba(0,0,0,0.6);}
+#daily-motivation{position:relative;margin:0 16px 16px;background:rgba(10,6,3,0.75)!important;border:1px solid rgba(var(--accent-rgb),0.5)!important;border-radius:var(--tile-radius);padding:var(--tile-pad);box-shadow:0 0 0 1px rgba(var(--accent-rgb),0.15),0 4px 28px rgba(0,0,0,0.6);}
 #daily-motivation::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent) 30%,var(--accent2) 70%,transparent);z-index:2;}
 #daily-motivation>:not([style*="position:absolute"]){position:relative;z-index:1;}
 #motiv-text{font-size:13px;line-height:1.75;color:#fff!important;font-style:italic;font-weight:500;text-shadow:0 1px 10px rgba(0,0,0,0.95);}
@@ -881,7 +881,7 @@ body > *{position:relative;z-index:1;}
   background: var(--accent);
   width: 18px;
   border-radius: 3px;
-  box-shadow: 0 0 6px rgba(232,86,30,0.6);
+  box-shadow: 0 0 6px rgba(var(--accent-rgb),0.6);
 }
 .hero-dot:hover { background: rgba(255,255,255,0.65); }
 /* Przyciski nav slideshow */
@@ -910,7 +910,7 @@ body > *{position:relative;z-index:1;}
     <a id="back-to-trener" href="trener.html" onclick="sessionStorage.removeItem('_fromTrener')" style="display:none;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
     <div onclick="openNotifications()" class="notif-bell-z" id="zawodnik-bell">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:#e8561e;border-radius:9px;border:2px solid var(--bg);font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;"></div></div>
+      <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:var(--accent);border-radius:9px;border:2px solid var(--bg);font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;"></div></div>
     </div>
     <div class="topbar-avatar" onclick="toggleMenu()" id="av-btn" style="cursor:pointer;overflow:hidden;position:relative;">
       <span id="av-initials" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;"></span>
@@ -938,7 +938,7 @@ body > *{position:relative;z-index:1;}
 <div id="daily-motivation" class="fade-in">
   <div style="position:absolute!important;inset:0;background-image:url(https://filipjanczak1989-png.github.io/biegamy-assets/motiv-bg.jpg);background-size:cover;background-position:center;opacity:0.35;border-radius:inherit;pointer-events:none;z-index:0!important;"></div>
   <div id="motiv-content" style="display:flex;align-items:flex-start;gap:14px;position:relative;"><div style="position:absolute;right:-10px;top:50%;transform:translateY(-50%);font-size:80px;opacity:0.08;filter:blur(2px);pointer-events:none;z-index:0;line-height:1;">⌚</div>
-    <div id="motiv-icon" style="flex-shrink:0;line-height:0;overflow:visible;margin-left:-16px;"><svg width="126" height="44" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="#e8561e">My</tspan></text></svg></div>
+    <div id="motiv-icon" style="flex-shrink:0;line-height:0;overflow:visible;margin-left:-16px;"><svg width="126" height="44" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="var(--accent)">My</tspan></text></svg></div>
     <div style="flex:1;">
       <div id="motiv-text">&nbsp;</div>
       <div id="motiv-source"></div>
@@ -951,7 +951,7 @@ body > *{position:relative;z-index:1;}
 <div id="weather-widget" class="fade-in" style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:none;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
     <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;">🌤 Pogoda</div>
-    <div id="weather-city" onclick="window._weatherSetCity()" title="Klik by zmienić miasto" style="font-size:11px;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-weight:500;cursor:pointer;padding:2px 8px;border-radius:6px;transition:all 0.15s;border:1px dashed transparent;" onmouseover="this.style.borderColor='rgba(232,86,30,0.4)';this.style.background='rgba(232,86,30,0.08)'" onmouseout="this.style.borderColor='transparent';this.style.background='transparent'"></div>
+    <div id="weather-city" onclick="window._weatherSetCity()" title="Klik by zmienić miasto" style="font-size:11px;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-weight:500;cursor:pointer;padding:2px 8px;border-radius:6px;transition:all 0.15s;border:1px dashed transparent;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.4)';this.style.background='rgba(var(--accent-rgb),0.08)'" onmouseout="this.style.borderColor='transparent';this.style.background='transparent'"></div>
   </div>
   <div id="weather-days" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
 </div>
@@ -968,19 +968,19 @@ body > *{position:relative;z-index:1;}
 <!-- Kafelki po prawej -->
 <div id="home-tiles-row-right" style="display:flex;flex-direction:column;gap:6px;width:88px;flex-shrink:0;">
   <button onclick="location.href='wyzwania.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-wyzwania.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-wyzwania.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
   <button onclick="showSection('msgs')" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-czat.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-czat.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
   <button onclick="location.href='odznaki.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-odznaki.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-odznaki.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
   <button onclick="location.href='races.html'" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
   <button onclick="showSection('cwiczenia');return false;" style="flex:1;background:none;border:none;border-radius:12px;padding:2px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
-    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-cwiczenia.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+    <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-cwiczenia.webp" style="width:64px;height:64px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
   </button>
 </div>
 </div>
@@ -1062,9 +1062,9 @@ body > *{position:relative;z-index:1;}
 <!-- KAFELEK RAPORTÓW AI OD TRENERA (widoczny gdy są nieprzeczytane) -->
 <div id="ai-reports-tile-section" style="display:none;">
   <div class="sec-hdr" id="ai-reports-tile-hdr" style="margin-top:4px;"><div class="sec-title">Raporty od trenera</div><a href="raporty.html" class="sec-link">Wszystkie →</a></div>
-  <div id="ai-reports-tile" onclick="window.location.href='raporty.html'" style="background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(255,107,44,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.5)'" onmouseout="this.style.borderColor='rgba(232,86,30,0.3)'">
+  <div id="ai-reports-tile" onclick="window.location.href='raporty.html'" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,107,44,0.04));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
     <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:42px;height:42px;border-radius:10px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-    <div style="display:none;width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#e8561e,#FF6B2C);align-items:center;justify-content:center;font-size:18px;font-family:'Bebas Neue',sans-serif;color:#fff;flex-shrink:0;">B</div>
+    <div style="display:none;width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));align-items:center;justify-content:center;font-size:18px;font-family:'Bebas Neue',sans-serif;color:#fff;flex-shrink:0;">B</div>
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;color:var(--fg);" id="ai-tile-title">Nowy raport</div>
       <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;" id="ai-tile-summary">—</div>
@@ -1074,13 +1074,13 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- Baner Radio -->
-<div id="radio-home-banner" onclick="window.location.href='radio.html'" style="background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(255,107,44,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.5)'" onmouseout="this.style.borderColor='rgba(232,86,30,0.3)'">
-  <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#e8561e,#FF6B2C);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📻</div>
+<div id="radio-home-banner" onclick="window.location.href='radio.html'" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,107,44,0.04));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
+  <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📻</div>
   <div style="flex:1;min-width:0;">
     <div style="font-size:13px;font-weight:600;color:var(--fg);">Radio BiegaMy</div>
     <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Muzyka do biegania</div>
   </div>
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(232,86,30,0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Ostatnie treningi</div><a href="#" class="sec-link">Wszystkie →</a></div>
@@ -1115,8 +1115,8 @@ body > *{position:relative;z-index:1;}
     <div class="nav-lbl">Jedzenie</div>
   </a>
   <a class="nav-it" href="#" onclick="openModal();return false;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
     </div>
     <div class="nav-lbl" style="margin-top:2px;">Log</div>
   </a>
@@ -1172,7 +1172,7 @@ body > *{position:relative;z-index:1;}
       <button class="pchat-act" onclick="toggleEmojiPicker('z-emoji-picker')">😊</button>
       <button class="pchat-act" onclick="toggleGifPicker('z-gif-picker')" style="font-family:DM Mono,monospace;font-size:10px;font-weight:700;letter-spacing:0.05em;">GIF</button>
       <button id="z-voice-btn" class="pchat-act voice-btn" onclick="toggleVoice('z-voice-btn','athlete')">🎤</button>
-      <textarea id="msg-input" placeholder="Napisz do trenera..." rows="1" style="color:#f0ede8;-webkit-text-fill-color:#f0ede8;font-size:16px;caret-color:#e8561e;background:transparent;border:none;outline:none;resize:none;font-family:'DM Sans',sans-serif;flex:1;min-width:0;padding:8px 0;line-height:1.4;max-height:120px;overflow-y:auto;-webkit-appearance:none;appearance:none;" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="zAutosizeChat(this)"></textarea>
+      <textarea id="msg-input" placeholder="Napisz do trenera..." rows="1" style="color:#f0ede8;-webkit-text-fill-color:#f0ede8;font-size:16px;caret-color:var(--accent);background:transparent;border:none;outline:none;resize:none;font-family:'DM Sans',sans-serif;flex:1;min-width:0;padding:8px 0;line-height:1.4;max-height:120px;overflow-y:auto;-webkit-appearance:none;appearance:none;" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage();}" oninput="zAutosizeChat(this)"></textarea>
       <button class="pchat-send" onclick="sendMessage()">↑</button>
     </div>
   </div>
@@ -1198,7 +1198,7 @@ body > *{position:relative;z-index:1;}
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;position:relative;" href="#">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       <span style="font-size:9px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;">Wiadomości</span>
-      <span style="position:absolute;top:2px;left:50%;margin-left:6px;width:28px;height:2px;background:var(--accent);border-radius:0 0 3px 3px;box-shadow:0 0 8px rgba(232,86,30,0.6);"></span>
+      <span style="position:absolute;top:2px;left:50%;margin-left:6px;width:28px;height:2px;background:var(--accent);border-radius:0 0 3px 3px;box-shadow:0 0 8px rgba(var(--accent-rgb),0.6);"></span>
     </a>
     <a style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;text-decoration:none;padding:4px 0;cursor:pointer;" href="#" onclick="goToMyProfile();return false;">
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
@@ -1230,7 +1230,7 @@ body > *{position:relative;z-index:1;}
   <!-- Avatar + imię -->
   <div style="text-align:center;padding:16px 0 20px;">
     <div style="position:relative;width:96px;margin:0 auto 12px;">
-      <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(232,86,30,0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(232,86,30,0.25);">
+      <div onclick="document.getElementById('avatar-input').click()" style="width:96px;height:96px;border-radius:50%;border:3px solid var(--accent);background:rgba(var(--accent-rgb),0.1);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--accent);cursor:pointer;overflow:hidden;position:relative;box-shadow:0 0 28px rgba(var(--accent-rgb),0.25);">
         <span id="avatar-initials">?</span>
         <img id="avatar-img" src="" style="display:none;width:100%;height:100%;object-fit:cover;position:absolute;inset:0;">
       </div>
@@ -1258,7 +1258,7 @@ body > *{position:relative;z-index:1;}
   </div>
 
   <!-- Powiadomienia push (zawsze widoczne, niezależnie od zakładki) -->
-  <div id="push-toggle-card-top" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(232,86,30,0.3)'" onmouseout="this.style.borderColor='var(--border)'">
+  <div id="push-toggle-card-top" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.3)'" onmouseout="this.style.borderColor='var(--border)'">
     <div style="font-size:22px;flex-shrink:0;">🔔</div>
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;">Powiadomienia push</div>
@@ -1269,7 +1269,7 @@ body > *{position:relative;z-index:1;}
 
   <!-- Sub-tabs: Dane | Czat | Statystyki | Kalkulator -->
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin:0 0 20px;">
-    <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
+    <button id="ptab-info" onclick="switchProfileTab('info')" style="background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.4);border-radius:12px;padding:14px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 0.15s;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
       <span style="font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);">Dane</span>
     </button>
@@ -1469,7 +1469,7 @@ body > *{position:relative;z-index:1;}
         <div>
           <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Tempo /km</label>
           <input id="calc-pace-result" type="text" placeholder="6:00" readonly
-            style="width:100%;background:var(--card2);border:1px solid rgba(232,86,30,0.3);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;cursor:default;">
+            style="width:100%;background:var(--card2);border:1px solid rgba(var(--accent-rgb),0.3);color:var(--accent);font-family:'Bebas Neue',sans-serif;font-size:20px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;cursor:default;">
         </div>
       </div>
       <div id="pace-splits" style="display:none;">
@@ -1615,7 +1615,7 @@ body > *{position:relative;z-index:1;}
       <div style="margin-bottom:10px;">
         <label style="display:flex;align-items:center;gap:6px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.6);font-family:'DM Mono',monospace;margin-bottom:4px;">
           <span>🔥 Kalorie spalone</span>
-          <span id="l-kcal-suggest" style="color:#e8561e;font-size:9px;letter-spacing:0;text-transform:none;font-family:'Inter',sans-serif;font-style:italic;"></span>
+          <span id="l-kcal-suggest" style="color:var(--accent);font-size:9px;letter-spacing:0;text-transform:none;font-family:'Inter',sans-serif;font-style:italic;"></span>
         </label>
         <input type="number" id="l-calories" min="0" max="10000" placeholder="opcjonalnie — auto z MET jeśli puste" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:#fff;font-family:'DM Mono',monospace;font-size:14px;outline:none;">
       </div>
@@ -2041,7 +2041,7 @@ window._ocrSetup = function() {
         _div.style.cssText = 'position:relative;width:60px;height:60px;';
         _div.innerHTML = `<img src="${_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
           <button onclick="removeFile(${_idx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
-          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
+          <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(var(--accent-rgb),0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
         _ocrList.appendChild(_div);
       }
     }
@@ -2153,7 +2153,7 @@ window._ocrSetup = function() {
       }
 
       if (statusEl) {
-        statusEl.style.color = _ocrDateInfo.includes('⚠') ? '#e8561e' : 'var(--green)';
+        statusEl.style.color = _ocrDateInfo.includes('⚠') ? 'var(--accent)' : 'var(--green)';
         const sufix = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
         const sourceText = files.length > 1 ? ` z ${files.length} ${wordZdj}` : '';
         statusEl.textContent = filled > 0
@@ -2389,7 +2389,7 @@ async function appendFile(input) {
   div.style.cssText = 'position:relative;width:60px;height:60px;';
   div.innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
     <button onclick="removeFile(${idx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
-    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(232,86,30,0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
+    <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(var(--accent-rgb),0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
   list.appendChild(div);
   // Update label (uwzględnia existing)
   if (typeof _updateUploadLabel === 'function') {
@@ -2679,7 +2679,7 @@ let _profileTab = 'info';
 function switchProfileTab(tab) {
   _profileTab = tab;
   const svgColors = {
-    info:   { svg: 'var(--accent)', bg: 'rgba(232,86,30,0.12)', border: 'rgba(232,86,30,0.4)', text: 'var(--accent)' },
+    info:   { svg: 'var(--accent)', bg: 'rgba(var(--accent-rgb),0.12)', border: 'rgba(var(--accent-rgb),0.4)', text: 'var(--accent)' },
     msgs:   { svg: '#5090e0',       bg: 'rgba(80,144,224,0.12)', border: 'rgba(80,144,224,0.4)', text: '#5090e0' },
     stats:  { svg: '#3db870',       bg: 'rgba(61,184,112,0.12)', border: 'rgba(61,184,112,0.4)', text: '#3db870' },
     calc:   { svg: '#9a6fe8',       bg: 'rgba(154,111,232,0.12)', border: 'rgba(154,111,232,0.4)', text: '#9a6fe8' },
@@ -3271,7 +3271,7 @@ async function goalSuggest(q) {
       const dist = r.distance_km ? Math.round(r.distance_km*10)/10 + ' km' : '';
       return '<div onclick="goalPickRace(\'' + r.id + '\',\'' + escAttrJS(r.name) + '\',\'' + r.date + '\')" '
         + 'style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;" '
-        + 'onmouseover="this.style.background=\'rgba(232,86,30,0.08)\'" onmouseout="this.style.background=\'transparent\'">'
+        + 'onmouseover="this.style.background=\'rgba(var(--accent-rgb),0.08)\'" onmouseout="this.style.background=\'transparent\'">'
         + '<div style="background:var(--accent);color:#fff;border-radius:8px;padding:4px 8px;font-family:Bebas Neue,sans-serif;font-size:13px;flex-shrink:0;">'+dStr+'</div>'
         + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+_escHt(r.name)+'</div>'
         + '<div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;">'+(r.city||'—')+(dist?' · '+dist:'')+'</div></div>'
@@ -3823,8 +3823,8 @@ window._renderWeather = function(data) {
   const dayHtml = (d, i) => {
     const date = new Date(d.date + 'T12:00:00');
     const label = i === 0 ? 'Dziś' : i === 1 ? 'Jutro' : DAY_LABELS[date.getDay()];
-    const badge = d.is_bad ? '<div style="position:absolute;top:4px;right:4px;font-size:8px;color:#e8561e;">⚠</div>' : '';
-    const border = d.is_bad ? 'border:1px solid rgba(232,86,30,0.3);' : 'border:1px solid var(--border);';
+    const badge = d.is_bad ? '<div style="position:absolute;top:4px;right:4px;font-size:8px;color:var(--accent);">⚠</div>' : '';
+    const border = d.is_bad ? 'border:1px solid rgba(var(--accent-rgb),0.3);' : 'border:1px solid var(--border);';
     return '<div style="position:relative;background:rgba(255,255,255,0.04);' + border + 'border-radius:10px;padding:10px 6px;text-align:center;">'
       + badge
       + '<div style="font-size:10px;color:#fff;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;font-weight:600;">' + label + '</div>'
@@ -3969,8 +3969,8 @@ window._renderComparePicker = function(friends) {
   const list = friends.map(function(f) {
     const initials = ((f.full_name || '?').slice(0,2)).toUpperCase();
     const nameEsc = escapeHtml(f.full_name || 'Bez imienia');
-    return '<button onclick="window._runCompareWith(\'' + f.id + '\', \'' + (f.full_name || '?').replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\');document.getElementById(\'compare-picker-modal\')?.remove();" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:10px 12px;border-radius:10px;text-align:left;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'#e8561e\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\'">'
-      + '<span style="width:32px;height:32px;border-radius:50%;background:rgba(232,86,30,0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#e8561e;font-family:DM Mono,monospace;flex-shrink:0;">' + initials + '</span>'
+    return '<button onclick="window._runCompareWith(\'' + f.id + '\', \'' + (f.full_name || '?').replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\');document.getElementById(\'compare-picker-modal\')?.remove();" style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:#fff;padding:10px 12px;border-radius:10px;text-align:left;font-family:Inter,sans-serif;font-size:13px;cursor:pointer;margin-bottom:6px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,0.1)\'">'
+      + '<span style="width:32px;height:32px;border-radius:50%;background:rgba(var(--accent-rgb),0.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--accent);font-family:DM Mono,monospace;flex-shrink:0;">' + initials + '</span>'
       + '<span>' + nameEsc + '</span>'
       + '</button>';
   }).join('');
@@ -4464,7 +4464,7 @@ async function openChangeCoach() {
   list.innerHTML = coachList.map(c => {
     const isSelected = c.id === currentCoachId;
     const initials = (c.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
-    return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', document.getElementById('chg-coach-${c.id}'))" style="${isSelected?'background:rgba(232,86,30,0.07);border-color:rgba(232,86,30,0.4);cursor:pointer;':'cursor:pointer;'}">
+    return `<div class="ob-coach-card ${isSelected?'selected':''}" id="chg-coach-${c.id}" onclick="selectChangeCoach('${c.id}', document.getElementById('chg-coach-${c.id}'))" style="${isSelected?'background:rgba(var(--accent-rgb),0.07);border-color:rgba(var(--accent-rgb),0.4);cursor:pointer;':'cursor:pointer;'}">
       <div style="width:38px;height:38px;border-radius:50%;background:${isSelected?'var(--accent)':'rgba(255,255,255,0.08)'};display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:#fff;flex-shrink:0;">${initials}</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:600;color:var(--fg);">${escapeHtml(c.full_name)}</div>
@@ -4487,8 +4487,8 @@ function selectChangeCoach(coachId, el) {
     if(check) { check.innerHTML = ''; check.style.borderColor = 'rgba(255,255,255,0.15)'; }
   });
   el.classList.add('selected');
-  el.style.background = 'rgba(232,86,30,0.07)';
-  el.style.borderColor = 'rgba(232,86,30,0.4)';
+  el.style.background = 'rgba(var(--accent-rgb),0.07)';
+  el.style.borderColor = 'rgba(var(--accent-rgb),0.4)';
   const av = el.querySelector('div');
   if(av) av.style.background = 'var(--accent)';
   const check = el.querySelector('.ob-coach-check');
@@ -6611,7 +6611,7 @@ function showPushPrompt() {
     st.textContent = '@keyframes bellNudge{0%,60%,100%{transform:rotate(0);}10%,30%{transform:rotate(-12deg);}20%{transform:rotate(12deg);}}';
     document.head.appendChild(st);
   }
-  target.innerHTML = '<div style="background:linear-gradient(135deg,rgba(232,86,30,0.32),rgba(255,122,69,0.14));border:1.5px solid rgba(232,86,30,0.65);border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(232,86,30,0.18);">'
+  target.innerHTML = '<div style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.32),rgba(255,122,69,0.14));border:1.5px solid rgba(var(--accent-rgb),0.65);border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(var(--accent-rgb),0.18);">'
     + '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;">'
       + '<div style="font-size:26px;flex-shrink:0;animation:bellNudge 2.2s ease-in-out 1s infinite;transform-origin:50% 20%;">🔔</div>'
       + '<div style="flex:1;min-width:0;">'
@@ -6760,7 +6760,7 @@ function switchSocialTab(tab) {
   ['feed','challenges','clubs','friends','following','find'].forEach(function(t) {
     const btn = document.getElementById('stab-' + t);
     const panel = document.getElementById('social-' + t);
-    if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
+    if (btn) { btn.style.background = t===tab?'rgba(var(--accent-rgb),0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
   if (tab==='feed') loadSocialFeed(false);
@@ -6774,7 +6774,7 @@ function switchCwiczeniaTab(tab) {
   ['oddech','wzmacnianie'].forEach(function(t) {
     const btn = document.getElementById('ctab-' + t);
     const panel = document.getElementById('cw-tab-' + t);
-    if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
+    if (btn) { btn.style.background = t===tab?'rgba(var(--accent-rgb),0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
   if (tab === 'wzmacnianie') { renderWzmProgramy(); closeProgram(); }
@@ -7008,7 +7008,7 @@ const CIRCUIT = {
   _confetti: function(){
     if (this._reduce()) return;                       // reduced-motion → bez animacji
     const modal = this._el('circuit-modal'); if (!modal) return;
-    const cols = ['#4ade80','#e8561e','#ff7a3d','#fbbf24','#60a5fa'];
+    const cols = ['#4ade80','var(--accent)','#ff7a3d','#fbbf24','#60a5fa'];
     for (let i = 0; i < 40; i++){
       const p = document.createElement('div');
       const sz = 6 + Math.random() * 6;
@@ -7484,7 +7484,7 @@ async function loadSocialFeed(compact) {
     const safeId = (athId || '').replace(/'/g, '');
     const clickAttr = isOwn ? '' : ('onclick="openAthleteProfile(\'' + safeId + '\')"');
     const hoverAttrs = isOwn ? '' : 'onmouseover="this.style.borderColor=\'rgba(212,80,26,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'"';
-    const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(232,86,30,0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
+    const followBadge = (isFollowed&&!isOwn)?'<span style="font-size:8px;color:var(--accent);background:rgba(var(--accent-rgb),0.1);padding:2px 5px;border-radius:4px;margin-left:4px;">obserwujesz</span>':'';
     const editBtns = (isOwn&&!compact)
       ? '<div style="display:flex;gap:2px;margin-left:auto;position:relative;z-index:5;">'        +'<button onclick="event.stopPropagation();event.preventDefault();editFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:var(--fg);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>'        +'<button onclick="event.stopPropagation();event.preventDefault();deleteFeedLog(\''+l.id+'\')" style="background:rgba(255,255,255,0.08);border:1px solid var(--border);color:rgba(224,80,80,0.9);cursor:pointer;padding:7px 11px;border-radius:8px;font-size:15px;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>'        +'</div>' : '';
     let screensHtml = '';
@@ -7616,8 +7616,8 @@ async function openComments(logId) {
     <div style="padding:10px 16px 28px;display:flex;gap:6px;border-top:1px solid var(--border);flex-shrink:0;align-items:center;position:relative;">
       <button id="cm-emoji-btn" onclick="toggleCmPanel('emoji')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;width:38px;height:38px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;">😊</button>
       <button id="cm-gif-btn" onclick="toggleCmPanel('gif')" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;height:38px;padding:0 10px;cursor:pointer;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;color:var(--muted);flex-shrink:0;transition:all 0.15s;">GIF</button>
-      <input id="comment-inp" type="text" placeholder="Napisz komentarz..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:12px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='rgba(232,86,30,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'" onkeydown="if(event.key==='Enter')submitComment('${logId}')">
-      <button onclick="submitComment('${logId}')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(232,86,30,0.35);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+      <input id="comment-inp" type="text" placeholder="Napisz komentarz..." style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:14px;padding:10px 14px;border-radius:12px;outline:none;transition:border-color 0.2s;" onfocus="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.09)'" onkeydown="if(event.key==='Enter')submitComment('${logId}')">
+      <button onclick="submitComment('${logId}')" style="background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 3px 12px rgba(var(--accent-rgb),0.35);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
     </div>
   </div>`;
 
@@ -7641,16 +7641,16 @@ function toggleCmPanel(type) {
     const isOpen = emojiBar.style.display !== 'none';
     emojiBar.style.display = isOpen ? 'none' : 'flex';
     gifPicker.style.display = 'none';
-    emojiBtn.style.background = isOpen ? 'rgba(255,255,255,0.04)' : 'rgba(232,86,30,0.12)';
-    emojiBtn.style.borderColor = isOpen ? 'var(--border)' : 'rgba(232,86,30,0.35)';
+    emojiBtn.style.background = isOpen ? 'rgba(255,255,255,0.04)' : 'rgba(var(--accent-rgb),0.12)';
+    emojiBtn.style.borderColor = isOpen ? 'var(--border)' : 'rgba(var(--accent-rgb),0.35)';
     gifBtn.style.background = 'rgba(255,255,255,0.04)';
     gifBtn.style.borderColor = 'var(--border)';
   } else {
     const isOpen = gifPicker.style.display !== 'none';
     gifPicker.style.display = isOpen ? 'none' : 'block';
     emojiBar.style.display = 'none';
-    gifBtn.style.background = isOpen ? 'rgba(255,255,255,0.04)' : 'rgba(232,86,30,0.12)';
-    gifBtn.style.borderColor = isOpen ? 'var(--border)' : 'rgba(232,86,30,0.35)';
+    gifBtn.style.background = isOpen ? 'rgba(255,255,255,0.04)' : 'rgba(var(--accent-rgb),0.12)';
+    gifBtn.style.borderColor = isOpen ? 'var(--border)' : 'rgba(var(--accent-rgb),0.35)';
     emojiBtn.style.background = 'rgba(255,255,255,0.04)';
     emojiBtn.style.borderColor = 'var(--border)';
     if (!isOpen && !document.getElementById('cm-gif-grid').children.length) {
@@ -8085,7 +8085,7 @@ function _buildAthleteCards(athletes, fSet) {
     } else if (fsStatus === 'pending_received') {
       friendBtn = '<button data-aid="'+a.id+'" onclick="event.stopPropagation();var r=this.dataset.aid;acceptFriendFromSearch(r,this)" style="background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:var(--green);font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;">&#10003; Akceptuj</button>';
     } else {
-      friendBtn = '<button data-aid="'+a.id+'" onclick="event.stopPropagation();var r=this.dataset.aid;sendFriendFromSearch(r,this)" style="background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
+      friendBtn = '<button data-aid="'+a.id+'" onclick="event.stopPropagation();var r=this.dataset.aid;sendFriendFromSearch(r,this)" style="background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);font-size:9px;padding:5px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;">+ Znajomy</button>';
     }
 
     var isPrivate = a.is_public === false;
@@ -8093,7 +8093,7 @@ function _buildAthleteCards(athletes, fSet) {
       ? ' <span style="display:inline-flex;align-items:center;gap:3px;font-size:8px;color:var(--muted);background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:5px;font-family:DM Mono,monospace;letter-spacing:0.05em;vertical-align:middle;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>prywatny</span>'
       : '';
 
-    return '<div data-pid="'+a.id+'" onclick="openAthleteProfile(this.dataset.pid)" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+    return '<div data-pid="'+a.id+'" onclick="openAthleteProfile(this.dataset.pid)" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.3)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div style="width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;">' + av + '</div>'
       + '<div style="flex:1;min-width:0;">'
       + '<div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(name) + privBadge + '</div>'
@@ -8334,16 +8334,16 @@ async function openNotifications() {
 
   const panel = document.createElement('div');
   panel.id = 'notif-panel';
-  panel.style.cssText = 'position:fixed;top:64px;right:16px;width:340px;max-width:calc(100vw - 32px);background:linear-gradient(180deg,#1a1a22 0%,#13131a 100%);border:1px solid rgba(232,86,30,0.18);border-radius:16px;z-index:9999;box-shadow:0 20px 60px rgba(0,0,0,0.85),0 0 0 1px rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.05);overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
+  panel.style.cssText = 'position:fixed;top:64px;right:16px;width:340px;max-width:calc(100vw - 32px);background:linear-gradient(180deg,#1a1a22 0%,#13131a 100%);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:16px;z-index:9999;box-shadow:0 20px 60px rgba(0,0,0,0.85),0 0 0 1px rgba(255,255,255,0.04),inset 0 1px 0 rgba(255,255,255,0.05);overflow:hidden;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);';
   panel.innerHTML = `
     <div style="position:relative;padding:14px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;">
-      <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(232,86,30,0.5) 50%,transparent 100%);"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(var(--accent-rgb),0.5) 50%,transparent 100%);"></div>
       <div style="display:flex;align-items:center;gap:10px;">
-        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(232,86,30,0.18) 0%,rgba(232,86,30,0.06) 100%);border:1px solid rgba(232,86,30,0.25);display:flex;align-items:center;justify-content:center;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8561e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.18) 0%,rgba(var(--accent-rgb),0.06) 100%);border:1px solid rgba(var(--accent-rgb),0.25);display:flex;align-items:center;justify-content:center;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         </div>
         <div>
-          <div style="font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;font-weight:700;">CENTRUM</div>
+          <div style="font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);font-weight:700;">CENTRUM</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:#f0ede8;line-height:1;margin-top:2px;">Powiadomienia</div>
         </div>
       </div>
@@ -8352,7 +8352,7 @@ async function openNotifications() {
     <div id="notif-list" style="max-height:360px;overflow-y:auto;padding:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,0.1) transparent;">
       <div style="text-align:center;padding:24px 16px;color:var(--muted);font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.08em;">
         <div style="margin-bottom:12px;display:flex;justify-content:center;">
-          <div style="width:24px;height:24px;border:2px solid rgba(232,86,30,0.2);border-top-color:#e8561e;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+          <div style="width:24px;height:24px;border:2px solid rgba(var(--accent-rgb),0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;"></div>
         </div>
         ŁADOWANIE...
       </div>
@@ -8389,8 +8389,8 @@ async function openNotifications() {
 
     if (!notifs || notifs.length === 0) {
       listEl.innerHTML = '<div style="text-align:center;padding:32px 20px;">'
-        + '<div style="width:56px;height:56px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(232,86,30,0.1) 0%,rgba(232,86,30,0.02) 100%);border:1px solid rgba(232,86,30,0.18);display:flex;align-items:center;justify-content:center;">'
-        + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(232,86,30,0.6)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
+        + '<div style="width:56px;height:56px;margin:0 auto 14px;border-radius:50%;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.1) 0%,rgba(var(--accent-rgb),0.02) 100%);border:1px solid rgba(var(--accent-rgb),0.18);display:flex;align-items:center;justify-content:center;">'
+        + '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.6)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
         + '</div>'
         + '<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:0.04em;color:#f0ede8;margin-bottom:4px;">Cisza w eterze</div>'
         + '<div style="font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.06em;color:var(--muted);">Brak nowych powiadomień</div>'
@@ -8446,20 +8446,20 @@ async function openNotifications() {
         var iconUrl = iconName ? (ICONS_BASE + iconName + iconExt) : null;
         var emoji = emojiFallback[n.type] || '🔔';
         var iconHtml = iconUrl
-          ? `<img src="${iconUrl}" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(232,86,30,0.15);" onerror="this.outerHTML='<span style=\\'font-size:20px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(232,86,30,0.1);border-radius:10px;border:1px solid rgba(232,86,30,0.2);\\'>${emoji}</span>'">`
-          : `<span style="font-size:20px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(232,86,30,0.1);border-radius:10px;border:1px solid rgba(232,86,30,0.2);">${emoji}</span>`;
+          ? `<img src="${iconUrl}" style="width:44px;height:44px;border-radius:10px;flex-shrink:0;box-shadow:0 2px 8px rgba(var(--accent-rgb),0.15);" onerror="this.outerHTML='<span style=\\'font-size:20px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(var(--accent-rgb),0.1);border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.2);\\'>${emoji}</span>'">`
+          : `<span style="font-size:20px;flex-shrink:0;width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:rgba(var(--accent-rgb),0.1);border-radius:10px;border:1px solid rgba(var(--accent-rgb),0.2);">${emoji}</span>`;
         
-        var unreadBg = 'linear-gradient(135deg,rgba(232,86,30,0.08) 0%,rgba(232,86,30,0.02) 100%)';
+        var unreadBg = 'linear-gradient(135deg,rgba(var(--accent-rgb),0.08) 0%,rgba(var(--accent-rgb),0.02) 100%)';
         var readBg = 'rgba(255,255,255,0.02)';
         var hoverBg = 'rgba(255,255,255,0.05)';
         
-        return `<div onclick="${notifClick}" style="padding:12px;border-radius:12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?readBg:unreadBg};border:1px solid ${n.read?'transparent':'rgba(232,86,30,0.20)'};cursor:${notifClick?'pointer':'default'};transition:all 0.18s ease;position:relative;" onmouseover="this.style.background='${hoverBg}';this.style.borderColor='rgba(255,255,255,0.10)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='${n.read?readBg:unreadBg}';this.style.borderColor='${n.read?'transparent':'rgba(232,86,30,0.20)'}';this.style.transform='translateX(0)'">
+        return `<div onclick="${notifClick}" style="padding:12px;border-radius:12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:12px;background:${n.read?readBg:unreadBg};border:1px solid ${n.read?'transparent':'rgba(var(--accent-rgb),0.20)'};cursor:${notifClick?'pointer':'default'};transition:all 0.18s ease;position:relative;" onmouseover="this.style.background='${hoverBg}';this.style.borderColor='rgba(255,255,255,0.10)';this.style.transform='translateX(2px)'" onmouseout="this.style.background='${n.read?readBg:unreadBg}';this.style.borderColor='${n.read?'transparent':'rgba(var(--accent-rgb),0.20)'}';this.style.transform='translateX(0)'">
           ${iconHtml}
           <div style="flex:1;min-width:0;">
             <div style="font-size:12.5px;line-height:1.45;color:#f0ede8;font-weight:${n.read?'400':'500'};">${escapeHtml((n.message || '').replace(/^[\s🧠📊📈📋✨🤖]+/,'').trim())}</div>
             <div style="font-size:9.5px;color:var(--muted);font-family:DM Mono,monospace;margin-top:5px;letter-spacing:0.04em;">${time}</div>
           </div>
-          ${!n.read ? '<div style="width:8px;height:8px;border-radius:50%;background:#e8561e;flex-shrink:0;margin-top:6px;box-shadow:0 0 8px rgba(232,86,30,0.6);"></div>' : ''}
+          ${!n.read ? '<div style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:6px;box-shadow:0 0 8px rgba(var(--accent-rgb),0.6);"></div>' : ''}
         </div>`;
       }).join('');
 
@@ -8843,7 +8843,7 @@ async function _loadPeerThreadZ(tid, silent) {
     var bodyHtml = m.body.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');
     html += '<div style="display:flex;justify-content:'+(isMe?'flex-end':'flex-start')+';margin-top:'+marginTop+';">'
       +'<div style="max-width:78%;background:'+(isMe?'linear-gradient(135deg,var(--accent),#ff7a45)':'var(--card2)')+';color:'+(isMe?'#fff':'var(--fg)')+';border-radius:'+radius+';padding:9px 13px;font-size:14px;line-height:1.45;word-wrap:break-word;'
-      +(isMe?'box-shadow:0 2px 8px rgba(232,86,30,0.25);':'')+'">'
+      +(isMe?'box-shadow:0 2px 8px rgba(var(--accent-rgb),0.25);':'')+'">'
       +bodyHtml
       +(!nextSame?'<div style="font-size:9px;opacity:0.65;margin-top:3px;text-align:'+(isMe?'right':'left')+';font-family:DM Mono,monospace;">'+t+'</div>':'')
       +'</div></div>';
@@ -9082,7 +9082,7 @@ function _renderCharts(weeks,days30,typeCount,typeColors2){
     const km=weeks.map(w=>w.km); const peak=km.indexOf(Math.max(...km,0)); const last=km.length-1;
     new Chart(cw,{type:'bar',data:{ labels:weeks.map(w=>w.label),
       datasets:[{ data:km, borderRadius:4, borderSkipped:false,
-        backgroundColor:(c)=> grad(c.chart, c.dataIndex===peak?'#ff7a3d':'#e8561e', c.dataIndex===peak?'#ffb27a':'#ff7a3d'),
+        backgroundColor:(c)=> grad(c.chart, c.dataIndex===peak?'#ff7a3d':'var(--accent)', c.dataIndex===peak?'#ffb27a':'#ff7a3d'),
         borderColor:(c)=> c.dataIndex===last?'#4ade80':'transparent',
         borderWidth:(c)=> c.dataIndex===last?2:0 }]},
       options:{ ...defaults, plugins:{ ...defaults.plugins, tooltip:{ ...TT, callbacks:{ label:(c)=> (c.parsed.y||0)+' km' } } } }});
@@ -9678,7 +9678,7 @@ async function loadPendingDuelsBanner() {
       (athletes || []).forEach(a => nameMap[a.id] = a.full_name || 'Biegacz');
       const firstName = nameMap[pending[0].challenger_id] || 'Biegacz';
       const more = pending.length > 1 ? ' +' + (pending.length - 1) + ' inn.' : '';
-      html += '<div onclick="showSection(\'social\');switchSocialTab(\'challenges\');" style="background:linear-gradient(135deg,rgba(232,86,30,0.15),rgba(255,122,69,0.08));border:1px solid rgba(232,86,30,0.4);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;">'
+      html += '<div onclick="showSection(\'social\');switchSocialTab(\'challenges\');" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.15),rgba(255,122,69,0.08));border:1px solid rgba(var(--accent-rgb),0.4);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;">'
         + '<div style="font-size:22px;">⚔️</div>'
         + '<div style="flex:1;min-width:0;">'
           + '<div style="font-size:13px;font-weight:600;color:var(--fg);">Masz nowe wyzwania!</div>'
@@ -9735,7 +9735,7 @@ async function loadDuelsToContainer() {
 
   if (!duels || !duels.length) {
     // Pokaż mini banner zachęcający tylko jeśli nie ma pojedynków
-    const banner = '<div id="duels-banner" style="background:linear-gradient(135deg,rgba(232,86,30,0.08),rgba(255,122,69,0.05));border:1px solid rgba(232,86,30,0.25);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">'
+    const banner = '<div id="duels-banner" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,122,69,0.05));border:1px solid rgba(var(--accent-rgb),0.25);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;">'
       + '<div style="font-size:28px;flex-shrink:0;">⚔️</div>'
       + '<div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:700;color:var(--fg);">Pojedynki 1v1</div>'
       + '<div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:3px;">Wyzwij znajomego z jego profilu</div></div>'
@@ -9819,7 +9819,7 @@ function _duelAvatar(athl, size) {
 
 function _duelCardIncoming(d, challenger) {
   const t = DUEL_TYPES[d.type] || {};
-  return '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 0 16px rgba(232,86,30,0.15);">'
+  return '<div style="background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 0 16px rgba(var(--accent-rgb),0.15);">'
     + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'
     + _duelAvatar(challenger, 40)
     + '<div style="flex:1;min-width:0;cursor:pointer;" onclick="location.href=\'profil.html?id=' + (challenger?.id || '') + '\'">'
@@ -9863,7 +9863,7 @@ function _duelCardActive(d, opponent) {
   return '<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
     + '<div style="font-size:11px;color:var(--fg2);">' + _duelTypeLabel(d) + '</div>'
-    + '<div style="font-size:9px;color:var(--accent);font-family:DM Mono,monospace;background:rgba(232,86,30,0.12);padding:3px 8px;border-radius:6px;letter-spacing:0.08em;">⏱ ' + timeLabel + '</div>'
+    + '<div style="font-size:9px;color:var(--accent);font-family:DM Mono,monospace;background:rgba(var(--accent-rgb),0.12);padding:3px 8px;border-radius:6px;letter-spacing:0.08em;">⏱ ' + timeLabel + '</div>'
     + '</div>'
     + '<div style="display:flex;align-items:center;gap:8px;">'
     + '<div style="flex:1;text-align:center;padding:10px;background:' + (winningMe?'rgba(61,184,112,0.12)':(tying?'var(--card2)':'rgba(255,80,80,0.05)')) + ';border-radius:10px;border:1px solid ' + (winningMe?'rgba(61,184,112,0.35)':'var(--border)') + ';">'
@@ -10107,7 +10107,7 @@ function openDuelModal(targetAthleteId, targetName) {
   const typesEl = document.getElementById('duel-types');
   window._duelSelectedType = 'km';
   typesEl.innerHTML = Object.entries(DUEL_TYPES).map(([k, v]) =>
-    '<button data-type="' + k + '" onclick="selectDuelType(this)" style="width:100%;background:' + (k==='km'?'rgba(232,86,30,0.12)':'var(--card2)') + ';border:1px solid ' + (k==='km'?'var(--accent)':'var(--border)') + ';color:var(--fg);border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;">'
+    '<button data-type="' + k + '" onclick="selectDuelType(this)" style="width:100%;background:' + (k==='km'?'rgba(var(--accent-rgb),0.12)':'var(--card2)') + ';border:1px solid ' + (k==='km'?'var(--accent)':'var(--border)') + ';color:var(--fg);border-radius:12px;padding:12px 14px;text-align:left;cursor:pointer;display:flex;align-items:center;gap:12px;">'
     + '<div style="font-size:22px;">' + v.icon + '</div>'
     + '<div style="flex:1;"><div style="font-size:13px;font-weight:600;">' + v.label + '</div><div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">' + v.desc + '</div></div>'
     + '</button>'
@@ -10122,7 +10122,7 @@ function selectDuelType(btn) {
   window._duelSelectedType = type;
   document.querySelectorAll('#duel-types button').forEach(b => {
     if (b.dataset.type === type) {
-      b.style.background = 'rgba(232,86,30,0.12)';
+      b.style.background = 'rgba(var(--accent-rgb),0.12)';
       b.style.borderColor = 'var(--accent)';
     } else {
       b.style.background = 'var(--card2)';
@@ -10277,7 +10277,7 @@ window.sendDuelChallenge = sendDuelChallenge;
   </div>
   <div style="padding:12px 16px 0 16px;">
     <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
-      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
+      <button id="stab-feed" onclick="switchSocialTab('feed')" style="flex:1;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Aktywność</button>
       <button id="stab-challenges" onclick="switchSocialTab('challenges')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Wyzwania<span id="duels-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
       <button id="stab-clubs" onclick="switchSocialTab('clubs')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;">Kluby</button>
       <button id="stab-friends" onclick="switchSocialTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 3px;cursor:pointer;position:relative;">Znajomi<span id="friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
@@ -10578,7 +10578,7 @@ window.sendDuelChallenge = sendDuelChallenge;
 .prs-s-final{background-color:#0a0a0a;background-size:cover;background-position:center top;}
 .prs-s-final-inner{position:relative;z-index:2;text-align:center;}
 .prs-s-final-logo{font-family:DM Mono,monospace;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.08em;}
-.prs-s-final-logo span{color:#e8561e;}
+.prs-s-final-logo span{color:var(--accent);}
 .prs-s-final-tagline{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(48px,15vw,80px);color:#fff;letter-spacing:0.04em;line-height:1;margin-top:12px;}
 </style>
 <script>
@@ -10590,7 +10590,7 @@ const PRS = (() => {
 
   // Piękne gradienty CSS dla każdego typu slajdu
   const SLIDE_STYLES = {
-    dystans: { grad: 'linear-gradient(160deg,#0f0f0f 0%,#1a0a00 40%,#2d1000 100%)', accent: '#e8561e', icon: '⟶' },
+    dystans: { grad: 'linear-gradient(160deg,#0f0f0f 0%,#1a0a00 40%,#2d1000 100%)', accent: 'var(--accent)', icon: '⟶' },
     tempo:   { grad: 'linear-gradient(160deg,#080810 0%,#0a0a1a 40%,#101028 100%)', accent: '#5b8cff', icon: '⏱' },
     czas:    { grad: 'linear-gradient(160deg,#080f08 0%,#0a1a0a 40%,#0f280f 100%)', accent: '#3db870', icon: '◷' },
   };
@@ -10726,7 +10726,7 @@ const PRS = (() => {
     const W = canvas.width = window.innerWidth;
     const H = canvas.height = window.innerHeight;
     const ctx = canvas.getContext('2d');
-    const colors = ['#e8561e','#ff8c42','#ffffff','#ffd700','#ff4444','#3db870','#5b8cff'];
+    const colors = ['var(--accent)','#ff8c42','#ffffff','#ffd700','#ff4444','#3db870','#5b8cff'];
     const particles = Array.from({length:130},()=>({
       x:Math.random()*W, y:-20,
       vx:(Math.random()-0.5)*5, vy:Math.random()*5+2,
@@ -10859,7 +10859,7 @@ if ('serviceWorker' in navigator) {
   </div>
 
   <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;">
-    <button id="ctab-oddech" onclick="switchCwiczeniaTab('oddech')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 3px;cursor:pointer;">🌬️ Oddech</button>
+    <button id="ctab-oddech" onclick="switchCwiczeniaTab('oddech')" style="flex:1;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 3px;cursor:pointer;">🌬️ Oddech</button>
     <button id="ctab-wzmacnianie" onclick="switchCwiczeniaTab('wzmacnianie')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 3px;cursor:pointer;">💪 Wzmacnianie</button>
   </div>
 
@@ -10882,7 +10882,7 @@ if ('serviceWorker' in navigator) {
       </div>
     </button>
     <button onclick="openWim()" style="position:relative;display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;cursor:pointer;">
-      <span onclick="event.stopPropagation();wimShowInfo()" title="Bezpieczeństwo" role="button" style="position:absolute;top:10px;right:10px;background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;">i</span>
+      <span onclick="event.stopPropagation();wimShowInfo()" title="Bezpieczeństwo" role="button" style="position:absolute;top:10px;right:10px;background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;">i</span>
       <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tech-wim.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
       <div style="flex:1;min-width:0;padding-right:22px;">
         <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Wim Hof</div>
@@ -10903,7 +10903,7 @@ if ('serviceWorker' in navigator) {
   <div id="breath-title" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:0.04em;margin-bottom:6px;">—</div>
   <div id="breath-cycle" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:40px;">—</div>
   <div style="position:relative;width:240px;height:240px;display:flex;align-items:center;justify-content:center;margin-bottom:40px;">
-    <div id="breath-circle" style="position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle, rgba(232,86,30,0.35) 0%, rgba(232,86,30,0.12) 70%);border:2px solid rgba(232,86,30,0.5);transform:scale(0.55);"></div>
+    <div id="breath-circle" style="position:absolute;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle, rgba(var(--accent-rgb),0.35) 0%, rgba(var(--accent-rgb),0.12) 70%);border:2px solid rgba(var(--accent-rgb),0.5);transform:scale(0.55);"></div>
     <div style="position:relative;text-align:center;pointer-events:none;">
       <div id="breath-phase" style="font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:0.03em;">Gotowy?</div>
       <div id="breath-count" style="font-family:'DM Mono',monospace;font-size:40px;color:var(--accent);line-height:1.1;"></div>
@@ -10914,7 +10914,7 @@ if ('serviceWorker' in navigator) {
 </div>
 
 <div id="wim-disclaimer" style="display:none;position:fixed;inset:0;z-index:210;background:rgba(7,5,12,0.92);flex-direction:column;align-items:center;justify-content:center;padding:28px;">
-  <div style="max-width:340px;background:#14101c;border:1px solid rgba(232,86,30,0.4);border-radius:18px;padding:24px;">
+  <div style="max-width:340px;background:#14101c;border:1px solid rgba(var(--accent-rgb),0.4);border-radius:18px;padding:24px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:0.03em;margin-bottom:12px;text-align:center;">⚠️ Zanim zaczniesz</div>
     <div style="font-size:13px;color:rgba(255,255,255,0.8);font-family:'Inter',sans-serif;line-height:1.55;margin-bottom:18px;">
       Metoda Wim Hofa to intensywna hiperwentylacja i wstrzymanie oddechu — może wywołać zawroty głowy lub omdlenie.<br><br>
@@ -10984,7 +10984,7 @@ if ('serviceWorker' in navigator) {
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px;">
     <!-- TSB — forma świeża, status indicator -->
     <div id="forma-tsb-tile" style="position:relative;overflow:hidden;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 12px;transition:all 0.3s ease;">
-      <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="position:absolute;top:6px;right:6px;background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;z-index:2;">i</button>
+      <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="position:absolute;top:6px;right:6px;background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;z-index:2;">i</button>
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
         <span id="forma-tsb-dot" style="width:8px;height:8px;border-radius:50%;background:#4ade80;flex-shrink:0;box-shadow:0 0 8px currentColor;color:#4ade80;"></span>
         <span style="font-size:9px;font-family:'DM Mono',monospace;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.6);">TSB</span>
@@ -11030,12 +11030,12 @@ if ('serviceWorker' in navigator) {
 
   <!-- Storytelling header — premium glassmorphism z radial gradient + duża ikona pulse + callout zalecenie -->
   <div id="forma-story" style="display:none;position:relative;overflow:hidden;background:rgba(20,15,30,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:28px 24px;margin-bottom:16px;text-align:center;transition:all 0.4s cubic-bezier(0.4,0,0.2,1);">
-    <div id="forma-story-bg" style="position:absolute;inset:0;background:radial-gradient(circle at 30% 20%, rgba(232,86,30,0.15) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(232,86,30,0.1) 0%, transparent 50%);transition:all 0.6s ease;pointer-events:none;"></div>
+    <div id="forma-story-bg" style="position:absolute;inset:0;background:radial-gradient(circle at 30% 20%, rgba(var(--accent-rgb),0.15) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(var(--accent-rgb),0.1) 0%, transparent 50%);transition:all 0.6s ease;pointer-events:none;"></div>
     <div id="forma-story-icon" style="position:relative;font-size:56px;line-height:1;margin-bottom:14px;animation:storyPulse 2.4s ease-in-out infinite;">⏳</div>
     <div id="forma-story-headline" style="position:relative;font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:0.06em;color:#fff;margin-bottom:6px;line-height:1.05;">WCZYTUJĘ FORMĘ</div>
     <div id="forma-story-subline" style="position:relative;font-family:'Inter',sans-serif;font-size:14px;font-style:italic;color:rgba(255,255,255,0.75);line-height:1.5;margin-bottom:0;max-width:340px;margin-left:auto;margin-right:auto;"></div>
-    <div id="forma-story-rec-wrap" style="position:relative;display:none;margin-top:18px;padding:12px 14px;background:rgba(255,255,255,0.05);border-left:3px solid #e8561e;border-radius:8px;text-align:left;">
-      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#e8561e;margin-bottom:4px;font-weight:700;">💡 Zalecenie</div>
+    <div id="forma-story-rec-wrap" style="position:relative;display:none;margin-top:18px;padding:12px 14px;background:rgba(255,255,255,0.05);border-left:3px solid var(--accent);border-radius:8px;text-align:left;">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:4px;font-weight:700;">💡 Zalecenie</div>
       <div id="forma-story-rec" style="font-family:'Inter',sans-serif;font-size:12.5px;color:rgba(255,255,255,0.9);line-height:1.5;"></div>
     </div>
   </div>
@@ -11049,7 +11049,7 @@ if ('serviceWorker' in navigator) {
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:10px;">
       📈 Trend formy · 90 dni
-      <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+      <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
     </div>
     <!-- v4 Strava-style toggle controls -->
     <div id="forma-toggles" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;">
@@ -11132,7 +11132,7 @@ if ('serviceWorker' in navigator) {
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
       <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;">👥 Porównaj formę</div>
-      <button onclick="window.openCompareModal()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;">Wybierz →</button>
+      <button onclick="window.openCompareModal()" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;">Wybierz →</button>
     </div>
     <div id="forma-compare-result" style="font-size:12px;color:rgba(255,255,255,0.55);text-align:center;padding:12px;font-family:'Inter',sans-serif;">Klik "Wybierz" żeby porównać swoją formę z formą znajomego.</div>
   </div>
@@ -11147,12 +11147,12 @@ if ('serviceWorker' in navigator) {
 #badge-popup{position:fixed;top:0;left:50%;transform:translateX(-50%) translateY(-120%);z-index:9999;
   background:linear-gradient(160deg,rgba(20,16,28,0.97),rgba(12,10,20,0.99));
   border:1px solid var(--accent);border-radius:20px;padding:20px 24px 18px;
-  box-shadow:0 0 40px rgba(232,86,30,0.5),0 8px 40px rgba(0,0,0,0.8);
+  box-shadow:0 0 40px rgba(var(--accent-rgb),0.5),0 8px 40px rgba(0,0,0,0.8);
   display:flex;gap:14px;align-items:center;min-width:280px;max-width:340px;
   transition:transform 0.45s cubic-bezier(0.34,1.56,0.64,1);width:90%;
 }
 #badge-popup.show{transform:translateX(-50%) translateY(16px);}
-#badge-popup img{width:64px;height:64px;border-radius:12px;flex-shrink:0;box-shadow:0 0 20px rgba(232,86,30,0.4);}
+#badge-popup img{width:64px;height:64px;border-radius:12px;flex-shrink:0;box-shadow:0 0 20px rgba(var(--accent-rgb),0.4);}
 #badge-popup-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.06em;color:var(--fg);line-height:1;}
 #badge-popup-name{font-size:12px;color:var(--accent);font-family:DM Mono,monospace;font-weight:700;margin:4px 0 2px;letter-spacing:0.08em;}
 #badge-popup-desc{font-size:11px;color:var(--fg2);line-height:1.4;}
@@ -11162,13 +11162,13 @@ if ('serviceWorker' in navigator) {
 .badge-item{display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px;
   background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);
   border-radius:14px;cursor:default;transition:all 0.2s;position:relative;}
-.badge-item.earned{border-color:rgba(232,86,30,0.3);background:rgba(232,86,30,0.05);}
-.badge-item.earned:hover{border-color:rgba(232,86,30,0.5);transform:translateY(-2px);box-shadow:0 4px 20px rgba(232,86,30,0.2);}
+.badge-item.earned{border-color:rgba(var(--accent-rgb),0.3);background:rgba(var(--accent-rgb),0.05);}
+.badge-item.earned:hover{border-color:rgba(var(--accent-rgb),0.5);transform:translateY(-2px);box-shadow:0 4px 20px rgba(var(--accent-rgb),0.2);}
 .badge-item img{width:52px;height:52px;border-radius:8px;}
 .badge-item.locked img{filter:grayscale(1) brightness(0.35);}
 .badge-item-name{font-size:9px;font-family:DM Mono,monospace;text-align:center;color:var(--muted);line-height:1.2;letter-spacing:0.03em;}
 .badge-item.earned .badge-item-name{color:var(--fg2);}
-.badge-new-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(232,86,30,0.8);animation:pulseAnim 1.5s infinite;}
+.badge-new-dot{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px rgba(var(--accent-rgb),0.8);animation:pulseAnim 1.5s infinite;}
 /* ── Rarity colors ── */
 .r-common{color:#e8a040;}
 .r-rare{color:#aac8ff;}
@@ -11206,7 +11206,7 @@ if ('serviceWorker' in navigator) {
     </div>
 
     <!-- ✨ SEKCJA 2: Jak zdobyć -->
-    <div style="background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:12px;padding:12px 14px;margin:6px 0 14px;text-align:left;">
+    <div style="background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:12px;padding:12px 14px;margin:6px 0 14px;text-align:left;">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
         <span style="font-size:14px;">🎯</span> Jak zdobyć
       </div>
@@ -11896,7 +11896,7 @@ function renderBadgesSection() {
       <div><div style="font-size:11px;font-weight:600;">zdobyte odznaki</div>
         <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;">${BADGES.length - earned} pozostało</div>
       </div>
-      <div style="margin-left:auto;background:rgba(232,86,30,0.08);border:1px solid rgba(232,86,30,0.2);border-radius:10px;padding:6px 12px;text-align:center;">
+      <div style="margin-left:auto;background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:10px;padding:6px 12px;text-align:center;">
         <div style="font-size:8px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.12em;">PROGRES</div>
         <div style="font-size:13px;color:var(--accent);font-weight:700;">${Math.round(earned/BADGES.length*100)}%</div>
       </div>
