@@ -190,8 +190,8 @@ async function loadTop(){
   const el = document.getElementById('radio-top');
   if (!window.RADIO){ el.innerHTML = '<div class="rad-empty">Odśwież aplikację.</div>'; return; }
   const { data, error } = await sb.from('radio_top').select('*')
-    .order('like_count', { ascending: false })
     .order('play_count', { ascending: false })
+    .order('like_count', { ascending: false })
     .order('title', { ascending: true });
   if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania.</div>'; return; }
   _radioTopTracks = data || [];
