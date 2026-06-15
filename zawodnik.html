@@ -6793,6 +6793,7 @@ function openProgram(id) {
   d.innerHTML = '<button onclick="closeProgram()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:14px;">‹ Programy</button>'
     + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;">' + p.emoji + ' ' + p.name + '</div>'
     + '<div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:\'Inter\',sans-serif;margin-bottom:16px;line-height:1.4;">' + p.desc + '</div>'
+    + '<button onclick="startCircuit(\'' + p.id + '\')" style="display:block;width:100%;background:var(--accent);border:none;color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:18px;letter-spacing:0.05em;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:16px;">▶ Uruchom obwód · 40/20s · 2 rundy</button>'
     + p.exerciseIds.map(function(eid, i){ return renderExerciseCard(EXERCISES[eid], i === p.exerciseIds.length - 1); }).join('');
   document.getElementById('wzm-programs').style.display = 'none';
   d.style.display = 'block';
@@ -6801,6 +6802,106 @@ function closeProgram() {
   const d = document.getElementById('wzm-detail'); if (d) d.style.display = 'none';
   const pr = document.getElementById('wzm-programs'); if (pr) pr.style.display = 'block';
 }
+
+// ── PROWADZONY OBWÓD (work/rest timer, izolowany — reuse EXERCISES/PROGRAMS/Anim) ──
+const CIRCUIT_CFG = { work: 40, rest: 20, rounds: 2, prep: 10 };
+const CIRCUIT = {
+  st: null,
+  _el: function(id){ return document.getElementById(id); },
+
+  open: function(programId) {
+    const p = PROGRAMS.find(function(x){ return x.id === programId; });
+    if (!p) return;
+    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name };
+    this._el('circuit-title').textContent = p.name;
+    this._el('circuit-progress').textContent = 'Runda 1/' + CIRCUIT_CFG.rounds + ' · ' + p.exerciseIds.length + ' ćwiczeń';
+    this._el('circuit-phase').textContent = 'Gotowy?'; this._el('circuit-phase').style.color = '#fff';
+    this._el('circuit-count').textContent = '';
+    this._el('circuit-img').style.display = 'none';
+    this._el('circuit-next').textContent = CIRCUIT_CFG.work + 's praca / ' + CIRCUIT_CFG.rest + 's przerwa';
+    this._setBtn('start');
+    this._el('circuit-modal').style.display = 'flex';
+  },
+  close: function(){ this.stop(); this._el('circuit-modal').style.display = 'none'; },
+  stop: function(){ if (this.st && this.st.timerId){ clearInterval(this.st.timerId); this.st.timerId = null; } },
+
+  start: function(){
+    if (!this.st) return;
+    this.st.idx = 0; this.st.round = 1;
+    this._enterPhase('prep', CIRCUIT_CFG.prep);
+    this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
+    this._setBtn('pause');
+  },
+  pause: function(){ this.stop(); this._setBtn('resume'); },
+  resume: function(){ if (!this.st) return; this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000); this._setBtn('pause'); },
+
+  _nextExercise: function(){
+    let idx = this.st.idx + 1, round = this.st.round;
+    if (idx >= this.st.ids.length) { idx = 0; round++; if (round > CIRCUIT_CFG.rounds) return null; }
+    return EXERCISES[this.st.ids[idx]];
+  },
+
+  _enterPhase: function(phase, sec){
+    this.st.phase = phase; this.st.secLeft = sec;
+    const ex = EXERCISES[this.st.ids[this.st.idx]];
+    const ph = this._el('circuit-phase'), img = this._el('circuit-img'), nx = this._el('circuit-next');
+    this._el('circuit-progress').textContent = 'Runda ' + this.st.round + '/' + CIRCUIT_CFG.rounds + ' · ćwiczenie ' + (this.st.idx + 1) + '/' + this.st.ids.length;
+    if (phase === 'prep') {
+      ph.textContent = 'Przygotuj się'; ph.style.color = '#fbbf24';
+      img.src = EX_BASE + ex.img; img.style.display = 'block';
+      nx.textContent = 'Start: ' + ex.name;
+    } else if (phase === 'work') {
+      ph.textContent = ex.name; ph.style.color = '#4ade80';
+      img.src = EX_BASE + ex.img; img.style.display = 'block';
+      nx.textContent = ex.dose;
+      if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('in');
+    } else if (phase === 'rest') {
+      ph.textContent = 'Przerwa'; ph.style.color = '#fb923c';
+      img.style.display = 'none';
+      const next = this._nextExercise();
+      nx.textContent = next ? 'Następne: ' + next.name : 'Ostatnie!';
+      if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('out');
+    }
+    this._el('circuit-count').textContent = sec;
+    if (navigator.vibrate) { try { navigator.vibrate(60); } catch(e){} }
+  },
+
+  _tick: function(){
+    this.st.secLeft--;
+    if (this.st.secLeft > 0) { this._el('circuit-count').textContent = this.st.secLeft; return; }
+    const ph = this.st.phase;
+    if (ph === 'prep') { this._enterPhase('work', CIRCUIT_CFG.work); return; }
+    if (ph === 'work') {
+      const last = (this.st.idx === this.st.ids.length - 1) && (this.st.round === CIRCUIT_CFG.rounds);
+      if (last) { this._finish(); return; }
+      this._enterPhase('rest', CIRCUIT_CFG.rest); return;
+    }
+    if (ph === 'rest') {
+      this.st.idx++;
+      if (this.st.idx >= this.st.ids.length) { this.st.idx = 0; this.st.round++; }
+      this._enterPhase('work', CIRCUIT_CFG.work); return;
+    }
+  },
+
+  _finish: function(){
+    this.stop();
+    this._el('circuit-phase').textContent = 'Gotowe 💪'; this._el('circuit-phase').style.color = '#4ade80';
+    this._el('circuit-count').textContent = '';
+    this._el('circuit-img').style.display = 'none';
+    this._el('circuit-next').textContent = this.st.name + ' ukończony!';
+    if (window.Anim && Anim._playSuccess) Anim._playSuccess();
+    this._setBtn('done');
+  },
+
+  _setBtn: function(mode){
+    const b = this._el('circuit-action'); if (!b) return;
+    if (mode === 'start')  { b.textContent = '▶ Start';   b.onclick = function(){ CIRCUIT.start(); }; }
+    if (mode === 'pause')  { b.textContent = '⏸ Pauza';   b.onclick = function(){ CIRCUIT.pause(); }; }
+    if (mode === 'resume') { b.textContent = '▶ Wznów';   b.onclick = function(){ CIRCUIT.resume(); }; }
+    if (mode === 'done')   { b.textContent = '✓ Zakończ'; b.onclick = function(){ CIRCUIT.close(); }; }
+  }
+};
+function startCircuit(id){ CIRCUIT.open(id); }
 
 const BREATH_TECHNIQUES = {
   '478': { name: '4-7-8', cycles: 4, phases: [
@@ -10620,6 +10721,17 @@ if ('serviceWorker' in navigator) {
     <button onclick="wimAccept()" style="display:block;width:100%;background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.05em;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:10px;">Rozumiem ▶</button>
     <button onclick="document.getElementById('wim-disclaimer').style.display='none'" style="display:block;width:100%;background:rgba(255,255,255,0.08);border:none;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;font-size:13px;padding:10px;border-radius:12px;cursor:pointer;">Zamknij</button>
   </div>
+</div>
+
+<div id="circuit-modal" style="display:none;position:fixed;inset:0;z-index:205;background:radial-gradient(circle at 50% 38%, #14101c 0%, #07050c 100%);flex-direction:column;align-items:center;justify-content:center;padding:24px;">
+  <button onclick="CIRCUIT.close()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;">✕</button>
+  <div id="circuit-title" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;text-align:center;">—</div>
+  <div id="circuit-progress" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:28px;text-align:center;">—</div>
+  <img id="circuit-img" src="" alt="" style="display:none;width:160px;height:160px;object-fit:cover;border-radius:16px;margin-bottom:20px;background:rgba(255,255,255,0.05);">
+  <div id="circuit-phase" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:0.03em;margin-bottom:6px;text-align:center;">Gotowy?</div>
+  <div id="circuit-count" style="font-family:'DM Mono',monospace;font-size:56px;color:var(--accent);line-height:1;margin-bottom:8px;"></div>
+  <div id="circuit-next" style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:24px;text-align:center;min-height:18px;"></div>
+  <button id="circuit-action" onclick="CIRCUIT.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
 </div>
 
 <div id="section-forma" style="display:none;padding:16px;">
