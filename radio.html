@@ -92,6 +92,7 @@ async function radioLoad(){
 
 async function loadCatalog(){
   const el = document.getElementById('radio-catalog');
+  if (!window.RADIO) { el.innerHTML = '<div class="rad-empty">Moduł radia nie załadował się 🔄<br>Odśwież aplikację (zamknij i otwórz / przeciągnij w dół).</div>'; return; }
   const { data, error } = await sb.from('radio_tracks').select('*').order('created_at', { ascending: true });
   if (error) { el.innerHTML = '<div class="rad-empty">Błąd ładowania katalogu.</div>'; return; }
   _radioTracks = data || [];
@@ -138,6 +139,7 @@ function radioTab(name){
 function radioPlay(trackId){
   const t = _radioTracks.find(function(x){ return x.id === trackId; });
   if (!t) return;
+  if (!window.RADIO) { alert('Odśwież aplikację — moduł radia nie załadował się.'); return; }
   const url = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.mediaUrl(t)) : '';
   if (!url) return;
   const player = document.getElementById('rad-player');
