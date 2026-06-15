@@ -150,7 +150,7 @@ function startConfetti() {
   canvas.width = innerWidth;
   canvas.height = innerHeight;
   const ctx = canvas.getContext('2d');
-  const colors = ['#e8561e','#ff8c42','#fff','#ffd700','#3db870','#5b8cff'];
+  const colors = ['var(--accent)','#ff8c42','#fff','#ffd700','#3db870','#5b8cff'];
   const parts = Array.from({length:120}, () => ({
     x: Math.random()*innerWidth,
     y: -20,

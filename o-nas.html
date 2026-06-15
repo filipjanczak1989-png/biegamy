@@ -73,7 +73,7 @@
   --paper-soft:rgba(244,238,226,0.35);
   --line:rgba(244,238,226,0.12);
   --accent:#e8561e;
-  --accent-soft:rgba(232,86,30,0.12);
+  --accent-soft:rgba(var(--accent-rgb),0.12);
   --gold:#d4a849;
 }
 
@@ -275,7 +275,7 @@ nav.scrolled{border-bottom-color:var(--line);}
   font-family:'JetBrains Mono',monospace;
   font-size:12px;letter-spacing:0.16em;text-transform:uppercase;font-weight:600;
   border-radius:50px;
-  box-shadow:0 8px 24px rgba(232,86,30,0.45), 0 2px 8px rgba(0,0,0,0.3);
+  box-shadow:0 8px 24px rgba(var(--accent-rgb),0.45), 0 2px 8px rgba(0,0,0,0.3);
   display:inline-flex;align-items:center;gap:10px;
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   text-decoration:none;
@@ -290,7 +290,7 @@ nav.scrolled{border-bottom-color:var(--line);}
 }
 .sticky-login:hover{
   transform:translateY(-2px);
-  box-shadow:0 12px 32px rgba(232,86,30,0.55), 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow:0 12px 32px rgba(var(--accent-rgb),0.55), 0 4px 12px rgba(0,0,0,0.4);
 }
 .sticky-login svg{width:14px;height:14px;}
 @media(max-width:640px){
@@ -617,8 +617,8 @@ nav.scrolled{border-bottom-color:var(--line);}
 .phone-fake-card{
   margin-top:20px;
   padding:14px 12px;
-  background:rgba(232,86,30,0.1);
-  border:1px solid rgba(232,86,30,0.3);
+  background:rgba(var(--accent-rgb),0.1);
+  border:1px solid rgba(var(--accent-rgb),0.3);
   border-radius:14px;
 }
 .phone-fake-day{

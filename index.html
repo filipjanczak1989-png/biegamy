@@ -62,13 +62,13 @@
   --border:rgba(255,255,255,0.09);
   --border2:rgba(255,255,255,0.16);
   --accent:#e8561e;
-  --accent2:#ff7040;
+  --accent2:var(--accent2);
   --fg:#f0ede8;
   --fg2:rgba(240,237,232,0.65);
   --muted:#6e6a7c;
   --green:#3db870;
   --red:#e05050;
-  --glow-o:rgba(232,86,30,0.32);
+  --glow-o:rgba(var(--accent-rgb),0.32);
   --glow-g:rgba(61,184,112,0.25);
   --tile-shadow:0 16px 56px rgba(0,0,0,0.55), 0 1px 0 rgba(255,255,255,0.07) inset;
 }
@@ -80,7 +80,7 @@ body{
   display:flex;align-items:center;justify-content:center;
   min-height:100vh;padding:24px 20px;
   background-image:
-    radial-gradient(ellipse 140% 60% at 50% -10%, rgba(232,86,30,0.22) 0%, transparent 58%),
+    radial-gradient(ellipse 140% 60% at 50% -10%, rgba(var(--accent-rgb),0.22) 0%, transparent 58%),
     radial-gradient(ellipse 70% 50% at 95% 70%, rgba(78,140,214,0.10) 0%, transparent 55%),
     radial-gradient(ellipse 60% 40% at 5% 80%, rgba(61,184,112,0.09) 0%, transparent 55%);
   position:relative;overflow:hidden;
@@ -155,8 +155,8 @@ body::after{
 /* top accent line */
 .card::before{
   content:'';position:absolute;top:0;left:0;right:0;height:2px;
-  background:linear-gradient(90deg,transparent 0%,rgba(232,86,30,0.7) 35%,rgba(78,140,214,0.4) 70%,transparent 100%);
-  box-shadow:0 0 24px rgba(232,86,30,0.5);
+  background:linear-gradient(90deg,transparent 0%,rgba(var(--accent-rgb),0.7) 35%,rgba(78,140,214,0.4) 70%,transparent 100%);
+  box-shadow:0 0 24px rgba(var(--accent-rgb),0.5);
 }
 /* noise texture */
 .card::after{
@@ -186,7 +186,7 @@ body::after{
 .tab.active{
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   color:#fff;
-  box-shadow:0 2px 12px rgba(232,86,30,0.35),0 1px 0 rgba(255,255,255,0.1) inset;
+  box-shadow:0 2px 12px rgba(var(--accent-rgb),0.35),0 1px 0 rgba(255,255,255,0.1) inset;
 }
 
 /* ── FORM FIELDS ────────────────────────────────────────────────────── */
@@ -205,8 +205,8 @@ body::after{
   -webkit-appearance:none;
 }
 .field input:focus{
-  border-color:rgba(232,86,30,0.5);
-  box-shadow:0 0 0 3px rgba(232,86,30,0.1),0 0 20px rgba(232,86,30,0.06);
+  border-color:rgba(var(--accent-rgb),0.5);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1),0 0 20px rgba(var(--accent-rgb),0.06);
 }
 .field input::placeholder{color:var(--muted);}
 
@@ -221,9 +221,9 @@ body::after{
 }
 .role-btn:active{transform:scale(0.97);}
 .role-btn.sel{
-  border-color:rgba(232,86,30,0.45);
-  background:rgba(232,86,30,0.09);
-  box-shadow:0 0 18px rgba(232,86,30,0.1),0 4px 16px rgba(0,0,0,0.3);
+  border-color:rgba(var(--accent-rgb),0.45);
+  background:rgba(var(--accent-rgb),0.09);
+  box-shadow:0 0 18px rgba(var(--accent-rgb),0.1),0 4px 16px rgba(0,0,0,0.3);
 }
 .role-btn.sel::before{display:none;}
 .role-icon{
@@ -247,10 +247,10 @@ body::after{
   cursor:pointer;transition:all 0.18s;
   display:flex;align-items:center;justify-content:center;gap:8px;
   margin-top:8px;
-  box-shadow:0 4px 24px rgba(232,86,30,0.4),0 1px 0 rgba(255,255,255,0.1) inset;
+  box-shadow:0 4px 24px rgba(var(--accent-rgb),0.4),0 1px 0 rgba(255,255,255,0.1) inset;
   -webkit-tap-highlight-color:transparent;
 }
-.btn:hover{box-shadow:0 6px 32px rgba(232,86,30,0.55);}
+.btn:hover{box-shadow:0 6px 32px rgba(var(--accent-rgb),0.55);}
 .btn:active{transform:scale(0.98);}
 .btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none;}
 
@@ -418,11 +418,11 @@ body.show-hero .container { display: none; }
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 8px 28px rgba(232,86,30,0.4);
+  box-shadow: 0 8px 28px rgba(var(--accent-rgb),0.4);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 .hero-cta:active { transform: scale(0.98); }
-.hero-cta:hover { box-shadow: 0 12px 32px rgba(232,86,30,0.5); }
+.hero-cta:hover { box-shadow: 0 12px 32px rgba(var(--accent-rgb),0.5); }
 .hero-skip {
   background: transparent;
   border: none;
@@ -542,7 +542,7 @@ body.loading::after {
   transform: translate(-50%, -50%);
   width: 36px;
   height: 36px;
-  border: 3px solid rgba(232,86,30,0.15);
+  border: 3px solid rgba(var(--accent-rgb),0.15);
   border-top-color: var(--accent);
   border-radius: 50%;
   z-index: 10000;
