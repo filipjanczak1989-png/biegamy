@@ -6808,6 +6808,18 @@ const CIRCUIT_CFG = { work: 40, rest: 20, rounds: 2, prep: 10 };
 const CIRCUIT = {
   st: null,
   _el: function(id){ return document.getElementById(id); },
+  _reduce: function(){ return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); },
+  _setRing: function(sec, col){
+    const r = this._el('circuit-ring'); if (!r) return;
+    r.style.stroke = col;
+    r.style.transition = 'none';
+    r.style.strokeDashoffset = '0';
+    if (!this._reduce()) {
+      void r.getBoundingClientRect();
+      r.style.transition = 'stroke-dashoffset ' + sec + 's linear';
+      r.style.strokeDashoffset = '389.56';
+    }
+  },
 
   open: function(programId) {
     const p = PROGRAMS.find(function(x){ return x.id === programId; });
@@ -6819,6 +6831,7 @@ const CIRCUIT = {
     this._el('circuit-count').textContent = '';
     this._el('circuit-img').style.display = 'none';
     this._el('circuit-next').textContent = CIRCUIT_CFG.work + 's praca / ' + CIRCUIT_CFG.rest + 's przerwa';
+    const r = this._el('circuit-ring'); if (r) { r.style.transition = 'none'; r.style.strokeDashoffset = '0'; r.style.stroke = 'var(--accent)'; }
     this._setBtn('start');
     this._el('circuit-modal').style.display = 'flex';
   },
@@ -6832,8 +6845,19 @@ const CIRCUIT = {
     this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
     this._setBtn('pause');
   },
-  pause: function(){ this.stop(); this._setBtn('resume'); },
-  resume: function(){ if (!this.st) return; this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000); this._setBtn('pause'); },
+  pause: function(){
+    this.stop();
+    const r = this._el('circuit-ring');
+    if (r && !this._reduce()) { const off = getComputedStyle(r).strokeDashoffset; r.style.transition = 'none'; r.style.strokeDashoffset = off; }
+    this._setBtn('resume');
+  },
+  resume: function(){
+    if (!this.st) return;
+    const r = this._el('circuit-ring');
+    if (r && !this._reduce()) { void r.getBoundingClientRect(); r.style.transition = 'stroke-dashoffset ' + this.st.secLeft + 's linear'; r.style.strokeDashoffset = '389.56'; }
+    this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
+    this._setBtn('pause');
+  },
 
   _nextExercise: function(){
     let idx = this.st.idx + 1, round = this.st.round;
@@ -6846,23 +6870,25 @@ const CIRCUIT = {
     const ex = EXERCISES[this.st.ids[this.st.idx]];
     const ph = this._el('circuit-phase'), img = this._el('circuit-img'), nx = this._el('circuit-next');
     this._el('circuit-progress').textContent = 'Runda ' + this.st.round + '/' + CIRCUIT_CFG.rounds + ' · ćwiczenie ' + (this.st.idx + 1) + '/' + this.st.ids.length;
+    let col = '#4ade80';
     if (phase === 'prep') {
-      ph.textContent = 'Przygotuj się'; ph.style.color = '#fbbf24';
+      col = '#fbbf24'; ph.textContent = 'Przygotuj się'; ph.style.color = col;
       img.src = EX_BASE + ex.img; img.style.display = 'block';
       nx.textContent = 'Start: ' + ex.name;
     } else if (phase === 'work') {
-      ph.textContent = ex.name; ph.style.color = '#4ade80';
+      col = '#4ade80'; ph.textContent = ex.name; ph.style.color = col;
       img.src = EX_BASE + ex.img; img.style.display = 'block';
       nx.textContent = ex.dose;
       if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('in');
     } else if (phase === 'rest') {
-      ph.textContent = 'Przerwa'; ph.style.color = '#fb923c';
+      col = '#fb923c'; ph.textContent = 'Przerwa'; ph.style.color = col;
       img.style.display = 'none';
       const next = this._nextExercise();
       nx.textContent = next ? 'Następne: ' + next.name : 'Ostatnie!';
       if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('out');
     }
     this._el('circuit-count').textContent = sec;
+    this._setRing(sec, col);
     if (navigator.vibrate) { try { navigator.vibrate(60); } catch(e){} }
   },
 
@@ -10727,9 +10753,15 @@ if ('serviceWorker' in navigator) {
   <button onclick="CIRCUIT.close()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;">✕</button>
   <div id="circuit-title" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;text-align:center;">—</div>
   <div id="circuit-progress" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:28px;text-align:center;">—</div>
-  <img id="circuit-img" src="" alt="" style="display:none;width:160px;height:160px;object-fit:cover;border-radius:16px;margin-bottom:20px;background:rgba(255,255,255,0.05);">
+  <img id="circuit-img" src="" alt="" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:16px;margin-bottom:16px;background:rgba(255,255,255,0.05);">
   <div id="circuit-phase" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:0.03em;margin-bottom:6px;text-align:center;">Gotowy?</div>
-  <div id="circuit-count" style="font-family:'DM Mono',monospace;font-size:56px;color:var(--accent);line-height:1;margin-bottom:8px;"></div>
+  <div style="position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
+    <svg width="140" height="140" viewBox="0 0 140 140" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
+      <circle cx="70" cy="70" r="62" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"></circle>
+      <circle id="circuit-ring" cx="70" cy="70" r="62" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="389.56" stroke-dashoffset="0"></circle>
+    </svg>
+    <div id="circuit-count" style="font-family:'DM Mono',monospace;font-size:44px;color:#fff;line-height:1;"></div>
+  </div>
   <div id="circuit-next" style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:24px;text-align:center;min-height:18px;"></div>
   <button id="circuit-action" onclick="CIRCUIT.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
 </div>
