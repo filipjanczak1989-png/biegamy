@@ -45,7 +45,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 .profile-head{padding:0 20px;margin-top:-32px;position:relative;z-index:2;}
 .avatar-row{display:flex;align-items:flex-end;gap:14px;margin-bottom:12px;}
 .avatar-wrap{position:relative;flex-shrink:0;}
-.avatar{width:88px;height:88px;border-radius:50%;border:3px solid var(--bg);object-fit:cover;background:rgba(232,86,30,0.2);}
+.avatar{width:88px;height:88px;border-radius:50%;border:3px solid var(--bg);object-fit:cover;background:rgba(var(--accent-rgb),0.2);}
 .avatar-initials{width:88px;height:88px;border-radius:50%;border:3px solid var(--bg);background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:32px;color:#fff;letter-spacing:0.05em;}
 .avatar-edit{position:absolute;bottom:2px;right:2px;background:var(--accent);border:2px solid var(--bg);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;}
 .action-btns{flex:1;display:flex;flex-direction:column;gap:7px;align-items:flex-end;padding-bottom:4px;}
@@ -53,12 +53,12 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 /* Friend / Follow buttons */
 .btn-friend{border-radius:10px;padding:8px 16px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid;transition:all 0.15s;white-space:nowrap;}
 .btn-friend.add{background:var(--accent);border-color:var(--accent);color:#fff;}
-.btn-friend.pending{background:rgba(232,86,30,0.1);border-color:rgba(232,86,30,0.3);color:var(--accent);}
+.btn-friend.pending{background:rgba(var(--accent-rgb),0.1);border-color:rgba(var(--accent-rgb),0.3);color:var(--accent);}
 .btn-friend.friends{background:rgba(61,184,112,0.12);border-color:rgba(61,184,112,0.35);color:var(--green);}
 .btn-follow{border-radius:10px;padding:7px 14px;font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;}
 .btn-follow.following{border-color:rgba(91,140,255,0.4);color:var(--blue);background:rgba(91,140,255,0.08);}
 .btn-msg{border-radius:10px;padding:7px 14px;font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.08em;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,0.05);color:var(--fg2);transition:all 0.15s;display:flex;align-items:center;gap:5px;}
-.btn-msg:hover{border-color:rgba(232,86,30,0.4);}
+.btn-msg:hover{border-color:rgba(var(--accent-rgb),0.4);}
 
 .profile-name{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:0.04em;line-height:1;margin-bottom:4px;}
 .profile-quote{font-size:13px;color:var(--fg3);line-height:1.5;font-style:italic;margin-bottom:10px;}
@@ -141,13 +141,13 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 .sheet-title span{color:var(--accent);}
 .type-tabs{display:flex;gap:8px;margin-bottom:16px;}
 .type-tab{flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;cursor:pointer;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.08em;color:var(--fg3);transition:all 0.15s;}
-.type-tab.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.5);color:var(--accent);}
+.type-tab.active{background:rgba(var(--accent-rgb),0.15);border-color:rgba(var(--accent-rgb),0.5);color:var(--accent);}
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;}
 .field textarea,.field input{width:100%;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:11px 14px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;}
 .field textarea{min-height:90px;}
-.field textarea:focus,.field input:focus{border-color:rgba(232,86,30,0.5);}
-.upload-area{border:1px dashed rgba(232,86,30,0.4);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--fg3);font-size:13px;transition:border-color 0.15s;}
+.field textarea:focus,.field input:focus{border-color:rgba(var(--accent-rgb),0.5);}
+.upload-area{border:1px dashed rgba(var(--accent-rgb),0.4);border-radius:12px;padding:24px;text-align:center;cursor:pointer;color:var(--fg3);font-size:13px;transition:border-color 0.15s;}
 .upload-area:hover{border-color:var(--accent);}
 .upload-preview{width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:10px;display:none;}
 .sheet-submit{width:100%;background:var(--accent);border:none;color:#fff;border-radius:12px;padding:14px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;}
@@ -217,16 +217,16 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     <!-- Kafelki po prawej -->
     <div class="p-tiles-right">
       <button class="p-tile-btn" onclick="_tileWyzwania()" title="Wyzwania">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="_tileCzat()" title="Czat">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="_tileOdznaki()" title="Odznaki">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
       <button class="p-tile-btn" onclick="_tileRaces()" title="Starty">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(232,86,30,0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
+        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
       </button>
     </div>
   </div>
@@ -284,7 +284,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 <!-- TABS -->
 <div style="padding:0 20px;margin-bottom:16px;">
   <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-    <button id="ptab-profile" onclick="switchProfileTab('profile')" style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Profil</button>
+    <button id="ptab-profile" onclick="switchProfileTab('profile')" style="flex:1;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Profil</button>
     <button id="ptab-friends" onclick="switchProfileTab('friends')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;" style="position:relative;">Znajomi<span id="profil-friends-badge" style="display:none;position:absolute;top:4px;right:4px;background:var(--accent);width:6px;height:6px;border-radius:50%;"></span></button>
     <button id="ptab-find" onclick="switchProfileTab('find')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Znajdź</button>
   </div>
@@ -372,7 +372,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <button id="add-post-btn" style="display:none;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Mono,monospace;letter-spacing:0.05em;" onclick="openAddPost()">+ Post</button>
     </div>
     <div id="feed-tabs" style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
-      <button id="ftab-all"      onclick="setFeedFilter('all')"      style="flex:1;background:rgba(232,86,30,0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Wszystko</button>
+      <button id="ftab-all"      onclick="setFeedFilter('all')"      style="flex:1;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Wszystko</button>
       <button id="ftab-trainings" onclick="setFeedFilter('trainings')" style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Treningi</button>
       <button id="ftab-posts"     onclick="setFeedFilter('posts')"     style="flex:1;background:transparent;color:var(--muted);border:none;border-left:1px solid var(--border);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Posty</button>
     </div>
@@ -739,7 +739,7 @@ function openCoachPicker() {
     const c = COACHES[uid];
     const isCurrent = (uid === currentId);
     const borderColor = isCurrent ? 'var(--accent)' : 'var(--border)';
-    const bgColor = isCurrent ? 'rgba(232,86,30,0.08)' : 'var(--card)';
+    const bgColor = isCurrent ? 'rgba(var(--accent-rgb),0.08)' : 'var(--card)';
     const checkMark = isCurrent ? '<div style="font-size:18px;color:var(--accent);flex-shrink:0;">✓</div>' : '';
     optionsHtml +=
       '<div onclick="selectCoach(\'' + uid + '\')" style="background:' + bgColor + ';border:1px solid ' + borderColor + ';border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'' + borderColor + '\'">' +
@@ -755,7 +755,7 @@ function openCoachPicker() {
   // Opcja "bez trenera"
   const noneIsCurrent = !currentId;
   const noneBorder = noneIsCurrent ? 'var(--accent)' : 'var(--border)';
-  const noneBg = noneIsCurrent ? 'rgba(232,86,30,0.08)' : 'var(--card)';
+  const noneBg = noneIsCurrent ? 'rgba(var(--accent-rgb),0.08)' : 'var(--card)';
   const noneCheck = noneIsCurrent ? '<div style="font-size:18px;color:var(--accent);flex-shrink:0;">✓</div>' : '';
   optionsHtml +=
     '<div onclick="selectCoach(null)" style="background:' + noneBg + ';border:1px solid ' + noneBorder + ';border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;margin-bottom:8px;transition:all 0.15s;" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'' + noneBorder + '\'">' +
@@ -908,7 +908,7 @@ function renderGoals(ath) {
     const linkBtn = (_isOwnProfile && !linked)
       ? '<button onclick="event.stopPropagation();openLinkGoalModal('+i+')" title="Powiąż z kalendarzem" style="background:none;border:1px solid rgba(91,140,255,0.35);color:#5b8cff;font-size:10px;padding:3px 6px;border-radius:6px;cursor:pointer;font-family:DM Mono,monospace;">🔗</button>'
       : '';
-    return '<div class="goal-item" onclick="' + clickHandler + '" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(232,86,30,0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
+    return '<div class="goal-item" onclick="' + clickHandler + '" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div class="goal-date-badge"><div class="goal-date-day">'+day+'</div><div class="goal-date-mon">'+mon+'</div></div>'
       + '<div class="goal-name">'+escHtml(g.name)+ctaLine+'</div>'
       + '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
@@ -1049,7 +1049,7 @@ function renderActionBtns() {
       </button>` : '';
 
   const duelBtn = _friendStatus === 'accepted'
-    ? `<button class="btn-msg" style="background:rgba(232,86,30,0.12);border-color:rgba(232,86,30,0.4);color:var(--accent);" onclick="openDuelFromProfile()" title="Wyzwij na pojedynek">
+    ? `<button class="btn-msg" style="background:rgba(var(--accent-rgb),0.12);border-color:rgba(var(--accent-rgb),0.4);color:var(--accent);" onclick="openDuelFromProfile()" title="Wyzwij na pojedynek">
         ⚔️ Pojedynek
       </button>` : '';
 
@@ -1254,7 +1254,7 @@ function setFeedFilter(f) {
     var btn = document.getElementById('ftab-'+k);
     if (!btn) return;
     if (k === f) {
-      btn.style.background = 'rgba(232,86,30,0.12)';
+      btn.style.background = 'rgba(var(--accent-rgb),0.12)';
       btn.style.color = 'var(--accent)';
     } else {
       btn.style.background = 'transparent';
@@ -1373,7 +1373,7 @@ function _renderTrainingItem(l, idx) {
   // Bezpiecznik: nigdy nie renderuj wpisów odznak (gdyby przeszły mimo filtra w query)
   if (l && l.training_type && (''+l.training_type).startsWith('__badge__')) return '';
   const type = l.training_type || 'Trening';
-  const col = TRAIN_TYPE_COLORS[type] || '#e8561e';
+  const col = TRAIN_TYPE_COLORS[type] || 'var(--accent)';
   const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
   const _logDate = l.logged_at ? new Date(l.logged_at) : null;
   const dateStr = (_logDate && !isNaN(_logDate)) ? _logDate.toLocaleDateString('pl-PL',{day:'numeric',month:'short'}) : '';
@@ -1441,7 +1441,7 @@ function _openTrainingDetail(logId) {
     const sh = document.createElement('div');
     sh.style.cssText = 'width:100%;max-width:480px;max-height:90vh;background:#0f0d18;border-radius:24px 24px 0 0;overflow-y:auto;padding:0 0 env(safe-area-inset-bottom,24px);';
     const type = l.training_type || 'Trening';
-    const col = TRAIN_TYPE_COLORS[type] || '#e8561e';
+    const col = TRAIN_TYPE_COLORS[type] || 'var(--accent)';
     const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) : '';
     const d = l.logged_at ? new Date(l.logged_at).toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'}) : '';
     const urls = (l.attachment_url||'').split(',').filter(function(u){return u && u.trim();});
@@ -1589,7 +1589,7 @@ function switchProfileTab(tab) {
     document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
     var btn = document.getElementById('ptab-' + t);
     if (btn) {
-      btn.style.background = t === tab ? 'rgba(232,86,30,0.12)' : 'transparent';
+      btn.style.background = t === tab ? 'rgba(var(--accent-rgb),0.12)' : 'transparent';
       btn.style.color = t === tab ? 'var(--accent)' : 'var(--muted)';
     }
   });
@@ -1842,7 +1842,7 @@ async function loadProfileFriends() {
       else if (fs === 'pending_sent') { actionEl.innerHTML = '<span style="font-size:10px;color:var(--accent);">⏳</span>'; }
       else {
         var btn = document.createElement('button');
-        btn.style.cssText = 'background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;';
+        btn.style.cssText = 'background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);font-size:10px;padding:5px 10px;border-radius:7px;cursor:pointer;white-space:nowrap;';
         btn.textContent = '+ Znajomy';
         btn.addEventListener('click', function(e){ e.stopPropagation(); quickAddFriend(a.id, btn); });
         actionEl.appendChild(btn);
@@ -1922,7 +1922,7 @@ async function _doProfileSearch(q) {
       var fb = document.createElement('button');
       if (fs==='accepted') { fb.style.cssText='font-size:9px;color:var(--green);padding:4px 8px;background:none;border:none;'; fb.textContent='✓ Znajomi'; }
       else if (fs==='pending_sent') { fb.style.cssText='font-size:9px;color:var(--accent);background:none;border:none;'; fb.textContent='⏳ Wysłano'; }
-      else { fb.style.cssText='background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;'; fb.textContent='+ Znajomy'; fb.addEventListener('click',function(){quickAddFriend(a.id,fb);}); }
+      else { fb.style.cssText='background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;white-space:nowrap;'; fb.textContent='+ Znajomy'; fb.addEventListener('click',function(){quickAddFriend(a.id,fb);}); }
       var flb = document.createElement('button');
       flb.style.cssText='background:'+(isF?'transparent':'rgba(91,140,255,0.1)')+';border:1px solid '+(isF?'var(--border)':'rgba(91,140,255,0.35)')+';color:'+(isF?'var(--muted)':'#5b8cff')+';font-size:9px;padding:4px 8px;border-radius:6px;cursor:pointer;';
       flb.textContent = isF ? '✓ Obserwujesz' : '+ Obserwuj';
@@ -2133,12 +2133,12 @@ async function goalAutocomplete(q) {
       const d = new Date(r.date + 'T00:00:00');
       const dStr = d.toLocaleDateString('pl-PL', { day:'numeric', month:'short', year:'numeric' });
       const distLbl = r.distance_km ? (r.distance_km < 21 ? r.distance_km+'km' : (Math.abs(r.distance_km-21.097)<0.5 ? 'półmaraton' : Math.abs(r.distance_km-42.195)<0.5 ? 'maraton' : r.distance_km+'km')) : '';
-      return '<div onclick="selectAutocompleteRace(\'' + r.id + '\')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background=\'rgba(232,86,30,0.08)\'" onmouseout="this.style.background=\'\'">'
+      return '<div onclick="selectAutocompleteRace(\'' + r.id + '\')" style="padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;align-items:center;gap:10px;transition:background 0.1s;" onmouseover="this.style.background=\'rgba(var(--accent-rgb),0.08)\'" onmouseout="this.style.background=\'\'">'
         + '<div style="flex:1;min-width:0;">'
         + '<div style="font-size:13px;color:var(--fg);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escHtml(r.name) + '</div>'
         + '<div style="font-size:10px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">' + dStr + (r.city?' · '+escHtml(r.city):'') + (distLbl?' · '+distLbl:'') + '</div>'
         + '</div>'
-        + '<div style="background:rgba(232,86,30,0.12);color:var(--accent);font-size:9px;padding:3px 7px;border-radius:5px;font-family:DM Mono,monospace;letter-spacing:0.08em;flex-shrink:0;">+</div>'
+        + '<div style="background:rgba(var(--accent-rgb),0.12);color:var(--accent);font-size:9px;padding:3px 7px;border-radius:5px;font-family:DM Mono,monospace;letter-spacing:0.08em;flex-shrink:0;">+</div>'
         + '</div>';
     }).join('');
     list.style.display = 'block';
@@ -2337,7 +2337,7 @@ async function openRaceDetails(raceName) {
       + (race.city||'') + (race.city?' · ':'') + new Date(race.date+'T12:00:00').toLocaleDateString('pl-PL',{day:'numeric',month:'long',year:'numeric'})
       + '</div>';
     var links = '';
-    if (race.url_regulamin) links += '<a href="'+race.url_regulamin+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--accent);text-decoration:none;border:1px solid rgba(232,86,30,0.3);border-radius:6px;padding:4px 10px;margin-right:6px;">📋 Regulamin</a>';
+    if (race.url_regulamin) links += '<a href="'+race.url_regulamin+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--accent);text-decoration:none;border:1px solid rgba(var(--accent-rgb),0.3);border-radius:6px;padding:4px 10px;margin-right:6px;">📋 Regulamin</a>';
     if (race.url_organizer) links += '<a href="'+race.url_organizer+'" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--fg2);text-decoration:none;border:1px solid var(--border);border-radius:6px;padding:4px 10px;">🌐 Organizator</a>';
     if (links) html += '<div style="margin-bottom:14px;">'+links+'</div>';
   }
@@ -2537,7 +2537,7 @@ async function _pcLoad(t, silent){
     var marginTop = prevSame ? '2px' : '8px';
     html += '<div style="display:flex;justify-content:'+(me?'flex-end':'flex-start')+';margin-top:'+marginTop+';">'
       +'<div style="max-width:78%;background:'+(me?'linear-gradient(135deg,var(--accent),#ff7a45)':'rgba(255,255,255,0.07)')+';color:'+(me?'#fff':'var(--fg)')+';border-radius:'+radius+';padding:9px 13px;font-size:14px;line-height:1.45;word-wrap:break-word;'
-      +(me?'box-shadow:0 2px 8px rgba(232,86,30,0.3);':'')
+      +(me?'box-shadow:0 2px 8px rgba(var(--accent-rgb),0.3);':'')
       +'">'
       +escHtml(m.body).replace(/\n/g,'<br>')
       +(!nextSame?'<div style="font-size:9px;opacity:0.65;margin-top:3px;text-align:'+(me?'right':'left')+';font-family:DM Mono,monospace;">'+t2+'</div>':'')
@@ -2632,18 +2632,18 @@ async function openTrainingsList(){
   var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
   var TYPES=['Wszystkie','Spokojny','Tempo','Interwały','Długi','Odpoczynek'];
   var fb=document.createElement('div');fb.style.cssText='display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.05);';
-  fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTr(this)" style="flex-shrink:0;background:'+(i===0?'rgba(232,86,30,0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(232,86,30,0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
+  fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTr(this)" style="flex-shrink:0;background:'+(i===0?'rgba(var(--accent-rgb),0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(var(--accent-rgb),0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
   var li=document.createElement('div');li.id='tr-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(fb);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
   var r=await sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url,calories').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
   _allTr=r.data||[];renderTr('');
 }
-function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});btn.style.background='rgba(232,86,30,0.15)';btn.style.borderColor='rgba(232,86,30,0.4)';btn.style.color='var(--accent)';renderTr(btn.dataset.type||'');}
+function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});btn.style.background='rgba(var(--accent-rgb),0.15)';btn.style.borderColor='rgba(var(--accent-rgb),0.4)';btn.style.color='var(--accent)';renderTr(btn.dataset.type||'');}
 function renderTr(filter){
   var li=document.getElementById('tr-list');if(!li)return;
   var logs=filter?_allTr.filter(function(l){return l.training_type===filter;}):_allTr;
   if(!logs.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak treningów'+(filter?' — '+filter:'')+'</div>';return;}
-  var TC={Spokojny:'#3db870',Tempo:'#e8561e','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8'};var FL={good:'😊',mid:'😐',bad:'😓'};
+  var TC={Spokojny:'#3db870',Tempo:'var(--accent)','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8'};var FL={good:'😊',mid:'😐',bad:'😓'};
   var months={},mk=[];
   logs.forEach(function(l){var d=new Date(l.logged_at);var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(!months[k]){months[k]={label:d.toLocaleDateString('pl-PL',{month:'long',year:'numeric'}),items:[],km:0};mk.push(k);}months[k].items.push(l);months[k].km+=parseFloat(l.distance_km)||0;});
   var html='';
@@ -2712,8 +2712,8 @@ function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Plan</span>
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;margin-top:2px;">Log</span>
   </a>
@@ -2722,8 +2722,8 @@ function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Społeczność</span>
   </a>
   <a href="#" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#e8561e" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:#e8561e;font-family:DM Mono,monospace;">Profil</span>
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;">Profil</span>
   </a>
 </nav>
 <!-- ADD GOAL MODAL (autocomplete z races) -->
@@ -2783,8 +2783,8 @@ function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Plan</span>
   </a>
   <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
     </div>
     <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;margin-top:2px;">Log</span>
   </a>

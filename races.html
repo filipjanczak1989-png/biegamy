@@ -78,7 +78,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   font-size:14px;font-family:'Inter',sans-serif;outline:none;
   transition:border-color 0.15s;
 }
-.search-input:focus{border-color:rgba(232,86,30,0.5);}
+.search-input:focus{border-color:rgba(var(--accent-rgb),0.5);}
 .search-input::placeholder{color:var(--fg3);}
 .search-wrap{position:relative;}
 .search-icon{position:absolute;left:28px;top:50%;transform:translateY(-50%);color:var(--fg3);pointer-events:none;}
@@ -94,7 +94,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   position:relative;
 }
 .race-card:active{transform:scale(0.985);}
-.race-card:hover{border-color:rgba(232,86,30,0.3);}
+.race-card:hover{border-color:rgba(var(--accent-rgb),0.3);}
 
 .race-card-inner{padding:16px 18px;}
 .race-top{display:flex;align-items:flex-start;gap:12px;}
@@ -118,7 +118,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   margin-top:10px;
 }
 .signup-btn{
-  background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);
+  background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);
   color:var(--accent);border-radius:10px;padding:7px 14px;
   font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.08em;
   cursor:pointer;transition:all 0.15s;
@@ -177,7 +177,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   font-size:13px;cursor:pointer;text-decoration:none;
   transition:border-color 0.15s;
 }
-.modal-link-btn:hover{border-color:rgba(232,86,30,0.4);}
+.modal-link-btn:hover{border-color:rgba(var(--accent-rgb),0.4);}
 .modal-link-btn span{flex:1;}
 .modal-actions{padding:0 20px;}
 .modal-signup-btn{
@@ -219,7 +219,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   color:var(--fg);border-radius:12px;padding:11px 14px;font-size:14px;
   font-family:'Inter',sans-serif;outline:none;transition:border-color 0.15s;
 }
-.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(232,86,30,0.5);}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:rgba(var(--accent-rgb),0.5);}
 .field select option{background:#1a1525;color:var(--fg);}
 .field textarea{resize:vertical;min-height:80px;}
 .submit-btn{
@@ -272,13 +272,13 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .region-btn{flex-shrink:0;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--fg3);border-radius:20px;padding:5px 12px;font-size:10px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
-.region-btn.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.4);color:var(--accent);}
+.region-btn.active{background:rgba(var(--accent-rgb),0.15);border-color:rgba(var(--accent-rgb),0.4);color:var(--accent);}
 /* Distance chips w filter panelu */
 .dchip{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg2);border-radius:14px;padding:6px 12px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
-.dchip:hover{border-color:rgba(232,86,30,0.3);}
-.dchip.active{background:rgba(232,86,30,0.15);border-color:rgba(232,86,30,0.4);color:var(--accent);}
+.dchip:hover{border-color:rgba(var(--accent-rgb),0.3);}
+.dchip.active{background:rgba(var(--accent-rgb),0.15);border-color:rgba(var(--accent-rgb),0.4);color:var(--accent);}
 /* Active filter pill (na górze) */
-.afpill{display:inline-flex;align-items:center;gap:5px;background:rgba(232,86,30,0.12);border:1px solid rgba(232,86,30,0.35);color:var(--accent);border-radius:14px;padding:4px 8px 4px 10px;font-size:11px;font-family:'DM Mono',monospace;}
+.afpill{display:inline-flex;align-items:center;gap:5px;background:rgba(var(--accent-rgb),0.12);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);border-radius:14px;padding:4px 8px 4px 10px;font-size:11px;font-family:'DM Mono',monospace;}
 .afpill button{background:none;border:none;color:var(--accent);cursor:pointer;padding:0;font-size:13px;line-height:1;}
 
 .top-back-btn {
@@ -291,7 +291,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
   z-index:100;backdrop-filter:blur(12px);
   transition:border-color 0.15s,background 0.15s;
 }
-.top-back-btn:hover{border-color:var(--accent);background:rgba(232,86,30,0.1);}
+.top-back-btn:hover{border-color:var(--accent);background:rgba(var(--accent-rgb),0.1);}
 
 </style>
 </head>
@@ -712,7 +712,7 @@ function renderRaceCard(race) {
       const inner = a.avatar_url
         ? `<img src="${escAttr(a.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${ini}'">`
         : ini;
-      return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#ff7a45);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
+      return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
     }).join('');
     const moreCount = totalCount - parts.length;
     const more = moreCount > 0
@@ -923,7 +923,7 @@ function updateFilterBadge() {
     }
   }
   if (btn) {
-    btn.style.borderColor = count > 0 ? 'rgba(232,86,30,0.5)' : 'var(--border)';
+    btn.style.borderColor = count > 0 ? 'rgba(var(--accent-rgb),0.5)' : 'var(--border)';
     btn.style.color = count > 0 ? 'var(--accent)' : 'var(--fg2)';
   }
 }
@@ -1438,7 +1438,7 @@ async function showParticipants(raceId, raceName) {
     var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';
     row.addEventListener('click',function(){location.href='profil.html?id='+a.id;});
     var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    var av=document.createElement('div');av.style.cssText='width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#e8561e,#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
+    var av=document.createElement('div');av.style.cssText='width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
     if(a.avatar_url){var img=document.createElement('img');img.src=a.avatar_url;img.style.cssText='width:100%;height:100%;object-fit:cover;';img.onerror=function(){this.style.opacity=0;};av.appendChild(img);}else{av.textContent=ini;}
     var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:13px;font-weight:600;';nm.textContent=a.full_name||'Biegacz';
     var arr=document.createElement('span');arr.innerHTML='›';arr.style.cssText='color:var(--muted);font-size:16px;';

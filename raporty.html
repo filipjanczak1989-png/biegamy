@@ -29,8 +29,8 @@ body{padding:0 0 100px;min-height:100vh;}
 
 /* Section header */
 .sec-hdr{display:flex;align-items:center;gap:10px;margin:24px 16px 14px;}
-.sec-hdr-line{width:18px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(232,86,30,0));}
-.sec-hdr-text{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;}
+.sec-hdr-line{width:18px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0));}
+.sec-hdr-text{font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(var(--accent-rgb),0.9);font-family:'DM Mono',monospace;font-weight:600;}
 .sec-hdr-text.muted{color:rgba(255,255,255,0.5);}
 .sec-hdr-line.muted{background:linear-gradient(90deg,rgba(255,255,255,0.3),rgba(255,255,255,0));}
 
@@ -54,13 +54,13 @@ body{padding:0 0 100px;min-height:100vh;}
 
 /* Karta raportu */
 .rep-card{position:relative;border-radius:16px;overflow:hidden;cursor:pointer;background:#0c0c10;border:1px solid rgba(255,255,255,0.06);transition:transform 0.18s,border-color 0.18s,box-shadow 0.18s;}
-.rep-card.unread{border-color:rgba(232,86,30,0.5);}
+.rep-card.unread{border-color:rgba(var(--accent-rgb),0.5);}
 .rep-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.35);}
 .rep-card-vert{width:100%;height:170px;}
 .rep-card-slide{width:280px;height:200px;flex-shrink:0;scroll-snap-align:start;}
 .rep-card-bg{position:absolute;inset:0;background-size:cover;background-position:center 28%;}
 .rep-card-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,16,0.15) 0%,rgba(7,5,16,0.4) 40%,rgba(7,5,16,0.92) 100%);pointer-events:none;}
-.rep-card-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(232,86,30,0.25);z-index:2;}
+.rep-card-dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.25);z-index:2;}
 .rep-card-tag{position:absolute;top:14px;left:14px;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;background:rgba(0,0,0,0.4);padding:4px 9px;border-radius:5px;backdrop-filter:blur(8px);z-index:2;}
 .rep-card-bottom{position:absolute;bottom:0;left:0;right:0;padding:14px 16px;z-index:2;}
 .rep-card-summary{font-size:13px;color:#fff;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px;text-shadow:0 2px 6px rgba(0,0,0,0.5);}
@@ -89,7 +89,7 @@ body{padding:0 0 100px;min-height:100vh;}
 .zar-type-title{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1.05;color:#f0ede8;letter-spacing:0.02em;text-transform:uppercase;}
 .zar-title{font-size:11px;color:rgba(240,237,232,0.55);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-top:6px;}
 .zar-meta{font-size:10px;color:rgba(240,237,232,0.7);font-family:'DM Mono',monospace;letter-spacing:0.05em;line-height:1.7;text-align:right;}
-.zar-accent{margin-top:18px;height:2px;width:42px;background:linear-gradient(90deg,var(--accent),rgba(232,86,30,0));border-radius:2px;}
+.zar-accent{margin-top:18px;height:2px;width:42px;background:linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0));border-radius:2px;}
 
 .zar-content{padding:8px 28px 0;font-size:14.5px;line-height:1.75;color:#f0ede8;}
 .zar-content h2{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.04em;color:var(--accent);margin:32px 0 14px;text-transform:uppercase;font-weight:700;}
@@ -101,18 +101,18 @@ body{padding:0 0 100px;min-height:100vh;}
 .zar-content strong{color:#fff;font-weight:600;}
 
 /* Feedback */
-.zar-feedback{padding:32px 28px 28px;margin-top:36px;background:linear-gradient(180deg,rgba(232,86,30,0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);}
+.zar-feedback{padding:32px 28px 28px;margin-top:36px;background:linear-gradient(180deg,rgba(var(--accent-rgb),0.04) 0%,transparent 100%);border-top:1px solid rgba(255,255,255,0.06);}
 .zar-fb-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
-.zar-fb-line{width:24px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(232,86,30,0));}
-.zar-fb-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(232,86,30,0.9);font-family:'DM Mono',monospace;font-weight:600;}
+.zar-fb-line{width:24px;height:1px;background:linear-gradient(90deg,var(--accent),rgba(var(--accent-rgb),0));}
+.zar-fb-label{font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(var(--accent-rgb),0.9);font-family:'DM Mono',monospace;font-weight:600;}
 .zar-fb-desc{font-size:13px;color:rgba(240,237,232,0.6);line-height:1.55;margin-bottom:18px;}
 .zar-fb-reactions{display:flex;gap:10px;margin-bottom:16px;}
 .zar-fb-react{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:rgba(240,237,232,0.8);border-radius:12px;padding:14px;cursor:pointer;font-size:14px;font-weight:500;transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;}
 .zar-fb-react.active-up{background:rgba(61,184,112,0.4);border-color:rgba(61,184,112,0.6);color:#fff;}
 .zar-fb-react.active-down{background:rgba(224,80,80,0.4);border-color:rgba(224,80,80,0.6);color:#fff;}
 .zar-fb-textarea{width:100%;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:#f0ede8;font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.55;padding:14px 16px;resize:vertical;min-height:90px;outline:none;box-sizing:border-box;transition:border-color 0.2s;}
-.zar-fb-textarea:focus{border-color:rgba(232,86,30,0.5);}
-.zar-fb-submit{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(232,86,30,0.25);transition:transform 0.12s;margin-top:14px;}
+.zar-fb-textarea:focus{border-color:rgba(var(--accent-rgb),0.5);}
+.zar-fb-submit{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;border-radius:12px;padding:14px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(var(--accent-rgb),0.25);transition:transform 0.12s;margin-top:14px;}
 .zar-fb-submit:active{transform:scale(0.98);}
 .zar-fb-status{margin-top:10px;font-size:11px;color:rgba(240,237,232,0.5);font-family:'DM Mono',monospace;text-align:center;letter-spacing:0.04em;}
 
@@ -156,10 +156,10 @@ body{padding:0 0 100px;min-height:100vh;}
 </div>
 
 <!-- Cytat motywacyjny — 1 per dzień, deterministyczny -->
-<div id="quote-card" style="margin:6px 16px 8px;padding:14px 16px;background:linear-gradient(135deg,rgba(232,86,30,0.10) 0%,rgba(232,86,30,0.03) 100%);border:1px solid rgba(232,86,30,0.28);border-radius:14px;position:relative;overflow:hidden;">
-  <div style="position:absolute;top:8px;right:14px;font-size:34px;line-height:1;color:rgba(232,86,30,0.18);font-family:Georgia,serif;font-weight:700;">"</div>
+<div id="quote-card" style="margin:6px 16px 8px;padding:14px 16px;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.10) 0%,rgba(var(--accent-rgb),0.03) 100%);border:1px solid rgba(var(--accent-rgb),0.28);border-radius:14px;position:relative;overflow:hidden;">
+  <div style="position:absolute;top:8px;right:14px;font-size:34px;line-height:1;color:rgba(var(--accent-rgb),0.18);font-family:Georgia,serif;font-weight:700;">"</div>
   <div id="quote-text" style="font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;line-height:1.55;color:#f0ede8;font-style:italic;letter-spacing:0.01em;padding-right:30px;"></div>
-  <div id="quote-author" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:#e8561e;font-weight:700;"></div>
+  <div id="quote-author" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent);font-weight:700;"></div>
 </div>
 
 <!-- Lista raportów -->
@@ -573,7 +573,7 @@ async function init() {
     _athleteId = athleteIdOverride;
     // Pokaż banner że jesteś w trybie podglądu
     const banner = document.createElement('div');
-    banner.style.cssText = 'background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;padding:8px 16px;margin:8px 16px;border-radius:8px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.04em;text-align:center;';
+    banner.style.cssText = 'background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);padding:8px 16px;margin:8px 16px;border-radius:8px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.04em;text-align:center;';
     banner.innerHTML = '👁️ TRYB PODGLĄDU · zawodnik: ' + athleteIdOverride.substring(0, 8) + '...';
     document.body.insertBefore(banner, document.getElementById('rl-content'));
   } else {
