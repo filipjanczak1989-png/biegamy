@@ -305,6 +305,29 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
   </div>
 </div>
 
+<!-- WYGLĄD / MOTYW (tylko własny profil) -->
+<div class="section" id="wyglad-section" style="display:none;">
+  <div class="section-hdr"><div class="section-title">Wy<span>gląd</span></div></div>
+  <div style="display:flex;gap:10px;">
+    <button class="theme-sw" data-th="default" onclick="pickTheme('default')" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color 0.15s;">
+      <span style="width:26px;height:26px;border-radius:50%;background:#e8561e;"></span>
+      <span style="font-size:10px;color:var(--fg2);font-family:DM Mono,monospace;">Pomarańcz</span>
+    </button>
+    <button class="theme-sw" data-th="ocean" onclick="pickTheme('ocean')" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color 0.15s;">
+      <span style="width:26px;height:26px;border-radius:50%;background:#1e90e8;"></span>
+      <span style="font-size:10px;color:var(--fg2);font-family:DM Mono,monospace;">Ocean</span>
+    </button>
+    <button class="theme-sw" data-th="forest" onclick="pickTheme('forest')" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color 0.15s;">
+      <span style="width:26px;height:26px;border-radius:50%;background:#2fae5a;"></span>
+      <span style="font-size:10px;color:var(--fg2);font-family:DM Mono,monospace;">Las</span>
+    </button>
+    <button class="theme-sw" data-th="grape" onclick="pickTheme('grape')" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color 0.15s;">
+      <span style="width:26px;height:26px;border-radius:50%;background:#8a62d8;"></span>
+      <span style="font-size:10px;color:var(--fg2);font-family:DM Mono,monospace;">Fiolet</span>
+    </button>
+  </div>
+</div>
+
 <!-- ZYCIÓWKI -->
 <div class="section">
   <div class="section-hdr">
@@ -522,6 +545,7 @@ let _profileData = null;
     var ae=document.getElementById('av-edit-btn');if(ae)ae.style.display='flex';
     var pr=document.getElementById('privacy-row');if(pr)pr.style.display='block';
     var rs=document.getElementById('radio-section');if(rs)rs.style.display='block';
+    var ws=document.getElementById('wyglad-section');if(ws){ws.style.display='block';try{markTheme(window.getTheme?window.getTheme():'default');}catch(e){}}
   }
 
   // Sprawdź prywatność cudzego profilu przed załadowaniem
@@ -2373,6 +2397,15 @@ function showToast(msg) {
   t.textContent = msg;
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function pickTheme(n){ if (window.setTheme) window.setTheme(n); markTheme(n); }
+function markTheme(n){
+  document.querySelectorAll('#wyglad-section .theme-sw').forEach(function(b){
+    const on = b.getAttribute('data-th') === n;
+    b.style.borderColor = on ? 'var(--accent)' : 'var(--border)';
+    b.style.borderWidth = on ? '2px' : '1px';
+  });
 }
 
 // ── PEER CHAT ─────────────────────────────────────────────────────
