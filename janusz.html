@@ -123,7 +123,7 @@
   .btn-start:hover {
     background: var(--accent-soft);
     transform: translateY(-2px);
-    box-shadow: 0 12px 28px rgba(232,86,30,0.4);
+    box-shadow: 0 12px 28px rgba(var(--accent-rgb),0.4);
   }
   .btn-start:active { transform: translateY(0); }
 
@@ -203,7 +203,7 @@
     transition: all 0.2s;
   }
   .choice-btn:hover {
-    background: rgba(232,86,30,0.1);
+    background: rgba(var(--accent-rgb),0.1);
     border-color: var(--accent);
     transform: translateX(4px);
   }
@@ -366,7 +366,7 @@
     gap: 1rem;
   }
   .action-btn:hover:not(:disabled) {
-    background: rgba(232,86,30,0.08);
+    background: rgba(var(--accent-rgb),0.08);
     border-color: var(--accent);
   }
   .action-btn:disabled {
@@ -525,7 +525,7 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(180deg,
-      rgba(232, 86, 30, 0.35) 0%,
+      rgba(var(--accent-rgb), 0.35) 0%,
       rgba(255, 180, 100, 0.18) 30%,
       transparent 55%);
     pointer-events: none;
@@ -777,7 +777,7 @@
       var(--accent-soft) 70%,
       transparent 100%);
     border-radius: 2px;
-    box-shadow: 0 0 12px rgba(232, 86, 30, 0.7);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.7);
   }
   .flying-event.show {
     opacity: 1;
@@ -792,7 +792,7 @@
   .flying-event-intro::before     { background: linear-gradient(180deg, transparent, #f0a85a, #ffd699, transparent); box-shadow: 0 0 14px rgba(240, 168, 90, 0.6); }
   .flying-event-burek::before     { background: linear-gradient(180deg, transparent, #d4a872, #f0d4a8, transparent); box-shadow: 0 0 14px rgba(212, 168, 114, 0.7); }
   .flying-event-mietek::before    { background: linear-gradient(180deg, transparent, #9aa088, #c0c6ae, transparent); box-shadow: 0 0 14px rgba(154, 160, 136, 0.6); }
-  .flying-event-midrun::before    { background: linear-gradient(180deg, transparent, var(--accent), var(--accent-soft), transparent); box-shadow: 0 0 14px rgba(232, 86, 30, 0.7); }
+  .flying-event-midrun::before    { background: linear-gradient(180deg, transparent, var(--accent), var(--accent-soft), transparent); box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.7); }
   .flying-event-sun::before       { background: linear-gradient(180deg, transparent, #ffc466, #ffe5a0, transparent); box-shadow: 0 0 16px rgba(255, 196, 102, 0.85); }
   .flying-event-achievement::before { background: linear-gradient(180deg, transparent, #88c66b, #b8e89a, transparent); box-shadow: 0 0 18px rgba(136, 198, 107, 0.9); }
   .flying-event-finish::before    { background: linear-gradient(180deg, transparent, #ffd700, #fff5a0, transparent); box-shadow: 0 0 20px rgba(255, 215, 0, 1); }
@@ -832,7 +832,7 @@
     height: 100%;
     background: linear-gradient(90deg, var(--accent), var(--accent-soft));
     width: 0%;
-    box-shadow: 0 0 12px rgba(232,86,30,0.7);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb),0.7);
     transition: width 0.1s linear;
   }
 
@@ -890,8 +890,8 @@
   }
 
   .workout-card {
-    background: linear-gradient(135deg, rgba(232,86,30,0.08), rgba(30,58,95,0.12));
-    border: 1px solid rgba(232,86,30,0.25);
+    background: linear-gradient(135deg, rgba(var(--accent-rgb),0.08), rgba(30,58,95,0.12));
+    border: 1px solid rgba(var(--accent-rgb),0.25);
     border-left: 3px solid var(--accent);
     border-radius: 12px;
     padding: 1rem 1.1rem;
@@ -906,7 +906,7 @@
     right: -30px;
     width: 90px;
     height: 90px;
-    background: radial-gradient(circle, rgba(232,86,30,0.15) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(var(--accent-rgb),0.15) 0%, transparent 70%);
     pointer-events: none;
   }
 
@@ -925,7 +925,7 @@
     letter-spacing: 0.1em;
   }
   .workout-type {
-    background: rgba(232,86,30,0.2);
+    background: rgba(var(--accent-rgb),0.2);
     color: var(--accent-soft);
     padding: 0.2rem 0.65rem;
     border-radius: 12px;
@@ -1011,12 +1011,12 @@
     border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 12px rgba(232,86,30,0.3);
+    box-shadow: 0 4px 12px rgba(var(--accent-rgb),0.3);
   }
   .workout-btn-claim:hover:not(:disabled) {
     background: var(--accent-soft);
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(232,86,30,0.45);
+    box-shadow: 0 6px 16px rgba(var(--accent-rgb),0.45);
   }
   .workout-btn-claim:active { transform: translateY(0); }
   .workout-btn-claim:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -1091,11 +1091,11 @@
     font-size: 0.8rem;
     color: var(--accent-soft);
     padding: 0.5rem 0.75rem;
-    background: rgba(232, 86, 30, 0.08);
+    background: rgba(var(--accent-rgb), 0.08);
     border-radius: 8px;
     border-left: 2px solid var(--accent);
   }
-  .state-tone-fire { box-shadow: 0 8px 24px rgba(232, 86, 30, 0.3), 0 0 60px rgba(232, 86, 30, 0.15); }
+  .state-tone-fire { box-shadow: 0 8px 24px rgba(var(--accent-rgb), 0.3), 0 0 60px rgba(var(--accent-rgb), 0.15); }
   .state-tone-success { box-shadow: 0 8px 24px rgba(107, 142, 78, 0.3), 0 0 60px rgba(107, 142, 78, 0.15); }
   .state-tone-good { box-shadow: 0 8px 24px rgba(80, 130, 180, 0.25); }
   .state-tone-warning .state-label { color: #f0c060; }
@@ -1253,7 +1253,7 @@
     border-radius: 12px;
     overflow: hidden;
     aspect-ratio: 3 / 2;
-    background: linear-gradient(135deg, rgba(232,86,30,0.08), rgba(30,58,95,0.15));
+    background: linear-gradient(135deg, rgba(var(--accent-rgb),0.08), rgba(30,58,95,0.15));
     box-shadow: 0 8px 24px rgba(0,0,0,0.4);
     position: relative;
     animation: cinematicFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);

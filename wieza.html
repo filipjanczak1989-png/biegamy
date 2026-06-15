@@ -58,7 +58,7 @@ canvas {
   font-size: 38px;
   line-height: 1;
   color: var(--fg);
-  text-shadow: 0 2px 12px rgba(0,0,0,0.95), 0 0 20px rgba(232,86,30,0.4);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.95), 0 0 20px rgba(var(--accent-rgb),0.4);
   letter-spacing: 0.02em;
 }
 .hud-height-unit {
@@ -93,7 +93,7 @@ canvas {
   line-height: 1;
   font-weight: bold;
   padding: 3px 10px;
-  background: rgba(232,86,30,0.18);
+  background: rgba(var(--accent-rgb),0.18);
   border: 1px solid rgba(255,122,69,0.5);
   border-radius: 10px;
   display: none;
@@ -144,7 +144,7 @@ canvas {
   letter-spacing: 0.04em;
   line-height: 1;
   color: var(--accent);
-  text-shadow: 0 0 30px rgba(232,86,30,0.6);
+  text-shadow: 0 0 30px rgba(var(--accent-rgb),0.6);
   margin-bottom: 6px;
 }
 .start-sub {
@@ -194,7 +194,7 @@ canvas {
   font-size: 32px;
   letter-spacing: 0.08em;
   cursor: pointer;
-  box-shadow: 0 8px 32px rgba(232,86,30,0.4);
+  box-shadow: 0 8px 32px rgba(var(--accent-rgb),0.4);
   text-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 .btn-play:active { transform: scale(0.98); }
@@ -728,7 +728,7 @@ function spawnParticles(x, y, color, count) {
 function spawnPopup(x, y, text, color) {
   game.popups.push({
     x, y, text,
-    color: color || '#e8561e',
+    color: color || 'var(--accent)',
     life: 50, maxLife: 50,
     vy: -1.5 * dpr,
   });
@@ -1197,7 +1197,7 @@ function render() {
     
     // Akcent kolorowy w zależności od wysokości
     const heightAt = -p.y / 50;
-    let accent = '#e8561e';
+    let accent = 'var(--accent)';
     if (heightAt > 100) accent = '#a868e0';
     if (heightAt > 200) accent = '#ffd966';
     if (heightAt > 350) accent = '#ff3a45';
@@ -1429,7 +1429,7 @@ function drawRunner(ctx, x, y, state, legPhase, rotation, isGhost) {
   const SKIN_DARK = '#d99c70';
   const HAIR = '#1a1a1a';
   const SHIRT_TOP = '#ff7a45';
-  const SHIRT_MID = '#e8561e';
+  const SHIRT_MID = 'var(--accent)';
   const SHIRT_BOT = '#c0410e';
   const SHIRT_HIGHLIGHT = '#ffaa70';
   const SHORTS = '#1a1a25';
