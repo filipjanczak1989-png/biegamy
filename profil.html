@@ -291,6 +291,18 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 <!-- TAB: PROFIL -->
 <div id="tab-profile">
 
+<!-- RADIO (tylko własny profil) -->
+<div class="section" id="radio-section" style="display:none;">
+  <div onclick="location.href='radio.html'" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+    <div style="font-size:22px;flex-shrink:0;">📻</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:3px;">Radio BiegaMy</div>
+      <div style="font-size:14px;font-weight:600;color:var(--accent);">Muzyka do biegania →</div>
+    </div>
+    <div style="font-size:18px;color:var(--muted);flex-shrink:0;">›</div>
+  </div>
+</div>
+
 <!-- ZYCIÓWKI -->
 <div class="section">
   <div class="section-hdr">
@@ -507,6 +519,7 @@ let _profileData = null;
     ['add-post-btn','add-goal-btn'].forEach(function(id){var el=document.getElementById(id);if(el)el.style.display='block';});
     var ae=document.getElementById('av-edit-btn');if(ae)ae.style.display='flex';
     var pr=document.getElementById('privacy-row');if(pr)pr.style.display='block';
+    var rs=document.getElementById('radio-section');if(rs)rs.style.display='block';
   }
 
   // Sprawdź prywatność cudzego profilu przed załadowaniem

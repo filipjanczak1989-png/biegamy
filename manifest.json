@@ -94,10 +94,10 @@
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Społeczność",
-      "short_name": "Feed",
-      "description": "Zobacz aktywności społeczności",
-      "url": "/zawodnik.html?section=social",
+      "name": "Radio BiegaMy",
+      "short_name": "Radio",
+      "description": "Muzyka do biegania",
+      "url": "/radio.html",
       "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
