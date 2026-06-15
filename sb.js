@@ -648,6 +648,14 @@
     if (/wim hof|wim|retencj|hiperwentyl|lodow/.test(d)) return 'wim';
     return null;
   };
+  // Parse jawnego ref-u z planu (trainings.exercise_ref) → {kind:'prog'|'breath', key} lub null.
+  // Format namespaced: 'prog:core' / 'breath:478'. Ma PIERWSZEŃSTWO nad smart-matchem opisu.
+  window.parseExerciseRef = function(ref) {
+    if (!ref || typeof ref !== 'string' || ref.indexOf(':') < 0) return null;
+    const i = ref.indexOf(':'), kind = ref.slice(0, i), key = ref.slice(i + 1);
+    if ((kind === 'prog' || kind === 'breath') && key) return { kind: kind, key: key };
+    return null;
+  };
 
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.

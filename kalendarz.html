@@ -1005,6 +1005,24 @@ html { scroll-behavior: smooth; }
         <label>Opis / instrukcje dla zawodnika</label>
         <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
       </div>
+      <div class="field" id="f-exercise-ref-wrap" style="display:none;">
+        <label>Ćwiczenia w aplikacji (deep-link dla zawodnika)</label>
+        <select id="f-exercise-ref" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;">
+          <option value="">— brak —</option>
+          <optgroup label="Programy wzmacniające">
+            <option value="prog:rozgrzewka">🔥 Rozgrzewka biegacza</option>
+            <option value="prog:core">🧱 Core dla biegacza</option>
+            <option value="prog:nogi">🦵 Siła nóg</option>
+            <option value="prog:stabilizacja">⚖️ Stabilizacja i równowaga</option>
+            <option value="prog:pelny">💪 Pełny zestaw</option>
+          </optgroup>
+          <optgroup label="Oddechowe">
+            <option value="breath:478">🌙 4-7-8</option>
+            <option value="breath:box">🎯 Box / Kwadrat</option>
+            <option value="breath:wim">❄️ Wim Hof</option>
+          </optgroup>
+        </select>
+      </div>
       <div class="field" id="f-comment-wrap" style="display:none;">
         <label>Twój komentarz do treningu</label>
         <textarea id="f-comment" placeholder="np. Nogi trochę ciężkie, ale dałem radę..."></textarea>
@@ -1488,7 +1506,14 @@ function render() {
       let cwBtn = '';
       if (_urlRole !== 'coach') {
         const _cwSt = "margin-top:5px;background:rgba(255,255,255,0.08);border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.05em;padding:4px 8px;border-radius:6px;cursor:pointer;";
-        if (window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc)) {
+        const _eref = window.parseExerciseRef ? window.parseExerciseRef(t.exercise_ref) : null;
+        if (_eref) {
+          const _url = _eref.kind === 'prog'
+            ? ('zawodnik.html?tab=cwiczenia&cw=wzmacnianie&prog=' + _eref.key)
+            : ('zawodnik.html?tab=cwiczenia&breath=' + _eref.key);
+          const _lbl = _eref.kind === 'prog' ? '💪 Ćwiczenia →' : '🌬️ Oddech →';
+          cwBtn = `<button class="card-cw" onclick="event.stopPropagation();location.href='${_url}'" style="${_cwSt}">${_lbl}</button>`;
+        } else if (window.looksLikeStrength && window.looksLikeStrength(t.type, t.desc)) {
           const _pg = window.matchProgram ? window.matchProgram(t.desc) : null;
           const _url = 'zawodnik.html?tab=cwiczenia&cw=wzmacnianie' + (_pg ? '&prog=' + _pg : '');
           cwBtn = `<button class="card-cw" onclick="event.stopPropagation();location.href='${_url}'" style="${_cwSt}">💪 Ćwiczenia →</button>`;
@@ -1673,6 +1698,8 @@ function openModal(ds, idx) {
   if(sh){ sh.style.display='none'; sh.textContent=''; }
   document.getElementById('f-desc').value='';
   document.getElementById('f-status').value='planned';
+  const erefEl0 = document.getElementById('f-exercise-ref'); if (erefEl0) erefEl0.value = '';
+  const erefWrap = document.getElementById('f-exercise-ref-wrap'); if (erefWrap) erefWrap.style.display = (_urlRole === 'coach') ? 'block' : 'none';
   document.getElementById('log-fields').style.display='none';
   const fComment = document.getElementById('f-comment');
   const fCommentWrap = document.getElementById('f-comment-wrap');
@@ -1734,6 +1761,7 @@ function openModal(ds, idx) {
     document.getElementById('f-pace').value = t.pace || '';
     document.getElementById('f-hr').value = t.hr || t.heart_rate || '';
     document.getElementById('f-desc').value = t.desc || t.description || '';
+    const erefElE = document.getElementById('f-exercise-ref'); if (erefElE) erefElE.value = t.exercise_ref || '';
     document.getElementById('f-status').value = t.status||'planned';
   } else {
     document.getElementById('modal-title').textContent = 'Nowy trening';
@@ -2010,6 +2038,8 @@ async function saveTraining() {
   const hr = document.getElementById('f-hr').value;
   const desc = document.getElementById('f-desc').value;
   const status = document.getElementById('f-status').value;
+  const erefEl = document.getElementById('f-exercise-ref');
+  const eref = (erefEl && erefEl.value) ? erefEl.value : null;
 
   if(!editingDate) { notify('Brak daty'); return; }
 
@@ -2024,7 +2054,7 @@ async function saveTraining() {
     if (dbId) {
       const { error: updErr } = await sb.from('trainings').update({
         type: selectedType, distance_km: dist||null, duration_min: time||null,
-        pace: pace||null, heart_rate: hr||null, description: desc||null, status
+        pace: pace||null, heart_rate: hr||null, description: desc||null, exercise_ref: eref, status
       }).eq('id', dbId);
       if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
     } else {
@@ -2046,6 +2076,7 @@ async function saveTraining() {
         pace: pace||null,
         heart_rate: hr||null,
         description: desc||null,
+        exercise_ref: eref,
         status
       });
       if (insErr) { notify('Błąd: ' + insErr.message); return; }
@@ -2344,6 +2375,7 @@ async function loadTrainingsFromDB() {
       trainings[ds].push({
         _id: t.id,
         type: t.type || 'Spokojny',
+        exercise_ref: t.exercise_ref || null,
         dist: parseFloat(t.distance_km) || 0,
         time: t.duration_min || 0,
         pace: t.pace || '',

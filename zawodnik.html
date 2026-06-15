@@ -5631,7 +5631,17 @@ async function loadTodayTraining() {
   if(desc) desc.textContent = data.description || 'Trener nie dodał opisu do tego treningu.';
   const cwCta = document.getElementById('today-cwiczenia-cta');
   if (cwCta) {
-    if (window.looksLikeStrength && window.looksLikeStrength(data.type, data.description)) {
+    const _eref = window.parseExerciseRef ? window.parseExerciseRef(data.exercise_ref) : null;
+    if (_eref) {
+      cwCta.style.display = 'block';
+      if (_eref.kind === 'prog') {
+        cwCta.textContent = '💪 Otwórz ćwiczenia →';
+        cwCta.onclick = function(){ showSection('cwiczenia'); if (typeof switchCwiczeniaTab==='function') switchCwiczeniaTab('wzmacnianie'); if (typeof openProgram==='function') openProgram(_eref.key); };
+      } else {
+        cwCta.textContent = '🌬️ Ćwiczenia oddechowe →';
+        cwCta.onclick = function(){ showSection('cwiczenia'); if (typeof switchCwiczeniaTab==='function') switchCwiczeniaTab('oddech'); if (_eref.key==='wim') { if (typeof openWim==='function') openWim(); } else if (typeof openBreath==='function') openBreath(_eref.key); };
+      }
+    } else if (window.looksLikeStrength && window.looksLikeStrength(data.type, data.description)) {
       const _prog = window.matchProgram ? window.matchProgram(data.description) : null;
       cwCta.textContent = '💪 Otwórz ćwiczenia →';
       cwCta.style.display = 'block';
