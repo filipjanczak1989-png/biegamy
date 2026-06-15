@@ -29,7 +29,7 @@
   --border:rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.13);
   --accent:#e8561e;
-  --accent2:#ff7040;
+  --accent2:var(--accent2);
   --fg:#f0ede8;
   --fg2:rgba(240,237,232,0.65);
   --fg3:rgba(240,237,232,0.32);
@@ -40,7 +40,7 @@
   --red:#e05050;
   --blue:#4e8cd6;
   --purple:#8a62d8;
-  --glow-o:rgba(232,86,30,0.32);
+  --glow-o:rgba(var(--accent-rgb),0.32);
   --glow-g:rgba(61,184,112,0.25);
   --tile-radius:14px;
   --tile-shadow:0 6px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset;
@@ -50,7 +50,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono'
 body{
   padding-bottom:72px;
   background-image:
-    radial-gradient(ellipse 100% 45% at 50% -5%,rgba(232,86,30,0.1) 0%,transparent 60%),
+    radial-gradient(ellipse 100% 45% at 50% -5%,rgba(var(--accent-rgb),0.1) 0%,transparent 60%),
     radial-gradient(ellipse 60% 35% at 95% 65%,rgba(78,140,214,0.05) 0%,transparent 55%);
 }
 
@@ -77,7 +77,7 @@ nav{
   font-family:'DM Mono',monospace;
 }
 .nav-link:hover{color:var(--fg);border-color:var(--border2);}
-.nav-link.active{color:var(--fg);border-color:rgba(232,86,30,0.4);background:rgba(232,86,30,0.08);}
+.nav-link.active{color:var(--fg);border-color:rgba(var(--accent-rgb),0.4);background:rgba(var(--accent-rgb),0.08);}
 .nav-right{display:flex;align-items:center;gap:10px;}
 .athlete-select{
   background:var(--surface2);border:1px solid var(--border);color:var(--fg);
@@ -94,9 +94,9 @@ nav{
 .btn-primary{
   background:linear-gradient(135deg,#d44c18,var(--accent),var(--accent2));
   color:#fff;
-  box-shadow:0 3px 16px rgba(232,86,30,0.38),0 1px 0 rgba(255,255,255,0.1) inset;
+  box-shadow:0 3px 16px rgba(var(--accent-rgb),0.38),0 1px 0 rgba(255,255,255,0.1) inset;
 }
-.btn-primary:hover{box-shadow:0 5px 22px rgba(232,86,30,0.5);}
+.btn-primary:hover{box-shadow:0 5px 22px rgba(var(--accent-rgb),0.5);}
 .btn-ghost{background:rgba(255,255,255,0.04);color:var(--muted);border:1px solid var(--border);}
 .btn-ghost:hover{border-color:var(--border2);color:var(--fg);}
 
@@ -114,14 +114,14 @@ nav{
   width:32px;height:32px;cursor:pointer;font-size:16px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;transition:all 0.15s;
 }
-.week-nav-btn:hover{border-color:var(--accent);color:var(--fg);background:rgba(232,86,30,0.08);}
+.week-nav-btn:hover{border-color:var(--accent);color:var(--fg);background:rgba(var(--accent-rgb),0.08);}
 .week-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;min-width:220px;}
 .today-btn{
   font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 13px;
   background:transparent;border:1px solid var(--border);color:var(--muted);
   cursor:pointer;font-family:'DM Mono',monospace;transition:all 0.15s;border-radius:8px;
 }
-.today-btn:hover{border-color:var(--accent);color:var(--fg);background:rgba(232,86,30,0.06);}
+.today-btn:hover{border-color:var(--accent);color:var(--fg);background:rgba(var(--accent-rgb),0.06);}
 .toolbar-spacer{flex:1;}
 .week-km-badge{font-size:10px;color:var(--muted);letter-spacing:0.1em;}
 .week-km-badge span{color:var(--accent);font-size:14px;font-family:'Bebas Neue',sans-serif;}
@@ -138,7 +138,7 @@ nav{
   display:flex;flex-direction:column;gap:2px;
 }
 .day-header:last-child{border-right:none;}
-.day-header.today{background:rgba(232,86,30,0.05);}
+.day-header.today{background:rgba(var(--accent-rgb),0.05);}
 .day-name{font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);}
 .day-num{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);}
 .day-header.today .day-num{color:var(--accent);}
@@ -173,30 +173,30 @@ nav{
 }
 .day-col:last-child{border-right:none;}
 .day-col.today{
-  background:rgba(232,86,30,0.09);
-  box-shadow:inset 0 0 0 1px rgba(232,86,30,0.22);
+  background:rgba(var(--accent-rgb),0.09);
+  box-shadow:inset 0 0 0 1px rgba(var(--accent-rgb),0.22);
 }
-.day-col.drop-target{background:rgba(232,86,30,0.13);border-color:var(--accent);}
+.day-col.drop-target{background:rgba(var(--accent-rgb),0.13);border-color:var(--accent);}
 
 /* ✨ v47: Jump target — gdy klikasz log w panelu trenera */
 .day-header.jump-target{
-  background:linear-gradient(135deg,rgba(232,86,30,0.25),rgba(232,86,30,0.1)) !important;
-  box-shadow:inset 0 0 0 2px rgba(232,86,30,0.6) !important;
+  background:linear-gradient(135deg,rgba(var(--accent-rgb),0.25),rgba(var(--accent-rgb),0.1)) !important;
+  box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),0.6) !important;
   animation:jumpPulse 1.5s ease-in-out 3;
 }
 .day-header.jump-target .day-num{color:var(--accent) !important;font-weight:700;}
 .day-col.jump-target-col{
-  background:rgba(232,86,30,0.12) !important;
-  box-shadow:inset 0 0 0 2px rgba(232,86,30,0.5) !important;
+  background:rgba(var(--accent-rgb),0.12) !important;
+  box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),0.5) !important;
   animation:jumpPulseCol 1.5s ease-in-out 3;
 }
 @keyframes jumpPulse{
   0%,100%{transform:scale(1);}
-  50%{transform:scale(1.03);box-shadow:inset 0 0 0 3px rgba(232,86,30,0.9), 0 0 20px rgba(232,86,30,0.4);}
+  50%{transform:scale(1.03);box-shadow:inset 0 0 0 3px rgba(var(--accent-rgb),0.9), 0 0 20px rgba(var(--accent-rgb),0.4);}
 }
 @keyframes jumpPulseCol{
-  0%,100%{box-shadow:inset 0 0 0 2px rgba(232,86,30,0.5);}
-  50%{box-shadow:inset 0 0 0 3px rgba(232,86,30,0.85), 0 0 24px rgba(232,86,30,0.35);}
+  0%,100%{box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),0.5);}
+  50%{box-shadow:inset 0 0 0 3px rgba(var(--accent-rgb),0.85), 0 0 24px rgba(var(--accent-rgb),0.35);}
 }
 
 /* ── TRAINING CARDS — premium ───────────────────────────────────────── */
@@ -225,7 +225,7 @@ nav{
 }
 .training-card:active{transform:scale(0.98);}
 .training-card.dragging{opacity:0.3;transform:scale(0.95);}
-.day-col.drag-over{background:rgba(232,86,30,0.08);outline:2px dashed rgba(232,86,30,0.4);}
+.day-col.drag-over{background:rgba(var(--accent-rgb),0.08);outline:2px dashed rgba(var(--accent-rgb),0.4);}
 
 /* Status left-border accents */
 .training-card.done{border-left:3px solid var(--green);box-shadow:var(--tile-shadow),-3px 0 12px rgba(61,184,112,0.15);}
@@ -239,7 +239,7 @@ nav{
 }
 .card-type.spokojny{color:#5090e0;}
 .card-type.interwaly{color:#e8b840;}
-.card-type.tempo{color:#e8561e;}
+.card-type.tempo{color:var(--accent);}
 .card-type.wybieganie{color:#8a62d8;}
 .card-type.regeneracja{color:#3db870;}
 .card-type.odpoczynek{color:var(--muted);}
@@ -263,7 +263,7 @@ nav{
   position:relative;z-index:1;
 }
 .card-status.done{border-color:rgba(61,184,112,0.4);color:var(--green);background:rgba(61,184,112,0.07);}
-.card-status.missed{border-color:rgba(232,86,30,0.4);color:var(--accent);background:rgba(232,86,30,0.07);}
+.card-status.missed{border-color:rgba(var(--accent-rgb),0.4);color:var(--accent);background:rgba(var(--accent-rgb),0.07);}
 .card-delete{
   position:absolute;top:7px;right:7px;
   width:20px;height:20px;border:none;background:rgba(255,255,255,0.06);
@@ -295,7 +295,7 @@ nav{
   color:var(--muted);cursor:pointer;font-size:9px;letter-spacing:0.12em;
   transition:all 0.15s;text-transform:uppercase;border-radius:10px;
 }
-.add-training-btn:hover{border-color:rgba(232,86,30,0.4);color:var(--accent);background:rgba(232,86,30,0.04);}
+.add-training-btn:hover{border-color:rgba(var(--accent-rgb),0.4);color:var(--accent);background:rgba(var(--accent-rgb),0.04);}
 
 /* ── MODAL ──────────────────────────────────────────────────────────── */
 .modal-bg{
@@ -350,7 +350,7 @@ nav{
 }
 .field input:focus,.field textarea:focus{
   border-color:var(--accent);
-  box-shadow:0 0 0 3px rgba(232,86,30,0.1);
+  box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1);
 }
 .field select{cursor:pointer;}
 .field select option{background:var(--surface);}
@@ -369,7 +369,7 @@ nav{
 .type-pill.sel{color:var(--fg);}
 .type-pill.sel.spokojny-p{border-color:rgba(80,144,224,0.5);background:rgba(80,144,224,0.1);color:var(--blue);}
 .type-pill.sel.interwaly-p{border-color:rgba(232,184,64,0.5);background:rgba(232,184,64,0.1);color:var(--yellow);}
-.type-pill.sel.tempo-p{border-color:rgba(232,86,30,0.5);background:rgba(232,86,30,0.1);color:var(--accent);}
+.type-pill.sel.tempo-p{border-color:rgba(var(--accent-rgb),0.5);background:rgba(var(--accent-rgb),0.1);color:var(--accent);}
 .type-pill.sel.wybieganie-p{border-color:rgba(138,98,216,0.5);background:rgba(138,98,216,0.1);color:var(--purple);}
 .type-pill.sel.regeneracja-p{border-color:rgba(61,184,112,0.5);background:rgba(61,184,112,0.1);color:var(--green);}
 .type-pill.sel.odpoczynek-p{border-color:rgba(90,87,102,0.5);background:rgba(90,87,102,0.1);color:var(--muted);}
@@ -407,7 +407,7 @@ nav{
   width:28px;height:2px;
   background:linear-gradient(90deg,transparent,var(--accent),transparent);
   border-radius:0 0 3px 3px;
-  box-shadow:0 0 10px rgba(232,86,30,0.7);
+  box-shadow:0 0 10px rgba(var(--accent-rgb),0.7);
 }
 
 /* ── SCROLLBAR ──────────────────────────────────────────────────────── */
@@ -420,7 +420,7 @@ nav{
 #week-tpl-modal.show{display:flex;}
 .wtpl-box{
   background:var(--surface);
-  border:1px solid rgba(232,86,30,0.35);
+  border:1px solid rgba(var(--accent-rgb),0.35);
   border-radius:20px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:0;
   box-shadow:0 24px 80px rgba(0,0,0,0.8);
 }
@@ -505,7 +505,7 @@ body > *{position:relative;z-index:1;}
   transition:background 0.15s ease, transform 0.15s ease;
 }
 .tr-item:hover{
-  background:rgba(232,86,30,0.1)!important;
+  background:rgba(var(--accent-rgb),0.1)!important;
   transform:translateX(2px);
 }
 
@@ -514,7 +514,7 @@ body > *{position:relative;z-index:1;}
   transition:text-shadow 0.3s ease;
 }
 .nav-logo:hover{
-  text-shadow:0 0 20px rgba(232,86,30,0.5);
+  text-shadow:0 0 20px rgba(var(--accent-rgb),0.5);
 }
 
 /* ── TILES VIEW ─────────────────────────────────────── */
@@ -596,7 +596,7 @@ body > *{position:relative;z-index:1;}
   box-shadow: 0 0 5px currentColor;
 }
 .tile-status.done    { background: #2ECC71; color: #2ECC71; }
-.tile-status.planned { background: #FF6B2C; color: #FF6B2C; }
+.tile-status.planned { background: var(--accent2); color: var(--accent2); }
 .tile-badge-more {
   position: absolute; bottom: 3px; right: 3px; z-index: 2;
   background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
@@ -856,7 +856,7 @@ html { scroll-behavior: smooth; }
     <!-- Cele startowe w nav -->
     <div id="nav-goals-wrap" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <div id="nav-goals-list" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-    <button onclick="openGoalModal()" style="background:transparent;border:1px dashed rgba(255,255,255,0.1);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;border-radius:8px;display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.borderColor='rgba(232,86,30,0.4)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> + Cel</button>
+    <button onclick="openGoalModal()" style="background:transparent;border:1px dashed rgba(255,255,255,0.1);color:var(--muted);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:5px 10px;cursor:pointer;white-space:nowrap;transition:all 0.15s;border-radius:8px;display:inline-flex;align-items:center;gap:5px;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.4)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)';this.style.color='var(--muted)'"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> + Cel</button>
     </div>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Nowy trening</button>
     <button class="btn btn-ghost" id="btn-templates" onclick="openTemplatesModal()" style="display:none;">Szablony</button>
@@ -1471,12 +1471,12 @@ function render() {
     // Miniaturka grafiki gdy są posiłki (deterministyczna z daty)
     const dayImg = dayMeals > 0 ? getFoodImageFromSeed('day_' + ds) : null;
     const kcalBadge = dayMeals > 0
-      ? `<div class="day-kcal" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.3);border-radius:8px;padding:4px 8px 4px 4px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--accent);transition:all 0.15s;overflow:hidden;" onmouseover="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.2),rgba(232,86,30,0.08))';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04))';this.style.transform='translateY(0)'"><div style="width:22px;height:22px;border-radius:6px;background-image:url('${dayImg}');background-size:cover;background-position:center;flex-shrink:0;border:1px solid rgba(232,86,30,0.4);box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div><span>${Math.round(dayKcal)} kcal · ${dayMeals}</span></div>`
+      ? `<div class="day-kcal" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.04));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:8px;padding:4px 8px 4px 4px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--accent);transition:all 0.15s;overflow:hidden;" onmouseover="this.style.background='linear-gradient(135deg,rgba(var(--accent-rgb),0.2),rgba(var(--accent-rgb),0.08))';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.04))';this.style.transform='translateY(0)'"><div style="width:22px;height:22px;border-radius:6px;background-image:url('${dayImg}');background-size:cover;background-position:center;flex-shrink:0;border:1px solid rgba(var(--accent-rgb),0.4);box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div><span>${Math.round(dayKcal)} kcal · ${dayMeals}</span></div>`
       : `<div class="day-kcal-empty" onclick="openDayMealsModal('${ds}', event)" style="display:flex;align-items:center;gap:5px;background:transparent;border:1px dashed rgba(255,255,255,0.1);border-radius:6px;padding:4px 8px;margin-top:5px;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:0.04em;color:var(--muted);">+ jedzenie</div>`;
     return `<div class="day-header ${isToday?'today':''} ${isJumpTarget?'jump-target':''}" ${isJumpTarget?'data-jump="true"':''}>
       <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
       <div class="day-num">${dObj.getDate()} ${monthNames[dObj.getMonth()]}</div>
-      ${w ? `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${w.is_bad?'#e8561e':'var(--muted)'};margin-top:2px;letter-spacing:0.04em;">${w.icon} ${w.temp_max}°</div>` : ''}
+      ${w ? `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${w.is_bad?'var(--accent)':'var(--muted)'};margin-top:2px;letter-spacing:0.04em;">${w.icon} ${w.temp_max}°</div>` : ''}
       ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
       ${kcalBadge}
     </div>`;
@@ -1858,9 +1858,9 @@ function renderDayMealsList(meals) {
     const time = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
     const initImg = getFoodImageSync(m.name);
     return `
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:11px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(232,86,30,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='var(--border)'">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:11px;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)';this.style.borderColor='rgba(var(--accent-rgb),0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.borderColor='var(--border)'">
         <div style="position:relative;width:42px;height:42px;flex-shrink:0;">
-          <div data-meal-name="${escapeHtml(m.name)}" style="width:42px;height:42px;border-radius:10px;background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');background-size:cover;background-position:center;border:1px solid rgba(232,86,30,0.25);box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>
+          <div data-meal-name="${escapeHtml(m.name)}" style="width:42px;height:42px;border-radius:10px;background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');background-size:cover;background-position:center;border:1px solid rgba(var(--accent-rgb),0.25);box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>
           <div style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;">${icons[m.meal_type] || '🍽'}</div>
         </div>
         <div style="flex:1;min-width:0;">
@@ -2927,8 +2927,8 @@ function selLmType(btn, type) {
     b.style.borderColor = 'var(--border)';
     b.style.color = 'var(--muted)';
   });
-  btn.style.background = 'rgba(232,86,30,0.12)';
-  btn.style.borderColor = 'rgba(232,86,30,0.4)';
+  btn.style.background = 'rgba(var(--accent-rgb),0.12)';
+  btn.style.borderColor = 'rgba(var(--accent-rgb),0.4)';
   btn.style.color = 'var(--accent)';
   window._logType2 = type;
 }
@@ -3121,7 +3121,7 @@ async function runLogOcr(input) {
     }
     const sfx = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
     setStatus(filled > 0 ? '✓ wczytano ' + filled + ' ' + sfx + dateWarn : 'Pola niewczytane — uzupełnij ręcznie',
-              dateWarn ? '#e8561e' : (filled > 0 ? 'var(--green)' : 'var(--muted)'));
+              dateWarn ? 'var(--accent)' : (filled > 0 ? 'var(--green)' : 'var(--muted)'));
   } catch (e) {
     console.warn('[cal-ocr]', e); setStatus('Pola niewczytane — uzupełnij ręcznie');
   } finally {
@@ -3880,7 +3880,7 @@ async function renderTemplatesList() {
   wrap.innerHTML = list.map(t => {
     const color = typeColors[t.type] || '#66636e';
     const sourceBadge = t.source === 'from_ai_plan'
-      ? '<span style="display:inline-block;background:rgba(232,86,30,0.15);color:#e8561e;padding:2px 6px;border-radius:4px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-left:6px;vertical-align:middle;">AI</span>'
+      ? '<span style="display:inline-block;background:rgba(var(--accent-rgb),0.15);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-left:6px;vertical-align:middle;">AI</span>'
       : '';
     const usedStr = (t.used_count && t.used_count > 0) ? `<span style="color:var(--muted);font-size:9px;margin-left:6px;">używany ${t.used_count}×</span>` : '';
     const meta = [t.dist ? t.dist + ' km' : '', t.pace ? t.pace + '/km' : '', t.hr ? '♥ ' + t.hr : ''].filter(Boolean).join(' · ');
@@ -3940,7 +3940,7 @@ async function refreshCurrentWeekPreview() {
   // currentWeekStart to STRING 'YYYY-MM-DD' (module-level w kalendarz.html)
   const athleteId = window._calSelectedAthleteId;
   if (!athleteId || !currentWeekStart) {
-    preview.innerHTML = '<span style="color:#e8561e;">⚠ Najpierw wybierz zawodnika i tydzień w kalendarzu</span>';
+    preview.innerHTML = '<span style="color:var(--accent);">⚠ Najpierw wybierz zawodnika i tydzień w kalendarzu</span>';
     return;
   }
 
@@ -3959,11 +3959,11 @@ async function refreshCurrentWeekPreview() {
     .order('date');
 
   if (error) {
-    preview.innerHTML = '<span style="color:#e8561e;">Błąd: ' + error.message + '</span>';
+    preview.innerHTML = '<span style="color:var(--accent);">Błąd: ' + error.message + '</span>';
     return;
   }
   if (!data || data.length === 0) {
-    preview.innerHTML = '<span style="color:#e8561e;">⚠ Aktualny tydzień jest pusty — dodaj treningi przed zapisem</span>';
+    preview.innerHTML = '<span style="color:var(--accent);">⚠ Aktualny tydzień jest pusty — dodaj treningi przed zapisem</span>';
     return;
   }
 
@@ -4101,7 +4101,7 @@ async function renderWeekTemplatesList() {
 
   wrap.innerHTML = list.map(t => {
     const sourceBadge = t.source === 'from_ai_plan'
-      ? '<span style="display:inline-block;background:rgba(232,86,30,0.15);color:#e8561e;padding:2px 6px;border-radius:4px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-left:6px;font-family:DM Mono,monospace;">AI</span>'
+      ? '<span style="display:inline-block;background:rgba(var(--accent-rgb),0.15);color:var(--accent);padding:2px 6px;border-radius:4px;font-size:8px;letter-spacing:0.1em;text-transform:uppercase;margin-left:6px;font-family:DM Mono,monospace;">AI</span>'
       : '';
     const usedStr = (t.used_count && t.used_count > 0) ? `<span style="color:var(--muted);font-size:9px;margin-left:6px;">używany ${t.used_count}×</span>` : '';
     const kmStr = t.total_distance_km ? `${t.total_distance_km}km` : '';
@@ -4467,8 +4467,8 @@ loadTrainingsFromDB().then(() => setView(_calView));
     <span class="nav-lbl" style="color:var(--accent);">Plan</span>
   </a>
   <a id="bnav-log" class="nav-it">
-    <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;margin-top:-16px;box-shadow:0 0 20px rgba(232,86,30,0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='#e8561e';this.style.display='none'">
+    <div style="width:44px;height:44px;border-radius:50%;overflow:hidden;margin-top:-16px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
+      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
     </div>
     <span class="nav-lbl" style="margin-top:2px;">Log</span>
   </a>
@@ -4975,10 +4975,10 @@ function _openDayScreen(ds) {
   if (_urlRole === 'athlete') {
     if (hasLog) {
       // Ma log — "Edytuj" + "Story" + "Usuń"
-      const storyBtn = `<button onclick="if(typeof PRS!=='undefined')PRS.launch({})" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:#e8561e;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">▶ Story</button>`;
+      const storyBtn = `<button onclick="if(typeof PRS!=='undefined')PRS.launch({})" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">▶ Story</button>`;
       const deleteBtn = `<button id="ds-delete-btn" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">🗑</button>`;
       ctaInner.innerHTML = closeBtn + storyBtn + deleteBtn +
-        `<button id="ds-edit-btn" data-ds="${ds}" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
+        `<button id="ds-edit-btn" data-ds="${ds}" style="flex:1;background:var(--accent2);border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
       // Podepnij listenery (bez inline onclick — unikamy problemów z escape)
       setTimeout(() => {
         const btnEdit = document.getElementById('ds-edit-btn');
@@ -5022,7 +5022,7 @@ function _openDayScreen(ds) {
       const deleteBtn = `<button id="ds-delete-btn-plan" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">🗑</button>`;
       const editBtn = `<button id="ds-edit-btn-plan" data-ds="${ds}" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);color:rgba(240,237,232,0.85);border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">✏️</button>`;
       ctaInner.innerHTML = closeBtn + deleteBtn + editBtn +
-        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
+        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:var(--accent2);border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
       // Podepnij listenery
       setTimeout(() => {
         const btnEdit = document.getElementById('ds-edit-btn-plan');
@@ -5046,7 +5046,7 @@ function _openDayScreen(ds) {
     } else {
       // Brak planu i logu — "Dodaj trening"
       ctaInner.innerHTML = closeBtn +
-        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:#FF6B2C;border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Dodaj trening</button>`;
+        `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:var(--accent2);border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">+ Dodaj trening</button>`;
     }
   } else {
     ctaInner.innerHTML = closeBtn;
@@ -5122,7 +5122,7 @@ document.addEventListener('keydown', e => {
     </div>
     <div class="modal-body">
       <!-- Suma kcal hero -->
-      <div id="meals-hero" style="background:linear-gradient(135deg,rgba(232,86,30,0.12),rgba(232,86,30,0.04));border:1px solid rgba(232,86,30,0.25);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+      <div id="meals-hero" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.12),rgba(var(--accent-rgb),0.04));border:1px solid rgba(var(--accent-rgb),0.25);border-radius:14px;padding:16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
         <div>
           <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Razem dziś</div>
           <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;color:var(--fg);"><span id="meals-total-kcal">0</span> kcal</div>
@@ -5139,7 +5139,7 @@ document.addEventListener('keydown', e => {
 
       <!-- Akcje na dole -->
       <div id="meals-actions" style="display:flex;flex-direction:column;gap:8px;margin-top:14px;">
-        <button onclick="goToNutritionForDay()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:13px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(232,86,30,0.35);">
+        <button onclick="goToNutritionForDay()" style="background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;border-radius:12px;padding:13px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(var(--accent-rgb),0.35);">
           + Dodaj posiłek (otwórz tracker)
         </button>
         <div style="font-size:10px;color:var(--muted);text-align:center;font-family:'DM Mono',monospace;letter-spacing:0.06em;">
@@ -5286,7 +5286,7 @@ document.addEventListener('keydown', e => {
     <div class="ds-quote-author" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);opacity:0.8;"></div>
   </div>
   <div id="ds-coach-card" class="ds-card" style="display:none;border-color:rgba(212,80,26,0.3);">
-      <div class="ds-label" style="color:#FF6B2C;">Plan trenera</div>
+      <div class="ds-label" style="color:var(--accent2);">Plan trenera</div>
       <div id="ds-coach-text" style="font-size:14px;color:rgba(240,237,232,0.85);line-height:1.65;"></div>
     </div>
 
@@ -5342,7 +5342,7 @@ document.addEventListener('keydown', e => {
 .prs-s-final{background-color:#0a0a0a;background-size:cover;background-position:center top;}
 .prs-s-final-inner{position:relative;z-index:2;text-align:center;}
 .prs-s-final-logo{font-family:'DM Mono',monospace;font-size:28px;font-weight:700;color:#fff;letter-spacing:0.08em;}
-.prs-s-final-logo span{color:#e8561e;}
+.prs-s-final-logo span{color:var(--accent);}
 .prs-s-final-tagline{font-family:'Bebas Neue','DM Mono',monospace;font-size:clamp(48px,15vw,80px);color:#fff;letter-spacing:0.04em;line-height:1;margin-top:12px;}
 </style>
 <script>
@@ -5354,7 +5354,7 @@ const PRS = (() => {
 
   // Piękne gradienty CSS dla każdego typu slajdu
   const SLIDE_STYLES = {
-    dystans: { grad: 'linear-gradient(160deg,#0f0f0f 0%,#1a0a00 40%,#2d1000 100%)', accent: '#e8561e', icon: '⟶' },
+    dystans: { grad: 'linear-gradient(160deg,#0f0f0f 0%,#1a0a00 40%,#2d1000 100%)', accent: 'var(--accent)', icon: '⟶' },
     tempo:   { grad: 'linear-gradient(160deg,#080810 0%,#0a0a1a 40%,#101028 100%)', accent: '#5b8cff', icon: '⏱' },
     czas:    { grad: 'linear-gradient(160deg,#080f08 0%,#0a1a0a 40%,#0f280f 100%)', accent: '#3db870', icon: '◷' },
   };
@@ -5487,7 +5487,7 @@ const PRS = (() => {
     const W = canvas.width = window.innerWidth;
     const H = canvas.height = window.innerHeight;
     const ctx = canvas.getContext('2d');
-    const colors = ['#e8561e','#ff8c42','#ffffff','#ffd700','#ff4444','#3db870','#5b8cff'];
+    const colors = ['var(--accent)','#ff8c42','#ffffff','#ffd700','#ff4444','#3db870','#5b8cff'];
     const particles = Array.from({length:130},()=>({
       x:Math.random()*W, y:-20,
       vx:(Math.random()-0.5)*5, vy:Math.random()*5+2,
@@ -5730,7 +5730,7 @@ async function doCopyWeek() {
       <button onclick="closeCopyWeekModal()" style="background:none;border:none;color:var(--muted,#888);cursor:pointer;font-size:20px;line-height:1;">✕</button>
     </div>
     <div style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">TYDZIEŃ ŹRÓDŁOWY</div>
-    <div id="cw-source-label" style="font-size:14px;font-weight:600;color:var(--accent,#e8561e);margin-bottom:14px;font-family:'Bebas Neue',sans-serif;"></div>
+    <div id="cw-source-label" style="font-size:14px;font-weight:600;color:var(--accent,var(--accent));margin-bottom:14px;font-family:'Bebas Neue',sans-serif;"></div>
     <div id="cw-preview" style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;margin-bottom:14px;line-height:1.6;"></div>
     <div style="font-size:10px;color:var(--muted,#888);font-family:'DM Mono',monospace;letter-spacing:0.1em;margin-bottom:4px;">ZAWODNIK</div>
     <select id="cw-athlete" style="width:100%;background:var(--bg,#07050c);border:1px solid var(--border,rgba(255,255,255,0.1));color:var(--fg,#f0ede8);font-family:'DM Mono',monospace;font-size:12px;padding:10px;border-radius:8px;margin-bottom:14px;"></select>
@@ -5738,7 +5738,7 @@ async function doCopyWeek() {
     <input type="date" id="cw-date" style="width:100%;background:var(--bg,#07050c);border:1px solid var(--border,rgba(255,255,255,0.1));color:var(--fg,#f0ede8);font-family:'DM Mono',monospace;font-size:12px;padding:10px;border-radius:8px;margin-bottom:18px;">
     <div style="display:flex;gap:10px;">
       <button onclick="closeCopyWeekModal()" style="flex:1;background:transparent;color:var(--muted,#888);border:1px solid var(--border,rgba(255,255,255,0.1));font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;border-radius:8px;cursor:pointer;">Anuluj</button>
-      <button onclick="doCopyWeek()" style="flex:2;background:var(--accent,#e8561e);color:#fff;border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;border-radius:8px;cursor:pointer;">Kopiuj →</button>
+      <button onclick="doCopyWeek()" style="flex:2;background:var(--accent,var(--accent));color:#fff;border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px;border-radius:8px;cursor:pointer;">Kopiuj →</button>
     </div>
   </div>
 </div>

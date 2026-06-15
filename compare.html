@@ -47,7 +47,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
 /* Picker tile hover */
 .picker-tile{transition:border-color 0.15s,background 0.15s;}
-.picker-tile:hover{border-color:var(--accent) !important;background:rgba(232,86,30,0.05) !important;}
+.picker-tile:hover{border-color:var(--accent) !important;background:rgba(var(--accent-rgb),0.05) !important;}
 </style>
 </head>
 <body>
@@ -93,7 +93,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- TSB chart 90d 2 lines -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;">📈 Trend formy · 90 dni
-        <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
       </h2>
       <!-- v4 Strava-style toggle (wpływa na OBA athletów) -->
       <div id="compare-toggles" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;">
@@ -127,7 +127,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
       <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div style="height:50px;position:relative;">
           <canvas id="cmp-me-trimp-bars" style="max-height:50px;"></canvas>
-          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:#e8561e;letter-spacing:0.1em;margin-top:2px;">TY · TRIMP</div>
+          <div style="text-align:center;font-size:8px;font-family:'DM Mono',monospace;color:var(--accent);letter-spacing:0.1em;margin-top:2px;">TY · TRIMP</div>
         </div>
         <div style="height:50px;position:relative;">
           <canvas id="cmp-friend-trimp-bars" style="max-height:50px;"></canvas>
@@ -135,14 +135,14 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
         </div>
       </div>
       <p style="text-align:center;margin-top:8px;font-size:10px;color:var(--fg3);line-height:1.4;">
-        <b style="color:#e8561e;">━ Ty</b> vs <b style="color:#a78bfa;">━ <span id="friend-name-legend"></span></b> · TSB grube, CTL cienkie, ATL kropkowane
+        <b style="color:var(--accent);">━ Ty</b> vs <b style="color:#a78bfa;">━ <span id="friend-name-legend"></span></b> · TSB grube, CTL cienkie, ATL kropkowane
       </p>
     </section>
 
     <!-- Weekly km bars 2 grids -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">📊 Stres tygodnia · 8 tyg · TRIMP
-        <button onclick="window.showMetricTooltip('weekly_km')" title="Co to TRIMP?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('weekly_km')" title="Co to TRIMP?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
@@ -160,7 +160,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- Kalorie weekly bars 2 grids -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">🔥 Kalorie spalone · 8 tygodni
-        <button onclick="window.showMetricTooltip('kalorie')" title="Co to kalorie?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('kalorie')" title="Co to kalorie?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
@@ -178,7 +178,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- v1.1: Types pie 2 grids (7 dni) -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">🏃 TYPY TRENINGÓW · 7 DNI
-        <button onclick="window.showMetricTooltip('types_pie')" title="Co to typy treningów?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('types_pie')" title="Co to typy treningów?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
@@ -195,7 +195,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- v1.1: Heatmap 13 tyg 2 grids (overflow-x:auto żeby na mobilu scrollować bez ścisku) -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">📅 AKTYWNOŚĆ · 13 TYGODNI
-        <button onclick="window.showMetricTooltip('heatmap')" title="Co to aktywność?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('heatmap')" title="Co to aktywność?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;overflow-x:auto;">
@@ -217,7 +217,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- Bottom actions -->
     <div style="text-align:center;margin:32px 0 20px;">
-      <button onclick="changeFriend()" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 24px;border-radius:8px;cursor:pointer;">Wybierz innego →</button>
+      <button onclick="changeFriend()" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 24px;border-radius:8px;cursor:pointer;">Wybierz innego →</button>
     </div>
 
   </div>
@@ -289,7 +289,7 @@ async function renderPicker() {
     const nameEsc = escapeHtml(f.full_name || 'Bez imienia');
     const avatarHtml = f.avatar_url
       ? '<img src="' + escapeHtml(f.avatar_url) + '" style="width:40px;height:40px;border-radius:50%;object-fit:cover;flex-shrink:0;">'
-      : '<span style="width:40px;height:40px;border-radius:50%;background:rgba(232,86,30,0.2);display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:13px;color:var(--accent);flex-shrink:0;">' + initials + '</span>';
+      : '<span style="width:40px;height:40px;border-radius:50%;background:rgba(var(--accent-rgb),0.2);display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:13px;color:var(--accent);flex-shrink:0;">' + initials + '</span>';
     return '<a class="picker-tile" href="compare.html?friend=' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;text-decoration:none;color:var(--fg);">'
       + avatarHtml
       + '<span style="flex:1;font-family:Inter,sans-serif;font-size:14px;">' + nameEsc + '</span>'
@@ -327,13 +327,13 @@ async function renderCompare() {
   const _ftEl = document.getElementById('friend-name-types'); if (_ftEl) _ftEl.textContent = friendNameUpper;
   const _fhEl = document.getElementById('friend-name-heatmap'); if (_fhEl) _fhEl.textContent = friendNameUpper;
 
-  renderAthleteCard('me-card', meProf, myLogs, myWeight, '#e8561e', 'TY');
+  renderAthleteCard('me-card', meProf, myLogs, myWeight, 'var(--accent)', 'TY');
   renderAthleteCard('friend-card', friendProf, friendLogs, friendWeight, '#a78bfa', 'PRZYJACIEL');
 
   await renderCompareChart(myLogs, friendLogs, _friendName);
 
   // v4: TRIMP bars per athlete (osobny mini-canvas każdy)
-  renderCmpTrimpBars(myLogs, 'cmp-me-trimp-bars', '#e8561e');
+  renderCmpTrimpBars(myLogs, 'cmp-me-trimp-bars', 'var(--accent)');
   renderCmpTrimpBars(friendLogs, 'cmp-friend-trimp-bars', '#a78bfa');
 
   // Race markers POD chartem (tylko moje race goals, friend's omitted żeby nie przeładować)
@@ -372,7 +372,7 @@ async function renderCompare() {
               const daysLabel = m.daysFromNow >= 0 ? ('za ' + m.daysFromNow + ' dni') : (Math.abs(m.daysFromNow) + ' dni temu');
               return '<div style="position:absolute;left:' + m.pctX.toFixed(2) + '%;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;">' +
                 '<div style="font-size:14px;line-height:1;">🏁</div>' +
-                '<div title="' + safeName + ' (' + daysLabel + ')" style="font-size:8px;font-family:DM Mono,monospace;color:#e8561e;letter-spacing:0.05em;white-space:nowrap;background:rgba(232,86,30,0.12);padding:1px 5px;border-radius:3px;border:1px solid rgba(232,86,30,0.3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">' + safeName + '</div>' +
+                '<div title="' + safeName + ' (' + daysLabel + ')" style="font-size:8px;font-family:DM Mono,monospace;color:var(--accent);letter-spacing:0.05em;white-space:nowrap;background:rgba(var(--accent-rgb),0.12);padding:1px 5px;border-radius:3px;border:1px solid rgba(var(--accent-rgb),0.3);max-width:80px;overflow:hidden;text-overflow:ellipsis;">' + safeName + '</div>' +
               '</div>';
             }).join('') +
           '</div>';
@@ -444,7 +444,7 @@ async function renderCompare() {
     } else if (myAvgTRIMP === 0) {
       wkDeltaEl.innerHTML = '<b style="color:#a78bfa;">' + _fnEsc + '</b> trenuje. Ty nic w 8 tyg.';
     } else if (friendAvgTRIMP === 0) {
-      wkDeltaEl.innerHTML = '<b style="color:#e8561e;">TY</b> trenujesz. <b>' + _fnEsc + '</b> nic w 8 tyg.';
+      wkDeltaEl.innerHTML = '<b style="color:var(--accent);">TY</b> trenujesz. <b>' + _fnEsc + '</b> nic w 8 tyg.';
     } else {
       const diff = Math.round(((friendAvgTRIMP - myAvgTRIMP) / myAvgTRIMP) * 100);
       const winner = diff > 0 ? _fnEsc : 'TY';
@@ -504,9 +504,9 @@ function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) 
   const nameEsc = escapeHtml(profile.full_name || '?');
 
   const isMe = elId === 'me-card';
-  const tsbBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'tsb\')" title="Co to TSB?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
-  const ctlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'ctl\')" title="Co to CTL?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
-  const atlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'atl\')" title="Co to ATL?" style="background:rgba(232,86,30,0.15);border:1px solid rgba(232,86,30,0.35);color:#e8561e;width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+  const tsbBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'tsb\')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+  const ctlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'ctl\')" title="Co to CTL?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+  const atlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'atl\')" title="Co to ATL?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
 
   const avatarHtml = profile.avatar_url
     ? '<img src="' + escapeHtml(profile.avatar_url) + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + ';">'
@@ -595,18 +595,18 @@ async function renderCompareChart(myLogs, friendLogs, friendName) {
     data: {
       labels: extLabels,
       datasets: [
-        cmpToggles.ctl && { label: 'Ty — CTL', data: padToProj(meSer.ctlData), borderColor: 'rgba(232,86,30,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
+        cmpToggles.ctl && { label: 'Ty — CTL', data: padToProj(meSer.ctlData), borderColor: 'rgba(var(--accent-rgb),0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
         cmpToggles.ctl && { label: friendName + ' — CTL', data: padToProj(friSer.ctlData), borderColor: 'rgba(167,139,250,0.4)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, fill: false, order: 4 },
-        cmpToggles.atl && { label: 'Ty — ATL', data: padToProj(meSer.atlData), borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
+        cmpToggles.atl && { label: 'Ty — ATL', data: padToProj(meSer.atlData), borderColor: 'rgba(var(--accent-rgb),0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
         cmpToggles.atl && { label: friendName + ' — ATL', data: padToProj(friSer.atlData), borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', tension: 0.3, pointRadius: 0, borderWidth: 1, borderDash: [4,4], fill: false, order: 3 },
-        cmpToggles.tsb && { label: 'Ty — TSB', data: padToProj(meSer.tsbData), borderColor: '#e8561e', backgroundColor: 'rgba(232,86,30,0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 1 },
+        cmpToggles.tsb && { label: 'Ty — TSB', data: padToProj(meSer.tsbData), borderColor: 'var(--accent)', backgroundColor: 'rgba(var(--accent-rgb),0.1)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 1 },
         cmpToggles.tsb && { label: friendName + ' — TSB', data: padToProj(friSer.tsbData), borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.08)', tension: 0.3, pointRadius: 0, borderWidth: 2.5, fill: tsbFill, order: 2 },
         // Projection — dashed, hidden z legend filter
-        cmpToggles.tsb && myProj && { label: 'Ty TSB proj', data: padFromHist(myProj.tsbData), borderColor: 'rgba(232,86,30,0.5)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: false, order: 10 },
+        cmpToggles.tsb && myProj && { label: 'Ty TSB proj', data: padFromHist(myProj.tsbData), borderColor: 'rgba(var(--accent-rgb),0.5)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: false, order: 10 },
         cmpToggles.tsb && friProj && { label: friendName + ' TSB proj', data: padFromHist(friProj.tsbData), borderColor: 'rgba(167,139,250,0.5)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1.5, tension: 0.3, pointRadius: 0, fill: false, order: 10 },
-        cmpToggles.ctl && myProj && { label: 'Ty CTL proj', data: padFromHist(myProj.ctlData), borderColor: 'rgba(232,86,30,0.35)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 11 },
+        cmpToggles.ctl && myProj && { label: 'Ty CTL proj', data: padFromHist(myProj.ctlData), borderColor: 'rgba(var(--accent-rgb),0.35)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 11 },
         cmpToggles.ctl && friProj && { label: friendName + ' CTL proj', data: padFromHist(friProj.ctlData), borderColor: 'rgba(167,139,250,0.35)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 11 },
-        cmpToggles.atl && myProj && { label: 'Ty ATL proj', data: padFromHist(myProj.atlData), borderColor: 'rgba(232,86,30,0.3)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 12 },
+        cmpToggles.atl && myProj && { label: 'Ty ATL proj', data: padFromHist(myProj.atlData), borderColor: 'rgba(var(--accent-rgb),0.3)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 12 },
         cmpToggles.atl && friProj && { label: friendName + ' ATL proj', data: padFromHist(friProj.atlData), borderColor: 'rgba(167,139,250,0.3)', backgroundColor: 'transparent', borderDash: [5,5], borderWidth: 1, tension: 0.3, pointRadius: 0, fill: false, order: 12 }
       ].filter(Boolean)
     },
