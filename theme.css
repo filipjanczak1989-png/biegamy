@@ -23,3 +23,5 @@ html[data-theme="forest"]{ --accent:#2fae5a; --accent2:#46c873; --accent3:#74dd9
   --glow-o:rgba(47,174,90,0.32); --glow-o2:rgba(47,174,90,0.14); }
 html[data-theme="grape"]{ --accent:#8a62d8; --accent2:#a585e8; --accent3:#c0a8f0; --accent-rgb:138,98,216;
   --glow-o:rgba(138,98,216,0.32); --glow-o2:rgba(138,98,216,0.14); }
+html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a; --accent-rgb:212,160,23;
+  --glow-o:rgba(212,160,23,0.32); --glow-o2:rgba(212,160,23,0.14); }
