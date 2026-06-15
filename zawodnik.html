@@ -6735,6 +6735,37 @@ function switchCwiczeniaTab(tab) {
     if (btn) { btn.style.background = t===tab?'rgba(232,86,30,0.12)':'transparent'; btn.style.color = t===tab?'var(--accent)':'var(--muted)'; }
     if (panel) panel.style.display = t===tab?'block':'none';
   });
+  if (tab === 'wzmacnianie') renderWzmacnianie();
+}
+
+const EX_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
+const EXERCISES = {
+  przysiad:       { name:'Przysiady',         cat:'nogi',        img:'exercise-przysiad.webp',        desc:'Stopy na szerokość bioder, biodra w tył jak na krzesło, kolana za palcami, plecy proste.', dose:'UDA · POŚLADKI · 3×12' },
+  wykrok:         { name:'Wykroki',           cat:'nogi',        img:'exercise-wykrok.webp',          desc:'Duży krok w przód, oba kolana zegnij do ~90°, tylne kolano tuż nad ziemią. Tułów pionowo.', dose:'UDA · POŚLADKI · 3×10 / NOGA' },
+  wykrokRotacja:  { name:'Wykrok z rotacją',  cat:'nogi',        img:'exercise-wykrok-rotacja.webp',  desc:'W wykroku oprzyj rękę przy stopie, drugą wyciągnij w górę skręcając tułów. Otwiera biodra i klatkę, wzmacnia stabilizację rotacyjną.', dose:'UDA · CORE · 3×8 / STRONA' },
+  mostek:         { name:'Glute bridge',      cat:'posladki',    img:'exercise-mostek.webp',          desc:'Na plecach, kolana ugięte. Unieś biodra do linii kolana–barki, ściśnij pośladki na górze, opuść powoli.', dose:'POŚLADKI · 3×15' },
+  mostekJednonoz: { name:'Mostek jednonóż',   cat:'posladki',    img:'exercise-mostek-jednonoz.webp', desc:'Mostek z jedną nogą wyprostowaną w górze. Unieś biodra siłą jednej nogi, miednica pozioma. Mocniejszy wariant.', dose:'POŚLADKI · 3×10 / NOGA' },
+  plank:          { name:'Plank (deska)',     cat:'core',        img:'exercise-plank.webp',           desc:'Przedramiona pod barkami, ciało w linii prostej. Napnij brzuch i pośladki, nie zapadaj w biodrach.', dose:'CORE · 3×30 SEK' },
+  plankBok:       { name:'Side plank',        cat:'core',        img:'exercise-plank-bok.webp',       desc:'Na boku, łokieć pod barkiem, biodra wysoko, ciało w linii. Górną rękę wyciągnij w górę. Powtórz na drugą stronę.', dose:'CORE · SKOŚNE · 3×20 SEK / STRONA' },
+  deadBug:        { name:'Dead bug',          cat:'core',        img:'exercise-dead-bug.webp',        desc:'Na plecach, ręce w górę, kolana 90°. Opuszczaj naprzemiennie przeciwną rękę i nogę, lędźwie przy podłodze.', dose:'CORE · 3×10' },
+  jaskolka:       { name:'Jaskółka',          cat:'stabilizacja',img:'exercise-jaskolka.webp',        desc:'Stań na jednej nodze, pochyl tułów w przód, drugą nogę wyprostuj w tył do linii pleców. Utrzymaj równowagę, wróć. Zmień nogę.', dose:'STABILIZACJA · RÓWNOWAGA · 3×8 / NOGA' },
+  wspiecia:       { name:'Wspięcia na palce', cat:'lydki',       img:'exercise-wspiecia.webp',        desc:'Stojąc (ręka o ścianę dla balansu), unieś pięty jak najwyżej, opuść powoli. Dla większego zakresu przód stopy na krawędzi schodka.', dose:'ŁYDKI · 3×15' },
+};
+
+function renderExerciseCard(ex, isLast) {
+  return '<div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;' + (isLast ? '' : 'margin-bottom:12px;') + '">'
+    + '<img src="' + EX_BASE + ex.img + '" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility=\'hidden\'">'
+    + '<div style="flex:1;min-width:0;">'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">' + ex.name + '</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:\'Inter\',sans-serif;line-height:1.35;margin-bottom:5px;">' + ex.desc + '</div>'
+    + '<div style="font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">' + ex.dose + '</div>'
+    + '</div></div>';
+}
+function renderWzmacnianie() {
+  const el = document.getElementById('wzm-list');
+  if (!el) return;
+  const ids = Object.keys(EXERCISES);
+  el.innerHTML = ids.map(function(id, i){ return renderExerciseCard(EXERCISES[id], i === ids.length - 1); }).join('');
 }
 
 const BREATH_TECHNIQUES = {
@@ -10521,86 +10552,7 @@ if ('serviceWorker' in navigator) {
   </div>
   <div id="cw-tab-wzmacnianie" style="display:none;padding:4px 0;">
     <div style="font-size:13px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-bottom:14px;line-height:1.4;">Trening siłowy dla biegacza — wzmacnia mięśnie, zapobiega kontuzjom. 2–3× w tygodniu, 2 min przerwy między seriami.</div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-przysiad.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Przysiady</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Stopy na szerokość bioder, biodra w tył jak na krzesło, kolana za palcami, plecy proste.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">UDA · POŚLADKI · 3×12</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-wykrok.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Wykroki</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Duży krok w przód, oba kolana zegnij do ~90°, tylne kolano tuż nad ziemią. Tułów pionowo.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">UDA · POŚLADKI · 3×10 / NOGA</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-wykrok-rotacja.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Wykrok z rotacją</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">W wykroku oprzyj rękę przy stopie, drugą wyciągnij w górę skręcając tułów. Otwiera biodra i klatkę, wzmacnia stabilizację rotacyjną.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">UDA · CORE · 3×8 / STRONA</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-mostek.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Glute bridge</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Na plecach, kolana ugięte. Unieś biodra do linii kolana–barki, ściśnij pośladki na górze, opuść powoli.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">POŚLADKI · 3×15</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-mostek-jednonoz.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Mostek jednonóż</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Mostek z jedną nogą wyprostowaną w górze. Unieś biodra siłą jednej nogi, miednica pozioma. Mocniejszy wariant.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">POŚLADKI · 3×10 / NOGA</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-plank.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Plank (deska)</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Przedramiona pod barkami, ciało w linii prostej. Napnij brzuch i pośladki, nie zapadaj w biodrach.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">CORE · 3×30 SEK</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-plank-bok.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Side plank</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Na boku, łokieć pod barkiem, biodra wysoko, ciało w linii. Górną rękę wyciągnij w górę. Powtórz na drugą stronę.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">CORE · SKOŚNE · 3×20 SEK / STRONA</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-dead-bug.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Dead bug</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Na plecach, ręce w górę, kolana 90°. Opuszczaj naprzemiennie przeciwną rękę i nogę, lędźwie przy podłodze.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">CORE · 3×10</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-jaskolka.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Jaskółka</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Stań na jednej nodze, pochyl tułów w przód, drugą nogę wyprostuj w tył do linii pleców. Utrzymaj równowagę, wróć. Zmień nogę.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">STABILIZACJA · RÓWNOWAGA · 3×8 / NOGA</div>
-      </div>
-    </div>
-    <div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/exercise-wspiecia.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
-      <div style="flex:1;min-width:0;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">Wspięcia na palce</div>
-        <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Stojąc (ręka o ścianę dla balansu), unieś pięty jak najwyżej, opuść powoli. Dla większego zakresu przód stopy na krawędzi schodka.</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">ŁYDKI · 3×15</div>
-      </div>
-    </div>
+    <div id="wzm-list"></div>
   </div>
 </div>
 
