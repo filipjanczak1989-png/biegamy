@@ -84,6 +84,8 @@ let _radioTracks = [];
 let _radioQueue = [];      // kontekst odtwarzania (kolejka track-obiektów)
 let _radioIdx = -1;        // indeks aktualnego w _radioQueue
 let _radioLoop = 'off';    // 'off' | 'all' | 'one'
+let _radioCurrentPlaylist = null;  // {id,name} gdy otwarty widok playlisty (do re-renderu)
+let _radioPlaylistTracks = [];     // kawałki otwartej playlisty (źródło kolejki)
 
 async function radioInit(){
   const { data: { session } } = await sb.auth.getSession();
@@ -132,6 +134,7 @@ async function loadCatalog(){
     return '<div class="rad-card">' + coverHtml
       + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
       + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + (t.is_video ? ' · wideo' : '') + '</div></div>'
+      + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
       + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')">▶</button></div>';
   }).join('');
 }
@@ -268,12 +271,72 @@ async function radioNewPlaylist(){
   loadPlaylists();
 }
 
-function radioOpenPlaylist(playlistId){
-  // TODO KROK 2b: widok playlisty (utwory + dodaj/usuń/reorder + odtwarzanie po kolei)
-  alert('Szczegóły playlisty — wkrótce (KROK 2b).');
+// Widok pojedynczej playlisty (zastępuje listę w #radio-playlists; powrót = loadPlaylists).
+async function radioOpenPlaylist(playlistId){
+  const { data: pl } = await sb.from('radio_playlists').select('*').eq('id', playlistId).maybeSingle();
+  if (!pl) return;
+  _radioCurrentPlaylist = { id: pl.id, name: pl.name };
+  const { data: rows, error } = await sb.from('radio_playlist_tracks')
+    .select('id, position, track:radio_tracks(*)')
+    .eq('playlist_id', playlistId)
+    .order('position', { ascending: true });
+  const el = document.getElementById('radio-playlists');
+  let html = '<button class="rad-newpl" style="border-style:solid;" onclick="loadPlaylists()">‹ Wróć do playlist</button>'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:22px;margin:2px 0 12px;">' + escapeHtml(pl.name) + '</div>';
+  if (error) { el.innerHTML = html + '<div class="rad-empty">Błąd ładowania.</div>'; return; }
+  const items = (rows || []).filter(function(r){ return r.track; });   // odfiltruj osierocone (track usunięty z katalogu)
+  _radioPlaylistTracks = items.map(function(r){ return r.track; });
+  if (!items.length) { html += '<div class="rad-empty">Pusta playlista.<br>Dodaj kawałki z katalogu (➕).</div>'; }
+  else {
+    html += items.map(function(r, idx){
+      const t = r.track;
+      return '<div class="rad-card"><div class="rad-cover">🎵</div>'
+        + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
+        + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + '</div></div>'
+        + '<button class="rad-nav-btn" onclick="radioPlayPlaylistAt(' + idx + ')" title="Odtwórz">▶</button>'
+        + '<button class="rad-nav-btn" onclick="radioRemoveFromPlaylist(\'' + r.id + '\')" title="Usuń z playlisty">🗑</button>'
+        + '</div>';
+    }).join('');
+  }
+  el.innerHTML = html;
 }
 
-// TODO KROK 2b: dodawanie utworu z katalogu do playlisty (radio_playlist_tracks insert)
+// Granie z playlisty: kolejka = ta playlista (next/prev w jej obrębie).
+function radioPlayPlaylistAt(idx){
+  if (!_radioPlaylistTracks.length) return;
+  _radioQueue = _radioPlaylistTracks.slice();
+  radioPlayAt(idx);
+}
+
+async function radioRemoveFromPlaylist(rowId){
+  const { error } = await sb.from('radio_playlist_tracks').delete().eq('id', rowId);
+  if (error) { alert('Błąd: ' + error.message); return; }
+  if (_radioCurrentPlaylist) radioOpenPlaylist(_radioCurrentPlaylist.id);   // re-render
+}
+
+// Dodawanie z katalogu: picker playlist usera → insert (position=max+1), graceful przy duplikacie.
+async function radioAddToPlaylistPicker(trackId){
+  const { data: pls } = await sb.from('radio_playlists').select('*').eq('owner_id', _radioUid).order('created_at', { ascending: true });
+  if (!pls || !pls.length) { if (confirm('Nie masz playlist. Utworzyć nową?')) await radioNewPlaylist(); return; }
+  const ov = document.createElement('div');
+  ov.id = 'rad-pick-ov';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);z-index:200;display:flex;align-items:flex-end;justify-content:center;';
+  ov.onclick = function(e){ if (e.target === ov) ov.remove(); };
+  ov.innerHTML = '<div style="background:var(--bg);border-top:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:70vh;overflow-y:auto;padding:18px;">'
+    + '<div style="font-family:Bebas Neue,sans-serif;font-size:20px;margin-bottom:12px;">Dodaj do playlisty</div>'
+    + pls.map(function(p){ return '<div class="rad-card" style="cursor:pointer;" onclick="radioAddTrackToPlaylist(\'' + p.id + '\',\'' + trackId + '\')"><div class="rad-cover">📂</div><div class="rad-meta"><div class="rad-tt">' + escapeHtml(p.name) + '</div></div></div>'; }).join('')
+    + '</div>';
+  document.body.appendChild(ov);
+}
+
+async function radioAddTrackToPlaylist(playlistId, trackId){
+  const { data: ex } = await sb.from('radio_playlist_tracks').select('position').eq('playlist_id', playlistId).order('position', { ascending: false }).limit(1);
+  const nextPos = (ex && ex.length ? (ex[0].position || 0) : 0) + 1;
+  const { error } = await sb.from('radio_playlist_tracks').insert({ playlist_id: playlistId, track_id: trackId, position: nextPos });
+  const ov = document.getElementById('rad-pick-ov'); if (ov) ov.remove();
+  if (error) { alert(error.code === '23505' ? 'Ten kawałek już jest w tej playliście.' : 'Błąd: ' + error.message); return; }
+  alert('Dodano do playlisty ✓');
+}
 
 radioInit();
 </script>
