@@ -1770,7 +1770,7 @@ function openModal(ds, idx) {
     document.getElementById('f-desc').value = t.desc || t.description || '';
     const erefElE = document.getElementById('f-exercise-ref'); if (erefElE) erefElE.value = t.exercise_ref || '';
     document.getElementById('f-status').value = t.status||'planned';
-    const mw = document.getElementById('f-move-wrap'); if (mw) mw.style.display = 'block';
+    const mw = document.getElementById('f-move-wrap'); if (mw) mw.style.display = (t.status !== 'done') ? 'block' : 'none';
     const md = document.getElementById('f-move-date'); if (md) md.value = editingDate || ds;
   } else {
     document.getElementById('modal-title').textContent = 'Nowy trening';
