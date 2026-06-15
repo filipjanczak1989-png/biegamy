@@ -62,6 +62,19 @@ body{padding:0 0 200px;min-height:100vh;}
 </div>
 
 <div class="rad-wrap">
+  <!-- Panel uploadu — TYLKO trener (odsłaniany w radioCheckCoach) -->
+  <div id="rad-upload-panel" style="display:none;margin-bottom:12px;">
+    <button class="rad-newpl" onclick="radioToggleUploadForm()">➕ Wgraj kawałek</button>
+    <div id="rad-upload-form" style="display:none;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px;">
+      <input type="file" id="rad-up-file" accept="audio/mpeg,.mp3" onchange="radioUploadPick(this)" style="width:100%;font-size:12px;color:var(--muted);margin-bottom:8px;">
+      <input type="text" id="rad-up-title" placeholder="Tytuł" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:9px 11px;font-size:14px;margin-bottom:8px;outline:none;">
+      <input type="text" id="rad-up-artist" value="BiegaMy" placeholder="Artysta" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:9px 11px;font-size:14px;margin-bottom:8px;outline:none;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <button onclick="radioDoUpload()" style="background:var(--accent);border:none;color:#fff;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;flex-shrink:0;">Wgraj</button>
+        <div id="rad-up-status" style="font-size:11px;color:var(--muted);flex:1;min-width:0;"></div>
+      </div>
+    </div>
+  </div>
   <div id="radio-catalog"><div class="rad-empty">Ładowanie…</div></div>
   <div id="radio-top" style="display:none;"></div>
   <div id="radio-playlists" style="display:none;"></div>
@@ -141,6 +154,121 @@ async function loadLikes(){
 async function radioCheckCoach(){
   const { data } = await sb.from('coaches').select('id').eq('id', _radioUid).maybeSingle();
   _radioIsCoach = !!data;
+  if (_radioIsCoach){ const p = document.getElementById('rad-upload-panel'); if (p) p.style.display = 'block'; }
+}
+
+// ── UPLOAD KAWAŁKA (panel trenera) ─────────────────────────────────
+function radioToggleUploadForm(){
+  const el = document.getElementById('rad-upload-form');
+  if (el) el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+}
+
+function radioUploadPick(input){
+  const f = input.files && input.files[0]; if (!f) return;
+  const ti = document.getElementById('rad-up-title');
+  if (ti && !ti.value) ti.value = f.name.replace(/\.mp3$/i, '');
+}
+
+async function radioIsMp3(file){
+  const b = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+  const id3 = (b[0] === 0x49 && b[1] === 0x44 && b[2] === 0x33);            // "ID3"
+  const mpeg = (b[0] === 0xFF && (b[1] & 0xE0) === 0xE0);                   // ramka MPEG
+  return id3 || mpeg;
+}
+
+function radioSlugify(name){
+  return name.replace(/\.mp3$/i, '')
+    .replace(/[łŁ]/g, 'l')                               // ł nie rozkłada się przez NFD
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')   // ą ę ó ś ż ź ć ń → ascii
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');
+}
+
+async function radioExtractApic(file){
+  const buf = new Uint8Array(await file.slice(0, 524288).arrayBuffer());
+  let apic = -1;
+  for (let i = 0; i < buf.length - 4; i++){ if (buf[i]===0x41 && buf[i+1]===0x50 && buf[i+2]===0x49 && buf[i+3]===0x43){ apic = i; break; } }
+  if (apic < 0) return null;
+  let j = -1;
+  for (let i = apic; i < buf.length - 2; i++){ if (buf[i]===0xFF && buf[i+1]===0xD8 && buf[i+2]===0xFF){ j = i; break; } }
+  if (j < 0) return null;
+  let e = -1;
+  for (let i = j + 2; i < buf.length - 1; i++){ if (buf[i]===0xFF && buf[i+1]===0xD9){ e = i + 2; break; } }
+  if (e < 0) return null;
+  return new Blob([buf.slice(j, e)], { type: 'image/jpeg' });
+}
+
+function radioJpegToWebp(jpegBlob){
+  return new Promise(function(resolve){
+    const img = new Image(); const url = URL.createObjectURL(jpegBlob);
+    img.onload = function(){
+      try {
+        const c = document.createElement('canvas'); c.width = img.naturalWidth || 360; c.height = img.naturalHeight || 360;
+        c.getContext('2d').drawImage(img, 0, 0);
+        c.toBlob(function(b){ URL.revokeObjectURL(url); resolve(b); }, 'image/webp', 0.8);
+      } catch(e){ URL.revokeObjectURL(url); resolve(null); }
+    };
+    img.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+function radioAudioDuration(file){
+  return new Promise(function(resolve){
+    const a = document.createElement('audio'); const url = URL.createObjectURL(file);
+    a.preload = 'metadata';
+    a.onloadedmetadata = function(){ const d = a.duration; URL.revokeObjectURL(url); resolve(isFinite(d) ? Math.round(d) : null); };
+    a.onerror = function(){ URL.revokeObjectURL(url); resolve(null); };
+    a.src = url;
+  });
+}
+
+async function radioDoUpload(){
+  const fi = document.getElementById('rad-up-file');
+  const f = fi && fi.files && fi.files[0];
+  if (!f) { alert('Wybierz plik MP3.'); return; }
+  if (!(await radioIsMp3(f))) { alert('Tylko pliki MP3 (audio).'); return; }
+  if (f.size > 20 * 1024 * 1024) { alert('Plik za duży (max 20 MB).'); return; }
+  const slug = radioSlugify(f.name);
+  if (!slug) { alert('Nie udało się utworzyć nazwy z pliku.'); return; }
+  const title = (document.getElementById('rad-up-title').value || '').trim() || f.name.replace(/\.mp3$/i, '');
+  const artist = (document.getElementById('rad-up-artist').value || '').trim() || 'BiegaMy';
+  const st = document.getElementById('rad-up-status');
+
+  const { data: ex } = await sb.from('radio_tracks').select('id').eq('slug', slug).maybeSingle();
+  if (ex) { alert('Kawałek "' + slug + '" już istnieje — zmień nazwę pliku.'); return; }
+
+  st.textContent = 'Wgrywanie pliku…';
+  const up = await window.storageUploadRetry('radio-audio', slug + '.mp3', f, { contentType: 'audio/mpeg', upsert: false });
+  if (up && up.error) { st.textContent = ''; alert('Błąd wgrywania: ' + up.error.message); return; }
+
+  // okładka z APIC (best-effort)
+  let cover_slug = null;
+  try {
+    const jpeg = await radioExtractApic(f);
+    if (jpeg) {
+      let blob = await radioJpegToWebp(jpeg), ctype = 'image/webp';
+      if (!blob || blob.type !== 'image/webp') { blob = jpeg; ctype = 'image/jpeg'; }   // fallback
+      const cu = await window.storageUploadRetry('radio-audio', 'cover-' + slug + '.webp', blob, { contentType: ctype, upsert: true });
+      if (!(cu && cu.error)) cover_slug = 'cover-' + slug;
+    }
+  } catch(e){}
+
+  let duration_sec = null;
+  try { duration_sec = await radioAudioDuration(f); } catch(e){}
+
+  st.textContent = 'Zapisywanie…';
+  const { error } = await sb.from('radio_tracks').insert({
+    slug: slug, title: title, artist: artist, media_ext: 'mp3', is_video: false,
+    duration_sec: duration_sec, cover_slug: cover_slug, coach_id: _radioUid
+  });
+  if (error) {
+    sb.storage.from('radio-audio').remove([slug + '.mp3', 'cover-' + slug + '.webp']).catch(function(){});
+    st.textContent = ''; alert('Błąd zapisu: ' + error.message); return;
+  }
+  st.textContent = 'Dodano ✓';
+  fi.value = ''; document.getElementById('rad-up-title').value = '';
+  loadCatalog();
 }
 
 function radioFmtDur(sec){
