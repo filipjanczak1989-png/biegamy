@@ -86,6 +86,7 @@ let _radioIdx = -1;        // indeks aktualnego w _radioQueue
 let _radioLoop = 'off';    // 'off' | 'all' | 'one'
 let _radioCurrentPlaylist = null;  // {id,name} gdy otwarty widok playlisty (do re-renderu)
 let _radioPlaylistTracks = [];     // kawałki otwartej playlisty (źródło kolejki)
+let _radioPlaylistRows = [];       // wiersze radio_playlist_tracks (id+position) — do reorderu
 
 async function radioInit(){
   const { data: { session } } = await sb.auth.getSession();
@@ -286,13 +287,17 @@ async function radioOpenPlaylist(playlistId){
   if (error) { el.innerHTML = html + '<div class="rad-empty">Błąd ładowania.</div>'; return; }
   const items = (rows || []).filter(function(r){ return r.track; });   // odfiltruj osierocone (track usunięty z katalogu)
   _radioPlaylistTracks = items.map(function(r){ return r.track; });
+  _radioPlaylistRows = items;
   if (!items.length) { html += '<div class="rad-empty">Pusta playlista.<br>Dodaj kawałki z katalogu (➕).</div>'; }
   else {
     html += items.map(function(r, idx){
       const t = r.track;
+      const up = idx > 0 ? '<button class="rad-nav-btn" onclick="radioMoveInPlaylist(' + idx + ',-1)" title="W górę">↑</button>' : '';
+      const down = idx < items.length - 1 ? '<button class="rad-nav-btn" onclick="radioMoveInPlaylist(' + idx + ',1)" title="W dół">↓</button>' : '';
       return '<div class="rad-card"><div class="rad-cover">🎵</div>'
         + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
         + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + '</div></div>'
+        + up + down
         + '<button class="rad-nav-btn" onclick="radioPlayPlaylistAt(' + idx + ')" title="Odtwórz">▶</button>'
         + '<button class="rad-nav-btn" onclick="radioRemoveFromPlaylist(\'' + r.id + '\')" title="Usuń z playlisty">🗑</button>'
         + '</div>';
@@ -311,6 +316,20 @@ function radioPlayPlaylistAt(idx){
 async function radioRemoveFromPlaylist(rowId){
   const { error } = await sb.from('radio_playlist_tracks').delete().eq('id', rowId);
   if (error) { alert('Błąd: ' + error.message); return; }
+  if (_radioCurrentPlaylist) radioOpenPlaylist(_radioCurrentPlaylist.id);   // re-render
+}
+
+// Reorder: lokalny swap z sąsiadem + przeliczenie position=1..N (odporne na null/duplikaty pozycji).
+async function radioMoveInPlaylist(idx, dir){
+  const rows = _radioPlaylistRows;
+  const j = idx + dir;
+  if (!rows || j < 0 || j >= rows.length) return;
+  const arr = rows.slice();
+  const tmp = arr[idx]; arr[idx] = arr[j]; arr[j] = tmp;
+  const res = await Promise.all(arr.map(function(r, i){
+    return sb.from('radio_playlist_tracks').update({ position: i + 1 }).eq('id', r.id);
+  }));
+  if (res.some(function(x){ return x.error; })) { alert('Błąd zmiany kolejności.'); }
   if (_radioCurrentPlaylist) radioOpenPlaylist(_radioCurrentPlaylist.id);   // re-render
 }
 
