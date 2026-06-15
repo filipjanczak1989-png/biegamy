@@ -94,11 +94,20 @@ async function radioInit(){
 }
 
 // 'ended' raz: loop 'one' → powtórz ten sam, inaczej następny (radioNext respektuje loop 'all').
+// play/pause: synchronizuj mediaSession.playbackState — Android Chrome utrzymuje audio
+// w tle TYLKO przy żywej sesji ('playing'); bez tego pauzuje przy zgaszonym ekranie.
 (function(){
   const aud = document.getElementById('rad-audio');
-  if (aud) aud.addEventListener('ended', function(){
+  if (!aud) return;
+  aud.addEventListener('ended', function(){
     if (_radioLoop === 'one') { radioPlayAt(_radioIdx); return; }
     radioNext();
+  });
+  aud.addEventListener('play', function(){
+    if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch(e){} }
+  });
+  aud.addEventListener('pause', function(){
+    if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'paused'; } catch(e){} }
   });
 })();
 
