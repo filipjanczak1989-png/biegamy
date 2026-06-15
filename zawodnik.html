@@ -6767,6 +6767,8 @@ function switchCwiczeniaTab(tab) {
 }
 
 const EX_BASE = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
+// Każde ćwiczenie: {name, cat, img (static webp), desc, dose}. OPCJONALNIE anim:'exercise-X.webm'
+// (loop wideo demo) — gdy ustawione, obwód odtwarza wideo zamiast static img (CIRCUIT._showMedia, fallback do img).
 const EXERCISES = {
   przysiad:       { name:'Przysiady',         cat:'nogi',        img:'exercise-przysiad.webp',        desc:'Stopy na szerokość bioder, biodra w tył jak na krzesło, kolana za palcami, plecy proste.', dose:'UDA · POŚLADKI · 3×12' },
   wykrok:         { name:'Wykroki',           cat:'nogi',        img:'exercise-wykrok.webp',          desc:'Duży krok w przód, oba kolana zegnij do ~90°, tylne kolano tuż nad ziemią. Tułów pionowo.', dose:'UDA · POŚLADKI · 3×10 / NOGA' },
@@ -6878,7 +6880,7 @@ const CIRCUIT = {
     this._el('circuit-progress').textContent = p.exerciseIds.length + ' ćwiczeń';
     this._el('circuit-phase').textContent = 'Gotowy?'; this._el('circuit-phase').style.color = '#fff';
     this._el('circuit-count').textContent = '';
-    this._el('circuit-img').style.display = 'none';
+    this._hideMedia();
     this._el('circuit-next').textContent = '';
     this._el('circuit-config').style.display = 'block';
     this._el('circuit-ringwrap').style.display = 'none';
@@ -6919,24 +6921,41 @@ const CIRCUIT = {
     return EXERCISES[this.st.ids[idx]];
   },
 
+  _showMedia: function(ex){
+    const img = this._el('circuit-img'), vid = this._el('circuit-video');
+    if (ex && ex.anim && vid) {
+      vid.src = EX_BASE + ex.anim; vid.style.display = 'block';
+      if (img) img.style.display = 'none';
+      try { vid.play(); } catch(e) {}
+    } else {
+      if (img) { img.src = EX_BASE + ex.img; img.style.display = 'block'; }
+      if (vid) { try { vid.pause(); } catch(e){} vid.removeAttribute('src'); vid.style.display = 'none'; }
+    }
+  },
+  _hideMedia: function(){
+    const img = this._el('circuit-img'), vid = this._el('circuit-video');
+    if (img) img.style.display = 'none';
+    if (vid) { try { vid.pause(); } catch(e){} vid.removeAttribute('src'); vid.style.display = 'none'; }
+  },
+
   _enterPhase: function(phase, sec){
     this.st.phase = phase; this.st.secLeft = sec;
     const ex = EXERCISES[this.st.ids[this.st.idx]];
-    const ph = this._el('circuit-phase'), img = this._el('circuit-img'), nx = this._el('circuit-next');
+    const ph = this._el('circuit-phase'), nx = this._el('circuit-next');
     this._el('circuit-progress').textContent = 'Runda ' + this.st.round + '/' + CIRCUIT_CFG.rounds + ' · ćwiczenie ' + (this.st.idx + 1) + '/' + this.st.ids.length;
     let col = '#4ade80';
     if (phase === 'prep') {
       col = '#fbbf24'; ph.textContent = 'Przygotuj się'; ph.style.color = col;
-      img.src = EX_BASE + ex.img; img.style.display = 'block';
+      this._showMedia(ex);
       nx.textContent = 'Start: ' + ex.name;
     } else if (phase === 'work') {
       col = '#4ade80'; ph.textContent = ex.name; ph.style.color = col;
-      img.src = EX_BASE + ex.img; img.style.display = 'block';
+      this._showMedia(ex);
       nx.textContent = ex.dose;
       if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('in');
     } else if (phase === 'rest') {
       col = '#fb923c'; ph.textContent = 'Przerwa'; ph.style.color = col;
-      img.style.display = 'none';
+      this._hideMedia();
       const next = this._nextExercise();
       nx.textContent = next ? 'Następne: ' + next.name : 'Ostatnie!';
       if (window.Anim && Anim._playBreathCue) Anim._playBreathCue('out');
@@ -6967,7 +6986,7 @@ const CIRCUIT = {
     this.stop();
     this._el('circuit-phase').textContent = 'Gotowe 💪'; this._el('circuit-phase').style.color = '#4ade80';
     this._el('circuit-count').textContent = '';
-    this._el('circuit-img').style.display = 'none';
+    this._hideMedia();
     this._el('circuit-next').textContent = this.st.name + ' ukończony!';
     if (window.Anim && Anim._playSuccess) Anim._playSuccess();
     this._setBtn('save');
@@ -10877,6 +10896,7 @@ if ('serviceWorker' in navigator) {
     <input id="cc-rounds" type="range" min="1" max="5" step="1" value="2" oninput="CIRCUIT._cfgInput()" style="width:100%;accent-color:var(--accent);">
   </div>
   <img id="circuit-img" src="" alt="" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:16px;margin-bottom:16px;background:rgba(255,255,255,0.05);">
+  <video id="circuit-video" muted loop playsinline preload="none" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:16px;margin-bottom:16px;background:rgba(255,255,255,0.05);"></video>
   <div id="circuit-phase" style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:0.03em;margin-bottom:6px;text-align:center;">Gotowy?</div>
   <div id="circuit-ringwrap" style="position:relative;width:140px;height:140px;display:flex;align-items:center;justify-content:center;margin-bottom:10px;">
     <svg width="140" height="140" viewBox="0 0 140 140" style="position:absolute;top:0;left:0;transform:rotate(-90deg);">
