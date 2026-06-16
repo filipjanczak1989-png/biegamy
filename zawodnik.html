@@ -6808,9 +6808,9 @@ function renderExerciseCard(ex, isLast) {
 const PROGRAMS = [
   { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  cover:'exercise-przysiad.webp', name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
   { id:'core',         emoji:'🧱', icon:'ex-core',    cover:'exercise-plank.webp',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
-  { id:'nogi',         emoji:'🦵', icon:'ex-legs',    name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
-  { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
-  { id:'pelny',        emoji:'💪', icon:'ex-fullset', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
+  { id:'nogi',         emoji:'🦵', icon:'ex-legs',    cover:'exercise-wykrok.webp',         name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
+  { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', cover:'exercise-jaskolka.webp',       name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
+  { id:'pelny',        emoji:'💪', icon:'ex-fullset', cover:'exercise-mostek-jednonoz.webp', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
 ];
 
 function _progCard(p) {
@@ -10875,6 +10875,7 @@ if ('serviceWorker' in navigator) {
         <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Wycisz się przed snem — głęboki relaks układu nerwowego.</div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">WDECH 4 · WSTRZYMAJ 7 · WYDECH 8 · 4 CYKLE</div>
       </div>
+      <span style="color:rgba(255,255,255,0.4);font-size:20px;flex-shrink:0;">›</span>
     </button>
     <button onclick="openBreath('box')" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;cursor:pointer;">
       <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tech-box.webp" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility='hidden'">
@@ -10883,6 +10884,7 @@ if ('serviceWorker' in navigator) {
         <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Skup się przed startem — równy, kontrolowany rytm.</div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">4 · 4 · 4 · 4 · 6 CYKLI</div>
       </div>
+      <span style="color:rgba(255,255,255,0.4);font-size:20px;flex-shrink:0;">›</span>
     </button>
     <button onclick="openWim()" style="position:relative;display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;cursor:pointer;">
       <span onclick="event.stopPropagation();wimShowInfo()" title="Bezpieczeństwo" role="button" style="position:absolute;top:10px;right:10px;background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;font-family:'DM Mono',monospace;font-weight:700;padding:0;line-height:1;display:inline-flex;align-items:center;justify-content:center;">i</span>
@@ -10892,6 +10894,7 @@ if ('serviceWorker' in navigator) {
         <div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.35;margin-bottom:5px;">Energia i odporność — serie szybkich oddechów + wstrzymanie. Tylko na siedząco/leżąco.</div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--accent);">3 RUNDY · 30 ODDECHÓW · RETENCJA + RECOVERY</div>
       </div>
+      <span style="color:rgba(255,255,255,0.4);font-size:20px;flex-shrink:0;">›</span>
     </button>
   </div>
   <div id="cw-tab-wzmacnianie" style="display:none;padding:4px 0;">
