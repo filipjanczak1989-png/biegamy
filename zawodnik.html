@@ -1016,6 +1016,16 @@ body > *{position:relative;z-index:1;}
   <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
 </div>
 
+<!-- Baner Radio -->
+<div id="radio-home-banner" onclick="window.location.href='radio.html'" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,107,44,0.04));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:16px 16px 4px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
+  <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📻</div>
+  <div style="flex:1;min-width:0;">
+    <div style="font-size:13px;font-weight:600;color:var(--fg);">Radio BiegaMy</div>
+    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Muzyka do biegania</div>
+  </div>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+</div>
+
 <div class="sec-hdr fade-in" style="margin-top:20px;"><div class="sec-title">Ten tydzień</div><a href="kalendarz.html?role=athlete" class="sec-link">Pełny widok →</a></div>
 <div id="week-strip" class="fade-in" style="margin-bottom:4px;"></div>
 
@@ -1071,16 +1081,6 @@ body > *{position:relative;z-index:1;}
     </div>
     <div id="ai-tile-badge" style="font-size:9px;padding:3px 8px;border-radius:6px;font-family:DM Mono,monospace;font-weight:600;letter-spacing:0.08em;flex-shrink:0;"></div>
   </div>
-</div>
-
-<!-- Baner Radio -->
-<div id="radio-home-banner" onclick="window.location.href='radio.html'" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,107,44,0.04));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:0 16px 18px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
-  <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📻</div>
-  <div style="flex:1;min-width:0;">
-    <div style="font-size:13px;font-weight:600;color:var(--fg);">Radio BiegaMy</div>
-    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Muzyka do biegania</div>
-  </div>
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
 </div>
 
 <div class="sec-hdr fade-in"><div class="sec-title">Ostatnie treningi</div><a href="#" class="sec-link">Wszystkie →</a></div>
