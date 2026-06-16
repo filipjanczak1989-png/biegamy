@@ -6806,16 +6806,16 @@ function renderExerciseCard(ex, isLast) {
     + '</div></div>';
 }
 const PROGRAMS = [
-  { id:'rozgrzewka',   emoji:'🔥', name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
-  { id:'core',         emoji:'🧱', name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
-  { id:'nogi',         emoji:'🦵', name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
-  { id:'stabilizacja', emoji:'⚖️', name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
-  { id:'pelny',        emoji:'💪', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
+  { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
+  { id:'core',         emoji:'🧱', icon:'ex-core',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
+  { id:'nogi',         emoji:'🦵', icon:'ex-legs',    name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
+  { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
+  { id:'pelny',        emoji:'💪', icon:'ex-fullset', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
 ];
 
 function _progCard(p) {
   return '<button onclick="openProgram(\'' + p.id + '\')" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;">'
-    + '<span style="font-size:30px;flex-shrink:0;">' + p.emoji + '</span>'
+    + '<img src="' + window.assetUrl('icon-' + p.icon + '.webp') + '" style="width:34px;height:34px;flex-shrink:0;">'
     + '<div style="flex:1;min-width:0;">'
     + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">' + p.name + '</div>'
     + '<div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:\'Inter\',sans-serif;line-height:1.35;margin-bottom:4px;">' + p.desc + '</div>'
@@ -6835,7 +6835,7 @@ function openProgram(id) {
   if (!p) return;
   const d = document.getElementById('wzm-detail');
   d.innerHTML = '<button onclick="closeProgram()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--accent);font-family:\'DM Mono\',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:0;margin-bottom:14px;">‹ Programy</button>'
-    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;">' + p.emoji + ' ' + p.name + '</div>'
+    + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:24px;color:#fff;letter-spacing:0.03em;margin-bottom:4px;display:flex;align-items:center;gap:8px;"><img src="' + window.assetUrl('icon-' + p.icon + '.webp') + '" style="width:26px;height:26px;flex-shrink:0;">' + p.name + '</div>'
     + '<div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:\'Inter\',sans-serif;margin-bottom:16px;line-height:1.4;">' + p.desc + '</div>'
     + '<button onclick="startCircuit(\'' + p.id + '\')" style="display:block;width:100%;background:var(--accent);border:none;color:#fff;font-family:\'Bebas Neue\',sans-serif;font-size:18px;letter-spacing:0.05em;padding:12px;border-radius:12px;cursor:pointer;margin-bottom:16px;">▶ Uruchom obwód · 40/20s · 2 rundy</button>'
     + p.exerciseIds.map(function(eid, i){ return renderExerciseCard(EXERCISES[eid], i === p.exerciseIds.length - 1); }).join('');
