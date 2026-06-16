@@ -5623,7 +5623,7 @@ async function loadTodayTraining() {
   const desc = document.getElementById('today-desc');
   const divider = document.getElementById('today-divider');
   
-  if(badge){ badge.textContent = (typeIcons[data.type]||'🏃') + ' ' + (data.type||'Trening'); badge.style.display='inline-flex'; }
+  if(badge){ badge.innerHTML = (window.trainingTypeIconHtml ? window.trainingTypeIconHtml(data.type, 16) : '') + '<span>' + escapeHtml(data.type||'Trening') + '</span>'; badge.style.display='inline-flex'; badge.style.alignItems='center'; badge.style.gap='5px'; }
   if(dist && data.distance_km){ dist.innerHTML = data.distance_km + ' <span>km</span>'; dist.style.display='block'; }
   
   // ── Pill typu treningu — kompaktowa odznaka pod akcjami ──

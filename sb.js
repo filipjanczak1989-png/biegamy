@@ -1061,6 +1061,19 @@
     'Regeneracja':'#9b6dff','Wzmacniający':'#ff7a45','Zastępczy':'#66c0ff','Odpoczynek':'#888','Progresja':'#e8b840','Start':'#dc2626','Wyścig':'#dc2626','Trening':'#e8561e'
   };
 
+  // Ikony 3D typów treningu (SSOT) — nazwa pliku bez 'icon-' i '.webp'
+  window.TRAINING_TYPE_ICONS = {
+    'Spokojny':'type-spokojny','Interwały':'type-interwaly','Tempo':'type-tempo','Wybieganie':'type-wybieganie',
+    'Regeneracja':'type-regeneracja','Wzmacniający':'type-wzmacniajacy','Start':'type-start','Zastępczy':'type-zastepczy','Odpoczynek':'type-odpoczynek'
+  };
+  // Zwraca <img> ikony typu (lub '' gdy brak). size w px.
+  window.trainingTypeIconHtml = function(type, size) {
+    const n = (window.TRAINING_TYPE_ICONS || {})[type];
+    if (!n || !window.assetUrl) return '';
+    size = size || 18;
+    return '<img src="' + window.assetUrl('icon-' + n + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;vertical-align:-3px;flex-shrink:0;" alt="">';
+  };
+
   // Intensity helpers — używane przez heatmap aktywności (GitHub-style)
   // thresholds opcjonalne — default statyczne progi (zachowanie zawodnik.html)
   window.formaIntensityLevel = function(trimp, thresholds) {

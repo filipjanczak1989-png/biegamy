@@ -1986,7 +1986,7 @@ async function renderPlanPreviewInCreateModal(planId) {
   // Lista workoutów (kompaktowa)
   const workoutsHtml = (workouts || []).map(w => {
     const dateStr = new Date(w.date).toLocaleDateString('pl', { weekday: 'short', day: 'numeric', month: 'short' });
-    const icon = typeIcons[w.type] || '🏃';
+    const icon = (window.trainingTypeIconHtml ? window.trainingTypeIconHtml(w.type, 15) : '') || typeIcons[w.type] || '🏃';
     const details = [w.distance_km ? w.distance_km + 'km' : '', w.pace || '', w.duration_min ? w.duration_min + 'min' : ''].filter(Boolean).join(' · ');
     return `
       <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:9px 11px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;gap:8px;">
