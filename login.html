@@ -186,22 +186,8 @@ body::after{
 }
 .role-btn.sel .role-label{color:var(--accent);}
 
-/* ── BUTTON ─────────────────────────────────────────────────────────── */
-.btn{
-  width:100%;
-  background:linear-gradient(135deg,#d44c18,var(--accent),var(--accent2));
-  color:#fff;border:none;border-radius:14px;
-  padding:15px;font-family:'DM Mono',monospace;
-  font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
-  cursor:pointer;transition:all 0.18s;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-top:8px;
-  box-shadow:0 4px 24px rgba(var(--accent-rgb),0.4),0 1px 0 rgba(255,255,255,0.1) inset;
-  -webkit-tap-highlight-color:transparent;
-}
-.btn:hover{box-shadow:0 6px 32px rgba(var(--accent-rgb),0.55);}
-.btn:active{transform:scale(0.98);}
-.btn:disabled{opacity:0.45;cursor:not-allowed;transform:none;box-shadow:none;}
+/* ── BUTTON ── kanon .btn z theme.css (.btn .btn-primary .btn-block); login CTA potrzebuje tylko marginesu ── */
+.btn-login-cta{ margin-top:8px; letter-spacing:0.18em; padding:15px; border-radius:14px; }
 
 /* ── DIVIDER ────────────────────────────────────────────────────────── */
 .divider{display:flex;align-items:center;gap:12px;margin:20px 0;}
@@ -301,7 +287,7 @@ body::after{
         <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
         <div class="forgot"><a href="#" onclick="forgotPassword();return false;">Zapomniałem hasła</a></div>
       </div>
-      <button class="btn" id="btn-login" onclick="login()">Zaloguj się →</button>
+      <button class="btn btn-primary btn-block btn-login-cta" id="btn-login" onclick="login()">Zaloguj się →</button>
     </div>
 
     <!-- REGISTER FORM -->
@@ -323,7 +309,7 @@ body::after{
 
       <!-- Pola trenera (specjalizacja + kod) usunięte 2026-05-27 wraz z self-signup coach -->
 
-      <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
+      <button class="btn btn-primary btn-block btn-login-cta" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
     <!-- SUCCESS STATE -->
