@@ -1027,13 +1027,13 @@ body > *{position:relative;z-index:1;}
 @media (prefers-reduced-motion:reduce){.rhb-eq span{animation:none;transform:scaleY(0.7);}}
 </style>
 <div id="radio-home-banner" onclick="window.location.href='radio.html'" style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.10),rgba(var(--accent-rgb),0.03));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:16px 16px 4px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
-  <div style="position:absolute;inset:0;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/cover-biegnij-kasienka-remix.webp');background-size:cover;background-position:center 30%;opacity:0.20;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 95%);mask-image:linear-gradient(90deg,transparent 25%,#000 95%);pointer-events:none;z-index:0;"></div>
+  <div id="rhb-cover" style="position:absolute;inset:0;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/cover-biegnij-kasienka-remix.webp');background-size:cover;background-position:center 30%;opacity:0.20;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 95%);mask-image:linear-gradient(90deg,transparent 25%,#000 95%);pointer-events:none;z-index:0;"></div>
   <div style="position:relative;z-index:1;width:44px;height:44px;border-radius:12px;background:rgba(10,8,14,0.6);border:1px solid rgba(var(--accent-rgb),0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(var(--accent-rgb),0.15);">
     <img data-ic="icon-radio-radio.webp" style="width:26px;height:26px;" alt="">
   </div>
   <div style="position:relative;z-index:1;flex:1;min-width:0;">
-    <div style="font-size:13px;font-weight:600;color:var(--fg);">Radio BiegaMy</div>
-    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Muzyka do biegania</div>
+    <div id="rhb-title" style="font-size:13px;font-weight:600;color:var(--fg);">Radio BiegaMy</div>
+    <div id="rhb-sub" style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Muzyka do biegania</div>
   </div>
   <div class="rhb-eq" style="position:relative;z-index:1;" aria-hidden="true"><span></span><span></span><span></span></div>
   <svg style="position:relative;z-index:1;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -5514,6 +5514,7 @@ async function loadLogs() {
     loadPendingDuelsBanner(); // banner pending/active duels w "Dziś"
     maybeShowPushPrompt(); // banner push (po 1. zalogowanym treningu, klucz dismiss v2)
     await loadWeekPlan();
+    loadRadioBanner(); // baner radia: hit tygodnia (async, fallback do statycznego)
     // Trener-view (?from=trener) → skip athlete-specific widgets (kcal/AI raport/social feed)
     // Trener widzi swój hero + tygodniowy plan, ale nie powinien dostawać widget'ów które są "athlete tooling"
     const _isFromTrener = (new URLSearchParams(window.location.search).get('from') === 'trener')
@@ -7539,6 +7540,32 @@ async function loadSocialFeed(compact) {
 }
 
 async function loadHomeSocialPreview() { loadSocialFeed(true); }
+
+// Baner radia: hit tygodnia (#1 odtworzeń 7 dni). Fallback 3-stopniowy, async-safe:
+// statyczny default już w DOM → enhance po query → przy błędzie/braku zostaje statyczny.
+async function loadRadioBanner() {
+  try {
+    const cover = document.getElementById('rhb-cover');
+    const titleEl = document.getElementById('rhb-title');
+    const subEl = document.getElementById('rhb-sub');
+    if (!cover || !titleEl || !subEl || !window.RADIO) return;
+    let hit = null, label = null;
+    // 1) hit tygodnia
+    const wk = await window.RADIO.weeklyTop(1);
+    if (wk && wk.length && (wk[0].plays_7d || 0) > 0) {
+      hit = wk[0]; label = '▶ ' + hit.plays_7d + ' w tym tygodniu';
+    } else {
+      // 2) all-time #1
+      const { data } = await sb.from('radio_top').select('*').order('play_count', { ascending: false }).limit(1);
+      if (data && data.length && (data[0].play_count || 0) > 0) { hit = data[0]; label = 'Najczęściej słuchane'; }
+    }
+    if (!hit) return; // 3) brak → zostaw statyczny default
+    const url = window.RADIO.coverUrl(hit);
+    if (url) cover.style.backgroundImage = "url('" + url + "')";
+    titleEl.textContent = hit.title || 'Radio BiegaMy';
+    subEl.textContent = label;
+  } catch (e) { /* zostaw statyczny baner — nie psuj home */ }
+}
 
 const _myReactions = {};
 

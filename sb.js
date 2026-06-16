@@ -688,7 +688,15 @@
     MEDIA_BASE: window.SB_URL + '/storage/v1/object/public/radio-audio/',
     COVER_BASE: window.SB_URL + '/storage/v1/object/public/radio-audio/',
     mediaUrl: function(t){ return (t && t.slug) ? (this.MEDIA_BASE + t.slug + '.' + (t.media_ext || 'mp4')) : ''; },
-    coverUrl: function(t){ return (t && t.cover_slug) ? (this.COVER_BASE + t.cover_slug + '.webp') : ''; }
+    coverUrl: function(t){ return (t && t.cover_slug) ? (this.COVER_BASE + t.cover_slug + '.webp') : ''; },
+    // Hit tygodnia — #N utworów z najwięcej odtworzeń w ostatnich 7 dniach (widok radio_top_weekly, security_invoker=false)
+    weeklyTop: async function(limit){
+      try {
+        const { data, error } = await window.supabase.from('radio_top_weekly').select('*').limit(limit || 1);
+        if (error) return [];
+        return data || [];
+      } catch(e){ return []; }
+    }
   };
 
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
