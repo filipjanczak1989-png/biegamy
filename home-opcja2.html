@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>OPCJA 2 — hero ~200px + siatka 3-kol A2</title>
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;padding:16px 0 60px;}
+  .wrap{max-width:420px;margin:0 auto;padding:0 16px;}
+  .note{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;margin-bottom:14px;line-height:1.6;border:1px dashed var(--border);border-radius:10px;padding:10px 12px;}
+  /* HERO ŚCIŚNIĘTY do ~200px (jak profil) */
+  .hero{width:100%;height:200px;background:#000;border-radius:22px;border:1px solid rgba(255,255,255,0.08);overflow:hidden;position:relative;box-shadow:var(--tile-shadow-lg);display:flex;flex-direction:column;margin-bottom:12px;}
+  .hero::before{content:'';position:absolute;inset:0;background-image:url('https://raw.githubusercontent.com/filipjanczak1989-png/biegamy-assets/main/solo-hero.png');background-size:cover;background-position:center 28%;opacity:0.6;}
+  .hero-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.15) 0%,rgba(7,5,12,0) 40%,rgba(7,5,12,0.65) 100%);}
+  .hero-top{height:2px;position:relative;z-index:1;background:linear-gradient(90deg,var(--accent),var(--accent2) 45%,rgba(78,140,214,0.45) 82%,transparent);border-radius:22px 22px 0 0;}
+  .hero-lbl{position:relative;z-index:1;padding:12px 14px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.85);}
+  .hero-foot{margin-top:auto;position:relative;z-index:1;padding:14px;}
+  .hero-foot .t1{font-family:'Bebas Neue',sans-serif;font-size:28px;color:#fff;letter-spacing:0.03em;line-height:1;}
+  .hero-foot .t2{font-size:12px;color:rgba(255,255,255,0.7);margin-top:4px;}
+  /* SIATKA 3-kol A2 (jak profil) */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .tile{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--dur-fast,.18s) var(--ease-out,ease),box-shadow .18s,border-color .18s;-webkit-tap-highlight-color:transparent;}
+  .tile:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),0.5);box-shadow:0 8px 22px rgba(0,0,0,0.4),0 0 16px var(--glow-o2,rgba(232,86,30,0.14));}
+  .tile:active{transform:scale(0.97);}
+  .tile img{width:46px;height:46px;object-fit:contain;}
+  .tile .lbl{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.2;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note">⚙ OPCJA 2 — hero ZMNIEJSZONY do 200px (jak profil, mniejszy niż teraz) + siatka 3-kol A2 pod nim. Spójne z profilem. ⚠️ to ZMIENIA hero (zmniejsza z 9:16 do 200px).</div>
+  <div class="hero">
+    <div class="hero-grad"></div>
+    <div class="hero-top"></div>
+    <div class="hero-lbl">Dzisiejszy trening</div>
+    <div class="hero-foot"><div class="t1">SPOKOJNY BIEG</div><div class="t2">8 km · tempo swobodne</div></div>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+<script>
+  var BASE='https://filipjanczak1989-png.github.io/biegamy-assets/';
+  var T=[['icon-ex-section.webp','Ćwiczenia'],['icon-radio-trophy.webp','Wyzwania'],['icon-nav-medal.webp','Odznaki'],['icon-nav-flag.webp','Starty'],['icon-nav-people.webp','Czat']];
+  document.getElementById('grid').innerHTML=T.map(function(t){return '<button class="tile"><img src="'+BASE+t[0]+'" alt=""><span class="lbl">'+t[1]+'</span></button>';}).join('');
+</script>
+</body>
+</html>
