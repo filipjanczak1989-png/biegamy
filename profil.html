@@ -386,7 +386,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 <div class="section" id="goals-section">
   <div class="section-hdr">
     <div class="section-title">Cele i <span>Starty</span></div>
-    <button id="add-goal-btn" style="display:none;background:none;border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:4px 10px;font-size:11px;font-family:DM Mono,monospace;cursor:pointer;" onclick="addGoalPrompt()">+ Cel</button>
+    <button id="add-goal-btn" class="btn btn-ghost btn-sm" style="display:none;" onclick="addGoalPrompt()">+ Cel</button>
   </div>
   <div id="goals-list"><div class="skeleton" style="height:56px;border-radius:12px;margin-bottom:8px;"></div></div>
 </div>
@@ -396,7 +396,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
   <div style="margin-bottom:12px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
       <div class="section-title">Aktywno<span>ść</span></div>
-      <button id="add-post-btn" style="display:none;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:DM Mono,monospace;letter-spacing:0.05em;" onclick="openAddPost()">+ Post</button>
+      <button id="add-post-btn" class="btn btn-primary btn-sm" style="display:none;" onclick="openAddPost()">+ Post</button>
     </div>
     <div id="feed-tabs" style="display:flex;gap:0;border:1px solid var(--border);border-radius:10px;overflow:hidden;">
       <button id="ftab-all"      onclick="setFeedFilter('all')"      style="flex:1;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:none;font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:9px 4px;cursor:pointer;">Wszystko</button>
