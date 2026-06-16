@@ -1017,13 +1017,26 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- Baner Radio -->
-<div id="radio-home-banner" onclick="window.location.href='radio.html'" style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.08),rgba(255,107,44,0.04));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:16px 16px 4px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
-  <div style="width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">📻</div>
-  <div style="flex:1;min-width:0;">
+<style>
+.rhb-eq{display:flex;align-items:flex-end;gap:2.5px;height:15px;flex-shrink:0;}
+.rhb-eq span{width:3px;border-radius:2px;background:var(--accent);transform-origin:bottom;animation:rhbEq 0.9s ease-in-out infinite;}
+.rhb-eq span:nth-child(1){height:6px;animation-delay:0s;}
+.rhb-eq span:nth-child(2){height:14px;animation-delay:0.3s;}
+.rhb-eq span:nth-child(3){height:9px;animation-delay:0.15s;}
+@keyframes rhbEq{0%,100%{transform:scaleY(0.35);}50%{transform:scaleY(1);}}
+@media (prefers-reduced-motion:reduce){.rhb-eq span{animation:none;transform:scaleY(0.7);}}
+</style>
+<div id="radio-home-banner" onclick="window.location.href='radio.html'" style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.10),rgba(var(--accent-rgb),0.03));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:16px 16px 4px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
+  <div style="position:absolute;inset:0;background-image:url('https://filipjanczak1989-png.github.io/biegamy-assets/cover-biegnij-kasienka-remix.webp');background-size:cover;background-position:center 30%;opacity:0.20;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 95%);mask-image:linear-gradient(90deg,transparent 25%,#000 95%);pointer-events:none;z-index:0;"></div>
+  <div style="position:relative;z-index:1;width:44px;height:44px;border-radius:12px;background:rgba(10,8,14,0.6);border:1px solid rgba(var(--accent-rgb),0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(var(--accent-rgb),0.15);">
+    <img data-ic="icon-radio-radio.webp" style="width:26px;height:26px;" alt="">
+  </div>
+  <div style="position:relative;z-index:1;flex:1;min-width:0;">
     <div style="font-size:13px;font-weight:600;color:var(--fg);">Radio BiegaMy</div>
     <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Muzyka do biegania</div>
   </div>
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+  <div class="rhb-eq" style="position:relative;z-index:1;" aria-hidden="true"><span></span><span></span><span></span></div>
+  <svg style="position:relative;z-index:1;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
 </div>
 
 <div class="sec-hdr fade-in" style="margin-top:20px;"><div class="sec-title">Ten tydzień</div><a href="kalendarz.html?role=athlete" class="sec-link">Pełny widok →</a></div>
