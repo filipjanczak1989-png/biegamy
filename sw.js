@@ -54,16 +54,20 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(STATIC_CACHE)
       .then((cache) => {
-        // Precache - tolerujemy częściowe niepowodzenie (np. brak jakiegoś pliku)
-        const requiredPromise = Promise.allSettled(
-          PRECACHE_URLS.map((url) => cache.add(url).catch((err) => {
-            console.warn(`[SW] Precache failed for ${url}:`, err.message);
-          }))
-        );
+        // Precache resilience: cache'uj TYLKO świeżą odpowiedź 200 OK.
+        // Chroni przed zatruciem cache błędną/pustą theme.css przy wyścigu z propagacją deployu
+        // (cache.add nie odrzuca 200-empty/opaque). cache:'reload' = pomiń HTTP-cache, weź z sieci.
+        const cacheIfOk = (url, quiet) =>
+          fetch(new Request(url, { cache: 'reload' }))
+            .then((res) => {
+              if (res && res.ok && res.status === 200) return cache.put(url, res.clone());
+              if (!quiet) console.warn(`[SW] Precache skip (status ${res && res.status}): ${url}`);
+            })
+            .catch((err) => { if (!quiet) console.warn(`[SW] Precache failed for ${url}:`, err.message); });
+        // Wymagane - tolerujemy częściowe niepowodzenie (plik dociągnie się runtime)
+        const requiredPromise = Promise.allSettled(PRECACHE_URLS.map((url) => cacheIfOk(url, false)));
         // Opcjonalne - cisza jeśli plik nie istnieje (PWA ikony jeszcze nie wgrane)
-        const optionalPromise = Promise.allSettled(
-          OPTIONAL_PRECACHE_URLS.map((url) => cache.add(url).catch(() => {}))
-        );
+        const optionalPromise = Promise.allSettled(OPTIONAL_PRECACHE_URLS.map((url) => cacheIfOk(url, true)));
         return Promise.all([requiredPromise, optionalPromise]);
       })
       .then(() => self.skipWaiting())
