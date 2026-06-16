@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>MAKIETA — kafle home (układ A)</title>
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;padding:24px 0 60px;}
+  .wrap{max-width:420px;margin:0 auto;padding:0 16px;}
+  .note{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-bottom:18px;line-height:1.6;border:1px dashed var(--border);border-radius:10px;padding:10px 12px;}
+  .sec-title{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--fg2);font-family:'DM Mono',monospace;font-weight:700;margin:18px 0 10px;}
+
+  /* ── UKŁAD A: siatka 3-kolumnowa ── */
+  .home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .home-tile{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:14px 6px 11px;
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    cursor:pointer;
+    transition:transform var(--dur-fast,0.18s) var(--ease-out,ease), box-shadow var(--dur-fast,0.18s), border-color var(--dur-fast,0.18s);
+    -webkit-tap-highlight-color:transparent;
+  }
+  .home-tile:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),0.5);box-shadow:0 8px 22px rgba(0,0,0,0.4),0 0 16px var(--glow-o2,rgba(232,86,30,0.14));}
+  .home-tile:active{transform:scale(0.97);}
+  .home-tile img{width:40px;height:40px;object-fit:contain;flex-shrink:0;}
+  .home-tile .lbl{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg2);font-family:'DM Mono',monospace;font-weight:700;text-align:center;line-height:1.2;}
+
+  /* wariant: większa ikona 44 (do porównania) */
+  .home-grid.big .home-tile img{width:46px;height:46px;}
+  .home-grid.big .home-tile{padding:16px 6px 12px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note">⚙ MAKIETA — układ A (3-kol). To plik TESTOWY (nie home). Oceń: rozmiar kafla, ikona 40px, podpis, hover (najedź/tapnij). Motyw: zmień w localStorage bm_theme (ocean/forest/grape/gold) by sprawdzić tokeny.</div>
+
+  <div class="sec-title">Wariant A1 — ikona 40px</div>
+  <div class="home-grid" id="g1"></div>
+
+  <div class="sec-title">Wariant A2 — ikona 46px (większa)</div>
+  <div class="home-grid big" id="g2"></div>
+</div>
+<script>
+  var BASE='https://filipjanczak1989-png.github.io/biegamy-assets/';
+  var TILES=[
+    {icon:'icon-ex-section.webp',   lbl:'Ćwiczenia',   go:"showSection('cwiczenia')"},
+    {icon:'icon-radio-trophy.webp', lbl:'Wyzwania',    go:"wyzwania.html"},
+    {icon:'icon-nav-medal.webp',    lbl:'Odznaki',     go:"odznaki.html"},
+    {icon:'icon-nav-flag.webp',     lbl:'Zawody',      go:"races.html"},
+    {icon:'icon-nav-people.webp',   lbl:'Społeczność', go:"showSection('msgs')"}
+  ];
+  function render(id){
+    var el=document.getElementById(id);
+    el.innerHTML=TILES.map(function(t){
+      return '<button class="home-tile" title="'+t.go+'">'
+        + '<img src="'+BASE+t.icon+'" alt="">'
+        + '<span class="lbl">'+t.lbl+'</span>'
+        + '</button>';
+    }).join('');
+  }
+  render('g1'); render('g2');
+</script>
+</body>
+</html>
