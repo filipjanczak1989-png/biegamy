@@ -3,23 +3,43 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>MAKIETA — kafle home (układ A)</title>
+<title>MAKIETA — home-top (hero pełnej szer. + kafle A2)</title>
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;padding:24px 0 60px;}
+  body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;padding:18px 0 60px;}
   .wrap{max-width:420px;margin:0 auto;padding:0 16px;}
-  .note{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;margin-bottom:18px;line-height:1.6;border:1px dashed var(--border);border-radius:10px;padding:10px 12px;}
-  .sec-title{font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--fg2);font-family:'DM Mono',monospace;font-weight:700;margin:18px 0 10px;}
+  .note{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.05em;margin-bottom:16px;line-height:1.6;border:1px dashed var(--border);border-radius:10px;padding:10px 12px;}
 
-  /* ── UKŁAD A: siatka 3-kolumnowa ── */
+  /* ── HERO (replika .today-hero: 9:16, cap 60vh) — PEŁNA SZEROKOŚĆ ── */
+  .mock-hero{
+    margin:0 0 14px;
+    background:#000;
+    border-radius:var(--tile-radius-lg,22px);
+    border:1px solid rgba(255,255,255,0.08);
+    overflow:hidden; position:relative;
+    box-shadow:var(--tile-shadow-lg);
+    aspect-ratio:9/16; max-height:60vh;
+    display:flex; flex-direction:column;
+  }
+  .mock-hero::before{content:'';position:absolute;inset:0;
+    background-image:url('https://raw.githubusercontent.com/filipjanczak1989-png/biegamy-assets/main/solo-hero.png');
+    background-size:cover;background-position:center 30%;opacity:0.6;}
+  .mock-hero-grad{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.15) 0%,rgba(7,5,12,0) 35%,rgba(7,5,12,0.6) 100%);}
+  .mock-hero-top{height:2px;position:relative;z-index:1;background:linear-gradient(90deg,var(--accent) 0%,var(--accent2) 45%,rgba(78,140,214,0.45) 82%,transparent 100%);border-radius:var(--tile-radius-lg) var(--tile-radius-lg) 0 0;}
+  .mock-hero-lbl{position:relative;z-index:1;padding:14px 16px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.85);}
+  .mock-hero-foot{margin-top:auto;position:relative;z-index:1;padding:16px;}
+  .mock-hero-foot .t1{font-family:'Bebas Neue',sans-serif;font-size:30px;color:#fff;letter-spacing:0.03em;line-height:1;}
+  .mock-hero-foot .t2{font-size:12px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;margin-top:4px;}
+
+  /* ── SIATKA A2 (ikona 46px, podpis BIAŁY) ── */
   .home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
   .home-tile{
     background:var(--card);
     border:1px solid var(--border);
     border-radius:14px;
-    padding:14px 6px 11px;
+    padding:16px 6px 12px;
     display:flex;flex-direction:column;align-items:center;gap:8px;
     cursor:pointer;
     transition:transform var(--dur-fast,0.18s) var(--ease-out,ease), box-shadow var(--dur-fast,0.18s), border-color var(--dur-fast,0.18s);
@@ -27,23 +47,27 @@
   }
   .home-tile:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),0.5);box-shadow:0 8px 22px rgba(0,0,0,0.4),0 0 16px var(--glow-o2,rgba(232,86,30,0.14));}
   .home-tile:active{transform:scale(0.97);}
-  .home-tile img{width:40px;height:40px;object-fit:contain;flex-shrink:0;}
-  .home-tile .lbl{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg2);font-family:'DM Mono',monospace;font-weight:700;text-align:center;line-height:1.2;}
-
-  /* wariant: większa ikona 44 (do porównania) */
-  .home-grid.big .home-tile img{width:46px;height:46px;}
-  .home-grid.big .home-tile{padding:16px 6px 12px;}
+  .home-tile img{width:46px;height:46px;object-fit:contain;flex-shrink:0;}
+  .home-tile .lbl{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.2;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="note">⚙ MAKIETA — układ A (3-kol). To plik TESTOWY (nie home). Oceń: rozmiar kafla, ikona 40px, podpis, hover (najedź/tapnij). Motyw: zmień w localStorage bm_theme (ocean/forest/grape/gold) by sprawdzić tokeny.</div>
+  <div class="note">⚙ MAKIETA home-top (plik testowy, NIE home). HERO = pełna szerokość (9:16, cap 60vh) — zobacz jak rośnie. Pod nim siatka A2 (ikona 46px, podpis BIAŁY). Hover/tap kafle. Motyw: localStorage.bm_theme='ocean'/forest/grape/gold + odśwież.</div>
 
-  <div class="sec-title">Wariant A1 — ikona 40px</div>
-  <div class="home-grid" id="g1"></div>
+  <!-- HERO pełnej szerokości (replika today-hero) -->
+  <div class="mock-hero">
+    <div class="mock-hero-grad"></div>
+    <div class="mock-hero-top"></div>
+    <div class="mock-hero-lbl">Dzisiejszy trening</div>
+    <div class="mock-hero-foot">
+      <div class="t1">SPOKOJNY BIEG</div>
+      <div class="t2">8 km · tempo swobodne</div>
+    </div>
+  </div>
 
-  <div class="sec-title">Wariant A2 — ikona 46px (większa)</div>
-  <div class="home-grid big" id="g2"></div>
+  <!-- SIATKA 5 kafli A2 -->
+  <div class="home-grid" id="g"></div>
 </div>
 <script>
   var BASE='https://filipjanczak1989-png.github.io/biegamy-assets/';
@@ -54,16 +78,9 @@
     {icon:'icon-nav-flag.webp',     lbl:'Zawody',      go:"races.html"},
     {icon:'icon-nav-people.webp',   lbl:'Społeczność', go:"showSection('msgs')"}
   ];
-  function render(id){
-    var el=document.getElementById(id);
-    el.innerHTML=TILES.map(function(t){
-      return '<button class="home-tile" title="'+t.go+'">'
-        + '<img src="'+BASE+t.icon+'" alt="">'
-        + '<span class="lbl">'+t.lbl+'</span>'
-        + '</button>';
-    }).join('');
-  }
-  render('g1'); render('g2');
+  document.getElementById('g').innerHTML=TILES.map(function(t){
+    return '<button class="home-tile" title="'+t.go+'"><img src="'+BASE+t.icon+'" alt=""><span class="lbl">'+t.lbl+'</span></button>';
+  }).join('');
 </script>
 </body>
 </html>
