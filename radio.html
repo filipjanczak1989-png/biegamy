@@ -52,7 +52,10 @@ body{padding:0 0 200px;min-height:100vh;}
 #rad-np-cover{width:40px;height:40px;border-radius:8px;object-fit:cover;background:rgba(255,255,255,0.06);flex-shrink:0;}
 #rad-np-ph{width:40px;height:40px;border-radius:8px;background:rgba(255,255,255,0.06);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;}
 #rad-np-title{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-#rad-loop-btn{background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:13px;cursor:pointer;flex-shrink:0;opacity:0.4;}
+#rad-loop-btn{background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:13px;cursor:pointer;flex-shrink:0;opacity:0.4;position:relative;display:flex;align-items:center;justify-content:center;}
+.rad-ic-cover{width:30px;height:30px;}
+.rad-ic-inline{width:16px;height:16px;display:inline-block;vertical-align:-3px;margin-right:6px;}
+#rad-loop-one{position:absolute;top:1px;right:3px;font-size:8px;font-weight:700;color:var(--accent);line-height:1;}
 .rad-nav-btn{background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:13px;cursor:pointer;flex-shrink:0;}
 #rad-audio{width:100%;}
 </style>
@@ -64,15 +67,15 @@ body{padding:0 0 200px;min-height:100vh;}
 </div>
 
 <div class="rad-tabs">
-  <button class="rad-tab on" id="rtab-katalog" onclick="radioTab('katalog')">🎵 Katalog</button>
+  <button class="rad-tab on" id="rtab-katalog" onclick="radioTab('katalog')"><img class="rad-ic-tab" data-ic="icon-radio-note.webp" alt="">Katalog</button>
   <button class="rad-tab" id="rtab-przeboje" onclick="radioTab('przeboje')"><img class="rad-ic-tab" data-ic="icon-radio-trophy.webp" alt="">Przeboje</button>
-  <button class="rad-tab" id="rtab-playlisty" onclick="radioTab('playlisty')">📂 Playlisty</button>
+  <button class="rad-tab" id="rtab-playlisty" onclick="radioTab('playlisty')"><img class="rad-ic-tab" data-ic="icon-radio-playlist.webp" alt="">Playlisty</button>
 </div>
 
 <div class="rad-wrap">
   <!-- Panel uploadu — TYLKO trener (odsłaniany w radioCheckCoach) -->
   <div id="rad-upload-panel" style="display:none;margin-bottom:12px;">
-    <button class="rad-newpl" onclick="radioToggleUploadForm()">➕ Wgraj kawałek</button>
+    <button class="rad-newpl" onclick="radioToggleUploadForm()"><img class="rad-ic-inline" data-ic="icon-radio-add.webp" alt="">Wgraj kawałek</button>
     <div id="rad-upload-form" style="display:none;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:10px;">
       <input type="file" id="rad-up-file" accept="audio/mpeg,.mp3" onchange="radioUploadPick(this)" style="width:100%;font-size:12px;color:var(--muted);margin-bottom:8px;">
       <input type="text" id="rad-up-title" placeholder="Tytuł" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);border-radius:8px;padding:9px 11px;font-size:14px;margin-bottom:8px;outline:none;">
@@ -93,11 +96,11 @@ body{padding:0 0 200px;min-height:100vh;}
   <video id="rad-video" controls playsinline preload="none"></video>
   <div class="rad-np">
     <img id="rad-np-cover" alt="" style="display:none;" onerror="this.style.display='none';var p=document.getElementById('rad-np-ph');if(p)p.style.display='flex';">
-    <div id="rad-np-ph">🎵</div>
+    <div id="rad-np-ph"><img class="rad-ic-cover" data-ic="icon-radio-note.webp" alt=""></div>
     <div id="rad-np-title" style="flex:1;min-width:0;">—</div>
-    <button class="rad-nav-btn" onclick="radioPrev()" title="Poprzedni">⏮</button>
-    <button class="rad-nav-btn" onclick="radioNext()" title="Następny">⏭</button>
-    <button id="rad-loop-btn" onclick="radioToggleLoop()" title="Powtarzanie">↻</button>
+    <button class="rad-nav-btn" onclick="radioPrev()" title="Poprzedni"><img class="rad-ic" data-ic="icon-radio-prev.webp" alt=""></button>
+    <button class="rad-nav-btn" onclick="radioNext()" title="Następny"><img class="rad-ic" data-ic="icon-radio-next.webp" alt=""></button>
+    <button id="rad-loop-btn" onclick="radioToggleLoop()" title="Powtarzanie"><img class="rad-ic" data-ic="icon-radio-loop.webp" alt=""><sup id="rad-loop-one" style="display:none;">1</sup></button>
     <button onclick="radioClosePlayer()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>
   </div>
   <audio id="rad-audio" controls preload="none"></audio>
@@ -292,7 +295,7 @@ function radioCardHtml(t, playOnclick, rank){
   const cover = window.safeUrlAttr ? window.safeUrlAttr(window.RADIO.coverUrl(t)) : '';
   const coverHtml = cover
     ? '<img class="rad-cover" src="' + cover + '" alt="" onerror="this.outerHTML=\'<div class=&quot;rad-cover&quot;>🎵</div>\'">'
-    : '<div class="rad-cover">🎵</div>';
+    : '<div class="rad-cover"><img class="rad-ic-cover" src="' + window.assetUrl('icon-radio-note.webp') + '"></div>';
   const dur = t.duration_sec ? (' · ' + radioFmtDur(t.duration_sec)) : '';
   const liked = _radioLikedSet.has(t.id);
   const rankHtml = rank ? ('<div class="rad-rank">' + rank + '</div>') : '';
@@ -301,7 +304,7 @@ function radioCardHtml(t, playOnclick, rank){
     + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
     + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + dur + ' · ▶ ' + (t.play_count || 0) + ' · 💬 ' + (t.comment_count || 0) + '</div></div></div>'
     + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub"><img class="rad-ic" src="' + window.assetUrl('icon-radio-like.webp') + '"> <span>' + (t.like_count || 0) + '</span></button>'
-    + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
+    + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty"><img class="rad-ic" src="' + window.assetUrl('icon-radio-add.webp') + '"></button>'
     + '<button class="rad-play" onclick="' + playOnclick + '"><img class="rad-ic" src="' + window.assetUrl('icon-radio-play.webp') + '"></button></div>';
 }
 
@@ -355,7 +358,7 @@ async function radioOpenTrack(trackId){
   const liked = _radioLikedSet.has(t.id);
   const coverBig = cover
     ? '<img src="' + cover + '" alt="" style="width:100%;max-width:300px;aspect-ratio:1;border-radius:18px;object-fit:cover;display:block;margin:8px auto;" onerror="this.style.display=\'none\'">'
-    : '<div style="width:300px;max-width:80%;aspect-ratio:1;border-radius:18px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:64px;margin:8px auto;">🎵</div>';
+    : '<div style="width:300px;max-width:80%;aspect-ratio:1;border-radius:18px;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;font-size:64px;margin:8px auto;"><img src="' + window.assetUrl('icon-radio-note.webp') + '" style="width:96px;height:96px;"></div>';
   const ov = document.createElement('div');
   ov.id = 'rad-track-ov';
   ov.style.cssText = 'position:fixed;inset:0;z-index:150;background:var(--bg);overflow-y:auto;-webkit-overflow-scrolling:touch;';
@@ -368,9 +371,9 @@ async function radioOpenTrack(trackId){
     + '<div style="display:flex;justify-content:center;gap:12px;margin:14px 0 4px;">'
       + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')" title="Odtwórz"><img class="rad-ic" src="' + window.assetUrl('icon-radio-play.webp') + '"></button>'
       + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub"><img class="rad-ic" src="' + window.assetUrl('icon-radio-like.webp') + '"> <span>' + (t.like_count || 0) + '</span></button>'
-      + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
+      + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty"><img class="rad-ic" src="' + window.assetUrl('icon-radio-add.webp') + '"></button>'
     + '</div>'
-    + (_radioIsCoach ? '<div style="text-align:center;margin:12px 0 0;"><button onclick="radioDeleteTrack(\'' + t.id + '\')" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.4);color:#e05050;border-radius:10px;padding:8px 16px;font-size:12px;font-family:DM Mono,monospace;cursor:pointer;">🗑 Usuń kawałek</button></div>' : '')
+    + (_radioIsCoach ? '<div style="text-align:center;margin:12px 0 0;"><button onclick="radioDeleteTrack(\'' + t.id + '\')" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.4);color:#e05050;border-radius:10px;padding:8px 16px;font-size:12px;font-family:DM Mono,monospace;cursor:pointer;"><img class="rad-ic-inline" src="' + window.assetUrl('icon-radio-trash.webp') + '">Usuń kawałek</button></div>' : '')
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;margin:20px 0 4px;">Komentarze</div>'
     + '<div id="rad-comments-list"><div class="rad-empty">Ładowanie…</div></div>'
     + '<div style="display:flex;gap:8px;margin-top:10px;align-items:flex-end;">'
@@ -419,7 +422,7 @@ async function loadTrackComments(trackId){
       ? '<img src="' + av + '" alt="" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.visibility=\'hidden\'">'
       : '<div style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;">' + escapeHtml((c.author_name || '?').slice(0,1).toUpperCase()) + '</div>';
     const coachTag = c.author_is_coach ? ' <span style="color:var(--accent);font-size:9px;font-family:DM Mono,monospace;">TRENER</span>' : '';
-    const del = canDel ? '<button onclick="radioDeleteComment(\'' + c.id + '\',\'' + trackId + '\')" title="Usuń" style="background:none;border:none;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:14px;">🗑</button>' : '';
+    const del = canDel ? '<button onclick="radioDeleteComment(\'' + c.id + '\',\'' + trackId + '\')" title="Usuń" style="background:none;border:none;color:var(--muted);cursor:pointer;flex-shrink:0;font-size:14px;"><img src="' + window.assetUrl('icon-radio-trash.webp') + '" style="width:16px;height:16px;"></button>' : '';
     return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);">'
       + avatar
       + '<div style="flex:1;min-width:0;"><div style="font-size:12px;font-weight:600;">' + escapeHtml(c.author_name) + coachTag + '</div>'
@@ -472,14 +475,14 @@ async function loadCatalog(){
 async function loadPlaylists(){
   const el = document.getElementById('radio-playlists');
   const { data, error } = await sb.from('radio_playlists').select('*').eq('owner_id', _radioUid).order('created_at', { ascending: true });
-  let html = '<button class="rad-newpl" onclick="radioNewPlaylist()">➕ Nowa playlista</button>';
+  let html = '<button class="rad-newpl" onclick="radioNewPlaylist()"><img class="rad-ic-inline" src="' + window.assetUrl('icon-radio-add.webp') + '">Nowa playlista</button>';
   if (error) { el.innerHTML = html + '<div class="rad-empty">Błąd ładowania playlist.</div>'; return; }
   const pls = data || [];
   if (!pls.length) { html += '<div class="rad-empty">Nie masz jeszcze playlist.<br>Stwórz pierwszą i dodawaj utwory z katalogu.</div>'; }
   else {
     html += pls.map(function(p){
       return '<div class="rad-card" onclick="radioOpenPlaylist(\'' + p.id + '\')" style="cursor:pointer;">'
-        + '<div class="rad-cover">📂</div>'
+        + '<div class="rad-cover"><img class="rad-ic-cover" src="' + window.assetUrl('icon-radio-playlist.webp') + '"></div>'
         + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(p.name) + '</div><div class="rad-ar">playlista</div></div>'
         + '<span style="color:var(--muted);font-size:18px;flex-shrink:0;">›</span></div>';
     }).join('');
@@ -573,7 +576,7 @@ function radioToggleLoop(){
   _radioLoop = _radioLoop === 'off' ? 'all' : _radioLoop === 'all' ? 'one' : 'off';
   const b = document.getElementById('rad-loop-btn');
   if (!b) return;
-  b.textContent = _radioLoop === 'one' ? '↻¹' : '↻';
+  const _lo = document.getElementById('rad-loop-one'); if (_lo) _lo.style.display = (_radioLoop === 'one') ? 'inline' : 'none';
   b.style.opacity = _radioLoop === 'off' ? '0.4' : '1';
   b.title = _radioLoop === 'off' ? 'Powtarzanie: wył.' : _radioLoop === 'all' ? 'Powtarzaj kolejkę' : 'Powtarzaj utwór';
 }
@@ -638,12 +641,12 @@ async function radioOpenPlaylist(playlistId){
       const t = r.track;
       const up = idx > 0 ? '<button class="rad-nav-btn" onclick="radioMoveInPlaylist(' + idx + ',-1)" title="W górę">↑</button>' : '';
       const down = idx < items.length - 1 ? '<button class="rad-nav-btn" onclick="radioMoveInPlaylist(' + idx + ',1)" title="W dół">↓</button>' : '';
-      return '<div class="rad-card"><div class="rad-cover">🎵</div>'
+      return '<div class="rad-card"><div class="rad-cover"><img class="rad-ic-cover" src="' + window.assetUrl('icon-radio-note.webp') + '"></div>'
         + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
         + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + '</div></div>'
         + up + down
         + '<button class="rad-nav-btn" onclick="radioPlayPlaylistAt(' + idx + ')" title="Odtwórz"><img class="rad-ic" src="' + window.assetUrl('icon-radio-play.webp') + '"></button>'
-        + '<button class="rad-nav-btn" onclick="radioRemoveFromPlaylist(\'' + r.id + '\')" title="Usuń z playlisty">🗑</button>'
+        + '<button class="rad-nav-btn" onclick="radioRemoveFromPlaylist(\'' + r.id + '\')" title="Usuń z playlisty"><img class="rad-ic" src="' + window.assetUrl('icon-radio-trash.webp') + '"></button>'
         + '</div>';
     }).join('');
   }
@@ -687,7 +690,7 @@ async function radioAddToPlaylistPicker(trackId){
   ov.onclick = function(e){ if (e.target === ov) ov.remove(); };
   ov.innerHTML = '<div style="background:var(--bg);border-top:1px solid var(--border);border-radius:20px 20px 0 0;width:100%;max-width:520px;max-height:70vh;overflow-y:auto;padding:18px;">'
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:20px;margin-bottom:12px;">Dodaj do playlisty</div>'
-    + pls.map(function(p){ return '<div class="rad-card" style="cursor:pointer;" onclick="radioAddTrackToPlaylist(\'' + p.id + '\',\'' + trackId + '\')"><div class="rad-cover">📂</div><div class="rad-meta"><div class="rad-tt">' + escapeHtml(p.name) + '</div></div></div>'; }).join('')
+    + pls.map(function(p){ return '<div class="rad-card" style="cursor:pointer;" onclick="radioAddTrackToPlaylist(\'' + p.id + '\',\'' + trackId + '\')"><div class="rad-cover"><img class="rad-ic-cover" src="' + window.assetUrl('icon-radio-playlist.webp') + '"></div><div class="rad-meta"><div class="rad-tt">' + escapeHtml(p.name) + '</div></div></div>'; }).join('')
     + '</div>';
   document.body.appendChild(ov);
 }
