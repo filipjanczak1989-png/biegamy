@@ -6806,16 +6806,19 @@ function renderExerciseCard(ex, isLast) {
     + '</div></div>';
 }
 const PROGRAMS = [
-  { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
-  { id:'core',         emoji:'🧱', icon:'ex-core',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
+  { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  cover:'exercise-przysiad.webp', name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
+  { id:'core',         emoji:'🧱', icon:'ex-core',    cover:'exercise-plank.webp',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
   { id:'nogi',         emoji:'🦵', icon:'ex-legs',    name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
   { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
   { id:'pelny',        emoji:'💪', icon:'ex-fullset', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
 ];
 
 function _progCard(p) {
-  return '<button onclick="openProgram(\'' + p.id + '\')" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px;margin-bottom:12px;cursor:pointer;">'
-    + '<img src="' + window.assetUrl('icon-' + p.icon + '.webp') + '" style="width:34px;height:34px;flex-shrink:0;">'
+  var visual = p.cover
+    ? '<img src="' + EX_BASE + p.cover + '" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility=\'hidden\'">'
+    : '<img src="' + window.assetUrl('icon-' + p.icon + '.webp') + '" style="width:34px;height:34px;flex-shrink:0;">';
+  return '<button onclick="openProgram(\'' + p.id + '\')" style="display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:rgba(20,15,30,0.6);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;margin-bottom:12px;cursor:pointer;">'
+    + visual
     + '<div style="flex:1;min-width:0;">'
     + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">' + p.name + '</div>'
     + '<div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:\'Inter\',sans-serif;line-height:1.35;margin-bottom:4px;">' + p.desc + '</div>'
