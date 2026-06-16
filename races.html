@@ -386,8 +386,8 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
 
     <!-- Akcje -->
     <div style="display:flex;gap:8px;margin-top:8px;padding-bottom:6px;">
-      <button onclick="clearAllFilters()" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--fg2);border-radius:8px;padding:9px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;">Wyczyść</button>
-      <button onclick="toggleFiltersPanel()" style="flex:2;background:var(--accent);border:none;color:#fff;border-radius:8px;padding:9px;font-size:11px;font-family:'DM Mono',monospace;letter-spacing:0.05em;cursor:pointer;font-weight:600;">Pokaż wyniki</button>
+      <button onclick="clearAllFilters()" class="btn btn-ghost btn-sm" style="flex:1;">Wyczyść</button>
+      <button onclick="toggleFiltersPanel()" class="btn btn-primary btn-sm" style="flex:2;">Pokaż wyniki</button>
     </div>
   </div>
 </div>
@@ -437,7 +437,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
         <div class="modal-meta-cell">
           <div class="modal-meta-label">👥 Zapisanych</div>
           <div class="modal-meta-value" id="m-count"></div>
-          <button id="m-participants-btn" style="display:none;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--fg2);border-radius:8px;padding:5px 12px;font-size:11px;font-family:'DM Mono',monospace;cursor:pointer;margin-top:6px;">👥 Kto bierze udział?</button>
+          <button id="m-participants-btn" class="btn btn-ghost btn-sm" style="display:none;margin-top:6px;">👥 Kto bierze udział?</button>
         </div>
       </div>
     </div>
