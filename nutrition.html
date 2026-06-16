@@ -3557,7 +3557,7 @@ body {
   <!-- 🍳 Przepis — pod hero (remaining kcal + bias z nadchodzącego treningu) -->
   <div class="fridge-row">
     <input id="fridge-input" type="text" maxlength="500" class="fridge-input" placeholder="🥗 Składniki lub nazwa dania (opcjonalnie)">
-    <button id="recipe-btn" class="recipe-btn fridge-btn" onclick="proposeMeal(this)">🍳 Zaproponuj posiłek</button>
+    <button id="recipe-btn" class="recipe-btn fridge-btn" onclick="proposeMeal(this)"><img data-ic="icon-nut-recipe.webp" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;" alt="">Zaproponuj posiłek</button>
     <div class="fridge-hint">Puste = pod Twój cel · lub wpisz np. pizza</div>
   </div>
   <div id="recipe-card" style="display:none;"></div>
@@ -3588,7 +3588,7 @@ body {
   <!-- QUICK ADD — często jadane -->
   <div id="quick-add-wrap" style="display:none;">
     <div class="section-header">
-      <div class="section-title">⚡ Często jadane (tap = dodaj)</div>
+      <div class="section-title"><img data-ic="icon-nut-quick.webp" style="width:14px;height:14px;vertical-align:-2px;" alt="">Często jadane (tap = dodaj)</div>
     </div>
     <div class="quick-add-row" id="quick-add-list"></div>
   </div>
@@ -3604,7 +3604,7 @@ body {
   <div id="meals-list" style="display:none;"></div>
 
   <!-- 📚 Biblioteka przepisów — przycisk otwiera overlay -->
-  <button class="recipe-btn recipe-btn-secondary" onclick="openRecipeLibrary()">📚 Biblioteka przepisów</button>
+  <button class="recipe-btn recipe-btn-secondary" onclick="openRecipeLibrary()"><img data-ic="icon-nut-library.webp" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;" alt="">Biblioteka przepisów</button>
 
   </div><!-- /view-today -->
 
@@ -3740,7 +3740,7 @@ body {
 
     <!-- EKSPORT CSV -->
     <button class="btn-secondary" style="margin-top:16px;" onclick="exportCSV()">
-      📤 Eksport CSV (30 dni)
+      <img data-ic="icon-nut-export.webp" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;" alt="">Eksport CSV (30 dni)
     </button>
   </div><!-- /view-history -->
 
@@ -3824,7 +3824,7 @@ body {
 <!-- ─────────────────────────────────────── -->
 <div id="scanner-modal" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-title">📊 Skan kodu kreskowego</div>
+    <div class="modal-title"><img data-ic="icon-nut-barcode.webp" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Skan kodu kreskowego</div>
     <div class="modal-sub">Skieruj kamerę na kod kreskowy produktu</div>
     <div class="scanner-frame">
       <video id="scanner-video" autoplay muted playsinline></video>
@@ -4064,7 +4064,7 @@ body {
           </svg>
         </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">📊 Barcode (najdokładniej)</div>
+          <div class="onboard-feature-title">Barcode (najdokładniej)</div>
           <div class="onboard-feature-sub">Skanuj kod produktu — Tymbark, jogurt, paluszki. Dane prosto z producenta.</div>
         </div>
       </div>
@@ -4076,7 +4076,7 @@ body {
           </svg>
         </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">📸 Zdjęcie + AI</div>
+          <div class="onboard-feature-title">Zdjęcie + AI</div>
           <div class="onboard-feature-sub">Sfotografuj posiłek. AI rozpozna składniki i policzy kalorie. Idealne do gotowanego.</div>
         </div>
       </div>
@@ -4088,7 +4088,7 @@ body {
           </svg>
         </div>
         <div class="onboard-feature-text">
-          <div class="onboard-feature-title">✏ Ręcznie / Wyszukaj</div>
+          <div class="onboard-feature-title">Ręcznie / Wyszukaj</div>
           <div class="onboard-feature-sub">Wpisz nazwę i kalorie, lub wyszukaj zeskanowany wcześniej produkt z bazy.</div>
         </div>
       </div>
@@ -4233,7 +4233,7 @@ body {
 <div id="recipe-library-modal" class="modal hidden" onclick="if(event.target===this) closeRecipeLibrary()">
   <div class="modal-card recipe-lib-card">
     <div class="recipe-lib-head">
-      <div class="recipe-lib-title">📚 Biblioteka przepisów</div>
+      <div class="recipe-lib-title"><img data-ic="icon-nut-library.webp" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Biblioteka przepisów</div>
       <button class="recipe-lib-close" onclick="closeRecipeLibrary()" aria-label="Zamknij">✕</button>
     </div>
     <div id="recipe-library"></div>
@@ -4313,7 +4313,7 @@ body {
 <!-- ─────────────────────────────────────── -->
 <div id="text-modal" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-title">✏ Znajdź produkt</div>
+    <div class="modal-title"><img data-ic="icon-nut-edit.webp" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Znajdź produkt</div>
     <div class="modal-sub">Wpisz nazwę produktu, który już skanowałeś</div>
 
     <!-- SEARCH ręczny -->
@@ -4395,9 +4395,9 @@ body {
     <div class="modal-title" id="ma-title">Posiłek</div>
     <div class="modal-sub" id="ma-meta">—</div>
 
-    <button class="btn-secondary" style="margin-bottom:8px;" onclick="openEditMeal()">✏ Edytuj</button>
-    <button class="btn-secondary" style="margin-bottom:8px;" onclick="duplicateMeal()">📋 Zjedz to samo jeszcze raz</button>
-    <button class="btn-secondary" style="margin-bottom:8px;background:rgba(224,80,80,0.1);border-color:rgba(224,80,80,0.4);color:#e05050;" onclick="deleteMealConfirm()">🗑 Usuń</button>
+    <button class="btn-secondary" style="margin-bottom:8px;" onclick="openEditMeal()"><img data-ic="icon-nut-edit.webp" style="width:15px;height:15px;vertical-align:-3px;margin-right:6px;" alt="">Edytuj</button>
+    <button class="btn-secondary" style="margin-bottom:8px;" onclick="duplicateMeal()"><img data-ic="icon-nut-repeat.webp" style="width:15px;height:15px;vertical-align:-3px;margin-right:6px;" alt="">Zjedz to samo jeszcze raz</button>
+    <button class="btn-secondary" style="margin-bottom:8px;background:rgba(224,80,80,0.1);border-color:rgba(224,80,80,0.4);color:#e05050;" onclick="deleteMealConfirm()"><img data-ic="icon-radio-trash.webp" style="width:15px;height:15px;vertical-align:-3px;margin-right:6px;" alt="">Usuń</button>
     <button class="btn-secondary" onclick="closeMealActions()">Anuluj</button>
   </div>
 </div>
@@ -4482,13 +4482,13 @@ body {
 <!-- ─────────────────────────────────────── -->
 <div id="photo-modal" class="modal hidden">
   <div class="modal-card">
-    <div class="modal-title">📸 Zdjęcie posiłku</div>
+    <div class="modal-title"><img data-ic="icon-nut-camera.webp" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Zdjęcie posiłku</div>
     <div class="modal-sub">AI rozpozna składniki i policzy kalorie</div>
 
     <div id="photo-stage-pick">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-        <button class="btn-secondary" onclick="document.getElementById('photo-input-cam').click()">📷 Kamera</button>
-        <button class="btn-secondary" onclick="document.getElementById('photo-input-gal').click()">🖼 Galeria</button>
+        <button class="btn-secondary" onclick="document.getElementById('photo-input-cam').click()"><img data-ic="icon-nut-camera.webp" style="width:15px;height:15px;vertical-align:-3px;margin-right:6px;" alt="">Kamera</button>
+        <button class="btn-secondary" onclick="document.getElementById('photo-input-gal').click()"><img data-ic="icon-nut-gallery.webp" style="width:15px;height:15px;vertical-align:-3px;margin-right:6px;" alt="">Galeria</button>
       </div>
       <input type="file" id="photo-input-cam" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoFile(event)">
       <input type="file" id="photo-input-gal" accept="image/*" style="display:none;" onchange="handlePhotoFile(event)">
@@ -5521,7 +5521,7 @@ async function proposeMeal(btn) {
   const inp = document.getElementById('fridge-input');
   const ingredients = ((inp && inp.value) || '').trim().slice(0, 500);
   const fridgeMode = ingredients.length >= 3;
-  if (btn) { btn.disabled = true; btn.dataset._orig = btn.textContent; btn.textContent = fridgeMode ? '⏳ Kombinuję...' : '⏳ Szukam posiłku...'; }
+  if (btn) { btn.disabled = true; btn.dataset._orig = btn.innerHTML; btn.innerHTML = fridgeMode ? '⏳ Kombinuję...' : '⏳ Szukam posiłku...'; }
   try {
     const base = await _recipeContext();
     if (!fridgeMode && (!base.remaining_kcal || base.remaining_kcal <= 0)) {
@@ -5547,7 +5547,7 @@ async function proposeMeal(btn) {
     console.warn('[recipe] propose', e);
     _renderRecipeCard(null, 'Błąd połączenia — spróbuj ponownie.');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = btn.dataset._orig || '🍳 Zaproponuj posiłek'; }
+    if (btn) { btn.disabled = false; btn.innerHTML = btn.dataset._orig || (window.icHtml('nut-recipe',16,'margin-right:6px;') + 'Zaproponuj posiłek'); }
   }
 }
 
@@ -5657,7 +5657,7 @@ let _libRecipes = [];
 let _libFavs = new Set();
 let _favsLoaded = false;
 const _LIB_MEALS = ['śniadanie', 'obiad', 'kolacja', 'przekąska'];
-const _LIB_MEAL_LABEL = { 'śniadanie': '🌅 Śniadanie', 'obiad': '🍽 Obiad', 'kolacja': '🌙 Kolacja', 'przekąska': '🍎 Przekąska', 'Inne': '🍽️ Inne' };
+const _LIB_MEAL_LABEL = { 'śniadanie': 'Śniadanie', 'obiad': 'Obiad', 'kolacja': 'Kolacja', 'przekąska': 'Przekąska', 'Inne': 'Inne' };
 const _LIB_BIAS = ['wysokowęglowe', 'wysokobiałkowe', 'zbalansowane'];
 
 async function _loadFavs() {
@@ -5726,7 +5726,7 @@ function _renderRecipeLibrary() {
   for (const meal of [..._LIB_MEALS, 'Inne']) {
     const list = buckets[meal];
     if (!list.length) continue;
-    html += '<div class="lib-group">' + esc(_LIB_MEAL_LABEL[meal]) + ' <span class="lib-count">' + list.length + '</span></div>';
+    html += '<div class="lib-group">' + mealIcHtml(LIB_MEAL_IC[meal] || 'meal', 15) + ' ' + esc(_LIB_MEAL_LABEL[meal]) + ' <span class="lib-count">' + list.length + '</span></div>';
     for (const r of list) html += _libRowHtml(r);
   }
   el.innerHTML = html;
@@ -5980,6 +5980,12 @@ async function selectDate(ds) {
 
 // ── SSOT pór posiłków — JEDEN słownik. 5 slotów: Śniadanie/Lunch/Obiad/Przekąska/Kolacja ──
 // Granice guess (maxHour): <11 breakfast · 11-14 lunch · 14-17 dinner · 17-19 snack · 19-24 evening (pełna doba, bez dziur)
+// ── Ikony 3D nutrition — helper + mapy slug ──
+window.icHtml = window.icHtml || function(slug, size, extra){ if(!window.assetUrl) return ''; size = size || 16; return '<img src="'+window.assetUrl('icon-'+slug+'.webp')+'" style="width:'+size+'px;height:'+size+'px;object-fit:contain;vertical-align:middle;flex-shrink:0;'+(extra||'')+'" alt="">'; };
+const MEAL_IC = { breakfast:'nut-meal-breakfast', lunch:'nut-meal-lunch', dinner:'nut-meal-dinner', snack:'nut-meal-snack', evening:'nut-meal-evening', meal:'nut-meal-dinner' };
+function mealIcHtml(type, size){ return window.icHtml(MEAL_IC[type] || 'nut-meal-dinner', size || 22); }
+const LIB_MEAL_IC = { 'śniadanie':'breakfast', 'obiad':'dinner', 'kolacja':'evening', 'przekąska':'snack', 'Inne':'meal' };
+
 const MEAL = {
   breakfast: { label: 'Śniadanie', icon: '🌅', maxHour: 11, defaultHour: 8  },
   lunch:     { label: 'Lunch',     icon: '🌞', maxHour: 14, defaultHour: 12 },
@@ -5993,62 +5999,12 @@ const MEAL_KEY2RECIPEPL = { breakfast: 'śniadanie', lunch: 'obiad', dinner: 'ob
 // tag PL przepisu → klucz slotu (insert do dziennika). obiad→dinner, kolacja→evening
 const RECIPEPL2MEAL_KEY = { 'śniadanie': 'breakfast', 'obiad': 'dinner', 'kolacja': 'evening', 'przekąska': 'snack' };
 
-const MEAL_TYPES = [
-  { 
-    key: 'breakfast', 
-    label: MEAL.breakfast.label,
-    defaultHour: MEAL.breakfast.defaultHour,
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="4"/>
-      <line x1="12" y1="3" x2="12" y2="5"/>
-      <line x1="12" y1="19" x2="12" y2="21"/>
-      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-      <line x1="3" y1="12" x2="5" y2="12"/>
-      <line x1="19" y1="12" x2="21" y2="12"/>
-      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-    </svg>`
-  },
-  { 
-    key: 'lunch', 
-    label: MEAL.lunch.label,
-    defaultHour: MEAL.lunch.defaultHour,
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="9"/>
-      <polyline points="12 7 12 12 15 14"/>
-    </svg>`
-  },
-  { 
-    key: 'dinner', 
-    label: MEAL.dinner.label,
-    defaultHour: MEAL.dinner.defaultHour,
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M5 3v8a3 3 0 0 0 3 3v7"/>
-      <line x1="5" y1="3" x2="5" y2="11"/>
-      <line x1="8" y1="3" x2="8" y2="11"/>
-      <line x1="11" y1="3" x2="11" y2="11"/>
-      <path d="M16 3 c -1 0 -2 2 -2 5 c 0 2 1 3 2 3 v 10"/>
-    </svg>`
-  },
-  { 
-    key: 'snack', 
-    label: MEAL.snack.label,
-    defaultHour: MEAL.snack.defaultHour,
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M12 6 c 0 -2 -2 -3 -2 -3 c 0 0 -1 1 -1 2 c 0 1 1 2 3 2 z"/>
-      <path d="M19 14 c 0 4 -3 7 -7 7 c -4 0 -7 -3 -7 -7 c 0 -3 2 -6 5 -6 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 3 5 6 z"/>
-    </svg>`
-  },
-  { 
-    key: 'evening', 
-    label: MEAL.evening.label,
-    defaultHour: MEAL.evening.defaultHour,
-    iconSvg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 12.79 A 9 9 0 1 1 11.21 3 A 7 7 0 0 0 21 12.79 z"/>
-    </svg>`
-  }
-];
+const MEAL_TYPES = MEAL_ORDER.map(k => ({
+  key: k,
+  label: MEAL[k].label,
+  defaultHour: MEAL[k].defaultHour,
+  iconSvg: mealIcHtml(k, 22)
+}));
 
 function renderMealSlots() {
   const wrap = document.getElementById('meal-slots');
@@ -6179,7 +6135,7 @@ function renderMealsList() {
     return `
       <div class="meal-item" onclick="openMealActions(window._mealsById['${m.id}'])">
         <div class="meal-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.45),rgba(26,18,14,0.25)),url('${initialImg}');background-size:cover;background-position:center;border:1px solid rgba(var(--accent-rgb),0.3);position:relative;color:transparent;">
-          <span style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg);">${icons[m.meal_type] || '🍽'}</span>
+          <span style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg);">${mealIcHtml(m.meal_type, 12)}</span>
         </div>
         <div class="meal-info">
           <div class="meal-name">${escapeHtml(m.name)}</div>
@@ -6949,7 +6905,7 @@ async function openDayDetails(dateKey) {
       const time = t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
       return `
         <div class="meal-item" style="cursor:default;">
-          <div class="meal-icon">${icons[m.meal_type] || '🍽'}</div>
+          <div class="meal-icon">${mealIcHtml(m.meal_type, 26)}</div>
           <div class="meal-info">
             <div class="meal-name">${escapeHtml(m.name)}</div>
             <div class="meal-meta">${time}${m.weight_g ? ' · ' + Math.round(m.weight_g) + 'g' : ''}</div>
@@ -8152,6 +8108,12 @@ function animateValue(el, target, duration) {
   }
   requestAnimationFrame(step);
 }
+</script>
+<script>
+(function resolveDataIc(){
+  function run(){ if(!window.assetUrl) return; document.querySelectorAll('img[data-ic]').forEach(function(el){ el.src = window.assetUrl(el.dataset.ic); }); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',run); else run();
+})();
 </script>
 </body>
 </html>
