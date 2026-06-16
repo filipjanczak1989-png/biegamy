@@ -7559,14 +7559,14 @@ async function loadRadioBanner() {
     } else {
       // 2) all-time #1
       const { data } = await sb.from('radio_top').select('*').order('play_count', { ascending: false }).limit(1);
-      if (data && data.length && (data[0].play_count || 0) > 0) { hit = data[0]; tag = 'Najczęściej słuchane'; }
+      if (data && data.length && (data[0].play_count || 0) > 0) { hit = data[0]; tag = null; } // tier2: sam tytuł (krócej)
     }
     if (!hit) return; // 3) brak → zostaw statyczny default ("Radio BiegaMy"/Kasieńka/ikona)
     const url = window.RADIO.coverUrl(hit);
     if (url && thumb) { thumb.src = url; thumb.style.display = 'block'; if (icon) icon.style.display = 'none'; } // okładka wyraźna w chipie
     if (url) cover.style.backgroundImage = "url('" + url + "')"; // bleed ambient
     // "Radio BiegaMy" (rhb-title) ZOSTAJE bez zmian; hit ląduje w podpisie
-    subEl.textContent = '♪ ' + (hit.title || '') + ' · ' + tag;
+    subEl.textContent = '♪ ' + (hit.title || '') + (tag ? ' · ' + tag : ''); // tier1: "· ▶ N w tym tygodniu", tier2: sam tytuł
   } catch (e) { /* zostaw statyczny baner — nie psuj home */ }
 }
 
