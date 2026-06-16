@@ -1222,7 +1222,7 @@ body > *{position:relative;z-index:1;}
         <svg id="privacy-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
         <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--green);">Publiczny</span>
       </button>
-      <button id="push-mini-btn" onclick="togglePushNotifs()" title="Powiadomienia push" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:14px;line-height:1;">🔔</button>
+      <button id="push-mini-btn" onclick="togglePushNotifs()" title="Powiadomienia push" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:14px;line-height:1;"><img data-ic="icon-nav-bell.webp" style="width:17px;height:17px;" alt=""></button>
     </div>
   </div>
 
@@ -1259,7 +1259,7 @@ body > *{position:relative;z-index:1;}
 
   <!-- Powiadomienia push (zawsze widoczne, niezależnie od zakładki) -->
   <div id="push-toggle-card-top" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin:0 0 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.3)'" onmouseout="this.style.borderColor='var(--border)'">
-    <div style="font-size:22px;flex-shrink:0;">🔔</div>
+    <div style="font-size:22px;flex-shrink:0;"><img data-ic="icon-nav-bell.webp" style="width:22px;height:22px;vertical-align:middle;" alt=""></div>
     <div style="flex:1;min-width:0;">
       <div style="font-size:13px;font-weight:600;">Powiadomienia push</div>
       <div id="push-toggle-status-top" style="font-size:11px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">Sprawdzam status...</div>
@@ -1368,7 +1368,7 @@ body > *{position:relative;z-index:1;}
 
     <!-- Powiadomienia push -->
     <div id="push-toggle-card" onclick="togglePushNotifs()" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color 0.15s;">
-      <div style="font-size:22px;flex-shrink:0;">🔔</div>
+      <div style="font-size:22px;flex-shrink:0;"><img data-ic="icon-nav-bell.webp" style="width:22px;height:22px;vertical-align:middle;" alt=""></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;">Powiadomienia push</div>
         <div id="push-toggle-status" style="font-size:11px;color:var(--muted);margin-top:2px;font-family:DM Mono,monospace;">Sprawdzam status...</div>
@@ -1499,7 +1499,7 @@ body > *{position:relative;z-index:1;}
 
 <div id="goal-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--card);border:1px solid var(--accent);border-radius:16px;width:100%;max-width:380px;padding:24px;max-height:90vh;overflow-y:auto;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;">🏁 Cel startowy</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px;"><img data-ic="icon-nav-flag.webp" style="width:22px;height:22px;vertical-align:-4px;margin-right:8px;" alt="">Cel startowy</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;">
       Wpisz nazwę biegu — jeśli jest w kalendarzu BiegaMy, zapiszemy Cię automatycznie.
     </div>
@@ -3977,7 +3977,7 @@ window._renderComparePicker = function(friends) {
 
   wrap.innerHTML = '<div style="background:linear-gradient(140deg,#241b34,#16111f);border:1px solid rgba(139,92,246,0.4);border-radius:18px;padding:22px;max-width:380px;width:100%;max-height:80vh;overflow-y:auto;">'
     + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">'
-    +   '<div style="font-family:Bebas Neue,sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;">👥 Wybierz znajomego</div>'
+    +   '<div style="font-family:Bebas Neue,sans-serif;font-size:20px;color:#fff;letter-spacing:0.04em;"><img src="' + window.assetUrl('icon-nav-people.webp') + '" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Wybierz znajomego</div>'
     +   '<button onclick="document.getElementById(\'compare-picker-modal\')?.remove()" style="background:rgba(255,255,255,0.1);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;">✕</button>'
     + '</div>'
     + '<div>' + (list || '<div style="color:rgba(255,255,255,0.5);text-align:center;padding:24px;">Brak znajomych</div>') + '</div>'
@@ -6613,7 +6613,7 @@ function showPushPrompt() {
   }
   target.innerHTML = '<div style="background:linear-gradient(135deg,rgba(var(--accent-rgb),0.32),rgba(255,122,69,0.14));border:1.5px solid rgba(var(--accent-rgb),0.65);border-radius:12px;padding:14px 14px 12px;margin-bottom:12px;box-shadow:0 4px 18px rgba(var(--accent-rgb),0.18);">'
     + '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;">'
-      + '<div style="font-size:26px;flex-shrink:0;animation:bellNudge 2.2s ease-in-out 1s infinite;transform-origin:50% 20%;">🔔</div>'
+      + '<div style="font-size:26px;flex-shrink:0;animation:bellNudge 2.2s ease-in-out 1s infinite;transform-origin:50% 20%;"><img src="' + window.assetUrl('icon-nav-bell.webp') + '" style="width:26px;height:26px;display:block;" alt=""></div>'
       + '<div style="flex:1;min-width:0;">'
         + '<div style="font-size:13px;font-weight:700;color:var(--fg);letter-spacing:0.01em;">Włącz powiadomienia</div>'
         + '<div style="font-size:11px;color:var(--fg2);margin-top:3px;line-height:1.5;">Nie przegap wiadomości od trenera, komentarzy i wyzwań.</div>'
@@ -9790,13 +9790,13 @@ async function loadDuelsToContainer() {
 
   // Historia (krótka, max 5)
   if (finished.length) {
-    html += '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:8px 0 6px;font-weight:700;">🏆 Historia</div>';
+    html += '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin:8px 0 6px;font-weight:700;"><img src="' + window.assetUrl('icon-radio-trophy.webp') + '" style="width:13px;height:13px;vertical-align:-2px;margin-right:5px;" alt="">Historia</div>';
     for (const d of finished) html += _duelCardFinished(d, athMap[d.challenger_id === _athleteId ? d.opponent_id : d.challenger_id]);
   }
 
   // Separator wizualny pomiędzy pojedynkami a wyzwaniami
   html += '<div style="height:1px;background:var(--border);margin:18px 0 4px;"></div>';
-  html += '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;padding:6px 0 4px;">🏆 WYZWANIA TYGODNIOWE</div>';
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:0.05em;padding:6px 0 4px;"><img src="' + window.assetUrl('icon-radio-trophy.webp') + '" style="width:15px;height:15px;vertical-align:-3px;margin-right:6px;" alt="">WYZWANIA TYGODNIOWE</div>';
 
   // Wstaw na początku — wyzwania zostaną pod tym
   target.insertAdjacentHTML('afterbegin', html);
@@ -10982,7 +10982,7 @@ if ('serviceWorker' in navigator) {
     }
   </style>
   <div style="text-align:center;margin-bottom:16px;">
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:0.04em;">📈 Twoja forma</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;letter-spacing:0.04em;"><img data-ic="icon-nav-trend.webp" style="width:22px;height:22px;vertical-align:-4px;margin-right:8px;" alt="">Twoja forma</div>
     <div style="font-size:12px;color:rgba(255,255,255,0.6);font-family:'Inter',sans-serif;margin-top:4px;">CTL · ATL · TSB — 90 dni</div>
   </div>
 
@@ -11054,7 +11054,7 @@ if ('serviceWorker' in navigator) {
   <!-- Canvas dla Chart.js -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:10px;">
-      📈 Trend formy · 90 dni
+      <img data-ic="icon-nav-trend.webp" style="width:16px;height:16px;flex-shrink:0;" alt="">Trend formy · 90 dni
       <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
     </div>
     <!-- v4 Strava-style toggle controls -->
@@ -11101,7 +11101,7 @@ if ('serviceWorker' in navigator) {
   <!-- Stres tygodnia 8 tygodni — CSS bar chart -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
-      📊 Stres tygodnia (8 ostatnich)
+      <img data-ic="icon-nav-bars.webp" style="width:16px;height:16px;flex-shrink:0;" alt="">Stres tygodnia (8 ostatnich)
       <button onclick="event.stopPropagation();window.showMetricTooltip('weekly_km')" title="Co to stres tygodnia?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
     </div>
     <div id="forma-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
@@ -11110,7 +11110,7 @@ if ('serviceWorker' in navigator) {
   <!-- Heatmap aktywności (GitHub-style) — 13 tygodni × 7 dni -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:12px;">
-      🗓 Aktywność (13 tygodni)
+      <img data-ic="icon-nav-calendar.webp" style="width:16px;height:16px;flex-shrink:0;" alt="">Aktywność (13 tygodni)
       <button onclick="event.stopPropagation();window.showMetricTooltip('heatmap')" title="Co to heatmap?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
     </div>
     <div id="forma-heatmap" style="overflow-x:auto;"></div>
@@ -11137,7 +11137,7 @@ if ('serviceWorker' in navigator) {
   <!-- Porównanie formy z znajomym -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap;">
-      <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;">👥 Porównaj formę</div>
+      <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;display:flex;align-items:center;gap:6px;"><img data-ic="icon-nav-people.webp" style="width:15px;height:15px;flex-shrink:0;" alt="">Porównaj formę</div>
       <button onclick="window.openCompareModal()" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;padding:6px 12px;border-radius:8px;cursor:pointer;">Wybierz →</button>
     </div>
     <div id="forma-compare-result" style="font-size:12px;color:rgba(255,255,255,0.55);text-align:center;padding:12px;font-family:'Inter',sans-serif;">Klik "Wybierz" żeby porównać swoją formę z formą znajomego.</div>
@@ -11221,7 +11221,7 @@ if ('serviceWorker' in navigator) {
     <!-- ✨ SEKCJA 2: Jak zdobyć -->
     <div style="background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:12px;padding:12px 14px;margin:6px 0 14px;text-align:left;">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--accent);margin-bottom:8px;display:flex;align-items:center;gap:6px;">
-        <span style="font-size:14px;">🎯</span> Jak zdobyć
+        <img data-ic="icon-nav-target.webp" style="width:15px;height:15px;flex-shrink:0;" alt=""> Jak zdobyć
       </div>
       <div id="bd-desc" style="font-size:13px;color:var(--fg);line-height:1.5;"></div>
     </div>
