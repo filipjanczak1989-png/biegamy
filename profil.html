@@ -183,11 +183,14 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 .p-hero-dot.active{background:var(--accent);width:18px;border-radius:3px;}
 
 /* ── TILES ──────────────────────────────────────────── */
-.p-tiles-row{display:flex;gap:10px;margin:8px 16px 4px;}
-.p-hero-tile{flex:1;border-radius:18px;overflow:hidden;position:relative;min-height:200px;}
-.p-tiles-right{display:flex;flex-direction:column;gap:8px;width:88px;flex-shrink:0;align-items:stretch;}
-.p-tile-btn{flex:1;background:none;border:none;border-radius:12px;padding:0;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:48px;position:relative;z-index:5;}
-.p-tile-btn img{pointer-events:none;}
+.p-tiles-row{margin:8px 16px 4px;}
+.p-hero-tile{width:100%;border-radius:18px;overflow:hidden;position:relative;min-height:200px;}
+.p-nav-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+.p-nav-tile{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 6px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform var(--dur-fast,0.18s) var(--ease-out,ease),box-shadow var(--dur-fast,0.18s),border-color var(--dur-fast,0.18s);-webkit-tap-highlight-color:transparent;}
+.p-nav-tile:hover{transform:translateY(-2px);border-color:rgba(var(--accent-rgb),0.5);box-shadow:0 8px 22px rgba(0,0,0,0.4),0 0 16px var(--glow-o2,rgba(232,86,30,0.14));}
+.p-nav-tile:active{transform:scale(0.97);}
+.p-nav-tile img{width:46px;height:46px;object-fit:contain;}
+.p-nav-tile .lbl{font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--fg);font-weight:700;font-family:'DM Mono',monospace;text-align:center;line-height:1.2;}
 .post-actions{position:absolute;top:6px;right:6px;display:flex;gap:4px;z-index:5;}
 .post-act-btn{background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;backdrop-filter:blur(8px);}
 .post-act-btn:hover{background:var(--accent);}
@@ -214,20 +217,13 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       </div>
     </div>
 
-    <!-- Kafelki po prawej -->
-    <div class="p-tiles-right">
-      <button class="p-tile-btn" onclick="_tileWyzwania()" title="Wyzwania">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-wyzwania.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
-      </button>
-      <button class="p-tile-btn" onclick="_tileCzat()" title="Czat">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-czat.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
-      </button>
-      <button class="p-tile-btn" onclick="_tileOdznaki()" title="Odznaki">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-odznaki.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
-      </button>
-      <button class="p-tile-btn" onclick="_tileRaces()" title="Starty">
-        <img src="https://filipjanczak1989-png.github.io/biegamy-assets/tile-races.webp" style="width:80px;height:80px;object-fit:cover;border-radius:50%;box-shadow:0 2px 12px rgba(var(--accent-rgb),0.4);" onerror="this.parentElement.style.background='rgba(255,255,255,0.05)'">
-      </button>
+    <!-- Nawigacja — kafle 3D (wariant A2: ikona 3D + biały podpis) -->
+    <div class="p-nav-grid">
+      <button class="p-nav-tile" onclick="_tileWyzwania()"><img data-ic="icon-radio-trophy.webp" alt=""><span class="lbl">Wyzwania</span></button>
+      <button class="p-nav-tile" onclick="_tileCzat()"><img data-ic="icon-nav-people.webp" alt=""><span class="lbl">Czat</span></button>
+      <button class="p-nav-tile" onclick="_tileOdznaki()"><img data-ic="icon-nav-medal.webp" alt=""><span class="lbl">Odznaki</span></button>
+      <button class="p-nav-tile" onclick="_tileRaces()"><img data-ic="icon-nav-flag.webp" alt=""><span class="lbl">Starty</span></button>
+      <button class="p-nav-tile" onclick="location.href='zawodnik.html?tab=cwiczenia'"><img data-ic="icon-ex-section.webp" alt=""><span class="lbl">Ćwiczenia</span></button>
     </div>
   </div>
 </div>
