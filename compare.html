@@ -93,7 +93,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- TSB chart 90d 2 lines -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;"><img data-ic="icon-nav-trend.webp" style="width:18px;height:18px;flex-shrink:0;" alt="">Trend formy · 90 dni
-        <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="event.stopPropagation();window.showMetricTooltip('tsb')" title="Co to TSB?" class="info-dot">i</button>
       </h2>
       <!-- v4 Strava-style toggle (wpływa na OBA athletów) -->
       <div id="compare-toggles" style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;justify-content:center;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;">
@@ -142,7 +142,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- Weekly km bars 2 grids -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><img data-ic="icon-nav-bars.webp" style="width:18px;height:18px;flex-shrink:0;" alt="">Stres tygodnia · 8 tyg · TRIMP
-        <button onclick="window.showMetricTooltip('weekly_km')" title="Co to TRIMP?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('weekly_km')" title="Co to TRIMP?" class="info-dot">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
@@ -160,7 +160,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- Kalorie weekly bars 2 grids -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><img data-ic="icon-nav-fire.webp" style="width:18px;height:18px;flex-shrink:0;" alt="">Kalorie spalone · 8 tygodni
-        <button onclick="window.showMetricTooltip('kalorie')" title="Co to kalorie?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('kalorie')" title="Co to kalorie?" class="info-dot">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
@@ -178,7 +178,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- v1.1: Types pie 2 grids (7 dni) -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><img data-ic="icon-type-spokojny.webp" style="width:18px;height:18px;flex-shrink:0;" alt="">TYPY TRENINGÓW · 7 DNI
-        <button onclick="window.showMetricTooltip('types_pie')" title="Co to typy treningów?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('types_pie')" title="Co to typy treningów?" class="info-dot">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;">
@@ -195,7 +195,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- v1.1: Heatmap 13 tyg 2 grids (overflow-x:auto żeby na mobilu scrollować bez ścisku) -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><img data-ic="icon-nav-calendar.webp" style="width:18px;height:18px;flex-shrink:0;" alt="">AKTYWNOŚĆ · 13 TYGODNI
-        <button onclick="window.showMetricTooltip('heatmap')" title="Co to aktywność?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
+        <button onclick="window.showMetricTooltip('heatmap')" title="Co to aktywność?" class="info-dot">i</button>
       </h2>
       <div class="dual-grid">
         <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;overflow-x:auto;">
@@ -217,7 +217,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
 
     <!-- Bottom actions -->
     <div style="text-align:center;margin:32px 0 20px;">
-      <button onclick="changeFriend()" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;padding:10px 24px;border-radius:8px;cursor:pointer;">Wybierz innego →</button>
+      <button onclick="changeFriend()" class="btn btn-secondary">Wybierz innego →</button>
     </div>
 
   </div>
@@ -504,9 +504,9 @@ function renderAthleteCard(elId, profile, logs, weight, accentColor, roleLabel) 
   const nameEsc = escapeHtml(profile.full_name || '?');
 
   const isMe = elId === 'me-card';
-  const tsbBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'tsb\')" title="Co to TSB?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
-  const ctlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'ctl\')" title="Co to CTL?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
-  const atlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'atl\')" title="Co to ATL?" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.35);color:var(--accent);width:14px;height:14px;border-radius:50%;cursor:pointer;font-size:8px;font-family:\'DM Mono\',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>' : '';
+  const tsbBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'tsb\')" title="Co to TSB?" class="info-dot info-dot-sm">i</button>' : '';
+  const ctlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'ctl\')" title="Co to CTL?" class="info-dot info-dot-sm">i</button>' : '';
+  const atlBtn = isMe ? ' <button onclick="event.stopPropagation();window.showMetricTooltip(\'atl\')" title="Co to ATL?" class="info-dot info-dot-sm">i</button>' : '';
 
   const avatarHtml = profile.avatar_url
     ? '<img src="' + escapeHtml(profile.avatar_url) + '" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid ' + accentColor + ';">'
