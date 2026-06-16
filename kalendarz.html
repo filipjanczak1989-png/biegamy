@@ -860,7 +860,7 @@ html { scroll-behavior: smooth; }
     </div>
     <button class="btn btn-primary" id="btn-new-training" onclick="openModal(null)"><img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:22px;height:22px;object-fit:cover;border-radius:50%;vertical-align:middle;margin-right:6px;" onerror="this.style.display='none'">Nowy trening</button>
     <button class="btn btn-ghost" id="btn-templates" onclick="openTemplatesModal()" style="display:none;">Szablony</button>
-    <button class="btn btn-ghost" id="btn-copy-week" onclick="openCopyWeekModal()" style="display:none;">📋 Kopiuj tydzień</button>
+    <button class="btn btn-ghost" id="btn-copy-week" onclick="openCopyWeekModal()" style="display:none;"><img data-ic="icon-act-copy.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:6px;" alt="">Kopiuj tydzień</button>
     <button class="btn btn-ghost" id="btn-week-template" onclick="openWeekTemplateModal()" style="display:none;">Tydzień</button>
   </div>
 </nav>
@@ -917,7 +917,7 @@ html { scroll-behavior: smooth; }
       </div>
     </div>
     <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;">
-      <button id="btn-delete-goal" onclick="deleteGoal()" style="display:none;background:transparent;color:var(--red);border:1px solid rgba(224,80,80,0.4);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">🗑 Usuń cel</button>
+      <button id="btn-delete-goal" onclick="deleteGoal()" style="display:none;background:transparent;color:var(--red);border:1px solid rgba(224,80,80,0.4);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;"><img data-ic="icon-radio-trash.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Usuń cel</button>
       <div style="display:flex;gap:8px;margin-left:auto;">
         <button onclick="closeGoalModal()" style="background:transparent;color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Anuluj</button>
         <button onclick="saveGoal()" style="background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;cursor:pointer;">Zapisz</button>
@@ -1040,7 +1040,7 @@ html { scroll-behavior: smooth; }
       <!-- Zdjęcia — zawsze widoczne -->
       <div class="field" id="f-photos-wrap">
         <label>Zdjęcia / screeny</label>
-        <div onclick="document.getElementById('f-all-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);transition:border-color 0.15s;" id="f-all-files-label" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">📎 Dodaj zdjęcia lub screeny</div>
+        <div onclick="document.getElementById('f-all-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);transition:border-color 0.15s;" id="f-all-files-label" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"><img data-ic="icon-act-attach.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:6px;" alt="">Dodaj zdjęcia lub screeny</div>
         <input type="file" id="f-all-files" accept="image/*" multiple style="display:none" onchange="onKalFileChange(this)">
         <div id="f-all-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
       </div>
@@ -1062,7 +1062,7 @@ html { scroll-behavior: smooth; }
         </div>
         <div class="field">
           <label>Zdjęcia (można kilka)</label>
-          <div onclick="document.getElementById('f-log-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);" id="f-log-files-label">📎 Dodaj zdjęcia</div>
+          <div onclick="document.getElementById('f-log-files').click()" style="border:1px dashed var(--border);border-radius:8px;padding:12px;text-align:center;cursor:pointer;font-size:12px;color:var(--muted);" id="f-log-files-label"><img data-ic="icon-act-attach.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:6px;" alt="">Dodaj zdjęcia</div>
           <input type="file" id="f-log-files" accept="image/*" multiple style="display:none" onchange="document.getElementById('f-log-files-label').textContent = this.files.length + ' plik(ów) wybranych'">
           <div id="f-log-attachments" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;"></div>
         </div>
@@ -1726,13 +1726,13 @@ function openModal(ds, idx) {
   if(fLogPace) fLogPace.value='';
   if(fLogStrava) fLogStrava.value='';
   if(fLogFiles) fLogFiles.value='';
-  if(fLogLabel) fLogLabel.textContent='📎 Dodaj zdjęcia';
+  if(fLogLabel) fLogLabel.innerHTML=window.icHtml('act-attach',14,'margin-right:6px;vertical-align:-3px;')+'Dodaj zdjęcia';
   // Reset universal file picker
   const fAllFiles = document.getElementById('f-all-files');
   const fAllLabel = document.getElementById('f-all-files-label');
   const fAllAttach = document.getElementById('f-all-attachments');
   if(fAllFiles) fAllFiles.value='';
-  if(fAllLabel) fAllLabel.textContent='📎 Dodaj zdjęcia lub screeny';
+  if(fAllLabel) fAllLabel.innerHTML=window.icHtml('act-attach',14,'margin-right:6px;vertical-align:-3px;')+'Dodaj zdjęcia lub screeny';
   if(fAllAttach) fAllAttach.innerHTML='';
 
   if(ds) {
@@ -1874,8 +1874,8 @@ function renderDayMealsList(meals) {
           <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.06em;">kcal</div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
-          <button onclick="openCalMealEdit('${m.id}')" title="Edytuj" style="width:28px;height:28px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:7px;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;">✏</button>
-          <button onclick="deleteCalMeal('${m.id}')" title="Usuń" style="width:28px;height:28px;background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:7px;color:#e05050;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;">🗑</button>
+          <button onclick="openCalMealEdit('${m.id}')" title="Edytuj" style="width:28px;height:28px;background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:7px;color:var(--fg2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;">${window.icHtml('nut-edit',14)}</button>
+          <button onclick="deleteCalMeal('${m.id}')" title="Usuń" style="width:28px;height:28px;background:rgba(224,80,80,0.1);border:1px solid rgba(224,80,80,0.3);border-radius:7px;color:#e05050;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;">${window.icHtml('radio-trash',14)}</button>
         </div>
       </div>`;
   }).join('');
@@ -4976,9 +4976,9 @@ function _openDayScreen(ds) {
     if (hasLog) {
       // Ma log — "Edytuj" + "Story" + "Usuń"
       const storyBtn = `<button onclick="if(typeof PRS!=='undefined')PRS.launch({})" style="background:rgba(var(--accent-rgb),0.15);border:1px solid rgba(var(--accent-rgb),0.4);color:var(--accent);border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">▶ Story</button>`;
-      const deleteBtn = `<button id="ds-delete-btn" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">🗑</button>`;
+      const deleteBtn = `<button id="ds-delete-btn" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">${window.icHtml('radio-trash',15)}</button>`;
       ctaInner.innerHTML = closeBtn + storyBtn + deleteBtn +
-        `<button id="ds-edit-btn" data-ds="${ds}" style="flex:1;background:var(--accent2);border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">✏️ Edytuj trening</button>`;
+        `<button id="ds-edit-btn" data-ds="${ds}" style="flex:1;background:var(--accent2);border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">${window.icHtml('nut-edit',13,'margin-right:5px;vertical-align:-2px;')}Edytuj trening</button>`;
       // Podepnij listenery (bez inline onclick — unikamy problemów z escape)
       setTimeout(() => {
         const btnEdit = document.getElementById('ds-edit-btn');
@@ -5019,8 +5019,8 @@ function _openDayScreen(ds) {
       }, 50);
     } else if (hasPlan) {
       // Ma plan, brak logu — "Zaloguj wynik" + "Edytuj plan" + "Usuń plan"
-      const deleteBtn = `<button id="ds-delete-btn-plan" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">🗑</button>`;
-      const editBtn = `<button id="ds-edit-btn-plan" data-ds="${ds}" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);color:rgba(240,237,232,0.85);border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">✏️</button>`;
+      const deleteBtn = `<button id="ds-delete-btn-plan" data-ds="${ds}" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.35);color:#e05050;border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">${window.icHtml('radio-trash',15)}</button>`;
+      const editBtn = `<button id="ds-edit-btn-plan" data-ds="${ds}" style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);color:rgba(240,237,232,0.85);border-radius:12px;padding:14px 12px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;cursor:pointer;white-space:nowrap;">${window.icHtml('nut-edit',15)}</button>`;
       ctaInner.innerHTML = closeBtn + deleteBtn + editBtn +
         `<button onclick="openLogModal({stopPropagation:()=>{}}, '${ds}', 0);" style="flex:1;background:var(--accent2);border:none;color:#fff;border-radius:12px;padding:14px 20px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;font-weight:700;">🔥 Zaloguj wynik</button>`;
       // Podepnij listenery
@@ -5154,7 +5154,7 @@ document.addEventListener('keydown', e => {
 <div class="modal-bg" id="meal-edit-bg" onclick="closeMealEditOnBg(event)">
   <div class="modal" style="width:440px;">
     <div class="modal-header">
-      <div class="modal-title">✏ Edytuj posiłek</div>
+      <div class="modal-title"><img data-ic="icon-nut-edit.webp" style="width:18px;height:18px;vertical-align:-3px;margin-right:6px;" alt="">Edytuj posiłek</div>
       <button class="modal-close" onclick="closeMealEdit()">✕</button>
     </div>
     <div class="modal-body">
@@ -5647,7 +5647,7 @@ async function doCopyWeek() {
     <div style="padding:0 20px calc(env(safe-area-inset-bottom,0px) + 100px);">
       <!-- Upload screena — NA GÓRZE, główny element -->
       <div onclick="document.getElementById('ocr-file').click()" style="border:1px dashed var(--border);border-radius:12px;padding:14px 16px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="font-size:13px;color:var(--muted);">📎 Wrzuć screen z zegarka — pola wypełnią się same</div>
+        <div style="font-size:13px;color:var(--muted);"><img data-ic="icon-act-attach.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:5px;" alt="">Wrzuć screen z zegarka — pola wypełnią się same</div>
       </div>
       <div id="lm-ocr-status" style="font-size:11px;text-align:center;margin-bottom:8px;min-height:14px;font-family:'DM Mono',monospace;color:var(--muted);"></div>
       <div id="ocr-thumbs" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;"></div>

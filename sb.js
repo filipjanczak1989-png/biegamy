@@ -41,6 +41,19 @@
     return 'https://filipjanczak1989-png.github.io/biegamy-assets/' + clean;
   };
 
+  // ─── IKONY 3D — helper + auto-resolver data-ic ──────────────────────
+  // icHtml('act-save', 16, 'margin-right:6px;') → <img ...> (do JS-innerHTML)
+  // Statyczny HTML: <img data-ic="icon-act-save.webp"> → resolver ustawia src na load.
+  window.icHtml = window.icHtml || function(slug, size, extra) {
+    if (!window.assetUrl) return '';
+    size = size || 16;
+    return '<img src="' + window.assetUrl('icon-' + slug + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;object-fit:contain;vertical-align:middle;flex-shrink:0;' + (extra || '') + '" alt="">';
+  };
+  (function resolveDataIc(){
+    function run(){ try { document.querySelectorAll('img[data-ic]').forEach(function(el){ if(el.dataset.ic) el.src = window.assetUrl(el.dataset.ic); }); } catch(e){} }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+  })();
+
   // ⚠️ VAPID PUBLIC KEY
   // To NIE jest secret — może być publicznie widoczne.
   window.VAPID_PUBLIC_KEY = 'BATC1Y7rglazNCcKQXV1bqaNA_SnxC3003c5_eSKDBaUykhbZSUevTQDL-KMyVDs55oNBJogJkx4g_5irwUObTk';
