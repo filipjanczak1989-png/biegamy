@@ -33,7 +33,13 @@ body{padding:0 0 200px;min-height:100vh;}
 .rad-meta{flex:1;min-width:0;}
 .rad-tt{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:0.02em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rad-ar{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.rad-play{background:var(--accent);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;}
+.rad-play{background:rgba(255,255,255,0.08);border:none;color:#fff;width:38px;height:38px;border-radius:50%;font-size:15px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.rad-ic{width:20px;height:20px;display:block;pointer-events:none;}
+.rad-play .rad-ic{width:22px;height:22px;}
+.rad-like .rad-ic{width:18px;height:18px;opacity:0.4;transition:opacity 0.15s;}
+.rad-like.on .rad-ic{opacity:1;}
+.rad-ic-tab{width:15px;height:15px;display:inline-block;vertical-align:-2px;margin-right:3px;}
+.rad-ic-title{width:26px;height:26px;display:inline-block;vertical-align:-5px;margin-right:4px;}
 .rad-like{background:rgba(255,255,255,0.06);border:none;color:var(--muted);border-radius:15px;height:30px;padding:0 9px;font-size:12px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:3px;font-family:'DM Mono',monospace;}
 .rad-like.on{color:var(--accent);background:rgba(var(--accent-rgb),0.12);}
 .rad-rank{width:24px;flex-shrink:0;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--muted);}
@@ -54,12 +60,12 @@ body{padding:0 0 200px;min-height:100vh;}
 <body>
 <div class="rad-hdr">
   <a href="zawodnik.html" title="Wróć">‹</a>
-  <div class="rad-title">📻 Radio BiegaMy</div>
+  <div class="rad-title"><img class="rad-ic-title" data-ic="icon-radio-radio.webp" alt="">Radio BiegaMy</div>
 </div>
 
 <div class="rad-tabs">
   <button class="rad-tab on" id="rtab-katalog" onclick="radioTab('katalog')">🎵 Katalog</button>
-  <button class="rad-tab" id="rtab-przeboje" onclick="radioTab('przeboje')">🏆 Przeboje</button>
+  <button class="rad-tab" id="rtab-przeboje" onclick="radioTab('przeboje')"><img class="rad-ic-tab" data-ic="icon-radio-trophy.webp" alt="">Przeboje</button>
   <button class="rad-tab" id="rtab-playlisty" onclick="radioTab('playlisty')">📂 Playlisty</button>
 </div>
 
@@ -128,6 +134,8 @@ async function radioInit(){
 // play/pause: synchronizuj mediaSession.playbackState — Android Chrome utrzymuje audio
 // w tle TYLKO przy żywej sesji ('playing'); bez tego pauzuje przy zgaszonym ekranie.
 (function(){
+  // ikony statyczne (header/tab) — src przez assetUrl (single-source)
+  document.querySelectorAll('img[data-ic]').forEach(function(el){ if (window.assetUrl) el.src = window.assetUrl(el.getAttribute('data-ic')); });
   const aud = document.getElementById('rad-audio');
   if (!aud) return;
   aud.addEventListener('ended', function(){
@@ -292,9 +300,9 @@ function radioCardHtml(t, playOnclick, rank){
     + '<div class="rad-open" onclick="radioOpenTrack(\'' + t.id + '\')">' + coverHtml
     + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
     + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + dur + ' · ▶ ' + (t.play_count || 0) + ' · 💬 ' + (t.comment_count || 0) + '</div></div></div>'
-    + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub">' + (liked ? '♥' : '♡') + ' <span>' + (t.like_count || 0) + '</span></button>'
+    + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub"><img class="rad-ic" src="' + window.assetUrl('icon-radio-like.webp') + '"> <span>' + (t.like_count || 0) + '</span></button>'
     + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
-    + '<button class="rad-play" onclick="' + playOnclick + '">▶</button></div>';
+    + '<button class="rad-play" onclick="' + playOnclick + '"><img class="rad-ic" src="' + window.assetUrl('icon-radio-play.webp') + '"></button></div>';
 }
 
 async function radioToggleLike(trackId, btn){
@@ -312,7 +320,7 @@ async function radioToggleLike(trackId, btn){
   const span = btn.querySelector('span');
   let n = span ? (parseInt(span.textContent, 10) || 0) : 0;
   n += nowLiked ? 1 : -1; if (n < 0) n = 0;
-  btn.innerHTML = (nowLiked ? '♥' : '♡') + ' <span>' + n + '</span>';
+  if (span) span.textContent = n;
   btn.classList.toggle('on', nowLiked);
 }
 
@@ -358,8 +366,8 @@ async function radioOpenTrack(trackId){
     + '<div style="font-family:Bebas Neue,sans-serif;font-size:28px;text-align:center;letter-spacing:0.02em;">' + escapeHtml(t.title || t.slug) + '</div>'
     + '<div style="text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;margin-top:2px;">' + (t.artist ? escapeHtml(t.artist) : '—') + ' · ' + radioFmtDur(t.duration_sec) + ' · ▶ ' + (t.play_count || 0) + '</div>'
     + '<div style="display:flex;justify-content:center;gap:12px;margin:14px 0 4px;">'
-      + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')" title="Odtwórz">▶</button>'
-      + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub">' + (liked ? '♥' : '♡') + ' <span>' + (t.like_count || 0) + '</span></button>'
+      + '<button class="rad-play" onclick="radioPlay(\'' + t.id + '\')" title="Odtwórz"><img class="rad-ic" src="' + window.assetUrl('icon-radio-play.webp') + '"></button>'
+      + '<button class="rad-like' + (liked ? ' on' : '') + '" onclick="radioToggleLike(\'' + t.id + '\',this)" title="Polub"><img class="rad-ic" src="' + window.assetUrl('icon-radio-like.webp') + '"> <span>' + (t.like_count || 0) + '</span></button>'
       + '<button class="rad-nav-btn" onclick="radioAddToPlaylistPicker(\'' + t.id + '\')" title="Dodaj do playlisty">➕</button>'
     + '</div>'
     + (_radioIsCoach ? '<div style="text-align:center;margin:12px 0 0;"><button onclick="radioDeleteTrack(\'' + t.id + '\')" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.4);color:#e05050;border-radius:10px;padding:8px 16px;font-size:12px;font-family:DM Mono,monospace;cursor:pointer;">🗑 Usuń kawałek</button></div>' : '')
@@ -634,7 +642,7 @@ async function radioOpenPlaylist(playlistId){
         + '<div class="rad-meta"><div class="rad-tt">' + escapeHtml(t.title || t.slug) + '</div>'
         + '<div class="rad-ar">' + (t.artist ? escapeHtml(t.artist) : '—') + '</div></div>'
         + up + down
-        + '<button class="rad-nav-btn" onclick="radioPlayPlaylistAt(' + idx + ')" title="Odtwórz">▶</button>'
+        + '<button class="rad-nav-btn" onclick="radioPlayPlaylistAt(' + idx + ')" title="Odtwórz"><img class="rad-ic" src="' + window.assetUrl('icon-radio-play.webp') + '"></button>'
         + '<button class="rad-nav-btn" onclick="radioRemoveFromPlaylist(\'' + r.id + '\')" title="Usuń z playlisty">🗑</button>'
         + '</div>';
     }).join('');
