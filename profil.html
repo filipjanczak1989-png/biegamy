@@ -435,7 +435,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     <div class="sheet-handle"></div>
     <div class="sheet-title">Nowy <span>Post</span></div>
     <div class="type-tabs">
-      <div class="type-tab active" id="tab-photo" onclick="switchPostType('photo')">📷 Zdjęcie</div>
+      <div class="type-tab active" id="tab-photo" onclick="switchPostType('photo')"><img data-ic="icon-nut-camera.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:5px;" alt="">Zdjęcie</div>
       <div class="type-tab" id="tab-quote" onclick="switchPostType('quote')">" Cytat</div>
     </div>
 
@@ -934,7 +934,7 @@ function renderGoals(ath) {
       ? '<div style="font-size:10px;color:#3db870;font-family:DM Mono,monospace;margin-top:2px;display:flex;align-items:center;gap:4px;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>z kalendarza · zobacz uczestników</div>'
       : '<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;margin-top:2px;">👥 Kto bierze udział?</div>';
     const linkBtn = (_isOwnProfile && !linked)
-      ? '<button onclick="event.stopPropagation();openLinkGoalModal('+i+')" title="Powiąż z kalendarzem" style="background:none;border:1px solid rgba(91,140,255,0.35);color:#5b8cff;font-size:10px;padding:3px 6px;border-radius:6px;cursor:pointer;font-family:DM Mono,monospace;">🔗</button>'
+      ? '<button onclick="event.stopPropagation();openLinkGoalModal('+i+')" title="Powiąż z kalendarzem" style="background:none;border:1px solid rgba(91,140,255,0.35);color:#5b8cff;font-size:10px;padding:3px 6px;border-radius:6px;cursor:pointer;font-family:DM Mono,monospace;">' + window.icHtml('act-link',12) + '</button>'
       : '';
     return '<div class="goal-item" onclick="' + clickHandler + '" style="cursor:pointer;" onmouseover="this.style.borderColor=\'rgba(var(--accent-rgb),0.4)\'" onmouseout="this.style.borderColor=\'var(--border)\'">'
       + '<div class="goal-date-badge"><div class="goal-date-day">'+day+'</div><div class="goal-date-mon">'+mon+'</div></div>'
@@ -1361,7 +1361,7 @@ function _renderPostItem(p, idx) {
     const editBtns = _isOwnProfile
       ? '<div style="display:flex;gap:2px;position:absolute;top:10px;right:10px;z-index:5;">'
         +'<button onclick="event.stopPropagation();editPost(\''+p.id+'\',\'photo\',\''+escAttr(p.content||'')+'\',\''+escAttr(p.image_url)+'\')" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#fff;cursor:pointer;padding:6px 9px;border-radius:8px;font-size:13px;line-height:1;">✎</button>'
-        +'<button onclick="event.stopPropagation();deletePost(\''+p.id+'\',event)" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#ff6060;cursor:pointer;padding:6px 9px;border-radius:8px;font-size:13px;line-height:1;">🗑</button>'
+        +'<button onclick="event.stopPropagation();deletePost(\''+p.id+'\',event)" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#ff6060;cursor:pointer;padding:6px 9px;border-radius:8px;font-size:13px;line-height:1;">' + window.icHtml('radio-trash',14) + '</button>'
         +'</div>'
       : '';
     return '<div onclick="openLightbox(\''+escAttr(p.image_url)+'\')" style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+escAttr(p.image_url)+');background-size:cover;background-position:center;cursor:pointer;min-height:280px;">'
@@ -1381,7 +1381,7 @@ function _renderPostItem(p, idx) {
     const editBtns = _isOwnProfile
       ? '<div style="display:flex;gap:2px;position:absolute;top:10px;right:10px;z-index:5;">'
         +'<button onclick="event.stopPropagation();editPost(\''+p.id+'\',\'quote\',\''+escAttr(p.content)+'\',\'\')" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#fff;cursor:pointer;padding:6px 9px;border-radius:8px;font-size:13px;line-height:1;">✎</button>'
-        +'<button onclick="event.stopPropagation();deletePost(\''+p.id+'\',event)" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#ff6060;cursor:pointer;padding:6px 9px;border-radius:8px;font-size:13px;line-height:1;">🗑</button>'
+        +'<button onclick="event.stopPropagation();deletePost(\''+p.id+'\',event)" style="background:rgba(0,0,0,0.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.15);color:#ff6060;cursor:pointer;padding:6px 9px;border-radius:8px;font-size:13px;line-height:1;">' + window.icHtml('radio-trash',14) + '</button>'
         +'</div>'
       : '';
     return '<div style="position:relative;overflow:hidden;border:1px solid var(--border);border-radius:14px;margin-bottom:12px;background-image:url('+escAttr(bgImg)+');background-size:cover;background-position:center;min-height:200px;">'
@@ -2801,7 +2801,7 @@ function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId
       <!-- Propozycja trenerowi (jeśli nie znaleziono) -->
       <div id="goal-propose-section" style="display:none;border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
         <div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">Tych zawodów nie ma w kalendarzu BiegaMy. Możesz wysłać propozycję trenerowi:</div>
-        <button onclick="proposeGoalAsRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:10px;padding:10px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.05em;cursor:pointer;">📤 Wyślij propozycję trenerowi</button>
+        <button onclick="proposeGoalAsRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:10px;padding:10px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.05em;cursor:pointer;"><img data-ic="icon-nut-export.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Wyślij propozycję trenerowi</button>
       </div>
 
       <button onclick="closeGoalModal()" style="width:100%;background:transparent;border:none;color:var(--muted);border-radius:10px;padding:11px;font-size:12px;font-family:DM Mono,monospace;cursor:pointer;letter-spacing:0.05em;">Anuluj</button>
