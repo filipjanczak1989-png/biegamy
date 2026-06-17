@@ -1759,6 +1759,10 @@ function init(){
   // Zachowaj w sessionStorage żeby przeżył replaceState
   if(new URLSearchParams(window.location.search).get('from')==='trener'){
     sessionStorage.setItem('_fromTrener','1');
+  } else {
+    // B' fix lepkiej flagi: wejście BEZ ?from=trener czyści flagę-most.
+    // Steady-state trener trzyma tryb przez ?from=trener w URL (nie strip'owany), więc to bezpieczne.
+    sessionStorage.removeItem('_fromTrener');
   }
   if(sessionStorage.getItem('_fromTrener')==='1'){
     const btn=document.getElementById('back-to-trener');
@@ -4359,6 +4363,7 @@ async function obFinish() {
     const _obNavR = document.getElementById('main-bottom-nav');
     if (_obNavR) _obNavR.style.display = '';
     localStorage.removeItem('biegamy_needs_onboarding');
+    sessionStorage.removeItem('_fromTrener'); // B' fix: koniec onboardingu = pełny tryb atlety
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
 
@@ -4396,6 +4401,7 @@ function skipOnboarding() {
   const _obNavS = document.getElementById('main-bottom-nav');
   if (_obNavS) _obNavS.style.display = '';
   localStorage.removeItem('biegamy_needs_onboarding');
+  sessionStorage.removeItem('_fromTrener'); // B' fix: pominięcie onboardingu = pełny tryb atlety
 }
 
 // ── LOAD COACHES ──────────────────────────────────────────────────
