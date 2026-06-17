@@ -2570,10 +2570,8 @@ function showSection(name) {
   // v5.1: globalna flaga aktualnej sekcji — używana przez async callbacki (_renderWeather)
   window._currentSection = name;
 
-  // Weather widget — pokazuj tylko na home (i tylko gdy NIE trener-view)
-  // v5: respect _isFromTrener (Option 1) — trener-view ma ukrytą pogodę nawet w home
-  const _isFromTrenerW = (new URLSearchParams(window.location.search).get('from') === 'trener') || sessionStorage.getItem('_fromTrener') === '1';
-  document.getElementById('weather-widget')?.style.setProperty('display', (name === 'home' && !_isFromTrenerW) ? '' : 'none');
+  // Weather widget — pokazuj na home (pogoda widoczna też w trybie trenera)
+  document.getElementById('weather-widget')?.style.setProperty('display', (name === 'home') ? '' : 'none');
 
   if (name !== 'home') {
     document.querySelectorAll('.fade-in, .today-hero, .week-sum, .coach-box').forEach(el => el.style.display = 'none');
@@ -2630,7 +2628,7 @@ function showSection(name) {
         loadHomeAIReportsTile();
       } else {
         // Trener wraca z forma/social do home → ukryj widgety re-show'ed przez showSection's general code
-        document.getElementById('weather-widget')?.style.setProperty('display','none');
+        // (pogoda celowo NIE ukrywana w trybie trenera — odsłonięta)
         document.getElementById('nut-widget')?.style.setProperty('display','none');
         document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
         document.getElementById('strava-home-banner')?.style.setProperty('display','none');
@@ -3853,11 +3851,10 @@ window._renderWeather = function(data) {
   };
 
   daysEl.innerHTML = data.days.map(dayHtml).join('');
-  // v5.1: guard race condition — pokaż TYLKO jeśli user jest na home + nie trener-view
+  // v5.1: guard race condition — pokaż TYLKO jeśli user jest na home
   // (loadWeather() jest async, user mógł kliknąć FORMA/inną sekcję przed fetch'em)
-  const _isFromTrenerR = (new URLSearchParams(window.location.search).get('from') === 'trener') || sessionStorage.getItem('_fromTrener') === '1';
   const _currentSec = window._currentSection || 'home'; // default home (initial load przed pierwszym showSection)
-  if (_currentSec === 'home' && !_isFromTrenerR) {
+  if (_currentSec === 'home') {
     wrap.style.display = 'block';
   }
   // Inaczej zostaw 'none' — user jest gdzie indziej, nie wracamy do widoku pogody
@@ -5532,7 +5529,7 @@ async function loadLogs() {
       loadHomeAIReportsTile();
     } else {
       // Trener-view: explicit hide widgety które mogłyby zostać z poprzednich state'ów
-      document.getElementById('weather-widget')?.style.setProperty('display','none');
+      // (pogoda celowo NIE ukrywana w trybie trenera — odsłonięta)
       document.getElementById('nut-widget')?.style.setProperty('display','none');
       document.getElementById('ai-reports-tile-section')?.style.setProperty('display','none');
       document.getElementById('strava-home-banner')?.style.setProperty('display','none');
