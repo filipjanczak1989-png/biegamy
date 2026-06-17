@@ -699,6 +699,32 @@
     }
   };
 
+  // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
+  // WX_VARIANT: 'light'|'dark' — test A/B cieniowania chmur. wx-sun/wx-storm zawsze single (bez -dark).
+  window.WX_VARIANT = 'light';
+  window.wxIcon = function(code, cloudPct){
+    const v = function(s){ return window.WX_VARIANT === 'dark' ? s + '-dark' : s; };
+    code = Number(code);
+    if (code >= 95) return 'wx-storm';                                  // burza
+    if ([71,73,75,77,85,86].indexOf(code) !== -1) return v('wx-snow');  // śnieg
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return v('wx-rain'); // mżawka/deszcz/przelotne
+    if (code === 45 || code === 48) return v('wx-fog');                 // mgła
+    const c = (cloudPct == null) ? 0 : Number(cloudPct);               // clear-spectrum wg zachmurzenia
+    if (c < 25) return 'wx-sun';
+    if (c < 55) return v('wx-mostly-sun');
+    if (c < 80) return v('wx-partly');
+    return v('wx-cloud');
+  };
+  // Zwraca <img> ikony pogody; przy 404/braku helpera → emoji fallback (data-fb, bez JS-in-attr footguna).
+  window.wxImg = function(code, cloudPct, emojiFallback, sizePx){
+    if (!window.wxIcon || !window.assetUrl) return emojiFallback || '';
+    const sz = sizePx || 32;
+    const fb = (emojiFallback || '').replace(/"/g, '');
+    return '<img src="' + window.assetUrl('icon-' + window.wxIcon(code, cloudPct) + '.webp') +
+      '" alt="" data-fb="' + fb + '" style="width:' + sz + 'px;height:' + sz +
+      'px;object-fit:contain;vertical-align:middle;" onerror="this.replaceWith(document.createTextNode(this.dataset.fb||\'\'))">';
+  };
+
   // Wykrywanie ukrytego roweru: bieg ≥15km & pace <3:20/km = niemożliwe dla człowieka (zero false-positive).
   // NIE auto-filtr (pole pace brudne) — tylko soft-warning przy logowaniu.
   window.looksLikeBike = function(type, distKm, paceStr) {

@@ -1467,7 +1467,7 @@ function render() {
     return `<div class="day-header ${isToday?'today':''} ${isJumpTarget?'jump-target':''}" ${isJumpTarget?'data-jump="true"':''}>
       <div class="day-name">${dayNames[dObj.getDay()===0?6:dObj.getDay()-1]}</div>
       <div class="day-num">${dObj.getDate()} ${monthNames[dObj.getMonth()]}</div>
-      ${w ? `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${w.is_bad?'var(--accent)':'var(--muted)'};margin-top:2px;letter-spacing:0.04em;">${w.icon} ${w.temp_max}°</div>` : ''}
+      ${w ? `<div style="font-size:11px;font-family:'DM Mono',monospace;color:${w.is_bad?'var(--accent)':'var(--muted)'};margin-top:2px;letter-spacing:0.04em;">${window.wxImg ? window.wxImg(w.weather_code, w.cloud_pct, w.icon, 16) : w.icon} ${w.temp_max}°</div>` : ''}
       ${km>0?`<div class="day-total"><span>${km} km</span></div>`:'<div class="day-total">Odpoczynek</div>'}
       ${kcalBadge}
     </div>`;
@@ -2487,7 +2487,7 @@ async function loadCalendarWeather() {
       try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data: json })); } catch(e){}
     }
     const map = {};
-    json.days.forEach(d => { map[d.date] = { icon: d.icon, temp_max: d.temp_max, is_bad: d.is_bad }; });
+    json.days.forEach(d => { map[d.date] = { icon: d.icon, temp_max: d.temp_max, is_bad: d.is_bad, weather_code: d.weather_code, cloud_pct: d.cloud_pct }; });
     window._calWeatherMap = map;
     render();
   } catch(e) { console.warn('[cal weather]', e); }
@@ -3700,7 +3700,7 @@ function renderMobile() {
       + '<div style="display:flex;align-items:baseline;gap:8px;">'
       + '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;line-height:1;color:' + titleColor + ';">' + dayNum + ' ' + monthStr + '</span>'
       + (totalKm > 0 ? '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:' + kmColor + ';">' + totalKm.toFixed(0) + ' km</span>' : '')
-      + (wM ? '<span style="font-size:12px;color:' + (wM.is_bad?'var(--accent)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-left:6px;">' + wM.icon + ' ' + wM.temp_max + '°</span>' : '')
+      + (wM ? '<span style="font-size:12px;color:' + (wM.is_bad?'var(--accent)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-left:6px;">' + (window.wxImg ? window.wxImg(wM.weather_code, wM.cloud_pct, wM.icon, 16) : wM.icon) + ' ' + wM.temp_max + '°</span>' : '')
       + '</div>'
       + (summaryText ? '<div style="font-size:10px;color:' + (isRaceDay?'var(--green)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-top:1px;letter-spacing:0.04em;">' + summaryText + '</div>' : '')
       + '</div>'

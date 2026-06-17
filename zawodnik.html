@@ -3844,7 +3844,7 @@ window._renderWeather = function(data) {
     return '<div style="position:relative;background:rgba(255,255,255,0.04);' + border + 'border-radius:10px;padding:10px 6px;text-align:center;">'
       + badge
       + '<div style="font-size:10px;color:#fff;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;font-weight:600;">' + label + '</div>'
-      + '<div style="font-size:30px;line-height:1;margin:3px 0;">' + d.icon + '</div>'
+      + '<div style="line-height:1;margin:3px 0;">' + (window.wxImg ? window.wxImg(d.weather_code, d.cloud_pct, d.icon, 38) : '<span style="font-size:30px;">' + d.icon + '</span>') + '</div>'
       + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;color:#fff;line-height:1;margin-top:4px;letter-spacing:0.02em;">' + d.temp_max + '°<span style="font-size:12px;color:rgba(255,255,255,0.55);margin-left:2px;">/' + d.temp_min + '°</span></div>'
       + '<div style="font-size:10px;color:rgba(255,255,255,0.7);font-family:DM Mono,monospace;margin-top:4px;">💧' + d.precip_pct + '% · 🌬' + d.wind_kmh + '</div>'
       + '</div>';
