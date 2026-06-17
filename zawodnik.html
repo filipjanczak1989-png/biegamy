@@ -6918,7 +6918,7 @@ const CIRCUIT = {
   open: function(programId) {
     const p = PROGRAMS.find(function(x){ return x.id === programId; });
     if (!p) return;
-    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name };
+    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name, skipped: false };
     this._loadCfg();
     this._ensureWeight();
     this._el('circuit-title').textContent = p.name;
@@ -6931,6 +6931,7 @@ const CIRCUIT = {
     const adv = this._el('cc-advanced'); if (adv) adv.style.display = 'none';
     const car = this._el('cc-caret'); if (car) car.textContent = '▾';
     this._el('circuit-ringwrap').style.display = 'none';
+    this._setNav('hidden');
     const sv = this._el('circuit-save'); if (sv) sv.style.display = 'none';
     const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'none';
     const r = this._el('circuit-ring'); if (r) { r.style.transition = 'none'; r.style.strokeDashoffset = '0'; r.style.stroke = 'var(--accent)'; }
@@ -6944,6 +6945,7 @@ const CIRCUIT = {
     if (!this.st) return;
     this._el('circuit-config').style.display = 'none';
     this._el('circuit-ringwrap').style.display = 'flex';
+    this._setNav('active');
     const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'none';
     this.st.idx = 0; this.st.round = 1;
     this._enterPhase('prep', CIRCUIT_CFG.prep);
@@ -6954,6 +6956,7 @@ const CIRCUIT = {
     this.stop();
     const r = this._el('circuit-ring');
     if (r && !this._reduce()) { const off = getComputedStyle(r).strokeDashoffset; r.style.transition = 'none'; r.style.strokeDashoffset = off; }
+    this._setNav('disabled');
     this._setBtn('resume');
   },
   resume: function(){
@@ -6961,7 +6964,43 @@ const CIRCUIT = {
     const r = this._el('circuit-ring');
     if (r && !this._reduce()) { void r.getBoundingClientRect(); r.style.transition = 'stroke-dashoffset ' + this.st.secLeft + 's linear'; r.style.strokeDashoffset = '389.56'; }
     this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
+    this._setNav('active');
     this._setBtn('pause');
+  },
+
+  // ── Ręczna nawigacja (⏮/⏭) — działają tylko gdy timer leci; każda ustawia skipped=true (anti-farm) ──
+  _setNav: function(state){
+    const pv = this._el('circuit-prev'), sk = this._el('circuit-skip');
+    [pv, sk].forEach(function(b){
+      if (!b) return;
+      if (state === 'hidden') { b.style.display = 'none'; return; }
+      b.style.display = '';
+      b.style.opacity = (state === 'disabled') ? '0.35' : '';
+      b.style.pointerEvents = (state === 'disabled') ? 'none' : '';
+    });
+  },
+  skip: function(){
+    if (!this.st || !this.st.timerId) return;            // tylko gdy timer leci (w pauzie no-op)
+    if (this.st.phase === 'prep') { this._enterPhase('work', CIRCUIT_CFG.work); return; }  // prep → work bieżącego (idx0); pominięcie odliczania NIE dyskwalifikuje (bez taint)
+    this.st.skipped = true;
+    let i = this.st.idx + 1, r = this.st.round;
+    if (i >= this.st.ids.length) { i = 0; r++; }
+    if (r > CIRCUIT_CFG.rounds) { this._finish(); return; }   // pominięcie z ostatniego → koniec
+    this.st.idx = i; this.st.round = r;
+    this._enterPhase('work', CIRCUIT_CFG.work);
+  },
+  prev: function(){
+    if (!this.st || !this.st.timerId) return;            // tylko gdy timer leci
+    const ph = this.st.phase;
+    if (ph === 'prep') { this._enterPhase('prep', CIRCUIT_CFG.prep); return; }   // restart prep; bez taint (odliczanie ≠ wysiłek)
+    this.st.skipped = true;
+    if (ph === 'rest') { this._enterPhase('work', CIRCUIT_CFG.work); return; }   // restart ćwiczenia właśnie zakończonego (idx)
+    const elapsed = CIRCUIT_CFG.work - this.st.secLeft;                          // work:
+    if (elapsed > 3) { this._enterPhase('work', CIRCUIT_CFG.work); return; }     // >3s → restart bieżącego
+    let i = this.st.idx - 1, r = this.st.round;                                  // ≤3s → poprzednie
+    if (i < 0) { if (r > 1) { r--; i = this.st.ids.length - 1; } else { i = 0; } }  // blok na pierwszym → restart idx0
+    this.st.idx = i; this.st.round = r;
+    this._enterPhase('work', CIRCUIT_CFG.work);
   },
 
   _nextExercise: function(){
@@ -7053,9 +7092,18 @@ const CIRCUIT = {
 
   _finish: function(){
     this.stop();
+    this._setNav('hidden');
     this._el('circuit-phase').textContent = 'Gotowe 💪'; this._el('circuit-phase').style.color = '#4ade80';
     this._el('circuit-count').textContent = '';
     this._hideMedia();
+    if (this.st.skipped) {   // anti-farm: pomijałeś → bez statystyk, bez zapisu (brak training_log = brak gema)
+      this._el('circuit-phase').textContent = 'Koniec'; this._el('circuit-phase').style.color = '#fff';
+      this._el('circuit-next').textContent = '⚠ Pomijałeś ćwiczenia — trening nie zapisany do dziennika';
+      const csk = this._el('circuit-summary'); if (csk) csk.style.display = 'none';
+      const svk = this._el('circuit-save'); if (svk) svk.style.display = 'none';
+      this._setBtn('done');
+      return;
+    }
     this._el('circuit-next').textContent = this.st.name;
     const dur = this._fmt(this._totalSec());
     const kcal = (window.formaCalories) ? window.formaCalories({ training_type: 'Wzmacniający', duration: dur }, window._athleteWeight || 0) : 0;
@@ -7082,6 +7130,7 @@ const CIRCUIT = {
 
   saveCircuitLog: async function(){
     if (!this.st || !_athleteId) return;
+    if (this.st.skipped) { this._setBtn('done'); return; }   // anti-farm: pomijany obwód nie zapisuje training_log
     const b = this._el('circuit-action');
     if (b) { b.disabled = true; b.textContent = 'Zapisuję…'; }
     const cfg = CIRCUIT_CFG;
@@ -11033,7 +11082,11 @@ if ('serviceWorker' in navigator) {
     </div>
     <!-- WARSTWA 2 (później): #circuit-achievements — „Dziś wygrałeś"/PR-y. Slot gotowy, NIE implementować teraz. -->
   </div>
-  <button id="circuit-action" onclick="CIRCUIT.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
+  <div id="circuit-controls" style="display:flex;align-items:center;justify-content:center;gap:16px;">
+    <button id="circuit-prev" onclick="CIRCUIT.prev()" title="Wstecz" style="display:none;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;line-height:1;">⏮</button>
+    <button id="circuit-action" onclick="CIRCUIT.start()" style="background:var(--accent);border:none;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.06em;padding:12px 40px;border-radius:30px;cursor:pointer;">▶ Start</button>
+    <button id="circuit-skip" onclick="CIRCUIT.skip()" title="Pomiń" style="display:none;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.08);border:none;color:#fff;font-size:20px;cursor:pointer;flex-shrink:0;line-height:1;">⏭</button>
+  </div>
   <button id="circuit-save" onclick="CIRCUIT.close()" style="display:none;margin-top:12px;background:none;border:none;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;text-decoration:underline;cursor:pointer;">Zakończ bez zapisu</button>
 </div>
 
