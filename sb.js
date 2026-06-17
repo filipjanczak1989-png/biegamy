@@ -700,20 +700,18 @@
   };
 
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
-  // WX_VARIANT: 'light'|'dark' — test A/B cieniowania chmur. wx-sun/wx-storm zawsze single (bez -dark).
-  window.WX_VARIANT = 'light';
+  // Chmury = wariant dark (wygrał A/B 2026-06-17). Opady/burza/śnieg/mgła z code; clear-spectrum (0-3) z cloud_pct.
   window.wxIcon = function(code, cloudPct){
-    const v = function(s){ return window.WX_VARIANT === 'dark' ? s + '-dark' : s; };
     code = Number(code);
     if (code >= 95) return 'wx-storm';                                  // burza
-    if ([71,73,75,77,85,86].indexOf(code) !== -1) return v('wx-snow');  // śnieg
-    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return v('wx-rain'); // mżawka/deszcz/przelotne
-    if (code === 45 || code === 48) return v('wx-fog');                 // mgła
+    if ([71,73,75,77,85,86].indexOf(code) !== -1) return 'wx-snow';     // śnieg
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'wx-rain'; // mżawka/deszcz/przelotne
+    if (code === 45 || code === 48) return 'wx-fog';                    // mgła
     const c = (cloudPct == null) ? 0 : Number(cloudPct);               // clear-spectrum wg zachmurzenia
     if (c < 25) return 'wx-sun';
-    if (c < 55) return v('wx-mostly-sun');
-    if (c < 80) return v('wx-partly');
-    return v('wx-cloud');
+    if (c < 55) return 'wx-mostly-sun';
+    if (c < 80) return 'wx-partly';
+    return 'wx-cloud';
   };
   // Zwraca <img> ikony pogody; przy 404/braku helpera → emoji fallback (data-fb, bez JS-in-attr footguna).
   window.wxImg = function(code, cloudPct, emojiFallback, sizePx){
