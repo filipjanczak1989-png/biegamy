@@ -6894,7 +6894,16 @@ const CIRCUIT = {
     this._el('cc-work-label').textContent = w.value + ' s';
     this._el('cc-rest-label').textContent = r.value + ' s';
     this._el('cc-rounds-label').textContent = rd.value;
+    const rn = CIRCUIT_CFG.rounds, rword = rn === 1 ? 'runda' : (rn >= 2 && rn <= 4 ? 'rundy' : 'rund');
+    const sum = this._el('cc-summary-lbl'); if (sum) sum.textContent = w.value + ' s · ' + r.value + ' s · ' + rn + ' ' + rword;
     try { localStorage.setItem('bm_circuit_cfg', JSON.stringify({ work: CIRCUIT_CFG.work, rest: CIRCUIT_CFG.rest, rounds: CIRCUIT_CFG.rounds })); } catch(e){}
+  },
+  _toggleCfg: function(){
+    const a = this._el('cc-advanced'), c = this._el('cc-caret');
+    if (!a) return;
+    const show = (a.style.display === 'none' || a.style.display === '');
+    a.style.display = show ? 'block' : 'none';
+    if (c) c.textContent = show ? '▴' : '▾';
   },
   _loadCfg: function(){
     let c = null; try { c = JSON.parse(localStorage.getItem('bm_circuit_cfg')); } catch(e){}
@@ -6919,6 +6928,8 @@ const CIRCUIT = {
     this._hideMedia();
     this._el('circuit-next').textContent = '';
     this._el('circuit-config').style.display = 'block';
+    const adv = this._el('cc-advanced'); if (adv) adv.style.display = 'none';
+    const car = this._el('cc-caret'); if (car) car.textContent = '▾';
     this._el('circuit-ringwrap').style.display = 'none';
     const sv = this._el('circuit-save'); if (sv) sv.style.display = 'none';
     const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'none';
@@ -10993,12 +11004,15 @@ if ('serviceWorker' in navigator) {
   <div id="circuit-title" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;letter-spacing:0.04em;margin-bottom:4px;text-align:center;">—</div>
   <div id="circuit-progress" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:28px;text-align:center;">—</div>
   <div id="circuit-config" style="display:none;width:100%;max-width:300px;margin-bottom:22px;">
-    <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Praca: <span id="cc-work-label" style="color:var(--accent);">40 s</span></div>
-    <input id="cc-work" type="range" min="20" max="60" step="5" value="40" oninput="CIRCUIT._cfgInput()" style="width:100%;margin-bottom:14px;accent-color:var(--accent);">
-    <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Przerwa: <span id="cc-rest-label" style="color:var(--accent);">20 s</span></div>
-    <input id="cc-rest" type="range" min="10" max="40" step="5" value="20" oninput="CIRCUIT._cfgInput()" style="width:100%;margin-bottom:14px;accent-color:var(--accent);">
-    <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Rundy: <span id="cc-rounds-label" style="color:var(--accent);">2</span></div>
-    <input id="cc-rounds" type="range" min="1" max="5" step="1" value="2" oninput="CIRCUIT._cfgInput()" style="width:100%;accent-color:var(--accent);">
+    <button id="cc-toggle" onclick="CIRCUIT._toggleCfg()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:10px;color:rgba(255,255,255,0.8);font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.06em;cursor:pointer;">⚙ <span id="cc-summary-lbl" style="color:var(--accent);">40 s · 20 s · 2 rundy</span> <span id="cc-caret" style="opacity:0.6;">▾</span></button>
+    <div id="cc-advanced" style="display:none;margin-top:14px;">
+      <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Praca: <span id="cc-work-label" style="color:var(--accent);">40 s</span></div>
+      <input id="cc-work" type="range" min="20" max="60" step="5" value="40" oninput="CIRCUIT._cfgInput()" style="width:100%;margin-bottom:14px;accent-color:var(--accent);">
+      <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Przerwa: <span id="cc-rest-label" style="color:var(--accent);">20 s</span></div>
+      <input id="cc-rest" type="range" min="10" max="40" step="5" value="20" oninput="CIRCUIT._cfgInput()" style="width:100%;margin-bottom:14px;accent-color:var(--accent);">
+      <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:6px;">Rundy: <span id="cc-rounds-label" style="color:var(--accent);">2</span></div>
+      <input id="cc-rounds" type="range" min="1" max="5" step="1" value="2" oninput="CIRCUIT._cfgInput()" style="width:100%;accent-color:var(--accent);">
+    </div>
   </div>
   <img id="circuit-img" src="" alt="" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:16px;margin-bottom:16px;background:rgba(255,255,255,0.05);">
   <video id="circuit-video" muted loop playsinline preload="none" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:16px;margin-bottom:16px;background:rgba(255,255,255,0.05);"></video>
