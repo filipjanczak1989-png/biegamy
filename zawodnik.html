@@ -6918,7 +6918,7 @@ const CIRCUIT = {
   open: function(programId) {
     const p = PROGRAMS.find(function(x){ return x.id === programId; });
     if (!p) return;
-    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name, skipped: false };
+    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name, skipped: false, elapsed: 0, completed: 0 };
     this._loadCfg();
     this._ensureWeight();
     this._el('circuit-title').textContent = p.name;
@@ -6947,7 +6947,7 @@ const CIRCUIT = {
     this._el('circuit-ringwrap').style.display = 'flex';
     this._setNav('active');
     const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'none';
-    this.st.idx = 0; this.st.round = 1;
+    this.st.idx = 0; this.st.round = 1; this.st.elapsed = 0; this.st.completed = 0;
     this._enterPhase('prep', CIRCUIT_CFG.prep);
     this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
     this._setBtn('pause');
@@ -7055,10 +7055,12 @@ const CIRCUIT = {
 
   _tick: function(){
     this.st.secLeft--;
+    if (this.st.phase === 'work') this.st.elapsed++;   // czysty wysiłek: liczymy TYLKO sekundy w work (prep/rest pomijane)
     if (this.st.secLeft > 0) { this._el('circuit-count').textContent = this.st.secLeft; return; }
     const ph = this.st.phase;
     if (ph === 'prep') { this._enterPhase('work', CIRCUIT_CFG.work); return; }
     if (ph === 'work') {
+      this.st.completed++;                             // ćwiczenie ukończone NATURALNIE (work→0); skip NIE dochodzi tutaj
       const last = (this.st.idx === this.st.ids.length - 1) && (this.st.round === CIRCUIT_CFG.rounds);
       if (last) { this._finish(); return; }
       this._enterPhase('rest', CIRCUIT_CFG.rest); return;
@@ -7096,20 +7098,21 @@ const CIRCUIT = {
     this._el('circuit-phase').textContent = 'Gotowe 💪'; this._el('circuit-phase').style.color = '#4ade80';
     this._el('circuit-count').textContent = '';
     this._hideMedia();
-    if (this.st.skipped) {   // anti-farm: pomijałeś → bez statystyk, bez zapisu (brak training_log = brak gema)
+    const M = this.st.ids.length * CIRCUIT_CFG.rounds;
+    if (this.st.completed < 1) {   // anti-farm: próg wysiłku — 0 ukończonych ćwiczeń → bez zapisu (zastępuje twardy blok skipped)
       this._el('circuit-phase').textContent = 'Koniec'; this._el('circuit-phase').style.color = '#fff';
-      this._el('circuit-next').textContent = '⚠ Pomijałeś ćwiczenia — trening nie zapisany do dziennika';
+      this._el('circuit-next').textContent = 'Za krótki trening — nie zapisano do dziennika';
       const csk = this._el('circuit-summary'); if (csk) csk.style.display = 'none';
       const svk = this._el('circuit-save'); if (svk) svk.style.display = 'none';
       this._setBtn('done');
       return;
     }
     this._el('circuit-next').textContent = this.st.name;
-    const dur = this._fmt(this._totalSec());
+    const dur = this._fmt(this.st.elapsed);   // realny czas pracy (work-only), nie teoretyczny _totalSec
     const kcal = (window.formaCalories) ? window.formaCalories({ training_type: 'Wzmacniający', duration: dur }, window._athleteWeight || 0) : 0;
     if (this._el('cs-time')) this._el('cs-time').textContent = dur;
     if (this._el('cs-kcal')) this._el('cs-kcal').textContent = kcal > 0 ? kcal : '—';
-    if (this._el('cs-ex'))   this._el('cs-ex').textContent = this.st.ids.length + '×' + CIRCUIT_CFG.rounds;
+    if (this._el('cs-ex'))   this._el('cs-ex').textContent = this.st.completed + '/' + M;
     const cs = this._el('circuit-summary'); if (cs) cs.style.display = 'block';
     if (window.Anim && Anim._playSuccess) Anim._playSuccess();
     this._confetti();
@@ -7130,11 +7133,11 @@ const CIRCUIT = {
 
   saveCircuitLog: async function(){
     if (!this.st || !_athleteId) return;
-    if (this.st.skipped) { this._setBtn('done'); return; }   // anti-farm: pomijany obwód nie zapisuje training_log
+    if (this.st.completed < 1) { this._setBtn('done'); return; }   // anti-farm: próg wysiłku — 0 ukończonych ćwiczeń nie zapisuje
     const b = this._el('circuit-action');
     if (b) { b.disabled = true; b.textContent = 'Zapisuję…'; }
     const cfg = CIRCUIT_CFG;
-    const dur = this._fmt(this._totalSec());
+    const dur = this._fmt(this.st.elapsed);   // realny czas pracy (work-only)
     const kcal = (window.formaCalories) ? window.formaCalories({ training_type: 'Wzmacniający', duration: dur }, window._athleteWeight || 0) : 0;
     const now = new Date();
     const d = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
@@ -7148,7 +7151,7 @@ const CIRCUIT = {
       feel: 'mid',
       source: 'circuit',
       calories: kcal > 0 ? kcal : null,
-      comment: 'Obwód: ' + this.st.name + ' · ' + cfg.work + '/' + cfg.rest + 's · ' + cfg.rounds + ' rundy',
+      comment: 'Obwód: ' + this.st.name + ' · ' + cfg.work + '/' + cfg.rest + 's · ' + this.st.completed + '/' + (this.st.ids.length * cfg.rounds) + ' ćwiczeń' + (this.st.skipped ? ' (częściowy)' : ''),
       logged_at: d + 'T12:00:00' + sign + hh + ':' + mm
     };
     try {
