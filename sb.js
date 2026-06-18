@@ -707,7 +707,14 @@
     if ([71,73,75,77,85,86].indexOf(code) !== -1) return 'wx-snow';     // śnieg
     if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 'wx-rain'; // mżawka/deszcz/przelotne
     if (code === 45 || code === 48) return 'wx-fog';                    // mgła
-    const c = (cloudPct == null) ? 0 : Number(cloudPct);               // clear-spectrum wg zachmurzenia
+    // clear-spectrum (0-3): preferuj cloud_pct; gdy brak (np. stary cache sprzed EF v3) → fallback z weather_code
+    if (cloudPct == null) {
+      if (code === 0) return 'wx-sun';
+      if (code === 1) return 'wx-mostly-sun';
+      if (code === 2) return 'wx-partly';
+      return 'wx-cloud';                                                // code 3 + nieznane
+    }
+    const c = Number(cloudPct);                                        // clear-spectrum wg zachmurzenia
     if (c < 25) return 'wx-sun';
     if (c < 55) return 'wx-mostly-sun';
     if (c < 80) return 'wx-partly';
