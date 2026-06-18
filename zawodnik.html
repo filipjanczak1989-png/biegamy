@@ -7072,7 +7072,6 @@ const CIRCUIT = {
     }
   },
 
-  _totalSec: function(){ const N = this.st.ids.length, c = CIRCUIT_CFG; return c.prep + c.rounds * N * c.work + (c.rounds * N - 1) * c.rest; },
   _fmt: function(s){ return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); },
   _ensureWeight: async function(){
     if (window._athleteWeight > 0) return;
@@ -7108,7 +7107,7 @@ const CIRCUIT = {
       return;
     }
     this._el('circuit-next').textContent = this.st.name;
-    const dur = this._fmt(this.st.elapsed);   // realny czas pracy (work-only), nie teoretyczny _totalSec
+    const dur = this._fmt(this.st.elapsed);   // realny czas pracy (work-only), nie teoretyczny czas z konfiguracji
     const kcal = (window.formaCalories) ? window.formaCalories({ training_type: 'Wzmacniający', duration: dur }, window._athleteWeight || 0) : 0;
     if (this._el('cs-time')) this._el('cs-time').textContent = dur;
     if (this._el('cs-kcal')) this._el('cs-kcal').textContent = kcal > 0 ? kcal : '—';
