@@ -455,7 +455,6 @@ async function register() {
   const email = document.getElementById('reg-email').value.trim();
   const password = document.getElementById('reg-password').value;
   const spec = document.getElementById('reg-spec')?.value.trim() || null;
-  const coachPass = document.getElementById('reg-coach-pass')?.value || '';
 
   if (!name || !email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }

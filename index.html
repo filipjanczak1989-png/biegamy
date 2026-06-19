@@ -682,7 +682,6 @@ body.loading::after {
 document.addEventListener('DOMContentLoaded', function () {
 
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
-const VERIFY_COACH_FN_URL = SB_FN_URL + '/verify-coach-code';
 // Rola na sztywno — rejestracja tylko jako zawodnik.
 // Trenerów dodaje Filip ręcznie przez Supabase Dashboard (od 15 maja 2026).
 const selectedRole = 'athlete';
@@ -731,8 +730,6 @@ async function logoutSession() {
   await sb.auth.signOut();
   localStorage.removeItem('biegamy_needs_onboarding');
   localStorage.removeItem('biegamy_reg_name');
-  // Pending coach code jest jednorazowy — wylogowanie też go czyści
-  clearPendingCoachCode();
   const banner = document.getElementById('session-banner');
   if (banner) banner.style.display = 'none';
   window._activeSession = null;
@@ -822,78 +819,10 @@ async function login() {
     return;
   }
 
-  // Sprawdź czy mamy pending coach code (po rejestracji z email confirmation)
-  await processPendingCoachCode(data.session);
-
   setLoading('btn-login', false);
   _loggingIn = false;
 
   redirectUser(data.user);
-}
-
-// Po loginie — jeśli był pending coach code z rejestracji, spróbuj go zweryfikować teraz
-async function processPendingCoachCode(session) {
-  if (!session) return;
-  let pendingCode, pendingSpec, pendingTs;
-  try {
-    pendingCode = localStorage.getItem('biegamy_pending_coach_code');
-    pendingSpec = localStorage.getItem('biegamy_pending_coach_spec');
-    pendingTs = parseInt(localStorage.getItem('biegamy_pending_coach_ts') || '0', 10);
-  } catch(e) { return; }
-
-  if (!pendingCode) return;
-
-  // TTL: 24h. Po tym czasie kod zapominamy (bezpieczeństwo).
-  const TTL_MS = 24 * 60 * 60 * 1000;
-  if (!pendingTs || Date.now() - pendingTs > TTL_MS) {
-    clearPendingCoachCode();
-    return;
-  }
-
-  const fullName = session.user.user_metadata?.full_name || localStorage.getItem('biegamy_reg_name') || '';
-  if (!fullName) { clearPendingCoachCode(); return; }
-
-  const result = await verifyCoachCode(session.access_token, pendingCode, fullName, pendingSpec);
-  // Niezależnie od wyniku — czyścimy (kod jest jednorazowy z punktu widzenia tego flow)
-  clearPendingCoachCode();
-  if (!result.success) {
-    // Kod był zły — user zostaje jako zawodnik. Pokaż info, ale niech przejdzie do apki.
-    console.warn('Pending coach code rejected:', result.error);
-  }
-}
-
-function clearPendingCoachCode() {
-  try {
-    localStorage.removeItem('biegamy_pending_coach_code');
-    localStorage.removeItem('biegamy_pending_coach_spec');
-    localStorage.removeItem('biegamy_pending_coach_ts');
-  } catch(e) {}
-}
-
-// Wywołaj edge function `verify-coach-code` żeby zweryfikować kod i wpisać do `coaches`.
-// Zwraca { success: bool, error?: string }.
-async function verifyCoachCode(jwt, code, fullName, specialization) {
-  try {
-    const res = await fetch(VERIFY_COACH_FN_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + jwt,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        code: code,
-        full_name: fullName,
-        specialization: specialization || null,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return { success: false, error: data.error || 'Błąd weryfikacji kodu' };
-    }
-    return { success: !!data.success, error: data.error };
-  } catch (e) {
-    return { success: false, error: 'Błąd połączenia: ' + (e?.message || 'unknown') };
-  }
 }
 
 // ── REGISTER ──────────────────────────────────────────────────────────────────
