@@ -681,6 +681,13 @@ body.loading::after {
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+// ── Komunikat po usunięciu konta (redirect z profil.html ?deleted=1) ──
+if (new URLSearchParams(location.search).get('deleted') === '1') {
+  try { localStorage.setItem('biegamy_seen_landing', 'true'); } catch(e) {}  // pomiń hero → pokaż formularz
+  setTimeout(function(){ if (typeof showAlert === 'function') showAlert('Konto zostało trwale usunięte.', 'success'); }, 150);
+  try { history.replaceState({}, '', 'index.html'); } catch(e) {}  // wyczyść ?deleted=1
+}
+
 // ── SUPABASE INIT ─────────────────────────────────────────────────────────────
 // Rola na sztywno — rejestracja tylko jako zawodnik.
 // Trenerów dodaje Filip ręcznie przez Supabase Dashboard (od 15 maja 2026).

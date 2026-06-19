@@ -474,7 +474,34 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     </div>
 
     <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:#e05050;border:1px solid rgba(224,80,80,0.25);border-radius:12px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-top:8px;">→ Wyloguj się</button>
+    <button id="delacc-btn" onclick="openDeleteAccount()" style="display:none;width:100%;background:transparent;color:#e05050;border:1px solid rgba(224,80,80,0.4);border-radius:12px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-top:8px;">🗑 Usuń konto</button>
     <button class="sheet-cancel" onclick="closeSettings()">Zamknij</button>
+    <div style="height:calc(env(safe-area-inset-bottom,0px) + 8px);"></div>
+  </div>
+</div>
+
+<!-- USUŃ KONTO -->
+<div class="add-overlay" id="delacc-overlay" onclick="handleDelAccClick(event)">
+  <div class="add-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title" style="color:#e05050;">Usuń <span>konto</span></div>
+    <div style="font-size:12px;color:var(--fg2);line-height:1.6;margin-bottom:14px;">
+      <strong style="color:#e05050;">Operacja nieodwracalna.</strong><br>
+      Trwale znikną: treningi, dieta, zdjęcie, cele, dane osobowe i dostęp do konta.<br>
+      Twoje wiadomości i komentarze zostaną u odbiorców jako „Usunięty użytkownik".
+    </div>
+    <label style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Wpisz <strong>USUŃ KONTO</strong></label>
+    <input id="delacc-confirm" type="text" autocomplete="off" spellcheck="false" oninput="validateDelAcc()" placeholder="USUŃ KONTO"
+      style="width:100%;margin:6px 0 12px;background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:11px 12px;font-family:DM Mono,monospace;font-size:13px;outline:none;">
+    <div id="delacc-pass-row" style="display:none;">
+      <label style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;">Hasło</label>
+      <input id="delacc-pass" type="password" autocomplete="current-password" oninput="validateDelAcc()"
+        style="width:100%;margin:6px 0 12px;background:var(--bg);border:1px solid var(--border);color:var(--fg);border-radius:10px;padding:11px 12px;font-family:DM Mono,monospace;font-size:13px;outline:none;">
+    </div>
+    <div id="delacc-err" style="display:none;color:#e05050;font-size:11px;font-family:DM Mono,monospace;margin-bottom:8px;"></div>
+    <button id="delacc-go" onclick="confirmDeleteAccount()" disabled
+      style="width:100%;background:#e05050;color:#fff;border:none;border-radius:12px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;opacity:0.5;">Usuń trwale</button>
+    <button class="sheet-cancel" onclick="closeDeleteAccount()">Anuluj</button>
     <div style="height:calc(env(safe-area-inset-bottom,0px) + 8px);"></div>
   </div>
 </div>
@@ -1567,6 +1594,9 @@ function handleAddClick(e) {
 function openSettings() {
   document.getElementById('settings-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  // "Usuń konto" tylko dla zawodnika na własnym profilu (coach → RPC i tak odrzuci backstopem)
+  const _del = document.getElementById('delacc-btn');
+  if (_del) _del.style.display = (!_isCoach && _isOwnProfile) ? 'block' : 'none';
 }
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('open');
@@ -1580,6 +1610,59 @@ async function logout() {
   localStorage.clear();
   sessionStorage.clear();
   window.location.href = 'index.html';
+}
+
+// ── USUŃ KONTO ──────────────────────────────────────────────────
+let _delAccHasPass = true;
+async function openDeleteAccount() {
+  closeSettings();
+  try {  // hasło wymagane tylko gdy provider=email (OAuth-only → sam typed-confirm)
+    const { data:{ session } } = await sb.auth.getSession();
+    const provs = (session?.user?.identities || []).map(i => i.provider);
+    _delAccHasPass = provs.length === 0 || provs.includes('email');
+  } catch(e) { _delAccHasPass = true; }
+  document.getElementById('delacc-confirm').value = '';
+  document.getElementById('delacc-pass').value = '';
+  document.getElementById('delacc-err').style.display = 'none';
+  document.getElementById('delacc-pass-row').style.display = _delAccHasPass ? 'block' : 'none';
+  validateDelAcc();
+  document.getElementById('delacc-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDeleteAccount() {
+  document.getElementById('delacc-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function handleDelAccClick(e) { if (e.target === document.getElementById('delacc-overlay')) closeDeleteAccount(); }
+function validateDelAcc() {
+  const conf = document.getElementById('delacc-confirm').value === 'USUŃ KONTO';
+  const passOk = !_delAccHasPass || document.getElementById('delacc-pass').value.length > 0;
+  const go = document.getElementById('delacc-go');
+  go.disabled = !(conf && passOk);
+  go.style.opacity = (conf && passOk) ? '1' : '0.5';
+}
+async function confirmDeleteAccount() {
+  const btn = document.getElementById('delacc-go'), err = document.getElementById('delacc-err');
+  btn.disabled = true; btn.textContent = 'Usuwam...'; err.style.display = 'none';
+  const password = document.getElementById('delacc-pass').value;
+  try {
+    const { data, error } = await sb.functions.invoke('delete-account', { body: { password, confirmText: 'USUŃ KONTO' } });
+    if (error || !data?.success) {
+      const status = error?.context?.status;
+      let msg = 'Nie udało się usunąć konta. Spróbuj ponownie.';
+      if (status === 401) msg = 'Nieprawidłowe hasło.';
+      else if (status === 500) msg = 'Konta trenera nie można usunąć tą drogą.';
+      else if (status === 400) msg = 'Wpisz dokładnie USUŃ KONTO.';
+      err.textContent = msg; err.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Usuń trwale'; return;
+    }
+    try { await sb.auth.signOut(); } catch(e) {}
+    localStorage.clear(); sessionStorage.clear();
+    window.location.href = 'index.html?deleted=1';
+  } catch(e) {
+    err.textContent = 'Błąd połączenia. Spróbuj ponownie.'; err.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Usuń trwale';
+  }
 }
 
 function switchPostType(type) {
