@@ -3790,7 +3790,7 @@ async function saveAthlete() {
     return;
   }
 
-  const { data, error } = await sb.from('athletes').insert({
+  const { error } = await sb.from('athletes').insert({
     coach_id: _coachId,
     full_name: name,
     email: email,
@@ -3802,7 +3802,7 @@ async function saveAthlete() {
     pb_10k: document.getElementById('ath-pb-10k').value.trim() || null,
     pb_5k: document.getElementById('ath-pb-5k').value.trim() || null,
     active: true
-  }).select();
+  });
 
   // Also save name to profiles if user exists
   if (error) {
