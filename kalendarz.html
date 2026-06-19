@@ -2303,8 +2303,10 @@ async function initRole() {
   // (user_metadata może być pusty / nieaktualny)
   const { data: coachRow } = await sb.from('coaches')
     .select('id').eq('id', session.user.id).maybeSingle();
-  
-  const isCoach = !!coachRow || session.user.user_metadata?.role === 'coach';
+
+  // Authz wyłącznie przez tabelę coaches — user_metadata.role NIE jest źródłem prawdy
+  // (np. coach może mieć profiles.role='athlete' a być w coaches).
+  const isCoach = !!coachRow;
   
   if (isCoach) {
     // Coach bez roli w URL — przekieruj z rolą
