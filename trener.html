@@ -3261,7 +3261,7 @@ async function renderDbAthletes(list) {
       <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${escapeHtml(initials)}</div>
       <div class="ath-info">
         <div class="ath-name">${escapeHtml(name)}</div>
-        <div class="ath-goal">${escapeHtml(a.goal||'')} ${a.pb_marathon?'· PB: '+escapeHtml(a.pb_marathon):''}</div>
+        <div class="ath-goal">${escapeHtml(nextRace(a.race_goals)?.name||'')} ${a.pb_marathon?'· PB: '+escapeHtml(a.pb_marathon):''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
         ${a.hasMissed
@@ -3322,6 +3322,17 @@ async function selA_db_logs(athleteId) {
   if (statEl) statEl.textContent = totalNew || '0';
 }
 
+// Najbliższy NADCHODZĄCY cel z race_goals (JSON-string). Zwraca {name,date,...}|null.
+// SSOT: wzorzec identyczny jak profil.html renderGoals (filter date≥dziś, sort rosnąco, [0]).
+function nextRace(raceGoalsStr) {
+  let goals = [];
+  try { goals = JSON.parse(raceGoalsStr || '[]'); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
+  const now = new Date();
+  return goals
+    .filter(g => g && g.date && new Date(g.date + 'T00:00:00') >= now)
+    .sort((a,b) => new Date(a.date) - new Date(b.date))[0] || null;
+}
+
 async function selA_db(athleteId) {
   const a = _dbAthletes.find(x => x.id === athleteId);
   if (!a) return;
@@ -3332,11 +3343,12 @@ async function selA_db(athleteId) {
   document.getElementById('pav').style.background = 'var(--accent)';
   document.getElementById('pname').textContent = name;
   
-  // Pokaż cel startowy z odliczaniem
-  let metaText = a.goal || '';
+  // Pokaż cel startowy z odliczaniem (najbliższy NADCHODZĄCY z race_goals, nie legacy goal)
+  const _nr = nextRace(a.race_goals);
+  let metaText = (_nr && _nr.name) || '';
   if (a.pb_marathon) metaText += ' · PB: ' + a.pb_marathon;
-  if (a.target_date) {
-    const days = Math.ceil((new Date(a.target_date) - new Date()) / 86400000);
+  if (_nr && _nr.date) {
+    const days = Math.ceil((new Date(_nr.date + 'T00:00:00') - new Date()) / 86400000);
     if (days > 0) metaText += ' · 🏁 ' + days + ' dni';
     else if (days === 0) metaText += ' · 🏁 DZIŚ!';
   }
@@ -5241,13 +5253,8 @@ async function loadAnalytics() {
     const bestPace = bestPaceSec?Math.floor(bestPaceSec/60)+':'+String(bestPaceSec%60).padStart(2,'0'):null;
     // Dni do startu
     let daysToRace = null, raceName = '';
-    try {
-      const goals = JSON.parse(a.race_goals||'[]');
-      const upcoming = goals.filter(g=>g.date&&new Date(g.date)>=new Date()).sort((a,b)=>new Date(a.date)-new Date(b.date));
-      if(upcoming.length){daysToRace=Math.ceil((new Date(upcoming[0].date)-new Date())/86400000);raceName=upcoming[0].name||'';}
-    } catch(e) {
-      if(a.target_date&&new Date(a.target_date)>=new Date()){daysToRace=Math.ceil((new Date(a.target_date)-new Date())/86400000);raceName=a.goal||'';}
-    }
+    const _nr = nextRace(a.race_goals);
+    if(_nr){daysToRace=Math.ceil((new Date(_nr.date+'T00:00:00')-new Date())/86400000);raceName=_nr.name||'';}
     return { ...a, totalKm: totalKm.toFixed(1), subKm: subKm.toFixed(1), km7: km7.toFixed(1), sessions: logs.length, typeCounts, bestPace, logs: logs.slice(0,3), daysToRace, raceName };
   }));
 
@@ -5305,7 +5312,7 @@ async function loadAnalytics() {
       }).join('');
       return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;">
         <!-- Header -->
-        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" data-athlete-id="${escapeHtml(a.id)}" data-athlete-name="${escapeHtml(a.full_name||'Zawodnik')}" data-athlete-goal="${escapeHtml(a.goal||'')}" onclick="openAthleteStatsModal(this.dataset.athleteId, this.dataset.athleteName, this.dataset.athleteGoal)">
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;" data-athlete-id="${escapeHtml(a.id)}" data-athlete-name="${escapeHtml(a.full_name||'Zawodnik')}" data-athlete-goal="${escapeHtml(nextRace(a.race_goals)?.name||'')}" onclick="openAthleteStatsModal(this.dataset.athleteId, this.dataset.athleteName, this.dataset.athleteGoal)">
           <div style="width:38px;height:38px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--fg);flex-shrink:0;">${initials}</div>
           <div style="flex:1;min-width:0;">
             <div style="font-size:13px;font-weight:500;">${escapeHtml(name)}</div>
