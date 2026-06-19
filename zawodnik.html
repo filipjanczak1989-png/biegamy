@@ -6812,11 +6812,17 @@ const EXERCISES = {
   deadBug:        { name:'Dead bug',          cat:'core',        img:'exercise-dead-bug.webp',        desc:'Na plecach, ręce w górę, kolana 90°. Opuszczaj naprzemiennie przeciwną rękę i nogę, lędźwie przy podłodze.', dose:'CORE · 3×10' },
   jaskolka:       { name:'Jaskółka',          cat:'stabilizacja',img:'exercise-jaskolka.webp',        desc:'Stań na jednej nodze, pochyl tułów w przód, drugą nogę wyprostuj w tył do linii pleców. Utrzymaj równowagę, wróć. Zmień nogę.', dose:'STABILIZACJA · RÓWNOWAGA · 3×8 / NOGA' },
   wspiecia:       { name:'Wspięcia na palce', cat:'lydki',       img:'exercise-wspiecia.webp',        desc:'Stojąc (ręka o ścianę dla balansu), unieś pięty jak najwyżej, opuść powoli. Dla większego zakresu przód stopy na krawędzi schodka.', dose:'ŁYDKI · 3×15' },
+  pompki:         { name:'Pompki',             cat:'klatka',  frames:['exercise-pompki-1.webp','exercise-pompki-2.webp','exercise-pompki-3.webp'], desc:'Dłonie nieco szerzej niż barki, ciało w linii prostej (deska). Zegnij łokcie opuszczając klatkę nisko, wypchnij się w górę. Napięty brzuch i pośladki.', dose:'KLATKA · TRICEPS · 3×10' },
+  pompkiKolana:   { name:'Pompki na kolanach', cat:'klatka',  frames:['exercise-pompki-kolana-1.webp','exercise-pompki-kolana-2.webp','exercise-pompki-kolana-3.webp'], desc:'Łatwiejszy wariant — kolana oparte o podłoże. Ciało proste od głowy do kolan, opuść klatkę zginając łokcie, wypchnij w górę.', dose:'KLATKA · TRICEPS · 3×12' },
+  superman:       { name:'Superman',           cat:'plecy',   frames:['exercise-superman-1.webp','exercise-superman-2.webp','exercise-superman-3.webp'], desc:'Leżąc na brzuchu, ręce wyciągnięte w przód. Unieś jednocześnie ręce, klatkę i nogi nad podłoże, ściśnij plecy i pośladki, opuść powoli.', dose:'PLECY · POŚLADKI · 3×12' },
+  pompkiDiament:  { name:'Pompki diamentowe',  cat:'triceps', frames:['exercise-pompki-diament-1.webp','exercise-pompki-diament-2.webp','exercise-pompki-diament-3.webp'], desc:'Dłonie blisko siebie tworzące romb (diament) pod klatką, łokcie blisko tułowia. Opuść klatkę nisko, wypchnij — mocno angażuje triceps.', dose:'TRICEPS · KLATKA · 3×10' },
+  brzuszki:       { name:'Brzuszki',           cat:'core',    frames:['exercise-brzuszki-1.webp','exercise-brzuszki-2.webp','exercise-brzuszki-3.webp'], desc:'Na plecach, kolana ugięte, stopy płasko. Unieś tułów do pełnego siadu w stronę kolan (sit-up), opuść kontrolowanie. Brzuch napięty.', dose:'BRZUCH · 3×15' },
+  russianTwist:   { name:'Russian twist',      cat:'core',    frames:['exercise-russian-twist-1.webp','exercise-russian-twist-2.webp','exercise-russian-twist-3.webp'], desc:'Siad z tułowiem odchylonym ~45°, kolana ugięte, dłonie złączone. Skręcaj tułów naprzemiennie w lewo i prawo, prowadząc ręce w bok.', dose:'BRZUCH · SKOSY · 3×20' },
 };
 
 function renderExerciseCard(ex, isLast) {
   return '<div style="display:flex;gap:12px;align-items:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px;' + (isLast ? '' : 'margin-bottom:12px;') + '">'
-    + '<img src="' + EX_BASE + ex.img + '" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility=\'hidden\'">'
+    + '<img src="' + EX_BASE + (ex.frames ? ex.frames[0] : ex.img) + '" alt="" loading="lazy" style="width:64px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0;background:rgba(255,255,255,0.05);" onerror="this.style.visibility=\'hidden\'">'
     + '<div style="flex:1;min-width:0;">'
     + '<div style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:#fff;letter-spacing:0.03em;margin-bottom:3px;">' + ex.name + '</div>'
     + '<div style="font-size:12px;color:rgba(255,255,255,0.7);font-family:\'Inter\',sans-serif;line-height:1.35;margin-bottom:5px;">' + ex.desc + '</div>'
@@ -6825,10 +6831,11 @@ function renderExerciseCard(ex, isLast) {
 }
 const PROGRAMS = [
   { id:'rozgrzewka',   emoji:'🔥', icon:'ex-warmup',  cover:'exercise-przysiad.webp', name:'Rozgrzewka biegacza',     desc:'Aktywacja przed biegiem — obudź mięśnie i stawy.',  exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek'] },
-  { id:'core',         emoji:'🧱', icon:'ex-core',    cover:'exercise-plank.webp',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek'] },
+  { id:'core',         emoji:'🧱', icon:'ex-core',    cover:'exercise-plank.webp',    name:'Core dla biegacza',        desc:'Mocny środek = stabilny bieg i mniej kontuzji.',    exerciseIds:['plank','plankBok','deadBug','mostek','brzuszki','russianTwist'] },
   { id:'nogi',         emoji:'🦵', icon:'ex-legs',    cover:'exercise-wykrok.webp',         name:'Siła nóg',                 desc:'Moc i wytrzymałość nóg — lepsza ekonomia biegu.',   exerciseIds:['przysiad','wykrok','mostekJednonoz','wspiecia'] },
+  { id:'gora',         emoji:'🏋️', icon:'type-wzmacniajacy', cover:'exercise-pompki-1.webp', name:'Góra ciała',               desc:'Klatka, ramiona, plecy — siła górnej połowy.',      exerciseIds:['pompki','pompkiKolana','pompkiDiament','superman'] },
   { id:'stabilizacja', emoji:'⚖️', icon:'ex-balance', cover:'exercise-jaskolka.webp',       name:'Stabilizacja i równowaga', desc:'Równowaga i kontrola — ochrona przed urazami.',     exerciseIds:['jaskolka','plankBok','mostekJednonoz','deadBug'] },
-  { id:'pelny',        emoji:'💪', icon:'ex-fullset', cover:'exercise-mostek-jednonoz.webp', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 10 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia'] },
+  { id:'pelny',        emoji:'💪', icon:'ex-fullset', cover:'exercise-mostek-jednonoz.webp', name:'Pełny zestaw',             desc:'Kompletny trening — wszystkie 16 ćwiczeń.',         exerciseIds:['przysiad','wykrok','wykrokRotacja','mostek','mostekJednonoz','plank','plankBok','deadBug','jaskolka','wspiecia','pompki','pompkiKolana','pompkiDiament','superman','brzuszki','russianTwist'] },
 ];
 
 function _progCard(p) {
@@ -6918,7 +6925,7 @@ const CIRCUIT = {
   open: function(programId) {
     const p = PROGRAMS.find(function(x){ return x.id === programId; });
     if (!p) return;
-    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name, skipped: false, elapsed: 0, completed: 0 };
+    this.st = { ids: p.exerciseIds.slice(), idx: 0, round: 1, phase: 'ready', secLeft: 0, timerId: null, name: p.name, skipped: false, elapsed: 0, completed: 0, frameTimer: null };
     this._loadCfg();
     this._ensureWeight();
     this._el('circuit-title').textContent = p.name;
@@ -6938,7 +6945,7 @@ const CIRCUIT = {
     this._setBtn('start');
     this._el('circuit-modal').style.display = 'flex';
   },
-  close: function(){ this.stop(); this._el('circuit-modal').style.display = 'none'; },
+  close: function(){ this.stop(); this._stopFrames(); this._el('circuit-modal').style.display = 'none'; },
   stop: function(){ if (this.st && this.st.timerId){ clearInterval(this.st.timerId); this.st.timerId = null; } },
 
   start: function(){
@@ -6954,6 +6961,7 @@ const CIRCUIT = {
   },
   pause: function(){
     this.stop();
+    this._stopFrames();   // pauza zamraża też cykl klatek
     const r = this._el('circuit-ring');
     if (r && !this._reduce()) { const off = getComputedStyle(r).strokeDashoffset; r.style.transition = 'none'; r.style.strokeDashoffset = off; }
     this._setNav('disabled');
@@ -6964,6 +6972,7 @@ const CIRCUIT = {
     const r = this._el('circuit-ring');
     if (r && !this._reduce()) { void r.getBoundingClientRect(); r.style.transition = 'stroke-dashoffset ' + this.st.secLeft + 's linear'; r.style.strokeDashoffset = '389.56'; }
     this.st.timerId = setInterval(function(){ CIRCUIT._tick(); }, 1000);
+    if (this.st.phase === 'work' || this.st.phase === 'prep') this._showMedia(EXERCISES[this.st.ids[this.st.idx]]);  // wznów cykl klatek
     this._setNav('active');
     this._setBtn('pause');
   },
@@ -7009,18 +7018,28 @@ const CIRCUIT = {
     return EXERCISES[this.st.ids[idx]];
   },
 
+  _stopFrames: function(){ if (this.st && this.st.frameTimer) { clearInterval(this.st.frameTimer); this.st.frameTimer = null; } },
   _showMedia: function(ex){
+    this._stopFrames();   // zero wycieku: czyść poprzedni cykl PRZED każdym pokazaniem (zmiana ćwiczenia)
     const img = this._el('circuit-img'), vid = this._el('circuit-video');
-    if (ex && ex.anim && vid) {
+    if (ex && ex.frames && img) {                         // 3-klatki → pseudo-animacja (cykl 700ms)
+      if (vid) { try { vid.pause(); } catch(e){} vid.removeAttribute('src'); vid.style.display = 'none'; }
+      img.style.display = 'block';
+      var fi = 0; var frames = ex.frames;
+      var tick = function(){ img.src = EX_BASE + frames[fi]; fi = (fi + 1) % frames.length; };
+      tick();
+      this.st.frameTimer = setInterval(tick, 700);
+    } else if (ex && ex.anim && vid) {                    // legacy: webm loop
       vid.src = EX_BASE + ex.anim; vid.style.display = 'block';
       if (img) img.style.display = 'none';
       try { vid.play(); } catch(e) {}
-    } else {
+    } else {                                              // legacy: pojedynczy statyczny img
       if (img) { img.src = EX_BASE + ex.img; img.style.display = 'block'; }
       if (vid) { try { vid.pause(); } catch(e){} vid.removeAttribute('src'); vid.style.display = 'none'; }
     }
   },
   _hideMedia: function(){
+    this._stopFrames();
     const img = this._el('circuit-img'), vid = this._el('circuit-video');
     if (img) img.style.display = 'none';
     if (vid) { try { vid.pause(); } catch(e){} vid.removeAttribute('src'); vid.style.display = 'none'; }
