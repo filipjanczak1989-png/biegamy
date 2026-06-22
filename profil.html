@@ -322,6 +322,17 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;flex-shrink:0;">✎ edytuj</div>
   </div>
   <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;">Odblokowuje odznakę <strong style="color:var(--accent);">urodzinowy_run</strong> 🎉</div>
+  <div id="gender-card" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;margin-top:12px;">
+    <div style="font-size:22px;flex-shrink:0;">⚥</div>
+    <div style="flex:1;min-width:0;">
+      <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:7px;">Płeć</div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="setGender('M')" id="gender-btn-M" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s;">Mężczyzna</button>
+        <button onclick="setGender('K')" id="gender-btn-K" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s;">Kobieta</button>
+      </div>
+    </div>
+  </div>
+  <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:DM Mono,monospace;">Potrzebne do porównania życiówek (% rekordu świata)</div>
 </div>
 
 <!-- TRENER - tylko własny profil -->
@@ -631,7 +642,7 @@ let _profileData = null;
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
   const { data: ath } = await sb.from('athletes')
-    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth,coach_id,city')
+    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth,coach_id,city,gender')
     .eq('id', _targetId)
     .maybeSingle();
   if (!ath) return;
@@ -639,6 +650,7 @@ async function loadProfile() {
 
   // Data urodzenia (tylko własny profil)
   renderDOB(ath);
+  renderGender(ath);
 
   // Trener (tylko własny profil)
   renderCoach(ath);
@@ -920,6 +932,28 @@ async function editDateOfBirth() {
   if (_profileData) _profileData.date_of_birth = iso;
   showToast('Data zapisana ✓');
   renderDOB(_profileData);
+}
+
+function renderGender(ath) {
+  const bM = document.getElementById('gender-btn-M'), bK = document.getElementById('gender-btn-K');
+  if (!bM || !bK) return;
+  const g = ath && ath.gender;
+  function paint(btn, active) {
+    btn.style.background = active ? 'var(--accent)' : 'transparent';
+    btn.style.borderColor = active ? 'var(--accent)' : 'var(--border)';
+    btn.style.color = active ? '#fff' : 'var(--fg)';
+    btn.style.fontWeight = active ? '700' : '400';
+  }
+  paint(bM, g === 'M'); paint(bK, g === 'K');
+}
+
+async function setGender(g) {
+  if (!_myId) return;
+  const { error } = await sb.from('athletes').update({ gender: g }).eq('id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  if (_profileData) _profileData.gender = g;
+  showToast('Płeć zapisana ✓');
+  renderGender(_profileData);
 }
 
 async function editCity() {
