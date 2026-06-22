@@ -4157,7 +4157,7 @@ function _silnikRenderAnimWolumen(ev, imie){
   o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;';
   o.innerHTML = `
     <button id="silnik-anim-close" aria-label="Zamknij" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
-    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent,#e8561e);">Najmocniejszy tydzień</div>
+    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--accent,#e8561e);">Najmocniejszy tydzień ostatnich miesięcy</div>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:148px;line-height:.86;color:#fff;margin:6px 0 2px;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:40px;color:var(--accent,#e8561e);"> km</span></div>
     <div data-el="footer" style="opacity:0;transform:translateY(10px);transition:opacity .6s,transform .6s;text-align:center;">
       <div style="font-family:'DM Mono',monospace;font-size:12px;color:#8a8693;letter-spacing:.06em;">Poprzedni rekord ${prevMax} km · <span style="color:var(--accent2,#ff7040);">+${delta} km</span></div>
@@ -4318,7 +4318,7 @@ function _silnikRenderAnimTop5(moment, imie){
     <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent,#e8561e);text-align:center;">Twój <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;">${poz}.</span> najmocniejszy tydzień</div>
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:10px;height:${MAXH+54}px;margin:22px 0 8px;"></div>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:104px;line-height:.86;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:28px;color:var(--accent,#e8561e);"> km</span></div>
-    <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;margin-top:2px;">${imie?esc(imie)+', w':'W'}szedłeś do TOP 5.</div>
+    <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;margin-top:2px;">${imie?esc(imie)+', w':'W'}szedłeś do TOP 5 — odkąd biegasz z nami.</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${rok}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
   document.body.appendChild(o);
