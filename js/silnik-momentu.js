@@ -291,6 +291,34 @@
     };
   }
 
+  // NAJDŁUŻSZY BIEG: newLog = ściśle najdłuższy pojedynczy bieg w historii (twardy rekord, ALL-TIME).
+  // NIE wolumen (tygodniowy) ani PB (czas) — pojedynczy max dystansu. Debiut = cisza (jak PB).
+  // Tylko biegi (lg.is_run !== false; flagę ustawia buildSnapshot przez isRunType). Margines anty-szum GPS.
+  var NAJDL_MIN_DELTA = 0.3;   // km — rekord musi pobić poprzedni o ≥300 m (nie „o 20 m")
+  function detectNajdluzszyBieg(snap) {
+    var nl = snap.newLog;
+    if (!nl || nl.is_run === false) return null;       // brak newLog lub newLog nie jest biegiem
+    var nlKm = num(nl.distance_km);
+    if (!(nlKm > 0)) return null;
+    var logs = snap.logs_all || [];
+    var prevMax = 0, skipped = false;
+    for (var i = 0; i < logs.length; i++) {
+      var lg = logs[i];
+      if (!lg || lg.is_run === false) continue;        // tylko biegi
+      var d = num(lg.distance_km);
+      if (!(d > 0)) continue;
+      if (!skipped && lg.logged_at === nl.logged_at && d === nlKm) { skipped = true; continue; } // pomiń sam newLog raz
+      if (d > prevMax) prevMax = d;
+    }
+    if (!(prevMax > 0)) return null;                   // brak wcześniejszego biegu → debiut = cisza
+    if (!(nlKm > prevMax + NAJDL_MIN_DELTA)) return null; // tie / w granicach szumu → nie rekord
+    return {
+      type: 'najdluzszy',
+      evidence: { dystans: Math.round(nlKm * 100) / 100, poprzedni_najdluzszy: Math.round(prevMax * 100) / 100 },
+      confidence: 1,                                    // ALL-TIME, BEZ rok (rekord życiowy jak PB/top5)
+    };
+  }
+
   // ── §3 rozstrzyganie + WARSTWA STANU ─────────────────────────────────────────
   // Gdy >1 detektor odpali, wybór = scoring łączący 3 reguły w jeden porównywalny wynik:
   //   1. PRIORYTET: PB > wolumen > streak  (baza)
@@ -318,7 +346,7 @@
   //
   // Wagi (strojenie): NOVELTY (count 0) = pełny bonus rzadkości; kara powtórzenia
   //   dobrana tak, by przy RÓWNEJ rzadkości przełączyć typ, ale go nie zerować.
-  var PRIORITY_SCORE = { pb: 3, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // dystans=geo-kamień; top5 pod wolumenem (rekord>wejście), nad streakiem
+  var PRIORITY_SCORE = { pb: 3, najdluzszy: 2.7, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // najdluzszy=rekord życiowy tuż pod PB; dystans=geo; top5 pod wolumenem; streak najniżej
   var RARITY_W = 2.5;       // bonus rzadkości = RARITY_W / (ile_razy_dostarczony + 1)  → count0=2.5 (nowość)
   var REPEAT_PENALTY = 1.5; // miękka kara, gdy typ == ostatnio dostarczony
 
@@ -374,7 +402,7 @@
   function detect(snapshot) {
     if (!snapshot || !snapshot.newLog) return null;
     var historia = snapshot.historia || [];
-    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot)].filter(Boolean);
+    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot), detectNajdluzszyBieg(snapshot)].filter(Boolean);
     // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
     candidates = candidates.filter(function (c) { return !alreadyDelivered(historia, c); });
     if (!candidates.length) return null; // CISZA — nic NOWEGO ponad próg
@@ -389,6 +417,7 @@
     _detectStreak: detectStreak,
     _detectDystans: detectDystans,
     _detectTop5Tygodni: detectTop5Tygodni,
+    _detectNajdluzszyBieg: detectNajdluzszyBieg,
     _normalizeCity: _normalizeCity,
     _startPoint: _startPoint,
     _dystansCele: DYSTANS_CELE,
@@ -401,7 +430,7 @@
     _lastDelivered: lastDelivered,
     _countDelivered: countDelivered,
     _weekKey: weekKey,
-    _thresholds: { PB_MIN_PCT: PB_MIN_PCT, PB_MIN_SEC: PB_MIN_SEC, VOL_MIN_WINDOWS: VOL_MIN_WINDOWS, STREAK_MIN: STREAK_MIN, TOP5_MIN_TYGODNI: TOP5_MIN_TYGODNI },
+    _thresholds: { PB_MIN_PCT: PB_MIN_PCT, PB_MIN_SEC: PB_MIN_SEC, VOL_MIN_WINDOWS: VOL_MIN_WINDOWS, STREAK_MIN: STREAK_MIN, TOP5_MIN_TYGODNI: TOP5_MIN_TYGODNI, NAJDL_MIN_DELTA: NAJDL_MIN_DELTA },
     _weights: { PRIORITY_SCORE: PRIORITY_SCORE, RARITY_W: RARITY_W, REPEAT_PENALTY: REPEAT_PENALTY },
   };
 
@@ -670,9 +699,9 @@
       // [18] <12 tygodni z bieganiem → null (10 past + current = 11)
       check('top5 <12 tyg → null', detect(top5Snap(20, small(10))) === null, detect(top5Snap(20, small(10))));
 
-      // [19] rank 1 (all-time max) → null (robota A)
+      // [19] rank 1 (all-time max) → detektor top5 null (robota A). (detect() łączy detektory — 100km tu odpala najdluzszy, słusznie — więc izolujemy detektor top5)
       var t1 = top5Snap(100, small(12));   // 12 past <40 + current 100 = max
-      check('top5 rank1 (max) → null (A)', detect(t1) === null, detect(t1));
+      check('top5 rank1 (max) → null (A)', SilnikMomentu._detectTop5Tygodni(t1) === null, SilnikMomentu._detectTop5Tygodni(t1));
 
       // [20] rank 3 → moment B (2 tygodnie mocniejsze: 60,55)
       var t3 = top5Snap(50, [60, 55].concat(small(11)));   // 13 past + current = 14 distinct
@@ -700,6 +729,51 @@
       var t4 = top5Snap(50, [60, 55, 53].concat(small(10)));
       var m4 = detect(t4);
       check('top5 rank4 → moment B (pozycja 4)', m4 && m4.type === 'top5' && m4.pozycja === 4, m4);
+    })();
+
+    // ── NAJDŁUŻSZY BIEG (pojedynczy max dystansu, all-time) ──────────────────────
+    (function () {
+      // logs_all = wcześniejsze biegi (priorKms) + newLog (nlKm) na końcu; extra = dodatkowe logi
+      function najdlSnap(nlKm, priorKms, extra, nlIsRun, historia) {
+        var logs = [];
+        priorKms.forEach(function (km, i) { logs.push({ logged_at: dateInWeek(i + 1), distance_km: km, duration_s: 3600 }); });
+        var nl = { logged_at: dateInWeek(0), distance_km: nlKm, duration_s: 3600 };
+        if (nlIsRun === false) nl.is_run = false;
+        logs.push(nl);
+        (extra || []).forEach(function (e) { logs.push(e); });
+        return { today: TODAY, pbs: {}, newLog: nl, logs: [], logs_all: logs, historia: historia || [] };
+      }
+
+      // [25] debiut (brak wcześniejszych biegów) → null
+      check('najdłuższy: debiut → null', detect(najdlSnap(10, [])) === null, detect(najdlSnap(10, [])));
+
+      // [26] rekord: 16 km > poprzedni max 14 (+margines) → moment
+      var mr = detect(najdlSnap(16, [14, 12, 8, 10]));
+      console.log('[26] najdłuższy 16km →', JSON.stringify(mr));
+      check('najdłuższy: 16>14 → moment', mr && mr.type === 'najdluzszy', mr);
+      check('najdłuższy: evidence dystans=16, poprzedni=14', mr && mr.evidence.dystans === 16 && mr.evidence.poprzedni_najdluzszy === 14, mr);
+      check('najdłuższy: ALL-TIME (bez rok w evidence)', mr && mr.evidence.rok === undefined, mr);
+
+      // [27] remis: 14 == poprzedni max 14 → null
+      check('najdłuższy: remis (14==14) → null', detect(najdlSnap(14, [14, 12])) === null, detect(najdlSnap(14, [14, 12])));
+
+      // [28] w granicach szumu: 14.2 vs 14 (Δ0.2 < 0.3) → null
+      check('najdłuższy: +0.2km < margines → null', detect(najdlSnap(14.2, [14, 10])) === null, detect(najdlSnap(14.2, [14, 10])));
+
+      // [29] krótszy po rekordzie: 10 < poprzedni max 16 → null
+      check('najdłuższy: krótszy → null', detect(najdlSnap(10, [16, 14])) === null, detect(najdlSnap(10, [16, 14])));
+
+      // [30] ⚠️ substytut (rower is_run:false 50km) NIE liczy: bieg 16 > biegowy max 14 → fires, rower ignorowany
+      var mb = detect(najdlSnap(16, [14, 12], [{ logged_at: dateInWeek(5), distance_km: 50, duration_s: 7200, is_run: false }]));
+      check('najdłuższy: rower 50km ignorowany → bieg 16 fires', mb && mb.type === 'najdluzszy' && mb.evidence.dystans === 16, mb);
+
+      // [31] newLog jest rowerem (is_run:false) → null
+      check('najdłuższy: newLog=rower → null', detect(najdlSnap(40, [14, 12], null, false)) === null, detect(najdlSnap(40, [14, 12], null, false)));
+
+      // [32] dedup: ten sam rekord → null; nowy dłuższy → fires
+      var hh = recordDelivered([], mr);
+      check('najdłuższy dedup: ten sam rekord → null', detect(najdlSnap(16, [14, 12], null, true, hh)) === null, true);
+      check('najdłuższy: nowy dłuższy (18) → fires', detect(najdlSnap(18, [16, 14], null, true, hh)) && detect(najdlSnap(18, [16, 14], null, true, hh)).evidence.dystans === 18, true);
     })();
 
     console.log('\n' + (fail === 0 ? '✅ PASS' : '❌ FAIL') + '  (' + pass + ' ok, ' + fail + ' fail)');
