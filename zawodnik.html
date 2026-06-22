@@ -4076,7 +4076,7 @@ async function _silnikBuildSnapshot(){
   const newLog=all[all.length-1];                  // najnowszy z CAŁOŚCI
   const today=String(newLog.logged_at).slice(0,10);// anchor = data ostatniego logu (jak przy zapisie)
   const imie=(a.full_name||'').trim().split(' ')[0]||'';
-  return { newLog, logs, pbs, today, historia:[], imie, suma_roczna_km, rok, start_miasto:a.city||null };
+  return { newLog, logs, pbs, today, historia:[], imie, suma_roczna_km, rok, start_miasto:a.city||null, logs_all:all };
 }
 
 async function _silnikDebug(autoAnim){
@@ -4094,7 +4094,7 @@ async function _silnikDebug(autoAnim){
       el.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:80vw;background:rgba(7,5,12,0.92);border:1px solid #e8561e;color:#fff;font:11px/1.4 DM Mono,monospace;padding:8px 10px;border-radius:8px;pointer-events:none;';
       document.body.appendChild(el); }
     el.textContent = moment ? `silnik → ${moment.type} ${JSON.stringify(moment.evidence)}` : 'silnik → CISZA (null)';
-    if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans')) window._silnikPokazAnimacje(moment, snap.imie);
+    if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans'||moment.type==='top5')) window._silnikPokazAnimacje(moment, snap.imie);
   }catch(e){ console.error('[silnik] błąd:',e); }
 }
 
@@ -4105,6 +4105,7 @@ window._silnikPokazAnimacje = function(moment, imie){
     if(!moment) return;
     if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie);
     if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie);
+    if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
@@ -4115,6 +4116,12 @@ const _silnikFx = {
   easeOutCubic: t => 1 - Math.pow(1 - t, 3),
   easeBack: t => { const c=1.70158; return 1 + (c+1)*Math.pow(t-1,3) + c*Math.pow(t-1,2); }, // ODBICIE
   easeCount: p => 0.5 - Math.cos(p*Math.PI)/2,
+  growBar(b, dur, easeFn, done){                                       // wzrost słupka (wolumen + top5)
+    const t0 = performance.now();
+    (function step(t){ const p=Math.min(1,(t-t0)/dur); b.el.style.height=(b.h*easeFn(p))+'px';
+      if(p<1) requestAnimationFrame(step); else { b.el.style.height=b.h+'px'; if(done) done(); } })(performance.now());
+    b.kmLabel.style.opacity='1';
+  },
   countUp(el, target){ const t0=performance.now(), dur=950;
     (function step(t){ const p=Math.min(1,(t-t0)/dur); el.firstChild.textContent=Math.round(target*(0.5-Math.cos(p*Math.PI)/2)); if(p<1) requestAnimationFrame(step); })(performance.now()); },
   burst(cx, cy, n){ n=n||16;                                            // 16 iskier z punktu (cx,cy)
@@ -4174,22 +4181,15 @@ function _silnikRenderAnimWolumen(ev, imie){
     barEls.push({ el: col.querySelector('[data-bar]'), kmLabel: col.querySelector('[data-kmlabel]'), h });
   });
 
-  function growBar(b, dur, easeFn, done){
-    const t0 = performance.now();
-    (function step(t){ const p=Math.min(1,(t-t0)/dur); b.el.style.height=(b.h*easeFn(p))+'px';
-      if(p<1) requestAnimationFrame(step); else { b.el.style.height=b.h+'px'; if(done) done(); } })(performance.now());
-    b.kmLabel.style.opacity='1';
-  }
-
   // ── CHOREOGRAFIA (Story na danych evidence.slupki) — efekty z _silnikFx ──
   const STEP=340, BAR_DUR=520, PEAK_PAUSE=200, PEAK_DUR=720;
   requestAnimationFrame(()=>{
     const eb=$('eyebrow'); eb.style.opacity='1'; eb.style.transform='translateY(0)';
     let delay=320;
-    barEls.forEach((b,i)=>{ if(i===peakIdx) return; setTimeout(()=>growBar(b,BAR_DUR,_silnikFx.easeOutCubic),delay); delay+=STEP; }); // słupki +340ms
+    barEls.forEach((b,i)=>{ if(i===peakIdx) return; setTimeout(()=>_silnikFx.growBar(b,BAR_DUR,_silnikFx.easeOutCubic),delay); delay+=STEP; }); // słupki +340ms
     const peakStart=delay+PEAK_PAUSE;                                                                                     // peak +200ms pauza
     setTimeout(()=>{
-      growBar(barEls[peakIdx], PEAK_DUR, _silnikFx.easeBack, ()=>{ // PEAK z odbiciem → kulminacja
+      _silnikFx.growBar(barEls[peakIdx], PEAK_DUR, _silnikFx.easeBack, ()=>{ // PEAK z odbiciem → kulminacja
         const r=barEls[peakIdx].el.getBoundingClientRect();
         _silnikFx.burst(r.left+r.width/2, r.top, 16); _silnikFx.flash(o); _silnikFx.countUp($('big'), peakKm);
         const ft=$('footer'); ft.style.opacity='1'; ft.style.transform='translateY(0)'; $('brand').style.opacity='1';
@@ -4284,6 +4284,65 @@ function _silnikRenderAnimDystans(ev, suma, imie){
       $('mini').style.left='calc('+(frac*100).toFixed(1)+'% - 5px)';
     }, DRAW+150);
     setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimDystans(ev,suma,imie); }, DRAW+1700);
+  });
+}
+
+// ── ANIMACJA TOP5 TYGODNI (Slice 6 — ranking, DEBUG-ONLY) ──
+// Kontrakt: moment.type==='top5', moment.ranking=[{label,km,current}×5], moment.pozycja, moment.km.
+function _silnikRenderAnimTop5(moment, imie){
+  _silnikZamknijAnim();
+  const ranking = moment.ranking || [];
+  if(ranking.length < 2){ console.warn('[silnik-anim] top5 bez rankingu'); return; }
+  const esc = window.escapeHtml || (s=>String(s));
+  const poz = moment.pozycja, curKm = moment.km;
+  const maxKm = Math.max.apply(null, ranking.map(r=>r.km).concat(1)) * 1.1;
+  const MAXH = 200;
+  let peakIdx = ranking.findIndex(r=>r.current); if(peakIdx<0) peakIdx = (poz-1);
+  const rok = moment.rok || new Date().getFullYear();
+
+  const o=document.createElement('div'); o.id='silnik-anim-overlay';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;color:#fff;';
+  o.innerHTML=`
+    <button id="silnik-anim-close" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
+    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent,#e8561e);text-align:center;">Twój <span style="font-family:'Bebas Neue',sans-serif;font-size:20px;">${poz}.</span> najmocniejszy tydzień</div>
+    <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:10px;height:${MAXH+54}px;margin:22px 0 8px;"></div>
+    <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:104px;line-height:.86;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:28px;color:var(--accent,#e8561e);"> km</span></div>
+    <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;margin-top:2px;">${imie?esc(imie)+', w':'W'}szedłeś do TOP 5.</div>
+    <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${rok}</div>
+    <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
+  document.body.appendChild(o);
+  const $ = s => o.querySelector('[data-el="'+s+'"]');
+  o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
+  o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
+
+  const barsWrap=$('bars'); const barEls=[];
+  ranking.forEach((r,i)=>{
+    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;width:46px;';
+    const h=Math.max(6, Math.round(r.km/maxKm*MAXH));
+    col.innerHTML=`
+      <div style="font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${r.current?'var(--accent,#e8561e)':'#66636e'};">#${i+1}</div>
+      <div data-kmlabel style="opacity:0;transition:opacity .3s;font-family:'DM Mono',monospace;font-size:10px;color:${r.current?'var(--accent,#e8561e)':'#8a8693'};">${r.km}</div>
+      <div data-bar style="width:100%;height:0;border-radius:7px 7px 0 0;background:${r.current?'linear-gradient(180deg,var(--accent2,#ff7040),var(--accent,#e8561e))':'rgba(255,255,255,.13)'};${r.current?'box-shadow:0 0 26px rgba(var(--accent-rgb,232,86,30),.6);':''}"></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:${r.current?'var(--accent2,#ff7040)':'#66636e'};">${r.current?'TEN':esc(r.label)}</div>`;
+    barsWrap.appendChild(col);
+    barEls.push({el:col.querySelector('[data-bar]'), kmLabel:col.querySelector('[data-kmlabel]'), h});
+  });
+
+  // ── CHOREOGRAFIA (efekty z _silnikFx) ──
+  const STEP=300, BAR_DUR=520, PEAK_PAUSE=200, PEAK_DUR=720;
+  requestAnimationFrame(()=>{
+    const eb=$('eyebrow'); eb.style.opacity='1'; eb.style.transform='translateY(0)';
+    let delay=320;
+    barEls.forEach((b,i)=>{ if(i===peakIdx) return; setTimeout(()=>_silnikFx.growBar(b,BAR_DUR,_silnikFx.easeOutCubic),delay); delay+=STEP; });
+    const peakStart=delay+PEAK_PAUSE;
+    setTimeout(()=>{
+      _silnikFx.growBar(barEls[peakIdx], PEAK_DUR, _silnikFx.easeBack, ()=>{
+        const r=barEls[peakIdx].el.getBoundingClientRect();
+        _silnikFx.burst(r.left+r.width/2, r.top, 16); _silnikFx.flash(o); _silnikFx.countUp($('big'), curKm);
+        $('foot').style.opacity='1'; $('brand').style.opacity='1';
+      });
+    }, peakStart);
+    setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimTop5(moment,imie); }, peakStart+PEAK_DUR+1300);
   });
 }
 
