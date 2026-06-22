@@ -907,6 +907,7 @@ body > *{position:relative;z-index:1;}
   </div>
   <div style="position:relative;display:flex;align-items:center;gap:8px;z-index:201;">
     <a id="back-to-trener" href="trener.html" onclick="sessionStorage.removeItem('_fromTrener')" style="display:none;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(212,80,26,0.12);border:1px solid rgba(212,80,26,0.3);border-radius:8px;padding:7px 12px;text-decoration:none;">← Trener</a>
+    <button id="moment-baner" style="display:none;align-items:center;gap:5px;background:rgba(var(--accent-rgb,232,86,30),0.14);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);border-radius:18px;padding:6px 12px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600;letter-spacing:0.03em;cursor:pointer;white-space:nowrap;">✨ Nowy moment!</button>
     <div onclick="openNotifications()" class="notif-bell-z" id="zawodnik-bell">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <div id="zawodnik-bell-dot" style="display:none;position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:var(--accent);border-radius:9px;border:2px solid var(--bg);font-size:9px;font-weight:700;color:#fff;align-items:center;justify-content:center;font-family:DM Mono,monospace;padding:0 3px;"></div></div>
@@ -3731,6 +3732,33 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); con
 // ── SUPABASE ──────────────────────────────────────────────────────
 let _athleteId = null;
 
+// ── DOSTARCZENIE MOMENTÓW (Silnik Momentu Slice E krok 3) ──
+// Baner przy bellu → klik → animacja z puentą trenera → shown_at. RLS dm_ath_sel tnie do własnych approved.
+// ⚠️ Krok 3: filtr type='najdluzszy' (puenta wpięta tylko tam). Inne approved czekają (shown_at null) do Kroku 4 — NIE giną.
+window.loadMomenty = async function(athleteId, imie){
+  const baner = document.getElementById('moment-baner');
+  if (!baner) return;
+  try {
+    const { data, error } = await sb.from('delivered_moments')
+      .select('id,type,evidence,payload,edited_text')
+      .eq('status','approved').is('shown_at', null)
+      .eq('type','najdluzszy')
+      .order('created_at', { ascending: true });
+    if (error) { console.error('[Momenty] load:', error); baner.style.display='none'; return; }
+    const lista = data || [];
+    if (!lista.length) { baner.style.display='none'; return; }
+    const row = lista[0];   // najstarszy pierwszy (kolejka)
+    baner.style.display = 'inline-flex';
+    baner.onclick = () => {
+      const m = window._silnikOdtworzMoment(row);
+      window._silnikPokazAnimacje(m, imie, row.edited_text, async () => {
+        await sb.from('delivered_moments').update({ shown_at: new Date().toISOString() }).eq('id', row.id);
+        window.loadMomenty(athleteId, imie);   // następny w kolejce lub ukryj
+      });
+    };
+  } catch(e) { console.error('[Momenty] wyjątek:', e); baner.style.display='none'; }
+};
+
 
 // ── MOTYWACJA DNIA ────────────────────────────────────────────────
 async function loadDailyMotivation() {
@@ -4162,6 +4190,7 @@ async function initAuth() {
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
     if(tnEl){ tnEl.innerHTML = escapeHtml(name.split(' ')[0]) + ' <span>' + escapeHtml(name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
+    loadMomenty(_athleteId, (name||'').split(' ')[0]);   // Slice E krok 3: baner momentów po auth
 
     const _needsOb = _isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1';
     if (_needsOb) {
