@@ -151,36 +151,111 @@
     };
   }
 
-  // ── §3 rozstrzyganie ─────────────────────────────────────────────────────────
-  // Priorytet: PB > wolumen > streak.
-  // TODO(slice-stan): tie-break "rzadszy moment dla tego zawodnika" + anti-powtórzenie
-  //   (nie ten sam typ 2x z rzędu) wymagają historii momentów — dochodzą gdy
-  //   dołożymy warstwę stanu. Na razie czysty priorytet.
-  var PRIORITY = ['pb', 'wolumen', 'streak'];
+  // ── §3 rozstrzyganie + WARSTWA STANU ─────────────────────────────────────────
+  // Gdy >1 detektor odpali, wybór = scoring łączący 3 reguły w jeden porównywalny wynik:
+  //   1. PRIORYTET: PB > wolumen > streak  (baza)
+  //   2. RZADKOŚĆ ("rzadszy moment dla tego zawodnika"): typ, którego zawodnik
+  //      DOSTAŁ mało/nigdy, dostaje bonus — może NADPISAĆ priorytet, gdy wyższy
+  //      typ jest dla niego rutyną (np. bije PB co tydzień, a streak 1. raz w życiu).
+  //   3. ANTI-POWTÓRZENIE (miękkie): ten sam typ co OSTATNIO dostarczony dostaje
+  //      karę — przy alternatywie przełącza na inny typ; samotny powtórzony typ
+  //      (np. realny 2. PB) i tak leci. Bramka trenera (KM6) = ostateczny filtr,
+  //      więc silnik nie zabija prawdziwego momentu — proponuje, człowiek decyduje.
+  //   4. DEDUP (po wartości) — KRĘGOSŁUP ANTY-SPAMU: moment, którego TA SAMA
+  //      zdobycz (typ + identyczne evidence, np. "streak 4") już została
+  //      dostarczona, jest ODRZUCANY zanim trafi do scoringu. Tak ginie spam
+  //      "ten sam kamień milowy codziennie, aż licznik drgnie" (anti-powtórzenie
+  //      tego nie łapie, bo gdy moment jest jedynym kandydatem, miękka kara go
+  //      nie zeruje). NOWA wartość (streak 8, nowy rekord tygodnia) = inne
+  //      evidence → leci normalnie. Dowód na realnym Danielu: 12 → 4 momenty.
+  //
+  // HISTORIA = momenty DOSTARCZONE (zatwierdzone przez trenera i wysłane do
+  //   zawodnika), NIE samo "wykryte". Spójne z żelazną zasadą: do historii trafia
+  //   tylko to, co realnie dotarło — odrzucona propozycja nie truje rzadkości/powtórzeń.
+  //   snapshot.historia = [{ type, ... }, ...]  (najstarszy → najnowszy; ostatni = ostatnio dostarczony)
+  //   Caller (KM6) dopisuje przez recordDelivered() PO zatwierdzeniu trenera.
+  //   Brak historii (undefined/[]) ⇒ same wagi rzadkości ⇒ czysty priorytet (wstecznie zgodne).
+  //
+  // Wagi (strojenie): NOVELTY (count 0) = pełny bonus rzadkości; kara powtórzenia
+  //   dobrana tak, by przy RÓWNEJ rzadkości przełączyć typ, ale go nie zerować.
+  var PRIORITY_SCORE = { pb: 3, wolumen: 2, streak: 1 };
+  var RARITY_W = 2.5;       // bonus rzadkości = RARITY_W / (ile_razy_dostarczony + 1)  → count0=2.5 (nowość)
+  var REPEAT_PENALTY = 1.5; // miękka kara, gdy typ == ostatnio dostarczony
 
-  function resolve(candidates) {
-    for (var i = 0; i < PRIORITY.length; i++) {
-      for (var j = 0; j < candidates.length; j++) {
-        if (candidates[j] && candidates[j].type === PRIORITY[i]) return candidates[j];
-      }
+  function countDelivered(historia, type) {
+    var c = 0;
+    for (var i = 0; i < historia.length; i++) if (historia[i] && historia[i].type === type) c++;
+    return c;
+  }
+  function lastDelivered(historia) {
+    return historia.length ? historia[historia.length - 1].type : null;
+  }
+  function scoreCandidate(c, historia) {
+    historia = historia || [];
+    var prio = PRIORITY_SCORE[c.type] || 0;
+    var rarity = RARITY_W / (countDelivered(historia, c.type) + 1);
+    var repeat = (lastDelivered(historia) === c.type) ? REPEAT_PENALTY : 0;
+    return prio + rarity - repeat;
+  }
+
+  function resolve(candidates, historia) {
+    historia = historia || [];
+    var best = null, bestScore = -Infinity, bestPrio = -Infinity;
+    for (var i = 0; i < candidates.length; i++) {
+      var c = candidates[i];
+      if (!c) continue;
+      var s = scoreCandidate(c, historia);
+      var p = PRIORITY_SCORE[c.type] || 0;
+      // remis wyniku → rozstrzyga surowy priorytet (deterministycznie)
+      if (s > bestScore || (s === bestScore && p > bestPrio)) { best = c; bestScore = s; bestPrio = p; }
     }
-    return null;
+    return best;
+  }
+
+  // Dopisanie DOSTARCZONEGO momentu do historii (czyste — zwraca NOWĄ tablicę, nie mutuje).
+  // Woła caller PO zatwierdzeniu trenera (KM6). Najnowszy ląduje na końcu.
+  // MUSI nieść evidence — to po nim działa dedup (rozróżnia streak 4 od streak 8).
+  function recordDelivered(historia, moment) {
+    var h = (historia || []).slice();
+    if (moment && moment.type) h.push({ type: moment.type, evidence: moment.evidence });
+    return h;
+  }
+
+  // Ta sama zdobycz? — typ + identyczne evidence. (evidence z detektorów ma stały
+  // porządek kluczy, więc porównanie po JSON jest stabilne.)
+  function sameMoment(a, b) {
+    return !!(a && b) && a.type === b.type && JSON.stringify(a.evidence) === JSON.stringify(b.evidence);
+  }
+  function alreadyDelivered(historia, cand) {
+    for (var i = 0; i < historia.length; i++) if (sameMoment(historia[i], cand)) return true;
+    return false;
   }
 
   function detect(snapshot) {
     if (!snapshot || !snapshot.newLog) return null;
+    var historia = snapshot.historia || [];
     var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot)].filter(Boolean);
-    if (!candidates.length) return null; // CISZA — nic nie przekroczyło progu
-    return resolve(candidates);
+    // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
+    candidates = candidates.filter(function (c) { return !alreadyDelivered(historia, c); });
+    if (!candidates.length) return null; // CISZA — nic NOWEGO ponad próg
+    return resolve(candidates, historia);
   }
 
   var API = {
     detect: detect,
+    recordDelivered: recordDelivered,
     _detectPB: detectPB,
     _detectVolume: detectVolume,
     _detectStreak: detectStreak,
+    _resolve: resolve,
+    _score: scoreCandidate,
+    _sameMoment: sameMoment,
+    _alreadyDelivered: alreadyDelivered,
+    _lastDelivered: lastDelivered,
+    _countDelivered: countDelivered,
     _weekKey: weekKey,
     _thresholds: { PB_MIN_PCT: PB_MIN_PCT, PB_MIN_SEC: PB_MIN_SEC, VOL_MIN_WINDOWS: VOL_MIN_WINDOWS, STREAK_MIN: STREAK_MIN },
+    _weights: { PRIORITY_SCORE: PRIORITY_SCORE, RARITY_W: RARITY_W, REPEAT_PENALTY: REPEAT_PENALTY },
   };
 
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
@@ -291,6 +366,102 @@
     var m6 = detect(s6);
     console.log('[6] PB-za-mały →', JSON.stringify(m6));
     check('poniżej progu → null', m6 === null, m6);
+
+    // ── WARSTWA STANU (§3 rzadkość + anti-powtórzenie) ──────────────────────────
+
+    // 7) RZADKOŚĆ NADPISUJE PRIORYTET: rutynowy PB (10× dostarczony) vs nowy streak → streak
+    //    (last=wolumen, żeby izolować rzadkość od anti-powtórzenia)
+    var s7logs = [];
+    [{ w: 3, km: 30 }, { w: 2, km: 20 }, { w: 1, km: 20 }].forEach(function (x) {
+      s7logs.push({ logged_at: dateInWeek(x.w), distance_km: x.km, duration_s: 7200 });
+    });
+    var s7new = { logged_at: dateInWeek(0), distance_km: 5.0, duration_s: 1380 }; // 5k PB
+    s7logs.push({ logged_at: dateInWeek(0), distance_km: 20, duration_s: 7200 }); // week0 obecny (streak=4), suma 25 < week3=30 → brak wolumenu
+    s7logs.push(s7new);
+    var s7hist = [];
+    for (var k = 0; k < 10; k++) s7hist.push({ type: 'pb' });
+    s7hist.push({ type: 'wolumen' }); // ostatnio dostarczony = wolumen
+    var s7 = { today: TODAY, pbs: { '5k': 1440 }, newLog: s7new, logs: s7logs, historia: s7hist };
+    var m7 = detect(s7);
+    console.log('[7] rzadkość > priorytet →', JSON.stringify(m7));
+    check('PB i streak kandydują', !!(detectPB(s7) && detectStreak(s7)), [detectPB(s7), detectStreak(s7)]);
+    check('wolumen NIE odpala (nie max)', !detectVolume(s7), detectVolume(s7));
+    check('§3: rutynowy PB ustępuje nowemu streakowi', m7 && m7.type === 'streak', m7);
+
+    // 8) ANTI-POWTÓRZENIE (miękkie): ostatnio dostarczony = PB, rzadkość RÓWNA → przełącz na wolumen
+    var s8logs = [];
+    [{ w: 8, km: 10 }, { w: 6, km: 12 }, { w: 4, km: 14 }, { w: 2, km: 16 }].forEach(function (x) {
+      s8logs.push({ logged_at: dateInWeek(x.w), distance_km: x.km, duration_s: 7200 });
+    });
+    var s8new = { logged_at: dateInWeek(0), distance_km: 5.0, duration_s: 1380 }; // 5k PB
+    s8logs.push({ logged_at: dateInWeek(0), distance_km: 20, duration_s: 7200 }); // week0 = wolumen-max (luki → brak streaku)
+    s8logs.push(s8new);
+    var s8base = { today: TODAY, pbs: { '5k': 1440 }, newLog: s8new, logs: s8logs };
+    var s8rep = { today: TODAY, pbs: s8base.pbs, newLog: s8new, logs: s8logs,
+                  historia: [{ type: 'wolumen' }, { type: 'pb' }, { type: 'wolumen' }, { type: 'pb' }] }; // pb=2, wol=2, last=pb
+    var m8 = detect(s8rep);
+    console.log('[8] anti-powtórzenie (last=pb) →', JSON.stringify(m8));
+    check('PB i wolumen kandydują', !!(detectPB(s8rep) && detectVolume(s8rep)), [detectPB(s8rep), detectVolume(s8rep)]);
+    check('streak NIE odpala (luki)', !detectStreak(s8rep), detectStreak(s8rep));
+    check('§3: PB=ostatni → przełącz na wolumen', m8 && m8.type === 'wolumen', m8);
+    // 8b) KONTROLA: ten sam snapshot, last=streak → brak kary, priorytet wraca → PB
+    var s8ctl = { today: TODAY, pbs: s8base.pbs, newLog: s8new, logs: s8logs,
+                  historia: [{ type: 'wolumen' }, { type: 'pb' }, { type: 'wolumen' }, { type: 'pb' }, { type: 'streak' }] };
+    var m8c = detect(s8ctl);
+    console.log('[8b] bez powtórzenia (last=streak) →', JSON.stringify(m8c));
+    check('§3: brak powtórzenia → PB (priorytet)', m8c && m8c.type === 'pb', m8c);
+
+    // 9) SAMOTNY POWTÓRZONY TYP leci mimo wszystko (miękkość)
+    var s9 = {
+      today: TODAY, pbs: { '5k': 1440 },
+      newLog: { logged_at: dateInWeek(0), distance_km: 5.0, duration_s: 1380 },
+      logs: [{ logged_at: dateInWeek(0), distance_km: 5.0, duration_s: 1380 }],
+      historia: [{ type: 'pb' }], // ostatni = pb, brak alternatywy
+    };
+    var m9 = detect(s9);
+    console.log('[9] samotny powtórzony PB →', JSON.stringify(m9));
+    check('samotny PB (powtórka) i tak leci', m9 && m9.type === 'pb', m9);
+
+    // 10) recordDelivered: czyste dopisanie na koniec
+    var h0 = [{ type: 'pb' }];
+    var h1 = recordDelivered(h0, { type: 'streak', evidence: { tygodnie: 4 } });
+    check('recordDelivered nie mutuje wejścia', h0.length === 1, h0);
+    check('recordDelivered dopisał najnowszy na koniec', h1.length === 2 && h1[1].type === 'streak', h1);
+
+    // ── DEDUP po wartości (anty-spam) ──────────────────────────────────────────
+
+    // 11) TA SAMA zdobycz już dostarczona → CISZA (jedyny kandydat odfiltrowany)
+    (function () {
+      var snap = streakSnap(4);
+      snap.historia = [{ type: 'streak', evidence: { tygodnie: 4 } }]; // streak-4 JUŻ dostarczony
+      var m = detect(snap);
+      console.log('[11] streak-4 już dostarczony →', JSON.stringify(m));
+      check('dedup: ta sama zdobycz → null', m === null, m);
+    })();
+
+    // 12) NOWA wartość tego samego typu → leci (inne evidence)
+    (function () {
+      var snap = streakSnap(8);
+      snap.historia = [{ type: 'streak', evidence: { tygodnie: 4 } }]; // dostarczony 4, teraz 8
+      var m = detect(snap);
+      console.log('[12] streak-8 mimo dostarczonego streak-4 →', JSON.stringify(m));
+      check('dedup nie blokuje NOWEJ wartości', m && m.type === 'streak' && m.evidence.tygodnie === 8, m);
+    })();
+
+    // 13) REPLAY-STYL: streak-4 codziennie w obrębie progu → ogłoszony 1×, nie N×
+    //     (symulacja: detect → recordDelivered → detect z tą samą serią)
+    (function () {
+      var historia = [];
+      var fires = 0;
+      for (var day = 0; day < 4; day++) { // 4 "dni" w obrębie tygodnia, streak stoi na 4
+        var snap = streakSnap(4);
+        snap.historia = historia;
+        var m = detect(snap);
+        if (m) { fires++; historia = recordDelivered(historia, m); }
+      }
+      console.log('[13] streak-4 przez 4 "dni" → ogłoszony ' + fires + '×');
+      check('dedup: spam codzienny → 1 ogłoszenie', fires === 1, fires);
+    })();
 
     console.log('\n' + (fail === 0 ? '✅ PASS' : '❌ FAIL') + '  (' + pass + ' ok, ' + fail + ' fail)');
     if (typeof process !== 'undefined') process.exit(fail === 0 ? 0 : 1);
