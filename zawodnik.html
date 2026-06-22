@@ -4216,7 +4216,7 @@ function _silnikRenderAnimDystans(ev, suma, imie){
   for(let i=0;i<=idx;i++){ cum+=hav(prev,cele[i]); prev=cele[i];
     dots.push({ nazwa:cele[i].miasto, prog:cum, kont:cele[i].kontynent, reached:(i===idx) }); }
   const reachedProg = cum || 1;
-  dots.forEach(d=> d.x = d.prog/reachedProg);
+  dots.forEach(d=> d.x = Math.sqrt(d.prog/reachedProg)); // sqrt: rozluźnia gęsty klaster bliskich progów (Europa), kompresuje daleki ogon
 
   // etykiety: DOM + reached zawsze; po drodze = wejście w nowy kontynent (x w środku); krótka trasa = wszystkie
   let lastKont=null;
