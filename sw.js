@@ -13,7 +13,7 @@
 //   - skipWaiting + clients.claim → user dostaje nową wersję natychmiast
 // ════════════════════════════════════════════════════════════════════
 
-const CACHE_VERSION = 'biegamy-2026-06-22-42c6b9e';
+const CACHE_VERSION = 'biegamy-2026-06-22-dbbf6ff';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const RUNTIME_CACHE = `${CACHE_VERSION}-runtime`;
 const STORAGE_CACHE = `${CACHE_VERSION}-storage`;
