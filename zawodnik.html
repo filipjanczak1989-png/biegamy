@@ -4095,7 +4095,7 @@ async function _silnikDebug(autoAnim){
       el.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:80vw;background:rgba(7,5,12,0.92);border:1px solid #e8561e;color:#fff;font:11px/1.4 DM Mono,monospace;padding:8px 10px;border-radius:8px;pointer-events:none;';
       document.body.appendChild(el); }
     el.textContent = moment ? `silnik → ${moment.type} ${JSON.stringify(moment.evidence)}` : 'silnik → CISZA (null)';
-    if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans'||moment.type==='top5'||moment.type==='najdluzszy')) window._silnikPokazAnimacje(moment, snap.imie);
+    if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans'||moment.type==='top5'||moment.type==='najdluzszy'||moment.type==='najmocniejsza')) window._silnikPokazAnimacje(moment, snap.imie);
   }catch(e){ console.error('[silnik] błąd:',e); }
 }
 
@@ -4108,6 +4108,7 @@ window._silnikPokazAnimacje = function(moment, imie){
     if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie);
     if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie);
     if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie);
+    if(moment.type==='najmocniejsza' && moment.ranking) return _silnikRenderAnimNajmocniejsza(moment, imie);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
@@ -4411,6 +4412,71 @@ function _silnikRenderAnimNajdluzszy(ev, imie){
       $('foot').style.opacity='1'; $('brand').style.opacity='1';
     }, DRAW+200);
     setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimNajdluzszy(ev,imie); }, DRAW+1800);
+  });
+}
+
+// ── ANIMACJA NAJMOCNIEJSZA ŻYCIÓWKA (Slice 8 — ranking AG%, DEBUG-ONLY) ──
+// Kontrakt: moment.type==='najmocniejsza', evidence={dystans:leader, poprzedni}, ag_pct, wiek_uzyty, ranking=[{dist,ag}]desc.
+function _silnikRenderAnimNajmocniejsza(moment, imie){
+  _silnikZamknijAnim();
+  const ranking = moment.ranking || [];
+  if(ranking.length < 2){ console.warn('[silnik-anim] najmocniejsza: <2 dystanse'); return; }
+  const esc = window.escapeHtml || (s=>String(s));
+  const NAZWA = {'5k':'5 KM','10k':'10 KM','half':'Półmaraton','marathon':'Maraton'};
+  const leader = moment.evidence.dystans, poprzedni = moment.evidence.poprzedni;
+  const agLeader = moment.ag_pct, wiek = moment.wiek_uzyty;
+  const maxAg = Math.max.apply(null, ranking.map(r=>r.ag).concat(1)) * 1.1;
+  const MAXH = 190;
+  let peakIdx = ranking.findIndex(r=>r.dist===leader); if(peakIdx<0) peakIdx = 0;
+
+  const o=document.createElement('div'); o.id='silnik-anim-overlay';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;color:#fff;';
+  o.innerHTML=`
+    <button id="silnik-anim-close" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
+    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent,#e8561e);">Najmocniejsza życiówka</div>
+    <div data-el="zmiana" style="opacity:0;transition:opacity .5s .2s;font-family:'DM Sans',sans-serif;font-size:15px;color:#cfc9d6;font-weight:600;margin-top:4px;">${esc(NAZWA[leader]||leader)} wyprzedziło ${esc(NAZWA[poprzedni]||poprzedni||'—')}</div>
+    <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:.86;margin:6px 0 2px;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:34px;color:var(--accent,#e8561e);">%</span></div>
+    <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:12px;height:${MAXH+50}px;margin-top:18px;"></div>
+    <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:12px;color:#8a8693;font-family:'DM Mono',monospace;margin-top:6px;">${wiek!=null?'wg Twojego wieku '+wiek:'wg rekordu świata'}</div>
+    <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
+    <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
+  document.body.appendChild(o);
+  const $ = s => o.querySelector('[data-el="'+s+'"]');
+  o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
+  o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
+
+  const barsWrap=$('bars'); const barEls=[];
+  ranking.forEach(r=>{
+    const peak = r.dist===leader;
+    const col=document.createElement('div'); col.style.cssText='display:flex;flex-direction:column;align-items:center;gap:6px;width:54px;';
+    const h=Math.max(6, Math.round(r.ag/maxAg*MAXH));
+    col.innerHTML=`
+      <div data-kmlabel style="opacity:0;transition:opacity .3s;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;color:${peak?'var(--accent,#e8561e)':'#8a8693'};">${r.ag}%</div>
+      <div data-bar style="width:100%;height:0;border-radius:7px 7px 0 0;background:${peak?'linear-gradient(180deg,var(--accent2,#ff7040),var(--accent,#e8561e))':'rgba(255,255,255,.13)'};${peak?'box-shadow:0 0 26px rgba(var(--accent-rgb,232,86,30),.6);':''}"></div>
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:${peak?'var(--accent2,#ff7040)':'#66636e'};">${esc(NAZWA[r.dist]||r.dist)}</div>`;
+    barsWrap.appendChild(col);
+    barEls.push({el:col.querySelector('[data-bar]'), kmLabel:col.querySelector('[data-kmlabel]'), h});
+  });
+
+  function countUpDec(el, target){ const t0=performance.now(), dur=950;
+    (function step(t){ const p=Math.min(1,(t-t0)/dur); const v=target*(0.5-Math.cos(p*Math.PI)/2);
+      el.firstChild.textContent=(Math.round(v*10)/10).toFixed(1); if(p<1) requestAnimationFrame(step); })(performance.now()); }
+
+  // ── CHOREOGRAFIA: słupki rosną, lider ostatni (odbicie+iskry+flash), big = AG% lidera ──
+  const STEP=300, BAR_DUR=520, PEAK_PAUSE=200, PEAK_DUR=720;
+  requestAnimationFrame(()=>{
+    $('eyebrow').style.opacity='1'; $('eyebrow').style.transform='translateY(0)'; $('zmiana').style.opacity='1';
+    let delay=320;
+    barEls.forEach((b,i)=>{ if(i===peakIdx) return; setTimeout(()=>_silnikFx.growBar(b,BAR_DUR,_silnikFx.easeOutCubic),delay); delay+=STEP; });
+    const peakStart=delay+PEAK_PAUSE;
+    setTimeout(()=>{
+      _silnikFx.growBar(barEls[peakIdx], PEAK_DUR, _silnikFx.easeBack, ()=>{
+        const r=barEls[peakIdx].el.getBoundingClientRect();
+        _silnikFx.burst(r.left+r.width/2, r.top, 16); _silnikFx.flash(o); countUpDec($('big'), agLeader);
+        $('foot').style.opacity='1'; $('brand').style.opacity='1';
+      });
+    }, peakStart);
+    setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimNajmocniejsza(moment,imie); }, peakStart+PEAK_DUR+1300);
   });
 }
 
