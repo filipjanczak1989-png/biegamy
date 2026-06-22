@@ -3732,9 +3732,9 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeModal(); con
 // ── SUPABASE ──────────────────────────────────────────────────────
 let _athleteId = null;
 
-// ── DOSTARCZENIE MOMENTÓW (Silnik Momentu Slice E krok 3) ──
+// ── DOSTARCZENIE MOMENTÓW (Silnik Momentu Slice E) ──
 // Baner przy bellu → klik → animacja z puentą trenera → shown_at. RLS dm_ath_sel tnie do własnych approved.
-// ⚠️ Krok 3: filtr type='najdluzszy' (puenta wpięta tylko tam). Inne approved czekają (shown_at null) do Kroku 4 — NIE giną.
+// Krok 4: wszystkie typy mają puentę → filtr type zdjęty, dostarczamy każdy typ (kolejka najstarszy-pierwszy, dispatch po typie).
 window.loadMomenty = async function(athleteId, imie){
   const baner = document.getElementById('moment-baner');
   if (!baner) return;
@@ -3742,7 +3742,6 @@ window.loadMomenty = async function(athleteId, imie){
     const { data, error } = await sb.from('delivered_moments')
       .select('id,type,evidence,payload,edited_text')
       .eq('status','approved').is('shown_at', null)
-      .eq('type','najdluzszy')
       .order('created_at', { ascending: true });
     if (error) { console.error('[Momenty] load:', error); baner.style.display='none'; return; }
     const lista = data || [];
