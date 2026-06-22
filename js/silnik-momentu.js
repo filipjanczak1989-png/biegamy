@@ -319,6 +319,63 @@
     };
   }
 
+  // ── AGE-GRADING WMA 2025 (Alan Jones, zatw. USATF; F→K) — dane ze źródła, zweryfikowane vs recon ──
+  // AG% = AG_OPEN[g][dist] / (czas_sek * factor) * 100 ; factor=AG_FACTOR[g][dist][wiek-BASE], 1.0 dla open/braku wieku.
+  var AG_OPEN = { M:{ '5k':769,'10k':1584,'half':3451,'marathon':7235 }, K:{ '5k':834,'10k':1726,'half':3772,'marathon':7796 } };
+  var AG_FACTOR_BASE = 5;   // wiek startowy tablic factor[age-BASE]; 2025 WMA (Alan Jones), F=K
+  var AG_F_M = { '5k':[0.608,0.6664,0.72,0.7688,0.8128,0.852,0.8864,0.916,0.9408,0.9608,0.976,0.9864,0.9944,0.9995,1,1,1,1,1,1,1,1,1,1,1,0.9999,0.9988,0.9965,0.993,0.9883,0.9824,0.9755,0.9685,0.9615,0.9545,0.9475,0.9405,0.9335,0.9265,0.9195,0.9125,0.9055,0.8985,0.8915,0.8845,0.8775,0.8705,0.8635,0.8565,0.8495,0.8425,0.8355,0.8285,0.8215,0.8145,0.8075,0.8005,0.7935,0.7865,0.7795,0.7725,0.7655,0.7585,0.7514,0.7436,0.7353,0.7264,0.7169,0.7068,0.696,0.6847,0.6728,0.6603,0.6472,0.6334,0.6191,0.6042,0.5887,0.5726,0.5558,0.5385,0.5206,0.5021,0.483,0.4632,0.4429,0.422,0.4005,0.3784,0.3556,0.3323,0.3084,0.2839,0.2588,0.233], '10k':[0.5073,0.5678,0.6243,0.6768,0.7253,0.7698,0.8103,0.8468,0.8793,0.9078,0.9323,0.9528,0.9693,0.9818,0.9903,0.9968,1,1,1,1,1,1,1,1,1,1,0.9996,0.9985,0.9967,0.9942,0.9909,0.9869,0.9822,0.9767,0.9705,0.9636,0.9561,0.9486,0.9411,0.9336,0.9261,0.9186,0.9111,0.9036,0.8961,0.8886,0.8811,0.8736,0.8661,0.8586,0.8511,0.8436,0.8361,0.8286,0.8211,0.8136,0.8061,0.7986,0.7911,0.7836,0.7761,0.7686,0.7611,0.7536,0.7461,0.7386,0.7308,0.7223,0.7131,0.7033,0.6928,0.6816,0.6697,0.6572,0.644,0.6301,0.6156,0.6004,0.5845,0.568,0.5508,0.5329,0.5143,0.4951,0.4752,0.4546,0.4334,0.4115,0.3889,0.3657,0.3418,0.3172,0.2919,0.266,0.2394], 'half':[0.4621,0.5364,0.605,0.6678,0.7248,0.7762,0.8218,0.8616,0.8957,0.9241,0.9467,0.9636,0.975,0.985,0.995,1,1,1,1,1,1,1,1,1,1,1,1,0.9996,0.9982,0.996,0.9928,0.9888,0.9839,0.9781,0.9714,0.9638,0.956,0.9483,0.9405,0.9327,0.9249,0.9171,0.9094,0.9016,0.8938,0.886,0.8782,0.8705,0.8627,0.8549,0.8471,0.8393,0.8316,0.8238,0.816,0.8082,0.8004,0.7927,0.7849,0.7771,0.7693,0.7615,0.7538,0.746,0.7382,0.7304,0.7223,0.7135,0.704,0.6938,0.683,0.6715,0.6593,0.6464,0.6328,0.6185,0.6036,0.588,0.5717,0.5547,0.537,0.5186,0.4996,0.4799,0.4595,0.4384,0.4167,0.3942,0.3711,0.3473,0.3228,0.2976,0.2718,0.2452,0.218], 'marathon':[0.4414,0.508,0.5702,0.6279,0.6812,0.7301,0.7745,0.8145,0.85,0.8811,0.9078,0.93,0.95,0.968,0.982,0.992,0.998,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.9999,0.9979,0.9934,0.9865,0.9783,0.9701,0.9619,0.9537,0.9455,0.9373,0.9291,0.9209,0.9127,0.9045,0.8963,0.8881,0.8799,0.8717,0.8635,0.8553,0.8471,0.8389,0.8307,0.8225,0.8143,0.8061,0.7979,0.7897,0.7815,0.7733,0.7651,0.7569,0.7487,0.7405,0.7323,0.7241,0.7155,0.7063,0.6963,0.6857,0.6743,0.6623,0.6495,0.6361,0.6219,0.6071,0.5915,0.5753,0.5583,0.5407,0.5223,0.5033,0.4835,0.4631,0.4419,0.4201,0.3975,0.3743,0.3503,0.3257,0.3003,0.2743,0.2475,0.2201] };
+  var AG_F_K = { '5k':[0.6903,0.7222,0.7527,0.7816,0.8091,0.8351,0.8596,0.8827,0.9042,0.9243,0.9433,0.9622,0.9811,0.9953,1,1,1,1,1,1,1,1,0.9997,0.999,0.9977,0.9959,0.9936,0.9908,0.9875,0.9836,0.9793,0.9744,0.9691,0.9632,0.9568,0.9499,0.9425,0.9346,0.9262,0.9172,0.9078,0.898,0.8883,0.8786,0.8689,0.8592,0.8495,0.8398,0.8301,0.8204,0.8107,0.8009,0.7912,0.7815,0.7718,0.7621,0.7524,0.7427,0.733,0.7233,0.7136,0.7038,0.6941,0.6844,0.6747,0.665,0.6553,0.6456,0.6359,0.6262,0.6165,0.6067,0.597,0.5868,0.5758,0.564,0.5515,0.5382,0.5242,0.5094,0.4938,0.4775,0.4604,0.4426,0.424,0.4046,0.3845,0.3636,0.3419,0.3195,0.2964,0.2725,0.2478,0.2223,0.1961], '10k':[0.685,0.7183,0.7498,0.7794,0.8072,0.8333,0.8574,0.8798,0.9004,0.9191,0.936,0.952,0.968,0.982,0.992,0.998,1,1,1,1,1,1,1,0.9998,0.9991,0.998,0.9964,0.9944,0.992,0.9891,0.9857,0.9819,0.9777,0.973,0.9679,0.9623,0.9563,0.9499,0.9429,0.9356,0.9278,0.9195,0.9109,0.9017,0.8921,0.8822,0.8723,0.8623,0.8524,0.8425,0.8325,0.8226,0.8126,0.8027,0.7928,0.7828,0.7729,0.7629,0.753,0.7431,0.7331,0.7232,0.7132,0.7033,0.6934,0.6834,0.6735,0.6635,0.6536,0.6437,0.6337,0.6234,0.6123,0.6005,0.5879,0.5745,0.5604,0.5455,0.5299,0.5135,0.4963,0.4784,0.4597,0.4403,0.4201,0.3991,0.3774,0.3549,0.3317,0.3077,0.2829,0.2574,0.2311,0.2041,0.1763], 'half':[0.608,0.6474,0.6847,0.72,0.7533,0.7845,0.8137,0.8408,0.8659,0.889,0.91,0.93,0.95,0.968,0.982,0.992,0.998,1,1,1,1,1,1,0.9998,0.9991,0.9979,0.9962,0.9941,0.9915,0.9884,0.9849,0.9809,0.9764,0.9714,0.966,0.9601,0.9537,0.9468,0.9395,0.9317,0.9234,0.9147,0.9055,0.8958,0.8856,0.8753,0.8649,0.8546,0.8442,0.8339,0.8235,0.8132,0.8028,0.7925,0.7821,0.7718,0.7614,0.7511,0.7407,0.7304,0.72,0.7097,0.6993,0.689,0.6786,0.6683,0.6579,0.6476,0.6372,0.6269,0.6165,0.6059,0.5945,0.5822,0.5692,0.5554,0.5407,0.5253,0.5091,0.4921,0.4742,0.4556,0.4362,0.4159,0.3949,0.3731,0.3504,0.327,0.3028,0.2778,0.2519,0.2253,0.1979,0.1696,0.1406], 'marathon':[0.5405,0.5874,0.6311,0.6718,0.7093,0.7438,0.7751,0.8034,0.8285,0.8506,0.8695,0.8869,0.9043,0.9217,0.9391,0.9553,0.9689,0.9801,0.9888,0.995,0.9988,1,1,0.9998,0.9992,0.9983,0.997,0.9953,0.9932,0.9907,0.9879,0.9847,0.9811,0.9771,0.9727,0.968,0.9629,0.9574,0.9515,0.9453,0.9386,0.9316,0.9242,0.9165,0.9083,0.8998,0.8909,0.8816,0.872,0.8619,0.8515,0.8407,0.8297,0.8186,0.8076,0.7965,0.7854,0.7744,0.7633,0.7523,0.7412,0.7301,0.7191,0.708,0.697,0.6859,0.6748,0.6638,0.6527,0.6413,0.629,0.6159,0.6021,0.5874,0.572,0.5557,0.5386,0.5208,0.5021,0.4827,0.4624,0.4413,0.4195,0.3968,0.3734,0.3491,0.324,0.2982,0.2715,0.2441,0.2158,0.1867,0.1569,0.1262,0.0948] };
+  var AG_FACTOR = { M:AG_F_M, K:AG_F_K };
+
+  function agFactor(g, dist, wiek) {                   // czynnik wieku (1.0 = open / brak wieku / poza tabelą)
+    if (wiek == null) return 1;
+    var tab = AG_FACTOR[g] && AG_FACTOR[g][dist];
+    if (!tab) return 1;
+    var i = Math.round(wiek) - AG_FACTOR_BASE;
+    if (i < 0) i = 0; if (i >= tab.length) i = tab.length - 1;
+    return tab[i] > 0 ? tab[i] : 1;
+  }
+
+  // ranking życiówek wg AG% (desc) — tylko dystanse z ważnym PB (sek) i standardem dla danej płci
+  function _agRanking(snap) {
+    var g = snap.gender, pbs = snap.pbs || {}, wiek = (snap.wiek != null ? snap.wiek : null);
+    if (!g || !AG_OPEN[g]) return [];
+    var dyst = ['5k', '10k', 'half', 'marathon'], out = [];
+    for (var i = 0; i < dyst.length; i++) {
+      var d = dyst[i], std = AG_OPEN[g][d], pb = pbs[d];
+      if (!std || !(pb > 0)) continue;
+      var ag = std / (pb * agFactor(g, d, wiek)) * 100;
+      out.push({ dist: d, ag: Math.round(ag * 100) / 100 });   // 2 miejsca — wierność vs recon (73.45)
+    }
+    out.sort(function (a, b) { return b.ag - a.ag; });
+    return out;
+  }
+
+  // aktualny lider (najmocniejsza życiówka) — do PERSYSTENCJI przez callera (KM6). null gdy <2 PB / brak płci.
+  function _najmocniejszaLider(snap) {
+    var r = _agRanking(snap);
+    return r.length >= 2 ? r[0].dist : null;
+  }
+
+  // NAJMOCNIEJSZA ŻYCIÓWKA: pada TYLKO gdy lider AG% ZMIENIŁ się vs snap.ostatni_lider (persistowany).
+  // pierwszy znany lider (ostatni_lider=null) → CISZA (baseline; nie ogłaszamy). INERT bez persystencji (KM6).
+  function detectNajmocniejszaZyciowka(snap) {
+    if (!snap.gender) return null;                     // płeć wymagana
+    var r = _agRanking(snap);
+    if (r.length < 2) return null;                     // ≥2 PB (inaczej brak porównania)
+    var leader = r[0].dist, prev = snap.ostatni_lider || null;
+    if (!prev) return null;                            // pierwszy lider → cisza (caller zapisze baseline)
+    if (prev === leader) return null;                  // bez zmiany lidera
+    return {
+      type: 'najmocniejsza',
+      evidence: { dystans: leader, poprzedni: prev },  // tożsamość = zmiana prev→leader
+      ag_pct: r[0].ag,                                 // POZA evidence (zmienia się z PB)
+      wiek_uzyty: (snap.wiek != null ? snap.wiek : null),
+      ranking: r,                                      // POZA evidence (animacja: % między dystansami)
+      confidence: clamp01(r[0].ag / 100),
+    };
+  }
+
   // ── §3 rozstrzyganie + WARSTWA STANU ─────────────────────────────────────────
   // Gdy >1 detektor odpali, wybór = scoring łączący 3 reguły w jeden porównywalny wynik:
   //   1. PRIORYTET: PB > wolumen > streak  (baza)
@@ -346,7 +403,7 @@
   //
   // Wagi (strojenie): NOVELTY (count 0) = pełny bonus rzadkości; kara powtórzenia
   //   dobrana tak, by przy RÓWNEJ rzadkości przełączyć typ, ale go nie zerować.
-  var PRIORITY_SCORE = { pb: 3, najdluzszy: 2.7, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // najdluzszy=rekord życiowy tuż pod PB; dystans=geo; top5 pod wolumenem; streak najniżej
+  var PRIORITY_SCORE = { pb: 3, najmocniejsza: 2.8, najdluzszy: 2.7, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // najmocniejsza=zmiana lidera AG% tuż pod PB; najdluzszy/dystans/top5/streak niżej
   var RARITY_W = 2.5;       // bonus rzadkości = RARITY_W / (ile_razy_dostarczony + 1)  → count0=2.5 (nowość)
   var REPEAT_PENALTY = 1.5; // miękka kara, gdy typ == ostatnio dostarczony
 
@@ -402,9 +459,10 @@
   function detect(snapshot) {
     if (!snapshot || !snapshot.newLog) return null;
     var historia = snapshot.historia || [];
-    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot), detectNajdluzszyBieg(snapshot)].filter(Boolean);
+    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot), detectNajdluzszyBieg(snapshot), detectNajmocniejszaZyciowka(snapshot)].filter(Boolean);
     // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
-    candidates = candidates.filter(function (c) { return !alreadyDelivered(historia, c); });
+    // najmocniejsza ma WŁASNĄ logikę zmiany-lidera (prev vs leader) → wyłączona z generycznego value-dedup
+    candidates = candidates.filter(function (c) { return c.type === 'najmocniejsza' ? true : !alreadyDelivered(historia, c); });
     if (!candidates.length) return null; // CISZA — nic NOWEGO ponad próg
     return resolve(candidates, historia);
   }
@@ -418,6 +476,10 @@
     _detectDystans: detectDystans,
     _detectTop5Tygodni: detectTop5Tygodni,
     _detectNajdluzszyBieg: detectNajdluzszyBieg,
+    _detectNajmocniejszaZyciowka: detectNajmocniejszaZyciowka,
+    _najmocniejszaLider: _najmocniejszaLider,
+    _agRanking: _agRanking,
+    _agFactor: agFactor,
     _normalizeCity: _normalizeCity,
     _startPoint: _startPoint,
     _dystansCele: DYSTANS_CELE,
@@ -774,6 +836,52 @@
       var hh = recordDelivered([], mr);
       check('najdłuższy dedup: ten sam rekord → null', detect(najdlSnap(16, [14, 12], null, true, hh)) === null, true);
       check('najdłuższy: nowy dłuższy (18) → fires', detect(najdlSnap(18, [16, 14], null, true, hh)) && detect(najdlSnap(18, [16, 14], null, true, hh)).evidence.dystans === 18, true);
+    })();
+
+    // ── NAJMOCNIEJSZA ŻYCIÓWKA (age-grading WMA, zmiana lidera) ─────────────────
+    (function () {
+      function snap(over) { return Object.assign({ today: TODAY, pbs: {}, newLog: { logged_at: dateInWeek(0), distance_km: 5, duration_s: 1500 }, logs: [] }, over); }
+      var SM = SilnikMomentu;
+      var base = { gender: 'M', pbs: { '5k': 1047, '10k': 2400 }, wiek: 50 };  // 5k 17:27, 10k 40:00
+
+      // [e] WERYFIKACJA AG% vs recon (KLUCZOWE — dowód że tabele = prawdziwe liczby źródłowe)
+      var rW = SM._agRanking(snap(base));
+      console.log('[najm e] AG ranking M wiek50:', JSON.stringify(rW));
+      check('AG: M 5k 17:27 wiek50 = 83.7 (recon)', rW[0].dist === '5k' && rW[0].ag === 83.7, rW);
+      var rO = SM._agRanking(snap(Object.assign({}, base, { wiek: null })));
+      check('AG: M 5k 17:27 open = 73.45 (recon)', rO[0].ag === 73.45, rO);
+
+      // [g] ranking desc (lider = max AG%)
+      check('AG ranking desc, lider 5k > 10k', rW.length === 2 && rW[0].ag >= rW[1].ag && rW[0].dist === '5k', rW);
+
+      // [f] M vs K różne standardy → różne AG% (ten sam 5k 17:27, open)
+      var agK = SM._agRanking(snap({ gender: 'K', pbs: { '5k': 1047, '10k': 2400 }, wiek: null }))[0].ag;
+      check('AG: K 5k 17:27 open ≠ M (std K834 vs M769)', Math.abs(agK - rO[0].ag) > 1 && Math.abs(agK - 834 / 1047 * 100) < 0.01, agK);
+
+      // [a] pierwszy lider (ostatni_lider=null) → CISZA (nie ogłaszamy bazowego)
+      check('najm [a] baseline (ostatni_lider=null) → null', detect(snap(base)) === null, detect(snap(base)));
+
+      // [b] zmiana lidera: ostatni=10k, obecny=5k → MOMENT
+      var mb = detect(snap(Object.assign({}, base, { ostatni_lider: '10k' })));
+      console.log('[najm b] zmiana 10k→5k:', JSON.stringify(mb && { t: mb.type, ev: mb.evidence, ag: mb.ag_pct }));
+      check('najm [b] zmiana lidera → moment', mb && mb.type === 'najmocniejsza' && mb.evidence.dystans === '5k' && mb.evidence.poprzedni === '10k', mb);
+      check('najm [b] ag_pct=83.7, ranking POZA evidence', mb && mb.ag_pct === 83.7 && mb.evidence.ag_pct === undefined && mb.ranking.length === 2, mb);
+
+      // [c] bez zmiany: ostatni=5k, obecny=5k → null
+      check('najm [c] bez zmiany lidera → null', detect(snap(Object.assign({}, base, { ostatni_lider: '5k' }))) === null, true);
+
+      // [d] <2 PB → null ; brak gender → null
+      check('najm [d] <2 PB → null', detect(snap({ gender: 'M', pbs: { '5k': 1047 }, ostatni_lider: '10k' })) === null, true);
+      check('najm [d] brak gender → null', detect(snap({ gender: null, pbs: { '5k': 1047, '10k': 2400 }, ostatni_lider: '10k' })) === null, true);
+
+      // [h] WYŁĄCZENIE z generycznego dedupu: ten sam lider był w historii, ale zmiana vs ostatni_lider → pada
+      var h = [{ type: 'najmocniejsza', evidence: { dystans: '5k', poprzedni: 'marathon' } }];
+      var mh = detect(snap(Object.assign({}, base, { ostatni_lider: '10k', historia: h })));
+      check('najm [h] exempt z value-dedup (5k w historii) → i tak pada (zmiana)', mh && mh.type === 'najmocniejsza' && mh.evidence.dystans === '5k', mh);
+
+      // helper lidera do persystencji
+      check('najm: _najmocniejszaLider = 5k', SM._najmocniejszaLider(snap(base)) === '5k', SM._najmocniejszaLider(snap(base)));
+      check('najm: _najmocniejszaLider <2PB = null', SM._najmocniejszaLider(snap({ gender: 'M', pbs: { '5k': 1047 } })) === null, true);
     })();
 
     console.log('\n' + (fail === 0 ? '✅ PASS' : '❌ FAIL') + '  (' + pass + ' ok, ' + fail + ' fail)');
