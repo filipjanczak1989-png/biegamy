@@ -44,6 +44,36 @@
     { key: 'marathon', km: 42.195,  tol: 1.5 },
   ];
 
+  // DYSTANS-SKALA: narastająca suma WSZYSTKICH biegowych km vs miasta geograficzne.
+  // prog = próg detekcji (kumulatywny, ROSNĄCY); km = realny dystans Środa→miasto (haversine, do labela).
+  // Zachód (W): prog == km (linia prosta ze Środy). Po Londynie trasa ZAWRACA na wschód (E):
+  // prog = 1195 (Londyn) + haversine(Środa→miasto) → ciąg dalej rośnie (trasa nieskończona, ultra).
+  var DYSTANS_START = 'Środa Wlkp';
+  var DYSTANS_CELE = [
+    { miasto: 'Poznań',        prog: 31,   km: 31,   kierunek: 'W', lat: 52.4064, lon: 16.9252 },
+    { miasto: 'Zielona Góra',  prog: 126,  km: 126,  kierunek: 'W', lat: 51.9356, lon: 15.5062 },
+    { miasto: 'Berlin',        prog: 265,  km: 265,  kierunek: 'W', lat: 52.5200, lon: 13.4050 },
+    { miasto: 'Drezno',        prog: 277,  km: 277,  kierunek: 'W', lat: 51.0504, lon: 13.7373 },
+    { miasto: 'Praga',         prog: 311,  km: 311,  kierunek: 'W', lat: 50.0755, lon: 14.4378 },
+    { miasto: 'Lipsk',         prog: 352,  km: 352,  kierunek: 'W', lat: 51.3397, lon: 12.3731 },
+    { miasto: 'Norymberga',    prog: 534,  km: 534,  kierunek: 'W', lat: 49.4521, lon: 11.0767 },
+    { miasto: 'Frankfurt n.M.',prog: 644,  km: 644,  kierunek: 'W', lat: 50.1109, lon: 8.6821  },
+    { miasto: 'Strasburg',     prog: 787,  km: 787,  kierunek: 'W', lat: 48.5734, lon: 7.7521  },
+    { miasto: 'Amsterdam',     prog: 841,  km: 841,  kierunek: 'W', lat: 52.3676, lon: 4.9041  },
+    { miasto: 'Paryż',         prog: 1117, km: 1117, kierunek: 'W', lat: 48.8566, lon: 2.3522  },
+    { miasto: 'Londyn',        prog: 1195, km: 1195, kierunek: 'W', lat: 51.5074, lon: -0.1278 },
+    { miasto: 'Warszawa',      prog: 1449, km: 254,  kierunek: 'E', lat: 52.2297, lon: 21.0122 },
+    { miasto: 'Białystok',     prog: 1604, km: 409,  kierunek: 'E', lat: 53.1325, lon: 23.1688 },
+    { miasto: 'Wilno',         prog: 1791, km: 596,  kierunek: 'E', lat: 54.6872, lon: 25.2797 },
+    { miasto: 'Mińsk',         prog: 1906, km: 711,  kierunek: 'E', lat: 53.9006, lon: 27.5590 },
+    { miasto: 'Kijów',         prog: 2135, km: 940,  kierunek: 'E', lat: 50.4501, lon: 30.5234 },
+    { miasto: 'Moskwa',        prog: 2575, km: 1380, kierunek: 'E', lat: 55.7558, lon: 37.6173 },
+    { miasto: 'Kazań',         prog: 3290, km: 2095, kierunek: 'E', lat: 55.8304, lon: 49.0661 },
+    { miasto: 'Jekaterynburg', prog: 3988, km: 2793, kierunek: 'E', lat: 56.8389, lon: 60.6057 },
+    { miasto: 'Omsk',          prog: 4805, km: 3610, kierunek: 'E', lat: 54.9885, lon: 73.3242 },
+    { miasto: 'Nowosybirsk',   prog: 5375, km: 4180, kierunek: 'E', lat: 55.0084, lon: 82.9357 },
+  ];
+
   // ── helpery dat (czyste, bez stref czasowych) ──────────────────────────────
   function ymd(s) { return String(s).slice(0, 10); }
   function dayIndex(s) {
@@ -158,6 +188,27 @@
     };
   }
 
+  // DYSTANS-SKALA: suma WSZYSTKICH biegowych km (snap.suma_calkowita_km) przekroczyła próg miasta?
+  // Zwraca NAJDALSZE osiągnięte miasto. Dedup (po mieście — evidence stałe) → każde miasto raz.
+  function detectDystans(snap) {
+    var suma = snap.suma_calkowita_km;
+    if (suma == null || !(suma > 0)) return null;
+    var reached = null, prev = null;
+    for (var i = 0; i < DYSTANS_CELE.length; i++) {
+      if (suma >= DYSTANS_CELE[i].prog) { prev = reached; reached = DYSTANS_CELE[i]; }
+      else break;
+    }
+    if (!reached) return null;                    // jeszcze nie dobiegł do najbliższego miasta
+    return {
+      type: 'dystans',
+      // evidence = TOŻSAMOŚĆ miasta (stała) → dedup po mieście. żywa suma_km POZA evidence (inaczej re-odpala codziennie).
+      evidence: { miasto: reached.miasto, dystans_miasta: reached.km, kierunek: reached.kierunek,
+                  poprzednie_miasto: prev ? prev.miasto : DYSTANS_START, start: DYSTANS_START },
+      suma_km: Math.round(suma * 10) / 10,
+      confidence: 1,
+    };
+  }
+
   // ── §3 rozstrzyganie + WARSTWA STANU ─────────────────────────────────────────
   // Gdy >1 detektor odpali, wybór = scoring łączący 3 reguły w jeden porównywalny wynik:
   //   1. PRIORYTET: PB > wolumen > streak  (baza)
@@ -185,7 +236,7 @@
   //
   // Wagi (strojenie): NOVELTY (count 0) = pełny bonus rzadkości; kara powtórzenia
   //   dobrana tak, by przy RÓWNEJ rzadkości przełączyć typ, ale go nie zerować.
-  var PRIORITY_SCORE = { pb: 3, wolumen: 2, streak: 1 };
+  var PRIORITY_SCORE = { pb: 3, dystans: 2.5, wolumen: 2, streak: 1 }; // dystans = rzadki geo-kamień, nad wolumenem
   var RARITY_W = 2.5;       // bonus rzadkości = RARITY_W / (ile_razy_dostarczony + 1)  → count0=2.5 (nowość)
   var REPEAT_PENALTY = 1.5; // miękka kara, gdy typ == ostatnio dostarczony
 
@@ -241,7 +292,7 @@
   function detect(snapshot) {
     if (!snapshot || !snapshot.newLog) return null;
     var historia = snapshot.historia || [];
-    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot)].filter(Boolean);
+    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot)].filter(Boolean);
     // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
     candidates = candidates.filter(function (c) { return !alreadyDelivered(historia, c); });
     if (!candidates.length) return null; // CISZA — nic NOWEGO ponad próg
@@ -470,6 +521,30 @@
       }
       console.log('[13] streak-4 przez 4 "dni" → ogłoszony ' + fires + '×');
       check('dedup: spam codzienny → 1 ogłoszenie', fires === 1, fires);
+    })();
+
+    // ── DYSTANS-SKALA (suma całkowita vs miasta) ────────────────────────────────
+    (function () {
+      var base = { today: TODAY, pbs: {}, newLog: { logged_at: dateInWeek(0), distance_km: 5, duration_s: 1500 }, logs: [] };
+      var pod = Object.assign({}, base, { suma_calkowita_km: 20 });        // <31 (Poznań)
+      console.log('[14] dystans <próg →', JSON.stringify(detect(pod)));
+      check('dystans poniżej najbliższego miasta → null', detect(pod) === null, detect(pod));
+
+      var drez = Object.assign({}, base, { suma_calkowita_km: 300 });      // >Drezno277, <Praga311
+      var md = detect(drez);
+      console.log('[15] dystans 300km →', JSON.stringify(md));
+      check('dystans 300km → Drezno', md && md.type === 'dystans' && md.evidence.miasto === 'Drezno', md);
+      check('dystans: suma_km POZA evidence', md && md.suma_km === 300 && md.evidence.suma_km === undefined, md);
+
+      var h = recordDelivered([], md);                                     // Drezno dostarczone
+      console.log('[16] dystans Drezno dostarczone →', JSON.stringify(detect(Object.assign({}, drez, { historia: h }))));
+      check('dystans dedup: to samo miasto → null', detect(Object.assign({}, drez, { historia: h })) === null, true);
+
+      var mosk = Object.assign({}, base, { suma_calkowita_km: 1500, historia: h }); // >Warszawa1449 (wschód!)
+      var mw = detect(mosk);
+      console.log('[17] dystans 1500km (po Londynie, wschód) →', JSON.stringify(mw));
+      check('dystans 1500km → Warszawa (E)', mw && mw.evidence.miasto === 'Warszawa' && mw.evidence.kierunek === 'E', mw);
+      check('dystans Warszawa: km prosta=254 (nie próg)', mw && mw.evidence.dystans_miasta === 254, mw);
     })();
 
     console.log('\n' + (fail === 0 ? '✅ PASS' : '❌ FAIL') + '  (' + pass + ' ok, ' + fail + ' fail)');
