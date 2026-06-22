@@ -247,6 +247,50 @@
     };
   }
 
+  // TOP 5 TYGODNI: bieżący tydzień (tydzień newLog) wszedł do top 5 najmocniejszych w CAŁEJ historii?
+  // ALL-TIME (NIE roczne) → tożsamość = weekKey (globalnie unikalny), BEZ rok w evidence (vs dystans, który JEST roczny).
+  // Liczone TYLKO z tygodni Z BIEGANIEM (km>0): zerowe tygodnie nie liczą ani do rankingu, ani do progu MIN.
+  var TOP5_MIN_TYGODNI = 12;   // ≥12 tygodni z bieganiem zanim "top 5" ma sens
+  function detectTop5Tygodni(snap) {
+    var logs = snap.logs_all || [];
+    var weekly = {};                                   // sumy km per tydzień — tylko km>0
+    for (var i = 0; i < logs.length; i++) {
+      var lg = logs[i];
+      if (!lg || !lg.logged_at) continue;
+      var km = num(lg.distance_km);
+      if (km <= 0) continue;                            // zerowe/bezdystansowe pomijamy
+      var k = weekKey(lg.logged_at);
+      weekly[k] = (weekly[k] || 0) + km;
+    }
+    var klucze = [];
+    for (var key in weekly) if (weekly.hasOwnProperty(key)) klucze.push(key);
+    if (klucze.length < TOP5_MIN_TYGODNI) return null;  // za mało tygodni z bieganiem
+
+    if (!snap.newLog || !snap.newLog.logged_at) return null;
+    var curWeek = weekKey(snap.newLog.logged_at);
+    var curKm = weekly[curWeek] || 0;
+    if (!(curKm > 0)) return null;                      // newLog w tygodniu bez biegania
+
+    var rank = 1;                                       // 1 + liczba tygodni ŚCIŚLE mocniejszych (tie nie spycha)
+    for (var j = 0; j < klucze.length; j++) if (weekly[klucze[j]] > curKm) rank++;
+    if (rank === 1) return null;                        // all-time max → robota A (detectVolume)
+    if (rank > 5) return null;
+
+    var ranking = klucze.map(function (kk) { return { wk: +kk, km: weekly[kk] }; })
+      .sort(function (a, b) { return (b.km - a.km) || (a.wk === curWeek ? -1 : b.wk === curWeek ? 1 : 0); }) // tie → bieżący wyżej
+      .slice(0, 5)
+      .map(function (e) { return { label: weekLabel(e.wk), km: Math.round(e.km * 100) / 100, current: e.wk === curWeek }; });
+
+    return {
+      type: 'top5',
+      evidence: { tydzien: curWeek, label: weekLabel(curWeek) }, // tożsamość = weekKey (all-time unikalny), BEZ rok
+      pozycja: rank,                                    // POZA evidence (zmienna — wspinaczka nie re-odpala)
+      km: Math.round(curKm * 100) / 100,                // POZA evidence
+      ranking: ranking,                                 // POZA evidence (do animacji)
+      confidence: 1,
+    };
+  }
+
   // ── §3 rozstrzyganie + WARSTWA STANU ─────────────────────────────────────────
   // Gdy >1 detektor odpali, wybór = scoring łączący 3 reguły w jeden porównywalny wynik:
   //   1. PRIORYTET: PB > wolumen > streak  (baza)
@@ -274,7 +318,7 @@
   //
   // Wagi (strojenie): NOVELTY (count 0) = pełny bonus rzadkości; kara powtórzenia
   //   dobrana tak, by przy RÓWNEJ rzadkości przełączyć typ, ale go nie zerować.
-  var PRIORITY_SCORE = { pb: 3, dystans: 2.5, wolumen: 2, streak: 1 }; // dystans = rzadki geo-kamień, nad wolumenem
+  var PRIORITY_SCORE = { pb: 3, dystans: 2.5, wolumen: 2, top5: 1.5, streak: 1 }; // dystans=geo-kamień; top5 pod wolumenem (rekord>wejście), nad streakiem
   var RARITY_W = 2.5;       // bonus rzadkości = RARITY_W / (ile_razy_dostarczony + 1)  → count0=2.5 (nowość)
   var REPEAT_PENALTY = 1.5; // miękka kara, gdy typ == ostatnio dostarczony
 
@@ -330,7 +374,7 @@
   function detect(snapshot) {
     if (!snapshot || !snapshot.newLog) return null;
     var historia = snapshot.historia || [];
-    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot)].filter(Boolean);
+    var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot)].filter(Boolean);
     // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
     candidates = candidates.filter(function (c) { return !alreadyDelivered(historia, c); });
     if (!candidates.length) return null; // CISZA — nic NOWEGO ponad próg
@@ -344,6 +388,7 @@
     _detectVolume: detectVolume,
     _detectStreak: detectStreak,
     _detectDystans: detectDystans,
+    _detectTop5Tygodni: detectTop5Tygodni,
     _normalizeCity: _normalizeCity,
     _startPoint: _startPoint,
     _dystansCele: DYSTANS_CELE,
@@ -356,7 +401,7 @@
     _lastDelivered: lastDelivered,
     _countDelivered: countDelivered,
     _weekKey: weekKey,
-    _thresholds: { PB_MIN_PCT: PB_MIN_PCT, PB_MIN_SEC: PB_MIN_SEC, VOL_MIN_WINDOWS: VOL_MIN_WINDOWS, STREAK_MIN: STREAK_MIN },
+    _thresholds: { PB_MIN_PCT: PB_MIN_PCT, PB_MIN_SEC: PB_MIN_SEC, VOL_MIN_WINDOWS: VOL_MIN_WINDOWS, STREAK_MIN: STREAK_MIN, TOP5_MIN_TYGODNI: TOP5_MIN_TYGODNI },
     _weights: { PRIORITY_SCORE: PRIORITY_SCORE, RARITY_W: RARITY_W, REPEAT_PENALTY: REPEAT_PENALTY },
   };
 
@@ -607,6 +652,54 @@
       check('normalizeCity: ŚRODA WIELKOPOLSKA → Środa Wielkopolska', SilnikMomentu._normalizeCity('ŚRODA WIELKOPOLSKA') === 'Środa Wielkopolska', SilnikMomentu._normalizeCity('ŚRODA WIELKOPOLSKA'));
       check('normalizeCity: biała-podlaska → Biała-Podlaska', SilnikMomentu._normalizeCity('biała-podlaska') === 'Biała-Podlaska', SilnikMomentu._normalizeCity('biała-podlaska'));
       check('normalizeCity: pusty → null', SilnikMomentu._normalizeCity('   ') === null, SilnikMomentu._normalizeCity('   '));
+    })();
+
+    // ── TOP 5 TYGODNI (all-time ranking, próg z tygodni z bieganiem) ────────────
+    (function () {
+      // snap z logs_all: 1 log/tydzień; curKm = tydzień 0; pastKms = tygodnie 1..n; zeros = tygodnie 0-km
+      function top5Snap(curKm, pastKms, zeros, historia) {
+        var logs = [];
+        if (curKm > 0) logs.push({ logged_at: dateInWeek(0), distance_km: curKm, duration_s: 3600 });
+        pastKms.forEach(function (km, i) { logs.push({ logged_at: dateInWeek(i + 1), distance_km: km, duration_s: 3600 }); });
+        (zeros || []).forEach(function (w) { logs.push({ logged_at: dateInWeek(w), distance_km: 0, duration_s: 3600 }); });
+        return { today: TODAY, pbs: {}, newLog: { logged_at: dateInWeek(0), distance_km: curKm, duration_s: 3600 },
+                 logs: [], logs_all: logs, historia: historia || [] };
+      }
+      function small(n, start) { var a = []; for (var i = 0; i < n; i++) a.push((start || 30) - i); return a; } // malejące <40
+
+      // [18] <12 tygodni z bieganiem → null (10 past + current = 11)
+      check('top5 <12 tyg → null', detect(top5Snap(20, small(10))) === null, detect(top5Snap(20, small(10))));
+
+      // [19] rank 1 (all-time max) → null (robota A)
+      var t1 = top5Snap(100, small(12));   // 12 past <40 + current 100 = max
+      check('top5 rank1 (max) → null (A)', detect(t1) === null, detect(t1));
+
+      // [20] rank 3 → moment B (2 tygodnie mocniejsze: 60,55)
+      var t3 = top5Snap(50, [60, 55].concat(small(11)));   // 13 past + current = 14 distinct
+      var m3 = detect(t3);
+      console.log('[20] top5 rank3 →', JSON.stringify(m3 && { type: m3.type, pozycja: m3.pozycja, km: m3.km, tydzien: m3.evidence.tydzien }));
+      check('top5 rank3 → moment B', m3 && m3.type === 'top5' && m3.pozycja === 3, m3);
+      check('top5: evidence.tydzien = weekKey(curWeek), bez rok', m3 && m3.evidence.tydzien === SilnikMomentu._weekKey(dateInWeek(0)) && m3.evidence.rok === undefined, m3);
+      check('top5: ranking 5, bieżący oznaczony', m3 && m3.ranking.length === 5 && m3.ranking.some(function (r) { return r.current; }), m3);
+      check('top5: pozycja/km/ranking POZA evidence', m3 && m3.evidence.pozycja === undefined && m3.evidence.km === undefined, m3);
+
+      // [21] dedup: ten sam tydzień → null
+      var h = recordDelivered([], m3);
+      check('top5 dedup: ten sam tydzień → null', detect(top5Snap(50, [60, 55].concat(small(11)), null, h)) === null, true);
+
+      // [22] rank 6 → null (5 tygodni mocniejszych)
+      var t6 = top5Snap(50, [60, 59, 58, 57, 56].concat(small(8)));  // 13 past + current = 14, 5 powyżej
+      check('top5 rank6 → null', detect(t6) === null, detect(t6));
+
+      // [23] ⚠️ zerowe tygodnie NIE liczą do progu: 11 z bieganiem + 5 zerowych = 16 kalendarzowych, ale 11<12 → null
+      // (curKm=50 z jednym tyg 60 → bez progu byłby rank2; dowód że to PRÓG blokuje, nie rank)
+      var tz = top5Snap(50, [60].concat(small(9)), [12, 13, 14, 15, 16]);  // 10 past + current = 11 z bieganiem
+      check('top5: zera NIE liczą (11<12 mimo 16 kalendarzowych) → null', detect(tz) === null, detect(tz));
+
+      // [24] rank 4 → fires (inny układ, 3 mocniejsze)
+      var t4 = top5Snap(50, [60, 55, 53].concat(small(10)));
+      var m4 = detect(t4);
+      check('top5 rank4 → moment B (pozycja 4)', m4 && m4.type === 'top5' && m4.pozycja === 4, m4);
     })();
 
     console.log('\n' + (fail === 0 ? '✅ PASS' : '❌ FAIL') + '  (' + pass + ' ok, ' + fail + ' fail)');
