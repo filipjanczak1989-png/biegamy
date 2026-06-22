@@ -4190,7 +4190,7 @@ async function initAuth() {
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
     if(tnEl){ tnEl.innerHTML = escapeHtml(name.split(' ')[0]) + ' <span>' + escapeHtml(name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
-    loadMomenty(_athleteId, (name||'').split(' ')[0]);   // Slice E krok 3: baner momentów po auth
+    loadMomenty(ath.id, (name||'').split(' ')[0]);   // Slice E krok 3: baner momentów po auth (ath.id = pewny, w if(ath))
 
     const _needsOb = _isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1';
     if (_needsOb) {
