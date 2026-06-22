@@ -44,34 +44,42 @@
     { key: 'marathon', km: 42.195,  tol: 1.5 },
   ];
 
-  // DYSTANS-SKALA: narastająca suma WSZYSTKICH biegowych km vs miasta geograficzne.
-  // Miasta = współrzędne + kierunek (W=zachód do Londynu, potem trasa ZAWRACA na E=wschód).
-  // Dystanse liczone LIVE haversine'em ze startu zawodnika (_startPoint) → km i prog dynamiczne.
-  // prog (kumulatywny, rosnący): W → prog=km; E → prog = westmostKm (zawrót) + km. Ultra = trasa bez końca.
-  var DYSTANS_SRODA = { lat: 52.2287, lon: 17.2799 };  // geo-pivot (referencyjny środek; patrz _startPoint)
+  // DYSTANS-SKALA: PODRÓŻ DOOKOŁA ŚWIATA wzdłuż jednej trasy (Europa→Bliski Wschód→Azja→Ameryki→Afryka).
+  // prog miasta = kumulatywna DROGA WZDŁUŻ TRASY od domu (suma odcinków miasto→miasto), liczona LIVE.
+  // Tylko 1. odcinek (Dom→Poznań) zależy od domu (_startPoint); reszta to miasto→miasto (stałe).
+  // suma ROCZNA zawodnika (od 1 stycznia) vs prog → "dotarłbyś do {miasto} jadąc przez świat". Zawsze naprzód.
+  var DYSTANS_SRODA = { lat: 52.2287, lon: 17.2799 };  // geo-pivot (dom domyślny; patrz _startPoint, hak B)
   var DYSTANS_CELE = [
-    { miasto: 'Poznań',        kierunek: 'W', lat: 52.4064, lon: 16.9252 },
-    { miasto: 'Zielona Góra',  kierunek: 'W', lat: 51.9356, lon: 15.5062 },
-    { miasto: 'Berlin',        kierunek: 'W', lat: 52.5200, lon: 13.4050 },
-    { miasto: 'Drezno',        kierunek: 'W', lat: 51.0504, lon: 13.7373 },
-    { miasto: 'Praga',         kierunek: 'W', lat: 50.0755, lon: 14.4378 },
-    { miasto: 'Lipsk',         kierunek: 'W', lat: 51.3397, lon: 12.3731 },
-    { miasto: 'Norymberga',    kierunek: 'W', lat: 49.4521, lon: 11.0767 },
-    { miasto: 'Frankfurt n.M.',kierunek: 'W', lat: 50.1109, lon: 8.6821  },
-    { miasto: 'Strasburg',     kierunek: 'W', lat: 48.5734, lon: 7.7521  },
-    { miasto: 'Amsterdam',     kierunek: 'W', lat: 52.3676, lon: 4.9041  },
-    { miasto: 'Paryż',         kierunek: 'W', lat: 48.8566, lon: 2.3522  },
-    { miasto: 'Londyn',        kierunek: 'W', lat: 51.5074, lon: -0.1278 },
-    { miasto: 'Warszawa',      kierunek: 'E', lat: 52.2297, lon: 21.0122 },
-    { miasto: 'Białystok',     kierunek: 'E', lat: 53.1325, lon: 23.1688 },
-    { miasto: 'Wilno',         kierunek: 'E', lat: 54.6872, lon: 25.2797 },
-    { miasto: 'Mińsk',         kierunek: 'E', lat: 53.9006, lon: 27.5590 },
-    { miasto: 'Kijów',         kierunek: 'E', lat: 50.4501, lon: 30.5234 },
-    { miasto: 'Moskwa',        kierunek: 'E', lat: 55.7558, lon: 37.6173 },
-    { miasto: 'Kazań',         kierunek: 'E', lat: 55.8304, lon: 49.0661 },
-    { miasto: 'Jekaterynburg', kierunek: 'E', lat: 56.8389, lon: 60.6057 },
-    { miasto: 'Omsk',          kierunek: 'E', lat: 54.9885, lon: 73.3242 },
-    { miasto: 'Nowosybirsk',   kierunek: 'E', lat: 55.0084, lon: 82.9357 },
+    { miasto: 'Poznań',        kontynent: 'Europa',        lat: 52.4064, lon: 16.9252 },
+    { miasto: 'Berlin',        kontynent: 'Europa',        lat: 52.5200, lon: 13.4050 },
+    { miasto: 'Amsterdam',     kontynent: 'Europa',        lat: 52.3676, lon: 4.9041  },
+    { miasto: 'Paryż',         kontynent: 'Europa',        lat: 48.8566, lon: 2.3522  },
+    { miasto: 'Madryt',        kontynent: 'Europa',        lat: 40.4168, lon: -3.7038 },
+    { miasto: 'Lizbona',       kontynent: 'Europa',        lat: 38.7223, lon: -9.1393 },
+    { miasto: 'Rzym',          kontynent: 'Europa',        lat: 41.9028, lon: 12.4964 },
+    { miasto: 'Ateny',         kontynent: 'Europa',        lat: 37.9838, lon: 23.7275 },
+    { miasto: 'Stambuł',       kontynent: 'Bliski Wschód', lat: 41.0082, lon: 28.9784 },
+    { miasto: 'Ankara',        kontynent: 'Bliski Wschód', lat: 39.9334, lon: 32.8597 },
+    { miasto: 'Teheran',       kontynent: 'Bliski Wschód', lat: 35.6892, lon: 51.3890 },
+    { miasto: 'Dubaj',         kontynent: 'Bliski Wschód', lat: 25.2048, lon: 55.2708 },
+    { miasto: 'Karaczi',       kontynent: 'Azja',          lat: 24.8607, lon: 67.0011 },
+    { miasto: 'Delhi',         kontynent: 'Azja',          lat: 28.6139, lon: 77.2090 },
+    { miasto: 'Katmandu',      kontynent: 'Azja',          lat: 27.7172, lon: 85.3240 },
+    { miasto: 'Dhaka',         kontynent: 'Azja',          lat: 23.8103, lon: 90.4125 },
+    { miasto: 'Bangkok',       kontynent: 'Azja',          lat: 13.7563, lon: 100.5018 },
+    { miasto: 'Hanoi',         kontynent: 'Azja',          lat: 21.0285, lon: 105.8542 },
+    { miasto: 'Pekin',         kontynent: 'Azja',          lat: 39.9042, lon: 116.4074 },
+    { miasto: 'Seul',          kontynent: 'Azja',          lat: 37.5665, lon: 126.9780 },
+    { miasto: 'Tokio',         kontynent: 'Azja',          lat: 35.6762, lon: 139.6503 },
+    { miasto: 'Vancouver',     kontynent: 'Ameryka Pn',    lat: 49.2827, lon: -123.1207 },
+    { miasto: 'San Francisco', kontynent: 'Ameryka Pn',    lat: 37.7749, lon: -122.4194 },
+    { miasto: 'Meksyk',        kontynent: 'Ameryka Pn',    lat: 19.4326, lon: -99.1332 },
+    { miasto: 'Bogota',        kontynent: 'Ameryka Pd',    lat: 4.7110,  lon: -74.0721 },
+    { miasto: 'Lima',          kontynent: 'Ameryka Pd',    lat: -12.0464,lon: -77.0428 },
+    { miasto: 'Buenos Aires',  kontynent: 'Ameryka Pd',    lat: -34.6037,lon: -58.3816 },
+    { miasto: 'Kapsztad',      kontynent: 'Afryka',        lat: -33.9249,lon: 18.4241 },
+    { miasto: 'Nairobi',       kontynent: 'Afryka',        lat: -1.2921, lon: 36.8219 },
+    { miasto: 'Kair',          kontynent: 'Afryka',        lat: 30.0444, lon: 31.2357 },
   ];
 
   function haversineKm(a, b) {                          // a,b = {lat,lon} → km (R=6371.0088)
@@ -214,34 +222,26 @@
     };
   }
 
-  // DYSTANS-SKALA: suma WSZYSTKICH biegowych km (snap.suma_calkowita_km) przekroczyła próg miasta?
-  // Zwraca NAJDALSZE osiągnięte miasto. Dedup (po mieście — evidence stałe) → każde miasto raz.
+  // DYSTANS-SKALA: roczna suma biegowych km (snap.suma_roczna_km) przekroczyła kumulatywny prog miasta na trasie?
+  // Zwraca NAJDALSZE osiągnięte miasto. Dedup po MIEŚCIE+ROKU (evidence z rok) → każde miasto raz w roku, reset 1 stycznia.
   function detectDystans(snap) {
-    var suma = snap.suma_calkowita_km;
+    var suma = snap.suma_roczna_km;
     if (suma == null || !(suma > 0)) return null;
-    var sp = _startPoint(snap.start_miasto);            // {nazwa, lat, lon} — jedyne wejście o starcie
-    var i;
-    // westmostKm = najdalszy zachodni cel (punkt zawrotu) — liczony dla TEGO startu
-    var westmostKm = 0;
-    for (i = 0; i < DYSTANS_CELE.length; i++)
-      if (DYSTANS_CELE[i].kierunek === 'W') { var dw = haversineKm(sp, DYSTANS_CELE[i]); if (dw > westmostKm) westmostKm = dw; }
-    // km (linia prosta start→miasto) + prog (kumulatywny); sort po prog → robust na dowolny start
-    var lista = [];
-    for (i = 0; i < DYSTANS_CELE.length; i++) {
-      var c = DYSTANS_CELE[i], km = haversineKm(sp, c);
-      lista.push({ c: c, km: km, prog: c.kierunek === 'W' ? km : westmostKm + km });
+    var sp = _startPoint(snap.start_miasto);            // {nazwa, lat, lon} — jedyne wejście o starcie (hak B)
+    // prog = kumulatywna droga wzdłuż trasy (1. odcinek dom→Poznań, dalej miasto→miasto). Zawsze rosnąca.
+    var reached = null, reachedProg = 0, prev = null, cum = 0, prevPt = sp;
+    for (var i = 0; i < DYSTANS_CELE.length; i++) {
+      var c = DYSTANS_CELE[i];
+      cum += haversineKm(prevPt, c);                    // odcinek poprzedni→c
+      prevPt = c;
+      if (suma >= cum) { prev = reached; reached = c; reachedProg = cum; } else break;
     }
-    lista.sort(function (a, b) { return a.prog - b.prog; });
-    var reached = null, prev = null;
-    for (i = 0; i < lista.length; i++) {
-      if (suma >= lista[i].prog) { prev = reached; reached = lista[i]; } else break;
-    }
-    if (!reached) return null;                          // jeszcze nie dobiegł do najbliższego miasta
+    if (!reached) return null;                          // jeszcze nie dobiegł do 1. miasta na trasie
     return {
       type: 'dystans',
-      // evidence = TOŻSAMOŚĆ miasta (stała) → dedup po mieście. żywa suma_km POZA evidence (inaczej re-odpala codziennie).
-      evidence: { miasto: reached.c.miasto, dystans_miasta: Math.round(reached.km), kierunek: reached.c.kierunek,
-                  poprzednie_miasto: prev ? prev.c.miasto : (sp.nazwa || null), start: sp.nazwa },
+      // evidence = TOŻSAMOŚĆ (miasto + ROK) → dedup per-rok (sameMoment po JSON). żywa suma_km POZA evidence.
+      evidence: { miasto: reached.miasto, dystans_miasta: Math.round(reachedProg), kontynent: reached.kontynent,
+                  poprzednie_miasto: prev ? prev.miasto : (sp.nazwa || null), start: sp.nazwa, rok: snap.rok || null },
       suma_km: Math.round(suma * 10) / 10,
       confidence: 1,
     };
@@ -567,33 +567,40 @@
       check('dedup: spam codzienny → 1 ogłoszenie', fires === 1, fires);
     })();
 
-    // ── DYSTANS-SKALA (suma całkowita vs miasta, start zawodnika) ────────────────
+    // ── DYSTANS-SKALA (suma ROCZNA vs trasa dookoła świata, dedup per-rok) ───────
     (function () {
-      var base = { today: TODAY, pbs: {}, newLog: { logged_at: dateInWeek(0), distance_km: 5, duration_s: 1500 }, logs: [], start_miasto: 'siedleczek' };
-      var pod = Object.assign({}, base, { suma_calkowita_km: 20 });        // <31 (Poznań)
+      var base = { today: TODAY, pbs: {}, newLog: { logged_at: dateInWeek(0), distance_km: 5, duration_s: 1500 }, logs: [], start_miasto: 'siedleczek', rok: 2026 };
+      var pod = Object.assign({}, base, { suma_roczna_km: 20 });           // <Poznań ~31
       console.log('[14] dystans <próg →', JSON.stringify(detect(pod)));
-      check('dystans poniżej najbliższego miasta → null', detect(pod) === null, detect(pod));
+      check('dystans poniżej 1. miasta → null', detect(pod) === null, detect(pod));
 
-      var drez = Object.assign({}, base, { suma_calkowita_km: 300 });      // >Drezno~277, <Praga~311
-      var md = detect(drez);
-      console.log('[15] dystans 300km →', JSON.stringify(md));
-      check('dystans 300km → Drezno', md && md.type === 'dystans' && md.evidence.miasto === 'Drezno', md);
-      check('dystans 300km: km prosta ≈277', md && Math.abs(md.evidence.dystans_miasta - 277) <= 1, md);
-      check('dystans: suma_km POZA evidence', md && md.suma_km === 300 && md.evidence.suma_km === undefined, md);
-      check('dystans: start znormalizowany (siedleczek→Siedleczek)', md && md.evidence.start === 'Siedleczek', md);
+      var berl = Object.assign({}, base, { suma_roczna_km: 300 });         // ≥Berlin ~270, <Amsterdam ~846
+      var mb = detect(berl);
+      console.log('[15] dystans 300km →', JSON.stringify(mb));
+      check('dystans 300km → Berlin', mb && mb.type === 'dystans' && mb.evidence.miasto === 'Berlin', mb);
+      check('dystans 300km: prog ≈270 (droga trasy)', mb && Math.abs(mb.evidence.dystans_miasta - 270) <= 2, mb);
+      check('dystans: kontynent=Europa, bez kierunku', mb && mb.evidence.kontynent === 'Europa' && mb.evidence.kierunek === undefined, mb);
+      check('dystans: rok w evidence', mb && mb.evidence.rok === 2026, mb);
+      check('dystans: suma_km POZA evidence', mb && mb.suma_km === 300 && mb.evidence.suma_km === undefined, mb);
+      check('dystans: start znormalizowany (siedleczek→Siedleczek)', mb && mb.evidence.start === 'Siedleczek', mb);
+      check('dystans: poprzednie=Poznań', mb && mb.evidence.poprzednie_miasto === 'Poznań', mb);
 
-      var h = recordDelivered([], md);                                     // Drezno dostarczone
-      check('dystans dedup: to samo miasto → null', detect(Object.assign({}, drez, { historia: h })) === null, true);
+      var h = recordDelivered([], mb);                                     // Berlin{rok:2026} dostarczony
+      check('dystans dedup TEN SAM ROK → null', detect(Object.assign({}, berl, { historia: h })) === null, true);
 
-      var mosk = Object.assign({}, base, { suma_calkowita_km: 1500, historia: h }); // >Warszawa~1449 (wschód!)
-      var mw = detect(mosk);
-      console.log('[17] dystans 1500km (po Londynie, wschód) →', JSON.stringify(mw));
-      check('dystans 1500km → Warszawa (E)', mw && mw.evidence.miasto === 'Warszawa' && mw.evidence.kierunek === 'E', mw);
-      check('dystans Warszawa: km prosta ≈254 (nie próg)', mw && Math.abs(mw.evidence.dystans_miasta - 254) <= 1, mw);
-      check('dystans Warszawa: poprzednie=Londyn', mw && mw.evidence.poprzednie_miasto === 'Londyn', mw);
+      // ⚠️ KLUCZOWY: ta sama suma, INNY ROK → Berlin znów odpala (dowód per-rok dedup)
+      var berl27 = Object.assign({}, base, { suma_roczna_km: 300, rok: 2027, historia: h });
+      var mb27 = detect(berl27);
+      console.log('[16] dystans Berlin NOWY ROK →', JSON.stringify(mb27));
+      check('dystans PER-ROK: nowy rok → Berlin znów odpala', mb27 && mb27.evidence.miasto === 'Berlin' && mb27.evidence.rok === 2027, mb27);
+
+      var ams = Object.assign({}, base, { suma_roczna_km: 1000 });         // ≥Amsterdam ~846, <Paryż ~1276
+      var ma = detect(ams);
+      console.log('[17] dystans 1000km → kolejne miasto →', JSON.stringify(ma));
+      check('dystans 1000km → Amsterdam (dalej na trasie)', ma && ma.evidence.miasto === 'Amsterdam', ma);
 
       // start = null gdy brak city
-      var bn = Object.assign({}, base, { suma_calkowita_km: 300, start_miasto: null });
+      var bn = Object.assign({}, base, { suma_roczna_km: 300, start_miasto: null });
       check('dystans: brak city → start=null', detect(bn) && detect(bn).evidence.start === null, detect(bn));
 
       // _normalizeCity
