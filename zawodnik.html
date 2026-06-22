@@ -4207,48 +4207,56 @@ function _silnikRenderAnimDystans(ev, suma, imie){
   const esc = window.escapeHtml || (s=>String(s));
   const reached = cele.find(c=>c.miasto===ev.miasto);
   if(!reached){ console.warn('[silnik-anim] nieznane miasto', ev.miasto); return; }
-  const idx = cele.indexOf(reached), nextC = cele[idx+1] || null;
+  const idx = cele.indexOf(reached);
   const startLabel = ev.start || 'Twój dom';
-  // poprzedni węzeł: miasto z trasy (idx-1) ALBO DOM zawodnika (gdy reached=1. miasto)
-  const prevNode = idx>0 ? { nazwa:cele[idx-1].miasto, lat:cele[idx-1].lat, lon:cele[idx-1].lon }
-                         : { nazwa:startLabel,          lat:sroda.lat,        lon:sroda.lon };
-  const reachedNode = { nazwa:reached.miasto, lat:reached.lat, lon:reached.lon };
-  const nextNode = nextC ? { nazwa:nextC.miasto, lat:nextC.lat, lon:nextC.lon } : null;
-  const okno = [prevNode, reachedNode].concat(nextNode?[nextNode]:[]);
 
-  // projekcja equirectangular + AUTO-FRAME (działa dla 3 dowolnych miast, też oceanicznych)
-  const W=300,H=120,PAD=46, latRef=reachedNode.lat;
-  const pr = c => ({ x:c.lon*Math.cos(latRef*Math.PI/180), y:-c.lat });
-  const P=okno.map(pr), xs=P.map(p=>p.x), ys=P.map(p=>p.y);
-  const minx=Math.min(...xs),maxx=Math.max(...xs),miny=Math.min(...ys),maxy=Math.max(...ys);
-  const sx=v=>PAD+((v-minx)/((maxx-minx)||1))*(W-2*PAD), sy=v=>PAD+((v-miny)/((maxy-miny)||1))*(H-2*PAD);
-  const XY=okno.map((c,i)=>Object.assign({},c,{x:sx(P[i].x),y:sy(P[i].y)}));
-  const pXY=XY[0], rXY=XY[1], nXY=nextNode?XY[2]:null;
+  // węzły: DOM (prog 0) + miasta trasy cele[0..idx]; pozycja wg PROGU (kumulatywna droga)
+  const dots = [{ nazwa:startLabel, prog:0, kont:null, home:true }];
+  let cum=0, prev=sroda;
+  for(let i=0;i<=idx;i++){ cum+=hav(prev,cele[i]); prev=cele[i];
+    dots.push({ nazwa:cele[i].miasto, prog:cum, kont:cele[i].kontynent, reached:(i===idx) }); }
+  const reachedProg = cum || 1;
+  dots.forEach(d=> d.x = d.prog/reachedProg);
 
-  // mini-pasek: postęp wzdłuż CAŁEJ trasy (0%=dom, 100%=ostatnie miasto)
-  let cum=0, prevPt=sroda; cele.forEach(c=>{ cum+=hav(prevPt,c); prevPt=c; });
-  const totalProg=cum, frac=Math.max(0, Math.min(1, ev.dystans_miasta/totalProg));
+  // etykiety: DOM + reached zawsze; po drodze = wejście w nowy kontynent (x w środku); krótka trasa = wszystkie
+  let lastKont=null;
+  dots.forEach(d=>{
+    if(d.home || d.reached){ d.label=true; }
+    else { d.label = (d.kont!==lastKont && d.x>0.1 && d.x<0.9); }
+    if(d.kont!==null) lastKont=d.kont;
+  });
+  if(dots.length<=4) dots.forEach(d=>d.label=true);
+
+  // mini-pasek: postęp wzdłuż CAŁEJ trasy świata (0%=dom, 100%=ostatnie miasto)
+  let cw=0, pp=sroda; cele.forEach(c=>{ cw+=hav(pp,c); pp=c; });
+  const totalProg=cw, frac=Math.max(0, Math.min(1, ev.dystans_miasta/totalProg));
+
+  const W=320,H=110,PAD=30, cy=H/2, RX=PAD+(W-2*PAD);   // reached na prawym końcu (pełna szerokość)
+  const dotSvg = dots.map(d=>{
+    const x=PAD+d.x*(W-2*PAD), r=d.reached?7:(d.home?5:3);
+    const fill=d.reached?'var(--accent,#e8561e)':(d.home?'var(--accent2,#ff7040)':'rgba(255,255,255,.38)');
+    const op=d.reached?'0':'1', glow=d.reached?'filter:drop-shadow(0 0 8px var(--accent,#e8561e));':'';
+    let lbl='';
+    if(d.label){ const ly=d.reached?cy-13:cy+18, col=d.reached?'var(--accent,#e8561e)':(d.home?'#cfc9d6':'#8a8693'), fs=d.reached?11:9;
+      lbl=`<text x="${x}" y="${ly}" fill="${col}" font-size="${fs}" font-family="DM Mono,monospace" text-anchor="middle">${esc(d.nazwa)}</text>`; }
+    return `<circle ${d.reached?'data-el="reached"':''} cx="${x}" cy="${cy}" r="${r}" fill="${fill}" style="opacity:${op};${glow}"/>${lbl}`;
+  }).join('');
 
   const o=document.createElement('div'); o.id='silnik-anim-overlay';
   o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;color:#fff;';
   o.innerHTML=`
     <button id="silnik-anim-close" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
     <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent,#e8561e);">Najdalej dotarłeś</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:96px;line-height:.9;margin:2px 0;">${esc(reached.miasto)}</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:92px;line-height:.9;margin:2px 0;">${esc(reached.miasto)}</div>
     <div data-el="sub" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;text-align:center;">
       <div style="font-size:13px;color:#cfc9d6;">${ev.dystans_miasta} km od startu · ${esc(reached.kontynent)}</div>
       <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--accent2,#ff7040);letter-spacing:.05em;margin-top:3px;">${esc(startLabel)} → ${esc(reached.miasto)}</div>
     </div>
-    <svg data-el="seg" width="${W}" height="${H}" style="margin:18px 0;overflow:visible;">
-      <path data-el="line" d="M ${pXY.x} ${pXY.y} L ${rXY.x} ${rXY.y}" stroke="var(--accent,#e8561e)" stroke-width="3" fill="none" stroke-linecap="round" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
-      ${nXY?`<path d="M ${rXY.x} ${rXY.y} L ${nXY.x} ${nXY.y}" stroke="rgba(255,255,255,.15)" stroke-width="2" stroke-dasharray="3 4" fill="none"/>`:''}
-      <circle cx="${pXY.x}" cy="${pXY.y}" r="4" fill="#8a8693"/>
-      ${nXY?`<circle cx="${nXY.x}" cy="${nXY.y}" r="4" fill="rgba(255,255,255,.25)"/>`:''}
-      <circle data-el="reached" cx="${rXY.x}" cy="${rXY.y}" r="6" fill="var(--accent,#e8561e)" style="opacity:0;filter:drop-shadow(0 0 8px var(--accent,#e8561e));"/>
-      <circle data-el="runner" cx="${pXY.x}" cy="${pXY.y}" r="5" fill="var(--accent2,#ff7040)" style="filter:drop-shadow(0 0 6px var(--accent,#e8561e));"/>
-      <text x="${pXY.x}" y="${pXY.y+18}" fill="#8a8693" font-size="9" font-family="DM Mono,monospace" text-anchor="middle">${esc(pXY.nazwa)}</text>
-      <text x="${rXY.x}" y="${rXY.y-12}" fill="var(--accent,#e8561e)" font-size="11" font-family="DM Mono,monospace" text-anchor="middle">${esc(rXY.nazwa)}</text>
-      ${nXY?`<text x="${nXY.x}" y="${nXY.y+18}" fill="#66636e" font-size="9" font-family="DM Mono,monospace" text-anchor="middle">${esc(nXY.nazwa)}</text>`:''}
+    <svg data-el="seg" viewBox="0 0 ${W} ${H}" width="92%" style="margin:16px 0;overflow:visible;">
+      <line x1="${PAD}" y1="${cy}" x2="${RX}" y2="${cy}" stroke="rgba(255,255,255,.12)" stroke-width="2"/>
+      <path data-el="line" d="M ${PAD} ${cy} L ${RX} ${cy}" stroke="var(--accent,#e8561e)" stroke-width="3" stroke-linecap="round" fill="none" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      ${dotSvg}
+      <circle data-el="runner" cx="${PAD}" cy="${cy}" r="5" fill="var(--accent2,#ff7040)" style="filter:drop-shadow(0 0 6px var(--accent,#e8561e));"/>
     </svg>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:84px;line-height:.86;">0<span style="font-size:24px;color:var(--accent,#e8561e);"> km</span></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:13px;color:#8a8693;">${imie?esc(imie)+', t':'T'}yle przebiegłeś w tym roku.</div>
@@ -4265,25 +4273,25 @@ function _silnikRenderAnimDystans(ev, suma, imie){
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
 
-  // ── CHOREOGRAFIA: linia rysuje się → biegacz jedzie → cel zapala (puls+iskry+flash) → count-up + pasek świata ──
-  const DRAW=1100;
+  // ── CHOREOGRAFIA: linia rysuje się DOM→cel, biegacz jedzie CAŁĄ trasę, cel zapala ──
+  const DRAW=1300;
   requestAnimationFrame(()=>{
     $('eyebrow').style.opacity='1'; $('eyebrow').style.transform='translateY(0)';
     setTimeout(()=>{ const s=$('sub'); s.style.opacity='1'; s.style.transform='translateY(0)'; },300);
     $('line').animate([{strokeDashoffset:1},{strokeDashoffset:0}],{duration:DRAW,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
-    $('runner').animate([{cx:pXY.x,cy:pXY.y},{cx:rXY.x,cy:rXY.y}],{duration:DRAW,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+    $('runner').animate([{cx:PAD},{cx:RX}],{duration:DRAW,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
     setTimeout(()=>{                                                  // dojazd do celu
       $('reached').style.opacity='1';
-      $('reached').animate([{r:6},{r:11},{r:6}],{duration:500,easing:'ease-out'});
-      const rb=$('seg').getBoundingClientRect();
-      _silnikFx.burst(rb.left+rXY.x, rb.top+rXY.y, 16);
+      $('reached').animate([{r:7},{r:12},{r:7}],{duration:500,easing:'ease-out'});
+      const rb=$('seg').getBoundingClientRect(), scaleX=rb.width/W, scaleY=rb.height/H;
+      _silnikFx.burst(rb.left+RX*scaleX, rb.top+cy*scaleY, 16);
       _silnikFx.flash(o);
       _silnikFx.countUp($('big'), suma);
       $('foot').style.opacity='1'; $('brand').style.opacity='1';
       $('fill').style.width=(frac*100).toFixed(1)+'%';
       $('mini').style.left='calc('+(frac*100).toFixed(1)+'% - 5px)';
-    }, DRAW+150);
-    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimDystans(ev,suma,imie); }, DRAW+1700);
+    }, DRAW+200);
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimDystans(ev,suma,imie); }, DRAW+1800);
   });
 }
 
