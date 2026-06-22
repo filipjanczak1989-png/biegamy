@@ -4064,7 +4064,8 @@ async function _silnikBuildSnapshot(){
     logged_at:r.logged_at,
     distance_km:parseFloat(r.distance_km)||0,
     duration_s:_silnikToSec(r.duration),
-    training_type:r.training_type
+    training_type:r.training_type,
+    is_run:(window.isRunType?window.isRunType(r.training_type):true)   // tylko dla detectNajdluzszy; reszta ignoruje
   }));
   if(!all.length) return null;
   const logs=all.filter(l=>new Date(l.logged_at)>=since90);                             // 90d slice — wolumen/streak BEZ zmian
@@ -4094,7 +4095,7 @@ async function _silnikDebug(autoAnim){
       el.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:80vw;background:rgba(7,5,12,0.92);border:1px solid #e8561e;color:#fff;font:11px/1.4 DM Mono,monospace;padding:8px 10px;border-radius:8px;pointer-events:none;';
       document.body.appendChild(el); }
     el.textContent = moment ? `silnik → ${moment.type} ${JSON.stringify(moment.evidence)}` : 'silnik → CISZA (null)';
-    if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans'||moment.type==='top5')) window._silnikPokazAnimacje(moment, snap.imie);
+    if(autoAnim && moment && (moment.type==='wolumen'||moment.type==='dystans'||moment.type==='top5'||moment.type==='najdluzszy')) window._silnikPokazAnimacje(moment, snap.imie);
   }catch(e){ console.error('[silnik] błąd:',e); }
 }
 
@@ -4106,6 +4107,7 @@ window._silnikPokazAnimacje = function(moment, imie){
     if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie);
     if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie);
     if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie);
+    if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
@@ -4351,6 +4353,64 @@ function _silnikRenderAnimTop5(moment, imie){
       });
     }, peakStart);
     setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimTop5(moment,imie); }, peakStart+PEAK_DUR+1300);
+  });
+}
+
+// ── ANIMACJA NAJDŁUŻSZEGO BIEGU (Slice 7 — miara 0→rekord, DEBUG-ONLY) ──
+// Kontrakt: moment.type==='najdluzszy', evidence={dystans, poprzedni_najdluzszy}.
+function _silnikRenderAnimNajdluzszy(ev, imie){
+  _silnikZamknijAnim();
+  const esc = window.escapeHtml || (s=>String(s));
+  const nlKm = ev.dystans, prevMax = ev.poprzedni_najdluzszy;
+  const delta = Math.round((nlKm - prevMax)*10)/10;
+  const ratio = nlKm>0 ? Math.max(0, Math.min(0.92, prevMax/nlKm)) : 0;   // pozycja ticka (clamp by zostało miejsce na "nowe")
+  const W=320,H=72,PAD=30, cy=34, endX=PAD+(W-2*PAD), tickX=PAD+ratio*(W-2*PAD);
+
+  const o=document.createElement('div'); o.id='silnik-anim-overlay';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;color:#fff;';
+  o.innerHTML=`
+    <button id="silnik-anim-close" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
+    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent,#e8561e);">Najdłuższy bieg</div>
+    <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:128px;line-height:.86;margin:4px 0;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:32px;color:var(--accent,#e8561e);"> km</span></div>
+    <svg data-el="seg" viewBox="0 0 ${W} ${H}" width="90%" style="margin:14px 0;overflow:visible;">
+      <line x1="${PAD}" y1="${cy}" x2="${endX}" y2="${cy}" stroke="rgba(255,255,255,.12)" stroke-width="3"/>
+      <path data-el="line" d="M ${PAD} ${cy} L ${endX} ${cy}" stroke="var(--accent,#e8561e)" stroke-width="4" stroke-linecap="round" fill="none" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1"/>
+      <line x1="${tickX}" y1="${cy-9}" x2="${tickX}" y2="${cy+9}" stroke="#8a8693" stroke-width="2"/>
+      <text x="${tickX}" y="${cy+24}" fill="#8a8693" font-size="9" font-family="DM Mono,monospace" text-anchor="middle">poprzedni ${prevMax} km</text>
+      <text data-el="gain" x="${(tickX+endX)/2}" y="${cy-13}" fill="var(--accent2,#ff7040)" font-size="11" font-family="DM Mono,monospace" text-anchor="middle" opacity="0">+${delta} km</text>
+      <circle data-el="endpt" cx="${endX}" cy="${cy}" r="6" fill="var(--accent,#e8561e)" style="opacity:0;filter:drop-shadow(0 0 8px var(--accent,#e8561e));"/>
+      <circle data-el="runner" cx="${PAD}" cy="${cy}" r="5" fill="var(--accent2,#ff7040)" style="filter:drop-shadow(0 0 6px var(--accent,#e8561e));"/>
+    </svg>
+    <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', n':'N'}ajdłuższy bieg w życiu.</div>
+    <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
+    <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
+  document.body.appendChild(o);
+  const $ = s => o.querySelector('[data-el="'+s+'"]');
+  o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
+  o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
+
+  // lokalny count-up z 1 miejscem (NIE rusza _silnikFx.countUp — używa go 3 żywe animacje)
+  function countUpDec(el, target){ const t0=performance.now(), dur=950;
+    (function step(t){ const p=Math.min(1,(t-t0)/dur); const v=target*(0.5-Math.cos(p*Math.PI)/2);
+      el.firstChild.textContent=(Math.round(v*10)/10).toFixed(1); if(p<1) requestAnimationFrame(step); })(performance.now()); }
+
+  // ── CHOREOGRAFIA: miara rośnie 0→rekord, biegacz biegnie, koniec zapala (iskry+flash), liczba dolicza ──
+  const DRAW=1200;
+  requestAnimationFrame(()=>{
+    $('eyebrow').style.opacity='1'; $('eyebrow').style.transform='translateY(0)';
+    $('line').animate([{strokeDashoffset:1},{strokeDashoffset:0}],{duration:DRAW,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+    $('runner').animate([{cx:PAD},{cx:endX}],{duration:DRAW,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+    setTimeout(()=>{
+      $('endpt').style.opacity='1';
+      $('endpt').animate([{r:6},{r:12},{r:6}],{duration:500,easing:'ease-out'});
+      const rb=$('seg').getBoundingClientRect(), sX=rb.width/W, sY=rb.height/H;
+      _silnikFx.burst(rb.left+endX*sX, rb.top+cy*sY, 16);
+      _silnikFx.flash(o);
+      countUpDec($('big'), nlKm);
+      $('gain').setAttribute('opacity','1');
+      $('foot').style.opacity='1'; $('brand').style.opacity='1';
+    }, DRAW+200);
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimNajdluzszy(ev,imie); }, DRAW+1800);
   });
 }
 
