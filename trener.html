@@ -8319,7 +8319,7 @@ document.addEventListener('keydown', (e) => {
     switch(type){
       case 'pb':          return (DIST_PL[ev.dystans]||ev.dystans)+' — '+fmtSec(ev.nowy_czas)+' (było '+fmtSec(ev.stary_czas)+')';
       case 'najdluzszy':  return ev.dystans+' km (poprzedni '+ev.poprzedni_najdluzszy+' km)';
-      case 'wolumen':     return ev.suma_km+' km/tydz (poprzedni rekord '+ev.poprzednie_max+')';
+      case 'wolumen':     return ev.suma_km+' km/tydz (poprzedni max 90 dni: '+ev.poprzednie_max+')';
       case 'streak':      return ev.tygodnie+' tygodni z rzędu';
       case 'dystans':     return ev.miasto+' — '+ev.dystans_miasta+' km od startu ('+ev.rok+')';
       case 'top5':        return '#'+pl.pozycja+' tydzień ('+pl.km+' km)';
