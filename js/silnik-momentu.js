@@ -51,6 +51,10 @@
     return Math.floor(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000);
   }
   function weekKey(s) { return Math.floor((dayIndex(s) + 3) / 7); } // poniedziałek = początek tygodnia
+  function weekLabel(wk) {                          // weekKey → "DD.MM" (poniedziałek tego tygodnia)
+    var d = new Date((wk * 7 - 3) * 86400000);      // odwrotność weekKey
+    return d.getUTCDate() + '.' + String(d.getUTCMonth() + 1).padStart(2, '0');
+  }
   function monthKey(s) { var p = ymd(s).split('-'); return (+p[0]) * 12 + (+p[1] - 1); }
 
   function clamp01(x) { return Math.max(0, Math.min(1, x)); }
@@ -93,7 +97,7 @@
     var nl = snap.newLog;
     if (!nl) return null;
 
-    function evalWindow(keyFn, okno) {
+    function evalWindow(keyFn, okno, withBars) {
       var sums = {};
       for (var i = 0; i < logs.length; i++) {
         var lg = logs[i];
@@ -118,15 +122,18 @@
       if (!(nlSum > prevMax)) return null;        // remis = NULL (musi być strict)
 
       var margin = prevMax > 0 ? (nlSum - prevMax) / prevMax : 1;
-      return {
-        type: 'wolumen',
-        evidence: { okno: okno, suma_km: Math.round(nlSum * 100) / 100, poprzednie_max: Math.round(prevMax * 100) / 100 },
-        confidence: clamp01(margin / 0.25), // 25% nad poprzednim maxem = pełna pewność
-      };
+      var evidence = { okno: okno, suma_km: Math.round(nlSum * 100) / 100, poprzednie_max: Math.round(prevMax * 100) / 100 };
+      if (withBars) {                              // 6 ostatnich tygodni do nlKey — dane słupków animacji
+        var slupki = [];
+        for (var bw = nlKey - 5; bw <= nlKey; bw++)
+          slupki.push({ label: weekLabel(bw), km: Math.round((sums[bw] || 0) * 100) / 100, peak: bw === nlKey });
+        evidence.slupki = slupki;                  // dedup-SAFE: 5 słupków historycznych stałe, 6. śledzi suma_km (już w kluczu)
+      }
+      return { type: 'wolumen', evidence: evidence, confidence: clamp01(margin / 0.25) }; // 25% nad poprzednim maxem = pełna pewność
     }
 
-    var w = evalWindow(weekKey, 'tydzień');
-    var m = evalWindow(monthKey, 'miesiąc');
+    var w = evalWindow(weekKey, 'tydzień', true);  // tylko tydzień niesie słupki (animacja = tygodniowa)
+    var m = evalWindow(monthKey, 'miesiąc', false);
     if (w && m) return (m.confidence > w.confidence) ? m : w;
     return w || m;
   }
@@ -303,6 +310,8 @@
     console.log('[2] czysty wolumen →', JSON.stringify(m2));
     check('WOLUMEN wykryty', m2 && m2.type === 'wolumen', m2);
     check('WOLUMEN okno=tydzień, poprz_max=18', m2 && m2.evidence.okno === 'tydzień' && m2.evidence.poprzednie_max === 18, m2);
+    check('WOLUMEN słupki: 6 tygodni', m2 && m2.evidence.slupki && m2.evidence.slupki.length === 6, m2);
+    check('WOLUMEN słupki: ostatni = peak = suma', m2 && m2.evidence.slupki[5].peak === true && m2.evidence.slupki[5].km === m2.evidence.suma_km, m2);
 
     // helper: N tyg z rzędu (do tyg 0), RÓWNE km (remis => brak wolumenu), brak PB
     function streakSnap(nWeeks) {
