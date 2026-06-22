@@ -11,11 +11,11 @@ window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
   _silnikOnClose = (typeof onClose === 'function') ? onClose : null;
   try{
     if(!moment) return;
-    if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie);
-    if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie);
-    if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie);
+    if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie, puenta);
+    if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie, puenta);
+    if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie, puenta);
     if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie, puenta);
-    if(moment.type==='najmocniejsza' && moment.ranking) return _silnikRenderAnimNajmocniejsza(moment, imie);
+    if(moment.type==='najmocniejsza' && moment.ranking) return _silnikRenderAnimNajmocniejsza(moment, imie, puenta);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
@@ -47,7 +47,7 @@ const _silnikFx = {
     parent.appendChild(f); f.animate([{opacity:0},{opacity:.55},{opacity:0}],{duration:520,easing:'ease-out'}).onfinish=()=>f.remove(); },
 };
 
-function _silnikRenderAnimWolumen(ev, imie){
+function _silnikRenderAnimWolumen(ev, imie, puenta){
   _silnikZamknijAnim();
   const slupki = ev.slupki || [];
   if(!slupki.length){ console.warn('[silnik-anim] brak słupków'); return; }
@@ -71,6 +71,7 @@ function _silnikRenderAnimWolumen(ev, imie){
       <div style="font-family:'DM Sans',sans-serif;font-size:17px;color:#fff;margin-top:6px;font-weight:600;">${imie ? esc(imie)+', t' : 'T'}o już nie przypadek.</div>
     </div>
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:11px;height:${MAXH+30}px;margin-top:40px;"></div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:22px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${miesiac}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:50px;right:22px;width:44px;height:44px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:20px;cursor:pointer;z-index:5;">↻</button>`;
   document.body.appendChild(o);
@@ -105,13 +106,14 @@ function _silnikRenderAnimWolumen(ev, imie){
         const ft=$('footer'); ft.style.opacity='1'; ft.style.transform='translateY(0)'; $('brand').style.opacity='1';
       });
     }, peakStart);
-    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimWolumen(ev,imie); }, peakStart+PEAK_DUR+1300);
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, peakStart+PEAK_DUR+600);
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimWolumen(ev,imie,puenta); }, peakStart+PEAK_DUR+1300);
   });
 }
 
 // ── ANIMACJA DYSTANSU (Slice 5 — podróż przez świat, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='dystans', evidence={miasto,dystans_miasta:prog,kontynent,poprzednie_miasto,start,rok}, +moment.suma_km (roczna).
-function _silnikRenderAnimDystans(ev, suma, imie){
+function _silnikRenderAnimDystans(ev, suma, imie, puenta){
   _silnikZamknijAnim();
   const SM=window.SilnikMomentu, cele=SM._dystansCele, sroda=SM._dystansSroda, hav=SM._haversineKm;
   const esc = window.escapeHtml || (s=>String(s));
@@ -170,6 +172,7 @@ function _silnikRenderAnimDystans(ev, suma, imie){
     </svg>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:84px;line-height:.86;">0<span style="font-size:24px;color:var(--accent,#e8561e);"> km</span></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:13px;color:#8a8693;">${imie?esc(imie)+', t':'T'}yle przebiegłeś w tym roku.</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:14px;font-family:'DM Sans',sans-serif;font-size:18px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:8px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
     <div style="position:absolute;bottom:52px;left:40px;right:40px;height:3px;background:rgba(255,255,255,.12);border-radius:3px;">
       <div data-el="fill" style="position:absolute;left:0;top:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent2,#ff7040),var(--accent,#e8561e));border-radius:3px;transition:width 1.1s cubic-bezier(.4,0,.2,1);"></div>
       <div data-el="mini" style="position:absolute;top:-3.5px;left:0;width:10px;height:10px;border-radius:50%;background:var(--accent,#e8561e);box-shadow:0 0 10px var(--accent,#e8561e);transition:left 1.1s cubic-bezier(.4,0,.2,1);"></div>
@@ -201,13 +204,14 @@ function _silnikRenderAnimDystans(ev, suma, imie){
       $('fill').style.width=(frac*100).toFixed(1)+'%';
       $('mini').style.left='calc('+(frac*100).toFixed(1)+'% - 5px)';
     }, DRAW+200);
-    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimDystans(ev,suma,imie); }, DRAW+1800);
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, DRAW+700);
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimDystans(ev,suma,imie,puenta); }, DRAW+1800);
   });
 }
 
 // ── ANIMACJA TOP5 TYGODNI (Slice 6 — ranking, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='top5', moment.ranking=[{label,km,current}×5], moment.pozycja, moment.km.
-function _silnikRenderAnimTop5(moment, imie){
+function _silnikRenderAnimTop5(moment, imie, puenta){
   _silnikZamknijAnim();
   const ranking = moment.ranking || [];
   if(ranking.length < 2){ console.warn('[silnik-anim] top5 bez rankingu'); return; }
@@ -226,6 +230,7 @@ function _silnikRenderAnimTop5(moment, imie){
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:10px;height:${MAXH+54}px;margin:22px 0 8px;"></div>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:104px;line-height:.86;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:28px;color:var(--accent,#e8561e);"> km</span></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;margin-top:2px;">${imie?esc(imie)+', w':'W'}szedłeś do TOP 5 — odkąd biegasz z nami.</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${rok}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
   document.body.appendChild(o);
@@ -260,7 +265,8 @@ function _silnikRenderAnimTop5(moment, imie){
         $('foot').style.opacity='1'; $('brand').style.opacity='1';
       });
     }, peakStart);
-    setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimTop5(moment,imie); }, peakStart+PEAK_DUR+1300);
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, peakStart+PEAK_DUR+600);
+    setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimTop5(moment,imie,puenta); }, peakStart+PEAK_DUR+1300);
   });
 }
 
@@ -326,7 +332,7 @@ function _silnikRenderAnimNajdluzszy(ev, imie, puenta){
 
 // ── ANIMACJA NAJMOCNIEJSZA ŻYCIÓWKA (Slice 8 — ranking AG%, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='najmocniejsza', evidence={dystans:leader, poprzedni}, ag_pct, wiek_uzyty, ranking=[{dist,ag}]desc.
-function _silnikRenderAnimNajmocniejsza(moment, imie){
+function _silnikRenderAnimNajmocniejsza(moment, imie, puenta){
   _silnikZamknijAnim();
   const ranking = moment.ranking || [];
   if(ranking.length < 2){ console.warn('[silnik-anim] najmocniejsza: <2 dystanse'); return; }
@@ -347,6 +353,7 @@ function _silnikRenderAnimNajmocniejsza(moment, imie){
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:.86;margin:6px 0 2px;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:34px;color:var(--accent,#e8561e);">%</span></div>
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:12px;height:${MAXH+50}px;margin-top:18px;"></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:12px;color:#8a8693;font-family:'DM Mono',monospace;margin-top:6px;">${wiek!=null?'wg Twojego wieku '+wiek:'wg rekordu świata'}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
   document.body.appendChild(o);
@@ -385,7 +392,8 @@ function _silnikRenderAnimNajmocniejsza(moment, imie){
         $('foot').style.opacity='1'; $('brand').style.opacity='1';
       });
     }, peakStart);
-    setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimNajmocniejsza(moment,imie); }, peakStart+PEAK_DUR+1300);
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, peakStart+PEAK_DUR+600);
+    setTimeout(()=>{ const rb=$('replay'); rb.style.opacity='1'; rb.style.pointerEvents='auto'; rb.onclick=()=>_silnikRenderAnimNajmocniejsza(moment,imie,puenta); }, peakStart+PEAK_DUR+1300);
   });
 }
 
