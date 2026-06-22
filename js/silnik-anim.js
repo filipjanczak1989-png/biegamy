@@ -5,18 +5,21 @@
 
 // ── ANIMACJA WOLUMENU (Slice 4 — skóra Story, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='wolumen' z evidence.slupki[] (6× {label,km,peak}).
-window._silnikPokazAnimacje = function(moment, imie){
+// puenta = tekst trenera (edited_text) jako finalny beat animacji (Slice E krok 2). onClose = callback po zamknięciu (shown_at, krok 3).
+let _silnikOnClose = null;
+window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
+  _silnikOnClose = (typeof onClose === 'function') ? onClose : null;
   try{
     if(!moment) return;
     if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie);
     if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie);
     if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie);
-    if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie);
+    if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie, puenta);
     if(moment.type==='najmocniejsza' && moment.ranking) return _silnikRenderAnimNajmocniejsza(moment, imie);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
-function _silnikZamknijAnim(){ const o=document.getElementById('silnik-anim-overlay'); if(o) o.remove(); }
+function _silnikZamknijAnim(){ const o=document.getElementById('silnik-anim-overlay'); if(o) o.remove(); if(_silnikOnClose){ const cb=_silnikOnClose; _silnikOnClose=null; try{cb();}catch(e){console.error('[silnik-anim] onClose:',e);} } }
 
 // Wspólne efekty animacji (DRY — używane przez wolumen i dystans). Easingi/burst/flash/countUp identyczne jak inline.
 const _silnikFx = {
@@ -263,7 +266,7 @@ function _silnikRenderAnimTop5(moment, imie){
 
 // ── ANIMACJA NAJDŁUŻSZEGO BIEGU (Slice 7 — miara 0→rekord, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='najdluzszy', evidence={dystans, poprzedni_najdluzszy}.
-function _silnikRenderAnimNajdluzszy(ev, imie){
+function _silnikRenderAnimNajdluzszy(ev, imie, puenta){
   _silnikZamknijAnim();
   const esc = window.escapeHtml || (s=>String(s));
   const nlKm = ev.dystans, prevMax = ev.poprzedni_najdluzszy;
@@ -287,6 +290,7 @@ function _silnikRenderAnimNajdluzszy(ev, imie){
       <circle data-el="runner" cx="${PAD}" cy="${cy}" r="5" fill="var(--accent2,#ff7040)" style="filter:drop-shadow(0 0 6px var(--accent,#e8561e));"/>
     </svg>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', n':'N'}ajdłuższy bieg.</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
   document.body.appendChild(o);
@@ -315,7 +319,8 @@ function _silnikRenderAnimNajdluzszy(ev, imie){
       $('gain').setAttribute('opacity','1');
       $('foot').style.opacity='1'; $('brand').style.opacity='1';
     }, DRAW+200);
-    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimNajdluzszy(ev,imie); }, DRAW+1800);
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, DRAW+600);   // puenta = słowo trenera na szczycie
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimNajdluzszy(ev,imie,puenta); }, DRAW+1800);
   });
 }
 
