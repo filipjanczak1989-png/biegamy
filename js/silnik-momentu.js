@@ -44,6 +44,11 @@
     { key: 'marathon', km: 42.195,  tol: 1.5 },
   ];
 
+  // RUN_TYPES — kopia 1:1 z sb.js:622 window.RUN_TYPES (źródło dla EF snapshot-buildera; NIE używane przez detektory,
+  // które czytają snapshot.is_run). ⚠️ Dodanie typu biegowego → tu ORAZ w sb.js (reguła sync). Wystawione: SM.RUN_TYPES/SM.isRunType.
+  var RUN_TYPES = ['spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo', 'progresja', 'interwały', 'start', 'wyścig', 'regeneracja'];
+  function isRunType(t) { return RUN_TYPES.indexOf((t == null ? '' : String(t)).toLowerCase().trim()) !== -1; }
+
   // DYSTANS-SKALA: PODRÓŻ DOOKOŁA ŚWIATA wzdłuż jednej trasy (Europa→Bliski Wschód→Azja→Ameryki→Afryka).
   // prog miasta = kumulatywna DROGA WZDŁUŻ TRASY od domu (suma odcinków miasto→miasto), liczona LIVE.
   // Tylko 1. odcinek (Dom→Poznań) zależy od domu (_startPoint); reszta to miasto→miasto (stałe).
@@ -480,6 +485,8 @@
     _najmocniejszaLider: _najmocniejszaLider,
     _agRanking: _agRanking,
     _agFactor: agFactor,
+    RUN_TYPES: RUN_TYPES,        // dla EF snapshot-buildera (is_run); single-source z silnikiem
+    isRunType: isRunType,
     _normalizeCity: _normalizeCity,
     _startPoint: _startPoint,
     _dystansCele: DYSTANS_CELE,
@@ -882,6 +889,20 @@
       // helper lidera do persystencji
       check('najm: _najmocniejszaLider = 5k', SM._najmocniejszaLider(snap(base)) === '5k', SM._najmocniejszaLider(snap(base)));
       check('najm: _najmocniejszaLider <2PB = null', SM._najmocniejszaLider(snap({ gender: 'M', pbs: { '5k': 1047 } })) === null, true);
+    })();
+
+    // ── RUN_TYPES / isRunType (export dla EF; NIE zmienia detektorów) ────────────
+    (function () {
+      var SM = SilnikMomentu;
+      check('isRunType: 10 typów (1:1 z sb.js)', SM.RUN_TYPES.length === 10, SM.RUN_TYPES.length);
+      check('isRunType: bieg spokojny → true', SM.isRunType('bieg spokojny') === true, true);
+      check('isRunType: Start (case) → true', SM.isRunType('Start') === true, true);
+      check('isRunType: "  Tempo  " (trim) → true', SM.isRunType('  Tempo  ') === true, true);
+      check('isRunType: interwały → true', SM.isRunType('interwały') === true, true);
+      check('isRunType: Siłownia (niebiegowy) → false', SM.isRunType('Siłownia') === false, false);
+      check('isRunType: Rower → false', SM.isRunType('Rower') === false, false);
+      check('isRunType: pusty/null → false', SM.isRunType('') === false && SM.isRunType(null) === false, true);
+      // detektory NIE używają isRunType (czytają snapshot.is_run) — dodanie czyste, zero wpływu na detekcję (dowód: testy [1-17,najm] wyżej PASS)
     })();
 
     console.log('\n' + (fail === 0 ? '✅ PASS' : '❌ FAIL') + '  (' + pass + ' ok, ' + fail + ' fail)');
