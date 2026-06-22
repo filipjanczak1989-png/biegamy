@@ -1,3 +1,7 @@
 
 *.backup
 fix_*.py
+
+# Security audit output — NEVER commit (repo deploys to public GitHub Pages)
+.security-audit/
+build/
