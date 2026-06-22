@@ -1674,6 +1674,7 @@ body > *{position:relative;z-index:1;}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sb.js"></script>
+<script src="js/silnik-momentu.js"></script>
 
 <script>
 // ✨ DIAGNOSTYKA: globalny intercept fetch - loguje detail każdego błędu 400/500
@@ -4033,6 +4034,64 @@ async function loadAvatarTopbar(athleteId) {
   img.src = ath.avatar_url;
 }
 
+// ── SILNIK MOMENTU (Slice 3 — snapshot-builder, DEBUG-ONLY, gated ?silnik=1) ──
+function _silnikToSec(s){                          // "MM:SS"/"H:MM:SS"/min → sekundy (lustro pbToSec)
+  if(!s) return null;
+  const p=String(s).trim().split(':').map(Number);
+  if(p.some(isNaN)) return null;
+  if(p.length===3) return p[0]*3600+p[1]*60+p[2];
+  if(p.length===2) return p[0]*60+p[1];
+  if(p.length===1) return p[0]*60;
+  return null;
+}
+
+async function _silnikBuildSnapshot(){
+  if(!_athleteId) return null;
+  const since90=new Date(); since90.setDate(since90.getDate()-90);
+  const [logsRes, athRes]=await Promise.all([
+    sb.from('training_logs')
+      .select('logged_at,distance_km,duration,training_type')
+      .eq('athlete_id',_athleteId)
+      .not('training_type','like','__badge__%')
+      .gte('logged_at',since90.toISOString())
+      .order('logged_at',{ascending:true}),
+    sb.from('athletes')
+      .select('pb_5k,pb_10k,pb_half,pb_marathon')
+      .eq('id',_athleteId).single()
+  ]);
+  const rows=logsRes.data||[]; const a=athRes.data||{};
+  const logs=rows.map(r=>({
+    logged_at:r.logged_at,
+    distance_km:parseFloat(r.distance_km)||0,
+    duration_s:_silnikToSec(r.duration),
+    training_type:r.training_type
+  }));
+  if(!logs.length) return null;
+  const pbs={ '5k':_silnikToSec(a.pb_5k), '10k':_silnikToSec(a.pb_10k),
+              'half':_silnikToSec(a.pb_half), 'marathon':_silnikToSec(a.pb_marathon) };
+  const newLog=logs[logs.length-1];                // najnowszy (ascending)
+  const today=String(newLog.logged_at).slice(0,10);// anchor = data ostatniego logu (jak przy zapisie)
+  return { newLog, logs, pbs, today, historia:[] }; // historia pusta — persystencja w KM6
+}
+
+async function _silnikDebug(){
+  try{
+    if(!window.SilnikMomentu){ console.warn('[silnik] niezaładowany'); return; }
+    const snap=await _silnikBuildSnapshot();
+    if(!snap){ console.log('[silnik] brak danych'); return; }
+    const SM=window.SilnikMomentu, moment=SM.detect(snap);
+    console.log('[silnik] snapshot:',{logów:snap.logs.length,newLog:snap.newLog,pbs:snap.pbs,today:snap.today});
+    console.log('[silnik] detektory:',{pb:SM._detectPB(snap),wolumen:SM._detectVolume(snap),streak:SM._detectStreak(snap)});
+    console.log('%c[silnik] MOMENT:','font-weight:bold',moment||'CISZA (null)');
+    // surowy debug-div (gated, pointer-events:none, nie dotyka UI zawodnika)
+    let el=document.getElementById('silnik-debug');
+    if(!el){ el=document.createElement('div'); el.id='silnik-debug';
+      el.style.cssText='position:fixed;bottom:8px;left:8px;z-index:99999;max-width:80vw;background:rgba(7,5,12,0.92);border:1px solid #e8561e;color:#fff;font:11px/1.4 DM Mono,monospace;padding:8px 10px;border-radius:8px;pointer-events:none;';
+      document.body.appendChild(el); }
+    el.textContent = moment ? `silnik → ${moment.type} ${JSON.stringify(moment.evidence)}` : 'silnik → CISZA (null)';
+  }catch(e){ console.error('[silnik] błąd:',e); }
+}
+
 // ── AUTH ──────────────────────────────────────────────────────────
 async function initAuth() {
   try { _heroInit(); } catch(e) {}
@@ -4132,6 +4191,8 @@ async function initAuth() {
     checkStravaStatus(); // pokaż/ukryj baner Stravy na stronie Dziś
     loadAvatarTopbar(_athleteId);
     if (typeof window.loadWeather === 'function') window.loadWeather();
+    // SLICE 3 (debug-only) — wykryj moment, NIE pokazuj zawodnikowi. Włącz: ?silnik=1
+    try { if (new URLSearchParams(location.search).get('silnik') === '1') _silnikDebug(); } catch(e) {}
   } else {
     // Brak rekordu w athletes — może to trener który nie ma profilu zawodnika
     const fromTrener = new URLSearchParams(window.location.search).get('from') === 'trener';
