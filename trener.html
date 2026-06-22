@@ -394,6 +394,13 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   <div id="fresh-feedbacks-list"></div>
 </div>
 
+<!-- ━━━━━━━━ MOMENTY DO ZATWIERDZENIA (Silnik Momentu) ━━━━━━━━ -->
+<div class="sec-hdr fi" id="moments-sec-hdr" style="display:none;">
+  <div class="sec-title">✨ Momenty do zatwierdzenia · <span id="moments-count" style="color:var(--accent);">0</span></div>
+  <button class="sec-action" onclick="loadPendingMoments()">↻ Odśwież</button>
+</div>
+<div class="intake-section fi" id="moments-section"></div>
+
 <!-- ━━━━━━━━ NOWE ZGŁOSZENIA Z ANKIETY ━━━━━━━━ -->
 <div class="sec-hdr fi" id="intake-sec-hdr" style="display:none;">
   <div class="sec-title">📋 Nowe zgłoszenia · <span id="intake-count" style="color:var(--accent);">0</span></div>
@@ -8302,6 +8309,99 @@ document.addEventListener('keydown', (e) => {
     }
   };
 
+  // ━━━━━━━━ SILNIK MOMENTU — panel zatwierdzania (Slice D) ━━━━━━━━
+  const MOMENT_PL = { pb:'Rekord życiowy', najdluzszy:'Najdłuższy bieg', wolumen:'Rekordowy tydzień', streak:'Seria tygodni', dystans:'Podróż przez świat', top5:'TOP 5 tygodni', najmocniejsza:'Najmocniejsza życiówka' };
+  const DIST_PL = { '5k':'5 km', '10k':'10 km', 'half':'półmaraton', 'marathon':'maraton' };
+  function fmtSec(s){ if(s==null||isNaN(s)) return '—'; s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return (h>0 ? h+':'+p(m) : m)+':'+p(x); }
+  // opis "co się stało" (display-only znajomość evidence-shape; osobno od silnika)
+  function describeMoment(type, ev, pl){
+    ev = ev||{}; pl = pl||{};
+    switch(type){
+      case 'pb':          return (DIST_PL[ev.dystans]||ev.dystans)+' — '+fmtSec(ev.nowy_czas)+' (było '+fmtSec(ev.stary_czas)+')';
+      case 'najdluzszy':  return ev.dystans+' km (poprzedni '+ev.poprzedni_najdluzszy+' km)';
+      case 'wolumen':     return ev.suma_km+' km/tydz (poprzedni rekord '+ev.poprzednie_max+')';
+      case 'streak':      return ev.tygodnie+' tygodni z rzędu';
+      case 'dystans':     return ev.miasto+' — '+ev.dystans_miasta+' km od startu ('+ev.rok+')';
+      case 'top5':        return '#'+pl.pozycja+' tydzień ('+pl.km+' km)';
+      case 'najmocniejsza': return (DIST_PL[ev.dystans]||ev.dystans)+' najmocniejsza (było '+(DIST_PL[ev.poprzedni]||ev.poprzedni)+')';
+      default:            return '';
+    }
+  }
+  // prefill tekstu dla trenera (punkt startowy do edycji — decyzja: szablon, nie puste)
+  function defaultMomentText(type, ev, pl){
+    ev = ev||{}; pl = pl||{};
+    switch(type){
+      case 'pb':          return 'Rekord życiowy na '+(DIST_PL[ev.dystans]||ev.dystans)+'! '+fmtSec(ev.nowy_czas)+' — gratulacje! 🔥';
+      case 'najdluzszy':  return 'Twój najdłuższy bieg — '+ev.dystans+' km! 💪';
+      case 'wolumen':     return 'Najmocniejszy tydzień ostatnich miesięcy — '+ev.suma_km+' km! 👊';
+      case 'streak':      return ev.tygodnie+' tygodni z rzędu — konsekwencja robi robotę! 🔥';
+      case 'dystans':     return 'Dotarłeś do '+ev.miasto+' — '+ev.dystans_miasta+' km od startu w tym roku! 🌍';
+      case 'top5':        return 'Twój '+pl.pozycja+'. najmocniejszy tydzień odkąd biegasz z nami! 🏆';
+      case 'najmocniejsza': return 'Twoja '+(DIST_PL[ev.dystans]||ev.dystans)+' to teraz Twoja najmocniejsza życiówka! 📈';
+      default:            return 'Świetna robota! 💪';
+    }
+  }
+
+  window.loadPendingMoments = async function(){
+    const hdr = document.getElementById('moments-sec-hdr');
+    const sec = document.getElementById('moments-section');
+    if (!sec) return;
+    try {
+      const { data: { user } } = await sb.auth.getUser();
+      if (!user) { hdr.style.display = 'none'; sec.innerHTML = ''; return; }
+      const { data, error } = await sb
+        .from('delivered_moments')
+        .select('id, type, evidence, payload, created_at, athlete_id, athletes(full_name)')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true });   // RLS dm_coach_sel scopuje do zawodników tego trenera
+      if (error) {
+        console.error('[Momenty] load error:', error);
+        hdr.style.display = 'flex';
+        document.getElementById('moments-count').textContent = '!';
+        sec.innerHTML = `<div class="intake-empty" style="color:var(--red)">Błąd ładowania: ${escHtml(error.message)}</div>`;
+        return;
+      }
+      const moments = data || [];
+      if (moments.length === 0) { hdr.style.display = 'none'; sec.innerHTML = ''; return; }
+      hdr.style.display = 'flex';
+      document.getElementById('moments-count').textContent = moments.length;
+      sec.innerHTML = moments.map(m => {
+        const nm = (m.athletes && m.athletes.full_name) || '—';
+        const tpl = escHtml(defaultMomentText(m.type, m.evidence, m.payload));
+        return `
+          <div class="intake-card" style="cursor:default;">
+            <div class="intake-top">
+              <div class="intake-av">${initials(nm)}</div>
+              <div class="intake-meta">
+                <div class="intake-name">${escHtml(nm)}</div>
+                <div class="intake-sub"><b style="color:var(--accent);">${escHtml(MOMENT_PL[m.type] || m.type)}</b> · ${escHtml(describeMoment(m.type, m.evidence, m.payload))}</div>
+              </div>
+            </div>
+            <textarea id="mtext-${m.id}" rows="2" style="width:100%;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--fg);font:inherit;font-size:13px;padding:8px 10px;resize:vertical;box-sizing:border-box;">${tpl}</textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button class="intake-btn intake-btn-reject" onclick="reviewMoment('${m.id}','reject')">✕ Odrzuć</button>
+              <button class="intake-btn intake-btn-accept" onclick="reviewMoment('${m.id}','approve')">✓ Zatwierdź i wyślij</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } catch(e) {
+      console.error('[Momenty] load exception:', e);
+      hdr.style.display = 'flex';
+      sec.innerHTML = `<div class="intake-empty" style="color:var(--red)">Błąd: ${escHtml(e.message)}</div>`;
+    }
+  };
+
+  window.reviewMoment = async function(id, action){
+    const ta = document.getElementById('mtext-' + id);
+    const text = (ta ? ta.value : '').trim();
+    if (action === 'approve' && !text) { showToast('Napisz tekst dla zawodnika'); return; }
+    const { error } = await sb.rpc('review_moment', { p_moment_id: id, p_action: action, p_text: text });
+    if (error) { console.error('[Momenty] review error:', error); showToast('Błąd: ' + error.message); return; }
+    showToast(action === 'approve' ? '✓ Zatwierdzono — wysłane do zawodnika' : '✕ Odrzucono');
+    loadPendingMoments();
+  };
+
   window.openIntakeModal = async function(intakeId){
     _currentIntakeId = intakeId;
     const modal = document.getElementById('intake-modal');
@@ -8509,9 +8609,9 @@ document.addEventListener('keydown', (e) => {
 
   // START — załaduj po DOM ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadPendingIntakes);
+    document.addEventListener('DOMContentLoaded', () => { loadPendingIntakes(); loadPendingMoments(); });
   } else {
-    loadPendingIntakes();
+    loadPendingIntakes(); loadPendingMoments();
   }
 })();
 </script>
