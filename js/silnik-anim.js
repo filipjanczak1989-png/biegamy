@@ -16,6 +16,7 @@ window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
     if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie, puenta);
     if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie, puenta);
     if(moment.type==='najmocniejsza' && moment.ranking) return _silnikRenderAnimNajmocniejsza(moment, imie, puenta);
+    if(moment.type==='pb' && moment.evidence) return _silnikRenderAnimPb(moment.evidence, imie, puenta);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
@@ -397,6 +398,50 @@ function _silnikRenderAnimNajmocniejsza(moment, imie, puenta){
   });
 }
 
+
+// ── ANIMACJA REKORDU ŻYCIOWEGO (PB — odliczanie czasu stary→nowy, flagowy) ──
+// Kontrakt: moment.type==='pb', evidence={dystans:'5k'|'10k'|'half'|'marathon', nowy_czas:sek, stary_czas:sek, delta:sek}.
+function _silnikRenderAnimPb(ev, imie, puenta){
+  _silnikZamknijAnim();
+  const esc = window.escapeHtml || (s=>String(s));
+  const NAZWA = {'5k':'5 KM','10k':'10 KM','half':'Półmaraton','marathon':'Maraton'};
+  const nowy = ev.nowy_czas, stary = ev.stary_czas, delta = ev.delta;
+  function fmtCzas(s){ s=Math.max(0,Math.round(s)); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return (h>0 ? h+':'+p(m) : m)+':'+p(x); }
+
+  const o=document.createElement('div'); o.id='silnik-anim-overlay';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%),#07070a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;color:#fff;';
+  o.innerHTML=`
+    <button id="silnik-anim-close" aria-label="Zamknij" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
+    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent,#e8561e);">Rekord życiowy · ${esc(NAZWA[ev.dystans]||ev.dystans)}</div>
+    <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:112px;line-height:.86;margin:6px 0 2px;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">${fmtCzas(stary)}</div>
+    <div data-el="sub" style="opacity:0;transition:opacity .6s;font-family:'DM Mono',monospace;font-size:13px;color:#8a8693;">było ${fmtCzas(stary)} · <span style="color:var(--accent2,#ff7040);">−${fmtCzas(delta)}</span></div>
+    <div data-el="foot" style="opacity:0;transition:opacity .6s;margin-top:12px;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', r':'R'}ekord życiowy.</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
+    <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
+    <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
+  document.body.appendChild(o);
+  const $ = s => o.querySelector('[data-el="'+s+'"]');
+  o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
+  o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
+
+  // odliczanie czasu stary→nowy, STAŁA długość (easeOutCubic), format per klatka — nie ciągnie się dla dużych delt
+  const DUR=1300;
+  function countDownTime(el, from, to){ const t0=performance.now();
+    (function step(t){ const p=Math.min(1,(t-t0)/DUR); const v=from+(to-from)*_silnikFx.easeOutCubic(p);
+      el.textContent=fmtCzas(v); if(p<1) requestAnimationFrame(step); else el.textContent=fmtCzas(to); })(performance.now()); }
+
+  requestAnimationFrame(()=>{
+    $('eyebrow').style.opacity='1'; $('eyebrow').style.transform='translateY(0)';
+    countDownTime($('big'), stary, nowy);                              // big spada stary→nowy
+    setTimeout(()=>{                                                   // LĄDOWANIE na PB
+      const rb=$('big').getBoundingClientRect();
+      _silnikFx.burst(rb.left+rb.width/2, rb.top+rb.height/2, 16); _silnikFx.flash(o);
+      $('sub').style.opacity='1'; $('foot').style.opacity='1'; $('brand').style.opacity='1';
+    }, DUR+150);
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, DUR+750);   // puenta ~+600 po lądowaniu
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimPb(ev,imie,puenta); }, DUR+1900);
+  });
+}
 
 // rekonstrukcja momentu z wiersza delivered_moments: evidence + payload splaszczony do top-level (suma_km/ranking/...)
 window._silnikOdtworzMoment = function(row){ return Object.assign({ type: row.type, evidence: row.evidence }, row.payload || {}); };

@@ -3736,7 +3736,7 @@ let _athleteId = null;
 // Baner przy bellu → klik → animacja z puentą trenera → shown_at. RLS dm_ath_sel tnie do własnych approved.
 // Krok 4: dostarczamy typy które MAJĄ animację (5: wolumen/dystans/top5/najdluzszy/najmocniejsza — wszystkie z puentą).
 // ⚠️ pb/streak NIE mają animacji → wykluczone (inaczej klik→brak animacji→onClose nie odpali→shown_at null→baner się zacina). Dopisać tu gdy powstaną ich animacje.
-const _MOMENT_ANIMOWANE = ['wolumen','dystans','top5','najdluzszy','najmocniejsza'];
+const _MOMENT_ANIMOWANE = ['wolumen','dystans','top5','najdluzszy','najmocniejsza','pb'];
 window.loadMomenty = async function(athleteId, imie){
   const baner = document.getElementById('moment-baner');
   if (!baner) return;
