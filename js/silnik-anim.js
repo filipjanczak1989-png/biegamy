@@ -17,6 +17,7 @@ window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
     if(moment.type==='najdluzszy' && moment.evidence) return _silnikRenderAnimNajdluzszy(moment.evidence, imie, puenta);
     if(moment.type==='najmocniejsza' && moment.ranking) return _silnikRenderAnimNajmocniejsza(moment, imie, puenta);
     if(moment.type==='pb' && moment.evidence) return _silnikRenderAnimPb(moment.evidence, imie, puenta);
+    if(moment.type==='streak' && moment.evidence) return _silnikRenderAnimStreak(moment.evidence, imie, puenta);
     console.warn('[silnik-anim] brak animacji dla typu:', moment.type);
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
@@ -440,6 +441,64 @@ function _silnikRenderAnimPb(ev, imie, puenta){
     }, DUR+150);
     if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, DUR+750);   // puenta ~+600 po lądowaniu
     setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimPb(ev,imie,puenta); }, DUR+1900);
+  });
+}
+
+// ── ANIMACJA SERII / STREAK (tygodnie konsekwencji — ogniwa zapalają się po kolei) ──
+// Kontrakt: moment.type==='streak', evidence={tygodnie:N} (N = wielokrotność 4: 4/8/12...). Zero zależności od SM (czysta funkcja).
+function _silnikRenderAnimStreak(ev, imie, puenta){
+  _silnikZamknijAnim();
+  const esc = window.escapeHtml || (s=>String(s));
+  const N = ev.tygodnie || 0;
+  const overflow = N > 16 ? (N - 15) : 0;            // N>16 → 15 ogniw + „+overflow" (starsze zwinięte; skrajne zabezpieczenie)
+  const ogniwa = overflow ? 15 : Math.min(N, 16);    // realnie rysowane kropki
+  const gap = ogniwa <= 6 ? 12 : (ogniwa <= 10 ? 8 : 6);
+  const dot = Math.max(10, Math.min(48, Math.floor((300 - gap*(ogniwa-1)) / ogniwa)));   // skalowanie: mieści się w ~300px
+
+  const o=document.createElement('div'); o.id='silnik-anim-overlay';
+  o.style.cssText='position:fixed;inset:0;z-index:100000;overflow:hidden;background:radial-gradient(120% 75% at 50% 8%,rgba(var(--accent-rgb,232,86,30),.22),#0c0710 55%,#07070a 100%),#07070a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:"DM Sans",sans-serif;color:#fff;';
+  const overflowHtml = overflow ? `<div style="font-family:'DM Mono',monospace;font-size:14px;color:#8a8693;margin-right:4px;flex-shrink:0;">+${overflow}</div>` : '';
+  o.innerHTML=`
+    <button id="silnik-anim-close" aria-label="Zamknij" style="position:absolute;top:18px;right:18px;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;font-size:22px;cursor:pointer;z-index:5;">×</button>
+    <div data-el="eyebrow" style="opacity:0;transform:translateY(8px);transition:opacity .5s,transform .5s;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.3em;text-transform:uppercase;color:var(--accent,#e8561e);">Seria · Konsekwencja</div>
+    <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:128px;line-height:.86;margin:6px 0 0;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0</div>
+    <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#e8561e);margin-bottom:24px;">tygodni z rzędu</div>
+    <div data-el="chain" style="display:flex;align-items:center;justify-content:center;gap:${gap}px;max-width:92%;">${overflowHtml}</div>
+    <div data-el="foot" style="opacity:0;transition:opacity .6s;margin-top:24px;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', k':'K'}onsekwencja robi robotę.</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Mono\',monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--accent,#e8561e);">— Twój trener</div>' : ''}</div>
+    <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
+    <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
+  document.body.appendChild(o);
+  const $ = s => o.querySelector('[data-el="'+s+'"]');
+  o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
+  o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
+
+  const chain = $('chain'); const dots = [];
+  for(let i=0;i<ogniwa;i++){ const d=document.createElement('div');
+    d.style.cssText='width:'+dot+'px;height:'+dot+'px;border-radius:50%;background:rgba(255,255,255,.10);transition:background .25s,box-shadow .25s,transform .2s;flex-shrink:0;';
+    chain.appendChild(d); dots.push(d); }
+
+  // choreografia: ogniwa L→R stagger (~1.2s), big liczy w synchronie (każde ogniwo → big++), ostatnie = iskry
+  const TOTAL=1200, step=Math.max(45, Math.round(TOTAL/ogniwa));
+  requestAnimationFrame(()=>{
+    $('eyebrow').style.opacity='1'; $('eyebrow').style.transform='translateY(0)';
+    dots.forEach((d,i)=>{
+      setTimeout(()=>{
+        d.style.background='linear-gradient(180deg,var(--accent2,#ff7040),var(--accent,#e8561e))';
+        d.style.boxShadow='0 0 16px rgba(var(--accent-rgb,232,86,30),.7)';
+        d.style.transform='scale(1.18)'; setTimeout(()=>{ d.style.transform='scale(1)'; }, 180);
+        $('big').textContent = overflow ? (overflow + i + 1) : (i + 1);    // big rośnie z ogniwami
+        if(i === ogniwa-1){                                                // ostatnie ogniwo = kulminacja
+          const rb=d.getBoundingClientRect();
+          _silnikFx.burst(rb.left+rb.width/2, rb.top+rb.height/2, 16); _silnikFx.flash(o);
+          $('big').textContent = N;                                        // pewność: dokładnie N
+          $('foot').style.opacity='1'; $('brand').style.opacity='1';
+        }
+      }, 320 + i*step);
+    });
+    const endAt = 320 + (ogniwa-1)*step;
+    if(puenta) setTimeout(()=>{ const p=$('puenta'); if(p){ p.style.opacity='1'; p.style.transform='translateY(0)'; } }, endAt+750);
+    setTimeout(()=>{ const r=$('replay'); r.style.opacity='1'; r.style.pointerEvents='auto'; r.onclick=()=>_silnikRenderAnimStreak(ev,imie,puenta); }, endAt+1900);
   });
 }
 
