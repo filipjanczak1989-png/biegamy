@@ -834,6 +834,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="sb.js"></script>
+<script src="js/silnik-momentu.js"></script>
 <script src="js/silnik-anim.js"></script>
 
 <script>
@@ -8312,6 +8313,7 @@ document.addEventListener('keydown', (e) => {
 
   // ━━━━━━━━ SILNIK MOMENTU — panel zatwierdzania (Slice D) ━━━━━━━━
   const MOMENT_PL = { pb:'Rekord życiowy', najdluzszy:'Najdłuższy bieg', wolumen:'Rekordowy tydzień', streak:'Seria tygodni', dystans:'Podróż przez świat', top5:'TOP 5 tygodni', najmocniejsza:'Najmocniejsza życiówka' };
+  const _MOMENT_PODGLAD = ['wolumen','dystans','top5','najdluzszy','najmocniejsza','pb'];  // typy z animacją (streak bez → bez „Obejrzyj")
   const DIST_PL = { '5k':'5 km', '10k':'10 km', 'half':'półmaraton', 'marathon':'maraton' };
   function fmtSec(s){ if(s==null||isNaN(s)) return '—'; s=Math.round(s); const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), x=s%60; const p=n=>String(n).padStart(2,'0'); return (h>0 ? h+':'+p(m) : m)+':'+p(x); }
   // opis "co się stało" (display-only znajomość evidence-shape; osobno od silnika)
@@ -8366,9 +8368,12 @@ document.addEventListener('keydown', (e) => {
       if (moments.length === 0) { hdr.style.display = 'none'; sec.innerHTML = ''; return; }
       hdr.style.display = 'flex';
       document.getElementById('moments-count').textContent = moments.length;
+      window._momentyById = {};
       sec.innerHTML = moments.map(m => {
+        window._momentyById[m.id] = m;
         const nm = (m.athletes && m.athletes.full_name) || '—';
         const tpl = escHtml(defaultMomentText(m.type, m.evidence, m.payload));
+        const podglad = _MOMENT_PODGLAD.includes(m.type) ? '<button class="intake-btn" style="background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.35);" onclick="previewMoment(\'' + m.id + '\')">👁 Obejrzyj</button>' : '';
         return `
           <div class="intake-card" style="cursor:default;">
             <div class="intake-top">
@@ -8380,6 +8385,7 @@ document.addEventListener('keydown', (e) => {
             </div>
             <textarea id="mtext-${m.id}" rows="2" style="width:100%;margin-top:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:var(--fg);font:inherit;font-size:13px;padding:8px 10px;resize:vertical;box-sizing:border-box;">${tpl}</textarea>
             <div style="display:flex;gap:8px;margin-top:8px;">
+              ${podglad}
               <button class="intake-btn intake-btn-reject" onclick="reviewMoment('${m.id}','reject')">✕ Odrzuć</button>
               <button class="intake-btn intake-btn-accept" onclick="reviewMoment('${m.id}','approve')">✓ Zatwierdź i wyślij</button>
             </div>
@@ -8401,6 +8407,16 @@ document.addEventListener('keydown', (e) => {
     if (error) { console.error('[Momenty] review error:', error); showToast('Błąd: ' + error.message); return; }
     showToast(action === 'approve' ? '✓ Zatwierdzono — wysłane do zawodnika' : '✕ Odrzucono');
     loadPendingMoments();
+  };
+
+  // podgląd animacji przed zatwierdzeniem (WYSIWYG: puenta = aktualny tekst z textarea; BEZ shown_at — to nie dostawa)
+  window.previewMoment = function(id){
+    const m = (window._momentyById || {})[id]; if (!m) return;
+    const ta = document.getElementById('mtext-' + id);
+    const puenta = (ta ? ta.value : '').trim();
+    const nm = (m.athletes && m.athletes.full_name) || '';
+    const moment = window._silnikOdtworzMoment(m);
+    window._silnikPokazAnimacje(moment, nm.split(' ')[0], puenta);   // bez onClose → zero efektów ubocznych
   };
 
   window.openIntakeModal = async function(intakeId){
