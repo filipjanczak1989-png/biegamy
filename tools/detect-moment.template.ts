@@ -45,6 +45,17 @@ Deno.serve(async (req) => {
   const { data: hist } = await sb.from('delivered_moments')
     .select('type,evidence').eq('athlete_id', athlete_id).eq('status', 'approved');
 
+  // planowy odpoczynek (streak): approved plany → tydzień z workoutami ale BEZ żadnego biegu = rest → MOSTKUJE serię (nie zrywa, nie liczy)
+  const { data: plans } = await sb.from('training_plans').select('id').eq('athlete_id', athlete_id).eq('status', 'approved');
+  const planIds = (plans || []).map((p) => p.id);
+  const planowy_odpoczynek = {};
+  if (planIds.length) {
+    const { data: pw } = await sb.from('training_plan_workouts').select('date,workout_type').in('plan_id', planIds);
+    const wkAny = {}, wkRun = {};
+    (pw || []).forEach((w) => { const k = SM.weekKey(w.date); wkAny[k] = true; if (SM.isRunType(w.workout_type)) wkRun[k] = true; });
+    Object.keys(wkAny).forEach((k) => { if (!wkRun[k]) planowy_odpoczynek[k] = true; });   // ma workouty, zero biegów → rest
+  }
+
   // ── snapshot-builder (LUSTRO browser buildSnapshot; is_run = SM.isRunType) ──
   const all = (rows || []).map((r) => ({
     logged_at: r.logged_at,
@@ -71,6 +82,7 @@ Deno.serve(async (req) => {
     newLog, logs, logs_all: all, pbs, today, historia,
     gender: a.gender || null, wiek, suma_roczna_km, rok,
     start_miasto: a.city || null, ostatni_lider: a.strongest_pb_dist || null,
+    planowy_odpoczynek,
   };
 
   // detect (najmocniejsza czyta snap.ostatni_lider = stary lider, zamrożony)

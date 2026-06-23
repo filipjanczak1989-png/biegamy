@@ -215,9 +215,10 @@
     for (var i = 0; i < logs.length; i++) {
       if (logs[i] && logs[i].logged_at) present[weekKey(logs[i].logged_at)] = true;
     }
+    var odp = snap.planowy_odpoczynek || {};        // {weekKey:true} planowy odpoczynek (tydzień planu BEZ biegów) — MOSTKUJE serię; pusty w browser/debug = stare zachowanie
     var cur = weekKey(snap.today);
     var weeks = 0;
-    while (present[cur]) { weeks++; cur--; }
+    while (present[cur] || odp[cur]) { if (present[cur]) weeks++; cur--; }   // rest mostkuje (cur--) ale NIE liczy (weeks++ tylko gdy bieg); brak obu = stop
     if (weeks < STREAK_MIN) return null;
     if (weeks % STREAK_MIN !== 0) return null; // tylko okrągłe progi 4,8,12... — między nimi CISZA
     return {
@@ -487,6 +488,7 @@
     _agFactor: agFactor,
     RUN_TYPES: RUN_TYPES,        // dla EF snapshot-buildera (is_run); single-source z silnikiem
     isRunType: isRunType,
+    weekKey: weekKey,           // dla EF: te same klucze tygodni co detectStreak (present[] i planowy_odpoczynek[] muszą trafić)
     _normalizeCity: _normalizeCity,
     _startPoint: _startPoint,
     _dystansCele: DYSTANS_CELE,
@@ -575,6 +577,21 @@
     console.log('[3c] streak=8 (próg) →', JSON.stringify(m3c));
     check('STREAK wykryty na 8', m3c && m3c.type === 'streak', m3c);
     check('STREAK tygodnie = 8', m3c && m3c.evidence.tygodnie === 8, m3c);
+
+    // 3d) MOSTEK planowego odpoczynku — rest nie zrywa, nie liczy się do N
+    function streakBridge(runWeeks, restWeeks) {
+      var logs = runWeeks.map(function (w) { return { logged_at: dateInWeek(w), distance_km: 20, duration_s: 7200 }; });
+      var odp = {}; (restWeeks || []).forEach(function (w) { odp[weekKey(dateInWeek(w))] = true; });
+      return { today: TODAY, logs: logs, planowy_odpoczynek: odp };
+    }
+    var mb1 = detectStreak(streakBridge([0, 1, 3, 4], [2]));               // rest w ŚRODKU (tydz 2) mostkuje 4 biegowe
+    check('STREAK mostek (rest w środku) → tygodnie=4', mb1 && mb1.type === 'streak' && mb1.evidence.tygodnie === 4, mb1);
+    var mb2 = detectStreak(streakBridge([1, 2, 3, 4], [0]));               // bieżący tydzień = rest, mostek do prior 4 biegowych
+    check('STREAK mostek (bieżący=rest) → tygodnie=4', mb2 && mb2.evidence.tygodnie === 4, mb2);
+    var mb3 = detectStreak(streakBridge([0, 1], []));                      // SAMOWOLNY brak (tydz 2 bez loga, NIE rest) → zrywa → 2 < próg → null
+    check('STREAK samowolny brak → zrywa (null)', mb3 === null, mb3);
+    var mb4 = detectStreak(streakBridge([0, 1, 3, 4], []));                // tydz 2 brak loga + brak w odp (poza planem) → zrywa na 2 → null
+    check('STREAK poza planem (brak loga, brak odp) → zrywa (null)', mb4 === null, mb4);
 
     // 4) KILKA NARAZ: streak na progu (8) + wolumen-max + PB → §3 musi wybrać PB
     var s4logs = [];
