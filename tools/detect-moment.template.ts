@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
     (pw || []).forEach((w) => { const k = SM.weekKey(w.date); wkAny[k] = true; if (SM.isRunType(w.workout_type)) wkRun[k] = true; });
     Object.keys(wkAny).forEach((k) => { if (!wkRun[k]) planowy_odpoczynek[k] = true; });   // ma workouty, zero biegów → rest
   }
+  console.log('[detect] athlete', athlete_id, 'plans', planIds.length, 'rest-weeks', Object.keys(planowy_odpoczynek).length);   // czujnik mostka streak: rest-weeks>0 = mostek aktywny (sam id+liczby, bez treści planów)
 
   // ── snapshot-builder (LUSTRO browser buildSnapshot; is_run = SM.isRunType) ──
   const all = (rows || []).map((r) => ({
