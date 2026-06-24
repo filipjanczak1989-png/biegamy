@@ -3,6 +3,87 @@
 // Wyekstrahowane 0-roznicy z zawodnik.html (linie 4102-4482). NIE refactoruj logiki tu — to dzialajacy kod 5 animacji.
 // Zaleznosci zewn.: window.escapeHtml (sb.js). Animacja 'dystans' dodatkowo: window.SilnikMomentu (js/silnik-momentu.js — tylko zawodnik).
 
+// ── KARTA-SHARE (pobranie karty momentu jako PNG 1080×1920, wariant A) ──
+// Mapper treści: moment → {eyebrow,hero,heroUnit,ctx,ctxDelta,name}. Bez daty (decyzja Filipa).
+function _silnikShareContent(moment, imie){
+  if(!moment) return null;
+  const NAZWA={'5k':'5 KM','10k':'10 KM','half':'Półmaraton','marathon':'Maraton'};
+  const ev=moment.evidence||{};
+  const fmtCzas=s=>{s=Math.max(0,Math.round(s));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;const p=n=>String(n).padStart(2,'0');return (h>0?h+':'+p(m):m)+':'+p(x);};
+  const r1=n=>Math.round(n*10)/10;
+  const name=imie?String(imie):'';
+  const out={eyebrow:'',hero:'',heroUnit:null,ctx:'',ctxDelta:'',name};
+  switch(moment.type){
+    case 'pb':{const nowy=ev.nowy_czas,stary=ev.stary_czas,delta=ev.delta;out.eyebrow='Rekord życiowy · '+(NAZWA[ev.dystans]||ev.dystans);out.hero=fmtCzas(nowy);out.ctx='było '+fmtCzas(stary);out.ctxDelta='−'+fmtCzas(delta);break;}
+    case 'najdluzszy':{const km=ev.dystans,prev=ev.poprzedni_najdluzszy;out.eyebrow='Najdłuższy bieg';out.hero=String(r1(km));out.heroUnit='KM';out.ctx='poprzednio '+r1(prev)+' km';out.ctxDelta='+'+r1(km-prev)+' km';break;}
+    case 'wolumen':{const km=ev.suma_km,prev=ev.poprzednie_max;out.eyebrow='Najmocniejszy tydzień';out.hero=String(r1(km));out.heroUnit='KM';out.ctx='poprzedni rekord '+r1(prev)+' km';out.ctxDelta='+'+r1(km-prev)+' km';break;}
+    case 'top5':{out.eyebrow='Twój '+moment.pozycja+'. najmocniejszy tydzień';out.hero=String(r1(moment.km));out.heroUnit='KM';out.ctx='TOP 5 · '+(moment.rok||new Date().getFullYear());break;}
+    case 'najmocniejsza':{const dyst=ev.dystans,ag=moment.ag_pct,wiek=moment.wiek_uzyty;out.eyebrow='Najmocniejsza życiówka';out.hero=String(r1(ag));out.heroUnit='%';out.ctx=(NAZWA[dyst]||dyst)+' · '+(wiek!=null?'wg wieku '+wiek:'wg rekordu świata');break;}
+    case 'streak':{out.eyebrow='Seria · Konsekwencja';out.hero=String(ev.tygodnie||0);out.ctx='tygodni z rzędu';break;}
+    case 'dystans':{out.eyebrow='Dotarłeś do '+ev.miasto;out.hero=String(r1(moment.suma_km));out.heroUnit='KM';out.ctx=(ev.start||'Twój dom')+' → '+ev.miasto;break;}
+    default:return null;
+  }
+  return out;
+}
+function _silnikThemeCol(){
+  let a='#e8561e', a2='#ff7040';
+  try{ const s=getComputedStyle(document.documentElement);
+    a=(s.getPropertyValue('--accent')||a).trim()||a; a2=(s.getPropertyValue('--accent2')||a2).trim()||a2; }catch(_){}
+  return {accent:a, accent2:a2, ink:'#f5f3f0', bg:'#07070a', muted:'#8a8693'};
+}
+function _silnikSpaced(ctx, text, cx, y, spacing, font, color){
+  ctx.font=font; ctx.fillStyle=color; ctx.textBaseline='middle'; ctx.textAlign='left';
+  const ch=[...text]; let total=0; for(const c of ch) total+=ctx.measureText(c).width; total+=spacing*(ch.length-1);
+  let x=cx-total/2; for(const c of ch){ ctx.fillText(c,x,y); x+=ctx.measureText(c).width+spacing; }
+}
+function _silnikSegs(ctx, list, cx, y){
+  ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  let total=0; for(const s of list){ ctx.font=s.font; total+=ctx.measureText(s.t).width; }
+  let x=cx-total/2; for(const s of list){ ctx.font=s.font; ctx.fillStyle=s.color; ctx.fillText(s.t,x,y); x+=ctx.measureText(s.t).width; }
+}
+function _silnikRenderShareCanvas(c){
+  const W=1080,H=1920,CX=W/2, COL=_silnikThemeCol();
+  const cv=document.createElement('canvas'); cv.width=W; cv.height=H; const ctx=cv.getContext('2d');
+  ctx.fillStyle=COL.bg; ctx.fillRect(0,0,W,H);
+  let g=ctx.createRadialGradient(CX,760,0,CX,760,720); g.addColorStop(0,'rgba(232,86,30,0.20)'); g.addColorStop(1,'rgba(232,86,30,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  g=ctx.createRadialGradient(CX,1920,0,CX,1920,600); g.addColorStop(0,'rgba(255,112,64,0.06)'); g.addColorStop(1,'rgba(255,112,64,0)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  _silnikSpaced(ctx, c.eyebrow.toUpperCase(), CX, 300, 11, "500 34px 'DM Mono'", COL.accent);
+  const maxW=W-180; let px=400; const unit=c.heroUnit?' '+c.heroUnit:'';
+  const mH=p=>{ ctx.font='400 '+p+"px 'Bebas Neue'"; let w=ctx.measureText(c.hero).width; if(c.heroUnit){ ctx.font='400 '+(p*0.30)+"px 'Bebas Neue'"; w+=ctx.measureText(unit).width; } return w; };
+  while(mH(px)>maxW && px>120) px-=8;
+  ctx.save(); ctx.shadowColor='rgba(232,86,30,0.45)'; ctx.shadowBlur=90; ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  const hy=900; ctx.font='400 '+px+"px 'Bebas Neue'"; const wN=ctx.measureText(c.hero).width; let wU=0;
+  if(c.heroUnit){ ctx.font='400 '+(px*0.30)+"px 'Bebas Neue'"; wU=ctx.measureText(unit).width; }
+  const sx=CX-(wN+wU)/2; ctx.font='400 '+px+"px 'Bebas Neue'"; ctx.fillStyle=COL.ink; ctx.fillText(c.hero,sx,hy); ctx.shadowBlur=0;
+  if(c.heroUnit){ ctx.font='400 '+(px*0.30)+"px 'Bebas Neue'"; ctx.fillStyle=COL.accent; ctx.fillText(unit,sx+wN,hy); }
+  ctx.restore();
+  if(c.ctx){ const base=c.ctxDelta?c.ctx+' · ':c.ctx; const list=[{t:base,font:"400 40px 'DM Mono'",color:COL.muted}]; if(c.ctxDelta) list.push({t:c.ctxDelta,font:"500 40px 'DM Mono'",color:COL.accent2}); _silnikSegs(ctx,list,CX,1120); }
+  if(c.name){ ctx.font="400 96px 'Bebas Neue'"; ctx.fillStyle=COL.ink; ctx.textAlign='center'; ctx.textBaseline='alphabetic'; ctx.fillText(c.name,CX,1600); }
+  _silnikSegs(ctx, [{t:'Biega',font:"800 62px 'DM Sans'",color:COL.ink},{t:'My',font:"800 62px 'DM Sans'",color:COL.accent},{t:'.run',font:"400 42px 'DM Mono'",color:COL.muted}], CX, 1820);
+  return cv;
+}
+async function _silnikPobierzKarte(){
+  try{
+    const content=_silnikShareContent(window._silnikLastMoment, window._silnikLastImie);
+    if(!content) return;
+    try{ await document.fonts.ready; }catch(_){}
+    const cv=_silnikRenderShareCanvas(content);
+    cv.toBlob(function(blob){ if(!blob) return;
+      const url=URL.createObjectURL(blob), a=document.createElement('a');
+      a.href=url; a.download='biegamy-'+((window._silnikLastMoment&&window._silnikLastMoment.type)||'moment')+'.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 4000);
+    }, 'image/png');
+  }catch(e){ console.error('[silnik-anim] pobierz:', e); }
+}
+function _silnikDodajPobierz(o){
+  if(!o || o.querySelector('[data-el="pobierz"]')) return;
+  const b=document.createElement('button'); b.setAttribute('data-el','pobierz'); b.textContent='Pobierz';
+  b.style.cssText="opacity:0;transition:opacity .5s;position:absolute;bottom:104px;left:50%;transform:translateX(-50%);padding:11px 26px;border-radius:999px;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;z-index:6;";
+  b.onclick=_silnikPobierzKarte; o.appendChild(b);
+  setTimeout(()=>{ b.style.opacity='1'; }, 1200);
+}
+
 // ── ANIMACJA WOLUMENU (Slice 4 — skóra Story, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='wolumen' z evidence.slupki[] (6× {label,km,peak}).
 // puenta = tekst trenera (edited_text) jako finalny beat animacji (Slice E krok 2). onClose = callback po zamknięciu (shown_at, krok 3).
@@ -11,6 +92,7 @@ window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
   _silnikOnClose = (typeof onClose === 'function') ? onClose : null;
   try{
     if(!moment) return;
+    window._silnikLastMoment = moment; window._silnikLastImie = imie;
     if(moment.type==='wolumen' && moment.evidence && moment.evidence.slupki) return _silnikRenderAnimWolumen(moment.evidence, imie, puenta);
     if(moment.type==='dystans' && moment.evidence) return _silnikRenderAnimDystans(moment.evidence, moment.suma_km, imie, puenta);
     if(moment.type==='top5' && moment.ranking) return _silnikRenderAnimTop5(moment, imie, puenta);
@@ -73,10 +155,10 @@ function _silnikRenderAnimWolumen(ev, imie, puenta){
       <div style="font-family:'DM Sans',sans-serif;font-size:17px;color:#fff;margin-top:6px;font-weight:600;">${imie ? esc(imie)+', t' : 'T'}o już nie przypadek.</div>
     </div>
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:11px;height:${MAXH+30}px;margin-top:40px;"></div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:22px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${miesiac}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:50px;right:22px;width:44px;height:44px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:20px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick = _silnikZamknijAnim;
   o.addEventListener('click', e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -174,7 +256,7 @@ function _silnikRenderAnimDystans(ev, suma, imie, puenta){
     </svg>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:84px;line-height:.86;">0<span style="font-size:24px;color:var(--accent,#e8561e);"> km</span></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:13px;color:#8a8693;">${imie?esc(imie)+', t':'T'}yle przebiegłeś w tym roku.</div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:14px;font-family:'DM Sans',sans-serif;font-size:18px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:8px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:14px;font-family:'DM Sans',sans-serif;font-size:18px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:8px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div style="position:absolute;bottom:52px;left:40px;right:40px;height:3px;background:rgba(255,255,255,.12);border-radius:3px;">
       <div data-el="fill" style="position:absolute;left:0;top:0;height:3px;width:0;background:linear-gradient(90deg,var(--accent2,#ff7040),var(--accent,#e8561e));border-radius:3px;transition:width 1.1s cubic-bezier(.4,0,.2,1);"></div>
       <div data-el="mini" style="position:absolute;top:-3.5px;left:0;width:10px;height:10px;border-radius:50%;background:var(--accent,#e8561e);box-shadow:0 0 10px var(--accent,#e8561e);transition:left 1.1s cubic-bezier(.4,0,.2,1);"></div>
@@ -183,7 +265,7 @@ function _silnikRenderAnimDystans(ev, suma, imie, puenta){
     <div style="position:absolute;bottom:36px;right:40px;font-family:'DM Mono',monospace;font-size:9px;color:#66636e;">ŚWIAT</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:14px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${ev.rok||new Date().getFullYear()}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -232,10 +314,10 @@ function _silnikRenderAnimTop5(moment, imie, puenta){
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:10px;height:${MAXH+54}px;margin:22px 0 8px;"></div>
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:104px;line-height:.86;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:28px;color:var(--accent,#e8561e);"> km</span></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;margin-top:2px;">${imie?esc(imie)+', w':'W'}szedłeś do TOP 5 — odkąd biegasz z nami.</div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY · ${rok}</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -298,10 +380,10 @@ function _silnikRenderAnimNajdluzszy(ev, imie, puenta){
       <circle data-el="runner" cx="${PAD}" cy="${cy}" r="5" fill="var(--accent2,#ff7040)" style="filter:drop-shadow(0 0 6px var(--accent,#e8561e));"/>
     </svg>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', n':'N'}ajdłuższy bieg.</div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -355,10 +437,10 @@ function _silnikRenderAnimNajmocniejsza(moment, imie, puenta){
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:.86;margin:6px 0 2px;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">0<span style="font-size:34px;color:var(--accent,#e8561e);">%</span></div>
     <div data-el="bars" style="display:flex;align-items:flex-end;justify-content:center;gap:12px;height:${MAXH+50}px;margin-top:18px;"></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;font-size:12px;color:#8a8693;font-family:'DM Mono',monospace;margin-top:6px;">${wiek!=null?'wg Twojego wieku '+wiek:'wg rekordu świata'}</div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -417,10 +499,10 @@ function _silnikRenderAnimPb(ev, imie, puenta){
     <div data-el="big" style="font-family:'Bebas Neue',sans-serif;font-size:112px;line-height:.86;margin:6px 0 2px;text-shadow:0 0 50px rgba(var(--accent-rgb,232,86,30),.45);">${fmtCzas(stary)}</div>
     <div data-el="sub" style="opacity:0;transition:opacity .6s;font-family:'DM Mono',monospace;font-size:13px;color:#8a8693;">było ${fmtCzas(stary)} · <span style="color:var(--accent2,#ff7040);">−${fmtCzas(delta)}</span></div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;margin-top:12px;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', r':'R'}ekord życiowy.</div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
@@ -465,10 +547,10 @@ function _silnikRenderAnimStreak(ev, imie, puenta){
     <div style="font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent,#e8561e);margin-bottom:24px;">tygodni z rzędu</div>
     <div data-el="chain" style="display:flex;align-items:center;justify-content:center;gap:${gap}px;max-width:92%;">${overflowHtml}</div>
     <div data-el="foot" style="opacity:0;transition:opacity .6s;margin-top:24px;font-size:14px;color:#cfc9d6;">${imie?esc(imie)+', k':'K'}onsekwencja robi robotę.</div>
-    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;display:inline-flex;align-items:baseline;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
+    <div data-el="puenta" style="opacity:0;transform:translateY(6px);transition:opacity .7s ease,transform .7s ease;max-width:80%;text-align:center;margin-top:16px;font-family:'DM Sans',sans-serif;font-size:19px;line-height:1.4;color:#fff;">${puenta ? esc(puenta) + '<div style="margin-top:10px;font-family:\'DM Sans\',sans-serif;font-weight:800;font-size:19px;letter-spacing:-.01em;"><span style="color:#fff;">Biega</span><span style="color:var(--accent,#e8561e);">My</span><span style="font-family:\'DM Mono\',monospace;font-weight:400;font-size:12px;color:#8a8693;margin-left:3px;">.run</span></div>' : ''}</div>
     <div data-el="brand" style="opacity:0;transition:opacity .8s;position:absolute;bottom:16px;left:0;right:0;text-align:center;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.3em;color:#66636e;">BIEGAMY</div>
     <button data-el="replay" style="opacity:0;pointer-events:none;transition:opacity .5s;position:absolute;bottom:48px;right:18px;width:42px;height:42px;border-radius:50%;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-size:19px;cursor:pointer;z-index:5;">↻</button>`;
-  document.body.appendChild(o);
+  document.body.appendChild(o); _silnikDodajPobierz(o);
   const $ = s => o.querySelector('[data-el="'+s+'"]');
   o.querySelector('#silnik-anim-close').onclick=_silnikZamknijAnim;
   o.addEventListener('click',e=>{ if(e.target===o) _silnikZamknijAnim(); });
