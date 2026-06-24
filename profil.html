@@ -1718,7 +1718,7 @@ async function submitPost() {
   if (_postType === 'photo') {
     if (!_postImgFile) { showToast('Wybierz zdjęcie'); return; }
     const ext = _postImgFile.name.split('.').pop();
-    const path = `profile-posts/${_myId}/${Date.now()}.${ext}`;
+    const path = `${(await sb.auth.getUser()).data.user.id}/${Date.now()}.${ext}`;
     const { error: upErr } = await sb.storage.from('profile-posts').upload(path, _postImgFile);
     if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
     const { data: urlData } = sb.storage.from('profile-posts').getPublicUrl(path);
