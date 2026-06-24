@@ -3591,7 +3591,7 @@ function selectCoachGif(url) {
   if (!window._pendingGif) window._pendingGif = {};
   window._pendingGif[_gifIdx] = url;
   const preview = document.getElementById('cgif-preview-'+_gifIdx);
-  if (preview) preview.innerHTML = `<div style="padding:0 12px 8px;display:flex;align-items:center;gap:6px;"><img src="${url}" style="height:36px;border-radius:4px;"><span style="font-size:10px;color:var(--muted);">GIF wybrany — kliknij ↑ żeby zapisać</span></div>`;
+  if (preview) preview.innerHTML = `<div style="padding:0 12px 8px;display:flex;align-items:center;gap:6px;"><img src="${window.escapeHtml(url)}" style="height:36px;border-radius:4px;"><span style="font-size:10px;color:var(--muted);">GIF wybrany — kliknij ↑ żeby zapisać</span></div>`;
   closeCoachGifModal();
 }
 

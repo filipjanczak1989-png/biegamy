@@ -2059,7 +2059,7 @@ window._ocrSetup = function() {
         const _url = await _makeThumbDataURL(f);
         const _div = document.createElement('div');
         _div.style.cssText = 'position:relative;width:60px;height:60px;';
-        _div.innerHTML = `<img src="${_url}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
+        _div.innerHTML = `<img src="${window.escapeHtml(_url)}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;display:block;">
           <button onclick="removeFile(${_idx},this.parentNode)" style="position:absolute;top:1px;right:1px;background:rgba(0,0,0,0.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;cursor:pointer;font-size:11px;line-height:1;padding:0;">×</button>
           <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(var(--accent-rgb),0.85);color:#fff;font-size:8px;padding:1px 0;text-align:center;font-family:DM Mono,monospace;">NOWE</div>`;
         _ocrList.appendChild(_div);
