@@ -3092,23 +3092,6 @@ async function loadProfile() {
   if (_athleteId) checkStravaStatus();
   if (_athleteId) loadAvatarTopbar(_athleteId);
 
-  // Auto-open log modal if returned from game with flag
-  if (sessionStorage.getItem('biegamy_open_log_modal') === '1') {
-    sessionStorage.removeItem('biegamy_open_log_modal');
-    setTimeout(() => {
-      try { openModal(); } catch(e) { console.warn('openModal failed:', e); }
-      // Pokaż info o warm-upie
-      const warmupInfo = sessionStorage.getItem('biegamy_warmup_played');
-      if (warmupInfo) {
-        try {
-          const w = JSON.parse(warmupInfo);
-          toast('🎮 Warm-up ' + (w.modeName || 'gry') + ' wykonany — będzie zalogowany razem z treningiem');
-          sessionStorage.removeItem('biegamy_warmup_played');
-        } catch(e) {}
-      }
-    }, 500);
-  }
-  
   if (_athleteId) {
     // Avatar — czytaj z athletes.avatar_url
     // Dane z bazy
@@ -4271,6 +4254,23 @@ async function initAuth() {
       // Nowy użytkownik bez profilu — pokaż onboarding
       showOnboarding();
     }
+  }
+
+  // Auto-open log modal if returned from game with flag (przeniesione z loadProfile)
+  if (sessionStorage.getItem('biegamy_open_log_modal') === '1') {
+    sessionStorage.removeItem('biegamy_open_log_modal');
+    setTimeout(() => {
+      try { openModal(); } catch(e) { console.warn('openModal failed:', e); }
+      // Pokaż info o warm-upie
+      const warmupInfo = sessionStorage.getItem('biegamy_warmup_played');
+      if (warmupInfo) {
+        try {
+          const w = JSON.parse(warmupInfo);
+          toast('🎮 Warm-up ' + (w.modeName || 'gry') + ' wykonany — będzie zalogowany razem z treningiem');
+          sessionStorage.removeItem('biegamy_warmup_played');
+        } catch(e) {}
+      }
+    }, 500);
   }
 }
 
