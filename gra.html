@@ -8427,6 +8427,7 @@ async function logAsTraining() {
       heart_rate: null,
       comment: comment,
       feel: d.finished ? 'great' : 'ok',
+      source: 'game',
       logged_at: new Date().toISOString()
     });
     if (error) throw error;

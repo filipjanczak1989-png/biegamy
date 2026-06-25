@@ -1835,6 +1835,7 @@ async function openModal() {
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
   window._logType = 'Spokojny';
+  window._logSource = 'manual';
 
   // Reset wierszy interwałów (zostaw 1 pusty)
   const ivList = document.getElementById('intervals-list');
@@ -1893,6 +1894,7 @@ function openModalForDate(dateStr, e) {
   document.querySelectorAll('.feel-btn').forEach(b => b.className='feel-btn');
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
   window._logType = 'Spokojny';
+  window._logSource = 'manual';
 
   // Prefilluj z treningu dla tej daty (szukaj w week-plan data)
   _prefillLogFromDate(dateStr);
@@ -2171,6 +2173,7 @@ window._ocrSetup = function() {
       if (_primaryFile && window._fileMeta) {
         window._fileMeta.set(_primaryFile, { fromOcr: true, ocrFields: ocrFields, ocrActivityDate: ocrActivityDate });
       }
+      if (filled > 0) window._logSource = 'ocr';
 
       if (statusEl) {
         statusEl.style.color = _ocrDateInfo.includes('⚠') ? 'var(--accent)' : 'var(--green)';
@@ -2198,6 +2201,7 @@ if (document.readyState === 'loading') {
 }
 
 let _logType = 'Spokojny';
+window._logSource = 'manual';
 
 function selType(el, type) {
   document.querySelectorAll('.type-pill').forEach(p => p.classList.remove('on'));
@@ -6251,7 +6255,7 @@ async function saveLog() {
     }
   } else {
     // INSERT nowego logu
-    const insertPayload = {...logData, athlete_id: _athleteId, attachment_url: attachmentUrl};
+    const insertPayload = {...logData, athlete_id: _athleteId, attachment_url: attachmentUrl, source: (window._logSource || 'manual')};
     const insertResult = await sb.from('training_logs').insert(insertPayload);
     error = insertResult.error;
     if (error) {
