@@ -799,6 +799,53 @@
     };
   })();
 
+  // ── renderWorkoutSteps — trainings.steps → czytelny opis PL (podgląd planu/push/auto-opis) ──
+  // Zwraca { lines:string[], text:string }. text = lines.join(' → ').
+  window.renderWorkoutSteps = (function () {
+    function pad(n) { return n < 10 ? '0' + n : '' + n; }
+    function fmtDist(m) {
+      if (m % 1000 === 0) return (m / 1000) + ' km';
+      if (m >= 1000) return (m / 1000).toFixed(1).replace(/\.0$/, '') + ' km';
+      return m + ' m';
+    }
+    function fmtTime(s) {
+      if (s % 60 === 0) return (s / 60) + ' min';
+      return Math.floor(s / 60) + ':' + pad(s % 60);
+    }
+    var KIND_PL = { warmup: 'Rozgrzewka', run: 'Bieg', recovery: 'Przerwa (trucht)', rest: 'Przerwa (stój)', cooldown: 'Schłodzenie' };
+    function dur(d) {
+      if (!d) return '';
+      if (d.type === 'distance') return fmtDist(d.m);
+      if (d.type === 'time') return fmtTime(d.s);
+      if (d.type === 'open') return 'do wciśnięcia lap';
+      return '';
+    }
+    function tgt(t) {
+      if (!t || t.type === 'none') return '';
+      if (t.type === 'pace') return '@ ' + Math.floor(t.min_s_per_km/60)+':'+pad(t.min_s_per_km%60) + '–' + Math.floor(t.max_s_per_km/60)+':'+pad(t.max_s_per_km%60) + '/km';
+      if (t.type === 'hr') return '@ ' + t.min_bpm + '–' + t.max_bpm + ' bpm';
+      if (t.type === 'hr_zone') return '@ strefa ' + t.zone;
+      return '';
+    }
+    function stepLine(s) {
+      var parts = [KIND_PL[s.kind] || s.kind, dur(s.duration), tgt(s.target)].filter(Boolean);
+      var line = parts.join(' ');
+      if (s.note) line += ' (' + s.note + ')';
+      return line;
+    }
+    return function renderWorkoutSteps(steps) {
+      if (!Array.isArray(steps) || steps.length === 0) return { lines: [], text: '' };
+      var lines = steps.map(function (el) {
+        if (el && el.kind === 'repeat') {
+          var inner = (el.steps || []).map(stepLine).join(' + ');
+          return el.count + '× [' + inner + ']';
+        }
+        return stepLine(el);
+      });
+      return { lines: lines, text: lines.join(' → ') };
+    };
+  })();
+
   // Soft confirm 2-przyciskowy (promise). Klik w tło / "To bieg" = 'run'; "To rower" = 'bike'.
   window.askBikeOrRun = function(distKm, paceStr) {
     return new Promise((resolve) => {
