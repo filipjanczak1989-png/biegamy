@@ -742,6 +742,63 @@
     return sec > 0 && sec < 200;                         // < 3:20/km
   };
 
+  // ── validateWorkoutSteps — walidacja trainings.steps wg BiegaMy_workout_steps_schema.md ──
+  // Zwraca { ok:boolean, errors:string[], stepCount:number }. stepCount = kroki po rozwinięciu repeatów (limit Garmina ≤50).
+  window.validateWorkoutSteps = (function () {
+    var STEP_KINDS = ['warmup', 'run', 'recovery', 'rest', 'cooldown'];
+    var DUR_TYPES = ['distance', 'time', 'open'];
+    var TGT_TYPES = ['none', 'pace', 'hr', 'hr_zone'];
+    var MAX_STEPS = 50;
+    function isInt(n) { return typeof n === 'number' && isFinite(n) && Math.floor(n) === n; }
+    function isPosInt(n) { return isInt(n) && n > 0; }
+    function validateDuration(d, path, errs) {
+      if (!d || typeof d !== 'object') { errs.push(path + '.duration: brak/zły typ'); return; }
+      if (DUR_TYPES.indexOf(d.type) === -1) { errs.push(path + '.duration.type nieprawidłowy: ' + d.type); return; }
+      if (d.type === 'distance') { if (!isPosInt(d.m)) errs.push(path + '.duration.m musi być dodatnią liczbą całkowitą (metry)'); }
+      else if (d.type === 'time') { if (!isPosInt(d.s)) errs.push(path + '.duration.s musi być dodatnią liczbą całkowitą (sekundy)'); }
+    }
+    function validateTarget(t, path, errs) {
+      if (!t || typeof t !== 'object') { errs.push(path + '.target: brak/zły typ'); return; }
+      if (TGT_TYPES.indexOf(t.type) === -1) { errs.push(path + '.target.type nieprawidłowy: ' + t.type); return; }
+      if (t.type === 'pace') {
+        if (!isPosInt(t.min_s_per_km) || !isPosInt(t.max_s_per_km)) { errs.push(path + '.target pace: min/max_s_per_km muszą być dodatnimi int'); return; }
+        if (t.min_s_per_km > t.max_s_per_km) errs.push(path + '.target pace: min_s_per_km (szybsza) musi być ≤ max_s_per_km (wolniejsza)');
+      } else if (t.type === 'hr') {
+        if (!isPosInt(t.min_bpm) || !isPosInt(t.max_bpm)) { errs.push(path + '.target hr: min/max_bpm muszą być dodatnimi int'); return; }
+        if (t.min_bpm > t.max_bpm) errs.push(path + '.target hr: min_bpm ≤ max_bpm');
+      } else if (t.type === 'hr_zone') {
+        if (!isInt(t.zone) || t.zone < 1 || t.zone > 5) errs.push(path + '.target hr_zone: zone musi być 1–5');
+      }
+    }
+    function validateStep(s, path, errs) {
+      if (!s || typeof s !== 'object') { errs.push(path + ': nie jest obiektem'); return; }
+      if (STEP_KINDS.indexOf(s.kind) === -1) { errs.push(path + '.kind nieprawidłowy: ' + s.kind); return; }
+      validateDuration(s.duration, path, errs);
+      validateTarget(s.target, path, errs);
+      if (s.note != null && typeof s.note !== 'string') errs.push(path + '.note musi być stringiem');
+    }
+    return function validateWorkoutSteps(steps) {
+      var errs = [], count = 0;
+      if (!Array.isArray(steps)) return { ok: false, errors: ['steps musi być tablicą'], stepCount: 0 };
+      if (steps.length === 0) return { ok: false, errors: ['steps nie może być pusta'], stepCount: 0 };
+      steps.forEach(function (el, i) {
+        var path = 'steps[' + i + ']';
+        if (el && el.kind === 'repeat') {
+          if (!isPosInt(el.count)) errs.push(path + '.count musi być dodatnią liczbą całkowitą');
+          if (!Array.isArray(el.steps) || el.steps.length === 0) { errs.push(path + '.steps (repeat) musi być niepustą tablicą'); return; }
+          el.steps.forEach(function (cs, j) {
+            var cpath = path + '.steps[' + j + ']';
+            if (cs && cs.kind === 'repeat') { errs.push(cpath + ': zagnieżdżony repeat niedozwolony (v1)'); return; }
+            validateStep(cs, cpath, errs);
+          });
+          count += (isPosInt(el.count) ? el.count : 0) * el.steps.length;
+        } else { validateStep(el, path, errs); count += 1; }
+      });
+      if (count > MAX_STEPS) errs.push('Za dużo kroków po rozwinięciu repeatów: ' + count + ' > ' + MAX_STEPS + ' (limit Garmina)');
+      return { ok: errs.length === 0, errors: errs, stepCount: count };
+    };
+  })();
+
   // Soft confirm 2-przyciskowy (promise). Klik w tło / "To bieg" = 'run'; "To rower" = 'bike'.
   window.askBikeOrRun = function(distKm, paceStr) {
     return new Promise((resolve) => {
