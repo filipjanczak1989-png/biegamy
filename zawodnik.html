@@ -3116,7 +3116,7 @@ async function loadProfile() {
       document.getElementById('pb-10k-input').value = ath.pb_10k || '';
       document.getElementById('pb-5k-input').value = ath.pb_5k || '';
       // Ustaw status prywatności
-      _isPublic = ath.is_public !== false; // domyślnie true
+      _isPublic = ath.is_public === true; // domyślnie prywatny (RODO privacy-by-default, spójne z profil.html)
       _updatePrivacyUI();
       // Cele startowe — race_goals JSON, fallback z goal+target_date (ustawione przez trenera w kalendarzu)
       let goals = [];
