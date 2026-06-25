@@ -2927,6 +2927,7 @@ function selLmType(btn, type) {
 
 function openLogModal(e, ds, idx) {
   e.stopPropagation();
+  window._logSource = 'manual';   // reset atrybucji; source idzie tylko do INSERT
   const t = trainings[ds] && trainings[ds][idx];
   _logTrainingId = t?._id || null;
   _logDate2 = ds;
@@ -3114,6 +3115,7 @@ async function runLogOcr(input) {
     const sfx = filled === 1 ? 'pole' : (filled >= 2 && filled <= 4 ? 'pola' : 'pól');
     setStatus(filled > 0 ? '✓ wczytano ' + filled + ' ' + sfx + dateWarn : 'Pola niewczytane — uzupełnij ręcznie',
               dateWarn ? 'var(--accent)' : (filled > 0 ? 'var(--green)' : 'var(--muted)'));
+    if (filled > 0) window._logSource = 'ocr';
   } catch (e) {
     console.warn('[cal-ocr]', e); setStatus('Pola niewczytane — uzupełnij ręcznie');
   } finally {
@@ -3174,6 +3176,7 @@ async function saveLog() {
       strava_link: strava,
       comment, feel: _logFeel,
       attachment_url: attachmentUrl,
+      source: (window._logSource || 'manual'),
       logged_at: (_logDate2 || new Date().toISOString().split('T')[0]) + 'T12:00:00'
     });
     if (insErr) { notify('Błąd: ' + insErr.message); return; }
