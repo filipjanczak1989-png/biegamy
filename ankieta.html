@@ -784,25 +784,6 @@ select{
       </div>
     </div>
 
-    <div class="field">
-      <label class="field-label">Aktualne badania krwi (morfologia, ferrytyna, żelazo)?</label>
-      <div class="options">
-        <label class="opt"><input type="radio" name="blood_tests" value="recent_6mc"><span>Tak — robione w ostatnich 6 miesiącach</span></label>
-        <label class="opt"><input type="radio" name="blood_tests" value="over_year"><span>Tak ale ponad rok temu</span></label>
-        <label class="opt"><input type="radio" name="blood_tests" value="never"><span>Nigdy / dawno</span></label>
-        <label class="opt"><input type="radio" name="blood_tests" value="dont_remember"><span>Nie pamiętam</span></label>
-      </div>
-    </div>
-
-    <div class="field" id="blood-upload-wrap" style="display:none;">
-      <label class="field-label">Możesz dodać screen wyników? <span style="color:var(--muted);font-weight:400;">(opcjonalne)</span></label>
-      <div class="upload-zone" onclick="document.getElementById('f_blood_file').click()">
-        <div class="upload-zone-text"><img data-ic="icon-nut-camera.webp" style="width:14px;height:14px;vertical-align:-3px;margin-right:6px;" alt="">Wrzuć screen wyników</div>
-        <div class="upload-zone-sub">Tylko Filip i Kasia to zobaczą</div>
-      </div>
-      <input type="file" id="f_blood_file" accept="image/*" style="display:none;" onchange="handleBloodUpload(this.files)">
-      <div class="upload-preview" id="blood-preview"></div>
-    </div>
 
     <div class="field">
       <label class="field-label">Czy masz aktualnie jakieś kontuzje?</label>
@@ -1217,7 +1198,6 @@ let _intakeId = null;
 let _currentSection = 1;
 const TOTAL_SECTIONS = 7;
 let _saveTimer = null;
-let _bloodTestUrl = null;
 
 // ════════════════════════════════════════════════════════════════════
 // SESSION TOKEN
@@ -1300,7 +1280,6 @@ function hydrateForm(d) {
   if (d.birth_year) document.getElementById('f_birth_year').value = d.birth_year;
   if (d.height_cm) document.getElementById('f_height').value = d.height_cm;
   if (d.weight_kg) document.getElementById('f_weight').value = d.weight_kg;
-  if (d.blood_tests_status) setRadio('blood_tests', d.blood_tests_status);
   if (d.current_injuries) document.getElementById('f_injuries').value = d.current_injuries;
   if (d.chronic_conditions) document.getElementById('f_chronic').value = d.chronic_conditions;
   if (d.running_since) setRadio('running_since', d.running_since);
@@ -1340,7 +1319,6 @@ function hydrateForm(d) {
   if (d.preferred_communication) setRadio('communication', d.preferred_communication);
   if (d.contact_frequency) setRadio('contact_freq', d.contact_frequency);
   if (d.additional_message) document.getElementById('f_additional').value = d.additional_message;
-  if (d.blood_tests_screen_url) _bloodTestUrl = d.blood_tests_screen_url;
 }
 
 function setRadio(name, value) {
@@ -1433,8 +1411,6 @@ function collectFormData(status) {
     birth_year: getNum('f_birth_year'),
     height_cm: getNum('f_height'),
     weight_kg: getNum('f_weight'),
-    blood_tests_status: getRadio('blood_tests'),
-    blood_tests_screen_url: _bloodTestUrl,
     current_injuries: get('f_injuries'),
     chronic_conditions: get('f_chronic'),
     running_since: getRadio('running_since'),
@@ -1487,13 +1463,6 @@ function setupRadioVisuals() {
         r.closest('.opt')?.classList.remove('selected');
       });
       e.target.closest('.opt')?.classList.add('selected');
-      
-      // Special: blood test upload visibility
-      if (name === 'blood_tests' && (e.target.value === 'recent_6mc' || e.target.value === 'over_year')) {
-        document.getElementById('blood-upload-wrap').style.display = 'block';
-      } else if (name === 'blood_tests') {
-        document.getElementById('blood-upload-wrap').style.display = 'none';
-      }
     }
     if (e.target.matches('input[type="checkbox"]') && e.target.closest('.opt')) {
       if (e.target.checked) {
@@ -1505,51 +1474,6 @@ function setupRadioVisuals() {
   });
 }
 
-// ════════════════════════════════════════════════════════════════════
-// BLOOD TESTS UPLOAD
-// ════════════════════════════════════════════════════════════════════
-async function handleBloodUpload(files) {
-  if (!files || files.length === 0) return;
-  const file = files[0];
-  if (!file.type.startsWith('image/')) return;
-  if (file.size > 8 * 1024 * 1024) {
-    alert('Maksymalnie 8 MB');
-    return;
-  }
-  
-  const preview = document.getElementById('blood-preview');
-  preview.innerHTML = '<div class="ph"><div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:11px;color:var(--muted);">⏳</div></div>';
-  
-  try {
-    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    const path = 'intake_blood/' + _sessionToken + '_' + Date.now() + '.' + ext;
-    const { error } = await sb.storage.from('training-screenshots').upload(path, file, { upsert: true, contentType: file.type });
-    if (error) {
-      alert('Błąd uploadu: ' + error.message);
-      preview.innerHTML = '';
-      return;
-    }
-    // v6.8 W2 Step 2a: store PATH (nie publicURL) — preview z lokalnego blob (bez serwera)
-    _bloodTestUrl = path;
-    const _localPreview = URL.createObjectURL(file);
-    preview.innerHTML = `<div class="ph">
-      <img src="${_localPreview}" alt="Screen badań">
-      <button type="button" onclick="removeBloodScreen()">✕</button>
-    </div>`;
-    
-    debouncedSave();
-  } catch (e) {
-    console.error('blood upload error:', e);
-    preview.innerHTML = '';
-  }
-}
-
-function removeBloodScreen() {
-  _bloodTestUrl = null;
-  document.getElementById('blood-preview').innerHTML = '';
-  document.getElementById('f_blood_file').value = '';
-  debouncedSave();
-}
 
 // ════════════════════════════════════════════════════════════════════
 // NAVIGATION
