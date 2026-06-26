@@ -2546,6 +2546,8 @@ async function doCopyToAthlete(targetAthleteId, targetName, workoutIds) {
       pace: w.target_pace,
       heart_rate: (w.target_hr_min && w.target_hr_max) ? `${w.target_hr_min}-${w.target_hr_max}` : null,
       description: w.description || w.title || null,
+      steps: w.steps || null,                 // ✨ steps: kopiuj structured workout (Interwały/Tempo)
+      steps_version: w.steps ? 1 : null,      // ✨ steps
       status: 'planned'
     };
   });
