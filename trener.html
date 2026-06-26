@@ -2170,6 +2170,11 @@ function renderPlanView(plan, workouts) {
       const color = typeColors[w.workout_type] || '#6b7280';
       const isRest = w.workout_type === 'Odpoczynek';
       const canEdit = plan.status === 'draft'; // edycja tylko dla draftu
+      // ✨ steps: czytelny breakdown structured workout (Interwały/Tempo) — tylko gdy steps są
+      const _stepsTxt = (window.renderWorkoutSteps && w.steps) ? window.renderWorkoutSteps(w.steps).text : '';
+      const _stepsHtml = _stepsTxt
+        ? `<div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--accent);line-height:1.55;margin-top:5px;padding:6px 9px;background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.18);border-radius:6px;">${escapeHtml(_stepsTxt)}</div>`
+        : '';
 
       html += `
         <div style="display:flex;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.05);align-items:flex-start;">
@@ -2186,6 +2191,7 @@ function renderPlanView(plan, workouts) {
             </div>
             ${w.title ? `<div style="font-family:Inter,sans-serif;font-size:12px;color:var(--fg);font-weight:600;margin-bottom:2px;">${escapeHtml(w.title)}</div>` : ''}
             ${w.description ? `<div style="font-family:Inter,sans-serif;font-size:11px;color:#cbd5e1;line-height:1.5;">${escapeHtml(w.description)}</div>` : ''}
+            ${_stepsHtml}
           </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
             ${canEdit ? `<button onclick="editWorkout('${w.id}')" title="Edytuj trening" style="background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);width:30px;height:30px;border-radius:6px;cursor:pointer;font-size:12px;">${window.icHtml('nut-edit',13)}</button>` : ''}
