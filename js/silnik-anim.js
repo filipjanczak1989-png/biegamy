@@ -79,7 +79,7 @@ async function _silnikPobierzKarte(){
 function _silnikDodajPobierz(o){
   if(!o || o.querySelector('[data-el="pobierz"]')) return;
   const b=document.createElement('button'); b.setAttribute('data-el','pobierz'); b.textContent='Pobierz';
-  b.style.cssText="opacity:0;transition:opacity .5s;position:absolute;bottom:104px;left:50%;transform:translateX(-50%);padding:11px 26px;border-radius:999px;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;z-index:6;";
+  b.style.cssText="opacity:0;transition:opacity .5s;position:absolute;top:18px;left:18px;padding:11px 26px;border-radius:999px;background:rgba(var(--accent-rgb,232,86,30),.16);border:1px solid var(--accent,#e8561e);color:var(--accent,#e8561e);font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;z-index:6;";
   b.onclick=_silnikPobierzKarte; o.appendChild(b);
   setTimeout(()=>{ b.style.opacity='1'; }, 1200);
 }
