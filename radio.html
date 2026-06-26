@@ -113,6 +113,7 @@ let _radioTracks = [];
 let _radioQueue = [];      // kontekst odtwarzania (kolejka track-obiektów)
 let _radioIdx = -1;        // indeks aktualnego w _radioQueue
 let _radioLoop = 'off';    // 'off' | 'all' | 'one'
+let _radioSwapping = false; // true podczas zmiany src (auto-advance/loop) — chroni sesję MediaSession w tle
 let _radioCurrentPlaylist = null;  // {id,name} gdy otwarty widok playlisty (do re-renderu)
 let _radioPlaylistTracks = [];     // kawałki otwartej playlisty (źródło kolejki)
 let _radioLikedSet = new Set();    // track_id polubione przez usera
@@ -148,6 +149,7 @@ async function radioInit(){
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch(e){} }
   });
   aud.addEventListener('pause', function(){
+    if (_radioSwapping) return; // transient pause podczas zmiany utworu (tło) — NIE zrzucaj sesji na 'paused'
     if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'paused'; } catch(e){} }
   });
 })();
@@ -535,10 +537,17 @@ function radioPlayAt(i){
   try { vid.pause(); } catch(e){}
   vid.removeAttribute('src'); vid.style.display = 'none';
 
+  _radioSwapping = true;         // tło: chroń sesję przed transient pause podczas zmiany src
   aud.src = url;                 // <-- mp4; <audio> gra ścieżkę dźwiękową (klucz iOS)
   aud.style.display = 'block';
   player.style.display = 'block';
-  aud.play().catch(function(){});
+  const _pp = aud.play();
+  if (_pp && _pp.then) {
+    _pp.then(function(){
+      _radioSwapping = false;
+      if ('mediaSession' in navigator) { try { navigator.mediaSession.playbackState = 'playing'; } catch(e){} }
+    }).catch(function(){ _radioSwapping = false; });
+  } else { _radioSwapping = false; }
 
   // Zlicz odtworzenie po 5s ciągłego grania (Filip: próg 5s). Globalny licznik (bez per-user dedupe).
   if (_radioPlayTimer) clearTimeout(_radioPlayTimer);
