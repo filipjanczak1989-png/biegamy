@@ -997,6 +997,10 @@ html { scroll-behavior: smooth; }
         <label>Opis / instrukcje dla zawodnika</label>
         <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
       </div>
+      <div class="field" id="f-steps-field" style="display:none;">
+        <label>Rozkład treningu</label>
+        <div id="f-steps-breakdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);line-height:1.55;padding:8px 10px;background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:6px;white-space:normal;"></div>
+      </div>
       <div class="field" id="f-exercise-ref-wrap" style="display:none;">
         <label>Ćwiczenia w aplikacji (deep-link dla zawodnika)</label>
         <select id="f-exercise-ref" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);padding:8px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;">
@@ -1696,6 +1700,10 @@ function openModal(ds, idx) {
   const sh = document.getElementById('smart-hint');
   if(sh){ sh.style.display='none'; sh.textContent=''; }
   document.getElementById('f-desc').value='';
+  const _stepsFieldR = document.getElementById('f-steps-field');
+  const _stepsBoxR = document.getElementById('f-steps-breakdown');
+  if(_stepsFieldR) _stepsFieldR.style.display='none';
+  if(_stepsBoxR) _stepsBoxR.textContent='';
   document.getElementById('f-status').value='planned';
   const erefEl0 = document.getElementById('f-exercise-ref'); if (erefEl0) erefEl0.value = '';
   const erefWrap = document.getElementById('f-exercise-ref-wrap'); if (erefWrap) erefWrap.style.display = (_urlRole === 'coach') ? 'block' : 'none';
@@ -1760,6 +1768,14 @@ function openModal(ds, idx) {
     document.getElementById('f-pace').value = t.pace || '';
     document.getElementById('f-hr').value = t.hr || t.heart_rate || '';
     document.getElementById('f-desc').value = t.desc || t.description || '';
+    // ✨ steps: read-only rozkład structured workout (Interwały/Tempo) — zawodnik widzi kroki
+    const _stepsTxtE = (window.renderWorkoutSteps && t.steps) ? window.renderWorkoutSteps(t.steps).text : '';
+    const _stepsFieldE = document.getElementById('f-steps-field');
+    const _stepsBoxE = document.getElementById('f-steps-breakdown');
+    if(_stepsFieldE && _stepsBoxE){
+      if(_stepsTxtE){ _stepsBoxE.textContent = _stepsTxtE; _stepsFieldE.style.display='block'; }
+      else { _stepsBoxE.textContent=''; _stepsFieldE.style.display='none'; }
+    }
     const erefElE = document.getElementById('f-exercise-ref'); if (erefElE) erefElE.value = t.exercise_ref || '';
     document.getElementById('f-status').value = t.status||'planned';
     const mw = document.getElementById('f-move-wrap'); if (mw) mw.style.display = (t.status !== 'done') ? 'block' : 'none';
@@ -2384,6 +2400,7 @@ async function loadTrainingsFromDB() {
         pace: t.pace || '',
         hr: t.heart_rate || '',
         desc: t.description || '',
+        steps: t.steps || null,
         status: t.status || 'planned'
       });
     }
