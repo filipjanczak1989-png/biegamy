@@ -2385,6 +2385,15 @@ async function editWorkout(workoutId) {
           <textarea id="ew-desc" rows="3" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:Inter,sans-serif;font-size:12px;padding:8px;border-radius:7px;outline:none;resize:vertical;box-sizing:border-box;">${escapeHtml(w.description || '')}</textarea>
         </div>
 
+        <div style="margin-bottom:14px;">
+          <label style="display:flex;align-items:center;justify-content:space-between;font-size:8px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">
+            <span>Struktura · steps (JSON)</span>
+            <span onclick="ewFormatSteps()" style="text-transform:none;letter-spacing:0;color:#22c55e;cursor:pointer;font-size:9px;">⤿ formatuj</span>
+          </label>
+          <textarea id="ew-steps" rows="6" oninput="ewPreviewSteps()" placeholder='Puste = trening prosty (bez struktury). Np. zmień "count": 4 na 6 aby zrobić 6×400.' style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:10px;line-height:1.4;padding:8px;border-radius:7px;outline:none;resize:vertical;box-sizing:border-box;white-space:pre;">${escapeHtml(w.steps ? JSON.stringify(w.steps, null, 2) : '')}</textarea>
+          <div id="ew-steps-preview" style="display:none;margin-top:6px;font-family:'DM Mono',monospace;font-size:10px;line-height:1.5;padding:7px 9px;border-radius:6px;"></div>
+        </div>
+
         <div style="display:flex;gap:6px;">
           <button onclick="closeEditWorkoutModal()" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg);padding:11px;border-radius:7px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;">Anuluj</button>
           <button onclick="saveEditedWorkout('${workoutId}')" style="flex:2;background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;padding:11px;border-radius:7px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.05em;text-transform:uppercase;cursor:pointer;font-weight:700;">${window.icHtml('act-save',12,'margin-right:5px;vertical-align:-2px;')}Zapisz</button>
@@ -2396,6 +2405,7 @@ async function editWorkout(workoutId) {
   const wrapper = document.createElement('div');
   wrapper.innerHTML = html;
   document.body.appendChild(wrapper.firstElementChild);
+  ewPreviewSteps(); // pokaż podgląd struktury od razu (jeśli są steps)
 }
 window.editWorkout = editWorkout;
 
@@ -2420,6 +2430,21 @@ async function saveEditedWorkout(workoutId) {
   const dateVal = document.getElementById('ew-date').value;
   if (dateVal) updates.date = dateVal;
 
+  // ✨ steps (v1): edycja struktury z walidacją — zapis tylko gdy poprawne
+  const stepsRaw = (document.getElementById('ew-steps')?.value || '').trim();
+  if (!stepsRaw) {
+    updates.steps = null;
+    updates.steps_version = null;
+  } else {
+    let parsedSteps;
+    try { parsedSteps = JSON.parse(stepsRaw); }
+    catch (e) { alert('Błąd JSON w strukturze (steps):\n' + e.message); return; }
+    const v = window.validateWorkoutSteps ? window.validateWorkoutSteps(parsedSteps) : { ok: true, errors: [] };
+    if (!v.ok) { alert('Struktura (steps) niepoprawna:\n• ' + v.errors.join('\n• ')); return; }
+    updates.steps = parsedSteps;
+    updates.steps_version = 1;
+  }
+
   const { error } = await sb.from('training_plan_workouts')
     .update(updates).eq('id', workoutId);
 
@@ -2431,6 +2456,36 @@ async function saveEditedWorkout(workoutId) {
   if (typeof showToast === 'function') showToast('✅ Zapisano');
 }
 window.saveEditedWorkout = saveEditedWorkout;
+
+// ✨ steps (v1): podgląd + walidacja na żywo w edytorze struktury
+function ewPreviewSteps() {
+  const ta = document.getElementById('ew-steps');
+  const box = document.getElementById('ew-steps-preview');
+  if (!ta || !box) return;
+  const raw = (ta.value || '').trim();
+  if (!raw) { box.style.display = 'none'; box.textContent = ''; return; }
+  box.style.display = 'block';
+  const setErr = (msg) => { box.style.background = 'rgba(239,68,68,0.1)'; box.style.border = '1px solid rgba(239,68,68,0.3)'; box.style.color = '#f87171'; box.textContent = '✕ ' + msg; };
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch (e) { setErr('Błąd JSON: ' + e.message); return; }
+  const v = window.validateWorkoutSteps ? window.validateWorkoutSteps(parsed) : { ok: true, errors: [], stepCount: 0 };
+  if (!v.ok) { setErr(v.errors.join(' · ')); return; }
+  const txt = window.renderWorkoutSteps ? window.renderWorkoutSteps(parsed).text : '';
+  box.style.background = 'rgba(34,197,94,0.08)'; box.style.border = '1px solid rgba(34,197,94,0.25)'; box.style.color = '#4ade80';
+  box.textContent = '✓ ' + txt + '  (' + v.stepCount + ' kroków)';
+}
+window.ewPreviewSteps = ewPreviewSteps;
+
+function ewFormatSteps() {
+  const ta = document.getElementById('ew-steps');
+  if (!ta) return;
+  const raw = (ta.value || '').trim();
+  if (!raw) return;
+  try { ta.value = JSON.stringify(JSON.parse(raw), null, 2); } catch (e) { /* podgląd pokaże błąd */ }
+  ewPreviewSteps();
+}
+window.ewFormatSteps = ewFormatSteps;
 
 // ════════════════════════════════════════════════════════════════════
 // KOPIOWANIE: pojedynczy trening / cały tydzień innemu zawodnikowi
