@@ -104,6 +104,8 @@ window._silnikPokazAnimacje = function(moment, imie, puenta, onClose){
   }catch(e){ console.error('[silnik-anim] błąd:', e); }
 };
 function _silnikZamknijAnim(){ const o=document.getElementById('silnik-anim-overlay'); if(o) o.remove(); if(_silnikOnClose){ const cb=_silnikOnClose; _silnikOnClose=null; try{cb();}catch(e){console.error('[silnik-anim] onClose:',e);} } }
+// Render-start cleanup: usuń stary overlay BEZ odpalania onClose (to NIE jest zamknięcie przez usera — onClose należy do nowo otwieranego momentu).
+function _silnikUsunOverlay(){ const o=document.getElementById('silnik-anim-overlay'); if(o) o.remove(); }
 
 // Wspólne efekty animacji (DRY — używane przez wolumen i dystans). Easingi/burst/flash/countUp identyczne jak inline.
 const _silnikFx = {
@@ -132,7 +134,7 @@ const _silnikFx = {
 };
 
 function _silnikRenderAnimWolumen(ev, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const slupki = ev.slupki || [];
   if(!slupki.length){ console.warn('[silnik-anim] brak słupków'); return; }
   const peakKm = ev.suma_km, prevMax = ev.poprzednie_max;
@@ -198,7 +200,7 @@ function _silnikRenderAnimWolumen(ev, imie, puenta){
 // ── ANIMACJA DYSTANSU (Slice 5 — podróż przez świat, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='dystans', evidence={miasto,dystans_miasta:prog,kontynent,poprzednie_miasto,start,rok}, +moment.suma_km (roczna).
 function _silnikRenderAnimDystans(ev, suma, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const SM=window.SilnikMomentu, cele=SM._dystansCele, sroda=SM._dystansSroda, hav=SM._haversineKm;
   const esc = window.escapeHtml || (s=>String(s));
   const reached = cele.find(c=>c.miasto===ev.miasto);
@@ -296,7 +298,7 @@ function _silnikRenderAnimDystans(ev, suma, imie, puenta){
 // ── ANIMACJA TOP5 TYGODNI (Slice 6 — ranking, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='top5', moment.ranking=[{label,km,current}×5], moment.pozycja, moment.km.
 function _silnikRenderAnimTop5(moment, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const ranking = moment.ranking || [];
   if(ranking.length < 2){ console.warn('[silnik-anim] top5 bez rankingu'); return; }
   const esc = window.escapeHtml || (s=>String(s));
@@ -357,7 +359,7 @@ function _silnikRenderAnimTop5(moment, imie, puenta){
 // ── ANIMACJA NAJDŁUŻSZEGO BIEGU (Slice 7 — miara 0→rekord, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='najdluzszy', evidence={dystans, poprzedni_najdluzszy}.
 function _silnikRenderAnimNajdluzszy(ev, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const esc = window.escapeHtml || (s=>String(s));
   const nlKm = ev.dystans, prevMax = ev.poprzedni_najdluzszy;
   const delta = Math.round((nlKm - prevMax)*10)/10;
@@ -417,7 +419,7 @@ function _silnikRenderAnimNajdluzszy(ev, imie, puenta){
 // ── ANIMACJA NAJMOCNIEJSZA ŻYCIÓWKA (Slice 8 — ranking AG%, DEBUG-ONLY) ──
 // Kontrakt: moment.type==='najmocniejsza', evidence={dystans:leader, poprzedni}, ag_pct, wiek_uzyty, ranking=[{dist,ag}]desc.
 function _silnikRenderAnimNajmocniejsza(moment, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const ranking = moment.ranking || [];
   if(ranking.length < 2){ console.warn('[silnik-anim] najmocniejsza: <2 dystanse'); return; }
   const esc = window.escapeHtml || (s=>String(s));
@@ -485,7 +487,7 @@ function _silnikRenderAnimNajmocniejsza(moment, imie, puenta){
 // ── ANIMACJA REKORDU ŻYCIOWEGO (PB — odliczanie czasu stary→nowy, flagowy) ──
 // Kontrakt: moment.type==='pb', evidence={dystans:'5k'|'10k'|'half'|'marathon', nowy_czas:sek, stary_czas:sek, delta:sek}.
 function _silnikRenderAnimPb(ev, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const esc = window.escapeHtml || (s=>String(s));
   const NAZWA = {'5k':'5 KM','10k':'10 KM','half':'Półmaraton','marathon':'Maraton'};
   const nowy = ev.nowy_czas, stary = ev.stary_czas, delta = ev.delta;
@@ -529,7 +531,7 @@ function _silnikRenderAnimPb(ev, imie, puenta){
 // ── ANIMACJA SERII / STREAK (tygodnie konsekwencji — ogniwa zapalają się po kolei) ──
 // Kontrakt: moment.type==='streak', evidence={tygodnie:N} (N = wielokrotność 4: 4/8/12...). Zero zależności od SM (czysta funkcja).
 function _silnikRenderAnimStreak(ev, imie, puenta){
-  _silnikZamknijAnim();
+  _silnikUsunOverlay();
   const esc = window.escapeHtml || (s=>String(s));
   const N = ev.tygodnie || 0;
   const overflow = N > 16 ? (N - 15) : 0;            // N>16 → 15 ogniw + „+overflow" (starsze zwinięte; skrajne zabezpieczenie)
