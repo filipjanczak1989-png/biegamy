@@ -439,10 +439,19 @@
   //   <a href="${safeExternalHref(l.strava_link)}" target="_blank" rel="noopener">↗ Strava</a>
   window.safeExternalHref = function(url) {
     if (!url || typeof url !== 'string') return '';
+    let s = url.trim();
+    // Zawodnicy wklejają cały tekst "udostępnij" (np. z Garmina: "Sprawdź moją aktywność... https://connect.garmin.com/...").
+    // Wyłuskaj prawdziwy URL z tekstu; gdy brak protokołu, a wygląda na domenę → dodaj https://.
+    const m = s.match(/https?:\/\/\S+/i);
+    if (m) {
+      s = m[0].replace(/[.,;:)\]]+$/, ''); // utnij końcową interpunkcję sklejoną z URL
+    } else if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(s) && !s.startsWith('//')) {
+      s = 'https://' + s;
+    }
     try {
-      const u = new URL(url);
+      const u = new URL(s);
       if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
-      return window.escapeHtml(url);
+      return window.escapeHtml(s);
     } catch { return ''; }
   };
 
