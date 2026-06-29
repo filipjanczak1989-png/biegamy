@@ -396,10 +396,10 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 
 <!-- ━━━━━━━━ MOMENTY DO ZATWIERDZENIA (Silnik Momentu) ━━━━━━━━ -->
 <div class="sec-hdr fi" id="moments-sec-hdr" style="display:none;">
-  <div class="sec-title">✨ Momenty do zatwierdzenia · <span id="moments-count" style="color:var(--accent);">0</span></div>
+  <div class="sec-title" onclick="toggleMomentsSection()" style="cursor:pointer;user-select:none;"><span id="moments-caret" style="display:inline-block;transition:transform 0.15s;color:var(--accent);font-size:0.8em;vertical-align:1px;">▸</span> ✨ Momenty do zatwierdzenia · <span id="moments-count" style="color:var(--accent);">0</span></div>
   <button class="sec-action" onclick="loadPendingMoments()">↻ Odśwież</button>
 </div>
-<div class="intake-section fi" id="moments-section"></div>
+<div class="intake-section fi" id="moments-section" style="display:none;"></div>
 
 <!-- ━━━━━━━━ NOWE ZGŁOSZENIA Z ANKIETY ━━━━━━━━ -->
 <div class="sec-hdr fi" id="intake-sec-hdr" style="display:none;">
@@ -8413,6 +8413,15 @@ document.addEventListener('keydown', (e) => {
     }
   }
 
+  window.toggleMomentsSection = function(){
+    const sec = document.getElementById('moments-section');
+    const caret = document.getElementById('moments-caret');
+    if (!sec) return;
+    const collapsed = sec.style.display === 'none';
+    sec.style.display = collapsed ? '' : 'none';
+    if (caret) caret.style.transform = collapsed ? 'rotate(90deg)' : 'rotate(0deg)';
+  };
+
   window.loadPendingMoments = async function(){
     const hdr = document.getElementById('moments-sec-hdr');
     const sec = document.getElementById('moments-section');
@@ -8433,7 +8442,7 @@ document.addEventListener('keydown', (e) => {
         return;
       }
       const moments = data || [];
-      if (moments.length === 0) { hdr.style.display = 'none'; sec.innerHTML = ''; return; }
+      if (moments.length === 0) { hdr.style.display = 'none'; sec.innerHTML = ''; sec.style.display = 'none'; const _c = document.getElementById('moments-caret'); if (_c) _c.style.transform = 'rotate(0deg)'; return; }
       hdr.style.display = 'flex';
       document.getElementById('moments-count').textContent = moments.length;
       window._momentyById = {};
