@@ -3739,10 +3739,11 @@ window.loadMomenty = async function(athleteId, imie){
     const row = lista[0];   // najstarszy pierwszy (kolejka)
     baner.style.display = 'inline-flex';
     baner.onclick = () => {
+      baner.style.display = 'none';   // ✨ #5: znika NATYCHMIAST po kliknięciu (pewność, że nie wisi pod animacją ani po powrocie)
       const m = window._silnikOdtworzMoment(row);
       window._silnikPokazAnimacje(m, imie, row.edited_text, async () => {
         await sb.from('delivered_moments').update({ shown_at: new Date().toISOString() }).eq('id', row.id);
-        window.loadMomenty(athleteId, imie);   // następny w kolejce lub ukryj
+        window.loadMomenty(athleteId, imie);   // następny w kolejce → pokaże znów (nowy), albo zostaje ukryty
       });
     };
   } catch(e) { console.error('[Momenty] wyjątek:', e); baner.style.display='none'; }
