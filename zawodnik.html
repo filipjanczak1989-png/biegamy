@@ -4180,7 +4180,12 @@ async function initAuth() {
     const initials = name.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
     setAvBtn(initials);
     if(tnEl){ tnEl.innerHTML = escapeHtml(name.split(' ')[0]) + ' <span>' + escapeHtml(name.split(' ')[1]?.[0]||'') + '.</span>'; tnEl.style.opacity='1'; }
-    loadMomenty(ath.id, (name||'').split(' ')[0]);   // Slice E krok 3: baner momentów po auth (ath.id = pewny, w if(ath))
+    // Slice E krok 3: baner momentów — TYLKO zawodnik na własnym koncie.
+    // W podglądzie trenera (?from=trener) NIE odpalamy: momenty to doświadczenie zawodnika,
+    // a trener nie może ustawić shown_at (RLS → 0 wierszy) → baner zapętlałby się (klik→wraca).
+    if (new URLSearchParams(window.location.search).get('from') !== 'trener') {
+      loadMomenty(ath.id, (name||'').split(' ')[0]);   // ath.id = pewny, w if(ath)
+    }
 
     const _needsOb = _isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1';
     if (_needsOb) {
