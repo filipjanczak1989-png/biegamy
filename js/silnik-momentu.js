@@ -472,10 +472,11 @@
   function detect(snapshot) {
     if (!snapshot || !snapshot.newLog) return null;
     var historia = snapshot.historia || [];
+    var dedupHist = historia.concat(snapshot.odrzucone || []);   // dedup TAKŻE vs rejected (trener odrzucił → nie re-proponuj); scoring zostaje vs historia (approved)
     var candidates = [detectPB(snapshot), detectVolume(snapshot), detectStreak(snapshot), detectDystans(snapshot), detectTop5Tygodni(snapshot), detectNajdluzszyBieg(snapshot), detectNajmocniejszaZyciowka(snapshot)].filter(Boolean);
     // DEDUP: odrzuć już dostarczone zdobycze (anty-spam) zanim policzymy scoring
     // najmocniejsza ma WŁASNĄ logikę zmiany-lidera (prev vs leader) → wyłączona z generycznego value-dedup
-    candidates = candidates.filter(function (c) { return c.type === 'najmocniejsza' ? true : !alreadyDelivered(historia, c); });
+    candidates = candidates.filter(function (c) { return c.type === 'najmocniejsza' ? true : !alreadyDelivered(dedupHist, c); });
     if (!candidates.length) return null; // CISZA — nic NOWEGO ponad próg
     return resolve(candidates, historia);
   }
@@ -755,6 +756,10 @@
 
       var h = recordDelivered([], mb);                                     // Berlin{rok:2026} dostarczony
       check('dystans dedup TEN SAM ROK → null', detect(Object.assign({}, berl, { historia: h })) === null, true);
+
+      // fix #2 rejected-aware (Option B): Berlin ODRZUCONY (snap.odrzucone, NIE historia) → też deduped (koniec re-firowania po odrzuceniu)
+      check('dystans dedup REJECTED (odrzucone) → null', detect(Object.assign({}, berl, { historia: [], odrzucone: h })) === null, true);
+      check('rejected NIE blokuje INNEGO momentu (odrzucone tylko dedup)', detect(Object.assign({}, berl, { suma_roczna_km: 1000, historia: [], odrzucone: h })) !== null, true);
 
       // ⚠️ KLUCZOWY: ta sama suma, INNY ROK → Berlin znów odpala (dowód per-rok dedup)
       var berl27 = Object.assign({}, base, { suma_roczna_km: 300, rok: 2027, historia: h });

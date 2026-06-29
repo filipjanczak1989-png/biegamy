@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
     .order('logged_at', { ascending: true });
 
   const { data: hist } = await sb.from('delivered_moments')
-    .select('type,evidence').eq('athlete_id', athlete_id).eq('status', 'approved');
+    .select('type,evidence,status').eq('athlete_id', athlete_id).in('status', ['approved', 'rejected']);
 
   // planowy odpoczynek (streak): approved plany → tydzień z workoutami ale BEZ żadnego biegu = rest → MOSTKUJE serię (nie zrywa, nie liczy)
   const { data: plans } = await sb.from('training_plans').select('id').eq('athlete_id', athlete_id).eq('status', 'approved');
@@ -77,10 +77,11 @@ Deno.serve(async (req) => {
   const today = String(newLog.logged_at).slice(0, 10);
   let wiek = null;
   if (a.date_of_birth) wiek = Math.floor((Date.now() - new Date(a.date_of_birth).getTime()) / (365.25 * 86400000));
-  const historia = (hist || []).map((h) => ({ type: h.type, evidence: h.evidence }));
+  const historia  = (hist || []).filter((h) => h.status === 'approved').map((h) => ({ type: h.type, evidence: h.evidence }));
+  const odrzucone = (hist || []).filter((h) => h.status === 'rejected').map((h) => ({ type: h.type, evidence: h.evidence }));   // dedup-only (NIE scoring)
 
   const snap = {
-    newLog, logs, logs_all: all, pbs, today, historia,
+    newLog, logs, logs_all: all, pbs, today, historia, odrzucone,
     gender: a.gender || null, wiek, suma_roczna_km, rok,
     start_miasto: a.city || null, ostatni_lider: a.strongest_pb_dist || null,
     planowy_odpoczynek,
