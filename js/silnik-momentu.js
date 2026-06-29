@@ -452,10 +452,17 @@
     return h;
   }
 
-  // Ta sama zdobycz? — typ + identyczne evidence. (evidence z detektorów ma stały
-  // porządek kluczy, więc porównanie po JSON jest stabilne.)
+  // Ta sama zdobycz? — typ + identyczne evidence. UWAGA: evidence wczytane z Postgresa (JSONB)
+  // ma INNĄ kolejność kluczy niż świeżo wykryte (JSONB nie zachowuje kolejności) — więc
+  // porównujemy po KANONICZNYM JSON (klucze posortowane rekurencyjnie), nie po surowym JSON.stringify.
+  function _canon(o) {
+    if (o === null || typeof o !== 'object') return JSON.stringify(o);
+    if (Array.isArray(o)) return '[' + o.map(_canon).join(',') + ']';   // tablice: kolejność znacząca (np. ranking)
+    var keys = Object.keys(o).sort();
+    return '{' + keys.map(function (k) { return JSON.stringify(k) + ':' + _canon(o[k]); }).join(',') + '}';
+  }
   function sameMoment(a, b) {
-    return !!(a && b) && a.type === b.type && JSON.stringify(a.evidence) === JSON.stringify(b.evidence);
+    return !!(a && b) && a.type === b.type && _canon(a.evidence) === _canon(b.evidence);
   }
   function alreadyDelivered(historia, cand) {
     for (var i = 0; i < historia.length; i++) if (sameMoment(historia[i], cand)) return true;
@@ -497,6 +504,7 @@
     _resolve: resolve,
     _score: scoreCandidate,
     _sameMoment: sameMoment,
+    _canonJSON: _canon,
     _alreadyDelivered: alreadyDelivered,
     _lastDelivered: lastDelivered,
     _countDelivered: countDelivered,

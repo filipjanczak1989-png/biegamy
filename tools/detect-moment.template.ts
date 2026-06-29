@@ -100,7 +100,7 @@ Deno.serve(async (req) => {
   // dedup double-guard: identyczny pending tego typu już czeka? (np. 2 logi tego samego dnia)
   const { data: pend } = await sb.from('delivered_moments')
     .select('id,evidence').eq('athlete_id', athlete_id).eq('status', 'pending').eq('type', moment.type);
-  const dup = (pend || []).some((p) => JSON.stringify(p.evidence) === JSON.stringify(moment.evidence));
+  const dup = (pend || []).some((p) => SM._canonJSON(p.evidence) === SM._canonJSON(moment.evidence));
   if (dup) return J({ detected: false, reason: 'dup_pending' });
 
   // payload = moment − {type, evidence}; browser rekonstruuje {type, evidence, ...payload}
