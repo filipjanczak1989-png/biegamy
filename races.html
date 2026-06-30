@@ -589,6 +589,7 @@ async function loadRaces() {
   _allRaces = data || [];
 
   // Pobierz avatary uczestników BiegaMy dla każdego wyścigu (max 5 per race)
+  await loadMyFriends();              // najpierw znajomi (potrzebne do wyróżnienia "znajomi biegną")
   await loadRaceParticipantsAvatars();
 
   renderRaces();
@@ -609,6 +610,8 @@ async function loadRaces() {
 
 // Pobiera avatary do max 5 uczestników per race i zapisuje w _raceParticipants
 let _raceParticipants = {};  // raceId → [{id, full_name, avatar_url}, ...]
+let _raceFriends = {};       // raceId → [...] — TYLKO moi znajomi zapisani na ten bieg
+let _myFriends = new Set();  // athlete_id zaakceptowanych znajomych
 async function loadRaceParticipantsAvatars() {
   const raceIds = _allRaces.filter(r => (r.signup_count||0) > 0).map(r => r.id);
   if (!raceIds.length) return;
@@ -629,7 +632,15 @@ async function loadRaceParticipantsAvatars() {
   });
 
   // Pobierz dane wszystkich tych zawodników jednym zapytaniem
-  const allAthleteIds = [...new Set(Object.values(byRace).flat())];
+  // znajomi: licz z PEŁNEJ listy signups (nie tylko top-5), żeby znajomy zapisany jako 6.+ też się liczył
+  const friendsByRace = {};
+  if (_myFriends.size) {
+    signups.forEach(s => {
+      if (_myFriends.has(s.athlete_id)) (friendsByRace[s.race_id] = friendsByRace[s.race_id] || []).push(s.athlete_id);
+    });
+  }
+  const friendIds = [...new Set(Object.values(friendsByRace).flat())];
+  const allAthleteIds = [...new Set([...Object.values(byRace).flat(), ...friendIds])];
   if (!allAthleteIds.length) return;
   const { data: athletes } = await _sb.from('athletes')
     .select('id,full_name,avatar_url')
@@ -644,6 +655,10 @@ async function loadRaceParticipantsAvatars() {
       .map(id => athMap[id])
       .filter(Boolean);
   });
+  _raceFriends = {};
+  Object.keys(friendsByRace).forEach(raceId => {
+    _raceFriends[raceId] = friendsByRace[raceId].map(id => athMap[id]).filter(Boolean);
+  });
 }
 
 async function loadMySignups() {
@@ -652,6 +667,16 @@ async function loadMySignups() {
     .select('race_id')
     .eq('athlete_id', _athleteId);
   _mySignups = new Set((data || []).map(r => r.race_id));
+}
+
+// Moi zaakceptowani znajomi (athlete_id) — do wyróżnienia "znajomi biegną" na karcie
+async function loadMyFriends() {
+  if (!_athleteId) return;
+  const { data } = await _sb.from('friendships')
+    .select('requester_id,addressee_id')
+    .eq('status', 'accepted')
+    .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
+  _myFriends = new Set((data || []).map(f => f.requester_id === _athleteId ? f.addressee_id : f.requester_id));
 }
 
 // ── RENDER ────────────────────────────────────────────────────────
@@ -721,6 +746,19 @@ function renderRaceCard(race) {
     avatarsHtml = `<div style="display:flex;align-items:center;flex-shrink:0;">${avList}${more}</div>`;
   }
 
+  // znajomi zapisani na ten bieg — wyróżnienie ("społeczność żyje", zero pusha)
+  const rFriends = _raceFriends[race.id] || [];
+  let friendsHtml = '';
+  if (rFriends.length) {
+    const names = rFriends.slice(0, 2).map(f => (f.full_name || '').trim().split(' ')[0]).filter(Boolean);
+    const extra = rFriends.length - names.length;
+    const label = names.join(', ') + (extra > 0 ? ` +${extra}` : '');
+    friendsHtml = `<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);font-weight:600;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Znajomi biegną: ${escHtml(label)}</span>
+    </div>`;
+  }
+
   const countLabel = totalCount > 0
     ? `<span onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">${totalCount} z BiegaMy</span>`
     : 'Bądź pierwszy!';
@@ -746,6 +784,7 @@ function renderRaceCard(race) {
           </div>
         </div>
       </div>
+      ${friendsHtml}
     </div>
     <div class="race-footer">
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
