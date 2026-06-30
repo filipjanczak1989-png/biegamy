@@ -977,7 +977,7 @@ body > *{position:relative;z-index:1;}
   <button class="ht-tile" onclick="showSection('cwiczenia');return false;"><img data-ic="icon-ex-section.webp" alt=""><span class="ht-lbl">Ćwiczenia</span></button>
   <button class="ht-tile" onclick="location.href='wyzwania.html'"><img data-ic="icon-radio-trophy.webp" alt=""><span class="ht-lbl">Wyzwania</span></button>
   <button class="ht-tile" onclick="location.href='odznaki.html'"><img data-ic="icon-nav-medal.webp" alt=""><span class="ht-lbl">Odznaki</span></button>
-  <button class="ht-tile" onclick="location.href='races.html'"><img data-ic="icon-nav-flag.webp" alt=""><span class="ht-lbl">Starty</span></button>
+  <button class="ht-tile" id="ht-starty" style="position:relative;" onclick="location.href='races.html'"><span id="starty-dot" style="display:none;position:absolute;top:6px;right:10px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--card),0 2px 8px var(--glow-o);"></span><img data-ic="icon-nav-flag.webp" alt=""><span class="ht-lbl">Starty</span></button>
   <button class="ht-tile" onclick="showSection('msgs')"><img data-ic="icon-nav-people.webp" alt=""><span class="ht-lbl">Czat</span></button>
 </div>
 </div>
@@ -1237,6 +1237,9 @@ body > *{position:relative;z-index:1;}
         <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--green);">Publiczny</span>
       </button>
       <button id="push-mini-btn" onclick="togglePushNotifs()" title="Powiadomienia push" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:14px;line-height:1;"><img data-ic="icon-nav-bell.webp" style="width:17px;height:17px;" alt=""></button>
+      <button id="friends-act-btn" onclick="toggleFriendsActivity()" title="Aktywność znajomych — kropka na Startach" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;">
+        <svg id="friends-act-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </button>
     </div>
   </div>
 
@@ -4185,6 +4188,8 @@ async function initAuth() {
     // a trener nie może ustawić shown_at (RLS → 0 wierszy) → baner zapętlałby się (klik→wraca).
     if (new URLSearchParams(window.location.search).get('from') !== 'trener') {
       loadMomenty(ath.id, (name||'').split(' ')[0]);   // ath.id = pewny, w if(ath)
+      checkFriendsRacesDot();   // KROK 2: kropka "nowe od znajomych" na Startach
+      _syncFriendsActBtn();     // stan przełącznika aktywności znajomych
     }
 
     const _needsOb = _isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1';
@@ -8537,6 +8542,38 @@ async function _apToggleFollow(targetId, isFollowing) {
     _sendFollowNotification(targetId);
   }
   btn.disabled = false;
+}
+
+// ── KROK 2: kropka "nowe od znajomych" na kafelku Starty (pull-based, ZERO pusha) ──
+async function checkFriendsRacesDot() {
+  try {
+    const dot = document.getElementById('starty-dot');
+    if (!dot || !_athleteId) return;
+    if (localStorage.getItem('bm_friends_activity_off') === '1') { dot.style.display = 'none'; return; }
+    const { data: fr } = await sb.from('friendships')
+      .select('requester_id,addressee_id').eq('status', 'accepted')
+      .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
+    const friendIds = (fr || []).map(f => f.requester_id === _athleteId ? f.addressee_id : f.requester_id);
+    if (!friendIds.length) { dot.style.display = 'none'; return; }
+    const seen = localStorage.getItem('bm_races_friends_seen') || new Date().toISOString();
+    const { data: sg } = await sb.from('race_signups')
+      .select('athlete_id,signed_at').in('athlete_id', friendIds).gt('signed_at', seen).limit(1);
+    dot.style.display = (sg && sg.length) ? 'block' : 'none';
+  } catch(e) { console.warn('[friends-dot]', e.message); }
+}
+function toggleFriendsActivity() {
+  const off = localStorage.getItem('bm_friends_activity_off') === '1';
+  try { localStorage.setItem('bm_friends_activity_off', off ? '0' : '1'); } catch(e){}
+  _syncFriendsActBtn();
+  checkFriendsRacesDot();
+  toast(off ? 'Aktywność znajomych: włączona' : 'Aktywność znajomych: wyciszona');
+}
+function _syncFriendsActBtn() {
+  const off = localStorage.getItem('bm_friends_activity_off') === '1';
+  const icon = document.getElementById('friends-act-icon');
+  if (icon) icon.setAttribute('stroke', off ? 'var(--muted)' : 'var(--accent)');
+  const btn = document.getElementById('friends-act-btn');
+  if (btn) btn.style.borderColor = off ? 'var(--border)' : 'rgba(var(--accent-rgb),0.5)';
 }
 
 // ── POWIADOMIENIA ─────────────────────────────────────────────────

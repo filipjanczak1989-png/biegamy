@@ -571,6 +571,9 @@ let _currentRace = null;
 
   await loadRaces();
   await loadMySignups();
+
+  // KROK 2: oznacz "widziałem biegi teraz" → kropka "nowe od znajomych" na home zniknie
+  try { localStorage.setItem('bm_races_friends_seen', new Date().toISOString()); } catch(e){}
 })();
 
 // ── LOAD RACES ────────────────────────────────────────────────────
