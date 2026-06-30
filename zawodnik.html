@@ -1237,7 +1237,7 @@ body > *{position:relative;z-index:1;}
         <span id="privacy-label" style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;font-family:DM Mono,monospace;color:var(--green);">Publiczny</span>
       </button>
       <button id="push-mini-btn" onclick="togglePushNotifs()" title="Powiadomienia push" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;font-size:14px;line-height:1;"><img data-ic="icon-nav-bell.webp" style="width:17px;height:17px;" alt=""></button>
-      <button id="friends-act-btn" onclick="toggleFriendsActivity()" title="Aktywność znajomych — kropka na Startach" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;">
+      <button id="friends-act-btn" onclick="toggleFriendsActivity()" title="Aktywność w Startach — znajomi + nowe biegi" style="background:transparent;border:1px solid var(--border);border-radius:20px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;">
         <svg id="friends-act-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       </button>
     </div>
@@ -8550,15 +8550,24 @@ async function checkFriendsRacesDot() {
     const dot = document.getElementById('starty-dot');
     if (!dot || !_athleteId) return;
     if (localStorage.getItem('bm_friends_activity_off') === '1') { dot.style.display = 'none'; return; }
-    const { data: fr } = await sb.from('friendships')
-      .select('requester_id,addressee_id').eq('status', 'accepted')
-      .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
-    const friendIds = (fr || []).map(f => f.requester_id === _athleteId ? f.addressee_id : f.requester_id);
-    if (!friendIds.length) { dot.style.display = 'none'; return; }
     const seen = localStorage.getItem('bm_races_friends_seen') || new Date().toISOString();
-    const { data: sg } = await sb.from('race_signups')
-      .select('athlete_id,created_at').in('athlete_id', friendIds).gt('created_at', seen).limit(1);
-    dot.style.display = (sg && sg.length) ? 'block' : 'none';
+    // sygnał A: nowy approved bieg dodany po ostatniej wizycie (niezależny od znajomych)
+    const { data: nr } = await sb.from('races')
+      .select('id').eq('status', 'approved').gt('created_at', seen).limit(1);
+    let hasNew = !!(nr && nr.length);
+    // sygnał B: znajomy zapisał się na bieg po ostatniej wizycie (tylko jeśli mam znajomych)
+    if (!hasNew) {
+      const { data: fr } = await sb.from('friendships')
+        .select('requester_id,addressee_id').eq('status', 'accepted')
+        .or(`requester_id.eq.${_athleteId},addressee_id.eq.${_athleteId}`);
+      const friendIds = (fr || []).map(f => f.requester_id === _athleteId ? f.addressee_id : f.requester_id);
+      if (friendIds.length) {
+        const { data: sg } = await sb.from('race_signups')
+          .select('athlete_id').in('athlete_id', friendIds).gt('created_at', seen).limit(1);
+        hasNew = !!(sg && sg.length);
+      }
+    }
+    dot.style.display = hasNew ? 'block' : 'none';
   } catch(e) { console.warn('[friends-dot]', e.message); }
 }
 function toggleFriendsActivity() {

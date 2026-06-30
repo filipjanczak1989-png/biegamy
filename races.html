@@ -545,6 +545,7 @@ const _sb = window.sb;
 
 let _user = null, _athleteId = null, _athleteGoals = [], _isCoach = false;
 let _allRaces = [], _mySignups = new Set();
+let _racesSeenBaseline = '';   // KROK 3: "ostatnia wizyta" sprzed tego wejścia — do badge "NOWE"
 let _activeDist = 'all', _searchVal = '';
 let _currentRace = null;
 
@@ -553,6 +554,9 @@ let _currentRace = null;
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.href = 'index.html'; return; }
   _user = session.user;
+
+  // KROK 3: zapamiętaj "ostatnią wizytę" PRZED nadpisaniem seen (renderRaceCard użyje do badge "NOWE")
+  _racesSeenBaseline = localStorage.getItem('bm_races_friends_seen') || '';
 
   // Pobierz athlete
   const { data: ath } = await _sb.from('athletes')
@@ -725,6 +729,8 @@ function renderRaceCard(race) {
   const signed = _mySignups.has(race.id);
   const isPending = race.status === 'pending';
   const isRejected = race.status === 'rejected';
+  // KROK 3: approved bieg dodany PO ostatniej wizycie = "NOWE" (created_at > baseline)
+  const isNew = !isPending && !isRejected && race.created_at && _racesSeenBaseline && race.created_at > _racesSeenBaseline;
   const distLabel = distanceLabel(race.distance_km);
   const distNum = formatDistNum(race.distance_km);
   const distUnit = formatDistUnit(race.distance_km);
@@ -774,7 +780,7 @@ function renderRaceCard(race) {
           <div class="dist-unit">${distUnit}</div>
         </div>
         <div class="race-info">
-          <div class="race-name">${escHtml(race.name)}${isPending ? ' <span style="font-size:10px;background:rgba(91,140,255,0.2);color:#5b8cff;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">OCZEKUJE</span>' : ''}${isRejected ? ' <span style="font-size:10px;background:rgba(255,80,80,0.2);color:#ff6060;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">ODRZUCONE</span>' : ''}</div>
+          <div class="race-name">${escHtml(race.name)}${isNew ? ' <span style="font-size:10px;background:rgba(var(--accent-rgb),0.18);color:var(--accent);border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;font-weight:700;">NOWE</span>' : ''}${isPending ? ' <span style="font-size:10px;background:rgba(91,140,255,0.2);color:#5b8cff;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">OCZEKUJE</span>' : ''}${isRejected ? ' <span style="font-size:10px;background:rgba(255,80,80,0.2);color:#ff6060;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">ODRZUCONE</span>' : ''}</div>
           <div class="race-meta">
             <div class="race-meta-item">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
