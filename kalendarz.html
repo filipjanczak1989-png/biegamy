@@ -2190,10 +2190,16 @@ async function saveTraining() {
         if (attachmentUrl) upd.attachment_url = attachmentUrl;
         if (logStrava) upd.strava_link = logStrava;
         if (document.getElementById('f-comment')?.value) upd.comment = document.getElementById('f-comment').value;
-        if (Object.keys(upd).length) await sb.from('training_logs').update(upd).eq('id', existingLog.id);
+        if (Object.keys(upd).length) {
+          const { error: logUpdErr } = await sb.from('training_logs').update(upd).eq('id', existingLog.id);
+          if (logUpdErr) {
+            notify(logUpdErr.code === '42501' || logUpdErr.message?.includes('policy') ? 'Brak uprawnień do zapisu treningu' : 'Błąd zapisu: ' + logUpdErr.message);
+            return;
+          }
+        }
       } else {
         // INSERT nowego logu
-        await sb.from('training_logs').insert({
+        const { error: logInsErr } = await sb.from('training_logs').insert({
           athlete_id: athRow2.id,
           training_type: selectedType,
           distance_km: logDist,
@@ -2203,6 +2209,10 @@ async function saveTraining() {
           comment: document.getElementById('f-comment')?.value || null,
           logged_at: new Date(editingDate + 'T12:00:00').toISOString()
         });
+        if (logInsErr) {
+          notify(logInsErr.code === '42501' || logInsErr.message?.includes('policy') ? 'Brak uprawnień do zapisu treningu' : 'Błąd zapisu: ' + logInsErr.message);
+          return;
+        }
       }
     }
   }
