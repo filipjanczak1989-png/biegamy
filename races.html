@@ -621,9 +621,9 @@ async function loadRaceParticipantsAvatars() {
 
   // Pobierz wszystkie signups dla widocznych wyścigów
   const { data: signups } = await _sb.from('race_signups')
-    .select('race_id,athlete_id,signed_at')
+    .select('race_id,athlete_id,created_at')
     .in('race_id', raceIds)
-    .order('signed_at', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (!signups || !signups.length) return;
 

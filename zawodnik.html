@@ -3352,8 +3352,7 @@ async function saveGoal() {
     try {
       const { error: sErr } = await sb.from('race_signups').upsert({
         race_id: raceId,
-        athlete_id: _athleteId,
-        signed_at: new Date().toISOString()
+        athlete_id: _athleteId
       }, { onConflict: 'race_id,athlete_id' });
       if (!sErr) {
         // Zwiększ signup_count w races
@@ -3733,6 +3732,7 @@ window.loadMomenty = async function(athleteId, imie){
   try {
     const { data, error } = await sb.from('delivered_moments')
       .select('id,type,evidence,payload,edited_text')
+      .eq('athlete_id', athleteId)
       .eq('status','approved').is('shown_at', null)
       .in('type', _MOMENT_ANIMOWANE)
       .order('created_at', { ascending: true });
@@ -8557,7 +8557,7 @@ async function checkFriendsRacesDot() {
     if (!friendIds.length) { dot.style.display = 'none'; return; }
     const seen = localStorage.getItem('bm_races_friends_seen') || new Date().toISOString();
     const { data: sg } = await sb.from('race_signups')
-      .select('athlete_id,signed_at').in('athlete_id', friendIds).gt('signed_at', seen).limit(1);
+      .select('athlete_id,created_at').in('athlete_id', friendIds).gt('created_at', seen).limit(1);
     dot.style.display = (sg && sg.length) ? 'block' : 'none';
   } catch(e) { console.warn('[friends-dot]', e.message); }
 }
