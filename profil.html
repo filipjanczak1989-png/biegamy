@@ -656,6 +656,9 @@ let _profileData = null;
   renderActionBtns();
   if(_isOwnProfile)checkProfilFriendRequests();
   var _tp=new URLSearchParams(location.search).get('tab');if(_tp)setTimeout(function(){switchProfileTab(_tp);},300);
+  // ?open=icu — wejście z banera "Połącz zegarek" (zawodnik.html): otwórz Ustawienia + przewiń do sekcji intervals.icu
+  var _open=new URLSearchParams(location.search).get('open');
+  if(_open==='icu' && _isOwnProfile) setTimeout(function(){ openSettings(); setTimeout(function(){ var s=document.getElementById('icu-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'center'}); }, 250); }, 350);
 })();
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
