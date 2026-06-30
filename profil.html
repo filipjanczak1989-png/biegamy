@@ -482,6 +482,25 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <button id="privacy-btn" onclick="togglePrivacy()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);border-radius:10px;padding:7px 14px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:6px;"></button>
     </div>
 
+    <!-- intervals.icu — zegarek (Garmin/Polar/Coros → trener) -->
+    <div class="section" id="icu-section" style="display:none;margin-bottom:10px;">
+      <div class="section-hdr"><div class="section-title">inter<span>vals.icu</span></div></div>
+      <div id="icu-connected" style="display:none;background:rgba(var(--accent-rgb),0.08);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:12px;padding:14px 16px;margin-bottom:10px;align-items:center;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:500;color:var(--fg);">Połączono z intervals.icu</div>
+          <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;" id="icu-athlete-name">—</div>
+        </div>
+        <button onclick="disconnectIntervals()" style="font-size:10px;font-family:DM Mono,monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:6px 10px;cursor:pointer;letter-spacing:0.08em;">Odłącz</button>
+      </div>
+      <button id="icu-sync-btn" onclick="syncIntervals()" style="display:none;width:100%;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">↻ Synchronizuj aktywności</button>
+      <div id="icu-connect-form">
+        <input id="icu-athlete-id" placeholder="Athlete ID (np. i123456)" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--fg);font-family:DM Mono,monospace;font-size:12px;margin-bottom:8px;">
+        <input id="icu-api-key" type="password" placeholder="Klucz API" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--fg);font-family:DM Mono,monospace;font-size:12px;margin-bottom:8px;">
+        <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;line-height:1.5;">Znajdziesz w intervals.icu → Settings → Developer Settings. Twoje treningi z zegarka (Garmin/Polar/Coros) trafią automatycznie do trenera — nawet jeśli na Garminie masz „Tylko ja".</div>
+        <button id="icu-connect-btn" onclick="connectIntervals()" style="width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Połącz z intervals.icu</button>
+      </div>
+    </div>
+
     <button onclick="logout()" style="width:100%;background:rgba(224,80,80,0.08);color:#e05050;border:1px solid rgba(224,80,80,0.25);border-radius:12px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-top:8px;">→ Wyloguj się</button>
     <button id="delacc-btn" onclick="openDeleteAccount()" style="display:none;width:100%;background:transparent;color:#e05050;border:1px solid rgba(224,80,80,0.4);border-radius:12px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-top:8px;">🗑 Usuń konto</button>
     <button class="sheet-cancel" onclick="closeSettings()">Zamknij</button>
@@ -1629,6 +1648,7 @@ function openSettings() {
   // "Usuń konto" tylko dla zawodnika na własnym profilu (coach → RPC i tak odrzuci backstopem)
   const _del = document.getElementById('delacc-btn');
   if (_del) _del.style.display = (!_isCoach && _isOwnProfile) ? 'block' : 'none';
+  checkIntervalsStatus();   // intervals.icu — pokaż/odśwież stan połączenia
 }
 function closeSettings() {
   document.getElementById('settings-overlay').classList.remove('open');
@@ -1642,6 +1662,101 @@ async function logout() {
   localStorage.clear();
   sessionStorage.clear();
   window.location.href = 'index.html';
+}
+
+// ── INTERVALS.ICU (most zegarek Garmin/Polar/Coros → trener; klucz API trzymany server-side) ──
+async function connectIntervals() {
+  if (!_myId) return;
+  const icuId = (document.getElementById('icu-athlete-id').value || '').trim();
+  const key   = (document.getElementById('icu-api-key').value || '').trim();
+  if (!icuId || !key) { showToast('Podaj Athlete ID i klucz API'); return; }
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { showToast('Musisz być zalogowany'); return; }
+  const btn = document.getElementById('icu-connect-btn');
+  if (btn) { btn.textContent = 'Łączę...'; btn.disabled = true; }
+  try {
+    // EF waliduje klucz w intervals.icu i zapisuje go server-side (klient nigdy go nie odczyta)
+    const res = await fetch(window.SB_FN_URL + '/intervals-sync', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ athlete_id: _myId, icu_athlete_id: icuId, api_key: key })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('icu-api-key').value = '';
+      showToast(`Połączono z intervals.icu — zsynchronizowano ${data.synced} treningów ✓`);
+      await checkIntervalsStatus();
+    } else {
+      showToast('Błąd: ' + (data.error || 'nieznany'));
+    }
+  } catch(e) { showToast('Błąd: ' + e.message); }
+  if (btn) { btn.textContent = 'Połącz z intervals.icu'; btn.disabled = false; }
+}
+
+async function disconnectIntervals() {
+  if (!_myId) return;
+  if (!confirm('Odłączyć intervals.icu? Zaimportowane treningi pozostaną.')) return;
+  await sb.from('intervals_credentials').delete().eq('athlete_id', _myId);
+  const { error } = await sb.from('athletes').update({
+    intervals_athlete_id: null,
+    intervals_connected_at: null,
+  }).eq('id', _myId);
+  if (error) { showToast('Błąd: ' + error.message); return; }
+  document.getElementById('icu-connected').style.display = 'none';
+  document.getElementById('icu-sync-btn').style.display = 'none';
+  document.getElementById('icu-connect-form').style.display = 'block';
+  showToast('intervals.icu odłączone');
+}
+
+async function syncIntervals() {
+  if (!_myId) return;
+  const btn = document.getElementById('icu-sync-btn');
+  if (btn) { btn.textContent = '↻ Synchronizuję...'; btn.disabled = true; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const res = await fetch(window.SB_FN_URL + '/intervals-sync', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ athlete_id: _myId })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast(`Zsynchronizowano ${data.synced} treningów z zegarka ✓`);
+    } else {
+      showToast('Błąd synchronizacji: ' + (data.error || 'nieznany'));
+    }
+  } catch(e) { showToast('Błąd: ' + e.message); }
+  if (btn) { btn.textContent = '↻ Synchronizuj aktywności'; btn.disabled = false; }
+}
+
+async function checkIntervalsStatus() {
+  const sec = document.getElementById('icu-section');
+  // tylko własny profil zawodnika (coach/cudzy → brak _myId-athlete → ukryj sekcję)
+  if (!_myId || !_isOwnProfile) { if (sec) sec.style.display = 'none'; return; }
+  if (sec) sec.style.display = 'block';
+  const { data } = await sb.from('athletes')
+    .select('intervals_athlete_id, intervals_connected_at')
+    .eq('id', _myId)
+    .maybeSingle();
+  const connectedEl = document.getElementById('icu-connected');
+  const form = document.getElementById('icu-connect-form');
+  const syncBtn = document.getElementById('icu-sync-btn');
+  if (data?.intervals_athlete_id) {
+    if (connectedEl) connectedEl.style.display = 'flex';
+    if (form) form.style.display = 'none';
+    if (syncBtn) syncBtn.style.display = 'block';
+    const nameEl = document.getElementById('icu-athlete-name');
+    if (nameEl) {
+      const date = data.intervals_connected_at
+        ? new Date(data.intervals_connected_at).toLocaleDateString('pl-PL')
+        : '';
+      nameEl.textContent = 'ID: ' + data.intervals_athlete_id + (date ? ' · od ' + date : '');
+    }
+  } else {
+    if (connectedEl) connectedEl.style.display = 'none';
+    if (form) form.style.display = 'block';
+    if (syncBtn) syncBtn.style.display = 'none';
+  }
 }
 
 // ── USUŃ KONTO ──────────────────────────────────────────────────
