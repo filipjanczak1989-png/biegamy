@@ -2182,6 +2182,7 @@ async function saveTraining() {
         .select('id').eq('athlete_id', athRow2.id)
         .gte('logged_at', editingDate + 'T00:00:00')
         .lte('logged_at', editingDate + 'T23:59:59')
+        .order('logged_at', { ascending: false }).limit(1)   // import intervals.icu może dać 2. log tego dnia → bez limit(1) maybeSingle rzuca PGRST116
         .maybeSingle();
 
       if (existingLog) {
@@ -3311,6 +3312,7 @@ async function executeMoveScreen(logId, url, currentDs) {
       .eq('athlete_id', ownAthleteId)
       .gte('logged_at', targetDs + 'T00:00:00')
       .lte('logged_at', targetDs + 'T23:59:59')
+      .order('logged_at', { ascending: false }).limit(1)   // 2 logi/dzień (import intervals.icu + manual) → bez limit(1) maybeSingle rzuca PGRST116
       .maybeSingle();
 
     // Remove URL from current log's attachment_url
