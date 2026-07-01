@@ -4848,8 +4848,9 @@ async function _renderIcuDetail(logs) {
   const splitsEl = document.getElementById('ds-icu-splits');
   const msgEl = document.getElementById('ds-icu-msg');
   const multiEl = document.getElementById('ds-icu-multi');
+  const statsEl = document.getElementById('ds-icu-stats');
   if (_icuChart) { try { _icuChart.destroy(); } catch(e){} _icuChart = null; }
-  loading.style.display='none'; chartWrap.style.display='none'; splitsEl.style.display='none'; msgEl.style.display='none'; multiEl.style.display='none';
+  loading.style.display='none'; chartWrap.style.display='none'; splitsEl.style.display='none'; msgEl.style.display='none'; multiEl.style.display='none'; if (statsEl) statsEl.style.display='none';
   { const t=document.getElementById('ds-icu-tabs'); if (t) t.style.display='none'; }
 
   const icuLogs = (logs || []).filter(l => l.source === 'intervals' && l.external_id);
@@ -4881,6 +4882,7 @@ async function _renderIcuDetail(logs) {
     splitsEl.style.display = 'block';
     _icuRenderChart(d);
     _icuRenderSplits(d, splitsEl);
+    _icuRenderStats(d);
     // przełącznik metryk (jeden na raz); widoczność przycisków ogarnia _icuSetMetric (ukrywa bez danych, trwale)
     const tabs = document.getElementById('ds-icu-tabs');
     if (tabs) tabs.style.display = 'flex';
@@ -4926,6 +4928,46 @@ function _icuRenderChart(d) {
             return a==='yPace' ? ('Tempo '+_icuFmtPace(y)+'/km') : a==='yHr' ? ('HR '+y+' bpm') : a==='yResp' ? ('Oddech '+y+' /min') : a==='yCad' ? ('Kadencja '+y+' spm') : a==='yAlt' ? ('Wysokość '+Math.round(y)+' m') : a==='yTemp' ? ('Temp '+Math.round(y)+'°C') : (''+y); } } } }
     }
   });
+}
+
+function _icuRenderStats(d) {
+  const el = document.getElementById('ds-icu-stats');
+  if (!el) return;
+  const st = d.stats;
+  if (!st) { el.style.display='none'; el.innerHTML=''; return; }   // stare rowy przed self-heal (v<3)
+  const cell = (label, val, unit, sub) => (val==null || val==='') ? '' :
+    `<div class="ds-stat-cell">
+       <div class="ds-stat-label">${label}</div>
+       <div style="display:flex;align-items:baseline;gap:3px;"><span class="ds-stat-val">${val}</span>${unit?`<span class="ds-stat-unit">${unit}</span>`:''}</div>
+       ${sub?`<div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(240,237,232,0.32);letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">${sub}</div>`:''}
+     </div>`;
+  const grp = (title, cells) => { const c = cells.filter(Boolean); return c.length ?
+    `<div class="ds-label" style="margin:14px 0 8px;">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${c.join('')}</div>` : ''; };
+
+  const cad = st.avg_cadence!=null ? Math.round(st.avg_cadence*2) : null;   // ×2: per-noga→total spm
+  const groups = [
+    grp('Tempo', [ cell('GAP', st.gap_pace_s!=null?_icuFmtPace(st.gap_pace_s):null, '/km', 'tempo wg terenu') ]),
+    grp('Teren', [
+      cell('Spadek', st.elev_loss_m!=null?('−'+Math.round(st.elev_loss_m)):null, 'm'),
+      cell('Min wys.', st.min_alt_m!=null?Math.round(st.min_alt_m):null, 'm'),
+      cell('Max wys.', st.max_alt_m!=null?Math.round(st.max_alt_m):null, 'm'),
+    ]),
+    grp('Ciało', [
+      cell('Kadencja', cad, 'spm'),
+      cell('Długość kroku', st.avg_stride_m!=null?st.avg_stride_m.toFixed(2):null, 'm'),
+      cell('Temp śr', st.avg_temp_c!=null?Math.round(st.avg_temp_c):null, '°C'),
+      cell('Temp max', st.max_temp_c!=null?Math.round(st.max_temp_c):null, '°C'),
+    ]),
+    d.has_hr ? grp('Obciążenie', [   // graceful: cała grupa znika bez HR
+      cell('Max HR', st.max_hr, 'bpm'),
+      cell('TSS', st.load!=null?Math.round(st.load):null, ''),
+      cell('Intensywność', st.intensity!=null?Math.round(st.intensity):null, '%'),
+    ]) : '',
+  ].filter(Boolean);
+
+  if (!groups.length) { el.style.display='none'; el.innerHTML=''; return; }
+  el.innerHTML = groups.join('');
+  el.style.display = 'block';
 }
 
 function _icuRenderSplits(d, el) {
@@ -5448,6 +5490,7 @@ document.addEventListener('keydown', e => {
       </div>
       <div id="ds-icu-chart-wrap" style="display:none;position:relative;height:180px;margin-bottom:12px;"><canvas id="ds-icu-chart"></canvas></div>
       <div id="ds-icu-splits" style="display:none;"></div>
+      <div id="ds-icu-stats" style="display:none;"></div>
       <div id="ds-icu-msg" style="display:none;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;"></div>
     </div>
 
