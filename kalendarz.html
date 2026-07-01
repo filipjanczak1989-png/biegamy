@@ -4848,7 +4848,7 @@ async function _renderIcuDetail(logs) {
     if (!session) throw new Error('no_session');
     const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/intervals-activity-detail';
     const res = await fetch(fnUrl, { method:'POST',
-      headers:{ 'Authorization':'Bearer '+session.access_token, 'apikey': window.SB_KEY, 'Content-Type':'application/json' },
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
       body: JSON.stringify({ athlete_id: icuLog.athlete_id, activity_id: icuLog.external_id }) });
     loading.style.display = 'none';
     if (res.status === 403) {   // nie-właściciel (np. trener ogląda cudzy dzień) — łagodnie, bez surowego błędu
