@@ -1998,7 +1998,7 @@
     // 2 dodatkowe sekcje — pass prefix
     window._renderFormaWeekly(logs || [], px, undefined, !!(options && options.animate));
     window._renderFormaTypes(logs || [], px, !!(options && options.animate));
-    window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate));
+    window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate), athleteId);
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
     if (window.renderFormaHrZones) window.renderFormaHrZones(athleteId, px, { isCoach: px === 'pfo' });   // agregat stref HR (async, non-blocking; authz owner+coach server-side)
   };
@@ -2187,7 +2187,7 @@
   };
 
   // Heatmap aktywności — 13 tygodni × 7 dni grid (GitHub-style)
-  window._renderFormaHeatmap = function(logs, idPrefix, weightKg, useGlobalPercentile, animate) {
+  window._renderFormaHeatmap = function(logs, idPrefix, weightKg, useGlobalPercentile, animate, athleteId) {
     const px = idPrefix || 'forma';
     const el = document.getElementById(px + '-heatmap');
     if (!el) return;
@@ -2265,11 +2265,14 @@
         const animStyle = doAnim
           ? 'opacity:0;transform:scale(0.6);transition:opacity 0.3s ease,transform 0.3s cubic-bezier(0.215,0.61,0.355,1);transition-delay:' + (w * 40) + 'ms;'
           : 'opacity:' + opacity + ';transition:transform 0.15s;';
-        // L3: klik → drill-down dnia (tylko zawodnik px!=='pfo'; aktywny dzień; nie-przyszłość). dateStr generowany → inline onclick bezpieczny
-        const clickable = (px !== 'pfo') && !isFuture && trimp > 0;
+        // L3: klik → drill-down dnia (aktywny dzień; nie-przyszłość). Zawodnik → ?openDay; trener(pfo) → ?role=coach&athlete=<id>&openDay (drill-down zawodnika; wymaga athleteId — coach-auth EF przepuszcza trenera-tego-zawodnika). dateStr generowany → inline onclick bezpieczny
+        const clickable = !isFuture && trimp > 0 && (px !== 'pfo' || !!athleteId);
         if (clickable) anyClickable = true;
         const tipFull = clickable ? (titleAttr + ' · otwórz') : titleAttr;
-        const clickAttr = clickable ? ' onclick="location.href=\'kalendarz.html?openDay=' + dateStr + '\'"' : '';
+        const navUrl = (px === 'pfo')
+          ? 'kalendarz.html?role=coach&athlete=' + athleteId + '&openDay=' + dateStr
+          : 'kalendarz.html?openDay=' + dateStr;
+        const clickAttr = clickable ? ' onclick="location.href=\'' + navUrl + '\'"' : '';
         cells += '<div class="fhm-cell" data-tip="' + esc(tipFull) + '" data-date="' + dateStr + '" data-future="' + (isFuture ? 1 : 0) + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';' + (clickable ? 'cursor:pointer;' : 'cursor:default;') + ring + animStyle + '"' + clickAttr + ' onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
       }
     }
@@ -2291,8 +2294,8 @@
 
     const tipHtml = '<div class="fwb-tip" style="position:absolute;left:0;top:0;transform:translateX(-50%);pointer-events:none;opacity:0;transition:opacity 0.15s ease;background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 9px;font-family:\'DM Mono\',monospace;font-size:10px;color:#fff;white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,0.45);"></div>';
     const gridHtml = '<div class="fhm-grid" style="position:relative;display:grid;grid-template-columns:18px repeat(13,' + cellSize + 'px);grid-template-rows:repeat(7,' + cellSize + 'px);gap:' + gap + 'px;padding-top:12px;">' + monthLabels + labels + cells + tipHtml + '</div>';
-    // L3: mikro-podpis odkrywalności (mobile-friendly, brak hover) — tylko zawodnik i tylko gdy są klikalne dni; ZERO ramek na komórkach (kolor=intensywność zostaje czysty)
-    const hint = (px !== 'pfo' && anyClickable)
+    // L3: mikro-podpis odkrywalności (mobile-friendly, brak hover) — gdy są klikalne dni (zawodnik i trener); ZERO ramek na komórkach (kolor=intensywność zostaje czysty)
+    const hint = anyClickable
       ? '<div style="text-align:center;margin-top:8px;font-size:9px;color:rgba(255,255,255,0.4);font-family:\'DM Mono\',monospace;letter-spacing:0.03em;">dotknij dnia z treningiem, żeby zobaczyć szczegóły</div>'
       : '';
     el.innerHTML = gridHtml + legend + hint;
