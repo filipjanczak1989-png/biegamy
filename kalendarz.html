@@ -1648,6 +1648,12 @@ function render() {
       setTimeout(() => { window._calJumpToDate = null; }, 5000);
     }, 200);
   }
+
+  // ✨ L3: ?openDay → otwórz drill-down dnia RAZ (dane gotowe: _calLogs załadowane; one-shot — null po odpaleniu, nie re-otwiera przy nawigacji tygodni)
+  if (window._calOpenDay && window._calLogs) {
+    const _od = window._calOpenDay; window._calOpenDay = null;
+    setTimeout(() => { _openDayScreen(_od); }, 250);
+  }
 }
 
 // ── WEEK NAV ──────────────────────────────────────────────────────────────────
@@ -2308,6 +2314,12 @@ if (_urlAthlete) window._calSelectedAthleteId = _urlAthlete;
 // ✨ v47: jeśli URL ma ?date=YYYY-MM-DD — ustaw currentWeekStart na tydzień tego dnia
 if (_urlDate && /^\d{4}-\d{2}-\d{2}$/.test(_urlDate)) {
   window._calJumpToDate = _urlDate; // zapamiętaj żeby podświetlić ten dzień
+}
+// ✨ L3: ?openDay=YYYY-MM-DD — otwórz drill-down dnia (wejście z heatmapy Formy)
+const _urlOpenDay = new URLSearchParams(window.location.search).get('openDay') || null;
+if (_urlOpenDay && /^\d{4}-\d{2}-\d{2}$/.test(_urlOpenDay)) {
+  window._calOpenDay = _urlOpenDay;
+  window._calJumpToDate = _urlOpenDay; // tydzień pod spodem też właściwy
 }
 function goBack() {
   window.location.href = _backUrl;

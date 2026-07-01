@@ -2231,6 +2231,7 @@
 
     // Build grid HTML
     let cells = '';
+    let anyClickable = false;   // L3: czy jest choć jeden klikalny dzień (do mikro-podpisu)
     let monthLabels = '';
     let lastMonth = -1;
     for (let w = 0; w < 13; w++) {
@@ -2246,7 +2247,7 @@
       for (let d = 0; d < 7; d++) {
         const date = new Date(weekStart);
         date.setDate(weekStart.getDate() + d);
-        const dateStr = date.toISOString().slice(0, 10);
+        const dateStr = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');   // LOKALNA data (spójne z _calLogs=logged_at.split, kaflami mobile 4680/4708, i labelem toLocaleDateString); NIE toISOString — UTC cofa o dzień w +tz → off-by-one (heatmapa + L3 openDay)
         const trimp = dailyTRIMP[dateStr] || 0;
         const kcal = hasKcal ? (dailyKcal[dateStr] || 0) : 0;
         const level = window.formaIntensityLevel(trimp, thresholds);
@@ -2264,7 +2265,12 @@
         const animStyle = doAnim
           ? 'opacity:0;transform:scale(0.6);transition:opacity 0.3s ease,transform 0.3s cubic-bezier(0.215,0.61,0.355,1);transition-delay:' + (w * 40) + 'ms;'
           : 'opacity:' + opacity + ';transition:transform 0.15s;';
-        cells += '<div class="fhm-cell" data-tip="' + esc(titleAttr) + '" data-future="' + (isFuture ? 1 : 0) + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';cursor:default;' + ring + animStyle + '" onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
+        // L3: klik → drill-down dnia (tylko zawodnik px!=='pfo'; aktywny dzień; nie-przyszłość). dateStr generowany → inline onclick bezpieczny
+        const clickable = (px !== 'pfo') && !isFuture && trimp > 0;
+        if (clickable) anyClickable = true;
+        const tipFull = clickable ? (titleAttr + ' · otwórz') : titleAttr;
+        const clickAttr = clickable ? ' onclick="location.href=\'kalendarz.html?openDay=' + dateStr + '\'"' : '';
+        cells += '<div class="fhm-cell" data-tip="' + esc(tipFull) + '" data-date="' + dateStr + '" data-future="' + (isFuture ? 1 : 0) + '" style="width:' + cellSize + 'px;height:' + cellSize + 'px;background:' + color + ';border-radius:2px;grid-column:' + (w + 2) + ';grid-row:' + (d + 1) + ';' + (clickable ? 'cursor:pointer;' : 'cursor:default;') + ring + animStyle + '"' + clickAttr + ' onmouseover="this.style.transform=\'scale(1.4)\'" onmouseout="this.style.transform=\'scale(1)\'"></div>';
       }
     }
 
@@ -2285,7 +2291,11 @@
 
     const tipHtml = '<div class="fwb-tip" style="position:absolute;left:0;top:0;transform:translateX(-50%);pointer-events:none;opacity:0;transition:opacity 0.15s ease;background:rgba(20,15,30,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:8px;padding:6px 9px;font-family:\'DM Mono\',monospace;font-size:10px;color:#fff;white-space:nowrap;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,0.45);"></div>';
     const gridHtml = '<div class="fhm-grid" style="position:relative;display:grid;grid-template-columns:18px repeat(13,' + cellSize + 'px);grid-template-rows:repeat(7,' + cellSize + 'px);gap:' + gap + 'px;padding-top:12px;">' + monthLabels + labels + cells + tipHtml + '</div>';
-    el.innerHTML = gridHtml + legend;
+    // L3: mikro-podpis odkrywalności (mobile-friendly, brak hover) — tylko zawodnik i tylko gdy są klikalne dni; ZERO ramek na komórkach (kolor=intensywność zostaje czysty)
+    const hint = (px !== 'pfo' && anyClickable)
+      ? '<div style="text-align:center;margin-top:8px;font-size:9px;color:rgba(255,255,255,0.4);font-family:\'DM Mono\',monospace;letter-spacing:0.03em;">dotknij dnia z treningiem, żeby zobaczyć szczegóły</div>'
+      : '';
+    el.innerHTML = gridHtml + legend + hint;
 
     // Draw-on-load: column-sweep reveal po 1 klatce
     if (doAnim) requestAnimationFrame(() => {
