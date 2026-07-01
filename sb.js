@@ -1421,6 +1421,74 @@
     })(performance.now());
   };
 
+  // ── Strefy tętna: palety + wizual słupków (single source; A=kalendarz przepniemy potem) ──
+  window.HR_ZONE_COLORS = { Z1:'#8a94a6', Z2:'#4a90d9', Z3:'#3db870', Z4:'#f2b134', Z5:'#e03e3e', Z5a:'#ef7d3a', Z5b:'#e03e3e', Z5c:'#a02525' };
+  window.HR_ZONE_PL     = { Z1:'regeneracja', Z2:'tlenowy', Z3:'tempo', Z4:'próg', Z5:'VO2max', Z5a:'VO2max', Z5b:'beztlenowy', Z5c:'maksymalny' };
+  // zwraca HTML słupków (sortowanie malejąco wg czasu, rampa, nazwy PL odporne, bpm-range, czas h:mm/m:ss + %)
+  window.renderHrZoneBars = function(z) {
+    const labels = z.labels || [], times = z.time_s || [], bounds = Array.isArray(z.bounds) ? z.bounds : [];
+    const n = Math.min(labels.length, times.length);
+    if (!n) return '';
+    const total = times.slice(0,n).reduce((s,t)=>s+(t||0),0) || 1;
+    const maxT  = Math.max(...times.slice(0,n).map(t=>t||0)) || 1;
+    const fmt = (s)=>{ const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), ss=s%60;
+      return h ? (h+':'+String(m).padStart(2,'0')) : (m+':'+String(ss).padStart(2,'0')); };
+    const bpmRange = (i)=>{ const hi=bounds[i]; if (hi==null) return ''; const lo=i>0?bounds[i-1]:null;
+      return lo!=null ? (lo+'–'+hi) : ('<'+hi); };
+    const idx = Array.from({length:n},(_,i)=>i);
+    return idx.slice().sort((a,b)=>(times[b]||0)-(times[a]||0)).map(i=>{
+      const t=times[i]||0, pct=Math.round(100*t/total), w=Math.max(2, Math.round(100*t/maxT));
+      const col=(window.HR_ZONE_COLORS||{})[labels[i]] || '#8a94a6', pl=(window.HR_ZONE_PL||{})[labels[i]], rng=bpmRange(i);
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-family:'DM Mono',monospace;font-size:11px;">
+        <div style="width:88px;flex-shrink:0;line-height:1.25;">
+          <div style="color:rgba(240,237,232,0.9);">${labels[i]}</div>
+          ${pl?`<div style="font-size:8px;color:rgba(240,237,232,0.5);text-transform:uppercase;letter-spacing:0.05em;">${pl}</div>`:''}
+          ${rng?`<div style="font-size:8px;color:rgba(240,237,232,0.35);">${rng}</div>`:''}
+        </div>
+        <div style="flex:1;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${w}%;background:${col};border-radius:4px;"></div>
+        </div>
+        <div style="width:64px;text-align:right;flex-shrink:0;color:rgba(240,237,232,0.85);">${fmt(t)} <span style="color:rgba(240,237,232,0.4);">${pct}%</span></div>
+      </div>`;
+    }).join('');
+  };
+
+  // Agregat stref HR w Formie (90d z EF intervals-hr-aggregate; cache klient sessionStorage 6h; authz owner+coach = server-side)
+  window.renderFormaHrZones = async function(athleteId, idPrefix, opts) {
+    const px = idPrefix || 'forma';
+    const el = document.getElementById(px + '-hrzones');
+    if (!el || !athleteId) return;
+    const hide = ()=>{ el.style.display='none'; el.innerHTML=''; };
+    try {
+      const days = 90, cacheKey = 'hragg_'+athleteId+'_'+days, now = Date.now();
+      let d = null;
+      try { const c = JSON.parse(sessionStorage.getItem(cacheKey)||'null');
+        if (c && c.ts && (now - c.ts) < 6*3600*1000) d = c.data; } catch(e){}   // hit TTL 6h
+      if (!d) {
+        const { data:{ session } } = await sb.auth.getSession();
+        if (!session) return hide();
+        const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/intervals-hr-aggregate';
+        const res = await fetch(fnUrl, { method:'POST',
+          headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },   // ZERO apikey (CORS preflight)
+          body: JSON.stringify({ athlete_id: athleteId, days }) });
+        d = await res.json().catch(()=>null);
+        if (d && d.ok) { try { sessionStorage.setItem(cacheKey, JSON.stringify({ ts:now, data:d })); } catch(e){} }
+      }
+      if (!d || !d.ok || !d.n_hr || !(d.time_s||[]).some(t=>t>0)) return hide();   // graceful: brak biegów z tętnem
+      const labels=d.labels||[], times=d.time_s||[];
+      let domI=0; for (let i=1;i<times.length;i++) if ((times[i]||0)>(times[domI]||0)) domI=i;   // dominująca
+      const domPL=(window.HR_ZONE_PL||{})[labels[domI]];
+      const dom = labels[domI] + (domPL?(' ('+domPL+')'):'');
+      const cap = 'ostatnie '+d.days+' dni · '+d.n_hr+' z '+d.n_runs+' biegów z tętnem · głównie '+dom
+        + (d.bounds_varied ? ' · progi zmieniły się w oknie' : '');
+      el.innerHTML =
+        `<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;margin-bottom:6px;">❤️ Strefy tętna</div>
+         <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.03em;color:rgba(240,237,232,0.5);margin-bottom:10px;">${cap}</div>
+         ${window.renderHrZoneBars(d)}`;
+      el.style.display='block';
+    } catch(e){ hide(); }
+  };
+
   // Core forma renderer — parametryzowany athleteId + idPrefix dla reuse w zawodnik.html + trener.html
   window.renderFormaForAthlete = async function(athleteId, idPrefix, options) {
     if (!athleteId) return;
@@ -1932,6 +2000,7 @@
     window._renderFormaTypes(logs || [], px, !!(options && options.animate));
     window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate));
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
+    if (window.renderFormaHrZones) window.renderFormaHrZones(athleteId, px, { isCoach: px === 'pfo' });   // agregat stref HR (async, non-blocking; authz owner+coach server-side)
   };
 
   // Weekly bars renderer — parametryzowany prefix
