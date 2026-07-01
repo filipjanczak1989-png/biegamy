@@ -4861,10 +4861,10 @@ async function _renderIcuDetail(logs) {
       await new Promise((resolve, reject) => { const s=document.createElement('script');
         s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); });
     }
+    chartWrap.style.display = 'block';   // canvas MUSI mieć wymiary PRZED new Chart (inaczej 0×0 → pusty wykres)
+    splitsEl.style.display = 'block';
     _icuRenderChart(d);
     _icuRenderSplits(d, splitsEl);
-    chartWrap.style.display = 'block';
-    splitsEl.style.display = 'block';
   } catch(e) {
     loading.style.display = 'none';
     msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block';
@@ -4872,6 +4872,9 @@ async function _renderIcuDetail(logs) {
 }
 
 function _icuRenderChart(d) {
+  // świeży <canvas> co render — omija leftover-state Chart.js przy reużyciu ("Canvas is already in use" / pusty canvas przy 2. otwarciu)
+  const oldC = document.getElementById('ds-icu-chart');
+  if (oldC && oldC.parentNode) { const f = document.createElement('canvas'); f.id = 'ds-icu-chart'; oldC.parentNode.replaceChild(f, oldC); }
   const S = d.series || {};
   const dsets = [{ label:'Tempo', yAxisID:'yPace', borderColor:'#e8561e', backgroundColor:'rgba(232,86,30,0.08)',
     borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true,
