@@ -2418,7 +2418,7 @@ async function loadTrainingsFromDB() {
   });
 
   // Załaduj logi dla tych samych zawodników
-  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type, comment, elevation_gain, strava_link, calories').not('training_type', 'like', '__badge__%').order('logged_at');
+  let logsQuery = sb.from('training_logs').select('id, athlete_id, logged_at, attachment_url, distance_km, pace, feel, heart_rate, duration, training_type, comment, elevation_gain, strava_link, calories, external_id, source').not('training_type', 'like', '__badge__%').order('logged_at');
   if (_urlRole === 'athlete') {
     const { data: ath2 } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
     if (ath2) logsQuery = logsQuery.eq('athlete_id', ath2.id);
@@ -4821,6 +4821,100 @@ const MONTH_PL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
                   'Lipiec','Sierpień','Wrzesień','Październik','Listopad','Grudzień'];
 const DOW_PL   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
 
+// ── intervals.icu drill-down: wykres tempo/HR + splity per km (reużywalne, pod L3 wejście z Formy) ──
+let _icuChart = null;
+function _icuFmtPace(s){ if (s==null) return '—'; const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
+
+async function _renderIcuDetail(logs) {
+  const card = document.getElementById('ds-icu-card');
+  if (!card) return;
+  const loading = document.getElementById('ds-icu-loading');
+  const chartWrap = document.getElementById('ds-icu-chart-wrap');
+  const splitsEl = document.getElementById('ds-icu-splits');
+  const msgEl = document.getElementById('ds-icu-msg');
+  const multiEl = document.getElementById('ds-icu-multi');
+  if (_icuChart) { try { _icuChart.destroy(); } catch(e){} _icuChart = null; }
+  loading.style.display='none'; chartWrap.style.display='none'; splitsEl.style.display='none'; msgEl.style.display='none'; multiEl.style.display='none';
+
+  const icuLogs = (logs || []).filter(l => l.source === 'intervals' && l.external_id);
+  if (!icuLogs.length) { card.style.display = 'none'; return; }   // brak intervals w dniu → karta ukryta
+  card.style.display = 'block';
+  loading.style.display = 'block';
+  if (icuLogs.length > 1) { multiEl.textContent = 'trening 1 z ' + icuLogs.length; multiEl.style.display = 'block'; }  // nie gubimy drugiego
+  const icuLog = icuLogs[0];
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('no_session');
+    const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/intervals-activity-detail';
+    const res = await fetch(fnUrl, { method:'POST',
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'apikey': window.SB_KEY, 'Content-Type':'application/json' },
+      body: JSON.stringify({ athlete_id: icuLog.athlete_id, activity_id: icuLog.external_id }) });
+    loading.style.display = 'none';
+    if (res.status === 403) {   // nie-właściciel (np. trener ogląda cudzy dzień) — łagodnie, bez surowego błędu
+      msgEl.textContent = 'Szczegóły dostępne dla zawodnika.'; msgEl.style.display = 'block'; return;
+    }
+    const d = await res.json().catch(()=>null);
+    if (!d || !d.ok) { msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block'; return; }
+
+    if (typeof Chart === 'undefined') {   // Chart.js lazy-load (kalendarz go nie ma) — wzorzec sb.js:1431
+      await new Promise((resolve, reject) => { const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); });
+    }
+    _icuRenderChart(d);
+    _icuRenderSplits(d, splitsEl);
+    chartWrap.style.display = 'block';
+    splitsEl.style.display = 'block';
+  } catch(e) {
+    loading.style.display = 'none';
+    msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block';
+  }
+}
+
+function _icuRenderChart(d) {
+  const S = d.series || {};
+  const dsets = [{ label:'Tempo', yAxisID:'yPace', borderColor:'#e8561e', backgroundColor:'rgba(232,86,30,0.08)',
+    borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true,
+    data:(S.pace_s||[]).map((p,i)=>({x:S.dist_km[i], y:p})) }];
+  if (d.has_hr && S.hr) dsets.push({ label:'Tętno', yAxisID:'yHr', borderColor:'#ff5b5b',
+    borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true,
+    data:S.hr.map((h,i)=>({x:S.dist_km[i], y:h})) });
+  const mono = "'DM Mono',monospace";
+  _icuChart = new Chart(document.getElementById('ds-icu-chart').getContext('2d'), {
+    type:'line', data:{ datasets:dsets },
+    options:{ maintainAspectRatio:false, animation:false, interaction:{mode:'index',intersect:false},
+      scales:{
+        x:{ type:'linear', ticks:{ color:'rgba(240,237,232,0.4)', font:{family:mono,size:9}, callback:(v)=>v+' km' }, grid:{color:'rgba(255,255,255,0.05)'} },
+        yPace:{ position:'left', reverse:true, ticks:{ color:'#e8561e', font:{family:mono,size:9}, callback:(v)=>_icuFmtPace(v) }, grid:{color:'rgba(255,255,255,0.05)'} },
+        yHr:{ position:'right', display:!!d.has_hr, ticks:{ color:'#ff5b5b', font:{family:mono,size:9} }, grid:{display:false} }
+      },
+      plugins:{ legend:{ labels:{ color:'rgba(240,237,232,0.7)', font:{family:mono,size:10}, boxWidth:10 } },
+        tooltip:{ callbacks:{ title:(it)=>it[0].parsed.x.toFixed(2)+' km',
+          label:(it)=> it.dataset.yAxisID==='yPace' ? ('Tempo '+_icuFmtPace(it.parsed.y)+'/km') : ('HR '+it.parsed.y+' bpm') } } }
+    }
+  });
+}
+
+function _icuRenderSplits(d, el) {
+  const sp = d.splits || [];
+  if (!sp.length) { el.innerHTML=''; return; }
+  const full = sp.filter(s=>s.pace_s!=null && !s.partial).map(s=>s.pace_s);
+  const fastest = full.length? Math.min(...full):null, slowest = full.length? Math.max(...full):null;
+  const spread = full.length>1 && slowest>fastest;   // ekstrema oznaczaj TYLKO gdy jest realna różnica (wszystkie równe → brak ▲/▼)
+  el.innerHTML = sp.map(s=>{
+    const w = (s.pace_s!=null && slowest>fastest) ? Math.round(100*(slowest - s.pace_s)/(slowest-fastest)) : 50;  // szybszy km = dłuższy pasek
+    const mark = (!s.partial && spread && s.pace_s===fastest) ? '<span style="color:#3db870;" title="najszybszy">▲</span>'
+               : (!s.partial && spread && s.pace_s===slowest) ? '<span style="color:#ff5b5b;" title="najwolniejszy">▼</span>' : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-family:'DM Mono',monospace;font-size:11px;color:rgba(240,237,232,0.85);">
+      <span style="width:36px;color:var(--muted);flex-shrink:0;">${s.partial? s.km.toFixed(2):(s.km+' km')}</span>
+      <span style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><span style="display:block;height:100%;width:${Math.max(4,w)}%;background:var(--accent);"></span></span>
+      <span style="width:60px;text-align:right;flex-shrink:0;">${_icuFmtPace(s.pace_s)}/km ${mark}</span>
+      ${d.has_hr ? `<span style="width:44px;text-align:right;flex-shrink:0;color:#ff9b9b;">${s.hr_avg!=null?('♥'+s.hr_avg):''}</span>` : ''}
+      <span style="width:38px;text-align:right;flex-shrink:0;color:var(--muted);">${s.elev_gain_m?('+'+s.elev_gain_m+'m'):''}</span>
+    </div>`;
+  }).join('');
+}
+
 function _openDayScreen(ds) {
   const screen = document.getElementById('day-screen');
   if (!screen) return;
@@ -4934,6 +5028,9 @@ function _openDayScreen(ds) {
   } else {
     statsCard.style.display = 'none';
   }
+
+  // ── KARTA: Tempo/HR + splity (intervals.icu drill-down) ──
+  _renderIcuDetail(logs);
 
   // ── KARTA: Cytat dnia
   const _dayQ = window.getDailyQuote(Math.floor((new Date(ds + 'T00:00:00') - new Date()) / 86400000));
@@ -5302,6 +5399,18 @@ document.addEventListener('keydown', e => {
     <div id="ds-stats-card" class="ds-card" style="display:none;">
       <div class="ds-label">Statystyki</div>
       <div id="ds-stats-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+    </div>
+
+    <!-- KARTA: Tempo / tętno + splity (intervals.icu drill-down) -->
+    <div id="ds-icu-card" class="ds-card" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="ds-label" style="margin:0;">Tempo / tętno</div>
+        <div id="ds-icu-multi" style="display:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);"></div>
+      </div>
+      <div id="ds-icu-loading" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;">Ładuję szczegóły…</div>
+      <div id="ds-icu-chart-wrap" style="display:none;position:relative;height:180px;margin-bottom:12px;"><canvas id="ds-icu-chart"></canvas></div>
+      <div id="ds-icu-splits" style="display:none;"></div>
+      <div id="ds-icu-msg" style="display:none;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;"></div>
     </div>
 
     <!-- KARTA: Plan trenera -->
