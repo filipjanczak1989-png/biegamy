@@ -4822,8 +4822,25 @@ const MONTH_PL = ['Styczeń','Luty','Marzec','Kwiecień','Maj','Czerwiec',
 const DOW_PL   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
 
 // ── intervals.icu drill-down: wykres tempo/HR + splity per km (reużywalne, pod L3 wejście z Formy) ──
-let _icuChart = null;
+let _icuChart = null, _icuHasHr = false;
 function _icuFmtPace(s){ if (s==null) return '—'; const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
+function _icuTabStyle(active){
+  return "font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;"
+    + (active ? "border:1px solid var(--accent);background:var(--accent);color:#fff;" : "border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--muted);");
+}
+// przełącznik metryki — jeden na raz (nigdy tempo+HR naraz; oś Y przełącza się z metryką)
+function _icuSetMetric(m){
+  if (!_icuChart) return;
+  const showHr = (m === 'hr') && _icuHasHr;
+  _icuChart.setDatasetVisibility(0, !showHr);                 // 0 = tempo
+  if (_icuHasHr) _icuChart.setDatasetVisibility(1, showHr);   // 1 = HR
+  _icuChart.options.scales.yPace.display = !showHr;
+  _icuChart.options.scales.yHr.display = showHr;
+  _icuChart.update();
+  const bp=document.getElementById('ds-icu-tab-pace'), bh=document.getElementById('ds-icu-tab-hr');
+  if (bp) bp.style.cssText = _icuTabStyle(!showHr);
+  if (bh) bh.style.cssText = _icuTabStyle(showHr);
+}
 
 async function _renderIcuDetail(logs) {
   const card = document.getElementById('ds-icu-card');
@@ -4835,6 +4852,7 @@ async function _renderIcuDetail(logs) {
   const multiEl = document.getElementById('ds-icu-multi');
   if (_icuChart) { try { _icuChart.destroy(); } catch(e){} _icuChart = null; }
   loading.style.display='none'; chartWrap.style.display='none'; splitsEl.style.display='none'; msgEl.style.display='none'; multiEl.style.display='none';
+  { const t=document.getElementById('ds-icu-tabs'); if (t) t.style.display='none'; }
 
   const icuLogs = (logs || []).filter(l => l.source === 'intervals' && l.external_id);
   if (!icuLogs.length) { card.style.display = 'none'; return; }   // brak intervals w dniu → karta ukryta
@@ -4865,6 +4883,12 @@ async function _renderIcuDetail(logs) {
     splitsEl.style.display = 'block';
     _icuRenderChart(d);
     _icuRenderSplits(d, splitsEl);
+    // przełącznik Tempo/Tętno (jeden na raz); HR-opcja tylko gdy has_hr
+    const tabs = document.getElementById('ds-icu-tabs');
+    const hrBtn = document.getElementById('ds-icu-tab-hr');
+    if (tabs) tabs.style.display = 'flex';
+    _icuSetMetric('pace');   // domyślnie TEMPO (HR ukryte) — ustawia cssText przycisków
+    if (hrBtn) hrBtn.style.display = d.has_hr ? '' : 'none';   // PO _icuSetMetric (bo cssText nadpisuje display)
   } catch(e) {
     loading.style.display = 'none';
     msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block';
@@ -4876,6 +4900,7 @@ function _icuRenderChart(d) {
   const oldC = document.getElementById('ds-icu-chart');
   if (oldC && oldC.parentNode) { const f = document.createElement('canvas'); f.id = 'ds-icu-chart'; oldC.parentNode.replaceChild(f, oldC); }
   const S = d.series || {};
+  _icuHasHr = !!(d.has_hr && S.hr);
   const dsets = [{ label:'Tempo', yAxisID:'yPace', borderColor:'#e8561e', backgroundColor:'rgba(232,86,30,0.08)',
     borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true,
     data:(S.pace_s||[]).map((p,i)=>({x:S.dist_km[i], y:p})) }];
@@ -4891,7 +4916,7 @@ function _icuRenderChart(d) {
         yPace:{ position:'left', reverse:true, ticks:{ color:'#e8561e', font:{family:mono,size:9}, callback:(v)=>_icuFmtPace(v) }, grid:{color:'rgba(255,255,255,0.05)'} },
         yHr:{ position:'right', display:!!d.has_hr, ticks:{ color:'#ff5b5b', font:{family:mono,size:9} }, grid:{display:false} }
       },
-      plugins:{ legend:{ labels:{ color:'rgba(240,237,232,0.7)', font:{family:mono,size:10}, boxWidth:10 } },
+      plugins:{ legend:{ display:false },
         tooltip:{ callbacks:{ title:(it)=>it[0].parsed.x.toFixed(2)+' km',
           label:(it)=> it.dataset.yAxisID==='yPace' ? ('Tempo '+_icuFmtPace(it.parsed.y)+'/km') : ('HR '+it.parsed.y+' bpm') } } }
     }
@@ -5411,6 +5436,10 @@ document.addEventListener('keydown', e => {
         <div id="ds-icu-multi" style="display:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);"></div>
       </div>
       <div id="ds-icu-loading" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;">Ładuję szczegóły…</div>
+      <div id="ds-icu-tabs" style="display:none;gap:6px;margin-bottom:10px;">
+        <button id="ds-icu-tab-pace" onclick="_icuSetMetric('pace')">Tempo</button>
+        <button id="ds-icu-tab-hr" onclick="_icuSetMetric('hr')">Tętno</button>
+      </div>
       <div id="ds-icu-chart-wrap" style="display:none;position:relative;height:180px;margin-bottom:12px;"><canvas id="ds-icu-chart"></canvas></div>
       <div id="ds-icu-splits" style="display:none;"></div>
       <div id="ds-icu-msg" style="display:none;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;"></div>
