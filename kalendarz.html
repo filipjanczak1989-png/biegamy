@@ -4823,8 +4823,8 @@ const DOW_PL   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Pią
 
 // ── intervals.icu drill-down: wykres tempo/HR + splity per km (reużywalne, pod L3 wejście z Formy) ──
 let _icuChart = null, _icuHasHr = false, _icuMetricIdx = {};
-const _ICU_AXIS = { pace:'yPace', hr:'yHr', cad:'yCad', alt:'yAlt' };
-const _ICU_BTN  = { pace:'ds-icu-tab-pace', hr:'ds-icu-tab-hr', cad:'ds-icu-tab-cad', alt:'ds-icu-tab-alt' };
+const _ICU_AXIS = { pace:'yPace', hr:'yHr', resp:'yResp', cad:'yCad', alt:'yAlt', temp:'yTemp' };
+const _ICU_BTN  = { pace:'ds-icu-tab-pace', hr:'ds-icu-tab-hr', resp:'ds-icu-tab-resp', cad:'ds-icu-tab-cad', alt:'ds-icu-tab-alt', temp:'ds-icu-tab-temp' };
 function _icuFmtPace(s){ if (s==null) return '—'; const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
 function _icuTabStyle(active){
   return "font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;"
@@ -4905,6 +4905,8 @@ function _icuRenderChart(d) {
   if (_icuHasHr)      { _icuMetricIdx.hr  = dsets.length; dsets.push({ label:'Tętno',    yAxisID:'yHr',  borderColor:'#ff5b5b', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.hr) }); }
   if (has(S.cad))     { _icuMetricIdx.cad = dsets.length; dsets.push({ label:'Kadencja', yAxisID:'yCad', borderColor:'#5b8cff', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.cad.map(v=>v==null?v:v*2)) }); }   // ×2: per-noga→total spm (apka biegowa; rower=RPM byłby ×1)
   if (has(S.alt_m))   { _icuMetricIdx.alt = dsets.length; dsets.push({ label:'Wysokość', yAxisID:'yAlt', borderColor:'#3db870', backgroundColor:'rgba(61,184,112,0.08)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:true, spanGaps:true, data:xy(S.alt_m) }); }
+  if (has(S.resp))    { _icuMetricIdx.resp = dsets.length; dsets.push({ label:'Oddech',      yAxisID:'yResp', borderColor:'#2dd4bf', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.resp) }); }   // gated has() — bez HR brak streamu → null
+  if (has(S.temp))    { _icuMetricIdx.temp = dsets.length; dsets.push({ label:'Temperatura', yAxisID:'yTemp', borderColor:'#f2b134', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.temp) }); }   // uniwersalna
   const mono = "'DM Mono',monospace";
   _icuChart = new Chart(document.getElementById('ds-icu-chart').getContext('2d'), {
     type:'line', data:{ datasets:dsets },
@@ -4914,12 +4916,14 @@ function _icuRenderChart(d) {
         yPace:{ position:'left', reverse:true, ticks:{ color:'#e8561e', font:{family:mono,size:9}, callback:(v)=>_icuFmtPace(v) }, grid:{color:'rgba(255,255,255,0.05)'} },
         yHr:{ position:'right', display:_icuHasHr, ticks:{ color:'#ff5b5b', font:{family:mono,size:9} }, grid:{display:false} },
         yCad:{ position:'right', display:false, ticks:{ color:'#5b8cff', font:{family:mono,size:9}, callback:(v)=>v+' spm' }, grid:{display:false} },
-        yAlt:{ position:'right', display:false, ticks:{ color:'#3db870', font:{family:mono,size:9}, callback:(v)=>v+' m' }, grid:{display:false} }
+        yAlt:{ position:'right', display:false, ticks:{ color:'#3db870', font:{family:mono,size:9}, callback:(v)=>v+' m' }, grid:{display:false} },
+        yResp:{ position:'right', display:false, ticks:{ color:'#2dd4bf', font:{family:mono,size:9}, callback:(v)=>v+' /min' }, grid:{display:false} },
+        yTemp:{ position:'right', display:false, ticks:{ color:'#f2b134', font:{family:mono,size:9}, callback:(v)=>v+'°C' }, grid:{display:false} }
       },
       plugins:{ legend:{ display:false },
         tooltip:{ callbacks:{ title:(it)=>it[0].parsed.x.toFixed(2)+' km',
           label:(it)=>{ const a=it.dataset.yAxisID, y=it.parsed.y;
-            return a==='yPace' ? ('Tempo '+_icuFmtPace(y)+'/km') : a==='yHr' ? ('HR '+y+' bpm') : a==='yCad' ? ('Kadencja '+y+' spm') : a==='yAlt' ? ('Wysokość '+Math.round(y)+' m') : (''+y); } } } }
+            return a==='yPace' ? ('Tempo '+_icuFmtPace(y)+'/km') : a==='yHr' ? ('HR '+y+' bpm') : a==='yResp' ? ('Oddech '+y+' /min') : a==='yCad' ? ('Kadencja '+y+' spm') : a==='yAlt' ? ('Wysokość '+Math.round(y)+' m') : a==='yTemp' ? ('Temp '+Math.round(y)+'°C') : (''+y); } } } }
     }
   });
 }
@@ -5437,8 +5441,10 @@ document.addEventListener('keydown', e => {
       <div id="ds-icu-tabs" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
         <button id="ds-icu-tab-pace" onclick="_icuSetMetric('pace')">Tempo</button>
         <button id="ds-icu-tab-hr" onclick="_icuSetMetric('hr')">Tętno</button>
+        <button id="ds-icu-tab-resp" onclick="_icuSetMetric('resp')">Oddech</button>
         <button id="ds-icu-tab-cad" onclick="_icuSetMetric('cad')">Kadencja</button>
         <button id="ds-icu-tab-alt" onclick="_icuSetMetric('alt')">Wysokość</button>
+        <button id="ds-icu-tab-temp" onclick="_icuSetMetric('temp')">Temperatura</button>
       </div>
       <div id="ds-icu-chart-wrap" style="display:none;position:relative;height:180px;margin-bottom:12px;"><canvas id="ds-icu-chart"></canvas></div>
       <div id="ds-icu-splits" style="display:none;"></div>
