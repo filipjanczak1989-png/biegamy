@@ -4837,7 +4837,7 @@ function _icuSetMetric(m){
   Object.keys(_icuMetricIdx).forEach(k => _icuChart.setDatasetVisibility(_icuMetricIdx[k], k===m));   // pokaż tylko wybraną
   Object.values(_ICU_AXIS).forEach(ax => { const s=_icuChart.options.scales[ax]; if (s) s.display = (ax===_ICU_AXIS[m]); });
   _icuChart.update();
-  Object.keys(_ICU_BTN).forEach(k => { const b=document.getElementById(_ICU_BTN[k]); if (b) b.style.cssText = _icuTabStyle(k===m); });
+  Object.keys(_ICU_BTN).forEach(k => { const b=document.getElementById(_ICU_BTN[k]); if (!b) return; b.style.cssText = _icuTabStyle(k===m); if (!(k in _icuMetricIdx)) b.style.display='none'; });   // display PO cssText (cssText je zmazuje) — przycisk bez danych ukryty przy KAŻDYM przełączeniu, nie tylko po 1. renderze
 }
 
 async function _renderIcuDetail(logs) {
@@ -4881,14 +4881,10 @@ async function _renderIcuDetail(logs) {
     splitsEl.style.display = 'block';
     _icuRenderChart(d);
     _icuRenderSplits(d, splitsEl);
-    // przełącznik Tempo/Tętno (jeden na raz); HR-opcja tylko gdy has_hr
+    // przełącznik metryk (jeden na raz); widoczność przycisków ogarnia _icuSetMetric (ukrywa bez danych, trwale)
     const tabs = document.getElementById('ds-icu-tabs');
     if (tabs) tabs.style.display = 'flex';
-    _icuSetMetric('pace');   // domyślnie TEMPO — ustawia cssText przycisków
-    // display przycisków PO _icuSetMetric (cssText nadpisuje display); pokaż tylko metryki obecne w danych
-    [['ds-icu-tab-hr','hr'],['ds-icu-tab-cad','cad'],['ds-icu-tab-alt','alt']].forEach(([id,k])=>{
-      const b=document.getElementById(id); if (b) b.style.display = (k in _icuMetricIdx) ? '' : 'none';
-    });
+    _icuSetMetric('pace');   // domyślnie TEMPO — ustawia styl + widoczność przycisków
   } catch(e) {
     loading.style.display = 'none';
     msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block';
@@ -4900,9 +4896,9 @@ function _icuRenderChart(d) {
   const oldC = document.getElementById('ds-icu-chart');
   if (oldC && oldC.parentNode) { const f = document.createElement('canvas'); f.id = 'ds-icu-chart'; oldC.parentNode.replaceChild(f, oldC); }
   const S = d.series || {};
-  _icuHasHr = !!(d.has_hr && S.hr);
   const xy = (arr)=>(arr||[]).map((v,i)=>({x:S.dist_km[i], y:v}));
   const has = (arr)=> !!(arr && arr.some(x=>x!=null));
+  _icuHasHr = has(S.hr);   // źródło prawdy = DANE (≥1 realna próbka), NIE flaga d.has_hr (krucha: "false" truthy / [null,null] przeszłoby → martwy przycisk); ten sam has() co cad/alt
   const dsets = []; _icuMetricIdx = {};
   _icuMetricIdx.pace = dsets.length;
   dsets.push({ label:'Tempo', yAxisID:'yPace', borderColor:'#e8561e', backgroundColor:'rgba(232,86,30,0.08)', borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true, data:xy(S.pace_s) });
@@ -4916,7 +4912,7 @@ function _icuRenderChart(d) {
       scales:{
         x:{ type:'linear', ticks:{ color:'rgba(240,237,232,0.4)', font:{family:mono,size:9}, callback:(v)=>v+' km' }, grid:{color:'rgba(255,255,255,0.05)'} },
         yPace:{ position:'left', reverse:true, ticks:{ color:'#e8561e', font:{family:mono,size:9}, callback:(v)=>_icuFmtPace(v) }, grid:{color:'rgba(255,255,255,0.05)'} },
-        yHr:{ position:'right', display:!!d.has_hr, ticks:{ color:'#ff5b5b', font:{family:mono,size:9} }, grid:{display:false} },
+        yHr:{ position:'right', display:_icuHasHr, ticks:{ color:'#ff5b5b', font:{family:mono,size:9} }, grid:{display:false} },
         yCad:{ position:'right', display:false, ticks:{ color:'#5b8cff', font:{family:mono,size:9}, callback:(v)=>v+' spm' }, grid:{display:false} },
         yAlt:{ position:'right', display:false, ticks:{ color:'#3db870', font:{family:mono,size:9}, callback:(v)=>v+' m' }, grid:{display:false} }
       },
@@ -4942,7 +4938,7 @@ function _icuRenderSplits(d, el) {
       <span style="width:36px;color:var(--muted);flex-shrink:0;">${s.partial? s.km.toFixed(2):(s.km+' km')}</span>
       <span style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><span style="display:block;height:100%;width:${Math.max(4,w)}%;background:var(--accent);"></span></span>
       <span style="width:60px;text-align:right;flex-shrink:0;">${_icuFmtPace(s.pace_s)}/km ${mark}</span>
-      ${d.has_hr ? `<span style="width:44px;text-align:right;flex-shrink:0;color:#ff9b9b;">${s.hr_avg!=null?('♥'+s.hr_avg):''}</span>` : ''}
+      ${d.splits.some(x=>x.hr_avg!=null) ? `<span style="width:44px;text-align:right;flex-shrink:0;color:#ff9b9b;">${s.hr_avg!=null?('♥'+s.hr_avg):''}</span>` : ''}
       <span style="width:38px;text-align:right;flex-shrink:0;color:var(--muted);">${s.elev_gain_m?('+'+s.elev_gain_m+'m'):''}</span>
     </div>`;
   }).join('');
@@ -5436,10 +5432,7 @@ document.addEventListener('keydown', e => {
 
     <!-- KARTA: Tempo / tętno + splity (intervals.icu drill-down) -->
     <div id="ds-icu-card" class="ds-card" style="display:none;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div class="ds-label" style="margin:0;">Tempo / tętno</div>
-        <div id="ds-icu-multi" style="display:none;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);"></div>
-      </div>
+      <div id="ds-icu-multi" style="display:none;text-align:right;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;"></div>
       <div id="ds-icu-loading" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;">Ładuję szczegóły…</div>
       <div id="ds-icu-tabs" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
         <button id="ds-icu-tab-pace" onclick="_icuSetMetric('pace')">Tempo</button>
