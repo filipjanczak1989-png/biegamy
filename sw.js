@@ -35,6 +35,8 @@ const PRECACHE_URLS = [
   '/gra.html',
   '/o-nas.html',
   '/terms.html',
+  '/privacy.html',
+  '/privacy-en.html',
   '/sb.js',
   '/theme.css',
   '/manifest.json',

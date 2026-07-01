@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Privacy Policy · BiegaMy.run</title>
+<meta name="description" content="BiegaMy.run privacy policy — what data we collect, why, how we protect it, and how you can delete it. GDPR-aligned.">
+<meta name="theme-color" content="#07070a">
+<meta property="og:title" content="Privacy Policy · BiegaMy.run">
+<meta property="og:description" content="What data we collect, why, and how we protect it. GDPR-aligned.">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.45);
+  --accent:#e8561e;--muted:rgba(240,237,232,0.38);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-height:100%;-webkit-font-smoothing:antialiased;}
+
+.header{position:sticky;top:0;z-index:10;background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 16px 0;}
+.header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;max-width:760px;margin:0 auto;}
+.back-btn{background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--fg2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;text-decoration:none;flex-shrink:0;}
+.wordmark{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wordmark span{color:var(--accent);}
+.lang-switch{display:flex;gap:2px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;flex-shrink:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.lang-switch a{padding:6px 9px;color:var(--fg3);text-decoration:none;}
+.lang-switch a.on{background:rgba(var(--accent-rgb),0.15);color:var(--accent);}
+
+.content{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+.intro{font-size:15px;line-height:1.75;color:var(--fg2);margin-bottom:28px;}
+.intro strong{color:var(--fg);}
+
+.meta-bar{display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap;}
+.meta-item{font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;letter-spacing:0.08em;display:flex;align-items:center;gap:6px;}
+
+.note{background:rgba(var(--accent-rgb),0.07);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:32px;font-size:12.5px;color:var(--fg2);line-height:1.6;}
+.note a{color:var(--accent);text-decoration:none;}
+
+.section{margin-bottom:36px;scroll-margin-top:80px;}
+.section-num{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;margin-bottom:16px;color:var(--fg);}
+.section p{font-size:14px;line-height:1.8;color:var(--fg2);margin-bottom:12px;}
+.section ul{padding-left:20px;margin-bottom:12px;}
+.section li{font-size:14px;line-height:1.75;color:var(--fg2);margin-bottom:6px;}
+.section li strong,.section p strong{color:var(--fg);font-weight:600;}
+.section h4{font-size:13px;font-weight:600;color:var(--fg);margin:18px 0 8px;letter-spacing:0.02em;}
+.section a{color:var(--accent);text-decoration:none;}
+.section a:hover{text-decoration:underline;}
+
+.highlight{background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;}
+.highlight p{margin-bottom:0;color:var(--fg);}
+
+.svc{display:flex;flex-direction:column;gap:2px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.svc:last-child{border-bottom:none;}
+.svc-name{font-size:13px;font-weight:600;color:var(--fg);}
+.svc-name a{color:var(--fg);}
+.svc-desc{font-size:12.5px;line-height:1.65;color:var(--fg2);}
+
+.contact-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;text-align:center;}
+.contact-card p{font-size:13px;color:var(--fg2);margin-bottom:8px;}
+.contact-card a{color:var(--accent);text-decoration:none;font-weight:600;}
+
+.back-home{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:28px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;color:var(--fg2);text-decoration:none;font-size:13px;}
+.back-home:hover{border-color:rgba(var(--accent-rgb),0.3);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a class="back-btn" href="javascript:history.back()">‹</a>
+    <div class="wordmark">BiegaMy<span>.run</span> · Privacy</div>
+    <div class="lang-switch">
+      <a href="privacy.html">PL</a>
+      <a class="on" href="privacy-en.html">EN</a>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="meta-bar">
+    <div class="meta-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Effective: 1 July 2026
+    </div>
+    <div class="meta-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+      Version 1.0
+    </div>
+  </div>
+
+  <p class="intro">This is a plain-language summary of <strong>what data BiegaMy.run collects, why, who we share it with, and how you can delete it at any time</strong>. We only describe what the app actually does.</p>
+
+  <div class="note">This English page is a summary for international readers. The <a href="privacy.html">Polish version</a> is the authoritative document.</div>
+
+  <!-- 1 -->
+  <div class="section">
+    <div class="section-num">01</div>
+    <div class="section-title">Who processes your data</div>
+    <p>The data controller is <strong>Filip Jańczak</strong>, operating the <strong>BiegaMy</strong> project (biegamy.run) as a private individual (not a registered business). For anything about your data or privacy, contact <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a>. We have not appointed a Data Protection Officer — at this scale it is not required.</p>
+  </div>
+
+  <!-- 2 -->
+  <div class="section">
+    <div class="section-num">02</div>
+    <div class="section-title">What we collect and why</div>
+    <ul>
+      <li><strong>Account & identity</strong> — email, name, optionally phone, date of birth, gender, city, profile photo. For running your account and personalising the app.</li>
+      <li><strong>Training data</strong> — workouts (distance, time, pace, elevation, calories, feel, comments), personal bests, race goals, sign-ups, watch/app screenshots, mini-game results. For logging and analysing training with your coach.</li>
+      <li><strong>Health data</strong> (see §4) — heart rate, weight, height, BMR/TDEE, meal calories & macros, and optionally blood-test scans in the intake form. For fitness and nutrition analysis.</li>
+      <li><strong>Coarse location</strong> — the city name you provide, used only for weather. No GPS.</li>
+      <li><strong>Communication</strong> — messages and comments with your coach and friends, notifications.</li>
+      <li><strong>Technical</strong> — login session and, if you enable them, a push subscription id and browser type.</li>
+      <li><strong>Integration keys</strong> — if you connect intervals.icu (or Strava), the data needed for the connection (see §5).</li>
+    </ul>
+  </div>
+
+  <!-- 3 -->
+  <div class="section">
+    <div class="section-num">03</div>
+    <div class="section-title">Legal basis (GDPR)</div>
+    <ul>
+      <li><strong>Performance of a service (Art. 6(1)(b))</strong> — running your account, logging training, coach–athlete communication.</li>
+      <li><strong>Your consent (Art. 6(1)(a))</strong> — push notifications, integrations (intervals.icu, Strava), AI report generation. Withdrawable anytime.</li>
+      <li><strong>Explicit consent for health data (Art. 9(2)(a))</strong> — health data is provided voluntarily and processed only with your explicit consent.</li>
+      <li><strong>Legitimate interest (Art. 6(1)(f))</strong> — app security and abuse prevention.</li>
+    </ul>
+  </div>
+
+  <!-- 4 -->
+  <div class="section">
+    <div class="section-num">04</div>
+    <div class="section-title">Health data (special category)</div>
+    <p>We process <strong>health data</strong> (GDPR Art. 9), depending on what you enter: heart rate, weight, height, BMR/TDEE, meal calories & macros, planned HRV analysis, and optionally <strong>blood-test scans</strong> in the intake form.</p>
+    <div class="highlight">
+      <p>Health data is processed <strong>only with your explicit consent</strong>, solely to analyse your fitness and support training/nutrition planning. You can delete it anytime. BiegaMy is not a medical service and does not replace a doctor's advice.</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section">
+    <div class="section-num">05</div>
+    <div class="section-title">Who we share data with</div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a> — backend, database, auth, file storage</div>
+      <div class="svc-desc">Our core infrastructure. Stores all account, training and health data and uploaded files. Servers in the European Union (Ireland).</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://intervals.icu/privacy" target="_blank" rel="noopener">intervals.icu</a> — watch training import</div>
+      <div class="svc-desc">If you connect it, we pull your activities (Garmin/Polar/Coros data) into BiegaMy as workouts. Your API key is stored server-side and <strong>never read by the browser</strong>. We send intervals.icu nothing beyond what's needed to connect (your id and key).</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic (Claude)</a> — AI reports & analysis</div>
+      <div class="svc-desc">When an AI report, plan or analysis is generated, the relevant training/health data (and training/meal images for recognition) is sent server-side to Anthropic's Claude model to produce the content. Under Anthropic's API policy, data sent via the API is not used to train models (see their privacy policy).</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend</a> — email delivery</div>
+      <div class="svc-desc">Sends transactional emails and training reports to your address (unless you opt out). Receives your email and message content.</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name">Web Push (Google / Mozilla / Microsoft)</div>
+      <div class="svc-desc">If you enable notifications, the subscription goes to your browser's push service, which delivers the encrypted notification to your device.</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://support.giphy.com/hc/en-us/articles/360020027752-GIPHY-Privacy-Policy" target="_blank" rel="noopener">Giphy</a> — GIFs in chat</div>
+      <div class="svc-desc">Only your typed search term reaches Giphy. No personal data.</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name">Weather provider</div>
+      <div class="svc-desc">Only your city name is sent to fetch the forecast. No personal data.</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Pages</a> — hosting</div>
+      <div class="svc-desc">The app and its static assets are hosted on GitHub Pages. No personal data is uploaded there — user files go to Supabase.</div>
+    </div>
+    <div class="svc">
+      <div class="svc-name"><a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener">Strava</a> — optional integration</div>
+      <div class="svc-desc">If connected, we store access tokens to fetch your activities. Fully optional; tokens are removed on disconnect or account deletion.</div>
+    </div>
+    <p style="margin-top:16px;">We do not sell your data or share it with advertisers.</p>
+  </div>
+
+  <!-- 6 -->
+  <div class="section">
+    <div class="section-num">06</div>
+    <div class="section-title">Storage & security</div>
+    <p>Data is stored with Supabase in the <strong>European Union (Ireland)</strong>, over encrypted connections (HTTPS). Row Level Security gates database access (anonymous users have none). The intervals.icu API key is server-side only. Screenshots and blood-test scans live in a private, non-public storage bucket; profile avatars are served from a public URL.</p>
+    <h4>Who can see your data</h4>
+    <p>Your data is accessible to <strong>you</strong> and <strong>your coach</strong> (for coaching). To be transparent: the app is in active development and full data isolation between all athlete accounts is still being rolled out — currently some profile data of other athletes may be visible to signed-in users. You can mark your profile private in settings (it is private by default).</p>
+  </div>
+
+  <!-- 7 -->
+  <div class="section">
+    <div class="section-num">07</div>
+    <div class="section-title">Retention</div>
+    <p>We keep your data while your account exists. On deletion, training data, health data and integration keys are <strong>removed immediately</strong> (see §9). Infrastructure backups may briefly contain data before being overwritten in the normal backup cycle.</p>
+  </div>
+
+  <!-- 8 -->
+  <div class="section">
+    <div class="section-num">08</div>
+    <div class="section-title">Your rights (GDPR)</div>
+    <p>You have the right to access, rectify, erase, restrict, port and object to processing of your data, and to withdraw consent at any time (without affecting prior processing). You may also lodge a complaint with a supervisory authority — in Poland, the <a href="https://uodo.gov.pl" target="_blank" rel="noopener">President of the Personal Data Protection Office (UODO)</a>.</p>
+  </div>
+
+  <!-- 9 -->
+  <div class="section">
+    <div class="section-num">09</div>
+    <div class="section-title">How to delete your account & data</div>
+    <p>Delete your account yourself: <strong>Profile → Settings → Delete account</strong> (you type “USUŃ KONTO” and your password if you use email login).</p>
+    <ul>
+      <li><strong>Permanently deleted:</strong> all workouts, nutrition data, health data and intake form (including blood-test scans), personal bests, notifications, push subscriptions, game data, <strong>the intervals.icu API key and Strava tokens</strong>, race sign-ups, posts and friendships.</li>
+      <li><strong>Profile anonymised</strong> — personal data removed, profile marked “Deleted user”; the login account is deactivated and stripped of personal data.</li>
+      <li><strong>Files</strong> (photos, screenshots, scans) are removed from storage.</li>
+    </ul>
+    <div class="highlight">
+      <p>Your messages and comments intentionally <strong>remain</strong> with their recipients — but shown as “Deleted user”, unlinked from your identity, so other people's conversations stay coherent.</p>
+    </div>
+    <p>Coach accounts can't be deleted this way — contact us and we'll handle it manually. You can also disconnect an integration (e.g. intervals.icu) at any time without deleting your account; we then remove the connection key while imported workouts remain.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="section">
+    <div class="section-num">10</div>
+    <div class="section-title">Cookies & browser storage</div>
+    <p>We use no tracking or advertising cookies. We only use browser localStorage to run the app: your login session token, your chosen theme (bm_theme), and small UI flags (e.g. “already seen” markers). No third-party tracking scripts.</p>
+  </div>
+
+  <!-- 11 -->
+  <div class="section">
+    <div class="section-num">11</div>
+    <div class="section-title">Contact & changes</div>
+    <p>If we update this policy, we'll change the “Effective” date above and announce significant changes in the app.</p>
+  </div>
+
+  <div class="contact-card">
+    <p>Questions about privacy or your data? Email:</p>
+    <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a>
+    <p style="margin-top:12px;font-size:12px;color:var(--fg3);">Filip Jańczak · BiegaMy.run</p>
+  </div>
+
+  <a class="back-home" href="index.html">← Back to home</a>
+
+</div>
+</body>
+</html>

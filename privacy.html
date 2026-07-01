@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Polityka Prywatności · BiegaMy.run</title>
+<meta name="description" content="Polityka prywatności BiegaMy.run — jakie dane zbieramy, po co, jak je chronimy i jak możesz je usunąć. Zgodna z RODO.">
+<meta name="theme-color" content="#07070a">
+<meta property="og:title" content="Polityka Prywatności · BiegaMy.run">
+<meta property="og:description" content="Jakie dane zbieramy, po co i jak je chronimy. Zgodna z RODO.">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="theme.css">
+<script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<style>
+:root{
+  --bg:#07070a;--card:rgba(18,15,24,0.95);--border:rgba(255,255,255,0.08);
+  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.45);
+  --accent:#e8561e;--muted:rgba(240,237,232,0.38);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-height:100%;-webkit-font-smoothing:antialiased;}
+
+.header{
+  position:sticky;top:0;z-index:10;
+  background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  padding:env(safe-area-inset-top,0) 16px 0;
+}
+.header-inner{display:flex;align-items:center;gap:12px;padding:14px 0 12px;max-width:760px;margin:0 auto;}
+.back-btn{background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--fg2);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;text-decoration:none;flex-shrink:0;}
+.wordmark{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.04em;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wordmark span{color:var(--accent);}
+.lang-switch{display:flex;gap:2px;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.06em;flex-shrink:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+.lang-switch a{padding:6px 9px;color:var(--fg3);text-decoration:none;}
+.lang-switch a.on{background:rgba(var(--accent-rgb),0.15);color:var(--accent);}
+
+.content{max-width:760px;margin:0 auto;padding:32px 20px 80px;}
+
+.intro{font-size:15px;line-height:1.75;color:var(--fg2);margin-bottom:28px;}
+.intro strong{color:var(--fg);}
+
+.meta-bar{display:flex;gap:16px;margin-bottom:28px;flex-wrap:wrap;}
+.meta-item{font-size:11px;color:var(--fg3);font-family:'DM Mono',monospace;letter-spacing:0.08em;display:flex;align-items:center;gap:6px;}
+
+.toc{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:16px;padding:20px 24px;margin-bottom:36px;}
+.toc-title{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;}
+.toc a{display:block;color:var(--fg2);text-decoration:none;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.toc a:last-child{border-bottom:none;}
+.toc a:hover{color:var(--accent);}
+
+.section{margin-bottom:40px;scroll-margin-top:80px;}
+.section-num{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.2em;color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+.section-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:0.04em;margin-bottom:16px;color:var(--fg);}
+.section p{font-size:14px;line-height:1.8;color:var(--fg2);margin-bottom:12px;}
+.section ul{padding-left:20px;margin-bottom:12px;}
+.section li{font-size:14px;line-height:1.75;color:var(--fg2);margin-bottom:6px;}
+.section li strong,.section p strong{color:var(--fg);font-weight:600;}
+.section h4{font-size:13px;font-weight:600;color:var(--fg);margin:18px 0 8px;letter-spacing:0.02em;}
+.section a{color:var(--accent);text-decoration:none;}
+.section a:hover{text-decoration:underline;}
+
+.highlight{background:rgba(var(--accent-rgb),0.08);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;}
+.highlight p{margin-bottom:0;color:var(--fg);}
+
+.svc{display:flex;flex-direction:column;gap:2px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.svc:last-child{border-bottom:none;}
+.svc-name{font-size:13px;font-weight:600;color:var(--fg);}
+.svc-name a{color:var(--fg);}
+.svc-desc{font-size:12.5px;line-height:1.65;color:var(--fg2);}
+
+hr{border:none;border-top:1px solid var(--border);margin:32px 0;}
+
+.contact-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:22px 24px;text-align:center;}
+.contact-card p{font-size:13px;color:var(--fg2);margin-bottom:8px;}
+.contact-card a{color:var(--accent);text-decoration:none;font-weight:600;}
+
+.back-home{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:28px;padding:12px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:12px;color:var(--fg2);text-decoration:none;font-size:13px;}
+.back-home:hover{border-color:rgba(var(--accent-rgb),0.3);}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <a class="back-btn" href="javascript:history.back()">‹</a>
+    <div class="wordmark">BiegaMy<span>.run</span> · Prywatność</div>
+    <div class="lang-switch">
+      <a class="on" href="privacy.html">PL</a>
+      <a href="privacy-en.html">EN</a>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="meta-bar">
+    <div class="meta-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      Obowiązuje od: 1 lipca 2026
+    </div>
+    <div class="meta-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+      Wersja 1.0
+    </div>
+  </div>
+
+  <p class="intro">Ten dokument opisuje — bez prawniczego żargonu — <strong>jakie dane o Tobie zbieramy, po co, komu je powierzamy i jak możesz je w każdej chwili usunąć</strong>. Piszemy tu tylko o rzeczach, które aplikacja naprawdę robi. Jeśli coś jest niejasne — napisz do nas.</p>
+
+  <div class="toc">
+    <div class="toc-title">Spis treści</div>
+    <a href="#administrator">1. Kto przetwarza Twoje dane</a>
+    <a href="#dane">2. Jakie dane zbieramy i po co</a>
+    <a href="#podstawa">3. Podstawa prawna</a>
+    <a href="#zdrowie">4. Dane o zdrowiu (wrażliwe)</a>
+    <a href="#integracje">5. Komu powierzamy dane (integracje)</a>
+    <a href="#bezpieczenstwo">6. Gdzie dane leżą i jak je chronimy</a>
+    <a href="#retencja">7. Jak długo przechowujemy dane</a>
+    <a href="#prawa">8. Twoje prawa (RODO)</a>
+    <a href="#usuwanie">9. Jak usunąć konto i dane</a>
+    <a href="#cookies">10. Cookies i pamięć przeglądarki</a>
+    <a href="#kontakt">11. Kontakt i zmiany</a>
+  </div>
+
+  <!-- 1 -->
+  <div class="section" id="administrator">
+    <div class="section-num">01</div>
+    <div class="section-title">Kto przetwarza Twoje dane</div>
+    <p>Administratorem Twoich danych osobowych jest <strong>Filip Jańczak</strong>, prowadzący projekt <strong>BiegaMy</strong> (biegamy.run) jako osoba fizyczna — nie jest to działalność gospodarcza i nie posiadamy numeru NIP.</p>
+    <p>We wszystkich sprawach dotyczących Twoich danych i prywatności pisz na: <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a>.</p>
+    <p>Nie wyznaczyliśmy inspektora ochrony danych (DPO) — przy tej skali projektu nie mamy takiego obowiązku. Wszystkie zgłoszenia trafiają bezpośrednio do administratora pod powyższym adresem.</p>
+  </div>
+
+  <!-- 2 -->
+  <div class="section" id="dane">
+    <div class="section-num">02</div>
+    <div class="section-title">Jakie dane zbieramy i po co</div>
+    <p>Zbieramy tylko to, co jest potrzebne, żeby aplikacja i coaching działały:</p>
+    <ul>
+      <li><strong>Dane konta i tożsamości</strong> — adres e-mail, imię i nazwisko, opcjonalnie telefon, data urodzenia, płeć, miasto, zdjęcie profilowe. Cel: prowadzenie konta, kontakt, personalizacja.</li>
+      <li><strong>Dane treningowe</strong> — treningi (dystans, czas, tempo, przewyższenie, kalorie, samopoczucie, komentarze), rekordy życiowe, cele startowe, zapisy na zawody, zdjęcia/zrzuty ekranu z zegarka lub aplikacji, wyniki mini-gier. Cel: rejestrowanie i analiza treningu, współpraca z trenerem.</li>
+      <li><strong>Dane o zdrowiu</strong> (patrz sekcja 4) — tętno, waga, wzrost, przemiana materii (BMR/TDEE), kalorie i makroskładniki diety, a w ankiecie wstępnej opcjonalnie skany badań krwi. Cel: analiza formy i planowanie diety.</li>
+      <li><strong>Lokalizacja (zgrubna)</strong> — nazwa miasta, którą sam podajesz. Cel: prognoza pogody dla Twoich treningów. Nie zbieramy dokładnej lokalizacji GPS.</li>
+      <li><strong>Komunikacja</strong> — wiadomości i komentarze między Tobą a trenerem oraz znajomymi, powiadomienia. Cel: komunikacja w ramach coachingu i społeczności.</li>
+      <li><strong>Dane techniczne</strong> — dane sesji logowania oraz — jeśli włączysz powiadomienia — identyfikator subskrypcji push i typ przeglądarki. Cel: działanie i bezpieczeństwo aplikacji.</li>
+      <li><strong>Klucze integracji</strong> — jeśli łączysz konto z intervals.icu (lub Stravą), przechowujemy dane potrzebne do połączenia (patrz sekcja 5).</li>
+    </ul>
+  </div>
+
+  <!-- 3 -->
+  <div class="section" id="podstawa">
+    <div class="section-num">03</div>
+    <div class="section-title">Podstawa prawna</div>
+    <p>Przetwarzamy Twoje dane na następujących podstawach RODO:</p>
+    <ul>
+      <li><strong>Wykonanie usługi (art. 6 ust. 1 lit. b)</strong> — prowadzenie konta, rejestrowanie treningów i komunikacja trener–zawodnik. To rdzeń działania aplikacji.</li>
+      <li><strong>Twoja zgoda (art. 6 ust. 1 lit. a)</strong> — powiadomienia push, połączenie z integracjami (intervals.icu, Strava), generowanie raportów przez AI. Zgodę możesz wycofać w każdej chwili.</li>
+      <li><strong>Wyraźna zgoda na dane o zdrowiu (art. 9 ust. 2 lit. a)</strong> — dane zdrowotne podajesz dobrowolnie i przetwarzamy je wyłącznie za Twoją wyraźną zgodą (sekcja 4).</li>
+      <li><strong>Uzasadniony interes (art. 6 ust. 1 lit. f)</strong> — bezpieczeństwo aplikacji i zapobieganie nadużyciom.</li>
+    </ul>
+  </div>
+
+  <!-- 4 -->
+  <div class="section" id="zdrowie">
+    <div class="section-num">04</div>
+    <div class="section-title">Dane o zdrowiu (wrażliwe)</div>
+    <p>Aplikacja przetwarza <strong>dane dotyczące zdrowia</strong>, które w RODO są kategorią szczególną (art. 9). Są to, w zależności od tego, co sam wprowadzisz:</p>
+    <ul>
+      <li>tętno (z ręcznego wpisu, importu z zegarka lub Stravy),</li>
+      <li>waga, wzrost, podstawowa i całkowita przemiana materii (BMR/TDEE),</li>
+      <li>kalorie i makroskładniki spożywanych posiłków,</li>
+      <li>w miarę rozwoju planowana jest analiza zmienności rytmu serca (HRV),</li>
+      <li>opcjonalnie w ankiecie wstępnej — <strong>zdjęcia/skany wyników badań krwi</strong>, jeśli sam zdecydujesz się je dołączyć.</li>
+    </ul>
+    <div class="highlight">
+      <p>Dane o zdrowiu przetwarzamy <strong>wyłącznie na podstawie Twojej wyraźnej zgody</strong> i tylko po to, by analizować Twoją formę i wspierać planowanie treningu oraz diety. Nie udostępniamy ich nikomu poza dostawcami wymienionymi w sekcji 5 i możesz je w każdej chwili usunąć. BiegaMy nie jest usługą medyczną i nie zastępuje porady lekarza.</p>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="section" id="integracje">
+    <div class="section-num">05</div>
+    <div class="section-title">Komu powierzamy dane (integracje)</div>
+    <p>Aby aplikacja działała, korzystamy z zaufanych dostawców (procesorów). Poniżej dokładnie co i komu przekazujemy:</p>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a> — backend, baza danych, uwierzytelnianie, pliki</div>
+      <div class="svc-desc">Nasz główny dostawca infrastruktury. Przechowuje wszystkie dane konta, treningowe i zdrowotne oraz przesłane pliki. Serwery w Unii Europejskiej (Irlandia).</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://intervals.icu/privacy" target="_blank" rel="noopener">intervals.icu</a> — import treningów z zegarka</div>
+      <div class="svc-desc">Jeśli połączysz konto, pobieramy Twoje aktywności z intervals.icu (dane z Garmin/Polar/Coros) i zapisujemy je jako treningi w BiegaMy. Twój klucz API jest przechowywany po stronie serwera i <strong>nigdy nie jest odczytywany przez przeglądarkę</strong>. Do intervals.icu nie wysyłamy żadnych Twoich danych poza tym, co potrzebne do połączenia (Twój identyfikator i klucz).</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener">Anthropic (Claude)</a> — raporty i analizy AI</div>
+      <div class="svc-desc">Gdy generowany jest raport, plan lub analiza AI, odpowiednie dane treningowe i zdrowotne (oraz zdjęcia treningów/posiłków przy rozpoznawaniu) są wysyłane do modelu Claude firmy Anthropic w celu wygenerowania treści. Dzieje się to po stronie serwera. Zgodnie z polityką Anthropic dla API dane przesyłane przez API nie są wykorzystywane do trenowania modeli (szczegóły w ich polityce prywatności).</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener">Resend</a> — wysyłka e-maili</div>
+      <div class="svc-desc">Dostawca poczty. Wysyła maile transakcyjne (np. potwierdzenia) oraz raporty treningowe na Twój adres, jeśli tego nie wyłączysz. Otrzymuje Twój adres e-mail i treść wiadomości.</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name">Web Push (Google / Mozilla / Microsoft)</div>
+      <div class="svc-desc">Jeśli włączysz powiadomienia, subskrypcja trafia do usługi push Twojej przeglądarki, a zaszyfrowana treść powiadomienia jest przez nią dostarczana na Twoje urządzenie.</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://support.giphy.com/hc/en-us/articles/360020027752-GIPHY-Privacy-Policy" target="_blank" rel="noopener">Giphy</a> — GIF-y w czacie</div>
+      <div class="svc-desc">Gdy szukasz GIF-a, do Giphy trafia wyłącznie wpisana fraza wyszukiwania. Nie przekazujemy żadnych danych osobowych.</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name">Dostawca prognozy pogody</div>
+      <div class="svc-desc">Do pobrania prognozy wysyłamy wyłącznie nazwę Twojego miasta. Bez danych osobowych.</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Pages</a> — hosting</div>
+      <div class="svc-desc">Aplikacja i jej statyczne pliki (grafiki, czcionki) są hostowane na GitHub Pages. Nie przesyłamy tam żadnych Twoich danych osobowych — pliki użytkowników trafiają do Supabase.</div>
+    </div>
+
+    <div class="svc">
+      <div class="svc-name"><a href="https://www.strava.com/legal/privacy" target="_blank" rel="noopener">Strava</a> — opcjonalna integracja</div>
+      <div class="svc-desc">Jeśli połączysz konto ze Stravą, przechowujemy tokeny dostępu, aby pobierać Twoje aktywności. Integracja jest w pełni dobrowolna, a tokeny usuwamy przy odłączeniu lub usunięciu konta.</div>
+    </div>
+
+    <p style="margin-top:16px;">Nie sprzedajemy Twoich danych i nie przekazujemy ich reklamodawcom.</p>
+  </div>
+
+  <!-- 6 -->
+  <div class="section" id="bezpieczenstwo">
+    <div class="section-num">06</div>
+    <div class="section-title">Gdzie dane leżą i jak je chronimy</div>
+    <p>Dane przechowujemy u dostawcy Supabase, w centrum danych w <strong>Unii Europejskiej (Irlandia)</strong>. Połączenie z aplikacją jest szyfrowane (HTTPS).</p>
+    <h4>Zabezpieczenia</h4>
+    <ul>
+      <li>Dostęp do danych chroni mechanizm zabezpieczeń na poziomie wierszy bazy (Row Level Security) — anonimowi użytkownicy nie mają dostępu do danych.</li>
+      <li>Klucz API do intervals.icu jest trzymany po stronie serwera i niedostępny dla przeglądarki.</li>
+      <li>Zrzuty ekranu i skany badań przechowujemy w prywatnym, niepublicznym magazynie plików. Zdjęcia profilowe (avatary) są dostępne pod publicznym adresem — nie umieszczaj tam treści, których nie chcesz upubliczniać.</li>
+    </ul>
+    <h4>Kto widzi Twoje dane</h4>
+    <p>Dostęp do Twoich danych masz <strong>Ty</strong> oraz <strong>Twój trener</strong> (w celach coachingowych). Uczciwie zaznaczamy: aplikacja jest w aktywnym rozwoju i pełna izolacja danych między wszystkimi kontami zawodników jest dopiero wdrażana — obecnie część danych profilowych innych zawodników może być widoczna dla zalogowanych użytkowników. Profil możesz oznaczyć jako prywatny w ustawieniach (domyślnie jest prywatny).</p>
+  </div>
+
+  <!-- 7 -->
+  <div class="section" id="retencja">
+    <div class="section-num">07</div>
+    <div class="section-title">Jak długo przechowujemy dane</div>
+    <p>Twoje dane przechowujemy tak długo, jak długo masz konto w BiegaMy. Gdy usuniesz konto, dane treningowe, zdrowotne i klucze integracji są <strong>usuwane natychmiast</strong> (szczegóły w sekcji 9).</p>
+    <p>Kopie zapasowe infrastruktury mogą przez krótki czas zawierać dane, zanim zostaną nadpisane w zwykłym cyklu tworzenia backupów. Rejestrujemy jedynie techniczny fakt usunięcia konta (bez Twoich danych osobowych).</p>
+  </div>
+
+  <!-- 8 -->
+  <div class="section" id="prawa">
+    <div class="section-num">08</div>
+    <div class="section-title">Twoje prawa (RODO)</div>
+    <p>W każdej chwili masz prawo do:</p>
+    <ul>
+      <li><strong>dostępu</strong> do swoich danych i uzyskania ich kopii,</li>
+      <li><strong>sprostowania</strong> nieprawidłowych danych (większość edytujesz sam w profilu),</li>
+      <li><strong>usunięcia</strong> danych („prawo do bycia zapomnianym") — patrz sekcja 9,</li>
+      <li><strong>ograniczenia</strong> przetwarzania,</li>
+      <li><strong>przenoszenia</strong> danych,</li>
+      <li><strong>sprzeciwu</strong> wobec przetwarzania,</li>
+      <li><strong>wycofania zgody</strong> w dowolnym momencie — bez wpływu na przetwarzanie, które odbyło się wcześniej.</li>
+    </ul>
+    <p>Masz też prawo wnieść skargę do organu nadzorczego — w Polsce jest to <a href="https://uodo.gov.pl" target="_blank" rel="noopener">Prezes Urzędu Ochrony Danych Osobowych</a>.</p>
+  </div>
+
+  <!-- 9 -->
+  <div class="section" id="usuwanie">
+    <div class="section-num">09</div>
+    <div class="section-title">Jak usunąć konto i dane</div>
+    <p>Konto usuniesz samodzielnie: <strong>Profil → Ustawienia → Usuń konto</strong>. Dla bezpieczeństwa poprosimy o wpisanie frazy „USUŃ KONTO" (oraz hasła, jeśli logujesz się e-mailem).</p>
+    <h4>Co dokładnie się dzieje</h4>
+    <ul>
+      <li><strong>Trwale usuwamy:</strong> wszystkie treningi, dane diety i profilu żywieniowego, dane zdrowotne i ankietę wstępną (w tym skany badań krwi), rekordy, powiadomienia, subskrypcje push, dane mini-gier, <strong>klucz API intervals.icu i tokeny Strava</strong>, zapisy na zawody, posty i znajomości.</li>
+      <li><strong>Anonimizujemy Twój profil</strong> — dane osobowe są usuwane, a profil zostaje oznaczony jako „Usunięty użytkownik". Konto logowania jest dezaktywowane i pozbawione danych osobowych.</li>
+      <li><strong>Pliki</strong> (zdjęcia, zrzuty ekranu, skany) są usuwane z magazynu.</li>
+    </ul>
+    <div class="highlight">
+      <p>Celowo <strong>pozostają</strong> Twoje wiadomości i komentarze u ich odbiorców — ale podpisane już jako „Usunięty użytkownik", bez powiązania z Twoją tożsamością. Dzięki temu rozmowy innych osób pozostają spójne.</p>
+    </div>
+    <p>Konta trenera nie można usunąć tą drogą — napisz do nas, a zajmiemy się tym ręcznie. Możesz też w każdej chwili odłączyć samą integrację (np. intervals.icu) bez usuwania konta — wtedy usuwamy klucz połączenia, a zaimportowane treningi pozostają.</p>
+  </div>
+
+  <!-- 10 -->
+  <div class="section" id="cookies">
+    <div class="section-num">10</div>
+    <div class="section-title">Cookies i pamięć przeglądarki</div>
+    <p>Nie używamy plików cookies do śledzenia ani reklamy. Korzystamy jedynie z pamięci lokalnej przeglądarki (localStorage) do działania aplikacji:</p>
+    <ul>
+      <li><strong>sesja logowania</strong> — token uwierzytelniający, żebyś nie musiał logować się przy każdej wizycie,</li>
+      <li><strong>bm_theme</strong> — zapamiętany motyw kolorystyczny,</li>
+      <li><strong>drobne ustawienia interfejsu</strong> — np. znaczniki „już to widziałeś", aby nie pokazywać powiadomień w kółko.</li>
+    </ul>
+    <p>Nie osadzamy zewnętrznych skryptów śledzących ani cookies reklamowych.</p>
+  </div>
+
+  <!-- 11 -->
+  <div class="section" id="kontakt">
+    <div class="section-num">11</div>
+    <div class="section-title">Kontakt i zmiany</div>
+    <p>Jeśli aktualizujemy tę politykę, zmienimy datę „Obowiązuje od" na górze, a o istotnych zmianach poinformujemy w aplikacji. Dalsze korzystanie z BiegaMy po zmianie oznacza zapoznanie się z nową wersją.</p>
+  </div>
+
+  <div class="contact-card">
+    <p>Pytania o prywatność lub Twoje dane? Pisz na:</p>
+    <a href="mailto:biegamy.run@gmail.com">biegamy.run@gmail.com</a>
+    <p style="margin-top:12px;font-size:12px;color:var(--fg3);">Filip Jańczak · BiegaMy.run</p>
+  </div>
+
+  <a class="back-home" href="index.html">← Wróć do strony głównej</a>
+
+</div>
+</body>
+</html>
