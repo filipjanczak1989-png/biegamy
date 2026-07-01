@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#07070a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BiegaMy">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="application-name" content="BiegaMy">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+<link rel="shortcut icon" href="favicon.ico">
+<title>Łączenie z intervals.icu · BiegaMy</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="sb.js"></script>
+<link rel="stylesheet" href="theme.css">
+<style>
+  html,body{ margin:0; height:100%; background:var(--bg,#07070a); color:var(--fg,#f0ede8); font-family:'Inter',system-ui,sans-serif; }
+  .wrap{ min-height:100%; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
+  .card{ width:100%; max-width:360px; background:var(--card,rgba(255,255,255,0.04)); border:1px solid var(--border,rgba(255,255,255,0.1)); border-radius:18px; padding:28px 24px; text-align:center; }
+  .icu-logo{ font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; text-transform:uppercase; color:var(--accent,#e8561e); margin-bottom:18px; }
+  .spinner{ width:34px; height:34px; border:3px solid rgba(255,255,255,0.12); border-top-color:var(--accent,#e8561e); border-radius:50%; margin:6px auto 16px; animation:spin 0.8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .icon{ font-size:34px; margin-bottom:12px; line-height:1; }
+  .msg{ font-size:15px; font-weight:600; margin-bottom:6px; }
+  .sub{ font-size:12px; color:var(--muted,rgba(240,237,232,0.55)); font-family:'DM Mono',monospace; line-height:1.5; }
+  .btn{ display:inline-block; margin-top:18px; background:var(--accent,#e8561e); color:#fff; text-decoration:none; border-radius:12px; padding:12px 22px; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.12em; text-transform:uppercase; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="icu-logo">BiegaMy × intervals.icu</div>
+    <div id="cb-body">
+      <div class="spinner"></div>
+      <div class="msg">Łączenie…</div>
+      <div class="sub">chwila, autoryzujemy dostęp</div>
+    </div>
+  </div>
+</div>
+<script>
+(async function(){
+  const bodyEl = document.getElementById('cb-body');
+  const esc = window.escapeHtml || (s => String(s));
+  const show = (icon, msg, sub, withBtn) => {
+    bodyEl.innerHTML =
+      (icon ? '<div class="icon">' + icon + '</div>' : '') +
+      '<div class="msg">' + esc(msg) + '</div>' +
+      (sub ? '<div class="sub">' + esc(sub) + '</div>' : '') +
+      (withBtn ? '<a class="btn" href="profil.html?open=icu">Wróć do profilu</a>' : '');
+  };
+
+  const params = new URLSearchParams(location.search);
+  const code  = params.get('code');
+  const state = params.get('state');
+  const oauthErr = params.get('error');
+
+  // 1) user odmówił / błąd po stronie intervals
+  if (oauthErr || !code) {
+    show('✕', 'Autoryzacja anulowana', oauthErr ? ('intervals.icu: ' + oauthErr) : 'brak kodu autoryzacji', true);
+    return;
+  }
+
+  // 2) BRAMKA CSRF — state musi zgadzać się z nonce zapisanym przed przekierowaniem (sessionStorage, one-shot)
+  const savedState = sessionStorage.getItem('icu_oauth_state');
+  sessionStorage.removeItem('icu_oauth_state');   // jednorazowy — zużyty niezależnie od wyniku
+  if (!state || !savedState || state !== savedState) {
+    show('🛑', 'Błąd bezpieczeństwa', 'nieprawidłowy parametr state (CSRF) — spróbuj połączyć ponownie z profilu', true);
+    return;
+  }
+
+  // 3) musisz być zalogowany w BiegaMy (EF wiąże token z Twoją sesją)
+  let session = null;
+  try { session = (await sb.auth.getSession()).data.session; } catch(e){}
+  if (!session) {
+    show('🔒', 'Zaloguj się najpierw', 'otwórz BiegaMy, zaloguj się i połącz intervals.icu z profilu', true);
+    return;
+  }
+
+  // 4) exchange — callback wysyła TYLKO code; EF (intervals-oauth) rozwiązuje athletę z JWT (nie ufa clientowi), wymienia code→token, zapisuje server-side
+  try {
+    const res = await fetch((window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/intervals-oauth', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },   // ZERO apikey (CORS)
+      body: JSON.stringify({ code: code })
+    });
+    const data = await res.json().catch(() => null);
+    if (res.ok && data && data.ok) {
+      show('✅', 'Połączono z intervals.icu', 'przekierowuję do profilu…', false);
+      setTimeout(() => { location.replace('profil.html?open=icu'); }, 1400);
+    } else {
+      show('✕', 'Nie udało się połączyć', (data && data.error) ? ('błąd: ' + data.error) : ('kod ' + res.status), true);
+    }
+  } catch(e) {
+    show('✕', 'Nie udało się połączyć', 'błąd sieci: ' + e.message, true);
+  }
+})();
+</script>
+</body>
+</html>
