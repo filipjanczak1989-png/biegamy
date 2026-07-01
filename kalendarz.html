@@ -4837,8 +4837,6 @@ const DOW_PL   = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Pią
 let _icuChart = null, _icuHasHr = false, _icuMetricIdx = {};
 const _ICU_AXIS = { pace:'yPace', hr:'yHr', resp:'yResp', cad:'yCad', alt:'yAlt', temp:'yTemp' };
 const _ICU_BTN  = { pace:'ds-icu-tab-pace', hr:'ds-icu-tab-hr', resp:'ds-icu-tab-resp', cad:'ds-icu-tab-cad', alt:'ds-icu-tab-alt', temp:'ds-icu-tab-temp' };
-const _ICU_ZONE    = { Z1:'#8a94a6', Z2:'#4a90d9', Z3:'#3db870', Z4:'#f2b134', Z5:'#e03e3e', Z5a:'#ef7d3a', Z5b:'#e03e3e', Z5c:'#a02525' };   // rampa intensywności; Z5a/b/c rozdzielone (pomarańcz/czerwień/maroon)
-const _ICU_ZONE_PL = { Z1:'regeneracja', Z2:'tlenowy', Z3:'tempo', Z4:'próg', Z5:'VO2max', Z5a:'VO2max', Z5b:'beztlenowy', Z5c:'maksymalny' };   // mapowanie odporne — nieznany label → fallback sam label (bez nazwy)
 function _icuFmtPace(s){ if (s==null) return '—'; const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
 function _icuTabStyle(active){
   return "font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;"
@@ -4950,40 +4948,16 @@ function _icuRenderHrZones(d) {
   const el = document.getElementById('ds-icu-hrzones');
   if (!el) return;
   const z = d.hr_zones;
-  if (!d.has_hr || !z || !Array.isArray(z.time_s) || !Array.isArray(z.labels) || !z.time_s.some(t=>t>0)) {
-    el.style.display='none'; el.innerHTML=''; return;   // graceful: bez HR / bez stref → sekcja znika
+  if (!d.has_hr || !z || !Array.isArray(z.time_s) || !Array.isArray(z.labels) || !z.time_s.some(t=>t>0) || !window.renderHrZoneBars) {
+    el.style.display='none'; el.innerHTML=''; return;   // graceful: bez HR / bez stref / brak helpera → sekcja znika
   }
-  const labels = z.labels, times = z.time_s, bounds = Array.isArray(z.bounds) ? z.bounds : [];
-  const n = Math.min(labels.length, times.length);
-  const total = times.slice(0,n).reduce((s,t)=>s+(t||0),0) || 1;
-  const maxT  = Math.max(...times.slice(0,n).map(t=>t||0)) || 1;
-  const fmt = (s)=>{ const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); };
-  const bpmRange = (i)=>{ const hi=bounds[i]; if (hi==null) return ''; const lo = i>0 ? bounds[i-1] : null;
-    return lo!=null ? (lo+'–'+hi) : ('<'+hi); };   // dolny = górny poprzedniej; Z1 = "<próg"
-
-  const idx = Array.from({length:n},(_,i)=>i);
-  const domI = idx.reduce((a,b)=> (times[b]||0)>(times[a]||0) ? b : a, 0);   // argmax czasu
-  const domPL = _ICU_ZONE_PL[labels[domI]];
+  const labels = z.labels, times = z.time_s;
+  let domI=0; for (let i=1;i<Math.min(labels.length,times.length);i++) if ((times[i]||0)>(times[domI]||0)) domI=i;   // argmax czasu
+  const domPL = (window.HR_ZONE_PL||{})[labels[domI]];
   const domCap = 'trening głównie w ' + labels[domI] + (domPL ? ' ('+domPL+')' : '');
-
-  const rows = idx.slice().sort((a,b)=>(times[b]||0)-(times[a]||0)).map(i=>{   // malejąco wg czasu
-    const t=times[i]||0, pct=Math.round(100*t/total), w=Math.max(2, Math.round(100*t/maxT));
-    const col=_ICU_ZONE[labels[i]] || '#8a94a6', pl=_ICU_ZONE_PL[labels[i]], rng=bpmRange(i);
-    return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-family:'DM Mono',monospace;font-size:11px;">
-      <div style="width:88px;flex-shrink:0;line-height:1.25;">
-        <div style="color:rgba(240,237,232,0.9);">${labels[i]}</div>
-        ${pl?`<div style="font-size:8px;color:rgba(240,237,232,0.5);text-transform:uppercase;letter-spacing:0.05em;">${pl}</div>`:''}
-        ${rng?`<div style="font-size:8px;color:rgba(240,237,232,0.35);">${rng}</div>`:''}
-      </div>
-      <div style="flex:1;height:8px;background:rgba(255,255,255,0.05);border-radius:4px;overflow:hidden;">
-        <div style="height:100%;width:${w}%;background:${col};border-radius:4px;"></div>
-      </div>
-      <div style="width:64px;text-align:right;flex-shrink:0;color:rgba(240,237,232,0.85);">${fmt(t)} <span style="color:rgba(240,237,232,0.4);">${pct}%</span></div>
-    </div>`;
-  }).join('');
-
+  // paski = wspólny helper sb.js (single source; A przepięte z page-local na renderHrZoneBars)
   el.innerHTML = `<div class="ds-label" style="margin:14px 0 3px;">Strefy tętna</div>
-    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.04em;color:rgba(240,237,232,0.5);margin-bottom:10px;">${domCap}</div>${rows}`;
+    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.04em;color:rgba(240,237,232,0.5);margin-bottom:10px;">${domCap}</div>${window.renderHrZoneBars(z)}`;
   el.style.display='block';
 }
 
