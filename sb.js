@@ -708,6 +708,127 @@
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════
+  // window.WATCH — SSOT podłączenia zegarka (intervals.icu OAuth)
+  // Reużywa flow z profil.html (authorizeIntervals) — jedna ścieżka, nie kopia.
+  // Stan czytany z athletes.intervals_athlete_id (intervals_credentials ma RLS
+  // BEZ SELECT dla klienta — tylko DELETE-own; EF service_role zapisuje oba).
+  // ═══════════════════════════════════════════════════════════════════
+  window.WATCH = {
+
+    // 1) ODPAL OAUTH — jedyna definicja flow (profil.html ją woła)
+    odpalOAuth: function(returnTo) {
+      const nonce = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : (Date.now() + '.' + Math.random().toString(36).slice(2));
+      sessionStorage.setItem('icu_oauth_state', nonce);            // CSRF — sprawdzany w intervals-callback.html
+      if (returnTo) sessionStorage.setItem('icu_oauth_return', returnTo);  // powrót do onboardingu (dopięcie callbacku osobno)
+      const redirect = 'https://biegamy.run/intervals-callback.html';     // = redirect_uri client_id 533
+      location.href = 'https://intervals.icu/oauth/authorize'
+        + '?client_id=533'
+        + '&redirect_uri=' + encodeURIComponent(redirect)
+        + '&scope=ACTIVITY:READ'
+        + '&state=' + encodeURIComponent(nonce)
+        + '&response_type=code';
+    },
+
+    // 2) STAN — JEDNO źródło prawdy. Zwraca {polaczony, od_kiedy}
+    czyPolaczony: async function(athleteId) {
+      if (!athleteId) return { polaczony: false, od_kiedy: null };
+      const { data } = await window.supabase.from('athletes')
+        .select('intervals_athlete_id, intervals_connected_at')
+        .eq('id', athleteId).maybeSingle();
+      return { polaczony: !!(data && data.intervals_athlete_id),
+               od_kiedy: (data && data.intervals_connected_at) || null };
+    },
+
+    // 3) RENDER — jedna funkcja, 4 wagi. Async, bo pyta czyPolaczony o stan.
+    //    opts = { athleteId, returnTo?, onSkip? (nazwa globalnej fn jako string) }
+    render: async function(waga, opts) {
+      opts = opts || {};
+      this._injectCss();
+      const st = await this.czyPolaczony(opts.athleteId);
+      const ic = this.iconSvg();
+      const rt = opts.returnTo ? ("'" + opts.returnTo + "'") : '';
+      const skip = opts.onSkip || 'WATCH._noop';
+
+      // połączony (poza 'status') → kompaktowe potwierdzenie
+      if (st.polaczony && waga !== 'status') {
+        return '<div class="wc-ok">' + ic + '<span>Zegarek połączony ✓</span></div>';
+      }
+
+      if (waga === 'full') {
+        return '<div class="wc wc-full">'
+          + '<div class="wc-ic-lg">' + ic + '</div>'
+          + '<div class="wc-h1">Treningi wpadną same<br>— bez wpisywania</div>'
+          + '<div class="wc-sub">Przez intervals.icu połączysz Garmin / Polar / Suunto. '
+          + 'Każdy trening z zegarka trafi tu i do trenera automatycznie.</div>'
+          + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz z zegarkiem</button>'
+          + '<button class="wc-ghost" onclick="' + skip + '()">Pomiń, zrobię później</button>'
+          + '<details class="wc-help"><summary>Jak podłączyć zegarek?</summary>'
+          + '<div class="wc-help-body"><!-- TODO: instrukcja (osobny kawałek) --></div></details>'
+          + '</div>';
+      }
+      if (waga === 'medium') {
+        return '<div class="wc wc-medium">' + ic
+          + '<div class="wc-txt"><b>Połącz zegarek</b><span>Garmin/Polar/Suunto — trening sam wpadnie</span></div>'
+          + '<button class="wc-btn-sm" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz →</button></div>';
+      }
+      if (waga === 'light') {
+        return '<button class="wc wc-light" onclick="WATCH.odpalOAuth(' + rt + ')">'
+          + '<span class="watch-pulse">' + ic + '</span>'
+          + '<span class="wc-light-txt">Masz zegarek? Połącz — nie wpisuj ręcznie</span></button>';
+      }
+      if (waga === 'status') {
+        if (st.polaczony) {
+          const d = st.od_kiedy ? new Date(st.od_kiedy).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'}) : '';
+          return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
+            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>';
+        }
+        return '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>';
+      }
+      return '';
+    },
+
+    // 4) IKONA — prosty smartwatch, theme-aware (var(--accent)), animowalny CSS-em
+    iconSvg: function() {
+      return '<svg class="wc-icon" width="20" height="20" viewBox="0 0 24 24" fill="none"'
+        + ' stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'
+        + '<rect x="7" y="7" width="10" height="10" rx="2.5"/>'
+        + '<path d="M9 7 L9.4 3.6 A1 1 0 0 1 10.4 2.7 L13.6 2.7 A1 1 0 0 1 14.6 3.6 L15 7"/>'
+        + '<path d="M9 17 L9.4 20.4 A1 1 0 0 0 10.4 21.3 L13.6 21.3 A1 1 0 0 0 14.6 20.4 L15 17"/>'
+        + '<path d="M12 9.8 L12 12 L13.5 13"/></svg>';
+    },
+
+    _noop: function() {},
+
+    _injectCss: function() {
+      if (document.getElementById('wc-css')) return;
+      const s = document.createElement('style'); s.id = 'wc-css';
+      s.textContent =
+        '.wc-icon{transition:transform .2s}'
+        + '@keyframes wc-pulse{0%,100%{opacity:1}50%{opacity:.5}}'
+        + '.watch-pulse .wc-icon{animation:wc-pulse 2.4s ease-in-out infinite}'
+        + '.wc-full{text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}'
+        + '.wc-ic-lg .wc-icon{width:40px;height:40px}'
+        + '.wc-full .wc-h1{font-size:20px;font-weight:600;color:var(--fg);line-height:1.15}'
+        + '.wc-full .wc-sub{font-size:13px;color:var(--muted);line-height:1.55;max-width:300px}'
+        + '.wc-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}'
+        + '.wc-ghost{background:none;border:none;color:var(--muted);font-family:DM Mono,monospace;font-size:12px;cursor:pointer;padding:6px}'
+        + '.wc-help{font-size:11px;color:var(--muted);font-family:DM Mono,monospace}'
+        + '.wc-help summary{cursor:pointer}'
+        + '.wc-medium{display:flex;align-items:center;gap:12px}'
+        + '.wc-medium .wc-txt{flex:1;display:flex;flex-direction:column}'
+        + '.wc-medium .wc-txt b{font-size:13px;color:var(--fg)}.wc-medium .wc-txt span{font-size:11px;color:var(--muted)}'
+        + '.wc-btn-sm{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 14px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}'
+        + '.wc-light{display:flex;align-items:center;gap:8px;width:100%;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.25);border-radius:10px;padding:10px 12px;cursor:pointer}'
+        + '.wc-light-txt{font-size:12px;color:var(--accent);font-weight:500}'
+        + '.wc-ok{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg)}'
+        + '.wc-disc{margin-left:auto;font-size:10px;font-family:DM Mono,monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;cursor:pointer}';
+      document.head.appendChild(s);
+    }
+  };
+
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
   // Chmury = wariant dark (wygrał A/B 2026-06-17). Opady/burza/śnieg/mgła z code; clear-spectrum (0-3) z cloud_pct.
   window.wxIcon = function(code, cloudPct){

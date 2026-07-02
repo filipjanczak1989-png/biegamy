@@ -1708,16 +1708,8 @@ async function connectIntervals() {
 
 // W2 OAuth: nonce CSRF do sessionStorage → przekierowanie na zgodę intervals.icu (callback wraca na intervals-callback.html)
 function authorizeIntervals() {
-  const nonce = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : (Date.now() + '.' + Math.random().toString(36).slice(2));
-  sessionStorage.setItem('icu_oauth_state', nonce);   // sprawdzany w intervals-callback.html (CSRF)
-  const redirect = 'https://biegamy.run/intervals-callback.html';   // MUSI = redirect_uri zarejestrowany dla client_id 533
-  const url = 'https://intervals.icu/oauth/authorize'
-    + '?client_id=533'
-    + '&redirect_uri=' + encodeURIComponent(redirect)
-    + '&scope=ACTIVITY:READ'
-    + '&state=' + encodeURIComponent(nonce)
-    + '&response_type=code';
-  location.href = url;
+  // SSOT: cała logika OAuth w sb.js window.WATCH (dedupe — jedna ścieżka, nie kopia)
+  window.WATCH.odpalOAuth();
 }
 
 async function disconnectIntervals() {
