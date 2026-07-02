@@ -576,6 +576,8 @@ async function togglePrivacy() {
 let _myId = null;       // mój athlete ID
 let _targetId = null;   // oglądany profil (może być mój)
 let _isOwnProfile = false;
+let _myUserId = null;   // auth.uid() — do porównania z target.coach_id
+let _canSeeFull = true; // F5: own ∨ trener-tego-zawodnika → tabela (pełny wiersz); else → widok (osiągi)
 let _isCoach = false;
 let _friendStatus = null; // null | 'pending_sent' | 'pending_received' | 'accepted'
 let _isFollowing = false;
@@ -595,6 +597,7 @@ let _profileData = null;
   // Mój athlete ID
   const { data: me } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
   _myId = me?.id || null;
+  _myUserId = session.user.id;   // auth.uid()
 
   // Target: ?id=UUID lub własny profil
   const params = new URLSearchParams(location.search);
@@ -627,9 +630,10 @@ let _profileData = null;
   // Sprawdź prywatność cudzego profilu przed załadowaniem
   if (!_isOwnProfile) {
     const { data: privCheck } = await sb.from('athletes')
-      .select('is_public,full_name')
+      .select('is_public,full_name,coach_id')
       .eq('id', _targetId)
       .maybeSingle();
+    _canSeeFull = (privCheck?.coach_id === _myUserId); // F5: trener-TEGO-zawodnika; own już = true (deklaracja)
     if (privCheck && !privCheck.is_public) {
       const initials = (privCheck.full_name||'?').split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       document.getElementById('profile-name').textContent = privCheck.full_name || 'Biegacz';
@@ -1078,7 +1082,7 @@ async function showRaceParticipantsById(raceId) {
 }
 
 async function loadBadges() {
-  const { data: logs } = await sb.from('training_logs')
+  const { data: logs } = await sb.from(_canSeeFull ? 'training_logs' : 'public_training_logs')
     .select('training_type')
     .like('training_type', '__badge__%')
     .eq('athlete_id', _targetId);
@@ -1113,7 +1117,7 @@ async function loadStats() {
   document.getElementById('ps-followers').textContent = fol?.length || 0;
 
   // Treningi + km
-  const { data: logs } = await sb.from('training_logs')
+  const { data: logs } = await sb.from(_canSeeFull ? 'training_logs' : 'public_training_logs')
     .select('distance_km')
     .eq('athlete_id', _targetId)
     .not('training_type', 'like', '__badge__%');
@@ -1401,13 +1405,15 @@ async function loadPosts() {
       .eq('athlete_id', _targetId)
       .order('created_at', { ascending: false })
       .limit(50),
-    sb.from('training_logs')
-      .select('id,training_type,distance_km,pace,feel,comment,logged_at,attachment_url')
-      .eq('athlete_id', _targetId)
-      .not('training_type', 'like', '__badge__%')
-      .or('attachment_url.not.is.null,comment.not.is.null')
-      .order('logged_at', { ascending: false })
-      .limit(50)
+    _canSeeFull
+      ? sb.from('training_logs')
+          .select('id,training_type,distance_km,pace,feel,comment,logged_at,attachment_url')
+          .eq('athlete_id', _targetId)
+          .not('training_type', 'like', '__badge__%')
+          .or('attachment_url.not.is.null,comment.not.is.null')
+          .order('logged_at', { ascending: false })
+          .limit(50)
+      : Promise.resolve({ data: [] })   // F5: obcy — feed treningowy bazuje na polach prywatnych → pusto (posty zostają)
   ]);
 
   const posts = postsRes.data || [];
@@ -1558,7 +1564,7 @@ function _renderTrainingItem(l, idx) {
 function _openTrainingDetail(logId) {
   const trainings = (window._lastFeedItems || []);
   // Pobierz dane logu
-  sb.from('training_logs').select('*').eq('id', logId).maybeSingle().then(function(r) {
+  sb.from(_canSeeFull ? 'training_logs' : 'public_training_logs').select('*').eq('id', logId).maybeSingle().then(function(r) {
     if (!r.data) return;
     const l = r.data;
     const ov = document.createElement('div');
@@ -2954,7 +2960,9 @@ async function openTrainingsList(){
   fb.innerHTML=TYPES.map(function(t,i){return '<button data-type="'+(t==='Wszystkie'?'':t)+'" onclick="filterTr(this)" style="flex-shrink:0;background:'+(i===0?'rgba(var(--accent-rgb),0.15)':'rgba(255,255,255,0.05)')+';border:1px solid '+(i===0?'rgba(var(--accent-rgb),0.4)':'rgba(255,255,255,0.1)')+';color:'+(i===0?'var(--accent)':'var(--muted)')+';border-radius:20px;padding:5px 12px;font-size:10px;cursor:pointer;white-space:nowrap;">'+t+'</button>';}).join('');
   var li=document.createElement('div');li.id='tr-list';li.style.cssText='flex:1;overflow-y:auto;padding:4px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(fb);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  var r=await sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url,calories').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
+  var r=_canSeeFull
+    ? await sb.from('training_logs').select('training_type,distance_km,pace,heart_rate,logged_at,comment,feel,attachment_url,calories').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300)
+    : await sb.from('public_training_logs').select('training_type,distance_km,pace,duration,logged_at,elevation_gain').eq('athlete_id',_targetId).not('training_type','like','__badge__%').order('logged_at',{ascending:false}).limit(300);
   _allTr=r.data||[];renderTr('');
 }
 function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').forEach(function(b){b.style.background='rgba(255,255,255,0.05)';b.style.borderColor='rgba(255,255,255,0.1)';b.style.color='var(--muted)';});btn.style.background='rgba(var(--accent-rgb),0.15)';btn.style.borderColor='rgba(var(--accent-rgb),0.4)';btn.style.color='var(--accent)';renderTr(btn.dataset.type||'');}
