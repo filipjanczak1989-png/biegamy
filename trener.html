@@ -8668,6 +8668,7 @@ document.addEventListener('keydown', (e) => {
           status: 'rejected',
           rejected_at: new Date().toISOString(),
           rejection_reason: reason || null,
+          accepted_by_coach_id: _coachId,
         })
         .eq('id', _currentIntakeId);
 
