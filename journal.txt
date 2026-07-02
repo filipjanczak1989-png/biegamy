@@ -1,0 +1,214 @@
+================================================================================
+2026-06-10 — sesja (Filip + Claude)  [zawiera FIX BEZPIECZEŃSTWA]
+================================================================================
+
+ZROBIONE
+--------
+1) Feed signed URL "raz działa raz nie" — 3 fixy w sb.js
+   commity: af31bde (fix) -> 3a1092f (po rebase) ; SW bump 18fa6b8
+   - storageSignedUrl / storageSignedUrls: retry+backoff (0/1200ms),
+     permanent errors (not found / not authorized / permission) bez retry
+   - _spSignOne -> async: removeAttribute('data-sp') + IO.unobserve DOPIERO
+     po sukcesie. Przy null-sign element NIE jest "spalony" — zostaje
+     obserwowany i ponawia przy następnym przecięciu viewportu. (GŁÓWNY FIX)
+   - expiry feedu 3600s -> 21600s (6h) w _spSignOne + _resolveStorageImgs
+     (defaulty helperów i voice messages bez zmian)
+
+2) Audyt integralności zdjęć — NIC NIE PRZEPADŁO
+   - training_logs: 509 referencji PATH = 509 plików w storage, 0 osieroconych.
+     Wszystko skonwertowane na PATH (backfill Free-plan); DUAL MODE https =
+     martwy kod dla obecnych danych.
+   - storage training-screenshots: 1352 plików (729 oryginałów + 623 thumby),
+     bucket PRIVATE.
+   - czat (messages): 13 PATH OK (0 osieroconych) + 15 legacy https = GIF-y
+     zewnętrzne (9 Tenor + 6 Giphy), NIE supabase storage -> private flip
+     nieszkodliwy. peer_messages pusta, log_comments 1 plain.
+
+3) STORED XSS FIX  *** WAŻNE ***
+   WEKTOR: renderMessageBody (sb.js) zwracał RAW body bez escape dla prefiksów
+   <div class="voice-msg"> (tylko startsWith!) i <span class="msg-recall">.
+   RLS NIE walidował treści body:
+     - messages INSERT with_check: tylko athlete_id + sender (nie body)
+     - messages UPDATE: tylko user_has_msg_access(athlete_id) -> athlete mógł
+       NADPISAĆ DOWOLNĄ wiadomość w wątku, w tym body trenera
+     - peer_messages INSERT / log_comments INSERT: też bez walidacji body
+   => osiągalny stored XSS athlete->coach.
+   RECON: 0 prób ataku (16 "podejrzanych" = legit playVoice/img).
+
+   FIX #1 (klient, SINK) — commit 574ba71 :
+     renderMessageBody NIE ufa zapisanej strukturze HTML.
+     - recall: zwraca stały '<span class="msg-recall">Wiadomość cofnięta</span>'
+     - voice: parsuje ŚCISŁYM regexem tylko PATH (walidacja _chatVoicePathValid:
+       /^[a-f0-9-]{36}\/[\w._-]+\.(webm|mp3|ogg|m4a|mp4)$/i -> brak ' " < > ( ))
+       + długość (int), ODBUDOWUJE tag od zera z zahardkodowanym onclick.
+       Dwa warianty stylu (coach=biały / athlete=accent) 1:1 -> wygląd identyczny.
+     - Naprawia też ewentualne JUŻ-ZAPISANE payloady. Bez antywzorca
+       stripHtml+innerHTML. Branche [zdjęcie]/<img>/tekst bez zmian.
+
+   FIX #2 (DB, defense-in-depth na ŹRÓDLE) — deploy Dashboard SQL :
+     CHECK constraint (NIE RLS with_check — CHECK pokrywa INSERT+UPDATE+
+     service_role jednym statementem, w tym wektor nadpisania body trenera).
+     Constrainty: messages_body_no_autoxss, logcom_body_no_autoxss,
+     peer_body_no_autoxss.
+     Blokuje auto-exec tokeny (celowo BEZ onclick — legit voice/img go używają):
+       (onerror|onload|onmouseover|onfocus|onanimation|onpointer|onstart|
+        onbegin|<script|<iframe|<svg|<style|<object|<embed|<base|<link|<meta|
+        javascript:|data:text/html|formaction)
+     Inwentaryzacja: 0 nieznanych formatów body. Dry-run: 0 legit zablokowane
+     (oba podejścia; whitelist-formatu odrzucony jako kruchy + dziura w img).
+     Test legit przeszedł po deployu.
+
+OTWARTE (nie pilne)
+-------------------
+- Tenor API znika 2026-06-30 -> 9 GIF-ów w czacie przestanie działać;
+  provider GIF do zmiany (pełna integracja idzie przez Giphy — patrz pamięć).
+- trener.html czat: pełna paginacja gdy wątki dobiją ~200 (teraz limit 200).
+- Feed "raz działa raz nie": monitorować czy 3 fixy wystarczą po resecie
+  egress (cached egress był 213% przy throttle).
+
+NOTATKI DOSTĘPU
+---------------
+- Read-only SQL prod: supabase db query --linked (CLI 2.98.1 zalogowane).
+- Prod: https://biegamy.run (CNAME). Deploy = push do main -> auto-bump SW.
+- Commit message przez plik (-F), NIE here-string @'...'@ w narzędziu Bash
+  (literał @ wycieka do subjectu).
+
+
+================================================================================
+2026-06-22 — sesja (Filip + Claude)  [SILNIK MOMENTU + ANIMACJA WOW]
+================================================================================
+
+ZROBIONE
+--------
+1) KM1 fonty self-host — DOMKNIĘTE (poprzednia sesja, potwierdzone live)
+   10 woff2 (Bebas/DM, latin+latin-ext PL) w biegamy-assets/fonts/ -> @font-face
+   w theme.css; eksport-PNG działa (woff2 ma CORS ACAO:*). Bebas/DM odcięte od
+   Google Fonts wszędzie. Fundament pod animację WOW + KM5 eksport.
+
+2) silnik-momentu.js — mózg "co świętować" (samodzielny moduł, NIE wpięty w UI
+   poza debug). self-test inline 30/30 PASS (node js/silnik-momentu.js).
+   Żelazna zasada w nagłówku: KAŻDY moment wymaga zatwierdzenia trenera (KM6),
+   detect() tylko PROPONUJE. Slice'y:
+   - Slice 1: detect(snapshot)->Moment|null; 3 detektory PB (>=max(1%,2s),
+     debiut=cisza) / wolumen (strict>, >=3 okna) / streak (TYLKO progi 4,8,12...).
+     §3 priorytet PB>wol>streak. Commit 3015846.
+   - Slice 2: warstwa stanu §3 — scoring = priorytet + rzadkość(może nadpisać)
+     - miękkie anti-powtórzenie; recordDelivered + snapshot.historia. 55a11df.
+   - value-dedup: alreadyDelivered (typ+identyczne evidence) odrzuca już
+     dostarczone PRZED scoringiem = KRĘGOSŁUP anty-spamu. Sam Slice 2 NIE
+     wystarczył (miękka kara nie zeruje jedynego kandydata -> streak-4 codziennie).
+     Część commitu 55a11df.
+   - detectVolume niesie evidence.slupki[] (6 tygodni {label,km,peak}) do
+     animacji; weekLabel helper; +2 self-test. Commit 6f83d1f. Dedup-safe
+     (5 słupków historycznych stałe, 6. śledzi suma_km już w kluczu).
+
+3) zawodnik.html — wpięcie + skóra
+   - Slice 3 snapshot-builder: _silnikBuildSnapshot() dedykowany fetch 90d
+     (badge-filtered, ascending) + pb_* + full_name -> snapshot {newLog, logs,
+     pbs, today=data ostatniego logu, historia:[], imie}. <script src=
+     js/silnik-momentu.js> po sb.js. toSec inline (brak globalnego helpera).
+     Wywołanie w initAuth po _athleteId, gated. Reuse niemożliwy: window.
+     _logsData=tylko 5 wierszy, logs90 lokalny w _loadStatsInProfile. e9a8577.
+   - Slice 4 animacja wolumenu (Story): _silnikPokazAnimacje(moment,imie) +
+     _silnikRenderAnimWolumen(ev,imie). Overlay pełnoekranowy dynamiczny.
+     5 efektów: easeBack peak (odbicie), peakBurst 16 iskier, flash 0.55,
+     countUp ease, słupki +340ms/peak +200ms pauza. Barwy var(--accent)/
+     var(--accent2) themeable. Imię z full_name. Commit 10b7af2.
+     Czasy live: STEP=340 / BAR_DUR=520 / PEAK_PAUSE=200 / PEAK_DUR=720.
+
+POTWIERDZONE NA ŻYWO
+--------------------
+- silnik liczy w apce (konto Filipa: 2 logi -> CISZA poprawnie; marathon PB
+  8820s odczytany ze snapshotu).
+- test prawdy Daniela (Banaszak, athId 1179423c-bb92-4779-a737-d2e31ec1d2f7):
+  dedup 12 zaspamowanych -> 4 czyste momenty (streak-4 28.04, wolumen 52km
+  03.05, wolumen 58km 10.05, streak-8 25.05). streak-4 raz, nie 5x.
+- animacja Daniela (58km rekord, +6) działa przez _silnikPokazAnimacje na
+  koncie Filipa = tryb podglądu trenera. Filip dostroił tempo (delikatnie
+  wolniej) — UWAGA: jeśli zmiana czasów była lokalna, NIE jest w repo
+  (working tree czyste na koniec sesji); prod = wartości z 10b7af2.
+
+GATING (wszystko debug-only, bez param = zero śladu dla zawodników)
+------------------------------------------------------------------
+- ?silnik=1     -> debug-div (lewy dół) + console snapshot/detektory/moment
+- ?silnik=anim  -> auto-animacja gdy moment=wolumen
+- window._silnikPokazAnimacje(moment,imie) -> podgląd trenera z konsoli
+
+NASTĘPNE (kolejność do decyzji Filipa)
+--------------------------------------
+- KM5 eksport: obrazek PNG (reuse KM1 capture) -> kadr pionowy 1080x1920
+  (overlay teraz pełnoekranowy, NIE 9:16).
+- KM6 bramka trenera: Filip zatwierdza moment zanim zawodnik zobaczy
+  (żelazna zasada = kręgosłup).
+- persystencja historii dostarczonych (localStorage albo tabela
+  delivered_moments) — potrzebna pod KM6; bez niej dedup nie działa między
+  sesjami (snapshot.historia teraz zawsze []).
+- więcej typów animacji: PB-licznik, streak-łańcuch.
+
+ZALEGŁE DROBIAZGI (niepilne)
+---------------------------
+- sprzątanie C: bliźniak e798162d w Dashboardzie.
+- E: 2 tracki radio — re-upload okładek.
+- czysty re-test delete-account (ANON + storage na jednym koncie).
+- ticket hardening: EF remove() z data-check.
+
+
+================================================================================
+2026-07-02 — sesja (Filip + Claude)  [OAuth W2 — 3 fixy z e2e]
+================================================================================
+
+KONTEKST
+--------
+Rdzeń OAuth intervals.icu działa (exchange/Bearer/athlete-0 udowodnione —
+intervals-hr-aggregate i intervals-activity-detail dają 200 przez Bearer).
+Zostały 3 fixy z e2e sync.
+
+ZROBIONE
+--------
+1) intervals-oauth v1→v2 (Fix1: podwójne 'i')
+   intervals zwraca athlete.id — obsłuż OBA warianty (numeryczny lub już z
+   prefiksem). Zamiast gołego 'i'+id:
+     const raw = tok?.athlete?.id;
+     const icuAthId = (raw != null && String(raw) !== '')
+       ? (String(raw).startsWith('i') ? String(raw) : ('i' + raw)) : '0';
+   Guard defensywny — dla naszego athlety token i tak zwrócił numeryczny
+   (patrz Fix3), ale chroni gdyby intervals zaczął zwracać "i583138".
+
+2) intervals-sync v2→v3 (Fix2: BRAK auth-mode = ROOT CAUSE 401)
+   Wdrożony v2 był BASIC-ONLY — potwierdzone wszystkie 3 podejrzenia:
+     (a) select TYLKO api_key (nie access_token)
+     (b) fetch athlete/${icuId} (stored id), nie '0'
+     (c) Authorization hardcode 'Basic API_KEY:…'
+   OAuth-athleta (token, api_key=null) → 'Basic API_KEY:null' → 401.
+   FIX = ten sam jeden-flag co hr-aggregate/activity-detail:
+     select api_key,access_token; useOAuth=!!access_token;
+     authH = useOAuth ? 'Bearer '+access_token : 'Basic '+btoa('API_KEY:'+api_key);
+     icuAth = useOAuth ? '0' : icuId;
+   Dodatkowo: paste-key CONNECT zapisuje access_token:null (mode jednoznaczny
+   przy przełączaniu Basic↔OAuth) + onConflict:'athlete_id'.
+
+3) SQL fix — NIEPOTRZEBNY
+   Konto 56092926-2cf1-44b6-952f-38614497fdc2 miało JUŻ intervals_athlete_id=
+   'i583138' (nie 'ii583138'), connected 2026-07-02 00:15, has_token=true,
+   has_key=false. Podwójne 'i' nigdy nie zapisane — exchange zwrócił numeryczny.
+   UPDATE dał 0 rows (guard AND ='ii583138'). To był dokładnie case OAuth
+   który 401-ował na stale sync.
+
+DEPLOY / DOSTĘP
+---------------
+- CLI deploy DZIAŁA BEZ DOCKERA: `supabase functions deploy <fn>
+  --project-ref afqojgkaveykxbltxzwm --use-api` (--use-api = bundler po stronie
+  API, omija lokalny Docker). Wersje: oauth v2, sync v3. Verify JWT zachowane.
+- `supabase functions download <fn> --project-ref …` ściąga wdrożony source do
+  supabase/functions/<fn>/index.ts (do porównania stale vs intended).
+- SQL: `supabase db query --linked --workdir "C:/Users/ja/biegamy" < q.sql`
+  (link state w supabase/.temp — NIE odpalać z innego cwd, bo "Cannot find
+  project ref"). Zwraca JSON {rows:[…]} z boundary-warning.
+
+OTWARTE
+-------
+- Re-test sync przez Bearer po stronie Filipa (wymaga user-JWT z sesji;
+  z CLI nie zmintuję). Oczekiwane ok:true (synced:0 jeśli już zaimportowane).
+  Jak dalej 401 → pull logów EF.
+- Stary komentarz w sync „NAZWY PÓL = ZAŁOŻENIA (klasa signed_at)" — pola
+  activities potwierdzić realnym curlem przy pierwszym udanym syncu.
