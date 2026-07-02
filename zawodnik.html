@@ -3334,12 +3334,8 @@ async function saveGoal() {
         race_id: raceId,
         athlete_id: _athleteId
       }, { onConflict: 'race_id,athlete_id' });
-      if (!sErr) {
-        // Zwiększ signup_count w races
-        const { data: rRow } = await sb.from('races').select('signup_count').eq('id', raceId).maybeSingle();
-        const newCount = ((rRow && rRow.signup_count) || 0) + 1;
-        sb.from('races').update({ signup_count: newCount }).eq('id', raceId).then(function(){});
-      }
+      // signup_count utrzymuje trigger trg_race_signup_count (AFTER INSERT) — bez klienckiego update
+      if (sErr) console.warn('Auto-signup failed:', sErr);
     } catch(e) { console.warn('Auto-signup failed:', e); }
   }
 
@@ -3369,12 +3365,7 @@ async function deleteGoal(idx) {
       await sb.from('race_signups').delete()
         .eq('race_id', removed.race_id)
         .eq('athlete_id', _athleteId);
-      // Zmniejsz signup_count
-      const { data: rRow } = await sb.from('races').select('signup_count').eq('id', removed.race_id).maybeSingle();
-      if (rRow) {
-        const newCount = Math.max(0, (rRow.signup_count || 1) - 1);
-        sb.from('races').update({ signup_count: newCount }).eq('id', removed.race_id).then(function(){});
-      }
+      // signup_count utrzymuje trigger trg_race_signup_count (AFTER DELETE) — bez klienckiego update
     } catch(e) { console.warn('Race unsignup failed:', e); }
   }
 
