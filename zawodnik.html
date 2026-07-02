@@ -7495,19 +7495,33 @@ async function loadSocialFeed(compact) {
     return;
   }
 
-  // Pobierz logi tych zawodników
-  const [logsRes, achRes] = await Promise.all([
-    sb.from('training_logs')
-      .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
-      .in('athlete_id', publicIds.slice(0, 50))
-      .not('training_type', 'like', '__badge__%')
-      .order('logged_at', { ascending: false })
-      .limit(compact ? 5 : 50),
-    Promise.resolve({ data: [] })
+  // F5: podział kubełków — własne + KAŻDY podopieczny (też nie-publiczny) → tabela (pełny wiersz);
+  //     obcy-publiczny → public_training_logs (tylko osiągi, bez feel/comment/attachment)
+  const ownCoachedSet = new Set([ _athleteId, ...coachAthletes.map(function(a){ return a.id; }) ].filter(Boolean));
+  const tableIds = Array.from(ownCoachedSet);                                              // pełny wiersz (RLS own/coach)
+  const viewIds  = publicIds.filter(function(id){ return !ownCoachedSet.has(id); }).slice(0, 50); // obcy publiczny → widok
+
+  const [tRes, vRes] = await Promise.all([
+    tableIds.length
+      ? sb.from('training_logs')
+          .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url')
+          .in('athlete_id', tableIds)
+          .not('training_type', 'like', '__badge__%')
+          .order('logged_at', { ascending: false })
+          .limit(compact ? 5 : 50)
+      : Promise.resolve({ data: [] }),
+    viewIds.length
+      ? sb.from('public_training_logs')
+          .select('id,training_type,distance_km,pace,logged_at,athlete_id')
+          .in('athlete_id', viewIds)
+          .not('training_type', 'like', '__badge__%')
+          .order('logged_at', { ascending: false })
+          .limit(compact ? 5 : 50)
+      : Promise.resolve({ data: [] })
   ]);
 
-  // Tylko treningi w feedzie (odznaki są w zakładce Odznaki)
-  const logs = (logsRes.data || [])
+  // Scal oba źródła, sortuj chronologicznie
+  const logs = [ ...(tRes.data || []), ...(vRes.data || []) ]
     .sort((a, b) => new Date(b.logged_at) - new Date(a.logged_at))
     .slice(0, compact ? 8 : 60);
 
