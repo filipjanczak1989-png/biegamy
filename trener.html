@@ -22,25 +22,6 @@
 <style>
 
 /* ══ BIEGAMY TRENER — PREMIUM ══════════════════════════════════════ */
-:root{
-  --bg:#07070a;
-  --card:#0f0f13;
-  --card2:#15151a;
-  --border:rgba(255,255,255,0.07);
-  --border2:rgba(255,255,255,0.12);
-  --accent:#e8561e;
-  --accent2:#ff7040;
-  --fg:#f0ede8;
-  --muted:#5a5766;
-  --muted2:#2a2830;
-  --green:#3db870;
-  --yellow:#e8b840;
-  --red:#e05050;
-  --blue:#4e8cd6;
-  --purple:#8a62d8;
-  --glow-o:rgba(var(--accent-rgb),0.3);
-  --glow-g:rgba(61,184,112,0.25);
-}
 *,*::before,*::after{box-sizing:border-box;}
 html{background:var(--bg);}
 body{
@@ -6898,7 +6879,7 @@ if ('serviceWorker' in navigator) {
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e8561e, #d4501a);
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
   color: #fff;
   border: none;
   box-shadow: 0 6px 20px rgba(var(--accent-rgb),0.45), 0 0 0 4px rgba(var(--accent-rgb),0.1);
@@ -7068,7 +7049,7 @@ if ('serviceWorker' in navigator) {
 }
 .notes-btn-save {
   flex: 2;
-  background: linear-gradient(135deg, #e8561e, #d4501a);
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
   border: none;
   color: #fff;
   padding: 10px;
