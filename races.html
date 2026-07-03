@@ -196,20 +196,6 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
 }
 
 /* ── ADD RACE MODAL ── */
-.add-overlay{
-  position:fixed;inset:0;z-index:300;
-  background:rgba(0,0,0,0.85);backdrop-filter:blur(10px);
-  display:flex;align-items:flex-end;justify-content:center;
-  opacity:0;pointer-events:none;transition:opacity 0.25s;
-}
-.add-overlay.open{opacity:1;pointer-events:all;}
-.add-sheet{
-  width:100%;max-width:480px;max-height:94vh;overflow-y:auto;
-  background:var(--card2);border-radius:24px 24px 0 0;
-  padding:0 20px env(safe-area-inset-bottom,24px);
-  transform:translateY(60px);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-}
-.add-overlay.open .add-sheet{transform:translateY(0);}
 .add-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:0.04em;padding:20px 0 16px;}
 .add-title span{color:var(--accent);}
 .field{margin-bottom:16px;}
