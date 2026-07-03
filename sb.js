@@ -735,7 +735,7 @@
     // 2) STAN — JEDNO źródło prawdy. Zwraca {polaczony, od_kiedy}
     czyPolaczony: async function(athleteId) {
       if (!athleteId) return { polaczony: false, od_kiedy: null };
-      const { data } = await window.supabase.from('athletes')
+      const { data } = await window.sb.from('athletes')
         .select('intervals_athlete_id, intervals_connected_at')
         .eq('id', athleteId).maybeSingle();
       return { polaczony: !!(data && data.intervals_athlete_id),
