@@ -753,7 +753,7 @@
       const skip = opts.onSkip || 'WATCH._noop';
 
       // połączony (poza 'status') → kompaktowe potwierdzenie
-      if (st.polaczony && waga !== 'status') {
+      if (st.polaczony && waga !== 'status' && waga !== 'badge') {
         return '<div class="wc-ok">' + ic + '<span>Zegarek połączony ✓</span></div>';
       }
 
@@ -786,6 +786,17 @@
             + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>';
         }
         return '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>';
+      }
+      if (waga === 'badge') {
+        // Mała ikona-wskaźnik w topbarze (jak Garmin) — zawsze widoczna, dwa stany.
+        if (st.polaczony) {
+          return '<button class="wc-badge wc-badge-ok" title="Zegarek połączony — status/rozłącz" '
+            + 'onclick="location.href=\'profil.html#icu-section\'">' + ic
+            + '<span class="wc-badge-check">✓</span></button>';
+        }
+        return '<button class="wc-badge wc-badge-off" title="Połącz zegarek" '
+          + 'onclick="WATCH.odpalOAuth(' + rt + ')">' + ic
+          + '<span class="wc-badge-dot">!</span></button>';
       }
       return '';
     },
@@ -825,6 +836,18 @@
         + '.wc-light-txt{font-size:12px;color:var(--accent);font-weight:500}'
         + '.wc-ok{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--fg)}'
         + '.wc-disc{margin-left:auto;font-size:10px;font-family:DM Mono,monospace;color:var(--muted);background:none;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;cursor:pointer}';
+      s.textContent +=
+        '.wc-badge{position:relative;width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;border:1px solid var(--border);background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.02));transition:all .25s ease}'
+        + '.wc-badge:hover{transform:scale(1.05)}'
+        + '.wc-badge .wc-icon{width:18px;height:18px}'
+        + '.wc-badge-off{border-color:rgba(var(--accent-rgb),.45);background:linear-gradient(135deg,rgba(var(--accent-rgb),.10),rgba(var(--accent-rgb),.03))}'
+        + '.wc-badge-off:hover{box-shadow:0 0 16px rgba(var(--accent-rgb),.2)}'
+        + '.wc-badge-off .wc-icon{animation:wc-pulse 2.4s ease-in-out infinite}'
+        + '.wc-badge-ok{opacity:.55}'
+        + '.wc-badge-ok:hover{opacity:1}'
+        + '.wc-badge-ok .wc-icon{stroke:var(--muted)}'
+        + '.wc-badge-dot{position:absolute;top:-3px;right:-3px;min-width:14px;height:14px;background:var(--accent);border:2px solid var(--bg);border-radius:7px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;line-height:1;padding:0 2px}'
+        + '.wc-badge-check{position:absolute;bottom:-2px;right:-2px;width:13px;height:13px;background:var(--green,#3db870);border:2px solid var(--bg);border-radius:50%;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1}';
       document.head.appendChild(s);
     }
   };
