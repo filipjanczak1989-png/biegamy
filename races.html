@@ -12,22 +12,6 @@
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
-:root {
-  --bg:#07070a;
-  --card:rgba(18,15,24,0.95);
-  --card2:rgba(22,18,30,0.98);
-  --border:rgba(255,255,255,0.08);
-  --fg:#f0ede8;
-  --fg2:rgba(240,237,232,0.7);
-  --fg3:rgba(240,237,232,0.45);
-  --accent:#e8561e;
-  --accent2:#ff7a45;
-  --muted:rgba(240,237,232,0.38);
-  --tile-radius:18px;
-  --tile-shadow:0 8px 32px rgba(0,0,0,0.55),0 1px 0 rgba(255,255,255,0.04) inset;
-  --green:#3db870;
-  --blue:#5b8cff;
-}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',sans-serif;overflow-x:hidden;}
 
@@ -222,7 +206,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
 /* ── PENDING BADGE ── */
 .pending-notice{
   margin:12px 16px;
-  background:rgba(91,140,255,0.1);border:1px solid rgba(91,140,255,0.3);
+  background:rgba(78,140,214,0.1);border:1px solid rgba(78,140,214,0.3);
   border-radius:12px;padding:10px 14px;
   font-size:12px;color:var(--blue);
   display:flex;align-items:center;gap:8px;
@@ -436,11 +420,11 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'Inter',s
           <button onclick="approveRace()" style="flex:1;background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:#3db870;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✓ Zatwierdź</button>
           <button onclick="rejectRace()" style="flex:1;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✕ Odrzuć</button>
         </div>
-        <button onclick="openEditRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:12px;padding:10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">✎ Edytuj propozycję</button>
+        <button onclick="openEditRace()" style="width:100%;background:rgba(78,140,214,0.12);border:1px solid rgba(78,140,214,0.35);color:var(--blue);border-radius:12px;padding:10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;">✎ Edytuj propozycję</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:10px;font-size:12px;font-family:'DM Mono',monospace;cursor:pointer;letter-spacing:0.05em;"><img data-ic="icon-radio-trash.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Usuń zawody z kalendarza</button>
       </div>
       <div id="m-coach-approved" style="display:none;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
-        <button onclick="openEditRace()" style="width:100%;background:rgba(91,140,255,0.12);border:1px solid rgba(91,140,255,0.35);color:#5b8cff;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-nut-edit.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Edytuj zawody</button>
+        <button onclick="openEditRace()" style="width:100%;background:rgba(78,140,214,0.12);border:1px solid rgba(78,140,214,0.35);color:var(--blue);border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-nut-edit.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Edytuj zawody</button>
         <button onclick="deleteRace()" style="width:100%;background:rgba(255,80,80,0.07);border:1px solid rgba(255,80,80,0.2);color:#ff6060;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;"><img data-ic="icon-radio-trash.webp" style="width:13px;height:13px;vertical-align:-2px;margin-right:6px;" alt="">Usuń zawody z kalendarza</button>
       </div>
       <button class="modal-signup-btn" id="m-signup-btn" onclick="toggleSignup()"></button>
@@ -682,7 +666,7 @@ function renderRaces() {
   if (_isCoach) {
     const pending = _allRaces.filter(r => r.status === 'pending');
     if (pending.length > 0) {
-      html += `<div class="month-divider" style="color:#5b8cff;">Do zatwierdzenia (${pending.length})</div>`;
+      html += `<div class="month-divider" style="color:var(--blue);">Do zatwierdzenia (${pending.length})</div>`;
       pending.forEach(r => { html += renderRaceCard(r); });
       html += `<div class="month-divider">Zatwierdzone</div>`;
     }
@@ -732,7 +716,7 @@ function renderRaceCard(race) {
       const inner = a.avatar_url
         ? `<img src="${escAttr(a.avatar_url)}" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display='none';this.parentElement.textContent='${ini}'">`
         : ini;
-      return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
+      return `<div onclick="event.stopPropagation();location.href='profil.html?id=${a.id}'" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:700;border:2px solid #0a0810;margin-left:${idx===0?'0':'-8px'};overflow:hidden;flex-shrink:0;z-index:${10-idx};position:relative;cursor:pointer;transition:transform 0.15s;" onmouseover="this.style.transform='scale(1.15)';this.style.zIndex='20'" onmouseout="this.style.transform='scale(1)';this.style.zIndex='${10-idx}'" title="${escAttr(a.full_name||'')} · klik = profil">${inner}</div>`;
     }).join('');
     const moreCount = totalCount - parts.length;
     const more = moreCount > 0
@@ -766,7 +750,7 @@ function renderRaceCard(race) {
           <div class="dist-unit">${distUnit}</div>
         </div>
         <div class="race-info">
-          <div class="race-name">${escHtml(race.name)}${isNew ? ' <span style="font-size:10px;background:rgba(var(--accent-rgb),0.18);color:var(--accent);border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;font-weight:700;">NOWE</span>' : ''}${isPending ? ' <span style="font-size:10px;background:rgba(91,140,255,0.2);color:#5b8cff;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">OCZEKUJE</span>' : ''}${isRejected ? ' <span style="font-size:10px;background:rgba(255,80,80,0.2);color:#ff6060;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">ODRZUCONE</span>' : ''}</div>
+          <div class="race-name">${escHtml(race.name)}${isNew ? ' <span style="font-size:10px;background:rgba(var(--accent-rgb),0.18);color:var(--accent);border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;font-weight:700;">NOWE</span>' : ''}${isPending ? ' <span style="font-size:10px;background:rgba(78,140,214,0.2);color:var(--blue);border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">OCZEKUJE</span>' : ''}${isRejected ? ' <span style="font-size:10px;background:rgba(255,80,80,0.2);color:#ff6060;border-radius:6px;padding:2px 7px;font-family:DM Mono,monospace;letter-spacing:0.08em;vertical-align:middle;">ODRZUCONE</span>' : ''}</div>
           <div class="race-meta">
             <div class="race-meta-item">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
@@ -1472,7 +1456,7 @@ async function showParticipants(raceId, raceName) {
     var row=document.createElement('div');row.style.cssText='display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;';
     row.addEventListener('click',function(){location.href='profil.html?id='+a.id;});
     var ini=(a.full_name||'?').split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
-    var av=document.createElement('div');av.style.cssText='width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
+    var av=document.createElement('div');av.style.cssText='width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;overflow:hidden;';
     if(a.avatar_url){var img=document.createElement('img');img.src=a.avatar_url;img.style.cssText='width:100%;height:100%;object-fit:cover;';img.onerror=function(){this.style.opacity=0;};av.appendChild(img);}else{av.textContent=ini;}
     var nm=document.createElement('div');nm.style.cssText='flex:1;font-size:13px;font-weight:600;';nm.textContent=a.full_name||'Biegacz';
     var arr=document.createElement('span');arr.innerHTML='›';arr.style.cssText='color:var(--muted);font-size:16px;';
