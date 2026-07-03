@@ -1578,6 +1578,9 @@ body > *{position:relative;z-index:1;}
         <div id="ocr-status" style="margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:0.04em;text-align:center;min-height:14px;"></div>
       </div>
 
+      <!-- POŁĄCZ ZEGAREK (light) — tylko niepołączeni; wypełniany w mountLogWatchCta -->
+      <div id="log-watch-slot" style="margin-bottom:14px;"></div>
+
       <!-- DYSTANS + CZAS -->
       <div class="f-row" id="log-form">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
@@ -1801,6 +1804,16 @@ async function markDone(btn){
   toast('Trening oznaczony jako wykonany ✓');
   await updateWeekProgress();
 }
+// Light CTA 'Połącz zegarek' w karcie logu — tylko niepołączeni (połączony ma auto-sync).
+async function mountLogWatchCta() {
+  const slot = document.getElementById('log-watch-slot');
+  if (!slot || !window.WATCH || !_athleteId) return;
+  const { polaczony } = await window.WATCH.czyPolaczony(_athleteId);
+  slot.innerHTML = polaczony
+    ? ''
+    : await window.WATCH.render('light', { athleteId: _athleteId, returnTo: 'zawodnik.html' });
+}
+
 async function openModal() {
   _editingLogId = null;
   // Ustaw jawnie datę na dziś (unikaj problemów z timezone)
@@ -1810,6 +1823,7 @@ async function openModal() {
   document.getElementById('modal-sub').textContent = new Date().toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   _updateLogDateDisplay();
   document.getElementById('modal-bg').classList.add('open');
+  mountLogWatchCta();   // light CTA 'Połącz zegarek' — tylko niepołączeni
 
   // Reset pól przed prefillowaniem (jak w openModalForDate)
   ['l-dist','l-time','l-pace','l-hr','l-elevation','l-calories','l-comment','l-strava'].forEach(id => {
@@ -1869,6 +1883,7 @@ function openModalForDate(dateStr, e) {
   const date = new Date(y, m-1, d);
   document.getElementById('modal-sub').textContent = date.toLocaleDateString('pl-PL',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('modal-bg').classList.add('open');
+  mountLogWatchCta();   // light CTA 'Połącz zegarek' — tylko niepołączeni
 
   // Reset pól przed prefillowaniem
   ['l-dist','l-time','l-pace','l-hr','l-elevation','l-calories','l-comment','l-strava'].forEach(id => {
@@ -6012,6 +6027,7 @@ function editLog(idx) {
   // Pokaż button Usuń (tryb edycji)
   const delBtn = document.getElementById('delete-log-btn');
   if (delBtn) delBtn.style.display = '';
+  const _ws = document.getElementById('log-watch-slot'); if (_ws) _ws.innerHTML = '';   // brak CTA zegarka w edycji loga
   document.getElementById('modal-bg').classList.add('open');
 }
 
