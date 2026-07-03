@@ -446,17 +446,20 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <button onclick="closeSettings()" aria-label="Zamknij" style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--fg3);font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>
     </div>
 
+    <!-- Konto: Miasto + Prywatność -->
+    <div class="st-group"><div class="st-label">Konto</div>
     <!-- Miasto (edytor — własny profil) -->
-    <div class="section" id="settings-city"></div>
+    <div id="settings-city"></div>
 
     <!-- Prywatność (przeniesione) -->
-    <div id="privacy-row" style="display:none;margin-bottom:10px;">
-      <button id="privacy-btn" onclick="togglePrivacy()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);border-radius:10px;padding:7px 14px;font-size:11px;font-family:DM Mono,monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:6px;"></button>
+    <div id="privacy-row" style="display:none;">
+      <button id="privacy-btn" onclick="togglePrivacy()" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg2);border-radius:14px;padding:13px 15px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:8px;"></button>
+    </div>
     </div>
 
     <!-- Wygląd / Motyw (przeniesione) -->
-    <div class="section" id="wyglad-section" style="display:none;">
-      <div class="section-hdr"><div class="section-title">Wy<span>gląd</span></div></div>
+    <div class="st-group" id="wyglad-section" style="display:none;">
+      <div class="st-label">Wygląd</div>
       <div style="display:flex;gap:8px;">
         <button class="theme-sw" data-th="default" onclick="pickTheme('default')" style="flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 3px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color 0.15s;">
           <span style="width:24px;height:24px;border-radius:50%;background:#e8561e;flex-shrink:0;"></span>
@@ -482,8 +485,8 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     </div>
 
     <!-- intervals.icu — zegarek (Garmin/Polar/Coros → trener) -->
-    <div class="section" id="icu-section" style="display:none;margin-bottom:10px;scroll-margin-top:12px;">
-      <div class="section-hdr"><div class="section-title">inter<span>vals.icu</span></div></div>
+    <div class="st-group" id="icu-section" style="display:none;margin-bottom:10px;scroll-margin-top:12px;">
+      <div class="st-label">Połączenia</div>
       <!-- WATCH 'status' — SSOT (Połączono ✓/Rozłącz ↔ Autoryzuj), wypełniany w checkIntervalsStatus -->
       <div id="icu-status-slot"></div>
       <button id="icu-sync-btn" onclick="syncIntervals()" style="display:none;width:100%;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">↻ Synchronizuj aktywności</button>
@@ -502,7 +505,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     <div style="border-top:1px solid var(--border);margin:16px 0 12px;"></div>
     <button onclick="logout()" style="width:100%;background:rgba(255,255,255,0.04);color:var(--fg2);border:1px solid var(--border);border-radius:12px;padding:13px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">→ Wyloguj się</button>
     <div id="danger-zone" style="display:none;margin-top:14px;border:1px solid rgba(224,80,80,0.2);border-radius:14px;padding:12px 14px;">
-      <div style="font-size:9px;color:#e05050;font-family:DM Mono,monospace;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;opacity:0.8;">Strefa niebezpieczna</div>
+      <div class="st-label" style="color:#e05050;opacity:0.8;margin-bottom:8px;">Strefa niebezpieczna</div>
       <button id="delacc-btn" onclick="openDeleteAccount()" style="width:100%;background:transparent;color:rgba(224,80,80,0.85);border:1px solid rgba(224,80,80,0.3);border-radius:10px;padding:11px;font-family:DM Mono,monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;">Usuń konto…</button>
     </div>
     <div style="height:calc(env(safe-area-inset-bottom,0px) + 8px);"></div>

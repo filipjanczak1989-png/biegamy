@@ -110,3 +110,9 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
 .add-overlay.open{opacity:1;pointer-events:all;}
 .add-sheet{width:100%;max-width:480px;background:var(--card2);border-radius:24px 24px 0 0;padding:0 20px env(safe-area-inset-bottom,24px);transform:translateY(60px);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);max-height:85vh;max-height:calc(100dvh - 20px);overflow-y:auto;overscroll-behavior:contain;}
 .add-overlay.open .add-sheet{transform:translateY(0);}
+
+/* === ST — grupy/karty ustawień (wzorzec pod rollout na całą apkę) === */
+.st-group{margin-bottom:18px;}
+.st-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;}
+.st-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;}
+.st-card+.st-card{margin-top:8px;}
