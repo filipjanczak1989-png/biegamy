@@ -1,0 +1,54 @@
+name: Deploy to Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump SW cache version
+        run: |
+          NEW_VERSION="biegamy-$(date -u +%Y-%m-%d)-$(git rev-parse --short HEAD)"
+          sed -i "s|const CACHE_VERSION = '[^']*';|const CACHE_VERSION = '$NEW_VERSION';|" sw.js
+          echo "Wersja: $NEW_VERSION"
+
+      - name: Commit bump back (sync repo)
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          if ! git diff --quiet sw.js; then
+            git add sw.js
+            git commit -m "chore: bump SW cache [skip ci]"
+            git push
+          fi
+
+      - name: Stage site (bez .git/.github)
+        run: |
+          mkdir -p /tmp/site
+          rsync -a --exclude '.git' --exclude '.github' ./ /tmp/site/
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: /tmp/site
+      - uses: actions/deploy-pages@v4
+        id: deployment
