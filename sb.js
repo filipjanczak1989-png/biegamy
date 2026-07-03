@@ -752,6 +752,21 @@
       const rt = opts.returnTo ? ("'" + opts.returnTo + "'") : '';
       const skip = opts.onSkip || 'WATCH._noop';
 
+      // Instrukcja "Jak podłączyć zegarek?" — współdzielona (full + status). Statyczny tekst (bez danych usera → bez escape).
+      const helpHtml =
+        '<details class="wc-help"><summary>Jak podłączyć zegarek?</summary>'
+        + '<div class="wc-help-body">'
+        + '<p class="wc-help-intro">Treningi z zegarka wpadną tu automatycznie — przez intervals.icu (darmowy pośrednik, który pobiera je z Garmina).</p>'
+        + '<ol class="wc-help-steps">'
+        + '<li><b>Załóż darmowe konto na intervals.icu</b><br>Wejdź na intervals.icu i zarejestruj się (email, hasło, nazwa, waga — wymagana; resztę pomiń). Maila nie musisz potwierdzać.</li>'
+        + '<li><b>Ustawienia → Połączenia</b><br>Kliknij zębatkę ⚙️ w lewej kolumnie, wejdź w zakładkę Połączenia i znajdź kartę Garmin Connect.</li>'
+        + '<li><b>Podłącz Garmina</b><br>Zaznacz trzy pola (Pobieranie aktywności, Pobierz dane kondycji, Prześlij zaplanowane treningi). Po trzecim przeniesie Cię na stronę Garmina — zaloguj się. Po wpisaniu hasła zegarek jest połączony.</li>'
+        + '<li><b>Wróć do BiegaMy</b><br>Kliknij „Autoryzuj przez intervals.icu”, na ekranie zgody zaznacz Aktywności — Czytać ✓ i OK.</li>'
+        + '</ol>'
+        + '<p class="wc-help-done">✅ Gotowe! Od teraz każdy trening wpada sam.</p>'
+        + '<p class="wc-help-support">🤝 Problem? Napisz do trenera na czacie albo na biegamy.run@gmail.com — podłączymy razem.</p>'
+        + '</div></details>';
+
       // połączony (poza 'status') → kompaktowe potwierdzenie
       if (st.polaczony && waga !== 'status' && waga !== 'badge') {
         return '<div class="wc-ok">' + ic + '<span>Zegarek połączony ✓</span></div>';
@@ -765,8 +780,7 @@
           + 'Każdy trening z zegarka trafi tu i do trenera automatycznie.</div>'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz z zegarkiem</button>'
           + '<button class="wc-ghost" onclick="' + skip + '()">Pomiń, zrobię później</button>'
-          + '<details class="wc-help"><summary>Jak podłączyć zegarek?</summary>'
-          + '<div class="wc-help-body"><!-- TODO: instrukcja (osobny kawałek) --></div></details>'
+          + helpHtml
           + '</div>';
       }
       if (waga === 'medium') {
@@ -785,7 +799,10 @@
           return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
             + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>';
         }
-        return '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>';
+        return '<div class="wc-status-connect">'
+          + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
+          + helpHtml
+          + '</div>';
       }
       if (waga === 'badge') {
         // Mała ikona-wskaźnik w topbarze (jak Garmin) — zawsze widoczna, dwa stany.
@@ -828,6 +845,14 @@
         + '.wc-ghost{background:none;border:none;color:var(--muted);font-family:DM Mono,monospace;font-size:12px;cursor:pointer;padding:6px}'
         + '.wc-help{font-size:11px;color:var(--muted);font-family:DM Mono,monospace}'
         + '.wc-help summary{cursor:pointer}'
+        + '.wc-status-connect{display:flex;flex-direction:column;gap:10px}'
+        + '.wc-help-body{margin-top:8px;line-height:1.55;color:var(--muted);text-align:left;font-family:inherit;font-size:12px}'
+        + '.wc-help-intro{margin:0 0 8px}'
+        + '.wc-help-steps{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:9px}'
+        + '.wc-help-steps li{padding-left:2px}'
+        + '.wc-help-steps b{color:var(--fg)}'
+        + '.wc-help-done{margin:10px 0 4px;color:var(--accent);font-weight:600}'
+        + '.wc-help-support{margin:0}'
         + '.wc-medium{display:flex;align-items:center;gap:12px}'
         + '.wc-medium .wc-txt{flex:1;display:flex;flex-direction:column}'
         + '.wc-medium .wc-txt b{font-size:13px;color:var(--fg)}.wc-medium .wc-txt span{font-size:11px;color:var(--muted)}'
