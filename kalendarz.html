@@ -2170,9 +2170,11 @@ async function saveTraining() {
       const base = Date.now();
       for (let fi = 0; fi < fileSources.length; fi++) {
         const file = fileSources[fi];
-        const path = athRow2.id + '/log_' + base + '_' + fi + '.' + (file.name.split('.').pop()||'jpg');
+        const prep = await window.prepUpload(file, 1600, 0.85);
+        if (!prep.ok) { alert('Plik za duży (max 15 MB): ' + file.name); continue; }
+        const path = athRow2.id + '/log_' + base + '_' + fi + '.' + prep.ext;
         const { error: upErr } = await sb.storage
-          .from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+          .from('training-screenshots').upload(path, prep.data, {upsert:true, contentType: prep.contentType});
         if (!upErr) {
           // v6.8 W2 Step 2a: store PATH zamiast publicURL (createSignedUrl przy renderze)
           urls.push(path);

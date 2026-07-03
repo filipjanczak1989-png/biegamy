@@ -1831,9 +1831,10 @@ async function submitPost() {
   if (!_myId) return;
   if (_postType === 'photo') {
     if (!_postImgFile) { showToast('Wybierz zdjęcie'); return; }
-    const ext = _postImgFile.name.split('.').pop();
-    const path = `${(await sb.auth.getUser()).data.user.id}/${Date.now()}.${ext}`;
-    const { error: upErr } = await sb.storage.from('profile-posts').upload(path, _postImgFile);
+    const prep = await window.prepUpload(_postImgFile, 1600, 0.85);
+    if (!prep.ok) { showToast('Zdjęcie za duże (max 15 MB)'); return; }
+    const path = `${(await sb.auth.getUser()).data.user.id}/${Date.now()}.${prep.ext}`;
+    const { error: upErr } = await sb.storage.from('profile-posts').upload(path, prep.data, {contentType: prep.contentType});
     if (upErr) { showToast('Błąd uploadu: ' + upErr.message); return; }
     const { data: urlData } = sb.storage.from('profile-posts').getPublicUrl(path);
     const desc = document.getElementById('post-photo-desc').value.trim();

@@ -2875,6 +2875,17 @@
     });
   };
 
+  // Przygotowanie pliku do uploadu — SSOT kompresji + strażnik rozmiaru.
+  // Nieskompresowalny (wideo / HEIC-fail) i > maxRawBytes → {ok:false,tooBig}. Inaczej {ok,data,ext,contentType}.
+  window.prepUpload = async function(file, maxDim, quality, maxRawBytes) {
+    maxRawBytes = maxRawBytes || 15 * 1024 * 1024;
+    var up = await window.downscaleImage(file, maxDim || 1600, quality || 0.85);
+    var shrunk = up !== file;
+    if (!shrunk && file.size > maxRawBytes) return { ok: false, tooBig: true };
+    return { ok: true, data: up, ext: shrunk ? 'jpg' : (file.name.split('.').pop() || 'jpg'),
+             contentType: shrunk ? 'image/jpeg' : file.type };
+  };
+
   window._resolveStorageImgs = function(container, bucket = 'training-screenshots') {
     if (!container) return;
     const els = (container.querySelectorAll ? container.querySelectorAll('[data-sp]') : []); // <img> i <video>

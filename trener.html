@@ -1569,12 +1569,13 @@ async function tpHandleScreensUpload(input) {
   for (let i = 0; i < input.files.length; i++) {
     const file = input.files[i];
     if (!file.type.startsWith('image/')) continue;
-    const ext = file.name.split('.').pop() || 'jpg';
-    const path = athleteId + '/ai-plan-input/' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + ext;
-    
-    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {
+    const prep = await window.prepUpload(file, 1600, 0.85);
+    if (!prep.ok) { statusEl.textContent = '❌ Plik za duży (max 15 MB): ' + file.name; continue; }
+    const path = athleteId + '/ai-plan-input/' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + prep.ext;
+
+    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, prep.data, {
       upsert: true,
-      contentType: file.type
+      contentType: prep.contentType
     });
     if (upErr) {
       console.warn('[tpScreens] upload error:', upErr.message);
@@ -5230,8 +5231,10 @@ async function sendCoachFile(input) {
   const base = Date.now();
   for (let i = 0; i < input.files.length; i++) {
     const file = input.files[i];
-    const path = _currentChatAthleteId + '/coach_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + file.name.split('.').pop();
-    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, file, {upsert:true, contentType: file.type});
+    const prep = await window.prepUpload(file, 1600, 0.85);
+    if (!prep.ok) { showToast('Plik za duży (max 15 MB): ' + file.name); continue; }
+    const path = _currentChatAthleteId + '/coach_' + base + '_' + i + '_' + Math.random().toString(36).slice(2) + '.' + prep.ext;
+    const { error: upErr } = await sb.storage.from('training-screenshots').upload(path, prep.data, {upsert:true, contentType: prep.contentType});
     if (upErr) { showToast('Błąd: '+upErr.message); continue; }
     // v6.8 W2 Step 2b: store PATH (renderMessageBody → data-sp/observer podpisze)
     urls.push(path);
