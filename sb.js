@@ -701,7 +701,7 @@
     // Hit tygodnia — #N utworów z najwięcej odtworzeń w ostatnich 7 dniach (widok radio_top_weekly, security_invoker=false)
     weeklyTop: async function(limit){
       try {
-        const { data, error } = await window.supabase.from('radio_top_weekly').select('*').limit(limit || 1);
+        const { data, error } = await window.sb.from('radio_top_weekly').select('*').limit(limit || 1);
         if (error) return [];
         return data || [];
       } catch(e){ return []; }
