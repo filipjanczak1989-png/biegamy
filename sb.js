@@ -781,7 +781,7 @@
           + 'Każdy trening z zegarka trafi tu i do trenera automatycznie.</div>'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz z zegarkiem</button>'
           + '<button class="wc-ghost" onclick="' + skip + '()">Pomiń, zrobię później</button>'
-          + helpHtml(true)
+          + helpHtml(false)
           + '</div>';
       }
       if (waga === 'medium') {
@@ -802,7 +802,7 @@
         }
         return '<div class="wc-status-connect">'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
-          + helpHtml(true)
+          + helpHtml(false)
           + '</div>';
       }
       if (waga === 'badge') {
