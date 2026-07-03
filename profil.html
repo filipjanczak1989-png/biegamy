@@ -22,14 +22,6 @@
 <link rel="stylesheet" href="theme.css">
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
-:root{
-  --bg:#07070a;--card:rgba(18,15,24,0.97);--card2:rgba(24,20,32,0.98);
-  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.05);
-  --fg:#f0ede8;--fg2:rgba(240,237,232,0.7);--fg3:rgba(240,237,232,0.42);
-  --accent:#e8561e;--accent2:#ff7a45;--muted:rgba(240,237,232,0.38);
-  --green:#3db870;--blue:#5b8cff;--yellow:#e8b840;--red:#e05050;
-  --r:18px;
-}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;overflow-x:hidden;}
 
@@ -1938,7 +1930,7 @@ async function loadProfileFriends() {
       var a = inMap[p.requester_id];
       if (!a) return;
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);';
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);';
 
       var avWrap = document.createElement('div');
       avWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
@@ -1994,7 +1986,7 @@ async function loadProfileFriends() {
       actions.appendChild(acceptBtn);
 
       var rejectBtn = document.createElement('button');
-      rejectBtn.style.cssText = 'background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:11px;padding:7px 10px;border-radius:8px;cursor:pointer;';
+      rejectBtn.style.cssText = 'background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:7px 10px;border-radius:8px;cursor:pointer;';
       rejectBtn.textContent = '✕';
       rejectBtn.title = 'Odrzuć';
       rejectBtn.addEventListener('click', async function(e){
@@ -2028,7 +2020,7 @@ async function loadProfileFriends() {
       var a = outMap[p.addressee_id];
       if (!a) return;
       var row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);opacity:0.85;';
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);opacity:0.85;';
 
       var avWrap = document.createElement('div');
       avWrap.style.cssText = 'width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
@@ -2055,7 +2047,7 @@ async function loadProfileFriends() {
       info.appendChild(sub);
 
       var cancelBtn = document.createElement('button');
-      cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border2);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:7px;cursor:pointer;flex-shrink:0;';
+      cancelBtn.style.cssText = 'background:transparent;border:1px solid var(--border);color:var(--muted);font-size:10px;padding:6px 10px;border-radius:7px;cursor:pointer;flex-shrink:0;';
       cancelBtn.textContent = 'Anuluj';
       cancelBtn.addEventListener('click', async function(e){
         e.stopPropagation();
@@ -2104,7 +2096,7 @@ async function loadProfileFriends() {
 
   (athRes.data||[]).forEach(function(a) {
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border2);';
+    row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);';
 
     var avWrap = document.createElement('div');
     avWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
@@ -2191,7 +2183,7 @@ async function _doProfileSearch(q) {
 
   results.forEach(function(a) {
     var row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border2);';
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);';
 
     var avWrap = document.createElement('div');
     avWrap.style.cssText = 'width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#ff7a45);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700;flex-shrink:0;cursor:pointer;overflow:hidden;';
