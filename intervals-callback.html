@@ -73,6 +73,13 @@
     return;
   }
 
+  // W2b: dokąd wrócić po sukcesie — znacznik z WATCH.odpalOAuth(returnTo), one-shot.
+  // default = profil.html (zero regresji dla dotychczasowego flow); tylko ścieżki względne (anty open-redirect).
+  const savedReturn = sessionStorage.getItem('icu_oauth_return');
+  sessionStorage.removeItem('icu_oauth_return');
+  const returnDest = (savedReturn && !savedReturn.includes(':') && !savedReturn.startsWith('//'))
+    ? savedReturn : 'profil.html?open=icu';
+
   // 3) musisz być zalogowany w BiegaMy (EF wiąże token z Twoją sesją)
   let session = null;
   try { session = (await sb.auth.getSession()).data.session; } catch(e){}
@@ -90,8 +97,8 @@
     });
     const data = await res.json().catch(() => null);
     if (res.ok && data && data.ok) {
-      show('✅', 'Połączono z intervals.icu', 'przekierowuję do profilu…', false);
-      setTimeout(() => { location.replace('profil.html?open=icu'); }, 1400);
+      show('✅', 'Połączono z intervals.icu', 'przekierowuję…', false);
+      setTimeout(() => { location.replace(returnDest); }, 1400);
     } else {
       show('✕', 'Nie udało się połączyć', (data && data.error) ? ('błąd: ' + data.error) : ('kod ' + res.status), true);
     }
