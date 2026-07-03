@@ -753,8 +753,8 @@
       const skip = opts.onSkip || 'WATCH._noop';
 
       // Instrukcja "Jak podłączyć zegarek?" — współdzielona (full + status). Statyczny tekst (bez danych usera → bez escape).
-      const helpHtml =
-        '<details class="wc-help"><summary>Jak podłączyć zegarek?</summary>'
+      const helpHtml = function(open) {
+        return '<details class="wc-help"' + (open ? ' open' : '') + '><summary>Jak podłączyć zegarek?</summary>'
         + '<div class="wc-help-body">'
         + '<p class="wc-help-intro">Treningi z zegarka wpadną tu automatycznie — przez intervals.icu (darmowy pośrednik, który pobiera je z Garmina).</p>'
         + '<ol class="wc-help-steps">'
@@ -766,6 +766,7 @@
         + '<p class="wc-help-done">✅ Gotowe! Od teraz każdy trening wpada sam.</p>'
         + '<p class="wc-help-support">🤝 Problem? Napisz do trenera na czacie albo na biegamy.run@gmail.com — podłączymy razem.</p>'
         + '</div></details>';
+      };
 
       // połączony (poza 'status') → kompaktowe potwierdzenie
       if (st.polaczony && waga !== 'status' && waga !== 'badge') {
@@ -780,7 +781,7 @@
           + 'Każdy trening z zegarka trafi tu i do trenera automatycznie.</div>'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz z zegarkiem</button>'
           + '<button class="wc-ghost" onclick="' + skip + '()">Pomiń, zrobię później</button>'
-          + helpHtml
+          + helpHtml(true)
           + '</div>';
       }
       if (waga === 'medium') {
@@ -801,7 +802,7 @@
         }
         return '<div class="wc-status-connect">'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
-          + helpHtml
+          + helpHtml(true)
           + '</div>';
       }
       if (waga === 'badge') {
@@ -843,8 +844,17 @@
         + '.wc-full .wc-sub{font-size:13px;color:var(--muted);line-height:1.55;max-width:300px}'
         + '.wc-btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}'
         + '.wc-ghost{background:none;border:none;color:var(--muted);font-family:DM Mono,monospace;font-size:12px;cursor:pointer;padding:6px}'
-        + '.wc-help{font-size:11px;color:var(--muted);font-family:DM Mono,monospace}'
-        + '.wc-help summary{cursor:pointer}'
+        + '.wc-help{font-size:11px;color:var(--muted);font-family:DM Mono,monospace;width:100%;box-sizing:border-box;border:1px solid rgba(var(--accent-rgb),.28);border-radius:12px;padding:12px 14px;background:rgba(var(--accent-rgb),.05)}'
+        + '.wc-help>summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:12px;letter-spacing:.02em;list-style:none;display:flex;align-items:center;gap:8px}'
+        + '.wc-help>summary::-webkit-details-marker{display:none}'
+        + '.wc-help>summary::before{content:"▸";display:inline-block;transition:transform .2s;color:var(--accent)}'
+        + '.wc-help[open]>summary::before{transform:rotate(90deg)}'
+        + '.wc-adv{margin-top:12px;border:1px solid var(--border);border-radius:12px;padding:10px 14px}'
+        + '.wc-adv>summary{cursor:pointer;color:var(--muted);font-family:DM Mono,monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;list-style:none;display:flex;align-items:center;gap:8px}'
+        + '.wc-adv>summary::-webkit-details-marker{display:none}'
+        + '.wc-adv>summary::before{content:"▸";display:inline-block;transition:transform .2s}'
+        + '.wc-adv[open]>summary::before{transform:rotate(90deg)}'
+        + '.wc-adv-body{margin-top:12px}'
         + '.wc-status-connect{display:flex;flex-direction:column;gap:10px}'
         + '.wc-help-body{margin-top:8px;line-height:1.55;color:var(--muted);text-align:left;font-family:inherit;font-size:12px}'
         + '.wc-help-intro{margin:0 0 8px}'

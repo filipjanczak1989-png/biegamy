@@ -489,11 +489,14 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
       <div id="icu-status-slot"></div>
       <button id="icu-sync-btn" onclick="syncIntervals()" style="display:none;width:100%;background:rgba(var(--accent-rgb),0.12);color:var(--accent);border:1px solid rgba(var(--accent-rgb),0.3);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;margin-bottom:10px;">↻ Synchronizuj aktywności</button>
       <div id="icu-connect-form">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;color:var(--muted);font-family:DM Mono,monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;"><div style="flex:1;height:1px;background:var(--border);"></div>lub kluczem API<div style="flex:1;height:1px;background:var(--border);"></div></div>
-        <input id="icu-athlete-id" placeholder="Athlete ID (np. i123456)" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--fg);font-family:DM Mono,monospace;font-size:12px;margin-bottom:8px;">
-        <input id="icu-api-key" type="password" placeholder="Klucz API" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--fg);font-family:DM Mono,monospace;font-size:12px;margin-bottom:8px;">
-        <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;line-height:1.5;">intervals.icu → Settings → Developer Settings.</div>
-        <button id="icu-connect-btn" onclick="connectIntervals()" style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Połącz kluczem API</button>
+        <details class="wc-adv"><summary>Zaawansowane: połącz kluczem API</summary>
+          <div class="wc-adv-body">
+            <input id="icu-athlete-id" placeholder="Athlete ID (np. i123456)" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--fg);font-family:DM Mono,monospace;font-size:12px;margin-bottom:8px;">
+            <input id="icu-api-key" type="password" placeholder="Klucz API" style="width:100%;box-sizing:border-box;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--fg);font-family:DM Mono,monospace;font-size:12px;margin-bottom:8px;">
+            <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;line-height:1.5;">intervals.icu → Settings → Developer Settings.</div>
+            <button id="icu-connect-btn" onclick="connectIntervals()" style="width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:12px;padding:12px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;">Połącz kluczem API</button>
+          </div>
+        </details>
       </div>
     </div>
 
@@ -658,7 +661,7 @@ let _profileData = null;
   var _tp=new URLSearchParams(location.search).get('tab');if(_tp)setTimeout(function(){switchProfileTab(_tp);},300);
   // ?open=icu — wejście z banera "Połącz zegarek" (zawodnik.html): otwórz Ustawienia + przewiń do sekcji intervals.icu
   var _open=new URLSearchParams(location.search).get('open');
-  if(_open==='icu' && _isOwnProfile) setTimeout(function(){ openSettings(); setTimeout(function(){ var s=document.getElementById('icu-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'center'}); }, 250); }, 350);
+  if(_open==='icu' && _isOwnProfile) setTimeout(function(){ openSettings(); setTimeout(function(){ var s=document.getElementById('icu-section'); if(s) s.scrollIntoView({behavior:'smooth',block:'start'}); }, 250); }, 350);
 })();
 
 // ── LOAD PROFILE ─────────────────────────────────────────────────
