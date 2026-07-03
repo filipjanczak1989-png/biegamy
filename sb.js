@@ -791,11 +791,11 @@
         // Mała ikona-wskaźnik w topbarze (jak Garmin) — zawsze widoczna, dwa stany.
         if (st.polaczony) {
           return '<button class="wc-badge wc-badge-ok" title="Zegarek połączony — status/rozłącz" '
-            + 'onclick="location.href=\'profil.html#icu-section\'">' + ic
+            + 'onclick="location.href=\'profil.html?open=icu\'">' + ic
             + '<span class="wc-badge-check">✓</span></button>';
         }
         return '<button class="wc-badge wc-badge-off" title="Połącz zegarek" '
-          + 'onclick="WATCH.odpalOAuth(' + rt + ')">' + ic
+          + 'onclick="location.href=\'profil.html?open=icu\'">' + ic
           + '<span class="wc-badge-dot">!</span></button>';
       }
       return '';
