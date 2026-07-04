@@ -909,13 +909,14 @@
     _item: function(o){
       var cls = 'nav-it' + (o.active ? ' active' : '');
       var attr;
-      if (o.onLog) attr = 'href="#" onclick="' + o.onLog + '();return false;"';
+      if (o.onLocal) attr = 'href="#" onclick="' + o.onLocal + ';return false;"';    // pozycja in-page (opts.local) — nie opuszcza ekranu
+      else if (o.onLog) attr = 'href="#" onclick="' + o.onLog + '();return false;"';
       else if (o.target === this._here()) attr = 'href="' + o.target + '" onclick="return false;"'; // ta sama strona → nie przeładowuj
       else attr = 'href="' + o.target + '"';
       var icon = o.logo
         ? '<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);"><img src="' + (window.assetUrl ? window.assetUrl('bm-nav.webp') : '') + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background=\'var(--accent)\';this.style.display=\'none\'"></div>'
         : this._svg(o.icon);
-      return '<a class="' + cls + '" ' + attr + (o.title ? ' title="' + o.title + '"' : '') + '>' + icon + '<div class="nav-lbl"' + (o.logo ? ' style="margin-top:2px;"' : '') + '>' + o.label + '</div></a>';
+      return '<a class="' + cls + '" data-navid="' + o.id + '" ' + attr + (o.title ? ' title="' + o.title + '"' : '') + '>' + icon + '<div class="nav-lbl"' + (o.logo ? ' style="margin-top:2px;"' : '') + '>' + o.label + '</div></a>';
     },
     render: function(activeId, opts){
       opts = opts || {};
@@ -940,7 +941,16 @@
         ];
       }
       var self = this;
-      return '<nav class="bottom-nav">' + items.map(function(it){ it.active = (it.id === activeId); return self._item(it); }).join('') + '</nav>';
+      return '<nav class="bottom-nav">' + items.map(function(it){ it.active = (it.id === activeId); it.onLocal = (opts.local && opts.local[it.id]) || null; return self._item(it); }).join('') + '</nav>';
+    },
+    // Zarządzanie active z zewnątrz (in-page sekcje) — class-based, kolory z theme.css, zero dotykania atrybutów svg.
+    setActive: function(id){
+      try {
+        var nav = document.querySelector('.bottom-nav');
+        if (!nav) return;
+        var els = nav.querySelectorAll('[data-navid]');
+        for (var i = 0; i < els.length; i++){ els[i].classList.toggle('active', els[i].getAttribute('data-navid') === id); }
+      } catch(e){}
     }
   };
 

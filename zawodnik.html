@@ -410,27 +410,7 @@ body > *{position:relative;z-index:1;}
 .log-feel-dot.bad{background:var(--red);}
 
 /* ── BOTTOM NAV ─────────────────────────────────────────────────────── */
-.bottom-nav{
-  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
-  width:100%;max-width:420px;
-  background:rgba(7,7,11,0.92);
-  backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
-  border-top:1px solid rgba(255,255,255,0.07);
-  border-radius:28px 28px 0 0;
-  display:flex;padding:10px 6px 22px;z-index:50;
-  box-shadow:0 -8px 40px rgba(0,0,0,0.5);
-}
-.nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}
-/* Unified nav label sizes */
-.nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;white-space:nowrap;transition:color 0.15s;}
-.nav-it.active .nav-lbl{color:var(--accent);}
-.nav-it.active::before{
-  content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);
-  width:32px;height:2px;
-  background:linear-gradient(90deg,transparent,var(--accent),transparent);
-  border-radius:0 0 3px 3px;
-  box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);
-}
+/* ── BOTTOM NAV — z theme.css (window.NAV SSOT); lokalny CSS usunięty (N1d) ── */
 
 /* ── MODAL ──────────────────────────────────────────────────────────── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:100;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.25s;backdrop-filter:blur(6px);}
@@ -1082,38 +1062,25 @@ body > *{position:relative;z-index:1;}
   </div>
 </div>
 
-<nav class="bottom-nav" id="main-bottom-nav">
-  <a class="nav-it active" href="#" id="nav-home" onclick="showSection('home');return false;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <div class="nav-lbl" style="color:var(--accent);">Dziś</div>
-  </a>
-  <a class="nav-it" href="kalendarz.html?role=athlete">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <div class="nav-lbl">Plan</div>
-  </a>
-  <a class="nav-it" href="nutrition.html" id="nav-nutrition" title="Odżywianie">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/><path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/></svg>
-    <div class="nav-lbl">Jedzenie</div>
-  </a>
-  <a class="nav-it" href="#" onclick="openModal();return false;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
-    </div>
-    <div class="nav-lbl" style="margin-top:2px;">Log</div>
-  </a>
-  <a class="nav-it" href="#" onclick="showSection('forma');return false;" id="nav-forma">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
-    <div class="nav-lbl">Forma</div>
-  </a>
-  <a class="nav-it" href="#" onclick="showSection('social');return false;" id="nav-social">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <div class="nav-lbl">Spo&#x142;eczno&#x15B;&#x107;</div>
-  </a>
-  <a class="nav-it" href="#" onclick="goToMyProfile();return false;" id="nav-profile">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-    <div class="nav-lbl">Profil</div>
-  </a>
-</nav>
+<!-- Dolna nawigacja — window.NAV (SSOT); pozycje in-page (Dziś/Forma/Społeczność) przez opts.local, reszta href (N1d) -->
+<div id="nav-mount"></div>
+<script>
+window._mountNav = function(){
+  var m = document.getElementById('nav-mount');
+  if (!m || !window.NAV) return;
+  var _sec = window._currentSection;
+  var _act = (_sec === 'forma' || _sec === 'social') ? _sec : ((!_sec || _sec === 'home') ? 'home' : null);
+  var _id = null; try { _id = (typeof _athleteId !== 'undefined') ? _athleteId : null; } catch(e){}
+  m.innerHTML = NAV.render(_act || 'home', {
+    role:'athlete', athleteId:_id, onLog:'openModal',
+    local:{ home:"showSection('home')", forma:"showSection('forma')", social:"showSection('social')" }
+  });
+  if (_act === null && window.NAV.setActive) NAV.setActive(null);   // sekcja bez pozycji w nav
+};
+// NAV ładuje się z sb.js (niżej w dokumencie) → mont po DOMContentLoaded, gdy window.NAV istnieje; re-mount w initAuth po _athleteId (Profil→?id)
+if (window.NAV) window._mountNav();
+else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); });
+</script>
 
 <!-- SEKCJA: WIADOMOŚCI -->
 <div id="section-msgs" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);height:100dvh;height:100vh;background:var(--bg);z-index:300;flex-direction:column;max-width:420px;width:100%;overflow:hidden;">
@@ -2529,13 +2496,8 @@ function goToMyProfile() {
 function showSection(name) {
   if (name === 'social') _startSocialBannerRotation();
   else _stopSocialBannerRotation();
-  // Reset all nav items
-  document.querySelectorAll('#main-bottom-nav .nav-it, .nav-it').forEach(n => {
-    n.querySelectorAll('svg').forEach(s => s.setAttribute('stroke','var(--muted)'));
-    const lbl = n.querySelector('.nav-lbl');
-    if(lbl) lbl.style.color = '';
-    n.classList.remove('active');
-  });
+  // Podświetlenie nav — class-based przez window.NAV.setActive (kolory z theme.css; sekcje bez pozycji w nav → null)
+  if (window.NAV && NAV.setActive) NAV.setActive({home:'home', forma:'forma', social:'social'}[name] || null);
 
   // Hide all overlay sections
   ['section-msgs','section-profile','section-stats','section-social','section-forma','section-cwiczenia'].forEach(id => {
@@ -2563,16 +2525,6 @@ function showSection(name) {
     document.getElementById('radio-home-banner')?.style.setProperty('display','none');
   }
 
-  function activateNav(id) {
-    const n = document.getElementById(id);
-    if (n) {
-      n.classList.add('active');
-      n.querySelectorAll('svg').forEach(s => s.setAttribute('stroke','var(--accent)'));
-      const lbl = n.querySelector('.nav-lbl');
-      if (lbl) lbl.style.color = 'var(--accent)';
-    }
-  }
-
   if (name === 'home') {
     document.querySelectorAll('.today-hero,.week-sum,.coach-box,.log-list,.daily-motivation-wrap').forEach(el=>{if(el)el.style.display='';});
     const _htr2=document.getElementById('home-tiles-row');if(_htr2)_htr2.style.display='flex';
@@ -2591,7 +2543,6 @@ function showSection(name) {
     document.getElementById('daily-motivation')?.style.setProperty('display','');
     document.getElementById('week-strip')?.style.setProperty('display','');
     document.getElementById('radio-home-banner')?.style.setProperty('display','flex');
-    activateNav('nav-home');
     // Zawsze przeładuj przy powrocie na home
     // Trener-view → skip athlete-specific reloads (spójne z initAuth logic)
     const _isFromTrenerHome = (new URLSearchParams(window.location.search).get('from') === 'trener')
@@ -2631,7 +2582,6 @@ function showSection(name) {
   } else if (name === 'profile') {
     setTimeout(_startProfileBanner, 100);
     document.getElementById('section-profile').style.display = 'block';
-    activateNav('nav-profile');
     loadProfile();
     if (typeof refreshPushToggleUI === 'function') refreshPushToggleUI();
     if (typeof refreshEmailToggleUI === 'function') refreshEmailToggleUI();
@@ -2639,7 +2589,6 @@ function showSection(name) {
   } else if (name === 'stats' || name === 'analytics' || name === 'statystyki') {
     // Stats moved to profile
     document.getElementById('section-profile').style.display = 'block';
-    activateNav('nav-profile');
     loadProfile();
     setTimeout(() => {
       const el = document.getElementById('section-profile');
@@ -2648,11 +2597,9 @@ function showSection(name) {
 
   } else if (name === 'social' || name === 'spolecznosc') {
     document.getElementById('section-social').style.display = 'block';
-    activateNav('nav-social');
     loadSocialFeed();
   } else if (name === 'forma') {
     document.getElementById('section-forma').style.display = 'block';
-    activateNav('nav-forma');
     window.loadFormaSection();
   } else if (name === 'cwiczenia') {
     document.getElementById('section-cwiczenia').style.display = 'block';
@@ -4104,6 +4051,7 @@ async function initAuth() {
     const { data: ath2 } = await sb.from('athletes').select('id,full_name').eq('user_id', user2.id).maybeSingle();
     if (ath2) {
       _athleteId = ath2.id;
+      if (window._mountNav) window._mountNav();   // NAV re-mount z athletes.id (Profil→?id)
       const n2 = ath2.full_name || name2;
       const i2 = n2.split(' ').map(x=>x[0]).join('').toUpperCase().slice(0,2);
       setAvBtn(i2);
@@ -4135,6 +4083,7 @@ async function initAuth() {
 
   if (ath) {
     _athleteId = ath.id;
+    if (window._mountNav) window._mountNav();   // NAV re-mount z athletes.id (Profil→?id)
     // W3 push auto-heal: reconcile DB vs aktualna subskrypcja (fire-and-forget)
     window._pushAthleteId = ath.id;
     if (typeof window.reconcilePushSubscription === 'function') window.reconcilePushSubscription(ath.id);
@@ -4260,7 +4209,7 @@ function showOnboarding() {
   const _obM = document.getElementById('onboarding-modal');
   if (_obM && _obM.parentElement !== document.body) document.body.appendChild(_obM);
   _obM.classList.add('show');
-  const _obNav = document.getElementById('main-bottom-nav');
+  const _obNav = document.getElementById('nav-mount');
   if (_obNav) _obNav.style.display = 'none';
 
   // Pre-fill name from auth
@@ -4429,7 +4378,7 @@ async function obFinish() {
 
     // Zamknij i idź dalej — nawet jeśli update się nie udał (dane są w bazie)
     document.getElementById('onboarding-modal').classList.remove('show');
-    const _obNavR = document.getElementById('main-bottom-nav');
+    const _obNavR = document.getElementById('nav-mount');
     if (_obNavR) _obNavR.style.display = '';
     localStorage.removeItem('biegamy_needs_onboarding');
     sessionStorage.removeItem('_fromTrener'); // B' fix: koniec onboardingu = pełny tryb atlety
@@ -4465,9 +4414,9 @@ async function obFinish() {
 
 function skipOnboarding() {
   document.getElementById('onboarding-modal').classList.remove('show');
-  var _ns=document.getElementById('main-bottom-nav');if(_ns)_ns.style.display='';
+  var _ns=document.getElementById('nav-mount');if(_ns)_ns.style.display='';
   localStorage.removeItem('biegamy_needs_onboarding');
-  const _obNavS = document.getElementById('main-bottom-nav');
+  const _obNavS = document.getElementById('nav-mount');
   if (_obNavS) _obNavS.style.display = '';
   localStorage.removeItem('biegamy_needs_onboarding');
   sessionStorage.removeItem('_fromTrener'); // B' fix: pominięcie onboardingu = pełny tryb atlety
@@ -10910,7 +10859,7 @@ const PRS = (() => {
     const ov = document.getElementById('prs-overlay');
     ov.style.display = 'flex';
     document.body.style.overflow = 'hidden';
-    const nav = document.getElementById('main-bottom-nav');
+    const nav = document.getElementById('nav-mount');
     if (nav) nav.style.display = 'none';
     renderSlides();
     buildBars();
@@ -10935,7 +10884,7 @@ const PRS = (() => {
       ov.style.opacity = '1';
       document.body.style.overflow = '';
       document.getElementById('prs-slides-container').innerHTML = '';
-      const nav = document.getElementById('main-bottom-nav');
+      const nav = document.getElementById('nav-mount');
       if (nav) nav.style.display = '';
     }, 300);
   }
