@@ -125,12 +125,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .pz{background:var(--card2);border-radius:8px;padding:8px 4px;text-align:center;}
 .pz-v{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--accent);line-height:1;}
 .pz-n{font-size:8px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;}
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(22,22,26,0.93);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;padding:8px 0 20px;z-index:50;}
-.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;cursor:pointer;text-decoration:none;min-width:0;}
-.nl2{font-size:8px;letter-spacing:0.05em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
-.ni.on .nl2{color:var(--accent);}
-.ni.on{position:relative;}
-.ni.on::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:28px;height:2px;background:var(--accent);border-radius:0 0 3px 3px;box-shadow:0 0 10px var(--glow-o);}
+/* ── BOTTOM NAV — z theme.css (window.NAV SSOT); lokalny .bottom-nav/.ni/.nl2 + przeciek N0 (rogi/cień) usunięte (N1f) ── */
 .toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--green);color:#0a1a0f;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;padding:12px 20px;border-radius:24px;white-space:nowrap;opacity:0;transition:all 0.3s;z-index:200;}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 .fi{animation:fi 0.35s ease forwards;opacity:0;}
@@ -807,13 +802,23 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
   </div><!-- /panel-inner -->
 </div>
 
-<nav class="bottom-nav">
-  <a class="ni on" href="#" id="coach-nav-home" onclick="showCoachSection('home');return false;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" style="color:var(--accent)" id="nav-home-lbl">Zawodnicy</div></a>
-  <a class="ni" href="kalendarz.html?role=coach" id="coach-nav-kal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="nl2">Plan</div></a>
-  <a class="ni" href="#" onclick="showCoachSection('analytics');return false;" id="coach-nav-analytics"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><div class="nl2" id="nav-analytics-lbl">Analityka</div></a>
-  <a class="ni" href="#" onclick="showCoachSection('msgs');return false;" id="coach-nav-msgs" style="position:relative;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><div class="nl2" id="nav-msgs-lbl">Czat</div></a>
-  <a class="ni" href="#" onclick="showCoachSection('social');return false;" id="coach-nav-social"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div class="nl2" id="nav-social-lbl">Społeczność</div></a>
-</nav>
+<!-- Dolna nawigacja — window.NAV (SSOT); sekcje in-page (Zawodnicy/Analityka/Czat/Społeczność) przez opts.local, Plan href (N1f) -->
+<div id="nav-mount"></div>
+<script>
+window._mountNav = function(){
+  var m = document.getElementById('nav-mount');
+  if (!m || !window.NAV) return;
+  m.innerHTML = NAV.render('home', {role:'coach', local:{
+    home:"showCoachSection('home')",
+    analytics:"showCoachSection('analytics')",
+    msgs:"showCoachSection('msgs')",
+    social:"showCoachSection('social')"
+  }});
+};
+// NAV z sb.js (niżej) → mont po DOMContentLoaded; deep-link ?tab= przełącza sekcję (setActive) po init
+if (window.NAV) window._mountNav();
+else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); });
+</script>
 
 <div class="toast" id="t-el"></div>
 
@@ -4597,34 +4602,25 @@ function showCoachSection(name) {
   document.getElementById('msgs-panel-section').style.display = 'none';
   document.getElementById('analytics-section').style.display = 'none';
   document.getElementById('settings-section').style.display = 'none';
-  // Reset nav
-  document.querySelectorAll('.ni svg').forEach(s => s.setAttribute('stroke','var(--muted)'));
-  document.querySelectorAll('.nl2').forEach(l => l.style.color = '');
-  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
+  // Podświetlenie nav — class-based przez window.NAV.setActive (kolory z theme.css; sekcje mapują 1:1 na navid, Plan=strona→pomijany)
+  if (window.NAV && NAV.setActive) NAV.setActive({home:'home', msgs:'msgs', messages:'msgs', czat:'msgs', wiadomosci:'msgs', analytics:'analytics', statystyki:'analytics', social:'social'}[name] || null);
 
   if (name === 'home') {
-    const n = document.getElementById('coach-nav-home');
-    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-home-lbl').style.color='var(--accent)'; }
+    // reset powyżej pokazał listę zawodników — nic więcej
   } else if (name === 'msgs' || name === 'messages' || name === 'czat' || name === 'wiadomosci') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'block';
-    const n = document.getElementById('coach-nav-msgs');
-    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-msgs-lbl').style.color='var(--accent)'; }
     loadCoachMsgsList();
   } else if (name === 'analytics' || name === 'statystyki') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'none';
     document.getElementById('analytics-section').style.display = 'block';
-    const n = document.getElementById('coach-nav-analytics');
-    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-analytics-lbl').style.color='var(--accent)'; }
     loadAnalytics();
   } else if (name === 'social') {
     document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = 'none');
     document.getElementById('msgs-panel-section').style.display = 'none';
     document.getElementById('analytics-section').style.display = 'none';
     document.getElementById('coach-social-section').style.display = 'block';
-    const n = document.getElementById('coach-nav-social');
-    if(n){ n.classList.add('on'); n.querySelector('svg').setAttribute('stroke','var(--accent)'); document.getElementById('nav-social-lbl').style.color='var(--accent)'; }
     loadCoachSocialFeed();
   }
 }

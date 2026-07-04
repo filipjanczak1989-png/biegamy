@@ -902,7 +902,10 @@
       food:'<path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/><path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/>',
       forma:'<path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/>',
       social:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
-      profil:'<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/>'
+      profil:'<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/>',
+      analytics:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+      msgs:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      roster:'<circle cx="8" cy="8" r="3.2"/><path d="M2.5 20v-1.2a4.2 4.2 0 0 1 4.2-4.2h2.6a4.2 4.2 0 0 1 4.2 4.2V20"/><line x1="16" y1="9" x2="21.5" y2="9"/><line x1="16" y1="14" x2="21.5" y2="14"/>'
     },
     _svg: function(k){ return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (this._ic[k] || '') + '</svg>'; },
     _here: function(){ try { return (location.pathname.split('/').pop() || '') + location.search; } catch(e){ return ''; } },
@@ -922,11 +925,13 @@
       opts = opts || {};
       var items;
       if (opts.role === 'coach') {
+        // Kanon coach = 5 sekcji trenera (in-page na trener.html przez opts.local; href-fallback na profil/kalendarz)
         items = [
-          {id:'home', label:'Panel', target:'trener.html', icon:'home'},
+          {id:'home', label:'Zawodnicy', target:'trener.html', icon:'roster'},
           {id:'plan', label:'Plan', target:'kalendarz.html?role=coach', icon:'plan'},
-          {id:'analityka', label:'Analityka', target:'trener.html?tab=analytics', icon:'forma'},
-          {id:'profil', label:'Profil', target:'trener.html?tab=settings', icon:'profil'}
+          {id:'analytics', label:'Analityka', target:'trener.html?tab=analytics', icon:'analytics'},
+          {id:'msgs', label:'Czat', target:'trener.html?tab=msgs', icon:'msgs'},
+          {id:'social', label:'Społeczność', target:'trener.html?tab=social', icon:'social'}
         ];
       } else {
         var prof = opts.athleteId ? ('profil.html?id=' + opts.athleteId) : 'profil.html';
