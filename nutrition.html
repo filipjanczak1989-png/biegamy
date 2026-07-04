@@ -34,26 +34,10 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 :root {
-  /* nutrition identity (ciepła paleta) + lokalne — reszta z theme.css (kanon) */
+  /* nutrition: lokalne akcenty/cienie — powierzchnie/tekst/status z theme.css (kanon) */
   --accent-glow: rgba(var(--accent-rgb),0.4);
   --gold: #ffb74d;
   --warm: #ff9d4d;
-
-  /* Tło — głębokie z lekkim ciepłem */
-  --bg2: #14100e;
-  --card: #1a1614;
-  --card-hi: #221d1a;
-  --border-hi: rgba(255,255,255,0.13);
-
-  /* Tekst */
-  --fg: #fff5ed;
-  --fg2: #c0b8b0;
-  --muted: #807870;
-
-  /* Status */
-  --green: #4dd17b;
-  --red: #ff5c5c;
-  --blue: #5db0f5;
 
   /* Cienie — głębokość warstw */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
@@ -95,7 +79,7 @@ body {
   pointer-events: none;
 }
 .back-btn {
-  background: linear-gradient(145deg, rgba(40,32,30,0.6), rgba(20,16,18,0.6));
+  background: linear-gradient(145deg, rgba(26,26,36,0.6), rgba(15,15,20,0.6));
   border: 1px solid rgba(255,255,255,0.08);
   color: var(--fg);
   font-size: 22px;
@@ -121,7 +105,7 @@ body {
   transition: background 0.25s;
 }
 .back-btn:hover {
-  background: linear-gradient(145deg, rgba(50,40,38,0.7), rgba(30,22,20,0.7));
+  background: linear-gradient(145deg, rgba(26,26,36,0.7), rgba(15,15,20,0.7));
   border-color: rgba(var(--accent-rgb),0.35);
   color: var(--accent);
   transform: translateY(-1px);
@@ -487,7 +471,7 @@ body {
   transition: all 0.2s;
 }
 .macro-pill:hover {
-  border-color: var(--border-hi);
+  border-color: var(--border2);
   background: rgba(0,0,0,0.6);
   transform: translateY(-1px);
 }
@@ -592,7 +576,7 @@ body {
 .recipe-journal-btn { width:100%; margin-top:10px; padding:11px; border-radius:12px; cursor:pointer; background:rgba(var(--accent-rgb),0.14); color:#ff8a4c; border:1px solid rgba(var(--accent-rgb),0.4); font-family:'DM Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
 .recipe-journal-btn:disabled { opacity:0.6; }
 .recipe-lib-card { max-width:560px; padding:0; }
-.recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(30,22,18,0.98), rgba(30,22,18,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
+.recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(26,26,36,0.98), rgba(26,26,36,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
 .recipe-lib-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.03em; color:#fff; }
 .recipe-lib-close { background:rgba(255,255,255,0.08); border:none; color:#fff; width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:15px; line-height:1; flex-shrink:0; }
 #recipe-library { padding:6px 18px 20px; }
@@ -1060,7 +1044,7 @@ body {
 /* MEAL ITEM */
 /* ── MEAL SLOTS — 5 sekcji per meal_type (Śniadanie/Lunch/Obiad/Przekąska/Kolacja) ── */
 .meal-slot {
-  background: linear-gradient(145deg, rgba(36,28,24,0.55), rgba(20,16,14,0.72));
+  background: linear-gradient(145deg, rgba(26,26,36,0.55), rgba(15,15,20,0.72));
   border: 1px solid var(--border);
   border-radius: 16px;
   margin-bottom: 12px;
@@ -1228,7 +1212,7 @@ body {
 }
 
 .meal-item {
-  background: linear-gradient(145deg, rgba(36,28,24,0.7), rgba(20,16,14,0.7));
+  background: linear-gradient(145deg, rgba(26,26,36,0.7), rgba(15,15,20,0.7));
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 13px 16px;
@@ -1267,7 +1251,7 @@ body {
 }
 .meal-item:hover {
   border-color: rgba(var(--accent-rgb),0.3);
-  background: linear-gradient(145deg, rgba(40,30,26,0.8), rgba(24,18,16,0.8));
+  background: linear-gradient(145deg, rgba(26,26,36,0.8), rgba(15,15,20,0.8));
   transform: translateX(4px);
   box-shadow: 0 4px 16px rgba(var(--accent-rgb),0.1);
 }
@@ -1373,7 +1357,7 @@ body {
   height: 56px;
   border-radius: 50%;
   border: 1px solid rgba(255,255,255,0.08);
-  background: linear-gradient(145deg, rgba(50,40,38,0.85), rgba(20,16,18,0.85));
+  background: linear-gradient(145deg, rgba(26,26,36,0.85), rgba(15,15,20,0.85));
   color: var(--fg);
   cursor: pointer;
   display: flex;
@@ -1503,8 +1487,8 @@ body {
 .modal.hidden { display: none; }
 .modal-card {
   background:
-    linear-gradient(145deg, rgba(36,28,24,0.95), rgba(20,16,14,0.95));
-  border: 1px solid var(--border-hi);
+    linear-gradient(145deg, rgba(26,26,36,0.95), rgba(15,15,20,0.95));
+  border: 1px solid var(--border2);
   border-radius: 22px;
   padding: 24px;
   max-width: 400px;
@@ -1699,8 +1683,8 @@ body {
   box-shadow: 0 4px 12px rgba(var(--accent-rgb),0.4);
 }
 .btn-secondary {
-  background: linear-gradient(145deg, rgba(40,32,28,0.6), rgba(20,16,14,0.6));
-  border: 1px solid var(--border-hi);
+  background: linear-gradient(145deg, rgba(26,26,36,0.6), rgba(15,15,20,0.6));
+  border: 1px solid var(--border2);
   color: var(--fg2);
   border-radius: 14px;
   padding: 14px;
@@ -1716,7 +1700,7 @@ body {
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .btn-secondary:hover {
-  background: linear-gradient(145deg, rgba(50,40,36,0.7), rgba(28,22,20,0.7));
+  background: linear-gradient(145deg, rgba(26,26,36,0.7), rgba(15,15,20,0.7));
   border-color: rgba(var(--accent-rgb),0.3);
   color: var(--fg);
 }
@@ -1728,7 +1712,7 @@ body {
   margin-top: 18px;
   position: sticky;
   bottom: -24px; /* kompensuje padding modal-card 24px */
-  background: linear-gradient(180deg, transparent 0%, rgba(20,16,14,0.95) 30%);
+  background: linear-gradient(180deg, transparent 0%, rgba(15,15,20,0.95) 30%);
   padding: 12px 24px 24px;
   margin-left: -24px;
   margin-right: -24px;
@@ -2333,7 +2317,7 @@ body {
   color: var(--muted);
 }
 .sr-thumb-placeholder {
-  background: linear-gradient(135deg, rgba(36,28,24,0.7), rgba(20,16,14,0.7));
+  background: linear-gradient(135deg, rgba(26,26,36,0.7), rgba(15,15,20,0.7));
 }
 .sr-info {
   flex: 1;
@@ -3218,7 +3202,7 @@ body {
   margin-bottom: 14px;
 }
 .quick-card {
-  background: linear-gradient(145deg, rgba(36,28,24,0.7), rgba(20,16,14,0.7));
+  background: linear-gradient(145deg, rgba(26,26,36,0.7), rgba(15,15,20,0.7));
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 10px 12px 10px 10px;
@@ -3632,7 +3616,7 @@ body {
           <div class="hm-label">Sb</div>
           <div class="hm-label">Nd</div>
         </div>
-        <div class="heatmap" id="heatmap-grid"></div>
+        <div class="heatmap no-scrollbar" id="heatmap-grid"></div>
       </div>
       <div style="font-size:9px;color:var(--muted);font-family:DM Mono,monospace;text-align:center;margin-top:10px;letter-spacing:0.06em;">
         Tap dzień żeby zobaczyć posiłki

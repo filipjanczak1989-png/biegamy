@@ -125,3 +125,9 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
 .nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}
 .nav-it.active .nav-lbl{color:var(--accent);}
 .nav-it.active::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:32px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 3px 3px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);}
+
+/* === UTIL — .no-scrollbar: ukrycie paska przewijania w POZIOMYCH scrollerach UI
+   (heatmapy, tygodniowe paski, karuzele filtrów). NIE na pionowych funkcjonalnych
+   (modale/listy/wątki czatu). Scroll dalej działa — chowamy tylko wizualny pasek. === */
+.no-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
+.no-scrollbar::-webkit-scrollbar{display:none;}
