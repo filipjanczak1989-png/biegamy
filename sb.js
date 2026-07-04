@@ -888,6 +888,62 @@
     }
   };
 
+  // ═══════════════════════════════════════════════════════════════════
+  // window.NAV — SSOT dolnej nawigacji (wzorem WATCH). CSS w theme.css
+  // (.bottom-nav/.nav-it/.nav-lbl — kanon Fork A z nutrition). N0: skeleton,
+  // jeszcze NIEWPIĘTY w ekrany (czysty dodatek, no-op na prodzie — lokalne
+  // reguły nav per plik wygrywają w kaskadzie do czasu migracji).
+  // render(activeId, {role,athleteId,onLog}) → HTML <nav>.
+  // ═══════════════════════════════════════════════════════════════════
+  window.NAV = {
+    _ic: {
+      home:'<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
+      plan:'<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+      food:'<path d="M19 11 c 0 6 -3 10 -7 10 c -4 0 -7 -4 -7 -10 c 0 -3 2 -5 5 -5 c 1 0 2 1 2 1 c 0 0 1 -1 2 -1 c 3 0 5 2 5 5 z"/><path d="M12 2 C 14 4, 14 6, 12 7 C 10 6, 10 4, 12 2"/>',
+      forma:'<path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/>',
+      social:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      profil:'<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/>'
+    },
+    _svg: function(k){ return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (this._ic[k] || '') + '</svg>'; },
+    _here: function(){ try { return (location.pathname.split('/').pop() || '') + location.search; } catch(e){ return ''; } },
+    _item: function(o){
+      var cls = 'nav-it' + (o.active ? ' active' : '');
+      var attr;
+      if (o.onLog) attr = 'href="#" onclick="' + o.onLog + '();return false;"';
+      else if (o.target === this._here()) attr = 'href="' + o.target + '" onclick="return false;"'; // ta sama strona → nie przeładowuj
+      else attr = 'href="' + o.target + '"';
+      var icon = o.logo
+        ? '<div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);"><img src="' + (window.assetUrl ? window.assetUrl('bm-nav.webp') : '') + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background=\'var(--accent)\';this.style.display=\'none\'"></div>'
+        : this._svg(o.icon);
+      return '<a class="' + cls + '" ' + attr + (o.title ? ' title="' + o.title + '"' : '') + '>' + icon + '<div class="nav-lbl"' + (o.logo ? ' style="margin-top:2px;"' : '') + '>' + o.label + '</div></a>';
+    },
+    render: function(activeId, opts){
+      opts = opts || {};
+      var items;
+      if (opts.role === 'coach') {
+        items = [
+          {id:'home', label:'Panel', target:'trener.html', icon:'home'},
+          {id:'plan', label:'Plan', target:'kalendarz.html?role=coach', icon:'plan'},
+          {id:'analityka', label:'Analityka', target:'trener.html?tab=analytics', icon:'forma'},
+          {id:'profil', label:'Profil', target:'trener.html?tab=settings', icon:'profil'}
+        ];
+      } else {
+        var prof = opts.athleteId ? ('profil.html?id=' + opts.athleteId) : 'profil.html';
+        items = [
+          {id:'home', label:'Dziś', target:'zawodnik.html', icon:'home'},
+          {id:'plan', label:'Plan', target:'kalendarz.html?role=athlete', icon:'plan'},
+          {id:'food', label:'Jedzenie', target:'nutrition.html', icon:'food', title:'Odżywianie'},
+          {id:'log', label:'Log', logo:true, target:'zawodnik.html?log=1', onLog:(opts.onLog || null)},
+          {id:'forma', label:'Forma', target:'zawodnik.html?tab=forma', icon:'forma'},
+          {id:'social', label:'Społeczność', target:'zawodnik.html?tab=social', icon:'social'},
+          {id:'profil', label:'Profil', target:prof, icon:'profil'}
+        ];
+      }
+      var self = this;
+      return '<nav class="bottom-nav">' + items.map(function(it){ it.active = (it.id === activeId); return self._item(it); }).join('') + '</nav>';
+    }
+  };
+
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
   // Chmury = wariant dark (wygrał A/B 2026-06-17). Opady/burza/śnieg/mgła z code; clear-spectrum (0-3) z cloud_pct.
   window.wxIcon = function(code, cloudPct){

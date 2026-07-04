@@ -116,3 +116,12 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
 .st-label{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:8px;}
 .st-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;}
 .st-card+.st-card{margin-top:8px;}
+
+/* === NAV — bottom navigation (SSOT; kanon = Fork A z nutrition.html) === */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px calc(22px + env(safe-area-inset-bottom, 0px));z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);}
+.nav-it{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;position:relative;transition:opacity 0.15s;-webkit-tap-highlight-color:transparent;}
+.nav-it svg{width:22px;height:22px;stroke:var(--muted);stroke-width:1.7;transition:stroke 0.15s;}
+.nav-it.active svg{stroke:var(--accent);}
+.nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}
+.nav-it.active .nav-lbl{color:var(--accent);}
+.nav-it.active::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:32px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 3px 3px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);}
