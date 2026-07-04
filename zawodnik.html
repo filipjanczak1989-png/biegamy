@@ -1699,8 +1699,18 @@ function init(){
   }
   if(sessionStorage.getItem('_fromTrener')==='1'){
     const btn=document.getElementById('back-to-trener');
-    if(btn) btn.style.display='block';
+    if(btn) btn.style.display='block';   // instant dla świeżego podglądu (bez czekania na async)
   }
+  // FIX systemowy (nie flaga-jętka): chip ←Trener trwały dla KAŻDEGO zalogowanego trenera,
+  // niezależnie od ?from=trener (podgląd→Plan→powrót gubił flagę). Detekcja rolą jak w profilu (coaches.id=auth.uid).
+  (async function(){
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+      const { data: coachRow } = await sb.from('coaches').select('id').eq('id', session.user.id).maybeSingle();
+      if (coachRow) { const b = document.getElementById('back-to-trener'); if (b) b.style.display = 'block'; }
+    } catch(e) { /* brak sesji/tabeli → chip zostaje wg flagi */ }
+  })();
   // Plan tygodnia ładowany z bazy przez loadWeekPlan() po auth
   // Skeleton dla planu tygodnia
   const stripEl = document.getElementById('week-strip');

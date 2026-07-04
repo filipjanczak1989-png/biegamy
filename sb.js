@@ -1045,8 +1045,7 @@
         var idx = -1;
         for (var i = 0; i < items.length; i++) { if (items[i].id === active) { idx = i; break; } }
         if (idx < 0) return;
-        var ni = idx + dir;                                                // 1 → następna, -1 → poprzednia
-        if (ni < 0 || ni >= items.length) return;                          // bez zawijania
+        var ni = (idx + dir + items.length) % items.length;               // ZAWIJANIE (karuzela): ostatnia↔pierwsza; tylko nav-swipe (attach), day-swipe (attachEl) bez zawijania
         var it = items[ni];
         if (localMap[it.id]) onLocal(it.id);                               // in-page → callback
         else if (it.target) location.href = it.target;                     // wyjście → href
