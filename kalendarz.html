@@ -804,6 +804,8 @@ html { scroll-behavior: smooth; }
   color: var(--accent);
   opacity: 0.8;
 }
+/* Galeria zdjęć dnia — ukryj wskaźnik scrolla (scroll dalej działa palcem/kółkiem) */
+#ds-screens-scroll::-webkit-scrollbar{display:none;}
 </style>
 </head>
 <body>
@@ -5518,7 +5520,7 @@ document.addEventListener('keydown', e => {
     <!-- KARTA: Screeny -->
     <div id="ds-screens-card" class="ds-card" style="display:none;padding:16px 0 12px;">
       <div class="ds-label" style="padding:0 16px;">Screeny z treningu</div>
-      <div id="ds-screens-scroll" style="display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 16px 2px;scrollbar-width:none;"></div>
+      <div id="ds-screens-scroll" style="display:flex;gap:10px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 16px 2px;scrollbar-width:none;-ms-overflow-style:none;"></div>
     </div>
 
     <!-- KARTA: Notatka -->

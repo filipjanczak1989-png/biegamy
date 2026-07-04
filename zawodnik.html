@@ -857,6 +857,9 @@ body > *{position:relative;z-index:1;}
 .today-actions-wrap {
   margin: 0 16px 16px;
 }
+/* Poziome scrollery — ukryj wskaźnik (scroll dalej działa palcem/kółkiem) */
+#forma-heatmap,#cm-emoji-bar{scrollbar-width:none;-ms-overflow-style:none;}
+#forma-heatmap::-webkit-scrollbar,#cm-emoji-bar::-webkit-scrollbar{display:none;}
 </style>
 </head>
 <body>
@@ -3767,7 +3770,7 @@ window.loadWeather = async function() {
 
   if (!city) {
     // Brak city → pokaż klikalny button (prompt direct, bez nawigacji do profil.html)
-    wrap.style.display = 'block';
+    if ((window._currentSection || 'home') === 'home') wrap.style.display = 'block';
     wrap.innerHTML = '<button onclick="window._weatherSetCity()" style="width:100%;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(124,58,237,0.15));border:1px dashed rgba(139,92,246,0.4);border-radius:10px;padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;font-family:DM Sans,sans-serif;font-size:13px;color:var(--fg);transition:border-color 0.15s;" onmouseover="this.style.borderColor=\'#8b5cf6\'" onmouseout="this.style.borderColor=\'rgba(139,92,246,0.4)\'"><span style="font-size:20px;">🌤</span><span>Wpisz miasto, by zobaczyć pogodę</span></button>';
     return;
   }
@@ -5351,7 +5354,7 @@ async function loadNutritionWidget() {
     // bez targetu, pokażemy tylko surowe kcal
   }
 
-  widget.style.display = '';
+  if ((window._currentSection || 'home') === 'home') widget.style.display = '';
 
   // EMPTY STATE — brak posiłków
   if (!meals.length) {
@@ -7422,8 +7425,10 @@ async function loadHomeAIReportsTile() {
     badgeEl.textContent = '';
   }
   
-  sec.style.display = '';
-  if (hdr) hdr.style.display = '';
+  if ((window._currentSection || 'home') === 'home') {
+    sec.style.display = '';
+    if (hdr) hdr.style.display = '';
+  }
 }
 
 async function loadSocialFeed(compact) {
