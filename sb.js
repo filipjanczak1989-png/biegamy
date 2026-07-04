@@ -922,12 +922,12 @@
         : this._svg(o.icon);
       return '<a class="' + cls + '" data-navid="' + o.id + '" ' + attr + (o.title ? ' title="' + o.title + '"' : '') + '>' + icon + '<div class="nav-lbl"' + (o.logo ? ' style="margin-top:2px;"' : '') + '>' + o.label + '</div></a>';
     },
-    render: function(activeId, opts){
+    // JEDNO źródło kolejności pozycji per rola (używa render ORAZ window.SWIPE — bez dwóch prawd).
+    items: function(role, opts){
       opts = opts || {};
-      var items;
-      if (opts.role === 'coach') {
+      if (role === 'coach') {
         // Kanon coach = 5 sekcji trenera (in-page na trener.html przez opts.local; href-fallback na profil/kalendarz)
-        items = [
+        return [
           {id:'home', label:'Zawodnicy', target:'trener.html', icon:'roster'},
           {id:'plan', label:'Plan', target:'kalendarz.html?role=coach', icon:'plan'},
           {id:'analytics', label:'Analityka', target:'trener.html?tab=analytics', icon:'analytics'},
@@ -935,18 +935,21 @@
           {id:'social', label:'Społeczność', target:'trener.html?tab=social', icon:'social'},
           {id:'settings', label:'Ustawienia', target:'trener.html?tab=settings', icon:'settings'}
         ];
-      } else {
-        var prof = opts.athleteId ? ('profil.html?id=' + opts.athleteId) : 'profil.html';
-        items = [
-          {id:'home', label:'Dziś', target:'zawodnik.html', icon:'home'},
-          {id:'plan', label:'Plan', target:'kalendarz.html?role=athlete', icon:'plan'},
-          {id:'food', label:'Jedzenie', target:'nutrition.html', icon:'food', title:'Odżywianie'},
-          {id:'log', label:'Log', logo:true, target:'zawodnik.html?log=1', onLog:(opts.onLog || null)},
-          {id:'forma', label:'Forma', target:'zawodnik.html?tab=forma', icon:'forma'},
-          {id:'social', label:'Społeczność', target:'zawodnik.html?tab=social', icon:'social'},
-          {id:'profil', label:'Profil', target:prof, icon:'profil'}
-        ];
       }
+      var prof = opts.athleteId ? ('profil.html?id=' + opts.athleteId) : 'profil.html';
+      return [
+        {id:'home', label:'Dziś', target:'zawodnik.html', icon:'home'},
+        {id:'plan', label:'Plan', target:'kalendarz.html?role=athlete', icon:'plan'},
+        {id:'food', label:'Jedzenie', target:'nutrition.html', icon:'food', title:'Odżywianie'},
+        {id:'log', label:'Log', logo:true, target:'zawodnik.html?log=1', onLog:(opts.onLog || null)},
+        {id:'forma', label:'Forma', target:'zawodnik.html?tab=forma', icon:'forma'},
+        {id:'social', label:'Społeczność', target:'zawodnik.html?tab=social', icon:'social'},
+        {id:'profil', label:'Profil', target:prof, icon:'profil'}
+      ];
+    },
+    render: function(activeId, opts){
+      opts = opts || {};
+      var items = this.items(opts.role, opts);
       var self = this;
       return '<nav class="bottom-nav">' + items.map(function(it){ it.active = (it.id === activeId); it.onLocal = (opts.local && opts.local[it.id]) || null; return self._item(it); }).join('') + '</nav>';
     },
@@ -958,6 +961,83 @@
         var els = nav.querySelectorAll('[data-navid]');
         for (var i = 0; i < els.length; i++){ els[i].classList.toggle('active', els[i].getAttribute('data-navid') === id); }
       } catch(e){}
+    }
+  };
+
+  // ═══ SWIPE — gest lewo/prawo między pozycjami nav (S0 szkielet; ZERO wpięć = no-op) ═══
+  //   Kolejność bierze z NAV.items(role) (jedno źródło). Strona woła SWIPE.attach() w S1.
+  //   attach({ items, activeId, onLocal, local }):
+  //     items    = NAV.items(role, opts)  — kolejność
+  //     activeId = string | function()    — bieżąca pozycja (null → gest nieaktywny)
+  //     onLocal(id) = callback dla pozycji in-page (SWIPE nie zna showSection)
+  //     local    = mapa {id:...} jak w NAV.render — które pozycje są in-page (reszta = href)
+  window.SWIPE = {
+    _enabled: function(){
+      try { return localStorage.getItem('bm_swipe') !== 'off' && ('ontouchstart' in window); }
+      catch(e){ return false; }
+    },
+    _scrollableX: function(el){
+      try {
+        var ox = getComputedStyle(el).overflowX;
+        if (ox === 'auto' || ox === 'scroll') return true;
+        if (el.scrollWidth > el.clientWidth + 4) return true;
+      } catch(e){}
+      return false;
+    },
+    // Czy gest ma być zignorowany (którykolwiek guard → true)
+    _blocked: function(target){
+      if (!this._enabled()) return true;                                   // (e) wyłączony / brak touch
+      if (document.querySelector('.add-overlay.open')) return true;        // (d) bottom-sheet otwarty
+      var gm = document.getElementById('goal-modal');
+      if (gm) { try { if (getComputedStyle(gm).display !== 'none') return true; } catch(e){} }  // (d) modal celu
+      var el = target;
+      while (el && el !== document.body) {
+        var tag = (el.tagName || '').toLowerCase();
+        if (tag === 'canvas' || tag === 'input' || tag === 'textarea' || tag === 'select') return true; // (b)(c)
+        if (el.isContentEditable) return true;                             // (c)
+        if (this._scrollableX(el)) return true;                           // (a) poziomy scroller
+        try {                                                              // (d) wysoki modal fixed z-index>=300
+          var cs = getComputedStyle(el);
+          if (cs.position === 'fixed' && parseInt(cs.zIndex, 10) >= 300) return true;
+        } catch(e){}
+        el = el.parentElement;
+      }
+      return false;
+    },
+    attach: function(opts){
+      opts = opts || {};
+      var self = this;
+      if (!self._enabled()) return;                                        // no-op gdy wyłączony/desktop
+      var items = (opts.items || []).filter(function(it){ return it.id !== 'log'; }); // log slot pomijany
+      var getActive = (typeof opts.activeId === 'function') ? opts.activeId : function(){ return opts.activeId; };
+      var onLocal = (typeof opts.onLocal === 'function') ? opts.onLocal : function(){};
+      var localMap = opts.local || {};
+      var sx = 0, sy = 0, st = 0, tracking = false, blocked = false;
+
+      document.addEventListener('touchstart', function(e){
+        tracking = false; blocked = false;
+        if (!e.touches || e.touches.length !== 1) { blocked = true; return; }
+        if (self._blocked(e.target)) { blocked = true; return; }
+        var t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); tracking = true;
+      }, { passive: true });
+
+      document.addEventListener('touchend', function(e){
+        if (!tracking || blocked) return;
+        tracking = false;
+        var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+        var dx = t.clientX - sx, dy = t.clientY - sy, dt = Date.now() - st;
+        if (Math.abs(dx) < 60 || Math.abs(dx) <= 2 * Math.abs(dy) || dt >= 600) return;  // za słaby/pionowy/za wolny
+        var active = getActive();
+        if (active == null) return;                                        // activeId null → gest nieaktywny
+        var idx = -1;
+        for (var i = 0; i < items.length; i++) { if (items[i].id === active) { idx = i; break; } }
+        if (idx < 0) return;
+        var ni = idx + (dx < 0 ? 1 : -1);                                  // lewo → następna, prawo → poprzednia
+        if (ni < 0 || ni >= items.length) return;                          // bez zawijania
+        var it = items[ni];
+        if (localMap[it.id]) onLocal(it.id);                               // in-page → callback
+        else if (it.target) location.href = it.target;                     // wyjście → href
+      }, { passive: true });
     }
   };
 
