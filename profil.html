@@ -591,6 +591,9 @@ let _profileData = null;
   _myId = me?.id || null;
   _myUserId = session.user.id;   // auth.uid()
 
+  // NAV (SSOT) — re-mount z właściwą rolą (trener→coach-nav) + własnym athletes.id; Profil zawsze celuje w mój profil
+  (function(){ var m=document.getElementById('nav-mount'); if(m && window.NAV) m.innerHTML = NAV.render('profil', {role:_isCoach?'coach':'athlete', athleteId:_myId}); })();
+
   // Target: ?id=UUID lub własny profil
   const params = new URLSearchParams(location.search);
   const targetUserId = params.get('id');
@@ -2998,30 +3001,11 @@ async function _openRacesModal() {
 function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId; }
 </script>
 
-<nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
-  <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Dziś</span>
-  </a>
-  <a href="kalendarz.html?role=athlete" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Plan</span>
-  </a>
-  <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
-    </div>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;margin-top:2px;">Log</span>
-  </a>
-  <a href="zawodnik.html?tab=social" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:DM Mono,monospace;">Społeczność</span>
-  </a>
-  <a href="#" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;cursor:pointer;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);font-family:DM Mono,monospace;">Profil</span>
-  </a>
-</nav>
+<!-- Dolna nawigacja — window.NAV (SSOT); montowana w init wg roli+id (N1b) -->
+<div id="nav-mount"></div>
+<script>
+(function(){ var m=document.getElementById('nav-mount'); if(m && window.NAV) m.innerHTML = NAV.render('profil', {role:'athlete'}); })();
+</script>
 <!-- ADD GOAL MODAL (autocomplete z races) -->
 <div id="goal-modal" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center;" onclick="if(event.target===this)closeGoalModal()">
   <div style="width:100%;max-width:480px;background:#0f0d18;border-radius:24px 24px 0 0;max-height:88vh;overflow-y:auto;padding:0 0 calc(20px + env(safe-area-inset-bottom,0px));">
@@ -3069,30 +3053,7 @@ function goToStats(){ if(_targetId) location.href='narzedzia.html?id='+_targetId
 </div>
 
 
-<nav style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,7,11,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid rgba(255,255,255,0.07);border-radius:28px 28px 0 0;display:flex;padding:10px 6px 22px;z-index:50;box-shadow:0 -8px 40px rgba(0,0,0,0.5);">
-  <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Dziś</span>
-  </a>
-  <a href="kalendarz.html?role=athlete" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Plan</span>
-  </a>
-  <a href="zawodnik.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <div style="width:48px;height:48px;border-radius:50%;overflow:hidden;margin-top:-18px;box-shadow:0 0 20px rgba(var(--accent-rgb),0.6);">
-      <img src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.style.background='var(--accent)';this.style.display='none'">
-    </div>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;margin-top:2px;">Log</span>
-  </a>
-  <a href="zawodnik.html?tab=social" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(240,237,232,0.38)" stroke-width="1.8"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:rgba(240,237,232,0.38);font-family:'DM Mono',monospace;">Społeczność</span>
-  </a>
-  <a href="profil.html" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 2px;text-decoration:none;">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
-    <span style="font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;">Profil</span>
-  </a>
-</nav>
+<!-- (usunięto zdublowany inline nav — jeden montowany wyżej przez window.NAV, N1b) -->
 
 <!-- PWA Service Worker -->
 <script>
