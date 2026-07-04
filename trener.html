@@ -3757,7 +3757,7 @@ async function togglePushNotifs() {
     return;
   }
   const aid = await _ensureCoachAthleteId();
-  if (!aid) { showToast('Najpierw się zaloguj'); return; }
+  if (!aid) { showToast('Powiadomienia push wymagają powiązanego konta zawodnika'); return; }
 
   const perm = window.getPushPermission();
   const subscribed = await window.isPushSubscribed();
