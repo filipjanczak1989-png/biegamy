@@ -42,7 +42,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .notif-btn{width:36px;height:36px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;}
 .ndot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--accent);}
 .quick-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:0 16px;margin-bottom:20px;}
-.qs-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px;text-align:center;}
+.qs-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 12px;text-align:center;min-width:0;overflow:hidden;}
 .qs-val{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
 .qs-val.a{color:var(--accent);}
 .qs-val.g{color:var(--green);}
@@ -328,7 +328,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 <div class="quick-stats fi">
   <div class="qs-card"><div class="qs-val a" id="stat-count">—</div><div class="qs-lbl">Zawodników</div></div>
   <div class="qs-card"><div class="qs-val g" id="stat-logs">—</div><div class="qs-lbl">Nowe logi</div></div>
-  <div class="qs-card"><div class="qs-val" id="stat-days">—</div><div class="qs-lbl">Dni do startu</div></div>
+  <div class="qs-card"><div class="qs-val" id="stat-days">—</div><div class="qs-lbl">Dni do startu</div><div id="stat-days-who" style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:2px;letter-spacing:0.02em;"></div></div>
 </div>
 
 <!-- Kafelek Kalendarza Startów -->
@@ -3141,17 +3141,29 @@ async function loadAthletes() {
   const countEl = document.getElementById('stat-count');
   if (countEl) countEl.textContent = _dbAthletes.length;
   
-  // Days to next target_date
-  const withDate = _dbAthletes.filter(a => a.target_date);
-  if (withDate.length > 0) {
-    const next = withDate.map(a => new Date(a.target_date)).sort((a,b) => a-b)[0];
-    const days = Math.max(0, Math.ceil((next - new Date()) / 86400000));
-    const daysEl = document.getElementById('stat-days');
-    if (daysEl) daysEl.textContent = days;
-  } else {
-    const daysEl = document.getElementById('stat-days');
-    if (daysEl) daysEl.textContent = '—';
+  // Dni do startu — najbliższy PRZYSZŁY start (bugfix: stara ścieżka min(target_date) bez filtra przyszłości = wieczne 0)
+  const daysEl = document.getElementById('stat-days');
+  const whoEl  = document.getElementById('stat-days-who');
+  const _now = new Date();
+  let best = null;   // {days, raceName, athleteName}
+  // 1) primary: nextRace(race_goals) per zawodnik (już filtruje przyszłość + ma name)
+  _dbAthletes.forEach(a => {
+    const nr = nextRace(a.race_goals);
+    if (nr && nr.date) {
+      const d = Math.ceil((new Date(nr.date + 'T00:00:00') - _now) / 86400000);
+      if (d >= 0 && (!best || d < best.days)) best = { days: d, raceName: nr.name || '', athleteName: a.full_name || 'Zawodnik' };
+    }
+  });
+  // 2) fallback: surowe target_date ALE z filtrem >= dziś (naprawa starej ścieżki dla braku race_goals)
+  if (!best) {
+    _dbAthletes.forEach(a => {
+      if (!a.target_date) return;
+      const d = Math.ceil((new Date(a.target_date + 'T00:00:00') - _now) / 86400000);
+      if (d >= 0 && (!best || d < best.days)) best = { days: d, raceName: '', athleteName: a.full_name || 'Zawodnik' };
+    });
   }
+  if (daysEl) daysEl.textContent = best ? best.days : '—';
+  if (whoEl)  whoEl.textContent  = best ? (String(best.athleteName).split(' ')[0] + (best.raceName ? ' · ' + best.raceName : '')) : '';
 
   if (_dbAthletes.length > 0) {
     renderDbAthletes(_dbAthletes);
