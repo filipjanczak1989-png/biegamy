@@ -905,7 +905,8 @@
       profil:'<circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/>',
       analytics:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
       msgs:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-      roster:'<circle cx="8" cy="8" r="3.2"/><path d="M2.5 20v-1.2a4.2 4.2 0 0 1 4.2-4.2h2.6a4.2 4.2 0 0 1 4.2 4.2V20"/><line x1="16" y1="9" x2="21.5" y2="9"/><line x1="16" y1="14" x2="21.5" y2="14"/>'
+      roster:'<circle cx="8" cy="8" r="3.2"/><path d="M2.5 20v-1.2a4.2 4.2 0 0 1 4.2-4.2h2.6a4.2 4.2 0 0 1 4.2 4.2V20"/><line x1="16" y1="9" x2="21.5" y2="9"/><line x1="16" y1="14" x2="21.5" y2="14"/>',
+      settings:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
     },
     _svg: function(k){ return '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">' + (this._ic[k] || '') + '</svg>'; },
     _here: function(){ try { return (location.pathname.split('/').pop() || '') + location.search; } catch(e){ return ''; } },
@@ -931,7 +932,8 @@
           {id:'plan', label:'Plan', target:'kalendarz.html?role=coach', icon:'plan'},
           {id:'analytics', label:'Analityka', target:'trener.html?tab=analytics', icon:'analytics'},
           {id:'msgs', label:'Czat', target:'trener.html?tab=msgs', icon:'msgs'},
-          {id:'social', label:'Społeczność', target:'trener.html?tab=social', icon:'social'}
+          {id:'social', label:'Społeczność', target:'trener.html?tab=social', icon:'social'},
+          {id:'settings', label:'Ustawienia', target:'trener.html?tab=settings', icon:'settings'}
         ];
       } else {
         var prof = opts.athleteId ? ('profil.html?id=' + opts.athleteId) : 'profil.html';
