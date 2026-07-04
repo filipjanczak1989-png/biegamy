@@ -37,7 +37,6 @@ body {
   /* nutrition: lokalne akcenty/cienie — powierzchnie/tekst/status z theme.css (kanon) */
   --accent-glow: rgba(var(--accent-rgb),0.4);
   --gold: #ffb74d;
-  --warm: #ff9d4d;
 
   /* Cienie — głębokość warstw */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
@@ -128,12 +127,9 @@ body {
   text-shadow: 0 0 30px rgba(255,255,255,0.1);
 }
 .tb-title span {
-  background: linear-gradient(135deg, var(--accent) 0%, #ffb74d 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--accent);
+  -webkit-text-fill-color: var(--accent);
   font-weight: 700;
-  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb),0.4));
 }
 .tb-spacer { width: 42px; }
 
@@ -533,10 +529,10 @@ body {
 }
 .hero-context .ctx-pos { color: var(--green); font-weight: 600; }
 .hero-context .ctx-neg { color: var(--accent); font-weight: 600; }
-.recipe-btn { width:100%; margin:14px 0 0; padding:13px; border:none; border-radius:14px; cursor:pointer; background:linear-gradient(135deg,var(--accent),#ff8a4c); color:#fff; font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; font-weight:700; box-shadow:0 4px 16px rgba(var(--accent-rgb),0.35); }
+.recipe-btn { width:100%; margin:14px 0 0; padding:13px; border:none; border-radius:14px; cursor:pointer; background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#fff; font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.08em; text-transform:uppercase; font-weight:700; box-shadow:0 4px 16px rgba(var(--accent-rgb),0.35); }
 .recipe-btn:disabled { opacity:0.7; cursor:default; }
 #recipe-card { margin-top:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); border-radius:16px; overflow:hidden; }
-.recipe-head { background:linear-gradient(135deg,var(--accent),#ff8a4c); padding:22px 18px; text-align:center; }
+.recipe-head { background:linear-gradient(135deg,var(--accent),var(--accent2)); padding:22px 18px; text-align:center; }
 .recipe-emoji { font-size:52px; line-height:1; display:block; margin-bottom:6px; }
 .recipe-title { font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.02em; color:#fff; line-height:1.1; }
 .recipe-desc { padding:12px 18px 0; font-size:13px; color:var(--muted); font-style:italic; }
@@ -561,7 +557,7 @@ body {
 .fav-star { background:none; border:none; cursor:pointer; font-size:18px; line-height:1; padding:2px 4px; flex-shrink:0; }
 .recipe-head { position:relative; }
 .fav-star-lg { position:absolute; top:10px; right:12px; font-size:24px; padding:0; }
-.recipe-btn-secondary { background:transparent; color:#ff8a4c; border:1.5px solid rgba(var(--accent-rgb),0.45); box-shadow:none; }
+.recipe-btn-secondary { background:transparent; color:var(--accent2); border:1.5px solid rgba(var(--accent-rgb),0.45); box-shadow:none; }
 .fridge-row { margin-top:10px; display:flex; flex-direction:column; gap:8px; }
 .fridge-input { width:100%; box-sizing:border-box; padding:11px 13px; border-radius:12px; border:1px solid rgba(255,255,255,0.12); background:rgba(255,255,255,0.04); color:var(--fg); font-family:'DM Sans',sans-serif; font-size:13px; outline:none; }
 .fridge-input::placeholder { color:var(--muted); }
@@ -572,7 +568,7 @@ body {
 .recipe-portion { display:flex; align-items:center; gap:6px; margin-top:12px; flex-wrap:wrap; }
 .rp-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-right:2px; }
 .rp-mult { padding:5px 10px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:transparent; color:var(--fg); font-size:12px; font-weight:700; cursor:pointer; }
-.rp-mult.active { background:linear-gradient(135deg,var(--accent),#ff8a4c); border-color:transparent; color:#fff; }
+.rp-mult.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#fff; }
 .recipe-journal-btn { width:100%; margin-top:10px; padding:11px; border-radius:12px; cursor:pointer; background:rgba(var(--accent-rgb),0.14); color:#ff8a4c; border:1px solid rgba(var(--accent-rgb),0.4); font-family:'DM Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
 .recipe-journal-btn:disabled { opacity:0.6; }
 .recipe-lib-card { max-width:560px; padding:0; }
