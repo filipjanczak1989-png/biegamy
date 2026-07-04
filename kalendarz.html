@@ -21,29 +21,6 @@
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
 /* ══ BIEGAMY KALENDARZ — PREMIUM UI v3 ═══════════════════════════════ */
-:root {
-  --bg:#07070a;
-  --surface:#0f0f14;
-  --surface2:#13131b;
-  --border:rgba(255,255,255,0.07);
-  --border2:rgba(255,255,255,0.13);
-  --accent:#e8561e;
-  --accent2:#ff7040;
-  --fg:#f0ede8;
-  --fg2:rgba(240,237,232,0.65);
-  --fg3:rgba(240,237,232,0.32);
-  --muted:rgba(240,237,232,0.55);
-  --muted2:#2a2830;
-  --green:#3db870;
-  --yellow:#e8b840;
-  --red:#e05050;
-  --blue:#4e8cd6;
-  --purple:#8a62d8;
-  --glow-o:rgba(var(--accent-rgb),0.32);
-  --glow-g:rgba(61,184,112,0.25);
-  --tile-radius:14px;
-  --tile-shadow:0 6px 24px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset;
-}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;-webkit-font-smoothing:antialiased;}
 body{
@@ -79,12 +56,12 @@ nav{
 .nav-link.active{color:var(--fg);border-color:rgba(var(--accent-rgb),0.4);background:rgba(var(--accent-rgb),0.08);}
 .nav-right{display:flex;align-items:center;gap:10px;}
 .athlete-select{
-  background:var(--surface2);border:1px solid var(--border);color:var(--fg);
+  background:var(--card2);border:1px solid var(--border);color:var(--fg);
   font-family:'DM Mono',monospace;font-size:11px;padding:7px 11px;cursor:pointer;outline:none;
   border-radius:9px;transition:border-color 0.15s;
 }
 .athlete-select:focus{border-color:var(--accent);}
-.athlete-select option{background:var(--surface);}
+.athlete-select option{background:var(--card);}
 .btn{
   font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;
   padding:8px 14px;border:none;cursor:pointer;transition:all 0.15s;border-radius:9px;
@@ -296,7 +273,7 @@ nav{
 }
 .modal-bg.open{opacity:1;pointer-events:all;}
 .modal{
-  background:var(--surface2);
+  background:var(--card2);
   border:1px solid rgba(255,255,255,0.09);
   border-top:2px solid var(--accent);
   border-radius:20px;
@@ -324,7 +301,7 @@ nav{
   border-top:1px solid var(--border);
   display:flex;justify-content:flex-end;gap:8px;
   position:sticky;bottom:0;
-  background:var(--surface2);
+  background:var(--card2);
   z-index:10;
 }
 
@@ -343,7 +320,7 @@ nav{
   box-shadow:0 0 0 3px rgba(var(--accent-rgb),0.1);
 }
 .field select{cursor:pointer;}
-.field select option{background:var(--surface);}
+.field select option{background:var(--card);}
 .field textarea{resize:vertical;min-height:70px;line-height:1.6;font-family:'DM Sans',sans-serif;}
 .field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 
@@ -409,12 +386,12 @@ nav{
 #week-tpl-modal{position:fixed;inset:0;background:rgba(0,0,0,0.82);z-index:400;display:none;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);}
 #week-tpl-modal.show{display:flex;}
 .wtpl-box{
-  background:var(--surface);
+  background:var(--card);
   border:1px solid rgba(var(--accent-rgb),0.35);
   border-radius:20px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;padding:0;
   box-shadow:0 24px 80px rgba(0,0,0,0.8);
 }
-.wtpl-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1;border-radius:20px 20px 0 0;}
+.wtpl-hdr{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--card);z-index:1;border-radius:20px 20px 0 0;}
 .wtpl-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;}
 .wtpl-body{padding:16px 20px;}
 .wtpl-day{
@@ -885,7 +862,7 @@ html { scroll-behavior: smooth; }
 
 <!-- GOAL MODAL -->
 <div id="goal-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeGoalModal()">
-  <div style="background:var(--surface);border:1px solid var(--border);width:380px;max-width:92vw;max-height:88vh;overflow-y:auto;">
+  <div style="background:var(--card);border:1px solid var(--border);width:380px;max-width:92vw;max-height:88vh;overflow-y:auto;">
     <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;" id="goal-modal-title">Nowy cel startowy</div>
       <button onclick="closeGoalModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
@@ -1106,19 +1083,19 @@ html { scroll-behavior: smooth; }
 
 <!-- TEMPLATES MODAL -->
 <div id="templates-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:350;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeTemplatesModal()">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;width:480px;max-width:94vw;max-height:85vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);transform:translateY(10px);transition:transform 0.2s;" id="templates-modal-inner">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;width:480px;max-width:94vw;max-height:85vh;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 80px);transform:translateY(10px);transition:transform 0.2s;" id="templates-modal-inner">
     <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.03em;">📋 Szablony treningów</div>
       <button onclick="closeTemplatesModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
     </div>
     <!-- v6.3: Tabs Treningi / Tygodnie -->
-    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 20px;background:var(--surface);">
+    <div style="display:flex;border-bottom:1px solid var(--border);padding:0 20px;background:var(--card);">
       <button id="tpl-tab-workout" onclick="switchTplTab('workout')" style="flex:1;background:transparent;border:none;color:var(--accent);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:14px 0;cursor:pointer;border-bottom:2px solid var(--accent);">🏃 Treningi</button>
       <button id="tpl-tab-week" onclick="switchTplTab('week')" style="flex:1;background:transparent;border:none;color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;padding:14px 0;cursor:pointer;border-bottom:2px solid transparent;">📅 Tygodnie</button>
     </div>
     <div id="tpl-content-workout" style="padding:16px 20px;">
       <!-- Zapisz aktualny trening jako szablon -->
-      <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div style="background:var(--card2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
         <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;">+ Nowy szablon</div>
         <input id="tmpl-name" type="text" placeholder="Nazwa szablonu (np. Interwały 8x400m)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:6px;outline:none;box-sizing:border-box;margin-bottom:8px;">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
@@ -1162,7 +1139,7 @@ html { scroll-behavior: smooth; }
     <!-- v6.3: Tab content Tygodnie -->
     <div id="tpl-content-week" style="padding:16px 20px;display:none;">
       <!-- Zapisz aktualny tydzień jako szablon -->
-      <div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
+      <div style="background:var(--card2);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-bottom:16px;">
         <div style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:8px;">+ Zapisz aktualny tydzień</div>
         <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4;">Snapshot 7 dni z aktualnie wyświetlanego tygodnia kalendarza. Możesz później zastosować go u dowolnego zawodnika.</div>
         <input id="wtmpl-name" type="text" placeholder="Nazwa (np. Tydzień bazowy 60km, Taper)" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--fg);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;border-radius:6px;outline:none;box-sizing:border-box;margin-bottom:8px;">
@@ -1179,7 +1156,7 @@ html { scroll-behavior: smooth; }
 
 <!-- v6.3: Mini-modal apply tygodniowy szablon (overlay nad templates-modal) -->
 <div id="apply-week-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:400;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeApplyWeekModal()">
-  <div style="background:var(--surface);border:1px solid var(--border-hi);border-radius:10px;width:380px;max-width:92vw;padding:20px;">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:10px;width:380px;max-width:92vw;padding:20px;">
     <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.03em;margin-bottom:14px;">📅 Zastosuj szablon tygodnia</div>
     <div id="apply-week-info" style="font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.5;"></div>
     <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:4px;">Zawodnik</label>
@@ -1195,7 +1172,7 @@ html { scroll-behavior: smooth; }
 
 <!-- COPY MODAL -->
 <div id="copy-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.2s;" onclick="if(event.target===this)closeCopyModal()">
-  <div style="background:var(--surface);border:1px solid var(--border);width:340px;max-width:92vw;">
+  <div style="background:var(--card);border:1px solid var(--border);width:340px;max-width:92vw;">
     <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;">Kopiuj trening do zawodnika</div>
       <button onclick="closeCopyModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;">✕</button>
@@ -2812,7 +2789,7 @@ function renderGoals() {
       ${athleteStr}
       <span style="font-size:11px;font-weight:600;color:var(--fg);">${escapeHtml(g.name)}</span>
       <span style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">${d.toLocaleDateString('pl-PL',{day:'numeric',month:'short'})}</span>
-      <span style="font-size:10px;font-weight:600;color:${dayColor};font-family:'DM Mono',monospace;background:${dayColor.replace('var(--','rgba(').replace(')',',0.12)')};padding:1px 5px;border-radius:3px;">${daysStr}</span>
+      <span style="font-size:10px;font-weight:600;color:${dayColor};font-family:'DM Mono',monospace;background:color-mix(in srgb, ${dayColor} 12%, transparent);padding:1px 5px;border-radius:3px;">${daysStr}</span>
     </div>`;
   }).join('');
 }
@@ -3611,11 +3588,11 @@ function renderMobile() {
 
     const headerBg = isRaceDay
       ? 'linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08))'
-      : isToday ? 'rgba(212,80,26,0.07)' : 'var(--surface)';
+      : isToday ? 'rgba(212,80,26,0.07)' : 'var(--card)';
     const headerBorder = isRaceDay ? 'rgba(61,184,112,0.7)' : isToday ? 'var(--accent)' : 'var(--border)';
     const boxShadow = isRaceDay ? 'box-shadow:0 0 0 2px rgba(61,184,112,0.25);'
       : isToday ? 'box-shadow:0 0 0 2px rgba(212,80,26,0.15);' : '';
-    const abbrBg = isRaceDay ? '#3db870' : isToday ? 'var(--accent)' : 'var(--surface2)';
+    const abbrBg = isRaceDay ? '#3db870' : isToday ? 'var(--accent)' : 'var(--card2)';
     const abbrColor = (isRaceDay || isToday) ? '#fff' : 'var(--muted)';
     const abbrContent = isRaceDay ? '\ud83c\udfc1' : abbr;
     const titleColor = isRaceDay ? 'var(--green)' : isToday ? 'var(--accent)' : 'var(--fg)';
@@ -3648,7 +3625,7 @@ function renderMobile() {
         const tc = typeColorsM[type] || '#5090e0';
         const km = parseFloat(l.distance_km) || 0;
         const feel = {'good':'\ud83d\ude0a','mid':'\ud83d\ude10','bad':'\ud83d\ude13'}[l.feel] || '';
-        return '<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + tc + ';padding:10px 13px;">'
+        return '<div style="background:var(--card2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + tc + ';padding:10px 13px;">'
           + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (km?'4':'0') + 'px;">'
           + '<span style="font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:' + tc + ';font-family:\'DM Mono\',monospace;font-weight:500;">' + type.toUpperCase() + '</span>'
           + (feel ? '<span style="font-size:16px;">' + feel + '</span>' : '')
@@ -3669,7 +3646,7 @@ function renderMobile() {
       const statusBadge = isDone
         ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--green);background:rgba(61,184,112,0.12);border:1px solid rgba(61,184,112,0.3);padding:2px 7px;border-radius:4px;">\u2713 WYKONANE</span>'
         : isMissed
-        ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--surface);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>'
+        ? '<span style="font-size:9px;font-family:\'DM Mono\',monospace;letter-spacing:0.08em;color:var(--muted);background:var(--card);border:1px solid var(--border);padding:2px 7px;border-radius:4px;">BRAK DANYCH</span>'
         : '';
       const dayLogM = (window._calLogs && window._calLogs[ds] && isDone) ? window._calLogs[ds][0] : null;
       const km = parseFloat((dayLogM && dayLogM.distance_km) || t.dist || t.distance_km) || 0;
@@ -3686,7 +3663,7 @@ function renderMobile() {
           }).join('') + '</div>'
         : '';
 
-      return '<div style="background:var(--surface2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + borderLeft + ';cursor:pointer;position:relative;" onclick="openModal(\'' + ds + '\',' + i + ')">'
+      return '<div style="background:var(--card2);border-radius:10px;margin-bottom:8px;border-left:3px solid ' + borderLeft + ';cursor:pointer;position:relative;" onclick="openModal(\'' + ds + '\',' + i + ')">'
         + '<button onclick="event.stopPropagation();deleteTraining(event,\'' + ds + '\',' + i + ')" style="position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.06);border:none;color:var(--muted);width:24px;height:24px;border-radius:6px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;z-index:2;touch-action:manipulation;">✕</button>'
         + '<div style="padding:11px 13px;">'
         + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:' + (km||desc?'4':'0') + 'px;">'
@@ -3923,7 +3900,7 @@ async function renderTemplatesList() {
     const usedStr = (t.used_count && t.used_count > 0) ? `<span style="color:var(--muted);font-size:9px;margin-left:6px;">używany ${t.used_count}×</span>` : '';
     const meta = [t.dist ? t.dist + ' km' : '', t.pace ? t.pace + '/km' : '', t.hr ? '♥ ' + t.hr : ''].filter(Boolean).join(' · ');
 
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
       <div style="width:3px;height:40px;background:${color};border-radius:2px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${escapeHtml(t.name)}${sourceBadge}${usedStr}</div>
@@ -4143,7 +4120,7 @@ async function renderWeekTemplatesList() {
       : '';
     const usedStr = (t.used_count && t.used_count > 0) ? `<span style="color:var(--muted);font-size:9px;margin-left:6px;">używany ${t.used_count}×</span>` : '';
     const kmStr = t.total_distance_km ? `${t.total_distance_km}km` : '';
-    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+    return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
       <div style="width:3px;height:40px;background:#9a6fe8;border-radius:2px;flex-shrink:0;"></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:500;margin-bottom:2px;">${esc(t.name)}${sourceBadge}${usedStr}</div>
@@ -5886,7 +5863,7 @@ async function doCopyWeek() {
 
 <!-- LOG MODAL -->
 <div id="log-modal-bg" style="position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9000;display:none;align-items:flex-end;justify-content:center;transition:opacity 0.2s;" onclick="if(event.target===this)closeLogModal()">
-  <div style="background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;" id="log-modal-inner">
+  <div style="background:var(--card);border:1px solid var(--border);border-bottom:none;border-radius:16px 16px 0 0;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;transform:translateY(20px);transition:transform 0.2s;" id="log-modal-inner">
     <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;"></div>
     <div style="padding:16px 20px 8px;display:flex;align-items:center;justify-content:space-between;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;" id="log-modal-title">Log treningu</div>
@@ -5964,7 +5941,7 @@ async function doCopyWeek() {
             </button>
           </div>
         </div>
-        <div style="position:sticky;bottom:0;padding:12px 0 calc(env(safe-area-inset-bottom,0px) + 8px);background:var(--surface);z-index:5;"><button onclick="saveLog()" style="width:100%;background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:14px;cursor:pointer;border-radius:8px;">Zapisz log →</button></div>
+        <div style="position:sticky;bottom:0;padding:12px 0 calc(env(safe-area-inset-bottom,0px) + 8px);background:var(--card);z-index:5;"><button onclick="saveLog()" style="width:100%;background:var(--accent);color:var(--fg);border:none;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;padding:14px;cursor:pointer;border-radius:8px;">Zapisz log →</button></div>
       </div>
     </div>
   </div>
@@ -5972,7 +5949,7 @@ async function doCopyWeek() {
 
 <!-- COPY WEEK MODAL -->
 <div id="copy-week-modal-bg" onclick="if(event.target===this)closeCopyWeekModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;align-items:center;justify-content:center;">
-  <div style="background:var(--surface,#13111f);border:1px solid var(--border,rgba(255,255,255,0.1));width:340px;max-width:92vw;border-radius:16px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
+  <div style="background:var(--card,#13111f);border:1px solid var(--border,rgba(255,255,255,0.1));width:340px;max-width:92vw;border-radius:16px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.5);">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
       <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:0.05em;">Kopiuj tydzień</div>
       <button onclick="closeCopyWeekModal()" style="background:none;border:none;color:var(--muted,#888);cursor:pointer;font-size:20px;line-height:1;">✕</button>
