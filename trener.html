@@ -6598,50 +6598,6 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
 <!-- SEKCJA ANALITYKI -->
 
 </div>
-<!-- SEKCJA USTAWIEŃ -->
-<div id="settings-section" style="display:none;padding:0 20px 100px;">
-  <div style="font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:16px;padding-top:4px;">Ustawienia</div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
-      <div style="font-size:12px;font-weight:500;margin-bottom:2px;">Konto</div>
-      <div style="font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;" id="settings-email">—</div>
-    </div>
-    <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:13px;">Wyloguj się</div>
-      <button onclick="logout()" style="background:rgba(224,80,80,0.12);border:1px solid rgba(224,80,80,0.3);color:var(--red);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;padding:7px 14px;border-radius:8px;cursor:pointer;">Wyloguj →</button>
-    </div>
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">
-    <div style="padding:14px 16px;border-bottom:1px solid var(--border);">
-      <div style="font-size:12px;font-weight:500;">Szablon planu tygodniowego</div>
-    </div>
-    <div style="padding:14px 16px;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Twój domyślny plan który wysyłasz zawodnikom:</div>
-      <div style="display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Pn</span><span>Odpoczynek</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Wt</span><span>Bieg spokojny · 10 km</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Śr</span><span>Interwały · 8 km</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Cz</span><span>Wybieganie · 12 km</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Pt</span><span>Odpoczynek</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Sb</span><span>Tempo · 14 km</span></div>
-        <div style="display:flex;justify-content:space-between;font-size:12px;"><span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:10px;">Nd</span><span>Długie wybieganie · 22 km</span></div>
-      </div>
-    </div>
-  </div>
-
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-    <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;">
-      <div>
-        <div style="font-size:12px;font-weight:500;margin-bottom:2px;">Kalendarz</div>
-        <div style="font-size:11px;color:var(--muted);">Pełny widok tygodniowy</div>
-      </div>
-      <a href="kalendarz.html?role=coach" style="background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase">Otwórz →</a>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- COACH GIF MODAL -->
 <div id="coach-gif-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this)closeCoachGifModal()">
