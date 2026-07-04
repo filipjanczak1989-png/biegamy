@@ -984,25 +984,35 @@
       } catch(e){}
       return false;
     },
-    // Czy gest ma być zignorowany (którykolwiek guard → true)
-    _blocked: function(target){
-      if (!this._enabled()) return true;                                   // (e) wyłączony / brak touch
-      if (document.querySelector('.add-overlay.open')) return true;        // (d) bottom-sheet otwarty
-      var gm = document.getElementById('goal-modal');
-      if (gm) { try { if (getComputedStyle(gm).display !== 'none') return true; } catch(e){} }  // (d) modal celu
+    // Kierunek gestu wg WSPÓLNYCH progów (attach + attachEl — zero zdublowanych 60/600).
+    //   1 = swipe w lewo (następny), -1 = swipe w prawo (poprzedni), 0 = brak.
+    _dir: function(dx, dy, dt){
+      if (Math.abs(dx) < 60 || Math.abs(dx) <= 2 * Math.abs(dy) || dt >= 600) return 0;
+      return dx < 0 ? 1 : -1;
+    },
+    // Guard po ścieżce target→góra: (a) poziomy scroller, (b) canvas, (c) input/textarea/select/contenteditable.
+    //   checkModalZ=true → dodatkowo blokuj wewnątrz fixed z-index>=300 (tylko document-level attach).
+    _blockedEl: function(target, checkModalZ){
       var el = target;
       while (el && el !== document.body) {
         var tag = (el.tagName || '').toLowerCase();
         if (tag === 'canvas' || tag === 'input' || tag === 'textarea' || tag === 'select') return true; // (b)(c)
         if (el.isContentEditable) return true;                             // (c)
-        if (this._scrollableX(el)) return true;                           // (a) poziomy scroller
-        try {                                                              // (d) wysoki modal fixed z-index>=300
-          var cs = getComputedStyle(el);
-          if (cs.position === 'fixed' && parseInt(cs.zIndex, 10) >= 300) return true;
-        } catch(e){}
+        if (this._scrollableX(el)) return true;                            // (a) poziomy scroller
+        if (checkModalZ) {                                                 // (d) wysoki modal fixed z-index>=300
+          try { var cs = getComputedStyle(el); if (cs.position === 'fixed' && parseInt(cs.zIndex, 10) >= 300) return true; } catch(e){}
+        }
         el = el.parentElement;
       }
       return false;
+    },
+    // Pełny guard dla document-level attach (nav-swipe): wyłączony / otwarty modal + _blockedEl z modal-z.
+    _blocked: function(target){
+      if (!this._enabled()) return true;                                   // (e) wyłączony / brak touch
+      if (document.querySelector('.add-overlay.open')) return true;        // (d) bottom-sheet otwarty
+      var gm = document.getElementById('goal-modal');
+      if (gm) { try { if (getComputedStyle(gm).display !== 'none') return true; } catch(e){} }  // (d) modal celu
+      return this._blockedEl(target, true);
     },
     attach: function(opts){
       opts = opts || {};
@@ -1012,11 +1022,13 @@
       var getActive = (typeof opts.activeId === 'function') ? opts.activeId : function(){ return opts.activeId; };
       var onLocal = (typeof opts.onLocal === 'function') ? opts.onLocal : function(){};
       var localMap = opts.local || {};
+      var blockWhen = (typeof opts.blockWhen === 'function') ? opts.blockWhen : null;  // opcjonalny twardy gate (np. otwarty arkusz dnia); brak = wstecznie zgodne
       var sx = 0, sy = 0, st = 0, tracking = false, blocked = false;
 
       document.addEventListener('touchstart', function(e){
         tracking = false; blocked = false;
         if (!e.touches || e.touches.length !== 1) { blocked = true; return; }
+        if (blockWhen && blockWhen()) { blocked = true; return; }            // (f) strona-specyficzny gate (S3: arkusz dnia otwarty)
         if (self._blocked(e.target)) { blocked = true; return; }
         var t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); tracking = true;
       }, { passive: true });
@@ -1025,18 +1037,50 @@
         if (!tracking || blocked) return;
         tracking = false;
         var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
-        var dx = t.clientX - sx, dy = t.clientY - sy, dt = Date.now() - st;
-        if (Math.abs(dx) < 60 || Math.abs(dx) <= 2 * Math.abs(dy) || dt >= 600) return;  // za słaby/pionowy/za wolny
+        var dir = self._dir(t.clientX - sx, t.clientY - sy, Date.now() - st);
+        if (!dir) return;
         var active = getActive();
         if (active == null) return;                                        // activeId null → gest nieaktywny
         var idx = -1;
         for (var i = 0; i < items.length; i++) { if (items[i].id === active) { idx = i; break; } }
         if (idx < 0) return;
-        var ni = idx + (dx < 0 ? 1 : -1);                                  // lewo → następna, prawo → poprzednia
+        var ni = idx + dir;                                                // 1 → następna, -1 → poprzednia
         if (ni < 0 || ni >= items.length) return;                          // bez zawijania
         var it = items[ni];
         if (localMap[it.id]) onLocal(it.id);                               // in-page → callback
         else if (it.target) location.href = it.target;                     // wyjście → href
+      }, { passive: true });
+    },
+    // Gest lewo/prawo NA ELEMENCIE (np. arkusz dnia). Współdzieli progi (_dir) i guardy (_blockedEl)
+    //   z attach — WYJĄTEK: bez modal-z (el sam JEST w overlayu). stopPropagation po rozpoznaniu.
+    //   opts: { onLeft, onRight, blockSelector }  (onLeft = swipe w lewo, np. następny dzień)
+    attachEl: function(el, opts){
+      opts = opts || {};
+      var self = this;
+      if (!el || !self._enabled()) return;
+      var onLeft = (typeof opts.onLeft === 'function') ? opts.onLeft : function(){};
+      var onRight = (typeof opts.onRight === 'function') ? opts.onRight : function(){};
+      var blockSel = opts.blockSelector || null;
+      var sx = 0, sy = 0, st = 0, tracking = false, blocked = false;
+
+      el.addEventListener('touchstart', function(e){
+        tracking = false; blocked = false;
+        if (!e.touches || e.touches.length !== 1) { blocked = true; return; }
+        if (!self._enabled()) { blocked = true; return; }
+        if (blockSel && e.target.closest && e.target.closest(blockSel)) { blocked = true; return; }  // jawne wyłączenie (np. galeria)
+        if (self._blockedEl(e.target, false)) { blocked = true; return; }  // bez modal-z (el JEST w overlayu)
+        var t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); tracking = true;
+        e.stopPropagation();   // zabierz gest document-level nav-swipe od startu (pas do blockWhen z części B)
+      }, { passive: true });
+
+      el.addEventListener('touchend', function(e){
+        if (!tracking || blocked) return;
+        tracking = false;
+        var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
+        var dir = self._dir(t.clientX - sx, t.clientY - sy, Date.now() - st);
+        if (!dir) return;
+        e.stopPropagation();                                               // nie oddawaj gestu document-level nav-swipe
+        if (dir === 1) onLeft(); else onRight();
       }, { passive: true });
     }
   };

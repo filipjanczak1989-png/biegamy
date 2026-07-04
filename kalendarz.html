@@ -4465,15 +4465,31 @@ loadTrainingsFromDB().then(() => setView(_calView));
     var m = document.getElementById('nav-mount');
     if (m && window.NAV) m.innerHTML = NAV.render('plan', {role:_navRole, athleteId:id});
   }
+  // S3 Część B: nav-swipe na SIATCE kalendarza (activeId='plan'); attach RAZ. blockWhen=arkusz dnia otwarty →
+  //   gest strony martwy w arkuszu (twarde rozgraniczenie, niezależne od stopPropagation day-swipe z części A).
+  function attachCalSwipe(id){
+    if (window._swipeAttached || !window.SWIPE) return;
+    window._swipeAttached = true;
+    SWIPE.attach({
+      items: NAV.items(_navRole, { athleteId: id }),
+      local: {}, onLocal: function(){},
+      activeId: function(){ return 'plan'; },
+      blockWhen: function(){ var s = document.getElementById('day-screen'); return !!(s && s.classList.contains('ds-open')); }
+    });
+  }
   mountNav(null);   // od razu — coach nie używa athleteId; athlete: Profil→profil.html, nadpisane po fetchu
   if (_navRole === 'athlete') {
     (async function(){
+      var _aid = null;
       const { data: { session } } = await sb.auth.getSession();
       if (session) {
         const { data: ath } = await sb.from('athletes').select('id').eq('user_id', session.user.id).maybeSingle();
-        if (ath && ath.id) mountNav(ath.id);   // re-mount z Profil→profil.html?id=<athletes.id>
+        if (ath && ath.id) { _aid = ath.id; mountNav(ath.id); }   // re-mount z Profil→profil.html?id=<athletes.id>
       }
+      attachCalSwipe(_aid);   // athlete: attach po fetchu (athleteId dla Profil)
     })();
+  } else {
+    attachCalSwipe(null);     // coach: od razu (bez athleteId)
   }
 })();
 </script>
@@ -4961,9 +4977,30 @@ function _icuRenderSplits(d, el) {
   }).join('');
 }
 
+// S3 day-swipe: przeskok o ±1 dzień (operacja na DACIE, nie indeksie siatki → działa przez granice miesiąca)
+function _shiftDayScreen(delta){
+  const screen = document.getElementById('day-screen');
+  const ds = screen && screen.dataset.ds;
+  if (!ds) return;
+  const d = new Date(ds + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  const nds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); // klucz LOKALNY (nie toISOString)
+  _openDayScreen(nds);   // re-render in-place; dataset.ds nadpisze się na górze
+}
+
 function _openDayScreen(ds) {
   const screen = document.getElementById('day-screen');
   if (!screen) return;
+  screen.dataset.ds = ds;   // S3: bieżąca data arkusza — day-swipe czyta stąd
+  // S3 day-swipe — attach RAZ na element (#day-screen statyczny); galeria (#ds-screens-scroll) wyłączona blockSelectorem + guardem scrollera
+  if (window.SWIPE && !screen._daySwipeAttached) {
+    screen._daySwipeAttached = true;
+    SWIPE.attachEl(screen, {
+      blockSelector: '#ds-screens-scroll',
+      onLeft:  function(){ _shiftDayScreen(1); },   // swipe w lewo → następny dzień
+      onRight: function(){ _shiftDayScreen(-1); }   // swipe w prawo → poprzedni dzień
+    });
+  }
 
   const d = new Date(ds + 'T12:00:00');
   const items  = trainings[ds] || [];
