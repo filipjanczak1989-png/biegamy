@@ -9554,6 +9554,11 @@ if (_tabParam) {
   }, 800);
 }
 
+// ?log=1 → otwórz modal logowania wyniku (Log-slot z NAV na innych ekranach)
+if (_qp.get('log') === '1') {
+  setTimeout(() => { if (typeof openModal === 'function') openModal(); }, 800);
+}
+
 // ════════════════════════════════════════════════════════════════════
 // Deep-link do raportu AI (z push notification lub URL ?section=aireports)
 
