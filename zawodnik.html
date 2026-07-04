@@ -1077,9 +1077,22 @@ window._mountNav = function(){
   });
   if (_act === null && window.NAV.setActive) NAV.setActive(null);   // sekcja bez pozycji w nav
 };
+// SWIPE (S1) — gest lewo/prawo po pozycjach nav; attach DOKŁADNIE RAZ (mount powtarza się przy re-mount anty-mrug)
+window._attachSwipeOnce = function(){
+  if (window._swipeAttached || !window.SWIPE || !window.NAV) return;
+  window._swipeAttached = true;
+  var _id = null; try { _id = (typeof _athleteId !== 'undefined') ? _athleteId : null; } catch(e){}
+  SWIPE.attach({
+    items: NAV.items('athlete', { athleteId: _id }),
+    local: { home:1, forma:1, social:1 },   // te same pozycje in-page co w NAV.render
+    onLocal: function(id){ showSection({ home:'home', forma:'forma', social:'social' }[id]); },
+    // activeId czyta żywy stan; default 'home' bo initial load NIE woła showSection (kanon repo: _currentSection||'home')
+    activeId: function(){ return ({ home:'home', forma:'forma', social:'social' })[window._currentSection || 'home'] || null; }
+  });
+};
 // NAV ładuje się z sb.js (niżej w dokumencie) → mont po DOMContentLoaded, gdy window.NAV istnieje; re-mount w initAuth po _athleteId (Profil→?id)
-if (window.NAV) window._mountNav();
-else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); });
+if (window.NAV) { window._mountNav(); window._attachSwipeOnce(); }
+else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); if (window._attachSwipeOnce) window._attachSwipeOnce(); });
 </script>
 
 <!-- SEKCJA: WIADOMOŚCI -->
