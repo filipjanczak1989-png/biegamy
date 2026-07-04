@@ -125,6 +125,12 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
 .nav-lbl{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-family:'DM Mono',monospace;white-space:nowrap;transition:color 0.15s;}
 .nav-it.active .nav-lbl{color:var(--accent);}
 .nav-it.active::before{content:'';position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:32px;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);border-radius:0 0 3px 3px;box-shadow:0 0 14px rgba(var(--accent-rgb),0.75);}
+/* #nav-mount = wrapper montażu NAV. Na stronach z `body>*{z-index:1}` (zawodnik/kalendarz)
+   ten div łapie kontekst stackingu na z-index:1 i więzi w nim fixed-nav → sekcje in-flow
+   (Forma/Społeczność/Ćwiczenia, też z-index:1, później w DOM) malują się NA navie = nieklikalny.
+   Stary lokalny nav miał .bottom-nav{z-index:50} (klasa) przebijający body>* → własny kontekst 50.
+   Podniesienie kontekstu wrappera do 50 przywraca stary porządek: nav NAD sekcjami, POD sheetami/modalami (300+). */
+#nav-mount{ position:relative; z-index:50; }
 
 /* === UTIL — .no-scrollbar: ukrycie paska przewijania w POZIOMYCH scrollerach UI
    (heatmapy, tygodniowe paski, karuzele filtrów). NIE na pionowych funkcjonalnych

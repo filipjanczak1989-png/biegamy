@@ -5327,7 +5327,7 @@ async function loadQuickAdd() {
     return `
       <div class="quick-card" onclick="quickAddMeal(${i})">
         <div class="qc-count">×${g.count}</div>
-        <div class="quick-card-thumb" data-quick-name="${escapeHtml(g.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');background-size:cover;background-position:center;"></div>
+        <div class="quick-card-thumb" data-quick-name="${escapeHtml(g.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${initImg}');background-size:cover;background-position:center;"></div>
         <div class="qc-info">
           <div class="qc-name">${escapeHtml(g.name)}</div>
           <div class="qc-meta">${Math.round(median.kcal)} kcal${median.weight_g ? ' · ' + Math.round(median.weight_g) + 'g' : ''}</div>
@@ -5343,7 +5343,7 @@ async function loadQuickAdd() {
       const name = el.getAttribute('data-quick-name');
       const newImg = getFoodImageSync(name);
       el.style.backgroundImage =
-        `linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${newImg}')`;
+        `linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${newImg}')`;
     });
   });
 }
@@ -5940,7 +5940,7 @@ function renderMealSlots() {
         const initImg = getFoodImageSync(m.name);
         itemsHtml += `
           <div class="meal-slot-item" onclick="event.stopPropagation();openMealActions(window._mealsById['${m.id}'])">
-            <div class="meal-slot-item-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(26,18,14,0.2)),url('${initImg}');"></div>
+            <div class="meal-slot-item-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.4),rgba(15,15,20,0.2)),url('${initImg}');"></div>
             <div class="meal-slot-item-info">
               <div class="meal-slot-item-name">${escapeHtml(m.name)}</div>
               <div class="meal-slot-item-meta">${meta}</div>
@@ -6028,7 +6028,7 @@ function renderMealsList() {
     const initialImg = getFoodImageSync(m.name);
     return `
       <div class="meal-item" onclick="openMealActions(window._mealsById['${m.id}'])">
-        <div class="meal-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.45),rgba(26,18,14,0.25)),url('${initialImg}');background-size:cover;background-position:center;border:1px solid rgba(var(--accent-rgb),0.3);position:relative;color:transparent;">
+        <div class="meal-icon" data-meal-name="${escapeHtml(m.name)}" style="background-image:linear-gradient(135deg,rgba(10,8,9,0.45),rgba(15,15,20,0.25)),url('${initialImg}');background-size:cover;background-position:center;border:1px solid rgba(var(--accent-rgb),0.3);position:relative;color:transparent;">
           <span style="position:absolute;bottom:-3px;right:-3px;width:18px;height:18px;border-radius:50%;background:rgba(10,8,9,0.95);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--fg);">${mealIcHtml(m.meal_type, 12)}</span>
         </div>
         <div class="meal-info">
@@ -6058,7 +6058,7 @@ async function prefetchAndUpdateMealImages(meals) {
     const currentBg = el.style.backgroundImage;
     if (currentBg && !currentBg.includes(newImg)) {
       el.style.backgroundImage =
-        `linear-gradient(135deg,rgba(10,8,9,0.45),rgba(26,18,14,0.25)),url('${newImg}')`;
+        `linear-gradient(135deg,rgba(10,8,9,0.45),rgba(15,15,20,0.25)),url('${newImg}')`;
     }
   });
 }
@@ -6260,7 +6260,7 @@ function showProductConfirm(food) {
       }).catch(() => {});
     }
     // Tymczasowy gradient zanim się pobierze
-    heroImg.style.background = 'linear-gradient(135deg,#241c18,#100a06)';
+    heroImg.style.background = 'linear-gradient(135deg,#1a1a24,#0f0f14)';
   }
 
   // Source tag
