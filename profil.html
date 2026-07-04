@@ -594,6 +594,16 @@ let _profileData = null;
   // NAV (SSOT) — re-mount z właściwą rolą (trener→coach-nav) + własnym athletes.id; Profil zawsze celuje w mój profil
   (function(){ var m=document.getElementById('nav-mount'); if(m && window.NAV) m.innerHTML = NAV.render('profil', {role:_isCoach?'coach':'athlete', athleteId:_myId}); })();
 
+  // SWIPE (S2) — gest lewo/prawo po pozycjach nav; attach RAZ. activeId stała 'profil' (athlete: prawo→Społeczność; coach: brak 'profil' w navie → gest martwy). Items role-aware = zgodne z renderem.
+  if (!window._swipeAttached && window.SWIPE) {
+    window._swipeAttached = true;
+    SWIPE.attach({
+      items: NAV.items(_isCoach ? 'coach' : 'athlete', { athleteId: _myId }),
+      local: {}, onLocal: function(){},
+      activeId: function(){ return 'profil'; }
+    });
+  }
+
   // Target: ?id=UUID lub własny profil
   const params = new URLSearchParams(location.search);
   const targetUserId = params.get('id');

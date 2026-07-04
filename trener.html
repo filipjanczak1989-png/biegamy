@@ -816,9 +816,20 @@ window._mountNav = function(){
     settings:"showCoachSection('settings')"
   }});
 };
+// SWIPE (S2) — gest lewo/prawo po sekcjach coacha; attach DOKŁADNIE RAZ
+window._attachSwipeOnce = function(){
+  if (window._swipeAttached || !window.SWIPE || !window.NAV) return;
+  window._swipeAttached = true;
+  SWIPE.attach({
+    items: NAV.items('coach', {}),
+    local: { home:1, analytics:1, msgs:1, social:1, settings:1 },   // in-page; Plan → href (kalendarz)
+    onLocal: function(id){ showCoachSection(id); },
+    activeId: function(){ return window._coachSection || 'home'; }
+  });
+};
 // NAV z sb.js (niżej) → mont po DOMContentLoaded; deep-link ?tab= przełącza sekcję (setActive) po init
-if (window.NAV) window._mountNav();
-else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); });
+if (window.NAV) { window._mountNav(); window._attachSwipeOnce(); }
+else document.addEventListener('DOMContentLoaded', function(){ if (window._mountNav) window._mountNav(); if (window._attachSwipeOnce) window._attachSwipeOnce(); });
 </script>
 
 <div class="toast" id="t-el"></div>
@@ -4598,6 +4609,7 @@ async function _renderNotifPanel(panel) {
 let _currentChatAthleteId = null;
 
 function showCoachSection(name) {
+  window._coachSection = name;   // żywa flaga bieżącej sekcji (wzorzec _currentSection z zawodnika; używa SWIPE)
   // Reset — schowaj wszystko
   document.querySelectorAll('.quick-stats, .sec-hdr, #ath-list, .panel').forEach(el => el.style.display = '');
   document.getElementById('msgs-panel-section').style.display = 'none';

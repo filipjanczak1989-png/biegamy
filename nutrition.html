@@ -4637,6 +4637,15 @@ function mountNav(id){ var m=document.getElementById('nav-mount'); if(m && windo
     _athleteRowId = _athRow && _athRow.id;
     if (_athleteRowId) mountNav(_athleteRowId);   // NAV re-mount z Profil→profil.html?id=<athletes.id>
   } catch (e) { console.warn('[nutrition] athlete row lookup', e); }
+  // SWIPE (S2) — gest lewo/prawo po pozycjach nav; attach RAZ. Brak in-page → każdy swipe = href (lewo→Forma, prawo→Plan).
+  if (!window._swipeAttached && window.SWIPE) {
+    window._swipeAttached = true;
+    SWIPE.attach({
+      items: NAV.items('athlete', { athleteId: _athleteRowId }),
+      local: {}, onLocal: function(){},
+      activeId: function(){ return 'food'; }
+    });
+  }
   await loadProfile();
   await loadTodayMeals();
   refreshDashboard();
