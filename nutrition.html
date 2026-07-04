@@ -36,7 +36,6 @@ body {
 :root {
   /* nutrition: lokalne akcenty/cienie — powierzchnie/tekst/status z theme.css (kanon) */
   --accent-glow: rgba(var(--accent-rgb),0.4);
-  --gold: #ffb74d;
 
   /* Cienie — głębokość warstw */
   --shadow-sm: 0 2px 8px rgba(0,0,0,0.3);
@@ -540,11 +539,11 @@ body {
 .recipe-sub { padding:8px 18px 2px; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); }
 .recipe-list { margin:4px 0 0; padding:0 18px 12px 36px; font-size:13px; color:var(--fg); line-height:1.6; }
 .recipe-tags { padding:0 18px 16px; display:flex; flex-wrap:wrap; gap:6px; }
-.recipe-tag { font-size:9px; font-family:'DM Mono',monospace; letter-spacing:0.05em; color:#ff8a4c; background:rgba(var(--accent-rgb),0.12); border:1px solid rgba(var(--accent-rgb),0.3); border-radius:6px; padding:3px 8px; }
+.recipe-tag { font-size:9px; font-family:'DM Mono',monospace; letter-spacing:0.05em; color:var(--accent2); background:rgba(var(--accent-rgb),0.12); border:1px solid rgba(var(--accent-rgb),0.3); border-radius:6px; padding:3px 8px; }
 .recipe-empty { padding:18px; text-align:center; color:var(--muted); font-size:12px; font-family:'DM Mono',monospace; }
 .lib-empty { padding:16px; text-align:center; color:var(--muted); font-size:12px; font-family:'DM Mono',monospace; }
 .lib-group { margin:14px 0 6px; font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.12em; text-transform:uppercase; color:var(--fg2); display:flex; align-items:center; gap:8px; }
-.lib-count { background:rgba(var(--accent-rgb),0.15); color:#ff8a4c; border-radius:10px; padding:1px 8px; font-size:9px; }
+.lib-count { background:rgba(var(--accent-rgb),0.15); color:var(--accent2); border-radius:10px; padding:1px 8px; font-size:9px; }
 .lib-row { display:flex; align-items:center; gap:10px; padding:11px 12px; margin-bottom:6px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:12px; cursor:pointer; transition:border-color 0.15s; }
 .lib-row:hover { border-color:rgba(var(--accent-rgb),0.35); }
 .lib-emoji { font-size:24px; line-height:1; flex-shrink:0; }
@@ -569,7 +568,7 @@ body {
 .rp-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.06em; margin-right:2px; }
 .rp-mult { padding:5px 10px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:transparent; color:var(--fg); font-size:12px; font-weight:700; cursor:pointer; }
 .rp-mult.active { background:linear-gradient(135deg,var(--accent),var(--accent2)); border-color:transparent; color:#fff; }
-.recipe-journal-btn { width:100%; margin-top:10px; padding:11px; border-radius:12px; cursor:pointer; background:rgba(var(--accent-rgb),0.14); color:#ff8a4c; border:1px solid rgba(var(--accent-rgb),0.4); font-family:'DM Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
+.recipe-journal-btn { width:100%; margin-top:10px; padding:11px; border-radius:12px; cursor:pointer; background:rgba(var(--accent-rgb),0.14); color:var(--accent2); border:1px solid rgba(var(--accent-rgb),0.4); font-family:'DM Mono',monospace; font-size:12px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; }
 .recipe-journal-btn:disabled { opacity:0.6; }
 .recipe-lib-card { max-width:560px; padding:0; }
 .recipe-lib-head { position:sticky; top:0; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:18px 18px 12px; background:linear-gradient(180deg, rgba(26,26,36,0.98), rgba(26,26,36,0.92)); border-bottom:1px solid rgba(255,255,255,0.06); }
@@ -2407,7 +2406,7 @@ body {
   margin-bottom: 10px;
 }
 .ai-confidence-pill.high { background: rgba(61,184,112,0.15); color: var(--green); border: 1px solid rgba(61,184,112,0.4); }
-.ai-confidence-pill.medium { background: rgba(255,217,102,0.15); color: var(--gold); border: 1px solid rgba(255,217,102,0.4); }
+.ai-confidence-pill.medium { background: rgba(255,217,102,0.15); color: var(--yellow); border: 1px solid rgba(255,217,102,0.4); }
 .ai-confidence-pill.low { background: rgba(224,80,80,0.15); color: var(--red); border: 1px solid rgba(224,80,80,0.4); }
 .ai-note {
   font-size: 11px;
@@ -2416,7 +2415,7 @@ body {
   margin-bottom: 12px;
   padding: 8px 12px;
   background: rgba(255,255,255,0.03);
-  border-left: 2px solid var(--gold);
+  border-left: 2px solid var(--yellow);
   border-radius: 4px;
 }
 
