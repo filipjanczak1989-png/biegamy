@@ -979,8 +979,9 @@
     _scrollableX: function(el){
       try {
         var ox = getComputedStyle(el).overflowX;
-        if (ox === 'auto' || ox === 'scroll') return true;
-        if (el.scrollWidth > el.clientWidth + 4) return true;
+        // Blokuj tylko REALNY poziomy scroller: overflow-x auto/scroll ORAZ treść szersza niż kontener.
+        // (Sam scrollWidth>clientWidth daje false-positive na overflow:hidden — np. karty Ustawień trenera → blokowały swipe.)
+        if ((ox === 'auto' || ox === 'scroll') && el.scrollWidth > el.clientWidth + 4) return true;
       } catch(e){}
       return false;
     },
@@ -996,7 +997,7 @@
       var el = target;
       while (el && el !== document.body) {
         var tag = (el.tagName || '').toLowerCase();
-        if (tag === 'canvas' || tag === 'input' || tag === 'textarea' || tag === 'select') return true; // (b)(c)
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') return true; // (c) — canvas ZDJĘTY (wykresy nie konsumują poziomego dragu; Forma-chart pan wyłączony osobno)
         if (el.isContentEditable) return true;                             // (c)
         if (this._scrollableX(el)) return true;                            // (a) poziomy scroller
         if (checkModalZ) {                                                 // (d) wysoki modal fixed z-index>=300
@@ -2308,7 +2309,7 @@
           interaction: { mode: 'index', intersect: false },
           plugins: {
             zoom: {
-              pan: { enabled: true, mode: 'x', threshold: 10 },
+              pan: { enabled: false },   // S3-fix: wyłączony poziomy drag-pan → nie koliduje z nav-swipe (pinch-zoom niżej zostaje)
               zoom: {
                 wheel: { enabled: true, speed: 0.1 },
                 pinch: { enabled: true },
