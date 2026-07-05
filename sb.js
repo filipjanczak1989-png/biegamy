@@ -936,15 +936,20 @@
           {id:'settings', label:'Ustawienia', target:'trener.html?tab=settings', icon:'settings'}
         ];
       }
+      // Podgląd trenera: gdy bieżący URL ma ?from=trener (lub przekazano opts.from) — propaguj go do WSZYSTKICH
+      // targetów athlety, żeby swipe/nav między ekranami nie gubił kontekstu podglądu (trener nie wypadał z widoku zawodnika).
+      var from = (opts.from !== undefined) ? opts.from
+                 : (function(){ try { return new URLSearchParams(location.search).get('from') === 'trener' ? 'trener' : null; } catch(e){ return null; } })();
+      function wf(t){ return (from && t) ? (t + (t.indexOf('?') >= 0 ? '&' : '?') + 'from=' + from) : t; }
       var prof = opts.athleteId ? ('profil.html?id=' + opts.athleteId) : 'profil.html';
       return [
-        {id:'home', label:'Dziś', target:'zawodnik.html', icon:'home'},
-        {id:'plan', label:'Plan', target:'kalendarz.html?role=athlete', icon:'plan'},
-        {id:'food', label:'Jedzenie', target:'nutrition.html', icon:'food', title:'Odżywianie'},
-        {id:'log', label:'Log', logo:true, target:'zawodnik.html?log=1', onLog:(opts.onLog || null)},
-        {id:'forma', label:'Forma', target:'zawodnik.html?tab=forma', icon:'forma'},
-        {id:'social', label:'Społeczność', target:'zawodnik.html?tab=social', icon:'social'},
-        {id:'profil', label:'Profil', target:prof, icon:'profil'}
+        {id:'home', label:'Dziś', target:wf('zawodnik.html'), icon:'home'},
+        {id:'plan', label:'Plan', target:wf('kalendarz.html?role=athlete'), icon:'plan'},
+        {id:'food', label:'Jedzenie', target:wf('nutrition.html'), icon:'food', title:'Odżywianie'},
+        {id:'log', label:'Log', logo:true, target:wf('zawodnik.html?log=1'), onLog:(opts.onLog || null)},
+        {id:'forma', label:'Forma', target:wf('zawodnik.html?tab=forma'), icon:'forma'},
+        {id:'social', label:'Społeczność', target:wf('zawodnik.html?tab=social'), icon:'social'},
+        {id:'profil', label:'Profil', target:wf(prof), icon:'profil'}
       ];
     },
     render: function(activeId, opts){
