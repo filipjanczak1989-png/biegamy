@@ -916,6 +916,12 @@ body > *{position:relative;z-index:1;}
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
   <!-- Hasło historii — górna martwa przestrzeń; kolor ustawia _heroInit wg _heroLight -->
   <div id="hero-text" style="position:absolute;top:0;left:0;right:0;padding:24px 22px 0;z-index:2;pointer-events:none;font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1.06;letter-spacing:0.01em;text-align:center;opacity:0;transform:translateY(-6px);transition:opacity 0.55s ease,transform 0.55s ease;"></div>
+  <!-- Kadr 6: brand-klamra (wordmark + final); confetti na własnym canvasie -->
+  <div id="hero-brand" style="display:none;position:absolute;inset:0;z-index:2;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 0.6s ease;pointer-events:none;">
+    <svg width="189" height="66" viewBox="0 0 130 44" fill="none" xmlns="http://www.w3.org/2000/svg"><text font-family="'Arial Black','Franklin Gothic Heavy','Helvetica Neue',sans-serif" font-size="28" font-weight="900" font-style="italic" letter-spacing="-0.8"><tspan x="2" y="19" fill="#f0ede8">Biega</tspan><tspan fill="var(--accent)">My</tspan></text></svg>
+    <div id="hero-brand-final" style="font-family:'Bebas Neue',sans-serif;font-size:26px;color:#f0ede8;letter-spacing:0.04em;"></div>
+  </div>
+  <canvas id="hero-confetti" style="position:absolute;inset:0;pointer-events:none;z-index:4;border-radius:inherit;"></canvas>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
   <!-- spacer żeby karta miała wysokość -->
   <div style="flex:1;"></div>
@@ -4600,16 +4606,16 @@ const BASE_ASSETS = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 // light:true → jasne tło (zima/upał) → ciemny tekst zamiast białego.
 // Dodanie historii = jeden wpis (brzeg/tor dojdą tak samo).
 const _heroStories = {
-  cien:   { light:false, txt:['Twój rywal już biegnie.','Zawsze o krok przed Tobą.','Dogoniłeś. Teraz najtrudniejsze.','Mijasz siebie. Tego dawnego.','Zostałeś sam. Lepszy.'] },
-  meta:   { light:false, txt:['Został ostatni kilometr.','Ciało mówi dość. Nie słuchasz.','Oni krzyczą Twoje imię.','Teraz. Wszystko albo nic.','Przekroczyłeś własną granicę.'] },
-  burza:  { light:false, txt:['Burza Cię nie ominie.','Pada? Ty i tak wyszedłeś.','Żywioł nie robi Ci różnicy.','Głowa w dół. Do przodu.','Po burzy zawsze jest światło.'] },
-  noc:    { light:false, txt:['Kiedy oni śpią, Ty biegniesz.','Miasto należy teraz do Ciebie.','Tylko oddech i kroki.','Noc się kończy. Ty nie.','Wstałeś przed słońcem.'] },
-  gory:   { light:false, txt:['Szczyt nie przyjdzie do Ciebie.','Każdy krok to wysokość.','Grań nie wybacza wahania.','Nogi mówią dość. Idziesz dalej.','Świat u Twoich stóp.'] },
-  zima:   { light:true,  txt:['Zima nie jest wymówką.','Twój ślad. Pierwszy dziś.','Mróz sprawdza, kto naprawdę chce.','Sam na sam z zimą.','Hart ma swoją nagrodę.'] },
-  razem:  { light:false, txt:['Nie biegasz sam.','Wspólny rytm niesie dalej.','Podaj rękę. Ktoś ją odda.','Razem prze się mocniej.','Razem dobiega się dalej.'] },
-  las:    { light:false, txt:['Las nie ocenia. Po prostu jest.','Tu głowa w końcu milknie.','Każdy krok Cię rozplątuje.','Natura narzuca rytm.','Wychodzisz lżejszy, niż wszedłeś.'] },
-  powrot: { light:false, txt:['Każdy upadek ma swoje dno.','Powrót zaczyna się od kroku.','Forma wraca do cierpliwych.','Znów jesteś sobą. Mocniejszym.','Wróciłeś silniejszy niż przedtem.'] },
-  upal:   { light:true,  txt:['Słońce nie bierze jeńców.','Pot to słabość, która ucieka.','Żar sprawdza wytrwałych.','Upał odpuszcza pierwszy.','Przetrwałeś najgorętszą porę.'] },
+  cien:   { light:false, final:'Pokonałeś *siebie*.', txt:['Twój *rywal* już biegnie.','Zawsze o krok *przed* Tobą.','Dogoniłeś. Teraz *najtrudniejsze*.','Mijasz siebie. Tego *dawnego*.','Zostałeś sam. *Lepszy*.'] },
+  meta:   { light:false, final:'Dziś *wygrałeś*.', txt:['Został *ostatni* kilometr.','Ciało mówi dość. *Nie słuchasz*.','Oni krzyczą *Twoje* imię.','Teraz. *Wszystko* albo nic.','Przekroczyłeś własną *granicę*.'] },
+  burza:  { light:false, final:'Przetrwałeś *burzę*.', txt:['*Burza* Cię nie ominie.','Pada? Ty i tak *wyszedłeś*.','Żywioł nie robi Ci *różnicy*.','Głowa w dół. *Do przodu*.','Po burzy zawsze jest *światło*.'] },
+  noc:    { light:false, final:'Wyprzedziłeś *dzień*.', txt:['Kiedy oni śpią, Ty *biegniesz*.','Miasto należy teraz do *Ciebie*.','Tylko *oddech* i kroki.','Noc się kończy. *Ty nie*.','Wstałeś przed *słońcem*.'] },
+  gory:   { light:false, final:'Zdobyłeś *szczyt*.', txt:['*Szczyt* nie przyjdzie do Ciebie.','Każdy krok to *wysokość*.','Grań nie wybacza *wahania*.','Nogi mówią dość. *Idziesz* dalej.','Świat u Twoich *stóp*.'] },
+  zima:   { light:true,  final:'Mróz Cię *zahartował*.', txt:['*Zima* nie jest wymówką.','Twój ślad. *Pierwszy* dziś.','Mróz sprawdza, kto *naprawdę* chce.','Sam na sam z *zimą*.','*Hart* ma swoją nagrodę.'] },
+  razem:  { light:false, final:'*Razem* dobiegliście.', txt:['Nie biegasz *sam*.','*Wspólny* rytm niesie dalej.','Podaj rękę. Ktoś ją *odda*.','*Razem* prze się mocniej.','Razem dobiega się *dalej*.'] },
+  las:    { light:false, final:'Wróciłeś *lżejszy*.', txt:['Las nie ocenia. Po prostu *jest*.','Tu głowa w końcu *milknie*.','Każdy krok Cię *rozplątuje*.','*Natura* narzuca rytm.','Wychodzisz *lżejszy*, niż wszedłeś.'] },
+  powrot: { light:false, final:'*Wróciłeś*.', txt:['Każdy upadek ma swoje *dno*.','Powrót zaczyna się od *kroku*.','Forma wraca do *cierpliwych*.','Znów jesteś sobą. *Mocniejszym*.','Wróciłeś *silniejszy* niż przedtem.'] },
+  upal:   { light:true,  final:'Żar Cię nie *zatrzymał*.', txt:['*Słońce* nie bierze jeńców.','Pot to słabość, która *ucieka*.','Żar sprawdza *wytrwałych*.','Upał odpuszcza *pierwszy*.','Przetrwałeś *najgorętszą* porę.'] },
 };
 
 // Historia dnia — RÓWNY CYKL: każda historia raz na N dni, lokalna północ (bez off-by-one)
@@ -4619,10 +4625,17 @@ const _heroKeys = Object.keys(_heroStories);
 const _heroKey  = _heroKeys[_dayNum % _heroKeys.length];
 const _heroStory = _heroStories[_heroKey];
 
-// 5 kadrów W KOLEJNOŚCI (sekwencja 1→5) + hasła 1:1 + flaga jasnego tła
+// 5 kadrów W KOLEJNOŚCI (sekwencja 1→5) + kadr 6 BRAND (klamra: wordmark+final+confetti)
 const _heroCards  = [1,2,3,4,5].map(function(n){ return BASE_ASSETS + _heroKey + n + '.webp'; });
-const _heroQuotes = _heroStory.txt;
+_heroCards.push('__BRAND__'); // slot 6 — bez grafiki, czarny brand-slajd
+const _heroQuotes = _heroStory.txt.concat([_heroStory.final || 'Dziś *wygrałeś*.']);
 const _heroLight  = !!_heroStory.light;
+
+// Render hasła: *słowo* → span z akcentem motywu (patent „My" z logo)
+function _heroQuoteHtml(q){
+  return String(q).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\*([^*]+)\*/g, '<span style="color:var(--accent);text-shadow:0 0 18px rgba(var(--accent-rgb),0.55)">$1</span>');
+}
 
 let _heroIdx = 0;
 let _heroTimer = null;
@@ -4645,18 +4658,63 @@ function _heroShow(i) {
   if (txtEl) { txtEl.style.opacity = '0'; txtEl.style.transform = 'translateY(-6px)'; }
 
   setTimeout(() => {
-    bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
-    bg.style.opacity = '1';
-    if (txtEl && _heroQuotes[i]) {
-      txtEl.textContent = _heroQuotes[i];
-      txtEl.style.opacity = '1';
-      txtEl.style.transform = 'translateY(0)';
+    const brandEl = document.getElementById('hero-brand');
+    if (_heroCards[i] === '__BRAND__') {
+      bg.style.backgroundImage = 'none'; bg.style.background = '#0a0a0c';
+      bg.style.opacity = '1';
+      const finalEl = document.getElementById('hero-brand-final');
+      if (finalEl && _heroQuotes[5]) finalEl.innerHTML = _heroQuoteHtml(_heroQuotes[5]);   // E5: zdanie domknięcia z akcentem
+      if (brandEl) { brandEl.style.display = 'flex'; requestAnimationFrame(() => { brandEl.style.opacity = '1'; }); _heroConfettiBurst(); }
+      if (txtEl) txtEl.style.opacity = '0';
+    } else {
+      if (brandEl) { brandEl.style.opacity = '0'; brandEl.style.display = 'none'; }
+      bg.style.background = '';
+      bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
+      bg.style.opacity = '1';
+      if (txtEl && _heroQuotes[i]) {
+        txtEl.innerHTML = _heroQuoteHtml(_heroQuotes[i]);
+        txtEl.style.opacity = '1';
+        txtEl.style.transform = 'translateY(0)';
+      }
     }
   }, 220);
   // Zaktualizuj paginację
   document.querySelectorAll('.hero-dot').forEach((d, idx) => {
     d.classList.toggle('active', idx === i);
   });
+}
+
+// Confetti kadru 6 — wzorzec z function confetti() (#prs-confetti), ale: canvas karty, ~60 cząstek,
+// wystrzał OD DOŁU, ~1.8s. --accent rozwiązany do realnego koloru (canvas nie renderuje var()).
+function _heroConfettiBurst(){
+  const canvas = document.getElementById('hero-confetti');
+  if (!canvas) return;
+  const W = canvas.width  = canvas.offsetWidth  || canvas.clientWidth  || 320;
+  const H = canvas.height = canvas.offsetHeight || canvas.clientHeight || 200;
+  const ctx = canvas.getContext('2d');
+  let acc = '#e8561e';
+  try { const c = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); if (c) acc = c; } catch(e){}
+  const colors = [acc, '#ff8c42', '#ffffff', '#ffd700', '#ff4444', '#3db870', '#5b8cff'];
+  const particles = Array.from({length:60}, () => ({
+    x: Math.random()*W, y: H + 8,
+    vx: (Math.random()-0.5)*7, vy: -(Math.random()*9 + 7),
+    w: Math.random()*10+4, h: Math.random()*6+3,
+    color: colors[Math.floor(Math.random()*colors.length)],
+    rot: Math.random()*360, rv: (Math.random()-0.5)*9,
+  }));
+  let frame;
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    particles.forEach(p => {
+      p.vy += 0.25;                       // grawitacja ściąga po wystrzale
+      p.x += p.vx; p.y += p.vy; p.rot += p.rv;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+    });
+    if (particles.some(p => p.y < H + 40)) frame = requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,W,H);
+  })();
+  setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0,0,W,H); }, 1800);
 }
 function _heroStartRotation() {
   if (_heroTimer) return;
@@ -4686,7 +4744,7 @@ function _heroInit() {
       txtEl0.style.textShadow = '0 2px 14px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9)';
     }
     if (_heroQuotes[0]) {
-      txtEl0.textContent = _heroQuotes[0];
+      txtEl0.innerHTML = _heroQuoteHtml(_heroQuotes[0]);
       requestAnimationFrame(() => setTimeout(() => { txtEl0.style.opacity = '1'; txtEl0.style.transform = 'translateY(0)'; }, 90));
     }
   }
