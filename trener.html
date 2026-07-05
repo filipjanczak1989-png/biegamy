@@ -4628,6 +4628,7 @@ function showCoachSection(name) {
   document.getElementById('analytics-section').style.display = 'none';
   document.getElementById('settings-section').style.display = 'none';
   document.getElementById('coach-social-section').style.display = 'none';   // gap: reset nie chował social → social→inny tab zostawiał feed
+  const _dpanel = document.getElementById('panel'); if (_dpanel) _dpanel.classList.remove('open');   // fix: zamknij overlay zawodnika (.panel-overlay z-index:300) przy przełączaniu sekcji — inaczej blokował swipe (modalZ) i zostawał na wierzchu
   // Podświetlenie nav — class-based przez window.NAV.setActive (kolory z theme.css; sekcje mapują 1:1 na navid, Plan=strona→pomijany)
   if (window.NAV && NAV.setActive) NAV.setActive({home:'home', msgs:'msgs', messages:'msgs', czat:'msgs', wiadomosci:'msgs', analytics:'analytics', statystyki:'analytics', social:'social', settings:'settings', ustawienia:'settings'}[name] || null);
 
