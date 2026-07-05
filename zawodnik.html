@@ -953,6 +953,12 @@ body > *{position:relative;z-index:1;}
   <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:DM Mono,monospace;text-align:right;"></div>
 </div>
 
+<!-- Baner typu treningu (cover mapowany po typie; wypełnia loadTodayTraining) -->
+<div id="today-type-banner" style="display:none;position:relative;height:84px;margin:0 16px 12px;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+  <div id="today-type-banner-img" style="position:absolute;inset:0;background-size:cover;background-position:center 35%;"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,5,12,0.55) 0%,rgba(7,5,12,0.15) 55%,rgba(7,5,12,0.0) 100%);pointer-events:none;"></div>
+</div>
+
 <!-- Akcje pod kartą -->
 <div class="today-actions-wrap fade-in">
   <!-- Auto-prompt push (renderowane przez maybeShowPushPrompt) -->
@@ -5235,6 +5241,8 @@ async function loadTodayTraining() {
     // Ukryj pill gdy brak treningu
     const tPillWrap = document.getElementById('today-type-pill-wrap');
     if (tPillWrap) tPillWrap.style.display = 'none';
+    const tBan0 = document.getElementById('today-type-banner');
+    if (tBan0) tBan0.style.display = 'none';
     const cwCta0 = document.getElementById('today-cwiczenia-cta'); if (cwCta0) cwCta0.style.display = 'none';
     window._todayTraining = null;
     return;
@@ -5258,6 +5266,17 @@ async function loadTodayTraining() {
     tPillWrap.style.display = '';
   } else if (tPillWrap) {
     tPillWrap.style.display = 'none';
+  }
+
+  // ── Baner typu treningu (cover mapowany po typie) ──
+  const tBan = document.getElementById('today-type-banner');
+  const tBanImg = document.getElementById('today-type-banner-img');
+  const _banUrl = (window.trainingTypeBannerUrl ? window.trainingTypeBannerUrl(data.type) : '');
+  if (tBan && tBanImg && _banUrl) {
+    tBanImg.style.backgroundImage = 'url(' + _banUrl + ')';
+    tBan.style.display = 'block';
+  } else if (tBan) {
+    tBan.style.display = 'none';
   }
   
   const metaItems = [

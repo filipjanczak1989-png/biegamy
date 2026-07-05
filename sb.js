@@ -1654,6 +1654,19 @@
     return '<img src="' + window.assetUrl('icon-' + n + '.webp') + '" style="width:' + size + 'px;height:' + size + 'px;vertical-align:-3px;flex-shrink:0;" alt="">';
   };
 
+  // Mapa typ→banner (szerokie okładki). Klucze = te same nazwy typów co TRAINING_TYPE_ICONS.
+  // Odpoczynek świadomie pominięty — brak banner-odpoczynek.webp (dzień wolny bez okładki).
+  window.TRAINING_TYPE_BANNERS = {
+    'Spokojny':'banner-spokojny', 'Bieg spokojny':'banner-spokojny', 'Interwały':'banner-interwaly',
+    'Tempo':'banner-tempo', 'Wybieganie':'banner-wybieganie', 'Regeneracja':'banner-regeneracja',
+    'Wzmacniający':'banner-wzmacniajacy', 'Start':'banner-start', 'Zastępczy':'banner-zastepczy'
+  };
+  // Zwraca URL bannera typu (lub '' gdy brak mapowania/assetUrl).
+  window.trainingTypeBannerUrl = function(type) {
+    const f = (window.TRAINING_TYPE_BANNERS || {})[type];
+    return (f && window.assetUrl) ? window.assetUrl(f + '.webp') : '';
+  };
+
   // Intensity helpers — używane przez heatmap aktywności (GitHub-style)
   // thresholds opcjonalne — default statyczne progi (zachowanie zawodnik.html)
   window.formaIntensityLevel = function(trimp, thresholds) {
