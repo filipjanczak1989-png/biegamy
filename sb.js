@@ -976,6 +976,30 @@
       try { return localStorage.getItem('bm_swipe') !== 'off' && ('ontouchstart' in window); }
       catch(e){ return false; }
     },
+    // ── DEBUG MODE (za flagą localStorage.bm_swipe_debug==='1'; włącz z telefonu przez ?swipedebug=1) ──
+    _dbgOn: function(){ try { return localStorage.getItem('bm_swipe_debug') === '1'; } catch(e){ return false; } },
+    _sel: function(el){
+      if (!el || !el.tagName) return '?';
+      var s = el.tagName.toLowerCase();
+      if (el.id) s += '#' + el.id;
+      if (el.className && typeof el.className === 'string') { var c = el.className.trim().split(/\s+/).slice(0,2).join('.'); if (c) s += '.' + c; }
+      return s;
+    },
+    _dbg: function(msg){
+      if (!this._dbgOn()) return;
+      try {
+        var o = document.getElementById('_swipe_dbg');
+        if (!o) {
+          o = document.createElement('div'); o.id = '_swipe_dbg';
+          o.style.cssText = 'position:fixed;left:8px;right:8px;bottom:96px;z-index:2147483647;background:rgba(0,0,0,0.92);color:#4ade80;font:600 11px/1.45 monospace;padding:9px 11px;border-radius:8px;border:1px solid #4ade80;white-space:pre-wrap;word-break:break-word;pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,0.5);';
+          document.body.appendChild(o);
+        }
+        o.textContent = '🖐 ' + msg;
+        o.style.opacity = '1';
+        clearTimeout(this._dbgT);
+        this._dbgT = setTimeout(function(){ if (o) o.style.opacity = '0'; }, 2000);
+      } catch(e){}
+    },
     _scrollableX: function(el){
       try {
         var ox = getComputedStyle(el).overflowX;
@@ -997,11 +1021,11 @@
       var el = target;
       while (el && el !== document.body) {
         var tag = (el.tagName || '').toLowerCase();
-        if (tag === 'input' || tag === 'textarea' || tag === 'select') return true; // (c) — canvas ZDJĘTY (wykresy nie konsumują poziomego dragu; Forma-chart pan wyłączony osobno)
-        if (el.isContentEditable) return true;                             // (c)
-        if (this._scrollableX(el)) return true;                            // (a) poziomy scroller
+        if (tag === 'input' || tag === 'textarea' || tag === 'select') { this._blockReason = 'input(' + this._sel(el) + ')'; return true; } // (c) — canvas ZDJĘTY
+        if (el.isContentEditable) { this._blockReason = 'contenteditable(' + this._sel(el) + ')'; return true; }   // (c)
+        if (this._scrollableX(el)) { this._blockReason = 'scrollableX(' + this._sel(el) + ')'; return true; }      // (a) poziomy scroller
         if (checkModalZ) {                                                 // (d) wysoki modal fixed z-index>=300
-          try { var cs = getComputedStyle(el); if (cs.position === 'fixed' && parseInt(cs.zIndex, 10) >= 300) return true; } catch(e){}
+          try { var cs = getComputedStyle(el); if (cs.position === 'fixed' && parseInt(cs.zIndex, 10) >= 300) { this._blockReason = 'modalZ(' + this._sel(el) + ')'; return true; } } catch(e){}
         }
         el = el.parentElement;
       }
@@ -1009,10 +1033,10 @@
     },
     // Pełny guard dla document-level attach (nav-swipe): wyłączony / otwarty modal + _blockedEl z modal-z.
     _blocked: function(target){
-      if (!this._enabled()) return true;                                   // (e) wyłączony / brak touch
-      if (document.querySelector('.add-overlay.open')) return true;        // (d) bottom-sheet otwarty
+      if (!this._enabled()) { this._blockReason = 'disabled'; return true; }                     // (e) wyłączony / brak touch
+      if (document.querySelector('.add-overlay.open')) { this._blockReason = 'add-overlay.open'; return true; }  // (d) bottom-sheet
       var gm = document.getElementById('goal-modal');
-      if (gm) { try { if (getComputedStyle(gm).display !== 'none') return true; } catch(e){} }  // (d) modal celu
+      if (gm) { try { if (getComputedStyle(gm).display !== 'none') { this._blockReason = 'goal-modal'; return true; } } catch(e){} }  // (d) modal celu
       return this._blockedEl(target, true);
     },
     attach: function(opts){
@@ -1028,27 +1052,33 @@
 
       document.addEventListener('touchstart', function(e){
         tracking = false; blocked = false;
-        if (!e.touches || e.touches.length !== 1) { blocked = true; return; }
-        if (blockWhen && blockWhen()) { blocked = true; return; }            // (f) strona-specyficzny gate (S3: arkusz dnia otwarty)
-        if (self._blocked(e.target)) { blocked = true; return; }
+        if (!e.touches || e.touches.length !== 1) { blocked = true; self._blockReason = 'multitouch'; return; }
+        if (blockWhen && blockWhen()) { blocked = true; self._blockReason = 'blockWhen'; return; }  // (f) strona-specyficzny gate (S3: arkusz dnia)
+        if (self._blocked(e.target)) { blocked = true; return; }            // _blocked ustawia _blockReason
         var t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now(); tracking = true;
       }, { passive: true });
 
       document.addEventListener('touchend', function(e){
-        if (!tracking || blocked) return;
+        if (blocked) { self._dbg('BLOCKED: ' + (self._blockReason || '?')); return; }  // _dbg no-op bez flagi = zero zmian zachowania
+        if (!tracking) return;
         tracking = false;
         var t = e.changedTouches && e.changedTouches[0]; if (!t) return;
-        var dir = self._dir(t.clientX - sx, t.clientY - sy, Date.now() - st);
-        if (!dir) return;
+        var dx = t.clientX - sx, dy = t.clientY - sy, dt = Date.now() - st;
+        var dir = self._dir(dx, dy, dt);
+        if (!dir) { self._dbg('IGNORED: dx=' + Math.round(dx) + ' dy=' + Math.round(dy) + ' t=' + dt + 'ms'); return; }
         var active = getActive();
-        if (active == null) return;                                        // activeId null → gest nieaktywny
+        if (active == null) { self._dbg('GESTURE dir=' + dir + ' ale activeId=null (martwy)'); return; }
         var idx = -1;
         for (var i = 0; i < items.length; i++) { if (items[i].id === active) { idx = i; break; } }
-        if (idx < 0) return;
+        if (idx < 0) { self._dbg('GESTURE dir=' + dir + ' active=' + active + ' — brak w items'); return; }
         var ni = (idx + dir + items.length) % items.length;               // ZAWIJANIE (karuzela): ostatnia↔pierwsza; tylko nav-swipe (attach), day-swipe (attachEl) bez zawijania
         var it = items[ni];
+        self._dbg('GESTURE: ' + active + ' dir=' + dir + ' → ' + it.id + ' (' + (localMap[it.id] ? 'local' : ('href ' + it.target)) + ')');
         if (localMap[it.id]) onLocal(it.id);                               // in-page → callback
-        else if (it.target) location.href = it.target;                     // wyjście → href
+        else if (it.target) {
+          if (self._dbgOn()) { var _t = it.target; setTimeout(function(){ location.href = _t; }, 1600); }  // debug: pokaż toast przed nawigacją
+          else location.href = it.target;                                  // normalnie: natychmiast
+        }
       }, { passive: true });
     },
     // Gest lewo/prawo NA ELEMENCIE (np. arkusz dnia). Współdzieli progi (_dir) i guardy (_blockedEl)
@@ -1084,6 +1114,9 @@
       }, { passive: true });
     }
   };
+
+  // Włącznik debug z URL (telefon bez konsoli): ?swipedebug=1 → flaga on (persist w localStorage), ?swipedebug=0 → off.
+  (function(){ try { var d = new URLSearchParams(location.search).get('swipedebug'); if (d === '1') localStorage.setItem('bm_swipe_debug','1'); else if (d === '0') localStorage.removeItem('bm_swipe_debug'); } catch(e){} })();
 
   // ─── IKONY POGODY 3D — weather_code/cloud_pct → slug (home + kalendarz) ───
   // Chmury = wariant dark (wygrał A/B 2026-06-17). Opady/burza/śnieg/mgła z code; clear-spectrum (0-3) z cloud_pct.

@@ -3894,6 +3894,7 @@ function initFormaToggles() {
 }
 
 window.loadFormaSection = async function() {
+  if (!_athleteId) return;   // PKT5: wczesny call z deep-linku (przed initAuth) = no-op; initAuth doładuje po _athleteId
   await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
   initFormaToggles();
 };
@@ -4107,6 +4108,10 @@ async function initAuth() {
   if (ath) {
     _athleteId = ath.id;
     if (window._mountNav) window._mountNav();   // NAV re-mount z athletes.id (Profil→?id)
+    // PKT5: deep-link ?tab= przełączył display sekcji wcześnie (DOMContentLoaded) — doładuj jej dane teraz, gdy _athleteId znany
+    { const _dl = new URLSearchParams(location.search).get('tab');
+      if (_dl === 'forma' && window.loadFormaSection) window.loadFormaSection();
+      else if (_dl === 'social' && typeof loadSocialFeed === 'function') loadSocialFeed(false); }
     // W3 push auto-heal: reconcile DB vs aktualna subskrypcja (fire-and-forget)
     window._pushAthleteId = ath.id;
     if (typeof window.reconcilePushSubscription === 'function') window.reconcilePushSubscription(ath.id);
@@ -9507,10 +9512,12 @@ document.addEventListener('touchstart', (e) => {
 setTimeout(() => loadDailyMotivation(), 200);
 
 // Obsługa ?tab= z kalendarza (+ &cw=wzmacnianie / &prog=<id> deep-link do programu)
+// PKT5: przełącz sekcję NAJWCZEŚNIEJ (DOMContentLoaded — sekcje już w DOM), bez setTimeout(800) → koniec mignięcia "Dziś".
+// Sekcje = display-toggle (NAV.setActive guarduje brak nav-mountu); dane sekcji doładowuje initAuth po _athleteId.
 const _qp = new URLSearchParams(window.location.search);
 const _tabParam = _qp.get('tab');
-if (_tabParam) {
-  setTimeout(() => {
+function _applyDeepLink(){
+  if (_tabParam && typeof showSection === 'function') {
     showSection(_tabParam);
     if (_tabParam === 'cwiczenia') {
       const _cw = _qp.get('cw'), _prog = _qp.get('prog'), _breath = _qp.get('breath');
@@ -9523,13 +9530,11 @@ if (_tabParam) {
         if (_prog && typeof openProgram === 'function') openProgram(_prog);
       }
     }
-  }, 800);
+  }
+  if (_qp.get('log') === '1' && typeof openModal === 'function') openModal();  // ?log=1 → modal loga (home + modal)
 }
-
-// ?log=1 → otwórz modal logowania wyniku (Log-slot z NAV na innych ekranach)
-if (_qp.get('log') === '1') {
-  setTimeout(() => { if (typeof openModal === 'function') openModal(); }, 800);
-}
+if (document.readyState !== 'loading') _applyDeepLink();
+else document.addEventListener('DOMContentLoaded', _applyDeepLink);
 
 // ════════════════════════════════════════════════════════════════════
 // Deep-link do raportu AI (z push notification lub URL ?section=aireports)
