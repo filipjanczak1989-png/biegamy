@@ -914,6 +914,8 @@ body > *{position:relative;z-index:1;}
   <div id="today-hero-bg" style="position:absolute;inset:0;background-size:cover;background-position:center 30%;opacity:0;pointer-events:none;z-index:0;border-radius:inherit;transition:opacity 0.5s ease;"></div>
   <!-- minimalny overlay tylko żeby rogi karty wyglądały ładnie -->
   <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,5,12,0.12) 0%,rgba(7,5,12,0.0) 30%,rgba(7,5,12,0.0) 85%,rgba(7,5,12,0.18) 100%);border-radius:inherit;pointer-events:none;z-index:1;"></div>
+  <!-- Hasło historii — górna martwa przestrzeń; kolor ustawia _heroInit wg _heroLight -->
+  <div id="hero-text" style="position:absolute;top:0;left:0;right:0;padding:24px 22px 0;z-index:2;pointer-events:none;font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1.06;letter-spacing:0.01em;text-align:center;opacity:0;transform:translateY(-6px);transition:opacity 0.55s ease,transform 0.55s ease;"></div>
   <div class="today-hero-top" style="position:relative;z-index:3;"></div>
   <!-- spacer żeby karta miała wysokość -->
   <div style="flex:1;"></div>
@@ -4591,67 +4593,36 @@ const _runImgs = (function() {
   return imgs;
 })();
 
-// ── ROTACJA KART HERO — pula tematyczna, 3 losowe kadry/dzień ────────────
+// ── HERO: HISTORIE — mikro-filmy grane sekwencyjnie 1→5 ─────────────────
 const BASE_ASSETS = 'https://filipjanczak1989-png.github.io/biegamy-assets/';
 
-// SSOT: temat → liczba kadrów (slugN.webp) + hasła (brandowe, bez autora)
-// Dodanie nowego zestawu = dopisanie jednego wpisu tutaj. Rotacja sama się skaluje.
-const _heroThemes = {
-  determinacja: { n: 5, txt: [
-    'Motywacja bywa. Dyscyplina zostaje.',
-    'Najtrudniejszy kilometr jest w głowie.',
-    'Sukces zaczyna się tam, gdzie kończą się wymówki.',
-    'Nie musisz być najlepszy. Musisz być konsekwentny.',
-    'Biegacza budują zwykłe treningi, nie wielkie dni.' ] },
-  pogoda: { n: 5, txt: [
-    'Deszcz nie pyta, czy jesteś gotowy.',
-    'Pod wiatr rośnie się najszybciej.',
-    'Pogoda jest sprawiedliwa — dla każdego taka sama.',
-    'Mistrzów nie robi komfort.',
-    'Warunki to nie wymówka. To trening.' ] },
-  dlugiewybieganie: { n: 5, txt: [
-    'Maraton wygrywa się na długim wybieganiu.',
-    'Cierpliwość ma własne tempo.',
-    'Długie kilometry uczą pokory.',
-    'Wytrzymałości nie ma na skróty.',
-    'Nie licz kilometrów. Buduj fundament.' ] },
-  progres: { n: 5, txt: [
-    'Każdy trening zostawia ślad.',
-    'Dzisiejszy wysiłek to jutrzejsza forma.',
-    'Sekundy nie spadają z nieba.',
-    'Forma rośnie kilometr po kilometrze.',
-    'Małe kroki, wielkie wyniki.' ] },
+// Każda historia: 5 kadrów (slug1..slug5) + 5 haseł 1:1 do kadrów.
+// light:true → jasne tło (zima/upał) → ciemny tekst zamiast białego.
+// Dodanie historii = jeden wpis (brzeg/tor dojdą tak samo).
+const _heroStories = {
+  cien:   { light:false, txt:['Twój rywal już biegnie.','Zawsze o krok przed Tobą.','Dogoniłeś. Teraz najtrudniejsze.','Mijasz siebie. Tego dawnego.','Zostałeś sam. Lepszy.'] },
+  meta:   { light:false, txt:['Został ostatni kilometr.','Ciało mówi dość. Nie słuchasz.','Oni krzyczą Twoje imię.','Teraz. Wszystko albo nic.','Przekroczyłeś własną granicę.'] },
+  burza:  { light:false, txt:['Burza Cię nie ominie.','Pada? Ty i tak wyszedłeś.','Żywioł nie robi Ci różnicy.','Głowa w dół. Do przodu.','Po burzy zawsze jest światło.'] },
+  noc:    { light:false, txt:['Kiedy oni śpią, Ty biegniesz.','Miasto należy teraz do Ciebie.','Tylko oddech i kroki.','Noc się kończy. Ty nie.','Wstałeś przed słońcem.'] },
+  gory:   { light:false, txt:['Szczyt nie przyjdzie do Ciebie.','Każdy krok to wysokość.','Grań nie wybacza wahania.','Nogi mówią dość. Idziesz dalej.','Świat u Twoich stóp.'] },
+  zima:   { light:true,  txt:['Zima nie jest wymówką.','Twój ślad. Pierwszy dziś.','Mróz sprawdza, kto naprawdę chce.','Sam na sam z zimą.','Hart ma swoją nagrodę.'] },
+  razem:  { light:false, txt:['Nie biegasz sam.','Wspólny rytm niesie dalej.','Podaj rękę. Ktoś ją odda.','Razem prze się mocniej.','Razem dobiega się dalej.'] },
+  las:    { light:false, txt:['Las nie ocenia. Po prostu jest.','Tu głowa w końcu milknie.','Każdy krok Cię rozplątuje.','Natura narzuca rytm.','Wychodzisz lżejszy, niż wszedłeś.'] },
+  powrot: { light:false, txt:['Każdy upadek ma swoje dno.','Powrót zaczyna się od kroku.','Forma wraca do cierpliwych.','Znów jesteś sobą. Mocniejszym.','Wróciłeś silniejszy niż przedtem.'] },
+  upal:   { light:true,  txt:['Słońce nie bierze jeńców.','Pot to słabość, która ucieka.','Żar sprawdza wytrwałych.','Upał odpuszcza pierwszy.','Przetrwałeś najgorętszą porę.'] },
 };
-// mental dojdzie tutaj, gdy mental1–4.webp wejdą na assets (gotowy wpis w sekcji "DODAWANIE" niżej)
 
-// Płaska pula wszystkich kadrów: {url, theme}
-const _heroPool = [];
-for (const t in _heroThemes)
-  for (let i = 1; i <= _heroThemes[t].n; i++)
-    _heroPool.push({ url: BASE_ASSETS + t + i + '.webp', theme: t });
-
-// Mulberry32 (ten sam PRNG co getDailyQuoteSet w sb.js)
-function _heroRng(seed){ let s = seed >>> 0; return function(){ s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-
-// Seed = LOKALNA data YYYYMMDD (bez off-by-one UTC)
+// Historia dnia — RÓWNY CYKL: każda historia raz na N dni, lokalna północ (bez off-by-one)
 const _hd = new Date();
-const _heroSeed = _hd.getFullYear() * 10000 + (_hd.getMonth() + 1) * 100 + _hd.getDate();
+const _dayNum = Math.floor((_hd.getTime() - _hd.getTimezoneOffset() * 60000) / 86400000);
+const _heroKeys = Object.keys(_heroStories);
+const _heroKey  = _heroKeys[_dayNum % _heroKeys.length];
+const _heroStory = _heroStories[_heroKey];
 
-// 3 kadry/dzień — deterministyczny Fisher-Yates na kopii puli
-const _heroPicks = (function(){
-  const arr = _heroPool.slice(), rnd = _heroRng(_heroSeed);
-  for (let i = arr.length - 1; i > 0; i--){ const j = Math.floor(rnd() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
-  return arr.slice(0, 3);
-})();
-
-const _heroCards = _heroPicks.map(function(p){ return p.url; });
-
-// Hasło per kadr — losowe z puli JEGO tematu (osobny seed per slot, bez korelacji)
-// Gotowe pod przyszłą animację tekstu; dziś jeszcze nierenderowane.
-const _heroQuotes = _heroPicks.map(function(p, i){
-  const txts = _heroThemes[p.theme].txt;
-  return txts[Math.floor(_heroRng(_heroSeed + (i + 1) * 7919)() * txts.length)];
-});
+// 5 kadrów W KOLEJNOŚCI (sekwencja 1→5) + hasła 1:1 + flaga jasnego tła
+const _heroCards  = [1,2,3,4,5].map(function(n){ return BASE_ASSETS + _heroKey + n + '.webp'; });
+const _heroQuotes = _heroStory.txt;
+const _heroLight  = !!_heroStory.light;
 
 let _heroIdx = 0;
 let _heroTimer = null;
@@ -4670,10 +4641,17 @@ function _heroShow(i) {
   const bg = document.getElementById('today-hero-bg');
   if (!bg) return;
   bg.style.opacity = '0';
-  
+  const txtEl = document.getElementById('hero-text');
+  if (txtEl) { txtEl.style.opacity = '0'; txtEl.style.transform = 'translateY(-6px)'; }
+
   setTimeout(() => {
     bg.style.backgroundImage = 'url(' + _heroCards[i] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
     bg.style.opacity = '1';
+    if (txtEl && _heroQuotes[i]) {
+      txtEl.textContent = _heroQuotes[i];
+      txtEl.style.opacity = '1';
+      txtEl.style.transform = 'translateY(0)';
+    }
   }, 220);
   // Zaktualizuj paginację
   document.querySelectorAll('.hero-dot').forEach((d, idx) => {
@@ -4696,8 +4674,24 @@ function _heroInit() {
   }
   bg.style.backgroundImage = 'url(' + _heroCards[0] + ')'; bg.style.backgroundSize = 'cover'; bg.style.backgroundPosition = 'center center';
   bg.style.opacity = '0';
-  
-  console.log('[hero] _heroInit', { cards: _heroCards.length });
+
+  // Warstwa tekstu — biały na ciemnych historiach, ciemny na jasnych (zima/upał)
+  const txtEl0 = document.getElementById('hero-text');
+  if (txtEl0) {
+    if (_heroLight) {
+      txtEl0.style.color = '#141414';
+      txtEl0.style.textShadow = '0 2px 14px rgba(255,255,255,0.6), 0 1px 3px rgba(255,255,255,0.75)';
+    } else {
+      txtEl0.style.color = '#ffffff';
+      txtEl0.style.textShadow = '0 2px 14px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.9)';
+    }
+    if (_heroQuotes[0]) {
+      txtEl0.textContent = _heroQuotes[0];
+      requestAnimationFrame(() => setTimeout(() => { txtEl0.style.opacity = '1'; txtEl0.style.transform = 'translateY(0)'; }, 90));
+    }
+  }
+
+  console.log('[hero] _heroInit', { story: _heroKey, cards: _heroCards.length, light: _heroLight });
   
   // Buduj paginację
   const dotsEl = document.getElementById('hero-dots');
