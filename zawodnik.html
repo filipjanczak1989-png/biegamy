@@ -893,14 +893,7 @@ body > *{position:relative;z-index:1;}
 </div>
 
 
-<!-- ───── WIDGET POGODY (3 dni) ───── -->
-<div id="weather-widget" class="fade-in" style="margin:0 16px 10px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:none;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:'DM Mono',monospace;font-weight:700;">🌤 Pogoda</div>
-    <div id="weather-city" onclick="window._weatherSetCity()" title="Klik by zmienić miasto" style="font-size:11px;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-weight:500;cursor:pointer;padding:2px 8px;border-radius:6px;transition:all 0.15s;border:1px dashed transparent;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.4)';this.style.background='rgba(var(--accent-rgb),0.08)'" onmouseout="this.style.borderColor='transparent';this.style.background='transparent'"></div>
-  </div>
-  <div id="weather-days" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
-</div>
+<!-- WIDGET POGODY przeniesiony pod „Dzisiejszy trening" (patrz niżej, nad Banerem Radio) -->
 
 <style>
 .ht-tile{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;transition:transform 0.18s,border-color 0.18s;-webkit-tap-highlight-color:transparent;}
@@ -971,6 +964,15 @@ body > *{position:relative;z-index:1;}
   <div class="today-meta" id="today-meta" style="display:none;margin-bottom:12px;"></div>
   <button id="today-cwiczenia-cta" onclick="showSection('cwiczenia')" style="display:none;width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#fff;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.06em;padding:11px;border-radius:12px;cursor:pointer;margin-bottom:10px;">💪 Otwórz ćwiczenia →</button>
   <button class="btn btn-primary" onclick="openModal()" style="width:100%;">Zaloguj wynik</button>
+</div>
+
+<!-- ───── WIDGET POGODY (3 dni) — przeniesiony pod „Dzisiejszy trening" ───── -->
+<div id="weather-widget" class="fade-in" style="margin:4px 16px 4px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;display:none;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--accent);font-family:'DM Mono',monospace;font-weight:700;">🌤 Pogoda</div>
+    <div id="weather-city" onclick="window._weatherSetCity()" title="Klik by zmienić miasto" style="font-size:11px;color:rgba(255,255,255,0.85);font-family:'DM Mono',monospace;font-weight:500;cursor:pointer;padding:2px 8px;border-radius:6px;transition:all 0.15s;border:1px dashed transparent;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.4)';this.style.background='rgba(var(--accent-rgb),0.08)'" onmouseout="this.style.borderColor='transparent';this.style.background='transparent'"></div>
+  </div>
+  <div id="weather-days" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;"></div>
 </div>
 
 <!-- Baner Radio -->
@@ -3808,7 +3810,7 @@ window._renderWeather = function(data) {
     const border = d.is_bad ? 'border:1px solid rgba(var(--accent-rgb),0.3);' : 'border:1px solid var(--border);';
     return '<div style="position:relative;background:rgba(255,255,255,0.04);' + border + 'border-radius:10px;padding:10px 6px;text-align:center;">'
       + badge
-      + '<div style="font-size:10px;color:#fff;font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;font-weight:600;">' + label + '</div>'
+      + '<div style="font-size:10px;color:var(--accent);font-family:DM Mono,monospace;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:3px;font-weight:600;">' + label + '</div>'
       + '<div style="line-height:1;margin:3px 0;">' + (window.wxImg ? window.wxImg(d.weather_code, d.cloud_pct, d.icon, 38) : '<span style="font-size:30px;">' + d.icon + '</span>') + '</div>'
       + '<div style="font-family:Bebas Neue,sans-serif;font-size:18px;color:#fff;line-height:1;margin-top:4px;letter-spacing:0.02em;">' + d.temp_max + '°<span style="font-size:12px;color:rgba(255,255,255,0.55);margin-left:2px;">/' + d.temp_min + '°</span></div>'
       + '<div style="font-size:10px;color:rgba(255,255,255,0.7);font-family:DM Mono,monospace;margin-top:4px;">💧' + d.precip_pct + '% · 🌬' + d.wind_kmh + '</div>'
