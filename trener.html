@@ -3578,7 +3578,8 @@ function renderLogs_db(logs) {
       const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
       const pace = l.pace ? l.pace + '/km' : '';
       const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
-      const det = [dist, pace, hr].filter(Boolean).join(' · ');
+      const watch = (l.source === 'intervals' && l.external_id) ? '⌚ zegarek' : '';
+      const det = [dist, pace, hr, watch].filter(Boolean).join(' · ');
       const reaction = l.athlete_reaction ? `<span style="font-size:18px;">${l.athlete_reaction}</span>` : '';
       return `<div style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:12px;background:var(--card2);border-radius:8px;overflow:hidden;">
         <div style="padding:12px 14px;">
