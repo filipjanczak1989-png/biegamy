@@ -1285,6 +1285,197 @@
     };
   })();
 
+  // ═══ intervals.icu drill-down (SSOT — przeniesione z kalendarz.html; kalendarz+trener konsumują) ═══
+// ── intervals.icu drill-down: wykres tempo/HR + splity per km (reużywalne, pod L3 wejście z Formy) ──
+let _icuChart = null, _icuHasHr = false, _icuMetricIdx = {};
+const _ICU_AXIS = { pace:'yPace', hr:'yHr', resp:'yResp', cad:'yCad', alt:'yAlt', temp:'yTemp' };
+const _ICU_BTN  = { pace:'ds-icu-tab-pace', hr:'ds-icu-tab-hr', resp:'ds-icu-tab-resp', cad:'ds-icu-tab-cad', alt:'ds-icu-tab-alt', temp:'ds-icu-tab-temp' };
+window._icuFmtPace = function (s){ if (s==null) return '—'; const m=Math.floor(s/60), ss=s%60; return m+':'+String(ss).padStart(2,'0'); }
+window._icuTabStyle = function (active){
+  return "font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:8px;cursor:pointer;transition:all 0.15s;"
+    + (active ? "border:1px solid var(--accent);background:var(--accent);color:#fff;" : "border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--muted);");
+}
+// przełącznik metryki — jeden na raz (nigdy dwie naraz; oś Y przełącza się z metryką)
+window._icuSetMetric = function (m){
+  if (!_icuChart) return;
+  if (!(m in _icuMetricIdx)) m = 'pace';
+  Object.keys(_icuMetricIdx).forEach(k => _icuChart.setDatasetVisibility(_icuMetricIdx[k], k===m));   // pokaż tylko wybraną
+  Object.values(_ICU_AXIS).forEach(ax => { const s=_icuChart.options.scales[ax]; if (s) s.display = (ax===_ICU_AXIS[m]); });
+  _icuChart.update();
+  Object.keys(_ICU_BTN).forEach(k => { const b=document.getElementById(_ICU_BTN[k]); if (!b) return; b.style.cssText = _icuTabStyle(k===m); if (!(k in _icuMetricIdx)) b.style.display='none'; });   // display PO cssText (cssText je zmazuje) — przycisk bez danych ukryty przy KAŻDYM przełączeniu, nie tylko po 1. renderze
+}
+
+window._renderIcuDetail = async function (logs) {
+  const card = document.getElementById('ds-icu-card');
+  if (!card) return;
+  const loading = document.getElementById('ds-icu-loading');
+  const chartWrap = document.getElementById('ds-icu-chart-wrap');
+  const splitsEl = document.getElementById('ds-icu-splits');
+  const msgEl = document.getElementById('ds-icu-msg');
+  const multiEl = document.getElementById('ds-icu-multi');
+  const statsEl = document.getElementById('ds-icu-stats');
+  const zonesEl = document.getElementById('ds-icu-hrzones');
+  if (_icuChart) { try { _icuChart.destroy(); } catch(e){} _icuChart = null; }
+  loading.style.display='none'; chartWrap.style.display='none'; splitsEl.style.display='none'; msgEl.style.display='none'; multiEl.style.display='none'; if (statsEl) statsEl.style.display='none'; if (zonesEl) zonesEl.style.display='none';
+  { const t=document.getElementById('ds-icu-tabs'); if (t) t.style.display='none'; }
+
+  const icuLogs = (logs || []).filter(l => l.source === 'intervals' && l.external_id);
+  if (!icuLogs.length) { card.style.display = 'none'; return; }   // brak intervals w dniu → karta ukryta
+  card.style.display = 'block';
+  loading.style.display = 'block';
+  if (icuLogs.length > 1) { multiEl.textContent = 'trening 1 z ' + icuLogs.length; multiEl.style.display = 'block'; }  // nie gubimy drugiego
+  const icuLog = icuLogs[0];
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('no_session');
+    const fnUrl = (window.SB_FN_URL || 'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1') + '/intervals-activity-detail';
+    const res = await fetch(fnUrl, { method:'POST',
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+      body: JSON.stringify({ athlete_id: icuLog.athlete_id, activity_id: icuLog.external_id }) });
+    loading.style.display = 'none';
+    if (res.status === 403) {   // nie-właściciel (np. trener ogląda cudzy dzień) — łagodnie, bez surowego błędu
+      msgEl.textContent = 'Szczegóły dostępne dla zawodnika.'; msgEl.style.display = 'block'; return;
+    }
+    const d = await res.json().catch(()=>null);
+    if (!d || !d.ok) { msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block'; return; }
+
+    if (typeof Chart === 'undefined') {   // Chart.js lazy-load (kalendarz go nie ma) — wzorzec sb.js:1431
+      await new Promise((resolve, reject) => { const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'; s.onload=resolve; s.onerror=reject; document.head.appendChild(s); });
+    }
+    chartWrap.style.display = 'block';   // canvas MUSI mieć wymiary PRZED new Chart (inaczej 0×0 → pusty wykres)
+    splitsEl.style.display = 'block';
+    _icuRenderChart(d);
+    _icuRenderSplits(d, splitsEl);
+    _icuRenderStats(d);
+    _icuRenderHrZones(d);
+    // przełącznik metryk (jeden na raz); widoczność przycisków ogarnia _icuSetMetric (ukrywa bez danych, trwale)
+    const tabs = document.getElementById('ds-icu-tabs');
+    if (tabs) tabs.style.display = 'flex';
+    _icuSetMetric('pace');   // domyślnie TEMPO — ustawia styl + widoczność przycisków
+  } catch(e) {
+    loading.style.display = 'none';
+    msgEl.textContent = 'Nie udało się wczytać szczegółów treningu.'; msgEl.style.display = 'block';
+  }
+}
+
+window._icuRenderChart = function (d) {
+  // świeży <canvas> co render — omija leftover-state Chart.js przy reużyciu ("Canvas is already in use" / pusty canvas przy 2. otwarciu)
+  const oldC = document.getElementById('ds-icu-chart');
+  if (oldC && oldC.parentNode) { const f = document.createElement('canvas'); f.id = 'ds-icu-chart'; oldC.parentNode.replaceChild(f, oldC); }
+  const S = d.series || {};
+  const xy = (arr)=>(arr||[]).map((v,i)=>({x:S.dist_km[i], y:v}));
+  const has = (arr)=> !!(arr && arr.some(x=>x!=null));
+  _icuHasHr = has(S.hr);   // źródło prawdy = DANE (≥1 realna próbka), NIE flaga d.has_hr (krucha: "false" truthy / [null,null] przeszłoby → martwy przycisk); ten sam has() co cad/alt
+  const dsets = []; _icuMetricIdx = {};
+  _icuMetricIdx.pace = dsets.length;
+  dsets.push({ label:'Tempo', yAxisID:'yPace', borderColor:'#e8561e', backgroundColor:'rgba(232,86,30,0.08)', borderWidth:2, pointRadius:0, tension:0.3, fill:true, spanGaps:true, data:xy(S.pace_s) });
+  if (_icuHasHr)      { _icuMetricIdx.hr  = dsets.length; dsets.push({ label:'Tętno',    yAxisID:'yHr',  borderColor:'#ff5b5b', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.hr) }); }
+  if (has(S.cad))     { _icuMetricIdx.cad = dsets.length; dsets.push({ label:'Kadencja', yAxisID:'yCad', borderColor:'#5b8cff', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.cad.map(v=>v==null?v:v*2)) }); }   // ×2: per-noga→total spm (apka biegowa; rower=RPM byłby ×1)
+  if (has(S.alt_m))   { _icuMetricIdx.alt = dsets.length; dsets.push({ label:'Wysokość', yAxisID:'yAlt', borderColor:'#3db870', backgroundColor:'rgba(61,184,112,0.08)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:true, spanGaps:true, data:xy(S.alt_m) }); }
+  if (has(S.resp))    { _icuMetricIdx.resp = dsets.length; dsets.push({ label:'Oddech',      yAxisID:'yResp', borderColor:'#2dd4bf', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.resp) }); }   // gated has() — bez HR brak streamu → null
+  if (has(S.temp))    { _icuMetricIdx.temp = dsets.length; dsets.push({ label:'Temperatura', yAxisID:'yTemp', borderColor:'#f2b134', borderWidth:1.5, pointRadius:0, tension:0.3, spanGaps:true, data:xy(S.temp) }); }   // uniwersalna
+  const mono = "'DM Mono',monospace";
+  _icuChart = new Chart(document.getElementById('ds-icu-chart').getContext('2d'), {
+    type:'line', data:{ datasets:dsets },
+    options:{ maintainAspectRatio:false, animation:false, interaction:{mode:'index',intersect:false},
+      scales:{
+        x:{ type:'linear', ticks:{ color:'rgba(240,237,232,0.4)', font:{family:mono,size:9}, callback:(v)=>v+' km' }, grid:{color:'rgba(255,255,255,0.05)'} },
+        yPace:{ position:'left', reverse:true, ticks:{ color:'#e8561e', font:{family:mono,size:9}, callback:(v)=>_icuFmtPace(v) }, grid:{color:'rgba(255,255,255,0.05)'} },
+        yHr:{ position:'right', display:_icuHasHr, ticks:{ color:'#ff5b5b', font:{family:mono,size:9} }, grid:{display:false} },
+        yCad:{ position:'right', display:false, ticks:{ color:'#5b8cff', font:{family:mono,size:9}, callback:(v)=>v+' spm' }, grid:{display:false} },
+        yAlt:{ position:'right', display:false, ticks:{ color:'#3db870', font:{family:mono,size:9}, callback:(v)=>v+' m' }, grid:{display:false} },
+        yResp:{ position:'right', display:false, ticks:{ color:'#2dd4bf', font:{family:mono,size:9}, callback:(v)=>v+' /min' }, grid:{display:false} },
+        yTemp:{ position:'right', display:false, ticks:{ color:'#f2b134', font:{family:mono,size:9}, callback:(v)=>v+'°C' }, grid:{display:false} }
+      },
+      plugins:{ legend:{ display:false },
+        tooltip:{ callbacks:{ title:(it)=>it[0].parsed.x.toFixed(2)+' km',
+          label:(it)=>{ const a=it.dataset.yAxisID, y=it.parsed.y;
+            return a==='yPace' ? ('Tempo '+_icuFmtPace(y)+'/km') : a==='yHr' ? ('HR '+y+' bpm') : a==='yResp' ? ('Oddech '+y+' /min') : a==='yCad' ? ('Kadencja '+y+' spm') : a==='yAlt' ? ('Wysokość '+Math.round(y)+' m') : a==='yTemp' ? ('Temp '+Math.round(y)+'°C') : (''+y); } } } }
+    }
+  });
+}
+
+window._icuRenderHrZones = function (d) {
+  const el = document.getElementById('ds-icu-hrzones');
+  if (!el) return;
+  const z = d.hr_zones;
+  if (!d.has_hr || !z || !Array.isArray(z.time_s) || !Array.isArray(z.labels) || !z.time_s.some(t=>t>0) || !window.renderHrZoneBars) {
+    el.style.display='none'; el.innerHTML=''; return;   // graceful: bez HR / bez stref / brak helpera → sekcja znika
+  }
+  const labels = z.labels, times = z.time_s;
+  let domI=0; for (let i=1;i<Math.min(labels.length,times.length);i++) if ((times[i]||0)>(times[domI]||0)) domI=i;   // argmax czasu
+  const domPL = (window.HR_ZONE_PL||{})[labels[domI]];
+  const domCap = 'trening głównie w ' + labels[domI] + (domPL ? ' ('+domPL+')' : '');
+  // paski = wspólny helper sb.js (single source; A przepięte z page-local na renderHrZoneBars)
+  el.innerHTML = `<div class="ds-label" style="margin:14px 0 3px;">Strefy tętna</div>
+    <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.04em;color:rgba(240,237,232,0.5);margin-bottom:10px;">${domCap}</div>${window.renderHrZoneBars(z)}`;
+  el.style.display='block';
+}
+
+window._icuRenderStats = function (d) {
+  const el = document.getElementById('ds-icu-stats');
+  if (!el) return;
+  const st = d.stats;
+  if (!st) { el.style.display='none'; el.innerHTML=''; return; }   // stare rowy przed self-heal (v<3)
+  const cell = (label, val, unit, sub) => (val==null || val==='') ? '' :
+    `<div class="ds-stat-cell">
+       <div class="ds-stat-label">${label}</div>
+       <div style="display:flex;align-items:baseline;gap:3px;"><span class="ds-stat-val">${val}</span>${unit?`<span class="ds-stat-unit">${unit}</span>`:''}</div>
+       ${sub?`<div style="font-size:8px;font-family:'DM Mono',monospace;color:rgba(240,237,232,0.32);letter-spacing:0.1em;text-transform:uppercase;margin-top:4px;">${sub}</div>`:''}
+     </div>`;
+  const grp = (title, cells) => { const c = cells.filter(Boolean); return c.length ?
+    `<div class="ds-label" style="margin:14px 0 8px;">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">${c.join('')}</div>` : ''; };
+
+  const cad = st.avg_cadence!=null ? Math.round(st.avg_cadence*2) : null;   // ×2: per-noga→total spm
+  const groups = [
+    grp('Tempo', [ cell('GAP', st.gap_pace_s!=null?_icuFmtPace(st.gap_pace_s):null, '/km', 'tempo wg terenu') ]),
+    grp('Teren', [
+      cell('Spadek', st.elev_loss_m!=null?('−'+Math.round(st.elev_loss_m)):null, 'm'),
+      cell('Min wys.', st.min_alt_m!=null?Math.round(st.min_alt_m):null, 'm'),
+      cell('Max wys.', st.max_alt_m!=null?Math.round(st.max_alt_m):null, 'm'),
+    ]),
+    grp('Ciało', [
+      cell('Kadencja', cad, 'spm'),
+      cell('Długość kroku', st.avg_stride_m!=null?st.avg_stride_m.toFixed(2):null, 'm'),
+      cell('Temp śr', st.avg_temp_c!=null?Math.round(st.avg_temp_c):null, '°C'),
+      cell('Temp max', st.max_temp_c!=null?Math.round(st.max_temp_c):null, '°C'),
+    ]),
+    d.has_hr ? grp('Obciążenie', [   // graceful: cała grupa znika bez HR
+      cell('Max HR', st.max_hr, 'bpm'),
+      cell('TSS', st.load!=null?Math.round(st.load):null, ''),
+      cell('Intensywność', st.intensity!=null?Math.round(st.intensity):null, '%'),
+    ]) : '',
+  ].filter(Boolean);
+
+  if (!groups.length) { el.style.display='none'; el.innerHTML=''; return; }
+  el.innerHTML = groups.join('');
+  el.style.display = 'block';
+}
+
+window._icuRenderSplits = function (d, el) {
+  const sp = d.splits || [];
+  if (!sp.length) { el.innerHTML=''; return; }
+  const full = sp.filter(s=>s.pace_s!=null && !s.partial).map(s=>s.pace_s);
+  const fastest = full.length? Math.min(...full):null, slowest = full.length? Math.max(...full):null;
+  const spread = full.length>1 && slowest>fastest;   // ekstrema oznaczaj TYLKO gdy jest realna różnica (wszystkie równe → brak ▲/▼)
+  el.innerHTML = sp.map(s=>{
+    const w = (s.pace_s!=null && slowest>fastest) ? Math.round(100*(slowest - s.pace_s)/(slowest-fastest)) : 50;  // szybszy km = dłuższy pasek
+    const mark = (!s.partial && spread && s.pace_s===fastest) ? '<span style="color:#3db870;" title="najszybszy">▲</span>'
+               : (!s.partial && spread && s.pace_s===slowest) ? '<span style="color:#ff5b5b;" title="najwolniejszy">▼</span>' : '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-family:'DM Mono',monospace;font-size:11px;color:rgba(240,237,232,0.85);">
+      <span style="width:36px;color:var(--muted);flex-shrink:0;">${s.partial? s.km.toFixed(2):(s.km+' km')}</span>
+      <span style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;"><span style="display:block;height:100%;width:${Math.max(4,w)}%;background:var(--accent);"></span></span>
+      <span style="width:60px;text-align:right;flex-shrink:0;">${_icuFmtPace(s.pace_s)}/km ${mark}</span>
+      ${d.splits.some(x=>x.hr_avg!=null) ? `<span style="width:44px;text-align:right;flex-shrink:0;color:#ff9b9b;">${s.hr_avg!=null?('♥'+s.hr_avg):''}</span>` : ''}
+      <span style="width:38px;text-align:right;flex-shrink:0;color:var(--muted);">${s.elev_gain_m?('+'+s.elev_gain_m+'m'):''}</span>
+    </div>`;
+  }).join('');
+}
+
+
+
   // Soft confirm 2-przyciskowy (promise). Klik w tło / "To bieg" = 'run'; "To rower" = 'bike'.
   window.askBikeOrRun = function(distKm, paceStr) {
     return new Promise((resolve) => {
