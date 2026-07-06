@@ -960,7 +960,7 @@ html { scroll-behavior: smooth; }
       </div>
       <div class="field" id="f-steps-field" style="display:none;">
         <label>Rozkład treningu</label>
-        <div id="f-steps-breakdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);line-height:1.55;padding:8px 10px;background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:6px;white-space:normal;"></div>
+        <div id="f-steps-breakdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);line-height:1.55;padding:8px 10px;background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:6px;white-space:pre-line;"></div>
       </div>
       <div class="field" id="f-exercise-ref-wrap" style="display:none;">
         <label>Ćwiczenia w aplikacji (deep-link dla zawodnika)</label>
@@ -1736,7 +1736,7 @@ function openModal(ds, idx) {
     document.getElementById('f-hr').value = t.hr || t.heart_rate || '';
     document.getElementById('f-desc').value = t.desc || t.description || '';
     // ✨ steps: read-only rozkład structured workout (Interwały/Tempo) — zawodnik widzi kroki
-    const _stepsTxtE = (window.renderWorkoutSteps && t.steps) ? window.renderWorkoutSteps(t.steps).text : '';
+    const _stepsTxtE = (window.renderWorkoutSteps && t.steps) ? window.renderWorkoutSteps(t.steps).lines.join('\n') : '';
     const _stepsFieldE = document.getElementById('f-steps-field');
     const _stepsBoxE = document.getElementById('f-steps-breakdown');
     if(_stepsFieldE && _stepsBoxE){
