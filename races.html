@@ -413,6 +413,7 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
     <div class="modal-links" id="m-links"></div>
     <div class="modal-actions">
       <!-- Trener: przyciski akcji -->
+      <div id="m-submitted-by" style="display:none;margin-bottom:8px;font-size:11px;color:var(--blue);font-family:'DM Mono',monospace;text-align:center;"></div>
       <div id="m-coach-pending" style="display:none;margin-bottom:10px;gap:8px;flex-direction:column;">
         <div style="display:flex;gap:8px;">
           <button onclick="approveRace()" style="flex:1;background:rgba(61,184,112,0.15);border:1px solid rgba(61,184,112,0.4);color:#3db870;border-radius:12px;padding:11px;font-size:13px;font-family:'DM Mono',monospace;cursor:pointer;">✓ Zatwierdź</button>
@@ -499,6 +500,13 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
       <textarea id="f-desc" placeholder="Dodatkowe informacje..."></textarea>
     </div>
 
+    <div id="f-participate-wrap" style="display:flex;align-items:center;gap:10px;margin:2px 0 14px;padding:11px 12px;background:rgba(var(--accent-rgb),0.07);border:1px solid rgba(var(--accent-rgb),0.25);border-radius:12px;cursor:pointer;" onclick="document.getElementById('f-participate').click()">
+      <input type="checkbox" id="f-participate" checked onclick="event.stopPropagation()" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;flex-shrink:0;">
+      <div>
+        <div style="font-size:13px;font-weight:600;">🏃 Biorę udział w tym biegu</div>
+        <div style="font-size:11px;color:var(--muted);">Odznacz, jeśli tylko dodajesz do kalendarza</div>
+      </div>
+    </div>
     <button id="add-submit-btn" class="submit-btn" onclick="submitRace()">Wyślij do trenera →</button>
     <button class="cancel-btn" onclick="closeAddRace()">Anuluj</button>
     <div style="height:20px;"></div>
@@ -562,6 +570,16 @@ async function loadRaces() {
 
   if (error) { showToast('Błąd ładowania: ' + error.message); return; }
   _allRaces = data || [];
+
+  // z1+: kto zgłosił pendingi (tylko trener) — added_by → full_name
+  window._raceSubmitters = {};
+  if (_isCoach) {
+    const ids = [...new Set(_allRaces.filter(r => r.status === 'pending' && r.added_by).map(r => r.added_by))];
+    if (ids.length) {
+      const { data: subs } = await _sb.from('athletes').select('id, full_name').in('id', ids);
+      (subs || []).forEach(a => { window._raceSubmitters[a.id] = a.full_name || ''; });
+    }
+  }
 
   // Pobierz avatary uczestników BiegaMy dla każdego wyścigu (max 5 per race)
   await loadMyFriends();              // najpierw znajomi (potrzebne do wyróżnienia "znajomi biegną")
@@ -740,6 +758,13 @@ function renderRaceCard(race) {
     ? `<span onclick="event.stopPropagation();showParticipants('${race.id}','${escAttr(race.name)}')" style="cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">${totalCount} z BiegaMy</span>`
     : 'Bądź pierwszy!';
 
+  // z1+: kto zgłosił (tylko trener, tylko pending)
+  const submitter = (race.status === 'pending' && _isCoach && race.added_by && window._raceSubmitters)
+    ? (window._raceSubmitters[race.added_by] || '') : '';
+  const submitterHtml = submitter
+    ? `<div style="font-size:10px;color:var(--blue);font-family:'DM Mono',monospace;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);">Zgłosił(a): ${escHtml(submitter)}</div>`
+    : '';
+
   return `<div class="race-card" onclick="openRace('${race.id}')">
     <div class="race-card-inner">
       <div class="race-top">
@@ -761,6 +786,7 @@ function renderRaceCard(race) {
           </div>
         </div>
       </div>
+      ${submitterHtml}
       ${friendsHtml}
     </div>
     <div class="race-footer">
@@ -1014,6 +1040,15 @@ function openRace(id) {
   // Przycisk zapisu
   updateModalSignupBtn(signed);
 
+  // z1+: „Zgłosił(a)" nad przyciskami trenera (pending)
+  const subEl = document.getElementById('m-submitted-by');
+  if (subEl) {
+    const nm = (_isCoach && race.status === 'pending' && race.added_by && window._raceSubmitters)
+      ? (window._raceSubmitters[race.added_by] || '') : '';
+    subEl.textContent = nm ? ('Zgłosił(a): ' + nm) : '';
+    subEl.style.display = nm ? 'block' : 'none';
+  }
+
   // Trener: pokaż odpowiednie przyciski, ukryj "Wezmę udział"
   const pendingEl = document.getElementById('m-coach-pending');
   const approvedEl = document.getElementById('m-coach-approved');
@@ -1220,6 +1255,11 @@ function updateAddRaceUI() {
     if (btn) btn.textContent = 'Wyślij do trenera →';
     if (desc) desc.textContent = 'Twoja propozycja trafi do trenera. Po akceptacji pojawi się w kalendarzu dla wszystkich.';
   }
+  // z1+: toggle „Biorę udział" tylko zawodnik + tylko nowy wpis
+  const pw = document.getElementById('f-participate-wrap');
+  if (pw) pw.style.display = (_isCoach || _editingRaceId) ? 'none' : 'flex';
+  const pc = document.getElementById('f-participate');
+  if (pc) pc.checked = true;   // domyślnie ON
 }
 
 function _resetRaceForm() {
@@ -1347,7 +1387,7 @@ async function submitRace() {
     payload.status = _isCoach ? 'approved' : 'pending';
     payload.added_by = _athleteId || null;
     payload.signup_count = 0;
-    result = await _sb.from('races').insert(payload);
+    result = await _sb.from('races').insert(payload).select('id').single();
   }
 
   if (result.error) {
@@ -1358,7 +1398,7 @@ async function submitRace() {
       if (_editingRaceId) {
         result = await _sb.from('races').update(payload).eq('id', _editingRaceId);
       } else {
-        result = await _sb.from('races').insert(payload);
+        result = await _sb.from('races').insert(payload).select('id').single();
       }
     }
   }
@@ -1368,6 +1408,21 @@ async function submitRace() {
     showToast('Zmiany zapisane ✓');
   } else {
     showToast(_isCoach ? 'Zawody dodane do kalendarza ✓' : 'Propozycja wysłana do trenera ✓');
+  }
+
+  // z1+: auto-zapis na własny bieg, jeśli zawodnik zaznaczył udział
+  if (!_editingRaceId && !_isCoach && _athleteId && result.data && result.data.id) {
+    const pc = document.getElementById('f-participate');
+    if (pc && pc.checked) {
+      const { error: sErr } = await _sb.from('race_signups').upsert(
+        { race_id: result.data.id, athlete_id: _athleteId },
+        { onConflict: 'race_id,athlete_id' });
+      if (!sErr) {
+        await _sb.from('races').update({ signup_count: 1 }).eq('id', result.data.id);
+        _mySignups.add(result.data.id);
+        try { await addToGoals(Object.assign({ id: result.data.id }, payload)); } catch(e) {}
+      }
+    }
   }
 
   const wasEditing = !!_editingRaceId;
