@@ -41,6 +41,21 @@
     return 'https://filipjanczak1989-png.github.io/biegamy-assets/' + clean;
   };
 
+  // ─── Ukryj przełączniki karuzel globalnie (strzałki ‹ › + kropki) ──────────
+  // Auto-rotacja zostaje — chowamy tylko manualny switcher.
+  // Obejmuje: hero (Dziś), p-hero (profil), quote (nutrition), banner (raporty).
+  (function hideCarouselSwitchers(){
+    try {
+      const css = '[onclick*="_heroPrev"],[onclick*="_heroNext"],#hero-dots,'
+        + '[onclick*="_pHeroPrev"],[onclick*="_pHeroNext"],#p-hero-dots,'
+        + '#quote-dots,#banner-dots{display:none !important;}';
+      const s = document.createElement('style');
+      s.id = 'hide-carousel-switchers';
+      s.textContent = css;
+      (document.head || document.documentElement).appendChild(s);
+    } catch(e){}
+  })();
+
   // ─── IKONY 3D — helper + auto-resolver data-ic ──────────────────────
   // icHtml('act-save', 16, 'margin-right:6px;') → <img ...> (do JS-innerHTML)
   // Statyczny HTML: <img data-ic="icon-act-save.webp"> → resolver ustawia src na load.
