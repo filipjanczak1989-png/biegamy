@@ -941,7 +941,7 @@ body > *{position:relative;z-index:1;}
     <div class="today-date" id="today-date" style="font-size:10px;color:rgba(240,237,232,0.5);font-family:DM Mono,monospace;text-align:right;"></div>
   </div>
   <div style="display:flex;gap:12px;align-items:stretch;">
-    <div id="today-type-banner" style="display:none;position:relative;width:96px;min-height:76px;border-radius:12px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;">
+    <div id="today-type-banner" onclick="_openTodayInCal()" style="display:none;position:relative;width:96px;min-height:76px;border-radius:12px;overflow:hidden;border:1px solid var(--border);flex-shrink:0;cursor:pointer;">
       <div id="today-type-banner-img" style="position:absolute;inset:0;background-size:cover;background-position:center 35%;"></div>
     </div>
     <div style="flex:1;min-width:0;">
@@ -952,6 +952,8 @@ body > *{position:relative;z-index:1;}
       <div class="today-desc" id="today-desc" style="font-size:13px;color:var(--fg2);line-height:1.55;margin-bottom:0;"></div>
     </div>
   </div>
+  <!-- ⌚ mini-sparkline tempa dzisiejszego treningu z zegarka — wypełniane przez _loadTodayMiniChart -->
+  <div id="today-mini-chart" onclick="_openTodayInCal()" style="display:none;margin-top:12px;cursor:pointer;"></div>
   <div class="today-actions-wrap" style="margin:12px 0 0;">
     <!-- Auto-prompt push (renderowane przez maybeShowPushPrompt) -->
     <div id="push-prompt-banner"></div>
@@ -5139,6 +5141,7 @@ async function loadLogs() {
     }
     await loadCoachMessage();
     await loadTodayTraining();
+    _loadTodayMiniChart(); // ⌚ mini-sparkline tempa dzisiejszego treningu (fire-and-forget)
     loadPendingDuelsBanner(); // banner pending/active duels w "Dziś"
     maybeShowPushPrompt(); // banner push (po 1. zalogowanym treningu, klucz dismiss v2)
     await loadWeekPlan();
@@ -5235,6 +5238,56 @@ async function updateWeekProgress() {
   if (kmEl) { const safeKm = isNaN(totalKm) ? 0 : totalKm; Anim.countUp(kmEl, safeKm, 900); }
   if (kmLblEl) kmLblEl.textContent = (plannedKm > 0 ? 'z ' + (isNaN(plannedKm) ? 0 : plannedKm).toFixed(0) + ' km' : 'km ten tydzień') + (subKm > 0 ? ' · +' + subKm.toFixed(0) + ' zast.' : '');
 }
+
+// ⌚ Otwórz dzisiejszy trening w kalendarzu (drill-down z pełnymi wykresami)
+window._openTodayInCal = function() {
+  const key = new Date().toLocaleDateString('sv-SE');   // YYYY-MM-DD lokalny
+  location.href = 'kalendarz.html?openDay=' + key;
+};
+
+// ⌚ Mini-sparkline tempa dzisiejszego treningu z zegarka (fire-and-forget, best-effort)
+window._loadTodayMiniChart = async function() {
+  const el = document.getElementById('today-mini-chart');
+  if (!el || !_athleteId) return;
+  el.style.display = 'none'; el.innerHTML = '';
+  try {
+    const key = new Date().toLocaleDateString('sv-SE');
+    const { data: logs } = await sb.from('training_logs')
+      .select('logged_at, external_id')
+      .eq('athlete_id', _athleteId).eq('source', 'intervals')
+      .not('external_id', 'is', null)
+      .not('training_type', 'like', '__badge__%')
+      .order('logged_at', { ascending: false }).limit(1);
+    const log = logs && logs[0];
+    if (!log || !log.external_id) return;
+    if (new Date(log.logged_at).toLocaleDateString('sv-SE') !== key) return;   // nie dzisiejszy
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+    const res = await fetch(window.SB_FN_URL + '/intervals-activity-detail', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ athlete_id: _athleteId, activity_id: log.external_id })
+    });
+    const d = await res.json().catch(() => null);
+    const splits = (d && d.ok && Array.isArray(d.splits)) ? d.splits.filter(s => typeof s.pace_s === 'number') : [];
+    if (splits.length < 2) return;
+    const paces = splits.map(s => s.pace_s);
+    const mn = Math.min(...paces), mx = Math.max(...paces), rng = (mx - mn) || 1;
+    const W = 300, H = 40, pad = 3;
+    const pts = paces.map((p, i) => {
+      const x = pad + (i / (paces.length - 1)) * (W - 2 * pad);
+      const y = pad + ((p - mn) / rng) * (H - 2 * pad);   // wolniej (większy pace_s) = niżej
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+      + '<span style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:rgba(255,255,255,0.5);font-family:\'DM Mono\',monospace;">⌚ Tempo dziś (' + splits.length + ' km)</span>'
+      + '<span style="color:var(--accent);font-size:11px;">wykresy →</span></div>'
+      + '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" style="width:100%;height:40px;display:block;">'
+      + '<polyline points="' + pts + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+    el.style.display = 'block';
+  } catch (e) { /* fire-and-forget: cicho */ }
+};
 
 async function loadTodayTraining() {
   if (!_athleteId) return;
