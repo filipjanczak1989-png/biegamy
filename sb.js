@@ -1965,7 +1965,7 @@
     start.setDate(start.getDate() - 90);
 
     const { data: logs, error } = await sb.from('training_logs')
-      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,elevation_gain,calories')
+      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,elevation_gain,calories,source,external_id')
       .eq('athlete_id', athleteId)
       .not('training_type', 'like', '__badge__%')
       .gte('logged_at', start.toISOString())
@@ -2444,6 +2444,46 @@
     window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate), athleteId);
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
     if (window.renderFormaHrZones) window.renderFormaHrZones(athleteId, px, { isCoach: px === 'pfo' });   // agregat stref HR (async, non-blocking; authz owner+coach server-side)
+    if (window._renderFormaWatchActs) window._renderFormaWatchActs(logs || [], px, athleteId);   // ⌚ lista treningów z zegarka → drill-down dnia
+  };
+
+  // ⌚ Ostatnie treningi z zegarka — lista → drill-down dnia (wykresy per-activity).
+  // Wzorzec prefiksów jak reszta Formy: 'forma' (zawodnik) / 'pfo' (trener).
+  window._renderFormaWatchActs = function(logs, idPrefix, athleteId) {
+    const px = idPrefix || 'forma';
+    const el = document.getElementById(px + '-watch-acts');
+    if (!el) return;
+    const acts = (logs || [])
+      .filter(l => l && l.source === 'intervals' && l.external_id && l.logged_at)
+      .sort((a, b) => String(b.logged_at).localeCompare(String(a.logged_at)))
+      .slice(0, 5);
+    if (!acts.length) { el.style.display = 'none'; el.innerHTML = ''; return; }
+    const esc = window.escapeHtml || (s => String(s));
+    const rows = acts.map(l => {
+      const dateStr = String(l.logged_at).split('T')[0];
+      const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(dateStr);   // bez walidacji: wiersz bez kliku (XSS-dyscyplina)
+      const d = new Date(l.logged_at);
+      const label = isNaN(d.getTime()) ? esc(dateStr) : d.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+      const bits = [
+        l.training_type ? esc(l.training_type) : null,
+        l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : null,
+        l.pace ? esc(String(l.pace)) + '/km' : null,
+        l.heart_rate ? '♥ ' + esc(String(l.heart_rate)) : null
+      ].filter(Boolean).join(' · ');
+      const navUrl = (px === 'pfo' && athleteId)
+        ? 'kalendarz.html?role=coach&athlete=' + athleteId + '&openDay=' + dateStr
+        : 'kalendarz.html?openDay=' + dateStr;
+      const clickAttr = dateOk ? ' onclick="location.href=\'' + navUrl + '\'" style="cursor:pointer;' : ' style="cursor:default;';
+      return '<div' + clickAttr + 'display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px solid rgba(255,255,255,0.05);">'
+        + '<div style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#fff;">' + bits + '</div>'
+        + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;"><span style="font-size:9px;color:rgba(255,255,255,0.45);font-family:\'DM Mono\',monospace;">' + label + '</span><span style="color:var(--accent);font-size:12px;">→</span></div>'
+        + '</div>';
+    }).join('');
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#fff;font-family:\'DM Mono\',monospace;font-weight:700;margin-bottom:6px;">⌚ Treningi z zegarka</div>'
+      + rows
+      + '<div style="text-align:center;margin-top:8px;font-size:9px;color:rgba(255,255,255,0.4);font-family:\'DM Mono\',monospace;letter-spacing:0.03em;">dotknij, żeby zobaczyć wykresy</div>';
+    el.style.display = 'block';
   };
 
   // Weekly bars renderer — parametryzowany prefix
