@@ -934,11 +934,10 @@ body > *{position:relative;z-index:1;}
 </div>
 </div>
 
-<!-- Dots pod kartą -->
-<div style="display:flex;align-items:center;gap:6px;padding:6px 16px 4px;">
-  <button onclick="_heroPrev()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">‹</button>
-  <div id="hero-dots" style="display:flex;gap:4px;align-items:center;"></div>
-  <button onclick="_heroNext()" style="background:rgba(255,255,255,0.08);border:none;color:#fff;width:22px;height:22px;border-radius:50%;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;">›</button>
+<!-- Baner typu treningu (w miejscu ukrytej karuzeli hero) -->
+<div id="today-type-banner" style="display:none;position:relative;height:84px;margin:8px 16px 6px;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+  <div id="today-type-banner-img" style="position:absolute;inset:0;background-size:cover;background-position:center 35%;"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,5,12,0.55) 0%,rgba(7,5,12,0.15) 55%,rgba(7,5,12,0.0) 100%);pointer-events:none;"></div>
 </div>
 
 <!-- Info pod kartą: label + badge + dystans + data -->
@@ -952,10 +951,7 @@ body > *{position:relative;z-index:1;}
 </div>
 
 <!-- Baner typu treningu (cover mapowany po typie; wypełnia loadTodayTraining) -->
-<div id="today-type-banner" style="display:none;position:relative;height:84px;margin:0 16px 12px;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
-  <div id="today-type-banner-img" style="position:absolute;inset:0;background-size:cover;background-position:center 35%;"></div>
-  <div style="position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,5,12,0.55) 0%,rgba(7,5,12,0.15) 55%,rgba(7,5,12,0.0) 100%);pointer-events:none;"></div>
-</div>
+<!-- (baner typu przeniesiony wyżej, pod grafikę hero) -->
 
 <!-- Akcje pod kartą -->
 <div class="today-actions-wrap fade-in">
@@ -4796,8 +4792,7 @@ window._heroInit = _heroInit;
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-      const dotsEl = document.getElementById('hero-dots');
-      if (dotsEl && !dotsEl.children.length) {
+      if (!_heroTimer) {
         console.log('[hero] DOM ready fallback init');
         try { _heroInit(); } catch(e) { console.warn('[hero] fallback init failed', e); }
       }
@@ -4806,8 +4801,7 @@ if (document.readyState === 'loading') {
 } else {
   // DOM już załadowany
   setTimeout(() => {
-    const dotsEl = document.getElementById('hero-dots');
-    if (dotsEl && !dotsEl.children.length) {
+    if (!_heroTimer) {
       console.log('[hero] late fallback init');
       try { _heroInit(); } catch(e) { console.warn('[hero] late init failed', e); }
     }
@@ -5261,7 +5255,10 @@ async function loadTodayTraining() {
     const tPillWrap = document.getElementById('today-type-pill-wrap');
     if (tPillWrap) tPillWrap.style.display = 'none';
     const tBan0 = document.getElementById('today-type-banner');
-    if (tBan0) tBan0.style.display = 'none';
+    const tBanImg0 = document.getElementById('today-type-banner-img');
+    const _restUrl0 = (window.assetUrl ? window.assetUrl('banner-odpoczynek.webp') : '');
+    if (tBan0 && tBanImg0 && _restUrl0) { tBanImg0.style.backgroundImage = 'url(' + _restUrl0 + ')'; tBan0.style.display = 'block'; }
+    else if (tBan0) { tBan0.style.display = 'none'; }
     const cwCta0 = document.getElementById('today-cwiczenia-cta'); if (cwCta0) cwCta0.style.display = 'none';
     window._todayTraining = null;
     return;
@@ -5290,7 +5287,8 @@ async function loadTodayTraining() {
   // ── Baner typu treningu (cover mapowany po typie) ──
   const tBan = document.getElementById('today-type-banner');
   const tBanImg = document.getElementById('today-type-banner-img');
-  const _banUrl = (window.trainingTypeBannerUrl ? window.trainingTypeBannerUrl(data.type) : '');
+  const _banUrl = (window.trainingTypeBannerUrl ? window.trainingTypeBannerUrl(data.type) : '')
+                  || (window.assetUrl ? window.assetUrl('banner-odpoczynek.webp') : '');
   if (tBan && tBanImg && _banUrl) {
     tBanImg.style.backgroundImage = 'url(' + _banUrl + ')';
     tBan.style.display = 'block';
