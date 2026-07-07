@@ -3556,8 +3556,24 @@ async function loadAthleteLogs(athleteId) {
     .order('logged_at', { ascending: false })
     .limit(20);
   
+  window._athLogsCache = data || [];   // cache dla modalu wykresów ⌚
   if (data) renderLogs_db(data);
 }
+
+// ⌚ Modal wykresów per-activity (reużywa _renderIcuDetail z sb.js; athlete_id jedzie w logu)
+window.openCoachIcuModal = async function(logId) {
+  const l = (window._athLogsCache || []).find(x => String(x.id) === String(logId));
+  if (!l || !l.external_id) return;
+  const m = document.getElementById('coach-icu-modal');
+  const t = document.getElementById('coach-icu-title');
+  if (t) t.textContent = '⌚ ' + (l.training_type || 'Trening') + ' · ' + String(l.logged_at || '').split('T')[0];
+  if (m) m.style.display = 'block';
+  try { await _renderIcuDetail([l]); } catch(e) { console.warn('[coach-icu]', e); }
+};
+window.closeCoachIcuModal = function() {
+  const m = document.getElementById('coach-icu-modal');
+  if (m) m.style.display = 'none';
+};
 
 function renderLogs_db(logs) {
   const fe = {good:'😊',mid:'😐',bad:'😓'};
@@ -3580,7 +3596,9 @@ function renderLogs_db(logs) {
       const dist = l.distance_km ? parseFloat(l.distance_km).toFixed(1) + ' km' : '';
       const pace = l.pace ? l.pace + '/km' : '';
       const hr = l.heart_rate ? '♥ ' + l.heart_rate : '';
-      const watch = (l.source === 'intervals' && l.external_id) ? '⌚ zegarek' : '';
+      const watch = (l.source === 'intervals' && l.external_id)
+        ? `<span onclick="event.stopPropagation();openCoachIcuModal('${l.id}')" style="color:var(--accent);cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;">⌚ wykresy</span>`
+        : '';
       const det = [dist, pace, hr, watch].filter(Boolean).join(' · ');
       const reaction = l.athlete_reaction ? `<span style="font-size:18px;">${l.athlete_reaction}</span>` : '';
       return `<div style="border-left:3px solid ${bc[l.feel]||'var(--border)'};margin-bottom:12px;background:var(--card2);border-radius:8px;overflow:hidden;">
@@ -8686,5 +8704,29 @@ document.addEventListener('keydown', (e) => {
 })();
 </script>
 
+<!-- ⌚ Modal wykresów per-activity (reużywa #ds-icu-* + _renderIcuDetail z sb.js) -->
+<div id="coach-icu-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:300;overflow-y:auto;padding:18px;backdrop-filter:blur(6px);" onclick="if(event.target===this)closeCoachIcuModal()">
+  <div style="max-width:640px;margin:24px auto;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;position:relative;">
+    <button onclick="closeCoachIcuModal()" style="position:absolute;top:10px;right:12px;background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;">✕</button>
+    <div id="coach-icu-title" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;"></div>
+    <div id="ds-icu-card" style="display:none;">
+      <div id="ds-icu-multi" style="display:none;text-align:right;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;"></div>
+      <div id="ds-icu-loading" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;">Ładuję szczegóły…</div>
+      <div id="ds-icu-tabs" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        <button id="ds-icu-tab-pace" onclick="_icuSetMetric('pace')">Tempo</button>
+        <button id="ds-icu-tab-hr" onclick="_icuSetMetric('hr')">Tętno</button>
+        <button id="ds-icu-tab-resp" onclick="_icuSetMetric('resp')">Oddech</button>
+        <button id="ds-icu-tab-cad" onclick="_icuSetMetric('cad')">Kadencja</button>
+        <button id="ds-icu-tab-alt" onclick="_icuSetMetric('alt')">Wysokość</button>
+        <button id="ds-icu-tab-temp" onclick="_icuSetMetric('temp')">Temperatura</button>
+      </div>
+      <div id="ds-icu-chart-wrap" style="display:none;position:relative;height:180px;margin-bottom:12px;"><canvas id="ds-icu-chart"></canvas></div>
+      <div id="ds-icu-splits" style="display:none;"></div>
+      <div id="ds-icu-stats" style="display:none;"></div>
+      <div id="ds-icu-hrzones" style="display:none;"></div>
+      <div id="ds-icu-msg" style="display:none;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
