@@ -742,7 +742,7 @@
       location.href = 'https://intervals.icu/oauth/authorize'
         + '?client_id=533'
         + '&redirect_uri=' + encodeURIComponent(redirect)
-        + '&scope=ACTIVITY:READ'
+        + '&scope=ACTIVITY:READ,CALENDAR:WRITE'
         + '&state=' + encodeURIComponent(nonce)
         + '&response_type=code';
     },
@@ -751,10 +751,11 @@
     czyPolaczony: async function(athleteId) {
       if (!athleteId) return { polaczony: false, od_kiedy: null };
       const { data } = await window.sb.from('athletes')
-        .select('intervals_athlete_id, intervals_connected_at')
+        .select('intervals_athlete_id, intervals_connected_at, intervals_can_write')
         .eq('id', athleteId).maybeSingle();
       return { polaczony: !!(data && data.intervals_athlete_id),
-               od_kiedy: (data && data.intervals_connected_at) || null };
+               od_kiedy: (data && data.intervals_connected_at) || null,
+               moze_wysylac: !!(data && data.intervals_can_write) };
     },
 
     // 3) RENDER — jedna funkcja, 4 wagi. Async, bo pyta czyPolaczony o stan.
@@ -812,8 +813,12 @@
       if (waga === 'status') {
         if (st.polaczony) {
           const d = st.od_kiedy ? new Date(st.od_kiedy).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'}) : '';
+          const unlock = st.moze_wysylac ? '' :
+            '<div class="wc-unlock" style="margin-top:8px;padding:10px;border:1px solid var(--accent);border-radius:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+            + '<span>🔓 Odblokuj wysyłanie treningów na zegarek</span>'
+            + '<button class="wc-btn-sm" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj ponownie</button></div>';
           return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
-            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>';
+            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + unlock;
         }
         return '<div class="wc-status-connect">'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
