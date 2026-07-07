@@ -1740,7 +1740,26 @@ function openModal(ds, idx) {
     const _stepsFieldE = document.getElementById('f-steps-field');
     const _stepsBoxE = document.getElementById('f-steps-breakdown');
     if(_stepsFieldE && _stepsBoxE){
-      if(_stepsTxtE){ _stepsBoxE.textContent = _stepsTxtE; _stepsFieldE.style.display='block'; }
+      if(_stepsTxtE){
+        _stepsBoxE.textContent = _stepsTxtE; _stepsFieldE.style.display='block';
+        // ⌚ Wyślij na zegarek — tylko planned (nie 'done'); wstrzyknięcie jednorazowe
+        let _sendBtn = document.getElementById('f-steps-send');
+        if(!_sendBtn){
+          _sendBtn = document.createElement('button');
+          _sendBtn.id='f-steps-send'; _sendBtn.type='button';
+          _sendBtn.style.cssText="margin-top:8px;width:100%;background:var(--accent);color:var(--fg);border:none;border-radius:6px;padding:9px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;";
+          const _s=document.createElement('div'); _s.id='f-steps-send-status';
+          _s.style.cssText="margin-top:6px;font-size:10px;font-family:'DM Mono',monospace;line-height:1.4;white-space:pre-line;display:none;";
+          _stepsFieldE.appendChild(_sendBtn); _stepsFieldE.appendChild(_s);
+        }
+        const _sendStat=document.getElementById('f-steps-send-status');
+        if(t.status==='done'){ _sendBtn.style.display='none'; _sendStat.style.display='none'; }
+        else {
+          _sendBtn.style.display='block'; _sendBtn.disabled=false; _sendBtn.textContent='⌚ Wyślij na zegarek';
+          _sendStat.style.display='none'; _sendStat.textContent='';
+          _sendBtn.onclick=function(){ wyslijNaZegarek(t._id, _sendBtn, _sendStat); };
+        }
+      }
       else { _stepsBoxE.textContent=''; _stepsFieldE.style.display='none'; }
     }
     const erefElE = document.getElementById('f-exercise-ref'); if (erefElE) erefElE.value = t.exercise_ref || '';
@@ -1758,6 +1777,42 @@ function openModal(ds, idx) {
   if (_urlRole === 'coach') {
     const athleteId = window._calSelectedAthleteId || null;
     smartSuggest(athleteId, selectedType, idx !== null);
+  }
+}
+
+// ⌚ E3a: wyślij structured workout na zegarek przez push-EF
+async function wyslijNaZegarek(trainingId, btn, statEl){
+  if(!trainingId) return;
+  const _old = btn.textContent; btn.disabled=true; btn.textContent='Wysyłam…'; statEl.style.display='none';
+  try{
+    const { data:{ session } } = await window.sb.auth.getSession();
+    if(!session) throw new Error('no_session');
+    const fnUrl=(window.SB_FN_URL||'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1')+'/intervals-push';
+    const res=await fetch(fnUrl,{ method:'POST',
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+      body: JSON.stringify({ training_id: trainingId }) });
+    const d=await res.json().catch(()=>null);
+    btn.disabled=false; statEl.style.display='block';
+    if(d && d.ok){
+      btn.textContent='⌚ Wysłano ✓'; statEl.style.color='var(--accent)';
+      statEl.textContent='Trening trafi na zegarek przy najbliższej synchronizacji (na dziś/jutro — rano).';
+    } else {
+      btn.textContent=_old; statEl.style.color='#d9534f';
+      const e = (d && d.error) || 'unknown';
+      const coach = (typeof _urlRole!=='undefined' && _urlRole==='coach');
+      if(e==='no_write_scope' || e==='icu_denied')
+        statEl.textContent = coach ? 'Zawodnik musi odblokować wysyłanie na zegarek (profil → zegarek).'
+                                   : 'Najpierw odblokuj: profil → zegarek → „Autoryzuj ponownie".';
+      else if(e==='not_connected')
+        statEl.textContent = coach ? 'Zawodnik nie ma połączonego zegarka.' : 'Najpierw połącz zegarek w profilu.';
+      else if(e==='forbidden')  statEl.textContent='Brak uprawnień do tego treningu.';
+      else if(e==='no_steps')   statEl.textContent='Ten trening nie ma rozpisanych kroków.';
+      else                      statEl.textContent='Nie udało się wysłać. Spróbuj ponownie.';
+    }
+  }catch(err){
+    btn.disabled=false; btn.textContent=_old;
+    statEl.style.display='block'; statEl.style.color='#d9534f';
+    statEl.textContent='Błąd połączenia. Spróbuj ponownie.';
   }
 }
 
