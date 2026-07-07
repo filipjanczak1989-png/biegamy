@@ -1965,15 +1965,15 @@ function toggleStepsEditor(){
   const box=document.getElementById('se-wrap');const btn=document.getElementById('se-toggle');
   if(!box)return;
   box.style.display=_seOpen?'block':'none';
-  if(btn)btn.textContent=_seOpen?'Ukryj kroki':'Rozpisz na kroki';
+  if(btn)btn.textContent=_seOpen?'Ukryj kroki':(_seSteps.length?'Pokaż / edytuj kroki':'Rozpisz na kroki');
   if(_seOpen)_seRender();
 }
 function seLoad(steps){
   _seSteps=Array.isArray(steps)?JSON.parse(JSON.stringify(steps)):[];
-  _seOpen=_seSteps.length>0;                 // trening z krokami → edytor od razu widoczny
+  _seOpen=false;                             // polish w4: edytor domyślnie ZWINIĘTY (podgląd i tak pokazuje kroki na żywo)
   const box=document.getElementById('se-wrap');const btn=document.getElementById('se-toggle');
   if(box)box.style.display=_seOpen?'block':'none';
-  if(btn)btn.textContent=_seOpen?'Ukryj kroki':'Rozpisz na kroki';
+  if(btn)btn.textContent=_seSteps.length?'Pokaż / edytuj kroki':'Rozpisz na kroki';
   _seRender();
 }
 
