@@ -788,6 +788,34 @@ html { scroll-behavior: smooth; }
 }
 /* Galeria zdjęć dnia — ukryj wskaźnik scrolla (scroll dalej działa palcem/kółkiem) */
 #ds-screens-scroll::-webkit-scrollbar{display:none;}
+/* ═══ w4: edytor kroków ═══ */
+.se-step{background:var(--card2,#242424);border:1px solid var(--border);border-radius:10px;padding:11px;margin:0 0 9px}
+.se-step.child{background:var(--card3,#2c2c2c)}
+.se-top{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+.se-kind{flex:1}
+.se-ico{width:30px;height:30px;flex:none;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:14px;cursor:pointer;padding:0}
+.se-ico:hover{color:var(--accent);border-color:var(--accent)}
+.se-ico.del:hover{color:#ff7a5c;border-color:#ff7a5c}
+.se-row{margin:0 0 9px}.se-row:last-child{margin-bottom:0}
+.se-rl{font-size:11px;color:var(--muted);margin:0 0 5px}
+.se-seg{display:inline-flex;gap:4px;flex-wrap:wrap;margin:0 0 7px}
+.se-seg button{font-size:11px;font-weight:500;padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer}
+.se-seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.se-vals{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.se-num{width:66px;text-align:center;font-family:'DM Mono',monospace}
+.se-pace{width:58px;text-align:center;font-family:'DM Mono',monospace}
+.se-note{width:100%}
+.se-sep,.se-suf{color:var(--muted);font-family:'DM Mono',monospace;font-size:12px}
+.se-hrro{font-family:'DM Mono',monospace;font-size:13px;color:var(--fg);background:var(--card3,#2c2c2c);border:1px solid var(--border);border-radius:7px;padding:6px 10px}
+.se-swap{font-size:11px;font-weight:500;padding:6px 10px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--accent);cursor:pointer}
+.se-rep{border:1px solid rgba(232,86,30,0.28);background:rgba(232,86,30,0.08);border-radius:12px;padding:11px 10px;margin:0 0 9px}
+.se-reptop{display:flex;align-items:center;gap:8px;margin:0 0 11px}
+.se-repx{display:flex;align-items:center;gap:6px;flex:1}
+.se-repx strong{font-size:14px;color:var(--accent)}
+.se-repx input{width:52px;text-align:center;font-family:'DM Mono',monospace;font-size:15px;color:var(--accent)}
+.se-add{flex:1;min-width:130px;font-size:12px;font-weight:600;padding:11px;border-radius:9px;border:1px dashed var(--border);background:transparent;color:var(--fg);cursor:pointer}
+.se-add:hover{border-color:var(--accent);color:var(--accent)}
+.se-add.sub{font-size:11px;padding:8px;min-width:0;width:100%;margin-top:2px}
 </style>
 </head>
 <body>
@@ -958,9 +986,17 @@ html { scroll-behavior: smooth; }
         <label>Opis / instrukcje dla zawodnika</label>
         <textarea id="f-desc" placeholder="np. 10 km w tętnie 140-150. Pierwsze 2 km jako rozgrzewka. Ostatni km możesz przyspieszyć jeśli czujesz się dobrze."></textarea>
       </div>
-      <div class="field" id="f-steps-field" style="display:none;">
+      <div class="field" id="f-steps-field">
         <label>Rozkład treningu</label>
-        <div id="f-steps-breakdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);line-height:1.55;padding:8px 10px;background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:6px;white-space:pre-line;"></div>
+        <button type="button" id="se-toggle" onclick="toggleStepsEditor()" style="width:100%;margin:0 0 8px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:10px;border:1px dashed var(--border);border-radius:8px;background:transparent;color:var(--fg);cursor:pointer;">Rozpisz na kroki</button>
+        <div id="se-wrap" style="display:none;">
+          <div id="se-list"></div>
+          <div style="display:flex;gap:8px;margin:12px 0 0;flex-wrap:wrap;">
+            <button type="button" class="se-add" onclick="_seAddStep()">+ Dodaj krok</button>
+            <button type="button" class="se-add" onclick="_seAddRep()">+ Blok powtórzeń (N×)</button>
+          </div>
+        </div>
+        <div id="f-steps-breakdown" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);line-height:1.55;padding:8px 10px;background:rgba(212,80,26,0.08);border:1px solid rgba(212,80,26,0.2);border-radius:6px;white-space:pre-line;margin-top:8px;"></div>
       </div>
       <div class="field" id="f-exercise-ref-wrap" style="display:none;">
         <label>Ćwiczenia w aplikacji (deep-link dla zawodnika)</label>
@@ -1659,6 +1695,7 @@ function openModal(ds, idx) {
   document.getElementById('f-time').value='';
   document.getElementById('f-pace').value='';
   document.getElementById('f-hr').value='';
+  seLoad([]);                     // ⟵ w4: pusty edytor dla nowego treningu
   // Reset smart suggest
   const distEl2 = document.getElementById('f-dist');
   const paceEl2 = document.getElementById('f-pace');
@@ -1737,6 +1774,7 @@ function openModal(ds, idx) {
     document.getElementById('f-desc').value = t.desc || t.description || '';
     // ✨ steps: read-only rozkład structured workout (Interwały/Tempo) — zawodnik widzi kroki
     const _stepsTxtE = (window.renderWorkoutSteps && t.steps) ? window.renderWorkoutSteps(t.steps).lines.join('\n') : '';
+    seLoad(t.steps || []);          // ⟵ w4: wczytaj kroki do edytora (round-trip AI↔ręczne)
     const _stepsFieldE = document.getElementById('f-steps-field');
     const _stepsBoxE = document.getElementById('f-steps-breakdown');
     if(_stepsFieldE && _stepsBoxE){
@@ -1760,7 +1798,7 @@ function openModal(ds, idx) {
           _sendBtn.onclick=function(){ wyslijNaZegarek(t._id, _sendBtn, _sendStat); };
         }
       }
-      else { _stepsBoxE.textContent=''; _stepsFieldE.style.display='none'; }
+      else { _stepsBoxE.textContent=''; const _sb=document.getElementById('f-steps-send'); if(_sb)_sb.style.display='none'; }
     }
     const erefElE = document.getElementById('f-exercise-ref'); if (erefElE) erefElE.value = t.exercise_ref || '';
     document.getElementById('f-status').value = t.status||'planned';
@@ -1828,6 +1866,115 @@ async function skasujZZegarka(trainingId){
       body: JSON.stringify({ training_id: trainingId, action:'delete' }) }).catch(()=>{});
     clearTimeout(to);
   }catch(_){ /* best-effort — cisza, nie blokujemy usuwania */ }
+}
+
+// ═══ w4: EDYTOR KROKÓW (uniwersalny — tempo/fartlek/interwały/progresja/podbiegi) ═══
+const _SE_KINDS=[['warmup','Rozgrzewka'],['run','Bieg'],['recovery','Trucht'],['rest','Przerwa'],['cooldown','Schłodzenie']];
+const _SE_KMAP=Object.fromEntries(_SE_KINDS);
+let _seSteps=[];                 // źródło prawdy edytora (kroki otwartego treningu)
+let _seOpen=false;               // czy edytor odsłonięty
+
+function _sePad(n){return n<10?'0'+n:''+n}
+function _seFmtPace(s){return Math.floor(s/60)+':'+_sePad(s%60)}
+function _seParsePace(v){const m=String(v).match(/(\d+):(\d{1,2})/);return m?(+m[1]*60+ +m[2]):(parseInt(v)||0)}
+function _seDefDur(t){return t==='distance'?{type:'distance',m:1000}:t==='time'?{type:'time',s:180}:{type:'open'}}
+function _seDefTgt(t){return t==='pace'?{type:'pace',min_s_per_km:240,max_s_per_km:250}:t==='hr_zone'?{type:'hr_zone',zone:2}:{type:'none'}}
+function _seEl(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
+function _seSeg(opts,cur,pick){const w=_seEl('div','se-seg');opts.forEach(([v,l])=>{const b=_seEl('button',null,l);b.type='button';if(v===cur)b.className='on';b.onclick=()=>pick(v);w.appendChild(b)});return w}
+
+function _seDur(st){
+  const box=_seEl('div');
+  box.appendChild(_seSeg([['distance','Dystans'],['time','Czas'],['open','Do lap']],st.duration.type,v=>{st.duration=_seDefDur(v);_seRender()}));
+  const vals=_seEl('div','se-vals');
+  if(st.duration.type==='distance'){
+    const km=st.duration.m>=1000&&st.duration.m%1000===0;
+    const inp=_seEl('input','se-num');inp.type='text';inp.value=km?(st.duration.m/1000):st.duration.m;
+    const unit=_seEl('select','se-unit');['m','km'].forEach(u=>{const o=_seEl('option',null,u);o.value=u;unit.appendChild(o)});unit.value=km?'km':'m';
+    const sync=()=>{const n=parseFloat(inp.value)||0;st.duration.m=Math.round(unit.value==='km'?n*1000:n);_sePrev()};
+    inp.oninput=sync;unit.onchange=sync;vals.append(inp,unit);
+  } else if(st.duration.type==='time'){
+    const inp=_seEl('input','se-pace');inp.type='text';inp.value=_seFmtPace(st.duration.s);
+    inp.oninput=()=>{st.duration.s=_seParsePace(inp.value);_sePrev()};vals.append(inp,_seEl('span','se-suf','min:sek'));
+  } else vals.appendChild(_seEl('span','se-suf','biegnie do wciśnięcia lap'));
+  box.appendChild(vals);return box;
+}
+function _seTgt(st){
+  const box=_seEl('div');
+  box.appendChild(_seSeg([['pace','Tempo'],['hr_zone','Strefa HR'],['none','Brak']],st.target.type==='hr'?'':st.target.type,v=>{st.target=_seDefTgt(v);_seRender()}));
+  const vals=_seEl('div','se-vals');
+  if(st.target.type==='pace'){
+    const a=_seEl('input','se-pace');a.type='text';a.value=_seFmtPace(st.target.min_s_per_km);
+    const b=_seEl('input','se-pace');b.type='text';b.value=_seFmtPace(st.target.max_s_per_km);
+    a.oninput=()=>{st.target.min_s_per_km=_seParsePace(a.value);_sePrev()};
+    b.oninput=()=>{st.target.max_s_per_km=_seParsePace(b.value);_sePrev()};
+    vals.append(a,_seEl('span','se-sep','–'),b,_seEl('span','se-suf','/km'));
+  } else if(st.target.type==='hr_zone'){
+    const s=_seEl('select');[1,2,3,4,5].forEach(z=>{const o=_seEl('option',null,'Z'+z);o.value=z;s.appendChild(o)});
+    s.value=st.target.zone;s.onchange=()=>{st.target.zone=+s.value;_sePrev()};vals.append(s,_seEl('span','se-suf','strefa tętna'));
+  } else if(st.target.type==='hr'){                     // hr absolutne = read-only z AI (nie wybieralne)
+    vals.append(_seEl('div','se-hrro',st.target.min_bpm+'–'+st.target.max_bpm+' bpm'),_seEl('span','se-suf','z planu AI'));
+    const sw=_seEl('button','se-swap','zmień na tempo');sw.type='button';sw.onclick=()=>{st.target=_seDefTgt('pace');_seRender()};vals.append(sw);
+  } else vals.appendChild(_seEl('span','se-suf','bez celu — luźno'));
+  box.appendChild(vals);return box;
+}
+function _seCard(st,arr,i,child){
+  const c=_seEl('div','se-step'+(child?' child':''));
+  const top=_seEl('div','se-top');
+  const ks=_seEl('select','se-kind');_SE_KINDS.forEach(([v,l])=>{const o=_seEl('option',null,l);o.value=v;ks.appendChild(o)});ks.value=st.kind;ks.onchange=()=>{st.kind=ks.value;_sePrev()};
+  const up=_seEl('button','se-ico','↑');up.type='button';up.onclick=()=>{if(i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];_seRender()}};
+  const dn=_seEl('button','se-ico','↓');dn.type='button';dn.onclick=()=>{if(i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];_seRender()}};
+  const rm=_seEl('button','se-ico del','✕');rm.type='button';rm.onclick=()=>{arr.splice(i,1);_seRender()};
+  top.append(ks,up,dn,rm);c.appendChild(top);
+  const r1=_seEl('div','se-row');r1.append(_seEl('div','se-rl','Ile'),_seDur(st));c.appendChild(r1);
+  const r2=_seEl('div','se-row');r2.append(_seEl('div','se-rl','Cel'),_seTgt(st));c.appendChild(r2);
+  const r3=_seEl('div','se-row');const ni=_seEl('input','se-note');ni.type='text';ni.placeholder='Notka (opcjonalnie) — np. mocno';ni.value=st.note||'';ni.oninput=()=>{st.note=ni.value;_sePrev()};r3.appendChild(ni);c.appendChild(r3);
+  return c;
+}
+function _seRep(rp,arr,i){
+  const c=_seEl('div','se-rep');
+  const top=_seEl('div','se-reptop');const x=_seEl('div','se-repx');
+  const ci=_seEl('input');ci.type='number';ci.min=2;ci.max=30;ci.value=rp.count;ci.oninput=()=>{rp.count=Math.max(1,parseInt(ci.value)||1);_sePrev()};
+  x.append(ci,_seEl('strong','× powtórz'));
+  const up=_seEl('button','se-ico','↑');up.type='button';up.onclick=()=>{if(i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];_seRender()}};
+  const dn=_seEl('button','se-ico','↓');dn.type='button';dn.onclick=()=>{if(i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];_seRender()}};
+  const rm=_seEl('button','se-ico del','✕');rm.type='button';rm.onclick=()=>{arr.splice(i,1);_seRender()};
+  top.append(x,up,dn,rm);c.appendChild(top);
+  (rp.steps||[]).forEach((cs,j)=>c.appendChild(_seCard(cs,rp.steps,j,true)));
+  const add=_seEl('button','se-add sub','+ krok w bloku');add.type='button';add.onclick=()=>{rp.steps.push({kind:'run',duration:_seDefDur('distance'),target:_seDefTgt('pace'),note:''});_seRender()};
+  c.appendChild(add);return c;
+}
+function _seRender(){
+  const box=document.getElementById('se-list');if(!box)return;box.innerHTML='';
+  _seSteps.forEach((s,i)=>box.appendChild(s.kind==='repeat'?_seRep(s,_seSteps,i):_seCard(s,_seSteps,i,false)));
+  _sePrev();
+}
+function _seAddStep(){_seSteps.push({kind:'run',duration:_seDefDur('distance'),target:_seDefTgt('pace'),note:''});_seRender()}
+function _seAddRep(){_seSteps.push({kind:'repeat',count:4,steps:[{kind:'run',duration:_seDefDur('distance'),target:_seDefTgt('pace'),note:''},{kind:'recovery',duration:_seDefDur('time'),target:_seDefTgt('none'),note:'Trucht'}]});_seRender()}
+
+// podgląd = reużyj renderWorkoutSteps (SSOT z sb.js) — pisze do #f-steps-breakdown (baza guzika ⌚ E3a)
+function _sePrev(){
+  const p=document.getElementById('f-steps-breakdown');if(!p)return;
+  const clean=_seSerialize();
+  p.textContent=(window.renderWorkoutSteps&&clean.length)?window.renderWorkoutSteps(clean).lines.join('\n'):'—';
+}
+function _seSerialize(){
+  return JSON.parse(JSON.stringify(_seSteps));
+}
+function toggleStepsEditor(){
+  _seOpen=!_seOpen;
+  const box=document.getElementById('se-wrap');const btn=document.getElementById('se-toggle');
+  if(!box)return;
+  box.style.display=_seOpen?'block':'none';
+  if(btn)btn.textContent=_seOpen?'Ukryj kroki':'Rozpisz na kroki';
+  if(_seOpen)_seRender();
+}
+function seLoad(steps){
+  _seSteps=Array.isArray(steps)?JSON.parse(JSON.stringify(steps)):[];
+  _seOpen=_seSteps.length>0;                 // trening z krokami → edytor od razu widoczny
+  const box=document.getElementById('se-wrap');const btn=document.getElementById('se-toggle');
+  if(box)box.style.display=_seOpen?'block':'none';
+  if(btn)btn.textContent=_seOpen?'Ukryj kroki':'Rozpisz na kroki';
+  _seRender();
 }
 
 function closeModal() {
@@ -2096,6 +2243,12 @@ async function saveTraining() {
 
   if(!editingDate) { notify('Brak daty'); return; }
 
+  const _seOut = _seSteps.length ? _seSerialize() : null;
+  if (_seOut && window.validateWorkoutSteps){
+    const _v = window.validateWorkoutSteps(_seOut);
+    if(!_v.ok){ notify('Kroki: ' + _v.errors[0]); return; }   // blokuj zapis błędnych kroków
+  }
+
   const { data: { session } } = await sb.auth.getSession();
 
   // ── TRENER: zapisz/zaktualizuj w Supabase ───────────────────────
@@ -2107,7 +2260,8 @@ async function saveTraining() {
     if (dbId) {
       const { error: updErr } = await sb.from('trainings').update({
         type: selectedType, distance_km: dist||null, duration_min: time||null,
-        pace: pace||null, heart_rate: hr||null, description: desc||null, exercise_ref: eref, status
+        pace: pace||null, heart_rate: hr||null, description: desc||null, exercise_ref: eref,
+        steps: _seOut, steps_version: _seOut ? 1 : null, status
       }).eq('id', dbId);
       if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
     } else {
@@ -2130,6 +2284,8 @@ async function saveTraining() {
         heart_rate: hr||null,
         description: desc||null,
         exercise_ref: eref,
+        steps: _seOut,
+        steps_version: _seOut ? 1 : null,
         status
       });
       if (insErr) { notify('Błąd: ' + insErr.message); return; }
@@ -2155,6 +2311,8 @@ async function saveTraining() {
       pace: pace || null,
       heart_rate: hr || null,
       description: desc || null,
+      steps: _seOut,
+      steps_version: _seOut ? 1 : null,
       status
     }).eq('id', athDbId);
     if (updErr) { notify('Błąd zapisu: ' + updErr.message); return; }
@@ -2174,6 +2332,8 @@ async function saveTraining() {
       pace: pace || null,
       heart_rate: hr || null,
       description: desc || null,
+      steps: _seOut,
+      steps_version: _seOut ? 1 : null,
       status
     });
     if (insErr) { notify('Błąd zapisu: ' + insErr.message); return; }
