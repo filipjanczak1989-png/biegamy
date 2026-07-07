@@ -3504,6 +3504,9 @@ async function copyTraining() {
     pace: t.pace || null,
     heart_rate: t.hr || null,
     description: t.desc || null,
+    steps: t.steps || null,
+    steps_version: t.steps ? 1 : null,
+    exercise_ref: t.exercise_ref || null,
     status: 'planned'
   });
   if (error) { notify('Błąd: ' + error.message); return; }
