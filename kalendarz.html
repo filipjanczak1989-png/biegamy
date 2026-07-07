@@ -1816,6 +1816,20 @@ async function wyslijNaZegarek(trainingId, btn, statEl){
   }
 }
 
+// ⌚ E4: best-effort skasowanie eventu z zegarka (nie blokuje usuwania treningu)
+async function skasujZZegarka(trainingId){
+  try{
+    const { data:{ session } } = await window.sb.auth.getSession();
+    if(!session) return;
+    const fnUrl=(window.SB_FN_URL||'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1')+'/intervals-push';
+    const ctrl = new AbortController(); const to = setTimeout(()=>ctrl.abort(), 4000); // krótki timeout
+    await fetch(fnUrl,{ method:'POST', signal: ctrl.signal,
+      headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+      body: JSON.stringify({ training_id: trainingId, action:'delete' }) }).catch(()=>{});
+    clearTimeout(to);
+  }catch(_){ /* best-effort — cisza, nie blokujemy usuwania */ }
+}
+
 function closeModal() {
   document.getElementById('modal-bg').classList.remove('open');
 }
@@ -2265,6 +2279,7 @@ async function deleteTraining(e, ds, idx) {
   if (!confirm('Usunąć: ' + label + '?')) return;
 
   if (dbId) {
+    await skasujZZegarka(dbId);   // ⌚ E4: best-effort (timeout 4s) PRZED DB-delete — trening jeszcze w DB dla auth EF (anti-ghost)
     const { error } = await sb.from('trainings').delete().eq('id', dbId);
     if (error) {
       if (error.code === '42501' || error.message?.includes('policy')) {
