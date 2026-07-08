@@ -830,7 +830,8 @@
         if (st.polaczony) {
           return '<button class="wc-badge wc-badge-ok" title="Zegarek połączony — status/rozłącz" '
             + 'onclick="location.href=\'profil.html?open=icu\'">' + ic
-            + '<span class="wc-badge-check">✓</span></button>';
+            + '<span class="wc-badge-check">✓</span>'
+            + '<span class="wc-refresh" title="Synchronizuj z zegarkiem" onclick="event.stopPropagation(); WATCH._badgeSync(\'' + opts.athleteId + '\', this)">↺</span></button>';
         }
         return '<button class="wc-badge wc-badge-off" title="Połącz zegarek" '
           + 'onclick="location.href=\'profil.html?open=icu\'">' + ic
@@ -850,6 +851,37 @@
     },
 
     _noop: function() {},
+
+    // 5) SYNC — SSOT importu z zegarka (reużywa EF intervals-sync); profil-button i badge-↺ wołają to samo
+    sync: async function(athleteId, onDone) {
+      if (!athleteId) return { ok:false, error:'no_athlete' };
+      try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('brak sesji');
+        const r = await fetch(window.SB_FN_URL + '/intervals-sync', {
+          method: 'POST',
+          headers: { 'Content-Type':'application/json', Authorization: 'Bearer ' + session.access_token },
+          body: JSON.stringify({ athlete_id: athleteId })
+        });
+        const data = await r.json();
+        if (!data.ok) throw new Error(data.error || 'sync failed');
+        if (window.showToast) showToast('Zsynchronizowano ' + (data.synced ?? 0) + ' treningów ✓');
+        if (typeof onDone === 'function') onDone(data);
+        return data;
+      } catch (e) {
+        if (window.showToast) showToast('Błąd synchronizacji: ' + (e.message || e));
+        return { ok:false, error: String(e.message || e) };
+      }
+    },
+
+    // badge-↺: spin podczas sync + odświeżenie widoku przez globalny hook _onWatchSynced
+    _badgeSync: function(athleteId, el) {
+      const badge = el.closest('.wc-badge');
+      if (badge && badge.classList.contains('syncing')) return;   // anti-double-click
+      if (badge) badge.classList.add('syncing');
+      this.sync(athleteId, function(){ if (window._onWatchSynced) window._onWatchSynced(); })
+          .finally(function(){ if (badge) badge.classList.remove('syncing'); });
+    },
 
     _injectCss: function() {
       if (document.getElementById('wc-css')) return;
@@ -904,6 +936,11 @@
         + '.wc-badge-ok .wc-icon{stroke:var(--muted)}'
         + '.wc-badge-dot{position:absolute;top:-3px;right:-3px;min-width:14px;height:14px;background:var(--accent);border:2px solid var(--bg);border-radius:7px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;line-height:1;padding:0 2px}'
         + '.wc-badge-check{position:absolute;bottom:-2px;right:-2px;width:13px;height:13px;background:var(--green,#3db870);border:2px solid var(--bg);border-radius:50%;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1}';
+      s.textContent +=
+        '.wc-refresh{display:inline-flex;align-items:center;justify-content:center;margin-left:3px;font-size:13px;line-height:1;color:var(--muted);cursor:pointer;opacity:.75;transition:opacity .2s}'
+        + '.wc-refresh:hover{opacity:1;color:var(--accent)}'
+        + '.wc-badge.syncing .wc-refresh{animation:wc-spin .8s linear infinite}'
+        + '@keyframes wc-spin{to{transform:rotate(360deg)}}';
       document.head.appendChild(s);
     }
   };

@@ -1793,6 +1793,11 @@ async function mountWatchBadge() {
   slot.innerHTML = await window.WATCH.render('badge', { athleteId: _athleteId, returnTo: 'zawodnik.html' });
 }
 
+// Hook wołany przez badge-↺ po udanym sync — odświeża listę logów bez F5
+window._onWatchSynced = function(){
+  if (typeof loadLogs === 'function') loadLogs();
+};
+
 async function openModal() {
   _editingLogId = null;
   // Ustaw jawnie datę na dziś (unikaj problemów z timezone)
