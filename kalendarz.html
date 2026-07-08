@@ -1442,6 +1442,22 @@ async function prefetchFoodImages(names) {
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
+// ═══ fix plan↔log: dopasowanie wykonania do planu (reguła matchera #3, 1:1) ═══
+const _matchNorm = (t) => { const s=String(t||'').trim().toLowerCase(); return s==='bieg spokojny'?'spokojny':s; };
+// zwraca { byPlan: Map(plan._id → log), orphans: [logi bez planu] } dla jednego dnia
+function _matchDayLogs(plans, logs){
+  const used=new Set(); const byPlan=new Map();
+  (plans||[]).forEach(p=>{
+    const pool=(logs||[]).filter(l=>!used.has(l.id));
+    const log = pool.find(l=>_matchNorm(l.training_type)===_matchNorm(p.type))  // preferuj ten sam typ
+             || pool[0]                                                          // potem pierwszy niezużyty
+             || null;
+    if(log){ used.add(log.id); byPlan.set(p._id, log); }
+  });
+  const orphans=(logs||[]).filter(l=>!used.has(l.id));   // niedopasowane = „bez planu"
+  return { byPlan, orphans };
+}
+
 function render() {
   const days = Array.from({length:7},(_,i) => addDays(currentWeekStart,i));
   const today = new Date(); today.setHours(0,0,0,0);
@@ -1469,12 +1485,11 @@ function render() {
     // ✨ v47: dzień docelowy z URL ?date — podświetlenie
     const isJumpTarget = ds === window._calJumpToDate;
     const ts = trainings[ds] || [];
-    let km = ts.reduce((s,t)=>s+(t.dist||0),0);
-    // ✨ v47: dorzuć km z logów które nie mają powiązanego planu (orphan logs)
     const dayLogsHdr = (window._calLogs && window._calLogs[ds]) || [];
-    if (!ts.some(t => t.status === 'done') && dayLogsHdr.length > 0) {
-      km += dayLogsHdr.reduce((s, l) => s + (parseFloat(l.distance_km) || 0), 0);
-    }
+    const _m = _matchDayLogs(ts, dayLogsHdr);
+    // fix dublowania: plan dopasowany → faktyczny dystans z loga; niedopasowany → dystans planu; orphany osobno
+    let km = ts.reduce((s,t)=>{ const lg=_m.byPlan.get(t._id); return s + (lg && lg.distance_km!=null ? parseFloat(lg.distance_km) : (t.dist||0)); },0);
+    km += _m.orphans.reduce((s,l)=>s+(parseFloat(l.distance_km)||0),0);
     const dayKcal = getDayKcal(ds);
     const dayMeals = getDayMealCount(ds);
     // Miniaturka grafiki gdy są posiłki (deterministyczna z daty)
@@ -1514,8 +1529,7 @@ function render() {
       const statusLabel = t.status==='done'?'✓ Wykonany':t.status==='missed'?'✗ Nie wykonany':'';
 
       // Jeśli trening wykonany — pokaż dane z logu zamiast planu
-      const dayLog = (window._calLogs && window._calLogs[ds] && t.status === 'done')
-        ? window._calLogs[ds][0] : null;
+      const dayLog = _matchDayLogs(ts, (window._calLogs && window._calLogs[ds]) || []).byPlan.get(t._id) || null;
       const displayDist = dayLog && dayLog.distance_km ? parseFloat(dayLog.distance_km) : t.dist;
       const displayPace = dayLog && dayLog.pace ? dayLog.pace : t.pace;
       const displayHr   = dayLog && dayLog.heart_rate ? dayLog.heart_rate : t.hr;
@@ -1567,12 +1581,7 @@ function render() {
     // ✨ v47: Karty dla logów BEZ powiązanego treningu w planie
     // (np. zawodnicy bez planu którzy logują swoje biegi)
     const planTrainingIds = new Set(ts.map(t => t._id).filter(Boolean));
-    const orphanLogs = dayLogs.filter(l => {
-      // Jeśli log nie jest dopasowany do żadnego zaplanowanego treningu z 'done'
-      // (heurystyka: ts pusty LUB żaden ts nie ma status='done')
-      const hasMatchingDoneTraining = ts.some(t => t.status === 'done');
-      return !hasMatchingDoneTraining;
-    });
+    const orphanLogs = _matchDayLogs(ts, dayLogs).orphans;   // orphan = log bez dopasowanego planu (fix dublowania)
     
     // Renderuj orphan logi jako standalone karty (zielone, bez planu)
     const orphanLogCards = orphanLogs.map(log => {
