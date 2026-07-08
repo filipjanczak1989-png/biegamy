@@ -822,6 +822,9 @@ html { scroll-behavior: smooth; }
 .se-tpl button:hover{background:rgba(232,86,30,0.08);border-color:var(--accent)}
 .se-sum{font-size:12px;color:var(--muted);margin:0 0 10px;font-weight:500}
 .se-sum strong{color:var(--accent);font-family:'DM Mono',monospace;font-weight:500}
+.se-grip{cursor:grab}
+.se-grip:active{cursor:grabbing}
+.se-drop{outline:2px dashed var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -1888,6 +1891,7 @@ const _SE_KINDS=[['warmup','Rozgrzewka'],['run','Bieg'],['recovery','Trucht'],['
 const _SE_KMAP=Object.fromEntries(_SE_KINDS);
 let _seSteps=[];                 // źródło prawdy edytora (kroki otwartego treningu)
 let _seOpen=false;               // czy edytor odsłonięty
+let _seDrag=null;                // {arr,i} przeciąganego kroku (drag-reorder)
 
 function _sePad(n){return n<10?'0'+n:''+n}
 function _seFmtPace(s){return Math.floor(s/60)+':'+_sePad(s%60)}
@@ -1896,6 +1900,13 @@ function _seDefDur(t){return t==='distance'?{type:'distance',m:1000}:t==='time'?
 function _seDefTgt(t){return t==='pace'?{type:'pace',min_s_per_km:240,max_s_per_km:250}:t==='hr_zone'?{type:'hr_zone',zone:2}:{type:'none'}}
 function _seEl(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e}
 function _seSeg(opts,cur,pick){const w=_seEl('div','se-seg');opts.forEach(([v,l])=>{const b=_seEl('button',null,l);b.type='button';if(v===cur)b.className='on';b.onclick=()=>pick(v);w.appendChild(b)});return w}
+// drag-reorder: element el = drop target dla kroku o indeksie i w tablicy arr (tylko ta sama lista)
+function _seDnd(el,arr,i){
+  el.ondragover=e=>{ if(_seDrag&&_seDrag.arr===arr&&_seDrag.i!==i){ e.preventDefault();e.stopPropagation();el.classList.add('se-drop'); } };
+  el.ondragleave=()=>el.classList.remove('se-drop');
+  el.ondrop=e=>{ if(_seDrag&&_seDrag.arr===arr&&_seDrag.i!==i){ e.preventDefault();e.stopPropagation();const it=arr.splice(_seDrag.i,1)[0];arr.splice(i,0,it);_seRender(); } el.classList.remove('se-drop');_seDrag=null; };
+}
+function _seGrip(arr,i){const gr=_seEl('button','se-ico se-grip','⠿');gr.type='button';gr.title='Przeciągnij, aby zmienić kolejność';gr.draggable=true;gr.ondragstart=e=>{_seDrag={arr,i};e.dataTransfer.effectAllowed='move';};return gr}
 
 function _seDur(st){
   const box=_seEl('div');
@@ -1934,12 +1945,13 @@ function _seTgt(st){
 }
 function _seCard(st,arr,i,child){
   const c=_seEl('div','se-step'+(child?' child':''));
-  const top=_seEl('div','se-top');
+  _seDnd(c,arr,i);
+  const top=_seEl('div','se-top');const gr=_seGrip(arr,i);
   const ks=_seEl('select','se-kind');_SE_KINDS.forEach(([v,l])=>{const o=_seEl('option',null,l);o.value=v;ks.appendChild(o)});ks.value=st.kind;ks.onchange=()=>{st.kind=ks.value;_sePrev()};
   const up=_seEl('button','se-ico','↑');up.type='button';up.onclick=()=>{if(i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];_seRender()}};
   const dn=_seEl('button','se-ico','↓');dn.type='button';dn.onclick=()=>{if(i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];_seRender()}};
   const rm=_seEl('button','se-ico del','✕');rm.type='button';rm.onclick=()=>{arr.splice(i,1);_seRender()};
-  top.append(ks,up,dn,rm);c.appendChild(top);
+  top.append(gr,ks,up,dn,rm);c.appendChild(top);
   const r1=_seEl('div','se-row');r1.append(_seEl('div','se-rl','Ile'),_seDur(st));c.appendChild(r1);
   const r2=_seEl('div','se-row');r2.append(_seEl('div','se-rl','Cel'),_seTgt(st));c.appendChild(r2);
   const r3=_seEl('div','se-row');const ni=_seEl('input','se-note');ni.type='text';ni.placeholder='Notka (opcjonalnie) — np. mocno';ni.value=st.note||'';ni.oninput=()=>{st.note=ni.value;_sePrev()};r3.appendChild(ni);c.appendChild(r3);
@@ -1947,13 +1959,14 @@ function _seCard(st,arr,i,child){
 }
 function _seRep(rp,arr,i){
   const c=_seEl('div','se-rep');
+  _seDnd(c,arr,i);
   const top=_seEl('div','se-reptop');const x=_seEl('div','se-repx');
   const ci=_seEl('input');ci.type='number';ci.min=2;ci.max=30;ci.value=rp.count;ci.oninput=()=>{rp.count=Math.max(1,parseInt(ci.value)||1);_sePrev()};
   x.append(ci,_seEl('strong','× powtórz'));
   const up=_seEl('button','se-ico','↑');up.type='button';up.onclick=()=>{if(i>0){[arr[i-1],arr[i]]=[arr[i],arr[i-1]];_seRender()}};
   const dn=_seEl('button','se-ico','↓');dn.type='button';dn.onclick=()=>{if(i<arr.length-1){[arr[i+1],arr[i]]=[arr[i],arr[i+1]];_seRender()}};
   const rm=_seEl('button','se-ico del','✕');rm.type='button';rm.onclick=()=>{arr.splice(i,1);_seRender()};
-  top.append(x,up,dn,rm);c.appendChild(top);
+  top.append(x,_seGrip(arr,i),up,dn,rm);c.appendChild(top);
   (rp.steps||[]).forEach((cs,j)=>c.appendChild(_seCard(cs,rp.steps,j,true)));
   const add=_seEl('button','se-add sub','+ krok w bloku');add.type='button';add.onclick=()=>{rp.steps.push({kind:'run',duration:_seDefDur('distance'),target:_seDefTgt('pace'),note:''});_seRender()};
   c.appendChild(add);return c;
