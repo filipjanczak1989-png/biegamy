@@ -54,6 +54,7 @@ body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;min-h
 .ath-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all 0.15s;position:relative;overflow:hidden;}
 .ath-card:active{transform:scale(0.98);}
 .ath-card.sel{border-color:var(--accent);background:rgba(212,80,26,0.06);}
+.ath-watch{font-size:.85em;opacity:.8;margin-left:2px;}
 .ath-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;}
 .ath-av{width:40px;height:40px;border-radius:50%;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:15px;flex-shrink:0;}
 .ath-info{flex:1;min-width:0;}
@@ -3359,6 +3360,17 @@ async function renderDbAthletes(list) {
   const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
   const todayStr = now.toISOString().split('T')[0];
 
+  // ⌚ kto realnie synchronizuje zegarek — JEDNO zapytanie, scoped do widocznych (zero N+1); błąd = lista bez ⌚
+  let watchAthleteIds = new Set();
+  try {
+    const ids = list.map(a => a.id);
+    if (ids.length) {
+      const { data: wl } = await sb.from('training_logs')
+        .select('athlete_id').eq('source', 'intervals').in('athlete_id', ids);
+      watchAthleteIds = new Set((wl || []).map(r => r.athlete_id));
+    }
+  } catch(e) {}
+
   const withLogs = await Promise.all(list.map(async a => {
     const { count } = await sb.from('training_logs').select('*',{count:'exact',head:true})
       .eq('athlete_id', a.id)
@@ -3404,7 +3416,7 @@ async function renderDbAthletes(list) {
       <div class="ath-stripe" style="background:var(--accent)"></div>
       <div class="ath-av" style="border:1px solid var(--accent);color:var(--accent);">${escapeHtml(initials)}</div>
       <div class="ath-info">
-        <div class="ath-name">${escapeHtml(name)}</div>
+        <div class="ath-name">${escapeHtml(name)}${watchAthleteIds.has(a.id) ? ' <span class="ath-watch" title="Synchronizuje z zegarkiem">⌚</span>' : ''}</div>
         <div class="ath-goal">${escapeHtml(nextRace(a.race_goals)?.name||'')} ${a.pb_marathon?'· PB: '+escapeHtml(a.pb_marathon):''}</div>
       </div>
       <div class="ath-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
