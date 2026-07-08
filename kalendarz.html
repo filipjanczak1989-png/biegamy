@@ -2353,6 +2353,10 @@ async function saveTraining() {
   if(!editingDate) { notify('Brak daty'); return; }
 
   const _seOut = _seSteps.length ? _seSerialize() : null;
+  // ochrona przed cichym wyzerowaniem kroków: trening MIAŁ kroki, a edytor jest pusty → zapytaj
+  const _origT = (editingIndex !== null && editingIndex >= 0 && trainings[editingDate]) ? trainings[editingDate][editingIndex] : null;
+  if (_origT && Array.isArray(_origT.steps) && _origT.steps.length && !_seOut
+      && !confirm('Usunąć wszystkie kroki z tego treningu?')) return;
   if (_seOut && window.validateWorkoutSteps){
     const _v = window.validateWorkoutSteps(_seOut);
     if(!_v.ok){ notify('Kroki: ' + _v.errors[0]); return; }   // blokuj zapis błędnych kroków
