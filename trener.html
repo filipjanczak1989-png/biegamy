@@ -2224,10 +2224,61 @@ function renderPlanView(plan, workouts) {
       <div style="margin-top:20px;padding:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:10px;text-align:center;">
         <div style="font-family:'DM Mono',monospace;font-size:11px;color:#22c55e;letter-spacing:0.08em;">✅ Plan aktywny w kalendarzu zawodnika</div>
         <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:0.04em;">Zatwierdzony: ${plan.approved_at ? new Date(plan.approved_at).toLocaleString('pl') : '—'}</div>
+        <button type="button" id="tp-send-watch" onclick="wyslijPlanNaZegarek('${plan.athlete_id}','${plan.start_date}','${plan.end_date}', this, document.getElementById('tp-send-watch-status'))" style="width:100%;margin:10px 0 0;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;padding:12px;border:none;border-radius:9px;background:var(--accent);color:#fff;cursor:pointer;">⌚ Wyślij cały plan na zegarek</button>
+        <div id="tp-send-watch-status" style="display:none;margin-top:8px;font-size:12px;font-family:'DM Mono',monospace;line-height:1.4;white-space:pre-line;"></div>
       </div>`;
   }
 
   content.innerHTML = html;
+}
+
+// ═══ w1 E3b: wyślij cały plan na zegarek (bulk, N-calls do intervals-push) ═══
+async function wyslijPlanNaZegarek(athleteId, startDate, endDate, btn, statEl){
+  if(!athleteId || !startDate || !endDate) return;
+  const _old = btn.textContent; btn.disabled=true; btn.textContent='Szukam treningów…';
+  if(statEl){ statEl.style.display='block'; statEl.style.color='var(--muted)'; statEl.textContent=''; }
+  try{
+    const { data:{ session } } = await window.sb.auth.getSession();
+    if(!session) throw new Error('no_session');
+    // 1) treningi planu = athlete + zakres dat + mają steps
+    const { data: trs, error } = await window.sb.from('trainings')
+      .select('id, date, type, steps')
+      .eq('athlete_id', athleteId).gte('date', startDate).lte('date', endDate)
+      .not('steps','is',null).order('date');
+    if(error) throw error;
+    const list = (trs||[]).filter(t => Array.isArray(t.steps) && t.steps.length);
+    if(!list.length){ btn.disabled=false; btn.textContent=_old; statEl.style.color='var(--muted)'; statEl.textContent='Brak treningów z krokami w tym planie.'; return; }
+
+    // 2) N-calls do intervals-push (każdy niezależny)
+    const fnUrl=(window.SB_FN_URL||'https://afqojgkaveykxbltxzwm.supabase.co/functions/v1')+'/intervals-push';
+    let ok=0, noWrite=0, other=0;
+    for(let i=0;i<list.length;i++){
+      btn.textContent='Wysyłam… '+(i+1)+'/'+list.length;
+      try{
+        const res=await fetch(fnUrl,{ method:'POST',
+          headers:{ 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json' },
+          body: JSON.stringify({ training_id: list[i].id }) });
+        const d=await res.json().catch(()=>null);
+        if(d && d.ok) ok++;
+        else if(d && (d.error==='no_write_scope'||d.error==='icu_denied'||d.error==='not_connected')) noWrite++;
+        else other++;
+      }catch(_){ other++; }
+    }
+    // 3) uczciwe podsumowanie
+    btn.disabled=false; btn.textContent=_old;
+    statEl.style.display='block';
+    if(ok && !noWrite && !other){ statEl.style.color='var(--accent)'; statEl.textContent='⌚ Wysłano '+ok+' treningów — pojawią się na zegarku przy synchronizacji.'; }
+    else {
+      const parts=[]; if(ok)parts.push('wysłano '+ok);
+      if(noWrite)parts.push(noWrite+' — zawodnik musi odblokować zegarek');
+      if(other)parts.push(other+' — błąd');
+      statEl.style.color = ok ? 'var(--accent)' : '#d9534f';
+      statEl.textContent = parts.join(' · ');
+    }
+  }catch(err){
+    btn.disabled=false; btn.textContent=_old;
+    if(statEl){ statEl.style.display='block'; statEl.style.color='#d9534f'; statEl.textContent='Błąd: '+(err.message||'spróbuj ponownie'); }
+  }
 }
 
 // ── ZATWIERDZENIE PLANU (z wykrywaniem konfliktów) ─────────────────
