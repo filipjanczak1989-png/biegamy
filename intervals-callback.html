@@ -99,6 +99,8 @@
     if (res.ok && data && data.ok) {
       show('✅', 'Połączono z intervals.icu', 'przekierowuję…', false);
       setTimeout(() => { location.replace(returnDest); }, 1400);
+    } else if (data && data.error === 'already_linked') {
+      show('✕', 'To konto intervals jest już podłączone', 'do zawodnika: ' + (data.owner || '?') + '. Wyloguj się z tego konta na intervals.icu i połącz swoje.', true);
     } else {
       show('✕', 'Nie udało się połączyć', (data && data.error) ? ('błąd: ' + data.error) : ('kod ' + res.status), true);
     }
