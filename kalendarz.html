@@ -1564,7 +1564,7 @@ function render() {
 
     // Sprawdź czy to dzień startu — dla trenera tylko gdy wybrany zawodnik
     const showRace = _urlRole === 'athlete' || window._calSelectedAthleteId;
-    const raceGoalForDay = showRace && window._goals && window._goals.find(g => g.date === ds);
+    const raceGoalForDay = showRace && window._raceDays && window._raceDays.find(g => g.date === ds);
     const raceCard = raceGoalForDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08));border:2px solid rgba(61,184,112,0.6);border-radius:8px;padding:10px 12px;margin-bottom:4px;cursor:pointer;" onclick="openGoalModal('${raceGoalForDay.id}')">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">🏁 CEL STARTOWY</div>
       <div style="font-size:14px;font-weight:700;color:var(--fg);">${escapeHtml(raceGoalForDay.name)}</div>
@@ -3105,7 +3105,8 @@ async function smartSuggest(athleteId, trainingType, isEdit) {
 }
 
 // ── RACE GOALS ────────────────────────────────────────────────────
-window._goals = []; // {id, name, date, athlete_id, athlete_name}
+window._goals = []; // primary/zawodnik (nav-chipy + edytor celu)
+window._raceDays = []; // primary + race_goals (date-lookup renderery: render/renderMobile/renderTiles/day-screen)
 let _editingGoalId = null;
 let _editingGoalAthleteId = null; // id zawodnika
 let _editingGoalCelId = null;     // id konkretnego celu w tablicy
@@ -3113,7 +3114,7 @@ let _editingGoalCelId = null;     // id konkretnego celu w tablicy
 async function loadGoals() {
   const { data: { session } } = await sb.auth.getSession();
   if (!session) return;
-  let query = sb.from('athletes').select('id, full_name, goal, target_date');
+  let query = sb.from('athletes').select('id, full_name, goal, target_date, race_goals');
   if (_urlRole === 'athlete') {
     query = query.eq('user_id', session.user.id).not('target_date', 'is', null);
   } else if (window._calSelectedAthleteId) {
@@ -3124,10 +3125,26 @@ async function loadGoals() {
     query = query.eq('coach_id', session.user.id).not('target_date', 'is', null);
   }
   const { data } = await query;
+  // primary (BEZ ZMIAN) — nav-chipy + edytor celu (@3143/@3198 zostają na _goals)
   window._goals = (data || []).filter(a => a.target_date && a.goal).map(a => ({
     id: a.id, name: a.goal || 'Start', date: a.target_date, athlete_name: a.full_name || ''
   }));
-  window._raceDates = window._goals.map(g => ({ date: g.date, name: (_urlRole==='coach'&&g.athlete_name?g.athlete_name+': ':'')+g.name }));
+  // _raceDays = primary + wszystkie race_goals (date-lookup renderery), dedup po (id|date)
+  var _rd = [];
+  (data || []).forEach(function(a){
+    if (a.target_date && a.goal) _rd.push({ id:a.id, name:a.goal, date:a.target_date, athlete_id:a.id, athlete_name:a.full_name||'' });
+    var rg = a.race_goals;
+    if (typeof rg === 'string') { try { rg = JSON.parse(rg); } catch(e) { rg = null; } }   // text→JSON, tolerancyjnie
+    if (Array.isArray(rg)) {
+      rg.forEach(function(r){
+        var d = r && r.date, nm = r && (r.name || r.goal || r.title);
+        if (d && nm) _rd.push({ id:a.id, name:nm, date:d, athlete_id:a.id, athlete_name:a.full_name||'' });
+      });
+    }
+  });
+  var _seenRd = {};
+  window._raceDays = _rd.filter(function(g){ var k = g.id+'|'+g.date; if (_seenRd[k]) return false; _seenRd[k]=true; return true; });
+  window._raceDates = window._raceDays.map(g => ({ date: g.date, name: (_urlRole==='coach'&&g.athlete_name?g.athlete_name+': ':'')+g.name }));
   renderGoals();
   render();
 }
@@ -4084,7 +4101,7 @@ function renderMobile() {
     const wM = window._calWeatherMap && window._calWeatherMap[ds];
     const d = new Date(ds + 'T12:00:00');
     const isToday = ds === today;
-    const raceGoal = window._goals && window._goals.find(function(g){return g.date === ds;});
+    const raceGoal = window._raceDays && window._raceDays.find(function(g){return g.date === ds;});
     const isRaceDay = !!raceGoal;
 
     // dayLogs MUST be declared before any use
@@ -5249,7 +5266,7 @@ function renderTiles() {
     const onclick = `_tileClick('${ds}')`;
 
     // Cel/start na ten dzień
-    const raceGoal = window._goals && window._goals.find(g => g.date === ds);
+    const raceGoal = window._raceDays && window._raceDays.find(g => g.date === ds);
 
     // Typ treningu do info bara
     const tileTypeName = raceGoal ? 'Start'
@@ -5371,7 +5388,7 @@ function _openDayScreen(ds) {
   const d = new Date(ds + 'T12:00:00');
   const items  = trainings[ds] || [];
   const logs   = (window._calLogs && window._calLogs[ds]) || [];
-  const raceGoal = window._goals && window._goals.find(g => g.date === ds);
+  const raceGoal = window._raceDays && window._raceDays.find(g => g.date === ds);
   const hasDone = items.some(t=>t.status==='done') || logs.length > 0;
   const hasLog  = logs.length > 0;
   const hasPlan = items.length > 0;
