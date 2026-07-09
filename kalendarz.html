@@ -838,7 +838,7 @@ html { scroll-behavior: smooth; }
 .mday.sp-upcoming::before{background:var(--track,#26262b);}
 /* PLASTER 1b: zielone ✓-kółko (log) — footprint jak ring */
 .mday-disc{width:40px;height:40px;flex:none;position:relative;}
-.mday-disc .ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mday-done,#34d17f);font-size:15px;}
+.mday-disc .ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mday-done,#34d17f);font-size:16px;font-weight:700;}
 .mday--today{border-color:var(--accent,#e8561e);
   background:linear-gradient(180deg,rgba(232,86,26,.08),rgba(232,86,26,0));}
 .mday-date{width:44px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -3963,9 +3963,9 @@ function _mSpine(st, isToday){
 }
 // PLASTER 1b: zielone ✓-kółko (log bez planu) — footprint jak ring
 function _mCheckDisc(){
-  var size=40, r=16, sw=2.5;
+  var size=40, r=18;
   return '<div class="mday-disc">'
-    +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'"><circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--mday-done,#34d17f)" stroke-width="'+sw+'" opacity=".9"/></svg>'
+    +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'"><circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="rgba(52,209,127,.16)"/></svg>'
     +'<span class="ok">✓</span>'
     +'</div>';
 }
