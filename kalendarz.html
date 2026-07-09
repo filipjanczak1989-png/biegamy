@@ -1565,7 +1565,7 @@ function render() {
     // Sprawdź czy to dzień startu — dla trenera tylko gdy wybrany zawodnik
     const showRace = _urlRole === 'athlete' || window._calSelectedAthleteId;
     const raceGoalForDay = showRace && window._raceDays && window._raceDays.find(g => g.date === ds);
-    const raceCard = raceGoalForDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08));border:2px solid rgba(61,184,112,0.6);border-radius:8px;padding:10px 12px;margin-bottom:4px;cursor:pointer;" onclick="openGoalModal('${raceGoalForDay.id}')">
+    const raceCard = raceGoalForDay ? `<div style="background:linear-gradient(135deg,rgba(61,184,112,0.18),rgba(61,184,112,0.08));border:2px solid rgba(61,184,112,0.6);border-radius:8px;padding:10px 12px;margin-bottom:4px;cursor:pointer;" onclick="openGoalModal('${raceGoalForDay.id}','${raceGoalForDay.date}')">
       <div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--green);font-family:'DM Mono',monospace;margin-bottom:4px;">🏁 CEL STARTOWY</div>
       <div style="font-size:14px;font-weight:700;color:var(--fg);">${escapeHtml(raceGoalForDay.name)}</div>
       <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px;">kliknij aby edytować</div>
@@ -3109,7 +3109,8 @@ window._goals = []; // primary/zawodnik (nav-chipy + edytor celu)
 window._raceDays = []; // primary + race_goals (date-lookup renderery: render/renderMobile/renderTiles/day-screen)
 let _editingGoalId = null;
 let _editingGoalAthleteId = null; // id zawodnika
-let _editingGoalCelId = null;     // id konkretnego celu w tablicy
+let _editingGoalCelId = null;     // id konkretnego celu w tablicy (legacy)
+let _editingGoalCelDate = null;   // data biegu edytowanego = klucz edycji biegów wtórnych
 
 async function loadGoals() {
   const { data: { session } } = await sb.auth.getSession();
@@ -3176,7 +3177,7 @@ function renderGoals() {
     const bg = isVeryClose ? 'rgba(232,184,64,0.12)' : 'rgba(61,184,112,0.08)';
     const dayColor = isVeryClose ? 'var(--yellow)' : isClose ? 'var(--green)' : 'var(--muted)';
     const athleteStr = (_urlRole === 'coach' && g.athlete_name) ? `<span style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${g.athlete_name.split(' ')[0]}</span>` : '';
-    return `<div style="display:inline-flex;align-items:center;gap:6px;background:${bg};border:1px solid ${borderColor};border-radius:6px;padding:6px 10px;cursor:pointer;transition:all 0.15s;" onclick="openGoalModal('${g.id}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${borderColor}'">
+    return `<div style="display:inline-flex;align-items:center;gap:6px;background:${bg};border:1px solid ${borderColor};border-radius:6px;padding:6px 10px;cursor:pointer;transition:all 0.15s;" onclick="openGoalModal('${g.id}','${g.date}')" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='${borderColor}'">
       <span style="font-size:13px;">🏁</span>
       ${athleteStr}
       <span style="font-size:11px;font-weight:600;color:var(--fg);">${escapeHtml(g.name)}</span>
@@ -3186,10 +3187,11 @@ function renderGoals() {
   }).join('');
 }
 
-async function openGoalModal(athleteId) {
+async function openGoalModal(athleteId, celDate) {
   _editingGoalId = athleteId || null;
   _editingGoalAthleteId = null;
   _editingGoalCelId = null;
+  _editingGoalCelDate = null;
   const modal = document.getElementById('goal-modal-bg');
   const title = document.getElementById('goal-modal-title');
   // Wypełnij select zawodników dla trenera
@@ -3212,11 +3214,20 @@ async function openGoalModal(athleteId) {
   const deleteBtn = document.getElementById('btn-delete-goal');
   if (athleteId) {
     title.textContent = 'Edytuj cel startowy';
-    const g = window._goals.find(x => x.id === athleteId);
-    if (g) {
-      document.getElementById('goal-name').value = g.name;
-      document.getElementById('goal-date').value = g.date;
+    _editingGoalAthleteId = athleteId;
+    _editingGoalCelDate = celDate || null;
+    let prefill = null;
+    if (celDate) {   // edycja KONKRETNEGO biegu po dacie (bieg wtórny)
+      const { data: athG } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
+      let rg = []; try { rg = athG?.race_goals ? JSON.parse(athG.race_goals) : []; if (!Array.isArray(rg)) rg = []; } catch(e) { rg = []; }
+      prefill = rg.find(g => g.date === celDate) || null;
+    }
+    if (!prefill) prefill = window._goals.find(x => x.id === athleteId) || null;   // fallback: primary
+    if (prefill) {
+      document.getElementById('goal-name').value = prefill.name || '';
+      document.getElementById('goal-date').value = prefill.date || '';
       if (_urlRole === 'coach') document.getElementById('goal-athlete').value = athleteId;
+      if (celDate && prefill.name) title.textContent = 'Edytuj: ' + prefill.name + ' (' + (prefill.date || '') + ')';
     }
     if (deleteBtn) deleteBtn.style.display = 'block';
   } else {
@@ -3241,7 +3252,6 @@ async function deleteGoal() {
   // Sprawdź kontekst — dla trenera to id zawodnika, dla zawodnika też
   // Cel id jest przechowywany w _editingGoalCelId
   const athleteId = _editingGoalAthleteId || _editingGoalId;
-  const celId = _editingGoalCelId || null;
 
   const { data: athData } = await sb.from('athletes').select('race_goals').eq('id', athleteId).maybeSingle();
   let goals = [];
@@ -3249,11 +3259,11 @@ async function deleteGoal() {
     try { goals = JSON.parse(athData.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
   }
 
-  // Usuń cel po id lub po indeksie jeśli brak id
-  if (celId) {
-    goals = goals.filter(g => g.id !== celId);
+  // Usuń KONKRETNY bieg po dacie; fallback (brak celDate) — ostatni
+  if (_editingGoalCelDate) {
+    goals = goals.filter(g => g.date !== _editingGoalCelDate);
   } else if (goals.length > 0) {
-    goals = goals.slice(0, -1); // usuń ostatni jako fallback
+    goals = goals.slice(0, -1);
   }
 
   const { error } = await sb.from('athletes').update({
@@ -3290,18 +3300,20 @@ async function saveGoal() {
     try { goals = JSON.parse(athData.race_goals); if (!Array.isArray(goals)) goals = []; } catch(e) { goals = []; }
   }
 
-  if (_editingGoalId && _editingGoalId !== athleteId) {
-    // Edycja istniejącego celu — znajdź po id i zaktualizuj
-    const gIdx = goals.findIndex(g => g.id === _editingGoalId);
-    if (gIdx !== -1) {
-      goals[gIdx] = { ...goals[gIdx], name, date };
-    } else {
-      goals.push({ id: Date.now().toString(), name, date });
-    }
+  if (_editingGoalCelDate) {
+    // Edycja KONKRETNEGO biegu (klucz = data) — update wpisu (może zmienić datę/nazwę), NIE push
+    const gIdx = goals.findIndex(g => g.date === _editingGoalCelDate);
+    if (gIdx !== -1) { goals[gIdx] = { ...goals[gIdx], name, date }; }
+    else { goals.push({ name, date }); }
   } else {
     // Nowy cel
-    goals.push({ id: Date.now().toString(), name, date });
+    goals.push({ name, date });
   }
+
+  // SELF-HEAL: dedup po dacie (keep-first, preferuj wpis z race_id) — duplikaty nigdy nie wrócą
+  const _byD = {}; goals.forEach(g => { (_byD[g.date] = _byD[g.date] || []).push(g); });
+  const _chosen = {}; Object.keys(_byD).forEach(d => { _chosen[d] = _byD[d].find(x => x.race_id) || _byD[d][0]; });
+  goals = goals.filter(g => g === _chosen[g.date]);
 
   // Sortuj po dacie
   goals.sort((a, b) => a.date.localeCompare(b.date));
