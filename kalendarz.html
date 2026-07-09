@@ -4071,7 +4071,7 @@ function _durMin(s){
   if(p.length===2) return p[0] + p[1]/60;
   return p[0];
 }
-function _mFmtH(min){ var h=Math.floor(min/60), m=Math.round(min%60); return h+':'+(m<10?'0':'')+m+' h'; }
+function _mFmtH(min){ var t=Math.round(min), h=Math.floor(t/60), m=t%60; return h+':'+(m<10?'0':'')+m+' h'; }
 
 function renderMobile() {
   const container = document.getElementById('mobile-days-container');
