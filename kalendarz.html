@@ -839,6 +839,11 @@ html { scroll-behavior: smooth; }
 /* PLASTER 1b: zielone ✓-kółko (log) — footprint jak ring */
 .mday-disc{width:40px;height:40px;flex:none;position:relative;}
 .mday-disc .ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mday-done,#34d17f);font-size:16px;font-weight:700;}
+/* PLASTER 1d: podlinia dnia startu */
+.mday-race{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted,#8b8b93);margin-top:2px;}
+/* PLASTER 1d: treść kalendarza → DM Sans (standard apki); mikro-etykiety → DM Mono; liczby zostają Bebas */
+.mday-type,.mday-vol,.mday-pace,.mday-logtype,.mday-cta,.mday-rest,.mday-empty{font-family:'DM Sans',sans-serif;}
+.mday-dow,.mws-lbl{font-family:'DM Mono',monospace;}
 .mday--today{border-color:var(--accent,#e8561e);
   background:linear-gradient(180deg,rgba(232,86,26,.08),rgba(232,86,26,0));}
 .mday-date{width:44px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -3979,11 +3984,23 @@ function _mVol(t){
   if(!t) return '';
   if((+t.dist) > 0) return (+t.dist) + ' km';                                 // t.dist = LICZBA
   if(t.time)        return escapeHtml(''+t.time) + (/[a-z:]/i.test(''+t.time)?'':' min');
-  if(t.desc)        return escapeHtml((''+t.desc).split(/[.\n;]/)[0].slice(0,42));   // interwały: wolumen w desc
+  if(t.desc){
+    var d = (''+t.desc).split(/[.\n;]/)[0].trim();
+    // pokaż TYLKO jeśli to wolumen (cyfry + jednostka/×), nie notka-proza
+    if(/\d/.test(d) && /(×|x|m\b|km|min|['′])/i.test(d) && d.length <= 24) return escapeHtml(d.slice(0,24));
+  }
   return '';
 }
-function _mRowParts(st, main, key, extra, wM, wxImg){
+function _mRowParts(st, main, key, extra, wM, wxImg, raceName){
   var wx = wM ? '<span class="mday-wx">'+wxImg+' '+wM.temp_max+'°</span>' : '';
+  // ── DZIEŃ STARTU: tytuł = nazwa biegu; notka trenera zostaje w day-sheet ──
+  if(raceName){
+    return {
+      body: '<div class="mday-top"><span class="mday-type">'+escapeHtml(''+raceName)+'</span>'+wx+'</div>'
+          + '<div class="mday-race">Zawody</div>',
+      right: (st.state==='done' || st.state==='ghost') ? '<div class="mday-ring">'+_mRing(st)+'</div>' : ''
+    };
+  }
   var body, right = '';
   switch(st.state){
     case 'done':
@@ -4223,9 +4240,10 @@ function renderMobile() {
     var _extra = items.length > 1 ? items.length - 1 : 0;
     var _key   = _main && _mIsKey(_main.type);
     var _wxImg = wM ? (window.wxImg ? window.wxImg(wM.weather_code, wM.cloud_pct, wM.icon, 16) : wM.icon) : '';
+    var _raceName = (isRaceDay && raceGoal && raceGoal.name) ? raceGoal.name : null;   // dzień startu: nazwa biegu
     // pusty dzień przeszłość/dziś → wprost logowanie; reszta → day-sheet (KROK 0b: openLogModal(event,ds,idx))
     var _rowClick = (_st.state === 'empty-cta') ? "openLogModal(event,'" + ds + "',0)" : "_tileClick('" + ds + "')";
-    var _parts = _mRowParts(_st, _main, _key, _extra, wM, _wxImg);
+    var _parts = _mRowParts(_st, _main, _key, _extra, wM, _wxImg, _raceName);
 
     return ''
       + '<div class="mday ' + (_isToday?'mday--today ':'') + 'mday--' + _st.state + ' ' + _mSpine(_st, _isToday) + '" onclick="' + _rowClick + '">'
