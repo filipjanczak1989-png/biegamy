@@ -3996,8 +3996,8 @@ function _mRowParts(st, main, key, extra, wM, wxImg, raceName){
   // ── DZIEŃ STARTU: tytuł = nazwa biegu; notka trenera zostaje w day-sheet ──
   if(raceName){
     return {
-      body: '<div class="mday-top"><span class="mday-type">'+escapeHtml(''+raceName)+'</span>'+wx+'</div>'
-          + '<div class="mday-race">Zawody</div>',
+      body: '<div class="mday-top"><span class="mday-type">'+escapeHtml(''+raceName)+' <span class="mday-star">★</span></span>'+wx+'</div>'
+          + '<div class="mday-race">Start</div>',
       right: (st.state==='done' || st.state==='ghost') ? '<div class="mday-ring">'+_mRing(st)+'</div>' : ''
     };
   }
