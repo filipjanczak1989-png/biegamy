@@ -4121,9 +4121,6 @@ function renderMobile() {
     // dayLogs MUST be declared before any use
     const dayLogs = (window._calLogs && window._calLogs[ds]) || [];
 
-    const totalKm = items.length > 0
-      ? items.reduce(function(s,t){return s+(parseFloat(t.dist||t.distance_km)||0);}, 0)
-      : dayLogs.reduce(function(s,l){return s+(parseFloat(l.distance_km)||0);}, 0);
     const abbr = dayAbbrPL[d.getDay()];
     const dayNum = d.getDate();
     const monthStr = monthNamesM[d.getMonth()];
