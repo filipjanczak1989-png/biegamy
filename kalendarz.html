@@ -2389,7 +2389,7 @@ async function saveTraining() {
   const dist = parseFloat(document.getElementById('f-dist').value)||0;
   const time = parseInt(document.getElementById('f-time').value)||0;
   const paceElS = document.getElementById('f-pace');
-  const pace = paceElS.value || paceElS.dataset.suggested || '';
+  const pace = normalizePlanPace(paceElS.value || paceElS.dataset.suggested || '');
   const distElS = document.getElementById('f-dist');
   if (!distElS.value && distElS.dataset.suggested) distElS.value = distElS.dataset.suggested;
   const hr = document.getElementById('f-hr').value;
@@ -4884,6 +4884,16 @@ function normalizePaceInput(raw){
   if(sec>=60){ min+=Math.floor(sec/60); sec=sec%60; }   // carry sekund >=60
   if(min<0||min>99) return null;
   return min+':'+String(sec).padStart(2,'0');
+}
+// Wersja dla PLANU (trainings.pace): plan LEGALNIE trzyma zakresy/free-text AI
+// ("6:00-6:15/km", "tempo startowe", "3:45/km (odcinki)") — TYCH nie ruszamy.
+// Normalizujemy TYLKO goły pojedynczy token ("6:60"->"7:00", "7:0"->"7:00"); śmieci->null.
+function normalizePlanPace(s){
+  if(s==null) return null;
+  const t=String(s).trim();
+  if(!t) return null;
+  if(/[-/a-zA-Z\s]/.test(t)) return t;   // zakres/opis/jednostka -> przepuść bez zmian
+  return normalizePaceInput(t);          // goły token -> normalizuj (null gdy bezsens)
 }
 function kalAutoColonTime(el){
   let v=el.value.replace(/[^0-9]/g,'');
