@@ -3548,7 +3548,7 @@ async function runLogOcr(input) {
 async function saveLog() {
   const dist = parseFloat(document.getElementById('lm-dist').value) || null;
   const time = document.getElementById('lm-time').value.trim() || null;
-  const pace = document.getElementById('lm-pace').value.trim() || null;
+  const pace = normalizePaceInput(document.getElementById('lm-pace').value);
   const hr = parseInt(document.getElementById('lm-hr').value) || null;
   const strava = document.getElementById('lm-strava').value.trim() || null;
   const comment = document.getElementById('lm-comment').value.trim() || null;
@@ -4860,6 +4860,29 @@ if (_urlRole === 'coach') {
 }
 
 function autoColonPace(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=2)v=v.slice(0,1)+":"+v.slice(1);el.value=v.slice(0,4);}
+// Normalizacja pace przy ZAPISIE (nie oninput — nie psuć pisania na żywo).
+// Łapie WSZYSTKIE 3 drogi do training_logs.pace: ręczne (autoColonPace), prefill OCR, kalCalcPaceAuto.
+// "6:60"->"7:00" (carry), "7:0"->"7:00" (pad), "7,34"/"7.34"->"7:34" (separator), śmieci->null.
+function normalizePaceInput(raw){
+  if(raw==null) return null;
+  let s=String(raw).trim();
+  if(!s) return null;
+  s=s.replace(/[.,]/g,':').replace(/\s+/g,'');   // , . -> :  (ujednolić separator, wyciąć spacje)
+  let min, sec;
+  if(s.includes(':')){
+    const p=s.split(':');
+    if(p.length!==2 || !/^\d{1,2}$/.test(p[0]) || !/^\d{0,2}$/.test(p[1])) return null;
+    min=parseInt(p[0],10); sec=p[1]===''?0:parseInt(p[1],10);
+  } else if(/^\d{1,2}$/.test(s)){        // same minuty
+    min=parseInt(s,10); sec=0;
+  } else if(/^\d{3,4}$/.test(s)){        // bez separatora: ostatnie 2 = sekundy
+    sec=parseInt(s.slice(-2),10); min=parseInt(s.slice(0,-2),10);
+  } else return null;                    // bezsens -> null (nie zgadujemy)
+  if(isNaN(min)||isNaN(sec)) return null;
+  if(sec>=60){ min+=Math.floor(sec/60); sec=sec%60; }   // carry sekund >=60
+  if(min<0||min>99) return null;
+  return min+':'+String(sec).padStart(2,'0');
+}
 function kalAutoColonTime(el){
   let v=el.value.replace(/[^0-9]/g,'');
   if(v.length<=4){if(v.length>=3)v=v.slice(0,2)+':'+v.slice(2);}
@@ -4874,8 +4897,9 @@ function kalCalcPaceAuto(){
   const parts=timeVal.split(':').map(Number);
   let secs=parts.length===3?parts[0]*3600+parts[1]*60+parts[2]:parts.length===2?parts[0]*60+parts[1]:0;
   if(!secs||!dist)return;
-  const pm=Math.floor(secs/dist/60);
-  const ps=String(Math.round((secs/dist)%60)).padStart(2,'0');
+  const t=Math.round(secs/dist);   // round TOTAL sekund/km najpierw -> koniec "4:60"
+  const pm=Math.floor(t/60);
+  const ps=String(t%60).padStart(2,'0');
   document.getElementById('lm-pace').value=pm+':'+ps;
 }
 function kalCalcTimeAuto(){
