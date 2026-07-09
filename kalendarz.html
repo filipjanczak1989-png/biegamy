@@ -3548,7 +3548,7 @@ async function runLogOcr(input) {
 async function saveLog() {
   const dist = parseFloat(document.getElementById('lm-dist').value) || null;
   const time = document.getElementById('lm-time').value.trim() || null;
-  const pace = normalizePaceInput(document.getElementById('lm-pace').value);
+  let pace = normalizePaceInput(document.getElementById('lm-pace').value);
   const hr = parseInt(document.getElementById('lm-hr').value) || null;
   const strava = document.getElementById('lm-strava').value.trim() || null;
   const comment = document.getElementById('lm-comment').value.trim() || null;
@@ -3578,6 +3578,8 @@ async function saveLog() {
   if (!existingLogId && window.looksLikeBike(_logType2, dist, pace)) {
     if (await window.askBikeOrRun(dist, pace) === 'bike') _logType2 = 'Zastępczy';
   }
+  // nie-bieg (Wzmacniający/Zastępczy/inny/Odpoczynek) nie ma tempa/km — po ew. flipie roweru
+  if (window.isRunType && !window.isRunType(_logType2)) pace = null;
   if (existingLogId) {
     const { error: updErr } = await sb.from('training_logs').update({
       training_type: _logType2,
