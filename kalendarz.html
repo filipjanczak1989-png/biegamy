@@ -828,8 +828,17 @@ html { scroll-behavior: smooth; }
 /* ── PLASTER 1: nowy wiersz dnia (renderMobile zawodnika) ── */
 .mday{display:flex;align-items:center;gap:12px;padding:11px 13px;margin-bottom:8px;
   border:1px solid var(--card-border,#242424);border-radius:14px;background:var(--card,#141414);
-  cursor:pointer;transition:border-color .15s,transform .05s;}
+  cursor:pointer;transition:border-color .15s,transform .05s;position:relative;overflow:hidden;}
 .mday:active{transform:scale(.995);}
+/* PLASTER 1b: pasek stanu (spine) na lewej krawędzi */
+.mday::before{content:'';position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:transparent;}
+.mday.sp-done::before{background:var(--mday-done,#34d17f);}
+.mday.sp-plan::before{background:var(--accent,#e8561e);}
+.mday.sp-today::before{background:var(--accent,#e8561e);}
+.mday.sp-upcoming::before{background:var(--track,#26262b);}
+/* PLASTER 1b: zielone ✓-kółko (log) — footprint jak ring */
+.mday-disc{width:40px;height:40px;flex:none;position:relative;}
+.mday-disc .ok{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mday-done,#34d17f);font-size:15px;}
 .mday--today{border-color:var(--accent,#e8561e);
   background:linear-gradient(180deg,rgba(232,86,26,.08),rgba(232,86,26,0));}
 .mday-date{width:44px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -849,7 +858,7 @@ html { scroll-behavior: smooth; }
 .mday-ring{flex:none;}
 .mday-chev{flex:none;opacity:.4;color:var(--text,#f2f2f2);}
 .mday-logtype{color:var(--text,#f2f2f2);}
-.mday-check{color:var(--mday-done,#2ecc71);font-size:13px;}
+.mday-check{color:var(--mday-done,#34d17f);font-size:13px;}
 .mday-cta{color:var(--accent,#e8561e);font-weight:700;}
 .mday-empty{opacity:.35;font-weight:600;}
 .mday--empty-future{opacity:.6;}
@@ -3934,7 +3943,7 @@ function _mRing(st){
   }
   var p = Math.max(0, Math.min(100, Math.round(st.pct)));
   var dash = (p/100)*c;
-  var col = p >= 100 ? 'var(--mday-done,#2ecc71)' : 'var(--accent,#e8561e)';
+  var col = p >= 100 ? 'var(--mday-done,#34d17f)' : 'var(--accent,#e8561e)';
   return '<div style="width:'+size+'px;height:'+size+'px;position:relative;flex:none;">'
     +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" style="transform:rotate(-90deg);">'
     +'<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--mday-track,#2a2a2a)" stroke-width="'+sw+'"/>'
@@ -3942,6 +3951,29 @@ function _mRing(st){
     +'</svg>'
     +'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:'+col+';">'+p+'%</span>'
     +'</div>';
+}
+// PLASTER 1b: klasa paska stanu (spine) na lewej krawędzi
+function _mSpine(st, isToday){
+  if(isToday) return 'sp-today';
+  switch(st.state){
+    case 'done': case 'ghost': return 'sp-plan';     // plan (wykonany/ghost) = pomarańczowy
+    case 'log':                return 'sp-done';     // własny bieg bez planu = zielony
+    default:                   return 'sp-upcoming'; // rest / empty-future / empty-cta = szary
+  }
+}
+// PLASTER 1b: zielone ✓-kółko (log bez planu) — footprint jak ring
+function _mCheckDisc(){
+  var size=40, r=16, sw=2.5;
+  return '<div class="mday-disc">'
+    +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'"><circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--mday-done,#34d17f)" stroke-width="'+sw+'" opacity=".9"/></svg>'
+    +'<span class="ok">✓</span>'
+    +'</div>';
+}
+// PLASTER 1b: guard podwójnego „/km" (dokłada tylko gdy pole go NIE zawiera)
+function _mPace(p){
+  if(p==null || p==='') return '';
+  var s = (''+p).trim();
+  return /km/i.test(s) ? s : (s + ' /km');
 }
 function _mVol(t){
   if(!t) return '';
@@ -3961,7 +3993,7 @@ function _mRowParts(st, main, key, extra, wM, wxImg){
            + (extra?' <span class="mday-plus">+'+extra+'</span>':'')
            + '</span>'+wx+'</div>'
            + '<div class="mday-vol">'+_mVol(main)+'</div>'
-           + (main.pace?'<div class="mday-pace">'+escapeHtml(''+main.pace)+' /km</div>':'');
+           + (main.pace?'<div class="mday-pace">'+escapeHtml(_mPace(main.pace))+'</div>':'');
       right = '<div class="mday-ring">'+_mRing(st)+'</div>';
       break;
     case 'rest':                                     // jawny planowany odpoczynek
@@ -3969,16 +4001,17 @@ function _mRowParts(st, main, key, extra, wM, wxImg){
       break;
     case 'log':                                      // TRYB LOG: własny bieg bez planu
       var lg = st.log, lkm = parseFloat(lg.distance_km)||0;
-      body = '<div class="mday-top"><span class="mday-type mday-logtype">'+escapeHtml(''+(lg.training_type||'Bieg'))+' <span class="mday-check">✓</span></span>'+wx+'</div>'
-           + '<div class="mday-vol">'+(lkm?lkm.toFixed(1)+' km':'')+'</div>'
-           + (lg.pace?'<div class="mday-pace">'+escapeHtml(''+lg.pace)+' /km</div>':'');
-      break;                                         // brak ringu — nic nie było planowane
+      body = '<div class="mday-top"><span class="mday-type mday-logtype">'+escapeHtml(''+(lg.training_type||'Bieg'))+'</span>'+wx+'</div>'
+           + '<div class="mday-vol">'+(lkm?lkm.toFixed(1)+' km':'')+'</div>'        // ⛔ 0.0km NIE ruszamy (osobne śledztwo)
+           + (lg.pace?'<div class="mday-pace">'+escapeHtml(_mPace(lg.pace))+'</div>':'');
+      right = '<div class="mday-ring">'+_mCheckDisc()+'</div>';                       // ✓-kółko po prawej dla rytmu
+      break;
     case 'empty-cta':                                // TRYB LOG: pusto, przeszłość/dziś
       body = '<div class="mday-top"><span class="mday-type mday-cta">+ Zaloguj bieg</span>'+wx+'</div>';
       break;
     case 'empty-future':                             // TRYB LOG: pusto, przyszłość
     default:
-      body = '<div class="mday-top"><span class="mday-type mday-empty">—</span>'+wx+'</div>';
+      body = '<div class="mday-top">'+wx+'</div>';   // sama pogoda; wiersz wyciszony przez .mday--empty-future
   }
   return { body:body, right:right };
 }
@@ -4195,7 +4228,7 @@ function renderMobile() {
     var _parts = _mRowParts(_st, _main, _key, _extra, wM, _wxImg);
 
     return ''
-      + '<div class="mday ' + (_isToday?'mday--today':'') + ' mday--' + _st.state + '" onclick="' + _rowClick + '">'
+      + '<div class="mday ' + (_isToday?'mday--today ':'') + 'mday--' + _st.state + ' ' + _mSpine(_st, _isToday) + '" onclick="' + _rowClick + '">'
         + '<div class="mday-date ' + (_isToday?'is-today':'') + '">'
           + '<div class="mday-dow">' + (isRaceDay ? '🏁' : abbr) + '</div>'
           + '<div class="mday-dnum">' + dayNum + '</div>'
