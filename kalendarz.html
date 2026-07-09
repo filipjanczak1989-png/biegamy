@@ -825,6 +825,40 @@ html { scroll-behavior: smooth; }
 .se-grip{cursor:grab}
 .se-grip:active{cursor:grabbing}
 .se-drop{outline:2px dashed var(--accent);outline-offset:2px}
+/* ── PLASTER 1: nowy wiersz dnia (renderMobile zawodnika) ── */
+.mday{display:flex;align-items:center;gap:12px;padding:11px 13px;margin-bottom:8px;
+  border:1px solid var(--card-border,#242424);border-radius:14px;background:var(--card,#141414);
+  cursor:pointer;transition:border-color .15s,transform .05s;}
+.mday:active{transform:scale(.995);}
+.mday--today{border-color:var(--accent,#e8561e);
+  background:linear-gradient(180deg,rgba(232,86,26,.08),rgba(232,86,26,0));}
+.mday-date{width:44px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:10px;padding:6px 0;background:var(--chip,#1e1e1e);}
+.mday-date.is-today{background:var(--accent,#e8561e);color:#fff;}
+.mday-dow{font-size:11px;font-weight:700;letter-spacing:.04em;opacity:.85;}
+.mday-dnum{font-family:'Bebas Neue',sans-serif;font-size:20px;line-height:1;}
+.mday-body{flex:1;min-width:0;}
+.mday-top{display:flex;align-items:baseline;gap:8px;justify-content:space-between;}
+.mday-type{font-weight:700;font-size:15px;color:var(--text,#f2f2f2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mday-rest{font-weight:600;opacity:.55;}
+.mday-star{color:var(--accent,#e8561e);font-size:13px;}
+.mday-plus{font-size:11px;font-weight:700;opacity:.6;background:var(--chip,#1e1e1e);padding:1px 5px;border-radius:6px;}
+.mday-wx{font-size:12px;opacity:.7;white-space:nowrap;flex:none;}
+.mday-vol{font-size:13px;opacity:.85;margin-top:2px;}
+.mday-pace{font-size:12px;opacity:.6;margin-top:1px;}
+.mday-ring{flex:none;}
+.mday-chev{flex:none;opacity:.4;color:var(--text,#f2f2f2);}
+.mday-logtype{color:var(--text,#f2f2f2);}
+.mday-check{color:var(--mday-done,#2ecc71);font-size:13px;}
+.mday-cta{color:var(--accent,#e8561e);font-weight:700;}
+.mday-empty{opacity:.35;font-weight:600;}
+.mday--empty-future{opacity:.6;}
+.mday--empty-cta{border-style:dashed;}
+.mweek-sum{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px;padding:14px 12px;
+  border:1px solid var(--card-border,#242424);border-radius:14px;background:var(--card,#141414);}
+.mws-cell{text-align:center;min-width:0;}
+.mws-lbl{font-size:9px;letter-spacing:.06em;opacity:.5;margin-bottom:3px;}
+.mws-val{font-family:'Bebas Neue',sans-serif;font-size:19px;line-height:1;}
 </style>
 </head>
 <body>
@@ -3861,6 +3895,105 @@ function setView(v) {
   }
 }
 
+// ═══ PLASTER 1: helpery nowego wiersza dnia (renderMobile zawodnika) ═══
+var _M_KEY = ['interwał','interwal','progow','tempo','długi bieg','dlugi bieg','akcent','zawody','start'];
+function _mIsKey(type){
+  if(!type) return false;
+  var t = ('' + type).toLowerCase();
+  return _M_KEY.some(function(k){ return t.indexOf(k) >= 0; });
+}
+// stan dnia (używa _matchDayLogs). isRest = jawny wiersz type='Odpoczynek' (guard pierwszy).
+function _mDayState(items, dayLogs, isFuture, isRest){
+  if(isRest) return { state:'rest' };
+  if(!items || !items.length){                         // TRYB LOG (brak planu / społecznościowy)
+    if(dayLogs && dayLogs.length) return { state:'log', log: dayLogs[0] };
+    return isFuture ? { state:'empty-future' } : { state:'empty-cta' };
+  }
+  var _m = _matchDayLogs(items, dayLogs);              // { byPlan:Map, orphans:[] }
+  var plannedDist=0, doneDist=0, anyLog=false;
+  items.forEach(function(t){
+    plannedDist += (+t.dist) || 0;                     // t.dist = LICZBA
+    var lg = _m.byPlan.get(t._id);
+    if(lg){ anyLog=true; doneDist += parseFloat(lg.distance_km)||0; }
+  });
+  if(isFuture) return { state:'ghost' };
+  var pct = 0;
+  if(plannedDist > 0) pct = (doneDist/plannedDist)*100;   // % tylko z dystansu
+  else if(anyLog)     pct = 100;                          // plan bez dystansu + dopasowany log
+  return pct > 0 ? { state:'done', pct:pct } : { state:'ghost' };
+}
+function _mRing(st){
+  var size=40, r=16, sw=3.5, c=2*Math.PI*r;
+  if(st.state === 'ghost'){
+    return '<div style="width:'+size+'px;height:'+size+'px;position:relative;flex:none;">'
+      +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'">'
+      +'<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--mday-ghost,#3a3a3a)" stroke-width="'+sw+'"/>'
+      +'</svg>'
+      +'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:15px;opacity:.45;">👟</span>'
+      +'</div>';
+  }
+  var p = Math.max(0, Math.min(100, Math.round(st.pct)));
+  var dash = (p/100)*c;
+  var col = p >= 100 ? 'var(--mday-done,#2ecc71)' : 'var(--accent,#e8561e)';
+  return '<div style="width:'+size+'px;height:'+size+'px;position:relative;flex:none;">'
+    +'<svg width="'+size+'" height="'+size+'" viewBox="0 0 '+size+' '+size+'" style="transform:rotate(-90deg);">'
+    +'<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--mday-track,#2a2a2a)" stroke-width="'+sw+'"/>'
+    +'<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+col+'" stroke-width="'+sw+'" stroke-linecap="round" stroke-dasharray="'+dash+' '+c+'"/>'
+    +'</svg>'
+    +'<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:'+col+';">'+p+'%</span>'
+    +'</div>';
+}
+function _mVol(t){
+  if(!t) return '';
+  if((+t.dist) > 0) return (+t.dist) + ' km';                                 // t.dist = LICZBA
+  if(t.time)        return escapeHtml(''+t.time) + (/[a-z:]/i.test(''+t.time)?'':' min');
+  if(t.desc)        return escapeHtml((''+t.desc).split(/[.\n;]/)[0].slice(0,42));   // interwały: wolumen w desc
+  return '';
+}
+function _mRowParts(st, main, key, extra, wM, wxImg){
+  var wx = wM ? '<span class="mday-wx">'+wxImg+' '+wM.temp_max+'°</span>' : '';
+  var body, right = '';
+  switch(st.state){
+    case 'done':
+    case 'ghost':                                    // TRYB PLAN
+      body = '<div class="mday-top"><span class="mday-type">'+escapeHtml(''+(main.type||''))
+           + (key?' <span class="mday-star">★</span>':'')
+           + (extra?' <span class="mday-plus">+'+extra+'</span>':'')
+           + '</span>'+wx+'</div>'
+           + '<div class="mday-vol">'+_mVol(main)+'</div>'
+           + (main.pace?'<div class="mday-pace">'+escapeHtml(''+main.pace)+' /km</div>':'');
+      right = '<div class="mday-ring">'+_mRing(st)+'</div>';
+      break;
+    case 'rest':                                     // jawny planowany odpoczynek
+      body = '<div class="mday-top"><span class="mday-type mday-rest">Odpoczynek</span>'+wx+'</div>';
+      break;
+    case 'log':                                      // TRYB LOG: własny bieg bez planu
+      var lg = st.log, lkm = parseFloat(lg.distance_km)||0;
+      body = '<div class="mday-top"><span class="mday-type mday-logtype">'+escapeHtml(''+(lg.training_type||'Bieg'))+' <span class="mday-check">✓</span></span>'+wx+'</div>'
+           + '<div class="mday-vol">'+(lkm?lkm.toFixed(1)+' km':'')+'</div>'
+           + (lg.pace?'<div class="mday-pace">'+escapeHtml(''+lg.pace)+' /km</div>':'');
+      break;                                         // brak ringu — nic nie było planowane
+    case 'empty-cta':                                // TRYB LOG: pusto, przeszłość/dziś
+      body = '<div class="mday-top"><span class="mday-type mday-cta">+ Zaloguj bieg</span>'+wx+'</div>';
+      break;
+    case 'empty-future':                             // TRYB LOG: pusto, przyszłość
+    default:
+      body = '<div class="mday-top"><span class="mday-type mday-empty">—</span>'+wx+'</div>';
+  }
+  return { body:body, right:right };
+}
+// duration = STRING "H:MM:SS"/"MM:SS" → MINUTY (nie parseFloat)
+function _durMin(s){
+  if(s==null) return 0;
+  if(typeof s==='number') return s;
+  var p=(''+s).split(':').map(Number);
+  if(p.some(isNaN)) return parseFloat(s)||0;
+  if(p.length===3) return p[0]*60 + p[1] + p[2]/60;
+  if(p.length===2) return p[0] + p[1]/60;
+  return p[0];
+}
+function _mFmtH(min){ var h=Math.floor(min/60), m=Math.round(min%60); return h+':'+(m<10?'0':'')+m+' h'; }
+
 function renderMobile() {
   const container = document.getElementById('mobile-days-container');
   if (!container) return;
@@ -4047,34 +4180,58 @@ function renderMobile() {
     const contentId = 'mday-' + ds;
     const hasContent = items.length > 0 || isRaceDay || logThumbs || stravaDayM.length > 0 || standaloneLogCards.length > 0;
 
-    return '<div style="border:1px solid ' + headerBorder + ';border-radius:12px;margin-bottom:8px;overflow:hidden;' + boxShadow + '">'
-      + '<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:' + headerBg + ';cursor:pointer;" onclick="_tileClick(\'' + ds + '\')">'
-      + '<div style="width:38px;height:38px;border-radius:8px;background:' + abbrBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:' + (isRaceDay?'18':'11') + 'px;font-weight:700;letter-spacing:0.06em;font-family:\'DM Mono\',monospace;color:' + abbrColor + ';">' + abbrContent + '</div>'
-      + '<div style="flex:1;min-width:0;">'
-      + '<div style="display:flex;align-items:baseline;gap:8px;">'
-      + '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:22px;line-height:1;color:' + titleColor + ';">' + dayNum + ' ' + monthStr + '</span>'
-      + (totalKm > 0 ? '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:18px;color:' + kmColor + ';">' + totalKm.toFixed(0) + ' km</span>' : '')
-      + (wM ? '<span style="font-size:12px;color:' + (wM.is_bad?'var(--accent)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-left:6px;">' + (window.wxImg ? window.wxImg(wM.weather_code, wM.cloud_pct, wM.icon, 16) : wM.icon) + ' ' + wM.temp_max + '°</span>' : '')
-      + '</div>'
-      + (summaryText ? '<div style="font-size:10px;color:' + (isRaceDay?'var(--green)':'var(--muted)') + ';font-family:\'DM Mono\',monospace;margin-top:1px;letter-spacing:0.04em;">' + summaryText + '</div>' : '')
-      + '</div>'
-      + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="' + (isRaceDay?'var(--green)':'var(--muted)') + '" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>'
-      + '</div>'
+    // ── PLASTER 1: stan dnia + nowy wiersz .mday ──
+    var _todayStr = today;
+    var _isFuture = ds > _todayStr;
+    var _isToday  = ds === _todayStr;
+    var _isRest   = items.length > 0 && items[0].type === 'Odpoczynek';   // JAWNY odpoczynek; pusty dzień ≠ Odpoczynek
+    var _st    = _mDayState(items, dayLogs, _isFuture, _isRest);
+    var _main  = items[0] || null;
+    var _extra = items.length > 1 ? items.length - 1 : 0;
+    var _key   = _main && _mIsKey(_main.type);
+    var _wxImg = wM ? (window.wxImg ? window.wxImg(wM.weather_code, wM.cloud_pct, wM.icon, 16) : wM.icon) : '';
+    // pusty dzień przeszłość/dziś → wprost logowanie; reszta → day-sheet (KROK 0b: openLogModal(event,ds,idx))
+    var _rowClick = (_st.state === 'empty-cta') ? "openLogModal(event,'" + ds + "',0)" : "_tileClick('" + ds + "')";
+    var _parts = _mRowParts(_st, _main, _key, _extra, wM, _wxImg);
+
+    return ''
+      + '<div class="mday ' + (_isToday?'mday--today':'') + ' mday--' + _st.state + '" onclick="' + _rowClick + '">'
+        + '<div class="mday-date ' + (_isToday?'is-today':'') + '">'
+          + '<div class="mday-dow">' + (isRaceDay ? '🏁' : abbr) + '</div>'
+          + '<div class="mday-dnum">' + dayNum + '</div>'
+        + '</div>'
+        + '<div class="mday-body">' + _parts.body + '</div>'
+        + _parts.right
+        + '<svg class="mday-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 6 15 12 9 18"/></svg>'
       + '</div>';
   }).join('');
+
+  // ── PLASTER 1: pasek podsumowania tygodnia ──
+  var _wkKm=0, _wkTime=0, _wkDone=0, _wkPlan=0, _wkLogs=[];
+  days.forEach(function(ds){
+    var it=(trainings[ds]||[]); _wkPlan+=it.length;
+    var lg=(window._calLogs&&window._calLogs[ds])||[];
+    var _mw=_matchDayLogs(it,lg);
+    it.forEach(function(t){ if(_mw.byPlan.get(t._id)) _wkDone++; });
+    lg.forEach(function(l){ _wkKm+=parseFloat(l.distance_km)||0; _wkTime+=_durMin(l.duration); _wkLogs.push(l); });
+  });
+  // OBCIĄŻENIE: formaTRIMP per-log po logach WYŚWIETLANEGO tygodnia (NIE computeFormaStats — re-filtruje bieżący tydzień)
+  var _load = Math.round(_wkLogs.reduce(function(s,l){ return s + (window.formaTRIMP ? window.formaTRIMP(l) : 0); }, 0));
+  var _wkRuns = _wkLogs.length;
+  var _trainCell = _wkPlan > 0 ? (_wkDone+'/'+_wkPlan) : (''+_wkRuns);   // z planem: wykonane/zaplan.; bez planu: liczba biegów
+  container.innerHTML +=
+    '<div class="mweek-sum">'
+    + '<div class="mws-cell"><div class="mws-lbl">DYSTANS</div><div class="mws-val">'+_wkKm.toFixed(0)+' km</div></div>'
+    + '<div class="mws-cell"><div class="mws-lbl">CZAS</div><div class="mws-val">'+_mFmtH(_wkTime)+'</div></div>'
+    + '<div class="mws-cell"><div class="mws-lbl">TRENINGI</div><div class="mws-val">'+_trainCell+'</div></div>'
+    + '<div class="mws-cell"><div class="mws-lbl">OBCIĄŻENIE</div><div class="mws-val">'+_load+'</div></div>'
+    + '</div>';
 
   const mBtn = document.getElementById('mobile-new-btn');
   if (mBtn) mBtn.style.display = 'flex';
 }
 
-function toggleMobileDay(contentId, headerEl) {
-  const content = document.getElementById(contentId);
-  if (!content) return;
-  const isOpen = content.style.display !== 'none';
-  content.style.display = isOpen ? 'none' : 'block';
-  const chevron = headerEl.querySelector('.mday-chevron');
-  if (chevron) chevron.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-}
+// (PLASTER 1) toggleMobileDay usunięty — relikt akordeonu, 0 wywołań (renderMobile używa _tileClick)
 
 
 // ── SZABLONY (v6: Supabase backed, per-coach RLS) ─────────────────
