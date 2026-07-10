@@ -1563,7 +1563,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
 
       <!-- TEMPO + TĘTNO -->
       <div class="f-row">
-        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="5:30" maxlength="4" oninput="autoColonPace(this);calcTimeAuto()"></div>
+        <div class="field"><label>Tempo /km <span id="pace-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-pace" placeholder="5:30" maxlength="5" oninput="autoColonPace(this);calcTimeAuto()"></div>
         <div class="field"><label>Tętno (bpm)</label><input type="number" id="l-hr" placeholder="145" inputmode="numeric"></div>
       </div>
 
@@ -2463,9 +2463,9 @@ function autoColonResult(el) {
   el.value = v.slice(0,5);
 }
 function autoColonPace(el) {
-  let v = el.value.replace(/[^0-9]/g,'');
-  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
-  el.value = v.slice(0,4);
+  let v = el.value.replace(/[^0-9]/g,'').slice(0,4);          // max 4 cyfry = MM SS (do 99:59)
+  if (v.length >= 3) v = v.slice(0,-2) + ':' + v.slice(-2);   // ':' przed ostatnimi 2 (sekundy) -> 1030->10:30, nie 1:03
+  el.value = v;
 }
 function calcBothAuto() {
   const paceVal = document.getElementById('l-pace').value;

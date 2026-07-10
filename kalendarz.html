@@ -1031,7 +1031,7 @@ html { scroll-behavior: smooth; }
       <div class="field-row">
         <div class="field">
           <label>Tempo docelowe (min/km)</label>
-          <input type="text" id="f-pace" placeholder="np. 5:30" maxlength="4" oninput="autoColonPace(this)">
+          <input type="text" id="f-pace" placeholder="np. 5:30" maxlength="5" oninput="autoColonPace(this)">
         </div>
         <div class="field">
           <label>Tętno docelowe (bpm)</label>
@@ -4857,7 +4857,7 @@ if (_urlRole === 'coach') {
   if (wtBtn) wtBtn.style.display = '';
 }
 
-function autoColonPace(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=2)v=v.slice(0,1)+":"+v.slice(1);el.value=v.slice(0,4);}
+function autoColonPace(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,4);if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;}  // ':' przed ostatnimi 2 (sekundy) -> dziala dla 2-cyfr. minut (1030->10:30, nie 1:03)
 // Normalizacja pace przy ZAPISIE (nie oninput — nie psuć pisania na żywo).
 // Łapie WSZYSTKIE 3 drogi do training_logs.pace: ręczne (autoColonPace), prefill OCR, kalCalcPaceAuto.
 // "6:60"->"7:00" (carry), "7:0"->"7:00" (pad), "7,34"/"7.34"->"7:34" (separator), śmieci->null.
