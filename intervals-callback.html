@@ -105,8 +105,20 @@
     });
     const data = await res.json().catch(() => null);
     if (res.ok && data && data.ok) {
-      show('✅', 'Połączono z intervals.icu', 'przekierowuję…', false);
-      setTimeout(() => { location.replace(returnDest); }, 1400);
+      if (data.activities_count === 0) {
+        // Sukces, ale intervals PUSTY → Garmin niepodłączony. Ton POZYTYWNY (✅, NIE błąd), bez auto-redirectu.
+        // Instrukcja podłączenia Garmina żyje w profil.html?open=icu (WATCH.helpHtml) — reuse przez link (opcja B).
+        bodyEl.innerHTML =
+          '<div class="icon">✅</div>' +
+          '<div class="msg">Połączono! Jeszcze jeden krok</div>' +
+          '<div class="sub">Twój zegarek jest połączony, ale intervals.icu nie widzi jeszcze treningów. Podłącz swój zegarek w intervals.icu, żeby biegi zaczęły wpadać do BiegaMy.</div>' +
+          '<a class="btn" href="profil.html?open=icu">Zobacz jak podłączyć zegarek</a>';
+      } else {
+        // count>0 → treningi są; count null/undefined (EF call padł, nieznane) → nie strasz. Oba: normalny sukces + redirect.
+        const sub = (data.activities_count > 0) ? 'Twoje treningi zaczną wpadać — przekierowuję…' : 'przekierowuję…';
+        show('✅', 'Połączono z intervals.icu', sub, false);
+        setTimeout(() => { location.replace(returnDest); }, 1400);
+      }
     } else if (data && data.error === 'already_linked') {
       show('✕', 'To konto intervals jest już podłączone', 'do zawodnika: ' + (data.owner || '?') + '. Wyloguj się z tego konta na intervals.icu i połącz swoje.', true);
     } else {
