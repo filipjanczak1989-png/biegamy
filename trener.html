@@ -2478,7 +2478,7 @@ async function saveEditedWorkout(workoutId) {
     description: document.getElementById('ew-desc').value.trim() || null,
     target_distance_km: parseFloat(document.getElementById('ew-dist').value) || null,
     target_duration_min: parseInt(document.getElementById('ew-dur').value) || null,
-    target_pace: document.getElementById('ew-pace').value.trim() || null,
+    target_pace: normalizePlanPace(document.getElementById('ew-pace').value) || null,   // range-aware (sb.js SSOT): zakres "5:00-5:15/km" passthrough, goly token 530->5:30; input BEZ autoColonPace (nie niszczyc zakresow)
     target_hr_zone: parseInt(document.getElementById('ew-zone').value) || null,
     edited_by_coach: true
   };
