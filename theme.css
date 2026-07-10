@@ -137,3 +137,22 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
    (modale/listy/wątki czatu). Scroll dalej działa — chowamy tylko wizualny pasek. === */
 .no-scrollbar{scrollbar-width:none;-ms-overflow-style:none;}
 .no-scrollbar::-webkit-scrollbar{display:none;}
+
+/* === VIEW TRANSITIONS (cross-document, MPA) — ETAP 1: sam cross-fade ==========
+   @view-transition{navigation:auto} musi byc w OBU dokumentach (stary+nowy);
+   dziala bo wszystkie strony linkuja ten theme.css (same-origin github.io).
+   Progressive enhancement: przegladarki bez wsparcia ignoruja regule -> twarde
+   przejscie jak dzis (zero regresji). Kierunkowy slide = ETAP 2 (pageswap/pagereveal). */
+@view-transition { navigation: auto; }
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.16,1,0.3,1);
+}
+
+/* Dostepnosc: reduced-motion -> natychmiastowe przejscie, bez animacji */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) { animation: none; }
+}
