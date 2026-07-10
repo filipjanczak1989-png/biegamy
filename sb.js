@@ -244,6 +244,44 @@
       .replace(/'/g, '&#39;');
   };
 
+  // ─── PACE — format + normalizacja (SSOT; był fork kalendarz/zawodnik/wtpl) ───
+  // normalizePaceInput MUSI być zdef. PRZED normalizePlanPace (druga woła pierwszą).
+  // Normalizacja pace przy ZAPISIE (LOG, strict M:SS). "6:60"->"7:00" (carry),
+  // "7:0"->"7:00" (pad), "7,34"/"7.34"->"7:34" (separator), "530"->"5:30", śmieci->null.
+  window.normalizePaceInput = function(raw){
+    if(raw==null) return null;
+    let s=String(raw).trim();
+    if(!s) return null;
+    s=s.replace(/[.,]/g,':').replace(/\s+/g,'');   // , . -> :  (ujednolić separator, wyciąć spacje)
+    let min, sec;
+    if(s.includes(':')){
+      const p=s.split(':');
+      if(p.length!==2 || !/^\d{1,2}$/.test(p[0]) || !/^\d{0,2}$/.test(p[1])) return null;
+      min=parseInt(p[0],10); sec=p[1]===''?0:parseInt(p[1],10);
+    } else if(/^\d{1,2}$/.test(s)){        // same minuty
+      min=parseInt(s,10); sec=0;
+    } else if(/^\d{3,4}$/.test(s)){        // bez separatora: ostatnie 2 = sekundy
+      sec=parseInt(s.slice(-2),10); min=parseInt(s.slice(0,-2),10);
+    } else return null;                    // bezsens -> null (nie zgadujemy)
+    if(isNaN(min)||isNaN(sec)) return null;
+    if(sec>=60){ min+=Math.floor(sec/60); sec=sec%60; }   // carry sekund >=60
+    if(min<0||min>99) return null;
+    return min+':'+String(sec).padStart(2,'0');
+  };
+  // Wersja dla PLANU/SZABLONU (trainings.pace / target_pace): plan LEGALNIE trzyma
+  // zakresy/free-text AI ("6:00-6:15/km", "tempo startowe") — TYCH nie ruszamy.
+  // Normalizujemy TYLKO goły pojedynczy token; śmieci->null.
+  window.normalizePlanPace = function(s){
+    if(s==null) return null;
+    const t=String(s).trim();
+    if(!t) return null;
+    if(/[-/a-zA-Z\s]/.test(t)) return t;   // zakres/opis/jednostka -> przepuść bez zmian
+    return normalizePaceInput(t);          // goły token -> normalizuj (window.normalizePaceInput, global)
+  };
+  // Live oninput format M:SS — tempo /km. ':' przed ostatnimi 2 cyframi (sekundy) ->
+  // dziala dla 2-cyfr. minut (1030->10:30, nie 1:03); cap 4 cyfry.
+  window.autoColonPace = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,4);if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;};
+
   // ── UI helper: type pill renderer (anti-XSS) ──────────────────────
   // Renderuje pigułkę z typem treningu (kolor + ikonka SVG + tekst).
   // Używana w karcie loga, modal-u treningu, week-strip i kalendarzu.

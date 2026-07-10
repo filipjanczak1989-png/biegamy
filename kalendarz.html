@@ -4773,7 +4773,7 @@ function renderWtplDays() {
         </div>
         <div>
           <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Tempo /km</div>
-          <input id="wtpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="5" oninput="wtplAutoColonPace(this)" style="width:100%;box-sizing:border-box;">
+          <input id="wtpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="5" oninput="autoColonPace(this)" style="width:100%;box-sizing:border-box;">
         </div>
         <div>
           <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Tętno</div>
@@ -4785,13 +4785,7 @@ function renderWtplDays() {
   `).join('');
 }
 
-function wtplAutoColonPace(el) {
-  // Format M:SS — tempo /km. Kopia naprawionego autoColonPace (@4860): ':' przed
-  // ostatnimi 2 (sekundy) -> 1030->10:30 (nie 1:03), 530->5:30 bez zmiany; cap 4 cyfry.
-  let v = el.value.replace(/[^0-9]/g, '').slice(0,4);
-  if (v.length >= 3) v = v.slice(0,-2) + ':' + v.slice(-2);
-  el.value = v;
-}
+// wtplAutoColonPace usunięty -> używa window.autoColonPace (sb.js SSOT); oninput @wtpl-pace zmieniony
 
 function closeWeekTemplateModal() {
   document.getElementById('week-tpl-modal').classList.remove('show');
@@ -4858,40 +4852,7 @@ if (_urlRole === 'coach') {
   if (wtBtn) wtBtn.style.display = '';
 }
 
-function autoColonPace(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,4);if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;}  // ':' przed ostatnimi 2 (sekundy) -> dziala dla 2-cyfr. minut (1030->10:30, nie 1:03)
-// Normalizacja pace przy ZAPISIE (nie oninput — nie psuć pisania na żywo).
-// Łapie WSZYSTKIE 3 drogi do training_logs.pace: ręczne (autoColonPace), prefill OCR, kalCalcPaceAuto.
-// "6:60"->"7:00" (carry), "7:0"->"7:00" (pad), "7,34"/"7.34"->"7:34" (separator), śmieci->null.
-function normalizePaceInput(raw){
-  if(raw==null) return null;
-  let s=String(raw).trim();
-  if(!s) return null;
-  s=s.replace(/[.,]/g,':').replace(/\s+/g,'');   // , . -> :  (ujednolić separator, wyciąć spacje)
-  let min, sec;
-  if(s.includes(':')){
-    const p=s.split(':');
-    if(p.length!==2 || !/^\d{1,2}$/.test(p[0]) || !/^\d{0,2}$/.test(p[1])) return null;
-    min=parseInt(p[0],10); sec=p[1]===''?0:parseInt(p[1],10);
-  } else if(/^\d{1,2}$/.test(s)){        // same minuty
-    min=parseInt(s,10); sec=0;
-  } else if(/^\d{3,4}$/.test(s)){        // bez separatora: ostatnie 2 = sekundy
-    sec=parseInt(s.slice(-2),10); min=parseInt(s.slice(0,-2),10);
-  } else return null;                    // bezsens -> null (nie zgadujemy)
-  if(isNaN(min)||isNaN(sec)) return null;
-  if(sec>=60){ min+=Math.floor(sec/60); sec=sec%60; }   // carry sekund >=60
-  if(min<0||min>99) return null;
-  return min+':'+String(sec).padStart(2,'0');
-}
-// Wersja dla PLANU (trainings.pace): plan LEGALNIE trzyma zakresy/free-text AI
-// ("6:00-6:15/km", "tempo startowe", "3:45/km (odcinki)") — TYCH nie ruszamy.
-// Normalizujemy TYLKO goły pojedynczy token ("6:60"->"7:00", "7:0"->"7:00"); śmieci->null.
-function normalizePlanPace(s){
-  if(s==null) return null;
-  const t=String(s).trim();
-  if(!t) return null;
-  if(/[-/a-zA-Z\s]/.test(t)) return t;   // zakres/opis/jednostka -> przepuść bez zmian
-  return normalizePaceInput(t);          // goły token -> normalizuj (null gdy bezsens)
-}
+// autoColonPace / normalizePaceInput / normalizePlanPace -> sb.js (SSOT window.X, centralizacja)
 function kalAutoColonTime(el){
   let v=el.value.replace(/[^0-9]/g,'');
   if(v.length<=4){if(v.length>=3)v=v.slice(0,2)+':'+v.slice(2);}

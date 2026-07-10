@@ -2462,11 +2462,7 @@ function autoColonResult(el) {
   if (v.length >= 3) v = v.slice(0,2) + ":" + v.slice(2);
   el.value = v.slice(0,5);
 }
-function autoColonPace(el) {
-  let v = el.value.replace(/[^0-9]/g,'').slice(0,4);          // max 4 cyfry = MM SS (do 99:59)
-  if (v.length >= 3) v = v.slice(0,-2) + ':' + v.slice(-2);   // ':' przed ostatnimi 2 (sekundy) -> 1030->10:30, nie 1:03
-  el.value = v;
-}
+// autoColonPace usunięty -> window.autoColonPace (sb.js SSOT, centralizacja)
 function calcBothAuto() {
   const paceVal = document.getElementById('l-pace').value;
   const timeVal = document.getElementById('l-time').value;
