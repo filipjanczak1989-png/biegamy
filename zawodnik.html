@@ -1404,7 +1404,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         </div>
         <div>
           <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Twój czas</label>
-          <input id="calc-riegel-time" type="text" placeholder="45:00" maxlength="7" oninput="autoColonTime(this);calcRiegel()"
+          <input id="calc-riegel-time" type="text" placeholder="45:00" maxlength="8" oninput="autoColonTime(this);calcRiegel()"
             style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:16px;padding:9px 12px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
       </div>
@@ -1422,7 +1422,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
         </div>
         <div>
           <label style="display:block;font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:5px;">Czas</label>
-          <input id="calc-pace-time" type="text" placeholder="1:00:00" maxlength="7" oninput="autoColonTime(this);calcPaceCalc()"
+          <input id="calc-pace-time" type="text" placeholder="1:00:00" maxlength="8" oninput="autoColonTime(this);calcPaceCalc()"
             style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--fg);font-family:DM Mono,monospace;font-size:14px;padding:9px 10px;border-radius:8px;outline:none;box-sizing:border-box;">
         </div>
         <div>
@@ -1546,7 +1546,7 @@ else document.addEventListener('DOMContentLoaded', function(){ if (window._mount
       <!-- DYSTANS + CZAS -->
       <div class="f-row" id="log-form">
         <div class="field"><label>Dystans (km)</label><input type="number" id="l-dist" placeholder="10.0" step="0.1" inputmode="decimal" oninput="calcBothAuto()"></div>
-        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="7" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto()" inputmode="numeric"></div>
+        <div class="field"><label>Czas (np. 1:05:00) <span id="time-auto" style="color:var(--accent);font-size:9px;margin-left:4px;"></span></label><input type="text" id="l-time" placeholder="1:05:00" maxlength="8" oninput="autoColonTime(this);calcPaceAuto();calcKcalAuto()" inputmode="numeric"></div>
       </div>
 
       <!-- DATA LOGU -->
@@ -2445,18 +2445,7 @@ function previewFile(input) {
   document.getElementById('upload-label').textContent = label;
   document.getElementById('upload-area').style.borderColor = 'var(--green)';
 }
-function autoColonTime(el) {
-  let v = el.value.replace(/[^0-9]/g,'');
-  // Format: do 4 cyfr → MM:SS, 5+ cyfr → H:MM:SS
-  if (v.length <= 4) {
-    if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
-  } else {
-    // 5-6 cyfr: H:MM:SS lub HH:MM:SS
-    if (v.length === 5) v = v.slice(0,1) + ':' + v.slice(1,3) + ':' + v.slice(3);
-    else v = v.slice(0,2) + ':' + v.slice(2,4) + ':' + v.slice(4);
-  }
-  el.value = v.slice(0,7);
-}
+// autoColonTime usunięty -> window.autoColonTime (sb.js SSOT, centralizacja czasu FAZA B)
 // autoColonResult usunięty -> window.autoColonResult (sb.js SSOT, centralizacja czasu FAZA A)
 // autoColonPace usunięty -> window.autoColonPace (sb.js SSOT, centralizacja)
 function calcBothAuto() {

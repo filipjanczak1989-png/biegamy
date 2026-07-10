@@ -3916,12 +3916,7 @@ function saveSend() { saveSend_db(); }
 function addAthlete() { addAthlete_db(); }
 
 // Auto colon for time fields h:mm:ss
-function autoColon(el) {
-  let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
-  if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
-  el.value = v.slice(0,7);
-}
+// autoColon usunięty -> window.autoColonTime (sb.js SSOT, centralizacja czasu FAZA B); PB mar/half oninput migrowane
 // autoColonShort usunięty -> window.autoColonResult (sb.js SSOT, centralizacja czasu FAZA A); PB 5k/10k migrowane
 
 function openAthModal() {
@@ -6650,13 +6645,13 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Maraton</label>
           <input id="ath-pb-mar" type="text" placeholder="3:45:00" maxlength="7"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColon(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
         </div>
         <div>
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB Półmaraton</label>
           <input id="ath-pb-half" type="text" placeholder="1:45:00" maxlength="7"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColon(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonTime(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">

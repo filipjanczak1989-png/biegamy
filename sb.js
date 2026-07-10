@@ -284,6 +284,10 @@
   // Live oninput format MM:SS — czasy PB 5k/10k (2-cyfr. minuty): ':' PO 2 cyfrach, cap 5
   // -> "4530"->"45:30", "2200"->"22:00". (Byl fork: autoColonResult zawodnik + autoColonShort trener.)
   window.autoColonResult = function(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=3)v=v.slice(0,2)+":"+v.slice(2);el.value=v.slice(0,5);};
+  // Live oninput format H:MM:SS — czasy biegu/PB. Model "od prawej" (ostatnie 2=sek), cap 6 cyfr:
+  // >=5 cyfr -> H:MM:SS/HH:MM:SS; >=3 -> M:SS/MM:SS. "530"->"5:30", "104500"->"10:45:00".
+  // (Byl fork rozjechany: autoColonTime zawodnik/narzedzia + kalAutoColonTime kalendarz + autoColon trener.)
+  window.autoColonTime = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,6);if(v.length>=5)v=v.slice(0,-4)+":"+v.slice(-4,-2)+":"+v.slice(-2);else if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;};
 
   // ── UI helper: type pill renderer (anti-XSS) ──────────────────────
   // Renderuje pigułkę z typem treningu (kolor + ikonka SVG + tekst).
