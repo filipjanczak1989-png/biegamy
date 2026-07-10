@@ -156,3 +156,31 @@ html[data-theme="gold"]{ --accent:#d4a017; --accent2:#e8bf55; --accent3:#f0d27a;
   ::view-transition-old(root),
   ::view-transition-new(root) { animation: none; }
 }
+
+/* === VIEW TRANSITIONS — ETAP 2: kierunkowy slide L/P =========================
+   Kierunek z atrybutu data-vt-dir na <html> (ustawia sb.js w handlerze pagereveal
+   z sessionStorage, pisanego przez swipe TUZ przed location.href).
+   Brak atrybutu (nawigacja nie-swipe) -> zadna regula ponizej nie matchuje ->
+   zostaje cross-fade z ETAPU 1 (bezpieczny default, nigdy losowy slide).
+   fwd  (swipe w LEWO, next): stara jedzie w LEWO,  nowa wchodzi z PRAWEJ.
+   back (swipe w PRAWO, prev): stara jedzie w PRAWO, nowa wchodzi z LEWEJ.
+   -> old i new zawsze w przeciwne krawedzie = spojny filmstrip.
+   Czas/easing dziedziczone z reguly ETAPU 1 (220ms) — tu tylko animation-name. */
+@keyframes bm-vt-old-to-left   { to   { transform: translateX(-100%); } }
+@keyframes bm-vt-new-from-right{ from { transform: translateX(100%);  } }
+@keyframes bm-vt-old-to-right  { to   { transform: translateX(100%);  } }
+@keyframes bm-vt-new-from-left { from { transform: translateX(-100%); } }
+
+html[data-vt-dir="fwd"]::view-transition-old(root)  { animation-name: bm-vt-old-to-left;   }
+html[data-vt-dir="fwd"]::view-transition-new(root)  { animation-name: bm-vt-new-from-right; }
+html[data-vt-dir="back"]::view-transition-old(root) { animation-name: bm-vt-old-to-right;  }
+html[data-vt-dir="back"]::view-transition-new(root) { animation-name: bm-vt-new-from-left; }
+
+/* reduced-motion: directional selektory sa BARDZIEJ specyficzne niz reguly E1,
+   wiec ich animation-name przebilby `animation:none` z bloku wyzej -> jawnie zeruj. */
+@media (prefers-reduced-motion: reduce) {
+  html[data-vt-dir="fwd"]::view-transition-old(root),
+  html[data-vt-dir="fwd"]::view-transition-new(root),
+  html[data-vt-dir="back"]::view-transition-old(root),
+  html[data-vt-dir="back"]::view-transition-new(root) { animation: none; }
+}

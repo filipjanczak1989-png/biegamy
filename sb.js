@@ -1145,6 +1145,7 @@
         self._dbg('GESTURE: ' + active + ' dir=' + dir + ' → ' + it.id + ' (' + (localMap[it.id] ? 'local' : ('href ' + it.target)) + ')');
         if (localMap[it.id]) onLocal(it.id);                               // in-page → callback
         else if (it.target) {
+          try { sessionStorage.setItem('bm_vt_dir', dir === 1 ? 'fwd' : 'back'); } catch(e){}  // ETAP2: kierunek VT-slide dla nowej strony (odczyt w pagereveal); dir tu W ZASIĘGU
           if (self._dbgOn()) { var _t = it.target; setTimeout(function(){ location.href = _t; }, 1600); }  // debug: pokaż toast przed nawigacją
           else location.href = it.target;                                  // normalnie: natychmiast
         }
@@ -1183,6 +1184,23 @@
       }, { passive: true });
     }
   };
+
+  // ── ETAP2: kierunkowy VT slide — ODCZYT kierunku na NOWEJ stronie ──────────
+  //   pagereveal odpala PRZED pierwszym renderem/animacją cross-doc VT → atrybut
+  //   na :root zdąży, zanim VT policzy keyframes. sb.js to KLASYCZNY parser-blocking
+  //   <script src> w <body> (bez defer/async) → wykonuje się w trakcie parsowania,
+  //   PRZED pierwszą okazją renderu → ten listener rejestruje się ZANIM pagereveal
+  //   poleci. Failure-safe: gdyby (kiedyś) się spóźnił / brak dir → atrybut nie
+  //   wchodzi → zostaje cross-fade z ETAPU 1. NIGDY zły kierunek.
+  window.addEventListener('pagereveal', function(e){
+    if (!e || !e.viewTransition) return;                    // brak aktywnej cross-doc VT (fallback / same-doc)
+    var d = null;
+    try { d = sessionStorage.getItem('bm_vt_dir'); sessionStorage.removeItem('bm_vt_dir'); } catch(_){}
+    if (d !== 'fwd' && d !== 'back') return;                // nawigacja nie-swipe → cross-fade (E1)
+    document.documentElement.setAttribute('data-vt-dir', d);
+    try { e.viewTransition.finished.finally(function(){ document.documentElement.removeAttribute('data-vt-dir'); }); }
+    catch(_){ document.documentElement.removeAttribute('data-vt-dir'); }
+  });
 
   // Włącznik debug z URL (telefon bez konsoli): ?swipedebug=1 → flaga on (persist w localStorage), ?swipedebug=0 → off.
   (function(){ try { var d = new URLSearchParams(location.search).get('swipedebug'); if (d === '1') localStorage.setItem('bm_swipe_debug','1'); else if (d === '0') localStorage.removeItem('bm_swipe_debug'); } catch(e){} })();
