@@ -288,6 +288,9 @@
   // >=5 cyfr -> H:MM:SS/HH:MM:SS; >=3 -> M:SS/MM:SS. "530"->"5:30", "104500"->"10:45:00".
   // (Byl fork rozjechany: autoColonTime zawodnik/narzedzia + kalAutoColonTime kalendarz + autoColon trener.)
   window.autoColonTime = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,6);if(v.length>=5)v=v.slice(0,-4)+":"+v.slice(-4,-2)+":"+v.slice(-2);else if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;};
+  // OUTPUT-formatter (secs->string DISPLAY; odwrotnosc autocolon-input). h>0 ? H:MM:SS : M:SS.
+  // Render pace/splitow/VDOT/stref (narzedzia+zawodnik). (Byl fork bajt-identyczny x2.)
+  window._secsToTime = function(secs){secs=Math.round(secs);const h=Math.floor(secs/3600),m=Math.floor((secs%3600)/60),s=secs%60;return h>0?h+":"+String(m).padStart(2,"0")+":"+String(s).padStart(2,"0"):m+":"+String(s).padStart(2,"0");};
 
   // ── UI helper: type pill renderer (anti-XSS) ──────────────────────
   // Renderuje pigułkę z typem treningu (kolor + ikonka SVG + tekst).
