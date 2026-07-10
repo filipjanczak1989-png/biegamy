@@ -181,6 +181,13 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 .post-act-btn{background:rgba(0,0,0,0.6);border:none;color:#fff;border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;backdrop-filter:blur(8px);}
 .post-act-btn:hover{background:var(--accent);}
 .post-quote{position:relative;}
+/* E3-ii-b: karty drill-down intervals (1:1 z kalendarza @5705-5745) */
+.ds-card { background: #161A20; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+.ds-label { font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; font-family: 'DM Mono', monospace; color: rgba(240,237,232,0.38); margin-bottom: 10px; }
+.ds-stat-cell { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 14px; }
+.ds-stat-label { font-size: 9px; font-family: 'DM Mono', monospace; color: rgba(240,237,232,0.4); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 5px; }
+.ds-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #fff; line-height: 1; }
+.ds-stat-unit { font-family: 'DM Mono', monospace; font-size: 10px; color: rgba(240,237,232,0.45); margin-left: 3px; }
 </style>
 </head>
 <body>
@@ -1644,10 +1651,31 @@ function _openTrainingDetail(logId) {
     if (_isOwnProfile) {
       h += '<a href="kalendarz.html?role=athlete" style="display:block;text-align:center;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--fg2);text-decoration:none;border-radius:10px;padding:10px;font-family:DM Mono,monospace;font-size:11px;letter-spacing:0.08em;">Edytuj w kalendarzu →</a>';
     }
+    // E3-ii-b: karta wykresów intervals (scaffold 1:1 z kalendarza @5783-5799; renderer w sb.js; EF stripuje HR wg hr_public)
+    h += `
+      <div id="ds-icu-card" class="ds-card" style="display:none;">
+        <div id="ds-icu-multi" style="display:none;text-align:right;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;"></div>
+        <div id="ds-icu-loading" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;">Ładuję szczegóły…</div>
+        <div id="ds-icu-tabs" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          <button id="ds-icu-tab-pace" onclick="_icuSetMetric('pace')">Tempo</button>
+          <button id="ds-icu-tab-hr" onclick="_icuSetMetric('hr')">Tętno</button>
+          <button id="ds-icu-tab-resp" onclick="_icuSetMetric('resp')">Oddech</button>
+          <button id="ds-icu-tab-cad" onclick="_icuSetMetric('cad')">Kadencja</button>
+          <button id="ds-icu-tab-alt" onclick="_icuSetMetric('alt')">Wysokość</button>
+          <button id="ds-icu-tab-temp" onclick="_icuSetMetric('temp')">Temperatura</button>
+        </div>
+        <div id="ds-icu-chart-wrap" style="display:none;position:relative;height:180px;margin-bottom:12px;"><canvas id="ds-icu-chart"></canvas></div>
+        <div id="ds-icu-splits" style="display:none;"></div>
+        <div id="ds-icu-stats" style="display:none;"></div>
+        <div id="ds-icu-hrzones" style="display:none;"></div>
+        <div id="ds-icu-msg" style="display:none;font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);padding:6px 0;"></div>
+      </div>`;
     h += '</div>';
     sh.innerHTML = h;
     ov.appendChild(sh);
     document.body.appendChild(ov);
+    // E3-ii-b: wykresy tylko dla logów intervals; renderer sam chowa kartę i stripuje HR wg hr_public (EF, E2)
+    if (l.source === 'intervals' && l.external_id) window._renderIcuDetail([l]);
   });
 }
 
