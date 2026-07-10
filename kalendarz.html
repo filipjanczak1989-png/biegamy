@@ -31,7 +31,7 @@ body{
 }
 
 /* ── SHELL ──────────────────────────────────────────────────────────── */
-.shell{display:flex;flex-direction:column;min-height:100vh;overflow-x:hidden;}
+.shell{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;overflow-x:hidden;}
 nav{backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);}
 
 /* ── NAV ────────────────────────────────────────────────────────────── */
@@ -1628,7 +1628,6 @@ function render() {
     
     // ✨ v47: Karty dla logów BEZ powiązanego treningu w planie
     // (np. zawodnicy bez planu którzy logują swoje biegi)
-    const planTrainingIds = new Set(ts.map(t => t._id).filter(Boolean));
     const orphanLogs = _matchDayLogs(ts, dayLogs).orphans;   // orphan = log bez dopasowanego planu (fix dublowania)
     
     // Renderuj orphan logi jako standalone karty (zielone, bez planu)
