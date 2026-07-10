@@ -4773,7 +4773,7 @@ function renderWtplDays() {
         </div>
         <div>
           <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Tempo /km</div>
-          <input id="wtpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="4" oninput="wtplAutoColonPace(this)" style="width:100%;box-sizing:border-box;">
+          <input id="wtpl-pace-${i}" type="text" value="${d.pace||''}" placeholder="5:30" maxlength="5" oninput="wtplAutoColonPace(this)" style="width:100%;box-sizing:border-box;">
         </div>
         <div>
           <div style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-bottom:3px;">Tętno</div>
@@ -4786,10 +4786,11 @@ function renderWtplDays() {
 }
 
 function wtplAutoColonPace(el) {
-  // Format M:SS — tempo /km
-  let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 2) v = v.slice(0,1) + ':' + v.slice(1);
-  el.value = v.slice(0,4);
+  // Format M:SS — tempo /km. Kopia naprawionego autoColonPace (@4860): ':' przed
+  // ostatnimi 2 (sekundy) -> 1030->10:30 (nie 1:03), 530->5:30 bez zmiany; cap 4 cyfry.
+  let v = el.value.replace(/[^0-9]/g, '').slice(0,4);
+  if (v.length >= 3) v = v.slice(0,-2) + ':' + v.slice(-2);
+  el.value = v;
 }
 
 function closeWeekTemplateModal() {
@@ -4816,7 +4817,7 @@ async function sendWeekTemplate() {
   for (let i = 0; i < KAL_WEEK_TEMPLATE.length; i++) {
     const type = document.getElementById('wtpl-type-'+i)?.value || KAL_WEEK_TEMPLATE[i].type;
     const dist = parseFloat(document.getElementById('wtpl-dist-'+i)?.value) || 0;
-    const pace = document.getElementById('wtpl-pace-'+i)?.value.trim() || null;
+    const pace = normalizePlanPace(document.getElementById('wtpl-pace-'+i)?.value || '') || null;   // trainings.pace = PLAN -> normalizePlanPace (spojnie z f-pace @2391); wtpl single-value, goly token 530->5:30
     const hr = document.getElementById('wtpl-hr-'+i)?.value.trim() || null;
     const desc = document.getElementById('wtpl-desc-'+i)?.value.trim() || null;
     const date = new Date(weekStart); date.setDate(weekStart.getDate() + i);
