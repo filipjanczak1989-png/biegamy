@@ -281,6 +281,9 @@
   // Live oninput format M:SS — tempo /km. ':' przed ostatnimi 2 cyframi (sekundy) ->
   // dziala dla 2-cyfr. minut (1030->10:30, nie 1:03); cap 4 cyfry.
   window.autoColonPace = function(el){let v=el.value.replace(/[^0-9]/g,"").slice(0,4);if(v.length>=3)v=v.slice(0,-2)+":"+v.slice(-2);el.value=v;};
+  // Live oninput format MM:SS — czasy PB 5k/10k (2-cyfr. minuty): ':' PO 2 cyfrach, cap 5
+  // -> "4530"->"45:30", "2200"->"22:00". (Byl fork: autoColonResult zawodnik + autoColonShort trener.)
+  window.autoColonResult = function(el){let v=el.value.replace(/[^0-9]/g,"");if(v.length>=3)v=v.slice(0,2)+":"+v.slice(2);el.value=v.slice(0,5);};
 
   // ── UI helper: type pill renderer (anti-XSS) ──────────────────────
   // Renderuje pigułkę z typem treningu (kolor + ikonka SVG + tekst).

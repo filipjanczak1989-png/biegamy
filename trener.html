@@ -3922,14 +3922,7 @@ function autoColon(el) {
   if (v.length >= 5) v = v.slice(0,4) + ':' + v.slice(4);
   el.value = v.slice(0,7);
 }
-// Czasy PB 5k/10k (MM:SS, 2-cyfr. minuty): ':' po 2 cyfrach, cap 5 -> "4530"->"45:30".
-// (Po centralizacji tpl-pace zszedł na autoColonPace; autoColonShort służy TYLKO PB 5k/10k
-//  @6673/@6679. Logika == autoColonResult zawodnika. Pace NIE używa tej funkcji.)
-function autoColonShort(el) {
-  let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
-  el.value = v.slice(0,5);
-}
+// autoColonShort usunięty -> window.autoColonResult (sb.js SSOT, centralizacja czasu FAZA A); PB 5k/10k migrowane
 
 function openAthModal() {
   const m = document.getElementById('add-ath-modal');
@@ -6671,13 +6664,13 @@ async function _notifyCoachMessage(athleteId, msgPreview) {
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 10 km</label>
           <input id="ath-pb-10k" type="text" placeholder="45:30" maxlength="5"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonShort(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
         </div>
         <div>
           <label style="display:block;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#66636e;font-family:'DM Mono',monospace;margin-bottom:6px;">PB 5 km</label>
           <input id="ath-pb-5k" type="text" placeholder="22:00" maxlength="5"
             style="width:100%;background:#1e1e24;border:1px solid #2a2a32;color:#f0ede8;font-family:'DM Mono',monospace;font-size:14px;padding:10px 12px;border-radius:8px;outline:none;"
-            oninput="autoColonShort(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
+            oninput="autoColonResult(this)" onfocus="this.style.borderColor='#d4501a'" onblur="this.style.borderColor='#2a2a32'">
         </div>
       </div>
       <div style="display:flex;gap:8px;">

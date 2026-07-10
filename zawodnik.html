@@ -2457,11 +2457,7 @@ function autoColonTime(el) {
   }
   el.value = v.slice(0,7);
 }
-function autoColonResult(el) {
-  let v = el.value.replace(/[^0-9]/g,"");
-  if (v.length >= 3) v = v.slice(0,2) + ":" + v.slice(2);
-  el.value = v.slice(0,5);
-}
+// autoColonResult usunięty -> window.autoColonResult (sb.js SSOT, centralizacja czasu FAZA A)
 // autoColonPace usunięty -> window.autoColonPace (sb.js SSOT, centralizacja)
 function calcBothAuto() {
   const paceVal = document.getElementById('l-pace').value;
