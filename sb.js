@@ -3517,4 +3517,65 @@ window._icuRenderSplits = function (d, el) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
   })();
+
+  // ── Monitoring błędów klienta → tabela client_errors (INSERT-only, RLS auth.uid()=user_id) ──
+  //    Handler NIGDY nie rzuca (błąd w logowaniu przez onerror = pętla). Decyzja A: tylko zalogowani.
+  (function _initClientErrorLog() {
+    // 1. cache uid bez race (onAuthStateChange + prime getSession)
+    try {
+      sb.auth.onAuthStateChange(function(_e, s){ window._authUid = (s && s.user && s.user.id) || null; });
+      sb.auth.getSession().then(function(r){
+        window._authUid = (r && r.data && r.data.session && r.data.session.user && r.data.session.user.id) || null;
+      }).catch(function(){});
+    } catch (_) {}
+    // 2. app_version best-effort z nazw cache SW (nie-PWA/stary browser → null)
+    try {
+      if (typeof caches !== 'undefined') {
+        caches.keys().then(function(ks){
+          var v = ks.find(function(k){ return k.indexOf('biegamy-') === 0; });
+          window._appVersion = v ? v.replace(/-(static|runtime|storage)$/, '') : null;
+        }).catch(function(){});
+      }
+    } catch (_) {}
+
+    // 3. dedup + cap (w domknięciu, nie na window)
+    var _seen = new Map();          // sygnatura message|source|lineno -> ts
+    var _sentThisLoad = 0;
+    var CAP = 10;
+
+    // 4. insert best-effort — całość w try/catch, self-swallow, NIGDY nie rzuca
+    function _logClientError(o){
+      try {
+        if (!window._authUid) return;                       // anon/wczesny → pomiń (decyzja A)
+        if (_sentThisLoad >= CAP) return;                   // cap 10/load
+        var sig = [o.message, o.source, o.lineno].join('|');
+        var now = Date.now();
+        if (_seen.has(sig) && (now - _seen.get(sig) < 60000)) return;   // dedup 60s
+        _seen.set(sig, now);
+        _sentThisLoad++;
+        sb.from('client_errors').insert({
+          user_id: window._authUid,
+          url: (location.pathname + location.search).slice(0, 990),
+          kind: o.kind,
+          message: String(o.message || '').slice(0, 1900),
+          source: String(o.source || '').slice(0, 990),
+          lineno: (o.lineno != null ? o.lineno : null),
+          colno:  (o.colno  != null ? o.colno  : null),
+          stack: String(o.stack || '').slice(0, 4000),
+          user_agent: String(navigator.userAgent || '').slice(0, 500),
+          app_version: window._appVersion || null
+        }).then(function(){}, function(){});                // self-swallow (reject handler pusty, NIE await/.catch)
+      } catch (_) {}
+    }
+
+    // 5. handlery — addEventListener (addytywny, nie nadpisuje window.onerror=)
+    window.addEventListener('error', function(e){
+      if (!e.message && !e.error) return;                   // resource 404 (<img>/<script>) — nie JS-error, nie zaśmiecaj
+      _logClientError({ kind:'error', message:e.message, source:e.filename, lineno:e.lineno, colno:e.colno, stack: e.error && e.error.stack });
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      var r = e.reason;
+      _logClientError({ kind:'unhandledrejection', message:(r && r.message) || String(r), source:null, lineno:null, colno:null, stack: r && r.stack });
+    });
+  })();
 })();
