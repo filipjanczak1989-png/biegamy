@@ -69,7 +69,15 @@
   const savedState = sessionStorage.getItem('icu_oauth_state');
   sessionStorage.removeItem('icu_oauth_state');   // jednorazowy — zużyty niezależnie od wyniku
   if (!state || !savedState || state !== savedState) {
-    show('🛑', 'Błąd bezpieczeństwa', 'nieprawidłowy parametr state (CSRF) — spróbuj połączyć ponownie z profilu', true);
+    // BEZPIECZEŃSTWO BEZ ZMIAN — dalej twardy blok + return. Zmienia się TYLKO treść komunikatu:
+    // pod Google Translate origin się zmienia i state znika → to nie atak, tylko tłumaczenie. Czytelny komunikat zamiast strasznego „CSRF".
+    var viaTranslate = location.hostname.indexOf('translate.goog') !== -1
+      || (document.referrer || '').indexOf('translate.goog') !== -1;
+    if (viaTranslate) {
+      show('🌐', 'Tłumaczenie przerwało łączenie', 'Google Translate zmienił adres strony i połączenie nie doszło. Otwórz BiegaMy bez tłumaczenia i połącz ponownie z profilu.', true);
+    } else {
+      show('🛑', 'Błąd bezpieczeństwa', 'nieprawidłowy parametr state (CSRF) — spróbuj połączyć ponownie z profilu', true);
+    }
     return;
   }
 

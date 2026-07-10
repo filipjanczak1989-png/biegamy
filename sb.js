@@ -733,6 +733,13 @@
 
     // 1) ODPAL OAUTH — jedyna definicja flow (profil.html ją woła)
     odpalOAuth: function(returnTo) {
+      // Google Translate (*.translate.goog) zmienia origin → sessionStorage state niedostępny po powrocie = false CSRF.
+      // NIE startuj OAuth pod tłumaczeniem; poproś o wyłączenie. (state/flow/bezpieczeństwo BEZ zmian — to tylko wczesne ostrzeżenie.)
+      if (location.hostname.indexOf('translate.goog') !== -1) {
+        var _mt = 'Tłumaczenie przeglądarki przerywa bezpieczne łączenie z zegarkiem. Otwórz BiegaMy bez tłumaczenia Google i spróbuj ponownie.';
+        if (window.showToast) showToast(_mt, 'warn'); else alert(_mt);
+        return;
+      }
       const nonce = (window.crypto && crypto.randomUUID)
         ? crypto.randomUUID()
         : (Date.now() + '.' + Math.random().toString(36).slice(2));
