@@ -446,6 +446,11 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
     <!-- Prywatność (przeniesione) -->
     <div id="privacy-row" style="display:none;">
       <button id="privacy-btn" onclick="togglePrivacy()" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg2);border-radius:14px;padding:13px 15px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:8px;"></button>
+      <!-- HR-toggle: sensowny TYLKO gdy profil publiczny (widoczność sterowana w updatePrivacyBtn) -->
+      <div id="hr-privacy-row" style="display:none;">
+        <button id="hr-privacy-btn" onclick="toggleHrPublic()" style="width:100%;background:var(--card);border:1px solid var(--border);color:var(--fg2);border-radius:14px;padding:13px 15px;font-size:12px;font-family:DM Mono,monospace;letter-spacing:0.06em;cursor:pointer;display:flex;align-items:center;gap:8px;margin-top:8px;"></button>
+        <div style="font-size:10px;color:var(--muted);font-family:DM Mono,monospace;line-height:1.5;margin-top:5px;padding:0 3px;">Tętno i strefy — widoczne dla innych na Twoim profilu. Tempo i dystans są publiczne zawsze.</div>
+      </div>
     </div>
     </div>
 
@@ -541,6 +546,7 @@ html,body{padding-bottom:90px;min-height:100%;background:var(--bg);color:var(--f
 
 <script>
 var _isPublic = false;
+var _hrPublic = false;
 function updatePrivacyBtn(isPublic) {
   _isPublic = isPublic;
   var btn = document.getElementById('privacy-btn');
@@ -556,14 +562,41 @@ function updatePrivacyBtn(isPublic) {
     btn.style.color = '#ff6060';
     btn.style.background = 'rgba(255,80,80,0.08)';
   }
+  // HR-toggle sensowny tylko przy profilu publicznym → pokaż/ukryj wg is_public
+  var hrRow = document.getElementById('hr-privacy-row');
+  if (hrRow) hrRow.style.display = isPublic ? 'block' : 'none';
+}
+function updateHrPrivacyBtn(hrPublic) {
+  _hrPublic = hrPublic;
+  var btn = document.getElementById('hr-privacy-btn');
+  if (!btn) return;
+  if (hrPublic) {
+    btn.innerHTML = '🌍 Tętno widoczne — kliknij aby ukryć';
+    btn.style.borderColor = 'rgba(61,184,112,0.4)';
+    btn.style.color = 'var(--green)';
+    btn.style.background = 'rgba(61,184,112,0.08)';
+  } else {
+    btn.innerHTML = '🔒 Tętno ukryte — kliknij aby pokazać';
+    btn.style.borderColor = 'rgba(255,80,80,0.4)';
+    btn.style.color = '#ff6060';
+    btn.style.background = 'rgba(255,80,80,0.08)';
+  }
 }
 async function togglePrivacy() {
   if (!_myId) return;
   var newVal = !_isPublic;
   var res = await sb.from('athletes').update({is_public: newVal}).eq('id', _myId);
   if (res.error) { showToast('Błąd: ' + res.error.message); return; }
-  updatePrivacyBtn(newVal);
+  updatePrivacyBtn(newVal);   // odświeża też widoczność #hr-privacy-row (znika gdy profil prywatny)
   showToast(newVal ? 'Profil jest teraz publiczny' : 'Profil jest teraz prywatny');
+}
+async function toggleHrPublic() {
+  if (!_myId) return;
+  var newVal = !_hrPublic;
+  var res = await sb.from('athletes').update({hr_public: newVal}).eq('id', _myId);   // column-UPDATE grant z E1 pokrywa
+  if (res.error) { showToast('Błąd: ' + res.error.message); return; }
+  updateHrPrivacyBtn(newVal);
+  showToast(newVal ? 'Tętno jest teraz widoczne na profilu' : 'Tętno jest teraz ukryte');
 }
 let _myId = null;       // mój athlete ID
 let _targetId = null;   // oglądany profil (może być mój)
@@ -677,7 +710,7 @@ let _profileData = null;
 // ── LOAD PROFILE ─────────────────────────────────────────────────
 async function loadProfile() {
   const { data: ath } = await sb.from('athletes')
-    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,date_of_birth,coach_id,city,gender')
+    .select('id,full_name,goal,target_date,race_goals,pb_marathon,pb_half,pb_10k,pb_5k,avatar_url,is_public,hr_public,date_of_birth,coach_id,city,gender')
     .eq('id', _targetId)
     .maybeSingle();
   if (!ath) return;
@@ -713,7 +746,8 @@ async function loadProfile() {
     document.getElementById('av-edit-btn').style.display = 'flex';
     document.getElementById('add-post-btn').style.display = 'block';
     // Ustaw stan prywatności
-    updatePrivacyBtn(!!ath.is_public);
+    updatePrivacyBtn(!!ath.is_public);   // ustawia też widoczność #hr-privacy-row wg is_public
+    updateHrPrivacyBtn(!!ath.hr_public);
   }
 
   // PBs
