@@ -1459,7 +1459,12 @@ async function loadPosts() {
           .or('attachment_url.not.is.null,comment.not.is.null')
           .order('logged_at', { ascending: false })
           .limit(50)
-      : Promise.resolve({ data: [] })   // F5: obcy — feed treningowy bazuje na polach prywatnych → pusto (posty zostają)
+      : sb.from('public_training_logs')
+          .select('id,training_type,distance_km,pace,logged_at,external_id,source')
+          .eq('athlete_id', _targetId)
+          .not('training_type', 'like', '__badge__%')
+          .order('logged_at', { ascending: false })
+          .limit(50)   // obcy: publiczne treningi z widoku (jak społeczność); external_id/source → wykresy w _openTrainingDetail
   ]);
 
   const posts = postsRes.data || [];
@@ -1467,6 +1472,7 @@ async function loadPosts() {
   // Plus dodatkowy bezpiecznik: nigdy odznak (`__badge__...`)
   const logs = (logsRes.data || []).filter(function(l) {
     if (l.training_type && (''+l.training_type).startsWith('__badge__')) return false;
+    if (!_canSeeFull) return true;   // obcy: publiczne treningi z widoku BEZ filtra zdjęcie/komentarz (widok ich nie wystawia — inaczej pusto)
     const hasImg = l.attachment_url && l.attachment_url.trim();
     const hasCmt = l.comment && l.comment.trim();
     return hasImg || hasCmt;
