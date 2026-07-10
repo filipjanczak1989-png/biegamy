@@ -1110,7 +1110,7 @@ html { scroll-behavior: smooth; }
           </div>
           <div class="field">
             <label>Tempo /km</label>
-            <input type="text" id="f-log-pace" placeholder="np. 5:30">
+            <input type="text" id="f-log-pace" placeholder="np. 5:30" maxlength="5" oninput="autoColonPace(this)">
           </div>
         </div>
         <div class="field" style="margin-bottom:10px;">
@@ -2507,7 +2507,7 @@ async function saveTraining() {
     const allFiles = document.getElementById('f-all-files');
     const logStrava = document.getElementById('f-log-strava')?.value || null;
     const logDist = parseFloat(document.getElementById('f-log-dist')?.value) || dist || null;
-    const logPace = document.getElementById('f-log-pace')?.value || pace || null;
+    const logPace = normalizePaceInput(document.getElementById('f-log-pace')?.value || pace || null);   // 4. droga do training_logs.pace — normalizuj (goly token->M:SS; zakres z planu->null, nie do logu)
     let attachmentUrl = null;
 
     // Collect files from both pickers
@@ -4241,7 +4241,7 @@ async function saveTemplate() {
     name,
     training_type: document.getElementById('tmpl-type').value,
     distance_km: parseFloat(document.getElementById('tmpl-dist').value) || null,
-    target_pace: document.getElementById('tmpl-pace').value.trim() || null,
+    target_pace: normalizePlanPace(document.getElementById('tmpl-pace').value) || null,   // range-aware: goly token "530"->"5:30", zakres/opis ("6:00-6:15") passthrough; brak autoColonPace na inpucie (nie niszczyc zakresow)
     target_hr: document.getElementById('tmpl-hr').value.trim() || null,
     description: document.getElementById('tmpl-desc').value.trim() || null,
     source: 'manual',
