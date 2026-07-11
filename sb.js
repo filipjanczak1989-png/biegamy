@@ -806,11 +806,12 @@
     czyPolaczony: async function(athleteId) {
       if (!athleteId) return { polaczony: false, od_kiedy: null };
       const { data } = await window.sb.from('athletes')
-        .select('intervals_athlete_id, intervals_connected_at, intervals_can_write')
+        .select('intervals_athlete_id, intervals_connected_at, intervals_can_write, intervals_token_dead_at')
         .eq('id', athleteId).maybeSingle();
       return { polaczony: !!(data && data.intervals_athlete_id),
                od_kiedy: (data && data.intervals_connected_at) || null,
-               moze_wysylac: !!(data && data.intervals_can_write) };
+               moze_wysylac: !!(data && data.intervals_can_write),
+               tokenMartwy: !!(data && data.intervals_athlete_id && data.intervals_token_dead_at) };   // E4: połączony ALE token martwy (401)
     },
 
     // 3) RENDER — jedna funkcja, 4 wagi. Async, bo pyta czyPolaczony o stan.
@@ -868,12 +869,16 @@
       if (waga === 'status') {
         if (st.polaczony) {
           const d = st.od_kiedy ? new Date(st.od_kiedy).toLocaleDateString('pl-PL',{day:'numeric',month:'short',year:'numeric'}) : '';
+          const dead = st.tokenMartwy ?   // E4: token martwy → banner + "Połącz ponownie" (odpalOAuth bezstanowy); NIE chowamy Rozłącz
+            '<div class="wc-dead" style="margin-top:8px;padding:10px;border:1px solid var(--yellow,#e8b840);border-radius:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+            + '<span>⚠ Połączenie z zegarkiem wygasło — treningi nie wpadają.</span>'
+            + '<button class="wc-btn-sm" onclick="WATCH.odpalOAuth(' + rt + ')">Połącz ponownie</button></div>' : '';
           const unlock = st.moze_wysylac ? '' :
             '<div class="wc-unlock" style="margin-top:8px;padding:10px;border:1px solid var(--accent);border-radius:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
             + '<span>🔓 Odblokuj wysyłanie treningów na zegarek</span>'
             + '<button class="wc-btn-sm" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj ponownie</button></div>';
           return '<div class="wc-ok">' + ic + '<span>Połączono ✓' + (d ? ' · od ' + d : '') + '</span>'
-            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + unlock;
+            + '<button class="wc-disc" onclick="disconnectIntervals()">Rozłącz</button></div>' + dead + unlock;
         }
         return '<div class="wc-status-connect">'
           + '<button class="wc-btn" onclick="WATCH.odpalOAuth(' + rt + ')">Autoryzuj przez intervals.icu</button>'
@@ -882,6 +887,11 @@
       }
       if (waga === 'badge') {
         // Mała ikona-wskaźnik w topbarze (jak Garmin) — zawsze widoczna, dwa stany.
+        if (st.polaczony && st.tokenMartwy) {   // E4: token martwy → żółty ⚠, klik→profil (re-connect); bez ↺ (sync i tak da 401)
+          return '<button class="wc-badge wc-badge-warn" title="Zegarek: połączenie wygasło — połącz ponownie" '
+            + 'onclick="location.href=\'profil.html?open=icu\'">' + ic
+            + '<span class="wc-badge-warn-dot">⚠</span></button>';
+        }
         if (st.polaczony) {
           return '<button class="wc-badge wc-badge-ok" title="Zegarek połączony — status/rozłącz" '
             + 'onclick="location.href=\'profil.html?open=icu\'">' + ic
@@ -990,7 +1000,10 @@
         + '.wc-badge-ok:hover{opacity:1}'
         + '.wc-badge-ok .wc-icon{stroke:var(--muted)}'
         + '.wc-badge-dot{position:absolute;top:-3px;right:-3px;min-width:14px;height:14px;background:var(--accent);border:2px solid var(--bg);border-radius:7px;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;line-height:1;padding:0 2px}'
-        + '.wc-badge-check{position:absolute;bottom:-2px;right:-2px;width:13px;height:13px;background:var(--green,#3db870);border:2px solid var(--bg);border-radius:50%;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1}';
+        + '.wc-badge-check{position:absolute;bottom:-2px;right:-2px;width:13px;height:13px;background:var(--green,#3db870);border:2px solid var(--bg);border-radius:50%;font-size:8px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;line-height:1}'
+        + '.wc-badge-warn{border-color:rgba(232,184,64,.6);background:linear-gradient(135deg,rgba(232,184,64,.16),rgba(232,184,64,.04))}'
+        + '.wc-badge-warn .wc-icon{stroke:var(--yellow,#e8b840);animation:wc-pulse 2.4s ease-in-out infinite}'
+        + '.wc-badge-warn-dot{position:absolute;top:-3px;right:-3px;min-width:14px;height:14px;background:var(--yellow,#e8b840);border:2px solid var(--bg);border-radius:7px;font-size:9px;font-weight:700;color:#1a1a24;display:flex;align-items:center;justify-content:center;line-height:1;padding:0 1px}';
       s.textContent +=
         '.wc-refresh{display:inline-flex;align-items:center;justify-content:center;margin-left:3px;font-size:13px;line-height:1;color:var(--muted);cursor:pointer;opacity:.75;transition:opacity .2s}'
         + '.wc-refresh:hover{opacity:1;color:var(--accent)}'
