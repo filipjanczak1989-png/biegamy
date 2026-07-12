@@ -1,0 +1,184 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SB_URL = Deno.env.get('SUPABASE_URL')!;
+const ANON   = 'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY';   // publiczny (== sb.js:32) — literal przetrwa Disable legacy anon
+const SVCKEY = Deno.env.get('SB_SECRET_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;   // rotacja: nowy sb_secret ma priorytet, legacy fallback do czasu dezaktywacji
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, content-type',
+  'Content-Type': 'application/json',
+};
+const J = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), { status, headers: CORS });
+
+// sekundy -> "H:MM:SS" / "MM:SS" (training_logs.duration to STRING-zegar, nie sekundy!)
+function secToClock(sec: number): string {
+  sec = Math.round(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    : `${m}:${String(s).padStart(2, '0')}`;
+}
+// pace "M:SS"/km (tylko bieg)
+function paceStr(distM: number, sec: number): string | null {
+  if (!distM || distM <= 0 || !sec) return null;
+  const p = sec / (distM / 1000);
+  const t = Math.round(p);   // round TOTAL sekund najpierw → koniec „4:60"
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
+// B1: ŚWIADOMY DUPLIKAT w intervals-sync i intervals-webhook (jak dawny TYPE_MAP).
+//   Bieg -> typ z PLANU (trainings.type na dzień aktywności); nie-bieg -> 'Zastępczy'.
+//   Nowy biegowy typ planu -> aktualizuj RUN_PLAN TU **oraz** w intervals-webhook.
+const RUN_ACT = new Set(['Run', 'TrailRun', 'Treadmill', 'VirtualRun']);
+// RUN_PLAN = mirror RUN_TYPES (sb.js), lowercase — match case-insensitive (km liczą się dalej, isRunType case-fold).
+const RUN_PLAN = new Set(['spokojny', 'bieg spokojny', 'wybieganie', 'długi', 'tempo', 'progresja', 'interwały', 'start', 'wyścig', 'regeneracja']);
+function typeFromPlan(planType: string | null): string {
+  const t = String(planType || '').trim(); const lt = t.toLowerCase();
+  if (!t || lt === 'odpoczynek') return 'Spokojny';        // brak planu / dzień wolny
+  if (lt === 'bieg spokojny') return 'Spokojny';           // jedyny alias (Decyzja A) -> kanon ikon UI
+  return RUN_PLAN.has(lt) ? t : 'Spokojny';                // biegowy plan -> ORYGINAŁ; nie-biegowy plan -> Spokojny
+}
+function typeForActivity(a: any, planType: string | null): string {
+  return RUN_ACT.has(a.type) ? typeFromPlan(planType) : 'Zastępczy';   // #7: nie-bieg -> Zastępczy
+}
+
+// E2 (#15): 401 z intervals = token martwy. Flaga TYLKO przy pierwszym wykryciu (NULL→now) +
+// dwutorowa notyfikacja (zawodnik + trener). Best-effort: blad tu NIE psuje odpowiedzi EF.
+async function markIntervalsDead(svc: any, athleteId: string) {
+  try {
+    const { data: hit } = await svc.from('athletes')
+      .update({ intervals_token_dead_at: new Date().toISOString() })
+      .eq('id', athleteId).is('intervals_token_dead_at', null)
+      .select('full_name, coach_id');
+    if (!hit || !hit.length) return;
+    await svc.from('notifications').insert({
+      athlete_id: athleteId, from_athlete_id: null, type: 'intervals_dead', read: false,
+      message: 'Połączenie z zegarkiem (intervals.icu) wygasło — połącz ponownie w profilu.',
+    });
+    const coachUid = hit[0].coach_id;
+    if (coachUid) {
+      const { data: c } = await svc.from('athletes').select('id').eq('user_id', coachUid).maybeSingle();
+      if (c?.id) await svc.from('notifications').insert({
+        athlete_id: c.id, from_athlete_id: athleteId, type: 'intervals_dead', read: false,
+        message: (hit[0].full_name || 'Zawodnik') + ' — zegarek (intervals.icu) rozłączony, token wygasł.',
+      });
+    }
+  } catch (_) { /* best-effort */ }
+}
+// E3 (#15): po UDANYM pullu token żyje → wyczyść flagę martwego tokena (jeśli wisiała,
+// np. po re-connect / fałszywym alarmie). WHERE NOT NULL = zero-op w normalnym przypadku.
+async function clearIntervalsDead(svc: any, athleteId: string) {
+  try { await svc.from('athletes').update({ intervals_token_dead_at: null }).eq('id', athleteId).not('intervals_token_dead_at', 'is', null); } catch (_) { /* best-effort */ }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  try {
+    const { athlete_id, api_key, icu_athlete_id } = await req.json();
+    if (!athlete_id) return J(400, { ok: false, error: 'no_athlete_id' });
+
+    // --- auth: tylko właściciel tego athlete_id ---
+    const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
+    const u = createClient(SB_URL, ANON, { global: { headers: { Authorization: `Bearer ${jwt}` } } });
+    const { data: { user } } = await u.auth.getUser();
+    if (!user) return J(401, { ok: false, error: 'unauthorized' });
+
+    const svc = createClient(SB_URL, SVCKEY);   // default OK dla legacy i sb_secret; NIE dodawać Authorization:'' — łamie legacy (42501)
+    const { data: ath } = await svc.from('athletes')
+      .select('id, user_id, intervals_athlete_id').eq('id', athlete_id).maybeSingle();
+    if (!ath || ath.user_id !== user.id) return J(403, { ok: false, error: 'forbidden' });
+
+    let icuId: string | null = ath.intervals_athlete_id;
+
+    // --- CONNECT: waliduj klucz w intervals.icu PRZED zapisem (klucz nigdy nie wraca do klienta) ---
+    // paste-key = tryb Basic; zerujemy access_token by auth-mode był jednoznaczny (Basic, nie OAuth)
+    if (api_key && icu_athlete_id) {
+      const auth = 'Basic ' + btoa('API_KEY:' + api_key);
+      const r = await fetch(`https://intervals.icu/api/v1/athlete/${icu_athlete_id}`, { headers: { Authorization: auth } });
+      if (!r.ok) return J(200, { ok: false, error: 'Niepoprawny Athlete ID lub klucz API' });
+      await svc.from('intervals_credentials').upsert(
+        { athlete_id, api_key, access_token: null, updated_at: new Date().toISOString() },
+        { onConflict: 'athlete_id' },
+      );
+      await svc.from('athletes').update({
+        intervals_athlete_id: String(icu_athlete_id),
+        intervals_connected_at: new Date().toISOString(),
+      }).eq('id', athlete_id);
+      icuId = String(icu_athlete_id);
+    }
+
+    // --- AUTH-MODE (jeden flag, identyczny wzorzec jak intervals-hr-aggregate / activity-detail) ---
+    // OAuth → Bearer access_token + athlete '0' (athleta tokenu); paste-key → Basic api_key + numeryczny icuId
+    const { data: cred } = await svc.from('intervals_credentials')
+      .select('api_key,access_token').eq('athlete_id', athlete_id).maybeSingle();
+    if (!cred) return J(200, { ok: false, error: 'not_connected' });
+    const useOAuth = !!cred.access_token;
+    if (!useOAuth && !cred.api_key) return J(200, { ok: false, error: 'no_key' });
+    if (!useOAuth && !icuId) return J(200, { ok: false, error: 'not_connected' });
+    const authH  = useOAuth ? ('Bearer ' + cred.access_token) : ('Basic ' + btoa('API_KEY:' + cred.api_key));
+    const icuAth = useOAuth ? '0' : icuId;
+
+    // --- SYNC: ostatnie 90 dni ---
+    const oldest = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+    const newest = new Date(Date.now() + 864e5).toISOString().slice(0, 10);
+    const ar = await fetch(
+      `https://intervals.icu/api/v1/athlete/${icuAth}/activities?oldest=${oldest}&newest=${newest}`,
+      { headers: { Authorization: authH } },
+    );
+    if (ar.status === 401) { await markIntervalsDead(svc, athlete_id); return J(200, { ok: false, error: 'intervals_api_401' }); }
+    if (!ar.ok) return J(200, { ok: false, error: 'intervals_api_' + ar.status });
+    await clearIntervalsDead(svc, athlete_id);   // E3: pull się udał → token żyje → skasuj flagę jeśli wisiała
+    const acts = await ar.json();
+
+    // --- dedup: pomiń już zaimportowane ---
+    const { data: have } = await svc.from('training_logs')
+      .select('external_id').eq('athlete_id', athlete_id).eq('external_source', 'intervals');
+    const seen = new Set((have || []).map((r: { external_id: string }) => r.external_id));
+
+    // #6: plany na okno 90 dni — JEDNO zapytanie, mapa po dacie (typ biegu z planu, nie z aktywności).
+    const { data: plans } = await svc.from('trainings')
+      .select('date, type').eq('athlete_id', athlete_id).gte('date', oldest).lte('date', newest);
+    const planByDate = new Map((plans || []).map((p: { date: string; type: string }) => [p.date, p.type]));
+
+    // ⚠️⚠️ NAZWY PÓL = ZAŁOŻENIA — potwierdzić realnym curlem (klasa signed_at) ⚠️⚠️
+    const rows = (Array.isArray(acts) ? acts : [])
+      .filter((a: any) => !seen.has(String(a.id)))
+      .filter((a: any) => {                                    // filtr ogryzków start/stop: odrzuć < 60s LUB < 300m
+        const sec = Number(a.moving_time || a.elapsed_time || 0);
+        const m   = Number(a.distance || 0);
+        return !(sec < 60 && m < 300);
+      })
+      .map((a: any) => {
+        const distM = a.distance || 0;
+        const sec = a.moving_time || a.elapsed_time || 0;
+        const isRun = RUN_ACT.has(String(a.type || ''));
+        const dateKey = String(a.start_date_local || a.start_date || '').slice(0, 10);   // lokalny klucz daty = trainings.date
+        return {
+          athlete_id,
+          training_type: typeForActivity(a, planByDate.get(dateKey) ?? null),
+          distance_km: distM ? Math.round(distM / 10) / 100 : null,
+          duration: sec ? secToClock(sec) : null,
+          pace: isRun ? paceStr(distM, sec) : null,
+          heart_rate: a.average_heartrate ? Math.round(a.average_heartrate) : null,
+          elevation_gain: a.total_elevation_gain ? Math.round(a.total_elevation_gain) : null,
+          calories: a.calories ? Math.round(a.calories) : null,
+          comment: a.name || null,
+          logged_at: a.start_date_local || a.start_date,
+          source: 'intervals',
+          external_source: 'intervals',
+          external_id: String(a.id),
+        };
+      });
+
+    let synced = 0;
+    if (rows.length) {
+      const { error } = await svc.from('training_logs').insert(rows);
+      if (error) return J(200, { ok: false, error: error.message });
+      synced = rows.length;
+    }
+    return J(200, { ok: true, synced });
+  } catch (e) {
+    return J(500, { ok: false, error: (e as Error).message });
+  }
+});
