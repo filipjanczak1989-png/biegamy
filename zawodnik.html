@@ -4357,7 +4357,11 @@ async function obFinish() {
     // UWAGA: ścieżki trener-jako-zawodnik (:4170) i coach-dodaje (trener.html:3969) NIE mają samodzielnej
     // akceptacji — tam terms_accepted_at zostaje NULL świadomie; tych userów też łapie modal FAZY 2.
     const _terms = (() => { try { return localStorage.getItem('terms_accepted_at_pending'); } catch(e) { return null; } })();   // FAZA 3: localStorage — przeżywa confirm-email
-    if (_terms) athleteData.terms_accepted_at = _terms;
+    // FAZA 4: TTL 24h — localStorage nie znika po zamknięciu karty; porzucona rejestracja zostawia
+    // klucz-sierotę. Na współdzielonym komputerze mógłby przypisać cudzy/przedawniony timestamp nowemu
+    // kontu. Stary/nieparsowalny (Date.parse→NaN→porównanie false) → kolumny nie dotykamy → modal FAZY 2 łapie.
+    const _fresh = _terms && (Date.now() - Date.parse(_terms)) < 86400000;
+    if (_terms && _fresh) athleteData.terms_accepted_at = _terms;
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
     const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
