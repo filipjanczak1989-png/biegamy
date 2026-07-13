@@ -4356,7 +4356,7 @@ async function obFinish() {
     // istniejącej zgody — zgoda NIGDY nie degraduje się automatycznie); wiersze bez zgody łapie modal FAZY 2.
     // UWAGA: ścieżki trener-jako-zawodnik (:4170) i coach-dodaje (trener.html:3969) NIE mają samodzielnej
     // akceptacji — tam terms_accepted_at zostaje NULL świadomie; tych userów też łapie modal FAZY 2.
-    const _terms = (() => { try { return sessionStorage.getItem('terms_accepted_at_pending'); } catch(e) { return null; } })();
+    const _terms = (() => { try { return localStorage.getItem('terms_accepted_at_pending'); } catch(e) { return null; } })();   // FAZA 3: localStorage — przeżywa confirm-email
     if (_terms) athleteData.terms_accepted_at = _terms;
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
@@ -4420,7 +4420,7 @@ async function obFinish() {
     localStorage.removeItem('biegamy_needs_onboarding');
     // FAZA 1: czyść klucz zgody dopiero TU — po udanym zapisie (wiersz w bazie). Insert-error
     // wcześniej robi early-return (@4381) BEZ czyszczenia → retry po błędzie sieci zachowa timestamp.
-    try { sessionStorage.removeItem('terms_accepted_at_pending'); } catch(e) {}
+    try { localStorage.removeItem('terms_accepted_at_pending'); } catch(e) {}   // FAZA 3: localStorage (parzyste z zapisem)
     sessionStorage.removeItem('_fromTrener'); // B' fix: koniec onboardingu = pełny tryb atlety
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');

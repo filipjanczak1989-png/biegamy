@@ -458,9 +458,11 @@ async function register() {
   if (!document.getElementById('reg-terms')?.checked) { showAlert('Zaakceptuj regulamin, aby założyć konto'); return; }
 
   // FAZA 1: timestamp ŚWIADOMEJ akceptacji — zapisany w momencie submitu (checkbox OK, przed signUp),
-  // nie przy kliknięciu checkboxa. Wiersz athletes powstaje dopiero w onboardingu (zawodnik.html:4347),
-  // więc zgodę przenosimy przez sessionStorage; brak klucza → modal z FAZY 2 wymusi akceptację.
-  try { sessionStorage.setItem('terms_accepted_at_pending', new Date().toISOString()); } catch(e) {}
+  // nie przy kliknięciu checkboxa. Wiersz athletes powstaje dopiero w onboardingu (zawodnik.html:4347).
+  // FAZA 3: localStorage (nie sessionStorage) — z confirm-email link maila otwiera się często w NOWEJ
+  // karcie, a sessionStorage jest per-karta → zgoda by ginęła. localStorage przeżywa round-trip w tym
+  // samym origin, jak flaga biegamy_needs_onboarding. Cross-browser/device → modal z FAZY 2 łapie przeciek.
+  try { localStorage.setItem('terms_accepted_at_pending', new Date().toISOString()); } catch(e) {}
 
   hideAlert();
   _registering = true;
