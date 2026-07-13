@@ -633,6 +633,16 @@ body.loading::after {
            Trenerów dodaje Filip ręcznie przez Supabase Dashboard.
            role='athlete' jest defaultem dla wszystkich nowych kont. -->
 
+      <!-- FAZA 1 (Brama Regulaminu): zgoda wymagana — walidowana w register() komunikatem
+           (NIE disabled button: gorszy UX + a11y). Linki w nowej karcie (rel=noopener),
+           by klik w regulamin nie zgubił wypełnionego formularza. Klik w link WEWNĄTRZ
+           <label for> nie przełącza checkboxa (HTML spec: aktywacja nie forwarduje się
+           do interaktywnych potomków), więc klik w sam tekst wciąż zaznacza. -->
+      <div class="terms-check" style="display:flex;align-items:flex-start;gap:10px;margin:4px 0 16px;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.5;color:var(--fg2);">
+        <input type="checkbox" id="reg-terms" style="margin-top:2px;width:17px;height:17px;flex-shrink:0;accent-color:var(--accent);cursor:pointer;">
+        <label for="reg-terms" style="cursor:pointer;">Akceptuję <a href="terms.html" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb),0.4);">regulamin</a> i <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb),0.4);">politykę prywatności</a></label>
+      </div>
+
       <button class="btn" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
@@ -831,6 +841,14 @@ async function register() {
   if (!name || !email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showAlert('Wpisz poprawny adres e-mail'); return; }
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }
+  if (!document.getElementById('reg-terms')?.checked) { showAlert('Zaakceptuj regulamin, aby założyć konto'); return; }
+
+  // FAZA 1: timestamp ŚWIADOMEJ akceptacji — zapisany w momencie submitu (checkbox OK, przed signUp),
+  // nie przy kliknięciu checkboxa. Wiersz athletes powstaje dopiero w onboardingu (zawodnik.html:4347).
+  // FAZA 3: localStorage (nie sessionStorage) — z confirm-email link maila otwiera się często w NOWEJ
+  // karcie, a sessionStorage jest per-karta → zgoda by ginęła. localStorage przeżywa round-trip w tym
+  // samym origin, jak flaga biegamy_needs_onboarding. Cross-browser/device → modal z FAZY 2 łapie przeciek.
+  try { localStorage.setItem('terms_accepted_at_pending', new Date().toISOString()); } catch(e) {}
 
   hideAlert();
   _registering = true;

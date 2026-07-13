@@ -2709,6 +2709,11 @@ async function initRole() {
 }
 initRole();
 
+// FAZA 2 (Brama Regulaminu): strona wejściowa (bookmark/deep-link na Plan) — brama tutaj też.
+// Top-level (initRole robi early-return gdy rola w URL); check() sam pobiera sesję, no-op gdy brak.
+// Czyta WŁASNY wiersz (user_id=auth.uid()) — dla trenera-z-dual-kontem modal wg planu; pure-coach → no-op.
+if (window.TERMS) window.TERMS.check();
+
 async function loadAthletesSelect() {
   if (_urlRole !== 'coach') return;
   const { data: { session } } = await sb.auth.getSession();

@@ -4078,6 +4078,7 @@ async function initAuth() {
       if(tn2){ const drugiCzlon = n2.split(' ')[1]; tn2.innerHTML = escapeHtml(n2.split(' ')[0]) + (drugiCzlon ? ' <span>' + escapeHtml(drugiCzlon[0]) + '.</span>' : ''); }
       if (_isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1') { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
       await loadLogs();
+      if (window.TERMS) window.TERMS.check();   // FAZA 2: brama regulaminu (fallback-sesja s2)
     } else {
       showOnboarding();
     }
@@ -4131,6 +4132,10 @@ async function initAuth() {
       window.history.replaceState({}, '', 'zawodnik.html');
       return;
     }
+
+    // FAZA 2 (Brama Regulaminu): user z ustalonym wierszem, POZA onboardingiem — sprawdź zgodę.
+    // check() self-swallow, czyta własny wiersz (user_id=auth.uid()); NULL/artefakt-DEFAULT → modal blokujący.
+    if (window.TERMS) window.TERMS.check();
 
     const { data: athFull } = await sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
     if (athFull) {
@@ -4345,6 +4350,18 @@ async function obFinish() {
     const goalText = goalLabels[_obGoal] || 'Poprawa formy';
 
     const athleteData = { full_name: name, email: session.user.email, active: true, goal: goalText, is_public: _obPrivacy === 'public', onboarding_done: true };
+    // FAZA 1 (Brama Regulaminu): przenieś zgodę z rejestracji (index.html/login.html zapisały ISO now()
+    // w sessionStorage w momencie submitu). Idzie do insert @4364 ORAZ update @4360/4375 (ten sam obiekt).
+    // brak klucza → kolumny nie dotykamy (insert dostanie NULL z definicji kolumny, update nie nadpisze
+    // istniejącej zgody — zgoda NIGDY nie degraduje się automatycznie); wiersze bez zgody łapie modal FAZY 2.
+    // UWAGA: ścieżki trener-jako-zawodnik (:4170) i coach-dodaje (trener.html:3969) NIE mają samodzielnej
+    // akceptacji — tam terms_accepted_at zostaje NULL świadomie; tych userów też łapie modal FAZY 2.
+    const _terms = (() => { try { return localStorage.getItem('terms_accepted_at_pending'); } catch(e) { return null; } })();   // FAZA 3: localStorage — przeżywa confirm-email
+    // FAZA 4: TTL 24h — localStorage nie znika po zamknięciu karty; porzucona rejestracja zostawia
+    // klucz-sierotę. Na współdzielonym komputerze mógłby przypisać cudzy/przedawniony timestamp nowemu
+    // kontu. Stary/nieparsowalny (Date.parse→NaN→porównanie false) → kolumny nie dotykamy → modal FAZY 2 łapie.
+    const _fresh = _terms && (Date.now() - Date.parse(_terms)) < 86400000;
+    if (_terms && _fresh) athleteData.terms_accepted_at = _terms;
     if (_selectedCoachId) athleteData.coach_id = _selectedCoachId;
     const pb5k = document.getElementById('ob-pb-5k')?.value.trim();
     const pb10k = document.getElementById('ob-pb-10k')?.value.trim();
@@ -4405,6 +4422,9 @@ async function obFinish() {
     const _obNavR = document.getElementById('nav-mount');
     if (_obNavR) _obNavR.style.display = '';
     localStorage.removeItem('biegamy_needs_onboarding');
+    // FAZA 1: czyść klucz zgody dopiero TU — po udanym zapisie (wiersz w bazie). Insert-error
+    // wcześniej robi early-return (@4381) BEZ czyszczenia → retry po błędzie sieci zachowa timestamp.
+    try { localStorage.removeItem('terms_accepted_at_pending'); } catch(e) {}   // FAZA 3: localStorage (parzyste z zapisem)
     sessionStorage.removeItem('_fromTrener'); // B' fix: koniec onboardingu = pełny tryb atlety
     window.history.replaceState({}, '', 'zawodnik.html');
     toast('Witaj w BiegaMy! 🏃');
