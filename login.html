@@ -291,6 +291,17 @@ body::after{
 
       <!-- Pola trenera (specjalizacja + kod) usunięte 2026-05-27 wraz z self-signup coach -->
 
+      <!-- FAZA 1 (Brama Regulaminu): zgoda wymagana — walidowana w register() komunikatem
+           (NIE disabled button: gorszy UX + a11y). Linki w nowej karcie (rel=noopener),
+           by klik w regulamin nie zgubił wypełnionego formularza. Klik w link WEWNĄTRZ
+           <label for> nie przełącza checkboxa (HTML spec: aktywacja nie forwarduje się
+           do interaktywnych potomków), więc klik w sam tekst wciąż zaznacza.
+           DUPLIKAT z index.html — zmiana MUSI iść w oba pliki. -->
+      <div class="terms-check" style="display:flex;align-items:flex-start;gap:10px;margin:4px 0 16px;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.5;color:var(--fg2);">
+        <input type="checkbox" id="reg-terms" style="margin-top:2px;width:17px;height:17px;flex-shrink:0;accent-color:var(--accent);cursor:pointer;">
+        <label for="reg-terms" style="cursor:pointer;">Akceptuję <a href="terms.html" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb),0.4);">regulamin</a> i <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb),0.4);">politykę prywatności</a></label>
+      </div>
+
       <button class="btn btn-primary btn-block btn-login-cta" id="btn-register" onclick="register()">Utwórz konto →</button>
     </div>
 
@@ -444,6 +455,12 @@ async function register() {
 
   if (!name || !email || !password) { showAlert('Wypełnij wszystkie pola'); return; }
   if (password.length < 8) { showAlert('Hasło musi mieć co najmniej 8 znaków'); return; }
+  if (!document.getElementById('reg-terms')?.checked) { showAlert('Zaakceptuj regulamin, aby założyć konto'); return; }
+
+  // FAZA 1: timestamp ŚWIADOMEJ akceptacji — zapisany w momencie submitu (checkbox OK, przed signUp),
+  // nie przy kliknięciu checkboxa. Wiersz athletes powstaje dopiero w onboardingu (zawodnik.html:4347),
+  // więc zgodę przenosimy przez sessionStorage; brak klucza → modal z FAZY 2 wymusi akceptację.
+  try { sessionStorage.setItem('terms_accepted_at_pending', new Date().toISOString()); } catch(e) {}
 
   hideAlert();
   _registering = true;
