@@ -39,6 +39,7 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const PUSH_HOOK_SECRET = Deno.env.get("PUSH_HOOK_SECRET");   // handshake trigger→EF (Wariant 2); sekret serwisowy NIE trafia do nagłówka triggera
     const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY")!;
     const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
     const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") || "mailto:noreply@biegamy.run";
@@ -54,24 +55,38 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // 🔒 AUTH GUARD (audyt 2026-06-24): system (service_role) lub zalogowany user; anon -> 401
+    // 🔒 AUTH GUARD (Push revival Wariant 2): system (x-push-secret == PUSH_HOOK_SECRET) lub zalogowany user; inaczej -> 401
     const _authHeader = req.headers.get("Authorization") || "";
     const _bearer = _authHeader.replace(/^Bearer\s+/i, "");
-    const _isService = !!_bearer && _bearer === SUPABASE_SERVICE_ROLE_KEY;
-    if (!_isService) {
-      if (!_bearer) {
-        return new Response(
-          JSON.stringify({ error: "unauthorized" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+    const _hookSecret = req.headers.get("x-push-secret");
+    const _isSystem = !!PUSH_HOOK_SECRET && _hookSecret === PUSH_HOOK_SECRET;
+
+    // Stróż v0: odrzucony handshake świeci w security_events (best-effort — nie może wywalić 401)
+    const _reject = async (reason: string) => {
+      try {
+        await supabase.from("security_events").insert({
+          severity: "warning",
+          source: "ef:send-push",
+          message: "rejected handshake",
+          details: {
+            reason,
+            ip: req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || null,
+            ua: req.headers.get("user-agent") || null,
+            has_hook: !!_hookSecret,
+            has_bearer: !!_bearer,
+          },
+        });
+      } catch (_e) { /* logowanie best-effort */ }
+      return new Response(
+        JSON.stringify({ error: "unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    };
+
+    if (!_isSystem) {
+      if (!_bearer) return await _reject("no_hook_no_bearer");
       const { data: { user: _caller }, error: _authErr } = await supabase.auth.getUser(_bearer);
-      if (_authErr || !_caller) {
-        return new Response(
-          JSON.stringify({ error: "unauthorized" }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      if (_authErr || !_caller) return await _reject("bad_user_jwt");
     }
 
     const body = await req.json();
@@ -155,8 +170,8 @@ Deno.serve(async (req) => {
       title = meta.title;
       url = meta.url;
     } else if (body.athlete_id && body.title && body.body) {
-      // 🔒 ścieżka B (dowolna treść do dowolnego usera) — tylko system (service_role)
-      if (!_isService) {
+      // 🔒 ścieżka B (dowolna treść do dowolnego usera) — tylko system (x-push-secret)
+      if (!_isSystem) {
         return new Response(
           JSON.stringify({ error: "forbidden" }),
           { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

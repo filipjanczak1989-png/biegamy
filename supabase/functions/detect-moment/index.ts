@@ -951,6 +951,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const SM = globalThis.SilnikMomentu;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const PUSH_HOOK_SECRET = Deno.env.get('PUSH_HOOK_SECRET');   // handshake trigger→EF (Wariant 2); sekret serwisowy NIE w nagłówku triggera
 
 function toSec(s) {
   if (!s) return null;
@@ -964,16 +965,25 @@ function toSec(s) {
 const J = (obj, status = 200) => Response.json(obj, { status });
 
 Deno.serve(async (req) => {
-  // auth: tylko wywołujący z service_role (trigger przez vault) — klient nigdy nie ma service_role
-  if (!SERVICE_ROLE || req.headers.get('authorization') !== 'Bearer ' + SERVICE_ROLE) return new Response('forbidden', { status: 401 });
+  // auth (Push revival Wariant 2): x-push-secret == PUSH_HOOK_SECRET; sekret serwisowy NIE w nagłówku triggera
+  const _hookSecret = req.headers.get('x-push-secret');
+  const _isSystem = !!PUSH_HOOK_SECRET && _hookSecret === PUSH_HOOK_SECRET;
+  const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
+  if (!_isSystem) {
+    try {
+      await sb.from('security_events').insert({
+        severity: 'warning', source: 'ef:detect-moment', message: 'rejected handshake',
+        details: { reason: 'bad_or_missing_hook', ip: req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || null, ua: req.headers.get('user-agent') || null, has_hook: !!_hookSecret },
+      });
+    } catch (_e) { /* Stróż best-effort — nie wywala 401 */ }
+    return new Response('forbidden', { status: 401 });
+  }
   // silnik wbudowany — guard na zepsuty build (deploy-time, nie runtime)
   if (!SM || typeof SM.detect !== 'function') { console.error('[detect] SilnikMomentu missing — zły build-ef?'); return J({ detected: false, error: 'engine_missing' }); }
 
   let body; try { body = await req.json(); } catch { return J({ error: 'bad_body' }, 400); }
   const athlete_id = body && body.athlete_id;
   if (!athlete_id) return J({ error: 'no_athlete_id' }, 400);
-
-  const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
   const { data: a } = await sb.from('athletes')
     .select('pb_5k,pb_10k,pb_half,pb_marathon,gender,date_of_birth,city,strongest_pb_dist')
