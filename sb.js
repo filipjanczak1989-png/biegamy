@@ -772,6 +772,73 @@
   };
 
   // ═══════════════════════════════════════════════════════════════════
+  // window.TERMS — Brama Regulaminu (FAZA 2). Modal akceptacji dla kont BEZ
+  // realnej zgody: terms_accepted_at IS NULL  LUB  == created_at (artefakt dawnego
+  // DEFAULT now(), nie klik). check() woła się po inicie sesji (zawodnik.html initAuth).
+  // Zapis przez RPC accept_terms() — SECURITY DEFINER, rusza TYLKO terms_accepted_at
+  // dla auth.uid(); NIE polegamy na szerokiej policy athletes_update_own.
+  // Modal blokujący: z-index 300 (próg swipe-guard, nad content/nav ≤210, pod toastami
+  // 99999); brak wyjścia przez Esc/klik-tła; jeden przycisk „Akceptuję".
+  // ═══════════════════════════════════════════════════════════════════
+  window.TERMS = {
+    // Artefakt dawnego DEFAULT now(): terms == created_at co do SEKUNDY. Realna zgoda
+    // (RPC bierze now()) jest DUŻO późniejsza od created_at → nigdy false-positive.
+    _toArtefakt: function(terms, created){
+      if (!terms || !created) return false;
+      var a = Date.parse(terms), b = Date.parse(created);
+      if (isNaN(a) || isNaN(b)) return false;
+      return Math.floor(a/1000) === Math.floor(b/1000);
+    },
+
+    // SELECT własnego wiersza; NULL lub artefakt → showModal(). Fire-and-forget,
+    // self-swallow: błąd/brak wiersza NIE blokuje wejścia (brak wiersza = trener/nowy,
+    // łapany przez inne ścieżki; nie chcemy fałszywie więzić usera na błędzie sieci).
+    check: async function(){
+      try {
+        var sess = (await window.sb.auth.getSession()).data.session;
+        var u = sess && sess.user;
+        if (!u) return;
+        var res = await window.sb.from('athletes')
+          .select('terms_accepted_at, created_at').eq('user_id', u.id).maybeSingle();
+        if (res.error || !res.data) return;
+        if (!res.data.terms_accepted_at || this._toArtefakt(res.data.terms_accepted_at, res.data.created_at)) {
+          this.showModal();
+        }
+      } catch(e){}
+    },
+
+    // Blokujący overlay. Idempotentny. Zero danych usera → tekst statyczny, bez escape.
+    showModal: function(){
+      if (document.getElementById('terms-gate')) return;
+      var ov = document.createElement('div');
+      ov.id = 'terms-gate';
+      ov.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:22px;';
+      ov.innerHTML =
+        '<div role="dialog" aria-modal="true" aria-labelledby="terms-gate-title" style="max-width:420px;width:100%;background:var(--card2,#13131b);border:1px solid rgba(255,255,255,0.1);border-radius:18px;padding:26px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.55);font-family:\'DM Sans\',sans-serif;">'
+        +   '<div id="terms-gate-title" style="font-size:18px;font-weight:700;color:var(--fg,#f0ede8);margin-bottom:12px;">Zaktualizowaliśmy zasady</div>'
+        +   '<div style="font-size:14px;line-height:1.55;color:var(--fg2,rgba(240,237,232,0.65));margin-bottom:20px;">Zaktualizowaliśmy zasady korzystania z BiegaMy. Aby kontynuować, zaakceptuj <a href="terms.html" target="_blank" rel="noopener" style="color:var(--accent,#e8561e);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb,232,86,30),0.4);">regulamin</a> i <a href="privacy.html" target="_blank" rel="noopener" style="color:var(--accent,#e8561e);text-decoration:none;border-bottom:1px solid rgba(var(--accent-rgb,232,86,30),0.4);">politykę prywatności</a>.</div>'
+        +   '<button id="terms-gate-ok" style="width:100%;background:linear-gradient(135deg,var(--accent,#e8561e),var(--accent2,#ff7040));color:#fff;border:none;border-radius:14px;padding:14px;font-family:\'DM Sans\',sans-serif;font-size:15px;font-weight:600;cursor:pointer;">Akceptuję</button>'
+        + '</div>';
+      document.body.appendChild(ov);
+
+      // Esc nie zamyka; przechwyć w fazie capture, dopóki modal żyje.
+      var keyGuard = function(e){ if (e.key === 'Escape' && document.getElementById('terms-gate')) { e.stopPropagation(); e.preventDefault(); } };
+      document.addEventListener('keydown', keyGuard, true);
+
+      var btn = ov.querySelector('#terms-gate-ok');
+      btn.addEventListener('click', async function(){
+        btn.disabled = true; btn.textContent = 'Zapisuję...';
+        try {
+          var r = await window.sb.rpc('accept_terms');
+          if (r.error) { btn.disabled = false; btn.textContent = 'Akceptuję'; if (window.showToast) showToast('Nie udało się zapisać — spróbuj ponownie', 'warn'); return; }
+          document.removeEventListener('keydown', keyGuard, true);
+          ov.remove();
+        } catch(e){ btn.disabled = false; btn.textContent = 'Akceptuję'; if (window.showToast) showToast('Nie udało się zapisać — spróbuj ponownie', 'warn'); }
+      });
+    }
+  };
+
+  // ═══════════════════════════════════════════════════════════════════
   // window.WATCH — SSOT podłączenia zegarka (intervals.icu OAuth)
   // Reużywa flow z profil.html (authorizeIntervals) — jedna ścieżka, nie kopia.
   // Stan czytany z athletes.intervals_athlete_id (intervals_credentials ma RLS

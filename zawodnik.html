@@ -4078,6 +4078,7 @@ async function initAuth() {
       if(tn2){ const drugiCzlon = n2.split(' ')[1]; tn2.innerHTML = escapeHtml(n2.split(' ')[0]) + (drugiCzlon ? ' <span>' + escapeHtml(drugiCzlon[0]) + '.</span>' : ''); }
       if (_isOnboarding || localStorage.getItem('biegamy_needs_onboarding') === '1') { showOnboarding(); window.history.replaceState({}, '', 'zawodnik.html'); return; }
       await loadLogs();
+      if (window.TERMS) window.TERMS.check();   // FAZA 2: brama regulaminu (fallback-sesja s2)
     } else {
       showOnboarding();
     }
@@ -4131,6 +4132,10 @@ async function initAuth() {
       window.history.replaceState({}, '', 'zawodnik.html');
       return;
     }
+
+    // FAZA 2 (Brama Regulaminu): user z ustalonym wierszem, POZA onboardingiem — sprawdź zgodę.
+    // check() self-swallow, czyta własny wiersz (user_id=auth.uid()); NULL/artefakt-DEFAULT → modal blokujący.
+    if (window.TERMS) window.TERMS.check();
 
     const { data: athFull } = await sb.from('athletes').select('target_date,goal,race_goals').eq('id',_athleteId).maybeSingle();
     if (athFull) {
