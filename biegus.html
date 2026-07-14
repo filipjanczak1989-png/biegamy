@@ -3,11 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.1 (Misje dzienne)</title>
+<title>Bieguś — Droga na Igrzyska · v3.2 (Pęd i rekordy)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.1 „MISJE DZIENNE"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.2 „PĘD I REKORDY"
+     Względem v3.1:
+     · PĘD: świat przyspiesza w trakcie rundy (+0,4%/s, do +25% po
+       minucie). Technicznie: pozycje obiektów z CAŁKI drogi
+       (drogaCalka), nie iloczynu czas×prędkość — zero teleportów,
+       FOV/kroki/wiatr skalują się naturalnie z bieżącą prędkością.
+     · REKORDY RUNDY: każdy etap pamięta najlepszy wynik w piórach
+       (i najlepsze combo). Meta pokazuje „🏆 NOWY REKORD ETAPU!"
+       albo dystans do rekordu. Zapis trwały.
+     Poniżej: opis v3.1
      Względem v3.0:
      · MISJE DZIENNE OD NPC: co dzień 2 zadania z puli 8 (wybór
        deterministyczny z daty — wszyscy gracze mają te same).
@@ -539,6 +548,7 @@
   <div class="pod" id="medalOpis" hidden></div>
   <div id="podiumBox" hidden></div>
   <div class="puenta" id="puentaFinisz"></div>
+  <div class="pod" id="rekordBox" hidden style="color:#f2c14e;font-weight:700"></div>
   <div class="pod" id="zadanieWynik" hidden></div>
   <div class="przeslanie" id="finalKrainy" hidden></div>
   <div class="stat">
@@ -726,7 +736,7 @@ const CFG={
   ZAWODY:{KARA_HIT:3,BONUS_ZNAL:2,ZLOTO:57,SREBRO:63,BRAZ:69},
   SLOWMO:0.42,SLOWMO_CZAS:0.55,
   BUFOR:0.22,
-  FLOW_COMBO:6,
+  FLOW_COMBO:6,PRZYSPIESZENIE:0.004,
 };
 const lerp=(a,b,k)=>a+(b-a)*k,easeOut=k=>1-Math.pow(1-k,3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -855,7 +865,7 @@ const Biegus={
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
-    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm}));}catch(e){}},
+    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{}}));}catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -870,7 +880,8 @@ const Biegus={
     this.bonusTreningu=d.bonusTreningu||0;
     if(typeof d.najedzenie==='number')this.najedzenie=d.najedzenie;
     if(typeof d.wiez==='number')this.wiez=d.wiez;
-    this.laczneKm=d.laczneKm||0;}catch(e){}},
+    this.laczneKm=d.laczneKm||0;
+    this.rekordy=d.rekordy||{};}catch(e){}},
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -1749,10 +1760,13 @@ const Input=(()=>{
 
 /* ---------- 8. SYMULACJA ---------- */
 const KROK=1/120;
+function drogaCalka(s,t){                       // ∫v dt dla v(t)=v0·(1+a·t)
+  return s.predkoscBaza*(t+CFG.PRZYSPIESZENIE*t*t/2);}
 function nowaSymulacja(skrypt,tryb='etap'){
   return{skrypt,tryb,t:0,stan:'bieg',
-    predkosc:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
+    predkoscBaza:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
       *(skrypt.etap<=4?[1,0.86,0.90,0.94,0.97][skrypt.etap]:1),   /* ROZBIEG e1–e4 */
+    predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
     flow:false,flowBank:0,bonusyG:null,
@@ -1780,6 +1794,7 @@ function udanyUnik(s,o){
 }
 function krokSymulacji(s){
   s.zdarzenia.length=0;s.t+=KROK;
+  s.predkosc=s.predkoscBaza*(1+CFG.PRZYSPIESZENIE*s.t);            // PĘD: bieżąca prędkość
   const i=Input.wez();
   if(s.stan==='bieg'){
     /* bufor 160 ms: akcja wciśnięta „za wcześnie" wykonuje się,
@@ -1806,7 +1821,7 @@ function krokSymulacji(s){
   if(s.spotkania)while(s.spotIdx<s.spotkania.length&&s.spotkania[s.spotIdx].t<=s.t)
     s.zdarzenia.push({typ:'spotkanie',dane:s.spotkania[s.spotIdx++]});
   for(const o of s.aktywne)
-    o.z=CFG.SPAWN_Z+(s.t-o.t)*s.predkosc*OBIEKTY[o.typ].mult;
+    o.z=CFG.SPAWN_Z+(drogaCalka(s,s.t)-drogaCalka(s,o.t))*OBIEKTY[o.typ].mult;
   if(s.stan==='bieg')for(const o of s.aktywne){
     if(o.trafione)continue;
     const wStrefie=o.z>=CFG.STREFA[0]&&o.z<=CFG.STREFA[1];
@@ -3499,6 +3514,18 @@ const Gra=(()=>{
     konfetti();odswiezMenuStatus();pokaz('final');}
   function ekranMeta(){
     if(sym&&sym.tryb==='final'){ekranFinal();return;}
+    /* — rekord rundy (tylko etapy) — */
+    const rb=el('rekordBox');rb.hidden=true;
+    if(sym.tryb==='etap'){
+      Biegus.rekordy=Biegus.rekordy||{};
+      const k='e'+biezacyEtap,r=Biegus.rekordy[k];
+      if(!r||sym.piora>r.piora){
+        Biegus.rekordy[k]={piora:sym.piora,combo:sym.maxCombo};
+        rb.textContent=r?'🏆 NOWY REKORD ETAPU! '+sym.piora+' 🪶 (było '+r.piora+')'
+                        :'🏆 PIERWSZY REKORD ETAPU: '+sym.piora+' 🪶';
+        rb.hidden=false;Dzwiek.medal&&Dzwiek.medal();}
+      else{rb.textContent='Rekord etapu: '+r.piora+' 🪶 — zabrakło '+(r.piora-sym.piora);
+        rb.hidden=false;}}
     tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
@@ -3709,7 +3736,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.1',
+  wersja:'3.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
