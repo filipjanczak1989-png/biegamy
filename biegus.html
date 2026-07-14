@@ -3,11 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.3 (Chmurki)</title>
+<title>Bieguś — Droga na Igrzyska · v3.4 (Moce garderoby)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.3 „CHMURKI"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.4 „MOCE GARDEROBY"
+     Względem v3.3 (pomysł Filipa: ubranie = moce!):
+     · TRAIL GRIP: dowolne buty poza startowymi = kałuże i błoto
+       przebiegasz z pluskiem („CHLAP! 💦") — bez utraty serca i combo.
+       Koniec frustracji kałużą; lepsze buty mają sens w akcji.
+     · DRUGI ODDECH (plecak): raz na bieg pierwszy hit nie odbiera
+       serca ani combo — plecak z gadżetu staje się supermocą.
+       Moce działają TYLKO w etapach (Zawody i Finał czyste — jak boostery).
+     · SCROLL NAPRAWIONY: gesty biegu nie zjadają już przewijania
+       paneli (preventDefault omija .panelDol/.karta).
+     · WSTECZ WIDOCZNY: przyciski „← Wróć" przyklejone do dołu paneli,
+       duże, pomarańczowe — zawsze pod kciukiem, bez szukania.
+     Poniżej: opis v3.3
      Względem v3.2 (fabuła gra!):
      · KOMIKSOWE DYMKI 3D nad postaciami: mentor przy trasie mówi
        swoje motto CHMURKĄ nad głową gdy się zbliżasz; Błysk rzuca
@@ -381,6 +393,10 @@
     background:linear-gradient(transparent, rgba(13,16,26,.97) 20%);
     padding:48px 18px 20px;text-align:center;max-height:64vh;overflow-y:auto}
   .panelDol[hidden]{display:none}
+  #btnBiegusWroc,#btnEtapyWroc,#btnKatalogWroc,#btnMapaWroc,#btnMisjeWroc,#btnSklepWroc{
+    position:sticky;bottom:4px;display:block;width:100%;margin:14px auto 0;
+    padding:14px;font-size:1.06em;font-weight:700;color:#fff;background:#e8561e;
+    border:0;border-radius:12px;box-shadow:0 -8px 18px rgba(13,16,26,.65)}
   .panelDol h2{color:var(--accent)}
   .paski{max-width:340px;margin:10px auto;display:flex;flex-direction:column;gap:7px;text-align:left}
   .paski .w{font-size:11.5px;color:var(--mgla);display:flex;justify-content:space-between}
@@ -840,7 +856,7 @@ const AKCESORIA={
   chustka:{nazwa:'Chustka na szyję',emoji:'🧣',odblok:false,jak:'misja „Wytrwałość"'},
   czubZloty:{nazwa:'Złoty czubek',emoji:'👑',odblok:false,jak:'złoto w Zawodach'},
   czapka:{nazwa:'Czapka z daszkiem',emoji:'🧢',odblok:false,jak:'misja „Akrobata"'},
-  plecak:{nazwa:'Plecaczek biegowy',emoji:'🎒',odblok:false,jak:'Sklep u Zyzi'},
+  plecak:{nazwa:'Plecaczek biegowy',emoji:'🎒',odblok:false,jak:'Sklep u Zyzi · MOC: Drugi oddech (1× na bieg hit bez kary)'},
 };
 /* — EWOLUCJA: stadia napędzane realnymi km (nie XP!) — */
 const STADIA={
@@ -1753,6 +1769,7 @@ const Input=(()=>{
   addEventListener('touchstart',e=>{const t=e.touches[0];
     tx=t.clientX;ty=t.clientY;tt=performance.now();gestWykonany=false;},{passive:true});
   addEventListener('touchmove',e=>{
+    if(e.target&&e.target.closest&&e.target.closest('.panelDol,.karta'))return;
     e.preventDefault();
     if(gestWykonany)return;
     const t=e.touches[0],dx=t.clientX-tx,dy=t.clientY-ty,ax=Math.abs(dx),ay=Math.abs(dy);
@@ -1837,10 +1854,15 @@ function krokSymulacji(s){
       if(!wStrefie||o.trafione)continue;
       const xA=o.kier*((6.1-o.z)*0.95);                              // pozycja auta z Z — deterministyczna
       if(Math.abs(xA-pozycjaPasa(s))<1.35){
-        if(s.nietyk>0)continue;
+        if(o.typ==='kaluza'&&s.gripKaluza){o.trafione=true;
+        s.zdarzenia.push({typ:'plusk'});continue;}
+      if(s.nietyk>0)continue;
         if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;
           o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
           s.zdarzenia.push({typ:'tarcza'});continue;}
+      if(s.drugiOddech&&s.tryb!=='final'){
+        s.drugiOddech=false;o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
+        s.zdarzenia.push({typ:'drugiOddech'});continue;}
         o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;
         s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'hit',typObiektu:'auto',serca:s.serca});
@@ -3133,7 +3155,7 @@ const Gra=(()=>{
     legenda:{n:'LEGENDA',k:'#f2c14e',c:400}};
   const GARDEROBA=[
     {id:'buty-startowe',slot:'buty',tier:'start',nazwa:'Buty startowe',emoji:'👟'},
-    {id:'buty-trail',slot:'buty',tier:'trail',nazwa:'Buty trail',emoji:'👟',bonus:'bloto',bopis:'pierwsze błoto etapu nie zeruje serii'},
+    {id:'buty-trail',slot:'buty',tier:'trail',nazwa:'Buty trail',emoji:'👟',bonus:'bloto',bopis:'MOC: kałuże i błoto przebiegasz (CHLAP!)'},
     {id:'buty-elite',slot:'buty',tier:'elita',nazwa:'Buty elite',emoji:'👟',bonus:'piora5',bopis:'+5% piór na mecie'},
     {id:'buty-legend',slot:'buty',tier:'legenda',nazwa:'Buty legend',emoji:'👟',bonus:'piora10',bopis:'+10% piór na mecie'},
     {id:'koszulka-startowa',slot:'koszulka',tier:'start',nazwa:'Koszulka startowa',emoji:'👕'},
@@ -3496,6 +3518,9 @@ const Gra=(()=>{
     /* boostery + bonus treningu — TYLKO w etapach, nigdy w Zawodach */
     if(trybGry==='etap'){
       sym.boostery={tarcza:false,magnes:false,x2:false};
+      const btM=Biegus.ubrane&&Biegus.ubrane.buty;
+      sym.gripKaluza=!!btM&&btM!=='buty-startowe';       // MOC: każde buty > startowe
+      sym.drugiOddech=Biegus.zalozone.has('plecak');     // MOC: plecak
       if(Biegus.stan()==='najedzony'){sym.flowProg=5;
         toast('🍽️ <b>Najedzony!</b> Flow już od 5 combo — trening pracuje.');}
       ['tarcza','magnes','x2'].forEach(k=>{
@@ -3742,6 +3767,9 @@ const Gra=(()=>{
       return;}
     if(zd.typ==='flowStop'){document.body.classList.remove('flow');
       el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Dzwiek.flowStop();return;}
+    if(zd.typ==='plusk'){popup('CHLAP! 💦',true);Dzwiek.znal();return;}
+    if(zd.typ==='drugiOddech'){popup('DRUGI ODDECH! 🎒',true);Dzwiek.tarcza();
+      R3.dymekGracza('Jeszcze nie koniec!');return;}
     if(zd.typ==='blotoOchrona'){popup('TRAIL GRIP!',true);Dzwiek.tarcza();
       setTimeout(()=>{if(tryb==='bieg')dymek('Podeszwa trail. Błoto się ślizga, nie ja.');},600);
       return;}
@@ -3796,7 +3824,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.3',
+  wersja:'3.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
