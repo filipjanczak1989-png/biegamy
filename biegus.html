@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.3 (Żywy portret)</title>
+<title>Bieguś — Droga na Igrzyska · v2.4 (Postaci na trasie)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.3 „ŻYWY PORTRET + STROJENIE MODELU"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.4 „POSTACI NA TRASIE"
+     Względem v2.3:
+     · MENTORZY: w ~65% etapów przy trasie stoi postać ze świata Biegusia
+       (billboard z assets/postaci/*.webp — 12 mentorów w 4 krainach).
+       Przebiegnięcie obok = spotkanie: toast z mottem postaci +5 🪶.
+       Bez kolizji, poza pasami; tekstura cache'owana, cień eliptyczny.
+     · Fallback: brak pliku webp = mentor po prostu się nie pojawia.
+     Poniżej: opis v2.3
      Względem v2.2:
      · PORTRET WG NASTROJU: tamagotchi pokazuje twarz zgodną ze stanem
        — najedzony→wesoły, głodny→głodny (te błagalne oczy!),
@@ -372,9 +379,9 @@
   .gGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .gKarta{background:#141821;border:2px solid #333;border-radius:14px;padding:8px;
     display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
-  .gKarta img{width:100%;height:116px;object-fit:contain;
-    background:#fff;border-radius:10px;padding:4px;box-sizing:border-box}
-  .gEmoji{width:100%;height:116px;font-size:62px;display:flex;align-items:center;
+  .gKarta img{width:100%;height:150px;object-fit:contain;
+    background:#fff;border-radius:10px;padding:5px;box-sizing:border-box}
+  .gEmoji{width:100%;height:150px;font-size:78px;display:flex;align-items:center;
     justify-content:center;background:#fff;border-radius:10px}
   .gTier{position:absolute;top:6px;left:6px;font-size:9px;font-weight:700;color:#10131a;
     padding:2px 6px;border-radius:8px;letter-spacing:.5px}
@@ -811,6 +818,20 @@ const Biegus={
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
 
+const MENTOR_TEKSTY={
+  'trener-orzel':   ['🦅','Trener Orzeł','Technika! Oddech! Rytm!'],
+  'trenerka-orzel': ['🦅','Trenerka Orlica','Głowa wysoko, krok lekki!'],
+  'wiewiorka':      ['🐿️','Zyzia','Kto zbiera, ten ma!'],
+  'zolw-maraton':   ['🐢','Żółw Maraton','Spokojnie. Krok za krokiem.'],
+  'sowa-dziadek':   ['🦉','Dziadek Sowa','Mądry biegacz słucha lasu.'],
+  'panda-zenek':    ['🐼','Panda Zenek','Luz, młody. Luz i rytm.'],
+  'pies-speed':     ['🐕','Speed','Szybciej! No dawaj, DAWAJ!'],
+  'papuga-rio':     ['🦜','Rio','Pięknie biegniesz, słonko!'],
+  'wilk':           ['🐺','Wilk','Samotny bieg hartuje.'],
+  'tygrys-trail':   ['🐯','Tygrys Trail','Góry szanują odważnych.'],
+  'sowa-biala':     ['🦉','Biała Sowa','W ciszy gór słychać serce.'],
+  'lis-arktyczny':  ['🦊','Lis Polarny','Zimno? To tylko powietrze!']};
+
 const MISJE=[
   {id:'czysty',npc:'orzel',tekst:'Czysty bieg — ukończ etap bez utraty serca',cel:1,licznik:0,
     nagroda:()=>{AKCESORIA.okulary.odblok=true;},nagrodaTekst:'🕶️ Okulary słoneczne'},
@@ -871,6 +892,20 @@ function cienBlob(r=0.7){
 /* ---------- 5. KATALOG OBIEKTÓW (7 przeszkód + pióro + znal) ----------
    Progresja akcji: nowe typy wchodzą kolejnymi etapami (pole odEtapu). */
 const OBIEKTY={
+  mentor:{
+    nazwa:'Mentor przy trasie',unik:'brak',mult:1.0,waga:0,odEtapu:0,odCzasu:0,
+    ukryj:true,opis:'',unikTekst:'',
+    zbuduj(){
+      const g=new THREE.Group();
+      const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.75,2.35),
+        new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+      pl.position.y=1.2;g.add(pl);g.userData.plakat=pl;
+      const c=new THREE.Mesh(new THREE.CircleGeometry(0.52,16),
+        new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.2}));
+      c.rotation.x=-Math.PI/2;c.position.y=0.02;g.add(c);
+      return g;},
+    animuj(g,t){g.userData.plakat.position.y=1.2+Math.sin(t*1.4)*0.035;}
+  },
   kaluza:{
     nazwa:'Kałuża po nocnym deszczu',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
     opis:'Padało do trzeciej nad ranem. Kałuża wygląda niewinnie, ale Bieguś wie: mokre skarpety na 5. kilometrze to koniec dobrego humoru. Po tafli rozchodzą się kręgi — to krople z gałęzi nad nią.',
@@ -1431,6 +1466,7 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     wstrzyknijRozwidlenia(ev,rng,rel,kraina,motyw==='rozstaje'?3:(rel>=4?2:1));
     wstrzyknijPrzejazdy(ev,rng,rel,kraina,motyw==='szczyt'?3:(rel>=5?2:1));
     wstrzyknijSegment(ev,rng,rel,kraina);
+    wstrzyknijMentora(ev,rng,kraina);
     ev.sort((a,b)=>a.t-b.t);
     if(waliduj(ev))return{kraina,etap:nrEtapu,seed:seedStr,ev,pora,motyw};
   }
@@ -1499,6 +1535,17 @@ function wstrzyknijPrzejazdy(ev,rng,rel,kraina,ile){
     ev.push({t:tA,typ:'auto',pas:1,kier:rng()<0.5?1:-1});
   }}
 /* — SEGMENTY SPECJALNE: świat robi się kozacki — */
+const MENTORZY={
+  1:['trener-orzel','trenerka-orzel','wiewiorka'],
+  2:['zolw-maraton','sowa-dziadek','panda-zenek'],
+  3:['pies-speed','papuga-rio','wilk'],
+  4:['tygrys-trail','sowa-biala','lis-arktyczny']};
+function wstrzyknijMentora(ev,rng,kraina){
+  if(rng()>0.65)return;                          // spotkanie w ~65% etapów
+  const lista=MENTORZY[kraina]||MENTORZY[1];
+  const tMax=ev.length?Math.max(...ev.map(e=>e.t)):24;
+  ev.push({t:tMax*(0.42+rng()*0.3),pas:1,typ:'mentor',
+    mentorId:lista[Math.floor(rng()*lista.length)],strona:rng()<0.5?-1:1});}
 function wstrzyknijSegment(ev,rng,rel,kraina){
   if(rel<2)return;
   if(rng()<0.15)return;                                              // 85% etapów ma segment
@@ -1652,6 +1699,11 @@ function krokSymulacji(s){
       if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
       o.trafione=true;s.zebrane.push(losujZnalezisko(s));
       s.zdarzenia.push({typ:'znal'});Misje.zdarzenie('znal');continue;}
+    if(o.typ==='mentor'){                                           // spotkanie przy trasie
+      if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){o.sprawdzone=true;
+        const b=5;s.piora+=b;
+        s.zdarzenia.push({typ:'mentor',id:o.mentorId,bonus:b});}
+      continue;}
     /* MOMENT PRAWDY: kolizja liczona RAZ — gdy przeszkoda mija stopy.
        Byłeś wtedy w powietrzu / w ślizgu / na innym pasie = uniknięte.
        Koniec z lądowaniem „na przeszkodę" przy wczesnym skoku. */
@@ -2485,6 +2537,12 @@ const R3=(()=>{
   scena.add(meta);meta.visible=false;
 
   const pule={};
+  const teksturyMentor={};
+  function teksturaMentora(id){
+    if(!teksturyMentor[id]){
+      teksturyMentor[id]=new THREE.TextureLoader().load(assetUrl('assets/postaci/'+id+'.webp'));
+    }
+    return teksturyMentor[id];}
   function wezModel(typ){if(!pule[typ])pule[typ]=[];
     let m=pule[typ].pop();
     if(!m){
@@ -2615,6 +2673,11 @@ const R3=(()=>{
           scena.add(m);return m;})():
         o.typ==='segment'?(()=>{const m=zbudujSegment(o.rodzaj,o.durS*s.predkosc,s.skrypt.kraina||1);
           scena.add(m);return m;})():wezModel(o.typ);
+      if(o.widok&&o.typ==='mentor'&&!o.widok.userData.gotowy){
+        const pl=o.widok.userData.plakat;
+        pl.material.map=teksturaMentora(o.mentorId);
+        pl.material.opacity=1;pl.material.needsUpdate=true;
+        pl.castShadow=false;o.widok.userData.gotowy=true;}
       if(o.widok){
         if(o.trafione&&ZBIERALNE.has(o.typ)){oddajModel(o.typ,o.widok);o.widok=null;continue;}
         if(o.typ==='auto'){
@@ -2622,6 +2685,10 @@ const R3=(()=>{
           o.widok.position.set(xA,0,o.z);
           o.widok.rotation.y=o.kier>0?0:Math.PI;
           o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
+        } else if(o.typ==='mentor'){
+          o.widok.position.set(o.strona*3.45,0,o.z);
+          const tyM=tY(o.z);if(tyM)o.widok.position.y+=tyM;
+          OBIEKTY.mentor.animuj(o.widok,czasReal+o.t);
         } else {
           o.widok.position.set(CFG.PASY[o.pas],0,o.z);
           if(!o.widok.userData.glb)OBIEKTY[o.typ].animuj(o.widok,czasReal+o.t);
@@ -3306,6 +3373,9 @@ const Gra=(()=>{
     else if(tryb!=='pauza'){ostatni=performance.now();wPauzie=false;}});
 
   function obsluzZdarzenie(zd){
+    if(zd.typ==='mentor'){Dzwiek.znal();
+      const m=MENTOR_TEKSTY[zd.id]||['🌟','Mentor','Trzymaj tempo!'];
+      toast(m[0]+' <b>'+m[1]+':</b> „'+m[2]+'" <i>+'+zd.bonus+' 🪶</i>');}
     if(zd.typ==='hit'){spowolnienie=CFG.SLOWMO_CZAS;R3.efekt(zd);
       try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
       setTimeout(()=>{if(tryb==='bieg')dymek(losuj(BIEGUS_MOWI.potkniecie));},900);
@@ -3387,7 +3457,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.3',
+  wersja:'2.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
