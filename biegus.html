@@ -3,11 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.6 (Nowe UI)</title>
+<title>Bieguś — Droga na Igrzyska · v3.7 (Adrenalina i endgame)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.6 „NOWE UI"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.7 „ADRENALINA I ENDGAME"
+     Względem v3.6:
+     · OTARCIE: unik na WŁASNYM pasie (o włos!) = +2 🪶 i „OTARCIE!"
+       — nagroda za odwagę zamiast objeżdżania wszystkiego bokiem.
+     · STARTER 3-2-1: odliczanie gra beep·beep·BEEP! + gwizdek startu.
+       W finale ten sam dźwięk = strzał startera z całą fabułą za sobą.
+     · MOCE ENDGAME: bluza-neon → Flow oddaje pióra o 70% szybciej;
+       korona-legendy → +1 serce na start etapu. Topowe zakupy mają
+       teraz sens bojowy, nie tylko wygląd. (Tylko etapy.)
+     · FABUŁA GĘŚCIEJ: 3 nowe spotkania — wiewiórka i orzeł w parku
+       (kraina 1 była niema!), tygrys przed finałową przełęczą.
+     Poniżej: opis v3.6
      Względem v3.5 (wpięcie bibliotek partii 8+9):
      · KAŁUŻA-DECAL: prawdziwa grafika kałuży (top-down z partii 9)
        leży PŁASKO na trasie zamiast proceduralnych kółek —
@@ -811,6 +822,9 @@ const Dzwiek=(()=>{
     slizg(){ton(240,.16,'sawtooth',.06,-120);},
     trafienie(){ton(150,.22,'sawtooth',.16,-70);ton(95,.25,'square',.1,-30,.03);},
     swist(){ton(980,.5,'sine',.07,-620);ton(660,.4,'triangle',.05,-420,.05);},
+    otarcie(){ton(1180,.09,'sine',.09,240);ton(1560,.08,'sine',.07,180,.05);},
+    beep(){ton(880,.11,'square',.09);},
+    startGwizd(){ton(1320,.34,'square',.11,60);ton(1760,.3,'sine',.07,0,.04);},
     znal(){ton(660,.09,'sine',.11);ton(880,.09,'sine',.11,0,.08);ton(1320,.14,'sine',.11,0,.16);},
     pioro(n){ton(500+Math.min(n,14)*40,.07,'sine',.08);},           // seria = coraz wyżej!
     oWlos(){ton(980,.1,'sine',.1,-400);},
@@ -1947,7 +1961,7 @@ function krokSymulacji(s){
       o.trafione=true;
       const zysk=((s.boostery&&s.boostery.x2)||s.bonusPior)?2:1;
       s.piora+=zysk;
-      if(s.flow){s.flowBank+=zysk*0.5;
+      if(s.flow){s.flowBank+=zysk*(s.flowMnoznik||0.5);
         while(s.flowBank>=1){s.flowBank-=1;s.piora+=1;}}
       s.zdarzenia.push({typ:'pioro',seria:s.piora});
       Misje.zdarzenie('pioro');continue;
@@ -2001,6 +2015,8 @@ function krokSymulacji(s){
     if(!o.policzone&&o.z>CFG.STREFA[1]&&!o.trafione){
       o.policzone=true;
       if(!ZBIERALNE.has(o.typ))s.ominiete=(s.ominiete||0)+1;
+      if(o.uniknieto&&!ZBIERALNE.has(o.typ)){s.piora+=2;
+        s.zdarzenia.push({typ:'otarcie'});}
       if(o.typ==='rower'){Misje.zdarzenie('ominietyRower');
         if(!o.uniknieto){s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
           s.zdarzenia.push({typ:'combo',combo:s.combo});}}
@@ -3542,6 +3558,9 @@ const Gra=(()=>{
     mentor:'🐔 Kura Agata: „W tym hałasie połowa treningu to umieć odpocząć. Miasto tego nie rozumie. Ty musisz."'};
   /* — SPOTKANIA NA TRASIE: fabuła dzieje się W BIEGU — */
   const SPOTKANIA={
+    'k1-e3':[{t:14,imie:'Wiewiórka Zyzia',emoji:'🐿️',tekst:'Nowy w parku? Zbieraj pióra — u mnie w sklepie wszystko za pióra!'}],
+    'k1-e6':[{t:20,imie:'Orzeł',emoji:'🦅',tekst:'Widzę cię codziennie na tej ścieżce, mały. To się nazywa charakter.'}],
+    'k4-e30':[{t:24,imie:'Tygrys Trail',emoji:'🐯',tekst:'Za przełęczą już tylko stadion. Góry cię wychowały — teraz pokaż to nizinom.'}],
     'k2-e12':[{t:22,imie:'Żółw Maraton',emoji:'🐢',tekst:'Powoli. Ale do celu.'}],
     'k3-e17':[{t:16,imie:'Zając Błysk',emoji:'🐇',tekst:'Patrzcie go — ptak-biegacz! Miasto cię zje, mały.'}],
     'k3-e20':[{t:26,imie:'Zając Błysk',emoji:'🐇',tekst:'Ty… trenujesz o piątej rano? Serio?'}],
@@ -3614,6 +3633,9 @@ const Gra=(()=>{
       const btM=Biegus.ubrane&&Biegus.ubrane.buty;
       sym.gripKaluza=!!btM&&btM!=='buty-startowe';       // MOC: każde buty > startowe
       sym.drugiOddech=Biegus.zalozone.has('plecak');     // MOC: plecak
+      if(Biegus.ubrane.bluza==='bluza-neon')sym.flowMnoznik=0.85;   // MOC: neon
+      if(Biegus.ubrane.glowa==='korona-legendy'){sym.serca++;sym.sercaMax=sym.serca;
+        toast('👑 <b>Korona Legendy:</b> +1 serce na start!');}
       if(Biegus.stan()==='najedzony'){sym.flowProg=5;
         toast('🍽️ <b>Najedzony!</b> Flow już od 5 combo — trening pracuje.');}
       ['tarcza','magnes','x2'].forEach(k=>{
@@ -3649,14 +3671,14 @@ const Gra=(()=>{
       'Trafienie: +'+CFG.ZAWODY.KARA_HIT+' s kary · Znalezisko: −'+CFG.ZAWODY.BONUS_ZNAL+' s. Rywale już biegną!':
       zadanie?('ZADANIE · '+zadanie.od+': '+zadanie.cel):losuj(TIPY);
     pokaz('intro');tryb='intro';
-    let c=3;el('odliczanie').textContent=c;
+    let c=3;el('odliczanie').textContent=c;Dzwiek.beep();
     const iv=setInterval(()=>{c--;
-      if(c>0)el('odliczanie').textContent=c;
-      else{clearInterval(iv);pokaz(null);tryb='bieg';ostatni=performance.now();akum=0;Dzwiek.muzykaStart();Dzwiek.wiatrStart();}
+      if(c>0){el('odliczanie').textContent=c;Dzwiek.beep();}
+      else{clearInterval(iv);Dzwiek.startGwizd();pokaz(null);tryb='bieg';ostatni=performance.now();akum=0;Dzwiek.muzykaStart();Dzwiek.wiatrStart();}
     },700);
   }
   function hud(){
-    el('serca').innerHTML=Array.from({length:CFG.SERCA},(_,i)=>
+    el('serca').innerHTML=Array.from({length:(sym.sercaMax||CFG.SERCA)},(_,i)=>
       `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
     el('pioraHud').textContent='🪶'+sym.piora;
@@ -3860,6 +3882,7 @@ const Gra=(()=>{
       return;}
     if(zd.typ==='flowStop'){document.body.classList.remove('flow');
       el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Dzwiek.flowStop();return;}
+    if(zd.typ==='otarcie'){popup('OTARCIE! +2 🪶',true);Dzwiek.otarcie();return;}
     if(zd.typ==='swist'){Dzwiek.swist();popup('⚠️ Z GÓRY!',false);return;}
     if(zd.typ==='plusk'){popup('CHLAP! 💦',true);Dzwiek.znal();return;}
     if(zd.typ==='drugiOddech'){popup('DRUGI ODDECH! 🎒',true);Dzwiek.tarcza();
@@ -3918,7 +3941,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.6',
+  wersja:'3.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
