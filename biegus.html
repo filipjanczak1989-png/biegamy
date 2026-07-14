@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.7 (Świat 2D)</title>
+<title>Bieguś — Droga na Igrzyska · v2.8 (Pierwsze wrażenie)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.7 „ŚWIAT 2D"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.8 „PIERWSZE WRAŻENIE"
+     Względem v2.7:
+     · ROZBIEG: etapy 1–4 wolniejsze (86/90/94/97% prędkości bazowej)
+       — nowy gracz uczy się sterowania zanim gra pokaże zęby.
+       Od e5 pełna prędkość, dalej krzywa bez zmian.
+     · PORAŻKA ODDAJE, NIE ZABIERA: karta faila pokazuje zdobycz
+       („+X 🪶 zostaje w portfelu") — upadek to wolniejszy postęp,
+       nie kara. Przycisk „Jeszcze raz" powiększony na mobile.
+     Poniżej: opis v2.7
      Względem v2.6:
      · SPRITE'Y ŚWIATA z partii 7: pióra i 6 przeszkód jako billboardy
        2D (assets/sprites/*.webp, alpha). ŁAŃCUCH PRIORYTETÓW per typ:
@@ -510,7 +518,7 @@
 <div class="karta ciemna" id="porazka" hidden>
   <h1>OJ, <em id="failImie">BIEGUŚ</em>…</h1>
   <div class="puenta" id="puentaFail"></div>
-  <button class="cta" id="btnJeszczeRaz">Jeszcze raz — od razu</button>
+  <button class="cta" id="btnJeszczeRaz" style="font-size:1.22em;padding:16px 28px">▶ Jeszcze raz — od razu</button>
   <button id="btnDoMenu">Wróć</button>
 </div>
 
@@ -1639,7 +1647,8 @@ const Input=(()=>{
 const KROK=1/120;
 function nowaSymulacja(skrypt,tryb='etap'){
   return{skrypt,tryb,t:0,stan:'bieg',
-    predkosc:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1)),
+    predkosc:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
+      *(skrypt.etap<=4?[1,0.86,0.90,0.94,0.97][skrypt.etap]:1),   /* ROZBIEG e1–e4 */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
     flow:false,flowBank:0,bonusyG:null,
@@ -3425,7 +3434,8 @@ const Gra=(()=>{
     Biegus.statystyki.uniki+=(sym.ominiete||0);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
     sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
-    el('puentaFail').innerHTML='<b>'+Biegus.imie+':</b> „'+losuj(BIEGUS_MOWI.fail)+'”';
+    el('puentaFail').innerHTML='<b>'+Biegus.imie+':</b> „'+losuj(BIEGUS_MOWI.fail)+'”'+
+      (sym.piora>0?'<br><span style="color:#f2c14e">+'+sym.piora+' 🪶 zostaje w portfelu — nic nie przepada!</span>':'');
     odswiezMenuStatus();pokaz('porazka');}
   el('btnDalej').onclick=()=>{
     if(sym.tryb==='zawody'||biezacyEtap>=32){tryb='menu';pokaz('menu');}
@@ -3529,7 +3539,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.7',
+  wersja:'2.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
