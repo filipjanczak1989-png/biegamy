@@ -1,0 +1,3298 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Bieguś — Droga na Igrzyska · v2.1 (Garderoba i Flow)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ==========================================================
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.1 „GARDEROBA I FLOW"
+     Względem v2.0:
+     · GARDEROBA: 20 przedmiotów z PRAWDZIWYMI grafikami z pipeline'u
+       (assets/przedmioty/*.webp, fallback do emoji gdy pliku brak);
+       5 progów rzadkości START→TRAIL→ELITA→NEON→LEGENDA; sloty
+       buty/koszulka/bluza/głowa/dodatek; mikrobonusy (trail grip,
+       +% piór, bonus złotej godziny) — NIE działają w Zawodach
+     · FLOW MODE: seria ×6 bez trafień = stan flow — świat złocieje,
+       muzyka gęstnieje, pióra ×1.5; trafienie kończy flow
+     · MODEL 3D WG STADIUM: pisklak → modele/pisklak.glb,
+       legenda → modele/biegus_zloty.glb, reszta → biegus.glb
+     Poniżej: opis v2.0
+     Względem v1.9 — pakiet, który oddziela prototyp od gry:
+     · PRAWDZIWE CIENIE DYNAMICZNE (shadow map 1024, rzucają: Bieguś,
+       przeszkody, goście, platforma kładki; bloby wyłączone)
+     · FAKTURA PODŁOŻA: proceduralne tekstury szumu dla ścieżki
+       (żwir) i trawy — koniec plastikowych plane'ów
+     · DŹWIĘK CIAŁA: kroki zsynchronizowane z animacją nóg + WIATR
+       rosnący z prędkością etapu (czysty WebAudio, zero plików)
+     · KONFETTI NA MECIE (finisz z medalem = deszcz kolorów)
+     · Kurz spod łapek przy biegu
+     Poniżej: opis v1.9
+     Względem v1.8:
+     · SCHODY NAPRAWDĘ: segment KŁADKA — wbiegasz po 8 stopniach,
+       biegniesz podwyższoną platformą z balustradami (Bieguś,
+       przeszkody, pióra i KAMERA unoszą się z terenem — pełny
+       system wysokości), pod Tobą poprzeczna uliczka z jeżdżącym
+       autkiem (miasto) / strumyk (park); zbieg schodami w dół
+     · PRZEGRODA ROZSTAJÓW 3.2 m (kamera wisi na 4.6 m — dopiero
+       taka ściana chowa drugą drogę z pasa bocznego) + korony 4 m
+     · Z-FIGHTING odnóg naprawiony (migotanie nakładek jezdni)
+     Poniżej: opis v1.8
+     Względem v1.7:
+     · SKOK ROZWIĄZANY OSTATECZNIE: kolizja liczona w JEDNYM momencie
+       — dokładnie gdy przeszkoda mija stopy gracza. Byłeś wtedy
+       w powietrzu = przeskoczone. (Dotąd: test co krok przez całą
+       strefę — skok „za wcześnie" kończył się lądowaniem NA
+       przeszkodzie w ostatnich klatkach. Stąd cała frustracja.)
+     · ROZSTAJE Z PRZEGRODĄ: wysoki żywopłot (1.9 m) między odnogami
+       — po wyborze widzisz TYLKO swoją drogę, druga wraca przy
+       połączeniu; kamera mocniej podąża za pasem
+     · SEGMENTY SPECJALNE ŚWIATA: pergola różana (park), mostek nad
+       strumieniem (las), WBIEGANIE DO MARKETU między regały i PERON
+       DWORCA z pociągiem (miasto), skalna brama (przełęcz); nowa
+       przeszkoda: walizka bez właściciela
+     · Trawa stonowana (szałwiowa zamiast soczystej)
+     Poniżej: opis v1.7
+     Względem v1.6:
+     · ROZSTAJE JAK NALEŻY: droga GEOMETRYCZNIE rozjeżdża się na dwie
+       jasne odnogi; między nimi podniesiony pas zieleni z krawężnikami,
+       białym płotkiem, drzewkami, kwietnikami i betonowym dziobem ze
+       strzałkami. Zestaw budowany parametrycznie pod długość okna
+       (fizyka bez zmian — niewidzialne segmenty)
+     · KOLORY STONOWANE: pastelowo-matowe niebo/trawa/nawierzchnie,
+       ekspozycja 1.0, subtelniejsze słońce i chmury
+     · ŚWIAT W DETALU: motyle (park/las), ptaszki dziobiące (las),
+       kwietne plamy (park), zaparkowane auta + linie boczne +
+       hydrant (miasto), kopczyki szlakowe + proporczyki (przełęcz)
+     Poniżej: opis v1.6
+     Względem v1.5:
+     · ROZWIDLENIA WRESZCIE WIDOCZNE: segmenty wyspy spawnowały się
+       co ~9 m (rzadkie krzaczki!) — teraz KLIN ze strzałkami +
+       ciągła wyspa co ~2.7 m; wjazd na środek ZSUWA gracza na bok
+       (1 serce za pierwszą kolizję, potem auto-korekta, nie młocka)
+     · SKOK: wybaczanie wczesnej fazy (skokT<0.15 s = intencja była,
+       zaliczone) + węższa strefa kolizji [5.3–6.8] + próg 0.38 m
+     · LAMPY ZGASZONE za dnia (park i miasto — bez poświat i żarników)
+     · GRAFIKA: sky-dome z gradientem nieba, chmury, sRGB + ACES
+       tone mapping, winieta — obraz soczysty, nie płaski
+     Poniżej: opis v1.5
+     Względem v1.4:
+     · DZIEŃ zamiast ciemnego świtu: jasne dzienne palety wszystkich
+       krain + mocniejsze światło + słońce na niebie
+     · KAŻDA PLANSZA INNA: pora dnia (poranek/południe/złota godzina)
+       + MOTYW etapu (Klasyczny/Pióropusz/Akrobatyczny/Rozstaje/
+       Godzina szczytu) — deterministycznie z seeda, widoczne w intro
+     · ROZWIDLENIA OD 1. ETAPU (motyw „Rozstaje": aż trzy)
+     · INPUT NAPRAWIONY U ŹRÓDŁA: swipe odpala się w chwili ruchu
+       palca (nie przy oderwaniu!), tap <220 ms = skok/salto,
+       bufor 0.22 s, próg przeskoku 0.45 m, okno salta 5–85% lotu
+     Poniżej: opis v1.4
+     Względem v1.3 — świat jak z Hugo, nie korytarz:
+     · ROZWIDLENIA DRÓG: żywopłot dzieli trasę na dwie strony —
+       jedna bogata w pióra (ale bywa PUŁAPKĄ z niespodzianką na
+       końcu), druga uboga ale pewna. Znak strzałek uprzedza.
+     · PRZECINAJĄCE AUTA (Miasto): taxi „Taryfa Nocna" przecina
+       drogę w poprzek — klakson + reflektory + zebra na jezdni
+       uprzedzają; skok NIE pomaga, liczy się pozycja
+     · PANORAMY KRAIN: korony drzew / ciemny las / wieżowce
+       z oknami / ośnieżone szczyty na horyzoncie; przerywana
+       linia jezdni w Mieście
+     Poniżej: opis v1.3
+     Względem v1.2:
+     · SALTO NAPRAWIONE: obrót był nadpisywany przez animację postaci
+       (kolejność!) — teraz pełny obrót + TUCK (kulenie) + smuga piór
+       + SQUASH przy lądowaniu. Salto wygląda jak salto.
+     · MENU 2.0: kompaktowe — wybór etapu w osobnym panelu
+       z zakładkami krain; GRAJ prowadzi do następnego etapu
+     · SKLEP U ZYZI: waluta = PIÓRA z biegania (zero prawdziwych
+       pieniędzy, zero drugiej waluty). Skiny, plecak, boostery
+       jednorazowe. BOOSTERY NIE DZIAŁAJĄ W ZAWODACH.
+     · TRENING = NAJLEPSZY BOOSTER: świeży trening daje ×2 pióra
+       na następny bieg
+     · Ruchy Biegusia: pochylenie w biegu, żywsze skrzydła
+     Poniżej: opis v1.2
+     Względem v1.1:
+     · SKOK NAPRAWIONY U ŹRÓDŁA: przeskok liczy się z WYSOKOŚCI
+       (≥0.55 m nad ziemią = nad przeszkodą) zamiast okna czasowego —
+       ochrona przez ~80% lotu, zgodna z tym, co widzą oczy
+     · SALTO: drugi tap w powietrzu = salto — wydłuża lot o 30%
+       (ratunek na spóźniony skok!), nabija serię, kręci Biegusiem;
+       misja „Akrobata" (12 salt) odblokowuje 🧢 czapkę
+     · AKT IV: PRZEŁĘCZ (etapy 25–32) — zimny świt, skały, paliki
+       szlaku, wiatr; głaz (skok), lina zabezpieczeń (ślizg),
+       świstak (pas, gwiżdże „fiiit!"); PRZELOT KLUCZA w e28 —
+       kulminacja fabuły
+     Poniżej: opis v1.1
+     Względem v1.0 — fabuła przestaje być kartami, staje się grą:
+     · SPOTKANIA NA TRASIE: mentorzy i Błysk pojawiają się W BIEGU
+       (Błysk wyprzedza Cię i drwi w e17, w e24 biegnie obok)
+     · ZADANIA MENTORÓW: lekcja aktu jako cel w gameplayu (seria,
+       serca, pióra) — nagrodą beat fabularny; NIGDY nie blokują
+     · AKT III: MIASTO (etapy 17–24) — sodowe latarnie, neony,
+       bloki z oknami; pachołek (skok), barierka (ślizg),
+       hulajnoga-widmo (pas, ×1.5, „brzdęk!")
+     · Łuk Błyska domknięty: drwina → respekt → skrzydło
+     Poniżej: opis v1.0
+     Względem v0.9:
+     · FABUŁA: Bieguś — ptak wędrowny, który zamiast latać, biega —
+       chce wystartować w WIELKICH IGRZYSKACH (tych dla ludzi).
+       5 aktów = 5 krain; karty aktów przy wejściu do krainy,
+       finały aktów na mecie; mentorzy prowadzą historię
+     · INPUT BUFFER 160 ms: skok/ślizg wciśnięty odrobinę za wcześnie
+       wykonuje się, gdy tylko może — game feel klasy premium
+     · Droga 600 km prowadzi teraz na Igrzyska (mapa, myśli, finały,
+       ewolucja Legendy). „Wielkie Igrzyska" — celowo, bez IP MKOl.
+     Poniżej: opis v0.9
+     Względem v0.8:
+     · MAPA DROGI DO VALENCII: 600 km w pięciu krainach, pozycja
+       Biegusia z REALNYCH km, postęp etapów, krainy 3–5 w zapowiedzi
+     · ZAWODY 2.0: podium z imiennymi rywalami (Zając Błysk do
+       pokonania!) + drugi tor: Zawody w Lesie
+     · STATYSTYKI ŻYCIOWE Biegusia w panelu (pióra, uniki, etapy,
+       rekord serii)
+     · ONBOARDING: 3 zasady przed pierwszym biegiem sesji
+     Poniżej: opis v0.8
+     Względem v0.7:
+     · KRAINA 2: LAS — nowa paleta (mgła zieleni), gęstsza mgła,
+       smugi porannego światła między drzewami, grzyby/głazy/paprocie,
+       etapy 9–16; przełączanie krain w locie (jedna scena, wymiana
+       palety + grup dekoracji — architektura pod krainy 3–5)
+     · 2 NOWE PRZESZKODY: Korzeń dębu (skok) i Leśne błoto — pierwsza
+       „miękka": CHLUP nie zabiera serca, zabiera combo (i godność)
+     · MUZYKA LO-FI z syntezy (pad akordowy + pentatonika), zero
+       plików; pauzuje z grą, milknie z 🔇
+     · ✓ ukończone etapy oznaczone w menu (sesja)
+     Poniżej: opis v0.7
+     Względem v0.6:
+     · PORTRETY UI z pipeline'u cc (assets/ui/*.png): panel Biegusia
+       i menu pokazują portret aktualnego stadium, misje — twarze
+       patronów NPC. Brak plików = eleganckie fallbacki (emoji/nic)
+     · KOLEKCJA ZNALEZISK: trwała w sesji, gablotka w panelu Biegusia
+     · BIEGUŚ GADA w biegu: dymki ambientowe zależne od stanu
+       tamagotchi + reakcje na potknięcia
+     · R = szybka powtórka na kartach meta/porażki
+     Poniżej: opis v0.6
+     Względem v0.5:
+     · EWOLUCJA BIEGUSIA: 5 stadiów (Pisklak→Młody→Dorosły→Mistrz→
+       Legenda) napędzanych REALNYMI km z treningów — widoczna
+       przemiana modelu, celebracja, postęp w panelu
+     · NPC: patroni misji (Orzeł, Kura Agata, Zyzia, Żółw Maraton,
+       Zając Błysk) + Żółw i Kura mieszkają w parku (deko)
+     · PAUZA z prawdziwym ekranem (przycisk ⏸ w HUD — mobile!)
+     · Licznik combo na żywo w HUD
+     Poniżej: opis v0.5"
+     Względem v0.4: wsparcie modeli GLB z pipeline'u image-to-3D
+     (Meshy/Tripo) — biegus.glb z animacjami (auto-rig) + GLB
+     przeszkód. Fallback: brak plików = modele klockowe, zero
+     błędów. Przełącznik modelu w panelu Biegusia.
+     Względem v0.3:
+     · GRYWALNOŚĆ: linie piór do zbierania (prowadzą przez trasę),
+       system COMBO za aktywne uniki, „O WŁOS!", slow-mo przy
+       trafieniu, wiatr w plecy po serii x8, gęstsza akcja
+     · 3 NOWE PRZESZKODY (taczka/gałąź/kosz) wchodzące stopniowo
+       etapami — każda z pełną kartą w katalogu
+     · MENU 2.0: żywe tło (Bieguś biegnie przez świtający park),
+       hierarchia, status Biegusia na powitaniu
+     · KREATOR 2.0: pełny ekran, zablokowane rzeczy WIDOCZNE
+       z jasną podpowiedzią jak je zdobyć (fix mobile: bez title)
+     · PRZESŁANIE: „karmisz grę prawdziwym bieganiem — skrótów
+       nie ma, jak w treningu"; myśli na drogę przed etapem;
+       finał krainy z puentą o regularności
+     ========================================================== */
+  :root{ --accent:#e8561e; --tlo:#10141f; --panel:#1a2030; --tekst:#f2ede6;
+    --mgla:#8b93ad; --zloto:#f8b34a; }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:var(--tlo);color:var(--tekst);
+    font-family:'DM Mono',monospace;overflow:hidden;touch-action:none;overscroll-behavior:none}
+  #gra3d{position:fixed;inset:0;display:block}
+  /* --- HUD --- */
+  #hud{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
+    padding:14px 16px;z-index:5;pointer-events:none;font-size:13px;
+    text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  #hud[hidden]{display:none}
+  #serca{font-size:18px;letter-spacing:3px}
+  #serca .pelne{color:var(--accent)} #serca .puste{color:#3a4157}
+  #pasek{flex:1;height:8px;background:rgba(42,49,72,.8);border-radius:4px;overflow:hidden}
+  #pasekWypelnienie{height:100%;width:0%;background:var(--accent)}
+  #znalHud{color:var(--zloto);letter-spacing:2px}
+  #pioraHud{color:#c7cede}
+  #karaHud{color:#ff7a5c}
+  #btnMute,#btnPauza{pointer-events:auto;background:none;border:0;font-size:18px;cursor:pointer;padding:2px}
+  /* popup akcji na środku (combo / o włos) */
+  #popup{position:fixed;top:26%;left:50%;transform:translate(-50%,-50%) scale(.7);
+    font-family:'Bebas Neue',sans-serif;font-size:clamp(30px,7vw,52px);letter-spacing:2px;
+    color:var(--zloto);text-shadow:0 2px 12px rgba(0,0,0,.8);z-index:6;opacity:0;
+    pointer-events:none;transition:opacity .12s, transform .12s}
+  #popup.widoczny{opacity:1;transform:translate(-50%,-50%) scale(1)}
+  #popup.akcent{color:var(--accent)}
+  #toast{position:fixed;top:64px;left:50%;transform:translateX(-50%) translateY(-16px);
+    background:rgba(20,26,42,.95);border:1px solid var(--zloto);border-radius:12px;
+    padding:12px 18px;font-size:13px;z-index:20;opacity:0;transition:.3s;pointer-events:none;
+    max-width:88vw;text-align:center}
+  #toast.widoczny{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast b{color:var(--zloto)}
+  /* --- karty --- */
+  .karta{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:12px;padding:22px;background:rgba(13,16,26,.62);
+    backdrop-filter:blur(2px);z-index:10;text-align:center;overflow-y:auto}
+  .karta.ciemna{background:rgba(13,16,26,.88);backdrop-filter:blur(4px)}
+  .karta[hidden]{display:none}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,10vw,76px);letter-spacing:2px;line-height:.92}
+  h1 em{font-style:normal;color:var(--accent)}
+  h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1.5px}
+  .motto{font-size:12px;letter-spacing:3px;color:var(--zloto);text-transform:uppercase}
+  .pod{color:var(--mgla);font-size:13px;max-width:400px;line-height:1.55}
+  .pod b{color:var(--tekst)}
+  .przeslanie{font-size:13.5px;max-width:380px;line-height:1.6;color:var(--tekst);
+    border-left:3px solid var(--accent);padding-left:14px;text-align:left}
+  .etapy{display:grid;grid-template-columns:repeat(4,58px);gap:8px}
+  button{font-family:'DM Mono',monospace;font-size:14.5px;border:0;cursor:pointer;
+    border-radius:12px;padding:13px 17px;background:var(--panel);color:var(--tekst)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .etapy button{padding:0;height:58px;font-size:18px;border:1px solid #2a3350}
+  .etapy button.zrobiony{border-color:var(--zloto);color:var(--zloto)}
+  .cta{background:var(--accent);color:#fff;font-weight:500;padding:16px 36px;font-size:17px;
+    box-shadow:0 4px 24px rgba(232,86,30,.35)}
+  .rzad{display:flex;gap:9px;flex-wrap:wrap;justify-content:center}
+  .kafel{display:flex;flex-direction:column;gap:3px;align-items:center;width:104px;padding:12px 6px}
+  .kafel span:first-child{font-size:22px}
+  .kafel span:last-child{font-size:11px;color:var(--mgla)}
+  .puenta{font-size:15.5px;max-width:340px;line-height:1.5}
+  .puenta b{color:var(--accent)}
+  .stat{display:flex;gap:18px;color:var(--mgla);font-size:12.5px}
+  .stat b{color:var(--tekst);font-size:20px;display:block;font-family:'Bebas Neue',sans-serif}
+  .legenda{font-size:11px;color:var(--mgla);line-height:1.7}
+  .medal{font-size:52px;line-height:1}
+  /* --- panele dolne --- */
+  .panelDol{position:fixed;bottom:0;left:0;right:0;z-index:11;
+    background:linear-gradient(transparent, rgba(13,16,26,.97) 20%);
+    padding:48px 18px 20px;text-align:center;max-height:64vh;overflow-y:auto}
+  .panelDol[hidden]{display:none}
+  .panelDol h2{color:var(--accent)}
+  .paski{max-width:340px;margin:10px auto;display:flex;flex-direction:column;gap:7px;text-align:left}
+  .paski .w{font-size:11.5px;color:var(--mgla);display:flex;justify-content:space-between}
+  .paski .tor{height:9px;background:#232a3e;border-radius:5px;overflow:hidden}
+  .paski .tor i{display:block;height:100%;border-radius:5px}
+  input[type=text]{font-family:'DM Mono',monospace;background:#232a3e;border:1px solid #2a3350;
+    color:var(--tekst);border-radius:10px;padding:10px 14px;font-size:15px;text-align:center;width:210px}
+  /* kreator 2.0 — rzeczy jako karty, kłódki WIDOCZNE */
+  .rzeczy{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:420px;margin:0 auto}
+  .rzecz{width:96px;padding:10px 6px;border-radius:12px;background:var(--panel);
+    border:2px solid transparent;cursor:pointer;font-size:11px;line-height:1.35;color:var(--tekst)}
+  .rzecz .ikonka{font-size:24px;display:block}
+  .rzecz .status{color:var(--mgla);font-size:10px;display:block;margin-top:2px}
+  .rzecz.aktywna{border-color:#fff}
+  .rzecz.zablokowana{opacity:.55}
+  .rzecz.zablokowana .status{color:var(--zloto)}
+  .kreatorSekcja{margin-top:12px}
+  .kreatorSekcja .naglowek{font-size:11px;color:var(--mgla);letter-spacing:2px;margin-bottom:7px}
+  .misja{max-width:380px;margin:0 auto 9px;text-align:left;background:rgba(26,32,48,.85);
+    border-radius:12px;padding:11px 14px;font-size:12.5px}
+  .misja .tor{height:6px;background:#232a3e;border-radius:3px;margin-top:7px;overflow:hidden}
+  .misja .tor i{display:block;height:100%;background:var(--zloto)}
+  .misja.zrobiona{border:1px solid var(--zloto)}
+  .misja .nagroda{color:var(--mgla);font-size:11px;margin-top:3px}
+  .misja.zrobiona .nagroda{color:var(--zloto)}
+  #katalogOpis{max-width:420px;margin:8px auto 4px;font-size:13px;line-height:1.6}
+  #katalogUnik{font-size:12px;color:var(--zloto);margin-bottom:10px}
+  .katalogPrzyciski{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+  .katalogPrzyciski button{font-size:12px;padding:9px 11px}
+  .katalogPrzyciski button.aktywny{background:var(--accent);color:#fff}
+.pportret{width:76px;height:76px;border-radius:18px;border:2px solid var(--accent);
+    object-fit:cover;display:block;margin:0 auto 4px;background:#141a28}
+  .pnpc{width:30px;height:30px;border-radius:8px;object-fit:cover;
+    vertical-align:-9px;margin-right:5px;background:#141a28}
+  #dymek{position:fixed;left:50%;bottom:24%;transform:translateX(-50%);
+    background:rgba(20,26,42,.92);border:1px solid #2a3350;border-radius:14px;
+    padding:8px 14px;font-size:12.5px;z-index:6;pointer-events:none;opacity:0;
+    transition:.2s;max-width:80vw;text-align:center}
+  #dymek.widoczny{opacity:1}
+  #dymek b{color:var(--accent)}
+  /* mapa Drogi */
+  #mapaTorWrap{position:relative;max-width:430px;margin:26px auto 4px;padding-top:26px}
+  #mapaTor{height:14px;border-radius:7px;overflow:hidden;display:flex;
+    border:1px solid #2a3350}
+  #mapaTor i{display:block;height:100%}
+  #mapaBiegus{position:absolute;top:0;transform:translateX(-50%);font-size:20px;
+    transition:left .5s;line-height:1}
+  #mapaKm{font-size:12px;color:var(--zloto);margin-top:6px}
+  .mapaKrainy{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;
+    max-width:440px;margin:10px auto}
+  .mapaK{width:78px;background:var(--panel);border-radius:10px;padding:8px 4px;
+    font-size:10.5px;line-height:1.35;color:var(--mgla)}
+  .mapaK b{display:block;font-size:11.5px;color:var(--tekst)}
+  .mapaK.zablok{opacity:.5}
+  /* podium zawodów */
+  #podiumBox{max-width:300px;margin:0 auto}
+  .podiumRow{display:flex;justify-content:space-between;gap:10px;font-size:13px;
+    padding:6px 12px;border-radius:9px;margin-bottom:4px;background:rgba(26,32,48,.7)}
+  .podiumRow.ty{border:1px solid var(--accent);background:rgba(232,86,30,.14)}
+  .podiumRow .czasR{color:var(--mgla)}
+  /* statystyki życiowe */
+  .statMini{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;max-width:380px;margin:8px auto}
+  .statMini div{background:var(--panel);border-radius:10px;padding:8px 10px;font-size:10.5px;
+    color:var(--mgla);min-width:76px}
+  .statMini b{display:block;font-family:'Bebas Neue',sans-serif;font-size:19px;color:var(--tekst)}
+  .zakladki{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;margin:8px 0}
+  .zakladki button{font-size:12px;padding:9px 12px}
+  .zakladki button.aktywny{background:var(--accent);color:#fff}
+  .saldo{font-size:14px;color:var(--zloto);margin:4px 0 8px}
+  .sklepItem{display:flex;align-items:center;gap:10px;max-width:380px;margin:0 auto 8px;
+    background:rgba(26,32,48,.85);border-radius:12px;padding:10px 12px;font-size:12px;text-align:left}
+  .sklepItem .ik{font-size:24px}
+  .sklepItem .info{flex:1;line-height:1.35}
+  .sklepItem .info b{font-size:12.5px}
+  .sklepItem .info span{color:var(--mgla);display:block;font-size:11px}
+  .sklepItem button{padding:9px 12px;font-size:12px;white-space:nowrap}
+  .sklepItem button.uzyjOn{background:var(--accent);color:#fff}
+  #flowGlow{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;
+    transition:opacity .7s;background:radial-gradient(ellipse at 50% 60%,
+    transparent 52%,rgba(242,177,60,.22) 82%,rgba(232,86,30,.30) 100%)}
+  body.flow #flowGlow{opacity:1}
+  #comboHud.flow{color:#ffd76a;text-shadow:0 0 14px #f2c14e}
+  .gSlotTytul{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;
+    margin:14px 0 6px;color:#f2c14e}
+  .gGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .gKarta{background:#141821;border:2px solid #333;border-radius:14px;padding:8px;
+    display:flex;flex-direction:column;align-items:center;gap:6px;position:relative}
+  .gKarta img{width:100%;height:84px;object-fit:contain}
+  .gEmoji{width:100%;height:84px;font-size:50px;display:flex;align-items:center;justify-content:center}
+  .gTier{position:absolute;top:6px;left:6px;font-size:9px;font-weight:700;color:#10131a;
+    padding:2px 6px;border-radius:8px;letter-spacing:.5px}
+  .gNazwa{font-weight:700;font-size:12px;text-align:center}
+  .gBonus{font-size:10px;opacity:.9;text-align:center;min-height:24px;color:#8fd08f}
+  .gKosm{color:#8a93a8}
+  .gKarta button{width:100%;padding:7px;border-radius:10px;border:0;
+    background:#e8561e;color:#fff;font-weight:700}
+  .gKarta button:disabled{opacity:.35}
+  .gKarta.zalozona{box-shadow:0 0 0 2px #f2c14e inset}
+  .konf{position:absolute;top:-14px;width:9px;height:13px;border-radius:2px;
+    animation:konfSpad 2.6s linear forwards;pointer-events:none;z-index:3}
+  @keyframes konfSpad{
+    0%{transform:translateY(0) rotate(0)}
+    100%{transform:translateY(105vh) rotate(720deg);opacity:.15}}
+  @media (prefers-reduced-motion: reduce){
+    .karta{backdrop-filter:none} #toast,#popup{transition:none} }
+</style>
+</head>
+<body>
+
+<canvas id="gra3d" aria-label="Bieguś — Droga, gra 3D"></canvas>
+
+<div id="hud" hidden>
+  <span id="serca"></span>
+  <div id="pasek"><div id="pasekWypelnienie"></div></div>
+  <span id="pioraHud">🪶0</span>
+  <span id="znalHud"></span><span id="karaHud"></span>
+  <span id="comboHud" style="font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--zloto)"></span>
+  <button id="btnPauza" aria-label="Pauza">⏸</button>
+  <button id="btnMute" aria-label="Wycisz dźwięk">🔊</button>
+</div>
+<div id="popup"></div>
+<div id="vig" style="position:fixed;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(10,14,24,.34) 100%)"></div>
+<div id="toast" role="status"></div>
+<div id="dymek" hidden></div>
+
+<!-- MENU — żywe tło za spodem (Bieguś biegnie w demo) -->
+<div class="karta" id="menu">
+  <div class="motto">jesteśmy obok</div>
+  <h1>BIEGUŚ<br><em>— DROGA</em></h1>
+  <div class="przeslanie">Mały biegus nie odleciał z kluczem.<br>
+    Został, żeby wystartować w <b>Wielkich Igrzyskach</b>.<br>
+    Karmisz go <b>prawdziwym bieganiem</b> — skrótów nie ma.</div>
+  <img id="portretMenu" class="pportret" alt="" hidden>
+  <div class="pod" id="menuStatus"></div>
+  <button class="cta" id="btnGraj">▶ BIEGNIJ</button>
+  <div class="rzad">
+    <button class="kafel" id="btnEtapy"><span>🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
+    <button class="kafel" id="btnZawody"><span>🏁</span>Zawody Park<span>medale o świcie</span></button>
+    <button class="kafel" id="btnZawodyLas"><span>🌲</span>Zawody Las<span>medale we mgle</span></button>
+  </div>
+  <div class="rzad">
+    <button class="kafel" id="btnBiegus"><span>🐦</span>Bieguś<span>karm i ubieraj</span></button>
+    <button class="kafel" id="btnSklep"><span>🐿️</span>Sklep<span>u Zyzi, za pióra</span></button>
+    <button class="kafel" id="btnMapa"><span>🗺️</span>Droga<span>na Igrzyska</span></button>
+  </div>
+  <div class="rzad">
+    <button class="kafel" id="btnMisje"><span>⭐</span>Misje<span>odblokowania</span></button>
+    <button class="kafel" id="btnKatalog"><span>📖</span>Katalog<span>mieszkańcy</span></button>
+  </div>
+  <div class="legenda">◀ ▶ pas · ▲/tap skok · ▼ ślizg · P pauza</div>
+</div>
+
+<!-- INTRO -->
+<div class="karta ciemna" id="intro" hidden>
+  <h1 id="introTytul">ETAP 1</h1>
+  <div class="motto">myśl na drogę</div>
+  <div class="przeslanie" id="introMysl"></div>
+  <div class="pod" id="introTip"></div>
+  <div class="pod" id="introBooster" style="color:var(--zloto)" hidden></div>
+  <h1 style="font-size:84px" id="odliczanie">3</h1>
+</div>
+
+<!-- FINISZ -->
+<div class="karta ciemna" id="finisz" hidden>
+  <h1><em>META!</em></h1>
+  <div class="medal" id="medalIkona" hidden>🥇</div>
+  <div class="pod" id="medalOpis" hidden></div>
+  <div id="podiumBox" hidden></div>
+  <div class="puenta" id="puentaFinisz"></div>
+  <div class="pod" id="zadanieWynik" hidden></div>
+  <div class="przeslanie" id="finalKrainy" hidden></div>
+  <div class="stat">
+    <span><b id="stSerca">3</b>serca</span>
+    <span><b id="stPiora">0</b>piór</span>
+    <span><b id="stZnal">0/2</b>znaleziska</span>
+    <span><b id="stCombo">0</b>max seria</span>
+    <span id="stCzasBox" hidden><b id="stCzas">60s</b>czas</span>
+  </div>
+  <button class="cta" id="btnDalej">Dalej</button>
+  <button id="btnPowtorka">Powtórz</button>
+</div>
+
+<!-- PORAŻKA -->
+<div class="karta ciemna" id="porazka" hidden>
+  <h1>OJ, <em id="failImie">BIEGUŚ</em>…</h1>
+  <div class="puenta" id="puentaFail"></div>
+  <button class="cta" id="btnJeszczeRaz">Jeszcze raz — od razu</button>
+  <button id="btnDoMenu">Wróć</button>
+</div>
+
+<!-- KARTA AKTU (fabuła — raz na krainę w sesji) -->
+<div class="karta ciemna" id="fabula" hidden>
+  <div class="motto" id="fabulaAkt">AKT I</div>
+  <h1 id="fabulaTytul">PARK O ŚWICIE</h1>
+  <div class="przeslanie" id="fabulaScena"></div>
+  <div class="puenta" id="fabulaMentor"></div>
+  <button class="cta" id="btnFabulaDalej">Biegnij ▶</button>
+</div>
+
+<!-- ONBOARDING (raz na sesję, przed pierwszym biegiem) -->
+<div class="karta ciemna" id="onboarding" hidden>
+  <h1>3 <em>ZASADY</em></h1>
+  <div class="przeslanie">1 · <b>Swipe</b> zmienia pas, <b>tap/▲</b> to skok, <b>▼</b> ślizg.<br><br>
+    2 · <b>Linie piór</b> prowadzą bezpiecznie. Uniki nakręcają <b>serię</b> — trafienie ją zeruje.<br><br>
+    3 · Bieguś je <b>prawdziwe treningi</b> — one przesuwają go po Drodze na Igrzyska. Skrótów nie ma. Jak w bieganiu.</div>
+  <button class="cta" id="btnOnboardingStart">Lecimy! ▶</button>
+</div>
+
+<!-- PANEL: MAPA DROGI -->
+<div class="panelDol" id="panelMapa" hidden>
+  <h2>DROGA NA IGRZYSKA</h2>
+  <div class="pod">Każdy realny kilometr treningu przesuwa Biegusia w stronę startu Wielkich Igrzysk.</div>
+  <div id="mapaTorWrap">
+    <div id="mapaTor"></div>
+    <div id="mapaBiegus">🐦</div>
+  </div>
+  <div id="mapaKm"></div>
+  <div class="mapaKrainy" id="mapaKrainy"></div>
+  <button id="btnMapaWroc">← Wróć</button>
+</div>
+
+<!-- PAUZA -->
+<div class="karta ciemna" id="pauza" hidden>
+  <h1>PAUZA</h1>
+  <div class="przeslanie" id="pauzaMysl"></div>
+  <button class="cta" id="btnWznow">▶ Wznów bieg</button>
+  <button id="btnPauzaWyjdz">Wróć do mapy</button>
+</div>
+
+<!-- PANEL: BIEGUŚ -->
+<div class="panelDol" id="panelBiegus" hidden>
+  <img id="portretBiegusia" class="pportret" alt="" hidden>
+  <h2 id="biegusNaglowek">BIEGUŚ</h2>
+  <div class="pod" id="biegusNastroj"></div>
+  <div class="pod" id="biegusStadiumInfo" style="color:var(--zloto)"></div>
+  <div class="paski">
+    <div><div class="w"><span>Najedzenie (karmione treningami)</span><span id="wNajedzenie"></span></div>
+      <div class="tor"><i id="pNajedzenie" style="background:var(--accent)"></i></div></div>
+    <div><div class="w"><span>Więź</span><span id="wWiez"></span></div>
+      <div class="tor"><i id="pWiez" style="background:#8a6ac0"></i></div></div>
+    <div><div class="w"><span>Wybiegane km (realne)</span><span id="wKm"></span></div>
+      <div class="tor"><i id="pKm" style="background:var(--zloto)"></i></div></div>
+  </div>
+  <button id="btnTrening">🏃 Symuluj trening 8 km</button>
+  <button id="btnModel" hidden>🎭 Model: Premium</button>
+  <div class="legenda">(przycisk dev — w aplikacji karmi go prawdziwy trening z zegarka)</div>
+  <div class="kreatorSekcja">
+    <div class="naglowek">STATYSTYKI ŻYCIOWE</div>
+    <div class="statMini" id="statMini"></div>
+  </div>
+  <div class="kreatorSekcja">
+    <div class="naglowek">KOLEKCJA ZNALEZISK</div>
+    <div class="rzeczy" id="listaKolekcji"></div>
+  </div>
+  <div class="kreatorSekcja">
+    <div class="naglowek">IMIĘ TWOJEGO PTAKA</div>
+    <input type="text" id="imieBiegusia" maxlength="14" autocomplete="off">
+  </div>
+  <div class="kreatorSekcja">
+    <div class="naglowek">UPIERZENIE</div>
+    <div class="rzeczy" id="listaKolorow"></div>
+  </div>
+  <div class="kreatorSekcja">
+    <div class="naglowek">AKCESORIA (dotknij, by założyć)</div>
+    <div class="rzeczy" id="listaAkcesoriow"></div>
+  </div>
+  <br><button id="btnBiegusWroc">← Wróć</button>
+</div>
+
+<!-- PANEL: ETAPY -->
+<div class="panelDol" id="panelEtapy" hidden>
+  <h2>WYBIERZ ETAP</h2>
+  <div class="zakladki" id="zakladkiKrain"></div>
+  <div class="etapy" id="gridEtapow" style="margin:0 auto;justify-content:center"></div>
+  <br><button id="btnEtapyWroc">← Wróć</button>
+</div>
+
+<!-- PANEL: SKLEP -->
+<div id="flowGlow"></div>
+<div class="panelDol" id="panelSklep" hidden>
+  <h2>🐿️ SKLEP U ZYZI</h2>
+  <div class="pod">„Kto zbiera, ten ma!" — Zyzia handluje tylko piórami z biegania.</div>
+  <div class="saldo" id="sklepSaldo"></div>
+  <div id="sklepLista"></div>
+  <h2 style="margin-top:16px">👕 GARDEROBA</h2>
+  <div class="pod">Ubierz Biegusia. Część rzeczy daje mikrobonusy — w Zawodach nie działają, tam liczy się czysty bieg.</div>
+  <div id="gardLista"></div>
+  <div class="legenda">Boostery działają 1 bieg i NIE działają w Zawodach — tam liczy się czysty bieg.<br>Pióra zdobywasz wyłącznie bieganiem. Świeży trening sam daje ×2 piór — za darmo.</div>
+  <br><button id="btnSklepWroc">← Wróć</button>
+</div>
+
+<!-- PANEL: MISJE -->
+<div class="panelDol" id="panelMisje" hidden>
+  <h2>MISJE</h2>
+  <div id="listaMisji"></div>
+  <button id="btnMisjeWroc">← Wróć</button>
+</div>
+
+<!-- PANEL: KATALOG -->
+<div class="panelDol" id="panelKatalog" hidden>
+  <h2 id="katalogNazwa">—</h2>
+  <div id="katalogOpis">—</div>
+  <div id="katalogUnik">—</div>
+  <div class="katalogPrzyciski" id="katalogLista"></div>
+  <br><button id="btnKatalogWroc">← Wróć</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+/* — DIAGNOSTYKA: każdy błąd JS ląduje na ekranie (czerwony pasek) — */
+function pokazBlad(t){
+  let d=document.getElementById('bladOverlay');
+  if(!d){d=document.createElement('div');d.id='bladOverlay';
+    d.style.cssText='position:fixed;left:0;right:0;top:0;background:#c0392b;color:#fff;'+
+      'font:11px/1.4 monospace;padding:8px 10px;z-index:999;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    (document.body||document.documentElement).appendChild(d);}
+  d.textContent+=(d.textContent?'\n':'')+'BŁĄD: '+t;}
+addEventListener('error',e=>pokazBlad((e.message||e.type)+' @ linia '+(e.lineno||'?')));
+addEventListener('unhandledrejection',e=>pokazBlad('Promise: '+((e.reason&&e.reason.message)||e.reason)));
+
+/* — BAZA ASSETÓW: gra z pliku (file://) ciągnie grafiki z prodа — */
+const BAZA_ASSETOW=(location.protocol==='file:'||!location.hostname)
+  ?'https://biegamy.run/':'';
+function assetUrl(p){return BAZA_ASSETOW+p;}
+
+/* WARSTWY: CONFIG → RNG → AUDIO → TAMAGOTCHI/MISJE → KATALOG →
+   GENERATOR → INPUT → SYMULACJA → RENDER → GRA → window.DROGA */
+
+/* ---------- 1. CONFIG ---------- */
+const CFG={
+  PASY:[-2.3,0,2.3],GRACZ_Z:6,STREFA:[5.3,6.8],SPAWN_Z:-115,
+  PREDKOSC_BAZOWA:14.2,PREDKOSC_ETAP:0.075,
+  CZAS_PASA:0.13,SKOK:0.62,SKOK_WYS:1.8,PROG_PRZESKOKU:0.38,SALTO_BONUS:1.3,SLIZG:0.55,
+  NIETYKALNOSC:1.4,SERCA:3,ETAP_CZAS:60,ROZBIEG:2.5,WYBIEG:3.0,
+  MIN_GAP_GLOBAL:0.42,MIN_GAP_PAS:1.05,OKNO_BLOKADY:0.35,
+  ZNALEZISKA_NA_ETAP:2,LINIE_PIOR:4,PIOR_W_LINII:6,ODSTEP_PIOR:0.22,
+  ZAWODY:{KARA_HIT:3,BONUS_ZNAL:2,ZLOTO:57,SREBRO:63,BRAZ:69},
+  SLOWMO:0.42,SLOWMO_CZAS:0.55,
+  BUFOR:0.22,
+  FLOW_COMBO:6,
+};
+const lerp=(a,b,k)=>a+(b-a)*k,easeOut=k=>1-Math.pow(1-k,3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------- 2. RNG ---------- */
+function hashSeed(str){let h=1779033703^str.length;
+  for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  return()=>(h=Math.imul(h^h>>>16,2246822507),h=Math.imul(h^h>>>13,3266489909),(h^=h>>>16)>>>0);}
+function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const rngZSeed=s=>mulberry32(hashSeed(s)());
+
+/* ---------- 3. AUDIO ---------- */
+const Dzwiek=(()=>{
+  let ctx=null,wyciszony=false,muzTimer=null,muzKrok=0,szumBuf=null,wiatrSrc=null,wiatrGain=null,flowOn=false;
+  const AKORDY=[[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196],[196,246.94,293.66]];
+  const PENTA=[220,261.63,293.66,329.63,392,440];
+  function odpal(){if(!ctx){try{ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){}}
+    if(ctx&&ctx.state==='suspended')ctx.resume();}
+  function ton(f,czas,typ='square',gl=0.12,slide=0,op=0){
+    if(!ctx||wyciszony)return;
+    const t0=ctx.currentTime+op,o=ctx.createOscillator(),g=ctx.createGain();
+    o.type=typ;o.frequency.setValueAtTime(f,t0);
+    if(slide)o.frequency.linearRampToValueAtTime(Math.max(40,f+slide),t0+czas);
+    g.gain.setValueAtTime(gl,t0);g.gain.exponentialRampToValueAtTime(0.001,t0+czas);
+    o.connect(g).connect(ctx.destination);o.start(t0);o.stop(t0+czas+0.02);}
+  return{
+    odpal,przelacz(){wyciszony=!wyciszony;return wyciszony;},
+    skok(){ton(430,.13,'square',.09,260);},
+    slizg(){ton(240,.16,'sawtooth',.06,-120);},
+    trafienie(){ton(150,.22,'sawtooth',.16,-70);ton(95,.25,'square',.1,-30,.03);},
+    znal(){ton(660,.09,'sine',.11);ton(880,.09,'sine',.11,0,.08);ton(1320,.14,'sine',.11,0,.16);},
+    pioro(n){ton(500+Math.min(n,14)*40,.07,'sine',.08);},           // seria = coraz wyżej!
+    oWlos(){ton(980,.1,'sine',.1,-400);},
+    klakson(){ton(440,.2,'square',.13);ton(349,.24,'square',.11,0,.03);},
+    salto(){ton(520,.2,'sine',.11,520);},
+    tarcza(){ton(340,.16,'square',.12);ton(680,.12,'square',.08,0,.06);},
+    gwizd(){ton(1500,.11,'sine',.09,420);ton(1900,.09,'sine',.07,-300,.12);},
+    combo(){ton(700,.08,'square',.09);ton(1050,.1,'square',.09,0,.07);},
+    dzyn(){ton(1710,.07,'sine',.1);ton(1710,.07,'sine',.08,0,.11);},
+    fanfara(){[523,659,784,1047].forEach((f,i)=>ton(f,.18,'square',.1,0,i*.13));},
+    medal(){[784,988,1175,1568].forEach((f,i)=>ton(f,.22,'sine',.12,0,i*.15));},
+    karmienie(){ton(392,.1,'sine',.1);ton(523,.14,'sine',.1,0,.09);},
+    bloto(){ton(120,.18,'sine',.13,-40);ton(88,.22,'sine',.1,0,.05);},
+    muzykaStart(){odpal();if(!ctx||muzTimer)return;muzKrok=0;
+      muzTimer=setInterval(()=>{
+        if(wyciszony)return;
+        const ak=AKORDY[Math.floor(muzKrok/4)%AKORDY.length];
+        if(muzKrok%4===0)ak.forEach((f,i)=>ton(f/2,2.3,'sawtooth',0.016,0,i*0.012));
+        const nuta=PENTA[Math.floor(Math.random()*PENTA.length)];
+        if(Math.random()<(flowOn?0.85:0.45))ton(nuta,0.22,'sine',0.045);
+        if(flowOn&&Math.random()<0.5)ton(nuta*2,0.18,'sine',0.03,0,0.11);
+        muzKrok++;},500);},
+    muzykaStop(){clearInterval(muzTimer);muzTimer=null;},
+    krok(){if(!ctx||wyciszony)return;
+      if(!szumBuf){szumBuf=ctx.createBuffer(1,2205,44100);
+        const d=szumBuf.getChannelData(0);
+        for(let i=0;i<2205;i++)d[i]=(Math.random()*2-1)*(1-i/2205);}
+      const src=ctx.createBufferSource();src.buffer=szumBuf;
+      const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=340;
+      const g=ctx.createGain();g.gain.value=0.11;
+      src.connect(f);f.connect(g);g.connect(ctx.destination);src.start();},
+    wiatrStart(){odpal();if(!ctx||wiatrSrc)return;
+      const buf=ctx.createBuffer(1,44100,44100);
+      const d=buf.getChannelData(0);
+      for(let i=0;i<44100;i++)d[i]=Math.random()*2-1;
+      wiatrSrc=ctx.createBufferSource();wiatrSrc.buffer=buf;wiatrSrc.loop=true;
+      const f=ctx.createBiquadFilter();f.type='bandpass';
+      f.frequency.value=480;f.Q.value=0.6;
+      wiatrGain=ctx.createGain();wiatrGain.gain.value=0;
+      wiatrSrc.connect(f);f.connect(wiatrGain);wiatrGain.connect(ctx.destination);
+      wiatrSrc.start();},
+    wiatrSila(v){if(wiatrGain)wiatrGain.gain.value=wyciszony?0:v;},
+    wiatrStop(){if(wiatrSrc){try{wiatrSrc.stop();}catch(e){}wiatrSrc=null;wiatrGain=null;}},
+    setFlow(v){flowOn=v;},
+    flowStart(){[523,659,784,1047,1319].forEach((f,i)=>ton(f,.16,'sine',.08,0,i*.07));},
+    flowStop(){ton(392,.3,'sine',.07,-60);},
+  };
+})();
+
+/* ---------- 4. TAMAGOTCHI + MISJE + WYGLĄD ---------- */
+const KOLORY={
+  pomarancz:{nazwa:'Pomarańcz BiegaMy',cialo:0xe8561e,ciemny:0xb23c0f,emoji:'🟠',odblok:true},
+  blekit:{nazwa:'Błękit poranka',cialo:0x3f7fc4,ciemny:0x27568c,emoji:'🔵',odblok:true},
+  zielen:{nazwa:'Zieleń traili',cialo:0x4a9c5e,ciemny:0x2e6b3e,emoji:'🟢',odblok:false,jak:'misja „Ślizgacz"'},
+  roz:{nazwa:'Róż świtu',cialo:0xc45a8a,ciemny:0x8c3a60,emoji:'🩷',odblok:false,jak:'misja „Czujne oko"'},
+  noc:{nazwa:'Granat nocnego biegu',cialo:0x2e3a6e,ciemny:0x1c2444,emoji:'🌌',odblok:false,jak:'misja „Skrzydlaty"'},
+  sniezny:{nazwa:'Śnieżny puch',cialo:0xe6ebf2,ciemny:0xb8c2d4,emoji:'⚪',odblok:false,jak:'Sklep u Zyzi'},
+  zorza:{nazwa:'Fiolet zorzy',cialo:0x7a5ac8,ciemny:0x53398c,emoji:'🟣',odblok:false,jak:'Sklep u Zyzi'},
+};
+const AKCESORIA={
+  opaska:{nazwa:'Opaska biegowa',emoji:'🎽',odblok:true},           // jedno od startu — kreator żyje od 1. wejścia
+  okulary:{nazwa:'Okulary słoneczne',emoji:'🕶️',odblok:false,jak:'misja „Czysty bieg"'},
+  chustka:{nazwa:'Chustka na szyję',emoji:'🧣',odblok:false,jak:'misja „Wytrwałość"'},
+  czubZloty:{nazwa:'Złoty czubek',emoji:'👑',odblok:false,jak:'złoto w Zawodach'},
+  czapka:{nazwa:'Czapka z daszkiem',emoji:'🧢',odblok:false,jak:'misja „Akrobata"'},
+  plecak:{nazwa:'Plecaczek biegowy',emoji:'🎒',odblok:false,jak:'Sklep u Zyzi'},
+};
+/* — EWOLUCJA: stadia napędzane realnymi km (nie XP!) — */
+const STADIA={
+  pisklak:{nazwa:'Pisklak', skala:0.78, puch:true,  fan:false, opis:'ciekawy świata'},
+  mlody:  {nazwa:'Młody',   skala:1.0,                          opis:'pełen energii'},
+  dorosly:{nazwa:'Dorosły', skala:1.07,                         opis:'doświadczony biegacz'},
+  mistrz: {nazwa:'Mistrz',  skala:1.10, bluza:true,             opis:'mistrz swojego rytmu'},
+  legenda:{nazwa:'Legenda', skala:1.14, bluza:true, zloty:true, aura:true, opis:'stanął na starcie Wielkich Igrzysk'},
+};
+const PROGI_EWOLUCJI=[['pisklak',0],['mlody',30],['dorosly',100],['mistrz',300],['legenda',600]];
+/* — NPC: mieszkańcy parku, patroni misji — */
+const NPC={
+  orzel:{nazwa:'Orzeł, gospodarz parku',emoji:'🦅',motto:'Czysto i z głową — tak się biega'},
+  kura:{nazwa:'Kura Agata',emoji:'🐔',motto:'Czujność to też forma regeneracji'},
+  wiewiorka:{nazwa:'Wiewiórka Zyzia',emoji:'🐿️',motto:'Kto zbiera, ten ma!'},
+  zolw:{nazwa:'Żółw Maraton',emoji:'🐢',motto:'Powoli, ale do celu'},
+  zajac:{nazwa:'Zając Błysk',emoji:'🐇',motto:'Szybkość to odwaga w nogach'},
+};
+const Biegus={
+  imie:'Bieguś',kolor:'pomarancz',zalozone:new Set(['opaska']),kolekcja:new Set(),ukonczone:new Set(),
+  statystyki:{piora:0,uniki:0,rekordSerii:0},
+  portfelPior:0,
+  garderoba:new Set(),ubrane:{},
+  boostery:{tarcza:0,magnes:0,x2:0},
+  uzyj:{tarcza:false,magnes:false,x2:false},
+  bonusTreningu:0,
+  najedzenie:72,wiez:8,laczneKm:0,
+  stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
+  nastroj(){const s=this.stan();
+    if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
+    if(s==='ok')return 'W porządku, ale zerka na Twoje buty. Trening by nie zaszkodził.';
+    return 'Głodny biegowych kilometrów… Biegnie, bo Cię lubi, ale bez ikry. Nakarm go treningiem.';},
+  stadium(){
+    for(let i=PROGI_EWOLUCJI.length-1;i>=0;i--)
+      if(this.laczneKm>=PROGI_EWOLUCJI[i][1])return PROGI_EWOLUCJI[i][0];
+    return 'pisklak';},
+  trening(km){
+    const przed=this.stadium();
+    this.najedzenie=clamp(this.najedzenie+km*5,0,100);
+    this.wiez=clamp(this.wiez+2,0,100);
+    this.laczneKm=+(this.laczneKm+km).toFixed(1);
+    this.bonusTreningu=Math.min(3,this.bonusTreningu+1);   // trening = najlepszy booster
+    Misje.zdarzenie('trening',km);Dzwiek.karmienie();
+    const po=this.stadium();
+    if(po!==przed){                            /* EWOLUCJA! */
+      try{R3.przebudujBiegusia();R3.odswiezPodgladBiegusia();}catch(e){}
+      Gra?.toast?.('🐣 <b>EWOLUCJA!</b> '+this.imie+' wyrósł: <b>'+STADIA[po].nazwa+'</b><br>'+STADIA[po].opis+' — wybiegane '+this.laczneKm+' km');
+      Dzwiek.medal();
+    }},
+  poEtapie(piora=0){this.najedzenie=clamp(this.najedzenie-6+piora*0.15,0,100);
+    this.wiez=clamp(this.wiez+1,0,100);},
+};
+const MISJE=[
+  {id:'czysty',npc:'orzel',tekst:'Czysty bieg — ukończ etap bez utraty serca',cel:1,licznik:0,
+    nagroda:()=>{AKCESORIA.okulary.odblok=true;},nagrodaTekst:'🕶️ Okulary słoneczne'},
+  {id:'kolekcjoner',npc:'wiewiorka',tekst:'Kolekcjoner — zbierz 6 znalezisk',cel:6,licznik:0,
+    nagroda:()=>{},nagrodaTekst:'kolekcja Biegusia (R7 — na razie honor)'},
+  {id:'slizgacz',npc:'zajac',tekst:'Ślizgacz — prześlizgnij się pod 8 przeszkodami',cel:8,licznik:0,
+    nagroda:()=>{KOLORY.zielen.odblok=true;},nagrodaTekst:'🟢 Zieleń traili'},
+  {id:'czujneOko',npc:'kura',tekst:'Czujne oko — omiń 10 rowerzystów',cel:10,licznik:0,
+    nagroda:()=>{KOLORY.roz.odblok=true;},nagrodaTekst:'🩷 Róż świtu'},
+  {id:'skrzydlaty',npc:'wiewiorka',tekst:'Skrzydlaty — zbierz 60 piór',cel:60,licznik:0,
+    nagroda:()=>{KOLORY.noc.odblok=true;},nagrodaTekst:'🌌 Granat nocnego biegu'},
+  {id:'zloto',npc:'zajac',tekst:'Mistrz parku — zdobądź złoto w Zawodach',cel:1,licznik:0,
+    nagroda:()=>{AKCESORIA.czubZloty.odblok=true;},nagrodaTekst:'👑 Złoty czubek'},
+  {id:'wytrwalosc',npc:'zolw',tekst:'Wytrwałość — wbiegaj 30 km realnych treningów',cel:30,licznik:0,
+    nagroda:()=>{AKCESORIA.chustka.odblok=true;},nagrodaTekst:'🧣 Chustka na szyję'},
+  {id:'akrobata',npc:'zajac',tekst:'Akrobata — wykonaj 12 salt',cel:12,licznik:0,
+    nagroda:()=>{AKCESORIA.czapka.odblok=true;},nagrodaTekst:'🧢 Czapka z daszkiem'},
+];
+const Misje={
+  zdarzenie(typ,ile=1){
+    const mapa={perfekt:'czysty',znal:'kolekcjoner',slizgSzlaban:'slizgacz',
+      ominietyRower:'czujneOko',pioro:'skrzydlaty',zlotyMedal:'zloto',trening:'wytrwalosc',salto:'akrobata'};
+    const m=MISJE.find(x=>x.id===mapa[typ]);
+    if(!m||m.licznik>=m.cel)return;
+    m.licznik=Math.min(m.cel,m.licznik+(typ==='trening'?ile:1));
+    if(m.licznik>=m.cel){m.nagroda();
+      Gra?.toast?.('🏆 <b>Misja ukończona:</b> '+m.tekst.split(' — ')[0]+'<br>Nagroda: <b>'+m.nagrodaTekst+'</b>'+(m.npc?'<br>'+NPC[m.npc].emoji+' '+NPC[m.npc].nazwa+': „'+NPC[m.npc].motto+'\u201d':''));
+      Dzwiek.medal();}
+  },
+};
+
+/* ---------- Pomocnicy 3D ---------- */
+const MAT={};
+function mat(kolor,opcje={}){const k=kolor+JSON.stringify(opcje);
+  if(!MAT[k])MAT[k]=new THREE.MeshLambertMaterial({color:kolor,...opcje});return MAT[k];}
+function klocek(sx,sy,sz,kolor,x=0,y=0,z=0){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(sx,sy,sz),mat(kolor));m.position.set(x,y,z);return m;}
+function walec(r1,r2,h,kolor,x=0,y=0,z=0,seg=8){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,seg),mat(kolor));m.position.set(x,y,z);return m;}
+let TEX_GLOW=null;
+function teksturaGlow(){if(TEX_GLOW)return TEX_GLOW;
+  const c=document.createElement('canvas');c.width=c.height=64;
+  const g=c.getContext('2d'),gr=g.createRadialGradient(32,32,2,32,32,32);
+  gr.addColorStop(0,'rgba(255,214,140,.9)');gr.addColorStop(1,'rgba(255,214,140,0)');
+  g.fillStyle=gr;g.fillRect(0,0,64,64);
+  return TEX_GLOW=new THREE.CanvasTexture(c);}
+function poswiata(skala=3,kolor=0xffb54d){
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:teksturaGlow(),color:kolor,
+    transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  s.scale.set(skala,skala,1);return s;}
+const CIENIE_DYNAMICZNE=true;
+function cienBlob(r=0.7){
+  if(CIENIE_DYNAMICZNE)return new THREE.Group();
+  const m=new THREE.Mesh(new THREE.CircleGeometry(r,12),
+    new THREE.MeshBasicMaterial({color:0,transparent:true,opacity:.3,depthWrite:false}));
+  m.rotation.x=-Math.PI/2;m.position.y=0.02;return m;}
+
+/* ---------- 5. KATALOG OBIEKTÓW (7 przeszkód + pióro + znal) ----------
+   Progresja akcji: nowe typy wchodzą kolejnymi etapami (pole odEtapu). */
+const OBIEKTY={
+  kaluza:{
+    nazwa:'Kałuża po nocnym deszczu',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
+    opis:'Padało do trzeciej nad ranem. Kałuża wygląda niewinnie, ale Bieguś wie: mokre skarpety na 5. kilometrze to koniec dobrego humoru. Po tafli rozchodzą się kręgi — to krople z gałęzi nad nią.',
+    unikTekst:'▲ SKOK — przeskocz ją',
+    zbuduj(){
+      const g=new THREE.Group();
+      const tafla=new THREE.Mesh(new THREE.CircleGeometry(1.05,20),
+        new THREE.MeshLambertMaterial({color:0x3d5f88,emissive:0x18293f,transparent:true,opacity:.92}));
+      tafla.rotation.x=-Math.PI/2;tafla.position.y=0.04;tafla.scale.x=1.35;g.add(tafla);
+      const odblask=new THREE.Mesh(new THREE.CircleGeometry(0.4,12),
+        new THREE.MeshBasicMaterial({color:0xa06a8a,transparent:true,opacity:.5,depthWrite:false}));
+      odblask.rotation.x=-Math.PI/2;odblask.position.set(-0.25,0.05,-0.15);odblask.scale.x=1.6;g.add(odblask);
+      const kregi=[];
+      for(let i=0;i<2;i++){
+        const k=new THREE.Mesh(new THREE.RingGeometry(0.1,0.14,20),
+          new THREE.MeshBasicMaterial({color:0x9db8d8,transparent:true,opacity:.5,depthWrite:false}));
+        k.rotation.x=-Math.PI/2;k.position.y=0.06;g.add(k);kregi.push(k);}
+      g.userData.kregi=kregi;
+      g.add(klocek(0.14,0.1,0.14,0x5b6478,0.55,0.06,0.3));
+      g.add(klocek(0.1,0.08,0.1,0x707a90,-0.6,0.05,-0.25));
+      const lisc=klocek(0.16,0.02,0.1,0x9c7a3a,0.2,0.07,0.1);g.add(lisc);g.userData.lisc=lisc;
+      return g;},
+    animuj(g,t){
+      g.userData.kregi.forEach((k,i)=>{const f=((t*0.55+i*0.5)%1);
+        k.scale.setScalar(0.3+f*2.6);k.material.opacity=0.5*(1-f);});
+      g.userData.lisc.position.x=0.2+Math.sin(t*0.7)*0.25;
+      g.userData.lisc.rotation.y=t*0.4;},
+  },
+  szlaban:{
+    nazwa:'Parkowy szlaban',unik:'slizg',mult:1.0,waga:2,odEtapu:1,odCzasu:0,
+    opis:'Miasto zamyka aleję dla aut do 6:00, o czym informuje pordzewiały szlaban w biało-pomarańczowe pasy. Na belce przysiadł wróbel — jedyny świadek Twojego ślizgu.',
+    unikTekst:'▼ ŚLIZG — prześlizgnij się pod nim',
+    zbuduj(){
+      const g=new THREE.Group();
+      [-1.05,1.05].forEach(x=>{
+        g.add(klocek(0.16,1.1,0.16,0x2a2f3d,x,0.55,0));
+        g.add(klocek(0.34,0.14,0.34,0x555e70,x,0.07,0));
+        g.add(klocek(0.2,0.05,0.2,0x1c2029,x,1.12,0));});
+      for(let i=0;i<6;i++)
+        g.add(klocek(0.35,0.16,0.12,i%2?0x20242e:0xe8561e,-0.875+i*0.35,1.0,0));
+      const tab=klocek(0.4,0.26,0.03,0xc7cede,0.55,0.62,0.07);tab.rotation.z=-0.12;g.add(tab);
+      g.add(klocek(0.18,0.18,0.14,0x8a4a24,-1.05,1.0,0.02));
+      const wrobel=new THREE.Group();
+      wrobel.add(klocek(0.14,0.12,0.16,0x7a6a54));
+      wrobel.add(klocek(0.1,0.09,0.09,0x8a7a62,0,0.09,0.08));
+      wrobel.add(klocek(0.04,0.03,0.05,0xd8a03a,0,0.08,0.14));
+      wrobel.position.set(-0.55,1.14,0);g.add(wrobel);g.userData.wrobel=wrobel;
+      g.add(cienBlob(1.1));return g;},
+    animuj(g,t){g.rotation.y=Math.sin(t*0.8)*0.008;
+      const w=g.userData.wrobel;
+      w.position.y=1.14+Math.abs(Math.sin(t*5.5))*0.03;
+      w.rotation.y=Math.sin(t*1.3)*0.6;},
+  },
+  pies:{
+    nazwa:'Pies bez smyczy',unik:'pas',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
+    opis:'Waży sześć kilo i jest święcie przekonany, że ścieżka należy do niego. Nie jest groźny — jest ENTUZJASTYCZNY, a to dla tempa dużo gorsze. Merda całym sobą. Z psami się nie dyskutuje.',
+    unikTekst:'◀ ▶ ZMIANA PASA — omiń go szerokim łukiem',
+    zbuduj(){
+      const g=new THREE.Group();
+      g.add(klocek(0.42,0.34,0.72,0x8a6b4a,0,0.42,0));
+      g.add(klocek(0.34,0.3,0.3,0x8a6b4a,0,0.62,0.42));
+      g.add(klocek(0.3,0.1,0.14,0x6b5138,0,0.52,0.58));
+      g.add(klocek(0.06,0.06,0.04,0x111111,0,0.55,0.66));
+      [-0.1,0.1].forEach(x=>g.add(klocek(0.05,0.05,0.02,0x111111,x,0.68,0.57)));
+      const u1=klocek(0.1,0.18,0.05,0x6b5138,-0.12,0.82,0.38);
+      const u2=klocek(0.1,0.16,0.05,0x6b5138,0.14,0.74,0.4);u2.rotation.z=0.7;g.add(u1,u2);
+      const jezyk=klocek(0.09,0.03,0.14,0xd06a7a,0.06,0.47,0.62);jezyk.rotation.x=0.4;g.add(jezyk);
+      const lapy=[];
+      [[-0.14,0.28],[0.14,0.28],[-0.14,-0.26],[0.14,-0.26]].forEach(([x,z])=>{
+        const l=klocek(0.1,0.28,0.1,0x6b5138,x,0.14,z);g.add(l);lapy.push(l);});
+      g.userData.lapy=lapy;
+      const ogon=klocek(0.07,0.07,0.34,0x8a6b4a);
+      ogon.geometry.translate(0,0,-0.17);ogon.position.set(0,0.56,-0.34);
+      g.add(ogon);g.userData.ogon=ogon;
+      g.add(klocek(0.38,0.07,0.34,0xc0392b,0,0.56,0.32));
+      g.add(klocek(0.07,0.09,0.02,0xf8b34a,0,0.46,0.5));
+      g.add(cienBlob(0.55));return g;},
+    animuj(g,t){
+      g.userData.ogon.rotation.y=Math.sin(t*14)*0.7;
+      g.position.y=Math.abs(Math.sin(t*7))*0.05;
+      g.userData.lapy.forEach((l,i)=>l.position.y=0.14+Math.abs(Math.sin(t*7+i))*0.04);},
+  },
+  taczka:{
+    nazwa:'Taczka ogrodnika',unik:'skok',mult:1.0,waga:2,odEtapu:2,odCzasu:0,
+    opis:'Pan Heniek sadzi bratki od 5:30, bo „potem schodzą się ludzie i gadają". Taczka pełna ziemi stoi w poprzek ścieżki, a wystająca łopata dodaje jej powagi. Bieguś szanuje pana Heńka. Dlatego skacze.',
+    unikTekst:'▲ SKOK — nad taczką pana Heńka',
+    zbuduj(){
+      const g=new THREE.Group();
+      // koryto
+      g.add(klocek(0.9,0.34,0.6,0x2f7a4e,0,0.5,0));
+      g.add(klocek(0.8,0.1,0.5,0x4a3826,0,0.7,0));                 // ziemia
+      // kwiatek w ziemi (detal)
+      g.add(walec(0.02,0.02,0.16,0x3e6b34,0.15,0.82,0.1,5));
+      g.add(klocek(0.1,0.08,0.1,0xc45a8a,0.15,0.92,0.1));
+      // koło
+      const kolo=new THREE.Mesh(new THREE.TorusGeometry(0.22,0.06,8,14),mat(0x20242e));
+      kolo.rotation.y=Math.PI/2;kolo.position.set(0,0.24,0.42);g.add(kolo);g.userData.kolo=kolo;
+      // rączki i nóżki
+      [-0.34,0.34].forEach(x=>{
+        const r=klocek(0.06,0.06,0.7,0x8a6b4a,x,0.48,-0.4);r.rotation.x=-0.25;g.add(r);
+        g.add(klocek(0.06,0.3,0.06,0x555e70,x,0.2,-0.25));});
+      // łopata oparta (detal z opisu)
+      const lop=new THREE.Group();
+      lop.add(walec(0.03,0.03,0.9,0x8a6b4a,0,0.45,0,5));
+      lop.add(klocek(0.2,0.26,0.04,0x9aa4b8,0,0.98,0));
+      lop.rotation.z=0.5;lop.position.set(-0.5,0.1,0.15);g.add(lop);
+      g.add(cienBlob(0.75));return g;},
+    animuj(g,t){g.userData.kolo.rotation.z=Math.sin(t*0.6)*0.1;},
+  },
+  galaz:{
+    nazwa:'Gałąź po wichurze',unik:'slizg',mult:1.0,waga:2,odEtapu:3,odCzasu:0,
+    opis:'Nocna wichura zdjęła ją z osiemdziesięcioletniego dębu i położyła dokładnie na wysokości czoła biegacza. Służby parkowe przyjadą „w godzinach porannych". Świt to jeszcze nie poranek. Ślizg.',
+    unikTekst:'▼ ŚLIZG — pod gałęzią (uwaga na liście!)',
+    zbuduj(){
+      const g=new THREE.Group();
+      const pien=walec(0.09,0.13,2.4,0x4a3826,0,1.05,0,7);
+      pien.rotation.z=Math.PI/2;pien.rotation.y=0.15;g.add(pien);
+      // sęki i mniejsze gałązki
+      [[-0.7,0.2],[0.2,-0.3],[0.8,0.25]].forEach(([x,ry])=>{
+        const s=walec(0.03,0.05,0.5,0x4a3826,x,1.2,0,5);
+        s.rotation.z=0.9;s.rotation.y=ry;g.add(s);});
+      // kępy liści — drżą w animuj
+      const liscie=[];
+      [[-0.8,1.35],[0.1,1.45],[0.85,1.3]].forEach(([x,y])=>{
+        const l=new THREE.Mesh(new THREE.SphereGeometry(0.26,7,6),mat(0x2e5a38));
+        l.position.set(x,y,0.05);g.add(l);liscie.push(l);});
+      g.userData.liscie=liscie;
+      // opadający liść (detal)
+      const spadajacy=klocek(0.12,0.02,0.09,0x9c7a3a);g.add(spadajacy);g.userData.spad=spadajacy;
+      g.add(cienBlob(1.15));return g;},
+    animuj(g,t){
+      g.userData.liscie.forEach((l,i)=>l.position.y+=Math.sin(t*3+i*2)*0.0015);
+      const f=(t*0.35)%1;
+      g.userData.spad.position.set(Math.sin(t*2)*0.3,1.4-f*1.3,0.2);
+      g.userData.spad.rotation.z=t*3;},
+  },
+  kosz:{
+    nazwa:'Przewrócony kosz',unik:'pas',mult:1.0,waga:2,odEtapu:4,odCzasu:0,
+    opis:'Nocą przewróciła go wiewiórka. Albo wiatr. Albo wiewiórka z wiatrem w żaglach — śledztwo trwa. Z kosza wytoczyło się jabłko, a nad całością krąży osa, która uważa, że to teraz jej rewir.',
+    unikTekst:'◀ ▶ ZMIANA PASA — osa nie negocjuje',
+    zbuduj(){
+      const g=new THREE.Group();
+      const kubel=walec(0.34,0.4,0.85,0x3a5a44,0,0.36,0,10);
+      kubel.rotation.z=Math.PI/2-0.25;kubel.position.set(0.1,0.34,0);g.add(kubel);
+      g.add(klocek(0.5,0.06,0.5,0x2a4434,-0.38,0.3,0));            // pokrywa obok
+      // jabłko, które się wytoczyło
+      const jablko=new THREE.Mesh(new THREE.SphereGeometry(0.13,8,7),mat(0xb83a3a));
+      jablko.position.set(0.7,0.13,0.35);g.add(jablko);g.userData.jablko=jablko;
+      // papierek (detal)
+      g.add(klocek(0.14,0.02,0.12,0xc7cede,-0.5,0.04,0.4));
+      // osa krążąca
+      const osa=new THREE.Group();
+      osa.add(klocek(0.1,0.08,0.14,0xd8a03a));
+      osa.add(klocek(0.1,0.02,0.06,0x20242e,0,0.01,0));
+      const skrzydelka=klocek(0.18,0.01,0.08,0xc7cede,0,0.06,0);
+      osa.add(skrzydelka);osa.userData.skrz=skrzydelka;
+      g.add(osa);g.userData.osa=osa;
+      g.add(cienBlob(0.7));return g;},
+    animuj(g,t){
+      const o=g.userData.osa;
+      o.position.set(Math.cos(t*2.2)*0.55,0.8+Math.sin(t*5)*0.08,Math.sin(t*2.2)*0.4);
+      o.rotation.y=-t*2.2+Math.PI/2;
+      o.userData.skrz.rotation.x=Math.sin(t*40)*0.6;
+      g.userData.jablko.rotation.z=Math.sin(t*0.8)*0.3;},
+  },
+  segment:{
+    nazwa:'Segment specjalny',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,
+    dekor:true,walidacja:false,ukryj:true,
+    opis:'',unikTekst:'',zbuduj(){return new THREE.Group();},
+    animuj(g,t){if(g.userData.autko){                                 // autko wahadłowe pod kładką
+      const a=g.userData.autko;
+      const x=Math.sin(t*0.55)*11;
+      a.position.x=x;a.rotation.y=Math.cos(t*0.55)>0?Math.PI/2:-Math.PI/2;}},
+  },
+  rozstajeKit:{
+    nazwa:'Rozstaje',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,
+    dekor:true,walidacja:false,ukryj:true,
+    opis:'',unikTekst:'',zbuduj(){return new THREE.Group();},animuj(g,t){},
+  },
+  klin:{
+    nazwa:'Klin rozstajów',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,walidacja:false,
+    opis:'Betonowy dziób, który rozcina ścieżkę na dwie. Ktoś wymalował na nim dwie strzałki i słowo „WYBIERZ" — słowo dawno zblakło, strzałki nie. Biegacze mówią, że klin słyszy, jak myślisz. Dlatego lepiej nie myśleć za długo.',
+    unikTekst:'◀ ▶ ROZSTAJE! Wybierz stronę TERAZ',
+    zbuduj(){
+      const g=new THREE.Group();
+      const dziob=new THREE.Mesh(new THREE.ConeGeometry(0.85,1.4,4),mat(0x8a93a8));
+      dziob.rotation.x=Math.PI/2;dziob.rotation.z=Math.PI/4;
+      dziob.position.set(0,0.35,1.0);dziob.scale.y=1.6;g.add(dziob);
+      const tab=klocek(1.3,0.62,0.1,0xf2c14e,0,1.15,0.9);g.add(tab);
+      g.add(klocek(0.4,0.13,0.12,0x1a2030,-0.3,1.15,0.96));
+      g.add(klocek(0.13,0.28,0.12,0x1a2030,-0.5,1.15,0.96));
+      g.add(klocek(0.4,0.13,0.12,0x1a2030,0.3,1.15,0.96));
+      g.add(klocek(0.13,0.28,0.12,0x1a2030,0.5,1.15,0.96));
+      g.add(walec(0.06,0.08,1.1,0x555e70,0,0.55,0.9,6));
+      g.add(cienBlob(0.9));return g;},
+    animuj(g,t){g.children[1].position.y=1.15+Math.sin(t*2.2)*0.03;},
+  },
+  wyspa:{ukryj:true,
+    nazwa:'Żywopłot decyzji',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,walidacja:false,
+    opis:'Rośnie dokładnie pośrodku, bo ktoś kiedyś nie mógł się zdecydować, którędy poprowadzić ścieżkę — więc poprowadził dwie. Żywopłot od lat podsłuchuje biegaczy wybierających stronę. Twierdzi, że lewi są odważniejsi. Prawi twierdzą inaczej.',
+    unikTekst:'◀ ▶ WYBIERZ STRONĘ — środek zajęty na dłużej',
+    zbuduj(){
+      const g=new THREE.Group();
+      return new THREE.Group();},                                   // fizyka — wizual daje rozstajeKit
+    animuj(g,t){},
+  },
+  znak:{
+    nazwa:'Znak rozwidlenia',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,dekor:true,walidacja:false,
+    opis:'Dwie strzałki, zero podpowiedzi. Ktoś, kto go stawiał, wierzył w wolność wyboru — albo skończyły mu się litery. Biegacze i tak decydują nogami, w ostatniej chwili, jak zawsze.',
+    unikTekst:'zapowiada rozwidlenie — sam nie przeszkadza',
+    zbuduj(){
+      const g=new THREE.Group();
+      g.add(walec(0.05,0.07,1.6,0x555e70,0,0.8,0,6));
+      const tab=klocek(1.0,0.5,0.08,0x1c4a8c,0,1.7,0);g.add(tab);
+      g.add(klocek(0.34,0.1,0.1,0xf6efe4,-0.24,1.7,0.05));
+      g.add(klocek(0.34,0.1,0.1,0xf6efe4,0.24,1.7,0.05));
+      g.add(klocek(0.1,0.22,0.1,0xf6efe4,-0.38,1.7,0.05));
+      g.add(klocek(0.1,0.22,0.1,0xf6efe4,0.38,1.7,0.05));
+      g.add(cienBlob(0.4));return g;},
+    animuj(g,t){},
+  },
+  zebra:{
+    nazwa:'Przejście dla pieszych',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:3,dekor:true,walidacja:false,
+    opis:'Białe pasy na jezdni. W teorii: miejsce, gdzie auta ustępują. W praktyce: miejsce, gdzie klakson brzmi głośniej. Świeżo odmalowane — miasto dba o formę, o treść mniej.',
+    unikTekst:'zapowiada przejazd auta — spójrz w bok!',
+    zbuduj(){
+      const g=new THREE.Group();
+      for(let i=0;i<6;i++)g.add(klocek(1.05,0.02,0.5,0xe8e4dc,-3.3+i*1.32,0.02,0));
+      return g;},
+    animuj(g,t){},
+  },
+  auto:{
+    nazwa:'Taryfa Nocna',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:3,walidacja:false,
+    opis:'Żółte taxi, zmiana od 22:00. Kierowca zna miasto lepiej niż własną kuchnię i skróty, których nie ma na mapach — na przykład ten przez twoją trasę. Klakson nie jest złośliwy, jest informacyjny: „jadę, a fizyka jest po mojej stronie". Skok nie pomoże. Pozycja pomoże.',
+    unikTekst:'🚖 KLAKSON! Zejdź z jego linii — SKOK NIE POMAGA',
+    zbuduj(){
+      const g=new THREE.Group();
+      g.add(klocek(2.5,0.55,1.15,0xf2c14e,0,0.52,0));                // nadwozie
+      g.add(klocek(1.3,0.45,1.05,0xe8b23a,0,1.0,0));                 // kabina
+      g.add(klocek(1.24,0.4,0.99,0x1a2030,0,1.02,0));                // szyby
+      g.add(klocek(0.5,0.18,0.5,0x20242e,0,1.3,0));                  // kogut
+      g.add(klocek(0.46,0.1,0.46,0xf6efe4,0,1.38,0));
+      for(let i=0;i<4;i++)g.add(klocek(0.14,0.14,0.14,i%2?0x20242e:0xf6efe4,-0.28+i*0.19,1.16,0.5)); // szachownica
+      const kola=[];
+      [[-0.85,0.5],[0.85,0.5],[-0.85,-0.5],[0.85,-0.5]].forEach(([x,z])=>{
+        const k=new THREE.Mesh(new THREE.TorusGeometry(0.2,0.09,8,14),mat(0x181c26));
+        k.position.set(x,0.24,z);k.rotation.x=Math.PI/2;g.add(k);kola.push(k);});
+      [[1.28,0.32],[1.28,-0.32]].forEach(([x,z])=>{
+        const r=new THREE.Mesh(new THREE.SphereGeometry(0.09,7,6),
+          new THREE.MeshBasicMaterial({color:0xfff2c0}));
+        r.position.set(x,0.55,z);g.add(r);
+        const snop=new THREE.Mesh(new THREE.PlaneGeometry(2.6,0.5),
+          new THREE.MeshBasicMaterial({color:0xfff2c0,transparent:true,opacity:0.16,
+            blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+        snop.position.set(x+1.4,0.5,z);snop.rotation.y=Math.PI/2;g.add(snop);});
+      g.add(cienBlob(1.5));
+      g.userData.kola=kola;return g;},
+    animuj(g,t){},
+  },
+  korzen:{
+    nazwa:'Korzeń starego dębu',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,odKrainy:2,
+    opis:'Dąb ma osiemdziesiąt lat i zero szacunku dla wytyczonych ścieżek. Jego korzeń wygina się dokładnie tam, gdzie biegacz stawia stopę — robił to na długo przed powstaniem parku i będzie robił długo po. Mech na grzbiecie świadczy, że wygrywa od dawna.',
+    unikTekst:'▲ SKOK — dąb się nie przesunie',
+    zbuduj(){
+      const g=new THREE.Group();
+      const seg=[[-0.7,0.14,0.28],[0,0.3,0],[0.7,0.16,-0.24]];
+      seg.forEach(([x,y,rz],i)=>{
+        const k=klocek(0.85,0.26,0.3,0x4a3826,x,y,0);k.rotation.z=rz*0.6;k.rotation.y=rz;g.add(k);
+        if(i===1)g.add(klocek(0.5,0.08,0.22,0x2e5238,x,y+0.16,0));
+      });
+      g.add(klocek(0.2,0.4,0.2,0x3a2c1e,-1.05,0.2,0.1));
+      g.add(klocek(0.12,0.1,0.4,0x4a3826,1.1,0.08,-0.2));
+      [[-0.3,0.44],[0,0.46],[0.25,0.42]].forEach(([x,y])=>g.add(klocek(0.03,0.03,0.03,0x1c140c,x,y,0.12)));
+      g.add(cienBlob(1.0));return g;},
+    animuj(g,t){g.children[3].rotation.y=Math.sin(t*0.3)*0.02;},
+  },
+  bloto:{
+    nazwa:'Leśne błoto',unik:'skok',miekka:true,mult:1.0,waga:2,odEtapu:2,odCzasu:0,odKrainy:2,
+    opis:'Miękkie, cierpliwe, pamięta każdego biegacza z ostatniej dekady. Nie robi krzywdy — leśne błoto nie zabiera serca. Zabiera za to styl, skarpetę honoru i całą serię uników. Bąbelki na powierzchni to jego sposób na śmiech.',
+    unikTekst:'▲ SKOK — albo CHLUP! (bez utraty serca, ale seria pęka)',
+    zbuduj(){
+      const g=new THREE.Group();
+      const tafla=new THREE.Mesh(new THREE.CircleGeometry(1.0,18),
+        new THREE.MeshLambertMaterial({color:0x4a3a28,emissive:0x1c130a}));
+      tafla.rotation.x=-Math.PI/2;tafla.position.y=0.045;tafla.scale.x=1.4;g.add(tafla);
+      const obw=new THREE.Mesh(new THREE.RingGeometry(1.0,1.16,18),mat(0x3a2c1e));
+      obw.rotation.x=-Math.PI/2;obw.position.y=0.04;obw.scale.x=1.4;g.add(obw);
+      const bable=[];
+      [[-0.4,0],[0.3,0.25],[0.1,-0.3]].forEach(([x,z])=>{
+        const b=new THREE.Mesh(new THREE.SphereGeometry(0.08,7,6),mat(0x5a4632));
+        b.position.set(x,0.05,z);g.add(b);bable.push(b);});
+      g.userData.bable=bable;
+      g.add(klocek(0.16,0.03,0.4,0x6b5a3a,0.55,0.06,0.2));
+      return g;},
+    animuj(g,t){g.userData.bable.forEach((b,i)=>{
+      const f=((t*0.5+i*0.37)%1);
+      b.position.y=0.02+f*0.09;b.scale.setScalar(f<0.9?0.6+f*0.5:0.1);});},
+  },
+  glaz:{
+    nazwa:'Głaz z przełęczy',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,odKrainy:4,
+    opis:'Stoczył się tu jesienią, w nocy, gdy nikt nie patrzył — góry robią swoje rzeczy dyskretnie. Ratownicy oznaczyli go czerwoną kropką i uznali za element krajobrazu. Mech już się wprowadza. Głaz nigdzie się nie wybiera.',
+    unikTekst:'▲ SKOK — góra dała, góra nie zabierze',
+    zbuduj(){
+      const g=new THREE.Group();
+      const gl=new THREE.Mesh(new THREE.SphereGeometry(0.62,7,6),mat(0x6a7288));
+      gl.scale.set(1.15,0.72,0.95);gl.position.y=0.4;gl.rotation.y=0.6;g.add(gl);
+      const gl2=new THREE.Mesh(new THREE.SphereGeometry(0.3,6,5),mat(0x5a6278));
+      gl2.position.set(0.6,0.2,0.25);g.add(gl2);
+      g.add(klocek(0.14,0.14,0.02,0xc0392b,-0.2,0.62,0.52));        // czerwona kropka ratowników
+      g.add(klocek(0.3,0.05,0.24,0x2e5238,0.1,0.76,-0.1));          // mech się wprowadza
+      g.add(cienBlob(0.9));return g;},
+    animuj(g,t){},
+  },
+  lina:{
+    nazwa:'Lina zabezpieczeń',unik:'slizg',mult:1.0,waga:2,odEtapu:2,odCzasu:0,odKrainy:4,
+    opis:'Rozpięta między palikami przez kogoś, kto wierzył, że turyści czytają znaki. Wisi na wysokości dokładnie niewygodnej. Na wietrze buczy cicho jak struna — góry mają swój instrument.',
+    unikTekst:'▼ ŚLIZG — pod struną gór',
+    zbuduj(){
+      const g=new THREE.Group();
+      [-1.0,1.0].forEach(x=>{
+        const palik=klocek(0.1,1.15,0.1,0xc0392b,x,0.57,0);g.add(palik);
+        g.add(klocek(0.1,0.22,0.1,0xf6efe4,x,0.95,0));
+        g.add(klocek(0.24,0.08,0.24,0x555e70,x,0.04,0));});
+      const lina=klocek(2.0,0.05,0.05,0xd8cfc0,0,1.0,0);g.add(lina);g.userData.lina=lina;
+      const chor=klocek(0.16,0.12,0.02,0xe8561e,-0.3,0.92,0.03);g.add(chor);g.userData.chor=chor;
+      g.add(cienBlob(1.0));return g;},
+    animuj(g,t){
+      g.userData.lina.position.y=1.0+Math.sin(t*6)*0.015;           // buczy jak struna
+      g.userData.chor.rotation.y=Math.sin(t*7)*0.5;},
+  },
+  swistak:{
+    nazwa:'Świstak-obserwator',unik:'pas',mult:1.0,waga:3,odEtapu:1,odCzasu:0,odKrainy:4,
+    opis:'Siedzi na środku szlaku, bo z środka najlepiej widać. Gwiżdże na twój widok — nie ze strachu, z obowiązku: ktoś musi ogłaszać, że coś biegnie. Nie ruszy się. Świstaki nie ustępują, świstaki komentują.',
+    unikTekst:'◀ ▶ ZMIANA PASA — usłyszysz „fiiit!"',
+    zbuduj(){
+      const g=new THREE.Group();
+      g.add(klocek(0.4,0.5,0.36,0x9a7a52,0,0.34,0));
+      g.add(klocek(0.34,0.26,0.3,0xb08a5e,0,0.7,0.05));
+      g.add(klocek(0.3,0.2,0.06,0xd8c4a0,0,0.28,0.19));             // jasny brzuszek
+      [-0.08,0.08].forEach(x=>g.add(klocek(0.05,0.05,0.02,0x111111,x,0.76,0.2)));
+      g.add(klocek(0.08,0.05,0.03,0x3a2c1e,0,0.66,0.21));
+      [[-0.12],[0.12]].forEach(([x])=>g.add(klocek(0.09,0.1,0.06,0x9a7a52,x,0.86,0)));
+      const lapki=klocek(0.3,0.08,0.1,0x7a6244,0,0.12,0.16);g.add(lapki);
+      g.add(cienBlob(0.45));g.userData.cialo=g.children[0];return g;},
+    animuj(g,t){
+      const gwizd=(t%3)<0.3;                                        // co 3 s prostuje się i gwiżdże
+      g.scale.y=gwizd?1.12:1+Math.sin(t*3)*0.02;},
+  },
+  walizka:{
+    nazwa:'Walizka bez właściciela',unik:'skok',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:3,
+    opis:'Stoi na peronie od 7:42. Właściciel wsiadł, walizka nie zdążyła — i tak już zostało. Ma naklejki z pięciu krajów i kółka, które skrzypią do rytmu zapowiedzi. Obsługa dworca uznała ją za element architektury. Ona uznała to za awans.',
+    unikTekst:'▲ SKOK — bagaż podręczny, przeszkoda pełnowymiarowa',
+    zbuduj(){
+      const g=new THREE.Group();
+      g.add(klocek(0.7,0.95,0.4,0x8a4a3a,0,0.56,0));
+      g.add(klocek(0.72,0.1,0.42,0x6b3a2e,0,0.34,0));
+      g.add(klocek(0.72,0.1,0.42,0x6b3a2e,0,0.8,0));
+      g.add(klocek(0.3,0.09,0.09,0x3a2c22,0,1.12,0));                 // rączka
+      [[-0.2,0.66,0x2a63b8],[0.14,0.5,0xe8b34a],[0.02,0.78,0xf0eee2]].forEach(([x,y,c])=>
+        g.add(klocek(0.16,0.12,0.02,c,x,y,0.21)));                    // naklejki z podróży
+      [[-0.24],[0.24]].forEach(([x])=>{
+        const k=new THREE.Mesh(new THREE.TorusGeometry(0.07,0.03,6,10),mat(0x20242e));
+        k.position.set(x,0.07,0);k.rotation.y=Math.PI/2;g.add(k);});
+      g.add(cienBlob(0.55));return g;},
+    animuj(g,t){g.rotation.z=Math.sin(t*1.8)*0.02;},
+  },
+  pacholek:{
+    nazwa:'Pachołek drogowy',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,odKrainy:3,
+    opis:'Stoi tu od remontu, którego nikt nie pamięta. Remontu nie ma, pachołka nikt nie zabrał — w mieście rzeczy zostają tam, gdzie je postawiono. Nocą ktoś dokleił mu naklejkę z piorunem. Teraz ma osobowość.',
+    unikTekst:'▲ SKOK — pachołek nie ustąpi, ma staż',
+    zbuduj(){
+      const g=new THREE.Group();
+      const stozek=walec(0.05,0.3,0.75,0xe8561e,0,0.4,0,10);g.add(stozek);
+      g.add(walec(0.19,0.21,0.1,0xf6efe4,0,0.42,0,10));
+      g.add(klocek(0.66,0.06,0.66,0xd94f1a,0,0.03,0));
+      g.add(klocek(0.12,0.14,0.02,0xf8b34a,0.06,0.5,0.23));         // naklejka z piorunem
+      g.add(cienBlob(0.5));g.userData.stozek=stozek;return g;},
+    animuj(g,t){g.rotation.z=Math.sin(t*1.4)*0.03;},                 // chwieje się od przeciągu
+  },
+  barierka:{
+    nazwa:'Barierka z remontu',unik:'slizg',mult:1.0,waga:2,odEtapu:2,odCzasu:0,odKrainy:3,
+    opis:'Metalowa, zimna, w żółto-czarne pasy. Odgradzała wykop, potem nic, teraz odgradza ideę wykopu. Miejscy gołębie traktują ją jak trybunę. Ślizg pod nią to miejski rytuał przejścia.',
+    unikTekst:'▼ ŚLIZG — miejski rytuał przejścia',
+    zbuduj(){
+      const g=new THREE.Group();
+      [-0.95,0.95].forEach(x=>{g.add(klocek(0.09,1.0,0.09,0x555e70,x,0.5,0));
+        g.add(klocek(0.3,0.08,0.3,0x3a4152,x,0.04,0));});
+      for(let i=0;i<5;i++)
+        g.add(klocek(0.4,0.14,0.08,i%2?0x20242e:0xf8b34a,-0.8+i*0.4,0.95,0));
+      g.add(klocek(1.9,0.07,0.07,0x555e70,0,0.55,0));
+      const golab=new THREE.Group();                                  // gołąb na trybunie
+      golab.add(klocek(0.14,0.12,0.18,0x8b93ad));
+      golab.add(klocek(0.09,0.09,0.09,0x707a90,0,0.09,0.08));
+      golab.position.set(0.55,1.05,0);g.add(golab);g.userData.golab=golab;
+      g.add(cienBlob(1.0));return g;},
+    animuj(g,t){const go=g.userData.golab;
+      go.rotation.y=Math.sin(t*0.9)*0.8;
+      go.position.y=1.05+((t*2%7)<0.15?0.06:0);},                     // czasem podskoczy
+  },
+  hulajnoga:{
+    nazwa:'Hulajnoga-widmo',unik:'pas',mult:1.5,waga:2,odEtapu:3,odCzasu:12,odKrainy:3,
+    opis:'Elektryczna, wypożyczona, porzucona — a mimo to JEDZIE. Nikt nie wie dokąd. Aplikacja twierdzi, że stoi na Głównej. Miasto ma swoje duchy; ten akurat robi 25 na godzinę i dzwoni „brzdęk", jakby przepraszał.',
+    unikTekst:'◀ ▶ ZMIANA PASA — usłyszysz „brzdęk!" (×1.5 prędkości)',
+    zbuduj(){
+      const g=new THREE.Group();
+      g.add(klocek(0.24,0.06,0.9,0x2a2f3d,0,0.14,0));                 // deck
+      [-0.35,0.42].forEach(z=>{const k=new THREE.Mesh(new THREE.TorusGeometry(0.12,0.045,8,12),mat(0x20242e));
+        k.rotation.y=Math.PI/2;k.position.set(0,0.12,z);g.add(k);g.userData['k'+z]=k;});
+      const sztyca=klocek(0.06,0.95,0.06,0x8b93ad,0,0.6,0.42);sztyca.rotation.x=-0.12;g.add(sztyca);
+      g.add(klocek(0.44,0.05,0.05,0x20242e,0,1.08,0.36));
+      const lampka=klocek(0.07,0.07,0.05,0x9adfff,0,1.0,0.44);g.add(lampka);
+      const gl=poswiata(1.3,0x9adfff);gl.position.set(0,1.0,0.55);g.add(gl);
+      g.add(cienBlob(0.5));return g;},
+    animuj(g,t){g.rotation.z=Math.sin(t*5)*0.04;                      // duch balansuje sam
+      g.children[1].rotation.x=t*10;g.children[2].rotation.x=t*10;},
+  },
+  rower:{
+    nazwa:'Rowerzysta o świcie',unik:'pas',mult:1.6,waga:2,odEtapu:1,odCzasu:15,
+    opis:'Jedzie do pracy na 6:30 i NIE zamierza hamować. Przednia lampka, odblaskowa kamizelka, dzwonek używany jako klakson. Jest o połowę szybszy niż wszystko inne w parku — usłyszysz „dzyń!", zanim go zobaczysz.',
+    unikTekst:'◀ ▶ ZMIANA PASA — i to WCZEŚNIE (×1.6 prędkości!)',
+    zbuduj(){
+      const g=new THREE.Group();
+      const kola=[];
+      [[0,0.42,0.55],[0,0.42,-0.55]].forEach(([x,y,z])=>{
+        const kolo=new THREE.Group();
+        kolo.add(new THREE.Mesh(new THREE.TorusGeometry(0.4,0.07,8,16),mat(0x20242e)));
+        for(let i=0;i<3;i++){const sz=klocek(0.03,0.74,0.03,0x555e70);sz.rotation.z=i*Math.PI/3;kolo.add(sz);}
+        kolo.rotation.y=Math.PI/2;kolo.position.set(x,y,z);g.add(kolo);kola.push(kolo);});
+      g.userData.kola=kola;
+      const r1=klocek(0.06,0.06,0.75,0xe8561e,0,0.62,0);r1.rotation.x=0.35;g.add(r1);
+      g.add(klocek(0.06,0.5,0.06,0xe8561e,0,0.75,-0.4));
+      g.add(klocek(0.3,0.06,0.06,0x20242e,0,1.02,0.5));
+      g.add(klocek(0.24,0.05,0.14,0x20242e,0,1.0,-0.42));
+      const korpus=new THREE.Mesh(new THREE.BoxGeometry(0.34,0.5,0.24),
+        new THREE.MeshLambertMaterial({color:0xd9e021,emissive:0x4a4d0a}));
+      korpus.position.set(0,1.28,-0.1);korpus.rotation.x=0.45;g.add(korpus);
+      g.add(klocek(0.22,0.22,0.22,0xd8a37a,0,1.6,0.05));
+      g.add(klocek(0.26,0.12,0.28,0x2a63b8,0,1.72,0.05));
+      const nogi=[];
+      [[-0.12],[0.12]].forEach(([x])=>{const n=klocek(0.09,0.4,0.09,0x2a2f3d,x,0.85,0.12);g.add(n);nogi.push(n);});
+      g.userData.nogi=nogi;
+      g.add(klocek(0.08,0.08,0.08,0xfff2c4,0,0.95,0.62));
+
+      g.add(walec(0.015,0.015,0.9,0x555e70,0,1.4,-0.6,5));
+      const flaga=klocek(0.22,0.14,0.02,0xe8561e,0.11,1.8,-0.6);g.add(flaga);g.userData.flaga=flaga;
+      g.add(cienBlob(0.6));return g;},
+    animuj(g,t){
+      g.userData.kola.forEach(k=>k.rotation.x=t*9);
+      g.userData.nogi.forEach((n,i)=>n.position.y=0.85+Math.sin(t*9+i*Math.PI)*0.1);
+      g.rotation.z=Math.sin(t*3)*0.02;
+      g.userData.flaga.rotation.y=Math.sin(t*8)*0.5;},
+  },
+  pioro:{
+    nazwa:'Pióro',unik:null,mult:1.0,waga:0,odEtapu:1,odCzasu:0,
+    opis:'Lekkie, ciepłe od porannego światła. Linie piór to ślad ptaków, które przebiegły tę ścieżkę przed Tobą — prowadzą przez bezpieczne miejsca trasy. Bieguś zbiera je w locie; mówi, że każde pióro to czyjś dobry trening. Może ma rację.',
+    unikTekst:'✨ ZBIERAJ SERIAMI — dźwięk rośnie z każdym kolejnym',
+    zbuduj(){
+      const g=new THREE.Group();
+      const p=new THREE.Group();
+      p.add(klocek(0.06,0.26,0.02,0xf6efe4));
+      p.add(klocek(0.14,0.16,0.02,0xf6efe4,0,0.02,0));
+      p.add(klocek(0.02,0.3,0.02,0xc7cede,0,-0.04,0));
+      p.position.y=0.75;g.add(p);g.userData.p=p;
+      const gl=poswiata(1.1,0xcfd8ee);gl.position.y=0.75;g.add(gl);
+      return g;},
+    animuj(g,t){g.userData.p.rotation.y=t*2.6;
+      g.userData.p.position.y=0.75+Math.sin(t*3.4)*0.07;
+      g.userData.p.rotation.z=Math.sin(t*2)*0.2;},
+  },
+  znal:{
+    nazwa:'Znalezisko',unik:null,mult:1.0,waga:0,odEtapu:1,odCzasu:0,
+    opis:'Coś błyszczy na ścieżce. Sznurówka, kasztan, agrafka z numeru startowego sprzed lat — park o świcie oddaje rzeczy zgubione wieczorem. Bieguś kolekcjonuje je wszystkie. Mówi, że każda ma historię.',
+    unikTekst:'✦ ZBIERZ — wbiegnij w nie (nic nie grozi)',
+    zbuduj(){
+      const g=new THREE.Group();
+      const kr=new THREE.Mesh(new THREE.OctahedronGeometry(0.32),
+        new THREE.MeshLambertMaterial({color:0xf8b34a,emissive:0x7a4a10}));
+      kr.position.y=0.8;g.add(kr);g.userData.krysztal=kr;
+      const gl=poswiata(2.2,0xf8b34a);gl.position.y=0.8;g.add(gl);
+      const iskry=new THREE.Group();iskry.position.y=0.8;
+      for(let i=0;i<4;i++){const k=klocek(0.05,0.05,0.05,0xffe1a8);
+        k.position.set(Math.cos(i*Math.PI/2)*0.55,0,Math.sin(i*Math.PI/2)*0.55);iskry.add(k);}
+      g.add(iskry);g.userData.iskry=iskry;return g;},
+    animuj(g,t){
+      g.userData.krysztal.rotation.y=t*2.2;
+      g.userData.krysztal.position.y=0.8+Math.sin(t*3)*0.09;
+      g.userData.iskry.rotation.y=-t*1.4;},
+  },
+};
+const ZBIERALNE=new Set(['pioro','znal']);
+function typyDlaEtapu(rel,kraina){return Object.keys(OBIEKTY)
+  .filter(k=>!ZBIERALNE.has(k)&&OBIEKTY[k].waga>0&&OBIEKTY[k].odEtapu<=rel&&(OBIEKTY[k].odKrainy||1)<=kraina);}
+
+const ZNALEZISKA_PULA=[
+  {id:'sznurowka',ikona:'🧵',nazwa:'Szczęśliwa sznurówka'},{id:'magnez',ikona:'🧂',nazwa:'Magnez z ekspresówki'},
+  {id:'bidon',ikona:'🥤',nazwa:'Stary bidon'},{id:'agrafka',ikona:'📎',nazwa:'Agrafka z numeru'},
+  {id:'kasztan',ikona:'🌰',nazwa:'Kasztan na szczęście'}];
+const BIEGUS_MOWI={
+  potkniecie:['Ała! Kto to tu położył?!','Widziałem. Udawałem, że nie widziałem.','Spokojnie… to tylko draśnięcie.','Dobra, kałuża: 1, my: 0. Rewanż zaraz.'],
+  ambientNajedzony:['Czujesz ten świt? LECIMY.','Nogi same niosą!','Po takim treningu to ja mogę i na Igrzyska.','Złota smuga? To ja. Nie dziękujcie.'],
+  ambientOk:['Równe tempo, tak trzymaj.','Park dziś łaskawy.','Żółw nas pozdrawiał. Chyba.'],
+  ambientGlodny:['Nogi jak z waty… trening by się przydał.','Biegnę, biegnę… na oparach.','Nakarm mnie kilometrami, co?'],
+  fail:['Trener mówi: to nie porażka, to zwiad. Lecimy jeszcze raz?','Nawet mistrzyni Polski czasem wpada w kałużę. Podobno.','Dobra. TERAZ się rozgrzałem.'],
+  finisz:['Każdy kilometr się liczy. Ten też.','Widzisz? Mówiłem, że dasz radę. No, prawie mówiłem.','Park zaliczony. Świt był po naszej stronie.'],
+  perfekt:['BEZ JEDNEGO POTKNIĘCIA. Wieszam to sobie w gniazdku.','Czysty bieg! Aż mi się piórka jeżą z dumy.'],
+  zawodyZloto:['ZŁOTO! Mówiłem, że park jest nasz. MÓWIŁEM!'],
+  zawodySrebro:['Srebro o świcie. Rowerzysta nas jeszcze popamięta.'],
+  zawodyBraz:['Brąz! Na pudle to na pudle. Nie dyskutujemy.'],
+  zawodyBez:['Dziś bez medalu. Ale widziałeś, jak żeśmy tamtemu psu uciekli?'],
+};
+/* PRZESŁANIE — myśli na drogę (własne, w duchu BiegaMy) */
+const MYSLI=[
+  'Świt nie pyta o motywację. Świt pyta, czy przyszedłeś.',
+  'Regularność bije zryw. Zawsze. Nawet w grze.',
+  'Nie musisz być szybki. Musisz być dziś — i jutro znowu.',
+  'Kałuża, pies, rowerzysta — trasa nigdy nie jest idealna. Biegnie się mimo to.',
+  'Najlepszy trening to ten, który się odbył.',
+  'Potknięcie to część biegu, nie jego koniec.',
+  'Nikt nie biegnie za Ciebie. Ale nie biegniesz sam — jesteśmy obok.',
+  'Igrzyska nie pytają o skrzydła. Pytają o kilometry.',
+  'Klucz odleciał. Ty zostań i biegnij.',
+  'Formę buduje się cicho, kilometr po kilometrze. Jak świt — po kawałku nieba.',
+];
+const TIPY=['Rozwidlenie? Jedna strona bywa bogatsza. I bywa pułapką.',
+  'Klakson znaczy: auto przetnie Ci drogę. Skok nie pomoże — zmień linię.',
+  'Linie piór prowadzą przez bezpieczne miejsca trasy — ufaj im.','Rowerzysta jest szybszy — usłyszysz dzwonek. Zejdź mu z drogi WCZEŚNIE.','Seria uników nakręca combo. Trafienie je zeruje.','W Zawodach trafienie to +3 s kary, znalezisko daje −2 s.'];
+
+/* ---------- 6. GENERATOR + WALIDATOR (z liniami piór) ---------- */
+function generujEtap(nrEtapu,seedStr,kraina=1){
+  for(let proba=0;proba<6;proba++){
+    const rng=rngZSeed(seedStr+'#'+proba),ev=[];
+    const pora=Math.floor(rng()*3);
+    const MOT=kraina===3?['klasyczny','klasyczny','pioropusz','akrobatyczny','rozstaje','szczyt']
+                        :['klasyczny','klasyczny','pioropusz','akrobatyczny','rozstaje'];
+    const motyw=MOT[Math.floor(rng()*MOT.length)];
+    let t=CFG.ROZBIEG;const koniec=CFG.ETAP_CZAS-CFG.WYBIEG,ostatni=[-9,-9,-9];
+    const rel=((nrEtapu-1)%8)+1;
+    const dostepne=typyDlaEtapu(rel,kraina);
+    while(t<koniec){
+      t+=lerp(1.35,0.62,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   // gęściej niż v0.3 = akcja
+      if(t>=koniec)break;
+      const typ=losujTyp(rng,t,dostepne),pas=losujPas(rng,t,ev,ostatni);
+      if(pas===-1)continue;
+      ev.push({t:+t.toFixed(2),pas,typ});ostatni[pas]=t;
+    }
+    dolozZbieralne(rng,ev);
+    if(motyw==='akrobatyczny'){                                    // więcej skoków (i salt!)
+      const skokowe=Object.keys(OBIEKTY).filter(k=>OBIEKTY[k].waga>0&&
+        OBIEKTY[k].unik==='skok'&&OBIEKTY[k].odEtapu<=rel&&(OBIEKTY[k].odKrainy||1)<=kraina);
+      ev.forEach(e=>{if(!ZBIERALNE.has(e.typ)&&OBIEKTY[e.typ].waga>0&&
+        OBIEKTY[e.typ].unik!=='skok'&&rng()<0.45)
+        e.typ=skokowe[Math.floor(rng()*skokowe.length)];});
+    }
+    if(motyw==='pioropusz'){                                         // deszcz piór
+      for(let l=0;l<3;l++){const t0=8+rng()*(CFG.ETAP_CZAS-20),pas=Math.floor(rng()*3);
+        for(let i=0;i<6;i++)ev.push({t:t0+i*0.42,typ:'pioro',pas});}
+    }
+    wstrzyknijRozwidlenia(ev,rng,rel,kraina,motyw==='rozstaje'?3:(rel>=4?2:1));
+    wstrzyknijPrzejazdy(ev,rng,rel,kraina,motyw==='szczyt'?3:(rel>=5?2:1));
+    wstrzyknijSegment(ev,rng,rel,kraina);
+    ev.sort((a,b)=>a.t-b.t);
+    if(waliduj(ev))return{kraina,etap:nrEtapu,seed:seedStr,ev,pora,motyw};
+  }
+  throw new Error('Generator: brak uczciwego etapu ('+seedStr+')');
+}
+function losujTyp(rng,t,dostepne){
+  const dost=dostepne.filter(n=>t>=OBIEKTY[n].odCzasu);
+  const suma=dost.reduce((s,n)=>s+OBIEKTY[n].waga,0);let r=rng()*suma;
+  for(const n of dost){if((r-=OBIEKTY[n].waga)<=0)return n;}return dost[0];}
+function losujPas(rng,t,ev,ostatni){
+  const k=[0,1,2].filter(p=>{
+    if(t-ostatni[p]<CFG.MIN_GAP_PAS)return false;
+    const zaj=new Set(ev.filter(e=>!ZBIERALNE.has(e.typ)&&Math.abs(e.t-t)<=CFG.OKNO_BLOKADY).map(e=>e.pas));
+    zaj.add(p);return zaj.size<=2;});
+  return k.length?k[Math.floor(rng()*k.length)]:-1;}
+function pasWolny(ev,pas,od,doT){
+  return !ev.some(e=>!ZBIERALNE.has(e.typ)&&e.pas===pas&&e.t>od&&e.t<doT);}
+function dolozZbieralne(rng,ev){
+  // znaleziska
+  let d=0,s=0;
+  while(d<CFG.ZNALEZISKA_NA_ETAP&&s++<200){
+    const t=+(CFG.ROZBIEG+4+rng()*(CFG.ETAP_CZAS-CFG.WYBIEG-10)).toFixed(2);
+    const pas=Math.floor(rng()*3);
+    if(pasWolny(ev,pas,t-0.9,t+0.9)){ev.push({t,pas,typ:'znal'});d++;}}
+  // linie piór — prowadzą przez BEZPIECZNE okna
+  let linie=0;s=0;
+  const dlugosc=CFG.PIOR_W_LINII*CFG.ODSTEP_PIOR;
+  while(linie<CFG.LINIE_PIOR&&s++<300){
+    const t0=+(CFG.ROZBIEG+2+rng()*(CFG.ETAP_CZAS-CFG.WYBIEG-6-dlugosc)).toFixed(2);
+    const pas=Math.floor(rng()*3);
+    if(pasWolny(ev,pas,t0-0.5,t0+dlugosc+0.5)){
+      for(let i=0;i<CFG.PIOR_W_LINII;i++)
+        ev.push({t:+(t0+i*CFG.ODSTEP_PIOR).toFixed(2),pas,typ:'pioro'});
+      linie++;}}
+  ev.sort((a,b)=>a.t-b.t);
+}
+/* — ROZWIDLENIA à la Hugo: wybierz stronę; bogata bywa pułapką — */
+function wstrzyknijRozwidlenia(ev,rng,rel,kraina,ile){
+  for(let r=0;r<ile;r++){
+    const dur=5.5;
+    const t0=10+rng()*(CFG.ETAP_CZAS-26)+(r?18:0);
+    if(t0+dur>CFG.ETAP_CZAS-8)continue;
+    /* wyczyść okno z losowych przeszkód */
+    const czyste=ev.filter(e=>e.t<t0-1.4||e.t>t0+dur+1.4);
+    ev.length=0;ev.push(...czyste);
+    const bogata=rng()<0.5?0:2, uboga=2-bogata;
+    ev.push({t:t0-2.6,typ:'znak',pas:1});
+    ev.push({t:t0-0.35,typ:'rozstajeKit',pas:1,durS:dur+1.2});
+    for(let tt=t0;tt<=t0+dur;tt+=0.3)ev.push({t:tt,typ:'wyspa',pas:1});
+    for(let tt=t0+0.5;tt<=t0+dur-1.4;tt+=0.5)ev.push({t:tt,typ:'pioro',pas:bogata});
+    const t2=kraina===1?'kaluza':kraina===2?'korzen':kraina===3?'pacholek':'glaz';
+    ev.push({t:t0+1.6,typ:'kaluza',pas:uboga});
+    ev.push({t:t0+3.6,typ:t2,pas:uboga});
+    /* PUŁAPKA: bogata strona kończy się niespodzianką (miękką, gdzie się da) */
+    if(rng()<0.65)ev.push({t:t0+dur-0.45,typ:kraina>=2?'bloto':'kaluza',pas:bogata});
+  }}
+/* — PRZEJAZDY: auto przecina drogę (Miasto) — */
+function wstrzyknijPrzejazdy(ev,rng,rel,kraina,ile){
+  if(kraina!==3)return;
+  for(let r=0;r<ile;r++){
+    const tA=12+rng()*(CFG.ETAP_CZAS-24)+(r?14:0);
+    if(tA>CFG.ETAP_CZAS-8)continue;
+    const czyste=ev.filter(e=>e.t<tA-1.7||e.t>tA+1.7);
+    ev.length=0;ev.push(...czyste);
+    ev.push({t:tA,typ:'zebra',pas:1});
+    ev.push({t:tA,typ:'auto',pas:1,kier:rng()<0.5?1:-1});
+  }}
+/* — SEGMENTY SPECJALNE: świat robi się kozacki — */
+function wstrzyknijSegment(ev,rng,rel,kraina){
+  if(rel<2)return;
+  if(rng()<0.15)return;                                              // 85% etapów ma segment
+  const rodzaj=kraina===1?(rng()<0.5?'pergola':'schody'):kraina===2?'mostek':
+    kraina===3?['market','dworzec','schody'][Math.floor(rng()*3)]:'brama';
+  const durS={pergola:1.8,mostek:1.6,market:2.3,dworzec:2.8,brama:1.7,schody:2.6}[rodzaj];
+  const zajete=ev.filter(e=>e.typ==='rozstajeKit'||e.typ==='auto')
+    .map(e=>[e.t-2.5,e.t+(e.durS||1.2)+2.5]);
+  let t0=0,ok=false;
+  for(let pr=0;pr<8&&!ok;pr++){
+    t0=9+rng()*(CFG.ETAP_CZAS-22);
+    ok=zajete.every(([a,b])=>t0+durS<a||t0>b);}
+  if(!ok)return;
+  const czyste=ev.filter(e=>e.t<t0-1.2||e.t>t0+durS+1.2||OBIEKTY[e.typ].dekor);
+  ev.length=0;ev.push(...czyste);
+  ev.push({t:t0-0.3,typ:'segment',pas:1,rodzaj,durS:durS+0.8});
+  for(let tt=t0+0.3;tt<t0+durS-0.3;tt+=0.45)ev.push({t:tt,typ:'pioro',pas:1});
+  if(rodzaj==='market'){ev.push({t:t0+durS*0.4,typ:'kosz',pas:0});
+    ev.push({t:t0+durS*0.75,typ:'kosz',pas:2});}
+  if(rodzaj==='dworzec'){ev.push({t:t0+durS*0.35,typ:'walizka',pas:0});
+    ev.push({t:t0+durS*0.7,typ:'walizka',pas:2});}
+}
+function waliduj(ev){
+  const prz=ev.filter(e=>!ZBIERALNE.has(e.typ)&&OBIEKTY[e.typ].walidacja!==false&&!OBIEKTY[e.typ].dekor);
+  for(let i=1;i<prz.length;i++)if(prz[i].t-prz[i-1].t<CFG.MIN_GAP_GLOBAL)return false;
+  for(const e of prz){
+    const zaj=new Set(prz.filter(x=>Math.abs(x.t-e.t)<=CFG.OKNO_BLOKADY).map(x=>x.pas));
+    if(zaj.size>2)return false;}
+  const np=[[],[],[]];prz.forEach(e=>np[e.pas].push(e.t));
+  for(const l of np)for(let i=1;i<l.length;i++)if(l[i]-l[i-1]<CFG.MIN_GAP_PAS)return false;
+  return true;}
+
+/* ---------- 7. INPUT ---------- */
+const Input=(()=>{
+  let cel=null;const wez=()=>{const c=cel;cel=null;return c;};
+  addEventListener('keydown',e=>{if(e.repeat)return;
+    if(e.key==='ArrowLeft')cel='lewo';if(e.key==='ArrowRight')cel='prawo';
+    if(e.key==='ArrowUp')cel='skok';if(e.key==='ArrowDown')cel='slizg';
+    if(e.key==='p'||e.key==='P')Gra.pauza();});
+  let tx=0,ty=0,tt=0;
+  /* Swipe odpala się W CHWILI RUCHU (próg 24 px), nie przy oderwaniu palca —
+     to była główna przyczyna „spóźnionych" skoków. Tap <220 ms = skok/salto. */
+  let gestWykonany=false;
+  addEventListener('touchstart',e=>{const t=e.touches[0];
+    tx=t.clientX;ty=t.clientY;tt=performance.now();gestWykonany=false;},{passive:true});
+  addEventListener('touchmove',e=>{
+    e.preventDefault();
+    if(gestWykonany)return;
+    const t=e.touches[0],dx=t.clientX-tx,dy=t.clientY-ty,ax=Math.abs(dx),ay=Math.abs(dy);
+    if(ax<24&&ay<24)return;
+    gestWykonany=true;
+    cel=ax>ay?(dx>0?'prawo':'lewo'):(dy>0?'slizg':'skok');
+  },{passive:false});
+  addEventListener('touchend',()=>{
+    if(!gestWykonany&&performance.now()-tt<220)cel='skok';
+  },{passive:true});
+  return{wez};
+})();
+
+/* ---------- 8. SYMULACJA ---------- */
+const KROK=1/120;
+function nowaSymulacja(skrypt,tryb='etap'){
+  return{skrypt,tryb,t:0,stan:'bieg',
+    predkosc:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1)),
+    pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
+    serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
+    flow:false,flowBank:0,bonusyG:null,
+    zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
+}
+function probujAkcje(s,a){
+  if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;}return true;}
+  if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;}return true;}
+  if(a==='skok'){
+    if(s.skokT<0&&s.slizgT<0){s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
+      s.zdarzenia.push({typ:'skok'});return true;}
+    /* SALTO: drugi skok w powietrzu — wydłuża lot o 30%, nabija serię */
+    if(s.skokT>=0&&!s.salto&&s.skokT>0.05&&s.skokT<s.skokCzas*0.85){
+      s.salto=true;s.skokCzas*=CFG.SALTO_BONUS;s.salta++;
+      s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+      Misje.zdarzenie('salto');
+      s.zdarzenia.push({typ:'salto',combo:s.combo});return true;}
+    return false;}
+  if(a==='slizg'){if(s.slizgT<0&&s.skokT<0){s.slizgT=0;s.zdarzenia.push({typ:'slizg'});return true;}return false;}
+  return true;}
+function udanyUnik(s,o){
+  o.uniknieto=true;
+  s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+  s.zdarzenia.push({typ:'oWlos',combo:s.combo});
+}
+function krokSymulacji(s){
+  s.zdarzenia.length=0;s.t+=KROK;
+  const i=Input.wez();
+  if(s.stan==='bieg'){
+    /* bufor 160 ms: akcja wciśnięta „za wcześnie" wykonuje się,
+       gdy tylko może — zamiast przepadać (game feel > surowość) */
+    if(i){ if(!probujAkcje(s,i)) s.bufor={a:i,t:s.t}; else s.bufor=null; }
+    if(s.bufor){
+      if(s.t-s.bufor.t>CFG.BUFOR) s.bufor=null;
+      else if(probujAkcje(s,s.bufor.a)) s.bufor=null;
+    }
+  }
+  if(s.pasT<1)s.pasT=Math.min(1,s.pasT+KROK/CFG.CZAS_PASA);
+  if(s.skokT>=0){s.skokT+=KROK;
+    if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.skokCzas=CFG.SKOK;
+      s.zdarzenia.push({typ:'ladowanie'});}}
+  if(s.slizgT>=0){s.slizgT+=KROK;if(s.slizgT>CFG.SLIZG)s.slizgT=-1;}
+  if(s.nietyk>0)s.nietyk-=KROK;
+  while(s.nastepny<s.skrypt.ev.length&&s.skrypt.ev[s.nastepny].t<=s.t){
+    const e=s.skrypt.ev[s.nastepny++];
+    s.aktywne.push({...e,z:CFG.SPAWN_Z,widok:null});
+    if(OBIEKTY[e.typ].mult>1.2)s.zdarzenia.push({typ:'dzyn'});
+    if(e.typ==='auto')s.zdarzenia.push({typ:'klakson'});
+    if(e.typ==='swistak')s.zdarzenia.push({typ:'gwizd'});
+  }
+  if(s.spotkania)while(s.spotIdx<s.spotkania.length&&s.spotkania[s.spotIdx].t<=s.t)
+    s.zdarzenia.push({typ:'spotkanie',dane:s.spotkania[s.spotIdx++]});
+  for(const o of s.aktywne)
+    o.z=CFG.SPAWN_Z+(s.t-o.t)*s.predkosc*OBIEKTY[o.typ].mult;
+  if(s.stan==='bieg')for(const o of s.aktywne){
+    if(o.trafione)continue;
+    const wStrefie=o.z>=CFG.STREFA[0]&&o.z<=CFG.STREFA[1];
+    if(o.typ==='auto'){
+      if(!wStrefie||o.trafione)continue;
+      const xA=o.kier*((6.1-o.z)*0.95);                              // pozycja auta z Z — deterministyczna
+      if(Math.abs(xA-pozycjaPasa(s))<1.35){
+        if(s.nietyk>0)continue;
+        if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;
+          o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
+          s.zdarzenia.push({typ:'tarcza'});continue;}
+        o.trafione=true;s.serca--;s.hity++;s.combo=0;
+        s.nietyk=CFG.NIETYKALNOSC;
+        s.zdarzenia.push({typ:'hit',typObiektu:'auto',serca:s.serca});
+        if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';
+      }
+      continue;
+    }
+    if(o.typ==='pioro'){
+      if(!wStrefie)continue;
+      const zasieg=(s.boostery&&s.boostery.magnes)?1:0;
+      if(Math.abs(o.pas-s.pas)>zasieg)continue;
+      if(zasieg===0&&s.pasT<0.65)continue;
+      o.trafione=true;
+      const zysk=((s.boostery&&s.boostery.x2)||s.bonusPior)?2:1;
+      s.piora+=zysk;
+      if(s.flow){s.flowBank+=zysk*0.5;
+        while(s.flowBank>=1){s.flowBank-=1;s.piora+=1;}}
+      s.zdarzenia.push({typ:'pioro',seria:s.piora});
+      Misje.zdarzenie('pioro');continue;
+    }
+    if(o.typ==='znal'){                                             // znaleziska: zbieranie strefowe
+      if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
+      o.trafione=true;s.zebrane.push(losujZnalezisko(s));
+      s.zdarzenia.push({typ:'znal'});Misje.zdarzenie('znal');continue;}
+    /* MOMENT PRAWDY: kolizja liczona RAZ — gdy przeszkoda mija stopy.
+       Byłeś wtedy w powietrzu / w ślizgu / na innym pasie = uniknięte.
+       Koniec z lądowaniem „na przeszkodę" przy wczesnym skoku. */
+    if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){
+      o.sprawdzone=true;
+      if(o.pas!==s.pas||s.pasT<0.65)continue;
+      const unik=OBIEKTY[o.typ].unik;
+      const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
+      const wPow=s.skokT>=0&&(wysY>=CFG.PROG_PRZESKOKU||s.skokT<0.15);
+      if(unik==='skok'&&wPow){if(!o.uniknieto)udanyUnik(s,o);continue;}
+      if(unik==='slizg'&&s.slizgT>=0){if(!o.uniknieto){o.slizgniete=true;udanyUnik(s,o);}continue;}
+      if(OBIEKTY[o.typ].miekka){o.trafione=true;
+        if(s.bonusyG&&s.bonusyG.bloto&&!s.bonusyG.blotoUzyte){
+          s.bonusyG.blotoUzyte=true;
+          s.zdarzenia.push({typ:'blotoOchrona'});continue;}
+        s.combo=0;
+        if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
+        s.zdarzenia.push({typ:'bloto'});continue;}
+      if(s.nietyk>0)continue;
+      if(s.boostery&&s.boostery.tarcza){
+        s.boostery.tarcza=false;o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
+        s.zdarzenia.push({typ:'tarcza'});continue;}
+      o.trafione=true;s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
+      if(o.typ==='wyspa'){
+        s.pasOd=pozycjaPasa(s);
+        s.pas=((o.t*13)|0)%2?0:2;s.pasT=0;}
+      s.combo=0;
+      if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
+      s.zdarzenia.push({typ:'hit',obiekt:o.typ});
+      if(s.serca<=0){s.stan='fail';s.zdarzenia.push({typ:'fail'});}
+    }
+    if(OBIEKTY[o.typ].dekor){if(o.z>CFG.STREFA[1])o.policzone=true;continue;}
+    if(!o.policzone&&o.z>CFG.STREFA[1]&&!o.trafione){
+      o.policzone=true;
+      if(!ZBIERALNE.has(o.typ))s.ominiete=(s.ominiete||0)+1;
+      if(o.typ==='rower'){Misje.zdarzenie('ominietyRower');
+        if(!o.uniknieto){s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+          s.zdarzenia.push({typ:'combo',combo:s.combo});}}
+      if(!s.flow&&s.combo>=CFG.FLOW_COMBO){
+        s.flow=true;s.zdarzenia.push({typ:'flowStart'});}
+      if(o.slizgniete)Misje.zdarzenie('slizgSzlaban');
+    }
+  }
+  if(s.stan==='bieg'&&s.t>=CFG.ETAP_CZAS+1.2){s.stan='meta';s.zdarzenia.push({typ:'meta'});}
+}
+function pozycjaPasa(s){return lerp(CFG.PASY[Math.round(s.pasOd)]??CFG.PASY[s.pas],CFG.PASY[s.pas],easeOut(s.pasT));}
+function losujZnalezisko(s){
+  const w=ZNALEZISKA_PULA.filter(z=>!s.zebrane.some(x=>x.id===z.id));
+  return w[Math.floor(Math.random()*w.length)]||ZNALEZISKA_PULA[0];}
+
+/* ---------- 9. RENDER 3D ---------- */
+const R3=(()=>{
+  const canvas=document.getElementById('gra3d');
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:false});
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
+  renderer.outputEncoding=THREE.sRGBEncoding;
+  renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure=1.0;
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFShadowMap;
+  const scena=new THREE.Scene();
+  /* JASNY DZIEŃ: każda kraina × 3 pory dnia (start→koniec etapu) */
+  const PALETY={
+    1:{sciezka:0xa89f8f,trawa:0x62785a,mgla:[26,110],pory:[
+      {n:'PORANEK',start:0xa9c2de,koniec:0xc6d7e6},
+      {n:'POŁUDNIE',start:0x9cbcd9,koniec:0xb4cde0},
+      {n:'ZŁOTA GODZINA',start:0xe3ba8c,koniec:0xd2a06e}]},
+    2:{sciezka:0x94856a,trawa:0x54704e,mgla:[18,74],pory:[
+      {n:'PORANEK',start:0xa9c2c9,koniec:0xc2d8da},
+      {n:'POŁUDNIE',start:0x9cbecd,koniec:0xb0cdd6},
+      {n:'ZŁOTA GODZINA',start:0xddb684,koniec:0xc99e66}]},
+    3:{sciezka:0x8f959f,trawa:0xb3aea6,mgla:[24,100],pory:[
+      {n:'PORANEK',start:0xa6bed6,koniec:0xc0d2e2},
+      {n:'POŁUDNIE',start:0x9abbd4,koniec:0xaec9db},
+      {n:'ZŁOTA GODZINA',start:0xe0b482,koniec:0xcb9760}]},
+    4:{sciezka:0x939aa9,trawa:0x8b93a4,mgla:[22,92],pory:[
+      {n:'PORANEK',start:0xb0c6dc,koniec:0xccdcea},
+      {n:'POŁUDNIE',start:0xa4c2dc,koniec:0xb8d2e6},
+      {n:'ZŁOTA GODZINA',start:0xe0bd92,koniec:0xc9a173}]},
+  };
+  for(const k in PALETY)PALETY[k].pory.forEach(pr=>{
+    pr._s=new THREE.Color(pr.start);pr._k=new THREE.Color(pr.koniec);});
+  PALETY[1]._s=PALETY[1].pory[0]._s;PALETY[1]._k=PALETY[1].pory[0]._k;
+  const NIEBO_START=PALETY[1]._s,NIEBO_KONIEC=PALETY[1]._k;
+  scena.background=NIEBO_START.clone();
+  scena.fog=new THREE.Fog(NIEBO_START.clone(),22,92);
+  /* — SKY DOME: gradient nieba zamiast płaskiego koloru — */
+  const nieboCanvas=document.createElement('canvas');
+  nieboCanvas.width=2;nieboCanvas.height=256;
+  const nieboTex=new THREE.CanvasTexture(nieboCanvas);
+  const kopula=new THREE.Mesh(new THREE.SphereGeometry(170,16,12),
+    new THREE.MeshBasicMaterial({map:nieboTex,side:THREE.BackSide,fog:false,depthWrite:false}));
+  kopula.renderOrder=-9;scena.add(kopula);
+  let nieboKlucz='';
+  function malujNiebo(gora,dol){
+    const ctx2=nieboCanvas.getContext('2d');
+    const gr=ctx2.createLinearGradient(0,0,0,256);
+    gr.addColorStop(0,'#'+gora.getHexString());
+    gr.addColorStop(0.62,'#'+dol.getHexString());
+    gr.addColorStop(1,'#'+dol.clone().lerp(new THREE.Color(0xffffff),0.18).getHexString());
+    ctx2.fillStyle=gr;ctx2.fillRect(0,0,2,256);
+    nieboTex.needsUpdate=true;}
+  const kamera=new THREE.PerspectiveCamera(62,1,0.1,200);
+  kamera.position.set(0,4.6,12.5);kamera.lookAt(0,1.2,-8);
+  let shake=0,squashT=0;
+  function fit(){renderer.setSize(innerWidth,innerHeight);
+    kamera.aspect=innerWidth/innerHeight;kamera.updateProjectionMatrix();}
+  addEventListener('resize',fit);fit();
+
+  scena.add(new THREE.HemisphereLight(0xd8e8ff,0x5a6a50,1.2));
+  const slonce=new THREE.DirectionalLight(0xfff2d8,1.0);
+  slonce.position.set(12,20,14);scena.add(slonce);
+  try{
+    slonce.castShadow=true;
+    slonce.shadow.mapSize.set(1024,1024);
+    const sc=slonce.shadow.camera;
+    sc.left=-13;sc.right=13;sc.top=16;sc.bottom=-16;sc.near=2;sc.far=70;
+    sc.updateProjectionMatrix();                                     // ← bez tego r128 potrafi paść
+    slonce.shadow.bias=-0.002;
+    scena.add(slonce.target);slonce.target.position.set(0,0,-12);
+  }catch(e){pokazBlad('Cienie wyłączone: '+e.message);
+    slonce.castShadow=false;renderer.shadowMap.enabled=false;}
+  const switGlow=poswiata(56,0xb0507a);switGlow.position.set(-14,3,-95);scena.add(switGlow);
+  const switGlow2=poswiata(32,0xffa060);switGlow2.position.set(-14,2,-94);scena.add(switGlow2);
+
+  function teksturaSzumu(ziarno,kropki){
+    const c=document.createElement('canvas');c.width=c.height=128;
+    const x=c.getContext('2d');
+    x.fillStyle='#c8c8c8';x.fillRect(0,0,128,128);
+    for(let i=0;i<1400;i++){const g=200-Math.random()*ziarno|0;
+      x.fillStyle='rgb('+g+','+g+','+g+')';
+      x.fillRect(Math.random()*128|0,Math.random()*128|0,2,2);}
+    for(let i=0;i<kropki;i++){x.fillStyle='rgba(70,70,70,.5)';
+      const r=1+Math.random()*2;
+      x.beginPath();x.arc(Math.random()*128,Math.random()*128,r,0,7);x.fill();}
+    const t=new THREE.CanvasTexture(c);
+    t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
+  const texZwir=teksturaSzumu(90,60);texZwir.repeat.set(3,52);
+  const texTrawa=teksturaSzumu(70,140);texTrawa.repeat.set(10,60);
+  const matSciezka=new THREE.MeshLambertMaterial({color:0x3a4052,map:texZwir});
+  const matTrawa=new THREE.MeshLambertMaterial({color:0x22301f,map:texTrawa});
+  const sciezka=new THREE.Mesh(new THREE.PlaneGeometry(8.2,260),matSciezka);
+  sciezka.rotation.x=-Math.PI/2;sciezka.position.z=-95;scena.add(sciezka);
+  sciezka.receiveShadow=true;
+  [-1,1].forEach(str=>{
+    const trawa=new THREE.Mesh(new THREE.PlaneGeometry(40,260),matTrawa);
+    trawa.rotation.x=-Math.PI/2;trawa.position.set(str*24.1,-0.01,-95);scena.add(trawa);
+    trawa.receiveShadow=true;
+    scena.add(klocek(0.25,0.18,260,0x555e70,str*4.2,0.09,-95));});
+
+  const dekoracje=[];
+  function dodajDeko(mesh,cykl=140,grupa='wspolne'){mesh.userData.cykl=cykl;mesh.userData.grupa=grupa;dekoracje.push(mesh);scena.add(mesh);}
+  for(let i=0;i<26;i++)[-1.15,1.15].forEach(x=>dodajDeko(klocek(0.09,0.02,1.4,0x4a5268,x,0.01,-i*10+8),260));
+  for(let i=0;i<16;i++){
+    const d=new THREE.Group();const wys=1.6+((i*37)%10)/6;
+    d.add(walec(0.16,0.22,wys,0x2a2233,0,wys/2,0,6));
+    const k1=new THREE.Mesh(new THREE.ConeGeometry(1.15,2.4,7),mat(0x1c2b22));k1.position.y=wys+1.0;d.add(k1);
+    const k2=new THREE.Mesh(new THREE.ConeGeometry(0.8,1.7,7),mat(0x24382c));k2.position.y=wys+2.1;d.add(k2);
+    d.position.set((i%2?1:-1)*(6.5+((i*53)%50)/10),0,-i*17+10);dodajDeko(d,272);}
+  for(let i=0;i<6;i++){
+    const l=new THREE.Group();
+    l.add(walec(0.09,0.12,3.4,0x20242e,0,1.7,0,6));
+    l.add(klocek(0.3,0.34,0.3,0x2a2f3d,0,3.5,0));
+    const zar=new THREE.Mesh(new THREE.SphereGeometry(0.13,8,8),
+      mat(0xd4d9e2));zar.position.y=3.5;l.add(zar);                  // zgaszona za dnia
+    l.position.set((i%2?1:-1)*5.1,0,-i*44+16);dodajDeko(l,264,'k1');}
+  for(let i=0;i<3;i++){
+    const b=new THREE.Group();
+    b.add(klocek(1.5,0.09,0.45,0x6b5138,0,0.5,0));
+    b.add(klocek(1.5,0.5,0.08,0x6b5138,0,0.85,-0.22));
+    [[-0.6],[0.6]].forEach(([x])=>b.add(klocek(0.09,0.5,0.4,0x20242e,x,0.25,0)));
+    b.position.set(i%2?6.2:-6.2,0,-i*80-12);b.rotation.y=i%2?-0.5:0.5;dodajDeko(b,258,'k1');}
+  /* — NPC-mieszkańcy (deko, bez kolizji): świat ma być zamieszkany — */
+  const dekoAnim=[];
+  (function zolwMaraton(){
+    const z=new THREE.Group();
+    const skorupa=new THREE.Mesh(new THREE.SphereGeometry(0.5,10,8),mat(0x3e6b4a));
+    skorupa.scale.y=0.55;skorupa.position.y=0.42;z.add(skorupa);
+    z.add(klocek(0.74,0.07,0.74,0x2e5238,0,0.4,0));
+    z.add(klocek(0.3,0.06,0.34,0xe8561e,0,0.7,0));                   // numer startowy na skorupie
+    const glowa=klocek(0.22,0.2,0.26,0x7a9a5e,0,0.42,0.55);z.add(glowa);
+    [[-0.28,0.3],[0.28,0.3],[-0.28,-0.3],[0.28,-0.3]].forEach(([x,zz])=>
+      z.add(klocek(0.14,0.2,0.14,0x7a9a5e,x,0.1,zz)));
+    z.position.set(5.6,0,-60);z.rotation.y=Math.PI;dodajDeko(z,262);
+    dekoAnim.push(t=>{glowa.position.y=0.42+Math.sin(t*2.2)*0.03;
+      glowa.position.z=0.55+Math.sin(t*1.1)*0.04;});
+  })();
+  (function kuraAgata(){
+    const k=new THREE.Group();
+    k.add(klocek(0.44,0.44,0.5,0xa8552e,0,0.5,0));
+    const glowa=new THREE.Group();glowa.position.set(0,0.92,0.14);
+    glowa.add(klocek(0.3,0.3,0.3,0xa8552e));
+    glowa.add(klocek(0.08,0.14,0.16,0xc0392b,0,0.22,0));
+    const dziob=walec(0,0.06,0.16,0xf8b34a,0,-0.02,0.24,4);dziob.rotation.x=Math.PI/2;glowa.add(dziob);
+    k.add(glowa);
+    k.add(walec(0.07,0.07,0.24,0x3aa04a,0.34,0.6,0.14,6));           // zielony koktajl
+    [[-0.12],[0.12]].forEach(([x])=>k.add(klocek(0.06,0.24,0.06,0xf8b34a,x,0.14,0)));
+    k.position.set(-7.1,0,-13);k.rotation.y=0.6;dodajDeko(k,258,'k1');
+    dekoAnim.push(t=>{glowa.rotation.x=Math.max(0,Math.sin(t*1.6))*0.5;});
+  })();
+  const kluczPtakow=new THREE.Group();
+  for(let i=0;i<5;i++){
+    const p=new THREE.Group();
+    [-1,1].forEach(str=>p.add(klocek(0.5,0.04,0.14,0x141826,str*0.28,0,0)));
+    p.position.set(Math.abs(i-2)*0.9,-Math.abs(i-2)*0.3,i*1.1);
+    kluczPtakow.add(p);}
+  kluczPtakow.position.set(-30,16,-70);scena.add(kluczPtakow);
+
+  const czastki=[];
+  for(let i=0;i<80;i++){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.1),
+      new THREE.MeshBasicMaterial({color:0xffffff,transparent:true}));
+    m.visible=false;scena.add(m);
+    czastki.push({m,zycie:0,v:new THREE.Vector3()});}
+  function burst(poz,kolor,ile,si=2.4,wGore=2.6,rozmiar=0.1){
+    let n=0;
+    for(const c of czastki){
+      if(c.zycie>0)continue;
+      c.zycie=0.55+Math.random()*0.35;c.max=c.zycie;
+      c.m.material.color.setHex(kolor);c.m.material.opacity=1;
+      c.m.scale.setScalar(rozmiar/0.1*(0.7+Math.random()*0.6));
+      c.m.position.copy(poz);
+      c.v.set((Math.random()-0.5)*si,Math.random()*wGore,(Math.random()-0.5)*si);
+      c.m.visible=true;
+      if(++n>=ile)break;}}
+  function krokCzastek(dt){
+    for(const c of czastki){
+      if(c.zycie<=0)continue;
+      c.zycie-=dt;
+      if(c.zycie<=0){c.m.visible=false;continue;}
+      c.v.y-=7.5*dt;
+      c.m.position.addScaledVector(c.v,dt);
+      if(c.m.position.y<0.03){c.m.position.y=0.03;c.v.y*=-0.25;c.v.x*=0.8;c.v.z*=0.8;}
+      c.m.material.opacity=c.zycie/c.max;
+      c.m.rotation.x+=dt*6;c.m.rotation.y+=dt*4;}}
+
+  function zbudujBiegusia(){
+    const K=KOLORY[Biegus.kolor];
+    const ST=STADIA[Biegus.stadium()];
+    const kolorSkrz=ST.zloty?0xf8b34a:K.ciemny;
+    const b=new THREE.Group();
+    b.add(klocek(0.62,0.5,0.78,K.cialo,0,0.62,0));
+    b.add(klocek(0.5,0.3,0.4,0xf6efe4,0,0.48,0.2));
+    if(ST.bluza)b.add(klocek(0.68,0.3,0.84,0x262b3a,0,0.76,0));      // bluza Mistrza
+    if(ST.puch)[[-0.2,0.72,0.28],[0.16,0.78,0.22],[0,0.62,0.34]].forEach(([x,y,z])=>
+      b.add(klocek(0.07,0.07,0.05,0xf6c89a,x,y,z)));                 // puch Pisklaka
+    const glowa=new THREE.Group();glowa.position.set(0,1.0,0.3);
+    glowa.add(klocek(0.42,0.4,0.42,K.cialo));
+    const dziob=walec(0.0,0.09,0.28,0xf8b34a,0,-0.02,0.32,4);dziob.rotation.x=Math.PI/2;glowa.add(dziob);
+    const oczy=[];
+    [-0.13,0.13].forEach(x=>{const o=klocek(0.06,0.09,0.03,0x20242e,x,0.06,0.2);glowa.add(o);oczy.push(o);});
+    const czubKolor=(Biegus.zalozone.has('czubZloty')||ST.zloty)?0xf8b34a:K.ciemny;
+    [[-0.06,0.24,-0.15],[0,0.3,0],[0.06,0.24,0.15]].forEach(([x,y,rz])=>{
+      const p=klocek(0.06,0.2,0.06,czubKolor,x,y,-0.05);p.rotation.z=rz;glowa.add(p);});
+    if(Biegus.zalozone.has('okulary')){
+      glowa.add(klocek(0.4,0.03,0.03,0x141414,0,0.08,0.21));
+      [-0.12,0.12].forEach(x=>glowa.add(klocek(0.13,0.11,0.03,0x141414,x,0.05,0.22)));}
+    if(Biegus.zalozone.has('czapka')){
+      glowa.add(klocek(0.46,0.13,0.46,0x2a63b8,0,0.24,0));
+      glowa.add(klocek(0.4,0.04,0.26,0x1c4a8c,0,0.2,0.33));}
+    if(Biegus.zalozone.has('opaska'))
+      glowa.add(klocek(0.44,0.09,0.44,KOLORY[Biegus.kolor].cialo===0xe8561e?0xf6efe4:0xe8561e,0,0.16,0));
+    if(Biegus.zalozone.has('plecak')){
+      b.add(klocek(0.4,0.46,0.16,K.cialo===0xe8561e?0x2a63b8:0xe8561e,0,0.72,-0.5));
+      [[-0.14],[0.14]].forEach(([x])=>b.add(klocek(0.07,0.4,0.04,0x20242e,x,0.7,-0.4)));}
+    b.add(glowa);
+    if(Biegus.zalozone.has('chustka')){
+      const ch=klocek(0.4,0.16,0.4,0xc0392b,0,0.82,0.18);ch.rotation.x=0.2;b.add(ch);
+      const rog=klocek(0.16,0.2,0.03,0xc0392b,0,0.68,0.42);rog.rotation.x=0.3;b.add(rog);}
+    if(ST.fan!==false)[[-0.3,-0.12],[0,0],[0.3,0.12]].forEach(([rz,x])=>{
+      const p=klocek(0.1,0.08,0.34,kolorSkrz,x*0.4,0.66,-0.5);p.rotation.y=rz;
+      p.geometry.translate(0,0,-0.05);b.add(p);});
+    const skrz=[];
+    [[-0.36],[0.36]].forEach(([x])=>{const sk=klocek(0.09,0.3,0.5,kolorSkrz,x,0.66,-0.02);b.add(sk);skrz.push(sk);});
+    const nogi=[];
+    [[-0.14],[0.14]].forEach(([x])=>{
+      const n=new THREE.Group();
+      n.add(klocek(0.07,0.34,0.07,0x20242e,0,-0.17,0));
+      n.add(klocek(0.12,0.05,0.2,0x20242e,0,-0.34,0.05));
+      n.position.set(x,0.38,0);b.add(n);nogi.push(n);});
+    const cien=cienBlob(0.55);b.add(cien);
+    if(ST.aura){const a=poswiata(3.4,0xf8b34a);a.position.y=0.85;b.add(a);}
+    b.scale.setScalar(ST.skala||1);
+    b.userData={skrz,nogi,cien,glowa,oczy,px:0};
+    b.traverse(m=>{if(m.isMesh)m.castShadow=true;});
+    return b;}
+  let biegus=zbudujBiegusia();biegus.position.set(0,0,CFG.GRACZ_Z);scena.add(biegus);
+  function przebudujBiegusia(){scena.remove(biegus);biegus=zbudujBiegusia();
+    biegus.position.set(0,0,CFG.GRACZ_Z);scena.add(biegus);}
+
+  /* ============================================================
+     MODELE PREMIUM (GLB) — Bieguś z pipeline'u image-to-3D
+     (Meshy/Tripo: auto-rig + animacje). Zasada: gra NIGDY nie
+     czeka na assety — klockowy Bieguś działa od pierwszej klatki,
+     premium wskakuje, gdy plik się doładuje. Brak pliku = brak
+     błędu, po prostu zostaje klockowy.
+     ============================================================ */
+  const PREMIUM={
+    dostepny:false, wybrany:true,          // wybrany=false → gracz woli klockowego
+    model:null, mixer:null, akcje:{}, biezacaAkcja:null, cien:null,
+    aktywny(){return this.dostepny&&this.wybrany;},
+  };
+  const GLB_STADIA={pisklak:'assets/modele/pisklak.glb',
+    legenda:'assets/modele/biegus_zloty.glb'};   // pozostałe stadia → biegus.glb
+  const ASSETY={
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI,
+    przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
+      taczka:'assets/taczka.glb', pies:'assets/pies.glb', rower:'assets/rower.glb',
+      kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
+    },
+  };
+  const glbCache={};                       // typ → gotowy Group do klonowania
+  function zaladujSkrypt(url){return new Promise((res,rej)=>{
+    const s=document.createElement('script');s.src=url;s.onload=res;s.onerror=rej;
+    document.head.appendChild(s);});}
+  async function zapewnijLoader(){
+    if(THREE.GLTFLoader)return true;
+    const cdny=[
+      'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js',
+      'https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js'];
+    for(const u of cdny){try{await zaladujSkrypt(u);if(THREE.GLTFLoader)return true;}catch(e){}}
+    console.log('[DROGA] GLTFLoader niedostępny — zostaję przy modelach klockowych');
+    return false;}
+  function normalizuj(scene,wysokosc){
+    const box=new THREE.Box3().setFromObject(scene);
+    const rozmiar=new THREE.Vector3();box.getSize(rozmiar);
+    const skala=wysokosc/Math.max(0.001,rozmiar.y);
+    scene.scale.setScalar(skala);
+    const box2=new THREE.Box3().setFromObject(scene);
+    scene.position.y-=box2.min.y;          // stopy na ziemi
+    const wrap=new THREE.Group();wrap.add(scene);return wrap;}
+  function znajdzKlip(klipy,wzorce){
+    for(const w of wzorce){const k=klipy.find(c=>w.test(c.name));if(k)return k;}
+    return null;}
+  async function zaladujPremium(){
+    if(!await zapewnijLoader())return;
+    const loader=new THREE.GLTFLoader();
+    /* — Bieguś premium — */
+    const stadium=(typeof Biegus!=='undefined'&&Biegus.stadium)?Biegus.stadium():'dorosly';
+    const sciezka=GLB_STADIA[stadium]||ASSETY.biegus;
+    if(PREMIUM.url===sciezka&&PREMIUM.model)return;
+    PREMIUM.url=sciezka;
+    loader.load(assetUrl(sciezka),gltf=>{
+      if(PREMIUM.model)scena.remove(PREMIUM.model);
+      const wrap=normalizuj(gltf.scene,ASSETY.wysokoscBiegusia);
+      gltf.scene.rotation.y=ASSETY.obrotY;
+      PREMIUM.cien=cienBlob(0.6);wrap.add(PREMIUM.cien);
+      wrap.traverse(x=>{if(x.isMesh)x.castShadow=true;});
+      PREMIUM.model=wrap;
+      PREMIUM.mixer=new THREE.AnimationMixer(gltf.scene);
+      const K=gltf.animations||[];
+      PREMIUM.akcje={
+        bieg: znajdzKlip(K,[/run/i,/bieg/i,/jog/i]),
+        skok: znajdzKlip(K,[/jump/i,/skok/i,/hop/i]),
+        slizg:znajdzKlip(K,[/slide/i,/slizg/i,/crouch/i,/roll/i]),
+        idle: znajdzKlip(K,[/idle/i,/stand/i]),
+      };
+      for(const k in PREMIUM.akcje)
+        if(PREMIUM.akcje[k])PREMIUM.akcje[k]=PREMIUM.mixer.clipAction(PREMIUM.akcje[k]);
+      PREMIUM.dostepny=true;
+      wrap.position.set(0,0,CFG.GRACZ_Z);scena.add(wrap);
+      console.log('[DROGA] biegus.glb załadowany · animacje:',
+        Object.entries(PREMIUM.akcje).filter(([,a])=>a).map(([n])=>n).join(', ')||'brak (pozy statyczne)');
+      Gra?.toast?.('✨ <b>Bieguś Premium załadowany!</b><br>Model 3D z Twojego pipeline\'u assetów.');
+      window.dispatchEvent(new Event('drogapremium'));
+    },undefined,()=>console.log('[DROGA] brak '+ASSETY.biegus+' — klockowy Bieguś w akcji (to nie błąd)'));
+    /* — przeszkody premium (statyczne, klonowalne) — */
+    Object.entries(ASSETY.przeszkody).forEach(([typ,url])=>{
+      loader.load(assetUrl(url),gltf=>{
+        const wrap=normalizuj(gltf.scene,
+          typ==='rower'?1.9: typ==='szlaban'?1.2: typ==='galaz'?1.6: 0.95);
+        wrap.userData.glb=true;
+        glbCache[typ]=wrap;pule[typ]=[];     // czyścimy pulę klockową tego typu
+        console.log('[DROGA] '+typ+'.glb załadowany');
+      },undefined,()=>{});});
+  }
+  function przelaczModel(chcePremium){
+    PREMIUM.wybrany=chcePremium;
+    const p=PREMIUM.aktywny();
+    if(PREMIUM.model)PREMIUM.model.visible=p;
+    biegus.visible=!p;
+    return p;}
+  zaladujPremium();
+
+  const rywale=[];
+  [[0x3f7fc4,-1.15,0.86],[0x4a9c5e,1.15,0.9]].forEach(([kolor,x,wsp])=>{
+    const r=new THREE.Group();
+    r.add(klocek(0.5,0.4,0.62,kolor,0,0.55,0));
+    r.add(klocek(0.34,0.32,0.34,kolor,0,0.86,0.24));
+    r.add(klocek(0.05,0.07,0.03,0x20242e,0.09,0.9,0.42));
+    const nogi=[];
+    [[-0.11],[0.11]].forEach(([nx])=>{const n=klocek(0.06,0.3,0.06,0x20242e,nx,0.2,0);r.add(n);nogi.push(n);});
+    r.userData={nogi,wsp,baza:-20-Math.random()*40};
+    r.position.set(x,0,-30);r.visible=false;scena.add(r);rywale.push(r);});
+
+  /* — DEKO LASU (grupa k2, ukryta poza krainą 2) — */
+  for(let i=0;i<5;i++){
+    const gz=new THREE.Group();
+    const sk=0.5+((i*29)%40)/80;
+    gz.add(walec(0.09,0.12,0.34,0xd8cfc0,0,0.17,0,7));
+    const kap=new THREE.Mesh(new THREE.SphereGeometry(0.26,9,7,0,Math.PI*2,0,Math.PI/2),mat(0xb23a2e));
+    kap.position.y=0.32;gz.add(kap);
+    [[-0.1,0.4,0.08],[0.09,0.44,-0.06],[0,0.38,0.16]].forEach(([x,y,z])=>
+      gz.add(klocek(0.05,0.03,0.05,0xf6efe4,x,y,z)));
+    gz.scale.setScalar(sk);
+    gz.position.set((i%2?1:-1)*(4.9+((i*41)%30)/10),0,-i*47-8);
+    dodajDeko(gz,246,'k2');}
+  for(let i=0;i<3;i++){
+    const gl2=new THREE.Group();
+    const glaz=new THREE.Mesh(new THREE.SphereGeometry(0.7,8,6),mat(0x555e70));
+    glaz.scale.y=0.62;glaz.position.y=0.34;gl2.add(glaz);
+    gl2.add(klocek(0.5,0.07,0.4,0x2e5238,0.1,0.72,0));
+    gl2.position.set((i%2?1:-1)*6.4,0,-i*84-30);gl2.rotation.y=i;
+    dodajDeko(gl2,252,'k2');}
+  for(let i=0;i<4;i++){
+    const pa=new THREE.Group();
+    for(let j=0;j<5;j++){const l=klocek(0.07,0.02,0.7,0x3e7a4a,0,0.2,0.3);
+      l.rotation.y=j*(Math.PI*2/5);l.rotation.x=-0.5;pa.add(l);}
+    pa.position.set((i%2?1:-1)*(5.0+i*0.3),0,-i*61-20);
+    dodajDeko(pa,238,'k2');}
+  {
+    const matSmuga=new THREE.MeshBasicMaterial({color:0xffe9b0,transparent:true,
+      opacity:0.1,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+    for(let i=0;i<3;i++){
+      const sm=new THREE.Mesh(new THREE.PlaneGeometry(1.8,14),matSmuga);
+      sm.rotation.z=0.45;sm.rotation.y=0.3;
+      sm.position.set((i%2?1:-1)*(3.4+i),7,-i*70-24);
+      dodajDeko(sm,240,'k2');
+      dekoAnim.push(t=>{if(sm.visible)matSmuga.opacity=0.07+Math.abs(Math.sin(t*0.5+i))*0.09;});
+    }
+  }
+  /* — DEKO MIASTA (grupa k3) — */
+  for(let i=0;i<8;i++){                                              // sylwetki bloków z oknami
+    const bl=new THREE.Group();
+    const wys=6+((i*53)%70)/10;
+    bl.add(klocek(3.2,wys,3.2,0x141824,0,wys/2,0));
+    for(let w=0;w<10;w++){
+      const okno=new THREE.Mesh(new THREE.BoxGeometry(0.28,0.34,0.02),
+        new THREE.MeshBasicMaterial({color:((i*7+w)%3)?0x2a3350:0xffd9a0}));
+      okno.position.set(-1.1+(w%4)*0.74, 1+Math.floor(w/4)*1.3+((i*3)%2), 1.62);
+      bl.add(okno);}
+    bl.position.set((i%2?1:-1)*(10.5+((i*37)%40)/10),0,-i*34+6);
+    dodajDeko(bl,278,'k3');}
+  for(let i=0;i<6;i++){                                              // sodowe latarnie miejskie
+    const l=new THREE.Group();
+    l.add(walec(0.08,0.11,4.2,0x20242e,0,2.1,0,6));
+    const ramie=klocek(0.9,0.08,0.08,0x20242e,0.42,4.15,0);l.add(ramie);
+    const zar=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
+      mat(0xc9ced8));zar.position.set(0.82,4.05,0);l.add(zar);       // lampa zgaszona za dnia
+    l.position.set((i%2?1:-1)*5.0,0,-i*44+12);
+    if(i%2)l.scale.x=-1;
+    dodajDeko(l,264,'k3');}
+  {                                                                   // neon „24h" — puls
+    const matNeon=new THREE.MeshBasicMaterial({color:0xff4a8a});
+    const ne=new THREE.Group();
+    ne.add(klocek(1.4,0.7,0.1,0x0e1018,0,3.4,0));
+    const rurka=new THREE.Mesh(new THREE.TorusGeometry(0.22,0.035,8,16),matNeon);
+    rurka.position.set(-0.35,3.4,0.07);ne.add(rurka);
+    const kreska=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.07,0.05),matNeon);
+    kreska.position.set(0.3,3.4,0.07);ne.add(kreska);
+    const gl=poswiata(3.6,0xff4a8a);gl.position.set(0,3.4,0.3);ne.add(gl);
+    ne.position.set(6.1,0,-70);ne.rotation.y=-0.5;
+    ne.add(klocek(0.12,3.4,0.12,0x20242e,0,1.7,0));
+    dodajDeko(ne,262,'k3');
+    dekoAnim.push(t=>{if(ne.visible)matNeon.color.setHex((t%2.2)<0.12?0x571a30:0xff4a8a);});
+  }
+  {                                                                   // wiata przystanku
+    const w=new THREE.Group();
+    w.add(klocek(2.4,0.08,1.0,0x2a3350,0,2.0,0));
+    [[-1.05],[1.05]].forEach(([x])=>w.add(klocek(0.08,2.0,0.08,0x555e70,x,1.0,0)));
+    w.add(klocek(2.2,0.9,0.05,0x1c2438,0,1.2,-0.45));
+    w.add(klocek(1.8,0.08,0.4,0x555e70,0,0.55,-0.2));
+    w.position.set(-6.4,0,-40);w.rotation.y=0.5;
+    dodajDeko(w,258,'k3');}
+  /* — DEKO PRZEŁĘCZY (grupa k4) — */
+  for(let i=0;i<7;i++){                                              // skalne bryły
+    const sk=new THREE.Group();
+    const wys=1.4+((i*43)%20)/8;
+    const b1=new THREE.Mesh(new THREE.SphereGeometry(1.1,6,5),mat(0x525a70));
+    b1.scale.set(1.2,wys/1.4,1);b1.position.y=wys*0.4;sk.add(b1);
+    if(i%2){const czapa=new THREE.Mesh(new THREE.SphereGeometry(0.5,6,5),mat(0xdde4f0));
+      czapa.scale.y=0.4;czapa.position.y=wys*0.82;sk.add(czapa);}    // śnieżna czapa
+    sk.position.set((i%2?1:-1)*(6.8+((i*31)%40)/10),0,-i*38+4);
+    dodajDeko(sk,266,'k4');}
+  for(let i=0;i<8;i++){                                              // paliki szlaku
+    const pal=new THREE.Group();
+    pal.add(klocek(0.09,1.0,0.09,0xc0392b,0,0.5,0));
+    pal.add(klocek(0.09,0.2,0.09,0xf6efe4,0,0.82,0));
+    pal.position.set((i%2?1:-1)*4.8,0,-i*33+10);
+    dodajDeko(pal,264,'k4');}
+  for(let i=0;i<5;i++){                                              // kosodrzewina
+    const ko=new THREE.Group();
+    for(let j=0;j<3;j++){const c=new THREE.Mesh(new THREE.ConeGeometry(0.5,0.7,6),mat(0x24382c));
+      c.position.set((j-1)*0.4,0.3+((j*7)%2)/10,((j*13)%3)/10-0.15);ko.add(c);}
+    ko.position.set((i%2?1:-1)*(5.4+i*0.2),0,-i*52-16);
+    dodajDeko(ko,258,'k4');}
+  {                                                                   // wiatr — poziome smugi
+    const smugi=[];
+    for(let i=0;i<6;i++){
+      const w=new THREE.Mesh(new THREE.BoxGeometry(2.2,0.03,0.03),
+        new THREE.MeshBasicMaterial({color:0xdde4f0,transparent:true,opacity:0.25}));
+      w.position.set(0,1+i*0.8,-20-i*9);w.userData.grupa='k4';
+      dekoracje.push(w);scena.add(w);w.userData.cykl=1e9;            // nie płynie z drogą
+      smugi.push(w);}
+    dekoAnim.push(t=>{smugi.forEach((w,i)=>{if(!w.visible)return;
+      w.position.x=((t*(7+i)+i*13)%36)-18;
+      w.material.opacity=0.1+Math.abs(Math.sin(t*2+i))*0.2;});});
+  }
+  /* — PANORAMY: horyzont każdej krainy (statyczne, daleko) — */
+  function panorama(grupa,budowa){
+    const g=new THREE.Group();budowa(g);
+    g.position.z=-88;g.userData.grupa=grupa;g.userData.cykl=1e9;     // nie płynie
+    dekoracje.push(g);scena.add(g);}
+  panorama('k1',g=>{for(let i=0;i<6;i++){                            // korony drzew parku
+    const k=new THREE.Mesh(new THREE.SphereGeometry(5,7,5),mat(0x16241a));
+    k.scale.y=0.55;k.position.set(-26+i*10.5,3.2,((i*17)%3)*2);g.add(k);}});
+  panorama('k2',g=>{for(let i=0;i<9;i++){                            // ściana ciemnego lasu
+    const c=new THREE.Mesh(new THREE.ConeGeometry(2.6,9+((i*29)%30)/6,6),mat(0x0e1a12));
+    c.position.set(-26+i*6.5,4.2,((i*13)%3)*2);g.add(c);}});
+  panorama('k3',g=>{for(let i=0;i<7;i++){                            // wieżowce z oknami
+    const wys=9+((i*41)%50)/5;
+    const w=new THREE.Mesh(new THREE.BoxGeometry(3.4,wys,3),mat(0x0b0e18));
+    w.position.set(-24+i*8,wys/2,((i*19)%3)*2);g.add(w);
+    for(let o=0;o<8;o++){const ok=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.5,0.06),
+      new THREE.MeshBasicMaterial({color:((i*5+o)%3)?0x1c2438:0xffd9a0}));
+      ok.position.set(w.position.x-1+(o%3),1.5+Math.floor(o/3)*2.4,w.position.z+1.55);g.add(ok);}}});
+  panorama('k4',g=>{for(let i=0;i<5;i++){                            // szczyty ze śniegiem
+    const wys=8+((i*37)%40)/5;
+    const sz=new THREE.Mesh(new THREE.ConeGeometry(6,wys,5),mat(0x3c4356));
+    sz.position.set(-24+i*12,wys/2,((i*11)%3)*2);g.add(sz);
+    const czapa=new THREE.Mesh(new THREE.ConeGeometry(2.4,wys*0.32,5),mat(0xe8edf6));
+    czapa.position.set(sz.position.x,wys*0.84,sz.position.z);g.add(czapa);}});
+  for(let i=0;i<14;i++){                                             // przerywana linia jezdni (Miasto)
+    const li=new THREE.Mesh(new THREE.BoxGeometry(0.14,0.015,1.0),
+      new THREE.MeshBasicMaterial({color:0xd8dce6}));
+    li.position.set(0,0.022,-i*18);
+    li.userData.grupa='k3';li.userData.cykl=252;
+    dekoracje.push(li);scena.add(li);}
+  {                                                                  // słońce
+    const sun=new THREE.Group();
+    const kula=new THREE.Mesh(new THREE.SphereGeometry(2.2,12,10),
+      new THREE.MeshBasicMaterial({color:0xfff6d0}));
+    sun.add(kula);const gl=poswiata(9,0xf6ecc8);sun.add(gl);
+    sun.position.set(16,24,-86);sun.userData.grupa='wspolne';sun.userData.cykl=1e9;
+    dekoracje.push(sun);scena.add(sun);
+  }
+  {                                                                  // chmury dnia
+    for(let i=0;i<6;i++){
+      const ch=new THREE.Group();
+      const matCh=new THREE.MeshBasicMaterial({color:0xf4f6f8,transparent:true,opacity:0.72,fog:false});
+      [[0,0,3.2],[2.4,0.4,2.3],[-2.3,0.3,2.5],[1,0.9,2.0]].forEach(([x,y,r])=>{
+        const b=new THREE.Mesh(new THREE.SphereGeometry(r,8,6),matCh);
+        b.scale.y=0.5;b.position.set(x,y,0);ch.add(b);});
+      ch.position.set(-40+i*16,20+((i*17)%3)*3,-80-((i*7)%3)*6);
+      ch.userData.grupa='wspolne';ch.userData.cykl=1e9;
+      dekoracje.push(ch);scena.add(ch);
+      dekoAnim.push(t=>{ch.position.x=-46+(((t*(1.1+i*0.13))+i*16)%110);});
+    }
+  }
+  /* — DETAL ŚWIATA: życie na poboczach — */
+  {
+    for(let i=0;i<4;i++){
+      const mo=new THREE.Group();
+      [[-0.09],[0.09]].forEach(([x])=>{const sk=klocek(0.16,0.02,0.12,
+        i%2?0xe8a53a:0xd96a8a,x,0,0);sk.rotation.z=x>0?0.5:-0.5;mo.add(sk);});
+      mo.position.set((i%2?1:-1)*3.6,1.2,-14-i*26);
+      mo.userData.grupa=i<2?'k1':'k2';mo.userData.cykl=250;
+      dekoracje.push(mo);scena.add(mo);
+      dekoAnim.push(t=>{if(!mo.visible)return;
+        mo.position.y=1.1+Math.sin(t*2.1+i*2)*0.5;
+        mo.position.x=(i%2?1:-1)*(3.2+Math.sin(t*0.7+i)*1.2);
+        mo.children.forEach((sk,j)=>sk.rotation.z=(j?1:-1)*(0.3+Math.abs(Math.sin(t*14))*0.6));});}
+  }
+  for(let i=0;i<6;i++){
+    const pl=new THREE.Group();
+    for(let f=0;f<7;f++){const kw=new THREE.Mesh(new THREE.SphereGeometry(0.07,6,5),
+      mat([0xd96a6a,0xe8b34a,0xf0eee2,0xc78ad4][(i+f)%4]));
+      kw.position.set(((f*13)%20)/10-1,0.1,((f*7)%16)/10-0.8);pl.add(kw);}
+    pl.position.set((i%2?1:-1)*(4.6+((i*31)%25)/10),0,-i*40-10);
+    dodajDeko(pl,244,'k1');}
+  for(let i=0;i<2;i++){
+    const pt=new THREE.Group();
+    pt.add(klocek(0.16,0.14,0.2,0x8a6a4a,0,0.1,0));
+    const gl2=klocek(0.1,0.1,0.1,0x8a6a4a,0,0.2,0.1);pt.add(gl2);
+    pt.add(klocek(0.05,0.03,0.08,0xe8b34a,0,0.18,0.18));
+    pt.position.set((i?1:-1)*4.4,0,-30-i*55);
+    dodajDeko(pt,236,'k2');
+    dekoAnim.push(t=>{if(pt.visible)gl2.position.y=0.2-((t*1.7+i)%2<0.3?0.08:0);});}
+  for(let i=0;i<2;i++){
+    const a=new THREE.Group();
+    const kol=i?0x7a8fae:0xa85c4a;
+    a.add(klocek(2.2,0.5,1.0,kol,0,0.48,0));
+    a.add(klocek(1.2,0.4,0.92,kol,0,0.92,0));
+    a.add(klocek(1.14,0.34,0.86,0x1a2030,0,0.94,0));
+    [[-0.75],[0.75]].forEach(([x])=>{const k=new THREE.Mesh(
+      new THREE.TorusGeometry(0.18,0.08,7,12),mat(0x181c26));
+      k.position.set(x,0.22,0.5);k.rotation.x=Math.PI/2;a.add(k);});
+    a.position.set(i?6.6:-6.6,0,-24-i*58);a.rotation.y=i?0.1:-0.1;
+    dodajDeko(a,262,'k3');}
+  {
+    const h=new THREE.Group();
+    h.add(walec(0.14,0.18,0.6,0xc0392b,0,0.3,0,8));
+    const glowka=new THREE.Mesh(new THREE.SphereGeometry(0.16,8,7),mat(0xc0392b));
+    glowka.position.y=0.66;h.add(glowka);
+    [[-0.2],[0.2]].forEach(([x])=>h.add(klocek(0.14,0.12,0.12,0xa8312a,x,0.42,0)));
+    h.position.set(-4.6,0,-52);dodajDeko(h,256,'k3');}
+  for(let i=0;i<12;i++){
+    const li=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.012,6),
+      new THREE.MeshBasicMaterial({color:0xcfd3dc}));
+    li.position.set(i%2?3.95:-3.95,0.02,-(i>>1)*36);
+    li.userData.grupa='k3';li.userData.cykl=216;
+    dekoracje.push(li);scena.add(li);}
+  for(let i=0;i<3;i++){
+    const ko=new THREE.Group();
+    [0.3,0.22,0.15,0.09].forEach((r,j)=>{
+      const kam=new THREE.Mesh(new THREE.SphereGeometry(r,7,5),mat(0x7a8294));
+      kam.scale.y=0.6;kam.position.y=0.12+j*0.2;ko.add(kam);});
+    ko.position.set((i%2?1:-1)*4.5,0,-26-i*48);
+    dodajDeko(ko,248,'k4');}
+  for(let i=0;i<3;i++){
+    const pr=new THREE.Group();
+    pr.add(klocek(0.05,1.3,0.05,0x555e70,0,0.65,0));
+    const flaga=klocek(0.44,0.26,0.02,0xe8561e,0.26,1.15,0);pr.add(flaga);
+    pr.position.set((i%2?1:-1)*5.2,0,-38-i*44);
+    dodajDeko(pr,252,'k4');
+    dekoAnim.push(t=>{if(pr.visible){flaga.rotation.y=Math.sin(t*4+i)*0.4;
+      flaga.scale.x=0.8+Math.abs(Math.sin(t*4+i))*0.25;}});}
+  let aktualnaKraina=0;
+  const matOdnoga=new THREE.MeshLambertMaterial({color:0xc0b8a8});
+  /* ROZSTAJE 2.0: parametryczny zestaw — droga rozjeżdża się naprawdę */
+  function zbudujKitRozstajow(dl){
+    const g=new THREE.Group();
+    const rampa=3.4;
+    [-2.3,2.3].forEach(x=>{
+      const odn=new THREE.Mesh(new THREE.PlaneGeometry(2.7,dl),matOdnoga);
+      odn.rotation.x=-Math.PI/2;odn.position.set(x,0.045,-dl/2);g.add(odn);
+      const wjazd=new THREE.Mesh(new THREE.PlaneGeometry(2.7,rampa),matOdnoga);
+      wjazd.rotation.x=-Math.PI/2;wjazd.rotation.z=x>0?-0.32:0.32;
+      wjazd.position.set(x*0.55,0.04,rampa*0.32);g.add(wjazd);});
+    const kraw=(x)=>{const k=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.2,dl),mat(0x9aa0a8));
+      k.position.set(x,0.1,-dl/2);g.add(k);};
+    kraw(-0.95);kraw(0.95);
+    const traw=new THREE.Mesh(new THREE.BoxGeometry(1.76,0.16,dl),matTrawa);
+    traw.position.set(0,0.1,-dl/2);g.add(traw);
+    const dziob=new THREE.Mesh(new THREE.ConeGeometry(0.95,2.4,4),mat(0x9aa0a8));
+    dziob.rotation.x=Math.PI/2;dziob.rotation.z=Math.PI/4;
+    dziob.scale.y=1.5;dziob.position.set(0,0.22,1.15);g.add(dziob);
+    const tab=klocek(1.35,0.6,0.1,0xf2c14e,0,1.05,0.85);g.add(tab);
+    [[-0.3],[0.3]].forEach(([x])=>{
+      g.add(klocek(0.4,0.13,0.1,0x1a2030,x,1.05,0.91));
+      g.add(klocek(0.13,0.26,0.1,0x1a2030,x<0?x-0.2:x+0.2,1.05,0.91));});
+    g.add(walec(0.06,0.08,1.0,0x555e70,0,0.5,0.85,6));
+    /* WYSOKA PRZEGRODA: po wyborze widzisz tylko SWOJĄ drogę */
+    const zywoplot=new THREE.Mesh(new THREE.BoxGeometry(1.5,3.2,Math.max(4,dl-2.2)),mat(0x3f6347));
+    zywoplot.position.set(0,1.76,-(dl-2.2)/2-1.4);g.add(zywoplot);
+    for(let z=5;z<dl-4;z+=6.5){
+      const kor=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,7),mat(0x527a4a));
+      kor.scale.setScalar(1.25);kor.scale.y=1.0;
+      kor.position.set(((z*7)%2?0.25:-0.25),3.85,-z);g.add(kor);}
+    const zwezka=new THREE.Mesh(new THREE.ConeGeometry(0.85,2.2,4),mat(0x9aa0a8));
+    zwezka.rotation.x=-Math.PI/2;zwezka.rotation.z=Math.PI/4;
+    zwezka.scale.y=1.4;zwezka.position.set(0,0.18,-dl-0.9);g.add(zwezka);
+    return g;}
+  /* — SEGMENTY SPECJALNE: scenografie parametryczne — */
+  function zbudujSegment(rodzaj,dl,kraina){
+    if(rodzaj==='schody'){                                           // KŁADKA: w górę, górą, w dół
+      const g=new THREE.Group();
+      const ramp=5,wys=1.6,stopni=8,sh=wys/stopni,sd=ramp/stopni;
+      const plat=new THREE.Mesh(new THREE.BoxGeometry(8.6,0.3,dl-2*ramp),mat(0xb8b0a0));
+      plat.castShadow=true;plat.receiveShadow=true;
+      plat.position.set(0,wys-0.15,-dl/2);g.add(plat);
+      for(let i=0;i<stopni;i++){                                     // stopnie: wejście i zejście
+        g.add(klocek(8.6,sh,sd+0.06,0xc4bcac,0,sh*0.5+i*sh,-(0.2+i*sd)));
+        g.add(klocek(8.6,sh,sd+0.06,0xc4bcac,0,sh*0.5+i*sh,-(dl-0.2-i*sd)));
+        g.add(klocek(8.6,0.03,0.07,0xe8b34a,0,sh+i*sh,-(0.2+i*sd)-sd*0.4));   // pasek antypoślizgowy
+      }
+      [-4.15,4.15].forEach(x=>{                                      // balustrady
+        for(let z=ramp+0.4;z<dl-ramp;z+=2.2)
+          g.add(klocek(0.1,1.05,0.1,0x555e70,x,wys+0.52,-z));
+        const por=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,dl-2*ramp),mat(0xe8561e));
+        por.position.set(x,wys+1.05,-dl/2);g.add(por);
+        const por2=new THREE.Mesh(new THREE.BoxGeometry(0.07,0.07,dl-2*ramp),mat(0x555e70));
+        por2.position.set(x,wys+0.6,-dl/2);g.add(por2);});
+      /* pod kładką: poprzeczna uliczka / strumyk */
+      if(kraina===3){
+        const jezdnia=new THREE.Mesh(new THREE.PlaneGeometry(34,3.4),
+          new THREE.MeshLambertMaterial({color:0x767c88}));
+        jezdnia.rotation.x=-Math.PI/2;jezdnia.position.set(0,0.008,-dl/2);g.add(jezdnia);
+        for(let i=0;i<6;i++)g.add(klocek(1.2,0.012,0.14,0xd8dce6,-12+i*4.8,0.02,-dl/2));
+        const autko=new THREE.Group();
+        autko.add(klocek(1.7,0.5,0.9,0x2a63b8,0,0.45,0));
+        autko.add(klocek(0.95,0.35,0.8,0x2a63b8,0,0.85,0));
+        autko.add(klocek(0.9,0.3,0.74,0x1a2030,0,0.86,0));
+        autko.position.set(0,0,-dl/2);autko.rotation.y=Math.PI/2;
+        g.add(autko);g.userData.autko=autko;g.userData.autkoZ=-dl/2;
+      } else {
+        const strumyk=new THREE.Mesh(new THREE.PlaneGeometry(30,2.6),
+          new THREE.MeshLambertMaterial({color:0x5a86a0}));
+        strumyk.rotation.x=-Math.PI/2;strumyk.position.set(0,0.008,-dl/2);g.add(strumyk);
+        for(let i=0;i<5;i++){const kam=new THREE.Mesh(new THREE.SphereGeometry(0.24,6,5),mat(0x7a8294));
+          kam.scale.y=0.5;kam.position.set(-8+i*4,0.05,-dl/2+((i%2)?0.7:-0.7));g.add(kam);}
+      }
+      return g;}
+    return zbudujSegmentBaza(rodzaj,dl);}
+  function zbudujSegmentBaza(rodzaj,dl){
+    const g=new THREE.Group();
+    if(rodzaj==='pergola'){                                          // PARK: pergola różana
+      for(let z=1;z<dl;z+=2.6){
+        [-3.2,3.2].forEach(x=>g.add(klocek(0.14,2.5,0.14,0x8a6a4a,x,1.25,-z)));
+        const luk=new THREE.Mesh(new THREE.TorusGeometry(3.2,0.09,6,14,Math.PI),mat(0x8a6a4a));
+        luk.position.set(0,2.5,-z);g.add(luk);
+        for(let r=0;r<4;r++){
+          const roza=new THREE.Mesh(new THREE.SphereGeometry(0.12,6,5),
+            mat(r%2?0xd96a8a:0xf0f0e8));
+          const a=0.5+r*0.7;
+          roza.position.set(Math.cos(a)*3.2,2.5+Math.sin(a)*3.2*0.98-2.5+2.5,-z);
+          roza.position.y=2.5+Math.sin(a)*3.1;roza.position.x=Math.cos(a)*3.1;
+          g.add(roza);}
+        const pn=new THREE.Mesh(new THREE.TorusGeometry(3.2,0.05,5,12,Math.PI),mat(0x3f6347));
+        pn.position.set(0,2.5,-z+0.08);g.add(pn);}
+    }
+    if(rodzaj==='mostek'){                                           // LAS: mostek nad strumieniem
+      const woda=new THREE.Mesh(new THREE.PlaneGeometry(30,dl+4),
+        new THREE.MeshLambertMaterial({color:0x5a86a0}));
+      woda.rotation.x=-Math.PI/2;woda.position.set(0,-0.06,-dl/2);g.add(woda);
+      for(let i=0;i<6;i++){const kam=new THREE.Mesh(new THREE.SphereGeometry(0.3,6,5),mat(0x7a8294));
+        kam.scale.y=0.5;kam.position.set((i%2?1:-1)*(4.6+i*0.5),0,-((i*13)%Math.max(2,dl)));g.add(kam);}
+      const deski=new THREE.Mesh(new THREE.BoxGeometry(8.6,0.14,dl),mat(0x9a7a52));
+      deski.position.set(0,0.07,-dl/2);g.add(deski);
+      for(let z=0.5;z<dl;z+=0.8)g.add(klocek(8.6,0.03,0.12,0x7a5e3e,0,0.16,-z));
+      [-4.1,4.1].forEach(x=>{
+        for(let z=0.4;z<dl;z+=2.2)g.add(klocek(0.12,1.0,0.12,0x8a6a4a,x,0.5,-z));
+        [0.55,0.95].forEach(h=>{
+          const por=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.08,dl),mat(0x8a6a4a));
+          por.position.set(x,h,-dl/2);g.add(por);});});
+    }
+    if(rodzaj==='market'){                                           // MIASTO: przez market!
+      const posadzka=new THREE.Mesh(new THREE.PlaneGeometry(8.4,dl),
+        new THREE.MeshLambertMaterial({color:0xd8d4ca}));
+      posadzka.rotation.x=-Math.PI/2;posadzka.position.set(0,0.015,-dl/2);g.add(posadzka);
+      [-4.3,4.3].forEach(x=>{
+        g.add(klocek(0.3,3.4,dl,0xcfc9bc,x,1.7,-dl/2));               // ściany
+        for(let z=1.5;z<dl-1;z+=2.4){                                 // regały z towarem
+          g.add(klocek(0.5,2.2,1.8,0x9a958a,x*0.82,1.1,-z));
+          for(let pz=0;pz<3;pz++)for(let px=0;px<3;px++)
+            g.add(klocek(0.34,0.3,0.34,
+              [0xd96a6a,0xe8b34a,0x2a63b8,0x3aa04a,0xc78ad4,0xf0eee2][(pz*3+px+(z|0))%6],
+              x*0.75,0.5+pz*0.62,-z+px*0.5-0.5));}});
+      const sufit=new THREE.Mesh(new THREE.BoxGeometry(8.9,0.2,dl),mat(0xb8b2a6));
+      sufit.position.set(0,3.4,-dl/2);g.add(sufit);
+      for(let z=2;z<dl;z+=3)g.add(new THREE.Mesh(new THREE.BoxGeometry(3,0.06,0.3),
+        new THREE.MeshBasicMaterial({color:0xf6f4ea})).translateY(3.28).translateZ(-z)); // świetlówki
+      [[1.2],[-dl-1.2]].forEach(([z])=>{                              // witryny wjazd/wyjazd
+        g.add(klocek(8.9,0.4,0.3,0xe8561e,0,3.55,z<-1?-dl-0.2:0.9));});
+      const szyld=klocek(3.2,0.7,0.2,0xe8561e,0,4.1,1.0);g.add(szyld);
+      [0,1,2].forEach(i=>g.add(klocek(0.5,0.4,0.22,0xf6efe4,-0.9+i*0.9,4.1,1.02)));
+    }
+    if(rodzaj==='dworzec'){                                           // MIASTO: peron + pociąg
+      [-5.6,5.6].forEach(x=>{const per=new THREE.Mesh(
+        new THREE.BoxGeometry(3.4,0.35,dl),mat(0xb3aea6));
+        per.position.set(x,0.17,-dl/2);g.add(per);});
+      for(let z=1.5;z<dl;z+=4.5)
+        [-3.9,3.9].forEach(x=>g.add(klocek(0.18,3.2,0.18,0x555e70,x,1.6,-z)));
+      const dach=new THREE.Mesh(new THREE.BoxGeometry(9.4,0.16,dl),mat(0x3a4152));
+      dach.position.set(0,3.3,-dl/2);g.add(dach);
+      const tablica=klocek(2.6,0.9,0.2,0x10141c,0,2.5,-2.5);g.add(tablica);
+      for(let r=0;r<3;r++)g.add(new THREE.Mesh(new THREE.BoxGeometry(2.0,0.12,0.05),
+        new THREE.MeshBasicMaterial({color:0x3ad06a})).translateY(2.72-r*0.26).translateZ(-2.38));
+      const poc=new THREE.Group();                                    // stojący pociąg
+      poc.add(klocek(2.2,2.4,dl*0.9,0xc0392b,0,1.45,-dl*0.45));
+      poc.add(klocek(2.24,0.8,dl*0.9,0xf0e6d2,0,1.8,-dl*0.45));
+      for(let z=2;z<dl*0.9;z+=2.2)poc.add(klocek(0.1,0.6,1.2,0x1a2030,1.14,1.85,-z));
+      poc.add(klocek(2.2,0.5,0.6,0x8a2a22,0,1.0,0.2));
+      poc.position.x=8.4;g.add(poc);
+    }
+    if(rodzaj==='brama'){                                             // PRZEŁĘCZ: skalna brama
+      [-3.8,3.8].forEach(x=>{
+        const tur=new THREE.Mesh(new THREE.ConeGeometry(2.2,7.5,6),mat(0x6a7288));
+        tur.position.set(x*1.15,3.4,-dl/2);tur.rotation.z=x>0?-0.16:0.16;g.add(tur);
+        const czapa=new THREE.Mesh(new THREE.ConeGeometry(0.9,2.2,6),mat(0xe8edf6));
+        czapa.position.set(x*1.02,6.4,-dl/2);czapa.rotation.z=x>0?-0.16:0.16;g.add(czapa);});
+      const lina2=new THREE.Mesh(new THREE.BoxGeometry(7.4,0.05,0.05),mat(0xd8cfc0));
+      lina2.position.set(0,5.2,-dl/2);g.add(lina2);
+      for(let f=0;f<5;f++)g.add(klocek(0.4,0.3,0.02,
+        [0xe8561e,0xf0eee2,0x2a63b8,0xe8b34a,0x3aa04a][f],-2.6+f*1.3,4.95,-dl/2));
+    }
+    return g;}
+  function ustawKraine(k){
+    if(aktualnaKraina===k)return;aktualnaKraina=k;
+    const P=PALETY[k];
+    matSciezka.color.setHex(P.sciezka);matTrawa.color.setHex(P.trawa);
+    matOdnoga.color.setHex(P.sciezka).lerp(new THREE.Color(0xffffff),0.22);
+    scena.fog.near=P.mgla[0];scena.fog.far=P.mgla[1];
+    dekoracje.forEach(d=>{const g=d.userData.grupa;
+      d.visible=(g==='wspolne')||(g==='k'+k);});}
+  ustawKraine(1);
+
+  const meta=new THREE.Group();
+  [-3.4,3.4].forEach(x=>meta.add(walec(0.12,0.12,3.2,0xf6efe4,x,1.6,0,6)));
+  for(let i=0;i<8;i++)meta.add(klocek(0.85,0.5,0.06,i%2?0x20242e:0xf6efe4,-2.98+i*0.85,3.3,0));
+  meta.add(klocek(2.6,0.5,0.1,0xe8561e,0,3.95,0));
+  scena.add(meta);meta.visible=false;
+
+  const pule={};
+  function wezModel(typ){if(!pule[typ])pule[typ]=[];
+    let m=pule[typ].pop();
+    if(!m){
+      if(glbCache[typ]){m=glbCache[typ].clone();m.userData.glb=true;
+        m.add(cienBlob(0.8));}
+      else m=OBIEKTY[typ].zbuduj();
+      m.traverse(x=>{if(x.isMesh)x.castShadow=true;});
+    }
+    m.visible=true;scena.add(m);return m;}
+  function oddajModel(typ,m){m.visible=false;scena.remove(m);pule[typ].push(m);}
+
+  let ostKlatka=0;
+  function klatka(s,czasReal){
+    const dt=Math.min(0.05,czasReal-ostKlatka);ostKlatka=czasReal;
+    ustawKraine(s.skrypt.kraina||1);
+    const PAL=PALETY[s.skrypt.kraina||1];
+    const swit=clamp(s.t/CFG.ETAP_CZAS,0,1);
+    const PORA=PAL.pory[(s.skrypt.pora??0)%PAL.pory.length];
+    const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
+    if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k);}
+    scena.background.copy(PORA._s).lerp(PORA._k,swit);
+    /* — teren: aktywna kładka (schody) podnosi świat — */
+    let segT=null;
+    for(const o of s.aktywne)
+      if(o.typ==='segment'&&o.rodzaj==='schody'){
+        const dlS=o.durS*s.predkosc;
+        if(o.z>-4&&o.z-dlS<CFG.GRACZ_Z+40){segT={z:o.z,dl:dlS};break;}}
+    function tY(zW){
+      if(!segT)return 0;
+      const p=segT.z-zW;if(p<-0.2||p>segT.dl)return 0;
+      const r=5,w=1.6;
+      if(p<0)return 0;
+      if(p<r)return w*(p/r);
+      if(p>segT.dl-r)return w*Math.max(0,(segT.dl-p)/r);
+      return w;}
+    const tyGracza=tY(CFG.GRACZ_Z);
+
+    scena.fog.color.copy(scena.background);
+    slonce.intensity=lerp(0.75,1.15,swit);
+    switGlow.position.y=lerp(3,11,swit);switGlow.scale.setScalar(lerp(56,78,swit));
+    switGlow2.position.y=lerp(2,9,swit);
+    if(przelot){
+      if(przelot.start===null)przelot.start=czasReal;
+      const e=(czasReal-przelot.start)/8;
+      if(e>=1){przelot=null;}
+      else{
+        kluczPtakow.position.x=-34+e*68;
+        kluczPtakow.position.y=16-Math.sin(e*Math.PI)*10;           // klucz schodzi NISKO
+        kluczPtakow.position.z=-40;
+      }
+    } else {
+      kluczPtakow.position.y=16;kluczPtakow.position.z=-70;
+      kluczPtakow.position.x=-30+((czasReal*1.6)%90);
+    }
+    kluczPtakow.children.forEach((p,i)=>p.children.forEach((sk,j)=>
+      sk.rotation.z=(j?-1:1)*Math.sin(czasReal*7+i)*0.5));
+
+    const x=pozycjaPasa(s);let y=0;
+    if(s.skokT>=0)y=Math.sin((s.skokT/s.skokCzas)*Math.PI)*CFG.SKOK_WYS;
+    const wSlizgu=s.slizgT>=0;
+    const stanB=Biegus.stan();
+    const tempo=stanB==='najedzony'?12:stanB==='ok'?10.5:7;
+    const premiumTeraz=PREMIUM.aktywny();
+    biegus.visible=!premiumTeraz;
+    if(PREMIUM.model)PREMIUM.model.visible=premiumTeraz;
+    const aktor=premiumTeraz?PREMIUM.model:biegus;
+    aktor.position.set(x,y+tyGracza,CFG.GRACZ_Z);
+    aktor.rotation.z=clamp((x-(aktor.userData.px||0))*-6,-0.35,0.35);aktor.userData.px=x;
+    if(premiumTeraz){
+      /* — Bieguś PREMIUM: animacje z GLB, crossfade wg stanu — */
+      const A=PREMIUM.akcje;
+      const cel=wSlizgu&&A.slizg?A.slizg : s.skokT>=0&&A.skok?A.skok : A.bieg||A.idle;
+      if(cel&&PREMIUM.biezacaAkcja!==cel){
+        if(PREMIUM.biezacaAkcja)PREMIUM.biezacaAkcja.fadeOut(0.12);
+        cel.reset().fadeIn(0.12).play();PREMIUM.biezacaAkcja=cel;}
+      if(!A.slizg)aktor.scale.y=wSlizgu?0.55:1;                    // brak klipu ślizgu → przysiad skalą
+      if(!A.skok)aktor.rotation.x=s.skokT>=0?-0.25:0;
+      PREMIUM.mixer.update(dt*(tempo/10.5));                       // głodny=wolniejsza animacja (R6)
+      if(PREMIUM.cien)PREMIUM.cien.position.y=0.02-y;
+      aktor.visible=premiumTeraz&&!(s.nietyk>0&&Math.floor(czasReal*14)%2);
+    } else {
+      /* — Bieguś KLOCKOWY (fallback / wybór gracza) — */
+      biegus.rotation.x=wSlizgu?1.15:(s.skokT>=0?-0.25:-0.08+Math.sin(czasReal*tempo*2)*0.025);
+      biegus.scale.y=wSlizgu?0.55:1;
+      biegus.userData.nogi.forEach((n,i)=>n.rotation.x=s.skokT>=0?0.9:Math.sin(czasReal*tempo+i*Math.PI)*0.85);
+      biegus.userData.skrz.forEach((sk,i)=>sk.rotation.z=s.skokT>=0?(i?-0.9:0.9):(i?-0.12:0.12)+Math.sin(czasReal*tempo+(i?Math.PI:0))*0.24);
+      biegus.userData.glowa.position.y=1.0+Math.sin(czasReal*tempo)*0.03;
+      const mrug=(czasReal%3.1)<0.12;
+      biegus.userData.oczy.forEach(o=>o.scale.y=mrug?0.15:1);
+      if(s.skokT<0&&!wSlizgu)biegus.position.y+=Math.abs(Math.sin(czasReal*tempo))*0.07;
+      biegus.userData.cien.position.y=0.02-biegus.position.y;
+      biegus.visible=!(s.nietyk>0&&Math.floor(czasReal*14)%2);
+    }
+    /* SALTO — PO gałęziach animacji (nic już nie nadpisze obrotu!) */
+    if(s.salto&&s.skokT>=0){
+      aktor.rotation.x=-(s.skokT/s.skokCzas)*Math.PI*2;              // pełny obrót
+      const tuck=Math.sin((s.skokT/s.skokCzas)*Math.PI);
+      aktor.scale.setScalar(1-0.24*tuck);                            // kulenie w locie
+      if(Math.random()<dt*34)
+        burst(aktor.position.clone(),0xf6efe4,1,0.7,0.3,0.05);       // smuga piór
+    } else { aktor.scale.x=1;aktor.scale.z=1; }
+    if(squashT>0){squashT-=dt;                                        // SQUASH lądowania
+      aktor.scale.y*=0.72;aktor.scale.x*=1.16;aktor.scale.z*=1.16;}
+    if(s.flow&&Math.random()<dt*9)
+      burst(aktor.position.clone().add(new THREE.Vector3(
+        (Math.random()-0.5)*1.3,0.5+Math.random()*1.3,0.2)),0xf2c14e,1,1.1,0.7,0.055);
+    if(s.stan==='bieg'&&s.skokT<0&&!wSlizgu&&Math.random()<dt*7)
+      burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*0.4,0.06,0.3)),
+        0x9a927e,1,0.8,0.4,0.045);
+    if(stanB==='najedzony'&&Math.random()<dt*8)
+      burst(aktor.position.clone().add(new THREE.Vector3(0,0.5,0.5)),0xf8b34a,1,0.8,0.8,0.06);
+    if(s.combo>=8&&Math.random()<dt*14)                             // wiatr w plecy przy serii x8+
+      burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
+        0xcfd8ee,1,0.5,0.2,0.05);
+
+    kamera.position.x=lerp(kamera.position.x,x*0.58,0.09);
+    kamera.fov=62+(s.predkosc-CFG.PREDKOSC_BAZOWA)*1.1+(s.skokT>=0?-2:0)+(s.combo>=8?3:0);
+    if(shake>0){shake-=dt;
+      kamera.position.x+=(Math.random()-0.5)*shake*0.9;
+      kamera.position.y=4.6+(Math.random()-0.5)*shake*0.7;
+    } else kamera.position.y=4.6+tyGracza*0.85;
+    kamera.lookAt(kamera.position.x*0.55,1.2+tyGracza*0.9,-8);
+    kamera.updateProjectionMatrix();
+
+    for(const o of s.aktywne){
+      if(!o.widok&&!o.trafione&&o.z>CFG.SPAWN_Z-1)
+        o.widok=o.typ==='rozstajeKit'?(()=>{const m=zbudujKitRozstajow(o.durS*s.predkosc);
+          scena.add(m);return m;})():
+        o.typ==='segment'?(()=>{const m=zbudujSegment(o.rodzaj,o.durS*s.predkosc,s.skrypt.kraina||1);
+          scena.add(m);return m;})():wezModel(o.typ);
+      if(o.widok){
+        if(o.trafione&&ZBIERALNE.has(o.typ)){oddajModel(o.typ,o.widok);o.widok=null;continue;}
+        if(o.typ==='auto'){
+          const xA=o.kier*((6.1-o.z)*0.95);
+          o.widok.position.set(xA,0,o.z);
+          o.widok.rotation.y=o.kier>0?0:Math.PI;
+          o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
+        } else {
+          o.widok.position.set(CFG.PASY[o.pas],0,o.z);
+          if(!o.widok.userData.glb)OBIEKTY[o.typ].animuj(o.widok,czasReal+o.t);
+          else o.widok.rotation.y=Math.sin((czasReal+o.t)*0.5)*0.04; // GLB: delikatne życie
+          if(o.typ!=='segment'&&o.typ!=='rozstajeKit'){              // świat na kładce
+            const ty=tY(o.z);if(ty)o.widok.position.y+=ty;}
+        }
+        const swiezy=o.typ==='rozstajeKit'||o.typ==='segment';
+        const granica=swiezy?15+o.durS*s.predkosc:15;
+        if(o.z>granica){
+          if(swiezy){scena.remove(o.widok);o.widok=null;}
+          else{oddajModel(o.typ,o.widok);o.widok=null;}}
+      }
+    }
+    const wZawodach=s.tryb==='zawody';
+    rywale.forEach(r=>{
+      r.visible=wZawodach;
+      if(!wZawodach)return;
+      const wzgl=s.predkosc*(1-r.userData.wsp);
+      const c=170;
+      const m=(((r.userData.baza+s.t*wzgl+40)%c)+c)%c;
+      r.position.z=m-(c-20);
+      r.userData.nogi.forEach((n,i)=>n.rotation.x=Math.sin(czasReal*9+i*Math.PI)*0.8);
+      r.position.y=Math.abs(Math.sin(czasReal*9))*0.06;});
+
+    const metaZ=CFG.GRACZ_Z-(CFG.ETAP_CZAS-s.t)*s.predkosc;
+    meta.visible=metaZ>-140;meta.position.z=metaZ;
+
+    const przesuw=s.t*s.predkosc;
+    for(const d of dekoracje){
+      if(d.userData.baza===undefined)d.userData.baza=d.position.z;
+      const c=d.userData.cykl;
+      const m=(((d.userData.baza+przesuw+40)%c)+c)%c;
+      d.position.z=m-(c-20);}
+    dekoAnim.forEach(f=>f(czasReal));
+    krokGoscia(czasReal);
+    krokCzastek(dt);
+    renderer.render(scena,kamera);
+  }
+  function efekt(zd){
+    const zrodlo=PREMIUM.aktywny()&&PREMIUM.model?PREMIUM.model:biegus;
+    const poz=zrodlo.position.clone().add(new THREE.Vector3(0,0.7,0));
+    if(zd.typ==='hit'){shake=0.4;Dzwiek.trafienie();
+      burst(poz,KOLORY[Biegus.kolor].cialo,10,3,3);
+      if(zd.obiekt==='kaluza')burst(poz.clone().setY(0.15),0x5b8ac4,14,3.4,2.4);}
+    if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
+    if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);}
+    if(zd.typ==='pioro'){Dzwiek.pioro(zd.seria%14);
+      burst(poz,0xcfd8ee,4,1.4,1.6,0.06);}
+    if(zd.typ==='oWlos'){Dzwiek.oWlos();}
+    if(zd.typ==='skok')Dzwiek.skok();
+    if(zd.typ==='slizg'){Dzwiek.slizg();burst(poz.clone().setY(0.1),0x555e70,5,2,1,0.07);}
+    if(zd.typ==='ladowanie'){burst(poz.clone().setY(0.08),0x6a6152,6,2,1.2,0.07);squashT=0.12;}
+    if(zd.typ==='tarcza'){Dzwiek.tarcza();burst(poz,0x9adfff,14,3,2.6,0.08);}
+    if(zd.typ==='dzyn')Dzwiek.dzyn();
+  }
+  /* — gość fabularny: przebiega obok podczas etapu — */
+  let gosc=null,przelot=null;
+  function przelotKlucza(){przelot={start:null};}
+  function zbudujGoscia(d){
+    const g=new THREE.Group();
+    if(d.emoji==='🐢'){
+      const sk=new THREE.Mesh(new THREE.SphereGeometry(0.42,9,7),mat(0x3e6b4a));
+      sk.scale.y=0.55;sk.position.y=0.36;g.add(sk);
+      g.add(klocek(0.2,0.18,0.24,0x7a9a5e,0,0.36,0.46));
+      [[-0.24,0.26],[0.24,0.26],[-0.24,-0.26],[0.24,-0.26]].forEach(([x,z])=>
+        g.add(klocek(0.12,0.18,0.12,0x7a9a5e,x,0.09,z)));
+    } else {
+      g.add(klocek(0.5,0.42,0.62,0xc7cede,0,0.56,0));
+      g.add(klocek(0.34,0.32,0.34,0xc7cede,0,0.9,0.24));
+      if(d.emoji==='🐇')[[-0.09],[0.09]].forEach(([x])=>{
+        const u=klocek(0.09,0.44,0.07,0xb0b8cc,x,1.28,0.18);u.rotation.x=-0.15;g.add(u);});
+      const nogi=[];
+      [[-0.11],[0.11]].forEach(([x])=>{const n=klocek(0.07,0.32,0.07,0x20242e,x,0.2,0);g.add(n);nogi.push(n);});
+      g.userData.nogi=nogi;
+    }
+    g.add(cienBlob(0.5));
+    return g;}
+  function pokazGoscia(d){
+    if(gosc){scena.remove(gosc.g);}
+    const g=zbudujGoscia(d);
+    g.traverse(x=>{if(x.isMesh)x.castShadow=true;});
+    g.position.set(d.emoji==='🐢'?1.7:-1.7,0,16);
+    scena.add(g);
+    gosc={g,start:null,zolw:d.emoji==='🐢'};}
+  function krokGoscia(czasReal){
+    if(!gosc)return;
+    if(gosc.start===null)gosc.start=czasReal;
+    const e=czasReal-gosc.start;
+    /* żółw: stoi z boku i macha głową; reszta: wyprzedza */
+    if(gosc.zolw){gosc.g.position.z=10-e*9;}
+    else{gosc.g.position.z=15-e*13;
+      if(gosc.g.userData.nogi)gosc.g.userData.nogi.forEach((n,i)=>
+        n.rotation.x=Math.sin(czasReal*13+i*Math.PI)*0.9);
+      gosc.g.position.y=Math.abs(Math.sin(czasReal*13))*0.08;}
+    if(e>5||gosc.g.position.z<-55){scena.remove(gosc.g);gosc=null;}}
+  function sprzatnij(s){for(const o of s.aktywne)if(o.widok){oddajModel(o.typ,o.widok);o.widok=null;}
+    if(gosc){scena.remove(gosc.g);gosc=null;}}
+
+  const scenaK=new THREE.Scene();scenaK.background=new THREE.Color(0x151a28);
+  scenaK.add(new THREE.HemisphereLight(0x8a7aaa,0x1a2030,1.1));
+  const swK=new THREE.DirectionalLight(0xffa060,0.9);swK.position.set(3,5,4);scenaK.add(swK);
+  const podest=new THREE.Mesh(new THREE.CylinderGeometry(2.2,2.4,0.2,24),mat(0x232a3e));
+  podest.position.y=-0.1;scenaK.add(podest);
+  const kameraK=new THREE.PerspectiveCamera(50,1,0.1,50);
+  kameraK.position.set(0,2.1,5.0);kameraK.lookAt(0,0.9,0);
+  let modelK=null,typK=null;
+  function pokazWPodgladzie(typ){
+    if(modelK)scenaK.remove(modelK);
+    typK=typ;
+    modelK=typ==='biegus'?zbudujBiegusia():OBIEKTY[typ].zbuduj();
+    scenaK.add(modelK);}
+  function klatkaPodgladu(czas){
+    if(modelK){modelK.rotation.y=czas*0.6;
+      if(typK==='biegus'){
+        modelK.userData.nogi.forEach((n,i)=>n.rotation.x=Math.sin(czas*9+i*Math.PI)*0.7);
+        const mrug=(czas%3.1)<0.12;modelK.userData.oczy.forEach(o=>o.scale.y=mrug?0.15:1);
+      } else OBIEKTY[typK].animuj(modelK,czas);}
+    kameraK.aspect=innerWidth/innerHeight;kameraK.updateProjectionMatrix();
+    renderer.render(scenaK,kameraK);}
+  return{klatka,efekt,sprzatnij,pokazWPodgladzie,klatkaPodgladu,przebudujBiegusia,przelaczModel,PREMIUM,przeladujPremium:zaladujPremium,pokazGoscia,przelotKlucza,nazwaPory:(k,p)=>PALETY[k].pory[p%3].n,
+    odswiezPodgladBiegusia(){if(typK==='biegus')pokazWPodgladzie('biegus');}};
+})();
+
+/* ---------- 10. GRA ---------- */
+const Gra=(()=>{
+  const el=id=>document.getElementById(id);
+  let sym=null,akum=0,ostatni=0,wPauzie=false,tryb='menu',biezacyEtap=1,zegar=0;
+  let spowolnienie=0;
+  /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
+  const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
+  const losuj=a=>a[Math.floor(Math.random()*a.length)];
+  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula'];
+  const PANELE=['panelBiegus','panelMisje','panelKatalog','panelMapa','panelEtapy','panelSklep'];
+  function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
+    PANELE.forEach(p=>el(p).hidden=p!==id);
+    el('hud').hidden=id!==null;}
+  function toast(html){const t=el('toast');t.innerHTML=html;t.classList.add('widoczny');
+    clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('widoczny'),3200);}
+  function popup(tekst,akcent=false){const p=el('popup');
+    p.textContent=tekst;p.classList.toggle('akcent',akcent);p.classList.add('widoczny');
+    clearTimeout(p._tm);p._tm=setTimeout(()=>p.classList.remove('widoczny'),700);}
+  function dymek(t,kto){const d=el('dymek');d.hidden=false;
+    d.innerHTML='<b>'+(kto||Biegus.imie)+':</b> '+t;d.classList.add('widoczny');
+    clearTimeout(d._tm);d._tm=setTimeout(()=>d.classList.remove('widoczny'),kto?3400:2400);}
+  function pauza(){
+    if(tryb==='bieg'){tryb='pauza';wPauzie=true;Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+      el('pauzaMysl').textContent=MYSLI[Math.floor(Math.random()*MYSLI.length)];
+      pokaz('pauza');}
+    else if(tryb==='pauza'){tryb='bieg';wPauzie=false;
+      ostatni=performance.now();akum=0;pokaz(null);Dzwiek.muzykaStart();Dzwiek.wiatrStart();}}
+
+  /* — Panel etapów: zakładki krain + jeden grid — */
+  const KRAINY_ETAPY=[['Park',1],['Las',9],['Miasto',17],['Przełęcz',25]];
+  let wybranaKraina=0,przyciskiEtapow={};
+  const zak=el('zakladkiKrain');
+  KRAINY_ETAPY.forEach(([nazwa],i)=>{
+    const b=document.createElement('button');b.textContent=nazwa;
+    b.onclick=()=>{wybranaKraina=i;zbudujGridEtapow();};
+    zak.appendChild(b);});
+  function zbudujGridEtapow(){
+    zak.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('aktywny',i===wybranaKraina));
+    const od=KRAINY_ETAPY[wybranaKraina][1];
+    const grid=el('gridEtapow');grid.innerHTML='';przyciskiEtapow={};
+    for(let n=od;n<od+8;n++){
+      const b=document.createElement('button');b.textContent=n;
+      b.setAttribute('aria-label','Etap '+n);
+      b.onclick=()=>{Dzwiek.odpal();start(n,'etap');};
+      grid.appendChild(b);przyciskiEtapow[n]=b;}
+    odswiezEtapy();}
+  function odswiezEtapy(){for(const n in przyciskiEtapow)
+    przyciskiEtapow[n].classList.toggle('zrobiony',Biegus.ukonczone.has('e'+n));}
+  function nastepnyEtap(){for(let n=1;n<=32;n++)if(!Biegus.ukonczone.has('e'+n))return n;return 32;}
+  el('btnEtapy').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
+    zbudujGridEtapow();pokaz('panelEtapy');};
+  el('btnEtapyWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+  /* — SKLEP U ZYZI — */
+  const TIERY={start:{n:'START',k:'#8a93a8',c:40},trail:{n:'TRAIL',k:'#3aa04a',c:90},
+    elita:{n:'ELITA',k:'#5a8fd4',c:160},neon:{n:'NEON',k:'#e8561e',c:240},
+    legenda:{n:'LEGENDA',k:'#f2c14e',c:400}};
+  const GARDEROBA=[
+    {id:'buty-startowe',slot:'buty',tier:'start',nazwa:'Buty startowe',emoji:'👟'},
+    {id:'buty-trail',slot:'buty',tier:'trail',nazwa:'Buty trail',emoji:'👟',bonus:'bloto',bopis:'pierwsze błoto etapu nie zeruje serii'},
+    {id:'buty-elite',slot:'buty',tier:'elita',nazwa:'Buty elite',emoji:'👟',bonus:'piora5',bopis:'+5% piór na mecie'},
+    {id:'buty-legend',slot:'buty',tier:'legenda',nazwa:'Buty legend',emoji:'👟',bonus:'piora10',bopis:'+10% piór na mecie'},
+    {id:'koszulka-startowa',slot:'koszulka',tier:'start',nazwa:'Koszulka startowa',emoji:'👕'},
+    {id:'koszulka-maratonska',slot:'koszulka',tier:'trail',nazwa:'Koszulka maratońska',emoji:'👕'},
+    {id:'koszulka-ultra',slot:'koszulka',tier:'elita',nazwa:'Koszulka ultra',emoji:'👕'},
+    {id:'koszulka-mistrza',slot:'koszulka',tier:'neon',nazwa:'Koszulka mistrza',emoji:'👕'},
+    {id:'bluza-podstawowa',slot:'bluza',tier:'start',nazwa:'Bluza podstawowa',emoji:'🧥'},
+    {id:'bluza-trail',slot:'bluza',tier:'trail',nazwa:'Bluza trail',emoji:'🧥'},
+    {id:'bluza-elita',slot:'bluza',tier:'elita',nazwa:'Bluza elita',emoji:'🧥',bonus:'piora5',bopis:'+5% piór na mecie'},
+    {id:'bluza-neon',slot:'bluza',tier:'neon',nazwa:'Bluza neon',emoji:'🧥',bonus:'zlota',bopis:'+15% piór w ZŁOTEJ GODZINIE'},
+    {id:'bluza-legend',slot:'bluza',tier:'legenda',nazwa:'Bluza legend',emoji:'🧥',bonus:'piora10',bopis:'+10% piór na mecie'},
+    {id:'daszek',slot:'glowa',tier:'start',nazwa:'Daszek',emoji:'🧢',cena:60},
+    {id:'daszek-pro',slot:'glowa',tier:'elita',nazwa:'Daszek pro',emoji:'🧢',cena:140},
+    {id:'okulary',slot:'glowa',tier:'elita',nazwa:'Okulary',emoji:'🕶️',cena:120},
+    {id:'korona-mistrza',slot:'glowa',tier:'legenda',nazwa:'Korona mistrza',emoji:'👑'},
+    {id:'korona-legendy',slot:'glowa',tier:'legenda',nazwa:'Korona legendy',emoji:'👑'},
+    {id:'skrzydla-mocy',slot:'dodatek',tier:'neon',nazwa:'Skrzydła mocy',emoji:'🪽',cena:300},
+    {id:'skrzydla-ultimate',slot:'dodatek',tier:'legenda',nazwa:'Skrzydła ultimate',emoji:'🪽'},
+  ];
+  function odswiezGarderobe(){
+    const cel=el('gardLista');if(!cel)return;cel.innerHTML='';
+    const sloty={buty:'👟 BUTY',koszulka:'👕 KOSZULKI',bluza:'🧥 BLUZY',glowa:'🧢 GŁOWA',dodatek:'🪽 DODATKI'};
+    Object.keys(sloty).forEach(slot=>{
+      const h=document.createElement('div');h.className='gSlotTytul';
+      h.textContent=sloty[slot];cel.appendChild(h);
+      const grid=document.createElement('div');grid.className='gGrid';cel.appendChild(grid);
+      GARDEROBA.filter(g=>g.slot===slot).forEach(it=>{
+        const T=TIERY[it.tier],ma=Biegus.garderoba.has(it.id);
+        const zal=Biegus.ubrane[slot]===it.id;
+        const k=document.createElement('div');
+        k.className='gKarta'+(zal?' zalozona':'');k.style.borderColor=T.k;
+        const chip=document.createElement('div');chip.className='gTier';
+        chip.style.background=T.k;chip.textContent=T.n;k.appendChild(chip);
+        const img=document.createElement('img');img.loading='lazy';
+        img.src=assetUrl('assets/przedmioty/'+it.id+'.webp');
+        img.onerror=()=>{const e2=document.createElement('div');
+          e2.className='gEmoji';e2.textContent=it.emoji;img.replaceWith(e2);};
+        k.appendChild(img);
+        const n=document.createElement('div');n.className='gNazwa';
+        n.textContent=it.nazwa;k.appendChild(n);
+        const bn=document.createElement('div');
+        bn.className='gBonus'+(it.bopis?'':' gKosm');
+        bn.textContent=it.bopis||'czysty styl';k.appendChild(bn);
+        const b=document.createElement('button');
+        const cena=it.cena||T.c;
+        if(!ma){b.textContent=cena+' 🪶';b.disabled=Biegus.portfelPior<cena;
+          b.onclick=()=>{Biegus.portfelPior-=cena;Biegus.garderoba.add(it.id);
+            Dzwiek.medal();odswiezSklep();odswiezGarderobe();};}
+        else if(zal){b.textContent='✓ ZAŁOŻONE';
+          b.onclick=()=>{delete Biegus.ubrane[slot];odswiezGarderobe();};}
+        else{b.textContent='ZAŁÓŻ';
+          b.onclick=()=>{Biegus.ubrane[slot]=it.id;Dzwiek.karmienie();odswiezGarderobe();};}
+        k.appendChild(b);grid.appendChild(k);});});}
+  const SKLEP=[
+    {typ:'kolor',id:'sniezny',cena:150},
+    {typ:'kolor',id:'zorza',cena:220},
+    {typ:'akces',id:'plecak',cena:120},
+    {typ:'boost',id:'tarcza',cena:30,nazwa:'Tarcza',emoji:'🛡️',opis:'wybacza 1 trafienie · 1 bieg'},
+    {typ:'boost',id:'magnes',cena:30,nazwa:'Magnes piór',emoji:'🧲',opis:'pióra także z sąsiednich pasów · 1 bieg'},
+    {typ:'boost',id:'x2',cena:25,nazwa:'Podwójne pióra',emoji:'✨',opis:'×2 pióra · 1 bieg'},
+  ];
+  function odswiezSklep(){
+    el('sklepSaldo').textContent='🪶 Twoje pióra: '+Biegus.portfelPior;
+    const box=el('sklepLista');box.innerHTML='';
+    SKLEP.forEach(it=>{
+      const d=document.createElement('div');d.className='sklepItem';
+      if(it.typ==='kolor'||it.typ==='akces'){
+        const r=it.typ==='kolor'?KOLORY[it.id]:AKCESORIA[it.id];
+        d.innerHTML='<span class="ik">'+r.emoji+'</span><div class="info"><b>'+r.nazwa+'</b>'+
+          '<span>'+(it.typ==='kolor'?'skin upierzenia':'akcesorium')+' · na zawsze</span></div>';
+        const b=document.createElement('button');
+        if(r.odblok){b.textContent='✓ kupione';b.disabled=true;}
+        else{b.textContent=it.cena+' 🪶';b.disabled=Biegus.portfelPior<it.cena;
+          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;
+            Dzwiek.znal();toast('🐿️ Zyzia: „Dobry wybór! Kto zbiera, ten ma."');
+            odswiezSklep();odswiezBiegusPanel();};}
+        d.appendChild(b);
+      } else {
+        const stan=Biegus.boostery[it.id];
+        d.innerHTML='<span class="ik">'+it.emoji+'</span><div class="info"><b>'+it.nazwa+
+          '</b><span>'+it.opis+' · masz: '+stan+'</span></div>';
+        const kup=document.createElement('button');
+        kup.textContent=it.cena+' 🪶';kup.disabled=Biegus.portfelPior<it.cena;
+        kup.onclick=()=>{Biegus.portfelPior-=it.cena;Biegus.boostery[it.id]++;
+          Dzwiek.znal();odswiezSklep();};
+        d.appendChild(kup);
+        if(stan>0){const uz=document.createElement('button');
+          uz.className=Biegus.uzyj[it.id]?'uzyjOn':'';
+          uz.textContent=Biegus.uzyj[it.id]?'Użyję ✓':'Użyj w biegu';
+          uz.onclick=()=>{Biegus.uzyj[it.id]=!Biegus.uzyj[it.id];odswiezSklep();};
+          d.appendChild(uz);}
+      }
+      box.appendChild(d);});}
+  el('btnSklep').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
+    odswiezSklep();odswiezGarderobe();pokaz('panelSklep');};
+  el('btnSklepWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+  el('btnGraj').onclick=()=>{Dzwiek.odpal();start(nastepnyEtap(),'etap');};
+  el('btnZawody').onclick=()=>{Dzwiek.odpal();start(4,'zawody');};
+  el('btnZawodyLas').onclick=()=>{Dzwiek.odpal();start(12,'zawody');};
+  el('btnMute').onclick=()=>{el('btnMute').textContent=Dzwiek.przelacz()?'🔇':'🔊';};
+
+  function odswiezMenuStatus(){
+    odswiezEtapy();
+    el('btnGraj').textContent='▶ BIEGNIJ · ETAP '+nastepnyEtap();
+    const s=Biegus.stan();
+    const emoji=s==='najedzony'?'💪':s==='ok'?'🙂':'😪';
+    const pm=el('portretMenu');
+    pm.hidden=false;pm.onerror=()=>pm.hidden=true;
+    pm.src=assetUrl('assets/ui/portret_'+Biegus.stadium()+'.png');
+    el('menuStatus').innerHTML='🐦 <b>'+Biegus.imie+'</b> · '+STADIA[Biegus.stadium()].nazwa+' '+emoji+' · '+
+      (s==='najedzony'?'najedzony treningami':s==='ok'?'przydałby się trening':'głodny — nakarm go treningiem')+
+      ' · '+Biegus.laczneKm+' km wybieganych';
+  }
+
+  /* — panel Biegusia / kreator 2.0 (kłódki WIDOCZNE, bez title) — */
+  function kartaRzeczy(id,r,aktywna,klik){
+    const d=document.createElement('button');
+    d.className='rzecz'+(aktywna?' aktywna':'')+(r.odblok?'':' zablokowana');
+    d.innerHTML='<span class="ikonka">'+r.emoji+'</span>'+r.nazwa+
+      '<span class="status">'+(r.odblok?(aktywna?'✓ założone':'dotknij'):'🔒 '+r.jak)+'</span>';
+    d.disabled=!r.odblok;
+    d.onclick=klik;
+    return d;}
+  function odswiezBiegusPanel(){
+    el('biegusNaglowek').textContent=Biegus.imie.toUpperCase();
+    el('failImie').textContent=Biegus.imie.toUpperCase();
+    el('biegusNastroj').textContent=Biegus.nastroj();
+    el('wNajedzenie').textContent=Math.round(Biegus.najedzenie)+'/100';
+    el('pNajedzenie').style.width=Biegus.najedzenie+'%';
+    el('wWiez').textContent=Math.round(Biegus.wiez)+'/100';
+    el('pWiez').style.width=Biegus.wiez+'%';
+    el('wKm').textContent=Biegus.laczneKm+' km';
+    const stId=Biegus.stadium(),stIdx=PROGI_EWOLUCJI.findIndex(x=>x[0]===stId);
+    const nast=PROGI_EWOLUCJI[stIdx+1];
+    el('biegusStadiumInfo').innerHTML='Stadium: <b>'+STADIA[stId].nazwa+'</b> ('+STADIA[stId].opis+')'+
+      (nast?' · ewolucja w '+STADIA[nast[0]].nazwa+' za <b>'+Math.max(0,nast[1]-Biegus.laczneKm).toFixed(1)+' km</b>':' · 🏆 szczyt Drogi!');
+    const odKm=PROGI_EWOLUCJI[stIdx][1];
+    el('pKm').style.width=(nast?clamp((Biegus.laczneKm-odKm)/(nast[1]-odKm)*100,0,100):100)+'%';
+    const pb=el('portretBiegusia');
+    pb.hidden=false;pb.onerror=()=>pb.hidden=true;
+    pb.src=assetUrl('assets/ui/portret_'+Biegus.stadium()+'.png');
+    el('statMini').innerHTML=
+      '<div><b>'+Biegus.statystyki.piora+'</b>piór zebranych</div>'+
+      '<div><b>'+Biegus.statystyki.uniki+'</b>przeszkód ominiętych</div>'+
+      '<div><b>'+Biegus.ukonczone.size+'</b>etapów ukończonych</div>'+
+      '<div><b>×'+Biegus.statystyki.rekordSerii+'</b>rekord serii</div>';
+    const kol=el('listaKolekcji');kol.innerHTML='';
+    ZNALEZISKA_PULA.forEach(z=>{
+      const ma=Biegus.kolekcja.has(z.id);
+      const d=document.createElement('div');
+      d.className='rzecz'+(ma?'':' zablokowana');
+      d.innerHTML='<span class="ikonka">'+(ma?z.ikona:'❔')+'</span>'+(ma?z.nazwa:'???')+
+        '<span class="status">'+(ma?'w kolekcji':'do znalezienia')+'</span>';
+      kol.appendChild(d);});
+    const lk=el('listaKolorow');lk.innerHTML='';
+    Object.entries(KOLORY).forEach(([id,k])=>
+      lk.appendChild(kartaRzeczy(id,k,Biegus.kolor===id,()=>{Biegus.kolor=id;zmienionoWyglad();})));
+    const la=el('listaAkcesoriow');la.innerHTML='';
+    Object.entries(AKCESORIA).forEach(([id,a])=>
+      la.appendChild(kartaRzeczy(id,a,Biegus.zalozone.has(id),()=>{
+        Biegus.zalozone.has(id)?Biegus.zalozone.delete(id):Biegus.zalozone.add(id);zmienionoWyglad();})));
+    el('imieBiegusia').value=Biegus.imie;
+    odswiezMenuStatus();
+  }
+  function zmienionoWyglad(){R3.przebudujBiegusia();R3.odswiezPodgladBiegusia();odswiezBiegusPanel();}
+  el('imieBiegusia').addEventListener('input',e=>{
+    Biegus.imie=e.target.value.trim()||'Bieguś';
+    el('biegusNaglowek').textContent=Biegus.imie.toUpperCase();odswiezMenuStatus();});
+  el('btnTrening').onclick=()=>{Dzwiek.odpal();window.DROGA.zarejestrujTrening({km:8});
+    odswiezBiegusPanel();
+    toast('🍽️ <b>'+Biegus.imie+' nakarmiony treningiem 8 km!</b><br>Tak samo zadziała prawdziwy trening z zegarka.');};
+  function odswiezBtnModel(){
+    const b=el('btnModel');
+    b.hidden=!R3.PREMIUM.dostepny;
+    b.textContent=R3.PREMIUM.wybrany?'🎭 Model: Premium (GLB)':'🎭 Model: Klockowy';}
+  el('btnModel').onclick=()=>{R3.przelaczModel(!R3.PREMIUM.wybrany);odswiezBtnModel();};
+  addEventListener('drogapremium',odswiezBtnModel);
+  el('btnBiegus').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
+    odswiezBtnModel();
+    odswiezBiegusPanel();pokaz('panelBiegus');};
+  el('btnBiegusWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+
+  const KRAINY_MAPA=[
+    {nazwa:'Park',od:0,do:90,kolor:'#6a4657',etapy:[1,8]},
+    {nazwa:'Las',od:90,do:210,kolor:'#5d6b3a',etapy:[9,16]},
+    {nazwa:'Miasto',od:210,do:330,kolor:'#4a5568',etapy:[17,24]},
+    {nazwa:'Przełęcz',od:330,do:480,kolor:'#7a8494',etapy:[25,32]},
+    {nazwa:'Igrzyska',od:480,do:600,kolor:'#e8a13a',etapy:null},
+  ];
+  el('mapaTor').innerHTML=KRAINY_MAPA.map(k=>
+    '<i style="width:'+((k.do-k.od)/6)+'%;background:'+k.kolor+'"></i>').join('');
+  function odswiezMape(){
+    const km=Biegus.laczneKm;
+    el('mapaBiegus').style.left=Math.min(100,km/600*100)+'%';
+    el('mapaKm').textContent=km.toFixed(1)+' / 600 km · '+
+      (km>=600?'WIELKIE IGRZYSKA! 🏟️':'do startu Igrzysk: '+(600-km).toFixed(1)+' km');
+    el('mapaKrainy').innerHTML=KRAINY_MAPA.map(k=>{
+      let post='';
+      if(k.etapy){let n=0;for(let e=k.etapy[0];e<=k.etapy[1];e++)
+        if(Biegus.ukonczone.has('e'+e))n++;
+        post='etapy: '+n+'/8';}
+      else post='wkrótce 🔒';
+      return '<div class="mapaK'+(k.etapy?'':' zablok')+'"><b>'+k.nazwa+'</b>'+
+        k.od+'–'+k.do+' km<br>'+post+'</div>';}).join('');}
+  el('btnMapa').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
+    odswiezMape();pokaz('panelMapa');};
+  el('btnMapaWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+  el('btnMisje').onclick=()=>{tryb='podglad';R3.pokazWPodgladzie('biegus');
+    const lm=el('listaMisji');lm.innerHTML='';
+    MISJE.forEach(m=>{
+      const d=document.createElement('div');
+      d.className='misja'+(m.licznik>=m.cel?' zrobiona':'');
+      d.innerHTML=(m.licznik>=m.cel?'✅ ':'')+m.tekst+
+        '<div class="tor"><i style="width:'+(m.licznik/m.cel*100)+'%"></i></div>'+
+        '<div class="nagroda">'+(m.npc?'<img class="pnpc" src="'+assetUrl('assets/ui/npc_'+m.npc+'.png')+'" onerror="this.outerHTML=this.dataset.e" data-e="'+NPC[m.npc].emoji+' ">'+NPC[m.npc].nazwa+' · ':'')+'Nagroda: '+m.nagrodaTekst+' · '+Math.min(m.licznik,m.cel)+'/'+m.cel+'</div>';
+      lm.appendChild(d);});
+    pokaz('panelMisje');};
+  el('btnMisjeWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+
+  const lista=el('katalogLista');
+  Object.entries(OBIEKTY).filter(([typ,o])=>!o.ukryj).forEach(([typ,o])=>{
+    const b=document.createElement('button');b.textContent=o.nazwa;
+    b.onclick=()=>{wybierzKatalog(typ);
+      lista.querySelectorAll('button').forEach(x=>x.classList.toggle('aktywny',x===b));};
+    lista.appendChild(b);});
+  function wybierzKatalog(typ){const o=OBIEKTY[typ];
+    el('katalogNazwa').textContent=o.nazwa;
+    el('katalogOpis').textContent=o.opis;
+    el('katalogUnik').textContent=o.unikTekst;
+    R3.pokazWPodgladzie(typ);}
+  el('btnKatalog').onclick=()=>{tryb='podglad';pokaz('panelKatalog');
+    wybierzKatalog('kaluza');lista.querySelector('button').classList.add('aktywny');};
+  el('btnKatalogWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+
+  const FABULA={
+    1:{akt:'AKT I',tytul:'PARK O ŚWICIE',
+      scena:'Biegusy to ptaki wędrowne — całe życie w locie. Wszystkie oprócz jednego, który zawsze wolał biegać. „Ptak, który biega?!" — śmiał się klucz, odlatując na południe. Został na ziemi. I ogłosił: wystartuje w Wielkich Igrzyskach. Tych dla ludzi.',
+      mentor:'🦅 Orzeł: „Wszystkie wielkie marzenia są śmieszne na starcie, mały. Pokaż mi osiem świtów z rzędu. Potem pogadamy."'},
+    2:{akt:'AKT II',tytul:'LAS WE MGLE',
+      scena:'Za parkiem kończą się latarnie i zaczyna prawdziwa robota. Mgła zjada pewność siebie. Korzenie uczą pokory. Błoto — dystansu do siebie.',
+      mentor:'🐢 Żółw Maraton: „Igrzyska nie pytają, jak szybki jesteś dziś. Pytają, czy przyjdziesz jutro. Powoli. Ale do celu."'},
+  };
+  FABULA[3]={akt:'AKT III',tytul:'MIASTO',
+    scena:'Miasto nie ma czasu na cudze marzenia. Neony krzyczą, tłum płynie, wszyscy dokądś pędzą — nikt nie biegnie. Tu mieszka Zając Błysk, lokalna gwiazda bieżni. Ten sam, który na zawodach śmiał się najgłośniej.',
+    mentor:'🐔 Kura Agata: „W tym hałasie połowa treningu to umieć odpocząć. Miasto tego nie rozumie. Ty musisz."'};
+  /* — SPOTKANIA NA TRASIE: fabuła dzieje się W BIEGU — */
+  const SPOTKANIA={
+    'k2-e12':[{t:22,imie:'Żółw Maraton',emoji:'🐢',tekst:'Powoli. Ale do celu.'}],
+    'k3-e17':[{t:16,imie:'Zając Błysk',emoji:'🐇',tekst:'Patrzcie go — ptak-biegacz! Miasto cię zje, mały.'}],
+    'k3-e20':[{t:26,imie:'Zając Błysk',emoji:'🐇',tekst:'Ty… trenujesz o piątej rano? Serio?'}],
+    'k3-e24':[{t:30,imie:'Zając Błysk',emoji:'🐇',tekst:'Trzymaj tempo. Ktoś musi cię pilnować do samej przełęczy.'}],
+  };
+  /* — ZADANIA MENTORÓW: lekcja aktu jako cel w grze; nigdy nie blokują — */
+  const ZADANIA_FAB={
+    12:{od:'🐢 Żółw Maraton',cel:'utrzymaj serię ×4 — rytm, nie szybkość',
+        test:s=>s.maxCombo>=4,nagroda:'„Widzisz? Rytm. Nie szybkość — rytm."'},
+    18:{od:'🐇 Zając Błysk',cel:'seria ×5 — nie daj się zagłuszyć miastu',
+        test:s=>s.maxCombo>=5,nagroda:'Błysk (z daleka, cicho): „…no dobra. Umiesz biegać."'},
+    21:{od:'🐔 Kura Agata',cel:'ukończ z pełnymi sercami — bieg z głową',
+        test:s=>s.serca>=3,nagroda:'Agata: „Regeneracja uwagi. Mówiłam."'},
+    24:{od:'🐇 Zając Błysk',cel:'zbierz ≥18 piór — miasto nie zabierze Ci lekkości',
+        test:s=>s.piora>=18,nagroda:'Błysk podał skrzydło. Pierwszy raz. „Na przełęczy uważaj — tam nie ma publiczności."'},
+  };
+  FABULA[4]={akt:'AKT IV',tytul:'PRZEŁĘCZ',
+    scena:'Góry nie krzyczą jak miasto — góry milczą. Zimny wiatr, serpentyny i pytanie, które przychodzi na trzecim podbiegu: po co ci to? Tu marzenie waży najwięcej. Tu najłatwiej zawrócić.',
+    mentor:'🦅 Orzeł (list przyniesiony przez wiatr): „Na przełęczy każdy biegnie sam. Ale samotność to nie to samo, co bycie samemu. Patrz w niebo."'};
+  SPOTKANIA['k4-e26']=[{t:20,imie:'Świstak',emoji:'🐢',tekst:'Fiiit! (w gwarze świstaczej: „ten to ma upór")'}];
+  SPOTKANIA['k4-e28']=[{t:26,imie:'Najstarszy z klucza',emoji:'🕊️',klucz:true,
+    tekst:'Widzieliśmy cię z góry. Przez całą drogę. Lecieliśmy szybciej — ale ty byłeś ZAWSZE w ruchu.'}];
+  ZADANIA_FAB[26]={od:'🦅 Orzeł',cel:'seria ×6 — równy oddech na podbiegu',
+    test:s=>s.maxCombo>=6,nagroda:'Wiatr przyniósł drugi list: „Dobrze. Oddychasz jak biegacz."'};
+  ZADANIA_FAB[28]={od:'🕊️ Klucz',cel:'zbierz 2 znaleziska — pamiątki z przełęczy',
+    test:s=>s.zebrane.length>=2,nagroda:'Najstarszy skinął dziobem. Klucz krążył nad tobą do samej mety.'};
+  ZADANIA_FAB[32]={od:'🦅 Orzeł',cel:'wykonaj 3 salta — pokaż górom, że umiesz latać po swojemu',
+    test:s=>s.salta>=3,nagroda:'Orzeł, z nieba: „Teraz biegniesz i latasz jednocześnie. Jesteś gotów."'};
+  const widzianeFabuly=new Set();
+  el('btnFabulaDalej').onclick=()=>{const[pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
+  function PALETY_NAZWA(sk){try{return R3.nazwaPory(sk.kraina||1,sk.pora||0);}catch(e){return '';}}
+  function pokazFabule(k){
+    const f=FABULA[k];
+    el('fabulaAkt').textContent=f.akt;
+    el('fabulaTytul').textContent=f.tytul;
+    el('fabulaScena').textContent=f.scena;
+    el('fabulaMentor').textContent=f.mentor;
+    tryb='karta';pokaz('fabula');}
+  let widzialOnboarding=false,czekaStart=null;
+  el('btnOnboardingStart').onclick=()=>{widzialOnboarding=true;
+    const [pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
+  function start(n,trybGry){
+    if(!widzialOnboarding){czekaStart=[n,trybGry];tryb='karta';pokaz('onboarding');return;}
+    biezacyEtap=n;
+    if(sym)R3.sprzatnij(sym);
+    const kraina=n<=8?1:n<=16?2:n<=24?3:4;
+    if(trybGry==='etap'&&FABULA[kraina]&&!widzianeFabuly.has(kraina)){
+      widzianeFabuly.add(kraina);czekaStart=[n,trybGry];pokazFabule(kraina);return;}
+    const seed=trybGry==='zawody'?'k'+kraina+'-zawody':'k'+kraina+'-e'+n;
+    sym=nowaSymulacja(generujEtap(n,seed,kraina),trybGry);
+    sym.spotkania=(trybGry==='etap'&&SPOTKANIA['k'+kraina+'-e'+n])||null;
+    sym.spotIdx=0;
+    /* boostery + bonus treningu — TYLKO w etapach, nigdy w Zawodach */
+    if(trybGry==='etap'){
+      sym.boostery={tarcza:false,magnes:false,x2:false};
+      ['tarcza','magnes','x2'].forEach(k=>{
+        if(Biegus.uzyj[k]&&Biegus.boostery[k]>0){
+          Biegus.boostery[k]--;sym.boostery[k]=true;
+          if(Biegus.boostery[k]===0)Biegus.uzyj[k]=false;}});
+      if(Biegus.bonusTreningu>0){Biegus.bonusTreningu--;sym.bonusPior=true;}
+    }
+    sym.bonusyG={bloto:false,zlota:0,piora:0};
+    if(sym.tryb!=='zawody')Object.values(Biegus.ubrane||{}).forEach(id=>{
+      const it=GARDEROBA.find(g=>g.id===id);if(!it||!it.bonus)return;
+      if(it.bonus==='bloto')sym.bonusyG.bloto=true;
+      if(it.bonus==='zlota')sym.bonusyG.zlota=0.15;
+      if(it.bonus==='piora5')sym.bonusyG.piora+=0.05;
+      if(it.bonus==='piora10')sym.bonusyG.piora+=0.10;});
+    sym.bonusyG.piora=Math.min(0.2,sym.bonusyG.piora);
+    document.body.classList.remove('flow');
+    el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
+    if(R3.przeladujPremium)R3.przeladujPremium();
+    const aktywneB=[];
+    if(sym.bonusPior)aktywneB.push('🍽️ świeży trening: ×2 pióra');
+    if(sym.boostery){['tarcza','magnes','x2'].forEach(k=>{if(sym.boostery[k])
+      aktywneB.push({tarcza:'🛡️ tarcza',magnes:'🧲 magnes piór',x2:'✨ ×2 pióra'}[k]);});}
+    el('introBooster').hidden=!aktywneB.length;
+    el('introBooster').textContent=aktywneB.length?('AKTYWNE: '+aktywneB.join(' · ')):'';
+    const NAZWY_MOTYWU={klasyczny:'',pioropusz:' · „PIÓROPUSZ"',akrobatyczny:' · „AKROBACJE"',
+      rozstaje:' · „ROZSTAJE"',szczyt:' · „GODZINA SZCZYTU"'};
+    el('introTytul').textContent=trybGry==='zawody'?(kraina===2?'ZAWODY: LAS WE MGLE':'ZAWODY: PARK O ŚWICIE'):
+      'ETAP '+n+' · '+(PALETY_NAZWA(sym.skrypt)||'')+(NAZWY_MOTYWU[sym.skrypt.motyw]||'');
+    el('introMysl').textContent=MYSLI[(n-1)%MYSLI.length];
+    const zadanie=trybGry==='etap'&&ZADANIA_FAB[n];
+    el('introTip').textContent=trybGry==='zawody'?
+      'Trafienie: +'+CFG.ZAWODY.KARA_HIT+' s kary · Znalezisko: −'+CFG.ZAWODY.BONUS_ZNAL+' s. Rywale już biegną!':
+      zadanie?('ZADANIE · '+zadanie.od+': '+zadanie.cel):losuj(TIPY);
+    pokaz('intro');tryb='intro';
+    let c=3;el('odliczanie').textContent=c;
+    const iv=setInterval(()=>{c--;
+      if(c>0)el('odliczanie').textContent=c;
+      else{clearInterval(iv);pokaz(null);tryb='bieg';ostatni=performance.now();akum=0;Dzwiek.muzykaStart();Dzwiek.wiatrStart();}
+    },700);
+  }
+  function hud(){
+    el('serca').innerHTML=Array.from({length:CFG.SERCA},(_,i)=>
+      `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
+    el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
+    el('pioraHud').textContent='🪶'+sym.piora;
+    el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
+    el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
+    el('comboHud').textContent=sym.combo>=2?'×'+sym.combo:'';
+  }
+  function konfetti(){
+    const kolory=['#e8561e','#f8b34a','#2a63b8','#3aa04a','#c78ad4','#f0eee2'];
+    for(let i=0;i<26;i++){
+      const k=document.createElement('div');k.className='konf';
+      k.style.left=(4+Math.random()*92)+'vw';
+      k.style.background=kolory[i%kolory.length];
+      k.style.animationDelay=(Math.random()*0.5)+'s';
+      k.style.animationDuration=(2.1+Math.random()*1.4)+'s';
+      document.body.appendChild(k);
+      setTimeout(()=>k.remove(),4200);}}
+  function ekranMeta(){
+    tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    document.body.classList.remove('flow');
+    el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
+    if(sym.bonusyG){let bon=sym.bonusyG.piora||0;
+      if(sym.bonusyG.zlota&&sym.skrypt&&sym.skrypt.pora===2)bon+=sym.bonusyG.zlota;
+      if(bon>0)sym.piora=Math.round(sym.piora*(1+Math.min(0.3,bon)));}
+    konfetti();Biegus.poEtapie(sym.piora);
+    sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
+    Biegus.statystyki.piora+=sym.piora;
+    Biegus.portfelPior+=sym.piora;
+    Biegus.statystyki.uniki+=(sym.ominiete||0);
+    Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
+    if(sym.tryb==='etap'){Biegus.ukonczone.add('e'+sym.skrypt.etap);odswiezEtapy();}
+    const perfekt=sym.serca===CFG.SERCA;
+    if(perfekt)Misje.zdarzenie('perfekt');
+    const zawody=sym.tryb==='zawody';
+    el('stCzasBox').hidden=!zawody;
+    el('podiumBox').hidden=true;
+    el('medalIkona').hidden=!zawody;el('medalOpis').hidden=!zawody;
+    el('finalKrainy').hidden=true;
+    let puenta;
+    if(zawody){
+      const czas=Math.max(50,CFG.ETAP_CZAS+sym.hity*CFG.ZAWODY.KARA_HIT-sym.zebrane.length*CFG.ZAWODY.BONUS_ZNAL);
+      el('stCzas').textContent=czas+'s';
+      /* podium: imienni rywale — Błysk jest szybki, złoto = pokonać jego */
+      const rywale=[
+        {imie:'Zając Błysk',emoji:'🐇',czas:54+Math.floor(Math.random()*5)},
+        {imie:'Modrak',emoji:'🐦',czas:58+Math.floor(Math.random()*8)},
+        {imie:'Zielonka',emoji:'🐦',czas:61+Math.floor(Math.random()*9)},
+        {imie:'Ty ('+Biegus.imie+')',emoji:'⭐',czas,ty:true},
+      ].sort((a,b)=>a.czas-b.czas);
+      el('podiumBox').hidden=false;
+      el('podiumBox').innerHTML=rywale.map((r,i)=>
+        '<div class="podiumRow'+(r.ty?' ty':'')+'"><span>'+
+        (i<3?['🥇','🥈','🥉'][i]:(i+1)+'.')+' '+r.emoji+' '+r.imie+
+        '</span><span class="czasR">'+r.czas+' s</span></div>').join('');
+      const Z=CFG.ZAWODY;
+      const [ikona,opis,bank]=czas<=Z.ZLOTO?['🥇','ZŁOTO — mistrz parku!','zawodyZloto']:
+        czas<=Z.SREBRO?['🥈','SREBRO — świetny bieg!','zawodySrebro']:
+        czas<=Z.BRAZ?['🥉','BRĄZ — na pudle!','zawodyBraz']:
+        ['🏃','Poza podium — ale park Cię zapamiętał.','zawodyBez'];
+      el('medalIkona').textContent=ikona;el('medalOpis').textContent=opis+' ('+czas+' s)';
+      if(czas<=Z.ZLOTO){Misje.zdarzenie('zlotyMedal');Dzwiek.medal();}else Dzwiek.fanfara();
+      puenta=losuj(BIEGUS_MOWI[bank]);
+    } else {
+      Dzwiek.fanfara();
+      puenta=losuj(perfekt?BIEGUS_MOWI.perfekt:BIEGUS_MOWI.finisz);
+      if(sym.skrypt.etap===8){                                     // finał krainy — PRZESŁANIE
+        el('finalKrainy').hidden=false;
+        el('finalKrainy').innerHTML='<b>Akt I zamknięty.</b><br>'+
+          'Osiem świtów, jeden park, zero skrótów.<br>'+
+          'Orzeł skinął głową. Pierwszy raz.<br>'+
+          '<b>„Las we mgle czeka. Tam się okaże, czy to marzenie — czy poranny kaprys."</b>';
+      }
+      if(sym.skrypt.etap===32){
+        el('finalKrainy').hidden=false;
+        el('finalKrainy').innerHTML='<b>Akt IV zamknięty.</b><br>'+
+          'Przełęcz za nim. Wiatr ucichł, jakby z szacunku.<br>'+
+          'W dole, w porannej mgle — światła stadionu Wielkich Igrzysk.<br>'+
+          '<b>Klucz krążył nad nimi całą noc. Nikt się już nie śmiał.</b>';
+      }
+      if(sym.skrypt.etap===24){
+        el('finalKrainy').hidden=false;
+        el('finalKrainy').innerHTML='<b>Akt III zamknięty.</b><br>'+
+          'Błysk czekał przy rogatkach. Bez publiczności. Bez drwiny.<br>'+
+          '„Na przełęczy nie ma nikogo — tylko ty i marzenie."<br>'+
+          '<b>Pierwszy raz podał mu skrzydło. Przed nami Przełęcz.</b>';
+      }
+      if(sym.skrypt.etap===16){
+        el('finalKrainy').hidden=false;
+        el('finalKrainy').innerHTML='<b>Akt II zamknięty.</b><br>'+
+          'Żółw czekał na skraju lasu. „Korzenie, błoto, mgła — i dalej biegniesz. Dobrze."<br>'+
+          '„Przed tobą Miasto. Tam nikt nie ma czasu na cudze marzenia. Nie daj się zagłuszyć."<br>'+
+          '<b>Droga na Igrzyska trwa.</b>';
+      }
+    }
+    el('puentaFinisz').innerHTML='<b>'+Biegus.imie+':</b> „'+puenta+'”';
+    const zad=sym.tryb==='etap'&&ZADANIA_FAB[sym.skrypt.etap];
+    el('zadanieWynik').hidden=!zad;
+    if(zad)el('zadanieWynik').innerHTML=zad.test(sym)?
+      '✅ <b>ZADANIE WYKONANE</b> — '+zad.nagroda:
+      '▫ Zadanie ('+zad.cel+') nie tym razem — etap i tak zaliczony. '+zad.od+' poczeka.';
+    el('stSerca').textContent=sym.serca;
+    el('stPiora').textContent=sym.piora;
+    el('stZnal').textContent=sym.zebrane.length+'/'+CFG.ZNALEZISKA_NA_ETAP;
+    el('stCombo').textContent='x'+sym.maxCombo;
+    odswiezMenuStatus();
+    pokaz('finisz');
+    window.DROGA.onStageComplete({kraina:1,etap:sym.skrypt.etap,seed:sym.skrypt.seed,tryb:sym.tryb,
+      serca:sym.serca,piora:sym.piora,maxCombo:sym.maxCombo,
+      znaleziska:sym.zebrane.map(z=>z.id),perfekt});
+  }
+  function ekranFail(){tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    document.body.classList.remove('flow');
+    el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Biegus.poEtapie(sym.piora);
+    Biegus.statystyki.piora+=sym.piora;
+    Biegus.portfelPior+=sym.piora;
+    Biegus.statystyki.uniki+=(sym.ominiete||0);
+    Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
+    sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
+    el('puentaFail').innerHTML='<b>'+Biegus.imie+':</b> „'+losuj(BIEGUS_MOWI.fail)+'”';
+    odswiezMenuStatus();pokaz('porazka');}
+  el('btnDalej').onclick=()=>{
+    if(sym.tryb==='zawody'||biezacyEtap>=32){tryb='menu';pokaz('menu');}
+    else start(biezacyEtap+1,'etap');};
+  el('btnPowtorka').onclick=()=>start(biezacyEtap,sym.tryb);
+  el('btnJeszczeRaz').onclick=()=>start(biezacyEtap,sym.tryb);
+  el('btnDoMenu').onclick=()=>{tryb='menu';pokaz('menu');};
+  addEventListener('keydown',e=>{
+    if((e.key==='r'||e.key==='R')&&tryb==='karta'){
+      if(!el('finisz').hidden)el('btnPowtorka').click();
+      else if(!el('porazka').hidden)el('btnJeszczeRaz').click();}});
+  el('btnPauza').onclick=()=>pauza();
+  el('btnWznow').onclick=()=>pauza();
+  el('btnPauzaWyjdz').onclick=()=>{tryb='menu';wPauzie=false;Dzwiek.muzykaStop();Dzwiek.wiatrStop();pokaz('menu');};
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden){if(tryb==='bieg')pauza();else wPauzie=true;}
+    else if(tryb!=='pauza'){ostatni=performance.now();wPauzie=false;}});
+
+  function obsluzZdarzenie(zd){
+    if(zd.typ==='hit'){spowolnienie=CFG.SLOWMO_CZAS;R3.efekt(zd);
+      setTimeout(()=>{if(tryb==='bieg')dymek(losuj(BIEGUS_MOWI.potkniecie));},900);
+      return;}
+    if(zd.typ==='oWlos'){
+      if(zd.combo>=3&&zd.combo%1===0&&[3,5,8,12,16].includes(zd.combo)){
+        popup('SERIA x'+zd.combo+'!',true);Dzwiek.combo();}
+      else popup('O WŁOS!');
+      R3.efekt(zd);return;}
+    if(zd.typ==='spotkanie'){
+      if(zd.dane.klucz)R3.przelotKlucza();else R3.pokazGoscia(zd.dane);
+      dymek(zd.dane.tekst,zd.dane.emoji+' '+zd.dane.imie);return;}
+    if(zd.typ==='salto'){popup('SALTO!',true);Dzwiek.salto();return;}
+    if(zd.typ==='tarcza'){popup('TARCZA!');R3.efekt(zd);return;}
+    if(zd.typ==='gwizd'){Dzwiek.gwizd();return;}
+    if(zd.typ==='klakson'){Dzwiek.klakson();return;}
+    if(zd.typ==='bloto'){popup('CHLUP!');R3.efekt(zd);
+      setTimeout(()=>{if(tryb==='bieg')dymek('Skarpeta honoru stracona. Seria też.');},700);
+      return;}
+    if(zd.typ==='flowStart'){document.body.classList.add('flow');
+      el('comboHud').classList.add('flow');Dzwiek.setFlow(true);Dzwiek.flowStart();
+      popup('FLOW!',true);
+      setTimeout(()=>{if(tryb==='bieg')dymek('Świat płynie. Ty tylko biegnij.');},600);
+      return;}
+    if(zd.typ==='flowStop'){document.body.classList.remove('flow');
+      el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Dzwiek.flowStop();return;}
+    if(zd.typ==='blotoOchrona'){popup('TRAIL GRIP!',true);Dzwiek.tarcza();
+      setTimeout(()=>{if(tryb==='bieg')dymek('Podeszwa trail. Błoto się ślizga, nie ja.');},600);
+      return;}
+    if(zd.typ==='combo'){
+      if([3,5,8,12,16].includes(zd.combo)){popup('SERIA x'+zd.combo+'!',true);Dzwiek.combo();}
+      return;}
+    R3.efekt(zd);
+  }
+  function petla(teraz){
+    requestAnimationFrame(petla);
+    zegar=teraz/1000;
+    if(tryb==='podglad'){R3.klatkaPodgladu(zegar);return;}
+    if(tryb==='bieg'&&sym&&!wPauzie){
+      const dtReal=Math.min(0.1,(teraz-ostatni)/1000);ostatni=teraz;
+      if(spowolnienie>0){spowolnienie-=dtReal;akum+=dtReal*CFG.SLOWMO;}
+      else akum+=dtReal;
+      let koniec=null;
+      while(akum>=KROK&&!koniec){
+        krokSymulacji(sym);akum-=KROK;
+        for(const zd of sym.zdarzenia){
+          if(zd.typ==='fail')koniec='fail';
+          else if(zd.typ==='meta')koniec='meta';
+          else obsluzZdarzenie(zd);
+        }
+      }
+      hud();
+      {const stK=Biegus.stan();
+       const tempoK=stK==='najedzony'?12:stK==='ok'?10.5:7;
+       const fK=Math.sin(sym.t*tempoK);
+       if(fK>=0&&(sym._fazaKroku??0)<0&&sym.skokT<0&&sym.slizgT<0)Dzwiek.krok();
+       sym._fazaKroku=fK;
+       Dzwiek.wiatrSila(0.012+Math.max(0,sym.predkosc-13)*0.0016);}
+      if(tryb==='bieg'&&sym.t-(sym._dymekT??-99)>14&&Math.random()<0.005){
+        sym._dymekT=sym.t;
+        const stD=Biegus.stan();
+        dymek(losuj(stD==='najedzony'?BIEGUS_MOWI.ambientNajedzony:
+          stD==='glodny'?BIEGUS_MOWI.ambientGlodny:BIEGUS_MOWI.ambientOk));}
+      if(koniec==='fail')return ekranFail();
+      if(koniec==='meta')return ekranMeta();
+      R3.klatka(sym,zegar);
+      return;
+    }
+    /* menu / intro / karty: żywe tło — demo albo zamrożony bieg */
+    if(tryb==='menu'){demo.t=(demo.t+1/60)%CFG.ETAP_CZAS;R3.klatka(demo,zegar);}
+    else if(sym)R3.klatka(sym,zegar);
+    else R3.klatka(demo,zegar);
+  }
+  odswiezBiegusPanel();pokaz('menu');requestAnimationFrame(petla);
+  return{pauza,toast};
+})();
+
+/* ---------- 11. INTEGRACJA ---------- */
+window.DROGA={
+  wersja:'2.1',
+  get biegusStan(){return Biegus.stan();},
+  /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
+     po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
+     i Bieguś zostaje nakarmiony — Moment Żniw w grze. */
+  zarejestrujTrening({km}){Biegus.trening(km);},
+  onStageComplete(r){console.log('[DROGA] ukończono:',r);},
+  ustawModel(tryb){return R3.przelaczModel(tryb==='premium');}, // 'premium'|'klockowy'
+  _biegus:Biegus,_misje:MISJE,_premium:()=>R3.PREMIUM,
+};
+</script>
+</body>
+</html>
