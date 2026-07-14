@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.0 (AKT V — Wielkie Igrzyska)</title>
+<title>Bieguś — Droga na Igrzyska · v3.1 (Misje dzienne)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.0 „AKT V — WIELKIE IGRZYSKA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.1 „MISJE DZIENNE"
+     Względem v3.0:
+     · MISJE DZIENNE OD NPC: co dzień 2 zadania z puli 8 (wybór
+       deterministyczny z daty — wszyscy gracze mają te same).
+       Żółw: pióra/spotkania, Wiewiórka: znaleziska, Orzeł: uniki,
+       Zając: ślizgi i combo ×8, Kura: trening. Nagrody w piórach,
+       auto-wypłata z toastem NPC. Reset o północy, zapis localStorage.
+     · Panel misji: sekcja „DZISIAJ" z portretami NPC nad misjami Drogi.
+     Poniżej: opis v3.0
      FINAŁ GRY. Po ukończeniu wszystkich 32 etapów w menu pojawia się
      🏟️ FINAŁ. Zasady finału (z biblii fabularnej):
      · karta AKT V (plansza tunelu) przed startem — raz na sesję
@@ -931,8 +939,44 @@ const MISJE=[
   {id:'akrobata',npc:'zajac',tekst:'Akrobata — wykonaj 12 salt',cel:12,licznik:0,
     nagroda:()=>{AKCESORIA.czapka.odblok=true;},nagrodaTekst:'🧢 Czapka z daszkiem'},
 ];
+const DZIENNE_PULA=[
+  {id:'d-piora30', npc:'zolw',      typ:'pioro', cel:30, pior:20, tekst:'Zbierz {cel} piór. Spokojnie. Krok za krokiem.'},
+  {id:'d-piora60', npc:'zolw',      typ:'pioro', cel:60, pior:35, tekst:'Zbierz {cel} piór. Długi dystans to wiele małych kroków.'},
+  {id:'d-znal2',   npc:'wiewiorka', typ:'znal',  cel:2,  pior:25, tekst:'Znajdź {cel} znaleziska. Kto zbiera, ten ma!'},
+  {id:'d-uniki25', npc:'orzel',     typ:'unik',  cel:25, pior:25, tekst:'Omiń {cel} przeszkód. Technika! Oddech! Rytm!'},
+  {id:'d-slizgi6', npc:'zajac',     typ:'slizgSzlaban',cel:6, pior:30, tekst:'Prześlizgnij się {cel} razy. Szybkość to odwaga w nogach.'},
+  {id:'d-trening', npc:'kura',      typ:'trening',cel:1, pior:30, tekst:'Zalicz {cel} trening. Zdrowy Bieguś to szczęśliwy Bieguś.'},
+  {id:'d-mentor2', npc:'zolw',      typ:'mentor',cel:2,  pior:20, tekst:'Spotkaj {cel} przyjaciół przy trasie. Nie biegnij sam.'},
+  {id:'d-combo8',  npc:'zajac',     typ:'combo8',cel:1,  pior:35, tekst:'Osiągnij combo ×8. Pokaż, co masz, mały!'}];
+const Dzienne={
+  stan:null,
+  _dzis(){return new Date().toISOString().slice(0,10);},
+  wczytaj(){
+    try{this.stan=JSON.parse(localStorage.getItem('biegus_dzienne_v1')||'null');}catch(e){this.stan=null;}
+    if(!this.stan||this.stan.data!==this._dzis()){
+      const d=this._dzis();let h=0;
+      for(const c of d)h=(h*31+c.charCodeAt(0))>>>0;
+      const a=h%DZIENNE_PULA.length;
+      const b=(a+1+(h>>8)%(DZIENNE_PULA.length-1))%DZIENNE_PULA.length;
+      this.stan={data:d,misje:[a,b].map(i=>({id:DZIENNE_PULA[i].id,licznik:0,odebrane:false}))};
+      this.zapisz();}},
+  zapisz(){try{localStorage.setItem('biegus_dzienne_v1',JSON.stringify(this.stan));}catch(e){}},
+  zdarzenie(typ,ile=1){
+    if(!this.stan)return;
+    let zmiana=false;
+    this.stan.misje.forEach(m=>{
+      const def=DZIENNE_PULA.find(x=>x.id===m.id);
+      if(!def||def.typ!==typ||m.odebrane)return;
+      m.licznik=Math.min(def.cel,m.licznik+ile);zmiana=true;
+      if(m.licznik>=def.cel){m.odebrane=true;
+        Biegus.portfelPior+=def.pior;Biegus.zapisz&&Biegus.zapisz();
+        Gra?.toast?.(NPC[def.npc].emoji+' <b>'+NPC[def.npc].nazwa+':</b> „Zadanie wykonane!\u201d <b>+'+def.pior+' 🪶</b>');}});
+    if(zmiana)this.zapisz();}};
+Dzienne.wczytaj();
+
 const Misje={
   zdarzenie(typ,ile=1){
+    Dzienne.zdarzenie(typ,typ==='trening'?1:ile);
     const mapa={perfekt:'czysty',znal:'kolekcjoner',slizgSzlaban:'slizgacz',
       ominietyRower:'czujneOko',pioro:'skrzydlaty',zlotyMedal:'zloto',trening:'wytrwalosc',salto:'akrobata'};
     const m=MISJE.find(x=>x.id===mapa[typ]);
@@ -1805,7 +1849,8 @@ function krokSymulacji(s){
     if(o.typ==='mentor'){                                           // spotkanie przy trasie
       if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){o.sprawdzone=true;
         const b=5;s.piora+=b;
-        s.zdarzenia.push({typ:'mentor',id:o.mentorId,bonus:b});}
+        s.zdarzenia.push({typ:'mentor',id:o.mentorId,bonus:b});
+        Misje.zdarzenie('mentor');}
       continue;}
     /* MOMENT PRAWDY: kolizja liczona RAZ — gdy przeszkoda mija stopy.
        Byłeś wtedy w powietrzu / w ślizgu / na innym pasie = uniknięte.
@@ -1845,6 +1890,7 @@ function krokSymulacji(s){
       if(o.typ==='rower'){Misje.zdarzenie('ominietyRower');
         if(!o.uniknieto){s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
           s.zdarzenia.push({typ:'combo',combo:s.combo});}}
+      if(s.combo===8)Misje.zdarzenie('combo8');
       if(!s.flow&&s.combo>=(s.flowProg||CFG.FLOW_COMBO)){
         s.flow=true;s.zdarzenia.push({typ:'flowStart'});}
       if(o.slizgniete)Misje.zdarzenie('slizgSzlaban');
@@ -3250,6 +3296,23 @@ const Gra=(()=>{
   el('btnMapaWroc').onclick=()=>{tryb='menu';pokaz('menu');};
   el('btnMisje').onclick=()=>{tryb='podglad';R3.pokazWPodgladzie('biegus');
     const lm=el('listaMisji');lm.innerHTML='';
+    Dzienne.wczytaj();                                    // reset o północy przy otwarciu
+    const dz=document.createElement('div');
+    dz.innerHTML='<div class="motto" style="margin:4px 0 8px">— DZISIAJ —</div>';
+    Dzienne.stan.misje.forEach(m=>{
+      const def=DZIENNE_PULA.find(x=>x.id===m.id);if(!def)return;
+      const d=document.createElement('div');d.className='misja'+(m.odebrane?' zrobiona':'');
+      d.innerHTML='<div class="nagroda">'+
+        '<img class="pnpc" src="'+assetUrl('assets/ui/npc_'+def.npc+'.png')+
+        '" onerror="this.outerHTML=this.dataset.e" data-e="'+NPC[def.npc].emoji+' ">'+
+        NPC[def.npc].nazwa+' · '+def.tekst.replace('{cel}',def.cel)+
+        ' · <b>'+Math.min(m.licznik,def.cel)+'/'+def.cel+'</b> · +'+def.pior+' 🪶'+
+        (m.odebrane?' ✅':'')+'</div>';
+      dz.appendChild(d);});
+    lm.appendChild(dz);
+    const rozdz=document.createElement('div');
+    rozdz.innerHTML='<div class="motto" style="margin:10px 0 8px">— DROGA —</div>';
+    lm.appendChild(rozdz);
     MISJE.forEach(m=>{
       const d=document.createElement('div');
       d.className='misja'+(m.licznik>=m.cel?' zrobiona':'');
@@ -3447,6 +3510,7 @@ const Gra=(()=>{
     Biegus.statystyki.piora+=sym.piora;
     Biegus.portfelPior+=sym.piora;
     Biegus.statystyki.uniki+=(sym.ominiete||0);
+    if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
     if(sym.tryb==='etap'){Biegus.ukonczone.add('e'+sym.skrypt.etap);odswiezEtapy();}
     const perfekt=sym.serca===CFG.SERCA;
@@ -3535,6 +3599,7 @@ const Gra=(()=>{
     Biegus.statystyki.piora+=sym.piora;
     Biegus.portfelPior+=sym.piora;
     Biegus.statystyki.uniki+=(sym.ominiete||0);
+    if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
     sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
     el('puentaFail').innerHTML='<b>'+Biegus.imie+':</b> „'+losuj(BIEGUS_MOWI.fail)+'”'+
@@ -3644,7 +3709,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.0',
+  wersja:'3.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
