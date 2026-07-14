@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.8 (Pierwsze wrażenie)</title>
+<title>Bieguś — Droga na Igrzyska · v2.9 (Oprawa)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.8 „PIERWSZE WRAŻENIE"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.9 „OPRAWA"
+     Względem v2.8:
+     · PLANSZE AKTÓW: karty fabuły mają filmowe tła z partii 5
+       (assets/swiat/akt{1..5}-*.webp) — przygaszone pod tekstem,
+       fallback do ciemnej karty gdy pliku brak.
+     · EKRAN TYTUŁOWY: menu główne z ilustracją tytułową z partii 6
+       (swiat/tytul.webp) jako subtelnym tłem — gra wita jak gra,
+       nie jak prototyp.
+     Poniżej: opis v2.8
      Względem v2.7:
      · ROZBIEG: etapy 1–4 wolniejsze (86/90/94/97% prędkości bazowej)
        — nowy gracz uczy się sterowania zanim gra pokaże zęby.
@@ -458,7 +466,9 @@
 <div id="dymek" hidden></div>
 
 <!-- MENU — żywe tło za spodem (Bieguś biegnie w demo) -->
-<div class="karta" id="menu">
+<div class="karta" id="menu" style="background-image:
+  linear-gradient(rgba(10,12,20,.55),rgba(10,12,20,.9)),var(--tlo-tytul,none);
+  background-size:cover;background-position:center 30%">
   <div class="motto">jesteśmy obok</div>
   <h1>BIEGUŚ<br><em>— DROGA</em></h1>
   <div class="przeslanie">Mały biegus nie odleciał z kluczem.<br>
@@ -855,6 +865,11 @@ const Biegus={
     this.wiez=clamp(this.wiez+1,0,100);},
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
+/* tło tytułowe menu — ustawiane po weryfikacji, że plik istnieje */
+(function(){const im=new Image();
+  im.onload=()=>document.documentElement.style.setProperty('--tlo-tytul','url('+im.src+')');
+  im.src=(location.protocol==='file:'||!location.hostname?'https://biegamy.run/':'')+
+    'assets/swiat/tytul.webp';})();
 
 const MENTOR_TEKSTY={
   'trener-orzel':   ['🦅','Trener Orzeł','Technika! Oddech! Rytm!'],
@@ -3204,6 +3219,8 @@ const Gra=(()=>{
     wybierzKatalog('kaluza');lista.querySelector('button').classList.add('aktywny');};
   el('btnKatalogWroc').onclick=()=>{tryb='menu';pokaz('menu');};
 
+  const PLANSZE_AKTOW={1:'akt1-decyzja',2:'akt2-wytrwalosc',3:'akt3-halas',
+    4:'akt4-zwatpienie',5:'akt5-start'};
   const FABULA={
     1:{akt:'AKT I',tytul:'PARK O ŚWICIE',
       scena:'Biegusy to ptaki wędrowne — całe życie w locie. Wszystkie oprócz jednego, który zawsze wolał biegać. „Ptak, który biega?!" — śmiał się klucz, odlatując na południe. Został na ziemi. I ogłosił: wystartuje w Wielkich Igrzyskach. Tych dla ludzi.',
@@ -3250,6 +3267,12 @@ const Gra=(()=>{
   function PALETY_NAZWA(sk){try{return R3.nazwaPory(sk.kraina||1,sk.pora||0);}catch(e){return '';}}
   function pokazFabule(k){
     const f=FABULA[k];
+    const karta=el('fabula');
+    const plansza=PLANSZE_AKTOW[k];
+    karta.style.backgroundImage=plansza?
+      'linear-gradient(rgba(10,12,20,.72),rgba(10,12,20,.88)),url('+
+      assetUrl('assets/swiat/'+plansza+'.webp')+')':'';
+    karta.style.backgroundSize='cover';karta.style.backgroundPosition='center';
     el('fabulaAkt').textContent=f.akt;
     el('fabulaTytul').textContent=f.tytul;
     el('fabulaScena').textContent=f.scena;
@@ -3539,7 +3562,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.8',
+  wersja:'2.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
