@@ -3,11 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.5 (Czynnik Hugo)</title>
+<title>Bieguś — Droga na Igrzyska · v3.6 (Nowe UI)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.5 „CZYNNIK HUGO"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.6 „NOWE UI"
+     Względem v3.5 (wpięcie bibliotek partii 8+9):
+     · KAŁUŻA-DECAL: prawdziwa grafika kałuży (top-down z partii 9)
+       leży PŁASKO na trasie zamiast proceduralnych kółek —
+       fallback do starego wyglądu gdy pliku brak.
+     · IKONY KAFLI MENU: glossy ikonki z partii 8 w przyciskach
+       Bieguś/Sklep/Droga/Misje/Katalog (fallback: emoji jak dotąd).
+     · ODZNAKI TIERÓW w garderobie: chip tieru dostaje ikonę-piórko
+       (tier-start…tier-legenda) — rzadkość widać, nie tylko czyta się.
+     Poniżej: opis v3.5
      Względem v3.4 (feedback Filipa: za oczywiste!):
      · LOSOWE UKŁADY ETAPÓW: każde podejście do etapu = inny rozkład
        przeszkód (seed losowy per bieg). Zawody i Finał zostają
@@ -554,13 +563,13 @@
     <button class="kafel" id="btnZawodyLas"><span>🌲</span>Zawody Las<span>medale we mgle</span></button>
   </div>
   <div class="rzad">
-    <button class="kafel" id="btnBiegus"><span>🐦</span>Bieguś<span>karm i ubieraj</span></button>
-    <button class="kafel" id="btnSklep"><span>🐿️</span>Sklep<span>u Zyzi, za pióra</span></button>
-    <button class="kafel" id="btnMapa"><span>🗺️</span>Droga<span>na Igrzyska</span></button>
+    <button class="kafel" id="btnBiegus"><span data-iko="ikona-trening">🐦</span>Bieguś<span>karm i ubieraj</span></button>
+    <button class="kafel" id="btnSklep"><span data-iko="ikona-sklep">🐿️</span>Sklep<span>u Zyzi, za pióra</span></button>
+    <button class="kafel" id="btnMapa"><span data-iko="ikona-mapa">🗺️</span>Droga<span>na Igrzyska</span></button>
   </div>
   <div class="rzad">
-    <button class="kafel" id="btnMisje"><span>⭐</span>Misje<span>odblokowania</span></button>
-    <button class="kafel" id="btnKatalog"><span>📖</span>Katalog<span>mieszkańcy</span></button>
+    <button class="kafel" id="btnMisje"><span data-iko="ikona-misje">⭐</span>Misje<span>odblokowania</span></button>
+    <button class="kafel" id="btnKatalog"><span data-iko="ikona-kolekcja">📖</span>Katalog<span>mieszkańcy</span></button>
   </div>
   <div class="legenda">◀ ▶ pas · ▲/tap skok · ▼ ślizg · P pauza</div>
 </div>
@@ -947,6 +956,13 @@ const Biegus={
     this.wiez=clamp(this.wiez+1,0,100);},
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
+/* — ikony kafli menu (partia 8): podmiana emoji na grafiki, fallback zostaje — */
+document.querySelectorAll('[data-iko]').forEach(sp=>{
+  const im=new Image();
+  im.onload=()=>{sp.textContent='';sp.appendChild(im);
+    im.style.cssText='width:34px;height:34px;object-fit:contain;vertical-align:middle';};
+  im.src=(location.protocol==='file:'||!location.hostname?'https://biegamy.run/':'')+
+    'assets/ui/ikony/'+sp.dataset.iko+'.webp';});
 /* tło tytułowe menu — ustawiane po weryfikacji, że plik istnieje */
 (function(){const im=new Image();
   im.onload=()=>document.documentElement.style.setProperty('--tlo-tytul','url('+im.src+')');
@@ -2834,17 +2850,25 @@ const R3=(()=>{
     if(dymekGraczaCooldown>0)return;
     dymekGraczaCooldown=6;dymek3D(tekst,{cel:'gracz',y:2.35,ttl:2.4});}
   /* — sprite'y świata (partia 7): GLB > sprite > klocek — */
-  const SPRITE_WYM={pioro:[0.52,0.72],galaz:[2.7,1.5],kosz:[1.05,1.05],
+  const SPRITE_PLASKIE={kaluza:true};
+  const SPRITE_WYM={kaluza:[2.75,1.95],pioro:[0.52,0.72],galaz:[2.7,1.5],kosz:[1.05,1.05],
     pies:[1.15,0.85],rower:[2.3,1.65],szlaban:[2.7,1.25],taczka:[1.25,1.05]};
   const SPRITE_TEX={};
   Object.keys(SPRITE_WYM).forEach(typ=>{
-    const plik=typ==='pioro'?'pioro':'przeszkoda-'+typ;
+    const plik=typ==='pioro'?'pioro':typ==='kaluza'?'kaluza-decal':'przeszkoda-'+typ;
     const t=new THREE.TextureLoader().load(assetUrl('assets/sprites/'+plik+'.webp'),
       ()=>{t.gotowa=true;},undefined,()=>{});
     SPRITE_TEX[typ]=t;});
   function zbudujSprite(typ){
     const [w,h]=SPRITE_WYM[typ];
     const g=new THREE.Group();
+    if(SPRITE_PLASKIE[typ]){                              // decal na ziemi (kałuża)
+      const d=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+        new THREE.MeshBasicMaterial({map:SPRITE_TEX[typ],transparent:true,
+          alphaTest:0.3,depthWrite:false}));
+      d.rotation.x=-Math.PI/2;d.position.y=0.05;d.castShadow=false;g.add(d);
+      g.userData.glb=true;
+      return g;}
     const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
       new THREE.MeshBasicMaterial({map:SPRITE_TEX[typ],transparent:true,
         alphaTest:0.35,depthWrite:false,side:THREE.DoubleSide}));
@@ -3270,7 +3294,12 @@ const Gra=(()=>{
         const k=document.createElement('div');
         k.className='gKarta'+(zal?' zalozona':'');k.style.borderColor=T.k;
         const chip=document.createElement('div');chip.className='gTier';
-        chip.style.background=T.k;chip.textContent=T.n;k.appendChild(chip);
+        chip.style.background=T.k;chip.textContent=T.n;
+        const ti=new Image();ti.className='tierIko';
+        ti.onload=()=>chip.prepend(ti);
+        ti.style.cssText='width:16px;height:16px;vertical-align:-3px;margin-right:4px';
+        ti.src=assetUrl('assets/ui/ikony/tier-'+it.tier+'.webp');
+        k.appendChild(chip);
         const img=document.createElement('img');img.loading='lazy';
         img.src=assetUrl('assets/przedmioty/'+it.id+'.webp');
         img.onerror=()=>{zglosPadlyAsset(img.src);
@@ -3889,7 +3918,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.5',
+  wersja:'3.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
