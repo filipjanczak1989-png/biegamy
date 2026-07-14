@@ -3,11 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.7 (Adrenalina i endgame)</title>
+<title>Bieguś — Droga na Igrzyska · v3.8 (Czytelny spad i pejzaże)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.7 „ADRENALINA I ENDGAME"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.8 „CZYTELNY SPAD I PEJZAŻE"
+     Względem v3.7 (feedback: „ptaków nie widać!"):
+     · SPAD WIDOCZNY: czarny cień zamieniony na PULSUJĄCY POMARAŃCZOWY
+       CELOWNIK (pierścień + rdzeń), obiekt spada z y=3.4 (w kadrze!),
+       ostrzeżenie wydłużone do ~1,5 s. Teraz NAJPIERW widzisz cel,
+       potem uciekasz — nie odwrotnie.
+     · PRZESZKODY-BILLBOARDY dopieszczone: lekki pochył ku graczowi
+       (-6°), większy miękki cień kontaktowy — mniej „naklejki".
+     · PEJZAŻE KRAIN (partia 10): panel Drogi ma tło swojej krainy.
+     · MEDALE I TROFEUM (partia 10): Zawody pokazują grafikę medalu
+       zamiast emoji; finał WYSTARTOWAŁEŚ z trofeum Igrzysk.
+     Poniżej: opis v3.7
      Względem v3.6:
      · OTARCIE: unik na WŁASNYM pasie (o włos!) = +2 🪶 i „OTARCIE!"
        — nagroda za odwagę zamiast objeżdżania wszystkiego bokiem.
@@ -627,6 +638,8 @@
 <!-- KARTA FINAŁU (Akt V) -->
 <div class="karta ciemna" id="final" hidden>
   <div class="motto">WIELKIE IGRZYSKA</div>
+  <img id="trofeumImg" alt="" style="width:120px;height:120px;object-fit:contain;display:block;margin:2px auto"
+    onerror="this.hidden=true">
   <h1>WYSTARTOWAŁEŚ.</h1>
   <div class="przeslanie" id="puentaFinal"></div>
   <button class="cta" id="btnFinalMenu">Wróć bohaterem ▶</button>
@@ -1099,13 +1112,16 @@ const OBIEKTY={
     unikTekst:'◀ ▶ UWAGA Z GÓRY — zmień pas!',
     zbuduj(){
       const g=new THREE.Group();
-      const cien=new THREE.Mesh(new THREE.CircleGeometry(0.5,18),
-        new THREE.MeshBasicMaterial({color:0x0c0f18,transparent:true,opacity:.55,depthWrite:false}));
-      cien.rotation.x=-Math.PI/2;cien.position.y=0.03;g.add(cien);
-      const bomba=new THREE.Mesh(new THREE.ConeGeometry(0.34,0.62,7),
-        new THREE.MeshLambertMaterial({color:0x7a5230}));
-      bomba.position.y=6;g.add(bomba);
-      g.userData={cien,bomba};
+      const cien=new THREE.Mesh(new THREE.RingGeometry(0.3,0.52,22),   /* celownik */
+        new THREE.MeshBasicMaterial({color:0xff5a2e,transparent:true,opacity:.9,depthWrite:false}));
+      cien.rotation.x=-Math.PI/2;cien.position.y=0.05;g.add(cien);
+      const rdzen=new THREE.Mesh(new THREE.CircleGeometry(0.16,14),
+        new THREE.MeshBasicMaterial({color:0xffd23b,transparent:true,opacity:.85,depthWrite:false}));
+      rdzen.rotation.x=-Math.PI/2;rdzen.position.y=0.055;g.add(rdzen);
+      const bomba=new THREE.Mesh(new THREE.ConeGeometry(0.4,0.7,7),
+        new THREE.MeshLambertMaterial({color:0x7a5230,emissive:0x2a1608}));
+      bomba.position.y=3.4;g.add(bomba);
+      g.userData={cien,rdzen,bomba};
       return g;},
     animuj(){}
   },
@@ -1883,7 +1899,7 @@ function krokSymulacji(s){
     if(s.spadyLeft>0&&s.t>=s.spadNastepny){
       s.spadyLeft--;s.spadNastepny=s.t+8+Math.random()*6;
       s.aktywne.push({t:s.t,typ:'spad',pas:s.pas,wlasnyRuch:true,
-        z:CFG.GRACZ_Z-s.predkosc*1.05,fazaSpadu:'cien',spadY:6,sprawdzone:false});
+        z:CFG.GRACZ_Z-s.predkosc*1.5,fazaSpadu:'cien',spadY:3.4,sprawdzone:false});
       s.zdarzenia.push({typ:'swist'});}}
   const i=Input.wez();
   if(s.stan==='bieg'){
@@ -1916,9 +1932,9 @@ function krokSymulacji(s){
   if(s.stan==='bieg')for(const o of s.aktywne){
     if(o.trafione)continue;
     if(o.typ==='spad'){
-      if(o.fazaSpadu==='cien'&&CFG.GRACZ_Z-o.z<=s.predkosc*0.35)o.fazaSpadu='spada';
+      if(o.fazaSpadu==='cien'&&CFG.GRACZ_Z-o.z<=s.predkosc*0.34)o.fazaSpadu='spada';
       if(o.fazaSpadu==='spada'&&o.spadY>0){
-        o.spadY=Math.max(0,o.spadY-KROK*17);
+        o.spadY=Math.max(0,o.spadY-KROK*10);
         if(o.spadY===0&&!o.sprawdzone){o.sprawdzone=true;
           if(o.pas===s.pas&&s.nietyk<=0&&s.pasT>=0.65){
             if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;
@@ -2888,9 +2904,9 @@ const R3=(()=>{
     const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
       new THREE.MeshBasicMaterial({map:SPRITE_TEX[typ],transparent:true,
         alphaTest:0.35,depthWrite:false,side:THREE.DoubleSide}));
-    pl.position.y=h/2+0.02;pl.castShadow=false;g.add(pl);
-    const c=new THREE.Mesh(new THREE.CircleGeometry(w*0.34,14),
-      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.18}));
+    pl.position.y=h/2+0.02;pl.rotation.x=-0.105;pl.castShadow=false;g.add(pl);
+    const c=new THREE.Mesh(new THREE.CircleGeometry(w*0.42,16),
+      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.24}));
     c.rotation.x=-Math.PI/2;c.position.y=0.02;g.add(c);
     g.userData.glb=true;                        // pomija animuj klocka, dostaje sway
     return g;}
@@ -3053,12 +3069,14 @@ const R3=(()=>{
           const tyS=tY(o.z);if(tyS)o.widok.position.y+=tyS;
           const u=o.widok.userData;
           u.bomba.position.y=o.spadY;u.bomba.rotation.y+=dt*9;
-          const blisko=clamp(1-(CFG.GRACZ_Z-o.z)/(o.zStart||14),0.25,1);
           if(!o.zStart)o.zStart=CFG.GRACZ_Z-o.z;
-          u.cien.scale.setScalar(0.6+blisko*1.1);
-          u.cien.material.opacity=0.25+blisko*0.45;
+          const blisko=clamp(1-(CFG.GRACZ_Z-o.z)/o.zStart,0.15,1);
+          const puls=0.85+Math.sin(czasReal*14)*0.35;                 /* celownik pulsuje */
+          u.cien.scale.setScalar((0.7+blisko*1.2)*puls);
+          u.rdzen.scale.setScalar(0.7+blisko*1.3);
+          u.cien.material.opacity=0.55+blisko*0.4;
           u.bomba.visible=o.spadY>0;
-          u.cien.visible=o.spadY>0;
+          u.cien.visible=o.spadY>0;u.rdzen.visible=o.spadY>0;
         } else if(o.typ==='rywal'){
           o.widok.position.set(o.strona*2.95,0,o.z);
           if(!o.dym&&o.z>CFG.GRACZ_Z-14){o.dym=true;
@@ -3483,7 +3501,12 @@ const Gra=(()=>{
   ];
   el('mapaTor').innerHTML=KRAINY_MAPA.map(k=>
     '<i style="width:'+((k.do-k.od)/6)+'%;background:'+k.kolor+'"></i>').join('');
+  const PEJZAZE={1:'kraina1-park',2:'kraina2-las',3:'kraina3-miasto',4:'kraina4-gory'};
   function odswiezMape(){
+    const pn=el('panelMapa'),pz=PEJZAZE[kraina];
+    pn.style.backgroundImage=pz?'linear-gradient(rgba(13,16,26,.55),rgba(13,16,26,.94) 55%),url('+
+      assetUrl('assets/swiat/'+pz+'.webp')+')':'';
+    pn.style.backgroundSize='cover';pn.style.backgroundPosition='center top';
     const km=Biegus.laczneKm;
     el('mapaBiegus').style.left=Math.min(100,km/600*100)+'%';
     el('mapaKm').textContent=km.toFixed(1)+' / 600 km · '+
@@ -3710,6 +3733,8 @@ const Gra=(()=>{
     el('puentaFinal').innerHTML='Mały biegus nie odleciał z kluczem. Został — i wystartował w Wielkich Igrzyskach.<br>'+
       'Błysk był szybszy. Trybuny i tak wstały.<br><b>'+Biegus.imie+
       ' ukończył Drogę.</b> <span style="color:#f2c14e">+'+sym.piora+' 🪶</span>';
+    el('trofeumImg').hidden=false;
+    el('trofeumImg').src=assetUrl('assets/ui/ikony/trofeum-igrzysk.webp');
     konfetti();odswiezMenuStatus();pokaz('final');}
   function ekranMeta(){
     if(sym&&sym.tryb==='final'){ekranFinal();return;}
@@ -3767,7 +3792,12 @@ const Gra=(()=>{
         czas<=Z.SREBRO?['🥈','SREBRO — świetny bieg!','zawodySrebro']:
         czas<=Z.BRAZ?['🥉','BRĄZ — na pudle!','zawodyBraz']:
         ['🏃','Poza podium — ale park Cię zapamiętał.','zawodyBez'];
-      el('medalIkona').textContent=ikona;el('medalOpis').textContent=opis+' ('+czas+' s)';
+      const mMapa={'🥇':'medal-zloto','🥈':'medal-srebro','🥉':'medal-braz'};
+      if(mMapa[ikona]){el('medalIkona').innerHTML='<img class="medalImg" style="width:96px;height:96px;object-fit:contain" src="'+
+        assetUrl('assets/ui/ikony/'+mMapa[ikona]+'.webp')+
+        '" onerror="this.outerHTML=this.dataset.e" data-e="'+ikona+'">';}
+      else el('medalIkona').textContent=ikona;
+      el('medalOpis').textContent=opis+' ('+czas+' s)';
       if(czas<=Z.ZLOTO){Misje.zdarzenie('zlotyMedal');Dzwiek.medal();}else Dzwiek.fanfara();
       puenta=losuj(BIEGUS_MOWI[bank]);
     } else {
@@ -3941,7 +3971,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.7',
+  wersja:'3.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
