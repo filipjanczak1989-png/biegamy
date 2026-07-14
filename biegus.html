@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.10 (Czytelność świata)</title>
+<title>Bieguś — Droga na Igrzyska · v3.0 (AKT V — Wielkie Igrzyska)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.10 „CZYTELNOŚĆ ŚWIATA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.0 „AKT V — WIELKIE IGRZYSKA"
+     FINAŁ GRY. Po ukończeniu wszystkich 32 etapów w menu pojawia się
+     🏟️ FINAŁ. Zasady finału (z biblii fabularnej):
+     · karta AKT V (plansza tunelu) przed startem — raz na sesję
+     · NIE MOŻNA PRZEGRAĆ: trafienia zwalniają, ale nie odbierają serc
+       — „wystartował znaczy wygrał"
+     · Zając BŁYSK na sąsiednim torze: biegnie obok od startu i mija
+       gracza w trakcie (jest szybszy — i o tym jest ta historia)
+     · własna karta finału (bez wyniku, bez czasu): WYSTARTOWAŁEŚ.
+     · bez boosterów i bonusów — czysty bieg, jak Zawody
+     Poniżej: opis v2.10
      Względem v2.9 (feedback Filipa z testów):
      · KAŁUŻA WIDOCZNA: jaśniejsza tafla (niebo w wodzie, nie smoła),
        biały ciemny obrys wokół, mocniejszy odblask — czyta się z daleka
@@ -485,6 +495,7 @@
     Karmisz go <b>prawdziwym bieganiem</b> — skrótów nie ma.</div>
   <img id="portretMenu" class="pportret" alt="" hidden>
   <div class="pod" id="menuStatus"></div>
+  <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
   <button class="cta" id="btnGraj">▶ BIEGNIJ</button>
   <div class="rzad">
     <button class="kafel" id="btnEtapy"><span>🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
@@ -539,6 +550,14 @@
   <div class="puenta" id="puentaFail"></div>
   <button class="cta" id="btnJeszczeRaz" style="font-size:1.22em;padding:16px 28px">▶ Jeszcze raz — od razu</button>
   <button id="btnDoMenu">Wróć</button>
+</div>
+
+<!-- KARTA FINAŁU (Akt V) -->
+<div class="karta ciemna" id="final" hidden>
+  <div class="motto">WIELKIE IGRZYSKA</div>
+  <h1>WYSTARTOWAŁEŚ.</h1>
+  <div class="przeslanie" id="puentaFinal"></div>
+  <button class="cta" id="btnFinalMenu">Wróć bohaterem ▶</button>
 </div>
 
 <!-- KARTA AKTU (fabuła — raz na krainę w sesji) -->
@@ -954,6 +973,20 @@ function cienBlob(r=0.7){
 /* ---------- 5. KATALOG OBIEKTÓW (7 przeszkód + pióro + znal) ----------
    Progresja akcji: nowe typy wchodzą kolejnymi etapami (pole odEtapu). */
 const OBIEKTY={
+  rywal:{
+    nazwa:'Zając Błysk',unik:'brak',mult:0.12,waga:0,odEtapu:0,odCzasu:0,
+    walidacja:false,ukryj:true,opis:'',unikTekst:'',
+    zbuduj(){
+      const g=new THREE.Group();
+      const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.35,1.8),
+        new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,alphaTest:0.45}));
+      pl.position.y=0.92;g.add(pl);g.userData.plakat=pl;
+      const c=new THREE.Mesh(new THREE.CircleGeometry(0.6,16),
+        new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.26}));
+      c.rotation.x=-Math.PI/2;c.position.y=0.02;g.add(c);
+      return g;},
+    animuj(g,t){g.userData.plakat.position.y=0.92+Math.abs(Math.sin(t*7))*0.12;}
+  },
   mentor:{
     nazwa:'Mentor przy trasie',unik:'brak',mult:1.0,waga:0,odEtapu:0,odCzasu:0,walidacja:false,
     ukryj:true,opis:'',unikTekst:'',
@@ -1741,7 +1774,7 @@ function krokSymulacji(s){
         if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;
           o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
           s.zdarzenia.push({typ:'tarcza'});continue;}
-        o.trafione=true;s.serca--;s.hity++;s.combo=0;
+        o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;
         s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'hit',typObiektu:'auto',serca:s.serca});
         if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';
@@ -1765,6 +1798,10 @@ function krokSymulacji(s){
       if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
       o.trafione=true;s.zebrane.push(losujZnalezisko(s));
       s.zdarzenia.push({typ:'znal'});Misje.zdarzenie('znal');continue;}
+    if(o.typ==='rywal'){                                            // Błysk mija gracza
+      if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){o.sprawdzone=true;
+        s.zdarzenia.push({typ:'rywal'});}
+      continue;}
     if(o.typ==='mentor'){                                           // spotkanie przy trasie
       if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){o.sprawdzone=true;
         const b=5;s.piora+=b;
@@ -1792,7 +1829,7 @@ function krokSymulacji(s){
       if(s.boostery&&s.boostery.tarcza){
         s.boostery.tarcza=false;o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'tarcza'});continue;}
-      o.trafione=true;s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
+      o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
       if(o.typ==='wyspa'){
         s.pasOd=pozycjaPasa(s);
         s.pas=((o.t*13)|0)%2?0:2;s.pasT=0;}
@@ -2769,7 +2806,7 @@ const R3=(()=>{
           scena.add(m);return m;})():
         o.typ==='segment'?(()=>{const m=zbudujSegment(o.rodzaj,o.durS*s.predkosc,s.skrypt.kraina||1);
           scena.add(m);return m;})():wezModel(o.typ);
-      if(o.widok&&o.typ==='mentor'&&!o.widok.userData.gotowy){
+      if(o.widok&&(o.typ==='mentor'||o.typ==='rywal')&&!o.widok.userData.gotowy){
         const pl=o.widok.userData.plakat;
         pl.material.map=teksturaMentora(o.mentorId);
         pl.material.opacity=1;pl.material.needsUpdate=true;
@@ -2781,6 +2818,11 @@ const R3=(()=>{
           o.widok.position.set(xA,0,o.z);
           o.widok.rotation.y=o.kier>0?0:Math.PI;
           o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
+        } else if(o.typ==='rywal'){
+          o.widok.position.set(o.strona*2.95,0,o.z);
+          o.widok.rotation.y=-o.strona*0.12;
+          const tyR=tY(o.z);if(tyR)o.widok.position.y+=tyR;
+          OBIEKTY.rywal.animuj(o.widok,czasReal+o.t);
         } else if(o.typ==='mentor'){
           o.widok.position.set(o.strona*3.9,0,o.z);
           o.widok.rotation.y=-o.strona*0.3;                 // lekko ku graczowi
@@ -2921,7 +2963,7 @@ const Gra=(()=>{
   /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
   const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
   const losuj=a=>a[Math.floor(Math.random()*a.length)];
-  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula'];
+  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final'];
   const PANELE=['panelBiegus','panelMisje','panelKatalog','panelMapa','panelEtapy','panelSklep'];
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
@@ -3099,6 +3141,7 @@ const Gra=(()=>{
     const emoji=s==='najedzony'?'💪':s==='ok'?'🙂':'😪';
     const pm=el('portretMenu');
     pm.hidden=false;pm.onerror=()=>pm.hidden=true;
+    el('btnFinal').hidden=!Biegus.ukonczone.has('e32');
     ustawPortret(pm);
     el('menuStatus').innerHTML='🐦 <b>'+Biegus.imie+'</b> · '+STADIA[Biegus.stadium()].nazwa+' '+emoji+' · '+
       (s==='najedzony'?'najedzony treningami':s==='ok'?'przydałby się trening':'głodny — nakarm go treningiem')+
@@ -3278,6 +3321,9 @@ const Gra=(()=>{
   const widzianeFabuly=new Set();
   el('btnFabulaDalej').onclick=()=>{const[pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
   function PALETY_NAZWA(sk){try{return R3.nazwaPory(sk.kraina||1,sk.pora||0);}catch(e){return '';}}
+  FABULA[5]={akt:'AKT V',tytul:'WIELKIE IGRZYSKA',
+    scena:'Tunel pachnie kurzem i światłem. Na końcu — stadion, którego huk słychać w piersi. Obok, na sąsiednim torze, rozgrzewa się Błysk. Nie patrzy na Biegusia. Jeszcze nie musi.',
+    mentor:'Wszyscy, których spotkałeś po drodze, siedzą na trybunach. Żółw trzyma transparent. Nie musisz wygrać. Musisz wystartować.'};
   function pokazFabule(k){
     const f=FABULA[k];
     const karta=el('fabula');
@@ -3301,9 +3347,14 @@ const Gra=(()=>{
     const kraina=n<=8?1:n<=16?2:n<=24?3:4;
     if(trybGry==='etap'&&FABULA[kraina]&&!widzianeFabuly.has(kraina)){
       widzianeFabuly.add(kraina);czekaStart=[n,trybGry];pokazFabule(kraina);return;}
-    const seed=trybGry==='zawody'?'k'+kraina+'-zawody':'k'+kraina+'-e'+n;
+    if(trybGry==='final'&&!widzianeFabuly.has(5)){
+      widzianeFabuly.add(5);czekaStart=[n,trybGry];pokazFabule(5);return;}
+    const seed=trybGry==='final'?'igrzyska-final':trybGry==='zawody'?'k'+kraina+'-zawody':'k'+kraina+'-e'+n;
     sym=nowaSymulacja(generujEtap(n,seed,kraina),trybGry);
     sym.spotkania=(trybGry==='etap'&&SPOTKANIA['k'+kraina+'-e'+n])||null;
+    if(trybGry==='final'){
+      sym.skrypt.ev.push({t:1.5,pas:1,typ:'rywal',mentorId:'zajac-blysk',strona:1});
+      sym.skrypt.ev.sort((a,b)=>a.t-b.t);}
     sym.spotIdx=0;
     /* boostery + bonus treningu — TYLKO w etapach, nigdy w Zawodach */
     if(trybGry==='etap'){
@@ -3368,7 +3419,23 @@ const Gra=(()=>{
       k.style.animationDuration=(2.1+Math.random()*1.4)+'s';
       document.body.appendChild(k);
       setTimeout(()=>k.remove(),4200);}}
+  function ekranFinal(){
+    tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    document.body.classList.remove('flow');
+    el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
+    Biegus.poEtapie(sym.piora);
+    Biegus.statystyki.piora+=sym.piora;Biegus.portfelPior+=sym.piora;
+    Biegus._dumnyDo=Date.now()+300000;                    // 5 minut dumy — zasłużone
+    const karta=el('final');
+    karta.style.backgroundImage='linear-gradient(rgba(10,12,20,.6),rgba(10,12,20,.85)),url('+
+      assetUrl('assets/swiat/akt5-start.webp')+')';
+    karta.style.backgroundSize='cover';karta.style.backgroundPosition='center';
+    el('puentaFinal').innerHTML='Mały biegus nie odleciał z kluczem. Został — i wystartował w Wielkich Igrzyskach.<br>'+
+      'Błysk był szybszy. Trybuny i tak wstały.<br><b>'+Biegus.imie+
+      ' ukończył Drogę.</b> <span style="color:#f2c14e">+'+sym.piora+' 🪶</span>';
+    konfetti();odswiezMenuStatus();pokaz('final');}
   function ekranMeta(){
+    if(sym&&sym.tryb==='final'){ekranFinal();return;}
     tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
@@ -3473,6 +3540,8 @@ const Gra=(()=>{
     el('puentaFail').innerHTML='<b>'+Biegus.imie+':</b> „'+losuj(BIEGUS_MOWI.fail)+'”'+
       (sym.piora>0?'<br><span style="color:#f2c14e">+'+sym.piora+' 🪶 zostaje w portfelu — nic nie przepada!</span>':'');
     odswiezMenuStatus();pokaz('porazka');}
+  el('btnFinalMenu').onclick=()=>{tryb='menu';pokaz('menu');};
+  el('btnFinal').onclick=()=>{start(32,'final');};
   el('btnDalej').onclick=()=>{
     if(sym.tryb==='zawody'||biezacyEtap>=32){tryb='menu';pokaz('menu');}
     else start(biezacyEtap+1,'etap');};
@@ -3575,7 +3644,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.10',
+  wersja:'3.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
