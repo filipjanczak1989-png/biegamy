@@ -3,11 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.9 (Oprawa)</title>
+<title>Bieguś — Droga na Igrzyska · v2.10 (Czytelność świata)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.9 „OPRAWA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.10 „CZYTELNOŚĆ ŚWIATA"
+     Względem v2.9 (feedback Filipa z testów):
+     · KAŁUŻA WIDOCZNA: jaśniejsza tafla (niebo w wodzie, nie smoła),
+       biały ciemny obrys wokół, mocniejszy odblask — czyta się z daleka
+       na każdej nawierzchni. Kręgi zostają.
+     · MENTORZY OSADZENI (koniec „wklejki"): alphaTest 0.45 tnie białą
+       obwódkę antyaliasingu z generatora, billboard mniejszy (1.5×2.0)
+       i dalej od trasy (±3.9), delikatnie obrócony ku graczowi,
+       miękki większy cień kontaktowy.
+     Poniżej: opis v2.9
      Względem v2.8:
      · PLANSZE AKTÓW: karty fabuły mają filmowe tła z partii 5
        (assets/swiat/akt{1..5}-*.webp) — przygaszone pod tekstem,
@@ -950,14 +959,14 @@ const OBIEKTY={
     ukryj:true,opis:'',unikTekst:'',
     zbuduj(){
       const g=new THREE.Group();
-      const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.75,2.35),
-        new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
-      pl.position.y=1.2;g.add(pl);g.userData.plakat=pl;
-      const c=new THREE.Mesh(new THREE.CircleGeometry(0.52,16),
-        new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.2}));
+      const pl=new THREE.Mesh(new THREE.PlaneGeometry(1.5,2.0),
+        new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false,alphaTest:0.45}));
+      pl.position.y=1.02;g.add(pl);g.userData.plakat=pl;
+      const c=new THREE.Mesh(new THREE.CircleGeometry(0.78,18),
+        new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.28}));
       c.rotation.x=-Math.PI/2;c.position.y=0.02;g.add(c);
       return g;},
-    animuj(g,t){g.userData.plakat.position.y=1.2+Math.sin(t*1.4)*0.035;}
+    animuj(g,t){g.userData.plakat.position.y=1.02+Math.sin(t*1.4)*0.035;}
   },
   kaluza:{
     nazwa:'Kałuża po nocnym deszczu',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
@@ -965,11 +974,14 @@ const OBIEKTY={
     unikTekst:'▲ SKOK — przeskocz ją',
     zbuduj(){
       const g=new THREE.Group();
+      const obrys=new THREE.Mesh(new THREE.CircleGeometry(1.16,20),      /* obrys kaluzy */
+        new THREE.MeshBasicMaterial({color:0x10182a,transparent:true,opacity:.85,depthWrite:false}));
+      obrys.rotation.x=-Math.PI/2;obrys.position.y=0.035;obrys.scale.x=1.35;g.add(obrys);
       const tafla=new THREE.Mesh(new THREE.CircleGeometry(1.05,20),
-        new THREE.MeshLambertMaterial({color:0x3d5f88,emissive:0x18293f,transparent:true,opacity:.92}));
-      tafla.rotation.x=-Math.PI/2;tafla.position.y=0.04;tafla.scale.x=1.35;g.add(tafla);
+        new THREE.MeshLambertMaterial({color:0x6fa3e0,emissive:0x33557f,transparent:true,opacity:.95}));
+      tafla.rotation.x=-Math.PI/2;tafla.position.y=0.045;tafla.scale.x=1.35;g.add(tafla);
       const odblask=new THREE.Mesh(new THREE.CircleGeometry(0.4,12),
-        new THREE.MeshBasicMaterial({color:0xa06a8a,transparent:true,opacity:.5,depthWrite:false}));
+        new THREE.MeshBasicMaterial({color:0xf5f9ff,transparent:true,opacity:.65,depthWrite:false}));
       odblask.rotation.x=-Math.PI/2;odblask.position.set(-0.25,0.05,-0.15);odblask.scale.x=1.6;g.add(odblask);
       const kregi=[];
       for(let i=0;i<2;i++){
@@ -2770,7 +2782,8 @@ const R3=(()=>{
           o.widok.rotation.y=o.kier>0?0:Math.PI;
           o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
         } else if(o.typ==='mentor'){
-          o.widok.position.set(o.strona*3.45,0,o.z);
+          o.widok.position.set(o.strona*3.9,0,o.z);
+          o.widok.rotation.y=-o.strona*0.3;                 // lekko ku graczowi
           const tyM=tY(o.z);if(tyM)o.widok.position.y+=tyM;
           OBIEKTY.mentor.animuj(o.widok,czasReal+o.t);
         } else {
@@ -3562,7 +3575,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.9',
+  wersja:'2.10',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
