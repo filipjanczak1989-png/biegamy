@@ -3,11 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.1 (Garderoba i Flow)</title>
+<title>Bieguś — Droga na Igrzyska · v2.3 (Żywy portret)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.1 „GARDEROBA I FLOW"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.3 „ŻYWY PORTRET + STROJENIE MODELU"
+     Względem v2.2:
+     · PORTRET WG NASTROJU: tamagotchi pokazuje twarz zgodną ze stanem
+       — najedzony→wesoły, głodny→głodny (te błagalne oczy!),
+       2 min dumy po EWOLUCJI. Kontrakt: portret_{stadium}_{emocja}.png
+       z łańcuchem fallbacków: emocja → bazowy → ukryj.
+       (Dziś na prodzie: komplet 6 emocji pisklaka; kolejne stadia
+       dociągane z partii 6 — fallback kryje braki)
+     Poniżej: opis v2.2
+     Względem v2.1:
+     · ZAPIS POSTĘPU (localStorage): km/ewolucja, pióra, garderoba
+       i założone rzeczy, boostery, ukończone etapy, kolekcja,
+       statystyki, więź i najedzenie — wszystko wraca po powrocie.
+       Zapis po każdej mecie/failu, treningu i zakupie.
+       Reset: window.DROGA.resetZapisu() (świadomie bez przycisku)
+     · Wibracja przy trafieniu (30 ms) i wejściu we FLOW (telefony)
+     Poniżej: opis v2.1
      Względem v2.0:
      · GARDEROBA: 20 przedmiotów z PRAWDZIWYMI grafikami z pipeline'u
        (assets/przedmioty/*.webp, fallback do emoji gdy pliku brak);
@@ -515,6 +531,7 @@
   </div>
   <button id="btnTrening">🏃 Symuluj trening 8 km</button>
   <button id="btnModel" hidden>🎭 Model: Premium</button>
+  <button id="btnObrot" hidden>↻ Obróć model (gdy biegnie bokiem)</button>
   <div class="legenda">(przycisk dev — w aplikacji karmi go prawdziwy trening z zegarka)</div>
   <div class="kreatorSekcja">
     <div class="naglowek">STATYSTYKI ŻYCIOWE</div>
@@ -725,6 +742,8 @@ const STADIA={
 };
 const PROGI_EWOLUCJI=[['pisklak',0],['mlody',30],['dorosly',100],['mistrz',300],['legenda',600]];
 /* — NPC: mieszkańcy parku, patroni misji — */
+Biegus.wczytaj();
+
 const NPC={
   orzel:{nazwa:'Orzeł, gospodarz parku',emoji:'🦅',motto:'Czysto i z głową — tak się biega'},
   kura:{nazwa:'Kura Agata',emoji:'🐔',motto:'Czujność to też forma regeneracji'},
@@ -741,6 +760,27 @@ const Biegus={
   uzyj:{tarcza:false,magnes:false,x2:false},
   bonusTreningu:0,
   najedzenie:72,wiez:8,laczneKm:0,
+  zapisz(){try{localStorage.setItem('biegus_droga_zapis_v1',JSON.stringify({
+    w:1,kolor:this.kolor,zalozone:[...this.zalozone],kolekcja:[...this.kolekcja],
+    ukonczone:[...this.ukonczone],statystyki:this.statystyki,
+    portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
+    boostery:this.boostery,bonusTreningu:this.bonusTreningu,
+    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm}));}catch(e){}},
+  wczytaj(){try{
+    const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
+    if(!d)return;
+    this.kolor=d.kolor||this.kolor;
+    this.zalozone=new Set(d.zalozone||['opaska']);
+    this.kolekcja=new Set(d.kolekcja||[]);
+    this.ukonczone=new Set(d.ukonczone||[]);
+    Object.assign(this.statystyki,d.statystyki||{});
+    this.portfelPior=d.portfelPior||0;
+    this.garderoba=new Set(d.garderoba||[]);this.ubrane=d.ubrane||{};
+    Object.assign(this.boostery,d.boostery||{});
+    this.bonusTreningu=d.bonusTreningu||0;
+    if(typeof d.najedzenie==='number')this.najedzenie=d.najedzenie;
+    if(typeof d.wiez==='number')this.wiez=d.wiez;
+    this.laczneKm=d.laczneKm||0;}catch(e){}},
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -755,15 +795,18 @@ const Biegus={
     this.najedzenie=clamp(this.najedzenie+km*5,0,100);
     this.wiez=clamp(this.wiez+2,0,100);
     this.laczneKm=+(this.laczneKm+km).toFixed(1);
+    setTimeout(()=>this.zapisz(),0);
     this.bonusTreningu=Math.min(3,this.bonusTreningu+1);   // trening = najlepszy booster
     Misje.zdarzenie('trening',km);Dzwiek.karmienie();
     const po=this.stadium();
     if(po!==przed){                            /* EWOLUCJA! */
+      this._dumnyDo=Date.now()+120000;         // 2 min dumnej miny
       try{R3.przebudujBiegusia();R3.odswiezPodgladBiegusia();}catch(e){}
       Gra?.toast?.('🐣 <b>EWOLUCJA!</b> '+this.imie+' wyrósł: <b>'+STADIA[po].nazwa+'</b><br>'+STADIA[po].opis+' — wybiegane '+this.laczneKm+' km');
       Dzwiek.medal();
     }},
   poEtapie(piora=0){this.najedzenie=clamp(this.najedzenie-6+piora*0.15,0,100);
+    setTimeout(()=>this.zapisz(),0);
     this.wiez=clamp(this.wiez+1,0,100);},
 };
 const MISJE=[
@@ -1909,8 +1952,21 @@ const R3=(()=>{
     model:null, mixer:null, akcje:{}, biezacaAkcja:null, cien:null,
     aktywny(){return this.dostepny&&this.wybrany;},
   };
-  const GLB_STADIA={pisklak:'assets/modele/pisklak.glb',
-    legenda:'assets/modele/biegus_zloty.glb'};   // pozostałe stadia → biegus.glb
+  function korektaObrotu(url){try{
+    return (JSON.parse(localStorage.getItem('biegus_obroty')||'{}')[url]||0);}catch(e){return 0;}}
+  function zapiszKorekte(url,deg){try{
+    const d=JSON.parse(localStorage.getItem('biegus_obroty')||'{}');
+    d[url]=deg;localStorage.setItem('biegus_obroty',JSON.stringify(d));}catch(e){}}
+  function obrocModel(){
+    if(!PREMIUM.scenaGLB||!PREMIUM.url)return 0;
+    const deg=(korektaObrotu(PREMIUM.url)+90)%360;
+    zapiszKorekte(PREMIUM.url,deg);
+    PREMIUM.scenaGLB.rotation.y=(PREMIUM.obrotBaza||0)+deg*Math.PI/180;
+    return deg;}
+  const GLB_STADIA={
+    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*1.5},
+    legenda:{url:'assets/modele/biegus_zloty.glb',obrot:Math.PI}};
+  // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
     biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI,
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
@@ -1947,13 +2003,17 @@ const R3=(()=>{
     const loader=new THREE.GLTFLoader();
     /* — Bieguś premium — */
     const stadium=(typeof Biegus!=='undefined'&&Biegus.stadium)?Biegus.stadium():'dorosly';
-    const sciezka=PREMIUM.forceBase?ASSETY.biegus:(GLB_STADIA[stadium]||ASSETY.biegus);
+    const wpis=PREMIUM.forceBase?null:GLB_STADIA[stadium];
+    const sciezka=wpis?wpis.url:ASSETY.biegus;
+    const obrotModelu=wpis?wpis.obrot:ASSETY.obrotY;
     if(PREMIUM.url===sciezka&&PREMIUM.model)return;
     PREMIUM.url=sciezka;
     loader.load(assetUrl(sciezka),gltf=>{
       if(PREMIUM.model)scena.remove(PREMIUM.model);
       const wrap=normalizuj(gltf.scene,ASSETY.wysokoscBiegusia);
-      gltf.scene.rotation.y=ASSETY.obrotY;
+      gltf.scene.rotation.y=obrotModelu+korektaObrotu(sciezka)*Math.PI/180;
+      PREMIUM.obrotBaza=obrotModelu;PREMIUM.scenaGLB=gltf.scene;
+      PREMIUM.obrot=obrotModelu;                                     // do stroika z konsoli
       PREMIUM.cien=cienBlob(0.6);wrap.add(PREMIUM.cien);
       wrap.traverse(x=>{if(x.isMesh)x.castShadow=true;});
       PREMIUM.model=wrap;
@@ -2680,7 +2740,10 @@ const R3=(()=>{
       } else OBIEKTY[typK].animuj(modelK,czas);}
     kameraK.aspect=innerWidth/innerHeight;kameraK.updateProjectionMatrix();
     renderer.render(scenaK,kameraK);}
-  return{klatka,efekt,sprzatnij,pokazWPodgladzie,klatkaPodgladu,przebudujBiegusia,przelaczModel,PREMIUM,przeladujPremium:zaladujPremium,pokazGoscia,przelotKlucza,nazwaPory:(k,p)=>PALETY[k].pory[p%3].n,
+  return{klatka,efekt,sprzatnij,pokazWPodgladzie,klatkaPodgladu,przebudujBiegusia,przelaczModel,PREMIUM,przeladujPremium:zaladujPremium,obrocModel,
+    obrocModel(st){if(PREMIUM.model&&PREMIUM.model.children[0]){
+      PREMIUM.model.children[0].rotation.y=st*Math.PI/180;
+      console.log('[DROGA] obrót modelu =',st,'°');}},pokazGoscia,przelotKlucza,nazwaPory:(k,p)=>PALETY[k].pory[p%3].n,
     odswiezPodgladBiegusia(){if(typK==='biegus')pokazWPodgladzie('biegus');}};
 })();
 
@@ -2762,6 +2825,19 @@ const Gra=(()=>{
     {id:'skrzydla-mocy',slot:'dodatek',tier:'neon',nazwa:'Skrzydła mocy',emoji:'🪽',cena:300},
     {id:'skrzydla-ultimate',slot:'dodatek',tier:'legenda',nazwa:'Skrzydła ultimate',emoji:'🪽'},
   ];
+  function emocjaBiegusia(){
+    if(Biegus._dumnyDo&&Date.now()<Biegus._dumnyDo)return 'dumny';
+    const st=Biegus.stan();
+    return st==='najedzony'?'wesoly':st==='glodny'?'glodny':null;}
+  function ustawPortret(img){
+    if(!img)return;
+    const stadium=Biegus.stadium(),emo=emocjaBiegusia();
+    const baza=assetUrl('assets/ui/portret_'+stadium+'.png');
+    img.onerror=()=>{
+      if(img.src!==baza){img.src=baza;return;}   // emocji brak → bazowy
+      img.hidden=true;};                          // bazowego brak → ukryj
+    img.hidden=false;
+    img.src=emo?assetUrl('assets/ui/portret_'+stadium+'_'+emo+'.png'):baza;}
   function odswiezGarderobe(){
     const cel=el('gardLista');if(!cel)return;cel.innerHTML='';
     const sloty={buty:'👟 BUTY',koszulka:'👕 KOSZULKI',bluza:'🧥 BLUZY',glowa:'🧢 GŁOWA',dodatek:'🪽 DODATKI'};
@@ -2791,11 +2867,11 @@ const Gra=(()=>{
         const cena=it.cena||T.c;
         if(!ma){b.textContent=cena+' 🪶';b.disabled=Biegus.portfelPior<cena;
           b.onclick=()=>{Biegus.portfelPior-=cena;Biegus.garderoba.add(it.id);
-            Dzwiek.medal();odswiezSklep();odswiezGarderobe();};}
+            Biegus.zapisz();Dzwiek.medal();odswiezSklep();odswiezGarderobe();};}
         else if(zal){b.textContent='✓ ZAŁOŻONE';
-          b.onclick=()=>{delete Biegus.ubrane[slot];odswiezGarderobe();};}
+          b.onclick=()=>{delete Biegus.ubrane[slot];Biegus.zapisz();odswiezGarderobe();};}
         else{b.textContent='ZAŁÓŻ';
-          b.onclick=()=>{Biegus.ubrane[slot]=it.id;Dzwiek.karmienie();odswiezGarderobe();};}
+          b.onclick=()=>{Biegus.ubrane[slot]=it.id;Biegus.zapisz();Dzwiek.karmienie();odswiezGarderobe();};}
         k.appendChild(b);grid.appendChild(k);});});}
   const SKLEP=[
     {typ:'kolor',id:'sniezny',cena:150},
@@ -2817,7 +2893,7 @@ const Gra=(()=>{
         const b=document.createElement('button');
         if(r.odblok){b.textContent='✓ kupione';b.disabled=true;}
         else{b.textContent=it.cena+' 🪶';b.disabled=Biegus.portfelPior<it.cena;
-          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;
+          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;Biegus.zapisz();
             Dzwiek.znal();toast('🐿️ Zyzia: „Dobry wybór! Kto zbiera, ten ma."');
             odswiezSklep();odswiezBiegusPanel();};}
         d.appendChild(b);
@@ -2852,7 +2928,7 @@ const Gra=(()=>{
     const emoji=s==='najedzony'?'💪':s==='ok'?'🙂':'😪';
     const pm=el('portretMenu');
     pm.hidden=false;pm.onerror=()=>pm.hidden=true;
-    pm.src=assetUrl('assets/ui/portret_'+Biegus.stadium()+'.png');
+    ustawPortret(pm);
     el('menuStatus').innerHTML='🐦 <b>'+Biegus.imie+'</b> · '+STADIA[Biegus.stadium()].nazwa+' '+emoji+' · '+
       (s==='najedzony'?'najedzony treningami':s==='ok'?'przydałby się trening':'głodny — nakarm go treningiem')+
       ' · '+Biegus.laczneKm+' km wybieganych';
@@ -2884,7 +2960,7 @@ const Gra=(()=>{
     el('pKm').style.width=(nast?clamp((Biegus.laczneKm-odKm)/(nast[1]-odKm)*100,0,100):100)+'%';
     const pb=el('portretBiegusia');
     pb.hidden=false;pb.onerror=()=>pb.hidden=true;
-    pb.src=assetUrl('assets/ui/portret_'+Biegus.stadium()+'.png');
+    ustawPortret(pb);
     el('statMini').innerHTML=
       '<div><b>'+Biegus.statystyki.piora+'</b>piór zebranych</div>'+
       '<div><b>'+Biegus.statystyki.uniki+'</b>przeszkód ominiętych</div>'+
@@ -2917,9 +2993,12 @@ const Gra=(()=>{
     toast('🍽️ <b>'+Biegus.imie+' nakarmiony treningiem 8 km!</b><br>Tak samo zadziała prawdziwy trening z zegarka.');};
   function odswiezBtnModel(){
     const b=el('btnModel');
+    el('btnObrot').hidden=!R3.PREMIUM.dostepny||!R3.PREMIUM.wybrany;
     b.hidden=!R3.PREMIUM.dostepny;
     b.textContent=R3.PREMIUM.wybrany?'🎭 Model: Premium (GLB)':'🎭 Model: Klockowy';}
   el('btnModel').onclick=()=>{R3.przelaczModel(!R3.PREMIUM.wybrany);odswiezBtnModel();};
+  el('btnObrot').onclick=()=>{const d=R3.obrocModel();
+    el('btnObrot').textContent='↻ Obróć model · teraz: '+d+'° (zapamiętane)';};
   addEventListener('drogapremium',odswiezBtnModel);
   el('btnBiegus').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
     odswiezBtnModel();
@@ -3226,6 +3305,7 @@ const Gra=(()=>{
 
   function obsluzZdarzenie(zd){
     if(zd.typ==='hit'){spowolnienie=CFG.SLOWMO_CZAS;R3.efekt(zd);
+      try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
       setTimeout(()=>{if(tryb==='bieg')dymek(losuj(BIEGUS_MOWI.potkniecie));},900);
       return;}
     if(zd.typ==='oWlos'){
@@ -3244,6 +3324,7 @@ const Gra=(()=>{
       setTimeout(()=>{if(tryb==='bieg')dymek('Skarpeta honoru stracona. Seria też.');},700);
       return;}
     if(zd.typ==='flowStart'){document.body.classList.add('flow');
+      try{navigator.vibrate&&navigator.vibrate([15,40,15]);}catch(e){}
       el('comboHud').classList.add('flow');Dzwiek.setFlow(true);Dzwiek.flowStart();
       popup('FLOW!',true);
       setTimeout(()=>{if(tryb==='bieg')dymek('Świat płynie. Ty tylko biegnij.');},600);
@@ -3303,7 +3384,8 @@ const Gra=(()=>{
 
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
-  wersja:'2.1',
+  resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
+  wersja:'2.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
