@@ -3,11 +3,29 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.9 (Ptak i atmosfera)</title>
+<title>Bieguś — Droga na Igrzyska · v3.11 (Dopamina i pomost)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.9 „PTAK I ATMOSFERA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.11 „DOPAMINA I POMOST"
+     Względem v3.10 (feedback: „brakuje dopaminy!"):
+     · CELEBRACJE COMBO: progi ×5/×10/×15/×20/×30 = wielki popup,
+       rosnący akord (im wyższy próg, tym bogatszy), wibracja-werbel,
+       chmurka Biegusia przy ×10. Licznik combo PULSUJE przy każdym
+       wzroście — progres widać i słychać.
+     · POMOST BIEGAMY→BIEGUŚ v1: kody bonusowe. Przycisk 🎁 w menu,
+       kod ZEGAREK (+75 🪶 za podpięty zegarek w BiegaMy), RADIO (+30),
+       WALKA (+50). Jednorazowe per urządzenie. (v2 pomostu = Supabase.)
+     Poniżej: opis v3.10
+     Względem v3.9:
+     · SOUNDTRACK Z RADIA BIEGAMY: podczas biegu grają prawdziwe
+       utwory (kontrakt: assets/radio/playlista.json → [{tytul,url}]).
+       Losowy utwór na bieg, fade-out na mecie/failu, toast z tytułem.
+       Przełącznik 📻 w menu (zapamiętany). Brak playlisty = muzyka
+       proceduralna jak dotąd (fallback totalny).
+     · Muzyka proceduralna automatycznie milknie gdy Radio gra
+       (kroki/wiatr/efekty zostają — to warstwa świata, nie muzyki).
+     Poniżej: opis v3.9
      Względem v3.8 (konsumuje partię 11 — wpięte PRZED assetami,
      fallbacki kryją; grafiki ożyją same po pushu cc):
      · PTAK-BOMBARDIER: nad celownikiem spadu przelatuje wrona
@@ -529,6 +547,9 @@
     transparent 52%,rgba(242,177,60,.22) 82%,rgba(232,86,30,.30) 100%)}
   body.flow #flowGlow{opacity:1}
   #comboHud.flow{color:#ffd76a;text-shadow:0 0 14px #f2c14e}
+  #comboHud{display:inline-block}
+  #comboHud.puls{animation:comboPuls .32s ease-out}
+  @keyframes comboPuls{0%{transform:scale(1)}45%{transform:scale(1.6)}100%{transform:scale(1)}}
   .gSlotTytul{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;
     margin:14px 0 6px;color:#f2c14e}
   .gGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -587,6 +608,8 @@
   <img id="portretMenu" class="pportret" alt="" hidden>
   <div class="pod" id="menuStatus"></div>
   <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
+  <button id="btnRadio" style="margin-top:8px">📻 Radio BiegaMy: …</button>
+  <button id="btnKod" style="margin-top:8px">🎁 Mam kod bonusowy</button>
   <button class="cta" id="btnGraj">▶ BIEGNIJ</button>
   <div class="rzad">
     <button class="kafel" id="btnEtapy"><span>🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
@@ -825,6 +848,52 @@ function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15
 const rngZSeed=s=>mulberry32(hashSeed(s)());
 
 /* ---------- 3. AUDIO ---------- */
+const KODY_BONUS={
+  'ZEGAREK':{piora:75,opis:'Zegarek podpięty w BiegaMy — trening liczy się podwójnie!'},
+  'RADIO':{piora:30,opis:'Słuchacz Radia BiegaMy! 🎶'},
+  'WALKA':{piora:50,opis:'Walka z (Za)Dyszką — do zobaczenia na treningu!'}};
+function uzyjKodu(){
+  const raw=prompt('🎁 Wpisz kod bonusowy:');if(!raw)return;
+  const kod=raw.trim().toUpperCase();
+  const wpis=KODY_BONUS[kod];
+  let uzyte=[];try{uzyte=JSON.parse(localStorage.getItem('biegus_kody')||'[]');}catch(e){}
+  if(!wpis){Gra?.toast?.('🤔 Nieznany kod. Sprawdź pisownię!');return;}
+  if(uzyte.includes(kod)){Gra?.toast?.('Ten kod już wykorzystany na tym urządzeniu 😉');return;}
+  uzyte.push(kod);try{localStorage.setItem('biegus_kody',JSON.stringify(uzyte));}catch(e){}
+  Biegus.portfelPior+=wpis.piora;Biegus.zapisz&&Biegus.zapisz();
+  Gra?.toast?.('🎁 <b>+'+wpis.piora+' 🪶</b> — '+wpis.opis);
+  Dzwiek.medal&&Dzwiek.medal();}
+
+const RadioGry={
+  audio:null,playlista:null,ostatni:-1,
+  aktywne(){try{return localStorage.getItem('biegus_radio')!=='0'&&this.playlista&&this.playlista.length;}catch(e){return false;}},
+  przelacz(){try{const w=localStorage.getItem('biegus_radio')!=='0';
+    localStorage.setItem('biegus_radio',w?'0':'1');return !w;}catch(e){return false;}},
+  wczytaj(){
+    fetch((location.protocol==='file:'||!location.hostname?'https://biegamy.run/':'')+
+      'assets/radio/playlista.json',{cache:'no-store'})
+      .then(r=>r.ok?r.json():null)
+      .then(j=>{if(Array.isArray(j)&&j.length)this.playlista=j;})
+      .catch(()=>{});},
+  startuj(){
+    if(!this.aktywne())return false;
+    let i;do{i=Math.floor(Math.random()*this.playlista.length);}
+    while(this.playlista.length>1&&i===this.ostatni);
+    this.ostatni=i;const u=this.playlista[i];
+    try{
+      this.stop(true);
+      this.audio=new Audio(u.url);this.audio.volume=0.55;this.audio.loop=true;
+      this.audio.play().catch(()=>{});
+      Gra?.toast?.('📻 <b>Radio BiegaMy:</b> '+(u.tytul||'utwór')+' 🎶');
+      return true;
+    }catch(e){return false;}},
+  stop(natychmiast){
+    const a=this.audio;if(!a)return;this.audio=null;
+    if(natychmiast){a.pause();return;}
+    const f=setInterval(()=>{a.volume=Math.max(0,a.volume-0.08);
+      if(a.volume<=0){clearInterval(f);a.pause();}},80);}};
+RadioGry.wczytaj();
+
 const Dzwiek=(()=>{
   let ctx=null,wyciszony=false,muzTimer=null,muzKrok=0,szumBuf=null,wiatrSrc=null,wiatrGain=null,flowOn=false;
   const AKORDY=[[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196],[196,246.94,293.66]];
@@ -844,6 +913,10 @@ const Dzwiek=(()=>{
     slizg(){ton(240,.16,'sawtooth',.06,-120);},
     trafienie(){ton(150,.22,'sawtooth',.16,-70);ton(95,.25,'square',.1,-30,.03);},
     swist(){ton(980,.5,'sine',.07,-620);ton(660,.4,'triangle',.05,-420,.05);},
+    combo(n){const b=440*Math.pow(2,Math.min(n,30)/24);
+      ton(b,.14,'sine',.1);ton(b*1.25,.14,'sine',.09,0,.07);
+      ton(b*1.5,.18,'sine',.09,0,.14);
+      if(n>=15)ton(b*2,.22,'triangle',.08,0,.2);},
     otarcie(){ton(1180,.09,'sine',.09,240);ton(1560,.08,'sine',.07,180,.05);},
     beep(){ton(880,.11,'square',.09);},
     startGwizd(){ton(1320,.34,'square',.11,60);ton(1760,.3,'sine',.07,0,.04);},
@@ -860,7 +933,9 @@ const Dzwiek=(()=>{
     medal(){[784,988,1175,1568].forEach((f,i)=>ton(f,.22,'sine',.12,0,i*.15));},
     karmienie(){ton(392,.1,'sine',.1);ton(523,.14,'sine',.1,0,.09);},
     bloto(){ton(120,.18,'sine',.13,-40);ton(88,.22,'sine',.1,0,.05);},
-    muzykaStart(){odpal();if(!ctx||muzTimer)return;muzKrok=0;
+    muzykaStart(){odpal();
+      if(RadioGry.startuj())return;          // Radio gra — procedury milczą
+      if(!ctx||muzTimer)return;muzKrok=0;
       muzTimer=setInterval(()=>{
         if(wyciszony)return;
         const ak=AKORDY[Math.floor(muzKrok/4)%AKORDY.length];
@@ -869,7 +944,7 @@ const Dzwiek=(()=>{
         if(Math.random()<(flowOn?0.85:0.45))ton(nuta,0.22,'sine',0.045);
         if(flowOn&&Math.random()<0.5)ton(nuta*2,0.18,'sine',0.03,0,0.11);
         muzKrok++;},500);},
-    muzykaStop(){clearInterval(muzTimer);muzTimer=null;},
+    muzykaStop(){RadioGry.stop();clearInterval(muzTimer);muzTimer=null;},
     krok(){if(!ctx||wyciszony)return;
       if(!szumBuf){szumBuf=ctx.createBuffer(1,2205,44100);
         const d=szumBuf.getChannelData(0);
@@ -3695,7 +3770,7 @@ const Gra=(()=>{
     el('fabulaScena').textContent=f.scena;
     el('fabulaMentor').textContent=f.mentor;
     tryb='karta';pokaz('fabula');}
-  let widzialOnboarding=false,czekaStart=null;
+  let widzialOnboarding=false,czekaStart=null,_ostCombo=0;
   el('btnOnboardingStart').onclick=()=>{widzialOnboarding=true;
     const [pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
   function start(n,trybGry){
@@ -3771,6 +3846,13 @@ const Gra=(()=>{
     el('pioraHud').textContent='🪶'+sym.piora;
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
+    if(sym.combo>(_ostCombo||0)){
+      const h=el('comboHud');h.classList.remove('puls');void h.offsetWidth;h.classList.add('puls');
+      if([5,10,15,20,30].includes(sym.combo)){
+        popup('COMBO ×'+sym.combo+'!',true);Dzwiek.combo(sym.combo);
+        try{navigator.vibrate&&navigator.vibrate([12,30,12,30,24]);}catch(e){}
+        if(sym.combo===10)R3.dymekGracza('Nie do zatrzymania!');}}
+    _ostCombo=sym.combo;
     el('comboHud').textContent=sym.combo>=2?'×'+sym.combo:'';
   }
   function konfetti(){
@@ -3927,6 +4009,15 @@ const Gra=(()=>{
     odswiezMenuStatus();pokaz('porazka');}
   el('btnFinalMenu').onclick=()=>{tryb='menu';pokaz('menu');};
   el('btnFinal').onclick=()=>{start(32,'final');};
+  function odswiezRadioBtn(){
+    const b=el('btnRadio');
+    const wl=(()=>{try{return localStorage.getItem('biegus_radio')!=='0';}catch(e){return true;}})();
+    b.textContent='📻 Radio BiegaMy: '+(wl?'WŁĄCZONE':'wyłączone');
+    b.hidden=!RadioGry.playlista;}
+  el('btnKod').onclick=()=>uzyjKodu();
+  el('btnRadio').onclick=()=>{RadioGry.przelacz();
+    if(!RadioGry.aktywne())RadioGry.stop();odswiezRadioBtn();};
+  setTimeout(odswiezRadioBtn,1500);setTimeout(odswiezRadioBtn,5000);
   el('btnDalej').onclick=()=>{
     if(sym.tryb==='zawody'||biezacyEtap>=32){tryb='menu';pokaz('menu');}
     else start(biezacyEtap+1,'etap');};
@@ -4035,7 +4126,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.9',
+  wersja:'3.11',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
