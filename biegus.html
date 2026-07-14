@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.4 (Moce garderoby)</title>
+<title>Bieguś — Droga na Igrzyska · v3.5 (Czynnik Hugo)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.4 „MOCE GARDEROBY"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.5 „CZYNNIK HUGO"
+     Względem v3.4 (feedback Filipa: za oczywiste!):
+     · LOSOWE UKŁADY ETAPÓW: każde podejście do etapu = inny rozkład
+       przeszkód (seed losowy per bieg). Zawody i Finał zostają
+       deterministyczne (fair — jeden tor dla wszystkich).
+       Rekordy etapów dalej działają (mierzą wynik, nie pamięciówkę).
+     · SPADY Z NIEBA (Hugo!): od e5, 2–3× na etap coś SPADA na Twój
+       pas — szyszka/doniczka/kamień wg krainy. Najpierw rosnący cień
+       i świst (≈1 s ostrzeżenia), potem uderzenie. Skok i ślizg NIE
+       ratują — trzeba ZMIENIĆ PAS. Schemat „wszystko z przodu" złamany.
+     Poniżej: opis v3.4
      Względem v3.3 (pomysł Filipa: ubranie = moce!):
      · TRAIL GRIP: dowolne buty poza startowymi = kałuże i błoto
        przebiegasz z pluskiem („CHLAP! 💦") — bez utraty serca i combo.
@@ -791,6 +801,7 @@ const Dzwiek=(()=>{
     skok(){ton(430,.13,'square',.09,260);},
     slizg(){ton(240,.16,'sawtooth',.06,-120);},
     trafienie(){ton(150,.22,'sawtooth',.16,-70);ton(95,.25,'square',.1,-30,.03);},
+    swist(){ton(980,.5,'sine',.07,-620);ton(660,.4,'triangle',.05,-420,.05);},
     znal(){ton(660,.09,'sine',.11);ton(880,.09,'sine',.11,0,.08);ton(1320,.14,'sine',.11,0,.16);},
     pioro(n){ton(500+Math.min(n,14)*40,.07,'sine',.08);},           // seria = coraz wyżej!
     oWlos(){ton(980,.1,'sine',.1,-400);},
@@ -1052,6 +1063,22 @@ function cienBlob(r=0.7){
 /* ---------- 5. KATALOG OBIEKTÓW (7 przeszkód + pióro + znal) ----------
    Progresja akcji: nowe typy wchodzą kolejnymi etapami (pole odEtapu). */
 const OBIEKTY={
+  spad:{
+    nazwa:'Coś spada!',unik:'pas',mult:1.0,waga:0,odEtapu:0,odCzasu:0,
+    walidacja:false,ukryj:true,dekorNie:true,opis:'',
+    unikTekst:'◀ ▶ UWAGA Z GÓRY — zmień pas!',
+    zbuduj(){
+      const g=new THREE.Group();
+      const cien=new THREE.Mesh(new THREE.CircleGeometry(0.5,18),
+        new THREE.MeshBasicMaterial({color:0x0c0f18,transparent:true,opacity:.55,depthWrite:false}));
+      cien.rotation.x=-Math.PI/2;cien.position.y=0.03;g.add(cien);
+      const bomba=new THREE.Mesh(new THREE.ConeGeometry(0.34,0.62,7),
+        new THREE.MeshLambertMaterial({color:0x7a5230}));
+      bomba.position.y=6;g.add(bomba);
+      g.userData={cien,bomba};
+      return g;},
+    animuj(){}
+  },
   rywal:{
     nazwa:'Zając Błysk',unik:'brak',mult:0.12,waga:0,odEtapu:0,odCzasu:0,
     walidacja:false,ukryj:true,opis:'',unikTekst:'',
@@ -1820,6 +1847,14 @@ function udanyUnik(s,o){
 function krokSymulacji(s){
   s.zdarzenia.length=0;s.t+=KROK;
   s.predkosc=s.predkoscBaza*(1+CFG.PRZYSPIESZENIE*s.t);            // PĘD: bieżąca prędkość
+  /* — CZYNNIK HUGO: spady z nieba (tylko etapy, od e5) — */
+  if(s.tryb==='etap'&&s.skrypt.etap>4&&s.stan==='bieg'){
+    if(s.spadNastepny===undefined){s.spadNastepny=9+Math.random()*5;s.spadyLeft=2+(Math.random()<0.5?1:0);}
+    if(s.spadyLeft>0&&s.t>=s.spadNastepny){
+      s.spadyLeft--;s.spadNastepny=s.t+8+Math.random()*6;
+      s.aktywne.push({t:s.t,typ:'spad',pas:s.pas,wlasnyRuch:true,
+        z:CFG.GRACZ_Z-s.predkosc*1.05,fazaSpadu:'cien',spadY:6,sprawdzone:false});
+      s.zdarzenia.push({typ:'swist'});}}
   const i=Input.wez();
   if(s.stan==='bieg'){
     /* bufor 160 ms: akcja wciśnięta „za wcześnie" wykonuje się,
@@ -1845,10 +1880,28 @@ function krokSymulacji(s){
   }
   if(s.spotkania)while(s.spotIdx<s.spotkania.length&&s.spotkania[s.spotIdx].t<=s.t)
     s.zdarzenia.push({typ:'spotkanie',dane:s.spotkania[s.spotIdx++]});
-  for(const o of s.aktywne)
-    o.z=CFG.SPAWN_Z+(drogaCalka(s,s.t)-drogaCalka(s,o.t))*OBIEKTY[o.typ].mult;
+  for(const o of s.aktywne){
+    if(o.wlasnyRuch){o.z+=s.predkosc*KROK;continue;}
+    o.z=CFG.SPAWN_Z+(drogaCalka(s,s.t)-drogaCalka(s,o.t))*OBIEKTY[o.typ].mult;}
   if(s.stan==='bieg')for(const o of s.aktywne){
     if(o.trafione)continue;
+    if(o.typ==='spad'){
+      if(o.fazaSpadu==='cien'&&CFG.GRACZ_Z-o.z<=s.predkosc*0.35)o.fazaSpadu='spada';
+      if(o.fazaSpadu==='spada'&&o.spadY>0){
+        o.spadY=Math.max(0,o.spadY-KROK*17);
+        if(o.spadY===0&&!o.sprawdzone){o.sprawdzone=true;
+          if(o.pas===s.pas&&s.nietyk<=0&&s.pasT>=0.65){
+            if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;
+              s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'tarcza'});}
+            else if(s.drugiOddech&&s.tryb!=='final'){s.drugiOddech=false;
+              s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'drugiOddech'});}
+            else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;
+              s.nietyk=CFG.NIETYKALNOSC;
+              if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
+              s.zdarzenia.push({typ:'hit',obiekt:'spad'});}}
+          else{s.ominiete=(s.ominiete||0)+1;s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);}}}
+      if(o.spadY===0&&o.z>CFG.STREFA[1])o.trafione=true;
+      continue;}
     const wStrefie=o.z>=CFG.STREFA[0]&&o.z<=CFG.STREFA[1];
     if(o.typ==='auto'){
       if(!wStrefie||o.trafione)continue;
@@ -2955,6 +3008,17 @@ const R3=(()=>{
           o.widok.position.set(xA,0,o.z);
           o.widok.rotation.y=o.kier>0?0:Math.PI;
           o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
+        } else if(o.typ==='spad'){
+          o.widok.position.set(CFG.PASY[o.pas],0,o.z);
+          const tyS=tY(o.z);if(tyS)o.widok.position.y+=tyS;
+          const u=o.widok.userData;
+          u.bomba.position.y=o.spadY;u.bomba.rotation.y+=dt*9;
+          const blisko=clamp(1-(CFG.GRACZ_Z-o.z)/(o.zStart||14),0.25,1);
+          if(!o.zStart)o.zStart=CFG.GRACZ_Z-o.z;
+          u.cien.scale.setScalar(0.6+blisko*1.1);
+          u.cien.material.opacity=0.25+blisko*0.45;
+          u.bomba.visible=o.spadY>0;
+          u.cien.visible=o.spadY>0;
         } else if(o.typ==='rywal'){
           o.widok.position.set(o.strona*2.95,0,o.z);
           if(!o.dym&&o.z>CFG.GRACZ_Z-14){o.dym=true;
@@ -3508,7 +3572,7 @@ const Gra=(()=>{
       widzianeFabuly.add(kraina);czekaStart=[n,trybGry];pokazFabule(kraina);return;}
     if(trybGry==='final'&&!widzianeFabuly.has(5)){
       widzianeFabuly.add(5);czekaStart=[n,trybGry];pokazFabule(5);return;}
-    const seed=trybGry==='final'?'igrzyska-final':trybGry==='zawody'?'k'+kraina+'-zawody':'k'+kraina+'-e'+n;
+    const seed=trybGry==='final'?'igrzyska-final':trybGry==='zawody'?'k'+kraina+'-zawody':'k'+kraina+'-e'+n+'-'+((Math.random()*1e9)|0);
     sym=nowaSymulacja(generujEtap(n,seed,kraina),trybGry);
     sym.spotkania=(trybGry==='etap'&&SPOTKANIA['k'+kraina+'-e'+n])||null;
     if(trybGry==='final'){
@@ -3767,6 +3831,7 @@ const Gra=(()=>{
       return;}
     if(zd.typ==='flowStop'){document.body.classList.remove('flow');
       el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Dzwiek.flowStop();return;}
+    if(zd.typ==='swist'){Dzwiek.swist();popup('⚠️ Z GÓRY!',false);return;}
     if(zd.typ==='plusk'){popup('CHLAP! 💦',true);Dzwiek.znal();return;}
     if(zd.typ==='drugiOddech'){popup('DRUGI ODDECH! 🎒',true);Dzwiek.tarcza();
       R3.dymekGracza('Jeszcze nie koniec!');return;}
@@ -3824,7 +3889,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.4',
+  wersja:'3.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
