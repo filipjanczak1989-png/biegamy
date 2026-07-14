@@ -595,6 +595,13 @@ addEventListener('unhandledrejection',e=>pokazBlad('Promise: '+((e.reason&&e.rea
 const BAZA_ASSETOW=(location.protocol==='file:'||!location.hostname)
   ?'https://biegamy.run/':'';
 function assetUrl(p){return BAZA_ASSETOW+p;}
+let _assetyPadle=0,_assetPierwszy='';
+function zglosPadlyAsset(url){
+  _assetyPadle++;if(!_assetPierwszy)_assetPierwszy=url;
+  clearTimeout(zglosPadlyAsset._t);
+  zglosPadlyAsset._t=setTimeout(()=>{
+    pokazBlad('GRAFIKI: '+_assetyPadle+' plików nie wstało. Pierwszy: '+_assetPierwszy+
+      ' | baza='+(BAZA_ASSETOW||location.origin+'/(względna)'));},1500);}
 
 /* WARSTWY: CONFIG → RNG → AUDIO → TAMAGOTCHI/MISJE → KATALOG →
    GENERATOR → INPUT → SYMULACJA → RENDER → GRA → window.DROGA */
@@ -1922,6 +1929,7 @@ const R3=(()=>{
       'https://unpkg.com/three@0.128.0/examples/js/loaders/GLTFLoader.js'];
     for(const u of cdny){try{await zaladujSkrypt(u);if(THREE.GLTFLoader)return true;}catch(e){}}
     console.log('[DROGA] GLTFLoader niedostępny — zostaję przy modelach klockowych');
+    pokazBlad('GLTFLoader (CDN jsdelivr/unpkg) nie wstał — sieć blokuje CDN?');
     return false;}
   function normalizuj(scene,wysokosc){
     const box=new THREE.Box3().setFromObject(scene);
@@ -1939,7 +1947,7 @@ const R3=(()=>{
     const loader=new THREE.GLTFLoader();
     /* — Bieguś premium — */
     const stadium=(typeof Biegus!=='undefined'&&Biegus.stadium)?Biegus.stadium():'dorosly';
-    const sciezka=GLB_STADIA[stadium]||ASSETY.biegus;
+    const sciezka=PREMIUM.forceBase?ASSETY.biegus:(GLB_STADIA[stadium]||ASSETY.biegus);
     if(PREMIUM.url===sciezka&&PREMIUM.model)return;
     PREMIUM.url=sciezka;
     loader.load(assetUrl(sciezka),gltf=>{
@@ -1963,9 +1971,20 @@ const R3=(()=>{
       wrap.position.set(0,0,CFG.GRACZ_Z);scena.add(wrap);
       console.log('[DROGA] biegus.glb załadowany · animacje:',
         Object.entries(PREMIUM.akcje).filter(([,a])=>a).map(([n])=>n).join(', ')||'brak (pozy statyczne)');
+      pokazBlad('INFO: model 3D wczytany z '+assetUrl(sciezka)+' ✓');
       Gra?.toast?.('✨ <b>Bieguś Premium załadowany!</b><br>Model 3D z Twojego pipeline\'u assetów.');
       window.dispatchEvent(new Event('drogapremium'));
-    },undefined,()=>console.log('[DROGA] brak '+ASSETY.biegus+' — klockowy Bieguś w akcji (to nie błąd)'));
+    },undefined,err=>{
+      if(!PREMIUM.forceBase&&sciezka!==ASSETY.biegus){
+        console.log('[DROGA] brak '+sciezka+' — dociągam bazowy model');
+        pokazBlad('INFO: brak modelu stadium ('+assetUrl(sciezka)+') → używam biegus.glb');
+        PREMIUM.forceBase=true;PREMIUM.url=null;zaladujPremium();return;}
+      console.log('[DROGA] GLB padł:',sciezka,err);
+      const u=assetUrl(sciezka);                       // śledztwo: sieć czy parser?
+      fetch(u,{cache:'no-store'}).then(r=>pokazBlad(
+        'GLB '+u+' → HTTP '+r.status+(r.ok?
+          ' — plik DOCIERA, pada PARSOWANIE: '+((err&&(err.message||err.type))||err):'')))
+      .catch(e=>pokazBlad('GLB '+u+' → SIEĆ/CORS: '+e.message));});
     /* — przeszkody premium (statyczne, klonowalne) — */
     Object.entries(ASSETY.przeszkody).forEach(([typ,url])=>{
       loader.load(assetUrl(url),gltf=>{
@@ -2759,7 +2778,8 @@ const Gra=(()=>{
         chip.style.background=T.k;chip.textContent=T.n;k.appendChild(chip);
         const img=document.createElement('img');img.loading='lazy';
         img.src=assetUrl('assets/przedmioty/'+it.id+'.webp');
-        img.onerror=()=>{const e2=document.createElement('div');
+        img.onerror=()=>{zglosPadlyAsset(img.src);
+          const e2=document.createElement('div');
           e2.className='gEmoji';e2.textContent=it.emoji;img.replaceWith(e2);};
         k.appendChild(img);
         const n=document.createElement('div');n.className='gNazwa';
