@@ -2907,6 +2907,46 @@ const R3=(()=>{
         [0xe8561e,0xf0eee2,0x2a63b8,0xe8b34a,0x3aa04a][f],-2.6+f*1.3,4.95,-dl/2));
     }
     return g;}
+  /* — partia 11: ptak, cząstki atmosfery, słońce/księżyc — */
+  function teksturaSpr(plik){const t=new THREE.TextureLoader().load(
+    assetUrl('assets/sprites/'+plik+'.webp'),()=>{t.gotowa=true;},undefined,()=>{});return t;}
+  const PTAK_TEX=[teksturaSpr('ptak-lot'),teksturaSpr('ptak-lot2')];
+  const ATMO_TEX={1:teksturaSpr('czastka-platek'),2:teksturaSpr('czastka-lisc'),
+    3:teksturaSpr('czastka-neon'),4:teksturaSpr('czastka-snieg')};
+  const NIEBO_TEX={slonce:teksturaSpr('slonce'),ksiezyc:teksturaSpr('ksiezyc')};
+  let atmoCzastki=[],atmoKraina=0,cialoNieba=null;
+  function budujAtmosfere(k){
+    atmoCzastki.forEach(c=>{scena.remove(c.sp);c.sp.material.dispose();});atmoCzastki=[];
+    atmoKraina=k;const tex=ATMO_TEX[k];if(!tex)return;
+    for(let i=0;i<24;i++){
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,
+        opacity:0,depthWrite:false}));
+      const sk=k===3?0.34:0.22+Math.random()*0.16;
+      sp.scale.set(sk,sk,1);scena.add(sp);
+      atmoCzastki.push({sp,x:-8+Math.random()*16,y:0.6+Math.random()*6,
+        z:CFG.GRACZ_Z-6-Math.random()*36,f:Math.random()*9,
+        op:k===3?0.5:0.85});}}
+  function aktualizujAtmosfere(dt,s){
+    for(const c of atmoCzastki){
+      c.f+=dt;
+      c.y-=dt*(atmoKraina===4?0.35:atmoKraina===3?0.05:0.55);
+      c.x+=Math.sin(c.f*1.3)*dt*0.6;
+      c.z+=(s?s.predkosc:6)*dt*0.55;
+      if(c.y<0.2||c.z>CFG.GRACZ_Z+3){
+        c.y=4+Math.random()*4;c.x=-8+Math.random()*16;
+        c.z=CFG.GRACZ_Z-14-Math.random()*30;}
+      c.sp.position.set(c.x,c.y,c.z);
+      c.sp.material.opacity=(c.sp.material.map.gotowa?c.op:0);}}
+  function aktualizujNiebo(pora){
+    const chce=pora===2||pora===3?'ksiezyc':'slonce';
+    if(!cialoNieba||cialoNieba.rodzaj!==chce){
+      if(cialoNieba){scena.remove(cialoNieba.sp);}
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:NIEBO_TEX[chce],
+        transparent:true,opacity:0,depthWrite:false}));
+      sp.scale.set(5.5,5.5,1);scena.add(sp);
+      cialoNieba={sp,rodzaj:chce};}
+    cialoNieba.sp.position.set(kamera.position.x+7.5,9,kamera.position.z-40);
+    cialoNieba.sp.material.opacity=cialoNieba.sp.material.map.gotowa?0.92:0;}  /* TDZ-fix-atmo: blok przeniesiony przed pierwsze ustawKraine(1) */
   function ustawKraine(k){
     if(k!==atmoKraina)budujAtmosfere(k);
     if(aktualnaKraina===k)return;aktualnaKraina=k;
@@ -3000,46 +3040,7 @@ const R3=(()=>{
     g.userData.glb=true;                        // pomija animuj klocka, dostaje sway
     return g;}
   const teksturyMentor={};
-  /* — partia 11: ptak, cząstki atmosfery, słońce/księżyc — */
-  function teksturaSpr(plik){const t=new THREE.TextureLoader().load(
-    assetUrl('assets/sprites/'+plik+'.webp'),()=>{t.gotowa=true;},undefined,()=>{});return t;}
-  const PTAK_TEX=[teksturaSpr('ptak-lot'),teksturaSpr('ptak-lot2')];
-  const ATMO_TEX={1:teksturaSpr('czastka-platek'),2:teksturaSpr('czastka-lisc'),
-    3:teksturaSpr('czastka-neon'),4:teksturaSpr('czastka-snieg')};
-  const NIEBO_TEX={slonce:teksturaSpr('slonce'),ksiezyc:teksturaSpr('ksiezyc')};
-  let atmoCzastki=[],atmoKraina=0,cialoNieba=null;
-  function budujAtmosfere(k){
-    atmoCzastki.forEach(c=>{scena.remove(c.sp);c.sp.material.dispose();});atmoCzastki=[];
-    atmoKraina=k;const tex=ATMO_TEX[k];if(!tex)return;
-    for(let i=0;i<24;i++){
-      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,
-        opacity:0,depthWrite:false}));
-      const sk=k===3?0.34:0.22+Math.random()*0.16;
-      sp.scale.set(sk,sk,1);scena.add(sp);
-      atmoCzastki.push({sp,x:-8+Math.random()*16,y:0.6+Math.random()*6,
-        z:CFG.GRACZ_Z-6-Math.random()*36,f:Math.random()*9,
-        op:k===3?0.5:0.85});}}
-  function aktualizujAtmosfere(dt,s){
-    for(const c of atmoCzastki){
-      c.f+=dt;
-      c.y-=dt*(atmoKraina===4?0.35:atmoKraina===3?0.05:0.55);
-      c.x+=Math.sin(c.f*1.3)*dt*0.6;
-      c.z+=(s?s.predkosc:6)*dt*0.55;
-      if(c.y<0.2||c.z>CFG.GRACZ_Z+3){
-        c.y=4+Math.random()*4;c.x=-8+Math.random()*16;
-        c.z=CFG.GRACZ_Z-14-Math.random()*30;}
-      c.sp.position.set(c.x,c.y,c.z);
-      c.sp.material.opacity=(c.sp.material.map.gotowa?c.op:0);}}
-  function aktualizujNiebo(pora){
-    const chce=pora===2||pora===3?'ksiezyc':'slonce';
-    if(!cialoNieba||cialoNieba.rodzaj!==chce){
-      if(cialoNieba){scena.remove(cialoNieba.sp);}
-      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:NIEBO_TEX[chce],
-        transparent:true,opacity:0,depthWrite:false}));
-      sp.scale.set(5.5,5.5,1);scena.add(sp);
-      cialoNieba={sp,rodzaj:chce};}
-    cialoNieba.sp.position.set(kamera.position.x+7.5,9,kamera.position.z-40);
-    cialoNieba.sp.material.opacity=cialoNieba.sp.material.map.gotowa?0.92:0;}
+
   function teksturaMentora(id){
     if(!teksturyMentor[id]){
       teksturyMentor[id]=new THREE.TextureLoader().load(assetUrl('assets/postaci/'+id+'.webp'));
