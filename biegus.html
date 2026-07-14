@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.2 (Pęd i rekordy)</title>
+<title>Bieguś — Droga na Igrzyska · v3.3 (Chmurki)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.2 „PĘD I REKORDY"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.3 „CHMURKI"
+     Względem v3.2 (fabuła gra!):
+     · KOMIKSOWE DYMKI 3D nad postaciami: mentor przy trasie mówi
+       swoje motto CHMURKĄ nad głową gdy się zbliżasz; Błysk rzuca
+       tekstem przy mijaniu. Canvas-sprite, zawsze twarzą do kamery,
+       fade-out, maks 2 linie.
+     · BIEGUŚ GADA: „LECĘĘĘ!" przy wejściu we Flow, chmurka nad
+       bohaterem śledzi go w biegu (cooldown, bez spamu).
+     Poniżej: opis v3.2
      Względem v3.1:
      · PĘD: świat przyspiesza w trakcie rundy (+0,4%/s, do +25% po
        minucie). Technicznie: pozycje obiektów z CAŁKI drogi
@@ -2705,6 +2713,51 @@ const R3=(()=>{
   scena.add(meta);meta.visible=false;
 
   const pule={};
+  /* — DYMKI 3D: komiksowe chmurki nad postaciami — */
+  const dymki3D=[];let dymekGraczaCooldown=0;
+  function rysujChmurke(tekst){
+    const c=document.createElement('canvas');const x=c.getContext('2d');
+    x.font='700 44px system-ui,sans-serif';
+    const slowa=tekst.split(' ');const linie=[''];
+    for(const w of slowa){const prb=(linie[linie.length-1]+' '+w).trim();
+      if(x.measureText(prb).width>430&&linie[linie.length-1]){linie.push(w);}
+      else linie[linie.length-1]=prb;}
+    if(linie.length>2){linie[1]=linie.slice(1).join(' ');linie.length=2;}
+    const szer=Math.min(500,Math.max(...linie.map(l=>x.measureText(l).width))+70);
+    c.width=szer;c.height=linie.length*56+64;
+    x.font='700 44px system-ui,sans-serif';x.textAlign='center';x.textBaseline='middle';
+    const r=26,W=c.width,H=c.height-22;
+    x.fillStyle='#fff';x.strokeStyle='#e8561e';x.lineWidth=7;
+    x.beginPath();x.moveTo(r,3);x.lineTo(W-r,3);x.quadraticCurveTo(W-3,3,W-3,r);
+    x.lineTo(W-3,H-r);x.quadraticCurveTo(W-3,H,W-r,H);
+    x.lineTo(W/2+16,H);x.lineTo(W/2,c.height-3);x.lineTo(W/2-16,H);
+    x.lineTo(r,H);x.quadraticCurveTo(3,H,3,H-r);x.lineTo(3,r);
+    x.quadraticCurveTo(3,3,r,3);x.closePath();x.fill();x.stroke();
+    x.fillStyle='#1a2030';
+    linie.forEach((l,i)=>x.fillText(l,W/2,26+H/2-((linie.length-1)*28)+i*56));
+    return c;}
+  function dymek3D(tekst,opts){
+    const c=rysujChmurke(tekst);
+    const tex=new THREE.CanvasTexture(c);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));
+    const wys=c.height>130?1.25:0.85;
+    sp.scale.set(wys*c.width/c.height,wys,1);
+    sp.renderOrder=999;scena.add(sp);
+    dymki3D.push({sp,ttl:opts.ttl||3.2,max:opts.ttl||3.2,cel:opts.cel,y:opts.y||2.4});
+    return sp;}
+  function aktualizujDymki(dt,aktor){
+    for(let i=dymki3D.length-1;i>=0;i--){const d=dymki3D[i];
+      d.ttl-=dt;
+      const c=d.cel==='gracz'?aktor:d.cel;
+      if(c&&c.position)d.sp.position.set(c.position.x,c.position.y+d.y,c.position.z);
+      d.sp.material.opacity=Math.min(1,d.ttl/0.4);
+      if(d.ttl<=0||(d.cel!=='gracz'&&(!c||!c.visible))){
+        scena.remove(d.sp);d.sp.material.map.dispose();d.sp.material.dispose();
+        dymki3D.splice(i,1);}}
+    dymekGraczaCooldown=Math.max(0,dymekGraczaCooldown-dt);}
+  function dymekGracza(tekst){
+    if(dymekGraczaCooldown>0)return;
+    dymekGraczaCooldown=6;dymek3D(tekst,{cel:'gracz',y:2.35,ttl:2.4});}
   /* — sprite'y świata (partia 7): GLB > sprite > klocek — */
   const SPRITE_WYM={pioro:[0.52,0.72],galaz:[2.7,1.5],kosz:[1.05,1.05],
     pies:[1.15,0.85],rower:[2.3,1.65],szlaban:[2.7,1.25],taczka:[1.25,1.05]};
@@ -2801,6 +2854,7 @@ const R3=(()=>{
     const aktor=premiumTeraz?PREMIUM.model:biegus;
     aktor.position.set(x,y+tyGracza,CFG.GRACZ_Z);
     aktor.rotation.z=clamp((x-(aktor.userData.px||0))*-6,-0.35,0.35);aktor.userData.px=x;
+    aktualizujDymki(dt,aktor);
     if(premiumTeraz){
       /* — Bieguś PREMIUM: animacje z GLB, crossfade wg stanu — */
       const A=PREMIUM.akcje;
@@ -2881,11 +2935,16 @@ const R3=(()=>{
           o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
         } else if(o.typ==='rywal'){
           o.widok.position.set(o.strona*2.95,0,o.z);
+          if(!o.dym&&o.z>CFG.GRACZ_Z-14){o.dym=true;
+            dymek3D('Do zobaczenia na mecie, mały!',{cel:o.widok,y:2.3,ttl:3});}
           o.widok.rotation.y=-o.strona*0.12;
           const tyR=tY(o.z);if(tyR)o.widok.position.y+=tyR;
           OBIEKTY.rywal.animuj(o.widok,czasReal+o.t);
         } else if(o.typ==='mentor'){
           o.widok.position.set(o.strona*3.9,0,o.z);
+          if(!o.dym&&o.z>CFG.GRACZ_Z-17){o.dym=true;
+            const mt=(typeof MENTOR_TEKSTY!=='undefined'&&MENTOR_TEKSTY[o.mentorId])||null;
+            dymek3D(mt?mt[2]:'Powodzenia!',{cel:o.widok,y:2.5,ttl:3.2});}
           o.widok.rotation.y=-o.strona*0.3;                 // lekko ku graczowi
           const tyM=tY(o.z);if(tyM)o.widok.position.y+=tyM;
           OBIEKTY.mentor.animuj(o.widok,czasReal+o.t);
@@ -3009,7 +3068,7 @@ const R3=(()=>{
       } else OBIEKTY[typK].animuj(modelK,czas);}
     kameraK.aspect=innerWidth/innerHeight;kameraK.updateProjectionMatrix();
     renderer.render(scenaK,kameraK);}
-  return{klatka,efekt,sprzatnij,pokazWPodgladzie,klatkaPodgladu,przebudujBiegusia,przelaczModel,PREMIUM,przeladujPremium:zaladujPremium,obrocModel,
+  return{klatka,efekt,sprzatnij,pokazWPodgladzie,klatkaPodgladu,przebudujBiegusia,przelaczModel,PREMIUM,przeladujPremium:zaladujPremium,obrocModel,dymek3D,dymekGracza,
     obrocModel(st){if(PREMIUM.model&&PREMIUM.model.children[0]){
       PREMIUM.model.children[0].rotation.y=st*Math.PI/180;
       console.log('[DROGA] obrót modelu =',st,'°');}},pokazGoscia,przelotKlucza,nazwaPory:(k,p)=>PALETY[k].pory[p%3].n,
@@ -3675,6 +3734,7 @@ const Gra=(()=>{
       setTimeout(()=>{if(tryb==='bieg')dymek('Skarpeta honoru stracona. Seria też.');},700);
       return;}
     if(zd.typ==='flowStart'){document.body.classList.add('flow');
+      R3.dymekGracza('LECĘĘĘ! ✨');
       try{navigator.vibrate&&navigator.vibrate([15,40,15]);}catch(e){}
       el('comboHud').classList.add('flow');Dzwiek.setFlow(true);Dzwiek.flowStart();
       popup('FLOW!',true);
@@ -3736,7 +3796,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.2',
+  wersja:'3.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
