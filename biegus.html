@@ -3,11 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.6 (Życie w biegu)</title>
+<title>Bieguś — Droga na Igrzyska · v2.7 (Świat 2D)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.6 „ŻYCIE W BIEGU"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.7 „ŚWIAT 2D"
+     Względem v2.6:
+     · SPRITE'Y ŚWIATA z partii 7: pióra i 6 przeszkód jako billboardy
+       2D (assets/sprites/*.webp, alpha). ŁAŃCUCH PRIORYTETÓW per typ:
+       GLB od Filipa (root assets/) > sprite 2D > klocek. Hitboxy bez
+       zmian (kolizja liczona w symulacji, skóra to skóra).
+     · KOLEKCJA Z GRAFIKAMI: lista znalezisk pokazuje sprite'y
+       kolekcja-{id}.webp zamiast emoji (fallback: emoji).
+     · Stadium MISTRZ ma dedykowany model (assets/modele/mistrz.glb).
+     Poniżej: opis v2.6
      Względem v2.5:
      · MENTORZY NAPRAWIENI: walidator etapów traktował mentora jak
        przeszkodę i odrzucał każdy etap ze spotkaniem (dlatego nigdy
@@ -2043,6 +2052,7 @@ const R3=(()=>{
     return deg;}
   const GLB_STADIA={
     pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*0.5},
+    mistrz:{url:'assets/modele/mistrz.glb',obrot:0},
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
@@ -2561,6 +2571,27 @@ const R3=(()=>{
   scena.add(meta);meta.visible=false;
 
   const pule={};
+  /* — sprite'y świata (partia 7): GLB > sprite > klocek — */
+  const SPRITE_WYM={pioro:[0.52,0.72],galaz:[2.7,1.5],kosz:[1.05,1.05],
+    pies:[1.15,0.85],rower:[2.3,1.65],szlaban:[2.7,1.25],taczka:[1.25,1.05]};
+  const SPRITE_TEX={};
+  Object.keys(SPRITE_WYM).forEach(typ=>{
+    const plik=typ==='pioro'?'pioro':'przeszkoda-'+typ;
+    const t=new THREE.TextureLoader().load(assetUrl('assets/sprites/'+plik+'.webp'),
+      ()=>{t.gotowa=true;},undefined,()=>{});
+    SPRITE_TEX[typ]=t;});
+  function zbudujSprite(typ){
+    const [w,h]=SPRITE_WYM[typ];
+    const g=new THREE.Group();
+    const pl=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+      new THREE.MeshBasicMaterial({map:SPRITE_TEX[typ],transparent:true,
+        alphaTest:0.35,depthWrite:false,side:THREE.DoubleSide}));
+    pl.position.y=h/2+0.02;pl.castShadow=false;g.add(pl);
+    const c=new THREE.Mesh(new THREE.CircleGeometry(w*0.34,14),
+      new THREE.MeshBasicMaterial({color:0x000000,transparent:true,opacity:0.18}));
+    c.rotation.x=-Math.PI/2;c.position.y=0.02;g.add(c);
+    g.userData.glb=true;                        // pomija animuj klocka, dostaje sway
+    return g;}
   const teksturyMentor={};
   function teksturaMentora(id){
     if(!teksturyMentor[id]){
@@ -2572,6 +2603,7 @@ const R3=(()=>{
     if(!m){
       if(glbCache[typ]){m=glbCache[typ].clone();m.userData.glb=true;
         m.add(cienBlob(0.8));}
+      else if(SPRITE_TEX[typ]&&SPRITE_TEX[typ].gotowa)m=zbudujSprite(typ);
       else m=OBIEKTY[typ].zbuduj();
       m.traverse(x=>{if(x.isMesh)x.castShadow=true;});
     }
@@ -3073,7 +3105,11 @@ const Gra=(()=>{
       const ma=Biegus.kolekcja.has(z.id);
       const d=document.createElement('div');
       d.className='rzecz'+(ma?'':' zablokowana');
-      d.innerHTML='<span class="ikonka">'+(ma?z.ikona:'❔')+'</span>'+(ma?z.nazwa:'???')+
+      const ik=ma?'<img class="ikonka" style="width:44px;height:44px;object-fit:contain;background:#fff;border-radius:8px" src="'+
+        assetUrl('assets/sprites/kolekcja-'+z.id+'.webp')+
+        '" onerror="this.outerHTML=this.dataset.e" data-e="<span class=\'ikonka\'>'+z.ikona+'</span>">'
+        :'<span class="ikonka">❔</span>';
+      d.innerHTML=ik+(ma?z.nazwa:'???')+
         '<span class="status">'+(ma?'w kolekcji':'do znalezienia')+'</span>';
       kol.appendChild(d);});
     const lk=el('listaKolorow');lk.innerHTML='';
@@ -3493,7 +3529,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.6',
+  wersja:'2.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
