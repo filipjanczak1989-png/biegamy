@@ -3,11 +3,31 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v2.4 (Postaci na trasie)</title>
+<title>Bieguś — Droga na Igrzyska · v2.6 (Życie w biegu)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v2.4 „POSTACI NA TRASIE"
+     BIEGUŚ — DROGA NA IGRZYSKA · v2.6 „ŻYCIE W BIEGU"
+     Względem v2.5:
+     · MENTORZY NAPRAWIENI: walidator etapów traktował mentora jak
+       przeszkodę i odrzucał każdy etap ze spotkaniem (dlatego nigdy
+       się nie pojawiali!). Teraz walidacja:false — mentor stoi poza
+       pasami, odstępów przeszkód nie psuje.
+     · PROCEDURALNY BIEG statycznego GLB: skany nie mają klipów
+       animacji, więc model „sunął jak figurka". Teraz: rytmiczny
+       podskok zsynchronizowany z tempem (ta sama faza co dźwięk
+       kroków) + pochylenie i kołysanie — czyta się jak bieg.
+       Prawdziwe klipy Run/Jump/Slide przyjdą z modelami Meshy.
+     Poniżej: opis v2.5
+     Względem v2.4:
+     · WSZYSTKIE 6 EMOCJI w użyciu: smutny (90 s po failu),
+       zmęczony (2,5 min po każdym biegu), śpiący (22:00–6:00),
+       + dotychczasowe dumny/wesoły/głodny. Priorytet:
+       duma > smutek > zmęczenie > sen > najedzenie/głód.
+     · TRENING MA REALNY WPŁYW NA BIEG: najedzony Bieguś wchodzi
+       we FLOW od 5 combo (zamiast 6) — karmienie treningami
+       przekłada się wprost na grę. Toast na starcie przypomina.
+     Poniżej: opis v2.4
      Względem v2.3:
      · MENTORZY: w ~65% etapów przy trasie stoi postać ze świata Biegusia
        (billboard z assets/postaci/*.webp — 12 mentorów w 4 krainach).
@@ -813,6 +833,7 @@ const Biegus={
       Dzwiek.medal();
     }},
   poEtapie(piora=0){this.najedzenie=clamp(this.najedzenie-6+piora*0.15,0,100);
+    this._zmeczonyDo=Date.now()+150000;
     setTimeout(()=>this.zapisz(),0);
     this.wiez=clamp(this.wiez+1,0,100);},
 };
@@ -893,7 +914,7 @@ function cienBlob(r=0.7){
    Progresja akcji: nowe typy wchodzą kolejnymi etapami (pole odEtapu). */
 const OBIEKTY={
   mentor:{
-    nazwa:'Mentor przy trasie',unik:'brak',mult:1.0,waga:0,odEtapu:0,odCzasu:0,
+    nazwa:'Mentor przy trasie',unik:'brak',mult:1.0,waga:0,odEtapu:0,odCzasu:0,walidacja:false,
     ukryj:true,opis:'',unikTekst:'',
     zbuduj(){
       const g=new THREE.Group();
@@ -1742,7 +1763,7 @@ function krokSymulacji(s){
       if(o.typ==='rower'){Misje.zdarzenie('ominietyRower');
         if(!o.uniknieto){s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
           s.zdarzenia.push({typ:'combo',combo:s.combo});}}
-      if(!s.flow&&s.combo>=CFG.FLOW_COMBO){
+      if(!s.flow&&s.combo>=(s.flowProg||CFG.FLOW_COMBO)){
         s.flow=true;s.zdarzenia.push({typ:'flowStart'});}
       if(o.slizgniete)Misje.zdarzenie('slizgSzlaban');
     }
@@ -2006,6 +2027,9 @@ const R3=(()=>{
     model:null, mixer:null, akcje:{}, biezacaAkcja:null, cien:null,
     aktywny(){return this.dostepny&&this.wybrany;},
   };
+  try{if(!localStorage.getItem('biegus_obroty_v2')){
+    localStorage.removeItem('biegus_obroty');
+    localStorage.setItem('biegus_obroty_v2','1');}}catch(e){}
   function korektaObrotu(url){try{
     return (JSON.parse(localStorage.getItem('biegus_obroty')||'{}')[url]||0);}catch(e){return 0;}}
   function zapiszKorekte(url,deg){try{
@@ -2018,11 +2042,11 @@ const R3=(()=>{
     PREMIUM.scenaGLB.rotation.y=(PREMIUM.obrotBaza||0)+deg*Math.PI/180;
     return deg;}
   const GLB_STADIA={
-    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*1.5},
-    legenda:{url:'assets/modele/biegus_zloty.glb',obrot:Math.PI}};
+    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*0.5},
+    legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
-    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI,
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:0,
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
       taczka:'assets/taczka.glb', pies:'assets/pies.glb', rower:'assets/rower.glb',
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
@@ -2620,6 +2644,10 @@ const R3=(()=>{
         cel.reset().fadeIn(0.12).play();PREMIUM.biezacaAkcja=cel;}
       if(!A.slizg)aktor.scale.y=wSlizgu?0.55:1;                    // brak klipu ślizgu → przysiad skalą
       if(!A.skok)aktor.rotation.x=s.skokT>=0?-0.25:0;
+      if(!A.bieg&&s.skokT<0&&!wSlizgu){                        // statyczny GLB: proceduralny bieg
+        aktor.position.y+=Math.abs(Math.sin(czasReal*tempo))*0.09;
+        aktor.rotation.x=-0.07+Math.sin(czasReal*tempo*2)*0.055;
+        aktor.rotation.z+=Math.sin(czasReal*tempo)*0.03;}
       PREMIUM.mixer.update(dt*(tempo/10.5));                       // głodny=wolniejsza animacja (R6)
       if(PREMIUM.cien)PREMIUM.cien.position.y=0.02-y;
       aktor.visible=premiumTeraz&&!(s.nietyk>0&&Math.floor(czasReal*14)%2);
@@ -2895,7 +2923,12 @@ const Gra=(()=>{
     {id:'skrzydla-ultimate',slot:'dodatek',tier:'legenda',nazwa:'Skrzydła ultimate',emoji:'🪽'},
   ];
   function emocjaBiegusia(){
-    if(Biegus._dumnyDo&&Date.now()<Biegus._dumnyDo)return 'dumny';
+    const teraz=Date.now();
+    if(Biegus._dumnyDo&&teraz<Biegus._dumnyDo)return 'dumny';
+    if(Biegus._smutnyDo&&teraz<Biegus._smutnyDo)return 'smutny';
+    if(Biegus._zmeczonyDo&&teraz<Biegus._zmeczonyDo)return 'zmeczony';
+    const h=new Date().getHours();
+    if(h>=22||h<6)return 'spiacy';
     const st=Biegus.stan();
     return st==='najedzony'?'wesoly':st==='glodny'?'glodny':null;}
   function ustawPortret(img){
@@ -3194,6 +3227,8 @@ const Gra=(()=>{
     /* boostery + bonus treningu — TYLKO w etapach, nigdy w Zawodach */
     if(trybGry==='etap'){
       sym.boostery={tarcza:false,magnes:false,x2:false};
+      if(Biegus.stan()==='najedzony'){sym.flowProg=5;
+        toast('🍽️ <b>Najedzony!</b> Flow już od 5 combo — trening pracuje.');}
       ['tarcza','magnes','x2'].forEach(k=>{
         if(Biegus.uzyj[k]&&Biegus.boostery[k]>0){
           Biegus.boostery[k]--;sym.boostery[k]=true;
@@ -3346,6 +3381,7 @@ const Gra=(()=>{
       znaleziska:sym.zebrane.map(z=>z.id),perfekt});
   }
   function ekranFail(){tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    Biegus._smutnyDo=Date.now()+90000;
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Biegus.poEtapie(sym.piora);
     Biegus.statystyki.piora+=sym.piora;
@@ -3457,7 +3493,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'2.4',
+  wersja:'2.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
