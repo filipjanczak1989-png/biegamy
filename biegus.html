@@ -3,11 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.8 (Czytelny spad i pejzaże)</title>
+<title>Bieguś — Droga na Igrzyska · v3.9 (Ptak i atmosfera)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.8 „CZYTELNY SPAD I PEJZAŻE"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.9 „PTAK I ATMOSFERA"
+     Względem v3.8 (konsumuje partię 11 — wpięte PRZED assetami,
+     fallbacki kryją; grafiki ożyją same po pushu cc):
+     · PTAK-BOMBARDIER: nad celownikiem spadu przelatuje wrona
+       (2 klatki machania, billboard) i zrzuca ładunek — spad ma
+       sprawcę i fabułę. Bez grafik: sam celownik jak w v3.8.
+     · CZĄSTKI KRAIN: płatki wiśni (park), liście (las), bokeh neonów
+       (miasto), śnieg (góry) — ~24 dryfujące sprite'y z paralaksą.
+     · SŁOŃCE/KSIĘŻYC na niebie wg pory etapu (noc→księżyc).
+     Poniżej: opis v3.8
      Względem v3.7 (feedback: „ptaków nie widać!"):
      · SPAD WIDOCZNY: czarny cień zamieniony na PULSUJĄCY POMARAŃCZOWY
        CELOWNIK (pierścień + rdzeń), obiekt spada z y=3.4 (w kadrze!),
@@ -1121,7 +1130,11 @@ const OBIEKTY={
       const bomba=new THREE.Mesh(new THREE.ConeGeometry(0.4,0.7,7),
         new THREE.MeshLambertMaterial({color:0x7a5230,emissive:0x2a1608}));
       bomba.position.y=3.4;g.add(bomba);
-      g.userData={cien,rdzen,bomba};
+      const ptak=new THREE.Mesh(new THREE.PlaneGeometry(1.15,0.85),
+        new THREE.MeshBasicMaterial({transparent:true,opacity:0,alphaTest:0.4,
+          depthWrite:false,side:THREE.DoubleSide}));
+      ptak.position.y=3.9;g.add(ptak);
+      g.userData={cien,rdzen,bomba,ptak};
       return g;},
     animuj(){}
   },
@@ -2820,6 +2833,7 @@ const R3=(()=>{
     }
     return g;}
   function ustawKraine(k){
+    if(k!==atmoKraina)budujAtmosfere(k);
     if(aktualnaKraina===k)return;aktualnaKraina=k;
     const P=PALETY[k];
     matSciezka.color.setHex(P.sciezka);matTrawa.color.setHex(P.trawa);
@@ -2911,6 +2925,46 @@ const R3=(()=>{
     g.userData.glb=true;                        // pomija animuj klocka, dostaje sway
     return g;}
   const teksturyMentor={};
+  /* — partia 11: ptak, cząstki atmosfery, słońce/księżyc — */
+  function teksturaSpr(plik){const t=new THREE.TextureLoader().load(
+    assetUrl('assets/sprites/'+plik+'.webp'),()=>{t.gotowa=true;},undefined,()=>{});return t;}
+  const PTAK_TEX=[teksturaSpr('ptak-lot'),teksturaSpr('ptak-lot2')];
+  const ATMO_TEX={1:teksturaSpr('czastka-platek'),2:teksturaSpr('czastka-lisc'),
+    3:teksturaSpr('czastka-neon'),4:teksturaSpr('czastka-snieg')};
+  const NIEBO_TEX={slonce:teksturaSpr('slonce'),ksiezyc:teksturaSpr('ksiezyc')};
+  let atmoCzastki=[],atmoKraina=0,cialoNieba=null;
+  function budujAtmosfere(k){
+    atmoCzastki.forEach(c=>{scena.remove(c.sp);c.sp.material.dispose();});atmoCzastki=[];
+    atmoKraina=k;const tex=ATMO_TEX[k];if(!tex)return;
+    for(let i=0;i<24;i++){
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,
+        opacity:0,depthWrite:false}));
+      const sk=k===3?0.34:0.22+Math.random()*0.16;
+      sp.scale.set(sk,sk,1);scena.add(sp);
+      atmoCzastki.push({sp,x:-8+Math.random()*16,y:0.6+Math.random()*6,
+        z:CFG.GRACZ_Z-6-Math.random()*36,f:Math.random()*9,
+        op:k===3?0.5:0.85});}}
+  function aktualizujAtmosfere(dt,s){
+    for(const c of atmoCzastki){
+      c.f+=dt;
+      c.y-=dt*(atmoKraina===4?0.35:atmoKraina===3?0.05:0.55);
+      c.x+=Math.sin(c.f*1.3)*dt*0.6;
+      c.z+=(s?s.predkosc:6)*dt*0.55;
+      if(c.y<0.2||c.z>CFG.GRACZ_Z+3){
+        c.y=4+Math.random()*4;c.x=-8+Math.random()*16;
+        c.z=CFG.GRACZ_Z-14-Math.random()*30;}
+      c.sp.position.set(c.x,c.y,c.z);
+      c.sp.material.opacity=(c.sp.material.map.gotowa?c.op:0);}}
+  function aktualizujNiebo(pora){
+    const chce=pora===2||pora===3?'ksiezyc':'slonce';
+    if(!cialoNieba||cialoNieba.rodzaj!==chce){
+      if(cialoNieba){scena.remove(cialoNieba.sp);}
+      const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:NIEBO_TEX[chce],
+        transparent:true,opacity:0,depthWrite:false}));
+      sp.scale.set(5.5,5.5,1);scena.add(sp);
+      cialoNieba={sp,rodzaj:chce};}
+    cialoNieba.sp.position.set(kamera.position.x+7.5,9,kamera.position.z-40);
+    cialoNieba.sp.material.opacity=cialoNieba.sp.material.map.gotowa?0.92:0;}
   function teksturaMentora(id){
     if(!teksturyMentor[id]){
       teksturyMentor[id]=new THREE.TextureLoader().load(assetUrl('assets/postaci/'+id+'.webp'));
@@ -2938,6 +2992,8 @@ const R3=(()=>{
     const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
     if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k);}
     scena.background.copy(PORA._s).lerp(PORA._k,swit);
+    aktualizujAtmosfere(dt,s);
+    aktualizujNiebo(s&&s.skrypt?s.skrypt.pora:0);
     /* — teren: aktywna kładka (schody) podnosi świat — */
     let segT=null;
     for(const o of s.aktywne)
@@ -3077,6 +3133,14 @@ const R3=(()=>{
           u.cien.material.opacity=0.55+blisko*0.4;
           u.bomba.visible=o.spadY>0;
           u.cien.visible=o.spadY>0;u.rdzen.visible=o.spadY>0;
+          /* ptak: dolatuje nad cel, zrzuca, odlatuje */
+          if(PTAK_TEX[0].gotowa){
+            const pt=u.ptak,kl=PTAK_TEX[((czasReal*8)|0)%2];
+            if(pt.material.map!==kl){pt.material.map=kl;pt.material.needsUpdate=true;}
+            pt.material.opacity=1;
+            if(o.fazaSpadu==='cien'){pt.position.x=-5.5*(1-blisko);pt.scale.x=1;}
+            else{pt.position.x+=dt*5.5;pt.scale.x=-1;}
+            pt.visible=pt.position.x<9;}
         } else if(o.typ==='rywal'){
           o.widok.position.set(o.strona*2.95,0,o.z);
           if(!o.dym&&o.z>CFG.GRACZ_Z-14){o.dym=true;
@@ -3971,7 +4035,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.8',
+  wersja:'3.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
