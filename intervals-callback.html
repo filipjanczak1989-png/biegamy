@@ -56,7 +56,7 @@
       (withBtn ? '<a class="btn" href="profil.html?open=icu">Wróć do profilu</a>' : '');
   };
   // Pomost v1 appka→Bieguś: kod bonusowy za podłączenie zegarka (KODY_BONUS.ZEGAREK w grze, +75 piór)
-  const KOD_GRA = '<div class="kod-gra">🎁 Grasz w <b>Biegusia</b>? Wpisz kod <b>ZEGAREK</b> → +75 🪶</div>';
+  const KOD_GRA = '<div class="kod-gra">🎁 Bonus w <b>Biegusiu</b> odblokowany: <b>+75 🪶</b> czeka w grze! (na innym urządzeniu: kod <b>ZEGAREK</b>)</div>';
 
   const params = new URLSearchParams(location.search);
   const code  = params.get('code');
@@ -117,10 +117,12 @@
           '<div class="msg">Połączono! Jeszcze jeden krok</div>' +
           '<div class="sub">Twój zegarek jest połączony, ale intervals.icu nie widzi jeszcze treningów. Podłącz swój zegarek w intervals.icu, żeby biegi zaczęły wpadać do BiegaMy.</div>' +
           '<a class="btn" href="profil.html?open=icu">Zobacz jak podłączyć zegarek</a>' + KOD_GRA;
+        try{localStorage.setItem('biegus_bonus_zegarek','1');}catch(e){}
       } else {
         // count>0 → treningi są; count null/undefined (EF call padł, nieznane) → nie strasz. Oba: normalny sukces + redirect.
         const sub = (data.activities_count > 0) ? 'Twoje treningi zaczną wpadać — przekierowuję…' : 'przekierowuję…';
         show('✅', 'Połączono z intervals.icu', sub, false);
+        try{localStorage.setItem('biegus_bonus_zegarek','1');}catch(e){}
         bodyEl.insertAdjacentHTML('beforeend', KOD_GRA);   // kod widoczny zanim przekieruje
         setTimeout(() => { location.replace(returnDest); }, 3500);
       }
