@@ -3,11 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.14 (Radio non-stop)</title>
+<title>Bieguś — Droga na Igrzyska · v4.0 (Cele etapu)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.14 „RADIO NON-STOP"
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.0 „CELE ETAPU" (Tony Bieguś filar c)
+     · CELE-etapu: 3 deterministyczne cele per etap (combo/piora/perfekt/
+       salta/uniki), +15 pior za cel, 3/3 = GWIAZDKA (+25, raz na etap),
+       zapis gwiazdek w save; gwiazdki na mapie etapow — nastepna wersja
      · RADIO-nonstop: gra od menu (po 1. gescie), NIE gasnie po etapie,
        playlista plynie (onended->losowy nastepny), przycisk ⏭ skip
      · FEVER x15+: piora x2 (laczy sie z boosterem x2 i flow), zlota
@@ -642,6 +645,7 @@
   <div class="przeslanie" id="introMysl"></div>
   <div class="pod" id="introTip"></div>
   <div class="pod" id="introBooster" style="color:var(--zloto)" hidden></div>
+  <div class="pod" id="introCele" hidden style="color:#f2c14e"></div>
   <h1 style="font-size:84px" id="odliczanie">3</h1>
 </div>
 
@@ -653,6 +657,7 @@
   <div id="podiumBox" hidden></div>
   <div class="puenta" id="puentaFinisz"></div>
   <div class="pod" id="rekordBox" hidden style="color:#f2c14e;font-weight:700"></div>
+  <div class="pod" id="celeBox" hidden style="text-align:left;line-height:1.7"></div>
   <div class="pod" id="zadanieWynik" hidden></div>
   <div class="przeslanie" id="finalKrainy" hidden></div>
   <div class="stat">
@@ -1040,7 +1045,7 @@ const Biegus={
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
-    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{}}));}catch(e){}},
+    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{}}));}catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -1056,7 +1061,7 @@ const Biegus={
     if(typeof d.najedzenie==='number')this.najedzenie=d.najedzenie;
     if(typeof d.wiez==='number')this.wiez=d.wiez;
     this.laczneKm=d.laczneKm||0;
-    this.rekordy=d.rekordy||{};}catch(e){}},
+    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};}catch(e){}},
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -1968,6 +1973,21 @@ const Input=(()=>{
 const KROK=1/120;
 function drogaCalka(s,t){                       // ∫v dt dla v(t)=v0·(1+a·t)
   return s.predkoscBaza*(t+CFG.PRZYSPIESZENIE*t*t/2);}
+/* CELE-etapu (v4.0 THPS): 3 deterministyczne cele per etap na ISTNIEJACYCH licznikach sym */
+const CELE_PULA=[
+  {id:'combo',  tekst:n=>'Zrób serię ×'+n,          cel:e=>Math.min(20,6+Math.floor(e/3)*2), spr:(s,n)=>s.maxCombo>=n},
+  {id:'piora',  tekst:n=>'Zbierz '+n+' 🪶',          cel:e=>18+e*2,                           spr:(s,n)=>s.piora>=n},
+  {id:'perfekt',tekst:()=>'Ukończ bez trafienia',    cel:()=>1,                               spr:s=>s.serca===(s.sercaMax||CFG.SERCA)},
+  {id:'salta',  tekst:n=>'Zrób '+(n===1?'salto':n+' salta'), cel:e=>Math.min(4,1+Math.floor(e/8)), spr:(s,n)=>(s.salta||0)>=n},
+  {id:'uniki',  tekst:n=>'Omiń '+n+' przeszkód',     cel:e=>10+e,                             spr:(s,n)=>(s.ominiete||0)>=n},
+];
+function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, powtarzalne per etap
+  const idx=[0,1,2,3,4];
+  let h=(e*374761393)>>>0;h=((h^(h>>>13))*1274126177)>>>0;h=(h^(h>>>16))>>>0;
+  for(let i=idx.length-1;i>0;i--){h=(h*1103515245+12345)>>>0;const j=(h>>>16)%(i+1);
+    const t=idx[i];idx[i]=idx[j];idx[j]=t;}
+  return idx.slice(0,3).map(i=>{const d=CELE_PULA[i];const n=d.cel(e);
+    return{id:d.id,n,tekst:d.tekst(n),spr:d.spr};});}
 function nowaSymulacja(skrypt,tryb='etap'){
   return{skrypt,tryb,t:0,stan:'bieg',
     predkoscBaza:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
@@ -3832,6 +3852,7 @@ const Gra=(()=>{
           Biegus.boostery[k]--;sym.boostery[k]=true;
           if(Biegus.boostery[k]===0)Biegus.uzyj[k]=false;}});
       if(Biegus.bonusTreningu>0){Biegus.bonusTreningu--;sym.bonusPior=true;}
+      sym.cele=celeEtapu(n);                                       /* CELE-etapu */
     }
     sym.bonusyG={bloto:false,zlota:0,piora:0};
     if(sym.tryb!=='zawody')Object.values(Biegus.ubrane||{}).forEach(id=>{
@@ -3859,6 +3880,11 @@ const Gra=(()=>{
     el('introTip').textContent=trybGry==='zawody'?
       'Trafienie: +'+CFG.ZAWODY.KARA_HIT+' s kary · Znalezisko: −'+CFG.ZAWODY.BONUS_ZNAL+' s. Rywale już biegną!':
       zadanie?('ZADANIE · '+zadanie.od+': '+zadanie.cel):losuj(TIPY);
+    const iCele=el('introCele');                                   /* CELE-etapu */
+    if(trybGry==='etap'&&sym.cele){iCele.hidden=false;
+      const gw=(Biegus.gwiazdki||{})['e'+n];
+      iCele.textContent=(gw?'⭐ ':'')+'CELE: '+sym.cele.map(c=>c.tekst).join(' · ');}
+    else iCele.hidden=true;
     pokaz('intro');tryb='intro';
     let c=3;el('odliczanie').textContent=c;Dzwiek.beep();
     const iv=setInterval(()=>{c--;
@@ -3937,6 +3963,23 @@ const Gra=(()=>{
     if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
     if(sym.tryb==='etap'){Biegus.ukonczone.add('e'+sym.skrypt.etap);odswiezEtapy();}
+    /* CELE-etapu: rozliczenie + gwiazdka za 3/3 (nagroda do portfela, NIE do rekordu trasy) */
+    const cb=el('celeBox');cb.hidden=true;
+    if(sym.tryb==='etap'&&sym.cele){
+      let zal=0;
+      const wiersze=sym.cele.map(c=>{const ok=c.spr(sym,c.n);if(ok)zal++;
+        return (ok?'✅ ':'▫️ ')+c.tekst;});
+      let nagroda=zal*15,gwHtml='';
+      const kluczE='e'+sym.skrypt.etap;
+      if(zal===3){Biegus.gwiazdki=Biegus.gwiazdki||{};
+        if(!Biegus.gwiazdki[kluczE]){Biegus.gwiazdki[kluczE]=true;nagroda+=25;
+          gwHtml='<br><b style="color:#f2c14e">⭐ GWIAZDKA ETAPU! +25 🪶</b>';
+          Dzwiek.medal&&Dzwiek.medal();}
+        else gwHtml='<br>⭐ Gwiazdka już zdobyta';}
+      if(nagroda){Biegus.portfelPior+=nagroda;Biegus.statystyki.piora+=nagroda;}
+      cb.innerHTML='CELE ETAPU ('+zal+'/3):<br>'+wiersze.join('<br>')+
+        (nagroda?'<br><span style="color:#f2c14e">nagroda: +'+nagroda+' 🪶</span>':'')+gwHtml;
+      cb.hidden=false;}
     const perfekt=sym.serca===CFG.SERCA;
     if(perfekt)Misje.zdarzenie('perfekt');
     const zawody=sym.tryb==='zawody';
@@ -4155,7 +4198,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.14',
+  wersja:'4.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
