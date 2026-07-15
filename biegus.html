@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.0 (Cele etapu)</title>
+<title>Bieguś — Droga na Igrzyska · v4.1 (Akcja od startu)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.0 „CELE ETAPU" (Tony Bieguś filar c)
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.1 „AKCJA OD STARTU" (zawiera v4.0)
+     · ZEGAREK-auto: bonus +75 przyznawany AUTOMATYCZNIE po realnym
+       podlaczeniu zegarka (flaga z intervals-callback, wspolny klucz
+       biegus_kody — kod reczny zostaje jako fallback cross-device)
+     · KANION-fix (rozstaje): korytarz 5.5->4.2 s, start >=16 s,
+       przeszkoda skokowa takze po bogatej stronie — akcja w srodku
+     · SKAKALNE: pies/kosz/swistak/hulajnoga/rower unik pas->SKOK
+       (afordancja = mechanika; auto zostaje pas-only z klaksonem)
+     v4.0 „CELE ETAPU" (Tony Bieguś filar c)
      · CELE-etapu: 3 deterministyczne cele per etap (combo/piora/perfekt/
        salta/uniki), +15 pior za cel, 3/3 = GWIAZDKA (+25, raz na etap),
        zapis gwiazdek w save; gwiazdki na mapie etapow — nastepna wersja
@@ -864,17 +872,22 @@ const KODY_BONUS={
   'ZEGAREK':{piora:75,opis:'Zegarek podpięty w BiegaMy — trening liczy się podwójnie!'},
   'RADIO':{piora:30,opis:'Słuchacz Radia BiegaMy! 🎶'},
   'WALKA':{piora:50,opis:'Walka z (Za)Dyszką — do zobaczenia na treningu!'}};
-function uzyjKodu(){
-  const raw=prompt('🎁 Wpisz kod bonusowy:');if(!raw)return;
-  const kod=raw.trim().toUpperCase();
-  const wpis=KODY_BONUS[kod];
+function przyznajKod(kod){                       /* ZEGAREK-auto: wspolna sciezka grantu */
+  const wpis=KODY_BONUS[kod];if(!wpis)return false;
   let uzyte=[];try{uzyte=JSON.parse(localStorage.getItem('biegus_kody')||'[]');}catch(e){}
-  if(!wpis){Gra?.toast?.('🤔 Nieznany kod. Sprawdź pisownię!');return;}
-  if(uzyte.includes(kod)){Gra?.toast?.('Ten kod już wykorzystany na tym urządzeniu 😉');return;}
+  if(uzyte.includes(kod))return false;
   uzyte.push(kod);try{localStorage.setItem('biegus_kody',JSON.stringify(uzyte));}catch(e){}
   Biegus.portfelPior+=wpis.piora;Biegus.zapisz&&Biegus.zapisz();
   Gra?.toast?.('🎁 <b>+'+wpis.piora+' 🪶</b> — '+wpis.opis);
-  Dzwiek.medal&&Dzwiek.medal();}
+  Dzwiek.medal&&Dzwiek.medal();return true;}
+function uzyjKodu(){
+  const raw=prompt('🎁 Wpisz kod bonusowy:');if(!raw)return;
+  const kod=raw.trim().toUpperCase();
+  if(!KODY_BONUS[kod]){Gra?.toast?.('🤔 Nieznany kod. Sprawdź pisownię!');return;}
+  if(!przyznajKod(kod))Gra?.toast?.('Ten kod już wykorzystany na tym urządzeniu 😉');}
+function sprawdzBonusZegarka(){                  /* ZEGAREK-auto: flaga stawiana przez intervals-callback (ten sam origin) */
+  try{if(localStorage.getItem('biegus_bonus_zegarek')==='1')
+    setTimeout(()=>przyznajKod('ZEGAREK'),1200); }catch(e){}}
 
 const RadioGry={ /* RADIO-nonstop: player na CALEJ grze — menu, karty, etapy */
   audio:null,playlista:null,ostatni:-1,czeka:false,
@@ -1092,6 +1105,7 @@ const Biegus={
     this.wiez=clamp(this.wiez+1,0,100);},
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
+sprawdzBonusZegarka();                           /* ZEGAREK-auto */
 /* — ikony kafli menu (partia 8): podmiana emoji na grafiki, fallback zostaje — */
 document.querySelectorAll('[data-iko]').forEach(sp=>{
   const im=new Image();
@@ -1323,9 +1337,9 @@ const OBIEKTY={
       w.rotation.y=Math.sin(t*1.3)*0.6;},
   },
   pies:{
-    nazwa:'Pies bez smyczy',unik:'pas',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
+    nazwa:'Pies bez smyczy',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
     opis:'Waży sześć kilo i jest święcie przekonany, że ścieżka należy do niego. Nie jest groźny — jest ENTUZJASTYCZNY, a to dla tempa dużo gorsze. Merda całym sobą. Z psami się nie dyskutuje.',
-    unikTekst:'◀ ▶ ZMIANA PASA — omiń go szerokim łukiem',
+    unikTekst:'▲ SKOK nad nim albo ◀ ▶ zmiana pasa',
     zbuduj(){
       const g=new THREE.Group();
       g.add(klocek(0.42,0.34,0.72,0x8a6b4a,0,0.42,0));
@@ -1406,9 +1420,9 @@ const OBIEKTY={
       g.userData.spad.rotation.z=t*3;},
   },
   kosz:{
-    nazwa:'Przewrócony kosz',unik:'pas',mult:1.0,waga:2,odEtapu:4,odCzasu:0,
+    nazwa:'Przewrócony kosz',unik:'skok',mult:1.0,waga:2,odEtapu:4,odCzasu:0,
     opis:'Nocą przewróciła go wiewiórka. Albo wiatr. Albo wiewiórka z wiatrem w żaglach — śledztwo trwa. Z kosza wytoczyło się jabłko, a nad całością krąży osa, która uważa, że to teraz jej rewir.',
-    unikTekst:'◀ ▶ ZMIANA PASA — osa nie negocjuje',
+    unikTekst:'▲ SKOK — osa nie negocjuje (◀ ▶ też ujdzie)',
     zbuduj(){
       const g=new THREE.Group();
       const kubel=walec(0.34,0.4,0.85,0x3a5a44,0,0.36,0,10);
@@ -1600,9 +1614,9 @@ const OBIEKTY={
       g.userData.chor.rotation.y=Math.sin(t*7)*0.5;},
   },
   swistak:{
-    nazwa:'Świstak-obserwator',unik:'pas',mult:1.0,waga:3,odEtapu:1,odCzasu:0,odKrainy:4,
+    nazwa:'Świstak-obserwator',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,odKrainy:4,
     opis:'Siedzi na środku szlaku, bo z środka najlepiej widać. Gwiżdże na twój widok — nie ze strachu, z obowiązku: ktoś musi ogłaszać, że coś biegnie. Nie ruszy się. Świstaki nie ustępują, świstaki komentują.',
-    unikTekst:'◀ ▶ ZMIANA PASA — usłyszysz „fiiit!"',
+    unikTekst:'▲ SKOK — usłyszysz „fiiit!" (◀ ▶ też działa)',
     zbuduj(){
       const g=new THREE.Group();
       g.add(klocek(0.4,0.5,0.36,0x9a7a52,0,0.34,0));
@@ -1669,9 +1683,9 @@ const OBIEKTY={
       go.position.y=1.05+((t*2%7)<0.15?0.06:0);},                     // czasem podskoczy
   },
   hulajnoga:{
-    nazwa:'Hulajnoga-widmo',unik:'pas',mult:1.5,waga:2,odEtapu:3,odCzasu:12,odKrainy:3,
+    nazwa:'Hulajnoga-widmo',unik:'skok',mult:1.5,waga:2,odEtapu:3,odCzasu:12,odKrainy:3,
     opis:'Elektryczna, wypożyczona, porzucona — a mimo to JEDZIE. Nikt nie wie dokąd. Aplikacja twierdzi, że stoi na Głównej. Miasto ma swoje duchy; ten akurat robi 25 na godzinę i dzwoni „brzdęk", jakby przepraszał.',
-    unikTekst:'◀ ▶ ZMIANA PASA — usłyszysz „brzdęk!" (×1.5 prędkości)',
+    unikTekst:'▲ SKOK nad „brzdęk!" albo ◀ ▶ (×1.5 prędkości)',
     zbuduj(){
       const g=new THREE.Group();
       g.add(klocek(0.24,0.06,0.9,0x2a2f3d,0,0.14,0));                 // deck
@@ -1686,9 +1700,9 @@ const OBIEKTY={
       g.children[1].rotation.x=t*10;g.children[2].rotation.x=t*10;},
   },
   rower:{
-    nazwa:'Rowerzysta o świcie',unik:'pas',mult:1.6,waga:2,odEtapu:1,odCzasu:15,
+    nazwa:'Rowerzysta o świcie',unik:'skok',mult:1.6,waga:2,odEtapu:1,odCzasu:15,
     opis:'Jedzie do pracy na 6:30 i NIE zamierza hamować. Przednia lampka, odblaskowa kamizelka, dzwonek używany jako klakson. Jest o połowę szybszy niż wszystko inne w parku — usłyszysz „dzyń!", zanim go zobaczysz.',
-    unikTekst:'◀ ▶ ZMIANA PASA — i to WCZEŚNIE (×1.6 prędkości!)',
+    unikTekst:'▲ SKOK i to WCZEŚNIE albo ◀ ▶ (×1.6 prędkości!)',
     zbuduj(){
       const g=new THREE.Group();
       const kola=[];
@@ -1869,8 +1883,8 @@ function dolozZbieralne(rng,ev){
 /* — ROZWIDLENIA à la Hugo: wybierz stronę; bogata bywa pułapką — */
 function wstrzyknijRozwidlenia(ev,rng,rel,kraina,ile){
   for(let r=0;r<ile;r++){
-    const dur=5.5;
-    const t0=10+rng()*(CFG.ETAP_CZAS-26)+(r?18:0);
+    const dur=4.2;                                               /* KANION-fix: krotszy korytarz */
+    const t0=16+rng()*(CFG.ETAP_CZAS-32)+(r?16:0);               /* KANION-fix: nie na starcie etapu */
     if(t0+dur>CFG.ETAP_CZAS-8)continue;
     /* wyczyść okno z losowych przeszkód */
     const czyste=ev.filter(e=>e.t<t0-1.4||e.t>t0+dur+1.4);
@@ -1883,6 +1897,7 @@ function wstrzyknijRozwidlenia(ev,rng,rel,kraina,ile){
     const t2=kraina===1?'kaluza':kraina===2?'korzen':kraina===3?'pacholek':'glaz';
     ev.push({t:t0+1.6,typ:'kaluza',pas:uboga});
     ev.push({t:t0+3.6,typ:t2,pas:uboga});
+    ev.push({t:+(t0+dur*0.55).toFixed(2),typ:t2,pas:bogata});   /* KANION-fix: akcja i na bogatej — skok w korytarzu */
     /* PUŁAPKA: bogata strona kończy się niespodzianką (miękką, gdzie się da) */
     if(rng()<0.65)ev.push({t:t0+dur-0.45,typ:kraina>=2?'bloto':'kaluza',pas:bogata});
   }}
@@ -4198,7 +4213,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.0',
+  wersja:'4.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
