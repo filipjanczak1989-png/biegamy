@@ -3,11 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.3 (Hotfix trio)</title>
+<title>Bieguś — Droga na Igrzyska · v5.4 (Super komba)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.3 „HOTFIX TRIO"
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.4 „SUPER KOMBA" (pitch Filipa)
+     · SUPER-KOMBA: nazwane kombinacje trikow w JEDNYM locie, bonus
+       dokladany do banku (mnozony przez opaske stylu):
+       WKRĘT (sruba+grab, +150), HELIKOPTER (sruba+salto, +200),
+       WAHADŁO (sruba w OBIE strony, +250), GWIAZDA POLARNA
+       (sruba+salto+grab, +400), SUPERNOVA (wszystko naraz, +600)
+     · celebracja: wielki popup ⭐, zloty flash, shake .32, podwojny
+       burst (zloto+cyjan), dymek gracza, wibracja-werbel, Dzwiek.combo(28)
+     · 8. cel etapu "Odpal SUPER KOMBO" (przelosowanie zestawow celow —
+       jak w v4.2, gwiazdki zdobyte zostaja); dzienna misja d-superk (+40)
+     · BAIL kasuje sekwencje; zawody czyste (stylLot=0 -> bank pusty)
+     · TIP o kombach w puli
+     v5.3 „HOTFIX TRIO"
      · HOTFIX-grip: check 'kaluza' siedzial w galezi 'auto' = martwy kod;
        teraz w MOMENCIE PRAWDY — buty > startowe przebiegaja kaluze
        (CHLAP! bez serca), skok dalej daje unik+combo
@@ -1309,7 +1321,8 @@ const DZIENNE_PULA=[
   {id:'d-slizgi6', npc:'zajac',     typ:'slizgSzlaban',cel:6, pior:30, tekst:'Prześlizgnij się {cel} razy. Szybkość to odwaga w nogach.'},
   {id:'d-trening', npc:'kura',      typ:'trening',cel:1, pior:30, tekst:'Zalicz {cel} trening. Zdrowy Bieguś to szczęśliwy Bieguś.'},
   {id:'d-mentor2', npc:'zolw',      typ:'mentor',cel:2,  pior:20, tekst:'Spotkaj {cel} przyjaciół przy trasie. Nie biegnij sam.'},
-  {id:'d-combo8',  npc:'zajac',     typ:'combo8',cel:1,  pior:35, tekst:'Osiągnij combo ×8. Pokaż, co masz, mały!'}];
+  {id:'d-combo8',  npc:'zajac',     typ:'combo8',cel:1,  pior:35, tekst:'Osiągnij combo ×8. Pokaż, co masz, mały!'},
+  {id:'d-superk',  npc:'zajac',     typ:'superK',cel:1,  pior:40, tekst:'Odpal {cel} SUPER KOMBO — dwa triki w jednym locie!'}];
 const Dzienne={
   stan:null,
   _dzis(){return new Date().toISOString().slice(0,10);},
@@ -2079,7 +2092,8 @@ const MYSLI=[
   'Klucz nie zostawia śladów w niebie. Zostawia je na mapie — dla tych, co biegną.',
   'Dwanaście kawałków. Dwanaście powodów, żeby jutro znowu wyjść na trasę.',
 ];
-const TIPY=['Rozwidlenie? Jedna strona bywa bogatsza. I bywa pułapką.',
+const TIPY=['Śruba + grab w jednym locie = WKRĘT. Dołóż salto — zobaczysz gwiazdy.',
+  'Rozwidlenie? Jedna strona bywa bogatsza. I bywa pułapką.',
   'Zwitki pergaminu na trasie to kawałki mapy klucza — zbieraj, układają się w coś większego.',
   'Znaleziska karmią Biegusia. Najedzony Bieguś biega z ikrą.',
   'Klakson znaczy: auto przetnie Ci drogę. Skok nie pomoże — zmień linię.',
@@ -2293,9 +2307,10 @@ const CELE_PULA=[
   {id:'uniki',  tekst:n=>'Omiń '+n+' przeszkód',     cel:e=>10+e,                             spr:(s,n)=>(s.ominiete||0)>=n},
   {id:'styl',   tekst:n=>'Zdobądź '+n+' ✦ stylu',    cel:e=>250+e*35,                         spr:(s,n)=>(s.styl||0)>=n},
   {id:'grindy', tekst:n=>'Przegrinduj '+n+(n===1?' krawędź':' krawędzie'), cel:e=>Math.min(4,1+Math.floor(e/9)), spr:(s,n)=>(s.grindy||0)>=n},
+  {id:'superK', tekst:()=>'Odpal SUPER KOMBO (2 triki w 1 locie)', cel:()=>1, spr:s=>(s.superKomba||0)>=1},   /* SUPER-KOMBA: 8. cel */
 ];
 function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, powtarzalne per etap
-  const idx=[0,1,2,3,4,5,6];
+  const idx=[0,1,2,3,4,5,6,7];                                   /* SUPER-KOMBA: 8 celow (przelosowanie zestawow jak w v4.2) */
   let h=(e*374761393)>>>0;h=((h^(h>>>13))*1274126177)>>>0;h=(h^(h>>>16))>>>0;
   for(let i=idx.length-1;i>0;i--){h=(h*1103515245+12345)>>>0;const j=(h>>>16)%(i+1);
     const t=idx[i];idx[i]=idx[j];idx[j]=t;}
@@ -2309,7 +2324,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
     flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,grind:null,grindStart:0,
-    stylLot:0,lotTriki:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,
+    stylLot:0,lotTriki:0,lotSeq:[],superKomba:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,   /* SUPER-KOMBA */
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
 function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pending, chain x1.5/x2...), na ziemi -> od razu */
@@ -2321,10 +2336,25 @@ function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pendi
   else s.styl=(s.styl||0)+p;
   if(nazwa)Misje.zdarzenie('trik');                                   /* MISJA: triki */
   s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
+const SUPER_KOMBA=[                               /* SUPER-KOMBA: nazwane kombinacje w JEDNYM locie (od najgrubszej) */
+  {n:'SUPERNOVA',      p:600,w:q=>q.sL&&q.sR&&q.salto&&q.grab},
+  {n:'GWIAZDA POLARNA',p:400,w:q=>(q.sL||q.sR)&&q.salto&&q.grab},
+  {n:'WAHADŁO',        p:250,w:q=>q.sL&&q.sR},
+  {n:'HELIKOPTER',     p:200,w:q=>(q.sL||q.sR)&&q.salto},
+  {n:'WKRĘT',          p:150,w:q=>(q.sL||q.sR)&&q.grab},
+];
+function superKombo(seq){
+  const q={sL:seq.includes('sL'),sR:seq.includes('sR'),salto:seq.includes('salto'),grab:seq.includes('grab')};
+  return SUPER_KOMBA.find(k=>k.w(q))||null;}
 function bankujTriki(s){                          /* BANK: czyste ladowanie zamyka lot */
-  if(!s.stylLot)return;
+  if(!s.stylLot){if(s.lotSeq)s.lotSeq.length=0;return;}
+  const sk=superKombo(s.lotSeq||[]);              /* SUPER-KOMBA: bonus dokladany do banku PRZED wyplata */
+  if(sk){const b=Math.round(sk.p*(s.gStyl||1));s.stylLot+=b;
+    s.superKomba=(s.superKomba||0)+1;Misje.zdarzenie('superK');
+    s.zdarzenia.push({typ:'superKombo',nazwa:sk.n,pkt:b});}
   s.styl+=s.stylLot;
   if((s.lotTriki||0)>=2)s.zdarzenia.push({typ:'trik',nazwa:'KOMBO ×'+s.lotTriki,pkt:s.stylLot});
+  if(s.lotSeq)s.lotSeq.length=0;
   s.stylLot=0;s.lotTriki=0;}
 function murekPod(s){                             /* GRIND: obiekt grindowalny pod graczem? */
   for(const o of s.aktywne){const d=OBIEKTY[o.typ];
@@ -2340,9 +2370,9 @@ function zakonczGrind(s,wyskok){                  /* GRIND: nalicz styl i zejdz 
   s.zdarzenia.push({typ:wyskok?'skok':'ladowanie'});}
 function probujAkcje(s,a){
   if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
-    if(s.skokT>=0){s.sruba=-1;dodajStyl(s,40,'ŚRUBA');}}return true;}  /* STYL: zmiana pasa w locie = ŚRUBA (roll) */
+    if(s.skokT>=0){s.sruba=-1;(s.lotSeq=s.lotSeq||[]).push('sL');dodajStyl(s,40,'ŚRUBA');}}return true;}  /* STYL: zmiana pasa w locie = ŚRUBA (roll) */
   if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;
-    if(s.skokT>=0){s.sruba=1;dodajStyl(s,40,'ŚRUBA');}}return true;}
+    if(s.skokT>=0){s.sruba=1;(s.lotSeq=s.lotSeq||[]).push('sR');dodajStyl(s,40,'ŚRUBA');}}return true;}
   if(a==='skok'){
     if(s.grind){zakonczGrind(s,true);              /* GRIND: wyskok z murka */
       s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
@@ -2351,14 +2381,14 @@ function probujAkcje(s,a){
       s.zdarzenia.push({typ:'skok'});return true;}
     /* SALTO: drugi skok w powietrzu — wydłuża lot o 30%, nabija serię */
     if(s.skokT>=0&&!s.salto&&s.skokT>0.05&&s.skokT<s.skokCzas*0.85){
-      s.salto=true;s.skokCzas*=CFG.SALTO_BONUS;s.salta++;
+      s.salto=true;s.skokCzas*=CFG.SALTO_BONUS;s.salta++;(s.lotSeq=s.lotSeq||[]).push('salto');
       s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
       Misje.zdarzenie('salto');
       dodajStyl(s,100,null);                                          /* STYL: salto = 100 (popup SALTO! juz jest) */
       s.zdarzenia.push({typ:'salto',combo:s.combo});return true;}
     return false;}
   if(a==='slizg'){
-    if(s.skokT>=0&&!s.grab){s.grab=true;
+    if(s.skokT>=0&&!s.grab){s.grab=true;(s.lotSeq=s.lotSeq||[]).push('grab');
       dodajStyl(s,s.salto?150:60,s.salto?'TORNADO':'GRAB');return true;}  /* STYL: grab; w salcie = TORNADO */
     if(s.slizgT<0&&s.skokT<0){s.slizgT=0;s.zdarzenia.push({typ:'slizg'});return true;}return false;}
   return true;}
@@ -2523,7 +2553,7 @@ function krokSymulacji(s){
       o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
       if(s.skokT>=0&&(s.stylLot||0)>0){                                  /* BAIL: gleba kasuje niezbankowany lot */
         s.zdarzenia.push({typ:'trik',nazwa:'BAIL',pkt:-s.stylLot});
-        s.stylLot=0;s.lotTriki=0;}
+        s.stylLot=0;s.lotTriki=0;if(s.lotSeq)s.lotSeq.length=0;}      /* SUPER-KOMBA: bail kasuje sekwencje */
       if(o.typ==='wyspa'){
         s.pasOd=pozycjaPasa(s);
         s.pas=((o.t*13)|0)%2?0:2;s.pasT=0;}
@@ -3756,6 +3786,8 @@ const R3=(()=>{
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
     if(zd.typ==='mapka')burst(poz,0xead9ae,14,2.4,2.6,0.075);        /* HOTFIX-scope */
     if(zd.typ==='turbo'){shake=Math.max(shake,0.18);burst(poz,0xf2c14e,12,2.6,2.2,0.07);}
+    if(zd.typ==='superKombo'){shake=Math.max(shake,0.32);             /* SUPER-KOMBA: podwojny burst */
+      burst(poz,0xffd76a,22,3.6,3.2,0.09);burst(poz,0x7de3ff,14,3.0,2.6,0.075);}
     if(zd.typ==='trik'){                                              /* BAJERY: kicki trikow */
       if(zd.nazwa==='TRANSFER'){shake=Math.max(shake,0.2);burst(poz,0xf2c14e,10,2.6,2.4,0.07);}
       if(zd.nazwa==='TORNADO')burst(poz,0xffd76a,12,2.8,2.6,0.075);
@@ -4638,6 +4670,13 @@ const Gra=(()=>{
       R3.efekt(zd);return;}                        /* HOTFIX-scope: burst zyje w R3, nie tu */
     if(zd.typ==='turbo'){popup('WIATR W PLECY!',true);Dzwiek.gwizd&&Dzwiek.gwizd();
       R3.efekt(zd);return;}
+    if(zd.typ==='superKombo'){                                        /* SUPER-KOMBA: wielka celebracja */
+      popup('⭐ '+zd.nazwa+' +'+zd.pkt+' ✦',true);Dzwiek.combo(28);
+      try{navigator.vibrate&&navigator.vibrate([20,40,20,40,50]);}catch(e){}
+      const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.95;
+      requestAnimationFrame(()=>{f.style.transition='opacity .7s';f.style.opacity=0;});
+      R3.dymekGracza(zd.nazwa+'!');R3.efekt(zd);
+      const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
       if(zd.nazwa)popup(zd.nazwa+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
@@ -4720,7 +4759,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.3',
+  wersja:'5.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
