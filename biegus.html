@@ -3,11 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.2 (Styl w locie)</title>
+<title>Bieguś — Droga na Igrzyska · v4.3 (Śruba i szlif)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.2 „STYL W LOCIE" (Tony Bieguś filar a)
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.3 „ŚRUBA I SZLIF"
+     · ŚRUBA: przeplot w locie robi teraz pelny roll na modelu (kierunkowy),
+       nazwa trika PRZEPLOT->ŚRUBA; GRAB w salcie = TORNADO +150
+     · GFX-szlif: antialias ON, ekspozycja 1.06, cien 2048, rim light
+       (separacja sylwetek), winieta CSS, celownik spadu wiekszy/ostrzejszy
+     v4.2 „STYL W LOCIE" (Tony Bieguś filar a)
      · STYL: nowa waluta sesyjna ✦ — PRZEPLOT (zmiana pasa w locie) +40,
        GRAB (swipe w dol w locie, tuck) +60, SALTO +100; combo mnozy styl
        (x1..x2.5); BAIL (ladowanie w przeszkode) -100; zawody czyste
@@ -603,6 +608,8 @@
 <body>
 
 <canvas id="gra3d" aria-label="Bieguś — Droga, gra 3D"></canvas>
+<div id="winieta" style="position:fixed;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(ellipse 118% 96% at 50% 42%,transparent 62%,rgba(6,8,14,.38) 100%)"></div><!-- GFX-szlif -->
 
 <div id="hud" hidden>
   <span id="serca"></span>
@@ -1244,8 +1251,8 @@ const OBIEKTY={
     unikTekst:'◀ ▶ UWAGA Z GÓRY — zmień pas!',
     zbuduj(){
       const g=new THREE.Group();
-      const cien=new THREE.Mesh(new THREE.RingGeometry(0.3,0.52,22),   /* celownik */
-        new THREE.MeshBasicMaterial({color:0xff5a2e,transparent:true,opacity:.9,depthWrite:false}));
+      const cien=new THREE.Mesh(new THREE.RingGeometry(0.42,0.72,22),  /* celownik — wiekszy, GFX-szlif */
+        new THREE.MeshBasicMaterial({color:0xff3b1e,transparent:true,opacity:1,depthWrite:false}));
       cien.rotation.x=-Math.PI/2;cien.position.y=0.05;g.add(cien);
       const rdzen=new THREE.Mesh(new THREE.CircleGeometry(0.16,14),
         new THREE.MeshBasicMaterial({color:0xffd23b,transparent:true,opacity:.85,depthWrite:false}));
@@ -2020,7 +2027,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
-    flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,
+    flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
 function dodajStyl(s,ile,nazwa){                 /* STYL (v4.0a): combo mnozy styl, zawody czyste */
@@ -2030,9 +2037,9 @@ function dodajStyl(s,ile,nazwa){                 /* STYL (v4.0a): combo mnozy st
   s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
 function probujAkcje(s,a){
   if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
-    if(s.skokT>=0)dodajStyl(s,40,'PRZEPLOT');}return true;}          /* STYL: zmiana pasa w locie = trik */
+    if(s.skokT>=0){s.sruba=-1;dodajStyl(s,40,'ŚRUBA');}}return true;}  /* STYL: zmiana pasa w locie = ŚRUBA (roll) */
   if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;
-    if(s.skokT>=0)dodajStyl(s,40,'PRZEPLOT');}return true;}
+    if(s.skokT>=0){s.sruba=1;dodajStyl(s,40,'ŚRUBA');}}return true;}
   if(a==='skok'){
     if(s.skokT<0&&s.slizgT<0){s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
       s.zdarzenia.push({typ:'skok'});return true;}
@@ -2045,7 +2052,8 @@ function probujAkcje(s,a){
       s.zdarzenia.push({typ:'salto',combo:s.combo});return true;}
     return false;}
   if(a==='slizg'){
-    if(s.skokT>=0&&!s.grab){s.grab=true;dodajStyl(s,60,'GRAB');return true;}  /* STYL: swipe w dol w locie = GRAB */
+    if(s.skokT>=0&&!s.grab){s.grab=true;
+      dodajStyl(s,s.salto?150:60,s.salto?'TORNADO':'GRAB');return true;}  /* STYL: grab; w salcie = TORNADO */
     if(s.slizgT<0&&s.skokT<0){s.slizgT=0;s.zdarzenia.push({typ:'slizg'});return true;}return false;}
   return true;}
 function udanyUnik(s,o){
@@ -2076,7 +2084,7 @@ function krokSymulacji(s){
   }
   if(s.pasT<1)s.pasT=Math.min(1,s.pasT+KROK/CFG.CZAS_PASA);
   if(s.skokT>=0){s.skokT+=KROK;
-    if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.grab=false;s.skokCzas=CFG.SKOK;
+    if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.grab=false;s.sruba=0;s.skokCzas=CFG.SKOK;
       s.zdarzenia.push({typ:'ladowanie'});}}
   if(s.slizgT>=0){s.slizgT+=KROK;if(s.slizgT>CFG.SLIZG)s.slizgT=-1;}
   if(s.nietyk>0)s.nietyk-=KROK;
@@ -2219,11 +2227,11 @@ function losujZnalezisko(s){
 /* ---------- 9. RENDER 3D ---------- */
 const R3=(()=>{
   const canvas=document.getElementById('gra3d');
-  const renderer=new THREE.WebGLRenderer({canvas,antialias:false});
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true});   /* GFX-szlif: AA on */
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.0;
+  renderer.toneMappingExposure=1.06;                                 /* GFX-szlif */
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFShadowMap;
   const scena=new THREE.Scene();
@@ -2280,7 +2288,7 @@ const R3=(()=>{
   slonce.position.set(12,20,14);scena.add(slonce);
   try{
     slonce.castShadow=true;
-    slonce.shadow.mapSize.set(1024,1024);
+    slonce.shadow.mapSize.set(2048,2048);                            /* GFX-szlif */
     const sc=slonce.shadow.camera;
     sc.left=-13;sc.right=13;sc.top=16;sc.bottom=-16;sc.near=2;sc.far=70;
     sc.updateProjectionMatrix();                                     // ← bez tego r128 potrafi paść
@@ -2288,6 +2296,8 @@ const R3=(()=>{
     scena.add(slonce.target);slonce.target.position.set(0,0,-12);
   }catch(e){pokazBlad('Cienie wyłączone: '+e.message);
     slonce.castShadow=false;renderer.shadowMap.enabled=false;}
+  const rim=new THREE.DirectionalLight(0x9ec8ff,0.5);                /* GFX-szlif: rim z tylu-gory */
+  rim.position.set(0,9,16);scena.add(rim);
   const switGlow=poswiata(56,0xb0507a);switGlow.position.set(-14,3,-95);scena.add(switGlow);
   const switGlow2=poswiata(32,0xffa060);switGlow2.position.set(-14,2,-94);scena.add(switGlow2);
 
@@ -3237,6 +3247,8 @@ const R3=(()=>{
       const g=Math.sin((s.skokT/s.skokCzas)*Math.PI);
       aktor.scale.setScalar(1-0.2*g);
     } else { aktor.scale.x=1;aktor.scale.z=1; }
+    if(s.sruba&&s.skokT>=0&&s.pasT<1)                                 /* ŚRUBA: roll przy przeplocie w locie */
+      aktor.rotation.z=s.sruba*(1-s.pasT)*Math.PI*2;
     if(squashT>0){squashT-=dt;                                        // SQUASH lądowania
       aktor.scale.y*=0.72;aktor.scale.x*=1.16;aktor.scale.z*=1.16;}
     if(s.flow&&Math.random()<dt*9)
@@ -4248,7 +4260,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.2',
+  wersja:'4.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
