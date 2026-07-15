@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.12 (Wolna droga)</title>
+<title>Bieguś — Droga na Igrzyska · v3.13 (Fever)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.12 „WOLNA DROGA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.13 „FEVER"
+     · FEVER x15+: piora x2 (laczy sie z boosterem x2 i flow), zlota
+       smuga za graczem gestniejaca do x30, licznik combo z 🔥
      · FIX-dekor-hit: schody/tunel/segmenty i kit rozstajów przestały
        zabierać serca przy wbiegnięciu (dekor pomijany w MOMENCIE PRAWDY)
      Względem v3.10 (feedback: „brakuje dopaminy!"):
@@ -2065,7 +2067,8 @@ function krokSymulacji(s){
       if(Math.abs(o.pas-s.pas)>zasieg)continue;
       if(zasieg===0&&s.pasT<0.65)continue;
       o.trafione=true;
-      const zysk=((s.boostery&&s.boostery.x2)||s.bonusPior)?2:1;
+      let zysk=((s.boostery&&s.boostery.x2)||s.bonusPior)?2:1;
+      if(s.combo>=15)zysk*=2;                                        /* FEVER: seria x15+ podwaja pioro (skill, dziala i w Zawodach) */
       s.piora+=zysk;
       if(s.flow){s.flowBank+=zysk*(s.flowMnoznik||0.5);
         while(s.flowBank>=1){s.flowBank-=1;s.piora+=1;}}
@@ -3171,6 +3174,10 @@ const R3=(()=>{
     if(s.combo>=8&&Math.random()<dt*14)                             // wiatr w plecy przy serii x8+
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
         0xcfd8ee,1,0.5,0.2,0.05);
+    if(s.combo>=15&&Math.random()<dt*(16+Math.min(s.combo,30))){    /* FEVER-trail: zlota smuga od x15, gestnieje do x30 */
+      const fk=[0xf2c14e,0xe8561e,0xffd76a][Math.floor(Math.random()*3)];
+      burst(aktor.position.clone().add(new THREE.Vector3(
+        (Math.random()-0.5)*0.9,0.25+Math.random()*0.9,0.9+Math.random()*0.8)),fk,1,0.9,1.5,0.075);}
 
     kamera.position.x=lerp(kamera.position.x,x*0.58,0.09);
     kamera.fov=62+(s.predkosc-CFG.PREDKOSC_BAZOWA)*1.1+(s.skokT>=0?-2:0)+(s.combo>=8?3:0);
@@ -3857,7 +3864,7 @@ const Gra=(()=>{
         try{navigator.vibrate&&navigator.vibrate([12,30,12,30,24]);}catch(e){}
         if(sym.combo===10)R3.dymekGracza('Nie do zatrzymania!');}}
     _ostCombo=sym.combo;
-    el('comboHud').textContent=sym.combo>=2?'×'+sym.combo:'';
+    el('comboHud').textContent=sym.combo>=15?'🔥×'+sym.combo:(sym.combo>=2?'×'+sym.combo:'');  /* FEVER w HUD */
   }
   function konfetti(){
     const kolory=['#e8561e','#f8b34a','#2a63b8','#3aa04a','#c78ad4','#f0eee2'];
@@ -4130,7 +4137,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.12',
+  wersja:'3.13',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
