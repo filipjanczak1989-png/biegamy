@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.8 (Sklep stylu)</title>
+<title>Bieguś — Droga na Igrzyska · v4.9 (Soczystość)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.8 „SKLEP STYLU" (Tony Bieguś filar d — ROADMAPA a/b/c/d KOMPLET)
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.9 „SOCZYSTOŚĆ" (bajery + HOTFIX)
+     · HOTFIX-scope: mapka/turbo wolaly burst(poz) z Gra scope (R3-lokalne)
+       -> ReferenceError przy zbiorze; teraz R3.efekt(zd) jak tarcza
+     · BAJERY: shake kamery (KOMBO bank .22, TRANSFER .2, BAIL .3,
+       turbo .18), zloty flash ekranu przy banku, cyjanowa smuga trikow
+       w locie, kolysanie balansu na grindzie, bursty TORNADO/TRANSFER
+     v4.8 „SKLEP STYLU" (filar d — ROADMAPA KOMPLET)
      · SKLEP-2.0: buty grindowe (+40% ✦ z grindow, 260), opaska stylu
        (+25% wszystkie triki, 180), czapka tropiciela (czuje kawalki mapy
        na starcie etapu, 110), koszulka wiatru (turbo 7 s, 320)
@@ -649,6 +655,8 @@
   background:radial-gradient(ellipse 118% 96% at 50% 42%,transparent 62%,rgba(6,8,14,.38) 100%)"></div><!-- GFX-szlif -->
 <div id="linieFever" style="position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .5s;
   background:linear-gradient(90deg,rgba(242,193,78,.26),transparent 16%,transparent 84%,rgba(242,193,78,.26))"></div><!-- GFX-szlif: fever -->
+<div id="flashKombo" style="position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;
+  background:radial-gradient(ellipse at 50% 60%,rgba(242,193,78,.32),transparent 62%)"></div><!-- BAJERY: bank -->
 
 <div id="hud" hidden>
   <span id="serca"></span>
@@ -3484,6 +3492,10 @@ const R3=(()=>{
     } else { aktor.scale.x=1;aktor.scale.z=1; }
     if(s.sruba&&s.skokT>=0&&s.pasT<1)                                 /* ŚRUBA: roll przy przeplocie w locie */
       aktor.rotation.z=s.sruba*(1-s.pasT)*Math.PI*2;
+    if(s.grind)aktor.rotation.z=Math.sin(czasReal*5.5)*0.13;          /* BAJERY: balans na krawedzi */
+    if(s.skokT>=0&&(s.salto||s.grab||(s.sruba&&s.pasT<1))&&Math.random()<dt*30)
+      burst(aktor.position.clone().add(new THREE.Vector3(              /* BAJERY: cyjanowa smuga trikow */
+        (Math.random()-0.5)*0.5,(Math.random()-0.3)*0.6,0.55)),0x7ec8ff,1,0.7,0.6,0.055);
     if(s.grind&&Math.random()<dt*24)                                  /* GRIND: iskry spod stopy */
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*0.3,0.04,0.35)),
         0xffc36e,1,0.7,0.9,0.05);
@@ -3630,6 +3642,13 @@ const R3=(()=>{
       burst(poz,KOLORY[Biegus.kolor].cialo,10,3,3);
       if(zd.obiekt==='kaluza')burst(poz.clone().setY(0.15),0x5b8ac4,14,3.4,2.4);}
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
+    if(zd.typ==='mapka')burst(poz,0xead9ae,14,2.4,2.6,0.075);        /* HOTFIX-scope */
+    if(zd.typ==='turbo'){shake=Math.max(shake,0.18);burst(poz,0xf2c14e,12,2.6,2.2,0.07);}
+    if(zd.typ==='trik'){                                              /* BAJERY: kicki trikow */
+      if(zd.nazwa==='TRANSFER'){shake=Math.max(shake,0.2);burst(poz,0xf2c14e,10,2.6,2.4,0.07);}
+      if(zd.nazwa==='TORNADO')burst(poz,0xffd76a,12,2.8,2.6,0.075);
+      if(zd.nazwa&&zd.nazwa.indexOf('KOMBO')===0)shake=Math.max(shake,0.22);
+      if(zd.nazwa==='BAIL')shake=Math.max(shake,0.3);}
     if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);
       Biegus.najedzenie=clamp(Biegus.najedzenie+4,0,100);}            /* ZNALEZISKA karmia Biegusia */
     if(zd.typ==='pioro'){Dzwiek.pioro(zd.seria%14);
@@ -4489,12 +4508,16 @@ const Gra=(()=>{
       if(ile===1)dymek('To pismo… klucz?! Oni zostawiają mi mapę. Zbiorę wszystko.','Bieguś');
       if(ile===6)dymek('Połowa mapy. Oni naprawdę chcą, żebym ich dogonił…','Bieguś');
       if(ile>=12)dymek('Cała mapa! Punkt zbiórki: meta Igrzysk. Lecę. Znaczy — BIEGNĘ!','Bieguś');
-      burst(poz,0xead9ae,14,2.4,2.6,0.075);return;}
+      R3.efekt(zd);return;}                        /* HOTFIX-scope: burst zyje w R3, nie tu */
     if(zd.typ==='turbo'){popup('WIATR W PLECY!',true);Dzwiek.gwizd&&Dzwiek.gwizd();
-      burst(poz,0xf2c14e,12,2.6,2.2,0.07);return;}
+      R3.efekt(zd);return;}
     if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
       if(zd.nazwa)popup(zd.nazwa+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
+      if(zd.nazwa&&zd.nazwa.indexOf('KOMBO')===0){                    /* BAJERY: zloty flash banku */
+        const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.85;
+        requestAnimationFrame(()=>{f.style.transition='opacity .55s';f.style.opacity=0;});}
+      R3.efekt(zd);                                                   /* BAJERY: shake/czastki w R3 */
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='tarcza'){popup('TARCZA!');R3.efekt(zd);return;}
     if(zd.typ==='gwizd'){Dzwiek.gwizd();return;}
@@ -4570,7 +4593,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.8',
+  wersja:'4.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
