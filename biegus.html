@@ -3,11 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.4 (Grind i zasadzka)</title>
+<title>Bieguś — Droga na Igrzyska · v4.6 (Rurki w chmurach i mapa)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.4 „GRIND I ZASADZKA" (filar b)
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.6 „RURKI W CHMURACH I MAPA"
+     · rurkaWys (e12+, k3): grind 1.45 m, styl x2.2; generator sieje PARY
+       grindow (od rel 6) pod TRANSFER +200 ✦ (zejscie->wejscie <1.3 s)
+     · MAPKA: 12 kawalkow (etapy 1,4,...,31 + 32), zapis w save, licznik
+       🗺️ X/12 na mapie etapow, komplet = zapowiedz fabularna
+     · TURBO "Wiatr w plecy": pickup 5 s wymuszonego fevera (piora x2,
+       smuga, linie, FOV+6) — fizyka toru NIETKNIETA (zero mnoznika calki)
+     v4.5 „BANK TRIKÓW"
+     · BANK: triki w locie sa PENDING (HUD: ✦N (+M)); czyste ladowanie
+       bankuje z chainem x1.5/x2/x2.5 za rozne triki w jednym locie
+       (popup KOMBO xN); gleba w locie = BAIL, tracisz caly lot
+     · GRIND: combo tyka +1/s jazdy; iskry spod stopy; murek bokiem
+       na ziemi = otarcie+wypchniecie (bez serca)
+     · rekord ✦ stylu per etap (trzecie pole rekordu, linia na mecie);
+       zloty blysk piora
+     v4.4 „GRIND I ZASADZKA" (filar b)
      · GRIND: murek (e3+) i rurka (k3, e9+, styl x1.6) — wskocz z lotu,
        jedz po krawedzi (y=wysokosc), wyskok skokiem, zeskok pasem/ogonem;
        styl 30+70/s, czolo bije jak przeszkoda skokowa
@@ -1083,7 +1098,7 @@ const Biegus={
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
-    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{}}));}catch(e){}},
+    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{}}));}catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -1099,7 +1114,7 @@ const Biegus={
     if(typeof d.najedzenie==='number')this.najedzenie=d.najedzenie;
     if(typeof d.wiez==='number')this.wiez=d.wiez;
     this.laczneKm=d.laczneKm||0;
-    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};}catch(e){}},
+    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};this.mapki=d.mapki||{};}catch(e){}},
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -1505,6 +1520,52 @@ const OBIEKTY={
       return g;},
     animuj(){},
   },
+  rurkaWys:{ /* GRIND w chmurach: wysoka rurka — styl x2.2, wejscie ze szczytu skoku lub TRANSFEREM */
+    nazwa:'Rurka podniebna',unik:'skok',mult:1.0,waga:1,odEtapu:12,odCzasu:10,odKrainy:3,
+    grind:true,wysokosc:1.45,durS:1.5,stylMnoznik:2.2,
+    opis:'Rusztowanie remontowe zostawiło rurkę wyżej, niż ktokolwiek planował. Gołębie mówią, że nikt po niej nie przejechał. Gołębie dużo mówią.',
+    unikTekst:'▲ WSKOCZ WYSOKO albo przeskocz z niższego grindu (TRANSFER +200 ✦)',
+    zbuduj(){
+      const g=new THREE.Group();
+      const s=new THREE.Mesh(new THREE.PlaneGeometry(1.4,1.34),
+        new THREE.MeshBasicMaterial({color:0x8a95a5,transparent:true,opacity:0.28,side:THREE.DoubleSide}));
+      s.position.set(0,0.67,-0.5);g.add(s);
+      const r=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,1,10),
+        new THREE.MeshStandardMaterial({color:0xf2c14e,roughness:0.3,metalness:0.65}));
+      r.rotation.x=Math.PI/2;r.position.set(0,1.41,-0.5);r.castShadow=true;g.add(r);
+      return g;},
+    animuj(){},
+  },
+  mapka:{ /* KAWALEK MAPY: kolekcja fabularna 12 szt — mapa na Igrzyska */
+    nazwa:'Kawałek mapy',unik:null,mult:1.0,waga:0,odEtapu:1,odCzasu:0,
+    opis:'Pożółkły skrawek pergaminu. Ktoś rysował na nim drogę — TĘ drogę. Dwanaście kawałków ma podobno układać się w mapę na Igrzyska. Kto je gubi? I po co?',
+    unikTekst:'🗺️ ZBIERZ — 12 kawałków układa mapę',
+    zbuduj(){
+      const g=new THREE.Group();
+      const p=new THREE.Mesh(new THREE.CylinderGeometry(0.13,0.13,0.62,10),
+        new THREE.MeshStandardMaterial({color:0xead9ae,roughness:0.7,emissive:0x6a5a2e,emissiveIntensity:0.35}));
+      p.rotation.z=Math.PI/2;p.position.y=1.05;g.add(p);
+      const w=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.03,6,14),
+        new THREE.MeshStandardMaterial({color:0xe8561e,roughness:0.5}));
+      w.position.y=1.05;w.rotation.y=Math.PI/2;g.add(w);
+      g.userData.baza=1.05;return g;},
+    animuj(g,t){g.rotation.y=t*1.6;g.position.y=Math.sin(t*2.2)*0.09;},
+  },
+  turbo:{ /* WIATR W PLECY: pickup — 5 s wymuszonego fevera (piora x2, smuga, FOV), fizyka toru nietknieta */
+    nazwa:'Wiatr w plecy',unik:null,mult:1.0,waga:0,odEtapu:5,odCzasu:0,
+    opis:'Podmuch, który czeka zwinięty jak sprężyna. Złap go, a przez chwilę świat będzie się palił od prędkości.',
+    unikTekst:'💨 ZŁAP — 5 sekund ognia',
+    zbuduj(){
+      const g=new THREE.Group();
+      const c=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.6,10),
+        new THREE.MeshStandardMaterial({color:0xf2c14e,roughness:0.25,metalness:0.4,emissive:0x8a5a10,emissiveIntensity:0.5}));
+      c.rotation.x=-Math.PI/2;c.position.y=1.0;g.add(c);
+      const o=new THREE.Mesh(new THREE.TorusGeometry(0.34,0.035,8,20),
+        new THREE.MeshBasicMaterial({color:0xffe9b0,transparent:true,opacity:0.85}));
+      o.position.y=1.0;g.add(o);
+      g.userData.baza=1.0;return g;},
+    animuj(g,t){g.rotation.z=t*3;g.position.y=Math.sin(t*2.6)*0.07;},
+  },
   zasadzka:{ /* ZASADZKA: kot wypada z pobocza na pas — ostrzega wykrzyknik i czajenie */
     nazwa:'Kot z bramy',unik:'skok',mult:1.0,waga:2,odEtapu:4,odCzasu:8,
     opis:'Czarny kot z bramy przy alejce ma jedną zasadę: nikt nie przebiegnie jego rewiru bez kontroli. Czai się przy poboczu i wypada w ostatniej chwili.',
@@ -1848,7 +1909,7 @@ const OBIEKTY={
       g.userData.iskry.rotation.y=-t*1.4;},
   },
 };
-const ZBIERALNE=new Set(['pioro','znal']);
+const ZBIERALNE=new Set(['pioro','znal','mapka','turbo']);
 function typyDlaEtapu(rel,kraina){return Object.keys(OBIEKTY)
   .filter(k=>!ZBIERALNE.has(k)&&OBIEKTY[k].waga>0&&OBIEKTY[k].odEtapu<=rel&&(OBIEKTY[k].odKrainy||1)<=kraina);}
 
@@ -1904,7 +1965,7 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
       if(pas===-1)continue;
       ev.push({t:+t.toFixed(2),pas,typ});ostatni[pas]=t;
     }
-    dolozZbieralne(rng,ev);
+    dolozZbieralne(rng,ev,nrEtapu,rel,kraina);
     if(motyw==='akrobatyczny'){                                    // więcej skoków (i salt!)
       const skokowe=Object.keys(OBIEKTY).filter(k=>OBIEKTY[k].waga>0&&
         OBIEKTY[k].unik==='skok'&&OBIEKTY[k].odEtapu<=rel&&(OBIEKTY[k].odKrainy||1)<=kraina);
@@ -1937,7 +1998,28 @@ function losujPas(rng,t,ev,ostatni){
   return k.length?k[Math.floor(rng()*k.length)]:-1;}
 function pasWolny(ev,pas,od,doT){
   return !ev.some(e=>!ZBIERALNE.has(e.typ)&&e.pas===pas&&e.t>od&&e.t<doT);}
-function dolozZbieralne(rng,ev){
+function dolozZbieralne(rng,ev,nrEtapu,rel,kraina){
+  /* GRIND-KOMBO: para grindow pod TRANSFER (od rel 6, co drugi raz) */
+  if(rel>=6&&rng()<0.55){let s0=0;
+    while(s0++<40){
+      const t0=+(14+rng()*(CFG.ETAP_CZAS-CFG.WYBIEG-22)).toFixed(2);
+      const pA=Math.floor(rng()*3),pB=pA===0?1:pA===2?1:(rng()<0.5?0:2);
+      const typB=(nrEtapu>=12&&kraina>=3&&rng()<0.5)?'rurkaWys':(nrEtapu>=9&&kraina>=3?'rurka':'murek');
+      if(pasWolny(ev,pA,t0-1.2,t0+2.6)&&pasWolny(ev,pB,t0-0.4,t0+3.4)){
+        ev.push({t:t0,pas:pA,typ:'murek'});
+        ev.push({t:+(t0+0.85).toFixed(2),pas:pB,typ:typB});break;}}}
+  /* MAPKA: 12 kawalkow — etapy e%3==1 oraz e32; raz na zawsze */
+  if((nrEtapu%3===1||nrEtapu===32)&&!(Biegus.mapki||{})['e'+nrEtapu]){
+    let s1=0;while(s1++<60){
+      const t=+(CFG.ROZBIEG+6+rng()*(CFG.ETAP_CZAS-CFG.WYBIEG-14)).toFixed(2);
+      const pas=Math.floor(rng()*3);
+      if(pasWolny(ev,pas,t-0.9,t+0.9)){ev.push({t,pas,typ:'mapka'});break;}}}
+  /* TURBO: od e5, jeden na etap przy szczesciu */
+  if(nrEtapu>=5&&rng()<0.6){let s2=0;
+    while(s2++<60){
+      const t=+(CFG.ROZBIEG+5+rng()*(CFG.ETAP_CZAS-CFG.WYBIEG-12)).toFixed(2);
+      const pas=Math.floor(rng()*3);
+      if(pasWolny(ev,pas,t-0.9,t+0.9)){ev.push({t,pas,typ:'turbo'});break;}}}
   // znaleziska
   let d=0,s=0;
   while(d<CFG.ZNALEZISKA_NA_ETAP&&s++<200){
@@ -2088,13 +2170,22 @@ function nowaSymulacja(skrypt,tryb='etap'){
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
     flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,grind:null,grindStart:0,
+    stylLot:0,lotTriki:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
-function dodajStyl(s,ile,nazwa){                 /* STYL (v4.0a): combo mnozy styl, zawody czyste */
+function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pending, chain x1.5/x2...), na ziemi -> od razu */
   if(s.tryb==='zawody')return;
-  const p=Math.round(ile*(1+Math.min(s.combo,30)/20));
-  s.styl=(s.styl||0)+p;
+  const wLocie=s.skokT>=0;
+  const chain=wLocie?(1+0.5*(s.lotTriki||0)):1;
+  const p=Math.round(ile*(1+Math.min(s.combo,30)/20)*chain);
+  if(wLocie){s.stylLot=(s.stylLot||0)+p;s.lotTriki=(s.lotTriki||0)+1;}
+  else s.styl=(s.styl||0)+p;
   s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
+function bankujTriki(s){                          /* BANK: czyste ladowanie zamyka lot */
+  if(!s.stylLot)return;
+  s.styl+=s.stylLot;
+  if((s.lotTriki||0)>=2)s.zdarzenia.push({typ:'trik',nazwa:'KOMBO ×'+s.lotTriki,pkt:s.stylLot});
+  s.stylLot=0;s.lotTriki=0;}
 function murekPod(s){                             /* GRIND: obiekt grindowalny pod graczem? */
   for(const o of s.aktywne){const d=OBIEKTY[o.typ];
     if(!d||!d.grind||o.pas!==s.pas)continue;
@@ -2105,7 +2196,7 @@ function zakonczGrind(s,wyskok){                  /* GRIND: nalicz styl i zejdz 
   if(!s.grind)return;
   const d=OBIEKTY[s.grind.typ],czas=s.t-s.grindStart;
   dodajStyl(s,Math.round((30+czas*70)*(d.stylMnoznik||1)),'GRIND');
-  s.grind=null;
+  s.grind=null;s.ostatniGrindKoniec=s.t;            /* TRANSFER: stempel zejscia */
   s.zdarzenia.push({typ:wyskok?'skok':'ladowanie'});}
 function probujAkcje(s,a){
   if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
@@ -2160,13 +2251,24 @@ function krokSymulacji(s){
   if(s.pasT<1)s.pasT=Math.min(1,s.pasT+KROK/CFG.CZAS_PASA);
   if(s.skokT>=0){s.skokT+=KROK;
     if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.grab=false;s.sruba=0;s.skokCzas=CFG.SKOK;
+      bankujTriki(s);                              /* BANK: czyste ladowanie */
       const mp=murekPod(s);                        /* GRIND: ladowanie na krawedzi */
-      if(mp&&!s.grind){s.grind=mp;s.grindStart=s.t;
+      if(mp&&!s.grind){s.grind=mp;s.grindStart=s.t;s.grindTick=s.t;
         s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+        if(s.t-s.ostatniGrindKoniec<1.3)dodajStyl(s,200,'TRANSFER');  /* TRANSFER: grind->grind */
         s.zdarzenia.push({typ:'grindStart'});}
       else s.zdarzenia.push({typ:'ladowanie'});}}
-  if(s.grind&&murekPod(s)!==s.grind)zakonczGrind(s,false);  /* GRIND: ogon minal albo zmiana pasa */
+  if(s.grind){
+    if(s.t-s.grindTick>=1){s.grindTick+=1;         /* GRIND: combo tyka co sekunde jazdy */
+      s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);}
+    if(murekPod(s)!==s.grind)zakonczGrind(s,false);}  /* GRIND: ogon minal albo zmiana pasa */
+  else if(s.skokT<0){const mb=murekPod(s);         /* MUREK bokiem: otarcie + wypchniecie, bez serca */
+    if(mb){s.pasOd=pozycjaPasa(s);
+      s.pas=mb.pas===1?(((mb.t*13)|0)%2?0:2):1;s.pasT=0;
+      s.combo=0;s.nietyk=Math.max(s.nietyk,0.7);
+      s.zdarzenia.push({typ:'bokMurka'});}}
   if(s.slizgT>=0){s.slizgT+=KROK;if(s.slizgT>CFG.SLIZG)s.slizgT=-1;}
+  if(s.turboT>0)s.turboT-=KROK;                                       /* TURBO */
   if(s.nietyk>0)s.nietyk-=KROK;
   while(s.nastepny<s.skrypt.ev.length&&s.skrypt.ev[s.nastepny].t<=s.t){
     const e=s.skrypt.ev[s.nastepny++];
@@ -2227,7 +2329,7 @@ function krokSymulacji(s){
       if(zasieg===0&&s.pasT<0.65)continue;
       o.trafione=true;
       let zysk=((s.boostery&&s.boostery.x2)||s.bonusPior)?2:1;
-      if(s.combo>=15)zysk*=2;                                        /* FEVER: seria x15+ podwaja pioro (skill, dziala i w Zawodach) */
+      if(s.combo>=15||s.turboT>0)zysk*=2;                            /* FEVER/TURBO: podwaja pioro */
       s.piora+=zysk;
       if(s.flow){s.flowBank+=zysk*(s.flowMnoznik||0.5);
         while(s.flowBank>=1){s.flowBank-=1;s.piora+=1;}}
@@ -2238,6 +2340,12 @@ function krokSymulacji(s){
       if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
       o.trafione=true;s.zebrane.push(losujZnalezisko(s));
       s.zdarzenia.push({typ:'znal'});Misje.zdarzenie('znal');continue;}
+    if(o.typ==='mapka'){                                            /* MAPKA: kawalek do kolekcji */
+      if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
+      o.trafione=true;s.zdarzenia.push({typ:'mapka'});continue;}
+    if(o.typ==='turbo'){                                            /* TURBO: 5 s wymuszonego fevera */
+      if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
+      o.trafione=true;s.turboT=5;s.zdarzenia.push({typ:'turbo'});continue;}
     if(o.typ==='rywal'){                                            // Błysk mija gracza
       if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){o.sprawdzone=true;
         s.zdarzenia.push({typ:'rywal'});}
@@ -2272,8 +2380,9 @@ function krokSymulacji(s){
         s.boostery.tarcza=false;o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'tarcza'});continue;}
       o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
-      if(s.skokT>=0&&(s.styl||0)>0){const strata=Math.min(s.styl,100);   /* STYL: BAIL — ladowanie w przeszkode */
-        s.styl-=strata;s.zdarzenia.push({typ:'trik',nazwa:'BAIL',pkt:-strata});}
+      if(s.skokT>=0&&(s.stylLot||0)>0){                                  /* BAIL: gleba kasuje niezbankowany lot */
+        s.zdarzenia.push({typ:'trik',nazwa:'BAIL',pkt:-s.stylLot});
+        s.stylLot=0;s.lotTriki=0;}
       if(o.typ==='wyspa'){
         s.pasOd=pozycjaPasa(s);
         s.pas=((o.t*13)|0)%2?0:2;s.pasT=0;}
@@ -3330,6 +3439,9 @@ const R3=(()=>{
     } else { aktor.scale.x=1;aktor.scale.z=1; }
     if(s.sruba&&s.skokT>=0&&s.pasT<1)                                 /* ŚRUBA: roll przy przeplocie w locie */
       aktor.rotation.z=s.sruba*(1-s.pasT)*Math.PI*2;
+    if(s.grind&&Math.random()<dt*24)                                  /* GRIND: iskry spod stopy */
+      burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*0.3,0.04,0.35)),
+        0xffc36e,1,0.7,0.9,0.05);
     if(squashT>0){squashT-=dt;                                        // SQUASH lądowania
       aktor.scale.y*=0.72;aktor.scale.x*=1.16;aktor.scale.z*=1.16;}
     if(s.flow&&Math.random()<dt*9)
@@ -3343,13 +3455,13 @@ const R3=(()=>{
     if(s.combo>=8&&Math.random()<dt*14)                             // wiatr w plecy przy serii x8+
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
         0xcfd8ee,1,0.5,0.2,0.05);
-    if(s.combo>=15&&Math.random()<dt*(16+Math.min(s.combo,30))){    /* FEVER-trail: zlota smuga od x15, gestnieje do x30 */
+    if((s.combo>=15||s.turboT>0)&&Math.random()<dt*(16+Math.min(Math.max(s.combo,16),30))){ /* FEVER/TURBO smuga */
       const fk=[0xf2c14e,0xe8561e,0xffd76a][Math.floor(Math.random()*3)];
       burst(aktor.position.clone().add(new THREE.Vector3(
         (Math.random()-0.5)*0.9,0.25+Math.random()*0.9,0.9+Math.random()*0.8)),fk,1,0.9,1.5,0.075);}
 
     kamera.position.x=lerp(kamera.position.x,x*0.58,0.09);
-    kamera.fov=62+(s.predkosc-CFG.PREDKOSC_BAZOWA)*1.1+(s.skokT>=0?-2:0)+(s.combo>=8?3:0);
+    kamera.fov=62+(s.predkosc-CFG.PREDKOSC_BAZOWA)*1.1+(s.skokT>=0?-2:0)+(s.combo>=8?3:0)+(s.turboT>0?6:0);
     if(shake>0){shake-=dt;
       kamera.position.x+=(Math.random()-0.5)*shake*0.9;
       kamera.position.y=4.6+(Math.random()-0.5)*shake*0.7;
@@ -3475,7 +3587,7 @@ const R3=(()=>{
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
     if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);}
     if(zd.typ==='pioro'){Dzwiek.pioro(zd.seria%14);
-      burst(poz,0xcfd8ee,4,1.4,1.6,0.06);}
+      burst(poz,0xf2c14e,6,1.7,1.9,0.065);}                           /* GFX-szlif: zloty blysk piora */
     if(zd.typ==='oWlos'){Dzwiek.oWlos();}
     if(zd.typ==='skok')Dzwiek.skok();
     if(zd.typ==='slizg'){Dzwiek.slizg();burst(poz.clone().setY(0.1),0x555e70,5,2,1,0.07);}
@@ -3600,7 +3712,8 @@ const Gra=(()=>{
       b.setAttribute('aria-label','Etap '+n);
       b.onclick=()=>{Dzwiek.odpal();start(n,'etap');};
       grid.appendChild(b);przyciskiEtapow[n]=b;}
-    el('gwiazdkiLicznik').textContent='⭐ '+Object.keys(Biegus.gwiazdki||{}).length+' / 32';   /* GWIAZDKI-mapa */
+    el('gwiazdkiLicznik').textContent='⭐ '+Object.keys(Biegus.gwiazdki||{}).length+' / 32'+
+      '   ·   🗺️ '+Object.keys(Biegus.mapki||{}).length+' / 12';   /* GWIAZDKI-mapa + MAPKA */
     odswiezEtapy();}
   function odswiezEtapy(){for(const n in przyciskiEtapow)
     przyciskiEtapow[n].classList.toggle('zrobiony',Biegus.ukonczone.has('e'+n));}
@@ -4048,8 +4161,9 @@ const Gra=(()=>{
       `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
     el('pioraHud').textContent='🪶'+sym.piora;
-    el('stylHud').textContent=(sym.styl||0)>0?'✦'+sym.styl:'';        /* STYL w HUD */
-    el('linieFever').style.opacity=sym.combo>=15?1:0;                 /* GFX-szlif: fever linie */
+    el('stylHud').textContent=((sym.styl||0)>0||(sym.stylLot||0)>0)   /* STYL w HUD + pending lotu */
+      ?('✦'+sym.styl+((sym.stylLot||0)>0?' (+'+sym.stylLot+')':'')):'';
+    el('linieFever').style.opacity=(sym.combo>=15||(sym.turboT||0)>0)?1:0;  /* fever/turbo linie */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
     if(sym.combo>(_ostCombo||0)){
@@ -4095,12 +4209,16 @@ const Gra=(()=>{
     if(sym.tryb==='etap'){
       Biegus.rekordy=Biegus.rekordy||{};
       const k='e'+biezacyEtap,r=Biegus.rekordy[k];
+      const staryS=(r&&r.styl)||0,nowyS=(sym.styl||0)>staryS&&(sym.styl||0)>0;
       if(!r||sym.piora>r.piora){
-        Biegus.rekordy[k]={piora:sym.piora,combo:sym.maxCombo};
-        rb.textContent=r?'🏆 NOWY REKORD ETAPU! '+sym.piora+' 🪶 (było '+r.piora+')'
-                        :'🏆 PIERWSZY REKORD ETAPU: '+sym.piora+' 🪶';
+        Biegus.rekordy[k]={piora:sym.piora,combo:sym.maxCombo,styl:Math.max(sym.styl||0,staryS)};
+        rb.textContent=(r?'🏆 NOWY REKORD ETAPU! '+sym.piora+' 🪶 (było '+r.piora+')'
+                        :'🏆 PIERWSZY REKORD ETAPU: '+sym.piora+' 🪶')
+          +(nowyS?' · ✦ REKORD STYLU: '+sym.styl:'');
         rb.hidden=false;Dzwiek.medal&&Dzwiek.medal();}
-      else{rb.textContent='Rekord etapu: '+r.piora+' 🪶 — zabrakło '+(r.piora-sym.piora);
+      else{Biegus.rekordy[k].styl=Math.max(staryS,sym.styl||0);
+        rb.textContent='Rekord etapu: '+r.piora+' 🪶 — zabrakło '+(r.piora-sym.piora)
+          +(nowyS?' · ✦ REKORD STYLU: '+sym.styl+'!':'');
         rb.hidden=false;}}
     tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
     document.body.classList.remove('flow');
@@ -4281,6 +4399,15 @@ const Gra=(()=>{
       dymek(zd.dane.tekst,zd.dane.emoji+' '+zd.dane.imie);return;}
     if(zd.typ==='salto'){popup('SALTO!',true);Dzwiek.salto();return;}
     if(zd.typ==='grindStart'){popup('GRIND!',true);Dzwiek.gwizd&&Dzwiek.gwizd();return;}
+    if(zd.typ==='bokMurka'){popup('O MUREK!');Dzwiek.oWlos&&Dzwiek.oWlos();return;}
+    if(zd.typ==='mapka'){Biegus.mapki=Biegus.mapki||{};
+      Biegus.mapki['e'+biezacyEtap]=true;Biegus.zapisz&&Biegus.zapisz();
+      const ile=Object.keys(Biegus.mapki).length;
+      popup('KAWAŁEK MAPY!',true);Dzwiek.znal&&Dzwiek.znal();
+      Gra?.toast?.('🗺️ <b>Kawałek mapy '+ile+' / 12</b>'+(ile>=12?' — MAPA KOMPLETNA! Coś się szykuje…':''));
+      burst(poz,0xead9ae,14,2.4,2.6,0.075);return;}
+    if(zd.typ==='turbo'){popup('WIATR W PLECY!',true);Dzwiek.gwizd&&Dzwiek.gwizd();
+      burst(poz,0xf2c14e,12,2.6,2.2,0.07);return;}
     if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
       if(zd.nazwa)popup(zd.nazwa+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
@@ -4359,7 +4486,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.4',
+  wersja:'4.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
