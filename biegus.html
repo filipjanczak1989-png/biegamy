@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.7 (Ślad klucza)</title>
+<title>Bieguś — Droga na Igrzyska · v4.8 (Sklep stylu)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.7 „ŚLAD KLUCZA" (fabula — pitch Filipa)
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.8 „SKLEP STYLU" (Tony Bieguś filar d — ROADMAPA a/b/c/d KOMPLET)
+     · SKLEP-2.0: buty grindowe (+40% ✦ z grindow, 260), opaska stylu
+       (+25% wszystkie triki, 180), czapka tropiciela (czuje kawalki mapy
+       na starcie etapu, 110), koszulka wiatru (turbo 7 s, 320)
+     · 7. CEL: "Przegrinduj N krawedzi" (licznik s.grindy) — pierwotne
+       zyczenie: "zalicz 5 barierek"
+     · 2 misje dzienne zajaca: d-grind2, d-triki6
+     v4.7 „ŚLAD KLUCZA" (fabula — pitch Filipa)
      · MAPA_WPISY 12 szt: kazdy kawalek = slad innego biegusia z klucza
        (Halny..Przewodniczka); toast z imieniem, PELNY wpis na mecie
        (mapkaBox), dymki Biegusia przy 1/6/12; komplet = punkt zbiorki
@@ -1206,6 +1213,8 @@ const DZIENNE_PULA=[
   {id:'d-piora60', npc:'zolw',      typ:'pioro', cel:60, pior:35, tekst:'Zbierz {cel} piór. Długi dystans to wiele małych kroków.'},
   {id:'d-znal2',   npc:'wiewiorka', typ:'znal',  cel:2,  pior:25, tekst:'Znajdź {cel} znaleziska. Kto zbiera, ten ma!'},
   {id:'d-uniki25', npc:'orzel',     typ:'unik',  cel:25, pior:25, tekst:'Omiń {cel} przeszkód. Technika! Oddech! Rytm!'},
+  {id:'d-grind2',  npc:'zajac',     typ:'grind', cel:2,  pior:30, tekst:'Zalicz {cel} grindy po krawędzi. Murek to nie przeszkoda, to zaproszenie!'},
+  {id:'d-triki6',  npc:'zajac',     typ:'trik',  cel:6,  pior:30, tekst:'Zrób {cel} trików. Śruba, grab, tornado — pokaż styl!'},
   {id:'d-slizgi6', npc:'zajac',     typ:'slizgSzlaban',cel:6, pior:30, tekst:'Prześlizgnij się {cel} razy. Szybkość to odwaga w nogach.'},
   {id:'d-trening', npc:'kura',      typ:'trening',cel:1, pior:30, tekst:'Zalicz {cel} trening. Zdrowy Bieguś to szczęśliwy Bieguś.'},
   {id:'d-mentor2', npc:'zolw',      typ:'mentor',cel:2,  pior:20, tekst:'Spotkaj {cel} przyjaciół przy trasie. Nie biegnij sam.'},
@@ -2187,9 +2196,10 @@ const CELE_PULA=[
   {id:'salta',  tekst:n=>'Zrób '+(n===1?'salto':n+' salta'), cel:e=>Math.min(4,1+Math.floor(e/8)), spr:(s,n)=>(s.salta||0)>=n},
   {id:'uniki',  tekst:n=>'Omiń '+n+' przeszkód',     cel:e=>10+e,                             spr:(s,n)=>(s.ominiete||0)>=n},
   {id:'styl',   tekst:n=>'Zdobądź '+n+' ✦ stylu',    cel:e=>250+e*35,                         spr:(s,n)=>(s.styl||0)>=n},
+  {id:'grindy', tekst:n=>'Przegrinduj '+n+(n===1?' krawędź':' krawędzie'), cel:e=>Math.min(4,1+Math.floor(e/9)), spr:(s,n)=>(s.grindy||0)>=n},
 ];
 function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, powtarzalne per etap
-  const idx=[0,1,2,3,4,5];
+  const idx=[0,1,2,3,4,5,6];
   let h=(e*374761393)>>>0;h=((h^(h>>>13))*1274126177)>>>0;h=(h^(h>>>16))>>>0;
   for(let i=idx.length-1;i>0;i--){h=(h*1103515245+12345)>>>0;const j=(h>>>16)%(i+1);
     const t=idx[i];idx[i]=idx[j];idx[j]=t;}
@@ -2210,9 +2220,10 @@ function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pendi
   if(s.tryb==='zawody')return;
   const wLocie=s.skokT>=0;
   const chain=wLocie?(1+0.5*(s.lotTriki||0)):1;
-  const p=Math.round(ile*(1+Math.min(s.combo,30)/20)*chain);
+  const p=Math.round(ile*(1+Math.min(s.combo,30)/20)*chain*(s.gStyl||1));  /* SKLEP-2.0: opaska stylu */
   if(wLocie){s.stylLot=(s.stylLot||0)+p;s.lotTriki=(s.lotTriki||0)+1;}
   else s.styl=(s.styl||0)+p;
+  if(nazwa)Misje.zdarzenie('trik');                                   /* MISJA: triki */
   s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
 function bankujTriki(s){                          /* BANK: czyste ladowanie zamyka lot */
   if(!s.stylLot)return;
@@ -2228,7 +2239,7 @@ function murekPod(s){                             /* GRIND: obiekt grindowalny p
 function zakonczGrind(s,wyskok){                  /* GRIND: nalicz styl i zejdz */
   if(!s.grind)return;
   const d=OBIEKTY[s.grind.typ],czas=s.t-s.grindStart;
-  dodajStyl(s,Math.round((30+czas*70)*(d.stylMnoznik||1)),'GRIND');
+  dodajStyl(s,Math.round((30+czas*70)*(d.stylMnoznik||1)*(s.gGrind||1)),'GRIND');  /* SKLEP-2.0: buty grindowe */
   s.grind=null;s.ostatniGrindKoniec=s.t;            /* TRANSFER: stempel zejscia */
   s.zdarzenia.push({typ:wyskok?'skok':'ladowanie'});}
 function probujAkcje(s,a){
@@ -2287,6 +2298,7 @@ function krokSymulacji(s){
       bankujTriki(s);                              /* BANK: czyste ladowanie */
       const mp=murekPod(s);                        /* GRIND: ladowanie na krawedzi */
       if(mp&&!s.grind){s.grind=mp;s.grindStart=s.t;s.grindTick=s.t;
+        s.grindy=(s.grindy||0)+1;Misje.zdarzenie('grind');            /* CEL/MISJA: przegrinduj N */
         s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
         if(s.t-s.ostatniGrindKoniec<1.3)dodajStyl(s,200,'TRANSFER');  /* TRANSFER: grind->grind */
         s.zdarzenia.push({typ:'grindStart'});}
@@ -2378,7 +2390,7 @@ function krokSymulacji(s){
       o.trafione=true;s.zdarzenia.push({typ:'mapka'});continue;}
     if(o.typ==='turbo'){                                            /* TURBO: 5 s wymuszonego fevera */
       if(!wStrefie||o.pas!==s.pas||s.pasT<0.65)continue;
-      o.trafione=true;s.turboT=5;s.zdarzenia.push({typ:'turbo'});continue;}
+      o.trafione=true;s.turboT=(s.gWiatr||5);s.zdarzenia.push({typ:'turbo'});continue;}  /* SKLEP-2.0: koszulka wiatru */
     if(o.typ==='rywal'){                                            // Błysk mija gracza
       if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){o.sprawdzone=true;
         s.zdarzenia.push({typ:'rywal'});}
@@ -3781,6 +3793,11 @@ const Gra=(()=>{
     {id:'korona-legendy',slot:'glowa',tier:'legenda',nazwa:'Korona legendy',emoji:'👑'},
     {id:'skrzydla-mocy',slot:'dodatek',tier:'neon',nazwa:'Skrzydła mocy',emoji:'🪽',cena:300},
     {id:'skrzydla-ultimate',slot:'dodatek',tier:'legenda',nazwa:'Skrzydła ultimate',emoji:'🪽'},
+    /* SKLEP-2.0 (filar d): itemy pod styl/grind/mape */
+    {id:'buty-grind',slot:'buty',tier:'neon',nazwa:'Buty grindowe',emoji:'👟',cena:260,bonus:'grind',bopis:'MOC: grindy dają +40% ✦'},
+    {id:'opaska-stylu',slot:'dodatek',tier:'elita',nazwa:'Opaska stylu',emoji:'🎗️',cena:180,bonus:'styl',bopis:'MOC: wszystkie triki +25% ✦'},
+    {id:'czapka-tropiciela',slot:'glowa',tier:'trail',nazwa:'Czapka tropiciela',emoji:'🧭',cena:110,bonus:'tropiciel',bopis:'MOC: czujesz kawałki mapy na trasie (info na starcie)'},
+    {id:'koszulka-wiatru',slot:'koszulka',tier:'legenda',nazwa:'Koszulka wiatru',emoji:'👕',cena:320,bonus:'wiatr',bopis:'MOC: Wiatr w plecy trwa 7 s zamiast 5'},
   ];
   function emocjaBiegusia(){
     const teraz=Date.now();
@@ -4159,7 +4176,11 @@ const Gra=(()=>{
       if(it.bonus==='bloto')sym.bonusyG.bloto=true;
       if(it.bonus==='zlota')sym.bonusyG.zlota=0.15;
       if(it.bonus==='piora5')sym.bonusyG.piora+=0.05;
-      if(it.bonus==='piora10')sym.bonusyG.piora+=0.10;});
+      if(it.bonus==='piora10')sym.bonusyG.piora+=0.10;
+      if(it.bonus==='grind')sym.gGrind=1.4;                          /* SKLEP-2.0 */
+      if(it.bonus==='styl')sym.gStyl=1.25;
+      if(it.bonus==='tropiciel')sym.tropiciel=true;
+      if(it.bonus==='wiatr')sym.gWiatr=7;});
     sym.bonusyG.piora=Math.min(0.2,sym.bonusyG.piora);
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
@@ -4177,6 +4198,11 @@ const Gra=(()=>{
     if(sym.flowMnoznik)moce.push('🧥 flow+');
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
     if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
+    if(sym.gGrind)moce.push('👟 grind +40% ✦');                       /* SKLEP-2.0 */
+    if(sym.gStyl)moce.push('🎗️ triki +25% ✦');
+    if(sym.gWiatr)moce.push('👕 wiatr 7 s');
+    if(sym.tropiciel&&sym.skrypt&&sym.skrypt.ev&&sym.skrypt.ev.some(e=>e.typ==='mapka'))
+      moce.push('🧭 CZUJESZ KAWAŁEK MAPY NA TEJ TRASIE!');
     const im=el('introMoce');im.hidden=!moce.length;
     im.textContent=moce.length?('MOC STROJU: '+moce.join(' · ')):'';
     const NAZWY_MOTYWU={klasyczny:'',pioropusz:' · „PIÓROPUSZ"',akrobatyczny:' · „AKROBACJE"',
@@ -4544,7 +4570,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.7',
+  wersja:'4.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
