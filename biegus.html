@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.11 (Dopamina i pomost)</title>
+<title>Bieguś — Droga na Igrzyska · v3.12 (Wolna droga)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.11 „DOPAMINA I POMOST"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.12 „WOLNA DROGA"
+     · FIX-dekor-hit: schody/tunel/segmenty i kit rozstajów przestały
+       zabierać serca przy wbiegnięciu (dekor pomijany w MOMENCIE PRAWDY)
      Względem v3.10 (feedback: „brakuje dopaminy!"):
      · CELEBRACJE COMBO: progi ×5/×10/×15/×20/×30 = wielki popup,
        rosnący akord (im wyższy próg, tym bogatszy), wibracja-werbel,
@@ -2089,6 +2091,7 @@ function krokSymulacji(s){
        Koniec z lądowaniem „na przeszkodę" przy wczesnym skoku. */
     if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){
       o.sprawdzone=true;
+      if(OBIEKTY[o.typ].dekor)continue;  /* FIX-dekor-hit: scenografia (segment schody/tunel, kit rozstajów, znak, zebra) NIE bije — kolizją rozstajów jest wyspa */
       if(o.pas!==s.pas||s.pasT<0.65)continue;
       const unik=OBIEKTY[o.typ].unik;
       const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
@@ -4127,7 +4130,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.11',
+  wersja:'3.12',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
