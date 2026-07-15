@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.1 (Cień i chmury)</title>
+<title>Bieguś — Droga na Igrzyska · v5.2 (Most v2)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.1 „CIEŃ I CHMURY" (szlif GFX+gameplay)
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.2 „MOST V2" (BiegaMy <-> Biegus)
+     · MOST-v2: sesja appki z localStorage (ten sam origin), REST z tokenem
+       usera: athletes(user_id)->id, biegus_most.ostatni_odbior (1. raz:
+       7 dni wstecz), suma distance_km z training_logs (filtr __badge__*),
+       5 pior/km, PATCH znacznika PRZED wyplata (anty-dubel), karmienie
+       Biegus.trening(min(km,20)) — najedzenie/wiez/ewolucja/bonusTreningu
+     · wygasla sesja / brak logowania = cisza (zero refresh flow w grze)
+     · wymaga tabeli biegus_most (SQL w gotowcu cc)
+     v5.1 „CIEŃ I CHMURY"
      · CIEN-lad: blob-cien pod graczem w locie/grindzie (skala z wysokoscia)
        — widac gdzie wyladujesz = precyzja grindow i skokow
      · CHMURY: 4 miekkie sprite-chmury z wolnym dryfem (canvas radial)
@@ -1184,6 +1192,51 @@ const Biegus={
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
 sprawdzBonusZegarka();                           /* ZEGAREK-auto */
+const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; ten sam origin, sesja z localStorage */
+  URL:'https://afqojgkaveykxbltxzwm.supabase.co',
+  KEY:'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY',
+  sesja(){try{
+    const raw=localStorage.getItem('sb-afqojgkaveykxbltxzwm-auth-token');
+    if(!raw)return null;const j=JSON.parse(raw);
+    const tok=j.access_token||((j.currentSession||{}).access_token);
+    if(!tok)return null;
+    const pl=JSON.parse(atob(tok.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
+    if(!pl.sub||pl.exp*1000<Date.now()+30000)return null;  // wygasla sesja: cisza (zero refresh w grze)
+    return{tok,uid:pl.sub};}catch(e){return null;}},
+  naglowki(tok,json){const h={apikey:this.KEY,Authorization:'Bearer '+tok};
+    if(json){h['Content-Type']='application/json';h['Prefer']='return=minimal';}return h;},
+  async czytaj(tok,path){const r=await fetch(this.URL+'/rest/v1/'+path,{headers:this.naglowki(tok)});
+    if(!r.ok)throw new Error('REST '+r.status);return r.json();},
+  async odbierz(){try{
+    const s=this.sesja();if(!s)return;
+    const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
+    if(!at.length)return;const aid=at[0].id;
+    const m=await this.czytaj(s.tok,'biegus_most?select=ostatni_odbior&athlete_id=eq.'+aid);
+    let od;
+    if(!m.length){                              // pierwszy raz: tydzien wstecz na dzien dobry
+      od=new Date(Date.now()-7*864e5).toISOString();
+      const ins=await fetch(this.URL+'/rest/v1/biegus_most',{method:'POST',
+        headers:this.naglowki(s.tok,true),
+        body:JSON.stringify({athlete_id:aid,ostatni_odbior:od})});
+      if(!ins.ok)return;}
+    else od=m[0].ostatni_odbior;
+    const logs=await this.czytaj(s.tok,'training_logs?select=distance_km'+
+      '&athlete_id=eq.'+aid+'&logged_at=gt.'+encodeURIComponent(od)+
+      '&training_type=not.like.__badge__*');
+    const km=logs.reduce((a,l)=>a+(+l.distance_km||0),0);
+    const piora=Math.floor(km*5);
+    if(piora<1)return;
+    const up=await fetch(this.URL+'/rest/v1/biegus_most?athlete_id=eq.'+aid,{method:'PATCH',
+      headers:this.naglowki(s.tok,true),
+      body:JSON.stringify({ostatni_odbior:new Date().toISOString()})});
+    if(!up.ok)return;                           // bez przesuniecia znacznika NIE wyplacamy (anty-dubel)
+    Biegus.portfelPior+=piora;
+    Biegus.trening(Math.min(km,20));            // karmienie z capem zdrowia (najedzenie/wiez/bonus)
+    Biegus.zapisz&&Biegus.zapisz();
+    Gra?.toast?.('🌉 <b>MOST:</b> +'+piora+' 🪶 za '+km.toFixed(1)+' km realnych treningów — jesteśmy obok!');
+    Dzwiek.medal&&Dzwiek.medal();
+  }catch(e){}}};
+setTimeout(()=>MOST.odbierz(),1800);             /* MOST-v2: auto-odbior po starcie */
 /* — ikony kafli menu (partia 8): podmiana emoji na grafiki, fallback zostaje — */
 document.querySelectorAll('[data-iko]').forEach(sp=>{
   const im=new Image();
@@ -4645,7 +4698,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.1',
+  wersja:'5.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
