@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.1 (Akcja od startu)</title>
+<title>Bieguś — Droga na Igrzyska · v4.2 (Styl w locie)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.1 „AKCJA OD STARTU" (zawiera v4.0)
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.2 „STYL W LOCIE" (Tony Bieguś filar a)
+     · STYL: nowa waluta sesyjna ✦ — PRZEPLOT (zmiana pasa w locie) +40,
+       GRAB (swipe w dol w locie, tuck) +60, SALTO +100; combo mnozy styl
+       (x1..x2.5); BAIL (ladowanie w przeszkode) -100; zawody czyste
+     · 6. cel etapu: "Zdobadz N stylu" (zestawy celow przelosowane 1x)
+     · GWIAZDKI-mapa: ⭐ przy etapie na gridzie + licznik X/32
+     v4.1 „AKCJA OD STARTU" (zawiera v4.0)
      · ZEGAREK-auto: bonus +75 przyznawany AUTOMATYCZNIE po realnym
        podlaczeniu zegarka (flaga z intervals-callback, wspolny klucz
        biegus_kody — kod reczny zostaje jako fallback cross-device)
@@ -604,6 +610,7 @@
   <span id="pioraHud">🪶0</span>
   <span id="znalHud"></span><span id="karaHud"></span>
   <span id="comboHud" style="font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--zloto)"></span>
+  <span id="stylHud" style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#7ec8ff"></span>
   <button id="btnPauza" aria-label="Pauza">⏸</button>
   <button id="btnMute" aria-label="Wycisz dźwięk">🔊</button>
 </div>
@@ -674,6 +681,7 @@
     <span><b id="stZnal">0/2</b>znaleziska</span>
     <span><b id="stCombo">0</b>max seria</span>
     <span id="stCzasBox" hidden><b id="stCzas">60s</b>czas</span>
+    <span id="stStylBox" hidden><b id="stStyl">0</b>✦ styl</span>
   </div>
   <button class="cta" id="btnDalej">Dalej</button>
   <button id="btnPowtorka">Powtórz</button>
@@ -782,6 +790,7 @@
   <h2>WYBIERZ ETAP</h2>
   <div class="zakladki" id="zakladkiKrain"></div>
   <div class="etapy" id="gridEtapow" style="margin:0 auto;justify-content:center"></div>
+  <div class="pod" id="gwiazdkiLicznik" style="margin-top:6px;color:#f2c14e"></div>
   <br><button id="btnEtapyWroc">← Wróć</button>
 </div>
 
@@ -1995,9 +2004,10 @@ const CELE_PULA=[
   {id:'perfekt',tekst:()=>'Ukończ bez trafienia',    cel:()=>1,                               spr:s=>s.serca===(s.sercaMax||CFG.SERCA)},
   {id:'salta',  tekst:n=>'Zrób '+(n===1?'salto':n+' salta'), cel:e=>Math.min(4,1+Math.floor(e/8)), spr:(s,n)=>(s.salta||0)>=n},
   {id:'uniki',  tekst:n=>'Omiń '+n+' przeszkód',     cel:e=>10+e,                             spr:(s,n)=>(s.ominiete||0)>=n},
+  {id:'styl',   tekst:n=>'Zdobądź '+n+' ✦ stylu',    cel:e=>250+e*35,                         spr:(s,n)=>(s.styl||0)>=n},
 ];
 function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, powtarzalne per etap
-  const idx=[0,1,2,3,4];
+  const idx=[0,1,2,3,4,5];
   let h=(e*374761393)>>>0;h=((h^(h>>>13))*1274126177)>>>0;h=(h^(h>>>16))>>>0;
   for(let i=idx.length-1;i>0;i--){h=(h*1103515245+12345)>>>0;const j=(h>>>16)%(i+1);
     const t=idx[i];idx[i]=idx[j];idx[j]=t;}
@@ -2010,12 +2020,19 @@ function nowaSymulacja(skrypt,tryb='etap'){
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
-    flow:false,flowBank:0,bonusyG:null,
+    flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
+function dodajStyl(s,ile,nazwa){                 /* STYL (v4.0a): combo mnozy styl, zawody czyste */
+  if(s.tryb==='zawody')return;
+  const p=Math.round(ile*(1+Math.min(s.combo,30)/20));
+  s.styl=(s.styl||0)+p;
+  s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
 function probujAkcje(s,a){
-  if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;}return true;}
-  if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;}return true;}
+  if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
+    if(s.skokT>=0)dodajStyl(s,40,'PRZEPLOT');}return true;}          /* STYL: zmiana pasa w locie = trik */
+  if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;
+    if(s.skokT>=0)dodajStyl(s,40,'PRZEPLOT');}return true;}
   if(a==='skok'){
     if(s.skokT<0&&s.slizgT<0){s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
       s.zdarzenia.push({typ:'skok'});return true;}
@@ -2024,9 +2041,12 @@ function probujAkcje(s,a){
       s.salto=true;s.skokCzas*=CFG.SALTO_BONUS;s.salta++;
       s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
       Misje.zdarzenie('salto');
+      dodajStyl(s,100,null);                                          /* STYL: salto = 100 (popup SALTO! juz jest) */
       s.zdarzenia.push({typ:'salto',combo:s.combo});return true;}
     return false;}
-  if(a==='slizg'){if(s.slizgT<0&&s.skokT<0){s.slizgT=0;s.zdarzenia.push({typ:'slizg'});return true;}return false;}
+  if(a==='slizg'){
+    if(s.skokT>=0&&!s.grab){s.grab=true;dodajStyl(s,60,'GRAB');return true;}  /* STYL: swipe w dol w locie = GRAB */
+    if(s.slizgT<0&&s.skokT<0){s.slizgT=0;s.zdarzenia.push({typ:'slizg'});return true;}return false;}
   return true;}
 function udanyUnik(s,o){
   o.uniknieto=true;
@@ -2056,7 +2076,7 @@ function krokSymulacji(s){
   }
   if(s.pasT<1)s.pasT=Math.min(1,s.pasT+KROK/CFG.CZAS_PASA);
   if(s.skokT>=0){s.skokT+=KROK;
-    if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.skokCzas=CFG.SKOK;
+    if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.grab=false;s.skokCzas=CFG.SKOK;
       s.zdarzenia.push({typ:'ladowanie'});}}
   if(s.slizgT>=0){s.slizgT+=KROK;if(s.slizgT>CFG.SLIZG)s.slizgT=-1;}
   if(s.nietyk>0)s.nietyk-=KROK;
@@ -2164,6 +2184,8 @@ function krokSymulacji(s){
         s.boostery.tarcza=false;o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'tarcza'});continue;}
       o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
+      if(s.skokT>=0&&(s.styl||0)>0){const strata=Math.min(s.styl,100);   /* STYL: BAIL — ladowanie w przeszkode */
+        s.styl-=strata;s.zdarzenia.push({typ:'trik',nazwa:'BAIL',pkt:-strata});}
       if(o.typ==='wyspa'){
         s.pasOd=pozycjaPasa(s);
         s.pas=((o.t*13)|0)%2?0:2;s.pasT=0;}
@@ -3211,6 +3233,9 @@ const R3=(()=>{
       aktor.scale.setScalar(1-0.24*tuck);                            // kulenie w locie
       if(Math.random()<dt*34)
         burst(aktor.position.clone(),0xf6efe4,1,0.7,0.3,0.05);       // smuga piór
+    } else if(s.grab&&s.skokT>=0){                                    /* STYL: tuck graba */
+      const g=Math.sin((s.skokT/s.skokCzas)*Math.PI);
+      aktor.scale.setScalar(1-0.2*g);
     } else { aktor.scale.x=1;aktor.scale.z=1; }
     if(squashT>0){squashT-=dt;                                        // SQUASH lądowania
       aktor.scale.y*=0.72;aktor.scale.x*=1.16;aktor.scale.z*=1.16;}
@@ -3461,10 +3486,12 @@ const Gra=(()=>{
     const od=KRAINY_ETAPY[wybranaKraina][1];
     const grid=el('gridEtapow');grid.innerHTML='';przyciskiEtapow={};
     for(let n=od;n<od+8;n++){
-      const b=document.createElement('button');b.textContent=n;
+      const b=document.createElement('button');
+      b.innerHTML=n+(((Biegus.gwiazdki||{})['e'+n])?' <span style="font-size:9px">⭐</span>':'');  /* GWIAZDKI-mapa */
       b.setAttribute('aria-label','Etap '+n);
       b.onclick=()=>{Dzwiek.odpal();start(n,'etap');};
       grid.appendChild(b);przyciskiEtapow[n]=b;}
+    el('gwiazdkiLicznik').textContent='⭐ '+Object.keys(Biegus.gwiazdki||{}).length+' / 32';   /* GWIAZDKI-mapa */
     odswiezEtapy();}
   function odswiezEtapy(){for(const n in przyciskiEtapow)
     przyciskiEtapow[n].classList.toggle('zrobiony',Biegus.ukonczone.has('e'+n));}
@@ -3912,6 +3939,7 @@ const Gra=(()=>{
       `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
     el('pioraHud').textContent='🪶'+sym.piora;
+    el('stylHud').textContent=(sym.styl||0)>0?'✦'+sym.styl:'';        /* STYL w HUD */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
     if(sym.combo>(_ostCombo||0)){
@@ -4073,6 +4101,9 @@ const Gra=(()=>{
     el('stPiora').textContent=sym.piora;
     el('stZnal').textContent=sym.zebrane.length+'/'+CFG.ZNALEZISKA_NA_ETAP;
     el('stCombo').textContent='x'+sym.maxCombo;
+    el('stStylBox').hidden=!(sym.tryb==='etap'&&(sym.styl||0)>0);      /* STYL na mecie */
+    el('stStyl').textContent=sym.styl||0;
+    if(sym.tryb==='etap')Biegus.statystyki.lacznyStyl=(Biegus.statystyki.lacznyStyl||0)+(sym.styl||0);
     odswiezMenuStatus();
     pokaz('finisz');
     window.DROGA.onStageComplete({kraina:1,etap:sym.skrypt.etap,seed:sym.skrypt.seed,tryb:sym.tryb,
@@ -4139,6 +4170,10 @@ const Gra=(()=>{
       if(zd.dane.klucz)R3.przelotKlucza();else R3.pokazGoscia(zd.dane);
       dymek(zd.dane.tekst,zd.dane.emoji+' '+zd.dane.imie);return;}
     if(zd.typ==='salto'){popup('SALTO!',true);Dzwiek.salto();return;}
+    if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
+      if(zd.nazwa)popup(zd.nazwa+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
+      if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
+      const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='tarcza'){popup('TARCZA!');R3.efekt(zd);return;}
     if(zd.typ==='gwizd'){Dzwiek.gwizd();return;}
     if(zd.typ==='klakson'){Dzwiek.klakson();return;}
@@ -4213,7 +4248,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.1',
+  wersja:'4.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
