@@ -3,11 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.3 (Śruba i szlif)</title>
+<title>Bieguś — Droga na Igrzyska · v4.4 (Grind i zasadzka)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.3 „ŚRUBA I SZLIF"
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.4 „GRIND I ZASADZKA" (filar b)
+     · GRIND: murek (e3+) i rurka (k3, e9+, styl x1.6) — wskocz z lotu,
+       jedz po krawedzi (y=wysokosc), wyskok skokiem, zeskok pasem/ogonem;
+       styl 30+70/s, czolo bije jak przeszkoda skokowa
+     · ZASADZKA: kot z bramy wypada z pobocza (czajenie + wykrzyknik
+       + miauk ostrzegawczy), unik skok/pas — przeszkoda "z boku"
+     · szlaban waga 2->3 (slide-only czesciej); speed-lines przy feverze
+     v4.3 „ŚRUBA I SZLIF"
      · ŚRUBA: przeplot w locie robi teraz pelny roll na modelu (kierunkowy),
        nazwa trika PRZEPLOT->ŚRUBA; GRAB w salcie = TORNADO +150
      · GFX-szlif: antialias ON, ekspozycja 1.06, cien 2048, rim light
@@ -610,6 +617,8 @@
 <canvas id="gra3d" aria-label="Bieguś — Droga, gra 3D"></canvas>
 <div id="winieta" style="position:fixed;inset:0;pointer-events:none;z-index:2;
   background:radial-gradient(ellipse 118% 96% at 50% 42%,transparent 62%,rgba(6,8,14,.38) 100%)"></div><!-- GFX-szlif -->
+<div id="linieFever" style="position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .5s;
+  background:linear-gradient(90deg,rgba(242,193,78,.26),transparent 16%,transparent 84%,rgba(242,193,78,.26))"></div><!-- GFX-szlif: fever -->
 
 <div id="hud" hidden>
   <span id="serca"></span>
@@ -1328,7 +1337,7 @@ const OBIEKTY={
       g.userData.lisc.rotation.y=t*0.4;},
   },
   szlaban:{
-    nazwa:'Parkowy szlaban',unik:'slizg',mult:1.0,waga:2,odEtapu:1,odCzasu:0,
+    nazwa:'Parkowy szlaban',unik:'slizg',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
     opis:'Miasto zamyka aleję dla aut do 6:00, o czym informuje pordzewiały szlaban w biało-pomarańczowe pasy. Na belce przysiadł wróbel — jedyny świadek Twojego ślizgu.',
     unikTekst:'▼ ŚLIZG — prześlizgnij się pod nim',
     zbuduj(){
@@ -1463,6 +1472,57 @@ const OBIEKTY={
       o.rotation.y=-t*2.2+Math.PI/2;
       o.userData.skrz.rotation.x=Math.sin(t*40)*0.6;
       g.userData.jablko.rotation.z=Math.sin(t*0.8)*0.3;},
+  },
+  murek:{  /* GRIND (v4.0b): wskocz i jedz — czolo bije jak przeszkoda skokowa */
+    nazwa:'Murek z parku',unik:'skok',mult:1.0,waga:2,odEtapu:3,odCzasu:0,
+    grind:true,wysokosc:0.85,durS:1.15,
+    opis:'Niski betonowy murek oddziela alejkę od trawnika. Deskorolkarze wytarli jego krawędź do połysku — teraz Twoja kolej, tylko że na nogach.',
+    unikTekst:'▲ WSKOCZ NA NIEGO i jedź po krawędzi (✦ GRIND!) — albo przeskocz',
+    zbuduj(){
+      const g=new THREE.Group();
+      const b=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.85,1),
+        new THREE.MeshStandardMaterial({color:0x9a938a,roughness:0.95}));
+      b.position.set(0,0.425,-0.5);b.castShadow=true;b.receiveShadow=true;g.add(b);
+      const k=new THREE.Mesh(new THREE.BoxGeometry(1.78,0.07,1),
+        new THREE.MeshStandardMaterial({color:0xc9c2b6,roughness:0.6}));
+      k.position.set(0,0.885,-0.5);g.add(k);
+      return g;},
+    animuj(){},
+  },
+  rurka:{  /* GRIND premium: barierka rurowa z remontu — styl x1.6 */
+    nazwa:'Rurka zabezpieczeń',unik:'skok',mult:1.0,waga:2,odEtapu:9,odCzasu:0,odKrainy:3,
+    grind:true,wysokosc:0.82,durS:1.35,stylMnoznik:1.6,
+    opis:'Miasto grodzi wykop błyszczącą rurką. Ekipa poszła na śniadanie, rurka została. Krawędź świata dla tych, co umieją po niej jechać.',
+    unikTekst:'▲ WSKOCZ NA RURKĘ — grind ✦ x1.6! (albo przeskocz)',
+    zbuduj(){
+      const g=new THREE.Group();
+      const s=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.72),
+        new THREE.MeshBasicMaterial({color:0x8a95a5,transparent:true,opacity:0.35,side:THREE.DoubleSide}));
+      s.position.set(0,0.36,-0.5);g.add(s);
+      const r=new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.07,1,10),
+        new THREE.MeshStandardMaterial({color:0xd8dde5,roughness:0.25,metalness:0.7}));
+      r.rotation.x=Math.PI/2;r.position.set(0,0.78,-0.5);r.castShadow=true;g.add(r);
+      return g;},
+    animuj(){},
+  },
+  zasadzka:{ /* ZASADZKA: kot wypada z pobocza na pas — ostrzega wykrzyknik i czajenie */
+    nazwa:'Kot z bramy',unik:'skok',mult:1.0,waga:2,odEtapu:4,odCzasu:8,
+    opis:'Czarny kot z bramy przy alejce ma jedną zasadę: nikt nie przebiegnie jego rewiru bez kontroli. Czai się przy poboczu i wypada w ostatniej chwili.',
+    unikTekst:'❗ Z BOKU! Kot wypada z pobocza — ▲ SKOK albo ◀ ▶',
+    zbuduj(){
+      const g=new THREE.Group();
+      const m=new THREE.MeshStandardMaterial({color:0x1e1c22,roughness:0.85});
+      const c=new THREE.Mesh(new THREE.BoxGeometry(0.72,0.4,0.42),m);c.position.y=0.34;c.castShadow=true;g.add(c);
+      const gl=new THREE.Mesh(new THREE.BoxGeometry(0.32,0.3,0.3),m);gl.position.set(0.42,0.56,0);g.add(gl);
+      const u1=new THREE.Mesh(new THREE.ConeGeometry(0.07,0.14,4),m);u1.position.set(0.5,0.76,0.09);g.add(u1);
+      const u2=u1.clone();u2.position.z=-0.09;g.add(u2);
+      const og=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.07,0.07),m);og.position.set(-0.55,0.5,0);og.rotation.z=0.5;g.add(og);
+      const alert=new THREE.Mesh(new THREE.ConeGeometry(0.14,0.4,6),
+        new THREE.MeshBasicMaterial({color:0xffd23b}));
+      alert.position.y=1.35;alert.rotation.x=Math.PI;g.userData.alert=alert;g.add(alert);
+      return g;},
+    animuj(g,t){if(g.userData.alert&&g.userData.alert.visible)
+      g.userData.alert.position.y=1.35+Math.sin(t*9)*0.09;},
   },
   segment:{
     nazwa:'Segment specjalny',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,
@@ -2027,7 +2087,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
-    flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,
+    flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,grind:null,grindStart:0,
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
 function dodajStyl(s,ile,nazwa){                 /* STYL (v4.0a): combo mnozy styl, zawody czyste */
@@ -2035,12 +2095,27 @@ function dodajStyl(s,ile,nazwa){                 /* STYL (v4.0a): combo mnozy st
   const p=Math.round(ile*(1+Math.min(s.combo,30)/20));
   s.styl=(s.styl||0)+p;
   s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
+function murekPod(s){                             /* GRIND: obiekt grindowalny pod graczem? */
+  for(const o of s.aktywne){const d=OBIEKTY[o.typ];
+    if(!d||!d.grind||o.pas!==s.pas)continue;
+    const ogon=CFG.SPAWN_Z+(drogaCalka(s,s.t)-drogaCalka(s,o.t+(o.durS||d.durS)));
+    if(ogon<=CFG.GRACZ_Z&&o.z>=CFG.GRACZ_Z)return o;}
+  return null;}
+function zakonczGrind(s,wyskok){                  /* GRIND: nalicz styl i zejdz */
+  if(!s.grind)return;
+  const d=OBIEKTY[s.grind.typ],czas=s.t-s.grindStart;
+  dodajStyl(s,Math.round((30+czas*70)*(d.stylMnoznik||1)),'GRIND');
+  s.grind=null;
+  s.zdarzenia.push({typ:wyskok?'skok':'ladowanie'});}
 function probujAkcje(s,a){
   if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
     if(s.skokT>=0){s.sruba=-1;dodajStyl(s,40,'ŚRUBA');}}return true;}  /* STYL: zmiana pasa w locie = ŚRUBA (roll) */
   if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;
     if(s.skokT>=0){s.sruba=1;dodajStyl(s,40,'ŚRUBA');}}return true;}
   if(a==='skok'){
+    if(s.grind){zakonczGrind(s,true);              /* GRIND: wyskok z murka */
+      s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
+      s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);return true;}
     if(s.skokT<0&&s.slizgT<0){s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
       s.zdarzenia.push({typ:'skok'});return true;}
     /* SALTO: drugi skok w powietrzu — wydłuża lot o 30%, nabija serię */
@@ -2085,7 +2160,12 @@ function krokSymulacji(s){
   if(s.pasT<1)s.pasT=Math.min(1,s.pasT+KROK/CFG.CZAS_PASA);
   if(s.skokT>=0){s.skokT+=KROK;
     if(s.skokT>s.skokCzas){s.skokT=-1;s.salto=false;s.grab=false;s.sruba=0;s.skokCzas=CFG.SKOK;
-      s.zdarzenia.push({typ:'ladowanie'});}}
+      const mp=murekPod(s);                        /* GRIND: ladowanie na krawedzi */
+      if(mp&&!s.grind){s.grind=mp;s.grindStart=s.t;
+        s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+        s.zdarzenia.push({typ:'grindStart'});}
+      else s.zdarzenia.push({typ:'ladowanie'});}}
+  if(s.grind&&murekPod(s)!==s.grind)zakonczGrind(s,false);  /* GRIND: ogon minal albo zmiana pasa */
   if(s.slizgT>=0){s.slizgT+=KROK;if(s.slizgT>CFG.SLIZG)s.slizgT=-1;}
   if(s.nietyk>0)s.nietyk-=KROK;
   while(s.nastepny<s.skrypt.ev.length&&s.skrypt.ev[s.nastepny].t<=s.t){
@@ -3197,6 +3277,7 @@ const R3=(()=>{
 
     const x=pozycjaPasa(s);let y=0;
     if(s.skokT>=0)y=Math.sin((s.skokT/s.skokCzas)*Math.PI)*CFG.SKOK_WYS;
+    if(s.grind)y=OBIEKTY[s.grind.typ].wysokosc;                       /* GRIND: jazda po krawedzi */
     const wSlizgu=s.slizgT>=0;
     const stanB=Biegus.stan();
     const tempo=stanB==='najedzony'?12:stanB==='ok'?10.5:7;
@@ -3315,6 +3396,22 @@ const R3=(()=>{
             if(o.fazaSpadu==='cien'){pt.position.x=-5.5*(1-blisko);pt.scale.x=1;}
             else{pt.position.x+=dt*5.5;pt.scale.x=-1;}
             pt.visible=pt.position.x<9;}
+        } else if(OBIEKTY[o.typ]&&OBIEKTY[o.typ].grind){              /* GRIND: skaluj do dlugosci czasowej */
+          const d=OBIEKTY[o.typ];
+          const ogon=CFG.SPAWN_Z+(drogaCalka(s,s.t)-drogaCalka(s,o.t+(o.durS||d.durS)));
+          o.widok.position.set(CFG.PASY[o.pas],0,o.z);
+          o.widok.scale.z=Math.max(0.5,o.z-ogon);
+          const tyG=tY(o.z);if(tyG)o.widok.position.y+=tyG;
+        } else if(o.typ==='zasadzka'){                                /* ZASADZKA: kot wypada z pobocza */
+          if(!o.strona)o.strona=o.pas===0?-1:o.pas===2?1:(((o.t*7)|0)%2?1:-1);
+          const prg=clamp((o.z-(CFG.GRACZ_Z-17))/10,0,1);
+          const xk=lerp(o.strona*5.2,CFG.PASY[o.pas],easeOut(prg));
+          o.widok.position.set(xk,0,o.z);
+          o.widok.rotation.y=o.strona>0?Math.PI/2*(1-prg):-Math.PI/2*(1-prg);
+          o.widok.userData.alert.visible=prg<0.85;
+          if(!o.miauk&&prg>0.02){o.miauk=true;Dzwiek.oWlos&&Dzwiek.oWlos();}
+          const tyZ=tY(o.z);if(tyZ)o.widok.position.y+=tyZ;
+          OBIEKTY.zasadzka.animuj(o.widok,czasReal+o.t);
         } else if(o.typ==='rywal'){
           o.widok.position.set(o.strona*2.95,0,o.z);
           if(!o.dym&&o.z>CFG.GRACZ_Z-14){o.dym=true;
@@ -3952,6 +4049,7 @@ const Gra=(()=>{
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
     el('pioraHud').textContent='🪶'+sym.piora;
     el('stylHud').textContent=(sym.styl||0)>0?'✦'+sym.styl:'';        /* STYL w HUD */
+    el('linieFever').style.opacity=sym.combo>=15?1:0;                 /* GFX-szlif: fever linie */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
     if(sym.combo>(_ostCombo||0)){
@@ -4182,6 +4280,7 @@ const Gra=(()=>{
       if(zd.dane.klucz)R3.przelotKlucza();else R3.pokazGoscia(zd.dane);
       dymek(zd.dane.tekst,zd.dane.emoji+' '+zd.dane.imie);return;}
     if(zd.typ==='salto'){popup('SALTO!',true);Dzwiek.salto();return;}
+    if(zd.typ==='grindStart'){popup('GRIND!',true);Dzwiek.gwizd&&Dzwiek.gwizd();return;}
     if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
       if(zd.nazwa)popup(zd.nazwa+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
@@ -4260,7 +4359,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.3',
+  wersja:'4.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
