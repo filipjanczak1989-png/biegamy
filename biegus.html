@@ -3,11 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v3.13 (Fever)</title>
+<title>Bieguś — Droga na Igrzyska · v3.14 (Radio non-stop)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v3.13 „FEVER"
+     BIEGUŚ — DROGA NA IGRZYSKA · v3.14 „RADIO NON-STOP"
+     · RADIO-nonstop: gra od menu (po 1. gescie), NIE gasnie po etapie,
+       playlista plynie (onended->losowy nastepny), przycisk ⏭ skip
      · FEVER x15+: piora x2 (laczy sie z boosterem x2 i flow), zlota
        smuga za graczem gestniejaca do x30, licznik combo z 🔥
      · FIX-dekor-hit: schody/tunel/segmenty i kit rozstajów przestały
@@ -613,6 +615,7 @@
   <div class="pod" id="menuStatus"></div>
   <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
   <button id="btnRadio" style="margin-top:8px">📻 Radio BiegaMy: …</button>
+  <button id="btnRadioSkip" style="margin-top:8px" hidden>⏭ Następny utwór</button>
   <button id="btnKod" style="margin-top:8px">🎁 Mam kod bonusowy</button>
   <button class="cta" id="btnGraj">▶ BIEGNIJ</button>
   <div class="rzad">
@@ -868,8 +871,8 @@ function uzyjKodu(){
   Gra?.toast?.('🎁 <b>+'+wpis.piora+' 🪶</b> — '+wpis.opis);
   Dzwiek.medal&&Dzwiek.medal();}
 
-const RadioGry={
-  audio:null,playlista:null,ostatni:-1,
+const RadioGry={ /* RADIO-nonstop: player na CALEJ grze — menu, karty, etapy */
+  audio:null,playlista:null,ostatni:-1,czeka:false,
   aktywne(){try{return localStorage.getItem('biegus_radio')!=='0'&&this.playlista&&this.playlista.length;}catch(e){return false;}},
   przelacz(){try{const w=localStorage.getItem('biegus_radio')!=='0';
     localStorage.setItem('biegus_radio',w?'0':'1');return !w;}catch(e){return false;}},
@@ -877,22 +880,35 @@ const RadioGry={
     fetch((location.protocol==='file:'||!location.hostname?'https://biegamy.run/':'')+
       'assets/radio/playlista.json',{cache:'no-store'})
       .then(r=>r.ok?r.json():null)
-      .then(j=>{if(Array.isArray(j)&&j.length)this.playlista=j;})
+      .then(j=>{if(Array.isArray(j)&&j.length){this.playlista=j;this.autoStart();}})
       .catch(()=>{});},
-  startuj(){
+  autoStart(){                       // graj od menu; brak gestu -> uzbroj pointerdown
+    if(!this.aktywne()||this.audio)return;
+    if(!this.startuj())this.uzbrojGest();},
+  uzbrojGest(){
+    if(this.czeka)return;this.czeka=true;
+    document.addEventListener('pointerdown',()=>{this.czeka=false;
+      if(this.aktywne()&&!this.audio)this.startuj();},{once:true});},
+  losuj(){let i;do{i=Math.floor(Math.random()*this.playlista.length);}
+    while(this.playlista.length>1&&i===this.ostatni);return i;},
+  startuj(){                          // IDEMPOTENTNE: gra? nie ruszaj (ciaglosc miedzy ekranami)
     if(!this.aktywne())return false;
-    let i;do{i=Math.floor(Math.random()*this.playlista.length);}
-    while(this.playlista.length>1&&i===this.ostatni);
+    if(this.audio&&!this.audio.paused)return true;
+    return this.graj(this.losuj());},
+  graj(i){
     this.ostatni=i;const u=this.playlista[i];
     try{
       this.stop(true);
-      this.audio=new Audio(u.url);this.audio.volume=0.55;this.audio.loop=true;
-      this.audio.play().catch(()=>{});
+      const a=new Audio(u.url);this.audio=a;a.volume=0.55;
+      a.onended=()=>{if(this.audio===a){this.audio=null;       // playlista plynie dalej
+        if(this.aktywne())this.graj(this.losuj());}};
+      const p=a.play();if(p&&p.catch)p.catch(()=>{if(this.audio===a){this.audio=null;this.uzbrojGest();}});
       Gra?.toast?.('📻 <b>Radio BiegaMy:</b> '+(u.tytul||'utwór')+' 🎶');
       return true;
     }catch(e){return false;}},
+  nastepny(){if(this.aktywne())this.graj(this.losuj());},      // skip ⏭
   stop(natychmiast){
-    const a=this.audio;if(!a)return;this.audio=null;
+    const a=this.audio;if(!a)return;this.audio=null;a.onended=null;
     if(natychmiast){a.pause();return;}
     const f=setInterval(()=>{a.volume=Math.max(0,a.volume-0.08);
       if(a.volume<=0){clearInterval(f);a.pause();}},80);}};
@@ -948,7 +964,7 @@ const Dzwiek=(()=>{
         if(Math.random()<(flowOn?0.85:0.45))ton(nuta,0.22,'sine',0.045);
         if(flowOn&&Math.random()<0.5)ton(nuta*2,0.18,'sine',0.03,0,0.11);
         muzKrok++;},500);},
-    muzykaStop(){RadioGry.stop();clearInterval(muzTimer);muzTimer=null;},
+    muzykaStop(){clearInterval(muzTimer);muzTimer=null;},  /* RADIO-nonstop: radio gra dalej po etapie */
     krok(){if(!ctx||wyciszony)return;
       if(!szumBuf){szumBuf=ctx.createBuffer(1,2205,44100);
         const d=szumBuf.getChannelData(0);
@@ -4024,10 +4040,12 @@ const Gra=(()=>{
     const b=el('btnRadio');
     const wl=(()=>{try{return localStorage.getItem('biegus_radio')!=='0';}catch(e){return true;}})();
     b.textContent='📻 Radio BiegaMy: '+(wl?'WŁĄCZONE':'wyłączone');
-    b.hidden=!RadioGry.playlista;}
+    b.hidden=!RadioGry.playlista;
+    el('btnRadioSkip').hidden=!RadioGry.playlista||!wl;}       /* RADIO-nonstop */
   el('btnKod').onclick=()=>uzyjKodu();
   el('btnRadio').onclick=()=>{RadioGry.przelacz();
-    if(!RadioGry.aktywne())RadioGry.stop();odswiezRadioBtn();};
+    if(!RadioGry.aktywne())RadioGry.stop();else RadioGry.startuj();odswiezRadioBtn();};
+  el('btnRadioSkip').onclick=()=>RadioGry.nastepny();
   setTimeout(odswiezRadioBtn,1500);setTimeout(odswiezRadioBtn,5000);
   el('btnDalej').onclick=()=>{
     if(sym.tryb==='zawody'||biezacyEtap>=32){tryb='menu';pokaz('menu');}
@@ -4137,7 +4155,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'3.13',
+  wersja:'3.14',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
