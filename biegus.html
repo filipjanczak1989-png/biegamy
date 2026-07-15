@@ -3,11 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.4 (Super komba)</title>
+<title>Bieguś — Droga na Igrzyska · v5.5 (Żywy świat)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.4 „SUPER KOMBA" (pitch Filipa)
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.5 „ŻYWY ŚWIAT" + KOMBA-PROG
+     · ZYWY-SWIAT (render-only, cykl=1e9, zero dotykania calki toru):
+       POCIAG na horyzoncie miasta (k3, okna swieca, przejazd ~28 s),
+       BALON brandowa pomarancza + LATAWIEC nad parkiem (k1),
+       SWIETLIKI w ciemnym lesie (k2, plyna z droga jak motyle),
+       METEOR nad przelecza co ~17 s (k4), SAMOLOT wysoko (wspolne),
+       KLUCZ BIEGUSIOW zlatuje nisko 1-2x na etap (timer w petli,
+       Math.random OK — render-only, symulacja zostaje deterministyczna)
+     · KOMBA-PROG (pitch Filipa: "za latwo, dodawajmy stopniowo"):
+       od = prog ukonczonych etapow — WKRET 0, HELIKOPTER 3, WAHADLO 6,
+       GWIAZDA POLARNA 10, SUPERNOVA 15; sym.kombaLvl w start();
+       toast "Nowe SUPER KOMBO" na mecie progu
+     v5.4 „SUPER KOMBA" (pitch Filipa)
      · SUPER-KOMBA: nazwane kombinacje trikow w JEDNYM locie, bonus
        dokladany do banku (mnozony przez opaske stylu):
        WKRĘT (sruba+grab, +150), HELIKOPTER (sruba+salto, +200),
@@ -2337,18 +2349,18 @@ function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pendi
   if(nazwa)Misje.zdarzenie('trik');                                   /* MISJA: triki */
   s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
 const SUPER_KOMBA=[                               /* SUPER-KOMBA: nazwane kombinacje w JEDNYM locie (od najgrubszej) */
-  {n:'SUPERNOVA',      p:600,w:q=>q.sL&&q.sR&&q.salto&&q.grab},
-  {n:'GWIAZDA POLARNA',p:400,w:q=>(q.sL||q.sR)&&q.salto&&q.grab},
-  {n:'WAHADŁO',        p:250,w:q=>q.sL&&q.sR},
-  {n:'HELIKOPTER',     p:200,w:q=>(q.sL||q.sR)&&q.salto},
-  {n:'WKRĘT',          p:150,w:q=>(q.sL||q.sR)&&q.grab},
-];
-function superKombo(seq){
+  {n:'SUPERNOVA',      p:600,od:15,w:q=>q.sL&&q.sR&&q.salto&&q.grab},
+  {n:'GWIAZDA POLARNA',p:400,od:10,w:q=>(q.sL||q.sR)&&q.salto&&q.grab},
+  {n:'WAHADŁO',        p:250,od:6, w:q=>q.sL&&q.sR},
+  {n:'HELIKOPTER',     p:200,od:3, w:q=>(q.sL||q.sR)&&q.salto},
+  {n:'WKRĘT',          p:150,od:0, w:q=>(q.sL||q.sR)&&q.grab},
+];                                                /* KOMBA-PROG: od = ukonczone etapy potrzebne do odblokowania */
+function superKombo(seq,lvl){
   const q={sL:seq.includes('sL'),sR:seq.includes('sR'),salto:seq.includes('salto'),grab:seq.includes('grab')};
-  return SUPER_KOMBA.find(k=>k.w(q))||null;}
+  return SUPER_KOMBA.find(k=>lvl>=(k.od||0)&&k.w(q))||null;}
 function bankujTriki(s){                          /* BANK: czyste ladowanie zamyka lot */
   if(!s.stylLot){if(s.lotSeq)s.lotSeq.length=0;return;}
-  const sk=superKombo(s.lotSeq||[]);              /* SUPER-KOMBA: bonus dokladany do banku PRZED wyplata */
+  const sk=superKombo(s.lotSeq||[],s.kombaLvl||0);/* SUPER-KOMBA: bonus dokladany do banku PRZED wyplata */
   if(sk){const b=Math.round(sk.p*(s.gStyl||1));s.stylLot+=b;
     s.superKomba=(s.superKomba||0)+1;Misje.zdarzenie('superK');
     s.zdarzenia.push({typ:'superKombo',nazwa:sk.n,pkt:b});}
@@ -3210,6 +3222,75 @@ const R3=(()=>{
     dodajDeko(pr,252,'k4');
     dekoAnim.push(t=>{if(pr.visible){flaga.rotation.y=Math.sin(t*4+i)*0.4;
       flaga.scale.x=0.8+Math.abs(Math.sin(t*4+i))*0.25;}});}
+  /* ============ ZYWY-SWIAT: niebo i horyzont zyja (v5.5) ============ */
+  {                                                                  /* ZYWY-SWIAT: pociag na horyzoncie miasta */
+    const poc=new THREE.Group();
+    const matOkno=new THREE.MeshBasicMaterial({color:0xffd9a0});
+    for(let w=0;w<6;w++){
+      const wag=new THREE.Group();
+      wag.add(klocek(3.0,1.1,1.2,w?0x2a3350:0x1c2438,0,0.85,0));
+      if(!w)wag.add(klocek(0.5,0.5,1.0,0x141824,1.2,1.55,0));
+      for(let o=0;o<3;o++){const ok=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.34,0.05),matOkno);
+        ok.position.set(-1+o*1,1.0,0.63);wag.add(ok);}
+      wag.position.x=w*3.3;poc.add(wag);}
+    poc.position.set(0,0,-83);poc.userData.grupa='k3';poc.userData.cykl=1e9;
+    dekoracje.push(poc);scena.add(poc);
+    dekoAnim.push(t=>{if(poc.visible)poc.position.x=-78+((t*5.5)%156);});
+  }
+  {                                                                  /* ZYWY-SWIAT: balon nad parkiem (brandowa pomarancza) */
+    const ba=new THREE.Group();
+    const cz=new THREE.Mesh(new THREE.SphereGeometry(2.2,10,8),mat(0xe8561e));
+    cz.scale.y=1.15;cz.position.y=2.6;ba.add(cz);
+    const pas=new THREE.Mesh(new THREE.SphereGeometry(2.24,10,8),mat(0xf6efe4));
+    pas.scale.set(1,0.28,1);pas.position.y=2.9;ba.add(pas);
+    ba.add(klocek(0.7,0.55,0.7,0x6a4a2e,0,-0.5,0));
+    [[-0.5],[0.5]].forEach(([x])=>ba.add(klocek(0.03,1.1,0.03,0x3a3a3a,x,0.15,0)));
+    ba.position.set(0,13,-72);ba.userData.grupa='k1';ba.userData.cykl=1e9;
+    dekoracje.push(ba);scena.add(ba);
+    dekoAnim.push(t=>{if(ba.visible){ba.position.x=-36+((t*0.6)%80);
+      ba.position.y=13+Math.sin(t*0.4)*1.2;}});
+  }
+  {                                                                  /* ZYWY-SWIAT: latawiec nad parkiem */
+    const la=new THREE.Group();
+    const romb=klocek(1.0,1.0,0.03,0xf2c14e,0,0,0);romb.rotation.z=Math.PI/4;la.add(romb);
+    la.add(klocek(0.16,0.10,0.02,0xd96a6a,0.3,-1.0,0));
+    la.add(klocek(0.14,0.09,0.02,0xc78ad4,0.1,-1.5,0));
+    la.position.set(7.5,8.5,-46);la.userData.grupa='k1';la.userData.cykl=1e9;
+    dekoracje.push(la);scena.add(la);
+    dekoAnim.push(t=>{if(la.visible){la.position.y=8.5+Math.sin(t*0.9)*0.8;
+      la.position.x=7.5+Math.sin(t*0.55)*1.6;la.rotation.z=Math.sin(t*0.9)*0.22;}});
+  }
+  {                                                                  /* ZYWY-SWIAT: swietliki w ciemnym lesie (plyna z droga jak motyle) */
+    for(let i=0;i<8;i++){
+      const matSw=new THREE.MeshBasicMaterial({color:0xd9f2a0,transparent:true,opacity:0.85,fog:false});
+      const sw=new THREE.Mesh(new THREE.SphereGeometry(0.055,6,5),matSw);
+      sw.position.set((i%2?1:-1)*(3.4+((i*17)%30)/10),0.9,-i*30-12);
+      sw.userData.grupa='k2';sw.userData.cykl=246;
+      dekoracje.push(sw);scena.add(sw);
+      dekoAnim.push(t=>{if(sw.visible){sw.position.y=0.7+Math.sin(t*1.3+i*2.1)*0.45;
+        matSw.opacity=0.25+Math.abs(Math.sin(t*2.3+i))*0.65;}});}
+  }
+  {                                                                  /* ZYWY-SWIAT: meteor nad przelecza co ~17 s */
+    const matMe=new THREE.MeshBasicMaterial({color:0xfff2c8,transparent:true,opacity:0,fog:false,blending:THREE.AdditiveBlending});
+    const me=new THREE.Mesh(new THREE.BoxGeometry(2.0,0.05,0.05),matMe);
+    me.rotation.z=-0.45;me.userData.grupa='k4';me.userData.cykl=1e9;
+    me.position.set(0,24,-82);
+    dekoracje.push(me);scena.add(me);
+    dekoAnim.push(t=>{if(!me.visible){matMe.opacity=0;return;}
+      const e=(t%17)/1.2;
+      if(e<1){matMe.opacity=(1-e)*0.85;me.position.x=18-e*26;me.position.y=27-e*11;}
+      else matMe.opacity=0;});
+  }
+  {                                                                  /* ZYWY-SWIAT: samolot wysoko, wszystkie krainy */
+    const sa=new THREE.Group();
+    sa.add(klocek(1.3,0.14,0.18,0xe9edf4,0,0,0));
+    sa.add(klocek(0.34,0.06,1.5,0xd6dbe6,0.1,0.02,0));
+    sa.add(klocek(0.2,0.3,0.06,0xd6dbe6,-0.55,0.12,0));
+    sa.userData.grupa='wspolne';sa.userData.cykl=1e9;
+    sa.position.set(0,31,-84);
+    dekoracje.push(sa);scena.add(sa);
+    dekoAnim.push(t=>{sa.position.x=-70+((t*3.1)%150);});
+  }
   let aktualnaKraina=0;
   const matOdnoga=new THREE.MeshLambertMaterial({color:0xc0b8a8});
   /* ROZSTAJE 2.0: parametryczny zestaw — droga rozjeżdża się naprawdę */
@@ -3879,7 +3960,7 @@ const R3=(()=>{
 const Gra=(()=>{
   const el=id=>document.getElementById(id);
   let sym=null,akum=0,ostatni=0,wPauzie=false,tryb='menu',biezacyEtap=1,zegar=0;
-  let spowolnienie=0;
+  let spowolnienie=0,nastepnyKluczT=0;                           /* ZYWY-SWIAT: timer zlotu klucza */
   /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
   const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
   const losuj=a=>a[Math.floor(Math.random()*a.length)];
@@ -4321,6 +4402,7 @@ const Gra=(()=>{
       const btM=Biegus.ubrane&&Biegus.ubrane.buty;
       sym.gripKaluza=!!btM&&btM!=='buty-startowe';       // MOC: każde buty > startowe
       sym.drugiOddech=Biegus.zalozone.has('plecak');     // MOC: plecak
+    sym.kombaLvl=Biegus.ukonczone.size;                /* KOMBA-PROG: poziom odblokowania super komb */
       if(Biegus.ubrane.bluza==='bluza-neon')sym.flowMnoznik=0.85;   // MOC: neon
       if(Biegus.ubrane.glowa==='korona-legendy'){sym.serca++;sym.sercaMax=sym.serca;
         toast('👑 <b>Korona Legendy:</b> +1 serce na start!');}
@@ -4481,7 +4563,14 @@ const Gra=(()=>{
     Biegus.statystyki.uniki+=(sym.ominiete||0);
     if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
-    if(sym.tryb==='etap'){Biegus.ukonczone.add('e'+sym.skrypt.etap);odswiezEtapy();}
+    if(sym.tryb==='etap'){const przedU=Biegus.ukonczone.size;
+      Biegus.ukonczone.add('e'+sym.skrypt.etap);
+      const rozm=Biegus.ukonczone.size;                              /* KOMBA-PROG: toast odblokowania */
+      const NOWE_KOMBO={3:'HELIKOPTER (śruba+salto)',6:'WAHADŁO (śruba w OBIE strony)',
+        10:'GWIAZDA POLARNA (śruba+salto+grab)',15:'SUPERNOVA (komplet w 1 locie)'};
+      if(rozm>przedU&&NOWE_KOMBO[rozm])
+        setTimeout(()=>toast('🆕 Nowe SUPER KOMBO: '+NOWE_KOMBO[rozm]+'!'),900);
+      odswiezEtapy();}
     /* CELE-etapu: rozliczenie + gwiazdka za 3/3 (nagroda do portfela, NIE do rekordu trasy) */
     const cb=el('celeBox');cb.hidden=true;
     if(sym.tryb==='etap'&&sym.cele){
@@ -4721,6 +4810,8 @@ const Gra=(()=>{
       const dtReal=Math.min(0.1,(teraz-ostatni)/1000);ostatni=teraz;
       if(spowolnienie>0){spowolnienie-=dtReal;akum+=dtReal*CFG.SLOWMO;}
       else akum+=dtReal;
+      if(zegar>nastepnyKluczT){R3.przelotKlucza();                   /* ZYWY-SWIAT: klucz zlatuje nisko 1-2x na etap */
+        nastepnyKluczT=zegar+24+Math.random()*22;}
       let koniec=null;
       while(akum>=KROK&&!koniec){
         krokSymulacji(sym);akum-=KROK;
@@ -4759,7 +4850,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.4',
+  wersja:'5.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
