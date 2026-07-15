@@ -3,11 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.6 (Rurki w chmurach i mapa)</title>
+<title>Bieguś — Droga na Igrzyska · v4.7 (Ślad klucza)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.6 „RURKI W CHMURACH I MAPA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v4.7 „ŚLAD KLUCZA" (fabula — pitch Filipa)
+     · MAPA_WPISY 12 szt: kazdy kawalek = slad innego biegusia z klucza
+       (Halny..Przewodniczka); toast z imieniem, PELNY wpis na mecie
+       (mapkaBox), dymki Biegusia przy 1/6/12; komplet = punkt zbiorki
+       na mecie Igrzysk (hak pod finale/ultimate)
+     · ZNALEZISKA uzyteczne: +4 najedzenia od reki, komplet 2/2 = +20 pior
+     · MOC STROJU widoczna na karcie intro (grip/oddech/korona/flow/zlota)
+     · 2 nowe MYSLI + 2 TIPY (watek klucza); ring-poswiata pod mapka
+     v4.6 „RURKI W CHMURACH I MAPA"
      · rurkaWys (e12+, k3): grind 1.45 m, styl x2.2; generator sieje PARY
        grindow (od rel 6) pod TRANSFER +200 ✦ (zejscie->wejscie <1.3 s)
      · MAPKA: 12 kawalkow (etapy 1,4,...,31 + 32), zapis w save, licznik
@@ -692,6 +700,7 @@
   <div class="pod" id="introTip"></div>
   <div class="pod" id="introBooster" style="color:var(--zloto)" hidden></div>
   <div class="pod" id="introCele" hidden style="color:#f2c14e"></div>
+  <div class="pod" id="introMoce" hidden style="color:#9ad0a0"></div>
   <h1 style="font-size:84px" id="odliczanie">3</h1>
 </div>
 
@@ -704,6 +713,7 @@
   <div class="puenta" id="puentaFinisz"></div>
   <div class="pod" id="rekordBox" hidden style="color:#f2c14e;font-weight:700"></div>
   <div class="pod" id="celeBox" hidden style="text-align:left;line-height:1.7"></div>
+  <div class="pod" id="mapkaBox" hidden style="text-align:left;line-height:1.6;border:1px dashed #ead9ae;border-radius:12px;padding:10px 12px;color:#ead9ae"></div>
   <div class="pod" id="zadanieWynik" hidden></div>
   <div class="przeslanie" id="finalKrainy" hidden></div>
   <div class="stat">
@@ -1548,6 +1558,9 @@ const OBIEKTY={
       const w=new THREE.Mesh(new THREE.TorusGeometry(0.15,0.03,6,14),
         new THREE.MeshStandardMaterial({color:0xe8561e,roughness:0.5}));
       w.position.y=1.05;w.rotation.y=Math.PI/2;g.add(w);
+      const ring=new THREE.Mesh(new THREE.RingGeometry(0.28,0.4,20),   /* GFX-szlif: poswiata na ziemi */
+        new THREE.MeshBasicMaterial({color:0xead9ae,transparent:true,opacity:0.5,depthWrite:false}));
+      ring.rotation.x=-Math.PI/2;ring.position.y=0.04;g.add(ring);
       g.userData.baza=1.05;return g;},
     animuj(g,t){g.rotation.y=t*1.6;g.position.y=Math.sin(t*2.2)*0.09;},
   },
@@ -1930,6 +1943,22 @@ const BIEGUS_MOWI={
   zawodyBraz:['Brąz! Na pudle to na pudle. Nie dyskutujemy.'],
   zawodyBez:['Dziś bez medalu. Ale widziałeś, jak żeśmy tamtemu psu uciekli?'],
 };
+/* ŚLAD KLUCZA — 12 kawalkow mapy, kazdy zgubiony przez innego biegusia z klucza.
+   Bieguś został na ziemi; klucz odleciał na Igrzyska. Mapa to ich ślad — i zaproszenie. */
+const MAPA_WPISY=[
+  {imie:'Halny',   tekst:'Róg mapy. Ktoś odrysował START — dokładnie tam, gdzie stoisz. Na marginesie: „Halny mówi: on przyjdzie. — reszta się śmieje."'},
+  {imie:'Bryza',   tekst:'Kawałek pachnie deszczem. Bryza pisze drobno: „Zostawiam znak nad kałużą. Jak go ominie bez CHLAP — jest z nas."'},
+  {imie:'Poranek', tekst:'Plama po rosie. „Poranek zawsze gubi rzeczy o świcie — mówi, że to nie gubienie, tylko zostawianie drogi."'},
+  {imie:'Rosa',    tekst:'Rosa narysowała trzy pasy i strzałki. Pod spodem: „Nauczy się. Wszyscy się kiedyś uczyliśmy padać w kałuże."'},
+  {imie:'Grzmot',  tekst:'Róg nadpalony. Grzmot: „Leciałem najniżej, żeby zobaczył, że się DA. Wrona mnie widziała. Niech ćwiczy zmianę pasa."'},
+  {imie:'Szron',   tekst:'Zimny w dotyku. „Szron pyta, czy tam na dole wciąż biega ten mały. Nikt nie odpowiada. Wszyscy wiedzą, że tak."'},
+  {imie:'Zefir',   tekst:'Lekki jak pióro. Zefir: „Zostawiłem mu wiatr w plecy przy piątym parku. Jak złapie — zrozumie, po co się lata."'},
+  {imie:'Cisza',   tekst:'Prawie pusty kawałek. Tylko jedno zdanie: „Cisza nie pisze. Cisza zostawia najlepsze kawałki mapy."'},
+  {imie:'Kompas',  tekst:'Kompas rysuje krzywo, ale pewnie: „Igrzyska nie są na północy ani na południu. Są na końcu regularnych treningów."'},
+  {imie:'Latarnia',tekst:'Świeci nocą (sprawdź!). Latarnia: „Zapalam się dla spóźnionych. On nie jest spóźniony. On jeszcze rośnie."'},
+  {imie:'Echo',    tekst:'Litery podwójne, jak powtórzone. Echo: „Powiedz mu: jesteśmy obok. Powiedz mu: jesteśmy obok."'},
+  {imie:'Przewodniczka',tekst:'Ostatni kawałek. Pismo pewne: „Zbierz nas w całość, mały. Klucz zatacza koło. Meta Igrzysk to nasz punkt zbiórki — Przewodniczka."'},
+];
 /* PRZESŁANIE — myśli na drogę (własne, w duchu BiegaMy) */
 const MYSLI=[
   'Świt nie pyta o motywację. Świt pyta, czy przyszedłeś.',
@@ -1942,8 +1971,12 @@ const MYSLI=[
   'Igrzyska nie pytają o skrzydła. Pytają o kilometry.',
   'Klucz odleciał. Ty zostań i biegnij.',
   'Formę buduje się cicho, kilometr po kilometrze. Jak świt — po kawałku nieba.',
+  'Klucz nie zostawia śladów w niebie. Zostawia je na mapie — dla tych, co biegną.',
+  'Dwanaście kawałków. Dwanaście powodów, żeby jutro znowu wyjść na trasę.',
 ];
 const TIPY=['Rozwidlenie? Jedna strona bywa bogatsza. I bywa pułapką.',
+  'Zwitki pergaminu na trasie to kawałki mapy klucza — zbieraj, układają się w coś większego.',
+  'Znaleziska karmią Biegusia. Najedzony Bieguś biega z ikrą.',
   'Klakson znaczy: auto przetnie Ci drogę. Skok nie pomoże — zmień linię.',
   'Linie piór prowadzą przez bezpieczne miejsca trasy — ufaj im.','Rowerzysta jest szybszy — usłyszysz dzwonek. Zejdź mu z drogi WCZEŚNIE.','Seria uników nakręca combo. Trafienie je zeruje.','W Zawodach trafienie to +3 s kary, znalezisko daje −2 s.'];
 
@@ -3585,7 +3618,8 @@ const R3=(()=>{
       burst(poz,KOLORY[Biegus.kolor].cialo,10,3,3);
       if(zd.obiekt==='kaluza')burst(poz.clone().setY(0.15),0x5b8ac4,14,3.4,2.4);}
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
-    if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);}
+    if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);
+      Biegus.najedzenie=clamp(Biegus.najedzenie+4,0,100);}            /* ZNALEZISKA karmia Biegusia */
     if(zd.typ==='pioro'){Dzwiek.pioro(zd.seria%14);
       burst(poz,0xf2c14e,6,1.7,1.9,0.065);}                           /* GFX-szlif: zloty blysk piora */
     if(zd.typ==='oWlos'){Dzwiek.oWlos();}
@@ -3681,6 +3715,7 @@ const Gra=(()=>{
     el('hud').hidden=id!==null;}
   function toast(html){const t=el('toast');t.innerHTML=html;t.classList.add('widoczny');
     clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('widoczny'),3200);}
+  let mapkaWpis=null;                              /* ŚLAD KLUCZA: ostatni kawalek z biegu */
   function popup(tekst,akcent=false){const p=el('popup');
     p.textContent=tekst;p.classList.toggle('akcent',akcent);p.classList.add('widoczny');
     clearTimeout(p._tm);p._tm=setTimeout(()=>p.classList.remove('widoczny'),700);}
@@ -4135,6 +4170,15 @@ const Gra=(()=>{
       aktywneB.push({tarcza:'🛡️ tarcza',magnes:'🧲 magnes piór',x2:'✨ ×2 pióra'}[k]);});}
     el('introBooster').hidden=!aktywneB.length;
     el('introBooster').textContent=aktywneB.length?('AKTYWNE: '+aktywneB.join(' · ')):'';
+    const moce=[];                                                    /* MOCE garderoby — widocznosc */
+    if(sym.bonusyG&&sym.bonusyG.bloto)moce.push('👟 grip kałuż');
+    if(sym.drugiOddech)moce.push('🎒 drugi oddech');
+    if((sym.sercaMax||CFG.SERCA)>CFG.SERCA)moce.push('👑 +1 serce');
+    if(sym.flowMnoznik)moce.push('🧥 flow+');
+    if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
+    if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
+    const im=el('introMoce');im.hidden=!moce.length;
+    im.textContent=moce.length?('MOC STROJU: '+moce.join(' · ')):'';
     const NAZWY_MOTYWU={klasyczny:'',pioropusz:' · „PIÓROPUSZ"',akrobatyczny:' · „AKROBACJE"',
       rozstaje:' · „ROZSTAJE"',szczyt:' · „GODZINA SZCZYTU"'};
     el('introTytul').textContent=trybGry==='zawody'?(kraina===2?'ZAWODY: LAS WE MGLE':'ZAWODY: PARK O ŚWICIE'):
@@ -4248,9 +4292,18 @@ const Gra=(()=>{
           Dzwiek.medal&&Dzwiek.medal();}
         else gwHtml='<br>⭐ Gwiazdka już zdobyta';}
       if(nagroda){Biegus.portfelPior+=nagroda;Biegus.statystyki.piora+=nagroda;}
+      let znHtml='';
+      if(sym.zebrane.length>=CFG.ZNALEZISKA_NA_ETAP){                  /* ZNALEZISKA: komplet = +20 pior */
+        Biegus.portfelPior+=20;Biegus.statystyki.piora+=20;
+        znHtml='<br>◆◆ komplet znalezisk: +20 🪶 (i Bieguś najedzony!)';}
       cb.innerHTML='CELE ETAPU ('+zal+'/3):<br>'+wiersze.join('<br>')+
-        (nagroda?'<br><span style="color:#f2c14e">nagroda: +'+nagroda+' 🪶</span>':'')+gwHtml;
+        (nagroda?'<br><span style="color:#f2c14e">nagroda: +'+nagroda+' 🪶</span>':'')+gwHtml+znHtml;
       cb.hidden=false;}
+    const mb=el('mapkaBox');                                          /* ŚLAD KLUCZA na mecie */
+    if(mapkaWpis){mb.innerHTML='🗺️ <b>KAWAŁEK '+mapkaWpis.ile+'/12 — ślad biegusia „'+
+        mapkaWpis.wpis.imie+'"</b><br>'+mapkaWpis.wpis.tekst;
+      mb.hidden=false;mapkaWpis=null;}
+    else mb.hidden=true;
     const perfekt=sym.serca===CFG.SERCA;
     if(perfekt)Misje.zdarzenie('perfekt');
     const zawody=sym.tryb==='zawody';
@@ -4403,8 +4456,13 @@ const Gra=(()=>{
     if(zd.typ==='mapka'){Biegus.mapki=Biegus.mapki||{};
       Biegus.mapki['e'+biezacyEtap]=true;Biegus.zapisz&&Biegus.zapisz();
       const ile=Object.keys(Biegus.mapki).length;
+      const wpis=MAPA_WPISY[Math.min(ile,MAPA_WPISY.length)-1];
+      mapkaWpis={ile,wpis};                                           /* ŚLAD KLUCZA: pelny wpis na mecie */
       popup('KAWAŁEK MAPY!',true);Dzwiek.znal&&Dzwiek.znal();
-      Gra?.toast?.('🗺️ <b>Kawałek mapy '+ile+' / 12</b>'+(ile>=12?' — MAPA KOMPLETNA! Coś się szykuje…':''));
+      Gra?.toast?.('🗺️ <b>'+ile+' / 12 — ślad: '+wpis.imie+'</b>'+(ile>=12?' · MAPA KOMPLETNA!':''));
+      if(ile===1)dymek('To pismo… klucz?! Oni zostawiają mi mapę. Zbiorę wszystko.','Bieguś');
+      if(ile===6)dymek('Połowa mapy. Oni naprawdę chcą, żebym ich dogonił…','Bieguś');
+      if(ile>=12)dymek('Cała mapa! Punkt zbiórki: meta Igrzysk. Lecę. Znaczy — BIEGNĘ!','Bieguś');
       burst(poz,0xead9ae,14,2.4,2.6,0.075);return;}
     if(zd.typ==='turbo'){popup('WIATR W PLECY!',true);Dzwiek.gwizd&&Dzwiek.gwizd();
       burst(poz,0xf2c14e,12,2.6,2.2,0.07);return;}
@@ -4486,7 +4544,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.6',
+  wersja:'4.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
