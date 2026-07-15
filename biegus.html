@@ -3,11 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v4.9 (Soczystość)</title>
+<title>Bieguś — Droga na Igrzyska · v5.0 (Punkt zbiórki)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v4.9 „SOCZYSTOŚĆ" (bajery + HOTFIX)
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.0 „PUNKT ZBIÓRKI" (finał Śladu klucza)
+     · AKT V x mapa: 12/12 -> klucz laduje na trybunach, slowa
+       Przewodniczki, Biegus.kluczSpotkany=true w save (hak: ultimate,
+       "cos zaczelo swiecic w garderobie"); <12 -> klucz przelatuje,
+       licznik brakujacych kawalkow ("Droga sie nie konczy")
+     · intro finalu przy 12/12: "patrz w niebo nad meta"
+     v4.9 „SOCZYSTOŚĆ" (bajery + HOTFIX)
      · HOTFIX-scope: mapka/turbo wolaly burst(poz) z Gra scope (R3-lokalne)
        -> ReferenceError przy zbiorze; teraz R3.efekt(zd) jak tarcza
      · BAJERY: shake kamery (KOMBO bank .22, TRANSFER .2, BAIL .3,
@@ -1123,7 +1129,7 @@ const Biegus={
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
-    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{}}));}catch(e){}},
+    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany}));}catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -1139,7 +1145,7 @@ const Biegus={
     if(typeof d.najedzenie==='number')this.najedzenie=d.najedzenie;
     if(typeof d.wiez==='number')this.wiez=d.wiez;
     this.laczneKm=d.laczneKm||0;
-    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};this.mapki=d.mapki||{};}catch(e){}},
+    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};this.mapki=d.mapki||{};this.kluczSpotkany=!!d.kluczSpotkany;}catch(e){}},
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -4237,6 +4243,9 @@ const Gra=(()=>{
     if(trybGry==='etap'&&sym.cele){iCele.hidden=false;
       const gw=(Biegus.gwiazdki||{})['e'+n];
       iCele.textContent=(gw?'⭐ ':'')+'CELE: '+sym.cele.map(c=>c.tekst).join(' · ');}
+    else if(trybGry==='final'&&Object.keys(Biegus.mapki||{}).length>=12){
+      iCele.hidden=false;                                             /* PUNKT ZBIÓRKI: zapowiedz */
+      iCele.textContent='🗺️ MAPA KOMPLETNA — patrz w niebo nad metą. Oni tu będą.';}
     else iCele.hidden=true;
     pokaz('intro');tryb='intro';
     let c=3;el('odliczanie').textContent=c;Dzwiek.beep();
@@ -4285,9 +4294,21 @@ const Gra=(()=>{
     karta.style.backgroundImage='linear-gradient(rgba(10,12,20,.6),rgba(10,12,20,.85)),url('+
       assetUrl('assets/swiat/akt5-start.webp')+')';
     karta.style.backgroundSize='cover';karta.style.backgroundPosition='center';
+    const mapaIle=Object.keys(Biegus.mapki||{}).length;               /* PUNKT ZBIÓRKI (finał Śladu klucza) */
+    let kluczHtml='';
+    if(mapaIle>=12){
+      Biegus.kluczSpotkany=true;Biegus.zapisz&&Biegus.zapisz();       /* hak: ultimate */
+      kluczHtml='<br><br><span style="color:#ead9ae">Nad metą zatoczył koło KLUCZ. Dwanaście biegusi '+
+        'sfrunęło na trybuny — Halny, Bryza, Poranek… wszyscy, których ślady zbierałeś.<br>'+
+        'Przewodniczka pochyliła głowę: <b>„Punkt zbiórki zaliczony, mały. Od dziś latamy razem — '+
+        'Ty po ziemi, my po niebie."</b><br><i>(Coś zaczęło świecić w garderobie…)</i></span>';}
+    else{
+      kluczHtml='<br><br><span style="color:#8a93a8">Wysoko nad stadionem przeleciał klucz. Ktoś z trybun '+
+        'krzyknął: „Mapa! On zbiera ich mapę!" — brakuje jeszcze '+(12-mapaIle)+' kawałk'+
+        (12-mapaIle===1?'a':'ów')+'. Droga się nie kończy.</span>';}
     el('puentaFinal').innerHTML='Mały biegus nie odleciał z kluczem. Został — i wystartował w Wielkich Igrzyskach.<br>'+
       'Błysk był szybszy. Trybuny i tak wstały.<br><b>'+Biegus.imie+
-      ' ukończył Drogę.</b> <span style="color:#f2c14e">+'+sym.piora+' 🪶</span>';
+      ' ukończył Drogę.</b> <span style="color:#f2c14e">+'+sym.piora+' 🪶</span>'+kluczHtml;
     el('trofeumImg').hidden=false;
     el('trofeumImg').src=assetUrl('assets/ui/ikony/trofeum-igrzysk.webp');
     konfetti();odswiezMenuStatus();pokaz('final');}
@@ -4593,7 +4614,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'4.9',
+  wersja:'5.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
