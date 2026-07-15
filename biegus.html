@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.2 (Most v2)</title>
+<title>Bieguś — Droga na Igrzyska · v5.3 (Hotfix trio)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.2 „MOST V2" (BiegaMy <-> Biegus)
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.3 „HOTFIX TRIO"
+     · HOTFIX-grip: check 'kaluza' siedzial w galezi 'auto' = martwy kod;
+       teraz w MOMENCIE PRAWDY — buty > startowe przebiegaja kaluze
+       (CHLAP! bez serca), skok dalej daje unik+combo
+     · HOTFIX-perfekt: meta liczyla serca vs CFG.SERCA — z Korona Legendy
+       1 hit dawal falszywy perfekt (i misje Czysty bieg); teraz sercaMax
+     · HOTFIX-misje-save: liczniki MISJE + odbloki KOLORY/AKCESORIA
+       (w tym KUPIONE u Zyzi: sniezny/zorza/plecak — gracz tracil piora
+       po reloadzie!) w save v1, wstecznie zgodne; stash w wczytaj,
+       apply po deklaracji MISJE (TDZ-safe), guard try w zapisz
+     v5.2 „MOST V2" (BiegaMy <-> Biegus)
      · MOST-v2: sesja appki z localStorage (ten sam origin), REST z tokenem
        usera: athletes(user_id)->id, biegus_most.ostatni_odbior (1. raz:
        7 dni wstecz), suma distance_km z training_logs (filtr __badge__*),
@@ -1139,12 +1149,18 @@ const Biegus={
   uzyj:{tarcza:false,magnes:false,x2:false},
   bonusTreningu:0,
   najedzenie:72,wiez:8,laczneKm:0,
-  zapisz(){try{localStorage.setItem('biegus_droga_zapis_v1',JSON.stringify({
+  zapisz(){try{
+    let mx=null,ox=null;                                       /* HOTFIX-misje-save: liczniki misji stalych + odbloki */
+    try{mx=Object.fromEntries(MISJE.map(m=>[m.id,m.licznik]));
+      ox={k:Object.keys(KOLORY).filter(x=>KOLORY[x].odblok),
+          a:Object.keys(AKCESORIA).filter(x=>AKCESORIA[x].odblok)};}catch(e){}
+    localStorage.setItem('biegus_droga_zapis_v1',JSON.stringify({
     w:1,kolor:this.kolor,zalozone:[...this.zalozone],kolekcja:[...this.kolekcja],
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
-    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany}));}catch(e){}},
+    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany,
+    ...(mx?{misje:mx}:{}),...(ox?{odbloki:ox}:{})}));}catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -1160,7 +1176,8 @@ const Biegus={
     if(typeof d.najedzenie==='number')this.najedzenie=d.najedzenie;
     if(typeof d.wiez==='number')this.wiez=d.wiez;
     this.laczneKm=d.laczneKm||0;
-    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};this.mapki=d.mapki||{};this.kluczSpotkany=!!d.kluczSpotkany;}catch(e){}},
+    this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};this.mapki=d.mapki||{};this.kluczSpotkany=!!d.kluczSpotkany;
+    this._misjeSave=d.misje||null;this._odblokiSave=d.odbloki||null;}catch(e){}},  /* HOTFIX-misje-save: stash, apply po deklaracji MISJE */
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -1332,6 +1349,11 @@ const Misje={
       Dzwiek.medal();}
   },
 };
+/* HOTFIX-misje-save: przywroc liczniki misji stalych + kupione odbloki (reload je zerowal, gracz tracil piora u Zyzi) */
+(function(){const m=Biegus._misjeSave,o=Biegus._odblokiSave;
+  if(m)MISJE.forEach(x=>{if(typeof m[x.id]==='number')x.licznik=Math.min(x.cel,m[x.id]);});
+  if(o){(o.k||[]).forEach(k=>{if(KOLORY[k])KOLORY[k].odblok=true;});
+    (o.a||[]).forEach(k=>{if(AKCESORIA[k])AKCESORIA[k].odblok=true;});}})();
 
 /* ---------- Pomocnicy 3D ---------- */
 const MAT={};
@@ -2425,8 +2447,6 @@ function krokSymulacji(s){
       if(!wStrefie||o.trafione)continue;
       const xA=o.kier*((6.1-o.z)*0.95);                              // pozycja auta z Z — deterministyczna
       if(Math.abs(xA-pozycjaPasa(s))<1.35){
-        if(o.typ==='kaluza'&&s.gripKaluza){o.trafione=true;
-        s.zdarzenia.push({typ:'plusk'});continue;}
       if(s.nietyk>0)continue;
         if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;
           o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
@@ -2487,6 +2507,8 @@ function krokSymulacji(s){
       const wPow=s.skokT>=0&&(wysY>=CFG.PROG_PRZESKOKU||s.skokT<0.15);
       if(unik==='skok'&&wPow){if(!o.uniknieto)udanyUnik(s,o);continue;}
       if(unik==='slizg'&&s.slizgT>=0){if(!o.uniknieto){o.slizgniete=true;udanyUnik(s,o);}continue;}
+      if(o.typ==='kaluza'&&s.gripKaluza){o.trafione=true;               /* HOTFIX-grip: buty > startowe przebiegaja kaluze */
+        s.zdarzenia.push({typ:'plusk'});continue;}
       if(OBIEKTY[o.typ].miekka){o.trafione=true;
         if(s.bonusyG&&s.bonusyG.bloto&&!s.bonusyG.blotoUzyte){
           s.bonusyG.blotoUzyte=true;
@@ -4454,7 +4476,7 @@ const Gra=(()=>{
         mapkaWpis.wpis.imie+'"</b><br>'+mapkaWpis.wpis.tekst;
       mb.hidden=false;mapkaWpis=null;}
     else mb.hidden=true;
-    const perfekt=sym.serca===CFG.SERCA;
+    const perfekt=sym.serca===(sym.sercaMax||CFG.SERCA);              /* HOTFIX-perfekt: korona +1 serce */
     if(perfekt)Misje.zdarzenie('perfekt');
     const zawody=sym.tryb==='zawody';
     el('stCzasBox').hidden=!zawody;
@@ -4698,7 +4720,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.2',
+  wersja:'5.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
