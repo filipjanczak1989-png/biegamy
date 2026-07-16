@@ -3,11 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.5 (Żywy świat)</title>
+<title>Bieguś — Droga na Igrzyska · v5.6 (Parkour & polish)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.5 „ŻYWY ŚWIAT" + KOMBA-PROG
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.6 „PARKOUR & POLISH"
+     · PARKOUR: PRZEWROTKA po ladowaniu z salta (pelny obrot 0.32 s,
+       kulenie, kurz; NIE na grindzie — transfer zostaje czysty),
+       LEAN do przodu z tempem i feverem, KAMERA zyje: przechyl w swipe
+       (roll za lookAt), dip przy ladowaniu (sprzezony z squashT)
+     · GFX-2: PCFSoftShadowMap (miekkie cienie), ekspozycja 1.06->1.12,
+       rim 0.5->0.62, ANISOTROPY na drodze i trawie (ostre podloze
+       pod katem - najwiekszy wow za darmo)
+     · przewrotka i lean PO galeziach animacji (wzorzec salta -
+       rotation.x zajete przez pochylke biegu)
+     v5.5 „ŻYWY ŚWIAT" + KOMBA-PROG
      · ZYWY-SWIAT (render-only, cykl=1e9, zero dotykania calki toru):
        POCIAG na horyzoncie miasta (k3, okna swieca, przejazd ~28 s),
        BALON brandowa pomarancza + LATAWIEC nad parkiem (k1),
@@ -2603,9 +2613,9 @@ const R3=(()=>{
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure=1.06;                                 /* GFX-szlif */
+  renderer.toneMappingExposure=1.12;                                 /* GFX-2: wiecej popu */
   renderer.shadowMap.enabled=true;
-  renderer.shadowMap.type=THREE.PCFShadowMap;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;                  /* GFX-2: miekkie cienie */
   const scena=new THREE.Scene();
   /* JASNY DZIEŃ: każda kraina × 3 pory dnia (start→koniec etapu) */
   const PALETY={
@@ -2650,7 +2660,7 @@ const R3=(()=>{
     nieboTex.needsUpdate=true;}
   const kamera=new THREE.PerspectiveCamera(62,1,0.1,200);
   kamera.position.set(0,4.6,12.5);kamera.lookAt(0,1.2,-8);
-  let shake=0,squashT=0;
+  let shake=0,squashT=0,przewrotkaT=0,bylSaltoLot=false;          /* PARKOUR: przewrotka po saltcie */
   function fit(){renderer.setSize(innerWidth,innerHeight);
     kamera.aspect=innerWidth/innerHeight;kamera.updateProjectionMatrix();}
   addEventListener('resize',fit);fit();
@@ -2668,7 +2678,7 @@ const R3=(()=>{
     scena.add(slonce.target);slonce.target.position.set(0,0,-12);
   }catch(e){pokazBlad('Cienie wyłączone: '+e.message);
     slonce.castShadow=false;renderer.shadowMap.enabled=false;}
-  const rim=new THREE.DirectionalLight(0x9ec8ff,0.5);                /* GFX-szlif: rim z tylu-gory */
+  const rim=new THREE.DirectionalLight(0x9ec8ff,0.62);               /* GFX-2: mocniejszy rim */
   rim.position.set(0,9,16);scena.add(rim);
   const switGlow=poswiata(56,0xb0507a);switGlow.position.set(-14,3,-95);scena.add(switGlow);
   const switGlow2=poswiata(32,0xffa060);switGlow2.position.set(-14,2,-94);scena.add(switGlow2);
@@ -2687,6 +2697,8 @@ const R3=(()=>{
     t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
   const texZwir=teksturaSzumu(90,60);texZwir.repeat.set(3,52);
   const texTrawa=teksturaSzumu(70,140);texTrawa.repeat.set(10,60);
+  const anizo=renderer.capabilities.getMaxAnisotropy();               /* GFX-2: ostre podloze pod katem */
+  texZwir.anisotropy=anizo;texTrawa.anisotropy=anizo;
   const matSciezka=new THREE.MeshLambertMaterial({color:0x3a4052,map:texZwir});
   const matTrawa=new THREE.MeshLambertMaterial({color:0x22301f,map:texTrawa});
   const sciezka=new THREE.Mesh(new THREE.PlaneGeometry(8.2,260),matSciezka);
@@ -3724,6 +3736,18 @@ const R3=(()=>{
       aktor.scale.y*=0.72;aktor.scale.x*=1.16;aktor.scale.z*=1.16;}
     else if(s.skokT>=0&&!s.salto&&!s.grab){                           /* STRETCH wznoszenia */
       const f=s.skokT/s.skokCzas;if(f<0.45)aktor.scale.y*=1+0.09*(1-f/0.45);}
+    if(s.skokT>=0&&s.salto)bylSaltoLot=true;                          /* PARKOUR: przewrotka po ladowaniu z salta */
+    if(bylSaltoLot&&s.skokT<0){bylSaltoLot=false;
+      if(!s.grind){przewrotkaT=0.32;
+        burst(aktor.position.clone().setY(0.12),0x9a927e,8,2.0,0.8,0.06);}}
+    if(przewrotkaT>0){przewrotkaT-=dt;
+      const f=1-Math.max(0,przewrotkaT)/0.32;
+      aktor.rotation.x=-f*Math.PI*2;
+      const tu=Math.sin(f*Math.PI);
+      aktor.scale.setScalar(1-0.26*tu);}
+    if(s.skokT<0&&!wSlizgu&&!s.grind&&przewrotkaT<=0)                 /* PARKOUR: lean z tempem i feverem */
+      aktor.rotation.x-=0.03+((s.combo>=15||s.turboT>0)?0.06:0)
+        +Math.max(0,(s.predkosc-CFG.PREDKOSC_BAZOWA))*0.012;
     if(s.flow&&Math.random()<dt*9)
       burst(aktor.position.clone().add(new THREE.Vector3(
         (Math.random()-0.5)*1.3,0.5+Math.random()*1.3,0.2)),0xf2c14e,1,1.1,0.7,0.055);
@@ -3745,8 +3769,9 @@ const R3=(()=>{
     if(shake>0){shake-=dt;
       kamera.position.x+=(Math.random()-0.5)*shake*0.9;
       kamera.position.y=4.6+(Math.random()-0.5)*shake*0.7;
-    } else kamera.position.y=4.6+tyGracza*0.85;
+    } else kamera.position.y=4.6+tyGracza*0.85-(squashT>0?squashT*1.6:0);   /* PARKOUR: dip przy ladowaniu */
     kamera.lookAt(kamera.position.x*0.55,1.2+tyGracza*0.9,-8);
+    kamera.rotation.z+=clamp((x*0.58-kamera.position.x)*0.35,-0.06,0.06);   /* PARKOUR: przechyl kamery w swipe */
     kamera.updateProjectionMatrix();
 
     for(const o of s.aktywne){
@@ -4850,7 +4875,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.5',
+  wersja:'5.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
