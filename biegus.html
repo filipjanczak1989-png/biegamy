@@ -9,11 +9,18 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.1 (Porządki)</title>
+<title>Bieguś — Droga na Igrzyska · v6.2 (Wiring ikon)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.1 „PORZĄDKI" (screeny Filipa z RC-1)
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.2 „WIRING IKON" (partia 13 od cc)
+     · WIRING: kafle UPIERZENIE/AKCESORIA ciagna assets/przedmioty/
+       {kolor|akces}-<id>.webp (wzorzec kolekcji: onerror -> data-e
+       -> emoji zostaje gdy plik nie wstal); zablokowane = grayscale
+     · IKONA_ALIAS: 3 rozjazdy klucz<->plik zlapane grepem PRZED cieciem
+       (noc->granat, zorza->fiolet, czubZloty->czubek) — lekcja: kontrakt
+       nazw plikow zawsze z KLUCZY obiektu, nie z nazw wyswietlanych
+     v6.1 „PORZĄDKI" (screeny Filipa z RC-1)
      · PORZADKI menu: BIEGNIJ na gorze (pierwsza akcja pierwsza),
        radio w jednym kompaktowym wierszu (krotszy label + ⏭),
        kod bonusowy = dyskretny link (dashed, .82em) — ZEGAREK-auto robi
@@ -4372,10 +4379,16 @@ const Gra=(()=>{
   }
 
   /* — panel Biegusia / kreator 2.0 (kłódki WIDOCZNE, bez title) — */
-  function kartaRzeczy(id,r,aktywna,klik){
+  const IKONA_ALIAS={noc:'granat',zorza:'fiolet',czubZloty:'czubek'};   /* WIRING: klucze obiektow vs nazwy plikow partii 13 */
+  function kartaRzeczy(id,r,aktywna,klik,pref){
     const d=document.createElement('button');
     d.className='rzecz'+(aktywna?' aktywna':'')+(r.odblok?'':' zablokowana');
-    d.innerHTML='<span class="ikonka">'+r.emoji+'</span>'+r.nazwa+
+    const ik=pref?'<img class="ikonka" style="width:44px;height:44px;object-fit:contain;background:#fff;border-radius:10px'+
+        (r.odblok?'':';filter:grayscale(1) opacity(.55)')+'" src="'+
+        assetUrl('assets/przedmioty/'+pref+'-'+(IKONA_ALIAS[id]||id)+'.webp')+
+        '" onerror="this.outerHTML=this.dataset.e" data-e="<span class=\'ikonka\'>'+r.emoji+'</span>">'
+      :'<span class="ikonka">'+r.emoji+'</span>';                    /* WIRING: fallback emoji gdy plik nie wstal */
+    d.innerHTML=ik+r.nazwa+
       '<span class="status">'+(r.odblok?(aktywna?'✓ założone':'dotknij'):'🔒 '+r.jak)+'</span>';
     d.disabled=!r.odblok;
     d.onclick=klik;
@@ -4417,11 +4430,11 @@ const Gra=(()=>{
       kol.appendChild(d);});
     const lk=el('listaKolorow');lk.innerHTML='';
     Object.entries(KOLORY).forEach(([id,k])=>
-      lk.appendChild(kartaRzeczy(id,k,Biegus.kolor===id,()=>{Biegus.kolor=id;zmienionoWyglad();})));
+      lk.appendChild(kartaRzeczy(id,k,Biegus.kolor===id,()=>{Biegus.kolor=id;zmienionoWyglad();},'kolor')));   /* WIRING */
     const la=el('listaAkcesoriow');la.innerHTML='';
     Object.entries(AKCESORIA).forEach(([id,a])=>
       la.appendChild(kartaRzeczy(id,a,Biegus.zalozone.has(id),()=>{
-        Biegus.zalozone.has(id)?Biegus.zalozone.delete(id):Biegus.zalozone.add(id);zmienionoWyglad();})));
+        Biegus.zalozone.has(id)?Biegus.zalozone.delete(id):Biegus.zalozone.add(id);zmienionoWyglad();},'akces')));   /* WIRING */
     el('imieBiegusia').value=Biegus.imie;
     odswiezMenuStatus();
   }
@@ -5075,7 +5088,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.1',
+  wersja:'6.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
