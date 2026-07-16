@@ -3,11 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.6 (Parkour & polish)</title>
+<title>Bieguś — Droga na Igrzyska · v5.7 (Flow & juice)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.6 „PARKOUR & POLISH"
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.7 „FLOW & JUICE"
+     · FLOW refaktor: czyFever(s) = JEDYNY chokepoint warunku fevera
+       (bylo 4 kopie: zysk pior, lean, smuga, HUD linie) — stara pulapka
+       "FEVER w 3 miejscach" z konstytucji SKASOWANA, teraz 1 miejsce
+     · FLOW gameplay: NA STYK! trik w ostatnich 22% lotu = x1.5 (odwaga
+       nagradzana, dopisek w popupie, nazwa zdarzenia czysta dla R3),
+       fever = MAGNES PIOR (zasysa z sasiednich pasow, jak booster),
+       slow-mo 0.35 s przy super kombo (kinowy banking)
+     · FLOW-GFX: zlote PointLight na graczu w feverze, 8 smug predkosci
+       przy ziemi (additive, tylko fever), 70 GWIAZD (Points) przy
+       porach ksiezycowych — toggle w aktualizujNiebo
+     v5.6 „PARKOUR & POLISH"
      · PARKOUR: PRZEWROTKA po ladowaniu z salta (pelny obrot 0.32 s,
        kulenie, kurz; NIE na grindzie — transfer zostaje czysty),
        LEAN do przodu z tempem i feverem, KAMERA zyje: przechyl w swipe
@@ -2349,15 +2360,17 @@ function nowaSymulacja(skrypt,tryb='etap'){
     stylLot:0,lotTriki:0,lotSeq:[],superKomba:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,   /* SUPER-KOMBA */
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
+function czyFever(s){return s.combo>=15||(s.turboT||0)>0;}   /* FLOW: JEDYNY chokepoint warunku fevera (bylo 4 kopie) */
 function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pending, chain x1.5/x2...), na ziemi -> od razu */
   if(s.tryb==='zawody')return;
   const wLocie=s.skokT>=0;
   const chain=wLocie?(1+0.5*(s.lotTriki||0)):1;
-  const p=Math.round(ile*(1+Math.min(s.combo,30)/20)*chain*(s.gStyl||1));  /* SKLEP-2.0: opaska stylu */
+  const naStyk=wLocie&&s.skokCzas>0&&(s.skokT/s.skokCzas)>0.78;      /* FLOW: trik tuz przed ladowaniem = odwaga x1.5 */
+  const p=Math.round(ile*(1+Math.min(s.combo,30)/20)*chain*(s.gStyl||1)*(naStyk?1.5:1));  /* SKLEP-2.0: opaska stylu */
   if(wLocie){s.stylLot=(s.stylLot||0)+p;s.lotTriki=(s.lotTriki||0)+1;}
   else s.styl=(s.styl||0)+p;
   if(nazwa)Misje.zdarzenie('trik');                                   /* MISJA: triki */
-  s.zdarzenia.push({typ:'trik',nazwa,pkt:p});}
+  s.zdarzenia.push({typ:'trik',nazwa,pkt:p,naStyk});}
 const SUPER_KOMBA=[                               /* SUPER-KOMBA: nazwane kombinacje w JEDNYM locie (od najgrubszej) */
   {n:'SUPERNOVA',      p:600,od:15,w:q=>q.sL&&q.sR&&q.salto&&q.grab},
   {n:'GWIAZDA POLARNA',p:400,od:10,w:q=>(q.sL||q.sR)&&q.salto&&q.grab},
@@ -2515,12 +2528,12 @@ function krokSymulacji(s){
     }
     if(o.typ==='pioro'){
       if(!wStrefie)continue;
-      const zasieg=(s.boostery&&s.boostery.magnes)?1:0;
+      const zasieg=((s.boostery&&s.boostery.magnes)||czyFever(s))?1:0;   /* FLOW: fever zasysa piora z sasiednich pasow */
       if(Math.abs(o.pas-s.pas)>zasieg)continue;
       if(zasieg===0&&s.pasT<0.65)continue;
       o.trafione=true;
       let zysk=((s.boostery&&s.boostery.x2)||s.bonusPior)?2:1;
-      if(s.combo>=15||s.turboT>0)zysk*=2;                            /* FEVER/TURBO: podwaja pioro */
+      if(czyFever(s))zysk*=2;                                        /* FEVER/TURBO: podwaja pioro */
       s.piora+=zysk;
       if(s.flow){s.flowBank+=zysk*(s.flowMnoznik||0.5);
         while(s.flowBank>=1){s.flowBank-=1;s.piora+=1;}}
@@ -2680,6 +2693,14 @@ const R3=(()=>{
     slonce.castShadow=false;renderer.shadowMap.enabled=false;}
   const rim=new THREE.DirectionalLight(0x9ec8ff,0.62);               /* GFX-2: mocniejszy rim */
   rim.position.set(0,9,16);scena.add(rim);
+  const feverLight=new THREE.PointLight(0xffc36e,1.5,11);             /* FLOW-GFX: zlote swiatlo fevera na graczu */
+  feverLight.visible=false;scena.add(feverLight);
+  const SMUGI_PREDKOSCI=[];{                                          /* FLOW-GFX: smugi predkosci przy ziemi (tylko fever) */
+    const matSm=new THREE.MeshBasicMaterial({color:0xfff2d0,transparent:true,opacity:0.5,fog:false,blending:THREE.AdditiveBlending});
+    for(let i=0;i<8;i++){
+      const sm=new THREE.Mesh(new THREE.BoxGeometry(0.05,0.05,3.2),matSm);
+      sm.position.set((i%2?1:-1)*(2.6+(i%4)*0.9),0.25+(i%3)*0.5,-10);
+      sm.visible=false;scena.add(sm);SMUGI_PREDKOSCI.push(sm);}}
   const switGlow=poswiata(56,0xb0507a);switGlow.position.set(-14,3,-95);scena.add(switGlow);
   const switGlow2=poswiata(32,0xffa060);switGlow2.position.set(-14,2,-94);scena.add(switGlow2);
 
@@ -3493,8 +3514,15 @@ const R3=(()=>{
         c.z=CFG.GRACZ_Z-14-Math.random()*30;}
       c.sp.position.set(c.x,c.y,c.z);
       c.sp.material.opacity=(c.sp.material.map.gotowa?c.op:0);}}
+  const gwiazdy=(()=>{                                                /* FLOW-GFX: gwiazdy przy ksiezycowych porach */
+    const g=new THREE.BufferGeometry();const poz=[];
+    for(let i=0;i<70;i++)poz.push((Math.random()-0.5)*150,16+Math.random()*30,-55-Math.random()*35);
+    g.setAttribute('position',new THREE.Float32BufferAttribute(poz,3));
+    const m=new THREE.Points(g,new THREE.PointsMaterial({color:0xeef2ff,size:0.34,transparent:true,opacity:0.8,fog:false}));
+    m.visible=false;scena.add(m);return m;})();
   function aktualizujNiebo(pora){
     const chce=pora===2||pora===3?'ksiezyc':'slonce';
+    gwiazdy.visible=(chce==='ksiezyc');
     if(!cialoNieba||cialoNieba.rodzaj!==chce){
       if(cialoNieba){scena.remove(cialoNieba.sp);}
       const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:NIEBO_TEX[chce],
@@ -3746,7 +3774,7 @@ const R3=(()=>{
       const tu=Math.sin(f*Math.PI);
       aktor.scale.setScalar(1-0.26*tu);}
     if(s.skokT<0&&!wSlizgu&&!s.grind&&przewrotkaT<=0)                 /* PARKOUR: lean z tempem i feverem */
-      aktor.rotation.x-=0.03+((s.combo>=15||s.turboT>0)?0.06:0)
+      aktor.rotation.x-=0.03+(czyFever(s)?0.06:0)
         +Math.max(0,(s.predkosc-CFG.PREDKOSC_BAZOWA))*0.012;
     if(s.flow&&Math.random()<dt*9)
       burst(aktor.position.clone().add(new THREE.Vector3(
@@ -3759,7 +3787,12 @@ const R3=(()=>{
     if(s.combo>=8&&Math.random()<dt*14)                             // wiatr w plecy przy serii x8+
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
         0xcfd8ee,1,0.5,0.2,0.05);
-    if((s.combo>=15||s.turboT>0)&&Math.random()<dt*(16+Math.min(Math.max(s.combo,16),30))){ /* FEVER/TURBO smuga */
+    const fv=czyFever(s);                                             /* FLOW-GFX: swiatlo + smugi predkosci */
+    feverLight.visible=fv;
+    if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
+    SMUGI_PREDKOSCI.forEach((sm,i)=>{sm.visible=fv;
+      if(fv)sm.position.z=((czasReal*46+i*9.7)%56)-40;});
+    if(fv&&Math.random()<dt*(16+Math.min(Math.max(s.combo,16),30))){ /* FEVER/TURBO smuga */
       const fk=[0xf2c14e,0xe8561e,0xffd76a][Math.floor(Math.random()*3)];
       burst(aktor.position.clone().add(new THREE.Vector3(
         (Math.random()-0.5)*0.9,0.25+Math.random()*0.9,0.9+Math.random()*0.8)),fk,1,0.9,1.5,0.075);}
@@ -4506,7 +4539,7 @@ const Gra=(()=>{
     el('pioraHud').textContent='🪶'+sym.piora;
     el('stylHud').textContent=((sym.styl||0)>0||(sym.stylLot||0)>0)   /* STYL w HUD + pending lotu */
       ?('✦'+sym.styl+((sym.stylLot||0)>0?' (+'+sym.stylLot+')':'')):'';
-    el('linieFever').style.opacity=(sym.combo>=15||(sym.turboT||0)>0)?1:0;  /* fever/turbo linie */
+    el('linieFever').style.opacity=czyFever(sym)?1:0;                /* fever/turbo linie */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
     if(sym.combo>(_ostCombo||0)){
@@ -4786,13 +4819,14 @@ const Gra=(()=>{
       R3.efekt(zd);return;}
     if(zd.typ==='superKombo'){                                        /* SUPER-KOMBA: wielka celebracja */
       popup('⭐ '+zd.nazwa+' +'+zd.pkt+' ✦',true);Dzwiek.combo(28);
+      spowolnienie=Math.max(spowolnienie,0.35);                       /* FLOW: kinowe slow-mo na super kombo */
       try{navigator.vibrate&&navigator.vibrate([20,40,20,40,50]);}catch(e){}
       const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.95;
       requestAnimationFrame(()=>{f.style.transition='opacity .7s';f.style.opacity=0;});
       R3.dymekGracza(zd.nazwa+'!');R3.efekt(zd);
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
-      if(zd.nazwa)popup(zd.nazwa+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
+      if(zd.nazwa)popup(zd.nazwa+(zd.naStyk?' NA STYK!':'')+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
       if(zd.nazwa&&zd.nazwa.indexOf('KOMBO')===0){                    /* BAJERY: zloty flash banku */
         const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.85;
@@ -4875,7 +4909,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.6',
+  wersja:'5.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
