@@ -9,11 +9,17 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.0 (Nemezis)</title>
+<title>Bieguś — Droga na Igrzyska · v7.1 (Kibice)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.0 „NEMEZIS" (pitch: kot ktory
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.1 „KIBICE" (pitch: jak wali
+     komba, niech zolw czy wiewiora wpadaja z tekstem)
+     · KIBICE: super kombo = hypeBox pod HUD (2.3 s, pointer-events
+       none): portret kibica (scenkaOsoba — mentorzy partii 15 +
+       #emoji postaci) + okrzyk w JEGO glosie z nazwa komba ({K});
+       pula kibicow per kraina, energicznie bez wulgaryzmow (dzieci!)
+     v7.0 „NEMEZIS" (pitch: kot ktory
      cie powstrzymal, sroka ktora nasrala, metr przed meta)
      · NEMEZIS: SROKA HALINA — pierwsza przeszkoda POWIETRZNA
        (unik:'ziemia' — bije gdy jestes W LOCIE, na ziemi mija):
@@ -914,6 +920,7 @@
 <div id="vig" style="position:fixed;inset:0;pointer-events:none;z-index:2;
   background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(10,14,24,.34) 100%)"></div>
 <div id="toast" role="status"></div>
+<div id="hypeBox" style="position:fixed;left:50%;top:96px;transform:translate(-50%,-16px);opacity:0;transition:opacity .25s,transform .25s;z-index:60;pointer-events:none;background:var(--panel);border:1px solid #2a3350;border-radius:16px;padding:8px 14px;max-width:78vw;display:flex;align-items:center;gap:9px"></div>   <!-- KIBICE -->
 <div id="dymek" hidden></div>
 
 <!-- MENU — żywe tło za spodem (Bieguś biegnie w demo) -->
@@ -4433,6 +4440,37 @@ const Gra=(()=>{
     'GWIAZDA POLARNA':'śruba + salto + grab','SUPERNOVA':'obie śruby + salto + grab',
     'PIRUET MISTRZA':'śruba 720 + grab','ORBITA':'podwójne salto + śruba',
     'TONY BIEGUŚ':'podwójne salto + obie śruby + grab + odbicie od ściany'};   /* TONY */
+  const HYPE_KIBICE={1:['wiewiorka','trener-orzel','pies-speed','papuga-rio','trenerka-orzel'],   /* KIBICE */
+    2:['zolw-maraton','sowa-dziadek','panda-zenek'],
+    3:['#🐔|Kura Agata','wilk','#🐇|Błysk'],
+    4:['tygrys-trail','sowa-biala','lis-arktyczny','#🐹|Świstak']};
+  const HYPE_TEKSTY={
+    'wiewiorka':['{K}?! Sprzedałabym bilety na to!','GRUBO! Aż mi orzechy wypadły!'],
+    'trener-orzel':['{K}! TO jest technika!','Widzieliście?! MÓJ zawodnik!'],
+    'trenerka-orzel':['{K} — czysto jak w podręczniku!'],
+    'pies-speed':['{K}!!! JESZCZE RAZ, JESZCZE RAZ!','SZYBCIEJ SIĘ NIE DA! …A JEDNAK!'],
+    'papuga-rio':['{K}! Słonko, to było PIĘKNE!'],
+    'zolw-maraton':['{K}… Sto maratonów i czegoś takiego nie widziałem.'],
+    'sowa-dziadek':['{K}! Las zapamięta ten lot.'],
+    'panda-zenek':['{K}? Luz i rytm, mówiłem. MISTRZOSTWO.'],
+    'wilk':['{K}. …Szanuję. Bardzo.'],
+    '#🐔|Kura Agata':['{K}! Dziecko drogie, aż jajko upuściłam!'],
+    '#🐇|Błysk':['{K}?! Dobra, ptaku. TERAZ się zaczyna.'],
+    'tygrys-trail':['{K}! Góry biją brawo lawinami!'],
+    'sowa-biala':['{K}. Nawet cisza gór krzyknęła.'],
+    'lis-arktyczny':['{K}! Zamarzłem z wrażenia — i mi się podoba!'],
+    '#🐹|Świstak':['FIIIIIIT!!! ({K}!)']};
+  let _hypeT=null;
+  function pokazHype(kombo){                                          /* KIBICE: mentor wpada z okrzykiem przy super kombie */
+    const b=el('hypeBox');if(!b)return;
+    const kr=(sym&&sym.skrypt&&sym.skrypt.kraina)||1;
+    const kto=losuj(HYPE_KIBICE[kr]||HYPE_KIBICE[1]);
+    const o=scenkaOsoba(kto);
+    const tx=losuj(HYPE_TEKSTY[kto]||['{K}! ALE TO BYŁO COŚ!']).replace('{K}',kombo);
+    b.innerHTML=o.iko+' <span><b>'+o.imie+':</b> „'+tx+'"</span>';
+    b.style.opacity=1;b.style.transform='translate(-50%,0)';
+    clearTimeout(_hypeT);
+    _hypeT=setTimeout(()=>{b.style.opacity=0;b.style.transform='translate(-50%,-16px)';},2300);}
   function odswiezKsiege(){                                           /* TONY: nabijanie nowych jak w THPS */
     const B=[['tap','SKOK','—'],['tap w locie','SALTO','+100'],['3. tap w locie','PODWÓJNE SALTO','+220'],
       ['swipe ⬇ w locie','GRAB · w salcie TORNADO','+60 / +150'],['2. swipe ⬇','MELON','+90'],
@@ -5334,6 +5372,7 @@ const Gra=(()=>{
       R3.efekt(zd);return;}
     if(zd.typ==='superKombo'){                                        /* SUPER-KOMBA: wielka celebracja */
       popup('⭐ '+zd.nazwa+' +'+zd.pkt+' ✦',true);Dzwiek.combo(28);
+      pokazHype(zd.nazwa);                                            /* KIBICE */
       spowolnienie=Math.max(spowolnienie,0.35);                       /* FLOW: kinowe slow-mo na super kombo */
       try{navigator.vibrate&&navigator.vibrate([20,40,20,40,50]);}catch(e){}
       const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.95;
@@ -5428,7 +5467,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.0',
+  wersja:'7.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
