@@ -13,7 +13,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.9 „TONY BIEGUŚ" (pitch: THPS,
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.9 „TONY BIEGUŚ" + REW (zgloszenia)
+     · REW: ASSETY.obrotY 0 -> PI — assets/biegus.glb (pisklak-alt,
+       fallback dla mlody/dorosly) biegl bokiem; stadium wokol progu
+       30 km ladowalo NA PRZEMIAN pisklak.glb/biegus.glb (roznica
+       orientacji = "raz prosto raz bokiem")
+     · REW: btnMetaMenu na finiszu (Dalej szedl w nastepny etap,
+       menu bylo tylko po zawodach/e32)
+     · REW: menuStatus bez ptaszka i emotki stanu; mentorIko onerror
+       replaceWith (twardszy fallback emoji do czasu partii 15)
+     (pitch: THPS,
      wiecej trikow, nabijanie nowych, epicko)
      · TONY triki: ŚRUBA eskaluje 40/90/160 (720/1080 w jednym locie),
        PODWÓJNE SALTO (3. tap, +220, lot +15%, render 720 stopni),
@@ -977,6 +986,7 @@
   <button class="cta" id="btnPowtorz" style="background:#2a3350;font-size:.95em">🔁 Jeszcze raz</button>
   <button class="cta" id="btnShare" style="background:#2a3350;font-size:.95em">📣 Pochwal się</button>
   <button class="cta" id="btnDalej">Dalej</button>
+  <button class="cta" id="btnMetaMenu" style="background:#2a3350;font-size:.95em">Menu</button>
   <button id="btnPowtorka">Powtórz</button>
 </div>
 
@@ -3194,7 +3204,7 @@ const R3=(()=>{
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
-    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:0,
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI,   /* REW: plik to pisklak-alt (+Z) — mlody/dorosly biegl bokiem; stadium migotalo wokol progu 30 km i ladowalo NA PRZEMIAN pisklak.glb (prosto) / biegus.glb (bokiem) */
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
       taczka:'assets/taczka.glb', pies:'assets/pies.glb', rower:'assets/rower.glb',
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
@@ -4422,7 +4432,7 @@ const Gra=(()=>{
   function mentorIko(id,emoji,px){                                    /* MENTORZY: portret webp, fallback emoji */
     return '<img src="'+assetUrl('assets/ui/ikony/mentor-'+id+'.webp')+
       '" style="width:'+px+'px;height:'+px+'px;object-fit:cover;border-radius:50%;vertical-align:middle;background:#fff" '+
-      'onerror="this.outerHTML=this.dataset.e" data-e="'+emoji+'">';}
+      'onerror="this.replaceWith(this.dataset.e)" data-e="'+emoji+'">';}
   const Hinty={d:JSON.parse(localStorage.getItem('biegus_hinty_v1')||'{}'),   /* PRODUKT-1: szkola trikow */
     raz(id,tekst){if(this.d[id])return;this.d[id]=1;
       try{localStorage.setItem('biegus_hinty_v1',JSON.stringify(this.d));}catch(e){}
@@ -4639,12 +4649,11 @@ const Gra=(()=>{
     odswiezEtapy();dymekMenu();                                       /* GLOS: dymek przewodnika na menu */
     el('btnGraj').textContent='▶ BIEGNIJ · ETAP '+nastepnyEtap();
     const s=Biegus.stan();
-    const emoji=s==='najedzony'?'💪':s==='ok'?'🙂':'😪';
     const pm=el('portretMenu');
     pm.hidden=false;pm.onerror=()=>pm.hidden=true;
     el('btnFinal').hidden=!Biegus.ukonczone.has('e32');
     ustawPortret(pm);
-    el('menuStatus').innerHTML='🐦 <b>'+Biegus.imie+'</b> · '+STADIA[Biegus.stadium()].nazwa+' '+emoji+' · '+
+    el('menuStatus').innerHTML='<b>'+Biegus.imie+'</b> · '+STADIA[Biegus.stadium()].nazwa+' · '+   /* REW: bez emotek */
       (s==='najedzony'?'najedzony treningami':s==='ok'?'przydałby się trening':'głodny — nakarm go treningiem')+
       ' · '+Biegus.laczneKm+' km wybieganych';
   }
@@ -5224,6 +5233,7 @@ const Gra=(()=>{
   el('btnPowtorka').onclick=()=>start(biezacyEtap,sym.tryb);
   el('btnJeszczeRaz').onclick=()=>start(biezacyEtap,sym.tryb);
   el('btnPowtorz').onclick=()=>start(biezacyEtap,sym?sym.tryb:'etap');  /* CHMURA-sesja: petla na gwiazdki/rekordy */
+  el('btnMetaMenu').onclick=()=>{tryb='menu';pokaz('menu');};           /* REW: z mety wprost do menu */
   el('btnShare').onclick=async()=>{                                   /* PRODUKT-1: share rekordu (organiczny zasieg) */
     const t='Bieguś 🏃 etap '+biezacyEtap+': '+(sym?sym.piora:0)+'🪶, styl ✦'+(sym?(sym.styl||0):0)+' — pobiegniesz ze mną? https://biegamy.run/biegus.html';
     try{if(navigator.share)await navigator.share({text:t});
