@@ -9,11 +9,22 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.3 (Czytelność)</title>
+<title>Bieguś — Droga na Igrzyska · v6.4 (Fair fallback)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.3 „CZYTELNOŚĆ + FRONT" (screeny)
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.4 „FAIR FALLBACK" (crash e14)
+     · FAIR: generator probowal 6 seedow i rzucal throw — na e14 k2
+       (gestosc + rozwidlenia + przejazdy + segment + mentor + pary
+       grindow, kazde pilnuje TYLKO wlasnego pasa, waliduj MIN_GAP_GLOBAL
+       lapal calosc) padalo seryjnie; teraz 14 prob + AWARYJNY lzejszy
+       uklad (krok 1.5 s, bez wstrzykniec ekstra) zamiast crasha —
+       zasada: gra NIGDY nie wywala sie na Biegnij
+     · FAIR: pancerz czekaStart w obu handlerach (fabula + onboarding) —
+       drugi klik po bledzie startu rzucal "not iterable"
+     · IKONY: kafle Etapy/Zawody Park/Zawody Las dostaly data-iko
+       (partia 15 w briefie: 3 kafle + 12 mentorow)
+     v6.3 „CZYTELNOŚĆ + FRONT" (screeny)
      · FRONT: pisklak.glb obrot PI/2 -> PI (biegl prawym profilem;
        natywnie patrzy w +Z, kamera patrzy w -Z); pozostale stadia:
        kalibracja przez debug-przycisk ↻ (biegus_debug=1) — Filip
@@ -846,9 +857,9 @@
   </div>
   <button id="btnKod" style="margin-top:8px;font-size:.82em;opacity:.7;background:transparent;border:1px dashed #2a3350">🎁 kod bonusowy</button>
   <div class="rzad">
-    <button class="kafel" id="btnEtapy"><span>🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
-    <button class="kafel" id="btnZawody"><span>🏁</span>Zawody Park<span>medale o świcie</span></button>
-    <button class="kafel" id="btnZawodyLas"><span>🌲</span>Zawody Las<span>medale we mgle</span></button>
+    <button class="kafel" id="btnEtapy"><span data-iko="ikona-etapy">🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
+    <button class="kafel" id="btnZawody"><span data-iko="ikona-zawody-park">🏁</span>Zawody Park<span>medale o świcie</span></button>
+    <button class="kafel" id="btnZawodyLas"><span data-iko="ikona-zawody-las">🌲</span>Zawody Las<span>medale we mgle</span></button>
   </div>
   <div class="rzad">
     <button class="kafel" id="btnBiegus"><span data-iko="ikona-trening">🐦</span>Bieguś<span>karm i ubieraj</span></button>
@@ -2272,7 +2283,7 @@ const TIPY=['Śruba + grab w jednym locie = WKRĘT. Dołóż salto — zobaczysz
 
 /* ---------- 6. GENERATOR + WALIDATOR (z liniami piór) ---------- */
 function generujEtap(nrEtapu,seedStr,kraina=1){
-  for(let proba=0;proba<6;proba++){
+  for(let proba=0;proba<14;proba++){                               /* FAIR: bylo 6 — padalo seryjnie na e14 k2 */
     const rng=rngZSeed(seedStr+'#'+proba),ev=[];
     const pora=Math.floor(rng()*3);
     const MOT=kraina===3?['klasyczny','klasyczny','pioropusz','akrobatyczny','rozstaje','szczyt']
@@ -2307,7 +2318,18 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     ev.sort((a,b)=>a.t-b.t);
     if(waliduj(ev))return{kraina,etap:nrEtapu,seed:seedStr,ev,pora,motyw};
   }
-  throw new Error('Generator: brak uczciwego etapu ('+seedStr+')');
+  /* FAIR: fallback — lzejszy uklad (krok 1.5 s, bez rozwidlen/segmentow/par grindow) zamiast crasha.
+     Zgloszenie Filipa: "Generator: brak uczciwego etapu (k2-e14-...)" wywalalo Biegnij. */
+  {const rng=rngZSeed(seedStr+'#awaria'),ev=[];const pora=Math.floor(rng()*3);
+   let t=CFG.ROZBIEG;const koniec=CFG.ETAP_CZAS-CFG.WYBIEG,ostatni=[-9,-9,-9];
+   const rel=((nrEtapu-1)%8)+1,dostepne=typyDlaEtapu(rel,kraina);
+   while(t<koniec){t+=1.5*(1+rng()*0.4);if(t>=koniec)break;
+     const typ=losujTyp(rng,t,dostepne),pas=losujPas(rng,t,ev,ostatni);
+     if(pas===-1)continue;ev.push({t:+t.toFixed(2),pas,typ});ostatni[pas]=t;}
+   dolozZbieralne(rng,ev,nrEtapu,rel,kraina);
+   ev.sort((a,b)=>a.t-b.t);
+   try{console.warn('[BIEGUŚ] FAIR: etap awaryjny '+seedStr);}catch(e){}
+   return{kraina,etap:nrEtapu,seed:seedStr+'#awaria',ev,pora,motyw:'klasyczny'};}
 }
 function losujTyp(rng,t,dostepne){
   const dost=dostepne.filter(n=>t>=OBIEKTY[n].odCzasu);
@@ -4594,7 +4616,8 @@ const Gra=(()=>{
   ZADANIA_FAB[32]={od:'🦅 Orzeł',cel:'wykonaj 3 salta — pokaż górom, że umiesz latać po swojemu',
     test:s=>s.salta>=3,nagroda:'Orzeł, z nieba: „Teraz biegniesz i latasz jednocześnie. Jesteś gotów."'};
   const widzianeFabuly=new Set();
-  el('btnFabulaDalej').onclick=()=>{const[pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
+  el('btnFabulaDalej').onclick=()=>{if(!czekaStart)return;          /* FAIR: pancerz na kaskade po bledzie startu */
+    const[pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
   function PALETY_NAZWA(sk){try{return R3.nazwaPory(sk.kraina||1,sk.pora||0);}catch(e){return '';}}
   FABULA[5]={akt:'AKT V',tytul:'WIELKIE IGRZYSKA',
     scena:'Tunel pachnie kurzem i światłem. Na końcu — stadion, którego huk słychać w piersi. Obok, na sąsiednim torze, rozgrzewa się Błysk. Nie patrzy na Biegusia. Jeszcze nie musi.',
@@ -4614,7 +4637,7 @@ const Gra=(()=>{
     tryb='karta';pokaz('fabula');}
   let widzialOnboarding=false,czekaStart=null,_ostCombo=0;
   el('btnOnboardingStart').onclick=()=>{widzialOnboarding=true;
-    const [pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};
+    if(!czekaStart)return;const [pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};   /* FAIR: pancerz */
   function start(n,trybGry){
     if(!widzialOnboarding){czekaStart=[n,trybGry];tryb='karta';pokaz('onboarding');return;}
     biezacyEtap=n;
@@ -5102,7 +5125,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.3',
+  wersja:'6.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
