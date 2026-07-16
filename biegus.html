@@ -9,11 +9,23 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.2 (Wiring ikon)</title>
+<title>Bieguś — Droga na Igrzyska · v6.3 (Czytelność)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.2 „WIRING IKON" (partia 13 od cc)
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.3 „CZYTELNOŚĆ + FRONT" (screeny)
+     · FRONT: pisklak.glb obrot PI/2 -> PI (biegl prawym profilem;
+       natywnie patrzy w +Z, kamera patrzy w -Z); pozostale stadia:
+       kalibracja przez debug-przycisk ↻ (biegus_debug=1) — Filip
+       zglasza stopnie, wypiekamy w GLB_STADIA
+     · CZYTELNOSC: smugi switu k2 (1.8x14, cykl 240) PLYNELY POD KAMERE
+       = ukosne biale pasy na pol ekranu ze screenow; teraz 1.3x9,
+       material per smuga (byl wspolny — animacje sie nadpisywaly),
+       fade od -z<9 (przy kamerze znikaja), opacity max nizej
+     · CZYTELNOSC: murek 0x9a938a -> 0x756e64 (bial sie na jasnym
+       niebie przy ekspozycji 1.12), krawedz jasniejsza 0xd8d0c2 —
+       sylwetka czytelna na kazdej palecie
+     v6.2 „WIRING IKON" (partia 13 od cc)
      · WIRING: kafle UPIERZENIE/AKCESORIA ciagna assets/przedmioty/
        {kolor|akces}-<id>.webp (wzorzec kolekcji: onerror -> data-e
        -> emoji zostaje gdy plik nie wstal); zablokowane = grayscale
@@ -1783,10 +1795,10 @@ const OBIEKTY={
     zbuduj(){
       const g=new THREE.Group();
       const b=new THREE.Mesh(new THREE.BoxGeometry(1.7,0.85,1),
-        new THREE.MeshStandardMaterial({color:0x9a938a,roughness:0.95}));
+        new THREE.MeshStandardMaterial({color:0x756e64,roughness:0.95}));   /* CZYTELNOSC: bylo 0x9a938a = bialy na jasnym niebie */
       b.position.set(0,0.425,-0.5);b.castShadow=true;b.receiveShadow=true;g.add(b);
       const k=new THREE.Mesh(new THREE.BoxGeometry(1.78,0.07,1),
-        new THREE.MeshStandardMaterial({color:0xc9c2b6,roughness:0.6}));
+        new THREE.MeshStandardMaterial({color:0xd8d0c2,roughness:0.6}));    /* CZYTELNOSC: jasna krawedz na ciemnym betonie */
       k.position.set(0,0.885,-0.5);g.add(k);
       return g;},
     animuj(){},
@@ -3038,7 +3050,7 @@ const R3=(()=>{
     PREMIUM.scenaGLB.rotation.y=(PREMIUM.obrotBaza||0)+deg*Math.PI/180;
     return deg;}
   const GLB_STADIA={
-    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*0.5},
+    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI},        /* FRONT: +Z -> -Z, bokiem bylo PI/2 (screen Filipa) */
     mistrz:{url:'assets/modele/mistrz.glb',obrot:0},
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
@@ -3174,15 +3186,17 @@ const R3=(()=>{
       l.rotation.y=j*(Math.PI*2/5);l.rotation.x=-0.5;pa.add(l);}
     pa.position.set((i%2?1:-1)*(5.0+i*0.3),0,-i*61-20);
     dodajDeko(pa,238,'k2');}
-  {
-    const matSmuga=new THREE.MeshBasicMaterial({color:0xffe9b0,transparent:true,
-      opacity:0.1,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+  {                                                                   /* CZYTELNOSC: smugi switu plynely pod kamere jako biale pasy na pol ekranu */
     for(let i=0;i<3;i++){
-      const sm=new THREE.Mesh(new THREE.PlaneGeometry(1.8,14),matSmuga);
+      const mS=new THREE.MeshBasicMaterial({color:0xffe9b0,transparent:true,
+        opacity:0.08,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+      const sm=new THREE.Mesh(new THREE.PlaneGeometry(1.3,9),mS);
       sm.rotation.z=0.45;sm.rotation.y=0.3;
-      sm.position.set((i%2?1:-1)*(3.4+i),7,-i*70-24);
+      sm.position.set((i%2?1:-1)*(3.4+i),6,-i*70-24);
       dodajDeko(sm,240,'k2');
-      dekoAnim.push(t=>{if(sm.visible)matSmuga.opacity=0.07+Math.abs(Math.sin(t*0.5+i))*0.09;});
+      dekoAnim.push(t=>{if(sm.visible){
+        const d=Math.min(1,Math.max(0,(-sm.position.z-9)/22));        /* CZYTELNOSC: fade przy zblizaniu do kamery */
+        mS.opacity=(0.05+Math.abs(Math.sin(t*0.5+i))*0.07)*d;}});
     }
   }
   /* — DEKO MIASTA (grupa k3) — */
@@ -5088,7 +5102,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.2',
+  wersja:'6.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
