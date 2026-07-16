@@ -9,11 +9,24 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v5.9 (Janusz)</title>
+<title>Bieguś — Droga na Igrzyska · v6.0 (Chmura)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.9 „JANUSZ" (gra wyciaga z fotela)
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.0 „CHMURA" (cloud save)
+     · CHMURA: zapis gry w Supabase (kolumny zapis jsonb + zapis_ts na
+       biegus_most — MIGRACJA 20260716000000 u cc), last-write-wins po
+       ts (nowe pole w save), pull przy starcie: chmura nowsza ->
+       restore + reload (anty-petla: przywrocony payload niesie swoj ts),
+       lokal nowszy -> debounced push (4 s po kazdym zapisz)
+     · BOOT-CHAIN: chmura PRZED odbierz/tydzien — inaczej swiezy telefon
+       dostalby piora z mostu (zapisz ts=now) i push NADPISALBY chmure
+       pustym savem; _reload blokuje most przy restore
+     · kod odporny na brak kolumny (cichy catch) — mozna deployowac
+       PRZED migracja
+     · FINISZ: przycisk 🔁 Jeszcze raz (petla na gwiazdki/rekordy;
+       byl tylko na porazce)
+     v5.9 „JANUSZ" (gra wyciaga z fotela)
      · JANUSZ: MOST.tydzien() — 14 dni logow tym samym wzorcem REST
        (badge-filtr!), km od poniedzialku 00:00 lokalnie + STREAK dni
        (zyje do konca dnia — dzis bez biegu nie zeruje)
@@ -843,6 +856,7 @@
     <span id="stCzasBox" hidden><b id="stCzas">60s</b>czas</span>
     <span id="stStylBox" hidden><b id="stStyl">0</b>✦ styl</span>
   </div>
+  <button class="cta" id="btnPowtorz" style="background:#2a3350;font-size:.95em">🔁 Jeszcze raz</button>
   <button class="cta" id="btnShare" style="background:#2a3350;font-size:.95em">📣 Pochwal się</button>
   <button class="cta" id="btnDalej">Dalej</button>
   <button id="btnPowtorka">Powtórz</button>
@@ -1234,7 +1248,9 @@ const Biegus={
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
     najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany,
-    celTyg:this.celTyg||{},...(mx?{misje:mx}:{}),...(ox?{odbloki:ox}:{})}));}catch(e){}},
+    celTyg:this.celTyg||{},ts:Date.now(),...(mx?{misje:mx}:{}),...(ox?{odbloki:ox}:{})}));
+    try{MOST.planujPush();}catch(e){}                          /* CHMURA: debounced push po kazdym zapisie */
+    }catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -1301,7 +1317,7 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
   async odbierz(){try{
     const s=this.sesja();if(!s)return;
     const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
-    if(!at.length)return;const aid=at[0].id;
+    if(!at.length)return;const aid=at[0].id;this.aid=aid;
     const m=await this.czytaj(s.tok,'biegus_most?select=ostatni_odbior&athlete_id=eq.'+aid);
     let od;
     if(!m.length){                              // pierwszy raz: tydzien wstecz na dzien dobry
@@ -1330,7 +1346,7 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
   async tydzien(){try{                          /* JANUSZ: cel tygodnia + streak realnych biegow */
     const s=this.sesja();if(!s)return;
     const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
-    if(!at.length)return;const aid=at[0].id;
+    if(!at.length)return;const aid=at[0].id;this.aid=aid;
     const od=new Date(Date.now()-14*864e5).toISOString();
     const logs=await this.czytaj(s.tok,'training_logs?select=logged_at,distance_km'+
       '&athlete_id=eq.'+aid+'&logged_at=gt.'+encodeURIComponent(od)+
@@ -1348,9 +1364,38 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
       .reduce((a,l)=>a+(+l.distance_km||0),0);
     Gra?.janusz?.({km:kmT,streak,dzisBieg:dni.has(dzis),
       wczorajBieg:dni.has(klucz(new Date(Date.now()-864e5))),ponKey:klucz(pon)});
+  }catch(e){}},
+  async athleteId(){if(this.aid)return this.aid;               /* CHMURA: cache athlete_id */
+    const s=this.sesja();if(!s)return null;
+    const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
+    if(!at.length)return null;this.aid=at[0].id;return this.aid;},
+  planujPush(){clearTimeout(this._pushT);                      /* CHMURA: debounce 4 s */
+    this._pushT=setTimeout(()=>this.push(),4000);},
+  async push(){try{
+    const s=this.sesja();if(!s)return;
+    const aid=await this.athleteId();if(!aid)return;
+    const raw=localStorage.getItem('biegus_droga_zapis_v1');if(!raw)return;
+    await fetch(this.URL+'/rest/v1/biegus_most?athlete_id=eq.'+aid,{method:'PATCH',
+      headers:this.naglowki(s.tok,true),
+      body:JSON.stringify({zapis:JSON.parse(raw),zapis_ts:new Date().toISOString()})});
+  }catch(e){}},                                                /* CHMURA: brak kolumny/offline = cisza */
+  async chmura(){try{                                          /* CHMURA: pull przy starcie, last-write-wins po ts */
+    const s=this.sesja();if(!s)return;
+    const aid=await this.athleteId();if(!aid)return;
+    const r=await this.czytaj(s.tok,'biegus_most?select=zapis&athlete_id=eq.'+aid);
+    const ch=r.length&&r[0].zapis;
+    const lok=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
+    if(ch&&(+ch.ts||0)>((lok&&+lok.ts)||0)){                   // chmura nowsza -> przywroc i przeladuj
+      this._reload=true;
+      localStorage.setItem('biegus_droga_zapis_v1',JSON.stringify(ch));
+      Gra?.toast?.('☁️ Wczytano zapis z chmury…');
+      setTimeout(()=>location.reload(),1200);}
+    else if(lok&&(+lok.ts||0)>((ch&&+ch.ts)||0))this.planujPush(); // lokal nowszy -> wyslij
   }catch(e){}}};
-setTimeout(()=>MOST.odbierz(),1800);             /* MOST-v2: auto-odbior po starcie */
-setTimeout(()=>MOST.tydzien(),2600);             /* JANUSZ: cel tygodnia + streak po odbiorze */
+setTimeout(async()=>{                            /* CHMURA: pull PRZED mostem — inaczej odbior pior */
+  await MOST.chmura();                           /* nadpisalby chmure swiezym savem (lok.ts>ch.ts) */
+  if(!MOST._reload){MOST.odbierz();setTimeout(()=>MOST.tydzien(),800);}
+},1400);
 /* — ikony kafli menu (partia 8): podmiana emoji na grafiki, fallback zostaje — */
 document.querySelectorAll('[data-iko]').forEach(sp=>{
   const im=new Image();
@@ -4862,6 +4907,7 @@ const Gra=(()=>{
     else start(biezacyEtap+1,'etap');};
   el('btnPowtorka').onclick=()=>start(biezacyEtap,sym.tryb);
   el('btnJeszczeRaz').onclick=()=>start(biezacyEtap,sym.tryb);
+  el('btnPowtorz').onclick=()=>start(biezacyEtap,sym?sym.tryb:'etap');  /* CHMURA-sesja: petla na gwiazdki/rekordy */
   el('btnShare').onclick=async()=>{                                   /* PRODUKT-1: share rekordu (organiczny zasieg) */
     const t='Bieguś 🏃 etap '+biezacyEtap+': '+(sym?sym.piora:0)+'🪶, styl ✦'+(sym?(sym.styl||0):0)+' — pobiegniesz ze mną? https://biegamy.run/biegus.html';
     try{if(navigator.share)await navigator.share({text:t});
@@ -5003,7 +5049,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.9',
+  wersja:'6.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
