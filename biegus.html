@@ -9,11 +9,21 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.0.1 (Chmura)</title>
+<title>Bieguś — Droga na Igrzyska · v6.1 (Porządki)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.0.1 „CHMURA" + RC1-fix
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.1 „PORZĄDKI" (screeny Filipa z RC-1)
+     · PORZADKI menu: BIEGNIJ na gorze (pierwsza akcja pierwsza),
+       radio w jednym kompaktowym wierszu (krotszy label + ⏭),
+       kod bonusowy = dyskretny link (dashed, .82em) — ZEGAREK-auto robi
+       robote, kody RADIO/WALKA spolecznosciowe zostaja; link znika po
+       wykorzystaniu WSZYSTKICH kodow (KODY_BONUS.every)
+     · PORZADKI panel Biegusia: btnTrening/btnModel/btnObrot/devLegenda
+       tylko przy biegus_debug=1 (display:none wygrywa z hidden-toggle)
+     · ikony UPIERZENIA+AKCESORIOW: brief 13 szt. dla warsztatu cc,
+       wiring w nastepnej wersji po wygenerowaniu
+     v6.0.1 „CHMURA" + RC1-fix
      · RC1-fix (zgloszenie Filipa z karty testow, punkt A1): czerwona
        nakladka pokazywala INFO o wczytaniu modelu (debug z sesji GLB
        zostawiony na prodzie) + dev-toast "pipeline assetow" przy kazdym
@@ -809,10 +819,13 @@
   <div class="pod" id="menuStatus"></div>
   <div class="pod" id="januszBox" hidden style="border:1px solid #2a3350;border-radius:12px;padding:10px 12px;margin-top:6px;text-align:left;line-height:1.55"></div>
   <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
-  <button id="btnRadio" style="margin-top:8px">📻 Radio BiegaMy: …</button>
-  <button id="btnRadioSkip" style="margin-top:8px" hidden>⏭ Następny utwór</button>
-  <button id="btnKod" style="margin-top:8px">🎁 Mam kod bonusowy</button>
+  <!-- PORZADKI: BIEGNIJ na gorze, radio jeden wiersz, kod dyskretny -->
   <button class="cta" id="btnGraj">▶ BIEGNIJ</button>
+  <div style="display:flex;gap:8px;justify-content:center;align-items:stretch;margin-top:8px">
+    <button id="btnRadio" style="margin-top:0">📻 Radio BiegaMy: …</button>
+    <button id="btnRadioSkip" style="margin-top:0" hidden>⏭</button>
+  </div>
+  <button id="btnKod" style="margin-top:8px;font-size:.82em;opacity:.7;background:transparent;border:1px dashed #2a3350">🎁 kod bonusowy</button>
   <div class="rzad">
     <button class="kafel" id="btnEtapy"><span>🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
     <button class="kafel" id="btnZawody"><span>🏁</span>Zawody Park<span>medale o świcie</span></button>
@@ -942,7 +955,7 @@
   <button id="btnTrening">🏃 Symuluj trening 8 km</button>
   <button id="btnModel" hidden>🎭 Model: Premium</button>
   <button id="btnObrot" hidden>↻ Obróć model (gdy biegnie bokiem)</button>
-  <div class="legenda">(przycisk dev — w aplikacji karmi go prawdziwy trening z zegarka)</div>
+  <div class="legenda" id="devLegenda">(przycisk dev — w aplikacji karmi go prawdziwy trening z zegarka)</div>
   <div class="kreatorSekcja">
     <div class="naglowek">STATYSTYKI ŻYCIOWE</div>
     <div class="statMini" id="statMini"></div>
@@ -4903,7 +4916,7 @@ const Gra=(()=>{
   function odswiezRadioBtn(){
     const b=el('btnRadio');
     const wl=(()=>{try{return localStorage.getItem('biegus_radio')!=='0';}catch(e){return true;}})();
-    b.textContent='📻 Radio BiegaMy: '+(wl?'WŁĄCZONE':'wyłączone');
+    b.textContent='📻 Radio: '+(wl?'GRA':'wyłączone');              /* PORZADKI: krotszy label w wierszu */
     b.hidden=!RadioGry.playlista;
     el('btnRadioSkip').hidden=!RadioGry.playlista||!wl;}       /* RADIO-nonstop */
   el('btnKod').onclick=()=>uzyjKodu();
@@ -5051,6 +5064,10 @@ const Gra=(()=>{
     else if(sym)R3.klatka(sym,zegar);
     else R3.klatka(demo,zegar);
   }
+  if(!_biegusDebug())                                                /* PORZADKI: dev-kontrolki tylko przy biegus_debug=1 */
+    ['btnTrening','btnModel','btnObrot','devLegenda'].forEach(i=>{const b=el(i);if(b)b.style.display='none';});
+  try{const uz=JSON.parse(localStorage.getItem('biegus_kody')||'[]');  /* PORZADKI: kod znika po wykorzystaniu wszystkich */
+    if(Object.keys(KODY_BONUS).every(k=>uz.includes(k)))el('btnKod').style.display='none';}catch(e){}
   odswiezBiegusPanel();pokaz('menu');requestAnimationFrame(petla);
   return{pauza,toast,janusz};                                        /* JANUSZ: MOST.tydzien -> menu */
 })();
@@ -5058,7 +5075,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.0.1',
+  wersja:'6.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
