@@ -9,11 +9,25 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.9 (Tony Bieguś)</title>
+<title>Bieguś — Droga na Igrzyska · v7.0 (Nemezis)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.9 „TONY BIEGUŚ" + REW (zgloszenia)
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.0 „NEMEZIS" (pitch: kot ktory
+     cie powstrzymal, sroka ktora nasrala, metr przed meta)
+     · NEMEZIS: SROKA HALINA — pierwsza przeszkoda POWIETRZNA
+       (unik:'ziemia' — bije gdy jestes W LOCIE, na ziemi mija):
+       naturalna kara za spam salt ("salta bez szwanku"); od e6
+     · NEMEZIS: KOT BAZYLI — usiadl i nie zamierza sie ruszyc; od e4
+     · NEMEZIS: ekran porazki pokazuje WINOWAJCE ("Powstrzymal Cie:
+       Kot Bazyli"), a hit po 85% trasy = "metr przed meta" +
+       "Wracam. To jeszcze nie koniec miedzy nami." — pętla zemsty
+     · UI: kod bonusowy OUT z menu (skrzynka zostaje)
+     · REW2: obrotY PI -> PI/2 (os natywna biegus.glb to +/-X;
+       "teraz odwrocony w drugi bok")
+     · notatka: klawiatura-spam strzalek = efektowne akrobacje,
+       mobile trudniej — obserwacja do przemyslenia sterowania
+     v6.9 „TONY BIEGUŚ" + REW (zgloszenia)
      · REW: ASSETY.obrotY 0 -> PI — assets/biegus.glb (pisklak-alt,
        fallback dla mlody/dorosly) biegl bokiem; stadium wokol progu
        30 km ladowalo NA PRZEMIAN pisklak.glb/biegus.glb (roznica
@@ -924,7 +938,6 @@
     <button id="btnRadio" style="margin-top:0">📻 Radio BiegaMy: …</button>
     <button id="btnRadioSkip" style="margin-top:0" hidden>⏭</button>
   </div>
-  <button id="btnKod" style="margin-top:8px;font-size:.82em;opacity:.7;background:transparent;border:1px dashed #2a3350">🎁 kod bonusowy</button>
   <div class="rzad">
     <button class="kafel" id="btnEtapy"><span data-iko="ikona-etapy">🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
     <button class="kafel" id="btnZawody"><span data-iko="ikona-zawody-park">🏁</span>Zawody Park<span>medale o świcie</span></button>
@@ -1765,6 +1778,33 @@ const OBIEKTY={
       w.position.y=1.14+Math.abs(Math.sin(t*5.5))*0.03;
       w.rotation.y=Math.sin(t*1.3)*0.6;},
   },
+  sroka:{  /* NEMEZIS: przeszkoda POWIETRZNA — bije w locie; kara za bezmyslne salta */
+    nazwa:'Sroka Halina',unik:'ziemia',mult:1.0,waga:2,odEtapu:6,odCzasu:0,
+    opis:'Pikuje na wszystko, co błyszczy i lata. Zwłaszcza na małe ptaki w pomarańczowych bluzach, które za dużo skaczą. Zostań na ziemi — wtedy cię nie widzi.',
+    unikTekst:'NIE SKACZ pod nią — zostań na ziemi albo ▼ ślizg',
+    zbuduj(){const g=new THREE.Group();
+      g.add(klocek(0.5,0.22,0.6,0x1c2230,0,1.35,0));
+      g.add(klocek(0.2,0.14,0.3,0xf6efe4,0,1.31,0.18));
+      const sk1=klocek(0.5,0.04,0.3,0x1c2230,-0.42,1.4,0),sk2=klocek(0.5,0.04,0.3,0x1c2230,0.42,1.4,0);
+      g.add(sk1);g.add(sk2);g.userData.sk=[sk1,sk2];
+      const d=walec(0,0.05,0.16,0xf8b34a,0,1.31,0.34,4);d.rotation.x=Math.PI/2;g.add(d);
+      return g;},
+    animuj(g,t){g.position.y=Math.sin(t*3.1)*0.14;
+      if(g.userData.sk)g.userData.sk.forEach((w,i)=>w.rotation.z=(i?-1:1)*Math.sin(t*13)*0.5);},
+  },
+  kot:{  /* NEMEZIS: kot spacerowy — siada na sciezce i NIC go nie obchodzi */
+    nazwa:'Kot Bazyli',unik:'skok',mult:1.0,waga:2,odEtapu:4,odCzasu:0,
+    opis:'Usiadł. Środek ścieżki wydał mu się najlepszym miejscem na świecie i żadna siła tego nie zmieni. Nie zamierza się ruszyć — to TY masz problem.',
+    unikTekst:'▲ SKOK nad nim albo ◀ ▶ zmiana pasa — dyskusja nie działa',
+    zbuduj(){const g=new THREE.Group();
+      g.add(klocek(0.38,0.34,0.56,0x2e2a33,0,0.3,0));
+      g.add(klocek(0.3,0.3,0.3,0x2e2a33,0,0.56,0.2));
+      [[-0.1],[0.1]].forEach(([x])=>{const u=klocek(0.07,0.14,0.05,0x2e2a33,x,0.76,0.2);u.rotation.z=x*2;g.add(u);});
+      const og=klocek(0.06,0.06,0.5,0x2e2a33,0,0.4,-0.45);og.rotation.x=0.5;g.add(og);g.userData.og=og;
+      [[-0.07],[0.07]].forEach(([x])=>g.add(klocek(0.05,0.06,0.02,0xf2c14e,x,0.6,0.36)));
+      return g;},
+    animuj(g,t){if(g.userData.og)g.userData.og.rotation.x=0.5+Math.sin(t*2.2)*0.35;},
+  },
   pies:{
     nazwa:'Pies bez smyczy',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
     opis:'Waży sześć kilo i jest święcie przekonany, że ścieżka należy do niego. Nie jest groźny — jest ENTUZJASTYCZNY, a to dla tempa dużo gorsze. Merda całym sobą. Z psami się nie dyskutuje.',
@@ -2599,6 +2639,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     stylLot:0,lotTriki:0,lotSeq:[],superKomba:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,   /* SUPER-KOMBA */
     wallT:0,wallStrona:0,_wallAcc:0,                                 /* FLOWWALL */
     salto2:false,grab2:false,srubyWLocie:0,                          /* TONY */
+    winowajca:null,winowajcaT:0,                                     /* NEMEZIS */
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
 function czyFever(s){return s.combo>=15||(s.turboT||0)>0;}   /* FLOW: JEDYNY chokepoint warunku fevera (bylo 4 kopie) */
@@ -2853,6 +2894,8 @@ function krokSymulacji(s){
       const unik=OBIEKTY[o.typ].unik;
       const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
       const wPow=s.skokT>=0&&(wysY>=CFG.PROG_PRZESKOKU||s.skokT<0.15);
+      if(unik==='ziemia'){                                          /* NEMEZIS: sroka bije W LOCIE — na ziemi mija */
+        if(s.skokT<0){if(!o.uniknieto)udanyUnik(s,o);continue;}}
       if(unik==='skok'&&wPow){if(!o.uniknieto)udanyUnik(s,o);continue;}
       if(unik==='slizg'&&s.slizgT>=0){if(!o.uniknieto){o.slizgniete=true;udanyUnik(s,o);}continue;}
       if(o.typ==='kaluza'&&s.gripKaluza){o.trafione=true;               /* HOTFIX-grip: buty > startowe przebiegaja kaluze */
@@ -2869,6 +2912,7 @@ function krokSymulacji(s){
         s.boostery.tarcza=false;o.trafione=true;s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'tarcza'});continue;}
       o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.nietyk=CFG.NIETYKALNOSC;
+      s.winowajca=o.typ;s.winowajcaT=s.t;                             /* NEMEZIS */
       if(s.skokT>=0&&(s.stylLot||0)>0){                                  /* BAIL: gleba kasuje niezbankowany lot */
         s.zdarzenia.push({typ:'trik',nazwa:'BAIL',pkt:-s.stylLot});
         s.stylLot=0;s.lotTriki=0;if(s.lotSeq)s.lotSeq.length=0;}      /* SUPER-KOMBA: bail kasuje sekwencje */
@@ -3204,7 +3248,7 @@ const R3=(()=>{
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
-    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI,   /* REW: plik to pisklak-alt (+Z) — mlody/dorosly biegl bokiem; stadium migotalo wokol progu 30 km i ladowalo NA PRZEMIAN pisklak.glb (prosto) / biegus.glb (bokiem) */
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*0.5,   /* REW2: os natywna to +/-X — PI dalo DRUGI profil; PI/2 = przod (jak tylem: 1.5*PI, hotfix 3 s) */
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
       taczka:'assets/taczka.glb', pies:'assets/pies.glb', rower:'assets/rower.glb',
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
@@ -5211,7 +5255,10 @@ const Gra=(()=>{
     if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
     sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
-    el('puentaFail').innerHTML='<b>'+Biegus.imie+':</b> „'+losuj(BIEGUS_MOWI.fail)+'”'+
+    const win=sym.winowajca&&OBIEKTY[sym.winowajca];                 /* NEMEZIS: kto cie powstrzymal */
+    const blisko=(sym.winowajcaT||0)>CFG.ETAP_CZAS*0.85;
+    el('puentaFail').innerHTML=(win?'<div style="margin-bottom:6px">Powstrzymał Cię: <b>'+win.nazwa+'</b>'+(blisko?' — metr przed metą.':'')+'</div>':'')+
+      '<b>'+Biegus.imie+':</b> „'+(blisko&&win?'Wracam. To jeszcze nie koniec między nami.':losuj(BIEGUS_MOWI.fail))+'”'+
       (sym.piora>0?'<br><span style="color:#f2c14e">+'+sym.piora+' 🪶 zostaje w portfelu — nic nie przepada!</span>':'');
     odswiezMenuStatus();pokaz('porazka');}
   el('btnFinalMenu').onclick=()=>{tryb='menu';pokaz('menu');};
@@ -5222,7 +5269,6 @@ const Gra=(()=>{
     b.textContent='📻 Radio: '+(wl?'GRA':'wyłączone');              /* PORZADKI: krotszy label w wierszu */
     b.hidden=!RadioGry.playlista;
     el('btnRadioSkip').hidden=!RadioGry.playlista||!wl;}       /* RADIO-nonstop */
-  el('btnKod').onclick=()=>uzyjKodu();
   el('btnRadio').onclick=()=>{RadioGry.przelacz();
     if(!RadioGry.aktywne())RadioGry.stop();else RadioGry.startuj();odswiezRadioBtn();};
   el('btnRadioSkip').onclick=()=>RadioGry.nastepny();
@@ -5374,7 +5420,7 @@ const Gra=(()=>{
   if(!_biegusDebug())                                                /* PORZADKI: dev-kontrolki tylko przy biegus_debug=1 */
     ['btnTrening','btnModel','btnObrot','devLegenda'].forEach(i=>{const b=el(i);if(b)b.style.display='none';});
   try{const uz=JSON.parse(localStorage.getItem('biegus_kody')||'[]');  /* PORZADKI: kod znika po wykorzystaniu wszystkich */
-    if(Object.keys(KODY_BONUS).every(k=>uz.includes(k)))el('btnKod').style.display='none';}catch(e){}
+    /* NEMEZIS-UI: btnKod usuniety z menu (decyzja Filipa; uzyjKodu zostaje na przyszlosc) */}catch(e){}
   odswiezBiegusPanel();pokaz('menu');requestAnimationFrame(petla);
   return{pauza,toast,janusz};                                        /* JANUSZ: MOST.tydzien -> menu */
 })();
@@ -5382,7 +5428,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.9',
+  wersja:'7.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
