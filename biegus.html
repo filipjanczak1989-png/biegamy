@@ -9,11 +9,26 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.7 (Charakter)</title>
+<title>Bieguś — Droga na Igrzyska · v6.8 (Flow wall)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.7 „CHARAKTER" (pitch Filipa:
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.8 „FLOW WALL + SZLIF" (pitch:
+     "biegac po scianach, odbijac sie, jak jest flow")
+     · FLOWWALL: we flow przy krawedzi drogi materializuje sie SCIANA
+       SWIATLA (fever-fantasy, zero fizycznej geometrii): na ziemi
+       swipe w krawedz = WALLRUN 0.85 s (styl kapie, przeszkody
+       mijaja, tap = ZESKOK +60), w locie = ODBICIE (+0.30 lotu, +120,
+       'wall' w sekwencji); gasnie gdy flow konczy sie w trakcie;
+       tick na KROK (staly krok symulacji — nie ma dt!); hint raz;
+       panel additive + burst + shake; zero RNG, calka nietknieta
+     · SZLIF: dymek OBOK pisklaka (flex bubble), emotki z dymka i
+       toastow stroju wyciete, copy przyostrzone; biegus_obroty v2->v3
+       (wipe recznych stopni walczacych z baza PI)
+     · LEKCJA rytualu: kotwice konczyc PRZED cudzyslowami/escape
+       (2 przerwania asserta na wlasnych escapingach — plik za kazdym
+       razem czysty, bramka robi robote)
+     v6.7 „CHARAKTER" (pitch Filipa:
      kochany, KAPRYSNY, WYTRWALY — i reaguje na stroj)
      · CHARAKTER: STROJ_TEKSTY — zakladasz chustke = natychmiastowy
        toast komentarza (kolory tez), a teksty aktualnego stroju
@@ -874,9 +889,11 @@
   <div class="przeslanie">Mały biegus nie odleciał z kluczem.<br>
     Został, żeby wystartować w <b>Wielkich Igrzyskach</b>.<br>
     Karmisz go <b>prawdziwym bieganiem</b> — skrótów nie ma.</div>
-  <img id="portretMenu" class="pportret" alt="" hidden>
+  <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:4px 0">   <!-- SZLIF: dymek obok pisklaka -->
+    <img id="portretMenu" class="pportret" alt="" hidden style="margin:0">
+    <div id="menuDymek" hidden style="border:1px solid #2a3350;border-radius:14px;padding:9px 12px;font-style:italic;text-align:left;max-width:230px;background:var(--panel)"></div>
+  </div>
   <div class="pod" id="menuStatus"></div>
-  <div class="pod" id="menuDymek" hidden style="border:1px solid #2a3350;border-radius:14px;padding:9px 12px;margin-top:6px;font-style:italic"></div>
   <div class="pod" id="januszBox" hidden style="border:1px solid #2a3350;border-radius:12px;padding:10px 12px;margin-top:6px;text-align:left;line-height:1.55"></div>
   <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
   <!-- PORZADKI: BIEGNIJ na gorze, radio jeden wiersz, kod dyskretny -->
@@ -2549,6 +2566,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
     flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,grind:null,grindStart:0,
     stylLot:0,lotTriki:0,lotSeq:[],superKomba:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,   /* SUPER-KOMBA */
+    wallT:0,wallStrona:0,_wallAcc:0,                                 /* FLOWWALL */
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
 function czyFever(s){return s.combo>=15||(s.turboT||0)>0;}   /* FLOW: JEDYNY chokepoint warunku fevera (bylo 4 kopie) */
@@ -2594,10 +2612,28 @@ function zakonczGrind(s,wyskok){                  /* GRIND: nalicz styl i zejdz 
   dodajStyl(s,Math.round((30+czas*70)*(d.stylMnoznik||1)*(s.gGrind||1)),'GRIND');  /* SKLEP-2.0: buty grindowe */
   s.grind=null;s.ostatniGrindKoniec=s.t;            /* TRANSFER: stempel zejscia */
   s.zdarzenia.push({typ:wyskok?'skok':'ladowanie'});}
+function wallAkcja(s,strona){                     /* FLOWWALL: sciana swiatla — tylko we flow, przy krawedzi */
+  if(s.skokT>=0){                                 /* ODBICIE: przedluzenie lotu + trik */
+    s.skokT=Math.max(0,s.skokT-0.30*s.skokCzas);
+    (s.lotSeq=s.lotSeq||[]).push('wall');
+    dodajStyl(s,120,'ODBICIE');
+    s.zdarzenia.push({typ:'flowWall',akcja:'odbicie',strona});return true;}
+  if(s.slizgT<0&&!s.grind){                       /* WALLRUN 0.85 s */
+    s.wallT=0.85;s.wallStrona=strona;s._wallAcc=0;
+    s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+    s.zdarzenia.push({typ:'flowWall',akcja:'wallrun',strona});return true;}
+  return false;}
 function probujAkcje(s,a){
-  if(a==='lewo'){if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
+  if(s.wallT>0){                                  /* FLOWWALL: na scianie tap = zeskok, reszta ignorowana */
+    if(a==='skok'){s.wallT=0;s.skokT=0;s.skokCzas=CFG.SKOK;s.salto=false;
+      dodajStyl(s,60,'ZESKOK');s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+      s.zdarzenia.push({typ:'skok'});}
+    return true;}
+  if(a==='lewo'){if(s.pas===0&&czyFever(s))return wallAkcja(s,-1);   /* FLOWWALL */
+    if(s.pas>0){s.pasOd=pozycjaPasa(s);s.pas--;s.pasT=0;
     if(s.skokT>=0){s.sruba=-1;(s.lotSeq=s.lotSeq||[]).push('sL');dodajStyl(s,40,'ŚRUBA');}}return true;}  /* STYL: zmiana pasa w locie = ŚRUBA (roll) */
-  if(a==='prawo'){if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;
+  if(a==='prawo'){if(s.pas===2&&czyFever(s))return wallAkcja(s,1);   /* FLOWWALL */
+    if(s.pas<2){s.pasOd=pozycjaPasa(s);s.pas++;s.pasT=0;
     if(s.skokT>=0){s.sruba=1;(s.lotSeq=s.lotSeq||[]).push('sR');dodajStyl(s,40,'ŚRUBA');}}return true;}
   if(a==='skok'){
     if(s.grind){zakonczGrind(s,true);              /* GRIND: wyskok z murka */
@@ -2625,6 +2661,11 @@ function udanyUnik(s,o){
 }
 function krokSymulacji(s){
   s.zdarzenia.length=0;s.t+=KROK;
+  if(s.wallT>0){s.wallT-=KROK;                                      /* FLOWWALL: tick — styl kapie, sciana gasnie bez flow */
+    if(!czyFever(s))s.wallT=Math.min(s.wallT,0.12);
+    s._wallAcc=(s._wallAcc||0)+KROK;
+    if(s._wallAcc>=0.3){s._wallAcc-=0.3;dodajStyl(s,14,null);}
+    if(s.wallT<=0){s.wallT=0;s.zdarzenia.push({typ:'flowWall',akcja:'zejscie',strona:s.wallStrona});}}
   s.predkosc=s.predkoscBaza*(1+CFG.PRZYSPIESZENIE*s.t);            // PĘD: bieżąca prędkość
   /* — CZYNNIK HUGO: spady z nieba (tylko etapy, od e5) — */
   if(s.tryb==='etap'&&s.skrypt.etap>4&&s.stan==='bieg'){
@@ -2757,6 +2798,7 @@ function krokSymulacji(s){
     if(!o.sprawdzone&&o.z>=CFG.GRACZ_Z){
       o.sprawdzone=true;
       if(OBIEKTY[o.typ].dekor)continue;  /* FIX-dekor-hit: scenografia (segment schody/tunel, kit rozstajów, znak, zebra) NIE bije — kolizją rozstajów jest wyspa */
+      if(s.wallT>0)continue;                                        /* FLOWWALL: na scianie swiatla przeszkody mijaja */
       if(o.pas!==s.pas||s.pasT<0.65)continue;
       const unik=OBIEKTY[o.typ].unik;
       const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
@@ -2886,6 +2928,10 @@ const R3=(()=>{
   rim.position.set(0,9,16);scena.add(rim);
   const feverLight=new THREE.PointLight(0xffc36e,1.5,11);             /* FLOW-GFX: zlote swiatlo fevera na graczu */
   feverLight.visible=false;scena.add(feverLight);
+  const flowWall=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.1),    /* FLOWWALL: panel swiatla przy krawedzi */
+    new THREE.MeshBasicMaterial({color:0xffc36e,transparent:true,opacity:0.3,side:THREE.DoubleSide,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+  flowWall.rotation.y=Math.PI/2;flowWall.visible=false;scena.add(flowWall);
   const SMUGI_PREDKOSCI=[];{                                          /* FLOW-GFX: smugi predkosci przy ziemi (tylko fever) */
     const matSm=new THREE.MeshBasicMaterial({color:0xfff2d0,transparent:true,opacity:0.5,fog:false,blending:THREE.AdditiveBlending});
     for(let i=0;i<8;i++){
@@ -3088,9 +3134,9 @@ const R3=(()=>{
     model:null, mixer:null, akcje:{}, biezacaAkcja:null, cien:null,
     aktywny(){return this.dostepny&&this.wybrany;},
   };
-  try{if(!localStorage.getItem('biegus_obroty_v2')){
+  try{if(!localStorage.getItem('biegus_obroty_v3')){                /* SZLIF: nowa baza pisklaka (PI) — stare reczne stopnie walczyly */
     localStorage.removeItem('biegus_obroty');
-    localStorage.setItem('biegus_obroty_v2','1');}}catch(e){}
+    localStorage.setItem('biegus_obroty_v3','1');}}catch(e){}
   function korektaObrotu(url){try{
     return (JSON.parse(localStorage.getItem('biegus_obroty')||'{}')[url]||0);}catch(e){return 0;}}
   function zapiszKorekte(url,deg){try{
@@ -3966,9 +4012,17 @@ const R3=(()=>{
       aktor.rotation.x=-f*Math.PI*2;
       const tu=Math.sin(f*Math.PI);
       aktor.scale.setScalar(1-0.26*tu);}
-    if(s.skokT<0&&!wSlizgu&&!s.grind&&przewrotkaT<=0)                 /* PARKOUR: lean z tempem i feverem */
+    if(s.skokT<0&&!wSlizgu&&!s.grind&&przewrotkaT<=0&&!(s.wallT>0))   /* PARKOUR: lean z tempem i feverem */
       aktor.rotation.x-=0.03+(czyFever(s)?0.06:0)
         +Math.max(0,(s.predkosc-CFG.PREDKOSC_BAZOWA))*0.012;
+    if(s.wallT>0){                                                    /* FLOWWALL: bieg po scianie swiatla */
+      aktor.position.x=CFG.PASY[s.pas]+s.wallStrona*1.5;
+      aktor.position.y+=0.8;
+      aktor.rotation.z=-s.wallStrona*0.95;
+      aktor.rotation.x=-0.25;}
+    flowWall.visible=(s.wallT||0)>0;
+    if(flowWall.visible){flowWall.position.set((s.wallStrona||1)*4.7,1.1,CFG.GRACZ_Z-0.6);
+      flowWall.material.opacity=0.26+Math.sin(czasReal*9)*0.08;}
     if(s.flow&&Math.random()<dt*9)
       burst(aktor.position.clone().add(new THREE.Vector3(
         (Math.random()-0.5)*1.3,0.5+Math.random()*1.3,0.2)),0xf2c14e,1,1.1,0.7,0.055);
@@ -4118,6 +4172,8 @@ const R3=(()=>{
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
     if(zd.typ==='mapka')burst(poz,0xead9ae,14,2.4,2.6,0.075);        /* HOTFIX-scope */
     if(zd.typ==='turbo'){shake=Math.max(shake,0.18);burst(poz,0xf2c14e,12,2.6,2.2,0.07);}
+    if(zd.typ==='flowWall'){shake=Math.max(shake,zd.akcja==='odbicie'?0.22:0.14);   /* FLOWWALL */
+      burst(new THREE.Vector3((zd.strona||1)*4.4,1.2,CFG.GRACZ_Z),0xffc36e,zd.akcja==='odbicie'?16:10,3,2.4,0.07);}
     if(zd.typ==='superKombo'){shake=Math.max(shake,0.32);             /* SUPER-KOMBA: podwojny burst */
       burst(poz,0xffd76a,22,3.6,3.2,0.09);burst(poz,0x7de3ff,14,3.0,2.6,0.075);}
     if(zd.typ==='trik'){                                              /* BAJERY: kicki trikow */
@@ -4283,18 +4339,18 @@ const Gra=(()=>{
     const dzis=new Date().toISOString().slice(0,10);
     let prezent=false;try{prezent=localStorage.getItem('biegus_prezent')!==dzis;}catch(e){}
     b.hidden=false;b.style.cursor=prezent?'pointer':'default';b.onclick=null;
-    if(prezent){b.innerHTML='💬 „Znalazłem coś na rozgrzewce! <b>Stuknij</b> 🎁"';
+    if(prezent){b.innerHTML='„Mam coś dla ciebie z porannej rundy. <b>Stuknij.</b>"';
       b.onclick=()=>{try{localStorage.setItem('biegus_prezent',dzis);}catch(e){}
         Biegus.portfelPior+=15;Biegus.zapisz();Dzwiek.znal&&Dzwiek.znal();
-        toast('🎁 <b>+15 🪶</b> — poranne znalezisko od '+Biegus.imie+'!');
+        toast('<b>+15 piór</b> — poranne znalezisko od '+Biegus.imie+'.');
         dymekMenu();odswiezBiegusPanel&&odswiezBiegusPanel();};
       return;}
     const pula=[];
-    if((Biegus.portfelPior||0)>=110&&!KOLORY.sniezny.odblok)pula.push('Widziałem u Zyzi śnieżny puch… mamy '+Biegus.portfelPior+' 🪶 — stać nas!');
+    if((Biegus.portfelPior||0)>=110&&!KOLORY.sniezny.odblok)pula.push('U Zyzi wisi śnieżny puch. Mamy '+Biegus.portfelPior+' piór — stać nas.');
     const mk=Object.keys(Biegus.mapki||{}).length;
     if(mk>0&&mk<12)pula.push('Mapa klucza: <b>'+mk+'/12</b>. Kawałki lubią co trzeci etap…');
-    if(typeof januszDane!=='undefined'&&januszDane&&januszDane.streak>=2)pula.push('🔥 '+januszDane.streak+' dni PRAWDZIWEGO biegania z rzędu. Czuję każdy kilometr!');
-    if(typeof januszDane!=='undefined'&&januszDane&&!januszDane.dzisBieg)pula.push('Nogi mnie świerzbią… wyjdziemy dziś pobiegać naprawdę? 🏃');
+    if(typeof januszDane!=='undefined'&&januszDane&&januszDane.streak>=2)pula.push('Seria '+januszDane.streak+' dni prawdziwego biegania. Czuję każdy kilometr w piórach.');
+    if(typeof januszDane!=='undefined'&&januszDane&&!januszDane.dzisBieg)pula.push('Nogi mnie świerzbią. Wyjdziemy dziś naprawdę?');
     const noszone=[...(Biegus.zalozone||[])].filter(a=>STROJ_TEKSTY[a]);   /* CHARAKTER: mowi o tym, co MA NA SOBIE */
     if(noszone.length){const a=noszone[Math.floor(Math.random()*noszone.length)];pula.push(losuj(STROJ_TEKSTY[a]));}
     const kt=STROJ_TEKSTY['k_'+Biegus.kolor];if(kt)pula.push(losuj(kt));
@@ -4302,10 +4358,10 @@ const Gra=(()=>{
     pula.push('Marudzę? Marudzę. Ale jeszcze NIGDY nie zawróciłem.');
     if(Biegus.stan()==='glodny')pula.push('Głodny jestem i zły. Nakarm mnie TRENINGIEM, nie obietnicami.');
     pula.push('W locie swipe w bok to ŚRUBA. Dołóż grab — zrobimy WKRĘT!');
-    pula.push('Etap '+nastepnyEtap()+' czeka. Trzy cele = gwiazdka ⭐');
-    pula.push('Grinduj murki! Krawędź + czyste zejście = deszcz ✦');
-    pula.push('Jesteśmy obok. Ty biegasz naprawdę — ja rosnę naprawdę. 🪶');
-    b.innerHTML='💬 „'+pula[Math.floor(Math.random()*pula.length)]+'"';}
+    pula.push('Etap '+nastepnyEtap()+' czeka. Trzy cele i gwiazdka jest nasza.');
+    pula.push('Krawędź murka aż prosi o grind. Czyste zejście — i sypie stylem.');
+    pula.push('Ty biegasz naprawdę — ja rosnę naprawdę. Taka umowa.');
+    b.innerHTML='„'+pula[Math.floor(Math.random()*pula.length)]+'"';}
   function mentorIko(id,emoji,px){                                    /* MENTORZY: portret webp, fallback emoji */
     return '<img src="'+assetUrl('assets/ui/ikony/mentor-'+id+'.webp')+
       '" style="width:'+px+'px;height:'+px+'px;object-fit:cover;border-radius:50%;vertical-align:middle;background:#fff" '+
@@ -4589,13 +4645,13 @@ const Gra=(()=>{
     const lk=el('listaKolorow');lk.innerHTML='';
     Object.entries(KOLORY).forEach(([id,k])=>
       lk.appendChild(kartaRzeczy(id,k,Biegus.kolor===id,()=>{Biegus.kolor=id;zmienionoWyglad();
-        const st=STROJ_TEKSTY['k_'+id];if(st)toast('💬 „'+losuj(st)+'"');},'kolor')));   /* WIRING + CHARAKTER */
+        const st=STROJ_TEKSTY['k_'+id];if(st)toast('„'+losuj(st)+'"');},'kolor')));   /* WIRING + CHARAKTER */
     const la=el('listaAkcesoriow');la.innerHTML='';
     Object.entries(AKCESORIA).forEach(([id,a])=>
       la.appendChild(kartaRzeczy(id,a,Biegus.zalozone.has(id),()=>{
         const bylo=Biegus.zalozone.has(id);
         bylo?Biegus.zalozone.delete(id):Biegus.zalozone.add(id);zmienionoWyglad();
-        if(!bylo&&STROJ_TEKSTY[id])toast('💬 „'+losuj(STROJ_TEKSTY[id])+'"');},'akces')));   /* WIRING + CHARAKTER */
+        if(!bylo&&STROJ_TEKSTY[id])toast('„'+losuj(STROJ_TEKSTY[id])+'"');},'akces')));   /* WIRING + CHARAKTER */
     el('imieBiegusia').value=Biegus.imie;
     odswiezMenuStatus();
   }
@@ -4866,7 +4922,9 @@ const Gra=(()=>{
       else if(biezacyEtap>=3&&sym.skokT>=0&&!sym.salto)Hinty.raz('salto','W locie: tapnij DRUGI RAZ = SALTO');
       else if(biezacyEtap>=4&&sym.skokT>=0)Hinty.raz('sruba','W locie: swipe W BOK = ŚRUBA');
       else if(biezacyEtap>=5&&sym.skokT>=0&&(sym.lotTriki||0)>0)Hinty.raz('bank','Ląduj CZYSTO = bank ✦. Trafienie w locie = BAIL!');
-      if(sym.grind)Hinty.raz('grind','GRIND! Tap = wyskok, swipe w bok = zeskok. Combo rośnie!');}
+      if(sym.grind)Hinty.raz('grind','GRIND! Tap = wyskok, swipe w bok = zeskok. Combo rośnie!');
+      if(czyFever(sym)&&(sym.pas===0||sym.pas===2)&&sym.skokT<0&&!(sym.wallT>0))
+        Hinty.raz('flowwall','FLOW! Swipe w krawędź drogi — ściana światła. Biegnij po niej, w locie się odbijaj!');}
     el('serca').innerHTML=Array.from({length:(sym.sercaMax||CFG.SERCA)},(_,i)=>
       `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
@@ -5158,6 +5216,9 @@ const Gra=(()=>{
       R3.efekt(zd);return;}                        /* HOTFIX-scope: burst zyje w R3, nie tu */
     if(zd.typ==='turbo'){popup('WIATR W PLECY!',true);Dzwiek.gwizd&&Dzwiek.gwizd();
       R3.efekt(zd);return;}
+    if(zd.typ==='flowWall'){                                          /* FLOWWALL: UI */
+      if(zd.akcja==='wallrun'){popup('FLOW WALL!',true);Dzwiek.combo(22);}
+      R3.efekt(zd);return;}
     if(zd.typ==='superKombo'){                                        /* SUPER-KOMBA: wielka celebracja */
       popup('⭐ '+zd.nazwa+' +'+zd.pkt+' ✦',true);Dzwiek.combo(28);
       spowolnienie=Math.max(spowolnienie,0.35);                       /* FLOW: kinowe slow-mo na super kombo */
@@ -5254,7 +5315,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.7',
+  wersja:'6.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
