@@ -3,11 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Bieguś — Droga na Igrzyska · v5.7 (Flow & juice)</title>
+<meta name="description" content="Bieguś — Droga na Igrzyska. Zręcznościowa gra biegowa BiegaMy: triki, komba i pióra za PRAWDZIWE kilometry z Twoich treningów.">
+<meta name="theme-color" content="#10141f">
+<meta property="og:title" content="Bieguś — Droga na Igrzyska 🏃">
+<meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
+<meta property="og:url" content="https://biegamy.run/biegus.html">
+<meta property="og:type" content="website">
+<title>Bieguś — Droga na Igrzyska · v5.8 (Produkt 1)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.7 „FLOW & JUICE"
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.8 „PRODUKT 1: SZKOŁA + WIZYTÓWKA"
+     · PRODUKT-1 (audyt 3 fotele: gracz/wydawca/Janusz):
+       HINTY kontekstowe = szkola trikow (grab e2, salto e3, sruba e4,
+       bank e5, grind przy 1. grindzie; raz na zawsze,
+       localStorage biegus_hinty_v1) — nowy gracz wreszcie WIDZI
+       polowe gry, ktora byla tylko w TIPACH
+     · SHARE na mecie (btnShare: navigator.share, fallback clipboard)
+       — organiczny zasieg rekordow
+     · WIZYTOWKA: meta description, theme-color (z --tlo), og:title/
+       description/url — link na grupie pokazuje tytul, nie goly URL;
+       og:image TODO (grafika warsztatem cc)
+     v5.7 „FLOW & JUICE"
      · FLOW refaktor: czyFever(s) = JEDYNY chokepoint warunku fevera
        (bylo 4 kopie: zysk pior, lean, smuga, HUD linie) — stara pulapka
        "FEVER w 3 miejscach" z konstytucji SKASOWANA, teraz 1 miejsce
@@ -815,6 +832,7 @@
     <span id="stCzasBox" hidden><b id="stCzas">60s</b>czas</span>
     <span id="stStylBox" hidden><b id="stStyl">0</b>✦ styl</span>
   </div>
+  <button class="cta" id="btnShare" style="background:#2a3350;font-size:.95em">📣 Pochwal się</button>
   <button class="cta" id="btnDalej">Dalej</button>
   <button id="btnPowtorka">Powtórz</button>
 </div>
@@ -4027,6 +4045,10 @@ const Gra=(()=>{
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
     el('hud').hidden=id!==null;}
+  const Hinty={d:JSON.parse(localStorage.getItem('biegus_hinty_v1')||'{}'),   /* PRODUKT-1: szkola trikow */
+    raz(id,tekst){if(this.d[id])return;this.d[id]=1;
+      try{localStorage.setItem('biegus_hinty_v1',JSON.stringify(this.d));}catch(e){}
+      toast('💡 '+tekst);}};
   function toast(html){const t=el('toast');t.innerHTML=html;t.classList.add('widoczny');
     clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('widoczny'),3200);}
   let mapkaWpis=null;                              /* ŚLAD KLUCZA: ostatni kawalek z biegu */
@@ -4533,6 +4555,12 @@ const Gra=(()=>{
     },700);
   }
   function hud(){
+    if(sym.tryb==='etap'&&tryb==='bieg'){                             /* PRODUKT-1: kontekstowe hinty */
+      if(biezacyEtap>=2&&sym.skokT>=0&&!sym.grab)Hinty.raz('grab','W locie: swipe W DÓŁ = GRAB (+✦)');
+      else if(biezacyEtap>=3&&sym.skokT>=0&&!sym.salto)Hinty.raz('salto','W locie: tapnij DRUGI RAZ = SALTO');
+      else if(biezacyEtap>=4&&sym.skokT>=0)Hinty.raz('sruba','W locie: swipe W BOK = ŚRUBA');
+      else if(biezacyEtap>=5&&sym.skokT>=0&&(sym.lotTriki||0)>0)Hinty.raz('bank','Ląduj CZYSTO = bank ✦. Trafienie w locie = BAIL!');
+      if(sym.grind)Hinty.raz('grind','GRIND! Tap = wyskok, swipe w bok = zeskok. Combo rośnie!');}
     el('serca').innerHTML=Array.from({length:(sym.sercaMax||CFG.SERCA)},(_,i)=>
       `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
@@ -4773,6 +4801,11 @@ const Gra=(()=>{
     else start(biezacyEtap+1,'etap');};
   el('btnPowtorka').onclick=()=>start(biezacyEtap,sym.tryb);
   el('btnJeszczeRaz').onclick=()=>start(biezacyEtap,sym.tryb);
+  el('btnShare').onclick=async()=>{                                   /* PRODUKT-1: share rekordu (organiczny zasieg) */
+    const t='Bieguś 🏃 etap '+biezacyEtap+': '+(sym?sym.piora:0)+'🪶, styl ✦'+(sym?(sym.styl||0):0)+' — pobiegniesz ze mną? https://biegamy.run/biegus.html';
+    try{if(navigator.share)await navigator.share({text:t});
+      else{await navigator.clipboard.writeText(t);toast('Skopiowane — wklej gdzie chcesz 📋');}}
+    catch(e){}};
   el('btnDoMenu').onclick=()=>{tryb='menu';pokaz('menu');};
   addEventListener('keydown',e=>{
     if((e.key==='r'||e.key==='R')&&tryb==='karta'){
@@ -4909,7 +4942,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.7',
+  wersja:'5.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
