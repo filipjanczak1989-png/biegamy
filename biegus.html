@@ -8,12 +8,31 @@
 <meta property="og:title" content="Bieguś — Droga na Igrzyska 🏃">
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
+<meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.1 (Kibice)</title>
+<title>Bieguś — Droga na Igrzyska · v7.3 (Twarze)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.1 „KIBICE" (pitch: jak wali
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.3 „TWARZE" (wiring partii 15/16/17)
+     · TWARZE: EKSTRA_OSOBY (blysk/kura-agata/swistak/przewodniczka +
+       sroka/kot-bazyli) — SCENKI/KIBICE/fabula na kluczach zamiast
+       '#emoji|Imie' (podmiany 9/6/3/2); FABULA[3] mid od CZOLA wpisu
+       (lekcja: kotwice bez cudzyslowow na ogonie)
+     · TWARZE: ekran porazki z PORTRETEM winowajcy (p17); og:image
+       meta; onboarding "JAK SIE BIEGA" z 3 instruktazami nauka-*
+     · portret_pisklak_<akces>.png dzialaja od p16 automatycznie
+     v7.2 „ART PASS" (zgloszenie: pod
+     dachem k3 gracza nie widac + mandat "kazdy detal osobno, klasa")
+     · ARTPASS: character FILL-LIGHT (PointLight 0.55/7 zawsze przy
+       graczu) — bohater czytelny pod dachem marketu/peronu i w kazdej
+       porze; rig jak w produkcjach AAA
+     · ARTPASS k3: sodowa poswiata latarni (stozek additive),
+       4 neony pionowe z mrugnieciem, mokry asfalt lapiacy kolor
+       neonow (2 pasy odblasku)
+     · ARTPASS perelki: lawenda przy sciezce (k1), pienki z mchem
+       (k2), sniezne czapy na kosodrzewinie (k4)
+     v7.1 „KIBICE" (pitch: jak wali
      komba, niech zolw czy wiewiora wpadaja z tekstem)
      · KIBICE: super kombo = hypeBox pod HUD (2.3 s, pointer-events
        none): portret kibica (scenkaOsoba — mentorzy partii 15 +
@@ -1039,10 +1058,14 @@
 
 <!-- ONBOARDING (raz na sesję, przed pierwszym biegiem) -->
 <div class="karta ciemna" id="onboarding" hidden>
-  <h1>3 <em>ZASADY</em></h1>
-  <div class="przeslanie">1 · <b>Swipe</b> zmienia pas, <b>tap/▲</b> to skok, <b>▼</b> ślizg.<br><br>
-    2 · <b>Linie piór</b> prowadzą bezpiecznie. Uniki nakręcają <b>serię</b> — trafienie ją zeruje.<br><br>
-    3 · Bieguś je <b>prawdziwe treningi</b> — one przesuwają go po Drodze na Igrzyska. Skrótów nie ma. Jak w bieganiu.</div>
+  <h1>JAK SIĘ <em>BIEGA</em></h1>
+  <img src="assets/ui/nauka-gesty.webp" alt="" style="width:100%;max-width:420px;border-radius:14px" onerror="this.hidden=true">
+  <div class="pod" style="text-align:left"><b>Sterowanie</b> — swipe zmienia pas, tap to skok, swipe w dół to ślizg. Linie piór prowadzą przez bezpieczne miejsca.</div>
+  <img src="assets/ui/nauka-komba.webp" alt="" style="width:100%;max-width:420px;border-radius:14px;margin-top:8px" onerror="this.hidden=true">
+  <div class="pod" style="text-align:left"><b>Triki i komba</b> — w locie: tap to salto, boki to śruby, dół to grab. Ląduj czysto, a bank wypłaci ✦. Pełna lista czeka w <b>Księdze Trików</b>.</div>
+  <img src="assets/ui/nauka-flow.webp" alt="" style="width:100%;max-width:420px;border-radius:14px;margin-top:8px" onerror="this.hidden=true">
+  <div class="pod" style="text-align:left"><b>FLOW</b> — nakręć serię bez wpadki, a świat zapłonie. Przy krawędzi drogi stanie <b>ściana światła</b>: biegnij po niej, odbijaj się w locie.</div>
+  <div class="pod" style="opacity:.8;margin-top:6px">Bieguś je <b>prawdziwe treningi</b> — one przesuwają go po Drodze. Skrótów nie ma. Jak w bieganiu.</div>
   <button class="cta" id="btnOnboardingStart">Lecimy! ▶</button>
 </div>
 
@@ -1573,6 +1596,13 @@ const MENTOR_TEKSTY={
   'tygrys-trail':   ['🐯','Tygrys Trail','Góry szanują odważnych.'],
   'sowa-biala':     ['🦉','Biała Sowa','W ciszy gór słychać serce.'],
   'lis-arktyczny':  ['🦊','Lis Polarny','Zimno? To tylko powietrze!']};
+const EKSTRA_OSOBY={                                                  /* TWARZE: postaci partii 16/17 (poza pula mentorow trasy) */
+  'blysk':        ['🐇','Błysk'],
+  'kura-agata':   ['🐔','Kura Agata'],
+  'swistak':      ['🐹','Świstak'],
+  'przewodniczka':['🕊️','Przewodniczka'],
+  'sroka':        ['🐦','Sroka Halina'],
+  'kot-bazyli':   ['🐈','Kot Bazyli']};
 
 const MISJE=[
   {id:'czysty',npc:'orzel',tekst:'Czysty bieg — ukończ etap bez utraty serca',cel:1,licznik:0,
@@ -3029,6 +3059,8 @@ const R3=(()=>{
   rim.position.set(0,9,16);scena.add(rim);
   const feverLight=new THREE.PointLight(0xffc36e,1.5,11);             /* FLOW-GFX: zlote swiatlo fevera na graczu */
   feverLight.visible=false;scena.add(feverLight);
+  const fillLight=new THREE.PointLight(0xfff4e0,0.55,7);              /* ARTPASS: character light — bohater NIGDY nie jest czarny (dach marketu/peronu k3) */
+  scena.add(fillLight);
   const flowWall=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.1),    /* FLOWWALL: panel swiatla przy krawedzi */
     new THREE.MeshBasicMaterial({color:0xffc36e,transparent:true,opacity:0.3,side:THREE.DoubleSide,
       blending:THREE.AdditiveBlending,depthWrite:false}));
@@ -3399,6 +3431,20 @@ const R3=(()=>{
         mS.opacity=(0.05+Math.abs(Math.sin(t*0.5+i))*0.07)*d;}});
     }
   }
+  for(let i=0;i<5;i++){                                              /* ARTPASS: lawenda przy sciezce (k1) */
+    const lw=new THREE.Group();
+    for(let j=0;j<4;j++){const k=new THREE.Mesh(new THREE.SphereGeometry(0.09,6,5),mat(0x9a7ad4));
+      k.position.set((j%2?0.1:-0.08)*(j+1)*0.4,0.34+((j*7)%3)*0.05,((j*5)%3)*0.08-0.08);lw.add(k);}
+    lw.add(klocek(0.06,0.3,0.06,0x3e7a4a,0,0.15,0));
+    lw.position.set((i%2?1:-1)*4.55,0,-i*57-19);
+    dodajDeko(lw,252,'k1');}
+  for(let i=0;i<3;i++){                                              /* ARTPASS: pienki z mchem (k2) */
+    const pn=new THREE.Group();
+    pn.add(walec(0.3,0.34,0.5,0x6a5240,0,0.25,0,8));
+    pn.add(walec(0.31,0.31,0.06,0x8a6b4a,0,0.53,0,8));
+    const mech=klocek(0.4,0.06,0.3,0x4a7a3a,0.1,0.56,0.05);mech.rotation.y=0.4;pn.add(mech);
+    pn.position.set((i%2?1:-1)*(4.7+i*0.2),0,-i*63-31);
+    dodajDeko(pn,246,'k2');}
   /* — DEKO MIASTA (grupa k3) — */
   for(let i=0;i<8;i++){                                              // sylwetki bloków z oknami
     const bl=new THREE.Group();
@@ -3417,9 +3463,29 @@ const R3=(()=>{
     const ramie=klocek(0.9,0.08,0.08,0x20242e,0.42,4.15,0);l.add(ramie);
     const zar=new THREE.Mesh(new THREE.SphereGeometry(0.12,8,8),
       mat(0xc9ced8));zar.position.set(0.82,4.05,0);l.add(zar);       // lampa zgaszona za dnia
+    const stozek=new THREE.Mesh(new THREE.ConeGeometry(1.1,3.4,10,1,true),   /* ARTPASS: sodowa poswiata */
+      new THREE.MeshBasicMaterial({color:0xffb066,transparent:true,opacity:0.055,
+        blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+    stozek.position.set(0.82,2.3,0);l.add(stozek);
     l.position.set((i%2?1:-1)*5.0,0,-i*44+12);
     if(i%2)l.scale.x=-1;
     dodajDeko(l,264,'k3');}
+  for(let i=0;i<4;i++){                                              /* ARTPASS: neony pionowe — miasto zyje */
+    const ne=new THREE.Group();
+    const nm=new THREE.MeshBasicMaterial({color:[0x3ad0ff,0xff4a8a,0xffd04a,0x8aff9a][i]});
+    ne.add(klocek(0.5,3.0,0.16,0x0e1018,0,2.2,0));
+    const pas=new THREE.Mesh(new THREE.BoxGeometry(0.16,2.4,0.06),nm);pas.position.set(0,2.2,0.1);ne.add(pas);
+    const pop=new THREE.Mesh(new THREE.BoxGeometry(0.44,0.14,0.06),nm);pop.position.set(0,3.15,0.1);ne.add(pop);
+    ne.position.set((i%2?1:-1)*(5.6+(i%3)*0.4),0,-i*47-26);
+    dodajDeko(ne,258,'k3');
+    dekoAnim.push(t=>{pas.visible=Math.sin(t*7+i*2)>-0.92;});          /* mrugniecie neonu */
+  }
+  [[-1.15,0x3ad0ff],[1.15,0xff4a8a]].forEach(([x,kol])=>{              /* ARTPASS: mokry asfalt lapie neony */
+    const rf=new THREE.Mesh(new THREE.PlaneGeometry(0.7,240),
+      new THREE.MeshBasicMaterial({color:kol,transparent:true,opacity:0.05,
+        blending:THREE.AdditiveBlending,depthWrite:false}));
+    rf.rotation.x=-Math.PI/2;rf.position.set(x,0.02,-90);
+    rf.userData.grupa='k3';rf.userData.cykl=1e9;dekoracje.push(rf);scena.add(rf);});
   {                                                                   // neon „24h" — puls
     const matNeon=new THREE.MeshBasicMaterial({color:0xff4a8a});
     const ne=new THREE.Group();
@@ -3461,7 +3527,9 @@ const R3=(()=>{
   for(let i=0;i<5;i++){                                              // kosodrzewina
     const ko=new THREE.Group();
     for(let j=0;j<3;j++){const c=new THREE.Mesh(new THREE.ConeGeometry(0.5,0.7,6),mat(0x24382c));
-      c.position.set((j-1)*0.4,0.3+((j*7)%2)/10,((j*13)%3)/10-0.15);ko.add(c);}
+      c.position.set((j-1)*0.4,0.3+((j*7)%2)/10,((j*13)%3)/10-0.15);ko.add(c);
+      const cz=new THREE.Mesh(new THREE.ConeGeometry(0.28,0.22,6),mat(0xf0f4fa));   /* ARTPASS: sniezna czapa */
+      cz.position.copy(c.position);cz.position.y+=0.32;ko.add(cz);}
     ko.position.set((i%2?1:-1)*(5.4+i*0.2),0,-i*52-16);
     dodajDeko(ko,258,'k4');}
   {                                                                   // wiatr — poziome smugi
@@ -4138,6 +4206,7 @@ const R3=(()=>{
     const fv=czyFever(s);                                             /* FLOW-GFX: swiatlo + smugi predkosci */
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
+    fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
     SMUGI_PREDKOSCI.forEach((sm,i)=>{sm.visible=fv;
       if(fv)sm.position.z=((czasReal*46+i*9.7)%56)-40;});
     if(fv&&Math.random()<dt*(16+Math.min(Math.max(s.combo,16),30))){ /* FEVER/TURBO smuga */
@@ -4395,22 +4464,22 @@ const Gra=(()=>{
   [['panda-zenek','W mieście czeka Błysk. Lokalna gwiazda. Będzie się śmiał.'],['biegus','Już się śmiał. Na zawodach.'],['panda-zenek','To śmiej się w duchu i biegnij dalej. To boli ich najbardziej.']],
   [['zolw-maraton','Patrzę na ciebie i widzę siebie sprzed stu maratonów.'],['biegus','Sto?!'],['zolw-maraton','Powoli. Ale do celu. Sto razy.']],
   [['sowa-dziadek','Za lasem miasto. Miasto nie śpi i nie słucha.'],['biegus','To co mam robić?'],['sowa-dziadek','Biec tak, żeby MUSIAŁO posłuchać.']],
-  [['#🐇|Błysk','Patrzcie go — ptak-biegacz w moim mieście! Zdążysz na autobus, kurczaczku?'],['biegus','Nie jeżdżę autobusami. Biegam.']],
-  [['#🐔|Kura Agata','W tym hałasie połowa treningu to odpoczynek. Zapamiętaj, dziecko.'],['biegus','Odpoczynek? Nie mam czasu…'],['#🐔|Kura Agata','Właśnie dlatego. Ci bez czasu potrzebują go najbardziej.']],
+  [['blysk','Patrzcie go — ptak-biegacz w moim mieście! Zdążysz na autobus, kurczaczku?'],['biegus','Nie jeżdżę autobusami. Biegam.']],
+  [['kura-agata','W tym hałasie połowa treningu to odpoczynek. Zapamiętaj, dziecko.'],['biegus','Odpoczynek? Nie mam czasu…'],['kura-agata','Właśnie dlatego. Ci bez czasu potrzebują go najbardziej.']],
   [['wilk','Biegasz sam. Szanuję.'],['biegus','Sam, ale nie samotnie. Cały park i las biegnie ze mną.']],
-  [['#🐇|Błysk','Ty… serio trenujesz o PIĄTEJ rano?'],['biegus','Ktoś obiecał komuś osiem świtów. Weszło w nawyk.'],['#🐇|Błysk','…dziwny jesteś. Ale dziwnie SZYBKI.']],
-  [['#🐔|Kura Agata','Błysk kiedyś był miły, wiesz? Sława mu w głowie namieszała.'],['biegus','A da się odmieszać?'],['#🐔|Kura Agata','Da. Zwykle robi to ktoś, kto biegnie wolniej, a dociera dalej.']],
+  [['blysk','Ty… serio trenujesz o PIĄTEJ rano?'],['biegus','Ktoś obiecał komuś osiem świtów. Weszło w nawyk.'],['blysk','…dziwny jesteś. Ale dziwnie SZYBKI.']],
+  [['kura-agata','Błysk kiedyś był miły, wiesz? Sława mu w głowie namieszała.'],['biegus','A da się odmieszać?'],['kura-agata','Da. Zwykle robi to ktoś, kto biegnie wolniej, a dociera dalej.']],
   [['wilk','Miasto o tobie mówi. Nawet neony jakby cichsze.'],['biegus','Niech mówi. Ja słucham tylko własnego oddechu.']],
-  [['#🐇|Błysk','Dobra. Powiem to raz: może i jesteś biegaczem.'],['biegus','A ty może i jesteś szybszy. Na razie.'],['#🐇|Błysk','„Na razie"?! HA! Podoba mi się, ptaku.']],
-  [['#🐇|Błysk','Za miastem przełęcz. Zimno, stromo, samotnie.'],['biegus','Boisz się o mnie?'],['#🐇|Błysk','Pilnuję cię. Ktoś musi. Do samej przełęczy.']],
+  [['blysk','Dobra. Powiem to raz: może i jesteś biegaczem.'],['biegus','A ty może i jesteś szybszy. Na razie.'],['blysk','„Na razie"?! HA! Podoba mi się, ptaku.']],
+  [['blysk','Za miastem przełęcz. Zimno, stromo, samotnie.'],['biegus','Boisz się o mnie?'],['blysk','Pilnuję cię. Ktoś musi. Do samej przełęczy.']],
   [['tygrys-trail','Góry szanują odważnych. Zobaczymy, czy masz co szanować.'],['biegus','Mam osiem świtów, sto rad Żółwia i jeden upór.'],['tygrys-trail','…to więcej, niż miała większość.']],
-  [['#🐹|Świstak','Fiiit! Fiit-fiit!'],['biegus','…nie rozumiem, ale chyba dziękuję?']],
+  [['swistak','Fiiit! Fiit-fiit!'],['biegus','…nie rozumiem, ale chyba dziękuję?']],
   [['sowa-biala','W ciszy gór słychać serce. Twoje mówi wyraźnie.'],['biegus','Co mówi?'],['sowa-biala','Że tęsknisz. I że dlatego biegniesz, nie odwrotnie.']],
   [['lis-arktyczny','Zimno? To tylko powietrze! Szybsze powietrze!'],['biegus','Ty naprawdę lubisz zimę…'],['lis-arktyczny','Lubię wszystko, przez co da się przebiec.']],
   [['trener-orzel','(list na wietrze) „Na przełęczy każdy biegnie sam. Patrz w niebo."'],['biegus','Patrzę, trenerze. Codziennie.']],
   [['tygrys-trail','Za przełęczą już tylko stadion. Góry cię wychowały.'],['biegus','To teraz pokażę to nizinom.']],
   [['sowa-biala','Przewodniczka klucza pytała o ciebie. O ptaka, który został.'],['biegus','Klucz… pamięta?'],['sowa-biala','Klucz nigdy nie zapomniał. Dlatego gubił mapę. Dla ciebie.']],
-  [['#🕊️|Przewodniczka','Stadion czeka, mały biegusie. A my… my będziemy na trybunach.'],['biegus','Cały klucz?'],['#🕊️|Przewodniczka','Cały klucz. Nie musisz wygrać. Musisz wystartować. Jesteśmy obok.']]];
+  [['przewodniczka','Stadion czeka, mały biegusie. A my… my będziemy na trybunach.'],['biegus','Cały klucz?'],['przewodniczka','Cały klucz. Nie musisz wygrać. Musisz wystartować. Jesteśmy obok.']]];
   const STROJ_TEKSTY={                                                /* CHARAKTER: Biegus komentuje SWOJ stroj */
     chustka:['Ta chustka… czerwień odwagi. Wytrwałość mi ją dała — noszę z dumą!','Wiatr łapie za chustkę. Niech łapie — i tak mu ucieknę.'],
     okulary:['W tych okularach nawet świt mnie nie oślepi. Stylowo? STYLOWO.'],
@@ -4429,7 +4498,8 @@ const Gra=(()=>{
     if(kto==='biegus'){const src=(el('portretMenu')&&el('portretMenu').src)||'';
       return{iko:src?'<img src="'+src+'" style="width:28px;height:28px;object-fit:cover;border-radius:50%;vertical-align:middle;background:#fff">':'🐦',imie:Biegus.imie};}
     if(kto[0]==='#'){const cz=kto.slice(1).split('|');return{iko:cz[0],imie:cz[1]||'?'};}
-    const m=MENTOR_TEKSTY[kto]||['🌟',kto];return{iko:mentorIko(kto,m[0],28),imie:m[1]};}
+    const m=(typeof EKSTRA_OSOBY!=='undefined'&&EKSTRA_OSOBY[kto])||MENTOR_TEKSTY[kto]||['🌟',kto];   /* TWARZE */
+    return{iko:mentorIko(kto,m[0],28),imie:m[1]};}
   function pokazScenke(n){const sc=SCENKI[n],b=el('scenkaBox');if(!b)return;
     if(!sc){b.hidden=true;return;}
     b.hidden=false;
@@ -4442,8 +4512,8 @@ const Gra=(()=>{
     'TONY BIEGUŚ':'podwójne salto + obie śruby + grab + odbicie od ściany'};   /* TONY */
   const HYPE_KIBICE={1:['wiewiorka','trener-orzel','pies-speed','papuga-rio','trenerka-orzel'],   /* KIBICE */
     2:['zolw-maraton','sowa-dziadek','panda-zenek'],
-    3:['#🐔|Kura Agata','wilk','#🐇|Błysk'],
-    4:['tygrys-trail','sowa-biala','lis-arktyczny','#🐹|Świstak']};
+    3:['kura-agata','wilk','blysk'],
+    4:['tygrys-trail','sowa-biala','lis-arktyczny','swistak']};
   const HYPE_TEKSTY={
     'wiewiorka':['{K}?! Sprzedałabym bilety na to!','GRUBO! Aż mi orzechy wypadły!'],
     'trener-orzel':['{K}! TO jest technika!','Widzieliście?! MÓJ zawodnik!'],
@@ -4454,12 +4524,12 @@ const Gra=(()=>{
     'sowa-dziadek':['{K}! Las zapamięta ten lot.'],
     'panda-zenek':['{K}? Luz i rytm, mówiłem. MISTRZOSTWO.'],
     'wilk':['{K}. …Szanuję. Bardzo.'],
-    '#🐔|Kura Agata':['{K}! Dziecko drogie, aż jajko upuściłam!'],
-    '#🐇|Błysk':['{K}?! Dobra, ptaku. TERAZ się zaczyna.'],
+    'kura-agata':['{K}! Dziecko drogie, aż jajko upuściłam!'],
+    'blysk':['{K}?! Dobra, ptaku. TERAZ się zaczyna.'],
     'tygrys-trail':['{K}! Góry biją brawo lawinami!'],
     'sowa-biala':['{K}. Nawet cisza gór krzyknęła.'],
     'lis-arktyczny':['{K}! Zamarzłem z wrażenia — i mi się podoba!'],
-    '#🐹|Świstak':['FIIIIIIT!!! ({K}!)']};
+    'swistak':['FIIIIIIT!!! ({K}!)']};
   let _hypeT=null;
   function pokazHype(kombo){                                          /* KIBICE: mentor wpada z okrzykiem przy super kombie */
     const b=el('hypeBox');if(!b)return;
@@ -4908,7 +4978,7 @@ const Gra=(()=>{
       scena:'Za parkiem kończą się latarnie i zaczyna prawdziwa robota. Mgła zjada pewność siebie. Korzenie uczą pokory. Błoto — dystansu do siebie.',
       mentor:'🐢 Żółw Maraton: „Igrzyska nie pytają, jak szybki jesteś dziś. Pytają, czy przyjdziesz jutro. Powoli. Ale do celu."',mid:'zolw-maraton'},
   };
-  FABULA[3]={akt:'AKT III',tytul:'MIASTO',
+  FABULA[3]={akt:'AKT III',tytul:'MIASTO',mid:'kura-agata',
     scena:'Miasto nie ma czasu na cudze marzenia. Neony krzyczą, tłum płynie, wszyscy dokądś pędzą — nikt nie biegnie. Tu mieszka Zając Błysk, lokalna gwiazda bieżni. Ten sam, który na zawodach śmiał się najgłośniej.',
     mentor:'🐔 Kura Agata: „W tym hałasie połowa treningu to umieć odpocząć. Miasto tego nie rozumie. Ty musisz."'};
   /* — SPOTKANIA NA TRASIE: fabuła dzieje się W BIEGU — */
@@ -4963,7 +5033,7 @@ const Gra=(()=>{
     el('fabulaTytul').textContent=f.tytul;
     el('fabulaScena').textContent=f.scena;
     el('fabulaMentor').textContent=f.mentor;
-    const mtF=(f.mid&&typeof MENTOR_TEKSTY!=='undefined'&&MENTOR_TEKSTY[f.mid])||null;   /* MENTORZY: portret zamiast emotki */
+    const mtF=(f.mid&&((typeof EKSTRA_OSOBY!=='undefined'&&EKSTRA_OSOBY[f.mid])||MENTOR_TEKSTY[f.mid]))||null;   /* MENTORZY+TWARZE */
     if(mtF){let tx=f.mentor;if(tx.indexOf(mtF[0])===0)tx=tx.slice(mtF[0].length).trimStart();
       el('fabulaMentor').innerHTML=mentorIko(f.mid,mtF[0],46)+' '+tx.replace(/</g,'&lt;');}
     tryb='karta';pokaz('fabula');}
@@ -5295,7 +5365,8 @@ const Gra=(()=>{
     sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
     const win=sym.winowajca&&OBIEKTY[sym.winowajca];                 /* NEMEZIS: kto cie powstrzymal */
     const blisko=(sym.winowajcaT||0)>CFG.ETAP_CZAS*0.85;
-    el('puentaFail').innerHTML=(win?'<div style="margin-bottom:6px">Powstrzymał Cię: <b>'+win.nazwa+'</b>'+(blisko?' — metr przed metą.':'')+'</div>':'')+
+    const winIko={sroka:'sroka',kot:'kot-bazyli'}[sym.winowajca];    /* TWARZE: portret winowajcy (p17) */
+    el('puentaFail').innerHTML=(win?'<div style="margin-bottom:6px">'+(winIko?mentorIko(winIko,EKSTRA_OSOBY[winIko][0],40)+' ':'')+'Powstrzymał Cię: <b>'+win.nazwa+'</b>'+(blisko?' — metr przed metą.':'')+'</div>':'')+
       '<b>'+Biegus.imie+':</b> „'+(blisko&&win?'Wracam. To jeszcze nie koniec między nami.':losuj(BIEGUS_MOWI.fail))+'”'+
       (sym.piora>0?'<br><span style="color:#f2c14e">+'+sym.piora+' 🪶 zostaje w portfelu — nic nie przepada!</span>':'');
     odswiezMenuStatus();pokaz('porazka');}
@@ -5467,7 +5538,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.1',
+  wersja:'7.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
