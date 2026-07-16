@@ -9,11 +9,21 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v5.8 (Produkt 1)</title>
+<title>Bieguś — Droga na Igrzyska · v5.9 (Janusz)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v5.8 „PRODUKT 1: SZKOŁA + WIZYTÓWKA"
+     BIEGUŚ — DROGA NA IGRZYSKA · v5.9 „JANUSZ" (gra wyciaga z fotela)
+     · JANUSZ: MOST.tydzien() — 14 dni logow tym samym wzorcem REST
+       (badge-filtr!), km od poniedzialku 00:00 lokalnie + STREAK dni
+       (zyje do konca dnia — dzis bez biegu nie zeruje)
+     · MENU: januszBox — pasek CEL TYGODNIA (30 km), 🔥xN streak,
+       dymek Biegusia dopominajacy sie o trening (4 stany),
+       SKRZYNIA TYGODNIA +150 pior przy >=30 km (raz/tydzien,
+       Biegus.celTyg[ponKey] w save, anty-dubel lokalny — piora to
+       lokalna waluta, ta sama filozofia co MOST)
+     · niezalogowany: box ukryty (cisza, zero meczenia)
+     v5.8 „PRODUKT 1: SZKOŁA + WIZYTÓWKA"
      · PRODUKT-1 (audyt 3 fotele: gracz/wydawca/Janusz):
        HINTY kontekstowe = szkola trikow (grab e2, salto e3, sruba e4,
        bank e5, grind przy 1. grindzie; raz na zawsze,
@@ -778,6 +788,7 @@
     Karmisz go <b>prawdziwym bieganiem</b> — skrótów nie ma.</div>
   <img id="portretMenu" class="pportret" alt="" hidden>
   <div class="pod" id="menuStatus"></div>
+  <div class="pod" id="januszBox" hidden style="border:1px solid #2a3350;border-radius:12px;padding:10px 12px;margin-top:6px;text-align:left;line-height:1.55"></div>
   <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
   <button id="btnRadio" style="margin-top:8px">📻 Radio BiegaMy: …</button>
   <button id="btnRadioSkip" style="margin-top:8px" hidden>⏭ Następny utwór</button>
@@ -1223,7 +1234,7 @@ const Biegus={
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
     najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany,
-    ...(mx?{misje:mx}:{}),...(ox?{odbloki:ox}:{})}));}catch(e){}},
+    celTyg:this.celTyg||{},...(mx?{misje:mx}:{}),...(ox?{odbloki:ox}:{})}));}catch(e){}},
   wczytaj(){try{
     const d=JSON.parse(localStorage.getItem('biegus_droga_zapis_v1')||'null');
     if(!d)return;
@@ -1240,7 +1251,7 @@ const Biegus={
     if(typeof d.wiez==='number')this.wiez=d.wiez;
     this.laczneKm=d.laczneKm||0;
     this.rekordy=d.rekordy||{};this.gwiazdki=d.gwiazdki||{};this.mapki=d.mapki||{};this.kluczSpotkany=!!d.kluczSpotkany;
-    this._misjeSave=d.misje||null;this._odblokiSave=d.odbloki||null;}catch(e){}},  /* HOTFIX-misje-save: stash, apply po deklaracji MISJE */
+    this._misjeSave=d.misje||null;this._odblokiSave=d.odbloki||null;this.celTyg=d.celTyg||{};}catch(e){}},  /* HOTFIX-misje-save: stash, apply po deklaracji MISJE */
   stan(){return this.najedzenie>60?'najedzony':this.najedzenie>=30?'ok':'glodny';},
   nastroj(){const s=this.stan();
     if(s==='najedzony')return 'Najedzony i w gazie — patrz na tę złotą smugę! Świeży trening robi swoje.';
@@ -1315,8 +1326,31 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     Biegus.zapisz&&Biegus.zapisz();
     Gra?.toast?.('🌉 <b>MOST:</b> +'+piora+' 🪶 za '+km.toFixed(1)+' km realnych treningów — jesteśmy obok!');
     Dzwiek.medal&&Dzwiek.medal();
+  }catch(e){}},
+  async tydzien(){try{                          /* JANUSZ: cel tygodnia + streak realnych biegow */
+    const s=this.sesja();if(!s)return;
+    const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
+    if(!at.length)return;const aid=at[0].id;
+    const od=new Date(Date.now()-14*864e5).toISOString();
+    const logs=await this.czytaj(s.tok,'training_logs?select=logged_at,distance_km'+
+      '&athlete_id=eq.'+aid+'&logged_at=gt.'+encodeURIComponent(od)+
+      '&training_type=not.like.__badge__*');
+    const klucz=x=>{const d=new Date(x);return d.getFullYear()+'-'+
+      String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+    const dni=new Set(logs.map(l=>String(l.logged_at).slice(0,10)));
+    const teraz=new Date(),dzis=klucz(teraz);
+    let streak=0;const kursor=new Date(teraz);
+    if(!dni.has(dzis))kursor.setDate(kursor.getDate()-1);   // streak zyje do konca dnia
+    while(dni.has(klucz(kursor))){streak++;kursor.setDate(kursor.getDate()-1);}
+    const pon=new Date(teraz);pon.setHours(0,0,0,0);
+    pon.setDate(pon.getDate()-((pon.getDay()+6)%7));        // poniedzialek 00:00 lokalnie
+    const kmT=logs.filter(l=>String(l.logged_at).slice(0,10)>=klucz(pon))
+      .reduce((a,l)=>a+(+l.distance_km||0),0);
+    Gra?.janusz?.({km:kmT,streak,dzisBieg:dni.has(dzis),
+      wczorajBieg:dni.has(klucz(new Date(Date.now()-864e5))),ponKey:klucz(pon)});
   }catch(e){}}};
 setTimeout(()=>MOST.odbierz(),1800);             /* MOST-v2: auto-odbior po starcie */
+setTimeout(()=>MOST.tydzien(),2600);             /* JANUSZ: cel tygodnia + streak po odbiorze */
 /* — ikony kafli menu (partia 8): podmiana emoji na grafiki, fallback zostaje — */
 document.querySelectorAll('[data-iko]').forEach(sp=>{
   const im=new Image();
@@ -4229,6 +4263,33 @@ const Gra=(()=>{
   el('btnZawodyLas').onclick=()=>{Dzwiek.odpal();start(12,'zawody');};
   el('btnMute').onclick=()=>{el('btnMute').textContent=Dzwiek.przelacz()?'🔇':'🔊';};
 
+  const CEL_TYG_KM=30,NAGRODA_TYG=150;                                /* JANUSZ: cel tygodnia z mostu */
+  let januszDane=null;
+  function janusz(d){januszDane=d;januszRysuj();}
+  function januszRysuj(){
+    const b=el('januszBox');if(!b||!januszDane)return;
+    const d=januszDane;
+    const proc=Math.min(100,Math.round(d.km/CEL_TYG_KM*100));
+    const odebr=(Biegus.celTyg||{})[d.ponKey];
+    let dymek;
+    if(d.dzisBieg)dymek='Dziś już biegaliście — Bieguś syty i dumny 🪶';
+    else if(d.streak>=3)dymek='🔥 Seria '+d.streak+' dni! Nie przerywaj jej dziś…';
+    else if(d.wczorajBieg)dymek='Bieguś zerka na drzwi… wyjdziecie dziś? 🏃';
+    else dymek='Bieguś tęskni za prawdziwą trasą. Krótki trucht? 👟';
+    b.hidden=false;
+    b.innerHTML='<b>🎯 CEL TYGODNIA</b>: '+d.km.toFixed(1)+' / '+CEL_TYG_KM+' km'
+      +(d.streak>=2?' &nbsp;·&nbsp; 🔥×'+d.streak:'')
+      +'<div style="height:7px;background:#232a3d;border-radius:5px;margin:6px 0">'
+      +'<div style="height:7px;width:'+proc+'%;background:var(--accent);border-radius:5px"></div></div>'
+      +'<span style="opacity:.85">'+dymek+'</span>'
+      +(d.km>=CEL_TYG_KM&&!odebr?'<button class="cta" id="btnSkrzyniaTyg" style="margin-top:8px;font-size:.95em">🎁 Odbierz skrzynię tygodnia (+'+NAGRODA_TYG+'🪶)</button>':'')
+      +(odebr?'<div style="margin-top:6px;color:#8fd48f">✓ Skrzynia tygodnia odebrana</div>':'');
+    const btn=el('btnSkrzyniaTyg');
+    if(btn)btn.onclick=()=>{Biegus.celTyg=Biegus.celTyg||{};
+      if(Biegus.celTyg[d.ponKey])return;                               /* anty-dubel lokalny (piora = lokalna waluta) */
+      Biegus.celTyg[d.ponKey]=true;Biegus.portfelPior+=NAGRODA_TYG;Biegus.zapisz();
+      Dzwiek.medal&&Dzwiek.medal();toast('🎁 Skrzynia tygodnia: +'+NAGRODA_TYG+' 🪶 za realne kilometry!');
+      januszRysuj();odswiezBiegusPanel&&odswiezBiegusPanel();};}
   function odswiezMenuStatus(){
     odswiezEtapy();
     el('btnGraj').textContent='▶ BIEGNIJ · ETAP '+nastepnyEtap();
@@ -4936,13 +4997,13 @@ const Gra=(()=>{
     else R3.klatka(demo,zegar);
   }
   odswiezBiegusPanel();pokaz('menu');requestAnimationFrame(petla);
-  return{pauza,toast};
+  return{pauza,toast,janusz};                                        /* JANUSZ: MOST.tydzien -> menu */
 })();
 
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'5.8',
+  wersja:'5.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
