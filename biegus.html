@@ -9,11 +9,40 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.4 (Fair fallback)</title>
+<title>Bieguś — Droga na Igrzyska · v6.7 (Charakter)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.4 „FAIR FALLBACK" (crash e14)
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.7 „CHARAKTER" (pitch Filipa:
+     kochany, KAPRYSNY, WYTRWALY — i reaguje na stroj)
+     · CHARAKTER: STROJ_TEKSTY — zakladasz chustke = natychmiastowy
+       toast komentarza (kolory tez), a teksty aktualnego stroju
+       wchodza do rotacji dymka menu ("pozniej kolejny tekst")
+     · CHARAKTER: osobowosc w puli dymka — marudzi ale konczy
+       wytrwaloscia; glodny = bardziej kaprysny
+     · CHARAKTER: ustawPortret kaskada STROJ -> emocja -> baza ->
+       ukryj (portret_<stadium>_<akces>.png; grafiki w partii 16,
+       fallback lancuchowy dziala od dzis)
+     v6.6 „GŁOS BIEGUSIA" (pitch Filipa)
+     · GLOS: tamagotchi MOWI — menuDymek pod statusem: kontekstowy
+       przewodnik (sklep gdy stac, mapki x/12, streak/janusz, tipy)
+       + PREZENT DNIA (raz dziennie stukniecie = +15 pior,
+       localStorage biegus_prezent=YYYY-MM-DD)
+     · GLOS: SCENKI — 32 odcinki rozmow po KAZDYM etapie (scenkaBox
+       na mecie, zawody bez): jedna historia przez 4 akty — park go
+       adoptuje, las uczy, Blysk z kpiarza staje sie kumplem (e17->
+       e24), gory hartuja, Przewodniczka domyka (e32 "Jestesmy obok");
+       portrety partii 15 przez mentorIko, #emoji|Imie dla postaci
+       bez portretu (Blysk/Kura/Swistak/Przewodniczka -> partia 16)
+     v6.5 „MENTORZY" (partia 15)
+     · MENTORZY: mentorIko(id,emoji,px) — portret webp z assets/ui/
+       ikony/mentor-<id>.webp, fallback emoji (onerror->data-e);
+       toast spotkania na trasie (30 px) + karta fabuly (46 px,
+       mid w FABULA 1/2/4, znany prefiks emoji zdejmowany bez regexa)
+     · swiadomie na emoji do partii 16: Kura Agata (AKT III), Zajac
+       Blysk (SPOTKANIA), AKT V (glos zbiorowy), ZADANIA_FAB (mikro)
+     · deploy bezpieczny PRZED plikami partii 15 (fallback)
+     v6.4 „FAIR FALLBACK" (crash e14)
      · FAIR: generator probowal 6 seedow i rzucal throw — na e14 k2
        (gestosc + rozwidlenia + przejazdy + segment + mentor + pary
        grindow, kazde pilnuje TYLKO wlasnego pasa, waliduj MIN_GAP_GLOBAL
@@ -847,6 +876,7 @@
     Karmisz go <b>prawdziwym bieganiem</b> — skrótów nie ma.</div>
   <img id="portretMenu" class="pportret" alt="" hidden>
   <div class="pod" id="menuStatus"></div>
+  <div class="pod" id="menuDymek" hidden style="border:1px solid #2a3350;border-radius:14px;padding:9px 12px;margin-top:6px;font-style:italic"></div>
   <div class="pod" id="januszBox" hidden style="border:1px solid #2a3350;border-radius:12px;padding:10px 12px;margin-top:6px;text-align:left;line-height:1.55"></div>
   <button class="cta" id="btnFinal" hidden>🏟️ FINAŁ — WIELKIE IGRZYSKA</button>
   <!-- PORZADKI: BIEGNIJ na gorze, radio jeden wiersz, kod dyskretny -->
@@ -892,6 +922,7 @@
   <div class="pod" id="medalOpis" hidden></div>
   <div id="podiumBox" hidden></div>
   <div class="puenta" id="puentaFinisz"></div>
+  <div class="pod" id="scenkaBox" hidden style="text-align:left;line-height:1.7;border:1px solid #2a3350;border-radius:12px;padding:10px 12px;margin-top:6px"></div>
   <div class="pod" id="rekordBox" hidden style="color:#f2c14e;font-weight:700"></div>
   <div class="pod" id="celeBox" hidden style="text-align:left;line-height:1.7"></div>
   <div class="pod" id="mapkaBox" hidden style="text-align:left;line-height:1.6;border:1px dashed #ead9ae;border-radius:12px;padding:10px 12px;color:#ead9ae"></div>
@@ -4189,6 +4220,96 @@ const Gra=(()=>{
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
     el('hud').hidden=id!==null;}
+  /* ============ GLOS BIEGUSIA (v6.6, pitch Filipa): tamagotchi MOWI ============ */
+  const SCENKI=[null,                                                 /* GLOS: odcinek po kazdym etapie — jedna historia */
+  [['wiewiorka','No proszę — ptak, który BIEGA! Jak ci na imię, puchaczu?'],['biegus','Bieguś. I kiedyś wystartuję w Wielkich Igrzyskach.'],['wiewiorka','Ha! To zbieraj pióra, marzycielu. U mnie wszystko za pióra.']],
+  [['pies-speed','Widziałem cię z alejki! Nogi masz krótkie, ale serce długie!'],['biegus','To się liczy… prawda?'],['pies-speed','To się liczy NAJBARDZIEJ. No dawaj, DAWAJ!']],
+  [['trener-orzel','Trzeci świt z rzędu. Liczę, mały.'],['biegus','Mówiłeś: osiem. Będzie osiem.']],
+  [['papuga-rio','Słonko, cały park o tobie ćwierka! Podobno lecisz na Igrzyska?'],['biegus','Nie lecę. BIEGNĘ.'],['papuga-rio','…to jest najpiękniejsza rzecz, jaką dziś usłyszałam.']],
+  [['trenerka-orzel','Głowa wysoko! Krok lekki! I nie garb się na podbiegu.'],['biegus','Tak jest, pani trener!']],
+  [['trener-orzel','Szósty świt. Wiesz, co widzę? Charakter.'],['biegus','A za dwa świty… pogadamy?'],['trener-orzel','Za dwa świty pogadamy jak biegacz z biegaczem.']],
+  [['wiewiorka','Psst. Klucz coś pogubił, jak odlatywał. Kawałki mapy, mówią ptaki.'],['biegus','Mapy? Dokąd?'],['wiewiorka','Zbieraj, to się dowiesz. Co trzeci etap patrz uważnie.']],
+  [['trener-orzel','Osiem świtów. Słowo się rzekło — jesteś biegaczem.'],['biegus','To co teraz?'],['trener-orzel','Teraz las. Las nie klaszcze. Las sprawdza.']],
+  [['zolw-maraton','Witaj we mgle, młody. Tu się nie ściga. Tu się PRZYCHODZI.'],['biegus','Codziennie?'],['zolw-maraton','Codziennie. Na tym polega cała tajemnica.']],
+  [['sowa-dziadek','Mgła zjada oczy, ale uszy karmi. Słuchaj lasu, a nie zgubisz drogi.'],['biegus','A jak się boję?'],['sowa-dziadek','To biegnij ze strachem pod skrzydłem. Też dobiega do mety.']],
+  [['panda-zenek','Ej, młody. Za bardzo się spinasz. Luz i rytm.'],['biegus','Łatwo mówić…'],['panda-zenek','Łatwo. Dlatego mówię codziennie, aż zadziała.']],
+  [['zolw-maraton','Igrzyska nie pytają, jak szybki jesteś dziś.'],['biegus','Pytają, czy przyjdę jutro. Pamiętam.'],['zolw-maraton','To już połowa drogi, młody.']],
+  [['sowa-dziadek','Klucz przeleciał nocą nad lasem. Nisko. Jakby czegoś szukał.'],['biegus','…albo kogoś.']],
+  [['panda-zenek','W mieście czeka Błysk. Lokalna gwiazda. Będzie się śmiał.'],['biegus','Już się śmiał. Na zawodach.'],['panda-zenek','To śmiej się w duchu i biegnij dalej. To boli ich najbardziej.']],
+  [['zolw-maraton','Patrzę na ciebie i widzę siebie sprzed stu maratonów.'],['biegus','Sto?!'],['zolw-maraton','Powoli. Ale do celu. Sto razy.']],
+  [['sowa-dziadek','Za lasem miasto. Miasto nie śpi i nie słucha.'],['biegus','To co mam robić?'],['sowa-dziadek','Biec tak, żeby MUSIAŁO posłuchać.']],
+  [['#🐇|Błysk','Patrzcie go — ptak-biegacz w moim mieście! Zdążysz na autobus, kurczaczku?'],['biegus','Nie jeżdżę autobusami. Biegam.']],
+  [['#🐔|Kura Agata','W tym hałasie połowa treningu to odpoczynek. Zapamiętaj, dziecko.'],['biegus','Odpoczynek? Nie mam czasu…'],['#🐔|Kura Agata','Właśnie dlatego. Ci bez czasu potrzebują go najbardziej.']],
+  [['wilk','Biegasz sam. Szanuję.'],['biegus','Sam, ale nie samotnie. Cały park i las biegnie ze mną.']],
+  [['#🐇|Błysk','Ty… serio trenujesz o PIĄTEJ rano?'],['biegus','Ktoś obiecał komuś osiem świtów. Weszło w nawyk.'],['#🐇|Błysk','…dziwny jesteś. Ale dziwnie SZYBKI.']],
+  [['#🐔|Kura Agata','Błysk kiedyś był miły, wiesz? Sława mu w głowie namieszała.'],['biegus','A da się odmieszać?'],['#🐔|Kura Agata','Da. Zwykle robi to ktoś, kto biegnie wolniej, a dociera dalej.']],
+  [['wilk','Miasto o tobie mówi. Nawet neony jakby cichsze.'],['biegus','Niech mówi. Ja słucham tylko własnego oddechu.']],
+  [['#🐇|Błysk','Dobra. Powiem to raz: może i jesteś biegaczem.'],['biegus','A ty może i jesteś szybszy. Na razie.'],['#🐇|Błysk','„Na razie"?! HA! Podoba mi się, ptaku.']],
+  [['#🐇|Błysk','Za miastem przełęcz. Zimno, stromo, samotnie.'],['biegus','Boisz się o mnie?'],['#🐇|Błysk','Pilnuję cię. Ktoś musi. Do samej przełęczy.']],
+  [['tygrys-trail','Góry szanują odważnych. Zobaczymy, czy masz co szanować.'],['biegus','Mam osiem świtów, sto rad Żółwia i jeden upór.'],['tygrys-trail','…to więcej, niż miała większość.']],
+  [['#🐹|Świstak','Fiiit! Fiit-fiit!'],['biegus','…nie rozumiem, ale chyba dziękuję?']],
+  [['sowa-biala','W ciszy gór słychać serce. Twoje mówi wyraźnie.'],['biegus','Co mówi?'],['sowa-biala','Że tęsknisz. I że dlatego biegniesz, nie odwrotnie.']],
+  [['lis-arktyczny','Zimno? To tylko powietrze! Szybsze powietrze!'],['biegus','Ty naprawdę lubisz zimę…'],['lis-arktyczny','Lubię wszystko, przez co da się przebiec.']],
+  [['trener-orzel','(list na wietrze) „Na przełęczy każdy biegnie sam. Patrz w niebo."'],['biegus','Patrzę, trenerze. Codziennie.']],
+  [['tygrys-trail','Za przełęczą już tylko stadion. Góry cię wychowały.'],['biegus','To teraz pokażę to nizinom.']],
+  [['sowa-biala','Przewodniczka klucza pytała o ciebie. O ptaka, który został.'],['biegus','Klucz… pamięta?'],['sowa-biala','Klucz nigdy nie zapomniał. Dlatego gubił mapę. Dla ciebie.']],
+  [['#🕊️|Przewodniczka','Stadion czeka, mały biegusie. A my… my będziemy na trybunach.'],['biegus','Cały klucz?'],['#🕊️|Przewodniczka','Cały klucz. Nie musisz wygrać. Musisz wystartować. Jesteśmy obok.']]];
+  const STROJ_TEKSTY={                                                /* CHARAKTER: Biegus komentuje SWOJ stroj */
+    chustka:['Ta chustka… czerwień odwagi. Wytrwałość mi ją dała — noszę z dumą!','Wiatr łapie za chustkę. Niech łapie — i tak mu ucieknę.'],
+    okulary:['W tych okularach nawet świt mnie nie oślepi. Stylowo? STYLOWO.'],
+    czapka:['Czapka z daszkiem = tryb akrobaty. Daszek chroni przed słońcem i zwątpieniem.'],
+    czubZloty:['Złoty czubek! Całe zawody noszę na głowie. Ciężka korona? Leciutka.'],
+    plecak:['Plecaczek spakowany. Drugi oddech zawsze przy sobie!'],
+    opaska:['Opaska biegowa — ze mną od pierwszego dnia. Sentyment!'],
+    k_sniezny:['Śnieżny puch! Wyglądam jak mała zamieć. KOCHAM.'],
+    k_zorza:['Fiolet zorzy… podobno tak wygląda niebo nad przełęczą nocą.'],
+    k_zielen:['Zieleń traili! Las by się uśmiechnął.'],
+    k_noc:['Granat nocnego biegu. Gwiazdki na piórach — no PATRZ.'],
+    k_roz:['Róż świtu. Kapryśny kolor? Może. Ale świty są MOJE.'],
+    k_blekit:['Błękit poranka — kolor piątej rano. Mojej godziny.'],
+    k_pomarancz:['Pomarańcz BiegaMy. Klasyk. Jesteśmy obok!']};
+  function scenkaOsoba(kto){                                          /* GLOS: kto mowi (mentor/emoji/Biegus) */
+    if(kto==='biegus'){const src=(el('portretMenu')&&el('portretMenu').src)||'';
+      return{iko:src?'<img src="'+src+'" style="width:28px;height:28px;object-fit:cover;border-radius:50%;vertical-align:middle;background:#fff">':'🐦',imie:Biegus.imie};}
+    if(kto[0]==='#'){const cz=kto.slice(1).split('|');return{iko:cz[0],imie:cz[1]||'?'};}
+    const m=MENTOR_TEKSTY[kto]||['🌟',kto];return{iko:mentorIko(kto,m[0],28),imie:m[1]};}
+  function pokazScenke(n){const sc=SCENKI[n],b=el('scenkaBox');if(!b)return;
+    if(!sc){b.hidden=true;return;}
+    b.hidden=false;
+    b.innerHTML='<div style="opacity:.6;font-size:.85em;margin-bottom:4px">PO BIEGU · odcinek '+n+'/32</div>'+
+      sc.map(w=>{const o=scenkaOsoba(w[0]);
+        return '<div style="margin:5px 0">'+o.iko+' <b>'+o.imie+':</b> '+w[1]+'</div>';}).join('');}
+  function dymekMenu(){const b=el('menuDymek');if(!b)return;           /* GLOS: przewodnik + prezent dnia */
+    const dzis=new Date().toISOString().slice(0,10);
+    let prezent=false;try{prezent=localStorage.getItem('biegus_prezent')!==dzis;}catch(e){}
+    b.hidden=false;b.style.cursor=prezent?'pointer':'default';b.onclick=null;
+    if(prezent){b.innerHTML='💬 „Znalazłem coś na rozgrzewce! <b>Stuknij</b> 🎁"';
+      b.onclick=()=>{try{localStorage.setItem('biegus_prezent',dzis);}catch(e){}
+        Biegus.portfelPior+=15;Biegus.zapisz();Dzwiek.znal&&Dzwiek.znal();
+        toast('🎁 <b>+15 🪶</b> — poranne znalezisko od '+Biegus.imie+'!');
+        dymekMenu();odswiezBiegusPanel&&odswiezBiegusPanel();};
+      return;}
+    const pula=[];
+    if((Biegus.portfelPior||0)>=110&&!KOLORY.sniezny.odblok)pula.push('Widziałem u Zyzi śnieżny puch… mamy '+Biegus.portfelPior+' 🪶 — stać nas!');
+    const mk=Object.keys(Biegus.mapki||{}).length;
+    if(mk>0&&mk<12)pula.push('Mapa klucza: <b>'+mk+'/12</b>. Kawałki lubią co trzeci etap…');
+    if(typeof januszDane!=='undefined'&&januszDane&&januszDane.streak>=2)pula.push('🔥 '+januszDane.streak+' dni PRAWDZIWEGO biegania z rzędu. Czuję każdy kilometr!');
+    if(typeof januszDane!=='undefined'&&januszDane&&!januszDane.dzisBieg)pula.push('Nogi mnie świerzbią… wyjdziemy dziś pobiegać naprawdę? 🏃');
+    const noszone=[...(Biegus.zalozone||[])].filter(a=>STROJ_TEKSTY[a]);   /* CHARAKTER: mowi o tym, co MA NA SOBIE */
+    if(noszone.length){const a=noszone[Math.floor(Math.random()*noszone.length)];pula.push(losuj(STROJ_TEKSTY[a]));}
+    const kt=STROJ_TEKSTY['k_'+Biegus.kolor];if(kt)pula.push(losuj(kt));
+    pula.push('Nie chce mi się… No dobra: chce mi się. Zawsze w końcu mi się chce.');
+    pula.push('Marudzę? Marudzę. Ale jeszcze NIGDY nie zawróciłem.');
+    if(Biegus.stan()==='glodny')pula.push('Głodny jestem i zły. Nakarm mnie TRENINGIEM, nie obietnicami.');
+    pula.push('W locie swipe w bok to ŚRUBA. Dołóż grab — zrobimy WKRĘT!');
+    pula.push('Etap '+nastepnyEtap()+' czeka. Trzy cele = gwiazdka ⭐');
+    pula.push('Grinduj murki! Krawędź + czyste zejście = deszcz ✦');
+    pula.push('Jesteśmy obok. Ty biegasz naprawdę — ja rosnę naprawdę. 🪶');
+    b.innerHTML='💬 „'+pula[Math.floor(Math.random()*pula.length)]+'"';}
+  function mentorIko(id,emoji,px){                                    /* MENTORZY: portret webp, fallback emoji */
+    return '<img src="'+assetUrl('assets/ui/ikony/mentor-'+id+'.webp')+
+      '" style="width:'+px+'px;height:'+px+'px;object-fit:cover;border-radius:50%;vertical-align:middle;background:#fff" '+
+      'onerror="this.outerHTML=this.dataset.e" data-e="'+emoji+'">';}
   const Hinty={d:JSON.parse(localStorage.getItem('biegus_hinty_v1')||'{}'),   /* PRODUKT-1: szkola trikow */
     raz(id,tekst){if(this.d[id])return;this.d[id]=1;
       try{localStorage.setItem('biegus_hinty_v1',JSON.stringify(this.d));}catch(e){}
@@ -4279,12 +4400,13 @@ const Gra=(()=>{
   function ustawPortret(img){
     if(!img)return;
     const stadium=Biegus.stadium(),emo=emocjaBiegusia();
-    const baza=assetUrl('assets/ui/portret_'+stadium+'.png');
-    img.onerror=()=>{
-      if(img.src!==baza){img.src=baza;return;}   // emocji brak → bazowy
-      img.hidden=true;};                          // bazowego brak → ukryj
-    img.hidden=false;
-    img.src=emo?assetUrl('assets/ui/portret_'+stadium+'_'+emo+'.png'):baza;}
+    const ak=['chustka','czapka','okulary','czubZloty','plecak'].find(a=>Biegus.zalozone.has(a));   /* CHARAKTER: najbardziej widoczne pierwsze */
+    const kand=[];                                               /* CHARAKTER: kaskada stroj -> emocja -> baza */
+    if(ak)kand.push(assetUrl('assets/ui/portret_'+stadium+'_'+ak+'.png'));
+    if(emo)kand.push(assetUrl('assets/ui/portret_'+stadium+'_'+emo+'.png'));
+    kand.push(assetUrl('assets/ui/portret_'+stadium+'.png'));
+    let i=0;img.onerror=()=>{i++;if(i<kand.length)img.src=kand[i];else img.hidden=true;};
+    img.hidden=false;img.src=kand[0];}
   function odswiezGarderobe(){
     const cel=el('gardLista');if(!cel)return;cel.innerHTML='';
     const sloty={buty:'👟 BUTY',koszulka:'👕 KOSZULKI',bluza:'🧥 BLUZY',glowa:'🧢 GŁOWA',dodatek:'🪽 DODATKI'};
@@ -4401,7 +4523,7 @@ const Gra=(()=>{
       Dzwiek.medal&&Dzwiek.medal();toast('🎁 Skrzynia tygodnia: +'+NAGRODA_TYG+' 🪶 za realne kilometry!');
       januszRysuj();odswiezBiegusPanel&&odswiezBiegusPanel();};}
   function odswiezMenuStatus(){
-    odswiezEtapy();
+    odswiezEtapy();dymekMenu();                                       /* GLOS: dymek przewodnika na menu */
     el('btnGraj').textContent='▶ BIEGNIJ · ETAP '+nastepnyEtap();
     const s=Biegus.stan();
     const emoji=s==='najedzony'?'💪':s==='ok'?'🙂':'😪';
@@ -4466,11 +4588,14 @@ const Gra=(()=>{
       kol.appendChild(d);});
     const lk=el('listaKolorow');lk.innerHTML='';
     Object.entries(KOLORY).forEach(([id,k])=>
-      lk.appendChild(kartaRzeczy(id,k,Biegus.kolor===id,()=>{Biegus.kolor=id;zmienionoWyglad();},'kolor')));   /* WIRING */
+      lk.appendChild(kartaRzeczy(id,k,Biegus.kolor===id,()=>{Biegus.kolor=id;zmienionoWyglad();
+        const st=STROJ_TEKSTY['k_'+id];if(st)toast('💬 „'+losuj(st)+'"');},'kolor')));   /* WIRING + CHARAKTER */
     const la=el('listaAkcesoriow');la.innerHTML='';
     Object.entries(AKCESORIA).forEach(([id,a])=>
       la.appendChild(kartaRzeczy(id,a,Biegus.zalozone.has(id),()=>{
-        Biegus.zalozone.has(id)?Biegus.zalozone.delete(id):Biegus.zalozone.add(id);zmienionoWyglad();},'akces')));   /* WIRING */
+        const bylo=Biegus.zalozone.has(id);
+        bylo?Biegus.zalozone.delete(id):Biegus.zalozone.add(id);zmienionoWyglad();
+        if(!bylo&&STROJ_TEKSTY[id])toast('💬 „'+losuj(STROJ_TEKSTY[id])+'"');},'akces')));   /* WIRING + CHARAKTER */
     el('imieBiegusia').value=Biegus.imie;
     odswiezMenuStatus();
   }
@@ -4574,10 +4699,10 @@ const Gra=(()=>{
   const FABULA={
     1:{akt:'AKT I',tytul:'PARK O ŚWICIE',
       scena:'Biegusy to ptaki wędrowne — całe życie w locie. Wszystkie oprócz jednego, który zawsze wolał biegać. „Ptak, który biega?!" — śmiał się klucz, odlatując na południe. Został na ziemi. I ogłosił: wystartuje w Wielkich Igrzyskach. Tych dla ludzi.',
-      mentor:'🦅 Orzeł: „Wszystkie wielkie marzenia są śmieszne na starcie, mały. Pokaż mi osiem świtów z rzędu. Potem pogadamy."'},
+      mentor:'🦅 Orzeł: „Wszystkie wielkie marzenia są śmieszne na starcie, mały. Pokaż mi osiem świtów z rzędu. Potem pogadamy."',mid:'trener-orzel'},
     2:{akt:'AKT II',tytul:'LAS WE MGLE',
       scena:'Za parkiem kończą się latarnie i zaczyna prawdziwa robota. Mgła zjada pewność siebie. Korzenie uczą pokory. Błoto — dystansu do siebie.',
-      mentor:'🐢 Żółw Maraton: „Igrzyska nie pytają, jak szybki jesteś dziś. Pytają, czy przyjdziesz jutro. Powoli. Ale do celu."'},
+      mentor:'🐢 Żółw Maraton: „Igrzyska nie pytają, jak szybki jesteś dziś. Pytają, czy przyjdziesz jutro. Powoli. Ale do celu."',mid:'zolw-maraton'},
   };
   FABULA[3]={akt:'AKT III',tytul:'MIASTO',
     scena:'Miasto nie ma czasu na cudze marzenia. Neony krzyczą, tłum płynie, wszyscy dokądś pędzą — nikt nie biegnie. Tu mieszka Zając Błysk, lokalna gwiazda bieżni. Ten sam, który na zawodach śmiał się najgłośniej.',
@@ -4605,7 +4730,7 @@ const Gra=(()=>{
   };
   FABULA[4]={akt:'AKT IV',tytul:'PRZEŁĘCZ',
     scena:'Góry nie krzyczą jak miasto — góry milczą. Zimny wiatr, serpentyny i pytanie, które przychodzi na trzecim podbiegu: po co ci to? Tu marzenie waży najwięcej. Tu najłatwiej zawrócić.',
-    mentor:'🦅 Orzeł (list przyniesiony przez wiatr): „Na przełęczy każdy biegnie sam. Ale samotność to nie to samo, co bycie samemu. Patrz w niebo."'};
+    mentor:'🦅 Orzeł (list przyniesiony przez wiatr): „Na przełęczy każdy biegnie sam. Ale samotność to nie to samo, co bycie samemu. Patrz w niebo."',mid:'trener-orzel'};
   SPOTKANIA['k4-e26']=[{t:20,imie:'Świstak',emoji:'🐢',tekst:'Fiiit! (w gwarze świstaczej: „ten to ma upór")'}];
   SPOTKANIA['k4-e28']=[{t:26,imie:'Najstarszy z klucza',emoji:'🕊️',klucz:true,
     tekst:'Widzieliśmy cię z góry. Przez całą drogę. Lecieliśmy szybciej — ale ty byłeś ZAWSZE w ruchu.'}];
@@ -4634,6 +4759,9 @@ const Gra=(()=>{
     el('fabulaTytul').textContent=f.tytul;
     el('fabulaScena').textContent=f.scena;
     el('fabulaMentor').textContent=f.mentor;
+    const mtF=(f.mid&&typeof MENTOR_TEKSTY!=='undefined'&&MENTOR_TEKSTY[f.mid])||null;   /* MENTORZY: portret zamiast emotki */
+    if(mtF){let tx=f.mentor;if(tx.indexOf(mtF[0])===0)tx=tx.slice(mtF[0].length).trimStart();
+      el('fabulaMentor').innerHTML=mentorIko(f.mid,mtF[0],46)+' '+tx.replace(/</g,'&lt;');}
     tryb='karta';pokaz('fabula');}
   let widzialOnboarding=false,czekaStart=null,_ostCombo=0;
   el('btnOnboardingStart').onclick=()=>{widzialOnboarding=true;
@@ -4930,6 +5058,7 @@ const Gra=(()=>{
       }
     }
     el('puentaFinisz').innerHTML='<b>'+Biegus.imie+':</b> „'+puenta+'”';
+    pokazScenke(sym.tryb==='etap'?biezacyEtap:0);                     /* GLOS: odcinek po etapie (zawody bez scenki) */
     const zad=sym.tryb==='etap'&&ZADANIA_FAB[sym.skrypt.etap];
     el('zadanieWynik').hidden=!zad;
     if(zad)el('zadanieWynik').innerHTML=zad.test(sym)?
@@ -5000,7 +5129,7 @@ const Gra=(()=>{
   function obsluzZdarzenie(zd){
     if(zd.typ==='mentor'){Dzwiek.znal();
       const m=MENTOR_TEKSTY[zd.id]||['🌟','Mentor','Trzymaj tempo!'];
-      toast(m[0]+' <b>'+m[1]+':</b> „'+m[2]+'" <i>+'+zd.bonus+' 🪶</i>');}
+      toast(mentorIko(zd.id,m[0],30)+' <b>'+m[1]+':</b> „'+m[2]+'" <i>+'+zd.bonus+' 🪶</i>');}   /* MENTORZY */
     if(zd.typ==='hit'){spowolnienie=CFG.SLOWMO_CZAS;R3.efekt(zd);
       try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
       setTimeout(()=>{if(tryb==='bieg')dymek(losuj(BIEGUS_MOWI.potkniecie));},900);
@@ -5125,7 +5254,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.4',
+  wersja:'6.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
