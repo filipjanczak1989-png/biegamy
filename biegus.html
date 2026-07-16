@@ -9,11 +9,17 @@
 <meta property="og:description" content="Biegnij, kręć triki, zbieraj pióra — a prawdziwe kilometry z treningów karmią Twojego Biegusia. Jesteśmy obok.">
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v6.0 (Chmura)</title>
+<title>Bieguś — Droga na Igrzyska · v6.0.1 (Chmura)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v6.0 „CHMURA" (cloud save)
+     BIEGUŚ — DROGA NA IGRZYSKA · v6.0.1 „CHMURA" + RC1-fix
+     · RC1-fix (zgloszenie Filipa z karty testow, punkt A1): czerwona
+       nakladka pokazywala INFO o wczytaniu modelu (debug z sesji GLB
+       zostawiony na prodzie) + dev-toast "pipeline assetow" przy kazdym
+       starcie; teraz INFO -> console.log, nakladka/toast TYLKO przy
+       localStorage.biegus_debug=1 (debugowanie z telefonu: jedna flaga);
+       prawdziwe bledy (HTTP/CORS/parser GLB) bez zmian na nakladce
      · CHMURA: zapis gry w Supabase (kolumny zapis jsonb + zapis_ts na
        biegus_most — MIGRACJA 20260716000000 u cc), last-write-wins po
        ts (nowe pole w save), pull przy starcie: chmura nowsza ->
@@ -1003,7 +1009,10 @@
 <script>
 'use strict';
 /* — DIAGNOSTYKA: każdy błąd JS ląduje na ekranie (czerwony pasek) — */
+function _biegusDebug(){try{return !!localStorage.getItem('biegus_debug');}catch(e){return false;}}
 function pokazBlad(t){
+  if(String(t).indexOf('INFO:')===0&&!_biegusDebug()){                /* RC1-fix: INFO -> konsola; nakladka tylko przy biegus_debug=1 */
+    try{console.log('[BIEGUŚ] '+t);}catch(e){}return;}
   let d=document.getElementById('bladOverlay');
   if(!d){d=document.createElement('div');d.id='bladOverlay';
     d.style.cssText='position:fixed;left:0;right:0;top:0;background:#c0392b;color:#fff;'+
@@ -3078,7 +3087,7 @@ const R3=(()=>{
       console.log('[DROGA] biegus.glb załadowany · animacje:',
         Object.entries(PREMIUM.akcje).filter(([,a])=>a).map(([n])=>n).join(', ')||'brak (pozy statyczne)');
       pokazBlad('INFO: model 3D wczytany z '+assetUrl(sciezka)+' ✓');
-      Gra?.toast?.('✨ <b>Bieguś Premium załadowany!</b><br>Model 3D z Twojego pipeline\'u assetów.');
+      if(_biegusDebug())Gra?.toast?.('✨ <b>Bieguś Premium załadowany!</b><br>Model 3D z Twojego pipeline\'u assetów.');  /* RC1-fix: dev-toast tylko w debug */
       window.dispatchEvent(new Event('drogapremium'));
     },undefined,err=>{
       if(!PREMIUM.forceBase&&sciezka!==ASSETY.biegus){
@@ -5049,7 +5058,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'6.0',
+  wersja:'6.0.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
