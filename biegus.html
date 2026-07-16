@@ -10,11 +10,18 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.4 (Start)</title>
+<title>Bieguś — Droga na Igrzyska · v7.5 (Triumf)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.4 „START" (zgloszenia: 3-2-1
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.5 „TRIUMF" (dokonczenie pitchu:
+     "po zwyciestwie biegusiowe grafiki w rytm historki")
+     · TRIUMF: META na planszy krainy (winieta jak intro/fabula);
+       PORAZKA na tej samej planszy mocniej przygaszonej — swiat
+       jest jeden, zmienia sie tylko wynik
+     · TRIUMF: deszcz pior (DOM, 14 platkow brand-kolory, 2.4 s)
+       przy SWIEZEJ gwiazdce etapu — juice zapracowanego 3/3
+     v7.4 „START" (zgloszenia: 3-2-1
      z grafika + akcja/pulapki od samego poczatku)
      · START: ROZBIEG 2.5 -> 1.2 s — pierwsza pulapka tuz po gwizdku
        (widoczna z daleka = fair); WYBIEG bez zmian
@@ -4548,6 +4555,17 @@ const Gra=(()=>{
     b.style.opacity=1;b.style.transform='translate(-50%,0)';
     clearTimeout(_hypeT);
     _hypeT=setTimeout(()=>{b.style.opacity=0;b.style.transform='translate(-50%,-16px)';},2300);}
+  function deszczPior(){                                              /* TRIUMF: deszcz pior przy swiezej gwiazdce */
+    for(let i=0;i<14;i++){const d=document.createElement('div');
+      const kol=['#f2c14e','#e8561e','#f6efe4'][i%3];
+      d.style.cssText='position:fixed;z-index:70;pointer-events:none;width:7px;height:15px;border-radius:4px;'+
+        'background:'+kol+';left:'+(6+Math.random()*88)+'vw;top:-24px;'+
+        'transition:transform '+(1.1+Math.random()*0.8)+'s ease-in,opacity .4s '+(0.9+Math.random()*0.8)+'s;'+
+        'transform:translateY(0) rotate(0deg)';
+      document.body.appendChild(d);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        d.style.transform='translateY(112vh) rotate('+(360+Math.random()*540)+'deg)';d.style.opacity='0';}));
+      setTimeout(()=>d.remove(),2400);}}
   function odswiezKsiege(){                                           /* TONY: nabijanie nowych jak w THPS */
     const B=[['tap','SKOK','—'],['tap w locie','SALTO','+100'],['3. tap w locie','PODWÓJNE SALTO','+220'],
       ['swipe ⬇ w locie','GRAB · w salcie TORNADO','+60 / +150'],['2. swipe ⬇','MELON','+90'],
@@ -5213,6 +5231,10 @@ const Gra=(()=>{
     konfetti();odswiezMenuStatus();pokaz('final');}
   function ekranMeta(){
     if(sym&&sym.tryb==='final'){ekranFinal();return;}
+    {const kf=el('finisz'),pl=PLANSZE_AKTOW[(sym.skrypt&&sym.skrypt.kraina)||1];   /* TRIUMF: winieta w rytm historki */
+     kf.style.backgroundImage=pl?'linear-gradient(rgba(10,12,20,.72),rgba(10,12,20,.9)),url('+
+       assetUrl('assets/swiat/'+pl+'.webp')+')':'';
+     kf.style.backgroundSize='cover';kf.style.backgroundPosition='center';}
     /* — rekord rundy (tylko etapy) — */
     const rb=el('rekordBox');rb.hidden=true;
     if(sym.tryb==='etap'){
@@ -5261,7 +5283,7 @@ const Gra=(()=>{
       if(zal===3){Biegus.gwiazdki=Biegus.gwiazdki||{};
         if(!Biegus.gwiazdki[kluczE]){Biegus.gwiazdki[kluczE]=true;nagroda+=25;
           gwHtml='<br><b style="color:#f2c14e">⭐ GWIAZDKA ETAPU! +25 🪶</b>';
-          Dzwiek.medal&&Dzwiek.medal();}
+          Dzwiek.medal&&Dzwiek.medal();deszczPior();}                 /* TRIUMF */
         else gwHtml='<br>⭐ Gwiazdka już zdobyta';}
       if(nagroda){Biegus.portfelPior+=nagroda;Biegus.statystyki.piora+=nagroda;}
       let znHtml='';
@@ -5374,6 +5396,10 @@ const Gra=(()=>{
     if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
     sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
+    {const kp=el('porazka'),pl=PLANSZE_AKTOW[(sym.skrypt&&sym.skrypt.kraina)||1];   /* TRIUMF: porazka w tym samym swiecie */
+     kp.style.backgroundImage=pl?'linear-gradient(rgba(10,12,20,.82),rgba(10,12,20,.94)),url('+
+       assetUrl('assets/swiat/'+pl+'.webp')+')':'';
+     kp.style.backgroundSize='cover';kp.style.backgroundPosition='center';}
     const win=sym.winowajca&&OBIEKTY[sym.winowajca];                 /* NEMEZIS: kto cie powstrzymal */
     const blisko=(sym.winowajcaT||0)>CFG.ETAP_CZAS*0.85;
     const winIko={sroka:'sroka',kot:'kot-bazyli'}[sym.winowajca];    /* TWARZE: portret winowajcy (p17) */
@@ -5549,7 +5575,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.4',
+  wersja:'7.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
