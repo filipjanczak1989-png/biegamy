@@ -10,11 +10,25 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.7 (Plansze cz.2)</title>
+<title>Bieguś — Droga na Igrzyska · v9.8 (Twarda trasa)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.7 „PLANSZE cz.2" (audyt plansz:
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.8 „TWARDA TRASA" (zgloszenie:
+     "skaczesz na kombach i przeszkody niezauwazalne, za prosto")
+     DIAGNOZA: wiekszosc przeszkod ma unik 'skok', a lot z saltem
+     trwa tak dlugo, ze spam skoku+trikow przelatywal nad wszystkim.
+     · PROG_PRZESKOKU 0.38->0.46: brzegi lotu NIE przenosza —
+       skok trzeba trafic w rytm przeszkody (SPREZYNA-dar i wyzszy
+       skok wciaz pomagaja — dary zyskuja sens)
+     · SROKA waga 2->3, od e4 (bylo e6): bije W LOCIE — naturalna
+       kara za bezmyslne skakanie; ziemia/slizg = bezpieczne
+     · GESTOSC +15% (krok 1.2..0.52, bylo 1.35..0.62) — mniej
+       pustych sekund; walidator uczciwosci bez zmian
+     · SPADY 3-4 na etap (bylo 2-3), krotsze przerwy
+     · PRZYSPIESZENIE 0.005->0.006 — koncowka etapu to sprint
+     · taryfa ulgowa e1-e4 ZOSTAJE (nowi gracze bez zmian)
+     v9.7 „PLANSZE cz.2" (audyt plansz:
      K1+K2+K3 — rekomendowana trojka)
      · K3 SWIETLIKI+NEON-LISTWA (zgloszenie "zadaszenie wnerwia"):
        sufit marketu i dach peronu dostaja podluzne swietliki co 4 m
@@ -1501,14 +1515,14 @@ function zglosPadlyAsset(url){
 const CFG={
   PASY:[-2.3,0,2.3],GRACZ_Z:6,STREFA:[5.3,6.8],SPAWN_Z:-115,
   PREDKOSC_BAZOWA:15.4,PREDKOSC_ETAP:0.075,   /* TEMPO: bylo 14.2 — za latwo od poczatku (Filip) */
-  CZAS_PASA:0.13,SKOK:0.62,SKOK_WYS:1.8,PROG_PRZESKOKU:0.38,SALTO_BONUS:1.3,SLIZG:0.55,
+  CZAS_PASA:0.13,SKOK:0.62,SKOK_WYS:1.8,PROG_PRZESKOKU:0.46,SALTO_BONUS:1.3,SLIZG:0.55,   /* TRUDNOSC: 0.38->0.46 — brzegi lotu NIE przenosza, skok trzeba TRAFIC (spam skoku konczy sie hitem) */
   NIETYKALNOSC:1.4,SERCA:3,ETAP_CZAS:60,ROZBIEG:1.2,WYBIEG:3.0,   /* START: bylo 2.5 — akcja od poczatku (Filip) */
   MIN_GAP_GLOBAL:0.42,MIN_GAP_PAS:1.05,OKNO_BLOKADY:0.35,
   ZNALEZISKA_NA_ETAP:2,LINIE_PIOR:4,PIOR_W_LINII:6,ODSTEP_PIOR:0.22,
   ZAWODY:{KARA_HIT:3,BONUS_ZNAL:2,ZLOTO:57,SREBRO:63,BRAZ:69},
   SLOWMO:0.42,SLOWMO_CZAS:0.55,
   BUFOR:0.22,
-  FLOW_COMBO:6,PRZYSPIESZENIE:0.005,   /* TEMPO: mocniejszy narost w trakcie etapu */
+  FLOW_COMBO:6,PRZYSPIESZENIE:0.006,   /* TRUDNOSC: 0.005->0.006 — koncowka etapu to sprint, nie spacer */
 };
 const lerp=(a,b,k)=>a+(b-a)*k,easeOut=k=>1-Math.pow(1-k,3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -2181,7 +2195,7 @@ const OBIEKTY={
       w.rotation.y=Math.sin(t*1.3)*0.6;},
   },
   sroka:{  /* NEMEZIS: przeszkoda POWIETRZNA — bije w locie; kara za bezmyslne salta */
-    nazwa:'Sroka Halina',unik:'ziemia',mult:1.0,waga:2,odEtapu:6,odCzasu:0,
+    nazwa:'Sroka Halina',unik:'ziemia',mult:1.0,waga:3,odEtapu:4,odCzasu:0,   /* TRUDNOSC: waga 2->3, od e4 — kto skacze bez patrzenia, ten poznaje Haline */
     opis:'Pikuje na wszystko, co błyszczy i lata. Zwłaszcza na małe ptaki w pomarańczowych bluzach, które za dużo skaczą. Zostań na ziemi — wtedy cię nie widzi.',
     unikTekst:'NIE SKACZ pod nią — zostań na ziemi albo ▼ ślizg',
     zbuduj(){const g=new THREE.Group();
@@ -2907,7 +2921,7 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     const rel=((nrEtapu-1)%8)+1;
     const dostepne=typyDlaEtapu(rel,kraina);
     while(t<koniec){
-      t+=lerp(1.35,0.62,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   // gęściej niż v0.3 = akcja
+      t+=lerp(1.2,0.52,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   /* TRUDNOSC: gestosc +15% (bylo 1.35..0.62) — walidator dalej pilnuje uczciwosci */
       if(t>=koniec)break;
       const typ=losujTyp(rng,t,dostepne),pas=losujPas(rng,t,ev,ostatni);
       if(pas===-1)continue;
@@ -3266,9 +3280,9 @@ function krokSymulacji(s){
   s.predkosc=s.predkoscBaza*(1+CFG.PRZYSPIESZENIE*s.t);            // PĘD: bieżąca prędkość
   /* — CZYNNIK HUGO: spady z nieba (tylko etapy, od e5) — */
   if(s.tryb==='etap'&&s.skrypt.etap>4&&s.stan==='bieg'){
-    if(s.spadNastepny===undefined){s.spadNastepny=9+Math.random()*5;s.spadyLeft=2+(Math.random()<0.5?1:0);}
+    if(s.spadNastepny===undefined){s.spadNastepny=7+Math.random()*4;s.spadyLeft=3+(Math.random()<0.5?1:0);}   /* TRUDNOSC: 3-4 spady (bylo 2-3) */
     if(s.spadyLeft>0&&s.t>=s.spadNastepny){
-      s.spadyLeft--;s.spadNastepny=s.t+8+Math.random()*6;
+      s.spadyLeft--;s.spadNastepny=s.t+7+Math.random()*5;   /* TRUDNOSC */
       s.aktywne.push({t:s.t,typ:'spad',pas:s.pas,wlasnyRuch:true,
         z:CFG.GRACZ_Z-s.predkosc*1.5,fazaSpadu:'cien',spadY:3.4,sprawdzone:false});
       s.zdarzenia.push({typ:'swist'});}}
@@ -6342,7 +6356,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.7',
+  wersja:'9.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
