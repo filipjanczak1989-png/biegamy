@@ -10,11 +10,22 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.9 (Breakdance)</title>
+<title>Bieguś — Droga na Igrzyska · v8.0 (Trasy)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.9 „BREAKDANCE" (zgloszenie:
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.0 „TRASY" (zgloszenia z gry:
+     wyspa/rower + mandat "gram az bedzie idealnie")
+     · TRASY wyspa: zywoplot 3.2 m -> 0.9 m + jasna krawedz; nowy typ
+       wyspaGrind (grind:true, wysokosc 0.95, durS okna) = GRIND PRZEZ
+       CALE ROZSTAJE srodkiem; guard "if(s.grind)continue" w MOMENCIE
+       PRAWDY (bez niego wyspa bila co 0.3 s pod grindem)
+     · TRASY rower: assets/rower.glb WYLACZONY (jechal bokiem — zla os
+       natywna, klockowy model jest poprawny); unik 'skok' -> 'pas'
+       (roweru sie NIE przeskakuje — zejdz z drogi)
+     · TRASY biegacz: nowa przeszkoda od e8, unik 'pas' (mult 1.25,
+       animowane nogi/rece) — "biegacz, ktorego nie idzie przeskoczyc"
+     v7.9 „BREAKDANCE" (zgloszenie:
      wysepka rozstajow wkurza, zero trikow — "niech daje breakdance")
      · BREAKDANCE: slizg w oknie rozstajow (rozstajeKit t..t+durS)
        = trik +130 + combo + windmill-spin (render klockowy;
@@ -1910,6 +1921,24 @@ const OBIEKTY={
       return g;},
     animuj(g,t){if(g.userData.og)g.userData.og.rotation.x=0.5+Math.sin(t*2.2)*0.35;},
   },
+  biegacz:{  /* TRASY: "biegacz, ktorego nie idzie przeskoczyc" (pitch Filipa) */
+    nazwa:'Biegacz z klubu',unik:'pas',mult:1.25,waga:2,odEtapu:8,odCzasu:10,
+    opis:'Interwały. Słuchawki. Zero świadomości, że ktoś jeszcze istnieje na tej ścieżce. Nie przeskoczysz go — jest wyższy od Ciebie o trzy głowy. Wyprzedza się kulturalnie: bokiem.',
+    unikTekst:'◀ ▶ WYPRZEDŹ BOKIEM — na biegacza się nie wskakuje',
+    zbuduj(){const g=new THREE.Group();
+      g.add(klocek(0.42,0.72,0.26,0x2a63b8,0,1.06,0));
+      g.add(klocek(0.3,0.3,0.28,0xe8b98a,0,1.55,0));
+      g.add(klocek(0.34,0.1,0.3,0x20242e,0,1.68,0));
+      const rL=klocek(0.11,0.5,0.11,0xe8b98a,-0.3,1.1,0),rP=klocek(0.11,0.5,0.11,0xe8b98a,0.3,1.1,0);
+      g.add(rL);g.add(rP);g.userData.rece=[rL,rP];
+      const nL=klocek(0.14,0.6,0.14,0x1a2030,-0.12,0.4,0),nP=klocek(0.14,0.6,0.14,0x1a2030,0.12,0.4,0);
+      g.add(nL);g.add(nP);g.userData.nogi=[nL,nP];
+      [-0.12,0.12].forEach((x,i)=>g.add(klocek(0.16,0.09,0.3,i?0xf2c14e:0xf2c14e,x,0.06,0.04)));
+      return g;},
+    animuj(g,t){const f=Math.sin(t*11);
+      if(g.userData.nogi){g.userData.nogi[0].rotation.x=f*0.7;g.userData.nogi[1].rotation.x=-f*0.7;}
+      if(g.userData.rece){g.userData.rece[0].rotation.x=-f*0.5;g.userData.rece[1].rotation.x=f*0.5;}},
+  },
   pies:{
     nazwa:'Pies bez smyczy',unik:'skok',mult:1.0,waga:3,odEtapu:1,odCzasu:0,
     opis:'Waży sześć kilo i jest święcie przekonany, że ścieżka należy do niego. Nie jest groźny — jest ENTUZJASTYCZNY, a to dla tempa dużo gorsze. Merda całym sobą. Z psami się nie dyskutuje.',
@@ -2135,6 +2164,14 @@ const OBIEKTY={
     nazwa:'Rozstaje',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,
     dekor:true,walidacja:false,ukryj:true,
     opis:'',unikTekst:'',zbuduj(){return new THREE.Group();},animuj(g,t){},
+  },
+  wyspaGrind:{ukryj:true,   /* TRASY: krawedz zywoplotu = grind przez cale rozstaje (wizual daje kit) */
+    nazwa:'Krawędź żywopłotu',unik:'skok',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,walidacja:false,
+    grind:true,wysokosc:0.95,durS:5.4,
+    opis:'Ogrodnik przyciął żywopłot równo jak linijkę i sam nie wiedział, co stworzył: idealną krawędź do grindu przez całe rozstaje. Deskorolkarze już wiedzą. Teraz wiesz i Ty.',
+    unikTekst:'▲ WSKOCZ NA KRAWĘDŹ i jedź środkiem (✦ GRIND!) — albo wybierz stronę',
+    zbuduj(){return new THREE.Group();},
+    animuj(){},
   },
   klin:{
     nazwa:'Klin rozstajów',unik:'pas',mult:1.0,waga:0,odEtapu:1,odCzasu:0,odKrainy:1,walidacja:false,
@@ -2374,9 +2411,9 @@ const OBIEKTY={
       g.children[1].rotation.x=t*10;g.children[2].rotation.x=t*10;},
   },
   rower:{
-    nazwa:'Rowerzysta o świcie',unik:'skok',mult:1.6,waga:2,odEtapu:1,odCzasu:15,
+    nazwa:'Rowerzysta o świcie',unik:'pas',mult:1.6,waga:2,odEtapu:1,odCzasu:15,   /* TRASY: nie do przeskoczenia — zejdz mu z drogi */
     opis:'Jedzie do pracy na 6:30 i NIE zamierza hamować. Przednia lampka, odblaskowa kamizelka, dzwonek używany jako klakson. Jest o połowę szybszy niż wszystko inne w parku — usłyszysz „dzyń!", zanim go zobaczysz.',
-    unikTekst:'▲ SKOK i to WCZEŚNIE albo ◀ ▶ (×1.6 prędkości!)',
+    unikTekst:'◀ ▶ ZEJDŹ MU Z DROGI — roweru się NIE przeskakuje (×1.6 prędkości!)',
     zbuduj(){
       const g=new THREE.Group();
       const kola=[];
@@ -2619,6 +2656,7 @@ function wstrzyknijRozwidlenia(ev,rng,rel,kraina,ile){
     const bogata=rng()<0.5?0:2, uboga=2-bogata;
     ev.push({t:t0-2.6,typ:'znak',pas:1});
     ev.push({t:t0-0.35,typ:'rozstajeKit',pas:1,durS:dur+1.2});
+    ev.push({t:t0-0.1,typ:'wyspaGrind',pas:1,durS:dur+0.6});          /* TRASY: grind przez rozstaje */
     for(let tt=t0;tt<=t0+dur;tt+=0.3)ev.push({t:tt,typ:'wyspa',pas:1});
     for(let tt=t0+0.5;tt<=t0+dur-1.4;tt+=0.5)ev.push({t:tt,typ:'pioro',pas:bogata});
     const t2=kraina===1?'kaluza':kraina===2?'korzen':kraina===3?'pacholek':'glaz';
@@ -3001,6 +3039,7 @@ function krokSymulacji(s){
       o.sprawdzone=true;
       if(OBIEKTY[o.typ].dekor)continue;  /* FIX-dekor-hit: scenografia (segment schody/tunel, kit rozstajów, znak, zebra) NIE bije — kolizją rozstajów jest wyspa */
       if(s.wallT>0)continue;                                        /* FLOWWALL: na scianie swiatla przeszkody mijaja */
+      if(s.grind)continue;                                          /* TRASY: na krawedzi jestes ponad (grind przez wyspe) */
       if(o.pas!==s.pas||s.pasT<0.65)continue;
       const unik=OBIEKTY[o.typ].unik;
       const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
@@ -3363,7 +3402,7 @@ const R3=(()=>{
   const ASSETY={
     biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*0.5,   /* REW2: os natywna to +/-X — PI dalo DRUGI profil; PI/2 = przod (jak tylem: 1.5*PI, hotfix 3 s) */
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
-      taczka:'assets/taczka.glb', pies:'assets/pies.glb', rower:'assets/rower.glb',
+      taczka:'assets/taczka.glb', pies:'assets/pies.glb',   /* TRASY: rower.glb OFF — jechal bokiem (zla os natywna); klockowy jest poprawny */
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
     },
   };
@@ -3832,8 +3871,11 @@ const R3=(()=>{
       g.add(klocek(0.13,0.26,0.1,0x1a2030,x<0?x-0.2:x+0.2,1.05,0.91));});
     g.add(walec(0.06,0.08,1.0,0x555e70,0,0.5,0.85,6));
     /* WYSOKA PRZEGRODA: po wyborze widzisz tylko SWOJĄ drogę */
-    const zywoplot=new THREE.Mesh(new THREE.BoxGeometry(1.5,3.2,Math.max(4,dl-2.2)),mat(0x3f6347));
-    zywoplot.position.set(0,1.76,-(dl-2.2)/2-1.4);g.add(zywoplot);
+    const dlZ=Math.max(4,dl-2.2);                                   /* TRASY: zywoplot 3.2 -> 0.9 m = grindowalny murek (zgloszenie Filipa) */
+    const zywoplot=new THREE.Mesh(new THREE.BoxGeometry(1.5,0.9,dlZ),mat(0x3f6347));
+    zywoplot.position.set(0,0.45,-(dl-2.2)/2-1.4);zywoplot.castShadow=true;g.add(zywoplot);
+    const krawZ=new THREE.Mesh(new THREE.BoxGeometry(1.58,0.08,dlZ),mat(0xd8d0c2));   /* TRASY: jasna krawedz = "tu sie wskakuje" */
+    krawZ.position.set(0,0.93,-(dl-2.2)/2-1.4);g.add(krawZ);
     for(let z=5;z<dl-4;z+=6.5){
       const kor=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,7),mat(0x527a4a));
       kor.scale.setScalar(1.25);kor.scale.y=1.0;
@@ -5690,7 +5732,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.9',
+  wersja:'8.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
