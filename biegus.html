@@ -10,11 +10,21 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.6 (Saga)</title>
+<title>Bieguś — Droga na Igrzyska · v8.7 (Atlas)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.6 „SAGA: ZEGAREK LEGEND" (mandat
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.7 „ATLAS + HOTFIX" (zgloszenia)
+     · HOTFIX: ReferenceError 'kraina' @odswiezMape (5405) — global
+       nie istnieje; kraina liczona z nastepnyEtap()
+     · REW4 obrot: 1.5PI dal TYL => przod = 0.5PI; NOWE: tester
+       biegus.html?obrot=0|0.5|1|1.5 (w PI) — Filip moze sam znalezc
+       orientacje bez deployu; wynik zapisujemy na sztywno
+     · ATLAS TRASY (bylo "Katalog / mieszkancy" — a w srodku
+       bezpanska walizka): kafel "Atlas trasy / co spotkasz w biegu";
+       ilustracja wpisu assets/ui/atlas/atlas-<typ>.webp (p20,
+       onload/onerror: fallback = podglad 3D jak dotad)
+     v8.6 „SAGA: ZEGAREK LEGEND" (mandat
      Filipa: wlasna fabula, zadania POLACZONE jak w przygodowkach)
      · SAGA: 5 ogniw + cliffhanger, kazde WYMAGA poprzedniego:
        1 PLOTKA (2 zlecenia -> stara mapa) 2 ZOLW (3x magnez -> MOC
@@ -1101,7 +1111,7 @@
   </div>
   <div class="rzad">
     <button class="kafel" id="btnMisje"><span data-iko="ikona-misje">⭐</span>Misje<span>odblokowania</span></button>
-    <button class="kafel" id="btnKatalog"><span data-iko="ikona-kolekcja">📖</span>Katalog<span>mieszkańcy</span></button>
+    <button class="kafel" id="btnKatalog"><span data-iko="ikona-kolekcja">📖</span>Atlas trasy<span>co spotkasz w biegu</span></button>
     <button class="kafel" id="btnKsiega"><span data-iko="ikona-triki">🌀</span>Triki<span>księga i komba</span></button>
     <button class="kafel" id="btnRanking"><span data-iko="ikona-ranking">🏆</span>Ranking<span>prawdziwe kilometry</span></button>
     <button class="kafel" id="btnAutomat"><span data-iko="ikona-automat">🕹️</span>Automat<span>BIEGAMY: WYZWANIE</span></button>
@@ -1336,6 +1346,7 @@
 <!-- PANEL: KATALOG -->
 <div class="panelDol" id="panelKatalog" hidden>
   <h2 id="katalogNazwa">—</h2>
+  <img id="katalogObraz" alt="" style="width:100%;max-width:340px;border-radius:12px;margin:4px 0" hidden>   <!-- ATLAS: ilustracja wpisu (p20, fallback: podglad 3D) -->
   <div id="katalogOpis">—</div>
   <div id="katalogUnik">—</div>
   <div class="katalogPrzyciski" id="katalogLista"></div>
@@ -3574,7 +3585,7 @@ const R3=(()=>{
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
-    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*1.5,   /* REW3: eliminacja — 0=bok A, PI=bok B (os +/-X), PI/2=TYL => zostaje 1.5*PI = PRZOD */
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*(parseFloat(new URLSearchParams(location.search).get('obrot'))||0.5),   /* REW4: 1.5PI dal TYL (zgloszenie) => przod=0.5PI; tester biegus.html?obrot=0|0.5|1|1.5 bez deployu */
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
       taczka:'assets/taczka.glb', pies:'assets/pies.glb',   /* TRASY: rower.glb OFF — jechal bokiem (zla os natywna); klockowy jest poprawny */
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
@@ -5402,7 +5413,8 @@ const Gra=(()=>{
         (gor>=k.etapy[0]&&gor<=k.etapy[1]?'<br>🔥 Gorący punkt dnia jest w tej krainie!':''));});
     el('mapaKm').innerHTML+='<br><span style="color:#f2c14e">🔥 Gorący punkt dnia: etap '+gor+' — dziś styl ×2 na mecie</span>';}
   function odswiezMape(){
-    const pn=el('panelMapa'),pz=PEJZAZE[kraina];
+    const nEt=nastepnyEtap(),krM=nEt<=8?1:nEt<=16?2:nEt<=24?3:4;      /* ATLAS-fix: 'kraina' nie istnieje globalnie (ReferenceError @mapa) */
+    const pn=el('panelMapa'),pz=PEJZAZE[krM];
     pn.style.backgroundImage=pz?'linear-gradient(rgba(13,16,26,.55),rgba(13,16,26,.94) 55%),url('+
       assetUrl('assets/swiat/'+pz+'.webp')+')':'';
     pn.style.backgroundSize='cover';pn.style.backgroundPosition='center top';
@@ -5459,6 +5471,9 @@ const Gra=(()=>{
       lista.querySelectorAll('button').forEach(x=>x.classList.toggle('aktywny',x===b));};
     lista.appendChild(b);});
   function wybierzKatalog(typ){const o=OBIEKTY[typ];
+    const im=el('katalogObraz');im.hidden=true;                       /* ATLAS: grafika wpisu z fallbackiem na 3D */
+    im.onload=()=>{im.hidden=false;};im.onerror=()=>{im.hidden=true;};
+    im.src=assetUrl('assets/ui/atlas/atlas-'+typ+'.webp');
     el('katalogNazwa').textContent=o.nazwa;
     el('katalogOpis').textContent=o.opis;
     el('katalogUnik').textContent=o.unikTekst;
@@ -6073,7 +6088,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.6',
+  wersja:'8.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
