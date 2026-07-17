@@ -10,11 +10,20 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.4 (Glow-up II: Bloom)</title>
+<title>Bieguś — Droga na Igrzyska · v10.5 (Zawody świata)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.4 „GLOW-UP II: BLOOM" (G2)
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.5 „ZAWODY SWIATA" (P1+P3
+     z audytu — tanie domkniecia)
+     · P1: Zawody Miasto (e20, neony) i Zawody Przelecz (e28, wiatr)
+       — medale we wszystkich 4 krainach (bylo tylko park/las);
+       tytuly intro mapa 4 krain; te same progi medali (czas liczony
+       z kar/bonusow, niezalezny od predkosci krainy)
+     · P3: misja Kolekcjoner z REALNA nagroda — Czapka tropiciela
+       (czuje kawalki mapy — fabularnie skrojona pod kolekcjonera)
+       + 120 piór (bylo: "na razie honor")
+     v10.4 „GLOW-UP II: BLOOM" (G2)
      · UnrealBloomPass r128 (strength .5, radius .5, threshold .82):
        neony k3, poswiaty, pioruny, fever i zlote godziny SWIECA
        naprawde — najwiekszy pojedynczy skok wygladu
@@ -1292,6 +1301,8 @@
     <button class="kafel" id="btnEtapy"><span data-iko="ikona-etapy">🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
     <button class="kafel" id="btnZawody"><span data-iko="ikona-zawody-park">🏁</span>Zawody Park<span>medale o świcie</span></button>
     <button class="kafel" id="btnZawodyLas"><span data-iko="ikona-zawody-las">🌲</span>Zawody Las<span>medale we mgle</span></button>
+    <button class="kafel" id="btnZawodyMiasto"><span data-iko="ikona-zawody-miasto">🌃</span>Zawody Miasto<span>medale wśród neonów</span></button>   <!-- P1 -->
+    <button class="kafel" id="btnZawodyGory"><span data-iko="ikona-zawody-gory">🏔️</span>Zawody Przełęcz<span>medale na wietrze</span></button>   <!-- P1 -->
   </div>
   <div class="rzad">
     <button class="kafel" id="btnBiegus"><span data-iko="ikona-trening">🐦</span>Bieguś<span>karm i ubieraj</span></button>
@@ -2065,7 +2076,9 @@ const MISJE=[
   {id:'czysty',npc:'orzel',tekst:'Czysty bieg — ukończ etap bez utraty serca',cel:1,licznik:0,
     nagroda:()=>{AKCESORIA.okulary.odblok=true;},nagrodaTekst:'🕶️ Okulary słoneczne'},
   {id:'kolekcjoner',npc:'wiewiorka',tekst:'Kolekcjoner — zbierz 6 znalezisk',cel:6,licznik:0,
-    nagroda:()=>{},nagrodaTekst:'kolekcja Biegusia (R7 — na razie honor)'},
+    nagroda:()=>{Biegus.garderoba&&Biegus.garderoba.add('czapka-tropiciela');   /* P3: realna nagroda (bylo: "na razie honor") */
+      Biegus.portfelPior+=120;Biegus.zapisz&&Biegus.zapisz();},
+    nagrodaTekst:'🧭 Czapka tropiciela (czuje kawałki mapy!) + 120 🪶'},
   {id:'slizgacz',npc:'zajac',tekst:'Ślizgacz — prześlizgnij się pod 8 przeszkodami',cel:8,licznik:0,
     nagroda:()=>{KOLORY.zielen.odblok=true;},nagrodaTekst:'🟢 Zieleń traili'},
   {id:'czujneOko',npc:'kura',tekst:'Czujne oko — omiń 10 rowerzystów',cel:10,licznik:0,
@@ -5733,6 +5746,8 @@ const Gra=(()=>{
   el('btnGraj').onclick=()=>{Dzwiek.odpal();start(nastepnyEtap(),'etap');};
   el('btnZawody').onclick=()=>{Dzwiek.odpal();start(4,'zawody');};
   el('btnZawodyLas').onclick=()=>{Dzwiek.odpal();start(12,'zawody');};
+  el('btnZawodyMiasto').onclick=()=>{Dzwiek.odpal();start(20,'zawody');};   /* P1: zawody k3 */
+  el('btnZawodyGory').onclick=()=>{Dzwiek.odpal();start(28,'zawody');};     /* P1: zawody k4 */
   el('btnMute').onclick=()=>{el('btnMute').textContent=Dzwiek.przelacz()?'🔇':'🔊';};
 
   const CEL_TYG_KM=30,NAGRODA_TYG=150;                                /* JANUSZ: cel tygodnia z mostu */
@@ -6185,7 +6200,8 @@ const Gra=(()=>{
     im.textContent=moce.length?('MOC STROJU: '+moce.join(' · ')):'';
     const NAZWY_MOTYWU={klasyczny:'',pioropusz:' · „PIÓROPUSZ"',akrobatyczny:' · „AKROBACJE"',
       rozstaje:' · „ROZSTAJE"',szczyt:' · „GODZINA SZCZYTU"'};
-    el('introTytul').textContent=trybGry==='zawody'?(kraina===2?'ZAWODY: LAS WE MGLE':'ZAWODY: PARK O ŚWICIE'):
+    el('introTytul').textContent=trybGry==='zawody'?({1:'ZAWODY: PARK O ŚWICIE',2:'ZAWODY: LAS WE MGLE',
+      3:'ZAWODY: NEONY MIASTA',4:'ZAWODY: PRZEŁĘCZ NA WIETRZE'}[kraina]||'ZAWODY'):   /* P1: mapa 4 krain */
       'ETAP '+n+' · '+(PALETY_NAZWA(sym.skrypt)||'')+(NAZWY_MOTYWU[sym.skrypt.motyw]||'');
     {const ki=el('intro'),pl=PLANSZE_AKTOW[kraina];                   /* START: 3-2-1 na planszy krainy */
      ki.style.backgroundImage=pl?'linear-gradient(rgba(10,12,20,.66),rgba(10,12,20,.86)),url('+
@@ -6683,7 +6699,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.4',
+  wersja:'10.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
