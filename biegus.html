@@ -10,11 +10,35 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.0 (Trasy)</title>
+<title>Bieguś — Droga na Igrzyska · v8.2 (Zlecenia)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.0 „TRASY" (zgloszenia z gry:
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.2 „ZLECENIA" (Etap 1 projektu
+     SWIAT: "zbierz kwiaty dla Zyzi i sprzedaj, poszukaj czegos dla
+     Zolwia, gromadz itemy i sprzedawaj")
+     · ZLECENIA: znaleziska (◆) = SUROWCE — Biegus.itemy{} w save
+       (wstecznie zgodne), naliczane na mecie i w finale
+     · ZLECENIA: 5 zlecen NPC (Zyzia/Zolw/Orzel/Kura/Zajac), 2 aktywne,
+       rotacja DOBOWA deterministyczna (hash daty jak Dzienne);
+       oddanie = surowce znikaja, +70..100 pior, deszcz pior, portret
+       zleceniodawcy (p15/16)
+     · ZLECENIA: TOBOLEK u Zyzi — skup nadmiaru po 8 pior/szt.
+       (zlecenia placa 3-4x lepiej: handel oplaca sie MYSLEC)
+     · ekonomia bez zlamania kanonu: piora dalej TYLKO z biegania —
+       surowce tez zbierasz nogami
+     v8.1 „ZYZIA + TEMPO" (zgloszenia)
+     · REW3 obrot biegus.glb: 0=bok A, PI=bok B (=> os natywna +/-X),
+       PI/2=TYL => zostaje 1.5*PI. Trzecia i ostatnia mozliwosc —
+       jesli TERAZ nie jest przodem, blad jest w samym GLB, nie w kodzie
+     · TEMPO (gra za latwa od poczatku): PREDKOSC_BAZOWA 14.2 -> 15.4,
+       PRZYSPIESZENIE 0.004 -> 0.005, taryfa ulgowa e1-e4
+       86/90/94/97% -> 94/96/98/100%
+     · ZYZIA: kupno koloru/akcesorium = OD RAZU ZALOZONE (+ przebudowa
+       modelu, komentarz stroju Biegusia, odswiezenie garderoby)
+     · ZYZIA: boostery z grafikami przedmioty/boost-<id>.webp
+       (p19, fallback emoji)
+     v8.0 „TRASY" (zgloszenia z gry:
      wyspa/rower + mandat "gram az bedzie idealnie")
      · TRASY wyspa: zywoplot 3.2 m -> 0.9 m + jasna krawedz; nowy typ
        wyspaGrind (grind:true, wysokosc 0.95, durS okna) = GRIND PRZEZ
@@ -1220,6 +1244,13 @@
   <h2>🐿️ SKLEP U ZYZI</h2>
   <div class="pod">„Kto zbiera, ten ma!" — Zyzia handluje tylko piórami z biegania.</div>
   <div class="saldo" id="sklepSaldo"></div>
+  <h2 style="margin-top:12px">📜 ZLECENIA</h2>
+  <div class="pod">Mieszkańcy potrzebują rzeczy, które znajdujesz na trasie (◆ znaleziska). Nowe zlecenia codziennie.</div>
+  <div id="sklepZlecenia"></div>
+  <h2 style="margin-top:14px">🎒 TWÓJ TOBOŁEK</h2>
+  <div class="pod">Zyzia skupuje nadmiar po 8 🪶 za sztukę — ale zlecenia płacą lepiej!</div>
+  <div id="sklepTobolek"></div>
+  <h2 style="margin-top:14px">🛒 TOWAR</h2>
   <div id="sklepLista"></div>
   <h2 style="margin-top:16px">👕 GARDEROBA</h2>
   <div class="pod">Ubierz Biegusia. Część rzeczy daje mikrobonusy — w Zawodach nie działają, tam liczy się czysty bieg.</div>
@@ -1279,7 +1310,7 @@ function zglosPadlyAsset(url){
 /* ---------- 1. CONFIG ---------- */
 const CFG={
   PASY:[-2.3,0,2.3],GRACZ_Z:6,STREFA:[5.3,6.8],SPAWN_Z:-115,
-  PREDKOSC_BAZOWA:14.2,PREDKOSC_ETAP:0.075,
+  PREDKOSC_BAZOWA:15.4,PREDKOSC_ETAP:0.075,   /* TEMPO: bylo 14.2 — za latwo od poczatku (Filip) */
   CZAS_PASA:0.13,SKOK:0.62,SKOK_WYS:1.8,PROG_PRZESKOKU:0.38,SALTO_BONUS:1.3,SLIZG:0.55,
   NIETYKALNOSC:1.4,SERCA:3,ETAP_CZAS:60,ROZBIEG:1.2,WYBIEG:3.0,   /* START: bylo 2.5 — akcja od poczatku (Filip) */
   MIN_GAP_GLOBAL:0.42,MIN_GAP_PAS:1.05,OKNO_BLOKADY:0.35,
@@ -1287,7 +1318,7 @@ const CFG={
   ZAWODY:{KARA_HIT:3,BONUS_ZNAL:2,ZLOTO:57,SREBRO:63,BRAZ:69},
   SLOWMO:0.42,SLOWMO_CZAS:0.55,
   BUFOR:0.22,
-  FLOW_COMBO:6,PRZYSPIESZENIE:0.004,
+  FLOW_COMBO:6,PRZYSPIESZENIE:0.005,   /* TEMPO: mocniejszy narost w trakcie etapu */
 };
 const lerp=(a,b,k)=>a+(b-a)*k,easeOut=k=>1-Math.pow(1-k,3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -1478,6 +1509,7 @@ const NPC={
 };
 const Biegus={
   imie:'Bieguś',kolor:'pomarancz',zalozone:new Set(['opaska']),kolekcja:new Set(),ukonczone:new Set(),
+  itemy:{},zlecenia:null,                                            /* ZLECENIA: surowce + stan zlecen */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1492,6 +1524,7 @@ const Biegus={
           a:Object.keys(AKCESORIA).filter(x=>AKCESORIA[x].odblok)};}catch(e){}
     localStorage.setItem('biegus_droga_zapis_v1',JSON.stringify({
     w:1,kolor:this.kolor,zalozone:[...this.zalozone],kolekcja:[...this.kolekcja],
+    itemy:this.itemy||{},zlecenia:this.zlecenia||null,                /* ZLECENIA */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1505,6 +1538,7 @@ const Biegus={
     this.kolor=d.kolor||this.kolor;
     this.zalozone=new Set(d.zalozone||['opaska']);
     this.kolekcja=new Set(d.kolekcja||[]);
+    this.itemy=d.itemy||{};this.zlecenia=d.zlecenia||null;             /* ZLECENIA */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -2491,6 +2525,42 @@ const ZNALEZISKA_PULA=[
   {id:'sznurowka',ikona:'🧵',nazwa:'Szczęśliwa sznurówka'},{id:'magnez',ikona:'🧂',nazwa:'Magnez z ekspresówki'},
   {id:'bidon',ikona:'🥤',nazwa:'Stary bidon'},{id:'agrafka',ikona:'📎',nazwa:'Agrafka z numeru'},
   {id:'kasztan',ikona:'🌰',nazwa:'Kasztan na szczęście'}];
+const ZLECENIA_PULA=[                                                 /* ZLECENIA (Etap 1 projektu SWIAT): NPC zamawiaja surowce */
+  {id:'z-kasztany',npc:'wiewiorka',item:'kasztan',cel:3,pior:90,
+   tekst:'Kasztany na szczęście! Przynieś {cel} — sprzedaję je biegaczom przed startem, idą jak woda.',
+   dzieki:'Zyzia chowa kasztany pod ladę: „Interes życia. Masz działkę, wspólniku!"'},
+  {id:'z-magnez',npc:'zolw',item:'magnez',cel:2,pior:70,
+   tekst:'Skurcze łapią mnie na 90. kilometrze. Znajdź {cel} magnez z czyjejś ekspresówki.',
+   dzieki:'Żółw chowa magnez do skorupy: „Sto maratonów i wciąż się uczę. Dzięki, mały."'},
+  {id:'z-agrafki',npc:'orzel',item:'agrafka',cel:3,pior:80,
+   tekst:'Zawody bez agrafek to nie zawody. {cel} sztuki, mały. Numer sam się nie przypnie.',
+   dzieki:'Orzeł przypina numer: „Technika! Oddech! Rytm! I agrafki. Zawsze agrafki."'},
+  {id:'z-bidony',npc:'kura',item:'bidon',cel:2,pior:70,
+   tekst:'Zbieram stare bidony i robię z nich poidełka dla piskląt. {cel} wystarczą, dziecko.',
+   dzieki:'Kura Agata: „Pisklęta piją, ty biegasz, świat się kręci. Tak ma być."'},
+  {id:'z-sznurowki',npc:'zajac',item:'sznurowka',cel:4,pior:100,
+   tekst:'Szczęśliwe sznurówki?! Dawaj {cel} — testuję, która jest najszybsza.',
+   dzieki:'Zając ogląda sznurówki pod światło: „Dobra, ptaku. Masz oko."'}];
+const KURS_SKUPU=8;                                                   /* ZLECENIA: Zyzia skupuje nadmiar */
+const Zlecenia={
+  _dzis(){return new Date().toISOString().slice(0,10);},
+  stan(){                                                             /* 2 aktywne, rotacja dobowa (deterministyczna) */
+    const d=this._dzis();
+    if(!Biegus.zlecenia||Biegus.zlecenia.data!==d){
+      let h=0;for(const c of d)h=(h*31+c.charCodeAt(0))>>>0;
+      const a=h%ZLECENIA_PULA.length;
+      const b=(a+1+(h>>7)%(ZLECENIA_PULA.length-1))%ZLECENIA_PULA.length;
+      Biegus.zlecenia={data:d,lista:[a,b].map(i=>({id:ZLECENIA_PULA[i].id,oddane:false}))};
+      Biegus.zapisz&&Biegus.zapisz();}
+    return Biegus.zlecenia;},
+  oddaj(id){
+    const w=this.stan().lista.find(x=>x.id===id),def=ZLECENIA_PULA.find(x=>x.id===id);
+    if(!w||!def||w.oddane)return false;
+    if((Biegus.itemy[def.item]||0)<def.cel)return false;
+    Biegus.itemy[def.item]-=def.cel;w.oddane=true;
+    Biegus.portfelPior+=def.pior;Biegus.statystyki.piora+=def.pior;
+    Misje.zdarzenie('zlecenie');Biegus.zapisz();
+    return def;}};
 const BIEGUS_MOWI={
   potkniecie:['Ała! Kto to tu położył?!','Widziałem. Udawałem, że nie widziałem.','Spokojnie… to tylko draśnięcie.','Dobra, kałuża: 1, my: 0. Rewanż zaraz.'],
   ambientNajedzony:['Czujesz ten świt? LECIMY.','Nogi same niosą!','Po takim treningu to ja mogę i na Igrzyska.','Złota smuga? To ja. Nie dziękujcie.'],
@@ -2774,7 +2844,7 @@ function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, 
 function nowaSymulacja(skrypt,tryb='etap'){
   return{skrypt,tryb,t:0,stan:'bieg',
     predkoscBaza:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
-      *(skrypt.etap<=4?[1,0.86,0.90,0.94,0.97][skrypt.etap]:1),   /* ROZBIEG e1–e4 */
+      *(skrypt.etap<=4?[1,0.94,0.96,0.98,1][skrypt.etap]:1),   /* TEMPO: taryfa ulgowa e1-e4 skrocona (bylo 86/90/94/97%) */
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
@@ -3400,7 +3470,7 @@ const R3=(()=>{
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
-    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*0.5,   /* REW2: os natywna to +/-X — PI dalo DRUGI profil; PI/2 = przod (jak tylem: 1.5*PI, hotfix 3 s) */
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*1.5,   /* REW3: eliminacja — 0=bok A, PI=bok B (os +/-X), PI/2=TYL => zostaje 1.5*PI = PRZOD */
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
       taczka:'assets/taczka.glb', pies:'assets/pies.glb',   /* TRASY: rower.glb OFF — jechal bokiem (zla os natywna); klockowy jest poprawny */
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
@@ -4904,8 +4974,43 @@ const Gra=(()=>{
     {typ:'boost',id:'magnes',cena:30,nazwa:'Magnes piór',emoji:'🧲',opis:'pióra także z sąsiednich pasów · 1 bieg'},
     {typ:'boost',id:'x2',cena:25,nazwa:'Podwójne pióra',emoji:'✨',opis:'×2 pióra · 1 bieg'},
   ];
+  function odswiezZlecenia(){                                        /* ZLECENIA: panel u Zyzi */
+    const bz=el('sklepZlecenia');bz.innerHTML='';
+    Zlecenia.stan().lista.forEach(w=>{
+      const def=ZLECENIA_PULA.find(x=>x.id===w.id);if(!def)return;
+      const zn=ZNALEZISKA_PULA.find(z=>z.id===def.item)||{ikona:'◆',nazwa:def.item};
+      const mam=Biegus.itemy[def.item]||0;
+      const d=document.createElement('div');d.className='sklepItem';
+      d.innerHTML=mentorIko(def.npc==='wiewiorka'?'wiewiorka':def.npc==='zolw'?'zolw-maraton':def.npc==='orzel'?'trener-orzel':def.npc==='kura'?'kura-agata':'blysk',NPC[def.npc].emoji,40)+
+        '<div class="info"><b>'+NPC[def.npc].nazwa+'</b><span>„'+def.tekst.replace('{cel}',def.cel)+'"<br>'+
+        zn.ikona+' '+zn.nazwa+': <b>'+Math.min(mam,def.cel)+'/'+def.cel+'</b> · nagroda '+def.pior+' 🪶</span></div>';
+      const b=document.createElement('button');
+      if(w.oddane){b.textContent='✓ oddane';b.disabled=true;}
+      else{b.textContent='Oddaj';b.disabled=mam<def.cel;
+        b.onclick=()=>{const ok=Zlecenia.oddaj(def.id);if(!ok)return;
+          Dzwiek.medal&&Dzwiek.medal();deszczPior();
+          toast(ok.dzieki+' <b>+'+ok.pior+' 🪶</b>');
+          odswiezSklep();odswiezMenuStatus();};}
+      d.appendChild(b);bz.appendChild(d);});}
+  function odswiezTobolek(){                                          /* ZLECENIA: skup nadmiaru */
+    const bt=el('sklepTobolek');bt.innerHTML='';
+    const ma=ZNALEZISKA_PULA.filter(z=>(Biegus.itemy[z.id]||0)>0);
+    if(!ma.length){bt.innerHTML='<div class="pod" style="opacity:.7">Tobołek pusty — znaleziska (◆) czekają na trasie.</div>';return;}
+    ma.forEach(z=>{
+      const ile=Biegus.itemy[z.id]||0;
+      const d=document.createElement('div');d.className='sklepItem';
+      d.innerHTML='<img class="ik" style="width:44px;height:44px;object-fit:contain;background:#fff;border-radius:10px" src="'+
+        assetUrl('assets/sprites/kolekcja-'+z.id+'.webp')+'" onerror="this.outerHTML=this.dataset.e" data-e="<span class=&quot;ik&quot;>'+z.ikona+'</span>">'+
+        '<div class="info"><b>'+z.nazwa+'</b><span>masz: '+ile+' szt. · skup '+KURS_SKUPU+' 🪶/szt.</span></div>';
+      const b=document.createElement('button');b.textContent='Sprzedaj 1';
+      b.onclick=()=>{if((Biegus.itemy[z.id]||0)<1)return;
+        Biegus.itemy[z.id]--;Biegus.portfelPior+=KURS_SKUPU;Biegus.statystyki.piora+=KURS_SKUPU;
+        Biegus.zapisz();Dzwiek.znal();toast('🐿️ Zyzia: „Biorę! +'+KURS_SKUPU+' 🪶"');
+        odswiezSklep();};
+      d.appendChild(b);bt.appendChild(d);});}
   function odswiezSklep(){
     el('sklepSaldo').textContent='🪶 Twoje pióra: '+Biegus.portfelPior;
+    odswiezZlecenia();odswiezTobolek();                               /* ZLECENIA */
     const box=el('sklepLista');box.innerHTML='';
     SKLEP.forEach(it=>{
       const d=document.createElement('div');d.className='sklepItem';
@@ -4916,14 +5021,19 @@ const Gra=(()=>{
         const b=document.createElement('button');
         if(r.odblok){b.textContent='✓ kupione';b.disabled=true;}
         else{b.textContent=it.cena+' 🪶';b.disabled=Biegus.portfelPior<it.cena;
-          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;Misje.zdarzenie('zakup');Biegus.zapisz();   /* ARENA */
-            Dzwiek.znal();toast('🐿️ Zyzia: „Dobry wybór! Kto zbiera, ten ma."');
-            odswiezSklep();odswiezBiegusPanel();};}
+          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;Misje.zdarzenie('zakup');
+            if(it.typ==='kolor')Biegus.kolor=it.id;else Biegus.zalozone.add(it.id);   /* ZYZIA: kupione = od razu na sobie */
+            Biegus.zapisz();R3.przebudujBiegusia&&R3.przebudujBiegusia();R3.odswiezPodgladBiegusia&&R3.odswiezPodgladBiegusia();
+            Dzwiek.znal();
+            const stT=STROJ_TEKSTY[it.typ==='kolor'?('k_'+it.id):it.id];
+            toast('🐿️ Zyzia: „Dobry wybór! Od razu Ci to założę."'+(stT?'<br>„'+losuj(stT)+'"':''));
+            odswiezSklep();odswiezBiegusPanel();odswiezGarderobe&&odswiezGarderobe();};}
         d.appendChild(b);
       } else {
         const stan=Biegus.boostery[it.id];
-        d.innerHTML='<span class="ik">'+it.emoji+'</span><div class="info"><b>'+it.nazwa+
-          '</b><span>'+it.opis+' · masz: '+stan+'</span></div>';
+        d.innerHTML='<img class="ik" style="width:44px;height:44px;object-fit:contain;background:#fff;border-radius:10px" src="'+   /* ZYZIA: grafiki boosterow (p19) */
+          assetUrl('assets/przedmioty/boost-'+it.id+'.webp')+'" onerror="this.outerHTML=this.dataset.e" data-e="<span class=&quot;ik&quot;>'+it.emoji+'</span>">'+
+          '<div class="info"><b>'+it.nazwa+'</b><span>'+it.opis+' · masz: '+stan+'</span></div>';
         const kup=document.createElement('button');
         kup.textContent=it.cena+' 🪶';kup.disabled=Biegus.portfelPior<it.cena;
         kup.onclick=()=>{Biegus.portfelPior-=it.cena;Biegus.boostery[it.id]++;Misje.zdarzenie('zakup');   /* ARENA */
@@ -5410,7 +5520,8 @@ const Gra=(()=>{
       if(sym.bonusyG.zlota&&sym.skrypt&&sym.skrypt.pora===2)bon+=sym.bonusyG.zlota;
       if(bon>0)sym.piora=Math.round(sym.piora*(1+Math.min(0.3,bon)));}
     konfetti();Biegus.poEtapie(sym.piora);
-    sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
+    sym.zebrane.forEach(z=>{Biegus.kolekcja.add(z.id);
+      Biegus.itemy[z.id]=(Biegus.itemy[z.id]||0)+1;});                /* ZLECENIA: znalezisko = surowiec */
     Biegus.statystyki.piora+=sym.piora;
     Biegus.portfelPior+=sym.piora;
     Biegus.statystyki.uniki+=(sym.ominiete||0);
@@ -5547,7 +5658,8 @@ const Gra=(()=>{
     Biegus.statystyki.uniki+=(sym.ominiete||0);
     if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
-    sym.zebrane.forEach(z=>Biegus.kolekcja.add(z.id));
+    sym.zebrane.forEach(z=>{Biegus.kolekcja.add(z.id);
+      Biegus.itemy[z.id]=(Biegus.itemy[z.id]||0)+1;});                /* ZLECENIA: znalezisko = surowiec */
     {const kp=el('porazka'),pl=PLANSZE_AKTOW[(sym.skrypt&&sym.skrypt.kraina)||1];   /* TRIUMF: porazka w tym samym swiecie */
      kp.style.backgroundImage=pl?'linear-gradient(rgba(10,12,20,.82),rgba(10,12,20,.94)),url('+
        assetUrl('assets/swiat/'+pl+'.webp')+')':'';
@@ -5732,7 +5844,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.0',
+  wersja:'8.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
