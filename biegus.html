@@ -10,11 +10,22 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.4 (Serce i tytuł)</title>
+<title>Bieguś — Droga na Igrzyska · v9.5 (Słowny biegacz)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.4 „SERCE I TYTUL" (M4+E3)
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.5 „SLOWNY BIEGACZ" (M2 — petla
+     TRENER PLANUJE -> GRACZ BIEGA -> GRA SWIETUJE; schemat z ZWIADU cc)
+     · M2: MOST.planDnia czyta trainings (RLS auto-scope po sesji
+       gracza, wzorzec jak logi); sekcja OD TRENERA w panelu Biegusia:
+       typ + km + opis trenera (escapowany); cache 1x/dzien w save
+     · M2 zaliczenie w sync: log z dnia planu + zgodny typ (darZTypu
+       po OBU stronach — wspolny slownik potwierdzony) + dystans
+       >=80% planu -> +50 pior + PIECZEC SLOWNEGO BIEGACZA (licznik)
+     · fallbacki: brak wpisu -> "rytm nalezy do Ciebie"; Odpoczynek/
+       Zastepczy -> "regeneracja to tez trening" (bez questa)
+     · dataLokalna() jako KANON dat (lekcja off-by-one toISOString)
+     v9.4 „SERCE I TYTUL" (M4+E3)
      · M4 SERCE: ostatniTrening w save; 3 dni bez realnego biegu ->
        smutny ("teskni za bieganiem z Toba"), 6 dni -> spiacy —
        emocje, NIGDY kary mechaniczne; POWROT po >=4 dniach =
@@ -1354,6 +1365,7 @@
     <div><div class="w"><span>Wybiegane km (realne)</span><span id="wKm"></span></div>
       <div class="tor"><i id="pKm" style="background:var(--zloto)"></i></div></div>
     <div class="pod" id="wKmEwo" hidden style="color:#f2c14e;margin-top:2px"></div>
+    <div class="pod" id="planTrenera" hidden style="text-align:left;margin-top:8px;border-top:1px solid #2a3350;padding-top:8px"></div>
   </div>
   <button id="btnTrening">🏃 Symuluj trening 8 km</button>
   <button id="btnModel" hidden>🎭 Model: Premium</button>
@@ -1669,6 +1681,7 @@ const Biegus={
   _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
   dar:null,                                                           /* M1 DARY: {id,do} */
   ostatniTrening:0,                                                   /* M4 SERCE: timestamp realnego treningu */
+  planDnia:null,pieczecie:0,                                          /* M2: {date,typ,km,opis,zaliczone} + pieczecie Slownego Biegacza */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1689,6 +1702,7 @@ const Biegus={
     przemiana:this._przemiana||null,                                  /* PRZEMIANA */
     dar:this.dar||null,                                               /* M1 DARY */
     ostatniTrening:this.ostatniTrening||0,                            /* M4 SERCE */
+    planDnia:this.planDnia||null,pieczecie:this.pieczecie||0,         /* M2 */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1708,6 +1722,7 @@ const Biegus={
     this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
     this.dar=d.dar||null;                                              /* M1 DARY */
     this.ostatniTrening=d.ostatniTrening||0;                           /* M4 SERCE */
+    this.planDnia=d.planDnia||null;this.pieczecie=d.pieczecie||0;      /* M2 */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -1757,6 +1772,8 @@ const Biegus={
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
 sprawdzBonusZegarka();                           /* ZEGAREK-auto */
+function dataLokalna(d){d=d||new Date();                              /* M2: KANON dat — lokalna, nie toISOString (lekcja off-by-one UTC) */
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 const DARY={                                                          /* M1 DARY: typ realnego treningu -> dar na 24h (edukacja trenerska w mechanice) */
   zar:       {n:'ŻAR',        e:'🔥', po:'interwałach',        opis:'flow ładuje się szybciej'},
   wytrwalosc:{n:'WYTRWAŁOŚĆ', e:'🐾', po:'długim wybieganiu',  opis:'+1 serce'},
@@ -1784,6 +1801,9 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     if(json){h['Content-Type']='application/json';h['Prefer']='return=minimal';}return h;},
   async czytaj(tok,path){const r=await fetch(this.URL+'/rest/v1/'+path,{headers:this.naglowki(tok)});
     if(!r.ok)throw new Error('REST '+r.status);return r.json();},
+  async planDnia(tok){                                                /* M2: dzisiejszy wpis trenera (RLS: atleta czyta swoj) */
+    const rows=await this.czytaj(tok,'trainings?select=type,distance_km,description,date&date=eq.'+dataLokalna());
+    return (rows&&rows[0])||null;},
   async rpc(tok,fn,body){const h=this.naglowki(tok);h['Content-Type']='application/json';   /* ARENA: RPC (bez Prefer minimal — chcemy wynik) */
     const r=await fetch(this.URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(body||{})});
     if(!r.ok)throw new Error('RPC '+r.status);return r.json();},
@@ -1818,6 +1838,15 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     if(dId){Biegus.dar={id:dId,do:Date.now()+86400e3};
       const D=DARY[dId];
       Gra?.toast?.(D.e+' <b>DAR TRENINGU: '+D.n+'</b> — po Twoich '+D.po+'.<br>'+D.opis+' przez 24 h (tylko etapy).');}
+    const pd=Biegus.planDnia;                                          /* M2: pieczec Slownego Biegacza */
+    if(pd&&!pd.zaliczone&&pd.typ){
+      const traf=logs.find(l=>String(l.logged_at||'').slice(0,10)===pd.date&&
+        darZTypu(l.training_type)===darZTypu(pd.typ)&&
+        (+l.distance_km||0)>=0.8*(+pd.km||0));
+      if(traf){pd.zaliczone=true;Biegus.pieczecie=(Biegus.pieczecie||0)+1;
+        Biegus.portfelPior+=50;Biegus.statystyki.piora+=50;
+        setTimeout(()=>Gra?.toast?.('🦅 <b>Orzeł przybija pieczęć:</b> plan trenera zrobiony NAPRAWDĘ.<br>'+
+          '+50 🪶 · pieczęci Słownego Biegacza: <b>'+Biegus.pieczecie+'</b>'),1400);}}
     Biegus.zapisz&&Biegus.zapisz();
     Gra?.toast?.('🌉 <b>MOST:</b> +'+piora+' 🪶 za '+km.toFixed(1)+' km realnych treningów — jesteśmy obok!');
     Dzwiek.medal&&Dzwiek.medal();
@@ -5000,6 +5029,22 @@ const Gra=(()=>{
   el('btnAutomatGraj').onclick=()=>grajAutomat();                    /* PELNY */
   el('btnAutomatZamknij').onclick=()=>zamknijAutomat();
   el('btnAutomatWroc').onclick=()=>{tryb='menu';pokaz('menu');odswiezMenuStatus();};
+  async function odswiezPlanTrenera(){                                /* M2: "Trener napisal na dzis..." — quest Slownego Biegacza */
+    const b=el('planTrenera');if(!b)return;
+    const se=MOST.sesja&&MOST.sesja();if(!se){b.hidden=true;return;}
+    const dzis=dataLokalna();
+    if(!Biegus.planDnia||Biegus.planDnia.date!==dzis){                 /* cache 1x/dzien */
+      try{const w=await MOST.planDnia(se.tok);
+        Biegus.planDnia=w?{date:dzis,typ:w.type,km:+w.distance_km||0,
+          opis:String(w.description||'').slice(0,140),zaliczone:false}:{date:dzis,typ:null,zaliczone:false};
+        Biegus.zapisz&&Biegus.zapisz();}catch(e){b.hidden=true;return;}}
+    const pd=Biegus.planDnia;b.hidden=false;
+    const piecz=(Biegus.pieczecie||0)?' · 🔖 pieczęci: <b>'+Biegus.pieczecie+'</b>':'';
+    if(!pd.typ){b.innerHTML='🦅 <b>Od trenera:</b> dziś bez planu w kalendarzu. Twój rytm należy do Ciebie — Żółw kiwa głową.'+piecz;return;}
+    if(darZTypu(pd.typ)===null){b.innerHTML='🦅 <b>Od trenera:</b> dziś '+pd.typ+' — regeneracja to też trening. Bieguś odpoczywa z Tobą.'+piecz;return;}
+    b.innerHTML='🦅 <b>Od trenera na dziś:</b> '+pd.typ+(pd.km?' · '+pd.km+' km':'')+
+      (pd.opis?'<br><span style="opacity:.8">„'+pd.opis.replace(/</g,'&lt;')+'"</span>':'')+
+      '<br>'+(pd.zaliczone?'✅ <b>Zrobione NAPRAWDĘ — pieczęć przybita.</b>':'Zrób to <b>NAPRAWDĘ</b> → +50 🪶 i pieczęć Słownego Biegacza.')+piecz;}
   async function odswiezRanking(){                                    /* ARENA: top 20 po prawdziwych km (RPC biegus_ranking) */
     const b=el('rankingLista');b.innerHTML='<div class="pod">Ładuję…</div>';
     const se=MOST.sesja&&MOST.sesja();
@@ -5432,6 +5477,7 @@ const Gra=(()=>{
      if(e2){if(nast&&Biegus.laczneKm>=nast[1]*0.9){e2.hidden=false;
         e2.innerHTML='✨ Czuję, że coś się we mnie zmienia… do przemiany: <b>'+(nast[1]-Biegus.laczneKm).toFixed(1)+' km</b>';}
       else e2.hidden=true;}}
+    odswiezPlanTrenera();                                              /* M2 */
     const stId=Biegus.stadium(),stIdx=PROGI_EWOLUCJI.findIndex(x=>x[0]===stId);
     const nast=PROGI_EWOLUCJI[stIdx+1];
     el('biegusStadiumInfo').innerHTML='Stadium: <b>'+STADIA[stId].nazwa+'</b> ('+STADIA[stId].opis+')'+
@@ -6245,7 +6291,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.4',
+  wersja:'9.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
