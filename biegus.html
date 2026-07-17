@@ -10,11 +10,18 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.5 (Zawody świata)</title>
+<title>Bieguś — Droga na Igrzyska · v10.6 (Hotfix TDZ bloom)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.5 „ZAWODY SWIATA" (P1+P3
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.6 „HOTFIX TDZ BLOOM" (pilny)
+     · Uncaught ReferenceError: composer before initialization @fit()
+       — fit() wolane przy inicie R3 uzywalo composer, a deklaracja
+       let stala 400 linii nizej (po zaladujPremium). Deklaracja
+       przeniesiona na gore R3 (tuz po renderer). KLASA v1.9:
+       node new Function waliduje skladnie, NIE kolejnosc TDZ —
+       overlay bledow znow zarobil na siebie
+     v10.5 „ZAWODY SWIATA" (P1+P3
      z audytu — tanie domkniecia)
      · P1: Zawody Miasto (e20, neony) i Zawody Przelecz (e28, wiatr)
        — medale we wszystkich 4 krainach (bylo tylko park/las);
@@ -3625,6 +3632,7 @@ function losujZnalezisko(s){
 const R3=(()=>{
   const canvas=document.getElementById('gra3d');
   const renderer=new THREE.WebGLRenderer({canvas,antialias:true});   /* GFX-szlif: AA on */
+  let composer=null,bloomPass=null,bloomOn=false;                     /* HOTFIX-TDZ v10.6: deklaracja PRZED fit() (fit uzywa composer przy inicie) */
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -4081,7 +4089,7 @@ const R3=(()=>{
     biegus.visible=!p;
     return p;}
   zaladujPremium();
-  let composer=null,bloomPass=null,bloomOn=false;                     /* G2 BLOOM: neony/fever/pioruny swieca naprawde */
+  /* G2 BLOOM: neony/fever/pioruny swieca naprawde (deklaracje na gorze R3 — HOTFIX-TDZ) */
   (async()=>{try{
     if(!await zapewnijBloom()){console.log('[DROGA] BLOOM niedostepny (CDN) — render klasyczny');return;}
     composer=new THREE.EffectComposer(renderer);
@@ -6699,7 +6707,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.5',
+  wersja:'10.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
