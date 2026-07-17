@@ -10,11 +10,20 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.5 (Triumf)</title>
+<title>Bieguś — Droga na Igrzyska · v7.6 (Powitania)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.5 „TRIUMF" (dokonczenie pitchu:
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.6 „POWITANIA" (pitch: historia
+     przywitalna + codziennie cos innego o biegusiu albo treningu)
+     · POWITANIA: karta PROLOG na pierwsze uruchomienie (biegus_
+       prolog_v1): 3 plansze powitanie-1/2/3 (partia 18D, fallback)
+       + historia "ptak ktory biega"
+     · POWITANIA: 28 powitan dnia (lore biegusa + tipy trenerskie),
+       rotacja dayOfYear — wszyscy czytaja tego dnia to samo;
+       sklejone z prezentem (jedno stukniecie); kotwica prefiksowa
+       (lekcja: ogon z cudzyslowami zostaje i domyka string)
+     v7.5 „TRIUMF" (dokonczenie pitchu:
      "po zwyciestwie biegusiowe grafiki w rytm historki")
      · TRIUMF: META na planszy krainy (winieta jak intro/fabula);
        PORAZKA na tej samej planszy mocniej przygaszonej — swiat
@@ -1071,6 +1080,17 @@
 </div>
 
 <!-- ONBOARDING (raz na sesję, przed pierwszym biegiem) -->
+<div class="karta ciemna" id="prolog" hidden>
+  <h1>BIEGUŚ</h1>
+  <div class="motto">jesteśmy obok</div>
+  <img src="assets/ui/powitanie-1.webp" alt="" style="width:100%;max-width:420px;border-radius:14px" onerror="this.hidden=true">
+  <div class="pod" style="text-align:left">Biegusy to ptaki wędrowne — całe życie w locie. Jesienią klucz zebrał się i odleciał na południe.</div>
+  <img src="assets/ui/powitanie-2.webp" alt="" style="width:100%;max-width:420px;border-radius:14px;margin-top:8px" onerror="this.hidden=true">
+  <div class="pod" style="text-align:left">Jeden został. Ten najmniejszy — który zawsze wolał <b>biegać</b>. „Ptak, który biega?!" — śmiały się wszystkie, znikając za horyzontem.</div>
+  <img src="assets/ui/powitanie-3.webp" alt="" style="width:100%;max-width:420px;border-radius:14px;margin-top:8px" onerror="this.hidden=true">
+  <div class="pod" style="text-align:left">A on ogłosił: <b>„Wystartuję w Wielkich Igrzyskach. Tych dla ludzi."</b> I zaczął trenować. Od dziś — z Tobą.</div>
+  <button class="cta" id="btnProlog">Poznaj Biegusia ▶</button>
+</div>
 <div class="karta ciemna" id="onboarding" hidden>
   <h1>JAK SIĘ <em>BIEGA</em></h1>
   <img src="assets/ui/nauka-gesty.webp" alt="" style="width:100%;max-width:420px;border-radius:14px" onerror="this.hidden=true">
@@ -4455,7 +4475,7 @@ const Gra=(()=>{
   /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
   const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
   const losuj=a=>a[Math.floor(Math.random()*a.length)];
-  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega'];   /* TONY */
+  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog'];   /* TONY+POWITANIA */
   const PANELE=['panelBiegus','panelMisje','panelKatalog','panelMapa','panelEtapy','panelSklep'];
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
@@ -4579,11 +4599,42 @@ const Gra=(()=>{
         :'<b>???</b> <span style="opacity:.6">odblokujesz po '+k.od+' ukończonych etapach (masz '+uk+')</span>')+'</div>';}).join('');}
   el('btnKsiega').onclick=()=>{Dzwiek.odpal();tryb='karta';odswiezKsiege();pokaz('ksiega');};
   el('btnKsiegaWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+  const POWITANIA=[                                                   /* POWITANIA: codziennie inne — o biegusiu albo o treningu */
+    'Dzień dobry! Wiesz, że prawdziwe biegusy przelatują 30 000 km rocznie? Ja wolę te kilometry PRZEBIEC.',
+    'Trenerska prawda dnia: rozgrzewka to nie strata czasu. To zaproszenie mięśni do roboty.',
+    'Biegus rdzawy potrafi lecieć 9 dni bez przerwy. Ja bez przerwy potrafię… myśleć o bieganiu.',
+    'Większość biegania rób spokojnie — na luzie rośnie silnik. Szybko biega się rzadko, ale konkretnie.',
+    'Moje serce bije szybciej niż twoje nawet we śnie. Ptasia sprawa. Zazdrość.',
+    'Sen to trening niewidzialny. Dziś połóż się 30 minut wcześniej — Bieguś honorowo też.',
+    'Pióra na ogonie to mój ster. Twoje ramiona robią to samo — nie zaciskaj ich przy biegu.',
+    'Nawodnienie zaczyna się PRZED biegiem, nie w połowie. Szklanka wody na dzień dobry?',
+    'Biegusy startują do lotu pod wiatr. Zapamiętaj to, jak będzie ciężko: pod wiatr się WZNOSI.',
+    'Krótkie kroki, szybki rytm — mniej urazów, więcej radości. Kadencja to przyjaciel.',
+    'Zimą biegusy nie marzną, bo puch trzyma ciepło warstwami. Ty też ubieraj się warstwami!',
+    'Nie każdy dzień to rekord. Ale każdy dzień to krok. Żółw mi to wbił do głowy.',
+    'Ptaki nie znają poniedziałków. Trening jest wtedy, kiedy jest. Dziś?',
+    'Boli delikatnie następnego dnia? To mięśnie piszą podziękowania. Boli mocno? Dzień luzu.',
+    'Mój klucz poleciał na południe. Ja zostałem — bo cel bywa ważniejszy niż kierunek stada.',
+    'Najlepszy moment na bieg według biegusów: świt. Najlepszy według ludzi: ten, który się odbędzie.',
+    'Plecak drugiego oddechu zawsze spakowany. Twój przychodzi po 10 minutach — poczekaj na niego.',
+    'Biegus waży tyle co kostka masła, a przelatuje pół świata. Rozmiar to nie argument.',
+    'Po biegu: dwie minuty rozciągania to umowa z jutrzejszymi nogami.',
+    'Wiatr w plecy to prezent. Wiatr w twarz to trening. Oba się liczą.',
+    'Jem prawdziwe treningi. Ty jedz prawdziwe jedzenie — najlepiej godzinę-dwie przed biegiem.',
+    'Klucz lata w szyku V, bo razem jest lżej. Znajdź swoje stado — choć jedno wspólne bieganie w tygodniu.',
+    'Dziś dzień na spokojne kilometry. Wolno znaczy mądrze. Mądrze znaczy długo.',
+    'Nowe buty? Docieraj je krótkimi biegami. Stopę się szanuje.',
+    'Biegusy wracają co roku tą samą trasą. Rutyna to nie nuda — to dom.',
+    'Nie masz siły na trening? Wyjdź na 10 minut. Reszta zwykle przychodzi sama.',
+    'Przyszedłeś. To już połowa roboty. Druga połowa to wrócić jutro.',
+    'Puchu nie widać pod skrzydłem, a grzeje najbardziej. Jak podstawy: nudne i najważniejsze.'];
   function dymekMenu(){const b=el('menuDymek');if(!b)return;           /* GLOS: przewodnik + prezent dnia */
     const dzis=new Date().toISOString().slice(0,10);
     let prezent=false;try{prezent=localStorage.getItem('biegus_prezent')!==dzis;}catch(e){}
     b.hidden=false;b.style.cursor=prezent?'pointer':'default';b.onclick=null;
-    if(prezent){b.innerHTML='„Mam coś dla ciebie z porannej rundy. <b>Stuknij.</b>"';
+    if(prezent){                                                        /* POWITANIA: powitanie dnia + prezent jednym stuknieciem */
+      const doy=Math.floor((Date.now()-new Date(new Date().getFullYear(),0,0))/864e5);
+      b.innerHTML='„'+POWITANIA[doy%POWITANIA.length]+'<br><b>Stuknij</b> — mam też coś z porannej rundy."';
       b.onclick=()=>{try{localStorage.setItem('biegus_prezent',dzis);}catch(e){}
         Biegus.portfelPior+=15;Biegus.zapisz();Dzwiek.znal&&Dzwiek.znal();
         toast('<b>+15 piór</b> — poranne znalezisko od '+Biegus.imie+'.');
@@ -5569,13 +5620,17 @@ const Gra=(()=>{
   try{const uz=JSON.parse(localStorage.getItem('biegus_kody')||'[]');  /* PORZADKI: kod znika po wykorzystaniu wszystkich */
     /* NEMEZIS-UI: btnKod usuniety z menu (decyzja Filipa; uzyjKodu zostaje na przyszlosc) */}catch(e){}
   odswiezBiegusPanel();pokaz('menu');requestAnimationFrame(petla);
+  try{if(!localStorage.getItem('biegus_prolog_v1')){                 /* POWITANIA: pierwsze zetkniecie z gra */
+    tryb='karta';pokaz('prolog');}}catch(e){}
+  el('btnProlog').onclick=()=>{try{localStorage.setItem('biegus_prolog_v1','1');}catch(e){}
+    tryb='menu';pokaz('menu');};
   return{pauza,toast,janusz};                                        /* JANUSZ: MOST.tydzien -> menu */
 })();
 
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.5',
+  wersja:'7.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
