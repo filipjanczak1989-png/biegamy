@@ -10,11 +10,25 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.8 (Twarda trasa)</title>
+<title>Bieguś — Droga na Igrzyska · v9.9 (Żywioły I: Burza)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.8 „TWARDA TRASA" (zgloszenie:
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.9 „ZYWIOLY I: BURZA" (Sprint Ż1
+     projektu BOSSY — silnik naporu + pierwszy boss)
+     · SILNIK NAPORU: 15-20 s presji z twarza w srodku etapu (k2/k4,
+       rel>=4, ~50% etapow, deterministycznie z seedem); okno trasy
+       czyszczone — boss JEST przeszkoda; zapowiedz 2.5 s wczesniej
+     · BURZA: seria 5-7 piorunow — celownik na pasie (zap 1.2 s)
+       -> FLASZ -> hit jesli stoisz; slalom po celownikach; tarcza/
+       drugi oddech/grind/wallrun chronia jak przy spadach
+     · SYSTEM FAZ ("nie na jeden strzal"): faza z historii spotkan —
+       I poznanie / II rytm x1.3, zap 0.9 / III zap 0.75 + FINTA
+       (srodkowy piorun zdradza sie pozno zoltym i NIE uderza)
+     · PIECZECIE ZYWIOLU: faza bez hita = pieczec +150 ✦; 3/3 =
+       POGROMCA BURZY; postep w save (Biegus.zywioly, trio kotwic)
+     · GFX: sciemnienie nieba, celownik-ring, slup pioruna, shake
+     v9.8 „TWARDA TRASA" (zgloszenie:
      "skaczesz na kombach i przeszkody niezauwazalne, za prosto")
      DIAGNOZA: wiekszosc przeszkod ma unik 'skok', a lot z saltem
      trwa tak dlugo, ze spam skoku+trikow przelatywal nad wszystkim.
@@ -1719,6 +1733,7 @@ const Biegus={
   _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
   dar:null,                                                           /* M1 DARY: {id,do} */
   echo:null,                                                          /* M3 ECHO: {mn,do} */
+  zywioly:{},                                                         /* ZYWIOLY: {burza:{sp,piecz}} */
   ostatniTrening:0,                                                   /* M4 SERCE: timestamp realnego treningu */
   planDnia:null,pieczecie:0,                                          /* M2: {date,typ,km,opis,zaliczone} + pieczecie Slownego Biegacza */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
@@ -1741,6 +1756,7 @@ const Biegus={
     przemiana:this._przemiana||null,                                  /* PRZEMIANA */
     dar:this.dar||null,                                               /* M1 DARY */
     echo:this.echo||null,                                             /* M3 ECHO */
+    zywioly:this.zywioly||{},                                         /* ZYWIOLY */
     ostatniTrening:this.ostatniTrening||0,                            /* M4 SERCE */
     planDnia:this.planDnia||null,pieczecie:this.pieczecie||0,         /* M2 */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
@@ -1762,6 +1778,7 @@ const Biegus={
     this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
     this.dar=d.dar||null;                                              /* M1 DARY */
     this.echo=d.echo||null;                                            /* M3 ECHO */
+    this.zywioly=d.zywioly||{};                                        /* ZYWIOLY */
     this.ostatniTrening=d.ostatniTrening||0;                           /* M4 SERCE */
     this.planDnia=d.planDnia||null;this.pieczecie=d.pieczecie||0;      /* M2 */
     this.ukonczone=new Set(d.ukonczone||[]);
@@ -2946,8 +2963,16 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     wstrzyknijPrzejazdy(ev,rng,rel,kraina,motyw==='szczyt'?3:(rel>=5?2:1));
     wstrzyknijSegment(ev,rng,rel,kraina);
     wstrzyknijMentora(ev,rng,kraina);
+    let napor=null;                                                  /* ZYWIOLY Ż1: plan naporu (BURZA) — deterministyczny z seedem */
+    if((kraina===2||kraina===4)&&rel>=4&&rng()<0.5){
+      const t0=+(26+rng()*18).toFixed(2);
+      const ile=5+Math.floor(rng()*3);const seq=[];let tt=t0;
+      for(let i=0;i<ile;i++){seq.push({t:+tt.toFixed(2),pas:Math.floor(rng()*3)});tt+=1.6+rng()*0.9;}
+      napor={boss:'burza',t0,seq,koniec:+(tt+0.5).toFixed(2)};
+      const czyste=ev.filter(e=>ZBIERALNE.has(e.typ)||OBIEKTY[e.typ].dekor||e.t<t0-2.2||e.t>napor.koniec+1);
+      ev.length=0;ev.push(...czyste);}                               /* burza JEST przeszkoda — okno czyste na slalom */
     ev.sort((a,b)=>a.t-b.t);
-    if(waliduj(ev))return{kraina,etap:nrEtapu,seed:seedStr,ev,pora,motyw};
+    if(waliduj(ev))return{kraina,etap:nrEtapu,seed:seedStr,ev,pora,motyw,napor};   /* ZYWIOLY */
   }
   /* FAIR: fallback — lzejszy uklad (krok 1.5 s, bez rozwidlen/segmentow/par grindow) zamiast crasha.
      Zgloszenie Filipa: "Generator: brak uczciwego etapu (k2-e14-...)" wywalalo Biegnij. */
@@ -3286,6 +3311,24 @@ function krokSymulacji(s){
       s.aktywne.push({t:s.t,typ:'spad',pas:s.pas,wlasnyRuch:true,
         z:CFG.GRACZ_Z-s.predkosc*1.5,fazaSpadu:'cien',spadY:3.4,sprawdzone:false});
       s.zdarzenia.push({typ:'swist'});}}
+  if(s.napor&&s.stan==='bieg'){const N=s.napor;                     /* ZYWIOLY Ż1: BURZA — silnik naporu */
+    if(!N.ogl&&s.t>=N.t0-2.5){N.ogl=true;s.zdarzenia.push({typ:'naporStart',boss:N.boss,faza:N.faza});}
+    while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t-N.zap){
+      const p=N.seq[N.idx];
+      if(!p.cel){p.cel=true;s.zdarzenia.push({typ:'piorunCel',pas:p.pas,finta:!!p.finta});}
+      if(s.t>=p.t){N.idx++;
+        if(p.finta)s.zdarzenia.push({typ:'piorunFinta',pas:p.pas});
+        else{s.zdarzenia.push({typ:'piorun',pas:p.pas});
+          if(p.pas===s.pas&&s.nietyk<=0&&s.pasT>=0.65&&!(s.wallT>0)&&!s.grind){
+            if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'tarcza'});}
+            else if(s.drugiOddech&&s.tryb!=='final'){s.drugiOddech=false;s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'drugiOddech'});}
+            else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
+              if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
+              s.zdarzenia.push({typ:'hit',obiekt:'piorun'});
+              if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
+      else break;}
+    if(!N.done&&s.t>=N.koniec){N.done=true;
+      s.zdarzenia.push({typ:'naporKoniec',boss:N.boss,faza:N.faza,czysto:N.czysto});}}
   const i=Input.wez();
   if(s.stan==='bieg'){
     /* bufor 160 ms: akcja wciśnięta „za wcześnie" wykonuje się,
@@ -3550,6 +3593,13 @@ const R3=(()=>{
     new THREE.MeshBasicMaterial({color:0xffc36e,transparent:true,opacity:0.3,side:THREE.DoubleSide,
       blending:THREE.AdditiveBlending,depthWrite:false}));
   flowWall.rotation.y=Math.PI/2;flowWall.visible=false;scena.add(flowWall);
+  const piorunRing=new THREE.Mesh(new THREE.RingGeometry(0.5,0.85,22),   /* ZYWIOLY-GFX: celownik pioruna */
+    new THREE.MeshBasicMaterial({color:0x9adfff,transparent:true,opacity:0,depthWrite:false}));
+  piorunRing.rotation.x=-Math.PI/2;piorunRing.position.y=0.06;scena.add(piorunRing);
+  const bolt=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.24,15,6),  /* ZYWIOLY-GFX: slup pioruna */
+    new THREE.MeshBasicMaterial({color:0xeaf6ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));
+  bolt.position.y=7.5;scena.add(bolt);
+  const BURZA_TINT=new THREE.Color(0x2a3448);
   const SMUGI_PREDKOSCI=[];{                                          /* FLOW-GFX: smugi predkosci przy ziemi (tylko fever) */
     const matSm=new THREE.MeshBasicMaterial({color:0xfff2d0,transparent:true,opacity:0.5,fog:false,blending:THREE.AdditiveBlending});
     for(let i=0;i<8;i++){
@@ -4560,6 +4610,22 @@ const R3=(()=>{
     const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
     if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k);}
     scena.background.copy(PORA._s).lerp(PORA._k,swit);
+    if(s.napor){const N=s.napor;                                      /* ZYWIOLY-GFX: burza na ekranie */
+      if(s.t>=N.t0-2.5&&s.t<N.koniec)scena.background.lerp(BURZA_TINT,0.45);
+      const p=N.seq[N.idx];
+      if(p&&s.t>=p.t-N.zap&&s.t<p.t){
+        piorunRing.position.x=CFG.PASY[p.pas];piorunRing.position.z=CFG.GRACZ_Z;
+        const f=1-(p.t-s.t)/N.zap;
+        piorunRing.material.opacity=0.35+f*0.65;
+        piorunRing.scale.setScalar(1.7-f*1.0);
+        piorunRing.material.color.setHex(p.finta&&f>0.6?0xf2c14e:0x9adfff);}   /* finta zdradza sie POZNO zoltym */
+      else piorunRing.material.opacity*=0.7;
+      const ost=N.idx>0?N.seq[N.idx-1]:null;
+      if(ost&&!ost.finta&&s.t-ost.t<0.18&&s.t>=ost.t){
+        bolt.position.x=CFG.PASY[ost.pas];bolt.position.z=CFG.GRACZ_Z;
+        bolt.material.opacity=1-(s.t-ost.t)/0.18;}
+      else bolt.material.opacity*=0.6;
+    } else {piorunRing.material.opacity*=0.7;bolt.material.opacity*=0.6;}
     aktualizujAtmosfere(dt,s);
     aktualizujNiebo(s&&s.skrypt?s.skrypt.pora:0);
     /* — teren: aktywna kładka (schody) podnosi świat — */
@@ -4855,6 +4921,8 @@ const R3=(()=>{
       if(zd.nazwa==='TORNADO')burst(poz,0xffd76a,12,2.8,2.6,0.075);
       if(zd.nazwa&&zd.nazwa.indexOf('KOMBO')===0)shake=Math.max(shake,0.22);
       if(zd.nazwa==='BAIL')shake=Math.max(shake,0.3);}
+    if(zd.typ==='piorun'){shake=Math.max(shake,0.3);                 /* ZYWIOLY-GFX */
+      burst(new THREE.Vector3(CFG.PASY[zd.pas],1.2,CFG.GRACZ_Z),0xeaf6ff,14,3.2,3.0,0.08);}
     if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);
       Biegus.najedzenie=clamp(Biegus.najedzenie+4,0,100);}            /* ZNALEZISKA karmia Biegusia */
     if(zd.typ==='pioro'){Dzwiek.pioro(zd.seria%14);
@@ -5849,6 +5917,14 @@ const Gra=(()=>{
           if(Biegus.boostery[k]===0)Biegus.uzyj[k]=false;}});
       if(Biegus.bonusTreningu>0){Biegus.bonusTreningu--;sym.bonusPior=true;}
       sym.cele=celeEtapu(n);                                       /* CELE-etapu */
+      if(sym.skrypt.napor){                                          /* ZYWIOLY Ż1: faza I/II/III wg historii spotkan */
+        Biegus.zywioly=Biegus.zywioly||{};
+        const Z=Biegus.zywioly.burza=Biegus.zywioly.burza||{sp:0,piecz:{}};
+        const faza=Math.min(3,(Z.sp||0)+1),sc=faza>=2?1.3:1,N=sym.skrypt.napor;
+        sym.napor={boss:N.boss,faza,t0:N.t0,koniec:N.t0+(N.koniec-N.t0)/sc,
+          zap:faza===1?1.2:faza===2?0.9:0.75,idx:0,czysto:true,
+          seq:N.seq.map((e,i)=>({t:N.t0+(e.t-N.t0)/sc,pas:e.pas,
+            finta:faza>=3&&i===Math.floor(N.seq.length/2)}))};}      /* F3: srodkowy piorun to FINTA */
     }
     sym.bonusyG={bloto:false,zlota:0,piora:0};
     if(sym.tryb!=='zawody')Object.values(Biegus.ubrane||{}).forEach(id=>{
@@ -5881,6 +5957,7 @@ const Gra=(()=>{
     {const dd=(Biegus.dar&&Date.now()<Biegus.dar.do)?DARY[Biegus.dar.id]:null;   /* M1 DARY */
      if(dd)moce.push(dd.e+' '+dd.n+' (dar treningu)');}
     if(Biegus.echo&&Date.now()<Biegus.echo.do)moce.push('🔁 ECHO ×'+Biegus.echo.mn+' (niesie Twój realny bieg)');   /* M3 */
+    if(sym.napor)moce.push('⛈️ BURZA NA TRASIE — FAZA '+sym.napor.faza+(sym.napor.faza>=3?' (uwaga: FINTY!)':''));   /* ZYWIOLY */
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
     if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
     if(sym.gGrind)moce.push('👟 grind +40% ✦');                       /* SKLEP-2.0 */
@@ -6270,6 +6347,23 @@ const Gra=(()=>{
         requestAnimationFrame(()=>{f.style.transition='opacity .55s';f.style.opacity=0;});}
       R3.efekt(zd);                                                   /* BAJERY: shake/czastki w R3 */
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
+    if(zd.typ==='naporStart'){popup('⛈️ BURZA!',true);Dzwiek.swist();   /* ZYWIOLY */
+      toast('⛈️ <b>BURZA NADCIĄGA — FAZA '+zd.faza+'</b>. Celownik = piorun. Slalom, nie dyskusja!');
+      try{navigator.vibrate&&navigator.vibrate([30,60,30]);}catch(e){}return;}
+    if(zd.typ==='piorunCel'){Dzwiek.beep&&Dzwiek.beep();return;}
+    if(zd.typ==='piorunFinta'){popup('FINTA! ⚡');return;}
+    if(zd.typ==='piorun'){R3.efekt(zd);return;}
+    if(zd.typ==='naporKoniec'){                                       /* ZYWIOLY: pieczec zywiolu */
+      Biegus.zywioly=Biegus.zywioly||{};
+      const Z=Biegus.zywioly[zd.boss]=Biegus.zywioly[zd.boss]||{sp:0,piecz:{}};
+      Z.sp=(Z.sp||0)+1;
+      if(zd.czysto){Z.piecz['f'+zd.faza]=true;
+        if(sym&&sym.tryb==='etap')sym.styl=(sym.styl||0)+150;
+        toast('🔖 <b>PIECZĘĆ ŻYWIOŁU: BURZA · FAZA '+zd.faza+'</b> — bez jednego hita! <b>+150 ✦</b>'+
+          (Object.keys(Z.piecz).length>=3?'<br>🏆 <b>POGROMCA BURZY</b> — komplet pieczęci, wpis mistrzowski!':''));
+        Dzwiek.medal&&Dzwiek.medal();deszczPior();}
+      else toast('⛈️ Burza przeszła. Bez pieczęci tym razem — żywioły lubią rewanże.');
+      Biegus.zapisz&&Biegus.zapisz();return;}
     if(zd.typ==='tarcza'){popup('TARCZA!');R3.efekt(zd);return;}
     if(zd.typ==='gwizd'){Dzwiek.gwizd();return;}
     if(zd.typ==='klakson'){Dzwiek.klakson();return;}
@@ -6356,7 +6450,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.8',
+  wersja:'9.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
