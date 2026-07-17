@@ -10,11 +10,22 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.2 (Zlecenia)</title>
+<title>Bieguś — Droga na Igrzyska · v8.3 (Automat)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.2 „ZLECENIA" (Etap 1 projektu
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.3 „AUTOMAT" (pitch: "mamy gre
+     BIEGAMY WYZWANIE — przerob ja na mini-gre")
+     · AUTOMAT: gra.html (BIEGAMY: WYZWANIE) osadzona jako mini-gra
+       w karcie 'automat' (iframe lazy, ?tryb=automat) — ZERO
+       przepisywania Wyzwania, most przez postMessage
+     · AUTOMAT: kontrakt dla gra.html (3 linijki po tamtej stronie):
+       parent.postMessage({typ:'wyzwanie-wynik',punkty:N},location.origin)
+       — Biegus przyjmuje TYLKO z wlasnego origin, klamruje 0..200000
+     · AUTOMAT: zetony (100 pkt = 1 zeton) + rekordWyzwanie w save;
+       u Zyzi 3 zetony = 1 booster. ZETONY NIE SA PIORAMI — kanon
+       trzyma: piora tylko z prawdziwego biegania
+     v8.2 „ZLECENIA" (Etap 1 projektu
      SWIAT: "zbierz kwiaty dla Zyzi i sprzedaj, poszukaj czegos dla
      Zolwia, gromadz itemy i sprzedawaj")
      · ZLECENIA: znaleziska (◆) = SUROWCE — Biegus.itemy{} w save
@@ -1059,6 +1070,7 @@
     <button class="kafel" id="btnKatalog"><span data-iko="ikona-kolekcja">📖</span>Katalog<span>mieszkańcy</span></button>
     <button class="kafel" id="btnKsiega"><span data-iko="ikona-triki">🌀</span>Triki<span>księga i komba</span></button>
     <button class="kafel" id="btnRanking"><span data-iko="ikona-ranking">🏆</span>Ranking<span>prawdziwe kilometry</span></button>
+    <button class="kafel" id="btnAutomat"><span data-iko="ikona-automat">🕹️</span>Automat<span>BIEGAMY: WYZWANIE</span></button>
   </div>
   <div class="legenda">◀ ▶ pas · ▲/tap skok · ▼ ślizg · P pauza</div>
 </div>
@@ -1082,6 +1094,12 @@
   <div class="naglowek" style="margin-top:10px">SUPER KOMBA</div>
   <div class="pod" style="text-align:left;line-height:1.75" id="ksiegaKomba"></div>
   <br><button class="cta" id="btnKsiegaWroc">← Wróć</button>
+</div>
+<div class="karta ciemna" id="automat" hidden>
+  <h1>BIEGAMY: <em>WYZWANIE</em></h1>
+  <div class="pod" id="automatInfo">Kultowy automat w kącie studia. Bieguś gra na nim, kiedy pada. Wynik = <b>żetony</b> (100 pkt = 1 żeton) — u Zyzi wymienisz je na sprzęt. Piór tu nie zdobędziesz: te są tylko z prawdziwego biegania.</div>
+  <iframe id="automatRamka" title="BIEGAMY: WYZWANIE" style="width:100%;height:62vh;border:1px solid #2a3350;border-radius:14px;background:#10141f" loading="lazy"></iframe>
+  <button class="cta" id="btnAutomatWroc" style="margin-top:8px">← Wróć do menu</button>
 </div>
 <div class="karta ciemna" id="ranking" hidden>
   <h1><em>RANKING</em></h1>
@@ -1510,6 +1528,7 @@ const NPC={
 const Biegus={
   imie:'Bieguś',kolor:'pomarancz',zalozone:new Set(['opaska']),kolekcja:new Set(),ukonczone:new Set(),
   itemy:{},zlecenia:null,                                            /* ZLECENIA: surowce + stan zlecen */
+  zetony:0,rekordWyzwanie:0,                                          /* AUTOMAT: waluta automatu (NIE piora!) */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1525,6 +1544,7 @@ const Biegus={
     localStorage.setItem('biegus_droga_zapis_v1',JSON.stringify({
     w:1,kolor:this.kolor,zalozone:[...this.zalozone],kolekcja:[...this.kolekcja],
     itemy:this.itemy||{},zlecenia:this.zlecenia||null,                /* ZLECENIA */
+    zetony:this.zetony||0,rekordWyzwanie:this.rekordWyzwanie||0,      /* AUTOMAT */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1539,6 +1559,7 @@ const Biegus={
     this.zalozone=new Set(d.zalozone||['opaska']);
     this.kolekcja=new Set(d.kolekcja||[]);
     this.itemy=d.itemy||{};this.zlecenia=d.zlecenia||null;             /* ZLECENIA */
+    this.zetony=d.zetony||0;this.rekordWyzwanie=d.rekordWyzwanie||0;   /* AUTOMAT */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -4631,7 +4652,7 @@ const Gra=(()=>{
   /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
   const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
   const losuj=a=>a[Math.floor(Math.random()*a.length)];
-  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog','ranking'];   /* TONY+POWITANIA+ARENA */
+  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog','ranking','automat'];   /* TONY+POWITANIA+ARENA+AUTOMAT */
   const PANELE=['panelBiegus','panelMisje','panelKatalog','panelMapa','panelEtapy','panelSklep'];
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
@@ -4731,6 +4752,35 @@ const Gra=(()=>{
     b.style.opacity=1;b.style.transform='translate(-50%,0)';
     clearTimeout(_hypeT);
     _hypeT=setTimeout(()=>{b.style.opacity=0;b.style.transform='translate(-50%,-16px)';},2300);}
+  /* ===== AUTOMAT: BIEGAMY WYZWANIE jako mini-gra (iframe + postMessage) =====
+     KONTRAKT dla gra.html (patch po stronie Wyzwania, 3 linijki):
+       if(new URLSearchParams(location.search).get('tryb')==='automat')
+         parent.postMessage({typ:'wyzwanie-wynik',punkty:WYNIK},location.origin);
+     Bieguś nasłuchuje TYLKO wiadomości z tego samego origin. Brak mostu =
+     automat i tak działa (gra się gra), po prostu bez żetonów. */
+  function otworzAutomat(){
+    const r=el('automatRamka');
+    if(!r.src)r.src=assetUrl('gra.html')+'?tryb=automat';              /* AUTOMAT: lazy — nie ladujemy gry na starcie */
+    el('automatInfo').innerHTML='Kultowy automat w kącie studia. Wynik = <b>żetony</b> (100 pkt = 1 żeton) — u Zyzi wymienisz je na sprzęt. '+
+      'Masz: <b>'+(Biegus.zetony||0)+' 🎟️</b>'+((Biegus.rekordWyzwanie||0)?' · rekord: <b>'+Biegus.rekordWyzwanie+'</b> pkt':'')+
+      '<br><span style="opacity:.75">Piór tu nie zdobędziesz — te są tylko z prawdziwego biegania.</span>';
+    tryb='karta';pokaz('automat');}
+  addEventListener('message',e=>{                                      /* AUTOMAT: most wynikow */
+    try{
+      if(e.origin!==location.origin)return;                            /* AUTOMAT: tylko wlasny origin */
+      const d=e.data;if(!d||d.typ!=='wyzwanie-wynik')return;
+      const pkt=Math.max(0,Math.min(200000,+d.punkty||0));
+      const zet=Math.floor(pkt/100);
+      if(pkt>(Biegus.rekordWyzwanie||0)){Biegus.rekordWyzwanie=pkt;
+        toast('🕹️ <b>NOWY REKORD WYZWANIA:</b> '+pkt+' pkt!');}
+      if(zet>0){Biegus.zetony=(Biegus.zetony||0)+zet;
+        toast('🎟️ <b>+'+zet+' żeton'+(zet>4?'ów':zet>1?'y':'')+'</b> z automatu — Zyzia już zaciera łapki.');}
+      Biegus.zapisz();
+      if(!el('automat').hidden)otworzAutomat();
+    }catch(err){}
+  });
+  el('btnAutomat').onclick=()=>{Dzwiek.odpal();otworzAutomat();};
+  el('btnAutomatWroc').onclick=()=>{tryb='menu';pokaz('menu');odswiezMenuStatus();};
   async function odswiezRanking(){                                    /* ARENA: top 20 po prawdziwych km (RPC biegus_ranking) */
     const b=el('rankingLista');b.innerHTML='<div class="pod">Ładuję…</div>';
     const se=MOST.sesja&&MOST.sesja();
@@ -4994,6 +5044,20 @@ const Gra=(()=>{
       d.appendChild(b);bz.appendChild(d);});}
   function odswiezTobolek(){                                          /* ZLECENIA: skup nadmiaru */
     const bt=el('sklepTobolek');bt.innerHTML='';
+    if((Biegus.zetony||0)>0){                                          /* AUTOMAT: wymiana zetonow u Zyzi */
+      const dz=document.createElement('div');dz.className='sklepItem';
+      dz.innerHTML='<span class="ik">🎟️</span><div class="info"><b>Żetony z automatu</b>'+
+        '<span>masz: '+Biegus.zetony+' · 3 żetony = 1 booster (Zyzia bierze je do szafy grającej)</span></div>';
+      const bw=document.createElement('button');bw.textContent='Wymień 3';
+      bw.disabled=(Biegus.zetony||0)<3;
+      bw.onclick=()=>{if((Biegus.zetony||0)<3)return;
+        Biegus.zetony-=3;
+        const los=['tarcza','magnez','x2'][Math.floor(Math.random()*3)];
+        const id=los==='magnez'?'magnes':los;
+        Biegus.boostery[id]++;Biegus.zapisz();Dzwiek.znal();
+        toast('🐿️ Zyzia: „Żetony?! Uwielbiam ten automat. Masz — '+id+'!"');
+        odswiezSklep();};
+      dz.appendChild(bw);bt.appendChild(dz);}
     const ma=ZNALEZISKA_PULA.filter(z=>(Biegus.itemy[z.id]||0)>0);
     if(!ma.length){bt.innerHTML='<div class="pod" style="opacity:.7">Tobołek pusty — znaleziska (◆) czekają na trasie.</div>';return;}
     ma.forEach(z=>{
@@ -5844,7 +5908,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.2',
+  wersja:'8.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
