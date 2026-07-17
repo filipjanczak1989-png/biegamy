@@ -10,11 +10,26 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.6 (Powitania)</title>
+<title>Bieguś — Droga na Igrzyska · v7.8 (Winiety)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.6 „POWITANIA" (pitch: historia
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.8 „WINIETY" (wiring p18C przed
+     plikami — CSS-stack fallback)
+     · WINIETY: meta laduje winieta-akt<kraina>.webp jako gorna
+       warstwe tla; plansza aktu pod spodem = naturalny fallback
+       bez JS (404 gornej warstwy odslania dolna); porazka zostaje
+       na przygaszonej planszy (mrok swiadomie bez triumfu)
+     v7.7 „ARENA" (pitch: dzienne
+     zbierz-piora/kup-u-Zyzi/walnij-kombo + rankingi)
+     · ARENA dzienne: event 'zakup' w 3 handlerach sklepu; pula
+       +d-zakup (Zyzia) +d-superk2 (super kombo); piora/combo juz byly
+     · ARENA ranking: kafel + karta, MOST.rpc -> biegus_ranking
+       (SECURITY DEFINER, top 20 po PRAWDZIWYCH km, tylko authenticated,
+       4 pola: imie/km/gwiazdki/etapy — zero ekspozycji reszty savu);
+       imie dolozone do zapisu (wstecznie zgodne); migracja SQL osobno
+     · duel 1v1: PROJEKT (deterministyczne seedy = identyczna trasa)
+     v7.6 „POWITANIA" (pitch: historia
      przywitalna + codziennie cos innego o biegusiu albo treningu)
      · POWITANIA: karta PROLOG na pierwsze uruchomienie (biegus_
        prolog_v1): 3 plansze powitanie-1/2/3 (partia 18D, fallback)
@@ -1001,6 +1016,7 @@
     <button class="kafel" id="btnMisje"><span data-iko="ikona-misje">⭐</span>Misje<span>odblokowania</span></button>
     <button class="kafel" id="btnKatalog"><span data-iko="ikona-kolekcja">📖</span>Katalog<span>mieszkańcy</span></button>
     <button class="kafel" id="btnKsiega"><span data-iko="ikona-triki">🌀</span>Triki<span>księga i komba</span></button>
+    <button class="kafel" id="btnRanking"><span data-iko="ikona-ranking">🏆</span>Ranking<span>prawdziwe kilometry</span></button>
   </div>
   <div class="legenda">◀ ▶ pas · ▲/tap skok · ▼ ślizg · P pauza</div>
 </div>
@@ -1024,6 +1040,12 @@
   <div class="naglowek" style="margin-top:10px">SUPER KOMBA</div>
   <div class="pod" style="text-align:left;line-height:1.75" id="ksiegaKomba"></div>
   <br><button class="cta" id="btnKsiegaWroc">← Wróć</button>
+</div>
+<div class="karta ciemna" id="ranking" hidden>
+  <h1><em>RANKING</em></h1>
+  <div class="pod">Prawdziwe kilometry karmią Biegusie. Tu widać, kto karmi najlepiej.</div>
+  <div id="rankingLista" style="text-align:left;line-height:1.8;margin-top:8px"></div>
+  <br><button class="cta" id="btnRankingWroc">← Wróć</button>
 </div>
 <div class="karta ciemna" id="finisz" hidden>
   <h1><em>META!</em></h1>
@@ -1455,7 +1477,7 @@ const Biegus={
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
-    najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany,
+    imie:this.imie,najedzenie:this.najedzenie,wiez:this.wiez,laczneKm:this.laczneKm,   /* ARENA: imie do rankingu */rekordy:this.rekordy||{},gwiazdki:this.gwiazdki||{},mapki:this.mapki||{},kluczSpotkany:!!this.kluczSpotkany,
     celTyg:this.celTyg||{},ts:Date.now(),...(mx?{misje:mx}:{}),...(ox?{odbloki:ox}:{})}));
     try{MOST.planujPush();}catch(e){}                          /* CHMURA: debounced push po kazdym zapisie */
     }catch(e){}},
@@ -1522,6 +1544,9 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     if(json){h['Content-Type']='application/json';h['Prefer']='return=minimal';}return h;},
   async czytaj(tok,path){const r=await fetch(this.URL+'/rest/v1/'+path,{headers:this.naglowki(tok)});
     if(!r.ok)throw new Error('REST '+r.status);return r.json();},
+  async rpc(tok,fn,body){const h=this.naglowki(tok);h['Content-Type']='application/json';   /* ARENA: RPC (bez Prefer minimal — chcemy wynik) */
+    const r=await fetch(this.URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(body||{})});
+    if(!r.ok)throw new Error('RPC '+r.status);return r.json();},
   async odbierz(){try{
     const s=this.sesja();if(!s)return;
     const at=await this.czytaj(s.tok,'athletes?select=id&user_id=eq.'+s.uid);
@@ -1667,6 +1692,8 @@ const DZIENNE_PULA=[
   {id:'d-trening', npc:'kura',      typ:'trening',cel:1, pior:30, tekst:'Zalicz {cel} trening. Zdrowy Bieguś to szczęśliwy Bieguś.'},
   {id:'d-mentor2', npc:'zolw',      typ:'mentor',cel:2,  pior:20, tekst:'Spotkaj {cel} przyjaciół przy trasie. Nie biegnij sam.'},
   {id:'d-combo8',  npc:'zajac',     typ:'combo8',cel:1,  pior:35, tekst:'Osiągnij combo ×8. Pokaż, co masz, mały!'},
+  {id:'d-zakup',   npc:'wiewiorka', typ:'zakup', cel:1,  pior:25, tekst:'Kup {cel} rzecz u Zyzi. Wspieraj lokalny biznes!'},   /* ARENA */
+  {id:'d-superk2', npc:'zajac',     typ:'superK',cel:1,  pior:40, tekst:'Zbankuj {cel} SUPER KOMBO. Niech park zapamięta!'},   /* ARENA */
   {id:'d-superk',  npc:'zajac',     typ:'superK',cel:1,  pior:40, tekst:'Odpal {cel} SUPER KOMBO — dwa triki w jednym locie!'}];
 const Dzienne={
   stan:null,
@@ -4475,7 +4502,7 @@ const Gra=(()=>{
   /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
   const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
   const losuj=a=>a[Math.floor(Math.random()*a.length)];
-  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog'];   /* TONY+POWITANIA */
+  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog','ranking'];   /* TONY+POWITANIA+ARENA */
   const PANELE=['panelBiegus','panelMisje','panelKatalog','panelMapa','panelEtapy','panelSklep'];
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
@@ -4575,6 +4602,18 @@ const Gra=(()=>{
     b.style.opacity=1;b.style.transform='translate(-50%,0)';
     clearTimeout(_hypeT);
     _hypeT=setTimeout(()=>{b.style.opacity=0;b.style.transform='translate(-50%,-16px)';},2300);}
+  async function odswiezRanking(){                                    /* ARENA: top 20 po prawdziwych km (RPC biegus_ranking) */
+    const b=el('rankingLista');b.innerHTML='<div class="pod">Ładuję…</div>';
+    const se=MOST.sesja&&MOST.sesja();
+    if(!se){b.innerHTML='<div class="pod">Ranking widzą zalogowani biegacze BiegaMy. Zaloguj się i wróć!</div>';return;}
+    try{const r=await MOST.rpc(se.tok,'biegus_ranking');
+      if(!r||!r.length){b.innerHTML='<div class="pod">Jeszcze pusto — bądź pierwszy!</div>';return;}
+      b.innerHTML=r.map((w,i)=>'<div class="podiumRow">'+
+        '<b>'+(i+1)+'.</b> '+String(w.imie||'Bieguś').replace(/</g,'&lt;')+
+        ' <span style="opacity:.75">· '+(+w.km||0).toFixed(1)+' km · ⭐'+(w.gwiazdki||0)+' · '+(w.etapy||0)+'/32</span></div>').join('');
+    }catch(e){b.innerHTML='<div class="pod">Nie udało się pobrać rankingu ('+String(e.message).replace(/</g,'&lt;')+').</div>';}}
+  el('btnRanking').onclick=()=>{Dzwiek.odpal();tryb='karta';pokaz('ranking');odswiezRanking();};
+  el('btnRankingWroc').onclick=()=>{tryb='menu';pokaz('menu');};
   function deszczPior(){                                              /* TRIUMF: deszcz pior przy swiezej gwiazdce */
     for(let i=0;i<14;i++){const d=document.createElement('div');
       const kol=['#f2c14e','#e8561e','#f6efe4'][i%3];
@@ -4791,7 +4830,7 @@ const Gra=(()=>{
         const b=document.createElement('button');
         const cena=it.cena||T.c;
         if(!ma){b.textContent=cena+' 🪶';b.disabled=Biegus.portfelPior<cena;
-          b.onclick=()=>{Biegus.portfelPior-=cena;Biegus.garderoba.add(it.id);
+          b.onclick=()=>{Biegus.portfelPior-=cena;Biegus.garderoba.add(it.id);Misje.zdarzenie('zakup');   /* ARENA */
             Biegus.zapisz();Dzwiek.medal();odswiezSklep();odswiezGarderobe();};}
         else if(zal){b.textContent='✓ ZAŁOŻONE';
           b.onclick=()=>{delete Biegus.ubrane[slot];Biegus.zapisz();odswiezGarderobe();};}
@@ -4818,7 +4857,7 @@ const Gra=(()=>{
         const b=document.createElement('button');
         if(r.odblok){b.textContent='✓ kupione';b.disabled=true;}
         else{b.textContent=it.cena+' 🪶';b.disabled=Biegus.portfelPior<it.cena;
-          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;Biegus.zapisz();
+          b.onclick=()=>{Biegus.portfelPior-=it.cena;r.odblok=true;Misje.zdarzenie('zakup');Biegus.zapisz();   /* ARENA */
             Dzwiek.znal();toast('🐿️ Zyzia: „Dobry wybór! Kto zbiera, ten ma."');
             odswiezSklep();odswiezBiegusPanel();};}
         d.appendChild(b);
@@ -4828,7 +4867,7 @@ const Gra=(()=>{
           '</b><span>'+it.opis+' · masz: '+stan+'</span></div>';
         const kup=document.createElement('button');
         kup.textContent=it.cena+' 🪶';kup.disabled=Biegus.portfelPior<it.cena;
-        kup.onclick=()=>{Biegus.portfelPior-=it.cena;Biegus.boostery[it.id]++;
+        kup.onclick=()=>{Biegus.portfelPior-=it.cena;Biegus.boostery[it.id]++;Misje.zdarzenie('zakup');   /* ARENA */
           Dzwiek.znal();odswiezSklep();};
         d.appendChild(kup);
         if(stan>0){const uz=document.createElement('button');
@@ -5282,9 +5321,10 @@ const Gra=(()=>{
     konfetti();odswiezMenuStatus();pokaz('final');}
   function ekranMeta(){
     if(sym&&sym.tryb==='final'){ekranFinal();return;}
-    {const kf=el('finisz'),pl=PLANSZE_AKTOW[(sym.skrypt&&sym.skrypt.kraina)||1];   /* TRIUMF: winieta w rytm historki */
-     kf.style.backgroundImage=pl?'linear-gradient(rgba(10,12,20,.72),rgba(10,12,20,.9)),url('+
-       assetUrl('assets/swiat/'+pl+'.webp')+')':'';
+    {const kf=el('finisz'),kr=(sym.skrypt&&sym.skrypt.kraina)||1,pl=PLANSZE_AKTOW[kr];   /* TRIUMF+WINIETY */
+     kf.style.backgroundImage='linear-gradient(rgba(10,12,20,.72),rgba(10,12,20,.9)),url('+
+       assetUrl('assets/ui/winieta-akt'+kr+'.webp')+')'+                 /* WINIETY: triumf p18C na wierzchu */
+       (pl?',url('+assetUrl('assets/swiat/'+pl+'.webp')+')':'');         /* 404 winiety = widac plansze (CSS stack) */
      kf.style.backgroundSize='cover';kf.style.backgroundPosition='center';}
     /* — rekord rundy (tylko etapy) — */
     const rb=el('rekordBox');rb.hidden=true;
@@ -5630,7 +5670,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.6',
+  wersja:'7.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
