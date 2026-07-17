@@ -10,11 +10,21 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.3 (Automat)</title>
+<title>Bieguś — Droga na Igrzyska · v8.4 (Automat pełny)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.3 „AUTOMAT" (pitch: "mamy gre
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.4 „AUTOMAT PELNY" (zgloszenia:
+     okienko za male + scroll, gra zacina)
+     · PELNY: karta automatu = ekran + info + wielkie GRAJ (zero
+       scrollowania); Wyzwanie startuje na OVERLAY 100% (fixed inset 0,
+       z-index 90) z pływającym ✕ (safe-area) — pelny ekran telefonu
+     · PELNY: ZACINANIE — dwa silniki renderowaly naraz (Three.js
+       Biegusia + canvas Wyzwania w iframe); teraz petla Biegusia
+       zatrzymuje sie na czas gry (_automatGra), radio pauzuje
+     · PELNY: wyjscie resetuje iframe (src off/on) — czysty start
+       i zero pracy w tle po powrocie
+     v8.3 „AUTOMAT" (pitch: "mamy gre
      BIEGAMY WYZWANIE — przerob ja na mini-gre")
      · AUTOMAT: gra.html (BIEGAMY: WYZWANIE) osadzona jako mini-gra
        w karcie 'automat' (iframe lazy, ?tryb=automat) — ZERO
@@ -1097,9 +1107,14 @@
 </div>
 <div class="karta ciemna" id="automat" hidden>
   <h1>BIEGAMY: <em>WYZWANIE</em></h1>
-  <div class="pod" id="automatInfo">Kultowy automat w kącie studia. Bieguś gra na nim, kiedy pada. Wynik = <b>żetony</b> (100 pkt = 1 żeton) — u Zyzi wymienisz je na sprzęt. Piór tu nie zdobędziesz: te są tylko z prawdziwego biegania.</div>
-  <iframe id="automatRamka" title="BIEGAMY: WYZWANIE" style="width:100%;height:62vh;border:1px solid #2a3350;border-radius:14px;background:#10141f" loading="lazy"></iframe>
-  <button class="cta" id="btnAutomatWroc" style="margin-top:8px">← Wróć do menu</button>
+  <img src="assets/ui/automat-ekran.webp" alt="" style="width:100%;max-width:420px;border-radius:14px" onerror="this.hidden=true">
+  <div class="pod" id="automatInfo"></div>
+  <button class="cta" id="btnAutomatGraj" style="font-size:1.24em;padding:16px 30px">🕹️ GRAJ</button>
+  <button id="btnAutomatWroc">← Wróć</button>
+</div>
+<div id="automatPelny" hidden style="position:fixed;inset:0;z-index:90;background:#10141f">   <!-- PELNY: Wyzwanie na caly ekran -->
+  <iframe id="automatRamka" title="BIEGAMY: WYZWANIE" style="width:100%;height:100%;border:0;display:block" loading="lazy"></iframe>
+  <button id="btnAutomatZamknij" style="position:absolute;top:calc(8px + env(safe-area-inset-top));right:10px;z-index:91;background:rgba(16,20,31,.86);border:1px solid #2a3350;border-radius:10px;padding:8px 12px;font-size:1.05em">✕ Wyjdź</button>
 </div>
 <div class="karta ciemna" id="ranking" hidden>
   <h1><em>RANKING</em></h1>
@@ -4758,13 +4773,23 @@ const Gra=(()=>{
          parent.postMessage({typ:'wyzwanie-wynik',punkty:WYNIK},location.origin);
      Bieguś nasłuchuje TYLKO wiadomości z tego samego origin. Brak mostu =
      automat i tak działa (gra się gra), po prostu bez żetonów. */
+  let _automatGra=false;                                             /* PELNY: pauza silnika Biegusia na czas Wyzwania */
   function otworzAutomat(){
-    const r=el('automatRamka');
-    if(!r.src)r.src=assetUrl('gra.html')+'?tryb=automat';              /* AUTOMAT: lazy — nie ladujemy gry na starcie */
-    el('automatInfo').innerHTML='Kultowy automat w kącie studia. Wynik = <b>żetony</b> (100 pkt = 1 żeton) — u Zyzi wymienisz je na sprzęt. '+
+    el('automatInfo').innerHTML='Kultowy automat w kącie studia — Bieguś gra na nim, kiedy pada.<br>'+
+      'Wynik = <b>żetony</b> (100 pkt = 1 żeton), u Zyzi wymienisz je na sprzęt.<br>'+
       'Masz: <b>'+(Biegus.zetony||0)+' 🎟️</b>'+((Biegus.rekordWyzwanie||0)?' · rekord: <b>'+Biegus.rekordWyzwanie+'</b> pkt':'')+
       '<br><span style="opacity:.75">Piór tu nie zdobędziesz — te są tylko z prawdziwego biegania.</span>';
     tryb='karta';pokaz('automat');}
+  function grajAutomat(){                                            /* PELNY: overlay + silnik Biegusia OFF */
+    const r=el('automatRamka');
+    if(!r.src)r.src=assetUrl('gra.html')+'?tryb=automat';
+    el('automatPelny').hidden=false;el('hud').hidden=true;
+    _automatGra=true;                                                /* PELNY: petla renderu staje = koniec zacinania */
+    try{if(window.RADIO&&RADIO.pauza)RADIO.pauza();}catch(e){}}
+  function zamknijAutomat(){
+    _automatGra=false;el('automatPelny').hidden=true;
+    const r=el('automatRamka');const src=r.src;r.src='';r.src=src;    /* PELNY: reset gry = czysty start i zero pracy w tle */
+    otworzAutomat();}
   addEventListener('message',e=>{                                      /* AUTOMAT: most wynikow */
     try{
       if(e.origin!==location.origin)return;                            /* AUTOMAT: tylko wlasny origin */
@@ -4776,10 +4801,12 @@ const Gra=(()=>{
       if(zet>0){Biegus.zetony=(Biegus.zetony||0)+zet;
         toast('🎟️ <b>+'+zet+' żeton'+(zet>4?'ów':zet>1?'y':'')+'</b> z automatu — Zyzia już zaciera łapki.');}
       Biegus.zapisz();
-      if(!el('automat').hidden)otworzAutomat();
+      if(!el('automat').hidden&&el('automatPelny').hidden)otworzAutomat();   /* PELNY */
     }catch(err){}
   });
   el('btnAutomat').onclick=()=>{Dzwiek.odpal();otworzAutomat();};
+  el('btnAutomatGraj').onclick=()=>grajAutomat();                    /* PELNY */
+  el('btnAutomatZamknij').onclick=()=>zamknijAutomat();
   el('btnAutomatWroc').onclick=()=>{tryb='menu';pokaz('menu');odswiezMenuStatus();};
   async function odswiezRanking(){                                    /* ARENA: top 20 po prawdziwych km (RPC biegus_ranking) */
     const b=el('rankingLista');b.innerHTML='<div class="pod">Ładuję…</div>';
@@ -5854,6 +5881,7 @@ const Gra=(()=>{
   }
   function petla(teraz){
     requestAnimationFrame(petla);
+    if(_automatGra)return;                                           /* PELNY: Wyzwanie na wierzchu — Biegus nie renderuje (perf) */
     zegar=teraz/1000;
     if(tryb==='podglad'){R3.klatkaPodgladu(zegar);return;}
     if(tryb==='bieg'&&sym&&!wPauzie){
@@ -5908,7 +5936,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.3',
+  wersja:'8.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
