@@ -10,11 +10,22 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.2 (Szlif po audycie)</title>
+<title>Bieguś — Droga na Igrzyska · v10.3 (Glow-up I)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.2 „SZLIF PO AUDYCIE" (B1-B4)
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.3 „GLOW-UP I" (G1 z audytu —
+     grafika wysokiego poziomu, czesc 1: tanie/pewne)
+     · ZIARNO FILMOWE: CSS overlay (SVG feTurbulence, mix-blend
+       overlay, opacity .05) — 0 kosztu GPU, filmowy mikrodetal
+     · PODLOZE 256 px PER KRAINA: zwir parku / sciolka lasu (gesta
+       kropka) / gladki asfalt miasta / snieg przeleczy (jasna baza)
+       — bylo: jeden szum 128 px dla calego swiata; cache per kraina
+     · MOKRY POLYSK JEZDNI k3: additive sheen calej szerokosci —
+       dopelnia neonowe odbicia krawedzi (miasto po deszczu)
+     · ZLOTA GODZINA: horyzont z cieplym pasem (2 dodatkowe stopy
+       gradientu ku 0xffc37a/0xffdca0) — zachod naprawde grzeje
+     v10.2 „SZLIF PO AUDYCIE" (B1-B4)
      · B1 DATY: Dzienne/Zlecenia/prezent/goracyEtap na dataLokalna()
        (bylo toISOString — "nowy dzien" wpadal o 22:00 naszego czasu:
        misje i zlecenia rotowaly w srodku wieczornej sesji)
@@ -1177,6 +1188,8 @@
   .sklepItem .info span{color:var(--mgla);display:block;font-size:11px}
   .sklepItem button{padding:9px 12px;font-size:12px;white-space:nowrap}
   .sklepItem button.uzyjOn{background:var(--accent);color:#fff}
+  #ziarno{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:.05;mix-blend-mode:overlay;   /* G1: ziarno filmowe */
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='nn'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='140' height='140' filter='url(%23nn)' opacity='0.55'/></svg>")}
   #flowGlow{position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;
     transition:opacity .7s;background:radial-gradient(ellipse at 50% 60%,
     transparent 52%,rgba(242,177,60,.22) 82%,rgba(232,86,30,.30) 100%)}
@@ -1237,6 +1250,7 @@
 <div id="vig" style="position:fixed;inset:0;pointer-events:none;z-index:2;
   background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(10,14,24,.34) 100%)"></div>
 <div id="toast" role="status"></div>
+<div id="ziarno"></div>
 <div id="hypeBox" style="position:fixed;left:50%;top:96px;transform:translate(-50%,-16px);opacity:0;transition:opacity .25s,transform .25s;z-index:60;pointer-events:none;background:var(--panel);border:1px solid #2a3350;border-radius:16px;padding:8px 14px;max-width:78vw;display:flex;align-items:center;gap:9px"></div>   <!-- KIBICE -->
 <div id="dymek" hidden></div>
 
@@ -3626,12 +3640,15 @@ const R3=(()=>{
     new THREE.MeshBasicMaterial({map:nieboTex,side:THREE.BackSide,fog:false,depthWrite:false}));
   kopula.renderOrder=-9;scena.add(kopula);
   let nieboKlucz='';
-  function malujNiebo(gora,dol){
+  function malujNiebo(gora,dol,zlota){                                 /* G1: zlota godzina = cieply horyzont */
     const ctx2=nieboCanvas.getContext('2d');
     const gr=ctx2.createLinearGradient(0,0,0,256);
     gr.addColorStop(0,'#'+gora.getHexString());
     gr.addColorStop(0.62,'#'+dol.getHexString());
-    gr.addColorStop(1,'#'+dol.clone().lerp(new THREE.Color(0xffffff),0.18).getHexString());
+    if(zlota){
+      gr.addColorStop(0.86,'#'+dol.clone().lerp(new THREE.Color(0xffc37a),0.55).getHexString());
+      gr.addColorStop(1,'#'+dol.clone().lerp(new THREE.Color(0xffdca0),0.75).getHexString());}
+    else gr.addColorStop(1,'#'+dol.clone().lerp(new THREE.Color(0xffffff),0.18).getHexString());
     ctx2.fillStyle=gr;ctx2.fillRect(0,0,2,256);
     nieboTex.needsUpdate=true;}
   const kamera=new THREE.PerspectiveCamera(62,1,0.1,200);
@@ -3711,22 +3728,31 @@ const R3=(()=>{
   const switGlow=poswiata(56,0xb0507a);switGlow.position.set(-14,3,-95);scena.add(switGlow);
   const switGlow2=poswiata(32,0xffa060);switGlow2.position.set(-14,2,-94);scena.add(switGlow2);
 
-  function teksturaSzumu(ziarno,kropki){
-    const c=document.createElement('canvas');c.width=c.height=128;
+  function teksturaSzumu(ziarno,kropki,rozmiar=128,baza='#c8c8c8'){   /* G1: parametryczna (256 px dla podloza) */
+    const c=document.createElement('canvas');c.width=c.height=rozmiar;
     const x=c.getContext('2d');
-    x.fillStyle='#c8c8c8';x.fillRect(0,0,128,128);
-    for(let i=0;i<1400;i++){const g=200-Math.random()*ziarno|0;
+    x.fillStyle=baza;x.fillRect(0,0,rozmiar,rozmiar);
+    const sk=(rozmiar/128)*(rozmiar/128);
+    for(let i=0;i<1400*sk;i++){const g=200-Math.random()*ziarno|0;
       x.fillStyle='rgb('+g+','+g+','+g+')';
-      x.fillRect(Math.random()*128|0,Math.random()*128|0,2,2);}
-    for(let i=0;i<kropki;i++){x.fillStyle='rgba(70,70,70,.5)';
+      x.fillRect(Math.random()*rozmiar|0,Math.random()*rozmiar|0,2,2);}
+    for(let i=0;i<kropki*(rozmiar/128);i++){x.fillStyle='rgba(70,70,70,.5)';
       const r=1+Math.random()*2;
-      x.beginPath();x.arc(Math.random()*128,Math.random()*128,r,0,7);x.fill();}
+      x.beginPath();x.arc(Math.random()*rozmiar,Math.random()*rozmiar,r,0,7);x.fill();}
     const t=new THREE.CanvasTexture(c);
     t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;}
   const texZwir=teksturaSzumu(90,60);texZwir.repeat.set(3,52);
   const texTrawa=teksturaSzumu(70,140);texTrawa.repeat.set(10,60);
   const anizo=renderer.capabilities.getMaxAnisotropy();               /* GFX-2: ostre podloze pod katem */
   texZwir.anisotropy=anizo;texTrawa.anisotropy=anizo;
+  const TEX_PODLOZA={};                                                /* G1: 256 px, charakter per kraina */
+  function podlozeKrainy(k){
+    if(TEX_PODLOZA[k])return TEX_PODLOZA[k];
+    const P={1:[90,60,'#c8c8c8'],2:[80,220,'#c2baa8'],                 /* park zwir / las sciolka */
+             3:[52,24,'#c4c6cc'],4:[58,26,'#e4e8f0']}[k]||[90,60,'#c8c8c8'];   /* miasto asfalt / snieg */
+    const zw=teksturaSzumu(P[0],P[1],256,P[2]);zw.repeat.set(3,52);zw.anisotropy=anizo;
+    const tr=teksturaSzumu(70,140,256,k===4?'#dde3ec':'#c8c8c8');tr.repeat.set(10,60);tr.anisotropy=anizo;
+    return TEX_PODLOZA[k]={zwir:zw,trawa:tr};}
   const matSciezka=new THREE.MeshLambertMaterial({color:0x3a4052,map:texZwir});
   const matTrawa=new THREE.MeshLambertMaterial({color:0x22301f,map:texTrawa});
   const sciezka=new THREE.Mesh(new THREE.PlaneGeometry(8.2,260),matSciezka);
@@ -4123,6 +4149,11 @@ const R3=(()=>{
         blending:THREE.AdditiveBlending,depthWrite:false}));
     rf.rotation.x=-Math.PI/2;rf.position.set(x,0.02,-90);
     rf.userData.grupa='k3';rf.userData.cykl=1e9;dekoracje.push(rf);scena.add(rf);});
+  {const sheen=new THREE.Mesh(new THREE.PlaneGeometry(7.6,240),        /* G1: mokry polysk jezdni k3 */
+    new THREE.MeshBasicMaterial({color:0xaec6e8,transparent:true,opacity:0.045,
+      blending:THREE.AdditiveBlending,depthWrite:false}));
+   sheen.rotation.x=-Math.PI/2;sheen.position.set(0,0.018,-90);
+   sheen.userData.grupa='k3';sheen.userData.cykl=1e9;dekoracje.push(sheen);scena.add(sheen);}
   {                                                                   // neon „24h" — puls
     const matNeon=new THREE.MeshBasicMaterial({color:0xff4a8a});
     const ne=new THREE.Group();
@@ -4596,6 +4627,9 @@ const R3=(()=>{
     if(aktualnaKraina===k)return;aktualnaKraina=k;
     const P=PALETY[k];
     matSciezka.color.setHex(P.sciezka);matTrawa.color.setHex(P.trawa);
+    const TP=podlozeKrainy(k);                                         /* G1: podmiana tekstury podloza */
+    matSciezka.map=TP.zwir;matTrawa.map=TP.trawa;
+    matSciezka.needsUpdate=true;matTrawa.needsUpdate=true;
     matOdnoga.color.setHex(P.sciezka).lerp(new THREE.Color(0xffffff),0.22);
     scena.fog.near=P.mgla[0];scena.fog.far=P.mgla[1];
     dekoracje.forEach(d=>{const g=d.userData.grupa;
@@ -4710,7 +4744,7 @@ const R3=(()=>{
     const swit=clamp(s.t/CFG.ETAP_CZAS,0,1);
     const PORA=PAL.pory[(s.skrypt.pora??0)%PAL.pory.length];
     const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
-    if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k);}
+    if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k,PORA.n==='ZŁOTA GODZINA');}   /* G1 */
     scena.background.copy(PORA._s).lerp(PORA._k,swit);
     if(s.napor){const N=s.napor;                                      /* ZYWIOLY-GFX: burza na ekranie */
       if(s.t>=N.t0-2.5&&s.t<N.koniec)scena.background.lerp(BURZA_TINT,0.45);
@@ -6610,7 +6644,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.2',
+  wersja:'10.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
