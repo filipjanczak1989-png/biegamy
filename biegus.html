@@ -10,11 +10,23 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.0 (Żywioły II: Traktor)</title>
+<title>Bieguś — Droga na Igrzyska · v10.1 (Żywioły IIb: Śmieciarka)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.0 „ZYWIOLY II: TRAKTOR" (Ż2 cz.1)
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.1 „ZYWIOLY IIb: SMIECIARKA" (Ż2 cz.2
+     — Sprint Ż2 DOMKNIETY: oba poscigi)
+     · SMIECIARKA NOCNA (k3, rel>=4, ~50%): poscig z PRZODU — jedzie
+       wolniej i gubi KUBLY z paki (typ kosz, wlasnyRuch, kolizja
+       STANDARDOWA: tu skok POMAGA — kontrast z traktorem); przetrwaj
+       serie zrzutow = WYPRZEDZASZ (odbija w bok, kogut mruga)
+     · FAZY: I 6-8 zrzutow · II rytm x1.25 · III co trzeci zrzut
+       PODWOJNY (dwa pasy naraz — zostaje jeden wolny)
+     · PIECZEC smieciarki = czyste OKNO naporu (hity liczone total)
+     · teksty naporu przepisane na mapy per boss (skaluje na Ż3+)
+     · GFX: smieciarka z pomaranczowym pasem, klapa, mrugajacy kogut,
+       kubly na pace, tylne swiatla; wyprzedzona odbija w bok
+     v10.0 „ZYWIOLY II: TRAKTOR" (Ż2 cz.1)
      · TRAKTOR PANA HENIA (k1, rel>=5, ~50%): posc z TYLU — jedzie
        Twoim pasem; >limit s na pasie = KLAKSON -> zap -> przejazd
        (hit jesli stoisz); skok NIE chroni (traktor jedzie pasem),
@@ -2981,6 +2993,11 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     if(kraina===1&&rel>=5&&rng()<0.5){                               /* Ż2: TRAKTOR PANA HENIA (posc z tylu, k1 po taryfie) */
       const t0=+(26+rng()*14).toFixed(2);
       napor={boss:'traktor',t0,koniec:+(t0+16).toFixed(2)};}
+    else if(kraina===3&&rel>=4&&rng()<0.5){                          /* Ż2b: SMIECIARKA NOCNA (poscig z PRZODU) */
+      const t0=+(24+rng()*16).toFixed(2);
+      const ile=6+Math.floor(rng()*3);const seq=[];let tt=t0;
+      for(let i=0;i<ile;i++){seq.push({t:+tt.toFixed(2),pas:Math.floor(rng()*3)});tt+=1.7+rng()*0.7;}
+      napor={boss:'smieciarka',t0,seq,koniec:+(tt+2.2).toFixed(2)};}
     else if((kraina===2||kraina===4)&&rel>=4&&rng()<0.5){            /* Ż1: BURZA */
       const t0=+(26+rng()*18).toFixed(2);
       const ile=5+Math.floor(rng()*3);const seq=[];let tt=t0;
@@ -3348,6 +3365,12 @@ function krokSymulacji(s){
             if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
             s.zdarzenia.push({typ:'hit',obiekt:'traktor'});
             if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
+    if(N.boss==='smieciarka'&&s.t>=N.t0){                            /* Ż2b: zrzuty kublow przed gracza */
+      if(N.hity0===undefined)N.hity0=s.hity;
+      while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t){
+        N.seq[N.idx++].pasy.forEach(pk=>{
+          s.aktywne.push({t:s.t,typ:'kosz',pas:pk,wlasnyRuch:true,z:CFG.GRACZ_Z-30,widok:null});});
+        s.zdarzenia.push({typ:'dzyn'});}}
     if(N.boss==='burza')while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t-N.zap){
       const p=N.seq[N.idx];
       if(!p.cel){p.cel=true;s.zdarzenia.push({typ:'piorunCel',pas:p.pas,finta:!!p.finta});}
@@ -3363,6 +3386,7 @@ function krokSymulacji(s){
               if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
       else break;}
     if(!N.done&&s.t>=N.koniec){N.done=true;
+      if(N.boss==='smieciarka')N.czysto=(s.hity===(N.hity0??s.hity));   /* pieczec = czyste OKNO (kubly i wszystko inne) */
       s.zdarzenia.push({typ:'naporKoniec',boss:N.boss,faza:N.faza,czysto:N.czysto});}}
   const i=Input.wez();
   if(s.stan==='bieg'){
@@ -3652,6 +3676,19 @@ const R3=(()=>{
     heniek.position.set(0,1.35,0.3);g.add(heniek);
     g.add(klocek(1.3,0.5,0.7,0x2f7a4e,0,0.6,-1.3));                   /* przyczepa bratkow */
     for(let i=0;i<4;i++)g.add(klocek(0.14,0.12,0.14,[0xc45a8a,0xe8b34a,0xc78ad4,0xd96a6a][i],-0.4+i*0.27,0.92,-1.3));
+    g.visible=false;scena.add(g);return g;})();
+  const smieciarka3d=(()=>{const g=new THREE.Group();                 /* ZYWIOLY-GFX Ż2b: smieciarka nocna (widzisz TYL) */
+    g.add(klocek(2.1,1.5,3.2,0x4a5568,0,1.05,0));                     /* zabudowa */
+    g.add(klocek(2.14,0.5,3.24,0xe8561e,0,1.9,0));                    /* pomaranczowy pas firmowy */
+    g.add(klocek(1.9,0.9,0.3,0x2a3140,0,0.85,1.65));                  /* klapa zaladunku (tyl, ku graczowi) */
+    [[-0.75],[0.75]].forEach(([x])=>{const l=new THREE.Mesh(new THREE.BoxGeometry(0.22,0.14,0.06),
+      new THREE.MeshBasicMaterial({color:0xff5a4a}));l.position.set(x,0.62,1.66);g.add(l);});   /* swiatla */
+    const kog=new THREE.Mesh(new THREE.BoxGeometry(0.4,0.16,0.4),
+      new THREE.MeshBasicMaterial({color:0xffb03a}));kog.position.set(0,2.28,0.4);g.add(kog);g.userData.kog=kog;
+    for(let i=0;i<3;i++)g.add(klocek(0.4,0.5,0.4,[0x3a5a44,0x2a63b8,0x8a4a3a][i],-0.7+i*0.7,2.05,-0.6));   /* kubly na pace */
+    [[-0.85,1.1],[0.85,1.1],[-0.85,-1.1],[0.85,-1.1]].forEach(([x,z])=>{
+      const k=new THREE.Mesh(new THREE.TorusGeometry(0.3,0.13,8,14),mat(0x181c26));
+      k.position.set(x,0.34,z);k.rotation.y=Math.PI/2;g.add(k);});
     g.visible=false;scena.add(g);return g;})();
   const SMUGI_PREDKOSCI=[];{                                          /* FLOW-GFX: smugi predkosci przy ziemi (tylko fever) */
     const matSm=new THREE.MeshBasicMaterial({color:0xfff2d0,transparent:true,opacity:0.5,fog:false,blending:THREE.AdditiveBlending});
@@ -4692,7 +4729,20 @@ const R3=(()=>{
           if(Math.random()<dt*10)burst(traktor3d.position.clone().add(new THREE.Vector3(0,0.3,-1.9)),
             0x9a927e,1,1.2,0.8,0.06);}}
       else traktor3d.visible=false;
-    } else {piorunRing.material.opacity*=0.7;bolt.material.opacity*=0.6;traktor3d.visible=false;}
+      if(N.boss==='smieciarka'){                                      /* ZYWIOLY-GFX Ż2b: przed graczem, doganiasz */
+        const w2=s.t>=N.t0-2.5&&s.t<N.koniec+2.5;
+        smieciarka3d.visible=w2;
+        if(w2){const po2=s.t>=N.koniec;
+          const prg=clamp((s.t-N.t0)/Math.max(1,N.koniec-N.t0),0,1);
+          if(po2){smieciarka3d.position.x+=dt*6;smieciarka3d.position.z-=dt*4;}   /* wyprzedzona — odbija w bok */
+          else{smieciarka3d.position.z=lerp(-32,-12,prg);              /* przybliza sie = doganiasz */
+            smieciarka3d.position.x=Math.sin(s.t*0.5)*1.4;}
+          smieciarka3d.position.y=Math.abs(Math.sin(czasReal*8))*0.04;
+          smieciarka3d.userData.kog.visible=Math.sin(czasReal*6)>0;    /* kogut mruga */
+          if(!po2&&Math.random()<dt*6)burst(smieciarka3d.position.clone().add(new THREE.Vector3(0,0.6,1.8)),
+            0x9aa4b8,1,1.0,0.7,0.05);}}
+      else smieciarka3d.visible=false;
+    } else {piorunRing.material.opacity*=0.7;bolt.material.opacity*=0.6;traktor3d.visible=false;smieciarka3d.visible=false;}
     aktualizujAtmosfere(dt,s);
     aktualizujNiebo(s&&s.skrypt?s.skrypt.pora:0);
     /* — teren: aktywna kładka (schody) podnosi świat — */
@@ -6000,7 +6050,11 @@ const Gra=(()=>{
           sym.napor={boss:'traktor',faza,t0:N.t0,koniec:N.koniec,czysto:true,
             limit:faza===1?2.2:faza===2?1.7:1.4,                     /* ile wolno stac na pasie */
             zap:faza===1?0.9:faza===2?0.75:0.6,                      /* klakson -> hit */
-            bratki:faza>=3};}                                        /* F3: gubi bratki na opuszczane pasy */
+            bratki:faza>=3};                                         /* F3: gubi bratki na opuszczane pasy */
+        else if(N.boss==='smieciarka'){const sc=faza>=2?1.25:1;
+          sym.napor={boss:'smieciarka',faza,t0:N.t0,koniec:N.t0+(N.koniec-N.t0)/sc,idx:0,czysto:true,
+            seq:N.seq.map((e,i)=>({t:N.t0+(e.t-N.t0)/sc,
+              pasy:(faza>=3&&i%3===2)?[e.pas,(e.pas+1+(i%2))%3]:[e.pas]}))};}}   /* F3: podwojny zrzut = 1 wolny pas */
     }
     sym.bonusyG={bloto:false,zlota:0,piora:0};
     if(sym.tryb!=='zawody')Object.values(Biegus.ubrane||{}).forEach(id=>{
@@ -6033,9 +6087,10 @@ const Gra=(()=>{
     {const dd=(Biegus.dar&&Date.now()<Biegus.dar.do)?DARY[Biegus.dar.id]:null;   /* M1 DARY */
      if(dd)moce.push(dd.e+' '+dd.n+' (dar treningu)');}
     if(Biegus.echo&&Date.now()<Biegus.echo.do)moce.push('🔁 ECHO ×'+Biegus.echo.mn+' (niesie Twój realny bieg)');   /* M3 */
-    if(sym.napor)moce.push(sym.napor.boss==='traktor'
-      ?'🚜 TRAKTOR NA TRASIE — FAZA '+sym.napor.faza+(sym.napor.faza>=3?' (gubi bratki!)':'')
-      :'⛈️ BURZA NA TRASIE — FAZA '+sym.napor.faza+(sym.napor.faza>=3?' (uwaga: FINTY!)':''));   /* ZYWIOLY */
+    if(sym.napor)moce.push(({traktor:'🚜 TRAKTOR NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (gubi bratki!)':''),
+      smieciarka:'🚛 ŚMIECIARKA NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (podwójne zrzuty!)':''),
+      burza:'⛈️ BURZA NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (uwaga: FINTY!)':'')}[sym.napor.boss]||'')
+      .replace('{f}',sym.napor.faza));   /* ZYWIOLY */
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
     if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
     if(sym.gGrind)moce.push('👟 grind +40% ✦');                       /* SKLEP-2.0 */
@@ -6426,10 +6481,13 @@ const Gra=(()=>{
       R3.efekt(zd);                                                   /* BAJERY: shake/czastki w R3 */
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='naporStart'){                                        /* ZYWIOLY: zapowiedz per boss */
-      const tr=zd.boss==='traktor';
-      popup(tr?'🚜 TRAKTOR!':'⛈️ BURZA!',true);tr?Dzwiek.klakson():Dzwiek.swist();
-      toast(tr?'🚜 <b>TRAKTOR PANA HENIA — FAZA '+zd.faza+'</b>. Jedzie Twoim pasem: nie stój, RUSZAJ SIĘ!'
-              :'⛈️ <b>BURZA NADCIĄGA — FAZA '+zd.faza+'</b>. Celownik = piorun. Slalom, nie dyskusja!');
+      const POP={traktor:'🚜 TRAKTOR!',smieciarka:'🚛 ŚMIECIARKA!',burza:'⛈️ BURZA!'};
+      const TXT={traktor:'🚜 <b>TRAKTOR PANA HENIA — FAZA {f}</b>. Jedzie Twoim pasem: nie stój, RUSZAJ SIĘ!',
+        smieciarka:'🚛 <b>ŚMIECIARKA NOCNA — FAZA {f}</b>. Gubi kubły z paki — przebij się i WYPRZEDŹ ją!',
+        burza:'⛈️ <b>BURZA NADCIĄGA — FAZA {f}</b>. Celownik = piorun. Slalom, nie dyskusja!'};
+      popup(POP[zd.boss]||'⚡',true);
+      zd.boss==='burza'?Dzwiek.swist():Dzwiek.klakson();
+      toast((TXT[zd.boss]||'').replace('{f}',zd.faza));
       try{navigator.vibrate&&navigator.vibrate([30,60,30]);}catch(e){}return;}
     if(zd.typ==='trakKlak'){popup('🚜 KLAKSON! ZMIEŃ PAS!',true);Dzwiek.klakson();
       try{navigator.vibrate&&navigator.vibrate(40);}catch(e){}return;}
@@ -6442,15 +6500,15 @@ const Gra=(()=>{
       Biegus.zywioly=Biegus.zywioly||{};
       const Z=Biegus.zywioly[zd.boss]=Biegus.zywioly[zd.boss]||{sp:0,piecz:{}};
       Z.sp=(Z.sp||0)+1;
-      const NAZ=zd.boss==='traktor'?'TRAKTOR PANA HENIA':'BURZA';
+      const NAZ={traktor:'TRAKTOR PANA HENIA',smieciarka:'ŚMIECIARKA NOCNA',burza:'BURZA'}[zd.boss]||zd.boss;
       if(zd.czysto){Z.piecz['f'+zd.faza]=true;
         if(sym&&sym.tryb==='etap')sym.styl=(sym.styl||0)+150;
         toast('🔖 <b>PIECZĘĆ ŻYWIOŁU: '+NAZ+' · FAZA '+zd.faza+'</b> — bez jednego hita! <b>+150 ✦</b>'+
           (Object.keys(Z.piecz).length>=3?'<br>🏆 <b>MISTRZ ŻYWIOŁU: '+NAZ+'</b> — komplet pieczęci!':''));
         Dzwiek.medal&&Dzwiek.medal();deszczPior();}
-      else toast(zd.boss==='traktor'
-        ?'🚜 Pan Heniek skręcił w aleję: „SORKI, MŁODY! BRATKI SIĘ SAME NIE POSADZĄ!" Bez pieczęci — wróć po rewanż.'
-        :'⛈️ Burza przeszła. Bez pieczęci tym razem — żywioły lubią rewanże.');
+      else toast({traktor:'🚜 Pan Heniek skręcił w aleję: „SORKI, MŁODY! BRATKI SIĘ SAME NIE POSADZĄ!" Bez pieczęci — wróć po rewanż.',
+        smieciarka:'🚛 Wyprzedzona! Kierowca mrugnął długimi. Ale kubeł Cię liznął — pieczęć następnym razem.',
+        burza:'⛈️ Burza przeszła. Bez pieczęci tym razem — żywioły lubią rewanże.'}[zd.boss]||'Żywioł przeszedł.');
       Biegus.zapisz&&Biegus.zapisz();return;}
     if(zd.typ==='tarcza'){popup('TARCZA!');R3.efekt(zd);return;}
     if(zd.typ==='gwizd'){Dzwiek.gwizd();return;}
@@ -6538,7 +6596,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.0',
+  wersja:'10.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
