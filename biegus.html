@@ -10,11 +10,17 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.7 (Atlas)</title>
+<title>Bieguś — Droga na Igrzyska · v8.8 (Szlif komb)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.7 „ATLAS + HOTFIX" (zgloszenia)
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.8 „SZLIF KOMB" (audyt zaklikany:
+     "lecimy wszystkie 4" + obrot potwierdzony)
+     · REW4-FINAL: 0.5PI = przod (tester Filipa); ?obrot= zostaje
+     · KOMBA: HELIKOPTER od startu (dzien 1 nazywa kombo);
+       GWIAZDA POLARNA 400->450; Ksiega przy TONY: "TYLKO WE FLOW";
+       popup "NA STYK x1.5!" (mnoznik jawny)
+     v8.7 „ATLAS + HOTFIX" (zgloszenia)
      · HOTFIX: ReferenceError 'kraina' @odswiezMape (5405) — global
        nie istnieje; kraina liczona z nastepnyEtap()
      · REW4 obrot: 1.5PI dal TYL => przod = 0.5PI; NOWE: tester
@@ -2986,10 +2992,10 @@ const SUPER_KOMBA=[                               /* SUPER-KOMBA: nazwane kombin
   {n:'TONY BIEGUŚ',    p:1000,od:20,w:q=>q.salto2&&q.sL&&q.sR&&q.grab&&q.wall},   /* TONY: absolut jednego lotu */
   {n:'SUPERNOVA',      p:600,od:15,w:q=>q.sL&&q.sR&&q.salto&&q.grab},
   {n:'ORBITA',         p:500,od:12,w:q=>q.salto2&&(q.sL||q.sR)},
-  {n:'GWIAZDA POLARNA',p:400,od:10,w:q=>(q.sL||q.sR)&&q.salto&&q.grab},
+  {n:'GWIAZDA POLARNA',p:450,od:10,w:q=>(q.sL||q.sR)&&q.salto&&q.grab},   /* SZLIF: 400->450 (skladowe dawaly ~380) */
   {n:'PIRUET MISTRZA', p:350,od:8, w:q=>q.s720&&q.grab},
   {n:'WAHADŁO',        p:250,od:6, w:q=>q.sL&&q.sR},
-  {n:'HELIKOPTER',     p:200,od:3, w:q=>(q.sL||q.sR)&&q.salto},
+  {n:'HELIKOPTER',     p:200,od:0, w:q=>(q.sL||q.sR)&&q.salto},   /* SZLIF: od startu (bylo od e3) — dzien 1 ma dac 'wow' */
   {n:'WKRĘT',          p:150,od:0, w:q=>(q.sL||q.sR)&&q.grab},
 ];                                                /* KOMBA-PROG: od = ukonczone etapy potrzebne do odblokowania */
 function superKombo(seq,lvl){
@@ -3585,7 +3591,7 @@ const R3=(()=>{
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
-    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*(parseFloat(new URLSearchParams(location.search).get('obrot'))||0.5),   /* REW4: 1.5PI dal TYL (zgloszenie) => przod=0.5PI; tester biegus.html?obrot=0|0.5|1|1.5 bez deployu */
+    biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*(parseFloat(new URLSearchParams(location.search).get('obrot'))||0.5),   /* REW4-FINAL: 0.5PI = PRZOD (Filip potwierdzil testerem 17.07); ?obrot= zostaje na przyszle GLB */
     przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
       taczka:'assets/taczka.glb', pies:'assets/pies.glb',   /* TRASY: rower.glb OFF — jechal bokiem (zla os natywna); klockowy jest poprawny */
       kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
@@ -4814,7 +4820,7 @@ const Gra=(()=>{
   const KOMBA_OPIS={'WKRĘT':'śruba + grab','HELIKOPTER':'śruba + salto','WAHADŁO':'śruby w OBIE strony',
     'GWIAZDA POLARNA':'śruba + salto + grab','SUPERNOVA':'obie śruby + salto + grab',
     'PIRUET MISTRZA':'śruba 720 + grab','ORBITA':'podwójne salto + śruba',
-    'TONY BIEGUŚ':'podwójne salto + obie śruby + grab + odbicie od ściany'};   /* TONY */
+    'TONY BIEGUŚ':'podwójne salto + obie śruby + grab + odbicie od ściany — TYLKO WE FLOW (ściana światła)'};   /* TONY+SZLIF */
   const HYPE_KIBICE={1:['wiewiorka','trener-orzel','pies-speed','papuga-rio','trenerka-orzel'],   /* KIBICE */
     2:['zolw-maraton','sowa-dziadek','panda-zenek'],
     3:['kura-agata','wilk','blysk'],
@@ -5996,7 +6002,7 @@ const Gra=(()=>{
       R3.dymekGracza(zd.nazwa+'!');R3.efekt(zd);
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='trik'){                                              /* STYL: nazwa trika + puls licznika */
-      if(zd.nazwa)popup(zd.nazwa+(zd.naStyk?' NA STYK!':'')+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);
+      if(zd.nazwa)popup(zd.nazwa+(zd.naStyk?' NA STYK ×1.5!':'')+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);   /* SZLIF: mnoznik jawny */
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
       if(zd.nazwa&&zd.nazwa.indexOf('KOMBO')===0){                    /* BAJERY: zloty flash banku */
         const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.85;
@@ -6088,7 +6094,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.7',
+  wersja:'8.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
