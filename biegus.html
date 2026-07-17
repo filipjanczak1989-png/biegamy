@@ -10,11 +10,22 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.1 (Żywioły IIb: Śmieciarka)</title>
+<title>Bieguś — Droga na Igrzyska · v10.2 (Szlif po audycie)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.1 „ZYWIOLY IIb: SMIECIARKA" (Ż2 cz.2
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.2 „SZLIF PO AUDYCIE" (B1-B4)
+     · B1 DATY: Dzienne/Zlecenia/prezent/goracyEtap na dataLokalna()
+       (bylo toISOString — "nowy dzien" wpadal o 22:00 naszego czasu:
+       misje i zlecenia rotowaly w srodku wieczornej sesji)
+     · B2 R3: usuniety duplikat obrocModel(st) — nadpisywal wersje
+       z cyklem 90°, przycisk Obroc dostawal NaN
+     · B3 MAPA 12/12: obietnica "cos swieci w garderobie" WYPLACONA —
+       kluczSpotkany dodaje Skrzydla ultimate (dar klucza) + toast
+     · B4 SPADY: harmonogram z rngZSeed(seed+'#spady') — ostatnie
+       wynik-wplywowe Math.random zamkniete; ten sam seed = te same
+       spady (fair w Zawodach/Duelu, kanon rng w 100%)
+     v10.1 „ZYWIOLY IIb: SMIECIARKA" (Ż2 cz.2
      — Sprint Ż2 DOMKNIETY: oba poscigi)
      · SMIECIARKA NOCNA (k3, rel>=4, ~50%): poscig z PRZODU — jedzie
        wolniej i gubi KUBLY z paki (typ kosz, wlasnyRuch, kolizja
@@ -2058,7 +2069,7 @@ const DZIENNE_PULA=[
   {id:'d-superk',  npc:'zajac',     typ:'superK',cel:1,  pior:40, tekst:'Odpal {cel} SUPER KOMBO — dwa triki w jednym locie!'}];
 const Dzienne={
   stan:null,
-  _dzis(){return new Date().toISOString().slice(0,10);},
+  _dzis(){return dataLokalna();},                                     /* AUDYT B1: bylo toISOString — misje rotowaly o 22:00 */
   wczytaj(){
     try{this.stan=JSON.parse(localStorage.getItem('biegus_dzienne_v1')||'null');}catch(e){this.stan=null;}
     if(!this.stan||this.stan.data!==this._dzis()){
@@ -2882,7 +2893,7 @@ const ZLECENIA_PULA=[                                                 /* ZLECENI
    dzieki:'Zając ogląda sznurówki pod światło: „Dobra, ptaku. Masz oko."'}];
 const KURS_SKUPU=8;                                                   /* ZLECENIA: Zyzia skupuje nadmiar */
 const Zlecenia={
-  _dzis(){return new Date().toISOString().slice(0,10);},
+  _dzis(){return dataLokalna();},                                     /* AUDYT B1 */
   stan(){                                                             /* 2 aktywne, rotacja dobowa (deterministyczna) */
     const d=this._dzis();
     if(!Biegus.zlecenia||Biegus.zlecenia.data!==d){
@@ -3339,9 +3350,10 @@ function krokSymulacji(s){
   s.predkosc=s.predkoscBaza*(1+CFG.PRZYSPIESZENIE*s.t);            // PĘD: bieżąca prędkość
   /* — CZYNNIK HUGO: spady z nieba (tylko etapy, od e5) — */
   if(s.tryb==='etap'&&s.skrypt.etap>4&&s.stan==='bieg'){
-    if(s.spadNastepny===undefined){s.spadNastepny=7+Math.random()*4;s.spadyLeft=3+(Math.random()<0.5?1:0);}   /* TRUDNOSC: 3-4 spady (bylo 2-3) */
+    if(s.spadNastepny===undefined){const rs=rngZSeed(s.skrypt.seed+'#spady');   /* AUDYT B4: spady z SEEDA — ten sam etap = te same spady (kanon rng domkniety) */
+      s._rngSpad=rs;s.spadNastepny=7+rs()*4;s.spadyLeft=3+(rs()<0.5?1:0);}
     if(s.spadyLeft>0&&s.t>=s.spadNastepny){
-      s.spadyLeft--;s.spadNastepny=s.t+7+Math.random()*5;   /* TRUDNOSC */
+      s.spadyLeft--;s.spadNastepny=s.t+7+s._rngSpad()*5;   /* TRUDNOSC+B4 */
       s.aktywne.push({t:s.t,typ:'spad',pas:s.pas,wlasnyRuch:true,
         z:CFG.GRACZ_Z-s.predkosc*1.5,fazaSpadu:'cien',spadY:3.4,sprawdzone:false});
       s.zdarzenia.push({typ:'swist'});}}
@@ -5118,9 +5130,7 @@ const R3=(()=>{
     kameraK.aspect=innerWidth/innerHeight;kameraK.updateProjectionMatrix();
     renderer.render(scenaK,kameraK);}
   return{klatka,efekt,sprzatnij,pokazWPodgladzie,klatkaPodgladu,przebudujBiegusia,przelaczModel,PREMIUM,przeladujPremium:zaladujPremium,obrocModel,dymek3D,dymekGracza,
-    obrocModel(st){if(PREMIUM.model&&PREMIUM.model.children[0]){
-      PREMIUM.model.children[0].rotation.y=st*Math.PI/180;
-      console.log('[DROGA] obrót modelu =',st,'°');}},pokazGoscia,przelotKlucza,nazwaPory:(k,p)=>PALETY[k].pory[p%3].n,
+    pokazGoscia,przelotKlucza,nazwaPory:(k,p)=>PALETY[k].pory[p%3].n,   /* AUDYT B2: usuniety duplikat obrocModel(st) — nadpisywal cykl 90°, btnObrot dostawal NaN */
     odswiezPodgladBiegusia(){if(typK==='biegus')pokazWPodgladzie('biegus');}};
 })();
 
@@ -5378,7 +5388,7 @@ const Gra=(()=>{
     'Przyszedłeś. To już połowa roboty. Druga połowa to wrócić jutro.',
     'Puchu nie widać pod skrzydłem, a grzeje najbardziej. Jak podstawy: nudne i najważniejsze.'];
   function dymekMenu(){const b=el('menuDymek');if(!b)return;           /* GLOS: przewodnik + prezent dnia */
-    const dzis=new Date().toISOString().slice(0,10);
+    const dzis=dataLokalna();                                         /* AUDYT B1: prezent dnia po dacie lokalnej */
     let prezent=false;try{prezent=localStorage.getItem('biegus_prezent')!==dzis;}catch(e){}
     b.hidden=false;b.style.cursor=prezent?'pointer':'default';b.onclick=null;
     if(prezent){                                                        /* POWITANIA: powitanie dnia + prezent jednym stuknieciem */
@@ -5822,7 +5832,7 @@ const Gra=(()=>{
         '</div>'+(otw&&og.spr&&og.spr()?'<button id="btnSagaOddaj">Domknij</button>':'')+'</div>';}).join('');
     const bo=el('btnSagaOddaj');if(bo)bo.onclick=()=>{sagaProbuj();odswiezSaga();};}
   function goracyEtap(){                                             /* MAPA: goracy punkt dnia — deterministyczny po dacie */
-    const d=new Date().toISOString().slice(0,10);let h=0;
+    const d=dataLokalna();let h=0;                                     /* AUDYT B1: goracy punkt nie zmienia sie o 22:00 */
     for(const c of d)h=(h*33+c.charCodeAt(0))>>>0;
     const max=Math.max(1,Math.min(32,nastepnyEtap()));
     return 1+(h%max);}
@@ -6182,7 +6192,11 @@ const Gra=(()=>{
     const mapaIle=Object.keys(Biegus.mapki||{}).length;               /* PUNKT ZBIÓRKI (finał Śladu klucza) */
     let kluczHtml='';
     if(mapaIle>=12){
-      Biegus.kluczSpotkany=true;Biegus.zapisz&&Biegus.zapisz();       /* hak: ultimate */
+      Biegus.kluczSpotkany=true;
+      if(!Biegus.garderoba.has('skrzydla-ultimate')){                  /* AUDYT B3: obietnica "swieci w garderobie" WYPLACONA */
+        Biegus.garderoba.add('skrzydla-ultimate');
+        setTimeout(()=>toast('🪽 <b>DAR KLUCZA: Skrzydła ultimate</b> — czekają w garderobie u Zyzi. Od stada, dla tego, który został.'),1800);}
+      Biegus.zapisz&&Biegus.zapisz();       /* hak: ultimate */
       kluczHtml='<br><br><span style="color:#ead9ae">Nad metą zatoczył koło KLUCZ. Dwanaście biegusi '+
         'sfrunęło na trybuny — Halny, Bryza, Poranek… wszyscy, których ślady zbierałeś.<br>'+
         'Przewodniczka pochyliła głowę: <b>„Punkt zbiórki zaliczony, mały. Od dziś latamy razem — '+
@@ -6596,7 +6610,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.1',
+  wersja:'10.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
