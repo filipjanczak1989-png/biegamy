@@ -10,11 +10,21 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.9 (Twarze sagi)</title>
+<title>Bieguś — Droga na Igrzyska · v9.0 (Plansze cz.1)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.9 „TWARZE SAGI" (miedzy jobami
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.0 „PLANSZE cz.1" (zgloszenie:
+     "zywoplot nizej ale nie idzie grindowac")
+     · PLANSZE-fix GRIND NA WYSPIE: wyspa (unik 'pas') bila takze
+       W LOCIE — skok na srodek konczyl sie hitem zanim gracz
+       wyladowal na krawedzi; teraz w powietrzu nad zywoplotem 0.9 m
+       jestes nietykalny -> ladowanie na srodku w oknie rozstajow
+       = murekPod lapie wyspaGrind = GRIND
+     · garderoba: wiring grafik JUZ ISTNIAL (przedmioty/<id>.webp
+       + fallback) — braki to PLIKI, lista w partii 21
+     · R-A kombaLvl we wszystkich trybach (mirror produ, e419940)
+     v8.9 „TWARZE SAGI" (miedzy jobami
      partii 20 — smok mial portret na prodzie, a mowil bez twarzy)
      · TWARZE-SAGI: ogniwa 4-6 podpisane na SMOKA (mowi Iskra, nie
        posrednicy); portrety NPC w liscie PRZYGODA (od odblokowania;
@@ -3236,6 +3246,7 @@ function krokSymulacji(s){
       if(OBIEKTY[o.typ].dekor)continue;  /* FIX-dekor-hit: scenografia (segment schody/tunel, kit rozstajów, znak, zebra) NIE bije — kolizją rozstajów jest wyspa */
       if(s.wallT>0)continue;                                        /* FLOWWALL: na scianie swiatla przeszkody mijaja */
       if(s.grind)continue;                                          /* TRASY: na krawedzi jestes ponad (grind przez wyspe) */
+      if(o.typ==='wyspa'&&s.skokT>=0)continue;                      /* PLANSZE-fix: zywoplot 0.9 m nie bije W LOCIE — skok na srodek = ladowanie na krawedzi = grind (bylo: hit w powietrzu, grind nieosiagalny) */
       if(o.pas!==s.pas||s.pasT<0.65)continue;
       const unik=OBIEKTY[o.typ].unik;
       const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
@@ -6104,7 +6115,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.9',
+  wersja:'9.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
