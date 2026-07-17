@@ -10,11 +10,24 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.6 (Echo i zegarek)</title>
+<title>Bieguś — Droga na Igrzyska · v9.7 (Plansze cz.2)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.6 „ECHO I ZEGAREK" (M3+M6+fix)
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.7 „PLANSZE cz.2" (audyt plansz:
+     K1+K2+K3 — rekomendowana trojka)
+     · K3 SWIETLIKI+NEON-LISTWA (zgloszenie "zadaszenie wnerwia"):
+       sufit marketu i dach peronu dostaja podluzne swietliki co 4 m
+       (rytm swiatlo/cien zamiast czarnego tunelu) + ciagla neon-
+       listwa wzdluz obu krawedzi (market cyjan, dworzec roz) —
+       linia prowadzi oko przez caly odcinek
+     · K1 AKCJA OD GWIZDKA: gwarantowana pierwsza przeszkoda ~4.6 s
+       (kaluza/pierwszy dostepny typ), gdy generator zostawil >6 s
+       pustki — czuc gre od startu (deterministyczne, bez rng)
+     · K2 CZYTELNOSC LASU: mgla odsunieta 18/74 -> 24/86 + korzenie
+       z jasna krawedzia na grzbiecie (jak krawedz zywoplotu) —
+       przeszkody wylaniaja sie wczesniej przy tempie 15.4
+     v9.6 „ECHO I ZEGAREK" (M3+M6+fix)
      · M3 BIEG ECHA: kazdy sync z realnymi km ustawia echo na 24h —
        NASTEPNY etap niesie Twoj bieg: styl x(1+min(km,50)/50),
        jednorazowo, naliczane PO goracym punkcie; widoczne na liscie
@@ -2535,6 +2548,7 @@ const OBIEKTY={
       const seg=[[-0.7,0.14,0.28],[0,0.3,0],[0.7,0.16,-0.24]];
       seg.forEach(([x,y,rz],i)=>{
         const k=klocek(0.85,0.26,0.3,0x4a3826,x,y,0);k.rotation.z=rz*0.6;k.rotation.y=rz;g.add(k);
+        g.add(klocek(0.8,0.04,0.06,0xd8cfc0,x,y+0.14,0.14));         /* PLANSZE-2: jasna krawedz — korzen czytelny we mgle */
         if(i===1)g.add(klocek(0.5,0.08,0.22,0x2e5238,x,y+0.16,0));
       });
       g.add(klocek(0.2,0.4,0.2,0x3a2c1e,-1.05,0.2,0.1));
@@ -2899,6 +2913,9 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
       if(pas===-1)continue;
       ev.push({t:+t.toFixed(2),pas,typ});ostatni[pas]=t;
     }
+    {const pierwsza=ev.filter(e=>!ZBIERALNE.has(e.typ)&&OBIEKTY[e.typ].waga>0).map(e=>e.t).sort((a,b)=>a-b)[0];   /* PLANSZE-2: akcja od gwizdka (audyt K1) */
+     if(pierwsza===undefined||pierwsza>6){const typ0=dostepne.includes('kaluza')?'kaluza':dostepne[0];
+       if(typ0&&pasWolny(ev,1,3.4,5.8)){ev.push({t:4.6,pas:1,typ:typ0});ostatni[1]=4.6;}}}
     dolozZbieralne(rng,ev,nrEtapu,rel,kraina);
     if(motyw==='akrobatyczny'){                                    // więcej skoków (i salt!)
       const skokowe=Object.keys(OBIEKTY).filter(k=>OBIEKTY[k].waga>0&&
@@ -3454,7 +3471,7 @@ const R3=(()=>{
       {n:'PORANEK',start:0xa9c2de,koniec:0xc6d7e6},
       {n:'POŁUDNIE',start:0x9cbcd9,koniec:0xb4cde0},
       {n:'ZŁOTA GODZINA',start:0xe3ba8c,koniec:0xd2a06e}]},
-    2:{sciezka:0x94856a,trawa:0x54704e,mgla:[18,74],pory:[
+    2:{sciezka:0x94856a,trawa:0x54704e,mgla:[24,86],pory:[   /* PLANSZE-2: mgla dalej (bylo 18/74) — czytelnosc przeszkod */
       {n:'PORANEK',start:0xa9c2c9,koniec:0xc2d8da},
       {n:'POŁUDNIE',start:0x9cbecd,koniec:0xb0cdd6},
       {n:'ZŁOTA GODZINA',start:0xddb684,koniec:0xc99e66}]},
@@ -4310,8 +4327,14 @@ const R3=(()=>{
             g.add(klocek(0.34,0.3,0.34,
               [0xd96a6a,0xe8b34a,0x2a63b8,0x3aa04a,0xc78ad4,0xf0eee2][(pz*3+px+(z|0))%6],
               x*0.75,0.5+pz*0.62,-z+px*0.5-0.5));}});
-      const sufit=new THREE.Mesh(new THREE.BoxGeometry(8.9,0.2,dl),mat(0xb8b2a6));
+      const sufit=new THREE.Mesh(new THREE.BoxGeometry(8.9,0.2,dl),
+        new THREE.MeshLambertMaterial({color:0xb8b2a6,transparent:true,opacity:0.92}));
       sufit.position.set(0,3.4,-dl/2);g.add(sufit);
+      for(let z=2;z<dl-1;z+=4){const sw=new THREE.Mesh(new THREE.PlaneGeometry(6.4,1.6),   /* PLANSZE-2: SWIETLIKI — rytm swiatlo/cien (zgloszenie: zadaszenie wnerwia) */
+        new THREE.MeshBasicMaterial({color:0xcfe4f6,transparent:true,opacity:0.85,side:THREE.DoubleSide}));
+        sw.rotation.x=Math.PI/2;sw.position.set(0,3.28,-z);g.add(sw);}
+      [-4.42,4.42].forEach(xn=>{const nl=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,dl),   /* PLANSZE-2: neon-listwa prowadzi oko przez caly odcinek */
+        new THREE.MeshBasicMaterial({color:0x3ad0ff}));nl.position.set(xn,3.32,-dl/2);g.add(nl);});
       for(let z=2;z<dl;z+=3)g.add(new THREE.Mesh(new THREE.BoxGeometry(3,0.06,0.3),
         new THREE.MeshBasicMaterial({color:0xf6f4ea})).translateY(3.28).translateZ(-z)); // świetlówki
       [[1.2],[-dl-1.2]].forEach(([z])=>{                              // witryny wjazd/wyjazd
@@ -4325,8 +4348,14 @@ const R3=(()=>{
         per.position.set(x,0.17,-dl/2);g.add(per);});
       for(let z=1.5;z<dl;z+=4.5)
         [-3.9,3.9].forEach(x=>g.add(klocek(0.18,3.2,0.18,0x555e70,x,1.6,-z)));
-      const dach=new THREE.Mesh(new THREE.BoxGeometry(9.4,0.16,dl),mat(0x3a4152));
+      const dach=new THREE.Mesh(new THREE.BoxGeometry(9.4,0.16,dl),
+        new THREE.MeshLambertMaterial({color:0x3a4152,transparent:true,opacity:0.92}));
       dach.position.set(0,3.3,-dl/2);g.add(dach);
+      for(let z=2;z<dl-1;z+=4.5){const sw2=new THREE.Mesh(new THREE.PlaneGeometry(7,1.4),   /* PLANSZE-2: SWIETLIKI peronu */
+        new THREE.MeshBasicMaterial({color:0xd8e6f4,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
+        sw2.rotation.x=Math.PI/2;sw2.position.set(0,3.18,-z);g.add(sw2);}
+      [-4.65,4.65].forEach(xn=>{const nl2=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,dl),   /* PLANSZE-2: neon-listwa */
+        new THREE.MeshBasicMaterial({color:0xff4a8a}));nl2.position.set(xn,3.24,-dl/2);g.add(nl2);});
       const tablica=klocek(2.6,0.9,0.2,0x10141c,0,2.5,-2.5);g.add(tablica);
       for(let r=0;r<3;r++)g.add(new THREE.Mesh(new THREE.BoxGeometry(2.0,0.12,0.05),
         new THREE.MeshBasicMaterial({color:0x3ad06a})).translateY(2.72-r*0.26).translateZ(-2.38));
@@ -6313,7 +6342,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.6',
+  wersja:'9.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
