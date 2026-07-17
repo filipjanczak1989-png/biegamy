@@ -10,11 +10,23 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.3 (Glow-up I)</title>
+<title>Bieguś — Droga na Igrzyska · v10.4 (Glow-up II: Bloom)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.3 „GLOW-UP I" (G1 z audytu —
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.4 „GLOW-UP II: BLOOM" (G2)
+     · UnrealBloomPass r128 (strength .5, radius .5, threshold .82):
+       neony k3, poswiaty, pioruny, fever i zlote godziny SWIECA
+       naprawde — najwiekszy pojedynczy skok wygladu
+     · DUAL-CDN LOADER (jsdelivr->unpkg, wzorzec GLTFLoader): 6
+       skryptow postprocessingu; ktorykolwiek nie wstanie = render
+       klasyczny, ZERO regresu (gra wyglada jak v10.3)
+     · WATCHDOG FPS: srednia klatka >26 ms przez ~3 s -> bloom off
+       na sesje (slabe telefony bezpieczne, bez opcji w UI)
+     · BLOOM ODDYCHA: fever +0.28, napor bossa +0.15 sily — swiatlo
+       reaguje na stan gry
+     · podglad 3D (panel Biegusia/katalog) zostaje klasyczny
+     v10.3 „GLOW-UP I" (G1 z audytu —
      grafika wysokiego poziomu, czesc 1: tanie/pewne)
      · ZIARNO FILMOWE: CSS overlay (SVG feTurbulence, mix-blend
        overlay, opacity .05) — 0 kosztu GPU, filmowy mikrodetal
@@ -3655,7 +3667,8 @@ const R3=(()=>{
   kamera.position.set(0,4.6,12.5);kamera.lookAt(0,1.2,-8);
   let shake=0,squashT=0,przewrotkaT=0,bylSaltoLot=false;          /* PARKOUR: przewrotka po saltcie */
   function fit(){renderer.setSize(innerWidth,innerHeight);
-    kamera.aspect=innerWidth/innerHeight;kamera.updateProjectionMatrix();}
+    kamera.aspect=innerWidth/innerHeight;kamera.updateProjectionMatrix();
+    if(composer)composer.setSize(innerWidth,innerHeight);}             /* G2 */
   addEventListener('resize',fit);fit();
 
   scena.add(new THREE.HemisphereLight(0xd8e8ff,0x5a6a50,1.2));
@@ -3960,6 +3973,17 @@ const R3=(()=>{
   function zaladujSkrypt(url){return new Promise((res,rej)=>{
     const s=document.createElement('script');s.src=url;s.onload=res;s.onerror=rej;
     document.head.appendChild(s);});}
+  async function zapewnijBloom(){                                     /* G2 BLOOM: dual CDN, jak GLTFLoader — fallback bez regresu */
+    if(THREE.UnrealBloomPass)return true;
+    const CD=['https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/',
+              'https://unpkg.com/three@0.128.0/examples/js/'];
+    const PLIKI=['shaders/CopyShader.js','shaders/LuminosityHighPassShader.js',
+      'postprocessing/EffectComposer.js','postprocessing/RenderPass.js',
+      'postprocessing/ShaderPass.js','postprocessing/UnrealBloomPass.js'];
+    for(const pl of PLIKI){let ok=false;
+      for(const c of CD){try{await zaladujSkrypt(c+pl);ok=true;break;}catch(e){}}
+      if(!ok)return false;}
+    return !!THREE.UnrealBloomPass;}
   async function zapewnijLoader(){
     if(THREE.GLTFLoader)return true;
     const cdny=[
@@ -4044,6 +4068,16 @@ const R3=(()=>{
     biegus.visible=!p;
     return p;}
   zaladujPremium();
+  let composer=null,bloomPass=null,bloomOn=false;                     /* G2 BLOOM: neony/fever/pioruny swieca naprawde */
+  (async()=>{try{
+    if(!await zapewnijBloom()){console.log('[DROGA] BLOOM niedostepny (CDN) — render klasyczny');return;}
+    composer=new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scena,kamera));
+    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.5,0.5,0.82);
+    composer.addPass(bloomPass);
+    composer.setSize(innerWidth,innerHeight);
+    bloomOn=true;console.log('[DROGA] BLOOM aktywny');
+  }catch(e){composer=null;bloomOn=false;pokazBlad('BLOOM init padł (render klasyczny): '+e.message);}})();
 
   const rywale=[];
   [[0x3f7fc4,-1.15,0.86],[0x4a9c5e,1.15,0.9]].forEach(([kolor,x,wsp])=>{
@@ -4736,9 +4770,12 @@ const R3=(()=>{
     m.visible=true;scena.add(m);return m;}
   function oddajModel(typ,m){m.visible=false;scena.remove(m);pule[typ].push(m);}
 
-  let ostKlatka=0;
+  let ostKlatka=0,_dtAvg=0.016,_fpsBad=0;                             /* G2: watchdog */
   function klatka(s,czasReal){
     const dt=Math.min(0.05,czasReal-ostKlatka);ostKlatka=czasReal;
+    _dtAvg=_dtAvg*0.95+dt*0.05;                                        /* G2: watchdog FPS */
+    if(bloomOn){if(_dtAvg>0.026)_fpsBad++;else _fpsBad=0;
+      if(_fpsBad>180){bloomOn=false;console.log('[DROGA] BLOOM off — watchdog FPS (śr. klatka >26 ms)');}}
     ustawKraine(s.skrypt.kraina||1);
     const PAL=PALETY[s.skrypt.kraina||1];
     const swit=clamp(s.t/CFG.ETAP_CZAS,0,1);
@@ -4935,6 +4972,8 @@ const R3=(()=>{
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
         0xcfd8ee,1,0.5,0.2,0.05);
     const fv=czyFever(s);                                             /* FLOW-GFX: swiatlo + smugi predkosci */
+    if(bloomPass)bloomPass.strength=0.5+(fv?0.28:0)                    /* G2: bloom oddycha — fever i napor swieca mocniej */
+      +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.15:0);
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
     fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
@@ -5062,7 +5101,7 @@ const R3=(()=>{
     dekoAnim.forEach(f=>f(czasReal));
     krokGoscia(czasReal);
     krokCzastek(dt);
-    renderer.render(scena,kamera);
+    if(bloomOn&&composer)composer.render();else renderer.render(scena,kamera);   /* G2 */
   }
   function efekt(zd){
     const zrodlo=PREMIUM.aktywny()&&PREMIUM.model?PREMIUM.model:biegus;
@@ -6644,7 +6683,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.3',
+  wersja:'10.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
