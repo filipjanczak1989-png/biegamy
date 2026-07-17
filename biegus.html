@@ -10,11 +10,21 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.5 (Słowny biegacz)</title>
+<title>Bieguś — Droga na Igrzyska · v9.6 (Echo i zegarek)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.5 „SLOWNY BIEGACZ" (M2 — petla
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.6 „ECHO I ZEGAREK" (M3+M6+fix)
+     · M3 BIEG ECHA: kazdy sync z realnymi km ustawia echo na 24h —
+       NASTEPNY etap niesie Twoj bieg: styl x(1+min(km,50)/50),
+       jednorazowo, naliczane PO goracym punkcie; widoczne na liscie
+       mocy intro ("ECHO x1.24 — niesie Twoj realny bieg")
+     · M6 ZEGAREK x REALNOSC: po zdobyciu Zegarka Legend (saga>=6)
+       HUD w biegu pokazuje realny tydzien km (dane MOST.tydzien) —
+       przedmiot z gry mowiacy prawde z zycia
+     · ORDER-fix (watch-item cc): planDnia przy 2 wpisach/dzien
+       deterministycznie preferuje wpis biegowy (darZTypu!=null)
+     v9.5 „SLOWNY BIEGACZ" (M2 — petla
      TRENER PLANUJE -> GRACZ BIEGA -> GRA SWIETUJE; schemat z ZWIADU cc)
      · M2: MOST.planDnia czyta trainings (RLS auto-scope po sesji
        gracza, wzorzec jak logi); sekcja OD TRENERA w panelu Biegusia:
@@ -1141,6 +1151,7 @@
   <span id="znalHud"></span><span id="karaHud"></span>
   <span id="comboHud" style="font-family:'Bebas Neue',sans-serif;font-size:17px;color:var(--zloto)"></span>
   <span id="stylHud" style="font-family:'Bebas Neue',sans-serif;font-size:15px;color:#7ec8ff"></span>
+  <span id="zegarekHud" style="font-family:'Bebas Neue',sans-serif;font-size:13px;color:#f2c14e"></span>
   <button id="btnPauza" aria-label="Pauza">⏸</button>
   <button id="btnMute" aria-label="Wycisz dźwięk">🔊</button>
 </div>
@@ -1680,6 +1691,7 @@ const Biegus={
   saga:{o:1,zlec:0},                                                  /* SAGA: ogniwo lancucha + licznik zlecen */
   _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
   dar:null,                                                           /* M1 DARY: {id,do} */
+  echo:null,                                                          /* M3 ECHO: {mn,do} */
   ostatniTrening:0,                                                   /* M4 SERCE: timestamp realnego treningu */
   planDnia:null,pieczecie:0,                                          /* M2: {date,typ,km,opis,zaliczone} + pieczecie Slownego Biegacza */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
@@ -1701,6 +1713,7 @@ const Biegus={
     saga:this.saga||{o:1,zlec:0},                                     /* SAGA */
     przemiana:this._przemiana||null,                                  /* PRZEMIANA */
     dar:this.dar||null,                                               /* M1 DARY */
+    echo:this.echo||null,                                             /* M3 ECHO */
     ostatniTrening:this.ostatniTrening||0,                            /* M4 SERCE */
     planDnia:this.planDnia||null,pieczecie:this.pieczecie||0,         /* M2 */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
@@ -1721,6 +1734,7 @@ const Biegus={
     this.saga=d.saga||{o:1,zlec:0};                                    /* SAGA */
     this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
     this.dar=d.dar||null;                                              /* M1 DARY */
+    this.echo=d.echo||null;                                            /* M3 ECHO */
     this.ostatniTrening=d.ostatniTrening||0;                           /* M4 SERCE */
     this.planDnia=d.planDnia||null;this.pieczecie=d.pieczecie||0;      /* M2 */
     this.ukonczone=new Set(d.ukonczone||[]);
@@ -1802,8 +1816,9 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
   async czytaj(tok,path){const r=await fetch(this.URL+'/rest/v1/'+path,{headers:this.naglowki(tok)});
     if(!r.ok)throw new Error('REST '+r.status);return r.json();},
   async planDnia(tok){                                                /* M2: dzisiejszy wpis trenera (RLS: atleta czyta swoj) */
-    const rows=await this.czytaj(tok,'trainings?select=type,distance_km,description,date&date=eq.'+dataLokalna());
-    return (rows&&rows[0])||null;},
+    const rows=await this.czytaj(tok,'trainings?select=type,distance_km,description,date&date=eq.'+dataLokalna()+'&limit=5');
+    if(!rows||!rows.length)return null;
+    return rows.find(r=>darZTypu(r.type)!==null)||rows[0];},          /* ORDER-fix (watch-item cc): 2 wpisy/dzien -> preferuj biegowy */
   async rpc(tok,fn,body){const h=this.naglowki(tok);h['Content-Type']='application/json';   /* ARENA: RPC (bez Prefer minimal — chcemy wynik) */
     const r=await fetch(this.URL+'/rest/v1/rpc/'+fn,{method:'POST',headers:h,body:JSON.stringify(body||{})});
     if(!r.ok)throw new Error('RPC '+r.status);return r.json();},
@@ -1838,6 +1853,7 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     if(dId){Biegus.dar={id:dId,do:Date.now()+86400e3};
       const D=DARY[dId];
       Gra?.toast?.(D.e+' <b>DAR TRENINGU: '+D.n+'</b> — po Twoich '+D.po+'.<br>'+D.opis+' przez 24 h (tylko etapy).');}
+    if(km>0)Biegus.echo={mn:+(1+Math.min(km,50)/50).toFixed(2),do:Date.now()+86400e3};   /* M3 ECHO: rytual po treningu */
     const pd=Biegus.planDnia;                                          /* M2: pieczec Slownego Biegacza */
     if(pd&&!pd.zaliczone&&pd.typ){
       const traf=logs.find(l=>String(l.logged_at||'').slice(0,10)===pd.date&&
@@ -5821,6 +5837,7 @@ const Gra=(()=>{
     if(sym.flowMnoznik)moce.push('🧥 flow+');
     {const dd=(Biegus.dar&&Date.now()<Biegus.dar.do)?DARY[Biegus.dar.id]:null;   /* M1 DARY */
      if(dd)moce.push(dd.e+' '+dd.n+' (dar treningu)');}
+    if(Biegus.echo&&Date.now()<Biegus.echo.do)moce.push('🔁 ECHO ×'+Biegus.echo.mn+' (niesie Twój realny bieg)');   /* M3 */
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
     if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
     if(sym.gGrind)moce.push('👟 grind +40% ✦');                       /* SKLEP-2.0 */
@@ -5875,6 +5892,7 @@ const Gra=(()=>{
     el('pioraHud').textContent='🪶'+sym.piora;
     el('stylHud').textContent=((sym.styl||0)>0||(sym.stylLot||0)>0)   /* STYL w HUD + pending lotu */
       ?('✦'+sym.styl+((sym.stylLot||0)>0?' (+'+sym.stylLot+')':'')):'';
+    el('zegarekHud').textContent=(sagaMoc(5)&&januszDane)?'⌚'+(+januszDane.km||0).toFixed(1)+' km/tydz.':'';   /* M6: zegarek pokazuje PRAWDE z zycia */
     el('linieFever').style.opacity=czyFever(sym)?1:0;                /* fever/turbo linie */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
@@ -5936,6 +5954,10 @@ const Gra=(()=>{
     if(sym.tryb==='etap'&&biezacyEtap===goracyEtap()&&(sym.styl||0)>0){   /* MAPA: goracy punkt dnia = styl x2 */
       sym.styl=Math.round(sym.styl*2);
       toast('🔥 <b>GORĄCY PUNKT DNIA</b> — styl ×2!');}
+    if(sym.tryb==='etap'&&Biegus.echo&&Date.now()<Biegus.echo.do&&(sym.styl||0)>0){   /* M3 ECHO: jednorazowo, po goracym punkcie */
+      sym.styl=Math.round(sym.styl*Biegus.echo.mn);
+      setTimeout(()=>toast('🔁 <b>BIEG ECHA</b> — Twoje realne kilometry niosą: styl ×'+Biegus.echo_mn+'!'),400);
+      Biegus.echo_mn=Biegus.echo.mn;Biegus.echo=null;Biegus.zapisz&&Biegus.zapisz();}
     /* — rekord rundy (tylko etapy) — */
     const rb=el('rekordBox');rb.hidden=true;
     if(sym.tryb==='etap'){
@@ -6291,7 +6313,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.5',
+  wersja:'9.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
