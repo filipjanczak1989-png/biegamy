@@ -8201,6 +8201,10 @@ let _lastEndedScoreId = null;
 let _endGameCalled = false;  // 🆕 zapobiega podwójnemu wywołaniu
 
 async function endGame() {
+  try{                                                        /* MOST-AUTOMAT: wynik do Biegusia */
+    if(new URLSearchParams(location.search).get('tryb')==='automat'&&window.parent!==window)
+      parent.postMessage({typ:'wyzwanie-wynik',punkty:(game&&game.score)|0,score:(game&&game.score)|0},location.origin);
+  }catch(e){}
   if (!game) return;
   if (_endGameCalled) return;
   _endGameCalled = true;
