@@ -10,11 +10,20 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.3 (Dary)</title>
+<title>Bieguś — Droga na Igrzyska · v9.4 (Serce i tytuł)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.3 „DARY" (sprint 2 projektu
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.4 „SERCE I TYTUL" (M4+E3)
+     · M4 SERCE: ostatniTrening w save; 3 dni bez realnego biegu ->
+       smutny ("teskni za bieganiem z Toba"), 6 dni -> spiacy —
+       emocje, NIGDY kary mechaniczne; POWROT po >=4 dniach =
+       najcieplejsze powitanie ("WROCILES! Wiedzialem.") + duma
+       3 min + wiez +5. Gra jest po stronie wracajacych.
+     · E3 TYTUL: kibice od Mlodego krzycza tytulem ("DOROSLY LECI!",
+       35% hype — Math.random OK: kosmetyka nie wynik); tytul
+       w menu zlotem od Mistrza
+     v9.3 „DARY" (sprint 2 projektu
      EWOLUCJA+MOST: M1 — typ realnego treningu -> dar na 24 h)
      · M1: sync czyta training_type (+logged_at); dar z NAJNOWSZEGO
        biegu batcha: interwaly/tempo/start->ZAR (flow szybciej,
@@ -1659,6 +1668,7 @@ const Biegus={
   saga:{o:1,zlec:0},                                                  /* SAGA: ogniwo lancucha + licznik zlecen */
   _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
   dar:null,                                                           /* M1 DARY: {id,do} */
+  ostatniTrening:0,                                                   /* M4 SERCE: timestamp realnego treningu */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1678,6 +1688,7 @@ const Biegus={
     saga:this.saga||{o:1,zlec:0},                                     /* SAGA */
     przemiana:this._przemiana||null,                                  /* PRZEMIANA */
     dar:this.dar||null,                                               /* M1 DARY */
+    ostatniTrening:this.ostatniTrening||0,                            /* M4 SERCE */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1696,6 +1707,7 @@ const Biegus={
     this.saga=d.saga||{o:1,zlec:0};                                    /* SAGA */
     this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
     this.dar=d.dar||null;                                              /* M1 DARY */
+    this.ostatniTrening=d.ostatniTrening||0;                           /* M4 SERCE */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -1718,6 +1730,11 @@ const Biegus={
     return 'pisklak';},
   trening(km,info){                                                  /* PRZEMIANA: info = najdluzszy trening batcha (swiadek E4) */
     const przed=this.stadium();
+    const przerwaDni=this.ostatniTrening?(Date.now()-this.ostatniTrening)/864e5:0;   /* M4 SERCE */
+    this.ostatniTrening=Date.now();
+    if(przerwaDni>=4){this._dumnyDo=Date.now()+180000;this.wiez=clamp(this.wiez+5,0,100);   /* M4: POWROT — zero kar, najcieplejsze powitanie */
+      setTimeout(()=>Gra?.toast?.('🐦 <b>'+this.imie+':</b> „WRÓCIŁEŚ! Wiedziałem. '+
+        'Żółw zawsze powtarza: rytm to wracanie. Biegniemy?"'),900);}
     this.najedzenie=clamp(this.najedzenie+km*5,0,100);
     this.wiez=clamp(this.wiez+2,0,100);
     this.laczneKm=+(this.laczneKm+km).toFixed(1);
@@ -4935,7 +4952,9 @@ const Gra=(()=>{
     const kr=(sym&&sym.skrypt&&sym.skrypt.kraina)||1;
     const kto=losuj(HYPE_KIBICE[kr]||HYPE_KIBICE[1]);
     const o=scenkaOsoba(kto);
-    const tx=losuj(HYPE_TEKSTY[kto]||['{K}! ALE TO BYŁO COŚ!']).replace('{K}',kombo);
+    let tx=losuj(HYPE_TEKSTY[kto]||['{K}! ALE TO BYŁO COŚ!']).replace('{K}',kombo);
+    {const stH=Biegus.stadium();                                        /* E3 TYTUL: od Mlodego kibice znaja tytul (Math.random OK — kosmetyka) */
+     if(stH!=='pisklak'&&Math.random()<0.35)tx=STADIA[stH].nazwa.toUpperCase()+' LECI! '+tx;}
     b.innerHTML=o.iko+' <span><b>'+o.imie+':</b> „'+tx+'"</span>';
     b.style.opacity=1;b.style.transform='translate(-50%,0)';
     clearTimeout(_hypeT);
@@ -5183,6 +5202,9 @@ const Gra=(()=>{
     if(Biegus._dumnyDo&&teraz<Biegus._dumnyDo)return 'dumny';
     if(Biegus._smutnyDo&&teraz<Biegus._smutnyDo)return 'smutny';
     if(Biegus._zmeczonyDo&&teraz<Biegus._zmeczonyDo)return 'zmeczony';
+    const dni=Biegus.ostatniTrening?(teraz-Biegus.ostatniTrening)/864e5:0;   /* M4 SERCE: tesknota (emocje, NIGDY kary) */
+    if(dni>=6)return 'spiacy';
+    if(dni>=3)return 'smutny';
     const h=new Date().getHours();
     if(h>=22||h<6)return 'spiacy';
     const st=Biegus.stan();
@@ -5374,8 +5396,10 @@ const Gra=(()=>{
     pm.hidden=false;pm.onerror=()=>pm.hidden=true;
     el('btnFinal').hidden=!Biegus.ukonczone.has('e32');
     ustawPortret(pm);
-    el('menuStatus').innerHTML='<b>'+Biegus.imie+'</b> · '+STADIA[Biegus.stadium()].nazwa+' · '+   /* REW: bez emotek */
-      (s==='najedzony'?'najedzony treningami':s==='ok'?'przydałby się trening':'głodny — nakarm go treningiem')+
+    const stG=Biegus.stadium(),zlG=(stG==='mistrz'||stG==='legenda');    /* E3 TYTUL: tytul zlotem od Mistrza */
+    el('menuStatus').innerHTML='<b>'+Biegus.imie+'</b> · '+(zlG?'<span style="color:#f2c14e">'+STADIA[stG].nazwa+'</span>':STADIA[stG].nazwa)+' · '+   /* REW: bez emotek */
+      ((Biegus.ostatniTrening&&(Date.now()-Biegus.ostatniTrening)/864e5>=3)?'tęskni za bieganiem z Tobą':   /* M4 SERCE */
+       s==='najedzony'?'najedzony treningami':s==='ok'?'przydałby się trening':'głodny — nakarm go treningiem')+
       ' · '+Biegus.laczneKm+' km wybieganych';
   }
 
@@ -6221,7 +6245,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.3',
+  wersja:'9.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
