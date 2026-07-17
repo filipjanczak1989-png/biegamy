@@ -5586,6 +5586,7 @@ const Gra=(()=>{
       sym.skrypt.ev.push({t:1.5,pas:1,typ:'rywal',mentorId:'zajac-blysk',strona:1});
       sym.skrypt.ev.sort((a,b)=>a.t-b.t);}
     sym.spotIdx=0;
+    sym.kombaLvl=Biegus.ukonczone.size;                /* KOMBA-PROG: wiedza gracza — WSZYSTKIE tryby (R-A: bylo tylko etap, gasilo super komba w Zawodach) */
     /* boostery + bonus treningu — TYLKO w etapach, nigdy w Zawodach */
     if(trybGry==='etap'){
       sym.boostery={tarcza:false,magnes:false,x2:false};
@@ -5594,7 +5595,6 @@ const Gra=(()=>{
       sym.drugiOddech=Biegus.zalozone.has('plecak');     // MOC: plecak
       if(sagaMoc(2)){sym.mocSerce=true;sym.serca++;}     // SAGA: ZOLWI RYTM (+1 serce)
       sym.mocOko=sagaMoc(3);                             // SAGA: SOKOLE OKO
-    sym.kombaLvl=Biegus.ukonczone.size;                /* KOMBA-PROG: poziom odblokowania super komb */
       if(Biegus.ubrane.bluza==='bluza-neon')sym.flowMnoznik=0.85;   // MOC: neon
       if(Biegus.ubrane.glowa==='korona-legendy'){sym.serca++;sym.sercaMax=sym.serca;
         toast('👑 <b>Korona Legendy:</b> +1 serce na start!');}
