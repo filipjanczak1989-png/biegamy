@@ -10,11 +10,24 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.0 (Plansze cz.1)</title>
+<title>Bieguś — Droga na Igrzyska · v9.1 (Przemiana)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.0 „PLANSZE cz.1" (zgloszenie:
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.1 „PRZEMIANA" (sprint 1 projektu
+     EWOLUCJA+MOST: E1 ceremonia, E2 zapowiedz, E4 swiadek)
+     · E1 CEREMONIA: ewolucja = pelnoekranowa karta zamiast toastu —
+       stary portret -> rozblysk -> nowy, mentor krainy prowadzi
+       (Zolw->Mlody, Orzel->Dorosly, Blysk->Mistrz, CALY KLUCZ wraca
+       na Legende — domkniecie prologu), deszcz pior x3, linia:
+       "Bo TY przebiegles X prawdziwych kilometrow"
+     · E2 ZAPOWIEDZ: od 90% progu pasek "do przemiany: X km" w panelu
+       ("Czuje, ze cos sie we mnie zmienia...")
+     · E4 SWIADEK: sync MOST przekazuje najdluzszy trening batcha —
+       ceremonia wskazuje TEN bieg (dystans + data z training_logs)
+     · _przemiana persist w save: zamkniecie appki nie gubi ceremonii
+       (odpala sie na nastepnym boocie); nigdy nie przerywa biegu
+     v9.0 „PLANSZE cz.1" (zgloszenie:
      "zywoplot nizej ale nie idzie grindowac")
      · PLANSZE-fix GRIND NA WYSPIE: wyspa (unik 'pas') bila takze
        W LOCIE — skok na srodek konczyl sie hitem zanim gracz
@@ -1232,6 +1245,18 @@
 </div>
 
 <!-- ONBOARDING (raz na sesję, przed pierwszym biegiem) -->
+<div class="karta ciemna" id="przemiana" hidden>
+  <h1><em>PRZEMIANA</em></h1>
+  <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0">
+    <img id="przemianaStary" alt="" style="width:92px;height:92px;object-fit:contain;filter:grayscale(.6);opacity:.65" onerror="this.hidden=true">
+    <span style="font-size:1.7em;color:#f2c14e">➜</span>
+    <img id="przemianaNowy" alt="" style="width:156px;height:156px;object-fit:contain;filter:drop-shadow(0 0 20px rgba(242,193,78,.85))" onerror="this.hidden=true">
+  </div>
+  <h2 id="przemianaTytul" style="letter-spacing:.06em"></h2>
+  <div class="pod" id="przemianaMentor" style="text-align:left"></div>
+  <div class="pod" id="przemianaKm" style="color:#f2c14e"></div>
+  <button class="cta" id="btnPrzemianaDalej">Biegnij dalej ▶</button>
+</div>
 <div class="karta ciemna" id="prolog" hidden>
   <h1>BIEGUŚ</h1>
   <div class="motto">jesteśmy obok</div>
@@ -1299,6 +1324,7 @@
       <div class="tor"><i id="pWiez" style="background:#8a6ac0"></i></div></div>
     <div><div class="w"><span>Wybiegane km (realne)</span><span id="wKm"></span></div>
       <div class="tor"><i id="pKm" style="background:var(--zloto)"></i></div></div>
+    <div class="pod" id="wKmEwo" hidden style="color:#f2c14e;margin-top:2px"></div>
   </div>
   <button id="btnTrening">🏃 Symuluj trening 8 km</button>
   <button id="btnModel" hidden>🎭 Model: Premium</button>
@@ -1611,6 +1637,7 @@ const Biegus={
   itemy:{},zlecenia:null,                                            /* ZLECENIA: surowce + stan zlecen */
   zetony:0,rekordWyzwanie:0,                                          /* AUTOMAT: waluta automatu (NIE piora!) */
   saga:{o:1,zlec:0},                                                  /* SAGA: ogniwo lancucha + licznik zlecen */
+  _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1628,6 +1655,7 @@ const Biegus={
     itemy:this.itemy||{},zlecenia:this.zlecenia||null,                /* ZLECENIA */
     zetony:this.zetony||0,rekordWyzwanie:this.rekordWyzwanie||0,      /* AUTOMAT */
     saga:this.saga||{o:1,zlec:0},                                     /* SAGA */
+    przemiana:this._przemiana||null,                                  /* PRZEMIANA */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1644,6 +1672,7 @@ const Biegus={
     this.itemy=d.itemy||{};this.zlecenia=d.zlecenia||null;             /* ZLECENIA */
     this.zetony=d.zetony||0;this.rekordWyzwanie=d.rekordWyzwanie||0;   /* AUTOMAT */
     this.saga=d.saga||{o:1,zlec:0};                                    /* SAGA */
+    this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -1664,7 +1693,7 @@ const Biegus={
     for(let i=PROGI_EWOLUCJI.length-1;i>=0;i--)
       if(this.laczneKm>=PROGI_EWOLUCJI[i][1])return PROGI_EWOLUCJI[i][0];
     return 'pisklak';},
-  trening(km){
+  trening(km,info){                                                  /* PRZEMIANA: info = najdluzszy trening batcha (swiadek E4) */
     const przed=this.stadium();
     this.najedzenie=clamp(this.najedzenie+km*5,0,100);
     this.wiez=clamp(this.wiez+2,0,100);
@@ -1673,11 +1702,13 @@ const Biegus={
     this.bonusTreningu=Math.min(3,this.bonusTreningu+1);   // trening = najlepszy booster
     Misje.zdarzenie('trening',km);Dzwiek.karmienie();
     const po=this.stadium();
-    if(po!==przed){                            /* EWOLUCJA! */
+    if(po!==przed){                            /* EWOLUCJA -> CEREMONIA PRZEMIANY (E1) */
       this._dumnyDo=Date.now()+120000;         // 2 min dumnej miny
       try{R3.przebudujBiegusia();R3.odswiezPodgladBiegusia();}catch(e){}
-      Gra?.toast?.('🐣 <b>EWOLUCJA!</b> '+this.imie+' wyrósł: <b>'+STADIA[po].nazwa+'</b><br>'+STADIA[po].opis+' — wybiegane '+this.laczneKm+' km');
+      this._przemiana={z:przed,do:po,km:this.laczneKm,                 /* PRZEMIANA: czeka na ceremonie (persist w save) */
+        tren:info?{km:+(info.distance_km)||0,data:String(info.logged_at||'').slice(0,10)}:null};
       Dzwiek.medal();
+      setTimeout(()=>{try{window.Gra&&Gra.pokazPrzemiane&&Gra.pokazPrzemiane();}catch(e){}},600);
     }},
   poEtapie(piora=0){this.najedzenie=clamp(this.najedzenie-6+piora*0.15,0,100);
     this._zmeczonyDo=Date.now()+150000;
@@ -1728,7 +1759,8 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
       body:JSON.stringify({ostatni_odbior:new Date().toISOString()})});
     if(!up.ok)return;                           // bez przesuniecia znacznika NIE wyplacamy (anty-dubel)
     Biegus.portfelPior+=piora;
-    Biegus.trening(Math.min(km,20));            // karmienie z capem zdrowia (najedzenie/wiez/bonus)
+    const naj=logs.reduce((a,l)=>(+(l&&l.distance_km)||0)>(+(a&&a.distance_km)||0)?l:a,null);   /* PRZEMIANA E4: swiadek */
+    Biegus.trening(Math.min(km,20),naj);        // karmienie z capem zdrowia (najedzenie/wiez/bonus)
     Biegus.zapisz&&Biegus.zapisz();
     Gra?.toast?.('🌉 <b>MOST:</b> +'+piora+' 🪶 za '+km.toFixed(1)+' km realnych treningów — jesteśmy obok!');
     Dzwiek.medal&&Dzwiek.medal();
@@ -4768,7 +4800,7 @@ const Gra=(()=>{
   /* demo za menu: pusty skrypt = Bieguś biegnie sam przez świt */
   const demo=nowaSymulacja({kraina:1,etap:1,seed:'demo',ev:[]});
   const losuj=a=>a[Math.floor(Math.random()*a.length)];
-  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog','ranking','automat'];   /* TONY+POWITANIA+ARENA+AUTOMAT */
+  const KARTY=['menu','intro','finisz','porazka','pauza','onboarding','fabula','final','ksiega','prolog','ranking','automat','przemiana'];   /* TONY+POWITANIA+ARENA+AUTOMAT+PRZEMIANA */
   const PANELE=['panelBiegus','panelMisje','panelKatalog','panelMapa','panelEtapy','panelSklep'];
   function pokaz(id){KARTY.forEach(k=>el(k).hidden=k!==id);
     PANELE.forEach(p=>el(p).hidden=p!==id);
@@ -4921,6 +4953,27 @@ const Gra=(()=>{
     }catch(e){b.innerHTML='<div class="pod">Nie udało się pobrać rankingu ('+String(e.message).replace(/</g,'&lt;')+').</div>';}}
   el('btnRanking').onclick=()=>{Dzwiek.odpal();tryb='karta';pokaz('ranking');odswiezRanking();};
   el('btnRankingWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+  el('btnPrzemianaDalej').onclick=()=>{tryb='menu';pokaz('menu');odswiezBiegusPanel();odswiezMenuStatus();};   /* PRZEMIANA */
+  const MENTOR_PRZEMIANY={                                            /* PRZEMIANA E1: kto prowadzi ceremonie */
+    mlody:['zolw-maraton','🐢','Żółw Maraton','„Sto maratonów widziałem. Ale pierwszą przemianę widzi się tylko raz. Rośnij, mały."'],
+    dorosly:['trener-orzel','🦅','Trener Orzeł','„Technika! Oddech! I serce. Masz już wszystkie trzy. Od dziś biegasz jak dorosły."'],
+    mistrz:['zajac-blysk','🐇','Zając Błysk','„Ścigałem się z tobą od parku. Dziś pierwszy raz nie wiem, czy bym wygrał. Mistrzu."'],
+    legenda:[null,'🕊️','Cały Klucz','„Wróciliśmy z południa. Wieść niesie się nad morzami: ptak, który biega, staje na starcie Wielkich Igrzysk. Zawsze byliśmy z ciebie dumni."']};
+  function pokazPrzemiane(){                                           /* PRZEMIANA E1: ceremonia pelnoekranowa */
+    const pz=Biegus._przemiana;if(!pz)return;
+    if(tryb==='bieg')return;                                           /* nie przerywamy biegu — ceremonia przy nastepnym menu */
+    el('przemianaStary').src=assetUrl('assets/ui/portret_'+pz.z+'.png');
+    el('przemianaNowy').src=assetUrl('assets/ui/portret_'+pz.do+'.png');
+    el('przemianaTytul').textContent=Biegus.imie.toUpperCase()+' · '+STADIA[pz.do].nazwa.toUpperCase();
+    const m=MENTOR_PRZEMIANY[pz.do]||[null,'🐦','',''];
+    el('przemianaMentor').innerHTML=(m[0]?mentorIko(m[0],m[1],44):'<span class="ik" style="font-size:1.6em">'+m[1]+'</span>')+
+      ' <b>'+m[2]+':</b> '+m[3];
+    el('przemianaKm').innerHTML='Bo TY przebiegłeś <b>'+pz.km+' prawdziwych kilometrów</b>.'+
+      (pz.tren&&pz.tren.km?'<br>Przemianę przyniósł Twój bieg <b>'+pz.tren.km.toFixed(1)+' km</b>'+(pz.tren.data?' · '+pz.tren.data:'')+'.':'');
+    tryb='karta';pokaz('przemiana');
+    deszczPior();setTimeout(deszczPior,700);setTimeout(deszczPior,1400);
+    Biegus._przemiana=null;Biegus.zapisz&&Biegus.zapisz();}
+  setTimeout(()=>{try{window.Gra&&(Gra.pokazPrzemiane=pokazPrzemiane);}catch(e){}},0);   /* PRZEMIANA: eksport dla MOST/trening */
   function deszczPior(){                                              /* TRIUMF: deszcz pior przy swiezej gwiazdce */
     for(let i=0;i<14;i++){const d=document.createElement('div');
       const kol=['#f2c14e','#e8561e','#f6efe4'][i%3];
@@ -5310,6 +5363,11 @@ const Gra=(()=>{
     el('wWiez').textContent=Math.round(Biegus.wiez)+'/100';
     el('pWiez').style.width=Biegus.wiez+'%';
     el('wKm').textContent=Biegus.laczneKm+' km';
+    {const nast=PROGI_EWOLUCJI.find(pr=>pr[1]>Biegus.laczneKm);          /* PRZEMIANA E2: zapowiedz od 90% progu */
+     const e2=el('wKmEwo');
+     if(e2){if(nast&&Biegus.laczneKm>=nast[1]*0.9){e2.hidden=false;
+        e2.innerHTML='✨ Czuję, że coś się we mnie zmienia… do przemiany: <b>'+(nast[1]-Biegus.laczneKm).toFixed(1)+' km</b>';}
+      else e2.hidden=true;}}
     const stId=Biegus.stadium(),stIdx=PROGI_EWOLUCJI.findIndex(x=>x[0]===stId);
     const nast=PROGI_EWOLUCJI[stIdx+1];
     el('biegusStadiumInfo').innerHTML='Stadium: <b>'+STADIA[stId].nazwa+'</b> ('+STADIA[stId].opis+')'+
@@ -6109,13 +6167,14 @@ const Gra=(()=>{
     tryb='karta';pokaz('prolog');}}catch(e){}
   el('btnProlog').onclick=()=>{try{localStorage.setItem('biegus_prolog_v1','1');}catch(e){}
     tryb='menu';pokaz('menu');};
+  try{if(Biegus._przemiana)setTimeout(pokazPrzemiane,900);}catch(e){}   /* PRZEMIANA: zalegla ceremonia z poprzedniej sesji */
   return{pauza,toast,janusz};                                        /* JANUSZ: MOST.tydzien -> menu */
 })();
 
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.0',
+  wersja:'9.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
