@@ -10,11 +10,21 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.4 (Automat pełny)</title>
+<title>Bieguś — Droga na Igrzyska · v8.5 (Mapa świata)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.4 „AUTOMAT PELNY" (zgloszenia:
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.5 „MAPA SWIATA" (Etap 2 projektu
+     SWIAT — assety p19 live)
+     · MAPA: plansza mapa-swiat.webp z PINEZKAMI krain (🔒 blokada,
+       📜 otwarte zlecenia, 🔥 goracy punkt) + 4 klikalne kafle
+       mapa-region<n>.webp z postepem x/8 — mapa przestaje byc paskiem
+       postepu, staje sie MIEJSCEM
+     · MAPA: GORACY PUNKT DNIA — deterministyczny po dacie (hash),
+       zawsze w zasiegu gracza; meta na tym etapie = STYL x2 (realny
+       powod, zeby wrocic dzis); naliczany PRZED rekordami rundy
+     · fallback: brak grafik = onerror hidden, pinezki dzialaja dalej
+     v8.4 „AUTOMAT PELNY" (zgloszenia:
      okienko za male + scroll, gra zacina)
      · PELNY: karta automatu = ekran + info + wielkie GRAJ (zero
        scrollowania); Wyzwanie startuje na OVERLAY 100% (fixed inset 0,
@@ -1209,6 +1219,13 @@
     <div id="mapaBiegus">🐦</div>
   </div>
   <div id="mapaKm"></div>
+  <h2 style="margin-top:12px">ŚWIAT BIEGUSIA</h2>
+  <div class="pod">Cztery krainy, jedna droga. Kliknij region — zobaczysz, gdzie stoisz.</div>
+  <div id="mapaSwiatWrap" style="position:relative;border-radius:14px;overflow:hidden">
+    <img id="mapaSwiatObraz" src="assets/ui/mapa-swiat.webp" alt="" style="width:100%;display:block" onerror="this.hidden=true">
+    <div id="mapaPinezki" style="position:absolute;inset:0"></div>
+  </div>
+  <div id="mapaRegiony" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px"></div>
   <div class="mapaKrainy" id="mapaKrainy"></div>
   <button id="btnMapaWroc">← Wróć</button>
 </div>
@@ -5279,6 +5296,38 @@ const Gra=(()=>{
   el('mapaTor').innerHTML=KRAINY_MAPA.map(k=>
     '<i style="width:'+((k.do-k.od)/6)+'%;background:'+k.kolor+'"></i>').join('');
   const PEJZAZE={1:'kraina1-park',2:'kraina2-las',3:'kraina3-miasto',4:'kraina4-gory'};
+  function goracyEtap(){                                             /* MAPA: goracy punkt dnia — deterministyczny po dacie */
+    const d=new Date().toISOString().slice(0,10);let h=0;
+    for(const c of d)h=(h*33+c.charCodeAt(0))>>>0;
+    const max=Math.max(1,Math.min(32,nastepnyEtap()));
+    return 1+(h%max);}
+  const PINEZKI=[{kr:1,x:14,y:74},{kr:2,x:37,y:57},{kr:3,x:61,y:44},{kr:4,x:82,y:28}];   /* MAPA: pozycje % na planszy */
+  function odswiezSwiat(){
+    const gor=goracyEtap(),nast=nastepnyEtap();
+    const zlecOtw=Zlecenia.stan().lista.some(w=>!w.oddane);
+    el('mapaPinezki').innerHTML=PINEZKI.map(p=>{
+      const k=KRAINY_MAPA[p.kr-1]||{};
+      const odblok=!!k.etapy&&nast>=k.etapy[0];
+      const gorTu=!!k.etapy&&gor>=k.etapy[0]&&gor<=k.etapy[1];
+      return '<div style="position:absolute;left:'+p.x+'%;top:'+p.y+'%;transform:translate(-50%,-50%);'+
+        'background:rgba(16,20,31,.86);border:1px solid '+(gorTu?'#f2c14e':'#2a3350')+';border-radius:10px;'+
+        'padding:3px 7px;font-size:.72em;white-space:nowrap;'+(odblok?'':'opacity:.5;')+'">'+
+        (odblok?'':'🔒 ')+(k.nazwa||'')+(gorTu?' 🔥':'')+(odblok&&zlecOtw&&p.kr===1?' 📜':'')+'</div>';}).join('');
+    el('mapaRegiony').innerHTML=[1,2,3,4].map(n=>{
+      const k=KRAINY_MAPA[n-1]||{};const odblok=!!k.etapy;
+      let post='';if(k.etapy){let c=0;for(let e=k.etapy[0];e<=k.etapy[1];e++)if(Biegus.ukonczone.has('e'+e))c++;post=c+'/8';}
+      return '<button class="mapaReg" data-kr="'+n+'"'+(odblok?'':' disabled')+
+        ' style="padding:0;border-radius:10px;overflow:hidden;position:relative;border:1px solid #2a3350;'+(odblok?'':'opacity:.45;')+'">'+
+        '<img src="'+assetUrl('assets/ui/mapa-region'+n+'.webp')+'" alt="" style="width:100%;display:block;aspect-ratio:1" onerror="this.hidden=true">'+
+        '<span style="position:absolute;left:0;right:0;bottom:0;background:rgba(16,20,31,.8);font-size:.68em;padding:2px">'+
+        (odblok?post:'🔒')+'</span></button>';}).join('');
+    [...el('mapaRegiony').querySelectorAll('.mapaReg')].forEach(b=>b.onclick=()=>{
+      const k=KRAINY_MAPA[(+b.dataset.kr)-1];if(!k||!k.etapy)return;
+      const cel=Math.max(k.etapy[0],Math.min(k.etapy[1],nastepnyEtap()));
+      Dzwiek.odpal();
+      toast('🗺️ <b>'+k.nazwa+'</b> — Twój etap tutaj: <b>'+cel+'</b>'+
+        (gor>=k.etapy[0]&&gor<=k.etapy[1]?'<br>🔥 Gorący punkt dnia jest w tej krainie!':''));});
+    el('mapaKm').innerHTML+='<br><span style="color:#f2c14e">🔥 Gorący punkt dnia: etap '+gor+' — dziś styl ×2 na mecie</span>';}
   function odswiezMape(){
     const pn=el('panelMapa'),pz=PEJZAZE[kraina];
     pn.style.backgroundImage=pz?'linear-gradient(rgba(13,16,26,.55),rgba(13,16,26,.94) 55%),url('+
@@ -5288,6 +5337,7 @@ const Gra=(()=>{
     el('mapaBiegus').style.left=Math.min(100,km/600*100)+'%';
     el('mapaKm').textContent=km.toFixed(1)+' / 600 km · '+
       (km>=600?'WIELKIE IGRZYSKA! 🏟️':'do startu Igrzysk: '+(600-km).toFixed(1)+' km');
+    odswiezSwiat();                                                   /* MAPA: plansza + pinezki + regiony */
     el('mapaKrainy').innerHTML=KRAINY_MAPA.map(k=>{
       let post='';
       if(k.etapy){let n=0;for(let e=k.etapy[0];e<=k.etapy[1];e++)
@@ -5588,6 +5638,9 @@ const Gra=(()=>{
        assetUrl('assets/ui/winieta-akt'+kr+'.webp')+')'+                 /* WINIETY: triumf p18C na wierzchu */
        (pl?',url('+assetUrl('assets/swiat/'+pl+'.webp')+')':'');         /* 404 winiety = widac plansze (CSS stack) */
      kf.style.backgroundSize='cover';kf.style.backgroundPosition='center';}
+    if(sym.tryb==='etap'&&biezacyEtap===goracyEtap()&&(sym.styl||0)>0){   /* MAPA: goracy punkt dnia = styl x2 */
+      sym.styl=Math.round(sym.styl*2);
+      toast('🔥 <b>GORĄCY PUNKT DNIA</b> — styl ×2!');}
     /* — rekord rundy (tylko etapy) — */
     const rb=el('rekordBox');rb.hidden=true;
     if(sym.tryb==='etap'){
@@ -5936,7 +5989,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.4',
+  wersja:'8.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
