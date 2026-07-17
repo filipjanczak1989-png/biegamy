@@ -10,11 +10,16 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.8 (Szlif komb)</title>
+<title>Bieguś — Droga na Igrzyska · v8.9 (Twarze sagi)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.8 „SZLIF KOMB" (audyt zaklikany:
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.9 „TWARZE SAGI" (miedzy jobami
+     partii 20 — smok mial portret na prodzie, a mowil bez twarzy)
+     · TWARZE-SAGI: ogniwa 4-6 podpisane na SMOKA (mowi Iskra, nie
+       posrednicy); portrety NPC w liscie PRZYGODA (od odblokowania;
+       zamkniete = 🔒) i w toascie domkniecia (mentor-smok-iskra p19)
+     v8.8 „SZLIF KOMB" (audyt zaklikany:
      "lecimy wszystkie 4" + obrot potwierdzony)
      · REW4-FINAL: 0.5PI = przod (tester Filipa); ?obrot= zostaje
      · KOMBA: HELIKOPTER od startu (dzien 1 nazywa kombo);
@@ -2631,17 +2636,17 @@ const SAGA=[null,                                                     /* SAGA �
    war:'Zdobądź 12 ⭐ gwiazdek etapów',spr:()=>Object.keys(Biegus.gwiazdki||{}).length>=12,
    nagr:'🦅 MOC: SOKOLE OKO — pióra z sąsiednich pasów zawsze w zasięgu',
    fin:'Orzeł kiwa głową — pierwszy raz bez krzyku: „Widzisz szeroko. Teraz smok cię przyjmie. Ale on nie chce piór, mały. On chce się BAWIĆ."'},
-  {tyt:'SMOK CHCE GRAĆ',npc:'wiewiorka',
+  {tyt:'SMOK CHCE GRAĆ',npc:'smok',   /* TWARZE-SAGI: mowi Iskra */
    opis:'Wieść niesie: Iskra oszalał na punkcie automatu BIEGAMY: WYZWANIE. „Przynieś mi 5 żetonów — mówi — a wpuszczę cię na Górę Sprzętu." Czas rozgrzać automat w studiu.',
    war:'Zbierz 5 🎟️ żetonów z automatu',spr:()=>(Biegus.zetony||0)>=5,koszt:{zetony:5},
    nagr:'🚪 Wstęp na Górę Sprzętu',
    fin:'Smok przelicza żetony pazurem, chichocząc dymem: „Sto tysięcy punktów kiedyś zrobię... No dobra, ptaszku. Wchodź. Ale zegarka nie oddam ZA DARMO."'},
-  {tyt:'POJEDYNEK NA PRZEŁĘCZY',npc:'orzel',
+  {tyt:'POJEDYNEK NA PRZEŁĘCZY',npc:'smok',   /* TWARZE-SAGI */
    opis:'Iskra rozkłada skrzydła nad przepaścią: „Zegarek Legend należał do ptaka, który pierwszy przebiegł maraton. Oddam go temu, kto pobiegnie STYLOWO. Etap na przełęczy, minimum 800 ✦ stylu. Pokaż mi sztukę, nie tylko nogi."',
    war:'Etap w Przełęczy (25–32) z wynikiem ≥ 800 ✦',spr:()=>false,
    nagr:'⌚ ZEGAREK LEGEND — na zawsze +10% piór z etapów',
    fin:'Smok zdejmuje zegarek ze szczytu skarbca i zapina ci go na skrzydle. „Biegnij, Legendo. A ja... wracam do automatu." Wysoko na gałęzi Sroka Halina mruży oko. Ona też widziała ten blask.'},
-  {tyt:'LEGENDA BIEGNIE',npc:'wiewiorka',
+  {tyt:'LEGENDA BIEGNIE',npc:'smok',   /* TWARZE-SAGI */
    opis:'Masz Zegarek Legend. Sroka Halina wie, że go masz. Ta historia jeszcze nie jest skończona…',
    war:'(ciąg dalszy nastąpi)',spr:()=>false,nagr:'',fin:''}];
 const ZLECENIA_PULA=[                                                 /* ZLECENIA (Etap 1 projektu SWIAT): NPC zamawiaja surowce */
@@ -5364,6 +5369,10 @@ const Gra=(()=>{
   el('mapaTor').innerHTML=KRAINY_MAPA.map(k=>
     '<i style="width:'+((k.do-k.od)/6)+'%;background:'+k.kolor+'"></i>').join('');
   const PEJZAZE={1:'kraina1-park',2:'kraina2-las',3:'kraina3-miasto',4:'kraina4-gory'};
+  const SAGA_IKO={wiewiorka:['wiewiorka','🐿️'],zolw:['zolw-maraton','🐢'],
+    orzel:['trener-orzel','🦅'],smok:['smok-iskra','🐲']};             /* TWARZE-SAGI: portrety p15/p19 */
+  function sagaIko(npc,px){const w=SAGA_IKO[npc]||[null,'🐦'];
+    return w[0]?mentorIko(w[0],w[1],px||40):'<span class="ik">'+w[1]+'</span>';}
   function sagaMoc(n){return ((Biegus.saga&&Biegus.saga.o)||1)>n;}    /* SAGA: moc z ogniwa n aktywna po jego ukonczeniu */
   function sagaProbuj(){                                              /* SAGA: probuje domknac biezace ogniwo */
     const o=Biegus.saga.o||1,og=SAGA[o];
@@ -5373,7 +5382,7 @@ const Gra=(()=>{
       if(og.koszt.zetony)Biegus.zetony-=og.koszt.zetony;}
     Biegus.saga.o=o+1;Biegus.zapisz();
     Dzwiek.medal&&Dzwiek.medal();deszczPior();
-    toast('<b>SAGA: '+og.tyt+' ✓</b><br>'+og.fin+(og.nagr?'<br><b>'+og.nagr+'</b>':''));
+    toast(sagaIko(og.npc,44)+' <b>SAGA: '+og.tyt+' ✓</b><br>'+og.fin+(og.nagr?'<br><b>'+og.nagr+'</b>':''));   /* TWARZE-SAGI */
     return true;}
   function odswiezSaga(){                                             /* SAGA: sekcja PRZYGODA w mapie */
     const b=el('mapaSaga');if(!b)return;
@@ -5382,7 +5391,8 @@ const Gra=(()=>{
       const stan=i<akt?'✓':i===akt?'⏳':'🔒';
       const otw=i===akt;
       return '<div class="sklepItem" style="'+(i>akt?'opacity:.45;':'')+'">'+
-        '<span class="ik">'+stan+'</span><div class="info"><b>'+og.tyt+'</b>'+
+        (i<=akt?sagaIko(og.npc,40):'<span class="ik">'+stan+'</span>')+   /* TWARZE-SAGI: portret od odblokowania */
+        '<div class="info"><b>'+stan+' '+og.tyt+'</b>'+
         (otw?'<span>'+og.opis+'<br><b>Cel:</b> '+og.war+'</span>':i<akt?'<span>'+og.nagr+'</span>':'<span>???</span>')+
         '</div>'+(otw&&og.spr&&og.spr()?'<button id="btnSagaOddaj">Domknij</button>':'')+'</div>';}).join('');
     const bo=el('btnSagaOddaj');if(bo)bo.onclick=()=>{sagaProbuj();odswiezSaga();};}
@@ -6094,7 +6104,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.8',
+  wersja:'8.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
