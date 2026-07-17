@@ -10,11 +10,25 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v8.5 (Mapa świata)</title>
+<title>Bieguś — Droga na Igrzyska · v8.6 (Saga)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v8.5 „MAPA SWIATA" (Etap 2 projektu
+     BIEGUŚ — DROGA NA IGRZYSKA · v8.6 „SAGA: ZEGAREK LEGEND" (mandat
+     Filipa: wlasna fabula, zadania POLACZONE jak w przygodowkach)
+     · SAGA: 5 ogniw + cliffhanger, kazde WYMAGA poprzedniego:
+       1 PLOTKA (2 zlecenia -> stara mapa) 2 ZOLW (3x magnez -> MOC
+       ZOLWI RYTM +1 serce) 3 ORZEL (12 gwiazdek -> MOC SOKOLE OKO)
+       4 SMOK CHCE GRAC (5 zetonow -> wstep) 5 POJEDYNEK (etap 25+
+       styl>=800 -> ZEGAREK LEGEND +10% pior na zawsze); final:
+       Sroka Halina widziala blask...
+     · lancuch splata WSZYSTKIE systemy: handel, gwiazdki, automat,
+       styl, nemezis; moce = STAN WEJSCIOWY symulacji (kanon rng
+       nietkniety); sekcja PRZYGODA w mapie (✓/⏳/🔒); koszty schodza
+       przy domknieciu; save wstecznie zgodny; zegarek/pojedynek
+       naliczane TYLKO na mecie etapu (pierwsza z 2 kotwic — porazka
+       nietknieta)
+     v8.5 „MAPA SWIATA" (Etap 2 projektu
      SWIAT — assety p19 live)
      · MAPA: plansza mapa-swiat.webp z PINEZKAMI krain (🔒 blokada,
        📜 otwarte zlecenia, 🔥 goracy punkt) + 4 klikalne kafle
@@ -1226,6 +1240,9 @@
     <div id="mapaPinezki" style="position:absolute;inset:0"></div>
   </div>
   <div id="mapaRegiony" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px"></div>
+  <h2 style="margin-top:14px">📖 PRZYGODA: ZEGAREK LEGEND</h2>
+  <div class="pod">Łańcuch jak w starych przygodówkach — bez jednego ogniwa nie ruszysz następnego.</div>
+  <div id="mapaSaga" style="text-align:left"></div>
   <div class="mapaKrainy" id="mapaKrainy"></div>
   <button id="btnMapaWroc">← Wróć</button>
 </div>
@@ -1561,6 +1578,7 @@ const Biegus={
   imie:'Bieguś',kolor:'pomarancz',zalozone:new Set(['opaska']),kolekcja:new Set(),ukonczone:new Set(),
   itemy:{},zlecenia:null,                                            /* ZLECENIA: surowce + stan zlecen */
   zetony:0,rekordWyzwanie:0,                                          /* AUTOMAT: waluta automatu (NIE piora!) */
+  saga:{o:1,zlec:0},                                                  /* SAGA: ogniwo lancucha + licznik zlecen */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1577,6 +1595,7 @@ const Biegus={
     w:1,kolor:this.kolor,zalozone:[...this.zalozone],kolekcja:[...this.kolekcja],
     itemy:this.itemy||{},zlecenia:this.zlecenia||null,                /* ZLECENIA */
     zetony:this.zetony||0,rekordWyzwanie:this.rekordWyzwanie||0,      /* AUTOMAT */
+    saga:this.saga||{o:1,zlec:0},                                     /* SAGA */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1592,6 +1611,7 @@ const Biegus={
     this.kolekcja=new Set(d.kolekcja||[]);
     this.itemy=d.itemy||{};this.zlecenia=d.zlecenia||null;             /* ZLECENIA */
     this.zetony=d.zetony||0;this.rekordWyzwanie=d.rekordWyzwanie||0;   /* AUTOMAT */
+    this.saga=d.saga||{o:1,zlec:0};                                    /* SAGA */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -2578,6 +2598,35 @@ const ZNALEZISKA_PULA=[
   {id:'sznurowka',ikona:'🧵',nazwa:'Szczęśliwa sznurówka'},{id:'magnez',ikona:'🧂',nazwa:'Magnez z ekspresówki'},
   {id:'bidon',ikona:'🥤',nazwa:'Stary bidon'},{id:'agrafka',ikona:'📎',nazwa:'Agrafka z numeru'},
   {id:'kasztan',ikona:'🌰',nazwa:'Kasztan na szczęście'}];
+const SAGA=[null,                                                     /* SAGA „ZEGAREK LEGEND" — lancuch przygodowy: bez ogniwa N nie ruszysz N+1 */
+  {tyt:'PLOTKA U ZYZI',npc:'wiewiorka',
+   opis:'Zyzia przy ladzie ścisza głos: „Na przełęczy mieszka SMOK ISKRA. Zbiera porzucony sprzęt biegowy — a na dnie skarbca trzyma ZEGAREK LEGEND. Handluje tylko z prawdziwymi kupcami. Oddaj mieszkańcom 2 zlecenia, to dam ci moją starą mapę."',
+   war:'Oddaj 2 zlecenia (📜 u Zyzi)',spr:()=>(Biegus.saga.zlec||0)>=2,
+   nagr:'🗺️ Stara mapa Zyzi',
+   fin:'Zyzia wyciąga zwinięty rulon spod lady: „Mapa starych tras. Ja z niej wyrosłam. Ty dopiero zaczynasz."'},
+  {tyt:'ŻÓŁW CZYTA MAPĘ',npc:'zolw',
+   opis:'Żółw Maraton mruży oczy nad mapą: „Znam te szlaki. Zaniosę cię myślami, ale nogi muszą być twoje. Przynieś mi 3 magnezy — po setce kilometrów skorupa swoje waży — a nauczę cię ŻÓŁWIEGO RYTMU."',
+   war:'Przynieś 3× magnez (znaleziska z tras)',spr:()=>(Biegus.itemy['magnez']||0)>=3,koszt:{item:'magnez',ile:3},
+   nagr:'🐢 MOC: ŻÓŁWI RYTM — +1 serce na każdym etapie',
+   fin:'Żółw chowa magnez i kładzie ci łapę na skrzydle: „Rytm to nie tempo. Rytm to wracanie. Masz o jedno życie więcej — nie zmarnuj go na głupoty."'},
+  {tyt:'PRÓBA ORŁA',npc:'orzel',
+   opis:'Trener Orzeł patrzy z góry: „Smok gada tylko z mistrzami. Pokaż mi 12 gwiazdek etapów — perfekcyjne biegi, nie przypadki — a nauczę cię patrzeć jak drapieżnik."',
+   war:'Zdobądź 12 ⭐ gwiazdek etapów',spr:()=>Object.keys(Biegus.gwiazdki||{}).length>=12,
+   nagr:'🦅 MOC: SOKOLE OKO — pióra z sąsiednich pasów zawsze w zasięgu',
+   fin:'Orzeł kiwa głową — pierwszy raz bez krzyku: „Widzisz szeroko. Teraz smok cię przyjmie. Ale on nie chce piór, mały. On chce się BAWIĆ."'},
+  {tyt:'SMOK CHCE GRAĆ',npc:'wiewiorka',
+   opis:'Wieść niesie: Iskra oszalał na punkcie automatu BIEGAMY: WYZWANIE. „Przynieś mi 5 żetonów — mówi — a wpuszczę cię na Górę Sprzętu." Czas rozgrzać automat w studiu.',
+   war:'Zbierz 5 🎟️ żetonów z automatu',spr:()=>(Biegus.zetony||0)>=5,koszt:{zetony:5},
+   nagr:'🚪 Wstęp na Górę Sprzętu',
+   fin:'Smok przelicza żetony pazurem, chichocząc dymem: „Sto tysięcy punktów kiedyś zrobię... No dobra, ptaszku. Wchodź. Ale zegarka nie oddam ZA DARMO."'},
+  {tyt:'POJEDYNEK NA PRZEŁĘCZY',npc:'orzel',
+   opis:'Iskra rozkłada skrzydła nad przepaścią: „Zegarek Legend należał do ptaka, który pierwszy przebiegł maraton. Oddam go temu, kto pobiegnie STYLOWO. Etap na przełęczy, minimum 800 ✦ stylu. Pokaż mi sztukę, nie tylko nogi."',
+   war:'Etap w Przełęczy (25–32) z wynikiem ≥ 800 ✦',spr:()=>false,
+   nagr:'⌚ ZEGAREK LEGEND — na zawsze +10% piór z etapów',
+   fin:'Smok zdejmuje zegarek ze szczytu skarbca i zapina ci go na skrzydle. „Biegnij, Legendo. A ja... wracam do automatu." Wysoko na gałęzi Sroka Halina mruży oko. Ona też widziała ten blask.'},
+  {tyt:'LEGENDA BIEGNIE',npc:'wiewiorka',
+   opis:'Masz Zegarek Legend. Sroka Halina wie, że go masz. Ta historia jeszcze nie jest skończona…',
+   war:'(ciąg dalszy nastąpi)',spr:()=>false,nagr:'',fin:''}];
 const ZLECENIA_PULA=[                                                 /* ZLECENIA (Etap 1 projektu SWIAT): NPC zamawiaja surowce */
   {id:'z-kasztany',npc:'wiewiorka',item:'kasztan',cel:3,pior:90,
    tekst:'Kasztany na szczęście! Przynieś {cel} — sprzedaję je biegaczom przed startem, idą jak woda.',
@@ -2612,6 +2661,7 @@ const Zlecenia={
     if((Biegus.itemy[def.item]||0)<def.cel)return false;
     Biegus.itemy[def.item]-=def.cel;w.oddane=true;
     Biegus.portfelPior+=def.pior;Biegus.statystyki.piora+=def.pior;
+    Biegus.saga.zlec=(Biegus.saga.zlec||0)+1;                          /* SAGA: ogniwo 1 liczy oddane zlecenia */
     Misje.zdarzenie('zlecenie');Biegus.zapisz();
     return def;}};
 const BIEGUS_MOWI={
@@ -2901,6 +2951,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
+    mocSerce:false,mocOko:false,                                      /* SAGA: moce (stan wejsciowy symulacji) */
     flow:false,flowBank:0,bonusyG:null,styl:0,grab:false,sruba:0,grind:null,grindStart:0,
     stylLot:0,lotTriki:0,lotSeq:[],superKomba:0,grindTick:0,turboT:0,ostatniGrindKoniec:-9,   /* SUPER-KOMBA */
     wallT:0,wallStrona:0,_wallAcc:0,                                 /* FLOWWALL */
@@ -3123,7 +3174,7 @@ function krokSymulacji(s){
     }
     if(o.typ==='pioro'){
       if(!wStrefie)continue;
-      const zasieg=((s.boostery&&s.boostery.magnes)||czyFever(s))?1:0;   /* FLOW: fever zasysa piora z sasiednich pasow */
+      const zasieg=((s.boostery&&s.boostery.magnes)||czyFever(s)||s.mocOko)?1:0;   /* FLOW+SAGA: fever/magnes/SOKOLE OKO */
       if(Math.abs(o.pas-s.pas)>zasieg)continue;
       if(zasieg===0&&s.pasT<0.65)continue;
       o.trafione=true;
@@ -5296,6 +5347,28 @@ const Gra=(()=>{
   el('mapaTor').innerHTML=KRAINY_MAPA.map(k=>
     '<i style="width:'+((k.do-k.od)/6)+'%;background:'+k.kolor+'"></i>').join('');
   const PEJZAZE={1:'kraina1-park',2:'kraina2-las',3:'kraina3-miasto',4:'kraina4-gory'};
+  function sagaMoc(n){return ((Biegus.saga&&Biegus.saga.o)||1)>n;}    /* SAGA: moc z ogniwa n aktywna po jego ukonczeniu */
+  function sagaProbuj(){                                              /* SAGA: probuje domknac biezace ogniwo */
+    const o=Biegus.saga.o||1,og=SAGA[o];
+    if(!og||!og.spr())return false;
+    if(og.koszt){                                                     /* koszty schodza dopiero przy domknieciu */
+      if(og.koszt.item)Biegus.itemy[og.koszt.item]-=og.koszt.ile;
+      if(og.koszt.zetony)Biegus.zetony-=og.koszt.zetony;}
+    Biegus.saga.o=o+1;Biegus.zapisz();
+    Dzwiek.medal&&Dzwiek.medal();deszczPior();
+    toast('<b>SAGA: '+og.tyt+' ✓</b><br>'+og.fin+(og.nagr?'<br><b>'+og.nagr+'</b>':''));
+    return true;}
+  function odswiezSaga(){                                             /* SAGA: sekcja PRZYGODA w mapie */
+    const b=el('mapaSaga');if(!b)return;
+    const akt=Biegus.saga.o||1;
+    b.innerHTML=SAGA.map((og,i)=>{if(!og)return'';
+      const stan=i<akt?'✓':i===akt?'⏳':'🔒';
+      const otw=i===akt;
+      return '<div class="sklepItem" style="'+(i>akt?'opacity:.45;':'')+'">'+
+        '<span class="ik">'+stan+'</span><div class="info"><b>'+og.tyt+'</b>'+
+        (otw?'<span>'+og.opis+'<br><b>Cel:</b> '+og.war+'</span>':i<akt?'<span>'+og.nagr+'</span>':'<span>???</span>')+
+        '</div>'+(otw&&og.spr&&og.spr()?'<button id="btnSagaOddaj">Domknij</button>':'')+'</div>';}).join('');
+    const bo=el('btnSagaOddaj');if(bo)bo.onclick=()=>{sagaProbuj();odswiezSaga();};}
   function goracyEtap(){                                             /* MAPA: goracy punkt dnia — deterministyczny po dacie */
     const d=new Date().toISOString().slice(0,10);let h=0;
     for(const c of d)h=(h*33+c.charCodeAt(0))>>>0;
@@ -5338,6 +5411,7 @@ const Gra=(()=>{
     el('mapaKm').textContent=km.toFixed(1)+' / 600 km · '+
       (km>=600?'WIELKIE IGRZYSKA! 🏟️':'do startu Igrzysk: '+(600-km).toFixed(1)+' km');
     odswiezSwiat();                                                   /* MAPA: plansza + pinezki + regiony */
+    odswiezSaga();                                                    /* SAGA */
     el('mapaKrainy').innerHTML=KRAINY_MAPA.map(k=>{
       let post='';
       if(k.etapy){let n=0;for(let e=k.etapy[0];e<=k.etapy[1];e++)
@@ -5487,6 +5561,8 @@ const Gra=(()=>{
       const btM=Biegus.ubrane&&Biegus.ubrane.buty;
       sym.gripKaluza=!!btM&&btM!=='buty-startowe';       // MOC: każde buty > startowe
       sym.drugiOddech=Biegus.zalozone.has('plecak');     // MOC: plecak
+      if(sagaMoc(2)){sym.mocSerce=true;sym.serca++;}     // SAGA: ZOLWI RYTM (+1 serce)
+      sym.mocOko=sagaMoc(3);                             // SAGA: SOKOLE OKO
     sym.kombaLvl=Biegus.ukonczone.size;                /* KOMBA-PROG: poziom odblokowania super komb */
       if(Biegus.ubrane.bluza==='bluza-neon')sym.flowMnoznik=0.85;   // MOC: neon
       if(Biegus.ubrane.glowa==='korona-legendy'){sym.serca++;sym.sercaMax=sym.serca;
@@ -5524,6 +5600,8 @@ const Gra=(()=>{
     const moce=[];                                                    /* MOCE garderoby — widocznosc */
     if(sym.bonusyG&&sym.bonusyG.bloto)moce.push('👟 grip kałuż');
     if(sym.drugiOddech)moce.push('🎒 drugi oddech');
+    if(sym.mocSerce)moce.push('🐢 żółwi rytm');
+    if(sym.mocOko)moce.push('🦅 sokole oko');
     if((sym.sercaMax||CFG.SERCA)>CFG.SERCA)moce.push('👑 +1 serce');
     if(sym.flowMnoznik)moce.push('🧥 flow+');
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
@@ -5666,8 +5744,14 @@ const Gra=(()=>{
     konfetti();Biegus.poEtapie(sym.piora);
     sym.zebrane.forEach(z=>{Biegus.kolekcja.add(z.id);
       Biegus.itemy[z.id]=(Biegus.itemy[z.id]||0)+1;});                /* ZLECENIA: znalezisko = surowiec */
+    if(sagaMoc(5)&&sym.tryb==='etap'){                                /* SAGA: ZEGAREK LEGEND = +10% pior */
+      const bon=Math.round(sym.piora*0.1);
+      if(bon>0){sym.piora+=bon;toast('⌚ Zegarek Legend: <b>+'+bon+' 🪶</b> (10%)');}}
     Biegus.statystyki.piora+=sym.piora;
     Biegus.portfelPior+=sym.piora;
+    if((Biegus.saga.o||1)===5&&sym.tryb==='etap'&&biezacyEtap>=25&&(sym.styl||0)>=800){   /* SAGA: pojedynek ze smokiem */
+      Biegus.saga.o=6;Biegus.zapisz();Dzwiek.medal&&Dzwiek.medal();deszczPior();
+      toast('🐲 <b>SAGA: POJEDYNEK WYGRANY!</b><br>'+SAGA[5].fin+'<br><b>'+SAGA[5].nagr+'</b>');}
     Biegus.statystyki.uniki+=(sym.ominiete||0);
     if(sym.ominiete)Dzienne.zdarzenie('unik',sym.ominiete);
     Biegus.statystyki.rekordSerii=Math.max(Biegus.statystyki.rekordSerii,sym.maxCombo);
@@ -5989,7 +6073,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'8.5',
+  wersja:'8.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
