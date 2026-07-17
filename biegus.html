@@ -10,11 +10,24 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.2 (Slug-fix)</title>
+<title>Bieguś — Droga na Igrzyska · v9.3 (Dary)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.2 „SLUG-FIX" (sanity cc: kanon
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.3 „DARY" (sprint 2 projektu
+     EWOLUCJA+MOST: M1 — typ realnego treningu -> dar na 24 h)
+     · M1: sync czyta training_type (+logged_at); dar z NAJNOWSZEGO
+       biegu batcha: interwaly/tempo/start->ZAR (flow szybciej,
+       max z neonem), wybieganie->WYTRWALOSC (+1 serce),
+       spokojne/regeneracja->SPOKOJ (okno NA STYK 0.78->0.70),
+       wzmacniajacy/sila/podbiegi->SPREZYNA (skok x1.15 sym+render)
+     · normalizacja typu (lowercase+aliasy, footgun cc); Zastepczy
+       = nie-bieg = brak daru; dar TYLKO w etapach (FAIR), stan
+       wejsciowy symulacji (kanon rng); persist {id,do} w save
+     · toast edukacyjny przy sync ("po Twoich interwalach...") +
+       dar na liscie mocy przy starcie etapu — gra uczy, ze rozne
+       treningi daja rozne rzeczy
+     v9.2 „SLUG-FIX" (sanity cc: kanon
      mentora to 'blysk', nie 'zajac-blysk')
      · SLUG-fix: MENTOR_PRZEMIANY.mistrz (moj blad v9.1 — skopiowany
        z pre-existing bledu rywala finalu) + rywal finalu: oba na
@@ -1645,6 +1658,7 @@ const Biegus={
   zetony:0,rekordWyzwanie:0,                                          /* AUTOMAT: waluta automatu (NIE piora!) */
   saga:{o:1,zlec:0},                                                  /* SAGA: ogniwo lancucha + licznik zlecen */
   _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
+  dar:null,                                                           /* M1 DARY: {id,do} */
   statystyki:{piora:0,uniki:0,rekordSerii:0},
   portfelPior:0,
   garderoba:new Set(),ubrane:{},
@@ -1663,6 +1677,7 @@ const Biegus={
     zetony:this.zetony||0,rekordWyzwanie:this.rekordWyzwanie||0,      /* AUTOMAT */
     saga:this.saga||{o:1,zlec:0},                                     /* SAGA */
     przemiana:this._przemiana||null,                                  /* PRZEMIANA */
+    dar:this.dar||null,                                               /* M1 DARY */
     ukonczone:[...this.ukonczone],statystyki:this.statystyki,
     portfelPior:this.portfelPior,garderoba:[...this.garderoba],ubrane:this.ubrane,
     boostery:this.boostery,bonusTreningu:this.bonusTreningu,
@@ -1680,6 +1695,7 @@ const Biegus={
     this.zetony=d.zetony||0;this.rekordWyzwanie=d.rekordWyzwanie||0;   /* AUTOMAT */
     this.saga=d.saga||{o:1,zlec:0};                                    /* SAGA */
     this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
+    this.dar=d.dar||null;                                              /* M1 DARY */
     this.ukonczone=new Set(d.ukonczone||[]);
     Object.assign(this.statystyki,d.statystyki||{});
     this.portfelPior=d.portfelPior||0;
@@ -1724,6 +1740,18 @@ const Biegus={
 };
 Biegus.wczytaj();  /* wczytaj-po-Biegusiu (TDZ fix) */
 sprawdzBonusZegarka();                           /* ZEGAREK-auto */
+const DARY={                                                          /* M1 DARY: typ realnego treningu -> dar na 24h (edukacja trenerska w mechanice) */
+  zar:       {n:'ŻAR',        e:'🔥', po:'interwałach',        opis:'flow ładuje się szybciej'},
+  wytrwalosc:{n:'WYTRWAŁOŚĆ', e:'🐾', po:'długim wybieganiu',  opis:'+1 serce'},
+  spokoj:    {n:'SPOKÓJ',     e:'🌿', po:'spokojnym bieganiu', opis:'szersze okno NA STYK'},
+  sprezyna:  {n:'SPRĘŻYNA',   e:'🦵', po:'wzmacnianiu',        opis:'wyższy skok'}};
+function darZTypu(t){                                                 /* M1: normalizacja (lowercase + aliasy; Zastepczy = nie-bieg -> brak daru) */
+  const x=String(t||'').toLowerCase().replace('bieg ','').trim();
+  if(/interwa|tempo|start/.test(x))return 'zar';
+  if(/wybieganie|dlugi|długi/.test(x))return 'wytrwalosc';
+  if(/spokoj|regenera|rozbieganie/.test(x))return 'spokoj';
+  if(/wzmacnia|sila|siła|podbieg/.test(x))return 'sprezyna';
+  return null;}
 const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; ten sam origin, sesja z localStorage */
   URL:'https://afqojgkaveykxbltxzwm.supabase.co',
   KEY:'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY',
@@ -1755,7 +1783,7 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
         body:JSON.stringify({athlete_id:aid,ostatni_odbior:od})});
       if(!ins.ok)return;}
     else od=m[0].ostatni_odbior;
-    const logs=await this.czytaj(s.tok,'training_logs?select=distance_km'+
+    const logs=await this.czytaj(s.tok,'training_logs?select=distance_km,training_type,logged_at'+   /* M1 DARY */
       '&athlete_id=eq.'+aid+'&logged_at=gt.'+encodeURIComponent(od)+
       '&training_type=not.like.__badge__*');
     const km=logs.reduce((a,l)=>a+(+l.distance_km||0),0);
@@ -1768,6 +1796,11 @@ const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; te
     Biegus.portfelPior+=piora;
     const naj=logs.reduce((a,l)=>(+(l&&l.distance_km)||0)>(+(a&&a.distance_km)||0)?l:a,null);   /* PRZEMIANA E4: swiadek */
     Biegus.trening(Math.min(km,20),naj);        // karmienie z capem zdrowia (najedzenie/wiez/bonus)
+    const ost=logs.reduce((a,l)=>(l&&l.logged_at)>(a&&a.logged_at||'')?l:a,null);   /* M1 DARY: najnowszy bieg ksztaltuje jutro */
+    const dId=ost&&darZTypu(ost.training_type);
+    if(dId){Biegus.dar={id:dId,do:Date.now()+86400e3};
+      const D=DARY[dId];
+      Gra?.toast?.(D.e+' <b>DAR TRENINGU: '+D.n+'</b> — po Twoich '+D.po+'.<br>'+D.opis+' przez 24 h (tylko etapy).');}
     Biegus.zapisz&&Biegus.zapisz();
     Gra?.toast?.('🌉 <b>MOST:</b> +'+piora+' 🪶 za '+km.toFixed(1)+' km realnych treningów — jesteśmy obok!');
     Dzwiek.medal&&Dzwiek.medal();
@@ -3036,7 +3069,7 @@ function dodajStyl(s,ile,nazwa){                 /* STYL: w locie -> BANK (pendi
   if(s.tryb==='zawody')return;
   const wLocie=s.skokT>=0;
   const chain=wLocie?(1+0.5*(s.lotTriki||0)):1;
-  const naStyk=wLocie&&s.skokCzas>0&&(s.skokT/s.skokCzas)>0.78;      /* FLOW: trik tuz przed ladowaniem = odwaga x1.5 */
+  const naStyk=wLocie&&s.skokCzas>0&&(s.skokT/s.skokCzas)>(s.darStyk?0.70:0.78);      /* FLOW+DARY: SPOKOJ poszerza okno odwagi */
   const p=Math.round(ile*(1+Math.min(s.combo,30)/20)*chain*(s.gStyl||1)*(naStyk?1.5:1));  /* SKLEP-2.0: opaska stylu */
   if(wLocie){s.stylLot=(s.stylLot||0)+p;s.lotTriki=(s.lotTriki||0)+1;}
   else s.styl=(s.styl||0)+p;
@@ -3288,7 +3321,7 @@ function krokSymulacji(s){
       if(o.typ==='wyspa'&&s.skokT>=0)continue;                      /* PLANSZE-fix: zywoplot 0.9 m nie bije W LOCIE — skok na srodek = ladowanie na krawedzi = grind (bylo: hit w powietrzu, grind nieosiagalny) */
       if(o.pas!==s.pas||s.pasT<0.65)continue;
       const unik=OBIEKTY[o.typ].unik;
-      const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS:0;
+      const wysY=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS*(s.darSkok||1):0;   /* DARY: SPREZYNA */
       const wPow=s.skokT>=0&&(wysY>=CFG.PROG_PRZESKOKU||s.skokT<0.15);
       if(unik==='ziemia'){                                          /* NEMEZIS: sroka bije W LOCIE — na ziemi mija */
         if(s.skokT<0){if(!o.uniknieto)udanyUnik(s,o);continue;}}
@@ -4461,7 +4494,7 @@ const R3=(()=>{
       sk.rotation.z=(j?-1:1)*Math.sin(czasReal*7+i)*0.5));
 
     const x=pozycjaPasa(s);let y=0;
-    if(s.skokT>=0)y=Math.sin((s.skokT/s.skokCzas)*Math.PI)*CFG.SKOK_WYS;
+    if(s.skokT>=0)y=Math.sin((s.skokT/s.skokCzas)*Math.PI)*CFG.SKOK_WYS*(s.darSkok||1);   /* DARY: SPREZYNA (render spojny z sym) */
     if(s.grind)y=OBIEKTY[s.grind.typ].wysokosc*Math.min(1,(s.t-s.grindStart)/0.12);  /* GRIND: plynne wejscie */
     const wSlizgu=s.slizgT>=0;
     const stanB=Biegus.stan();
@@ -5671,6 +5704,11 @@ const Gra=(()=>{
       sym.drugiOddech=Biegus.zalozone.has('plecak');     // MOC: plecak
       if(sagaMoc(2)){sym.mocSerce=true;sym.serca++;}     // SAGA: ZOLWI RYTM (+1 serce)
       sym.mocOko=sagaMoc(3);                             // SAGA: SOKOLE OKO
+      const dr=(Biegus.dar&&Date.now()<Biegus.dar.do)?Biegus.dar.id:null;   // M1 DARY (24h)
+      if(dr==='zar')sym.flowMnoznik=Math.max(sym.flowMnoznik||0.5,0.75);    // ZAR: flow laduje sie szybciej (neon 0.85 nie cierpi)
+      if(dr==='wytrwalosc')sym.serca++;                                     // WYTRWALOSC: +1 serce
+      if(dr==='spokoj')sym.darStyk=true;                                    // SPOKOJ: szersze okno NA STYK
+      if(dr==='sprezyna')sym.darSkok=1.15;                                  // SPREZYNA: wyzszy skok
       if(Biegus.ubrane.bluza==='bluza-neon')sym.flowMnoznik=0.85;   // MOC: neon
       if(Biegus.ubrane.glowa==='korona-legendy'){sym.serca++;sym.sercaMax=sym.serca;
         toast('👑 <b>Korona Legendy:</b> +1 serce na start!');}
@@ -5711,6 +5749,8 @@ const Gra=(()=>{
     if(sym.mocOko)moce.push('🦅 sokole oko');
     if((sym.sercaMax||CFG.SERCA)>CFG.SERCA)moce.push('👑 +1 serce');
     if(sym.flowMnoznik)moce.push('🧥 flow+');
+    {const dd=(Biegus.dar&&Date.now()<Biegus.dar.do)?DARY[Biegus.dar.id]:null;   /* M1 DARY */
+     if(dd)moce.push(dd.e+' '+dd.n+' (dar treningu)');}
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
     if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
     if(sym.gGrind)moce.push('👟 grind +40% ✦');                       /* SKLEP-2.0 */
@@ -6181,7 +6221,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.2',
+  wersja:'9.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
