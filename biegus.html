@@ -10,11 +10,18 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v7.8 (Winiety)</title>
+<title>Bieguś — Droga na Igrzyska · v7.9 (Breakdance)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v7.8 „WINIETY" (wiring p18C przed
+     BIEGUŚ — DROGA NA IGRZYSKA · v7.9 „BREAKDANCE" (zgloszenie:
+     wysepka rozstajow wkurza, zero trikow — "niech daje breakdance")
+     · BREAKDANCE: slizg w oknie rozstajow (rozstajeKit t..t+durS)
+       = trik +130 + combo + windmill-spin (render klockowy;
+       GLB dostaje punkty bez spinu — best effort) + iskry + shake;
+       hint raz przy znaku; wpis w Ksiedze Trikow — wysepka z kary
+       staje sie okazja
+     v7.8 „WINIETY" (wiring p18C przed
      plikami — CSS-stack fallback)
      · WINIETY: meta laduje winieta-akt<kraina>.webp jako gorna
        warstwe tla; plansza aktu pod spodem = naturalny fallback
@@ -2738,6 +2745,7 @@ function nowaSymulacja(skrypt,tryb='etap'){
     wallT:0,wallStrona:0,_wallAcc:0,                                 /* FLOWWALL */
     salto2:false,grab2:false,srubyWLocie:0,                          /* TONY */
     winowajca:null,winowajcaT:0,                                     /* NEMEZIS */
+    break:false,                                                     /* BREAKDANCE */
     zebrane:[],aktywne:[],nastepny:0,zdarzenia:[]};
 }
 function czyFever(s){return s.combo>=15||(s.turboT||0)>0;}   /* FLOW: JEDYNY chokepoint warunku fevera (bylo 4 kopie) */
@@ -2841,7 +2849,12 @@ function probujAkcje(s,a){
     if(s.skokT>=0&&s.grab&&!s.grab2){s.grab2=true;                    /* TONY: MELON (drugi grab) */
       (s.lotSeq=s.lotSeq||[]).push('grab2');
       dodajStyl(s,90,'MELON');return true;}
-    if(s.slizgT<0&&s.skokT<0){s.slizgT=0;s.zdarzenia.push({typ:'slizg'});return true;}return false;}
+    if(s.slizgT<0&&s.skokT<0){s.slizgT=0;
+      s.break=s.aktywne.some(o=>o.typ==='rozstajeKit'&&s.t>=o.t-0.3&&s.t<=o.t+(o.durS||5));   /* BREAKDANCE: okno rozstajow */
+      if(s.break){dodajStyl(s,130,'BREAKDANCE');
+        s.combo++;s.maxCombo=Math.max(s.maxCombo,s.combo);
+        s.zdarzenia.push({typ:'breakdance'});}
+      s.zdarzenia.push({typ:'slizg'});return true;}return false;}
   return true;}
 function udanyUnik(s,o){
   o.uniknieto=true;
@@ -4191,6 +4204,8 @@ const R3=(()=>{
     } else {
       /* — Bieguś KLOCKOWY (fallback / wybór gracza) — */
       biegus.rotation.x=wSlizgu?1.15:(s.skokT>=0?-0.25:-0.08+Math.sin(czasReal*tempo*2)*0.025);
+      if(wSlizgu&&s.break)biegus.rotation.y+=0.45;                   /* BREAKDANCE: windmill */
+      else biegus.rotation.y*=0.8;                                   /* powrot po spinie */
       biegus.scale.y=wSlizgu?0.55:1;
       biegus.userData.nogi.forEach((n,i)=>n.rotation.x=s.skokT>=0?0.9:Math.sin(czasReal*tempo+i*Math.PI)*0.85);
       biegus.userData.skrz.forEach((sk,i)=>sk.rotation.z=s.skokT>=0?(i?-0.9:0.9):(i?-0.12:0.12)+Math.sin(czasReal*tempo+(i?Math.PI:0))*0.24);
@@ -4403,6 +4418,8 @@ const R3=(()=>{
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
     if(zd.typ==='mapka')burst(poz,0xead9ae,14,2.4,2.6,0.075);        /* HOTFIX-scope */
     if(zd.typ==='turbo'){shake=Math.max(shake,0.18);burst(poz,0xf2c14e,12,2.6,2.2,0.07);}
+    if(zd.typ==='breakdance'){shake=Math.max(shake,0.12);            /* BREAKDANCE: iskry */
+      burst(aktor.position.clone(),0xffd04a,12,2.5,1.6,0.06);}
     if(zd.typ==='flowWall'){shake=Math.max(shake,zd.akcja==='odbicie'?0.22:0.14);   /* FLOWWALL */
       burst(new THREE.Vector3((zd.strona||1)*4.4,1.2,CFG.GRACZ_Z),0xffc36e,zd.akcja==='odbicie'?16:10,3,2.4,0.07);}
     if(zd.typ==='superKombo'){shake=Math.max(shake,0.32);             /* SUPER-KOMBA: podwojny burst */
@@ -4629,7 +4646,7 @@ const Gra=(()=>{
     const B=[['tap','SKOK','—'],['tap w locie','SALTO','+100'],['3. tap w locie','PODWÓJNE SALTO','+220'],
       ['swipe ⬇ w locie','GRAB · w salcie TORNADO','+60 / +150'],['2. swipe ⬇','MELON','+90'],
       ['swipe ⬅/➡ w locie','ŚRUBA → 720 → 1080','+40/90/160'],['krawędź we FLOW','WALLRUN · w locie ODBICIE','✦ / +120'],
-      ['trik tuż nad ziemią','NA STYK!','×1.5'],['lądowanie na murku','GRIND — tap wyskok','✦ co sekundę']];
+      ['trik tuż nad ziemią','NA STYK!','×1.5'],['lądowanie na murku','GRIND — tap wyskok','✦ co sekundę'],['ślizg na rozstajach','BREAKDANCE','+130']];   /* BREAKDANCE */
     el('ksiegaBaza').innerHTML=B.map(w=>'<div><b>'+w[1]+'</b> — '+w[0]+' <span style="opacity:.7">'+w[2]+'</span></div>').join('');
     const uk=Biegus.ukonczone.size;
     el('ksiegaKomba').innerHTML=SUPER_KOMBA.slice().sort((a,b)=>(a.od||0)-(b.od||0)).map(k=>{
@@ -5261,7 +5278,9 @@ const Gra=(()=>{
       else if(biezacyEtap>=5&&sym.skokT>=0&&(sym.lotTriki||0)>0)Hinty.raz('bank','Ląduj CZYSTO = bank ✦. Trafienie w locie = BAIL!');
       if(sym.grind)Hinty.raz('grind','GRIND! Tap = wyskok, swipe w bok = zeskok. Combo rośnie!');
       if(czyFever(sym)&&(sym.pas===0||sym.pas===2)&&sym.skokT<0&&!(sym.wallT>0))
-        Hinty.raz('flowwall','FLOW! Swipe w krawędź drogi — ściana światła. Biegnij po niej, w locie się odbijaj!');}
+        Hinty.raz('flowwall','FLOW! Swipe w krawędź drogi — ściana światła. Biegnij po niej, w locie się odbijaj!');
+      if(sym.aktywne&&sym.aktywne.some(o=>o.typ==='rozstajeKit'&&sym.t>=o.t-2.4&&sym.t<=o.t))
+        Hinty.raz('breakdance','ROZSTAJE! Ślizg na odnodze = BREAKDANCE +130 ✦');}
     el('serca').innerHTML=Array.from({length:(sym.sercaMax||CFG.SERCA)},(_,i)=>
       `<span class="${i<sym.serca?'pelne':'puste'}">♥</span>`).join('');
     el('pasekWypelnienie').style.width=(Math.min(1,sym.t/CFG.ETAP_CZAS)*100)+'%';
@@ -5566,6 +5585,7 @@ const Gra=(()=>{
       R3.efekt(zd);return;}                        /* HOTFIX-scope: burst zyje w R3, nie tu */
     if(zd.typ==='turbo'){popup('WIATR W PLECY!',true);Dzwiek.gwizd&&Dzwiek.gwizd();
       R3.efekt(zd);return;}
+    if(zd.typ==='breakdance'){R3.efekt(zd);Dzwiek.combo(18);return;}  /* BREAKDANCE */
     if(zd.typ==='flowWall'){                                          /* FLOWWALL: UI */
       if(zd.akcja==='wallrun'){popup('FLOW WALL!',true);Dzwiek.combo(22);}
       R3.efekt(zd);return;}
@@ -5670,7 +5690,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'7.8',
+  wersja:'7.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
