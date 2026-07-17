@@ -10,11 +10,18 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v9.1 (Przemiana)</title>
+<title>Bieguś — Droga na Igrzyska · v9.2 (Slug-fix)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v9.1 „PRZEMIANA" (sprint 1 projektu
+     BIEGUŚ — DROGA NA IGRZYSKA · v9.2 „SLUG-FIX" (sanity cc: kanon
+     mentora to 'blysk', nie 'zajac-blysk')
+     · SLUG-fix: MENTOR_PRZEMIANY.mistrz (moj blad v9.1 — skopiowany
+       z pre-existing bledu rywala finalu) + rywal finalu: oba na
+       'blysk'; po deployu cc kasuje alias mentor-zajac-blysk.webp
+     · lekcja pipeline: istniejacy kod != kanon — slugi weryfikowac
+       w REJESTRZE, nie w uzyciach
+     v9.1 „PRZEMIANA" (sprint 1 projektu
      EWOLUCJA+MOST: E1 ceremonia, E2 zapowiedz, E4 swiadek)
      · E1 CEREMONIA: ewolucja = pelnoekranowa karta zamiast toastu —
        stary portret -> rozblysk -> nowy, mentor krainy prowadzi
@@ -4957,7 +4964,7 @@ const Gra=(()=>{
   const MENTOR_PRZEMIANY={                                            /* PRZEMIANA E1: kto prowadzi ceremonie */
     mlody:['zolw-maraton','🐢','Żółw Maraton','„Sto maratonów widziałem. Ale pierwszą przemianę widzi się tylko raz. Rośnij, mały."'],
     dorosly:['trener-orzel','🦅','Trener Orzeł','„Technika! Oddech! I serce. Masz już wszystkie trzy. Od dziś biegasz jak dorosły."'],
-    mistrz:['zajac-blysk','🐇','Zając Błysk','„Ścigałem się z tobą od parku. Dziś pierwszy raz nie wiem, czy bym wygrał. Mistrzu."'],
+    mistrz:['blysk','🐇','Zając Błysk','„Ścigałem się z tobą od parku. Dziś pierwszy raz nie wiem, czy bym wygrał. Mistrzu."'],
     legenda:[null,'🕊️','Cały Klucz','„Wróciliśmy z południa. Wieść niesie się nad morzami: ptak, który biega, staje na starcie Wielkich Igrzysk. Zawsze byliśmy z ciebie dumni."']};
   function pokazPrzemiane(){                                           /* PRZEMIANA E1: ceremonia pelnoekranowa */
     const pz=Biegus._przemiana;if(!pz)return;
@@ -5652,7 +5659,7 @@ const Gra=(()=>{
     sym=nowaSymulacja(generujEtap(n,seed,kraina),trybGry);
     sym.spotkania=(trybGry==='etap'&&SPOTKANIA['k'+kraina+'-e'+n])||null;
     if(trybGry==='final'){
-      sym.skrypt.ev.push({t:1.5,pas:1,typ:'rywal',mentorId:'zajac-blysk',strona:1});
+      sym.skrypt.ev.push({t:1.5,pas:1,typ:'rywal',mentorId:'blysk',strona:1});   /* SLUG-fix: rywal finalu — pre-existing */
       sym.skrypt.ev.sort((a,b)=>a.t-b.t);}
     sym.spotIdx=0;
     sym.kombaLvl=Biegus.ukonczone.size;                /* KOMBA-PROG: wiedza gracza — WSZYSTKIE tryby (R-A: bylo tylko etap, gasilo super komba w Zawodach) */
@@ -6174,7 +6181,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'9.1',
+  wersja:'9.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
