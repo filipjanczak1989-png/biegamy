@@ -10,11 +10,31 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.6 (Hotfix TDZ bloom)</title>
+<title>Bieguś — Droga na Igrzyska · v10.8 (Trasy klasa I)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.6 „HOTFIX TDZ BLOOM" (pilny)
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.8 „TRASY KLASA I" (W1-W5 z
+     mega-zwiadu; projekt detali T1-T4 w osobnym dokumencie)
+     · W1 WIDOCZNOSC: fillLight 0.55->0.95/8 m — bohater czytelny
+       pod dachem marketu/peronu i w kazdej ciemnej scenie
+     · W2 belki azurowe JASNE (0xd6d0c2/0x8a93a8) — kreska na
+       niebie zamiast ciemnej kraty nad glowa
+     · W3 TWARDY START: taryfa tempa e1-e4 -> [1,.97,.99,1,1]
+     · W4 spady od e3 (bylo od e5) — niebo pracuje niemal od startu
+     · W5 krok generatora od 1.05 s (bylo 1.2) — gesto od gwizdka
+     v10.7 „SWIATLO I POWIETRZE"
+     (zgloszenia gracza nr 1: "daszki nadal wkurzaja" + "swiatlo
+     czasem zbyt ostre")
+     · DACHY AZUROWE (market+dworzec): plyta ze swietlikami OUT —
+       belki co 2.6-2.8 m (y 3.7-3.8), miedzy nimi NIEBO; neon-listwy
+       przeniesione na belki, swietlowki out, slupy peronu wyzsze.
+       Diagnoza: kazda PLYTA nad glowa przy kamerze z gory ciemni
+       pol ekranu — swietliki (v9.7) byly polsrodkiem
+     · BLOOM STONOWANY: baza .5->.38, prog .82->.85, fever +.18,
+       napor +.1, ZLOTA GODZINA x0.8 — swieci, nie przepala
+     · FLASHE EKRANU przyciete .95/.85 -> .6/.5 (z bloomem razily)
+     v10.6 „HOTFIX TDZ BLOOM" (pilny)
      · Uncaught ReferenceError: composer before initialization @fit()
        — fit() wolane przy inicie R3 uzywalo composer, a deklaracja
        let stala 400 linii nizej (po zaladujPremium). Deklaracja
@@ -3021,7 +3041,7 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     const rel=((nrEtapu-1)%8)+1;
     const dostepne=typyDlaEtapu(rel,kraina);
     while(t<koniec){
-      t+=lerp(1.2,0.52,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   /* TRUDNOSC: gestosc +15% (bylo 1.35..0.62) — walidator dalej pilnuje uczciwosci */
+      t+=lerp(1.05,0.52,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   /* TRASY-KLASA W5: start 1.2->1.05 — gesto od gwizdka (walidator pilnuje) */
       if(t>=koniec)break;
       const typ=losujTyp(rng,t,dostepne),pas=losujPas(rng,t,ev,ostatni);
       if(pas===-1)continue;
@@ -3260,7 +3280,7 @@ function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, 
 function nowaSymulacja(skrypt,tryb='etap'){
   return{skrypt,tryb,t:0,stan:'bieg',
     predkoscBaza:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
-      *(skrypt.etap<=4?[1,0.94,0.96,0.98,1][skrypt.etap]:1),   /* TEMPO: taryfa ulgowa e1-e4 skrocona (bylo 86/90/94/97%) */
+      *(skrypt.etap<=4?[1,0.97,0.99,1,1][skrypt.etap]:1),   /* TRASY-KLASA W3: twardy start — taryfa niemal out (bylo 94/96/98/100) */
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
     serca:CFG.SERCA,hity:0,piora:0,combo:0,maxCombo:0,boostery:null,bonusPior:false,
@@ -3395,7 +3415,7 @@ function krokSymulacji(s){
     if(s.wallT<=0){s.wallT=0;s.zdarzenia.push({typ:'flowWall',akcja:'zejscie',strona:s.wallStrona});}}
   s.predkosc=s.predkoscBaza*(1+CFG.PRZYSPIESZENIE*s.t);            // PĘD: bieżąca prędkość
   /* — CZYNNIK HUGO: spady z nieba (tylko etapy, od e5) — */
-  if(s.tryb==='etap'&&s.skrypt.etap>4&&s.stan==='bieg'){
+  if(s.tryb==='etap'&&s.skrypt.etap>2&&s.stan==='bieg'){             /* TRASY-KLASA W4: spady od e3 (bylo e5) */
     if(s.spadNastepny===undefined){const rs=rngZSeed(s.skrypt.seed+'#spady');   /* AUDYT B4: spady z SEEDA — ten sam etap = te same spady (kanon rng domkniety) */
       s._rngSpad=rs;s.spadNastepny=7+rs()*4;s.spadyLeft=3+(rs()<0.5?1:0);}
     if(s.spadyLeft>0&&s.t>=s.spadNastepny){
@@ -3709,7 +3729,7 @@ const R3=(()=>{
   rim.position.set(0,9,16);scena.add(rim);
   const feverLight=new THREE.PointLight(0xffc36e,1.5,11);             /* FLOW-GFX: zlote swiatlo fevera na graczu */
   feverLight.visible=false;scena.add(feverLight);
-  const fillLight=new THREE.PointLight(0xfff4e0,0.55,7);              /* ARTPASS: character light — bohater NIGDY nie jest czarny (dach marketu/peronu k3) */
+  const fillLight=new THREE.PointLight(0xfff4e0,0.95,8);              /* TRASY-KLASA W1: 0.55->0.95 — bohater czytelny pod dachem (zgloszenie gracza nr 1) */
   scena.add(fillLight);
   const flowWall=new THREE.Mesh(new THREE.PlaneGeometry(3.2,2.1),    /* FLOWWALL: panel swiatla przy krawedzi */
     new THREE.MeshBasicMaterial({color:0xffc36e,transparent:true,opacity:0.3,side:THREE.DoubleSide,
@@ -4094,7 +4114,7 @@ const R3=(()=>{
     if(!await zapewnijBloom()){console.log('[DROGA] BLOOM niedostepny (CDN) — render klasyczny');return;}
     composer=new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(scena,kamera));
-    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.5,0.5,0.82);
+    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.38,0.5,0.85);   /* G2-ton: bylo .5/.82 — przepalalo (zgloszenie: swiatlo zbyt ostre) */
     composer.addPass(bloomPass);
     composer.setSize(innerWidth,innerHeight);
     bloomOn=true;console.log('[DROGA] BLOOM aktywny');
@@ -4579,16 +4599,10 @@ const R3=(()=>{
             g.add(klocek(0.34,0.3,0.34,
               [0xd96a6a,0xe8b34a,0x2a63b8,0x3aa04a,0xc78ad4,0xf0eee2][(pz*3+px+(z|0))%6],
               x*0.75,0.5+pz*0.62,-z+px*0.5-0.5));}});
-      const sufit=new THREE.Mesh(new THREE.BoxGeometry(8.9,0.2,dl),
-        new THREE.MeshLambertMaterial({color:0xb8b2a6,transparent:true,opacity:0.92}));
-      sufit.position.set(0,3.4,-dl/2);g.add(sufit);
-      for(let z=2;z<dl-1;z+=4){const sw=new THREE.Mesh(new THREE.PlaneGeometry(6.4,1.6),   /* PLANSZE-2: SWIETLIKI — rytm swiatlo/cien (zgloszenie: zadaszenie wnerwia) */
-        new THREE.MeshBasicMaterial({color:0xcfe4f6,transparent:true,opacity:0.85,side:THREE.DoubleSide}));
-        sw.rotation.x=Math.PI/2;sw.position.set(0,3.28,-z);g.add(sw);}
+      for(let z=1;z<dl;z+=2.6)g.add(klocek(8.9,0.16,0.55,0xd6d0c2,0,3.8,-z));   /* TRASY-KLASA W2: belki JASNE (bylo 0xb8b2a6 — ciemna masa nad glowa) */
       [-4.42,4.42].forEach(xn=>{const nl=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,dl),   /* PLANSZE-2: neon-listwa prowadzi oko przez caly odcinek */
-        new THREE.MeshBasicMaterial({color:0x3ad0ff}));nl.position.set(xn,3.32,-dl/2);g.add(nl);});
-      for(let z=2;z<dl;z+=3)g.add(new THREE.Mesh(new THREE.BoxGeometry(3,0.06,0.3),
-        new THREE.MeshBasicMaterial({color:0xf6f4ea})).translateY(3.28).translateZ(-z)); // świetlówki
+        new THREE.MeshBasicMaterial({color:0x3ad0ff}));nl.position.set(xn,3.86,-dl/2);g.add(nl);});   /* PLANSZE-3: neon na belkach */
+      /* PLANSZE-3: swietlowki out — dach azurowy, swiatlo z nieba */
       [[1.2],[-dl-1.2]].forEach(([z])=>{                              // witryny wjazd/wyjazd
         g.add(klocek(8.9,0.4,0.3,0xe8561e,0,3.55,z<-1?-dl-0.2:0.9));});
       const szyld=klocek(3.2,0.7,0.2,0xe8561e,0,4.1,1.0);g.add(szyld);
@@ -4599,15 +4613,10 @@ const R3=(()=>{
         new THREE.BoxGeometry(3.4,0.35,dl),mat(0xb3aea6));
         per.position.set(x,0.17,-dl/2);g.add(per);});
       for(let z=1.5;z<dl;z+=4.5)
-        [-3.9,3.9].forEach(x=>g.add(klocek(0.18,3.2,0.18,0x555e70,x,1.6,-z)));
-      const dach=new THREE.Mesh(new THREE.BoxGeometry(9.4,0.16,dl),
-        new THREE.MeshLambertMaterial({color:0x3a4152,transparent:true,opacity:0.92}));
-      dach.position.set(0,3.3,-dl/2);g.add(dach);
-      for(let z=2;z<dl-1;z+=4.5){const sw2=new THREE.Mesh(new THREE.PlaneGeometry(7,1.4),   /* PLANSZE-2: SWIETLIKI peronu */
-        new THREE.MeshBasicMaterial({color:0xd8e6f4,transparent:true,opacity:0.8,side:THREE.DoubleSide}));
-        sw2.rotation.x=Math.PI/2;sw2.position.set(0,3.18,-z);g.add(sw2);}
+        [-3.9,3.9].forEach(x=>g.add(klocek(0.18,3.6,0.18,0x555e70,x,1.8,-z)));   /* PLANSZE-3: slupy do belek */
+      for(let z=1;z<dl;z+=2.8)g.add(klocek(9.4,0.14,0.5,0x8a93a8,0,3.7,-z));   /* TRASY-KLASA W2: belki peronu jasniejsze (bylo 0x3a4152) */
       [-4.65,4.65].forEach(xn=>{const nl2=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.09,dl),   /* PLANSZE-2: neon-listwa */
-        new THREE.MeshBasicMaterial({color:0xff4a8a}));nl2.position.set(xn,3.24,-dl/2);g.add(nl2);});
+        new THREE.MeshBasicMaterial({color:0xff4a8a}));nl2.position.set(xn,3.76,-dl/2);g.add(nl2);});   /* PLANSZE-3 */
       const tablica=klocek(2.6,0.9,0.2,0x10141c,0,2.5,-2.5);g.add(tablica);
       for(let r=0;r<3;r++)g.add(new THREE.Mesh(new THREE.BoxGeometry(2.0,0.12,0.05),
         new THREE.MeshBasicMaterial({color:0x3ad06a})).translateY(2.72-r*0.26).translateZ(-2.38));
@@ -4993,8 +5002,9 @@ const R3=(()=>{
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
         0xcfd8ee,1,0.5,0.2,0.05);
     const fv=czyFever(s);                                             /* FLOW-GFX: swiatlo + smugi predkosci */
-    if(bloomPass)bloomPass.strength=0.5+(fv?0.28:0)                    /* G2: bloom oddycha — fever i napor swieca mocniej */
-      +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.15:0);
+    if(bloomPass)bloomPass.strength=(0.38+(fv?0.18:0)                  /* G2-ton: oddycha delikatniej */
+      +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.1:0))
+      *(PORA.n==='ZŁOTA GODZINA'?0.8:1);                               /* jasne pory nie przepalaja */
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
     fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
@@ -6579,7 +6589,7 @@ const Gra=(()=>{
       pokazHype(zd.nazwa);                                            /* KIBICE */
       spowolnienie=Math.max(spowolnienie,0.35);                       /* FLOW: kinowe slow-mo na super kombo */
       try{navigator.vibrate&&navigator.vibrate([20,40,20,40,50]);}catch(e){}
-      const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.95;
+      const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.6;   /* G2-ton */
       requestAnimationFrame(()=>{f.style.transition='opacity .7s';f.style.opacity=0;});
       R3.dymekGracza(zd.nazwa+'!');R3.efekt(zd);
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
@@ -6587,7 +6597,7 @@ const Gra=(()=>{
       if(zd.nazwa)popup(zd.nazwa+(zd.naStyk?' NA STYK ×1.5!':'')+(zd.pkt>0?' +'+zd.pkt+' ✦':' '+zd.pkt+' ✦'),zd.pkt>0);   /* SZLIF: mnoznik jawny */
       if(zd.pkt>0&&zd.nazwa)Dzwiek.gwizd();
       if(zd.nazwa&&zd.nazwa.indexOf('KOMBO')===0){                    /* BAJERY: zloty flash banku */
-        const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.85;
+        const f=el('flashKombo');f.style.transition='none';f.style.opacity=0.5;   /* G2-ton */
         requestAnimationFrame(()=>{f.style.transition='opacity .55s';f.style.opacity=0;});}
       R3.efekt(zd);                                                   /* BAJERY: shake/czastki w R3 */
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
@@ -6707,7 +6717,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.6',
+  wersja:'10.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
