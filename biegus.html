@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v11.3 (Telemetria)</title>
+<title>Bieguś — Droga na Igrzyska · v11.4 (Menu 2.0)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v11.3 „TELEMETRIA" (top-5 poz. 4:
+     BIEGUŚ — DROGA NA IGRZYSKA · v11.4 „MENU 2.0" (top-5 poz. 5:
+     JA1+JA2+GR7 — Janusz przestaje widziec sciane)
+     · 13 kafli -> 4 zakladki: 🏃 Biegi (etapy+4 zawody+automat) /
+       🐦 Moj Biegus (biegus+sklep+misje) / 🗺️ Swiat (mapa+atlas+
+       triki) / 🏆 Klub (ranking + zapowiedz DUEL i Klucz Klubu)
+     · wielki ▶ BIEGNIJ bez zmian na gorze; ID kafli NIETKNIETE
+       (wszystkie handlery dzialaja bez zmian)
+     · podtytuly po ludzku (JA2): "sklepik i zadania", "Twoje
+       osiagniecia", "jak krecic komba"
+     · zakladka pamietana (localStorage biegus_mtab)
+     v11.3 „TELEMETRIA" (top-5 poz. 4:
      WY1+WY2 — przyrzady pokladowe)
      · Tele: buffer -> POST /rest/v1/game_events co 30 s (cap 40),
        sendBeacon na pagehide, keepalive, silent-fail (gra NIGDY nie
@@ -1160,6 +1170,11 @@
   #znalHud{color:var(--zloto);letter-spacing:2px}
   #pioraHud{color:#c7cede}
   #karaHud{color:#ff7a5c}
+  #menuTabs{display:flex;gap:6px;justify-content:center;margin-top:12px;flex-wrap:wrap}   /* MENU-2 (JA1) */
+  .mTab{background:#1b2340;border:1px solid #2a3350;color:#dfe6f3;border-radius:12px;padding:7px 12px;font-size:.86em;cursor:pointer}
+  .mTab.akt{background:#e8561e;border-color:#e8561e;color:#fff;font-weight:700}
+  .mSek{display:none}
+  .mSek.akt{display:block}
   #btnMute,#btnPauza{pointer-events:auto;background:none;border:0;font-size:18px;cursor:pointer;padding:2px}
   /* popup akcji na środku (combo / o włos) */
   #popup{position:fixed;top:26%;left:50%;transform:translate(-50%,-50%) scale(.7);
@@ -1384,25 +1399,34 @@
     <button id="btnRadio" style="margin-top:0">📻 Radio BiegaMy: …</button>
     <button id="btnRadioSkip" style="margin-top:0" hidden>⏭</button>
   </div>
-  <div class="rzad">
+  <div id="menuTabs">   <!-- MENU-2 (JA1): 13 kafli -> 4 zakladki; Janusz widzi jedno BIEGNIJ, nie sciane -->
+    <button class="mTab" id="mTab0">🏃 Biegi</button>
+    <button class="mTab" id="mTab1">🐦 Mój Bieguś</button>
+    <button class="mTab" id="mTab2">🗺️ Świat</button>
+    <button class="mTab" id="mTab3">🏆 Klub</button>
+  </div>
+  <div class="mSek" id="mSekBiegi"><div class="rzad">
     <button class="kafel" id="btnEtapy"><span data-iko="ikona-etapy">🛤️</span>Etapy<span>4 krainy · 32 biegi</span></button>
     <button class="kafel" id="btnZawody"><span data-iko="ikona-zawody-park">🏁</span>Zawody Park<span>medale o świcie</span></button>
     <button class="kafel" id="btnZawodyLas"><span data-iko="ikona-zawody-las">🌲</span>Zawody Las<span>medale we mgle</span></button>
-    <button class="kafel" id="btnZawodyMiasto"><span data-iko="ikona-zawody-miasto">🌃</span>Zawody Miasto<span>medale wśród neonów</span></button>   <!-- P1 -->
-    <button class="kafel" id="btnZawodyGory"><span data-iko="ikona-zawody-gory">🏔️</span>Zawody Przełęcz<span>medale na wietrze</span></button>   <!-- P1 -->
-  </div>
-  <div class="rzad">
+    <button class="kafel" id="btnZawodyMiasto"><span data-iko="ikona-zawody-miasto">🌃</span>Zawody Miasto<span>medale wśród neonów</span></button>
+    <button class="kafel" id="btnZawodyGory"><span data-iko="ikona-zawody-gory">🏔️</span>Zawody Przełęcz<span>medale na wietrze</span></button>
+    <button class="kafel" id="btnAutomat"><span data-iko="ikona-automat">🕹️</span>Automat<span>szybkie wyzwanie</span></button>
+  </div></div>
+  <div class="mSek" id="mSekBiegus"><div class="rzad">
     <button class="kafel" id="btnBiegus"><span data-iko="ikona-trening">🐦</span>Bieguś<span>karm i ubieraj</span></button>
-    <button class="kafel" id="btnSklep"><span data-iko="ikona-sklep">🐿️</span>Sklep<span>u Zyzi, za pióra</span></button>
-    <button class="kafel" id="btnMapa"><span data-iko="ikona-mapa">🗺️</span>Droga<span>na Igrzyska</span></button>
-  </div>
-  <div class="rzad">
-    <button class="kafel" id="btnMisje"><span data-iko="ikona-misje">⭐</span>Misje<span>odblokowania</span></button>
+    <button class="kafel" id="btnSklep"><span data-iko="ikona-sklep">🐿️</span>Sklep u Zyzi<span>sklepik i zadania</span></button>
+    <button class="kafel" id="btnMisje"><span data-iko="ikona-misje">⭐</span>Misje<span>Twoje osiągnięcia</span></button>
+  </div></div>
+  <div class="mSek" id="mSekSwiat"><div class="rzad">
+    <button class="kafel" id="btnMapa"><span data-iko="ikona-mapa">🗺️</span>Droga<span>mapa na Igrzyska</span></button>
     <button class="kafel" id="btnKatalog"><span data-iko="ikona-kolekcja">📖</span>Atlas trasy<span>co spotkasz w biegu</span></button>
-    <button class="kafel" id="btnKsiega"><span data-iko="ikona-triki">🌀</span>Triki<span>księga i komba</span></button>
+    <button class="kafel" id="btnKsiega"><span data-iko="ikona-triki">🌀</span>Triki<span>jak kręcić komba</span></button>
+  </div></div>
+  <div class="mSek" id="mSekKlub"><div class="rzad">
     <button class="kafel" id="btnRanking"><span data-iko="ikona-ranking">🏆</span>Ranking<span>prawdziwe kilometry</span></button>
-    <button class="kafel" id="btnAutomat"><span data-iko="ikona-automat">🕹️</span>Automat<span>BIEGAMY: WYZWANIE</span></button>
   </div>
+  <div class="legenda" style="margin-top:6px">wkrótce: DUEL i Klucz Klubu 🔑</div></div>
   <div class="legenda">◀ ▶ pas · ▲/tap skok · ▼ ślizg · P pauza</div>
 </div>
 
@@ -5860,6 +5884,12 @@ const Gra=(()=>{
   el('btnSklep').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
     odswiezSklep();odswiezGarderobe();pokaz('panelSklep');};
   el('btnSklepWroc').onclick=()=>{tryb='menu';pokaz('menu');};
+  const MTABY=['mSekBiegi','mSekBiegus','mSekSwiat','mSekKlub'];     /* MENU-2 */
+  function menuTab(i){MTABY.forEach((id,j)=>{el(id).classList.toggle('akt',i===j);
+      el('mTab'+j).classList.toggle('akt',i===j);});
+    try{localStorage.setItem('biegus_mtab',i);}catch(e){}}
+  MTABY.forEach((_,j)=>el('mTab'+j).onclick=()=>menuTab(j));
+  menuTab((()=>{try{return +(localStorage.getItem('biegus_mtab')||0)||0;}catch(e){return 0;}})());
   el('btnGraj').onclick=()=>{Dzwiek.odpal();start(nastepnyEtap(),'etap');};
   el('btnZawody').onclick=()=>{Dzwiek.odpal();start(4,'zawody');};
   el('btnZawodyLas').onclick=()=>{Dzwiek.odpal();start(12,'zawody');};
@@ -6838,7 +6868,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'11.3',
+  wersja:'11.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
