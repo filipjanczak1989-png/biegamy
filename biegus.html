@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v11.2 (Toasty 2.0)</title>
+<title>Bieguś — Droga na Igrzyska · v11.3 (Telemetria)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v11.2 „TOASTY 2.0" (top-5 poz. 3:
+     BIEGUŚ — DROGA NA IGRZYSKA · v11.3 „TELEMETRIA" (top-5 poz. 4:
+     WY1+WY2 — przyrzady pokladowe)
+     · Tele: buffer -> POST /rest/v1/game_events co 30 s (cap 40),
+       sendBeacon na pagehide, keepalive, silent-fail (gra NIGDY nie
+       cierpi przez telemetrie); anon_id losowy, ZERO PII;
+       zalogowany -> athlete_id z auth.uid() po stronie bazy
+     · zdarzenia: fail (etap/tryb/sekunda/obiekt), boss (zywiol/faza/
+       czysto), blad (runtime z overlaya — WY2 jednym kanalem)
+     · sym._ostHit: OD CZEGO zginales — fundament pod GR3
+     · WYMAGA SQL (gotowiec cc): game_events INSERT-only + NOTIFY
+     v11.2 „TOASTY 2.0" (top-5 poz. 3:
      GR4+JA4 z audytu 3 perspektyw)
      · KOLEJKA: toasty sekwencyjnie (2.6 s + przerwa 0.32 s), max 4
        — dar+pieczec+echo+goracy punkt na mecie juz sie nie zderzaja;
@@ -1659,7 +1669,8 @@ function pokazBlad(t){
       'font:11px/1.4 monospace;padding:8px 10px;z-index:999;white-space:pre-wrap;max-height:40vh;overflow:auto';
     (document.body||document.documentElement).appendChild(d);}
   d.textContent+=(d.textContent?'\n':'')+'BŁĄD: '+t;}
-addEventListener('error',e=>pokazBlad((e.message||e.type)+' @ linia '+(e.lineno||'?')));
+addEventListener('error',e=>{pokazBlad((e.message||e.type)+' @ linia '+(e.lineno||'?'));
+  try{window.Tele&&Tele.zdarzenie('blad',{m:String(e.message||e.type).slice(0,180),l:e.lineno||0});}catch(x){}});   /* TELE-2 */
 addEventListener('unhandledrejection',e=>pokazBlad('Promise: '+((e.reason&&e.reason.message)||e.reason)));
 
 /* — BAZA ASSETÓW: gra z pliku (file://) ciągnie grafiki z prodа — */
@@ -2003,6 +2014,28 @@ function darZTypu(t){                                                 /* M1: nor
   if(/spokoj|regenera|rozbieganie/.test(x))return 'spokoj';
   if(/wzmacnia|sila|siła|podbieg/.test(x))return 'sprezyna';
   return null;}
+const Tele={ /* TELE (WY1+WY2): przyrzady pokladowe — game_events w Supabase; INSERT-only, zero PII, silent-fail */
+  buf:[],on:true,
+  anon(){try{let a=localStorage.getItem('biegus_anon');
+    if(!a){a='a'+Math.random().toString(36).slice(2,10);localStorage.setItem('biegus_anon',a);}
+    return a;}catch(e){return 'a0';}},
+  zdarzenie(typ,dane){if(!this.on)return;
+    this.buf.push({typ,dane:dane||{},wersja:(window.Gra&&Gra.wersja)||'?',anon_id:this.anon()});
+    if(this.buf.length>=40||typ==='blad')this.flush();},
+  flush(beacon){if(!this.buf.length)return;
+    const rows=this.buf.splice(0,40);
+    try{
+      const sesja=MOST.sesja&&MOST.sesja();
+      const url=MOST.URL+'/rest/v1/game_events';
+      const cialo=JSON.stringify(rows);
+      if(beacon&&navigator.sendBeacon){
+        navigator.sendBeacon(url+'?apikey='+MOST.KEY,new Blob([cialo],{type:'application/json'}));return;}
+      fetch(url,{method:'POST',headers:MOST.naglowki((sesja&&sesja.tok)||MOST.KEY,true),
+        body:cialo,keepalive:true}).catch(()=>{});
+    }catch(e){}},
+};
+setInterval(()=>{try{Tele.flush();}catch(e){}},30000);
+addEventListener('pagehide',()=>{try{Tele.flush(true);}catch(e){}});
 const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; ten sam origin, sesja z localStorage */
   URL:'https://afqojgkaveykxbltxzwm.supabase.co',
   KEY:'sb_publishable_PeK_bJBiBt20Dxm0g5myWg_R1hc3qlY',
@@ -6570,6 +6603,7 @@ const Gra=(()=>{
       znaleziska:sym.zebrane.map(z=>z.id),perfekt});
   }
   function ekranFail(){tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();Dzwiek.duck&&Dzwiek.duck(1);{const nr=el('naporRamka');if(nr)nr.style.display='none';}   /* NAPOR-SLYSZALNY: sprzatanie */
+    try{Tele.zdarzenie('fail',{e:biezacyEtap,tryb:trybGry,t:Math.round(sym.t),ob:sym._ostHit||''});}catch(x){}   /* TELE-3 */
     Biegus._smutnyDo=Date.now()+90000;
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Biegus.poEtapie(sym.piora);
@@ -6631,7 +6665,8 @@ const Gra=(()=>{
     if(zd.typ==='mentor'){Dzwiek.znal();
       const m=MENTOR_TEKSTY[zd.id]||['🌟','Mentor','Trzymaj tempo!'];
       toast(mentorIko(zd.id,m[0],30)+' <b>'+m[1]+':</b> „'+m[2]+'" <i>+'+zd.bonus+' 🪶</i>');}   /* MENTORZY */
-    if(zd.typ==='hit'){spowolnienie=CFG.SLOWMO_CZAS;R3.efekt(zd);
+    if(zd.typ==='hit'){sym._ostHit=zd.obiekt||'';                     /* TELE-3: od czego zginal (fundament GR3) */
+      spowolnienie=CFG.SLOWMO_CZAS;R3.efekt(zd);
       try{navigator.vibrate&&navigator.vibrate(30);}catch(e){}
       setTimeout(()=>{if(tryb==='bieg')dymek(losuj(BIEGUS_MOWI.potkniecie));},900);
       return;}
@@ -6701,6 +6736,7 @@ const Gra=(()=>{
     if(zd.typ==='piorunFinta'){popup('FINTA! ⚡');return;}
     if(zd.typ==='piorun'){R3.efekt(zd);return;}
     if(zd.typ==='naporKoniec'){                                       /* ZYWIOLY: pieczec zywiolu */
+      try{Tele.zdarzenie('boss',{b:zd.boss,f:zd.faza,czysto:!!zd.czysto});}catch(x){}   /* TELE-3 */
       Dzwiek.duck&&Dzwiek.duck(1);
       {const r=el('naporRamka');if(r)r.style.display='none';}          /* NAPOR-SLYSZALNY: koniec, nuta wraca */
       Biegus.zywioly=Biegus.zywioly||{};
@@ -6802,7 +6838,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'11.2',
+  wersja:'11.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
