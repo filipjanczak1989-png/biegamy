@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v11.9 (Żywioły V: Sfora)</title>
+<title>Bieguś — Droga na Igrzyska · v12.0 (Sanitarka)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v11.9 „ZYWIOLY V: SFORA" —
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.0 „SANITARKA" (pelny re-audyt
+     bossow po zgloszeniach z trasy — 6 fixow, w tym 1 krytyczny)
+     · S-1 KRYTYCZNY: smierc od bossa/spadu byla NIEWIDZIALNA — 8
+       sciezek hit ustawialo s.stan='fail' BEZ zdarzenia {typ:'fail'}
+       (petla Gry slucha ZDARZEN) -> niesmiertelnosc przy 0 serc
+     · S-2: ReferenceError "aktor" @ breakdance (pre-existing) -> poz
+     · S-3 PANCERZ: obsluzZdarzenie w try/catch + raport bledu do Tele
+     · S-4 SFORA: przeskok nigdy nie ratowal (s.wysY nie istnieje) —
+       wysY liczony lokalnie jak w kolizji
+     · S-5 NAUKA: dymek TRIK nigdy sie nie pokazywal (sym.wPow) -> skokT
+     · S-6 CHMARA: wieksze golebie, nizej, cien fali po ziemi; "nie
+       widac" to tez losowanie (25% etapow k3)
+     v11.9 „ZYWIOLY V: SFORA" —
      ROSTER PODSTAWOWY DOMKNIETY 8/8
      · SFORA Z OSIEDLA (k1, rel>=5; park losuje 50/50 sfora/traktor):
        2-3 sekwencje psow wbiegajacych Z BOKOW (strona wg pasa);
@@ -3653,7 +3665,7 @@ function krokSymulacji(s){
           else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
             if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
             s.zdarzenia.push({typ:'hit',obiekt:'traktor'});
-            if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
+            if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}}}}
     if(N.boss==='smieciarka'&&s.t>=N.t0){                            /* Ż2b: zrzuty kublow przed gracza */
       if(N.hity0===undefined)N.hity0=s.hity;
       while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t){
@@ -3671,7 +3683,7 @@ function krokSymulacji(s){
           else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
             if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
             s.zdarzenia.push({typ:'hit',obiekt:'galaz'});
-            if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}
+            if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}}}
       else break;}
     if(N.boss==='chmara')while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t-N.zap){   /* Ż3b */
       const fl=N.seq[N.idx];
@@ -3685,7 +3697,7 @@ function krokSymulacji(s){
           else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
             if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
             s.zdarzenia.push({typ:'hit',obiekt:'chmara'});
-            if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}
+            if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}}}
       else break;}
     if(N.boss==='tornado'&&s.t>=N.t0&&s.t<N.koniec){                 /* Ż4: lej(e) sinusoida */
       const TX=i=>{const L=N.leje[i];return Math.sin(s.t*L.w*6.283+L.fi)*2.3;};
@@ -3696,7 +3708,7 @@ function krokSymulacji(s){
           else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
             if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
             s.zdarzenia.push({typ:'hit',obiekt:'tornado'});
-            if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}
+            if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}
           break;}}
       for(const o of s.aktywne){                                       /* ZZERA PIORA: zbieraj zanim doleci */
         if(o.typ!=='pioro'||o.trafione)continue;
@@ -3717,21 +3729,22 @@ function krokSymulacji(s){
           else{if(s.tryb!=='final')s.serca--;s.hity++;N.hityOst=s.hity;s.combo=0;s.nietyk=CFG.NIETYKALNOSC;
             if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
             s.zdarzenia.push({typ:'hit',obiekt:'zamiec'});
-            if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
+            if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}}}}
     if(N.boss==='sfora')while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t-N.zap){   /* Ż5 */
       const ps=N.seq[N.idx];
       if(!ps.tele){ps.tele=true;s.zdarzenia.push({typ:'szczek',pas:ps.pas,finta:!!ps.finta});}
       if(s.t>=ps.t){N.idx++;
         if(ps.finta)s.zdarzenia.push({typ:'sforaFinta',pas:ps.pas});
         else{s.zdarzenia.push({typ:'pies',pas:ps.pas});
-          const przeskok=s.wPow&&s.wysY>=CFG.PROG_PRZESKOKU;           /* pies jest NISKI — skok ratuje */
+          const wysYps=s.skokT>=0?Math.sin(s.skokT/s.skokCzas*Math.PI)*CFG.SKOK_WYS*(s.darSkok||1):0;
+          const przeskok=s.skokT>=0&&wysYps>=CFG.PROG_PRZESKOKU;       /* SANITARKA S-4: pies NISKI — skok ratuje (bylo s.wysY=undefined) */
           if(ps.pas===s.pas&&!przeskok&&s.nietyk<=0&&!s.grind&&!(s.wallT>0)){
             if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'tarcza'});}
             else if(s.drugiOddech&&s.tryb!=='final'){s.drugiOddech=false;s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'drugiOddech'});}
             else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
               if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
               s.zdarzenia.push({typ:'hit',obiekt:'pies-sfora'});
-              if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
+              if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}}}}
       else break;}
     if(N.boss==='burza')while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t-N.zap){
       const p=N.seq[N.idx];
@@ -3745,7 +3758,7 @@ function krokSymulacji(s){
             else{if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;N.czysto=false;s.nietyk=CFG.NIETYKALNOSC;
               if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
               s.zdarzenia.push({typ:'hit',obiekt:'piorun'});
-              if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
+              if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */}}}}
       else break;}
     if(!N.done&&s.t>=N.koniec){N.done=true;
       if(N.boss==='smieciarka')N.czysto=(s.hity===(N.hity0??s.hity));   /* pieczec = czyste OKNO (kubly i wszystko inne) */
@@ -3829,7 +3842,7 @@ function krokSymulacji(s){
         o.trafione=true;if(s.tryb!=='final')s.serca--;s.hity++;s.combo=0;
         s.nietyk=CFG.NIETYKALNOSC;
         s.zdarzenia.push({typ:'hit',typObiektu:'auto',serca:s.serca});
-        if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';
+        if(s.serca<=0&&s.tryb!=='zawody'){s.stan='fail';s.zdarzenia.push({typ:'fail'});}   /* SANITARKA S-1 */
       }
       continue;
     }
@@ -4054,9 +4067,9 @@ const R3=(()=>{
     g.visible=false;scena.add(g);return g;})();
   const chmara3d=(()=>{const g=new THREE.Group();                     /* ZYWIOLY-GFX Ż3b: fala golebi */
     for(let i=0;i<9;i++){const p=new THREE.Group();
-      p.add(klocek(0.22,0.14,0.26,0xb9bfcc,0,0,0));
-      p.add(klocek(0.1,0.1,0.1,0x8a92a4,0,0.1,0.14));
-      const sk=klocek(0.4,0.03,0.14,0xdfe4ee,0,0.06,0);p.add(sk);p.userData.sk=sk;
+      p.add(klocek(0.3,0.18,0.34,0xb9bfcc,0,0,0));                    /* SANITARKA S-6: wieksze golebie */
+      p.add(klocek(0.13,0.13,0.13,0x8a92a4,0,0.13,0.19));
+      const sk=klocek(0.56,0.04,0.18,0xdfe4ee,0,0.08,0);p.add(sk);p.userData.sk=sk;
       p.position.x=-3.7+i*0.92;g.add(p);}
     const slup=new THREE.Group();                                     /* F3: kolumna na zajetym pasie */
     for(let j=0;j<4;j++)slup.add(klocek(0.3,0.16,0.3,0xb9bfcc,0,-0.3-j*0.3,0));
@@ -5200,7 +5213,10 @@ const R3=(()=>{
         const wf=fl&&fl.tele&&s.t<fl.t+0.35;
         chmara3d.visible=!!wf;
         if(wf){const f=1-Math.max(0,(fl.t-s.t))/N.zap;
-          chmara3d.position.set(0,1.15,CFG.GRACZ_Z-22+f*24);
+          chmara3d.position.set(0,1.05,CFG.GRACZ_Z-22+f*24);           /* SANITARKA S-6: nizej + cien fali na ziemi */
+          piorunRing.material.opacity=Math.max(piorunRing.material.opacity,0.3);
+          piorunRing.position.set(0,0.06,chmara3d.position.z);piorunRing.scale.setScalar(3.4);
+          piorunRing.material.color.setHex(0xcfd6e4);
           chmara3d.children.forEach((p,i)=>{if(p.userData.sk)p.userData.sk.scale.y=1;
             if(p.userData.sk)p.userData.sk.rotation.z=Math.sin(czasReal*18+i)*0.7;});
           const sl=chmara3d.userData.slup;sl.visible=!!fl.krzyz;
@@ -5529,8 +5545,8 @@ const R3=(()=>{
     if(zd.typ==='bloto'){Dzwiek.bloto();burst(poz.clone().setY(0.12),0x5a4632,14,3.2,1.8);}
     if(zd.typ==='mapka')burst(poz,0xead9ae,14,2.4,2.6,0.075);        /* HOTFIX-scope */
     if(zd.typ==='turbo'){shake=Math.max(shake,0.18);burst(poz,0xf2c14e,12,2.6,2.2,0.07);}
-    if(zd.typ==='breakdance'){shake=Math.max(shake,0.12);            /* BREAKDANCE: iskry */
-      burst(aktor.position.clone(),0xffd04a,12,2.5,1.6,0.06);}
+    if(zd.typ==='breakdance'){shake=Math.max(shake,0.12);            /* BREAKDANCE: iskry (SANITARKA S-2: bylo aktor -> ReferenceError) */
+      burst(poz.clone(),0xffd04a,12,2.5,1.6,0.06);}
     if(zd.typ==='flowWall'){shake=Math.max(shake,zd.akcja==='odbicie'?0.22:0.14);   /* FLOWWALL */
       burst(new THREE.Vector3((zd.strona||1)*4.4,1.2,CFG.GRACZ_Z),0xffc36e,zd.akcja==='odbicie'?16:10,3,2.4,0.07);}
     if(zd.typ==='superKombo'){shake=Math.max(shake,0.32);             /* SUPER-KOMBA: podwojny burst */
@@ -6741,7 +6757,7 @@ const Gra=(()=>{
         const ob=OBIEKTY[o.typ];if(!ob||ob.dekor||ZBIERALNE.has(o.typ))continue;
         if(ob.unik==='skok'&&!N.skok){N.skok=1;popup('▲ SKACZ!',true);Dzwiek.beep&&Dzwiek.beep();Biegus.zapisz&&Biegus.zapisz();break;}
         if(ob.unik==='slizg'&&!N.slizg){N.slizg=1;popup('▼ ŚLIZG!',true);Dzwiek.beep&&Dzwiek.beep();Biegus.zapisz&&Biegus.zapisz();break;}}
-      if(!N.trik&&sym.wPow&&sym.t>4){N.trik=1;popup('⬆ W LOCIE = TRIK ✦',true);Biegus.zapisz&&Biegus.zapisz();}}
+      if(!N.trik&&sym.skokT>=0&&sym.t>4){N.trik=1;popup('⬆ W LOCIE = TRIK ✦',true);Biegus.zapisz&&Biegus.zapisz();}}   /* SANITARKA S-5 */
     else{const sw=el('uczSwipe');if(sw.style.display!=='none')sw.style.display='none';}
     {const zb=el('zamiecBiel');const NN=sym&&sym.napor;                /* Ż4b: biel proporcjonalna do D */
      zb.style.opacity=(NN&&NN.boss==='zamiec'&&sym.t>=NN.t0&&sym.t<NN.koniec)?String((NN.D||0)*0.55):'0';}
@@ -7191,7 +7207,8 @@ const Gra=(()=>{
         for(const zd of sym.zdarzenia){
           if(zd.typ==='fail')koniec='fail';
           else if(zd.typ==='meta')koniec='meta';
-          else obsluzZdarzenie(zd);
+          else try{obsluzZdarzenie(zd);}catch(e){                     /* SANITARKA S-3: pancerz petli zdarzen */
+            try{window.Tele&&Tele.zdarzenie('blad',{m:'zdarzenie '+zd.typ+': '+String(e.message).slice(0,140)});}catch(x){}}
         }
       }
       hud();
@@ -7232,7 +7249,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'11.9',
+  wersja:'12.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
