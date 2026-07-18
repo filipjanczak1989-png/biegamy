@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v11.7 (Żywioły IV: Tornado)</title>
+<title>Bieguś — Droga na Igrzyska · v11.8 (Żywioły IVb: Biała ściana)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v11.7 „ZYWIOLY IV: TORNADO" (Ż4
+     BIEGUŚ — DROGA NA IGRZYSKA · v11.8 „ZYWIOLY IVb: BIALA SCIANA"
+     (Ż4 cz.2 — Sprint Ż4 DOMKNIETY, roster 7/8)
+     · BIALA SCIANA (k4; przelecz losuje 34/33/33 tornado/zamiec/
+       burza): ENDURANCE — sciana goni od tylu, kazdy hit ja
+       PRZYBLIZA (D+=dHit), czas czysci powoli (decay); D>=1 =
+       sciana lize (hit + odpuszcza do 0.55); ekran bieleje
+       proporcjonalnie do D (radial overlay, transition)
+     · FAZY: F1 15 s / F2-F3 18 s, dHit .30/.34/.38, F3 wolniejszy
+       decay (kamera-sway z projektu uproszczony do decayu —
+       czytelnosc > komplikacja)
+     · pieczec = ZERO hitow w oknie (unikat: boss bez wlasnych
+       przeszkod — presja czasu i wlasnych bledow)
+     · GFX: 3-warstwowa sciana sniegu za plecami (pozycja wg D),
+       gesty snieg, wstrzas przy liznieciu; ramka lodowa
+     v11.7 „ZYWIOLY IV: TORNADO" (Ż4
      cz.1 — pitch Filipa nr 1 wchodzi na trase)
      · TORNADO (k4, rel>=4; przelecz losuje 50/50 tornado/burza):
        lej wedruje SINUSOIDA miedzy pasami przez 15 s (parametry
@@ -1414,6 +1428,7 @@
 <div id="toast" role="status"></div>
 <div id="ziarno"></div>
 <div id="naporRamka" style="position:fixed;inset:0;pointer-events:none;z-index:3;display:none;animation:naporPuls .9s ease-in-out infinite"></div>   <!-- NAPOR-SLYSZALNY -->
+<div id="zamiecBiel" style="position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .35s;background:radial-gradient(ellipse at center,rgba(255,255,255,0) 34%,rgba(240,246,255,.95) 100%)"></div>   <!-- Ż4b: biel zamieci -->
 <div id="uczSwipe" style="position:fixed;left:50%;top:56%;transform:translateX(-50%);z-index:6;display:none;font-size:46px;pointer-events:none;text-shadow:0 3px 10px #000;animation:uczSwipe 1.1s ease-in-out infinite">👆</div>   <!-- NAUKA: swipe -->
 <div id="hypeBox" style="position:fixed;left:50%;top:96px;transform:translate(-50%,-16px);opacity:0;transition:opacity .25s,transform .25s;z-index:60;pointer-events:none;background:var(--panel);border:1px solid #2a3350;border-radius:16px;padding:8px 14px;max-width:78vw;display:flex;align-items:center;gap:9px"></div>   <!-- KIBICE -->
 <div id="dymek" hidden></div>
@@ -3246,11 +3261,15 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
         const ile=5+Math.floor(rng()*3);const seq=[];let tt=t0;
         for(let i=0;i<ile;i++){seq.push({t:+tt.toFixed(2),pas:Math.floor(rng()*3)});tt+=1.6+rng()*0.9;}
         napor={boss:'burza',t0,seq,koniec:+(tt+0.5).toFixed(2)};}}
-    else if(kraina===4&&rel>=4&&rng()<0.5){                          /* Ż1/Ż4: przelecz losuje zywiol */
-      if(rng()<0.5){                                                  /* Ż4: TORNADO — lej wedruje sinusoida */
+    else if(kraina===4&&rel>=4&&rng()<0.5){                          /* Ż1/Ż4: przelecz losuje zywiol (3 opcje) */
+      const rZ=rng();
+      if(rZ<0.34){                                                    /* Ż4: TORNADO — lej wedruje sinusoida */
         const t0=+(26+rng()*10).toFixed(2);
         napor={boss:'tornado',t0,koniec:+(t0+15).toFixed(2),
           lej:{w:+(0.5+rng()*0.2).toFixed(3),fi:+(rng()*6.28).toFixed(3)}};}
+      else if(rZ<0.67){                                               /* Ż4b: BIALA SCIANA — endurance */
+        const t0=+(24+rng()*10).toFixed(2);
+        napor={boss:'zamiec',t0,koniec:+(t0+18).toFixed(2)};}
       else{const t0=+(26+rng()*18).toFixed(2);
         const ile=5+Math.floor(rng()*3);const seq=[];let tt=t0;
         for(let i=0;i<ile;i++){seq.push({t:+tt.toFixed(2),pas:Math.floor(rng()*3)});tt+=1.6+rng()*0.9;}
@@ -3668,6 +3687,20 @@ function krokSymulacji(s){
           for(let i=0;i<N.leje.length;i++)
             if(Math.abs(CFG.PASY[o.pas]-TX(i))<1.05){o.trafione=true;
               s.zdarzenia.push({typ:'zjada',pas:o.pas});break;}}}
+    if(N.boss==='zamiec'&&s.t>=N.t0&&s.t<N.koniec){                  /* Ż4b: endurance — czysty bieg */
+      if(N.hityOst===undefined){N.hityOst=s.hity;N.tOst=s.t;}
+      if(s.hity>N.hityOst){N.D=Math.min(1.2,N.D+N.dHit*(s.hity-N.hityOst));
+        N.hityOst=s.hity;N.czysto=false;}
+      N.D=Math.max(0.06,N.D-(s.t-N.tOst)*N.decay);N.tOst=s.t;
+      if(N.D>=1){N.D=0.55;                                            /* sciana dogonila */
+        s.zdarzenia.push({typ:'zamiecLiz'});
+        if(s.nietyk<=0){
+          if(s.boostery&&s.boostery.tarcza){s.boostery.tarcza=false;s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'tarcza'});}
+          else if(s.drugiOddech&&s.tryb!=='final'){s.drugiOddech=false;s.nietyk=CFG.NIETYKALNOSC;s.zdarzenia.push({typ:'drugiOddech'});}
+          else{if(s.tryb!=='final')s.serca--;s.hity++;N.hityOst=s.hity;s.combo=0;s.nietyk=CFG.NIETYKALNOSC;
+            if(s.flow){s.flow=false;s.zdarzenia.push({typ:'flowStop'});}
+            s.zdarzenia.push({typ:'hit',obiekt:'zamiec'});
+            if(s.serca<=0&&s.tryb!=='zawody')s.stan='fail';}}}}
     if(N.boss==='burza')while(N.idx<N.seq.length&&s.t>=N.seq[N.idx].t-N.zap){
       const p=N.seq[N.idx];
       if(!p.cel){p.cel=true;s.zdarzenia.push({typ:'piorunCel',pas:p.pas,finta:!!p.finta});}
@@ -4003,6 +4036,11 @@ const R3=(()=>{
         new THREE.MeshLambertMaterial({color:0xb8a888,transparent:true,opacity:0.75-j*0.07}));
       t.rotation.x=Math.PI/2;t.position.y=0.4+j*0.62;g.add(t);}
     g.visible=false;scena.add(g);return g;});
+  const sciana3d=(()=>{const g=new THREE.Group();                     /* ZYWIOLY-GFX Ż4b: biala sciana */
+    [0.55,0.4,0.28].forEach((op,i)=>{const pl=new THREE.Mesh(new THREE.PlaneGeometry(13,6.5),
+      new THREE.MeshBasicMaterial({color:0xf2f7ff,transparent:true,opacity:op,depthWrite:false,side:THREE.DoubleSide}));
+      pl.position.set(0,2.6,i*0.8);g.add(pl);});
+    g.visible=false;scena.add(g);return g;})();
   const galaz3d=(()=>{const g=new THREE.Group();                      /* ZYWIOLY-GFX Ż3: spadajaca galaz */
     g.add(klocek(1.3,0.14,0.2,0x4a3826,0,0,0));
     g.add(klocek(0.4,0.1,0.14,0x2e5238,0.4,0.1,0.06));
@@ -5140,7 +5178,17 @@ const R3=(()=>{
             L.children.forEach((t,j)=>{t.position.x=Math.sin(czasReal*5+j)*0.12;});
             if(Math.random()<dt*8)burst(L.position.clone().add(new THREE.Vector3(0,0.3,0)),0xb8a888,1,1.4,1.2,0.06);}});}
       else leje3d.forEach(L=>L.visible=false);
-    } else {piorunRing.material.opacity*=0.7;bolt.material.opacity*=0.6;traktor3d.visible=false;smieciarka3d.visible=false;dzieciol3d.visible=false;galaz3d.visible=false;chmara3d.visible=false;leje3d.forEach(L=>L.visible=false);}
+      if(N.boss==='zamiec'){                                          /* ZYWIOLY-GFX Ż4b */
+        const wz=s.t>=N.t0-2.5&&s.t<N.koniec+1.5;
+        sciana3d.visible=wz;
+        if(wz){const D=N.D||0.25;
+          sciana3d.position.z=CFG.GRACZ_Z+lerp(9.5,2.4,Math.min(1,D));
+          sciana3d.position.x=Math.sin(czasReal*1.7)*0.5;
+          sciana3d.children.forEach((pl,i)=>{pl.position.y=2.6+Math.sin(czasReal*2.2+i)*0.2;});
+          if(Math.random()<dt*22)burst(new THREE.Vector3((Math.random()-0.5)*8,1+Math.random()*3,
+            sciana3d.position.z-1),0xffffff,1,2.2,1.4,0.05);}}
+      else sciana3d.visible=false;
+    } else {piorunRing.material.opacity*=0.7;bolt.material.opacity*=0.6;traktor3d.visible=false;smieciarka3d.visible=false;dzieciol3d.visible=false;galaz3d.visible=false;chmara3d.visible=false;leje3d.forEach(L=>L.visible=false);sciana3d.visible=false;}
     aktualizujAtmosfere(dt,s);
     aktualizujNiebo(s&&s.skrypt?s.skrypt.pora:0);
     /* — teren: aktywna kładka (schody) podnosi świat — */
@@ -5448,6 +5496,8 @@ const R3=(()=>{
     if(zd.typ==='fala'){shake=Math.max(shake,0.12);                   /* ZYWIOLY-GFX Ż3b: piora golebi */
       burst(new THREE.Vector3(0,1.2,CFG.GRACZ_Z),0xdfe4ee,10,3.4,1.8,0.07);}
     if(zd.typ==='zjada')burst(new THREE.Vector3(CFG.PASY[zd.pas],1.0,CFG.GRACZ_Z-2),0xf2c14e,8,2.4,1.6,0.06);   /* Ż4 */
+    if(zd.typ==='zamiecLiz'){shake=Math.max(shake,0.34);              /* Ż4b */
+      burst(new THREE.Vector3(0,1.6,CFG.GRACZ_Z+2.5),0xffffff,18,3.6,2.6,0.09);}
     if(zd.typ==='znal'){Dzwiek.znal();burst(poz,0xf8b34a,12,2.6,3,0.08);
       Biegus.najedzenie=clamp(Biegus.najedzenie+4,0,100);}            /* ZNALEZISKA karmia Biegusia */
     if(zd.typ==='pioro'){Dzwiek.pioro(zd.seria%14);
@@ -6333,7 +6383,7 @@ const Gra=(()=>{
     chmara:{e:'🕊️',nazwa:'Chmara z rynku',opis:'Fale gołębi tuż nad głową; w mistrzostwie część pasów zajęta.',unik:'Ślizg pod falami'},
     sfora:{e:'🐕',nazwa:'Sfora z osiedla',opis:'',unik:''},
     tornado:{e:'🌪️',nazwa:'Tornado',opis:'Lej wędruje sinusoidą i zżera pióra z trasy. W mistrzostwie — dwa wiry.',unik:'Czytaj sinus, omijaj lej'},
-    zamiec:{e:'❄️',nazwa:'Biała ściana',opis:'',unik:''}};
+    zamiec:{e:'❄️',nazwa:'Biała ściana',opis:'Zamieć goni od tyłu — każdy hit ją przybliża, ekran bieleje. Utrzymaj czysty bieg.',unik:'Czysty bieg do końca'}};
   const lista=el('katalogLista');
   Object.entries(OBIEKTY).filter(([typ,o])=>!o.ukryj).forEach(([typ,o])=>{
     const b=document.createElement('button');b.textContent=o.nazwa;
@@ -6516,7 +6566,12 @@ const Gra=(()=>{
           const w=N.lej.w*(faza>=2?1.3:1);
           const leje=[{w,fi:N.lej.fi}];
           if(faza>=3)leje.push({w:w*1.08,fi:N.lej.fi+2.1});           /* F3: drugi wir w kontrze */
-          sym.napor={boss:'tornado',faza,t0:N.t0,koniec:N.koniec,czysto:true,leje};}}
+          sym.napor={boss:'tornado',faza,t0:N.t0,koniec:N.koniec,czysto:true,leje};}
+        else if(N.boss==='zamiec')                                    /* Ż4b */
+          sym.napor={boss:'zamiec',faza,t0:N.t0,czysto:true,D:0.25,
+            koniec:N.t0+(faza===1?15:18),
+            dHit:faza===1?0.30:faza===2?0.34:0.38,
+            decay:faza>=3?0.016:0.022};}
     }
     sym.bonusyG={bloto:false,zlota:0,piora:0};
     if(sym.tryb!=='zawody')Object.values(Biegus.ubrane||{}).forEach(id=>{
@@ -6554,7 +6609,8 @@ const Gra=(()=>{
       burza:'⛈️ BURZA NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (uwaga: FINTY!)':''),
       dzieciol:'🐦 DZIĘCIOŁ NA TRASIE — FAZA {f} (1/2/3 stuki = pas L/Ś/P!)',
       chmara:'🕊️ CHMARA NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (fale KRZYŻOWE!)':''),
-      tornado:'🌪️ TORNADO NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (DWA wiry!)':' (zżera pióra!)')}[sym.napor.boss]||'')
+      tornado:'🌪️ TORNADO NA TRASIE — FAZA {f}'+(sym.napor.faza>=3?' (DWA wiry!)':' (zżera pióra!)'),
+      zamiec:'❄️ ZAMIEĆ NA TRASIE — FAZA {f} (hity przybliżają ścianę!)'}[sym.napor.boss]||'')
       .replace('{f}',sym.napor.faza));   /* ZYWIOLY */
     if(sym.bonusyG&&sym.bonusyG.zlota)moce.push('✨ złota passa');
     if(sym.bonusyG&&sym.bonusyG.piora)moce.push('🪶 +'+Math.round(sym.bonusyG.piora*100)+'%');
@@ -6618,13 +6674,15 @@ const Gra=(()=>{
       if(!N.swipe){sw.style.display=sym.t<3.5?'block':'none';
         if(sym.t>=3.5){N.swipe=1;Biegus.zapisz&&Biegus.zapisz();}}
       else sw.style.display='none';
-      if(sym.t>2)for(const o of sym.aktywne){
+      if(sym.t>2)for(const o of sym.aktywne){/*NAUKA-skan*/
         if(o.sprawdzone||o.z<CFG.GRACZ_Z-15||o.z>CFG.GRACZ_Z-4)continue;
         const ob=OBIEKTY[o.typ];if(!ob||ob.dekor||ZBIERALNE.has(o.typ))continue;
         if(ob.unik==='skok'&&!N.skok){N.skok=1;popup('▲ SKACZ!',true);Dzwiek.beep&&Dzwiek.beep();Biegus.zapisz&&Biegus.zapisz();break;}
         if(ob.unik==='slizg'&&!N.slizg){N.slizg=1;popup('▼ ŚLIZG!',true);Dzwiek.beep&&Dzwiek.beep();Biegus.zapisz&&Biegus.zapisz();break;}}
       if(!N.trik&&sym.wPow&&sym.t>4){N.trik=1;popup('⬆ W LOCIE = TRIK ✦',true);Biegus.zapisz&&Biegus.zapisz();}}
     else{const sw=el('uczSwipe');if(sw.style.display!=='none')sw.style.display='none';}
+    {const zb=el('zamiecBiel');const NN=sym&&sym.napor;                /* Ż4b: biel proporcjonalna do D */
+     zb.style.opacity=(NN&&NN.boss==='zamiec'&&sym.t>=NN.t0&&sym.t<NN.koniec)?String((NN.D||0)*0.55):'0';}
     el('linieFever').style.opacity=czyFever(sym)?1:0;                /* fever/turbo linie */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
@@ -6966,18 +7024,19 @@ const Gra=(()=>{
       R3.efekt(zd);                                                   /* BAJERY: shake/czastki w R3 */
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='naporStart'){                                        /* ZYWIOLY: zapowiedz per boss */
-      const POP={traktor:'🚜 TRAKTOR!',smieciarka:'🚛 ŚMIECIARKA!',burza:'⛈️ BURZA!',dzieciol:'🐦 DZIĘCIOŁ!',chmara:'🕊️ CHMARA!',tornado:'🌪️ TORNADO!'};
+      const POP={traktor:'🚜 TRAKTOR!',smieciarka:'🚛 ŚMIECIARKA!',burza:'⛈️ BURZA!',dzieciol:'🐦 DZIĘCIOŁ!',chmara:'🕊️ CHMARA!',tornado:'🌪️ TORNADO!',zamiec:'❄️ ZAMIEĆ!'};
       const TXT={traktor:'🚜 <b>ZMIENIAJ PASY!</b> (faza {f})',      /* TOASTY-2 (JA4): biegowe <=4 slowa */
         smieciarka:'🚛 <b>WYPRZEDŹ JĄ!</b> (faza {f})',
         burza:'⛈️ <b>OMIJAJ CELOWNIKI!</b> (faza {f})',
         dzieciol:'🐦 <b>LICZ STUKNIĘCIA!</b> (faza {f})',   /* 1/2/3 = pas L/S/P */
         chmara:'🕊️ <b>ŚLIZGAJ POD FALAMI!</b> (faza {f})',
-        tornado:'🌪️ <b>UCIEKAJ PRZED LEJEM!</b> (faza {f})'};
+        tornado:'🌪️ <b>UCIEKAJ PRZED LEJEM!</b> (faza {f})',
+        zamiec:'❄️ <b>CZYSTY BIEG!</b> Ściana goni (faza {f})'};
       popup(POP[zd.boss]||'⚡',true);
       Dzwiek.duck&&Dzwiek.duck(0.32);                                 /* NAPOR-SLYSZALNY: nuta schodzi */
       {const r=el('naporRamka');r.style.display='block';
        r.style.boxShadow='inset 0 0 110px 34px '+({traktor:'rgba(255,110,58,.55)',
-         smieciarka:'rgba(255,176,58,.5)',burza:'rgba(106,184,255,.5)',dzieciol:'rgba(122,190,110,.5)',chmara:'rgba(212,218,232,.55)',tornado:'rgba(196,178,150,.55)'}[zd.boss]||'rgba(255,90,74,.5)');}
+         smieciarka:'rgba(255,176,58,.5)',burza:'rgba(106,184,255,.5)',dzieciol:'rgba(122,190,110,.5)',chmara:'rgba(212,218,232,.55)',tornado:'rgba(196,178,150,.55)',zamiec:'rgba(226,236,248,.6)'}[zd.boss]||'rgba(255,90,74,.5)');}
       zd.boss==='burza'?Dzwiek.swist():Dzwiek.klakson();
       toast((TXT[zd.boss]||'').replace('{f}',zd.faza));
       try{navigator.vibrate&&navigator.vibrate([30,60,30]);}catch(e){}return;}
@@ -6995,6 +7054,8 @@ const Gra=(()=>{
       popup(zd.krzyz?'🕊️ ▼ NIE NA '+['LEWYM','ŚRODKU','PRAWYM'][zd.blok]+'!':'🕊️ ▼ ŚLIZG!');return;}
     if(zd.typ==='fala'){R3.efekt(zd);return;}
     if(zd.typ==='zjada'){R3.efekt(zd);return;}   /* Ż4: tornado polknelo pioro */
+    if(zd.typ==='zamiecLiz'){popup('❄️ ŚCIANA LIŻE!',true);R3.efekt(zd);
+      try{navigator.vibrate&&navigator.vibrate([50,80,50]);}catch(e){}return;}
     if(zd.typ==='piorunFinta'){popup('FINTA! ⚡');return;}
     if(zd.typ==='piorun'){R3.efekt(zd);return;}
     if(zd.typ==='naporKoniec'){                                       /* ZYWIOLY: pieczec zywiolu */
@@ -7004,7 +7065,7 @@ const Gra=(()=>{
       Biegus.zywioly=Biegus.zywioly||{};
       const Z=Biegus.zywioly[zd.boss]=Biegus.zywioly[zd.boss]||{sp:0,piecz:{}};
       Z.sp=(Z.sp||0)+1;
-      const NAZ={traktor:'TRAKTOR PANA HENIA',smieciarka:'ŚMIECIARKA NOCNA',burza:'BURZA',dzieciol:'DZIĘCIOŁ BUDOWLANIEC',chmara:'CHMARA Z RYNKU',tornado:'TORNADO'}[zd.boss]||zd.boss;
+      const NAZ={traktor:'TRAKTOR PANA HENIA',smieciarka:'ŚMIECIARKA NOCNA',burza:'BURZA',dzieciol:'DZIĘCIOŁ BUDOWLANIEC',chmara:'CHMARA Z RYNKU',tornado:'TORNADO',zamiec:'BIAŁA ŚCIANA'}[zd.boss]||zd.boss;
       if(zd.czysto){Z.piecz['f'+zd.faza]=true;
         if(sym&&sym.tryb==='etap')sym.styl=(sym.styl||0)+150;
         toast('🔖 <b>PIECZĘĆ ŻYWIOŁU: '+NAZ+' · FAZA '+zd.faza+'</b> — bez jednego hita! <b>+150 ✦</b>'+
@@ -7015,7 +7076,8 @@ const Gra=(()=>{
         burza:'⛈️ Burza przeszła. Bez pieczęci tym razem — żywioły lubią rewanże.',
         dzieciol:'🐦 Dzięcioł odleciał na budowę. Licz uważniej — pieczęć czeka.',
         chmara:'🕊️ Chmara wróciła na rynek dziobać bułki. Pieczęć następnym razem.',
-        tornado:'🌪️ Lej rozpłynął się nad granią. Wiatr zabrał parę piór — pieczęć czeka.'}[zd.boss]||'Żywioł przeszedł.');
+        tornado:'🌪️ Lej rozpłynął się nad granią. Wiatr zabrał parę piór — pieczęć czeka.',
+        zamiec:'❄️ Zamieć odpuściła za granią. Utrzymaj czysty bieg — pieczęć czeka.'}[zd.boss]||'Żywioł przeszedł.');
       Biegus.zapisz&&Biegus.zapisz();return;}
     if(zd.typ==='tarcza'){popup('TARCZA!');R3.efekt(zd);return;}
     if(zd.typ==='gwizd'){Dzwiek.gwizd();return;}
@@ -7103,7 +7165,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'11.7',
+  wersja:'11.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
