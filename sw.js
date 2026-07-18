@@ -38,6 +38,7 @@ const PRECACHE_URLS = [
   '/privacy.html',
   '/privacy-en.html',
   '/sb.js',
+  '/vendor/three-r128.min.js',
   '/theme.css',
   '/manifest.json',
   '/offline.html'

@@ -10,11 +10,27 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.8 (Trasy klasa I)</title>
+<title>Bieguś — Droga na Igrzyska · v10.9 (Fundament)</title>
+<meta property="og:title" content="Bieguś — Droga na Igrzyska">
+<meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://biegamy.run/biegus.html">
+<meta name="description" content="Bieguś — Droga na Igrzyska: gra biegowa, w której realne treningi karmią Twojego bohatera. BiegaMy — jesteśmy obok.">
+<!-- WY6: og:image dojdzie z key-artem (partia 21B) -->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.8 „TRASY KLASA I" (W1-W5 z
+     BIEGUŚ — DROGA NA IGRZYSKA · v10.9 „FUNDAMENT" (top-5 audytu
+     3 perspektyw, poz. 1: infrastruktura)
+     · WY3 SELF-HOST THREE.JS: vendor/three-r128.min.js ladowany
+       PIERWSZY, cdnjs tylko fallbackiem (document.write gdy brak
+       window.THREE) — koniec jedynego ryzyka klasy "gra nie wstaje";
+       PWA zyskuje pelny offline silnika. WYMAGA pliku vendor/
+       w repo (gotowiec cc pobiera go w tym samym commicie)
+     · WY6 OG META: og:title/description/url + meta description —
+       link do gry przestaje wygladac jak pusty plik (og:image
+       dojdzie z key-artem partii 21B)
+     v10.8 „TRASY KLASA I" (W1-W5 z
      mega-zwiadu; projekt detali T1-T4 w osobnym dokumencie)
      · W1 WIDOCZNOSC: fillLight 0.55->0.95/8 m — bohater czytelny
        pod dachem marketu/peronu i w kazdej ciemnej scenie
@@ -1594,7 +1610,8 @@
   <br><button id="btnKatalogWroc">← Wróć</button>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="vendor/three-r128.min.js"></script><!-- WY3: self-host — silnik zawsze wstaje (PWA offline!) -->
+<script>if(!window.THREE)document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');</script><!-- WY3: CDN tylko jako fallback -->
 <script>
 'use strict';
 /* — DIAGNOSTYKA: każdy błąd JS ląduje na ekranie (czerwony pasek) — */
@@ -6717,7 +6734,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.8',
+  wersja:'10.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
