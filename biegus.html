@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.2 (Lecimy bez scrolla)</title>
+<title>Bieguś — Droga na Igrzyska · v12.3 (Tablica tygodnia)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.2 „LECIMY BEZ SCROLLA" (UX
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.3 „TABLICA TYGODNIA + SWIATLO II"
+     · TABLICA TYGODNIA 2.0: karta z naglowkiem+streak-chipem, duze
+       km Bebasem, pasek 10 px z gradientem accent->zloto i animacja,
+       dymek w osobnej linii, skrzynia z ikona
+     · ikoU(): ikony UI z fallbackiem EMOJI — sloty: ikona-cel /
+       ikona-ogien / ikona-skrzynia / ikona-tab-biegi|biegus|swiat|
+       klub / ikona-radio; partia 21 laduje pliki -> wskakuja same,
+       do tego czasu wyglada jak dzis (zero martwych assetow)
+     · SWIATLO II (zgloszenie "czasem razi"): bloom .38->.33, prog
+       .86, fever +.15, napor +.08, ZLOTA x0.72
+     v12.2 „LECIMY BEZ SCROLLA" (UX
      ze zgloszenia gracza nr 1)
      · onboarding "JAK SIE BIEGA" i prolog: CTA (Lecimy! / Poznaj
        Biegusia) position:sticky bottom + safe-area + cien — przycisk
@@ -4473,7 +4483,7 @@ const R3=(()=>{
     if(!await zapewnijBloom()){console.log('[DROGA] BLOOM niedostepny (CDN) — render klasyczny');return;}
     composer=new THREE.EffectComposer(renderer);
     composer.addPass(new THREE.RenderPass(scena,kamera));
-    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.38,0.5,0.85);   /* G2-ton: bylo .5/.82 — przepalalo (zgloszenie: swiatlo zbyt ostre) */
+    bloomPass=new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.33,0.5,0.86);   /* SWIATLO-2: .38->.33, prog .86 (zgloszenie: nadal czasem razi) */
     composer.addPass(bloomPass);
     composer.setSize(innerWidth,innerHeight);
     bloomOn=true;console.log('[DROGA] BLOOM aktywny');
@@ -5426,9 +5436,9 @@ const R3=(()=>{
       burst(aktor.position.clone().add(new THREE.Vector3((Math.random()-0.5)*1.5,1.2,1.5)),
         0xcfd8ee,1,0.5,0.2,0.05);
     const fv=czyFever(s);                                             /* FLOW-GFX: swiatlo + smugi predkosci */
-    if(bloomPass)bloomPass.strength=(0.38+(fv?0.18:0)                  /* G2-ton: oddycha delikatniej */
-      +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.1:0))
-      *(PORA.n==='ZŁOTA GODZINA'?0.8:1);                               /* jasne pory nie przepalaja */
+    if(bloomPass)bloomPass.strength=(0.33+(fv?0.15:0)                  /* SWIATLO-2 */
+      +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.08:0))
+      *(PORA.n==='ZŁOTA GODZINA'?0.72:1);
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
     fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
@@ -6206,6 +6216,9 @@ const Gra=(()=>{
   function menuTab(i){MTABY.forEach((id,j)=>{el(id).classList.toggle('akt',i===j);
       el('mTab'+j).classList.toggle('akt',i===j);});
     try{localStorage.setItem('biegus_mtab',i);}catch(e){}}
+  [['ikona-tab-biegi','🏃','Biegi'],['ikona-tab-biegus','🐦','Mój Bieguś'],
+   ['ikona-tab-swiat','🗺️','Świat'],['ikona-tab-klub','🏆','Klub']]
+    .forEach((t,j)=>{el('mTab'+j).innerHTML=ikoU(t[0],t[1],17)+' '+t[2];});   /* TABLICA-TYG: taby z ikonami */
   MTABY.forEach((_,j)=>el('mTab'+j).onclick=()=>menuTab(j));
   menuTab((()=>{try{return +(localStorage.getItem('biegus_mtab')||0)||0;}catch(e){return 0;}})());
   el('btnGraj').onclick=()=>{Dzwiek.odpal();start(nastepnyEtap(),'etap');};
@@ -6216,6 +6229,7 @@ const Gra=(()=>{
   el('btnMute').onclick=()=>{el('btnMute').textContent=Dzwiek.przelacz()?'🔇':'🔊';};
 
   const CEL_TYG_KM=30,NAGRODA_TYG=150;                                /* JANUSZ: cel tygodnia z mostu */
+  const ikoU=(slug,em,px=20)=>'<img src="'+assetUrl('assets/ui/ikony/'+slug+'.webp')+'" alt="" style="width:'+px+'px;height:'+px+'px;vertical-align:-4px;object-fit:contain" onerror="this.outerHTML=&quot;'+em+'&quot;">';   /* TABLICA-TYG: ikony z fallbackiem emoji */
   let januszDane=null;
   function janusz(d){januszDane=d;januszRysuj();}
   function januszRysuj(){
@@ -6229,12 +6243,16 @@ const Gra=(()=>{
     else if(d.wczorajBieg)dymek='Bieguś zerka na drzwi… wyjdziecie dziś? 🏃';
     else dymek='Bieguś tęskni za prawdziwą trasą. Krótki trucht? 👟';
     b.hidden=false;
-    b.innerHTML='<b>🎯 CEL TYGODNIA</b>: '+d.km.toFixed(1)+' / '+CEL_TYG_KM+' km'
-      +(d.streak>=2?' &nbsp;·&nbsp; 🔥×'+d.streak:'')
-      +'<div style="height:7px;background:#232a3d;border-radius:5px;margin:6px 0">'
-      +'<div style="height:7px;width:'+proc+'%;background:var(--accent);border-radius:5px"></div></div>'
-      +'<span style="opacity:.85">'+dymek+'</span>'
-      +(d.km>=CEL_TYG_KM&&!odebr?'<button class="cta" id="btnSkrzyniaTyg" style="margin-top:8px;font-size:.95em">🎁 Odbierz skrzynię tygodnia (+'+NAGRODA_TYG+'🪶)</button>':'')
+    b.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'   /* TABLICA-TYG 2.0 */
+      +'<b style="letter-spacing:.04em">'+ikoU('ikona-cel','🎯')+' CEL TYGODNIA</b>'
+      +(d.streak>=2?'<span style="background:#2a2033;border:1px solid #4a3350;border-radius:999px;padding:2px 10px;font-size:.9em">'+ikoU('ikona-ogien','🔥',16)+' ×'+d.streak+'</span>':'')+'</div>'
+      +'<div style="display:flex;align-items:baseline;gap:6px;margin-top:4px">'
+      +'<span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.5em;color:#f2c14e">'+d.km.toFixed(1)+'</span>'
+      +'<span style="opacity:.7">/ '+CEL_TYG_KM+' km prawdziwego biegania</span></div>'
+      +'<div style="height:10px;background:#232a3d;border-radius:6px;margin:7px 0;overflow:hidden">'
+      +'<div style="height:10px;width:'+proc+'%;background:linear-gradient(90deg,var(--accent),#f2c14e);border-radius:6px;transition:width .5s"></div></div>'
+      +'<div style="opacity:.85;font-size:.95em">'+dymek+'</div>'
+      +(d.km>=CEL_TYG_KM&&!odebr?'<button class="cta" id="btnSkrzyniaTyg" style="margin-top:8px;font-size:.95em">'+ikoU('ikona-skrzynia','🎁',18)+' Odbierz skrzynię tygodnia (+'+NAGRODA_TYG+'🪶)</button>':'')
       +(odebr?'<div style="margin-top:6px;color:#8fd48f">✓ Skrzynia tygodnia odebrana</div>':'');
     const btn=el('btnSkrzyniaTyg');
     if(btn)btn.onclick=()=>{Biegus.celTyg=Biegus.celTyg||{};
@@ -7040,7 +7058,7 @@ const Gra=(()=>{
   function odswiezRadioBtn(){
     const b=el('btnRadio');
     const wl=(()=>{try{return localStorage.getItem('biegus_radio')!=='0';}catch(e){return true;}})();
-    b.textContent='📻 Radio: '+(wl?'GRA':'wyłączone');              /* PORZADKI: krotszy label w wierszu */
+    b.innerHTML=ikoU('ikona-radio','📻',17)+' Radio: '+(wl?'GRA':'wyłączone');   /* TABLICA-TYG: ikona radia (fallback 📻) */
     b.hidden=!RadioGry.playlista;
     el('btnRadioSkip').hidden=!RadioGry.playlista||!wl;}       /* RADIO-nonstop */
   el('btnRadio').onclick=()=>{RadioGry.przelacz();
@@ -7273,7 +7291,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.2',
+  wersja:'12.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
