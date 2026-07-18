@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.1 (Tele-fix)</title>
+<title>Bieguś — Droga na Igrzyska · v12.2 (Lecimy bez scrolla)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.1 „TELE-FIX" (diagnoza cc:
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.2 „LECIMY BEZ SCROLLA" (UX
+     ze zgloszenia gracza nr 1)
+     · onboarding "JAK SIE BIEGA" i prolog: CTA (Lecimy! / Poznaj
+       Biegusia) position:sticky bottom + safe-area + cien — przycisk
+       widoczny OD PIERWSZEJ SEKUNDY, tresc scrolluje sie POD nim;
+       docisniecie do naturalnej pozycji na koncu scrolla
+     v12.1 „TELE-FIX" (diagnoza cc:
      game_events puste mimo realnej sesji — 5 fixow klienta)
      · TF-1: window.Tele=Tele — top-level const NIE zyje na window,
        guardy window.Tele&& w listenerach bledow byly MARTWE
@@ -1633,7 +1639,7 @@
   <div class="pod" style="text-align:left">Jeden został. Ten najmniejszy — który zawsze wolał <b>biegać</b>. „Ptak, który biega?!" — śmiały się wszystkie, znikając za horyzontem.</div>
   <img src="assets/ui/powitanie-3.webp" alt="" style="width:100%;max-width:420px;border-radius:14px;margin-top:8px" onerror="this.hidden=true">
   <div class="pod" style="text-align:left">A on ogłosił: <b>„Wystartuję w Wielkich Igrzyskach. Tych dla ludzi."</b> I zaczął trenować. Od dziś — z Tobą.</div>
-  <button class="cta" id="btnProlog">Poznaj Biegusia ▶</button>
+  <button class="cta" id="btnProlog" style="position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;box-shadow:0 8px 26px rgba(0,0,0,.55)">Poznaj Biegusia ▶</button>   <!-- UX-STICKY -->
 </div>
 <div class="karta ciemna" id="onboarding" hidden>
   <h1>JAK SIĘ <em>BIEGA</em></h1>
@@ -1644,7 +1650,7 @@
   <img src="assets/ui/nauka-flow.webp" alt="" style="width:100%;max-width:420px;border-radius:14px;margin-top:8px" onerror="this.hidden=true">
   <div class="pod" style="text-align:left"><b>FLOW</b> — nakręć serię bez wpadki, a świat zapłonie. Przy krawędzi drogi stanie <b>ściana światła</b>: biegnij po niej, odbijaj się w locie.</div>
   <div class="pod" style="opacity:.8;margin-top:6px">Bieguś je <b>prawdziwe treningi</b> — one przesuwają go po Drodze. Skrótów nie ma. Jak w bieganiu.</div>
-  <button class="cta" id="btnOnboardingStart">Lecimy! ▶</button>
+  <button class="cta" id="btnOnboardingStart" style="position:sticky;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;box-shadow:0 8px 26px rgba(0,0,0,.55)">Lecimy! ▶</button>   <!-- UX-STICKY: bez scrolla -->
 </div>
 
 <!-- PANEL: MAPA DROGI -->
@@ -7267,7 +7273,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.1',
+  wersja:'12.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
