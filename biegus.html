@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v11.0 (Duch Orła)</title>
+<title>Bieguś — Droga na Igrzyska · v11.1 (Słyszalny napór)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v11.0 „DUCH ORLA" (top-5 poz. 2:
+     BIEGUŚ — DROGA NA IGRZYSKA · v11.1 „SLYSZALNY NAPOR" (zgloszenie:
+     "jak gra nuta, nie slychac ze smieciarka bedzie jechac")
+     · DUCKING: muzyka schodzi do 32% na czas naporu (naporStart ->
+       duck 0.32, koniec/meta/fail/pauza -> 1.0) — klakson, warkot
+       i grzmot slychac ZAWSZE, takze przy Radio BiegaMy
+     · RAMKA NAPORU: pulsujaca krawedz ekranu w kolorze bossa przez
+       CALY napor (traktor pomarancz / smieciarka bursztyn / burza
+       blekit) — ostrzezenie WIDAC nawet z wyciszonym telefonem
+     · sprzatanie ramki+duckingu na kazdym wyjsciu z biegu
+     v11.0 „DUCH ORLA" (top-5 poz. 2:
      GR1+JA3 — samouczek kontekstowy, raz w zyciu)
      · RACZKA SWIPE: 👆 waha sie przez pierwsze 3.5 s PIERWSZEGO
        biegu w zyciu (animacja CSS, znika po nauce)
@@ -1275,6 +1284,7 @@
   #comboHud.puls{animation:comboPuls .32s ease-out}
   @keyframes comboPuls{0%{transform:scale(1)}45%{transform:scale(1.6)}100%{transform:scale(1)}}
   @keyframes uczSwipe{0%,100%{margin-left:-64px}50%{margin-left:64px}}   /* NAUKA: raczka */
+  @keyframes naporPuls{0%,100%{opacity:.38}50%{opacity:.8}}   /* NAPOR-SLYSZALNY: ramka bossa */
   .gSlotTytul{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;
     margin:14px 0 6px;color:#f2c14e}
   .gGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -1328,6 +1338,7 @@
   background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(10,14,24,.34) 100%)"></div>
 <div id="toast" role="status"></div>
 <div id="ziarno"></div>
+<div id="naporRamka" style="position:fixed;inset:0;pointer-events:none;z-index:3;display:none;animation:naporPuls .9s ease-in-out infinite"></div>   <!-- NAPOR-SLYSZALNY -->
 <div id="uczSwipe" style="position:fixed;left:50%;top:56%;transform:translateX(-50%);z-index:6;display:none;font-size:46px;pointer-events:none;text-shadow:0 3px 10px #000;animation:uczSwipe 1.1s ease-in-out infinite">👆</div>   <!-- NAUKA: swipe -->
 <div id="hypeBox" style="position:fixed;left:50%;top:96px;transform:translate(-50%,-16px);opacity:0;transition:opacity .25s,transform .25s;z-index:60;pointer-events:none;background:var(--panel);border:1px solid #2a3350;border-radius:16px;padding:8px 14px;max-width:78vw;display:flex;align-items:center;gap:9px"></div>   <!-- KIBICE -->
 <div id="dymek" hidden></div>
@@ -1746,6 +1757,7 @@ const RadioGry={ /* RADIO-nonstop: player na CALEJ grze — menu, karty, etapy *
 RadioGry.wczytaj();
 
 const Dzwiek=(()=>{
+  let muzDuck=1;                                                      /* NAPOR-SLYSZALNY: ducking muzyki */
   let ctx=null,wyciszony=false,muzTimer=null,muzKrok=0,szumBuf=null,wiatrSrc=null,wiatrGain=null,flowOn=false;
   const AKORDY=[[220,261.63,329.63],[174.61,220,261.63],[130.81,164.81,196],[196,246.94,293.66]];
   const PENTA=[220,261.63,293.66,329.63,392,440];
@@ -1796,13 +1808,14 @@ const Dzwiek=(()=>{
         if(flowOn&&Math.random()<0.5)ton(nuta*2,0.18,'sine',0.03,0,0.11);
         muzKrok++;},500);},
     muzykaStop(){clearInterval(muzTimer);muzTimer=null;},  /* RADIO-nonstop: radio gra dalej po etapie */
+    duck(v){muzDuck=v;},                                   /* NAPOR-SLYSZALNY: boss przygasza nute */
     krok(){if(!ctx||wyciszony)return;
       if(!szumBuf){szumBuf=ctx.createBuffer(1,2205,44100);
         const d=szumBuf.getChannelData(0);
         for(let i=0;i<2205;i++)d[i]=(Math.random()*2-1)*(1-i/2205);}
       const src=ctx.createBufferSource();src.buffer=szumBuf;
       const f=ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=340;
-      const g=ctx.createGain();g.gain.value=0.11;
+      const g=ctx.createGain();g.gain.value=0.11*muzDuck;             /* NAPOR-SLYSZALNY */
       src.connect(f);f.connect(g);g.connect(ctx.destination);src.start();},
     wiatrStart(){odpal();if(!ctx||wiatrSrc)return;
       const buf=ctx.createBuffer(1,44100,44100);
@@ -5574,7 +5587,7 @@ const Gra=(()=>{
     d.innerHTML='<b>'+(kto||Biegus.imie)+':</b> '+t;d.classList.add('widoczny');
     clearTimeout(d._tm);d._tm=setTimeout(()=>d.classList.remove('widoczny'),kto?3400:2400);}
   function pauza(){
-    if(tryb==='bieg'){tryb='pauza';wPauzie=true;Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    if(tryb==='bieg'){tryb='pauza';wPauzie=true;Dzwiek.muzykaStop();Dzwiek.wiatrStop();{const nr=el('naporRamka');if(nr)nr.style.display='none';}
       el('pauzaMysl').textContent=MYSLI[Math.floor(Math.random()*MYSLI.length)];
       pokaz('pauza');}
     else if(tryb==='pauza'){tryb='bieg';wPauzie=false;
@@ -6335,7 +6348,7 @@ const Gra=(()=>{
       document.body.appendChild(k);
       setTimeout(()=>k.remove(),4200);}}
   function ekranFinal(){
-    tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();Dzwiek.duck&&Dzwiek.duck(1);{const nr=el('naporRamka');if(nr)nr.style.display='none';}   /* NAPOR-SLYSZALNY: sprzatanie */
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
     Biegus.poEtapie(sym.piora);
@@ -6397,7 +6410,7 @@ const Gra=(()=>{
         rb.textContent='Rekord etapu: '+r.piora+' 🪶 — zabrakło '+(r.piora-sym.piora)
           +(nowyS?' · ✦ REKORD STYLU: '+sym.styl+'!':'');
         rb.hidden=false;}}
-    tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+    tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();Dzwiek.duck&&Dzwiek.duck(1);{const nr=el('naporRamka');if(nr)nr.style.display='none';}   /* NAPOR-SLYSZALNY: sprzatanie */
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);
     if(sym.bonusyG){let bon=sym.bonusyG.piora||0;
@@ -6539,7 +6552,7 @@ const Gra=(()=>{
       serca:sym.serca,piora:sym.piora,maxCombo:sym.maxCombo,
       znaleziska:sym.zebrane.map(z=>z.id),perfekt});
   }
-  function ekranFail(){tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();
+  function ekranFail(){tryb='karta';Dzwiek.muzykaStop();Dzwiek.wiatrStop();Dzwiek.duck&&Dzwiek.duck(1);{const nr=el('naporRamka');if(nr)nr.style.display='none';}   /* NAPOR-SLYSZALNY: sprzatanie */
     Biegus._smutnyDo=Date.now()+90000;
     document.body.classList.remove('flow');
     el('comboHud').classList.remove('flow');Dzwiek.setFlow(false);Biegus.poEtapie(sym.piora);
@@ -6656,6 +6669,10 @@ const Gra=(()=>{
         smieciarka:'🚛 <b>ŚMIECIARKA NOCNA — FAZA {f}</b>. Gubi kubły z paki — przebij się i WYPRZEDŹ ją!',
         burza:'⛈️ <b>BURZA NADCIĄGA — FAZA {f}</b>. Celownik = piorun. Slalom, nie dyskusja!'};
       popup(POP[zd.boss]||'⚡',true);
+      Dzwiek.duck&&Dzwiek.duck(0.32);                                 /* NAPOR-SLYSZALNY: nuta schodzi */
+      {const r=el('naporRamka');r.style.display='block';
+       r.style.boxShadow='inset 0 0 110px 34px '+({traktor:'rgba(255,110,58,.55)',
+         smieciarka:'rgba(255,176,58,.5)',burza:'rgba(106,184,255,.5)'}[zd.boss]||'rgba(255,90,74,.5)');}
       zd.boss==='burza'?Dzwiek.swist():Dzwiek.klakson();
       toast((TXT[zd.boss]||'').replace('{f}',zd.faza));
       try{navigator.vibrate&&navigator.vibrate([30,60,30]);}catch(e){}return;}
@@ -6667,6 +6684,8 @@ const Gra=(()=>{
     if(zd.typ==='piorunFinta'){popup('FINTA! ⚡');return;}
     if(zd.typ==='piorun'){R3.efekt(zd);return;}
     if(zd.typ==='naporKoniec'){                                       /* ZYWIOLY: pieczec zywiolu */
+      Dzwiek.duck&&Dzwiek.duck(1);
+      {const r=el('naporRamka');if(r)r.style.display='none';}          /* NAPOR-SLYSZALNY: koniec, nuta wraca */
       Biegus.zywioly=Biegus.zywioly||{};
       const Z=Biegus.zywioly[zd.boss]=Biegus.zywioly[zd.boss]||{sp:0,piecz:{}};
       Z.sp=(Z.sp||0)+1;
@@ -6766,7 +6785,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'11.0',
+  wersja:'11.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
