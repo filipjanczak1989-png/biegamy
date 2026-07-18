@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v10.9 (Fundament)</title>
+<title>Bieguś — Droga na Igrzyska · v11.0 (Duch Orła)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v10.9 „FUNDAMENT" (top-5 audytu
+     BIEGUŚ — DROGA NA IGRZYSKA · v11.0 „DUCH ORLA" (top-5 poz. 2:
+     GR1+JA3 — samouczek kontekstowy, raz w zyciu)
+     · RACZKA SWIPE: 👆 waha sie przez pierwsze 3.5 s PIERWSZEGO
+       biegu w zyciu (animacja CSS, znika po nauce)
+     · DYMKI DUCHA ORLA w e1: pierwsza przeszkoda skokowa -> popup
+       "▲ SKACZ!", pierwsza slizgowa -> "▼ SLIZG!", pierwszy lot ->
+       "⬆ W LOCIE = TRIK ✦" — kazdy RAZ W ZYCIU (Biegus.nauka,
+       trio kotwic w save), <=3 slowa (JA4-zgodne), zero osobnego
+       trybu, zero dotykania symulacji (czysty odczyt w hud)
+     · WETERANI BEZ SZKOLY: save z ukonczonymi etapami dostaje
+       nauke zaliczona automatem (stary gracz w e1 na goracym
+       punkcie NIE widzi dymkow)
+     v10.9 „FUNDAMENT" (top-5 audytu
      3 perspektyw, poz. 1: infrastruktura)
      · WY3 SELF-HOST THREE.JS: vendor/three-r128.min.js ladowany
        PIERWSZY, cdnjs tylko fallbackiem (document.write gdy brak
@@ -1262,6 +1274,7 @@
   #comboHud{display:inline-block}
   #comboHud.puls{animation:comboPuls .32s ease-out}
   @keyframes comboPuls{0%{transform:scale(1)}45%{transform:scale(1.6)}100%{transform:scale(1)}}
+  @keyframes uczSwipe{0%,100%{margin-left:-64px}50%{margin-left:64px}}   /* NAUKA: raczka */
   .gSlotTytul{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;
     margin:14px 0 6px;color:#f2c14e}
   .gGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -1315,6 +1328,7 @@
   background:radial-gradient(ellipse at 50% 42%,transparent 56%,rgba(10,14,24,.34) 100%)"></div>
 <div id="toast" role="status"></div>
 <div id="ziarno"></div>
+<div id="uczSwipe" style="position:fixed;left:50%;top:56%;transform:translateX(-50%);z-index:6;display:none;font-size:46px;pointer-events:none;text-shadow:0 3px 10px #000;animation:uczSwipe 1.1s ease-in-out infinite">👆</div>   <!-- NAUKA: swipe -->
 <div id="hypeBox" style="position:fixed;left:50%;top:96px;transform:translate(-50%,-16px);opacity:0;transition:opacity .25s,transform .25s;z-index:60;pointer-events:none;background:var(--panel);border:1px solid #2a3350;border-radius:16px;padding:8px 14px;max-width:78vw;display:flex;align-items:center;gap:9px"></div>   <!-- KIBICE -->
 <div id="dymek" hidden></div>
 
@@ -1851,6 +1865,7 @@ const Biegus={
   _przemiana:null,                                                    /* PRZEMIANA: oczekujaca ceremonia */
   dar:null,                                                           /* M1 DARY: {id,do} */
   echo:null,                                                          /* M3 ECHO: {mn,do} */
+  nauka:{},                                                           /* NAUKA: dymki e1 raz w zyciu */
   zywioly:{},                                                         /* ZYWIOLY: {burza:{sp,piecz}} */
   ostatniTrening:0,                                                   /* M4 SERCE: timestamp realnego treningu */
   planDnia:null,pieczecie:0,                                          /* M2: {date,typ,km,opis,zaliczone} + pieczecie Slownego Biegacza */
@@ -1874,6 +1889,7 @@ const Biegus={
     przemiana:this._przemiana||null,                                  /* PRZEMIANA */
     dar:this.dar||null,                                               /* M1 DARY */
     echo:this.echo||null,                                             /* M3 ECHO */
+    nauka:this.nauka||{},                                             /* NAUKA */
     zywioly:this.zywioly||{},                                         /* ZYWIOLY */
     ostatniTrening:this.ostatniTrening||0,                            /* M4 SERCE */
     planDnia:this.planDnia||null,pieczecie:this.pieczecie||0,         /* M2 */
@@ -1896,6 +1912,9 @@ const Biegus={
     this._przemiana=d.przemiana||null;                                 /* PRZEMIANA */
     this.dar=d.dar||null;                                              /* M1 DARY */
     this.echo=d.echo||null;                                            /* M3 ECHO */
+    this.nauka=d.nauka||{};                                            /* NAUKA */
+    if(this.ukonczone&&this.ukonczone.size>0&&!d.nauka)                /* NAUKA: weterani bez szkoly */
+      this.nauka={swipe:1,skok:1,slizg:1,trik:1};
     this.zywioly=d.zywioly||{};                                        /* ZYWIOLY */
     this.ostatniTrening=d.ostatniTrening||0;                           /* M4 SERCE */
     this.planDnia=d.planDnia||null;this.pieczecie=d.pieczecie||0;      /* M2 */
@@ -6280,6 +6299,19 @@ const Gra=(()=>{
     el('stylHud').textContent=((sym.styl||0)>0||(sym.stylLot||0)>0)   /* STYL w HUD + pending lotu */
       ?('✦'+sym.styl+((sym.stylLot||0)>0?' (+'+sym.stylLot+')':'')):'';
     el('zegarekHud').textContent=(sagaMoc(5)&&januszDane)?'⌚'+(+januszDane.km||0).toFixed(1)+' km/tydz.':'';   /* M6: zegarek pokazuje PRAWDE z zycia */
+    if(sym.tryb==='etap'&&biezacyEtap===1&&sym.stan==='bieg'){         /* NAUKA: duch Trenera Orla (GR1+JA3) */
+      const N=Biegus.nauka=Biegus.nauka||{};
+      const sw=el('uczSwipe');
+      if(!N.swipe){sw.style.display=sym.t<3.5?'block':'none';
+        if(sym.t>=3.5){N.swipe=1;Biegus.zapisz&&Biegus.zapisz();}}
+      else sw.style.display='none';
+      if(sym.t>2)for(const o of sym.aktywne){
+        if(o.sprawdzone||o.z<CFG.GRACZ_Z-15||o.z>CFG.GRACZ_Z-4)continue;
+        const ob=OBIEKTY[o.typ];if(!ob||ob.dekor||ZBIERALNE.has(o.typ))continue;
+        if(ob.unik==='skok'&&!N.skok){N.skok=1;popup('▲ SKACZ!',true);Dzwiek.beep&&Dzwiek.beep();Biegus.zapisz&&Biegus.zapisz();break;}
+        if(ob.unik==='slizg'&&!N.slizg){N.slizg=1;popup('▼ ŚLIZG!',true);Dzwiek.beep&&Dzwiek.beep();Biegus.zapisz&&Biegus.zapisz();break;}}
+      if(!N.trik&&sym.wPow&&sym.t>4){N.trik=1;popup('⬆ W LOCIE = TRIK ✦',true);Biegus.zapisz&&Biegus.zapisz();}}
+    else{const sw=el('uczSwipe');if(sw.style.display!=='none')sw.style.display='none';}
     el('linieFever').style.opacity=czyFever(sym)?1:0;                /* fever/turbo linie */
     el('znalHud').textContent='◆'.repeat(sym.zebrane.length).padEnd(CFG.ZNALEZISKA_NA_ETAP,'◇');
     el('karaHud').textContent=sym.tryb==='zawody'&&sym.hity?'+'+(sym.hity*CFG.ZAWODY.KARA_HIT)+'s':'';
@@ -6734,7 +6766,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'10.9',
+  wersja:'11.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
