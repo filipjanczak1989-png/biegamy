@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v11.1 (Słyszalny napór)</title>
+<title>Bieguś — Droga na Igrzyska · v11.2 (Toasty 2.0)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v11.1 „SLYSZALNY NAPOR" (zgloszenie:
+     BIEGUŚ — DROGA NA IGRZYSKA · v11.2 „TOASTY 2.0" (top-5 poz. 3:
+     GR4+JA4 z audytu 3 perspektyw)
+     · KOLEJKA: toasty sekwencyjnie (2.6 s + przerwa 0.32 s), max 4
+       — dar+pieczec+echo+goracy punkt na mecie juz sie nie zderzaja;
+       nadmiar do kosza (meta i tak podsumowuje)
+     · COPY BIEGOWE <=4 SLOWA: zapowiedzi bossow skrocone do rozkazu
+       (ZMIENIAJ PASY / WYPRZEDZ JA / OMIJAJ CELOWNIKI) — czytanie
+       zdan przy 15.4 m/s konczylo sie hitem; szczegoly zostaja
+       na liscie mocy intro i na mecie
+     v11.1 „SLYSZALNY NAPOR" (zgloszenie:
      "jak gra nuta, nie slychac ze smieciarka bedzie jechac")
      · DUCKING: muzyka schodzi do 32% na czas naporu (naporStart ->
        duck 0.32, koniec/meta/fail/pauza -> 1.0) — klakson, warkot
@@ -5577,8 +5586,16 @@ const Gra=(()=>{
     raz(id,tekst){if(this.d[id])return;this.d[id]=1;
       try{localStorage.setItem('biegus_hinty_v1',JSON.stringify(this.d));}catch(e){}
       toast('💡 '+tekst);}};
-  function toast(html){const t=el('toast');t.innerHTML=html;t.classList.add('widoczny');
-    clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove('widoczny'),3200);}
+  let _toastQ=[],_toastBusy=false;                                   /* TOASTY-2 (GR4): kolejka — dar+pieczec+echo+goracy nie zderzaja sie */
+  function toast(html){
+    if(_toastQ.length>=4)return;                                       /* nadmiar do kosza — meta i tak podsumowuje */
+    _toastQ.push(html);if(!_toastBusy)_toastDalej();}
+  function _toastDalej(){
+    if(!_toastQ.length){_toastBusy=false;return;}
+    _toastBusy=true;const t=el('toast');t.innerHTML=_toastQ.shift();
+    t.classList.add('widoczny');clearTimeout(t._tm);
+    t._tm=setTimeout(()=>{t.classList.remove('widoczny');
+      setTimeout(_toastDalej,320);},2600);}
   let mapkaWpis=null;                              /* ŚLAD KLUCZA: ostatni kawalek z biegu */
   function popup(tekst,akcent=false){const p=el('popup');
     p.textContent=tekst;p.classList.toggle('akcent',akcent);p.classList.add('widoczny');
@@ -6665,9 +6682,9 @@ const Gra=(()=>{
       const sh=el('stylHud');sh.classList.remove('puls');void sh.offsetWidth;sh.classList.add('puls');return;}
     if(zd.typ==='naporStart'){                                        /* ZYWIOLY: zapowiedz per boss */
       const POP={traktor:'🚜 TRAKTOR!',smieciarka:'🚛 ŚMIECIARKA!',burza:'⛈️ BURZA!'};
-      const TXT={traktor:'🚜 <b>TRAKTOR PANA HENIA — FAZA {f}</b>. Jedzie Twoim pasem: nie stój, RUSZAJ SIĘ!',
-        smieciarka:'🚛 <b>ŚMIECIARKA NOCNA — FAZA {f}</b>. Gubi kubły z paki — przebij się i WYPRZEDŹ ją!',
-        burza:'⛈️ <b>BURZA NADCIĄGA — FAZA {f}</b>. Celownik = piorun. Slalom, nie dyskusja!'};
+      const TXT={traktor:'🚜 <b>ZMIENIAJ PASY!</b> (faza {f})',      /* TOASTY-2 (JA4): biegowe <=4 slowa */
+        smieciarka:'🚛 <b>WYPRZEDŹ JĄ!</b> (faza {f})',
+        burza:'⛈️ <b>OMIJAJ CELOWNIKI!</b> (faza {f})'};
       popup(POP[zd.boss]||'⚡',true);
       Dzwiek.duck&&Dzwiek.duck(0.32);                                 /* NAPOR-SLYSZALNY: nuta schodzi */
       {const r=el('naporRamka');r.style.display='block';
@@ -6785,7 +6802,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'11.1',
+  wersja:'11.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
