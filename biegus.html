@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.0 (Sanitarka)</title>
+<title>Bieguś — Droga na Igrzyska · v12.1 (Tele-fix)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.0 „SANITARKA" (pelny re-audyt
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.1 „TELE-FIX" (diagnoza cc:
+     game_events puste mimo realnej sesji — 5 fixow klienta)
+     · TF-1: window.Tele=Tele — top-level const NIE zyje na window,
+       guardy window.Tele&& w listenerach bledow byly MARTWE
+       (dowod: blad "aktor" z produ nie wpadl do tabeli)
+     · TF-2: fail/boss/blad flushuja NATYCHMIAST (boss czekal 30 s)
+     · TF-3: flush nie gubi wierszy przy wyjatku (restore do bufora)
+       + status POST w konsoli (koniec slepego silent-fail)
+     · TF-4: visibilitychange hidden -> beacon (swipe-kill na
+       Androidzie potrafi nie odpalic pagehide)
+     · TF-5: zdarzenia start i meta ("zero start" w tabeli bylo
+       BRAKIEM implementacji, nie awaria — uczciwie odnotowane)
+     v12.0 „SANITARKA" (pelny re-audyt
      bossow po zgloszeniach z trasy — 6 fixow, w tym 1 krytyczny)
      · S-1 KRYTYCZNY: smierc od bossa/spadu byla NIEWIDZIALNA — 8
        sciezek hit ustawialo s.stan='fail' BEZ zdarzenia {typ:'fail'}
@@ -2123,7 +2135,7 @@ const Tele={ /* TELE (WY1+WY2): przyrzady pokladowe — game_events w Supabase; 
     return a;}catch(e){return 'a0';}},
   zdarzenie(typ,dane){if(!this.on)return;
     this.buf.push({typ,dane:dane||{},wersja:(window.Gra&&Gra.wersja)||'?',anon_id:this.anon()});
-    if(this.buf.length>=40||typ==='blad')this.flush();},
+    if(this.buf.length>=40||typ==='blad'||typ==='fail'||typ==='boss')this.flush();},   /* TF-2: wazne typy od razu */
   flush(beacon){if(!this.buf.length)return;
     const rows=this.buf.splice(0,40);
     try{
@@ -2133,10 +2145,14 @@ const Tele={ /* TELE (WY1+WY2): przyrzady pokladowe — game_events w Supabase; 
       if(beacon&&navigator.sendBeacon){
         navigator.sendBeacon(url+'?apikey='+MOST.KEY,new Blob([cialo],{type:'application/json'}));return;}
       fetch(url,{method:'POST',headers:MOST.naglowki((sesja&&sesja.tok)||MOST.KEY,true),
-        body:cialo,keepalive:true}).catch(()=>{});
-    }catch(e){}},
+        body:cialo,keepalive:true})
+        .then(r=>{if(!r.ok)console.warn('[TELE] POST',r.status);})     /* TF-3: status w konsoli */
+        .catch(e=>{console.warn('[TELE]',e&&e.message);this.buf=rows.concat(this.buf);});
+    }catch(e){this.buf=rows.concat(this.buf);}},                       /* TF-3: wyjatek nie gubi wierszy */
 };
+window.Tele=Tele;                                                    /* TELE-FIX TF-1: const nie zyje na window — guardy 'blad' byly martwe */
 setInterval(()=>{try{Tele.flush();}catch(e){}},30000);
+addEventListener('visibilitychange',()=>{try{if(document.visibilityState==='hidden')Tele.flush(true);}catch(e){}});   /* TF-4: Android swipe-kill gubi pagehide */
 addEventListener('pagehide',()=>{try{Tele.flush(true);}catch(e){}});
 const MOST={ /* MOST-v2: realne treningi BiegaMy -> piora (5/km) + karmienie; ten sam origin, sesja z localStorage */
   URL:'https://afqojgkaveykxbltxzwm.supabase.co',
@@ -6565,6 +6581,7 @@ const Gra=(()=>{
   el('btnOnboardingStart').onclick=()=>{widzialOnboarding=true;
     if(!czekaStart)return;const [pn,pt]=czekaStart;czekaStart=null;start(pn,pt);};   /* FAIR: pancerz */
   function start(n,trybGry){
+    try{Tele.zdarzenie('start',{e:n,tryb:trybGry});}catch(x){}         /* TELE-FIX TF-5 */
     if(!widzialOnboarding){czekaStart=[n,trybGry];tryb='karta';pokaz('onboarding');return;}
     biezacyEtap=n;
     if(sym)R3.sprzatnij(sym);
@@ -6817,6 +6834,7 @@ const Gra=(()=>{
     el('trofeumImg').src=assetUrl('assets/ui/ikony/trofeum-igrzysk.webp');
     konfetti();odswiezMenuStatus();pokaz('final');}
   function ekranMeta(){
+    try{Tele.zdarzenie('meta',{e:biezacyEtap,tryb:trybGry,czas:Math.round(sym.t)});}catch(x){}   /* TELE-FIX TF-5 */
     if(sym&&sym.tryb==='final'){ekranFinal();return;}
     {const kf=el('finisz'),kr=(sym.skrypt&&sym.skrypt.kraina)||1,pl=PLANSZE_AKTOW[kr];   /* TRIUMF+WINIETY */
      kf.style.backgroundImage='linear-gradient(rgba(10,12,20,.72),rgba(10,12,20,.9)),url('+
@@ -7249,7 +7267,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.0',
+  wersja:'12.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
