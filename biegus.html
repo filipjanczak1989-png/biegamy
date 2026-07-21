@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.6 (Prześwit)</title>
+<title>Bieguś — Droga na Igrzyska · v13.7 (Odporność stadiów)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.6 „PRZESWIT" (zgloszenie:
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.7 „ODPORNOSC STADIOW"
+     (zgloszenie: "zamiast mlodego jest starszy level 3")
+     · OS-1: forceBase byl GLOBALNY — jedna wpadka ladowania
+       (podejrzenie: STARE 4 modele stadiow sprzed pipeline
+       kompresji, moga wazyc dziesiatki MB) wylaczala WSZYSTKIE
+       stadia do konca sesji -> zawsze dorosly z opaska.
+       Teraz blacklist per-URL: pada tylko chory plik
+     · OS-2 DIAGNOSTYKA: kazdy load stadium loguje
+       [DROGA] stadium=X km=Y -> plik (+FALLBACK powod) + Tele
+       'blad' przy padnietym GLB — nastepnym razem czytamy
+       przyczyne z konsoli/tabeli, nie zgadujemy
+     · cc rownolegle miersy stare modele (wc -c + curl) — jesli
+       wielkie, przejda przez nasz pipeline kompresji
+     v13.6 „PRZESWIT" (zgloszenie:
      "szlaban czy plotek nie idzie przeskoczyc")
      · MECHANIKA BEZ ZMIAN — szlaban i barierka to SLIZG by design
        ("przeslizgnij sie pod nim"); problem byl WIZUALNY, ta sama
@@ -4606,9 +4619,10 @@ const R3=(()=>{
     const loader=new THREE.GLTFLoader();
     /* — Bieguś premium — */
     const stadium=(typeof Biegus!=='undefined'&&Biegus.stadium)?Biegus.stadium():'dorosly';
-    const wpis=PREMIUM.forceBase?null:GLB_STADIA[stadium];
+    const wpis=(PREMIUM.padle&&PREMIUM.padle[GLB_STADIA[stadium]&&GLB_STADIA[stadium].url])?null:GLB_STADIA[stadium];   /* ODPORNOSC v13.7: blacklist per-URL zamiast globalnego forceBase */
     const sciezka=wpis?wpis.url:ASSETY.biegus;
     const obrotModelu=wpis?wpis.obrot:ASSETY.obrotY;
+    console.log('[DROGA] stadium='+stadium+' km='+((typeof Biegus!=='undefined'&&Biegus.laczneKm)||'?')+' -> '+sciezka+(wpis?'':' (FALLBACK: brak wpisu lub url na blacklescie)'));   /* ODPORNOSC v13.7 */
     if(PREMIUM.url===sciezka&&PREMIUM.model)return;
     PREMIUM.url=sciezka;
     loader.load(assetUrl(sciezka),gltf=>{
@@ -4638,10 +4652,12 @@ const R3=(()=>{
       if(_biegusDebug())Gra?.toast?.('✨ <b>Bieguś Premium załadowany!</b><br>Model 3D z Twojego pipeline\'u assetów.');  /* RC1-fix: dev-toast tylko w debug */
       window.dispatchEvent(new Event('drogapremium'));
     },undefined,err=>{
-      if(!PREMIUM.forceBase&&sciezka!==ASSETY.biegus){
+      if(sciezka!==ASSETY.biegus){
         console.log('[DROGA] brak '+sciezka+' — dociągam bazowy model');
         pokazBlad('INFO: brak modelu stadium ('+assetUrl(sciezka)+') → używam biegus.glb');
-        PREMIUM.forceBase=true;PREMIUM.url=null;zaladujPremium();return;}
+        (PREMIUM.padle=PREMIUM.padle||{})[sciezka]=1;                  /* ODPORNOSC v13.7: pada TYLKO ten url; inne stadia zdrowe */
+        try{window.Tele&&Tele.zdarzenie('blad',{m:'stadium-glb padl: '+sciezka});}catch(x){}
+        PREMIUM.url=null;zaladujPremium();return;}
       console.log('[DROGA] GLB padł:',sciezka,err);
       const u=assetUrl(sciezka);                       // śledztwo: sieć czy parser?
       fetch(u,{cache:'no-store'}).then(r=>pokazBlad(
@@ -7586,7 +7602,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.6',
+  wersja:'13.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
