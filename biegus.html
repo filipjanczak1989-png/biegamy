@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.4 (Ławki)</title>
+<title>Bieguś — Droga na Igrzyska · v14.5 (Stolarka)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -4758,9 +4758,9 @@ const R3=(()=>{
       },undefined,()=>{});
       const DECO_GLB=[                                                 /* LT-4 v13.2: LUDZIE+DETALE (zgloszenie: "nie widac ludzi ktorych wygenerowalismy") */
         /* nazwa, wysokosc, [grupa, x, z, cykl, rotY(rad)] ... */
-        ['lawka',0.8,[['k1',4.0,-34,200,3.1416],['k1',-4.0,-96,200,0],['k2',3.9,-58,214,3.1416]]],   /* LAWKI v14.4: obrot +90 (staly bokiem/tylem); strona+ = 180, strona- = 0 */
-        ['latarnia-park',2.6,[['k1',-3.9,-18,195,0],['k1',3.9,-62,195,0],['k1',-3.9,-118,195,0]]],
-        ['latarnia-miasto',3.0,[['k3',4.1,-26,205,0],['k3',-4.1,-84,205,0],['k3',4.1,-142,205,0]]],
+        ['lawka',0.8,[['k1',4.0,-34,200,0],['k1',-4.0,-96,200,3.1416],['k2',3.9,-58,214,0]]],   /* ST-1 v14.5: flip 180 — siedziskiem do trasy (strona+ = 0, strona- = 180) */
+        ['latarnia-park',2.6,[['k1',-3.9,-18,195,0],['k1',3.9,-62,195,3.1416],['k1',-3.9,-118,195,0]]],   /* ST-2 v14.5: prawa strona flip 180 */
+        ['latarnia-miasto',3.0,[['k3',4.1,-26,205,3.1416],['k3',-4.1,-84,205,0],['k3',4.1,-142,205,3.1416]]],   /* ST-2 v14.5: prawa strona flip 180 */
         ['kiosk',2.2,[['k3',5.9,-52,222,3.1416]]],
         ['fontanna',1.6,[['k3',-6.1,-108,232,0]]],
         ['przechodzien-m',1.65,[['k3',5.1,-38,208,0],['k3',-5.3,-126,208,0]]],
@@ -6991,9 +6991,10 @@ const Gra=(()=>{
     let skryptE=generujEtap(n,seed,kraina);
     {const fb=new URLSearchParams(location.search).get('boss');       /* PP-3 v14.3: tester bossow — ?boss=X wymusza napor PRAWDZIWYM generatorem */
      if(fb){const KB={traktor:1,sfora:1,dzieciol:2,burza:2,smieciarka:3,chmara:3,tornado:4,zamiec:4}[fb];
-       if(KB)for(let i=0;i<300;i++){const sk=generujEtap(n,seed+'-boss'+i,KB);
+       const NB={traktor:5,sfora:5,dzieciol:13,burza:13,smieciarka:21,chmara:21,tornado:28,zamiec:28}[fb];   /* ST-3 v14.5: gen wymaga rel>=5 — etap reprezentatywny dla krainy */
+       if(KB)for(let i=0;i<300;i++){const sk=generujEtap(NB,seed+'-boss'+i,KB);
          if(sk.napor&&sk.napor.boss===fb){skryptE=sk;
-           console.log('[DROGA] BOSS-TESTER: '+fb+' wymuszony (proba '+i+', kraina '+KB+')');break;}}}}
+           console.log('[DROGA] BOSS-TESTER: '+fb+' wymuszony (proba '+i+', kraina '+KB+', etap '+NB+')');break;}}}}
     sym=nowaSymulacja(skryptE,trybGry);
     sym.spotkania=(trybGry==='etap'&&SPOTKANIA['k'+kraina+'-e'+n])||null;
     if(trybGry==='final'){
@@ -7671,7 +7672,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'14.4',
+  wersja:'14.5',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
