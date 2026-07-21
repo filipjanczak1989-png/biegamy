@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.7 (Twarze świata)</title>
+<title>Bieguś — Droga na Igrzyska · v12.8 (Metryka)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.7 „TWARZE SWIATA" (flota GLB
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.8 „METRYKA" (znalezisko A z
+     raportu telemetrii cc)
+     · window.Gra=Gra po IIFE — Tele.zdarzenie czyta wersje przez
+       (window.Gra&&Gra.wersja)||'?', a const nie zyje na window
+       (TA SAMA klasa co TF-1 window.Tele) -> 13/13 wierszy
+       game_events mialo wersja:"?". Od teraz kazde zdarzenie
+       podpisane realna wersja — fundament kalibracji artpassu
+     · przy okazji potwierdzone przez telemetrie: crash TDZ ikoU
+       bil realnych uzytkownikow 18-21.07 (10 zdarzen blad z produ,
+       v12.5); umilkl wraz z deployem v12.7 — przyrzady DZIALAJA
+     v12.7 „TWARZE SWIATA" (flota GLB
      z Tripo — 24 modele na prodzie, commit 01ffb79)
      · BOSSY: traktor/smieciarka/dzieciol/pies + chmara golebi
        ladowane z assets/modele/ — klockowe dzieci slotow visible=
@@ -7452,9 +7462,10 @@ const Gra=(()=>{
 })();
 
 /* ---------- 11. INTEGRACJA ---------- */
+window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.7',
+  wersja:'12.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
