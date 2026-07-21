@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.0 (Pancerz GLB)</title>
+<title>Bieguś — Droga na Igrzyska · v13.1 (Salto + poranek)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.0 „PANCERZ GLB" (pilny; crash
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.1 „SALTO + PORANEK" (3 zgloszenia
+     z rundy Filipa)
+     · SALTO-PIVOT: salto w locie i przewrotka po ladowaniu obracaly
+       model wokol STOP (origin GLB na podlodze) -> glowa zataczala
+       luk przez ziemie ("ryje glowa i wstaje"). Kompensacja pivotu
+       do srodka ciala (y+=c(1-cos a), z-=c sin a; c=0.75 lot /
+       0.5 przewrotka z tuckiem) — pelne czyste salto
+     · SP-3: oddajModel z lazy-init puli (wezModel mial, oddaj nie)
+       — crash "push of undefined" @5355 po Jeszcze raz
+     · PORANEK: tlo lerpowalo od czystego koloru switu przez CALY
+       etap (przepal do ~20 s) -> start od 32% drogi do koloru
+       docelowego; dramaturgia przejscia zostaje, przepal znika
+     v13.0 „PANCERZ GLB" (pilny; crash
      z produ w trakcie biegu k3)
      · TypeError undefined.forEach @5660 co klatke: galaz AUTO w
        klatka() robi userData.kola.forEach TWARDO — a od v12.9 auto
@@ -5352,7 +5364,7 @@ const R3=(()=>{
       m.traverse(x=>{if(x.isMesh)x.castShadow=true;});
     }
     m.visible=true;scena.add(m);return m;}
-  function oddajModel(typ,m){m.visible=false;scena.remove(m);pule[typ].push(m);}
+  function oddajModel(typ,m){m.visible=false;scena.remove(m);(pule[typ]||(pule[typ]=[])).push(m);}   /* SP-3 v13.1: lazy-init jak w wezModel (crash push @restart) */
 
   let ostKlatka=0,_dtAvg=0.016,_fpsBad=0;                             /* G2: watchdog */
   function klatka(s,czasReal){
@@ -5362,7 +5374,7 @@ const R3=(()=>{
       if(_fpsBad>180){bloomOn=false;console.log('[DROGA] BLOOM off — watchdog FPS (śr. klatka >26 ms)');}}
     ustawKraine(s.skrypt.kraina||1);
     const PAL=PALETY[s.skrypt.kraina||1];
-    const swit=clamp(s.t/CFG.ETAP_CZAS,0,1);
+    const swit=clamp(0.32+(s.t/CFG.ETAP_CZAS)*0.68,0,1);           /* PORANEK v13.1: bez przepalu 1. sekund (zgloszenie: jaskrawo do ~20 s) */
     const PORA=PAL.pory[(s.skrypt.pora??0)%PAL.pory.length];
     const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
     if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k,PORA.n==='ZŁOTA GODZINA');}   /* G1 */
@@ -5567,6 +5579,8 @@ const R3=(()=>{
     /* SALTO — PO gałęziach animacji (nic już nie nadpisze obrotu!) */
     if(s.salto&&s.skokT>=0){
       aktor.rotation.x=-(s.skokT/s.skokCzas)*Math.PI*2*(s.salto2?2:1);   // pełny obrót (TONY: podwojne = 720)
+      {const _pv=0.75,_a=aktor.rotation.x;                             /* SALTO-PIVOT v13.1: kompensacja do srodka ciala */
+       aktor.position.y+=_pv*(1-Math.cos(_a));aktor.position.z+=-_pv*Math.sin(_a);}
       const tuck=Math.sin((s.skokT/s.skokCzas)*Math.PI);
       aktor.scale.setScalar(1-0.24*tuck);                            // kulenie w locie
       if(Math.random()<dt*34)
@@ -5604,7 +5618,9 @@ const R3=(()=>{
       const f=1-Math.max(0,przewrotkaT)/0.32;
       aktor.rotation.x=-f*Math.PI*2;
       const tu=Math.sin(f*Math.PI);
-      aktor.scale.setScalar(1-0.26*tu);}
+      aktor.scale.setScalar(1-0.26*tu);
+      {const _pv=0.5,_a=aktor.rotation.x;                              /* SALTO-PIVOT v13.1: przewrotka toczy sie po ziemi, nie ryje */
+       aktor.position.y+=_pv*(1-Math.cos(_a));aktor.position.z+=-_pv*Math.sin(_a);}}
     if(s.skokT<0&&!wSlizgu&&!s.grind&&przewrotkaT<=0&&!(s.wallT>0))   /* PARKOUR: lean z tempem i feverem */
       aktor.rotation.x-=0.03+(czyFever(s)?0.06:0)
         +Math.max(0,(s.predkosc-CFG.PREDKOSC_BAZOWA))*0.012;
@@ -7490,7 +7506,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.0',
+  wersja:'13.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
