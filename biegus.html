@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.1 (Salto + poranek)</title>
+<title>Bieguś — Droga na Igrzyska · v13.2 (Ludzie na trasie)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.1 „SALTO + PORANEK" (3 zgloszenia
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.2 „LUDZIE NA TRASIE" (4 zgloszenia
+     z drugiej rundy)
+     · LT-4 GLOWNE: kibic/przechodnie/dzieciak/lawki/latarnie/
+       fontanna/kiosk NIGDY nie byly wpiete (flota objela bossow
+       i przeszkody OBIEKTY; deco czekalo) — 9 modeli rozstawione
+       cyklicznie: park (lawki, latarnie-pastoraly, dzieciak, kibic),
+       miasto (latarnie LED, kiosk, fontanna, przechodnie x4, kibic),
+       las (lawka), gory (kibic z dopingiem)
+     · LT-1 PORANEK II: floor 0.5 + niebo-canvas malowane z 40%
+       przygaszonym kolorem startowym (v13.1 tlumil tylko tlo sceny)
+     · LT-2 SALTO bez DUBLA: przewrotka po ladowaniu OUT — po
+       naprawie pivotu byly DWIE czyste figury pod rzad; kurz zostaje
+     · LT-3 obrotGLB rower:90 (jechal bokiem; nastepny stroik to
+       jedna liczba: -90/180)
+     v13.1 „SALTO + PORANEK" (3 zgloszenia
      z rundy Filipa)
      · SALTO-PIVOT: salto w locie i przewrotka po ladowaniu obracaly
        model wokol STOP (origin GLB na podlodze) -> glowa zataczala
@@ -4508,7 +4522,7 @@ const R3=(()=>{
     },
     wysGLB:{rower:1.75,szlaban:1.2,galaz:1.6,glaz:0.9,hulajnoga:1.05,kot:0.45,     /* TWARZE: normalizacja wysokosci per typ */
       swistak:0.5,taksowka:1.45,biegacz:1.7,auto:1.4,pies:0.55,taczka:0.95,kosz:0.95,walizka:0.8},
-    obrotGLB:{},                                                                    /* TWARZE: korekta osi per typ (stopnie), np. {rower:180} — stroik po wzrokowej */
+    obrotGLB:{rower:90},                                                            /* TWARZE: korekta osi (stopnie); rower z Tripo jechal bokiem — v13.2 */
   };
   const glbCache={};                       // typ → gotowy Group do klonowania
   function zaladujSkrypt(url){return new Promise((res,rej)=>{
@@ -4619,7 +4633,27 @@ const R3=(()=>{
             const kl=bazowy.clone();kl.position.copy(ch.position);
             kl.rotation.y=Math.PI;chmara3d.add(kl);}});
         console.log('[DROGA] chmara golab.glb podpieta (x9)');
-      },undefined,()=>{});}
+      },undefined,()=>{});
+      const DECO_GLB=[                                                 /* LT-4 v13.2: LUDZIE+DETALE (zgloszenie: "nie widac ludzi ktorych wygenerowalismy") */
+        /* nazwa, wysokosc, [grupa, x, z, cykl, rotY(rad)] ... */
+        ['lawka',0.8,[['k1',4.0,-34,200,-1.5708],['k1',-4.0,-96,200,1.5708],['k2',3.9,-58,214,-1.5708]]],
+        ['latarnia-park',2.6,[['k1',-3.9,-18,195,0],['k1',3.9,-62,195,0],['k1',-3.9,-118,195,0]]],
+        ['latarnia-miasto',3.0,[['k3',4.1,-26,205,0],['k3',-4.1,-84,205,0],['k3',4.1,-142,205,0]]],
+        ['kiosk',2.2,[['k3',5.9,-52,222,3.1416]]],
+        ['fontanna',1.6,[['k3',-6.1,-108,232,0]]],
+        ['przechodzien-m',1.65,[['k3',5.1,-38,208,0],['k3',-5.3,-126,208,0]]],
+        ['przechodzien-k',1.65,[['k3',-5.2,-64,216,0],['k3',5.4,-150,216,0]]],
+        ['kibic',1.7,[['k1',-4.3,-74,206,0],['k3',5.2,-96,226,0],['k4',4.5,-44,218,0]]],
+        ['dzieciak-balon',1.2,[['k1',4.3,-52,211,0]]]];
+      DECO_GLB.forEach(([plik,wys,miejsca])=>{
+        loader.load(assetUrl('assets/modele/'+plik+'.glb'),gltf=>{
+          gltf.scene.rotation.y=(ASSETY.obrotGLB[plik]||0)*Math.PI/180;
+          const baza=normalizuj(gltf.scene,wys);
+          miejsca.forEach(([gr,x,z,cykl,rot])=>{
+            const kl=baza.clone();kl.position.set(x,0,z);kl.rotation.y=rot;
+            dodajDeko(kl,cykl,gr);});
+          console.log('[DROGA] deco '+plik+'.glb x'+miejsca.length);
+        },undefined,()=>{});});}
   }
   function przelaczModel(chcePremium){
     PREMIUM.wybrany=chcePremium;
@@ -5374,10 +5408,11 @@ const R3=(()=>{
       if(_fpsBad>180){bloomOn=false;console.log('[DROGA] BLOOM off — watchdog FPS (śr. klatka >26 ms)');}}
     ustawKraine(s.skrypt.kraina||1);
     const PAL=PALETY[s.skrypt.kraina||1];
-    const swit=clamp(0.32+(s.t/CFG.ETAP_CZAS)*0.68,0,1);           /* PORANEK v13.1: bez przepalu 1. sekund (zgloszenie: jaskrawo do ~20 s) */
+    const swit=clamp(0.5+(s.t/CFG.ETAP_CZAS)*0.5,0,1);             /* PORANEK II v13.2: floor 0.5 (v13.1 za malo) */
     const PORA=PAL.pory[(s.skrypt.pora??0)%PAL.pory.length];
     const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
-    if(nk!==nieboKlucz){nieboKlucz=nk;malujNiebo(PORA._s,PORA._k,PORA.n==='ZŁOTA GODZINA');}   /* G1 */
+    if(nk!==nieboKlucz){nieboKlucz=nk;
+      malujNiebo(PORA._s.clone().lerp(PORA._k,0.4),PORA._k,PORA.n==='ZŁOTA GODZINA');}   /* PORANEK II: niebo-canvas tez bez czystego switu */
     scena.background.copy(PORA._s).lerp(PORA._k,swit);
     if(s.skrypt&&s.skrypt.kraina===3){                                /* ULICA-ZYJE: pociag przejezdza w tle */
       if(!pociag3d.visible&&czasReal>pociagStan.nastepny){
@@ -5612,8 +5647,7 @@ const R3=(()=>{
       const f=s.skokT/s.skokCzas;if(f<0.45)aktor.scale.y*=1+0.09*(1-f/0.45);}
     if(s.skokT>=0&&s.salto)bylSaltoLot=true;                          /* PARKOUR: przewrotka po ladowaniu z salta */
     if(bylSaltoLot&&s.skokT<0){bylSaltoLot=false;
-      if(!s.grind){przewrotkaT=0.32;
-        burst(aktor.position.clone().setY(0.12),0x9a927e,8,2.0,0.8,0.06);}}
+      if(!s.grind){burst(aktor.position.clone().setY(0.12),0x9a927e,8,2.0,0.8,0.06);}}   /* LT-2 v13.2: przewrotka OUT — salto to salto, ladowanie czyste (zgloszenie: dublet figur) */
     if(przewrotkaT>0){przewrotkaT-=dt;
       const f=1-Math.max(0,przewrotkaT)/0.32;
       aktor.rotation.x=-f*Math.PI*2;
@@ -7506,7 +7540,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.1',
+  wersja:'13.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
