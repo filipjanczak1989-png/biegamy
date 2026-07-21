@@ -1003,6 +1003,19 @@ body > *{position:relative;z-index:1;}
   <svg style="position:relative;z-index:1;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
 </div>
 
+<!-- BIEGUS-BANNER v1: premiera gry dla zawodnikow (klik -> biegus.html) -->
+<div id="biegus-home-banner" onclick="window.location.href='biegus.html'" style="position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(var(--accent-rgb),0.10),rgba(var(--accent-rgb),0.03));border:1px solid rgba(var(--accent-rgb),0.3);border-radius:16px;padding:14px 16px;margin:8px 16px 4px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color 0.15s;" onmouseover="this.style.borderColor='rgba(var(--accent-rgb),0.5)'" onmouseout="this.style.borderColor='rgba(var(--accent-rgb),0.3)'">
+  <div style="position:absolute;inset:0;background-image:url('assets/ui/biegus-logo.webp');background-size:cover;background-position:center 30%;opacity:0.20;-webkit-mask-image:linear-gradient(90deg,transparent 25%,#000 95%);mask-image:linear-gradient(90deg,transparent 25%,#000 95%);pointer-events:none;z-index:0;"></div>
+  <div style="position:relative;z-index:1;width:44px;height:44px;border-radius:12px;background:rgba(10,8,14,0.6);border:1px solid rgba(var(--accent-rgb),0.25);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-shadow:0 0 16px rgba(var(--accent-rgb),0.15);">
+    <img src="assets/ui/biegus-logo.webp" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" alt="">
+  </div>
+  <div style="position:relative;z-index:1;flex:1;min-width:0;">
+    <div style="font-size:13px;font-weight:600;color:var(--fg);">Bieguś — Droga na Igrzyska <span style="font-size:9px;font-weight:700;background:var(--accent);color:#fff;border-radius:6px;padding:1px 6px;vertical-align:middle;margin-left:4px;">NOWOŚĆ</span></div>
+    <div style="font-size:11px;color:var(--muted);font-family:DM Mono,monospace;margin-top:2px;">Zagraj i testuj — Twoje kilometry karmią Biegusia 🐦</div>
+  </div>
+  <svg style="position:relative;z-index:1;flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--accent-rgb),0.7)" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+</div>
+
 <div class="sec-hdr fade-in" style="margin-top:20px;"><div class="sec-title">Ten tydzień</div><a href="kalendarz.html?role=athlete" class="sec-link">Pełny widok →</a></div>
 <div id="week-strip" class="fade-in" style="margin-bottom:4px;"></div>
 
