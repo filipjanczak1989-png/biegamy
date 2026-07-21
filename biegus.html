@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.4 (Światło III)</title>
+<title>Bieguś — Droga na Igrzyska · v13.6 (Prześwit)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.4 „SWIATLO III + WIDOCZNOSC"
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.6 „PRZESWIT" (zgloszenie:
+     "szlaban czy plotek nie idzie przeskoczyc")
+     · MECHANIKA BEZ ZMIAN — szlaban i barierka to SLIZG by design
+       ("przeslizgnij sie pod nim"); problem byl WIZUALNY, ta sama
+       klasa co golebie przy ziemi: obraz prosil o skok
+     · PR-1 BARIERKA (winowajca): dolna rurka wisiala W POLOWIE
+       przeswitu (y=0.55) i zamykala dol -> czysty plotek. Rurka
+       idzie POD pasy (0.84), dol PUSTY — wizual sam mowi "slizg"
+     · PR-2 SZLABAN: belka 1.0->1.06 — przeswit oczywistszy
+     v13.5 „KOGUT + TEMPO + METRYKA-2"
+     · KT-1: stadium MLODY (30-100 km) nie mialo wpisu w GLB_STADIA
+       -> fallback biegus.glb (dorosly Z OPASKA — zgloszenie "to nie
+       pisklak"); kogut.glb lezal w repo od poczatku. Teraz wpiety
+       (obrot PI jak pisklak; jak bokiem — jedna liczba). Dorosly
+       (100-300) = biegus.glb swiadomie. "Bokiem w lewo" moze tez
+       byc stara korekta testera w localStorage (biegus_obroty)
+     · KT-2 METRYKA-2 (diagnoza cc): wersja jest polem window.DROGA,
+       nie Gra — v12.8 dal window.Gra=Gra na zly obiekt; teraz Tele
+       czyta DROGA.wersja. Koniec wersja:"?" naprawde
+     · KT-3 TEMPO: baza 16.6->17.2 — poczatek ma zyc
+     v13.4 „SWIATLO III + WIDOCZNOSC"
      · S3-1 ZRODLO oczojebnosci ZNALEZIONE: to nie tlo, a BLOOM —
        jasna scena switu = pol ekranu nad progiem 0.86 -> poswiata
        kwitla wszedzie i cichla wraz ze sciemnianiem tla ("potem
@@ -1946,7 +1966,7 @@ function zglosPadlyAsset(url){
 /* ---------- 1. CONFIG ---------- */
 const CFG={
   PASY:[-2.3,0,2.3],GRACZ_Z:6,STREFA:[5.3,6.8],SPAWN_Z:-115,
-  PREDKOSC_BAZOWA:16.6,PREDKOSC_ETAP:0.075,   /* TETNO: 15.4->16.6 (werdykt Kasi: za wolno na starcie) */
+  PREDKOSC_BAZOWA:17.2,PREDKOSC_ETAP:0.075,   /* KT-3 v13.5: 16.6->17.2 (Filip: poczatek musi zyc) */
   CZAS_PASA:0.13,SKOK:0.62,SKOK_WYS:1.8,PROG_PRZESKOKU:0.46,SALTO_BONUS:1.3,SLIZG:0.55,   /* TRUDNOSC: 0.38->0.46 — brzegi lotu NIE przenosza, skok trzeba TRAFIC (spam skoku konczy sie hitem) */
   NIETYKALNOSC:1.4,SERCA:3,ETAP_CZAS:60,ROZBIEG:1.2,WYBIEG:3.0,   /* START: bylo 2.5 — akcja od poczatku (Filip) */
   MIN_GAP_GLOBAL:0.42,MIN_GAP_PAS:1.05,OKNO_BLOKADY:0.35,
@@ -2275,7 +2295,7 @@ const Tele={ /* TELE (WY1+WY2): przyrzady pokladowe — game_events w Supabase; 
     if(!a){a='a'+Math.random().toString(36).slice(2,10);localStorage.setItem('biegus_anon',a);}
     return a;}catch(e){return 'a0';}},
   zdarzenie(typ,dane){if(!this.on)return;
-    this.buf.push({typ,dane:dane||{},wersja:(window.Gra&&Gra.wersja)||'?',anon_id:this.anon()});
+    this.buf.push({typ,dane:dane||{},wersja:(window.DROGA&&DROGA.wersja)||'?',anon_id:this.anon()});   /* METRYKA-2 v13.5: wersja jest polem DROGA (v12.8 celowal w Gra — zly obiekt, diagnoza cc) */
     if(this.buf.length>=40||typ==='blad'||typ==='fail'||typ==='boss')this.flush();},   /* TF-2: wazne typy od razu */
   flush(beacon){if(!this.buf.length)return;
     const rows=this.buf.splice(0,40);
@@ -2650,7 +2670,7 @@ const OBIEKTY={
         g.add(klocek(0.34,0.14,0.34,0x555e70,x,0.07,0));
         g.add(klocek(0.2,0.05,0.2,0x1c2029,x,1.12,0));});
       for(let i=0;i<6;i++)
-        g.add(klocek(0.35,0.16,0.12,i%2?0x20242e:0xe8561e,-0.875+i*0.35,1.0,0));
+        g.add(klocek(0.35,0.16,0.12,i%2?0x20242e:0xe8561e,-0.875+i*0.35,1.06,0));   /* PRZESWIT v13.6 */
       const tab=klocek(0.4,0.26,0.03,0xc7cede,0.55,0.62,0.07);tab.rotation.z=-0.12;g.add(tab);
       g.add(klocek(0.18,0.18,0.14,0x8a4a24,-1.05,1.0,0.02));
       const wrobel=new THREE.Group();
@@ -3155,7 +3175,7 @@ const OBIEKTY={
         g.add(klocek(0.3,0.08,0.3,0x3a4152,x,0.04,0));});
       for(let i=0;i<5;i++)
         g.add(klocek(0.4,0.14,0.08,i%2?0x20242e:0xf8b34a,-0.8+i*0.4,0.95,0));
-      g.add(klocek(1.9,0.07,0.07,0x555e70,0,0.55,0));
+      g.add(klocek(1.9,0.07,0.07,0x555e70,0,0.84,0));               /* PRZESWIT v13.6: rurka POD pasami, dol CZYSTY — wizual mowi slizg */
       const golab=new THREE.Group();                                  // gołąb na trybunie
       golab.add(klocek(0.14,0.12,0.18,0x8b93ad));
       golab.add(klocek(0.09,0.09,0.09,0x707a90,0,0.09,0.08));
@@ -4526,6 +4546,7 @@ const R3=(()=>{
     return deg;}
   const GLB_STADIA={
     pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI},        /* FRONT: +Z -> -Z, bokiem bylo PI/2 (screen Filipa) */
+    mlody:{url:'assets/modele/kogut.glb',obrot:Math.PI},            /* KT-1 v13.5: kogut BYL w repo bez wpisu -> 30-100 km = dorosly z opaska (zgloszenie) */
     mistrz:{url:'assets/modele/mistrz.glb',obrot:0},
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
@@ -7565,7 +7586,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.4',
+  wersja:'13.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
