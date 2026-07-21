@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.9 (Hotfix bossy-scope)</title>
+<title>Bieguś — Droga na Igrzyska · v13.0 (Pancerz GLB)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.9 „HOTFIX BOSSY-SCOPE" (pilny;
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.0 „PANCERZ GLB" (pilny; crash
+     z produ w trakcie biegu k3)
+     · TypeError undefined.forEach @5660 co klatke: galaz AUTO w
+       klatka() robi userData.kola.forEach TWARDO — a od v12.9 auto
+       przyjezdza jako klon GLB (bez kol-klockow). Guard !userData.glb
+     · TA SAMA mina rozbrojona w galezi kierunkowych (taksowka/rower/
+       biegacz): animuj tylko dla klockowych; GLB dostaje bob
+     · LEKCJA (metodologia): podpiecie GLB dla typu => grep WSZYSTKICH
+       twardych userData.* tego typu w klatka() — klon GLB nie ma
+       czesci klockowych. Guard glb byl w generic-galezi od dawna;
+       galezie specjalne (auto/kierunkowi) go nie mialy
+     v12.9 „HOTFIX BOSSY-SCOPE" (pilny;
      zgloszenie z produ po v12.8)
      · loader is not defined @4579 + 9x "Cannot access pule before
        initialization": blok zaladujBossyGLB (v12.7) byl IIFE POZA
@@ -5657,7 +5668,7 @@ const R3=(()=>{
           const xA=o.kier*((6.1-o.z)*0.95);
           o.widok.position.set(xA,0,o.z);
           o.widok.rotation.y=o.kier>0?0:Math.PI;
-          o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);
+          if(!o.widok.userData.glb)o.widok.userData.kola.forEach(k=>k.rotation.z+=dt*16);   /* PANCERZ-GLB v13.0: klon GLB nie ma kol-klockow */
         } else if(o.typ==='spad'){
           o.widok.position.set(CFG.PASY[o.pas],0,o.z);
           const tyS=tY(o.z);if(tyS)o.widok.position.y+=tyS;
@@ -5713,7 +5724,8 @@ const R3=(()=>{
         } else if(o.typ==='rower'||o.typ==='biegacz'||o.typ==='taksowka'){   /* ULICA-ZYJE: kierunkowi przodem, NIGDY bokiem */
           o.widok.position.set(CFG.PASY[o.pas],0,o.z);
           o.widok.rotation.y=0;                                        /* twardo — takze dla GLB ze zla osia */
-          OBIEKTY[o.typ].animuj&&OBIEKTY[o.typ].animuj(o.widok,czasReal+o.t);
+          if(!o.widok.userData.glb)OBIEKTY[o.typ].animuj&&OBIEKTY[o.typ].animuj(o.widok,czasReal+o.t);
+          else o.widok.position.y+=Math.abs(Math.sin((czasReal+o.t)*10))*0.02;   /* PANCERZ-GLB v13.0: GLB dostaje bob zamiast klockowego animuj */
           const tyV=tY(o.z);if(tyV)o.widok.position.y+=tyV;
         } else {
           o.widok.position.set(CFG.PASY[o.pas],0,o.z);
@@ -7478,7 +7490,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.9',
+  wersja:'13.0',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
