@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.3 (Stroik z trasy)</title>
+<title>Bieguś — Droga na Igrzyska · v13.4 (Światło III)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.3 „STROIK Z TRASY" (3 korekty
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.4 „SWIATLO III + WIDOCZNOSC"
+     · S3-1 ZRODLO oczojebnosci ZNALEZIONE: to nie tlo, a BLOOM —
+       jasna scena switu = pol ekranu nad progiem 0.86 -> poswiata
+       kwitla wszedzie i cichla wraz ze sciemnianiem tla ("potem
+       sie stabilizuje"). Tlumik x(0.6+0.4*swit)
+     · S3-2 poswiaty switu (rozowa+pomaranczowa luna horyzontu)
+       byly WIECZNE — teraz gasna, gdy dzien wstaje
+     · S3-3 PACHOLEK XL: 0.75->0.95 + odblask MeshBasic (swieci
+       w nocnym miescie niezaleznie od swiatla)
+     · S3-4 GROUNDING: cien-blob pod klockowymi przeszkodami
+       (GLB mial od dawna) — kazda przeszkoda osadzona na ziemi
+     v13.3 „STROIK Z TRASY" (3 korekty
      z trzeciej rundy — same liczby, zero nowej mechaniki)
      · ST-1: obrotGLB auto:90 (jechalo bokiem jak rower)
      · ST-2: pies 0.55->0.78 (przeszkoda I boss sfory), kot
@@ -3126,9 +3137,10 @@ const OBIEKTY={
     unikTekst:'▲ SKOK — pachołek nie ustąpi, ma staż',
     zbuduj(){
       const g=new THREE.Group();
-      const stozek=walec(0.05,0.3,0.75,0xe8561e,0,0.4,0,10);g.add(stozek);
-      g.add(walec(0.19,0.21,0.1,0xf6efe4,0,0.42,0,10));
-      g.add(klocek(0.66,0.06,0.66,0xd94f1a,0,0.03,0));
+      const stozek=walec(0.06,0.36,0.95,0xe8561e,0,0.5,0,10);g.add(stozek);   /* WIDOCZNOSC v13.4: XL */
+      const odblask=new THREE.Mesh(new THREE.CylinderGeometry(0.23,0.26,0.13,10),
+        new THREE.MeshBasicMaterial({color:0xfff6dc}));odblask.position.y=0.52;g.add(odblask);   /* Basic = swieci w mroku */
+      g.add(klocek(0.78,0.07,0.78,0xd94f1a,0,0.035,0));
       g.add(klocek(0.12,0.14,0.02,0xf8b34a,0.06,0.5,0.23));         // naklejka z piorunem
       g.add(cienBlob(0.5));g.userData.stozek=stozek;return g;},
     animuj(g,t){g.rotation.z=Math.sin(t*1.4)*0.03;},                 // chwieje się od przeciągu
@@ -5404,7 +5416,8 @@ const R3=(()=>{
       if(glbCache[typ]){m=glbCache[typ].clone();m.userData.glb=true;
         m.add(cienBlob(0.8));}
       else if(SPRITE_TEX[typ]&&SPRITE_TEX[typ].gotowa)m=zbudujSprite(typ);
-      else m=OBIEKTY[typ].zbuduj();
+      else{m=OBIEKTY[typ].zbuduj();
+        if(!ZBIERALNE.has(typ))m.add(cienBlob(0.7));}                  /* WIDOCZNOSC v13.4: grounding klockowych jak GLB */
       m.traverse(x=>{if(x.isMesh)x.castShadow=true;});
     }
     m.visible=true;scena.add(m);return m;}
@@ -5559,6 +5572,7 @@ const R3=(()=>{
 
     scena.fog.color.copy(scena.background);
     slonce.intensity=lerp(0.75,1.15,swit);
+    switGlow.material.opacity=0.5*(1-swit);switGlow2.material.opacity=0.55*(1-swit);   /* SWIATLO-3: poswiaty switu gasna z czasem */
     switGlow.position.y=lerp(3,11,swit);switGlow.scale.setScalar(lerp(56,78,swit));
     switGlow2.position.y=lerp(2,9,swit);
     if(przelot){
@@ -5690,7 +5704,8 @@ const R3=(()=>{
     const fv=czyFever(s);                                             /* FLOW-GFX: swiatlo + smugi predkosci */
     if(bloomPass)bloomPass.strength=(0.33+(fv?0.15:0)                  /* SWIATLO-2 */
       +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.08:0))
-      *(PORA.n==='ZŁOTA GODZINA'?0.72:1);
+      *(PORA.n==='ZŁOTA GODZINA'?0.72:1)
+      *(0.6+0.4*swit);                                                 /* SWIATLO-3 v13.4: jasna scena switu = wiecej pikseli nad progiem bloomu -> tlumik na starcie (TO bylo "oczojebnie na poczatku") */
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
     fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
@@ -7550,7 +7565,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.3',
+  wersja:'13.4',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
