@@ -282,7 +282,7 @@ function loadChallenges() {
   if (!_athleteId) return;
 
   Promise.all([
-    sb.from('training_logs').select('distance_km,logged_at,training_type,pace')
+    sb.from('training_logs').select('distance_km,logged_at,training_type,pace').not('training_type','like','__badge__%')
        .eq('athlete_id', _athleteId).gte('logged_at', mS.toISOString()),
     sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
   ]).then(([logsRes, achRes]) => {

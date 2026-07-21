@@ -2537,7 +2537,7 @@ async function saveTraining() {
     if (status === 'done' || attachmentUrl) {
       // Sprawdź czy log już istnieje dla tej daty
       const { data: existingLog } = await sb.from('training_logs')
-        .select('id').eq('athlete_id', athRow2.id)
+        .select('id').eq('athlete_id', athRow2.id).not('training_type','like','__badge__%')
         .gte('logged_at', editingDate + 'T00:00:00')
         .lte('logged_at', editingDate + 'T23:59:59')
         .order('logged_at', { ascending: false }).limit(1)   // import intervals.icu może dać 2. log tego dnia → bez limit(1) maybeSingle rzuca PGRST116
@@ -3050,7 +3050,7 @@ async function smartSuggest(athleteId, trainingType, isEdit) {
     since.setDate(since.getDate() - 56);
     const { data: logs } = await sb
       .from('training_logs')
-      .select('training_type, distance_km, pace')
+      .select('training_type, distance_km, pace').not('training_type','like','__badge__%')
       .eq('athlete_id', athleteId)
       .gte('logged_at', since.toISOString())
       .order('logged_at', { ascending: false });
@@ -3710,7 +3710,7 @@ async function executeMoveScreen(logId, url, currentDs) {
     // Find or create a log entry on the target day
     const { data: targetLog } = await sb.from('training_logs')
       .select('id,attachment_url')
-      .eq('athlete_id', ownAthleteId)
+      .eq('athlete_id', ownAthleteId).not('training_type','like','__badge__%')
       .gte('logged_at', targetDs + 'T00:00:00')
       .lte('logged_at', targetDs + 'T23:59:59')
       .order('logged_at', { ascending: false }).limit(1)   // 2 logi/dzień (import intervals.icu + manual) → bez limit(1) maybeSingle rzuca PGRST116

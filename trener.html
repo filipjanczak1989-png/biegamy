@@ -4749,7 +4749,7 @@ async function loadCoachSocialFeed() {
   if (!feedEl) return;
   feedEl.innerHTML = '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const { data: logs } = await sb.from('training_logs')
-    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)')
+    .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)').not('training_type','like','__badge__%')
     .order('logged_at', { ascending: false }).limit(60);
   if (!logs || !logs.length) {
     feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
@@ -4929,7 +4929,7 @@ async function loadCoachRanking() {
   el.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">\u0141adowanie...</div>';
   const wS=new Date();wS.setDate(wS.getDate()-(wS.getDay()===0?7:wS.getDay())+1);wS.setHours(0,0,0,0);
   // Pobierz logi razem z athlete (is_public, coach_id) i odfiltruj — pokazujemy publicznych LUB swoich
-  const {data:logs}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').gte('logged_at',wS.toISOString());
+  const {data:logs}=await sb.from('training_logs').select('athlete_id,distance_km,elevation_gain,athletes(full_name,is_public,coach_id)').not('training_type','like','__badge__%').gte('logged_at',wS.toISOString());
   const km={};const elev={};const nm={};
   (logs||[]).forEach(function(l){
     if(!l.athletes) return;
@@ -5400,7 +5400,7 @@ async function loadAnalytics() {
 
   const stats = await Promise.all(athletes.map(async a => {
     const { data: logs30 } = await sb.from('training_logs')
-      .select('distance_km,training_type,logged_at,pace,duration,feel')
+      .select('distance_km,training_type,logged_at,pace,duration,feel').not('training_type','like','__badge__%')
       .eq('athlete_id', a.id)
       .gte('logged_at', since30.toISOString())
       .order('logged_at', {ascending:false});
@@ -6091,7 +6091,7 @@ async function loadAthleteDetailStats(athleteId, container) {
   const since7  = new Date(); since7.setDate(since7.getDate()-7);
 
   const { data: logs } = await sb.from('training_logs').select('*')
-    .eq('athlete_id', athleteId)
+    .eq('athlete_id', athleteId).not('training_type','like','__badge__%')
     .gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending:true});
 

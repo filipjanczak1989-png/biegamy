@@ -2752,7 +2752,7 @@ async function _loadStatsInProfile() {
   const since90 = new Date(); since90.setDate(since90.getDate() - 90);
   const since30 = new Date(); since30.setDate(since30.getDate() - 30);
   const since7  = new Date(); since7.setDate(since7.getDate() - 7);
-  const { data: logs } = await sb.from('training_logs').select('*')
+  const { data: logs } = await sb.from('training_logs').select('*').not('training_type','like','__badge__%')
     .eq('athlete_id', _athleteId).gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending: true});
 
@@ -3709,7 +3709,7 @@ async function loadDailyMotivation() {
       // Pobierz ile osób biegło dziś lub wczoraj
       const since = new Date(); since.setDate(since.getDate()-1);
       const { count } = await sb.from('training_logs')
-        .select('*', {count:'exact', head:true})
+        .select('*', {count:'exact', head:true}).not('training_type','like','__badge__%')
         .gte('logged_at', since.toISOString());
       if (count && count > 1) {
         const types = ['spokojne biegi','interwały','tempo','wybiegania'];
@@ -5220,7 +5220,7 @@ async function updateWeekProgress() {
     .lte('date', weekEnd.toISOString().split('T')[0]);
 
   const { data: logsThisWeek } = await sb.from('training_logs')
-    .select('distance_km').eq('athlete_id', _athleteId)
+    .select('distance_km').not('training_type','like','__badge__%').eq('athlete_id', _athleteId)
     .gte('logged_at', weekStart.toISOString())
     .lte('logged_at', weekEnd.toISOString());
 
@@ -6181,7 +6181,7 @@ async function maybeShowPushPrompt() {
   // (po 1. logu = moment największej motywacji + filtruje "ciekawskich" którzy nigdy nie zalogują)
   try {
     const { count, error } = await sb.from('training_logs')
-      .select('id', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true }).not('training_type','like','__badge__%')
       .eq('athlete_id', _athleteId);
     if (error) { console.warn('[pushPrompt] log count error:', error); return; }
     if (!count || count < 1) return;
@@ -7634,7 +7634,7 @@ function loadChallenges() {
   if (!_athleteId) return;
 
   Promise.all([
-    sb.from('training_logs').select('distance_km,logged_at,training_type,pace')
+    sb.from('training_logs').select('distance_km,logged_at,training_type,pace').not('training_type','like','__badge__%')
        .eq('athlete_id', _athleteId).gte('logged_at', mS.toISOString()),
     sb.from('achievements').select('badge_id').eq('athlete_id', _athleteId)
   ]).then(([logsRes, achRes]) => {
@@ -8684,7 +8684,7 @@ async function loadStats() {
   const since30 = new Date(); since30.setDate(since30.getDate() - 30);
   const since7  = new Date(); since7.setDate(since7.getDate() - 7);
 
-  const { data: logs } = await sb.from('training_logs').select('*')
+  const { data: logs } = await sb.from('training_logs').select('*').not('training_type','like','__badge__%')
     .eq('athlete_id', _athleteId)
     .gte('logged_at', since90.toISOString())
     .order('logged_at', {ascending: true});
