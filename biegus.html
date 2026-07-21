@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.7 (Odporność stadiów)</title>
+<title>Bieguś — Droga na Igrzyska · v13.8 (Nowe stadia)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,14 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.7 „ODPORNOSC STADIOW"
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.8 „NOWE STADIA" (seria
+     level1-4 od Filipa, skompresowana 55-61 MB -> 0.46-1.01 MB)
+     · NS-1: pisklak/kogut/dorosly/mistrz z nowych modeli;
+       DOROSLY po raz pierwszy ma wlasny model (byl fallbackiem
+       na biegus.glb z opaska); legenda = biegus_zloty bez zmian
+     · OBROTY: wszystkie PI na start (seria z jednej reki) —
+       kalibracja wzrokowa: bokiem => jedna liczba w GLB_STADIA
+     v13.7 „ODPORNOSC STADIOW"
      (zgloszenie: "zamiast mlodego jest starszy level 3")
      · OS-1: forceBase byl GLOBALNY — jedna wpadka ladowania
        (podejrzenie: STARE 4 modele stadiow sprzed pipeline
@@ -4557,10 +4564,11 @@ const R3=(()=>{
     zapiszKorekte(PREMIUM.url,deg);
     PREMIUM.scenaGLB.rotation.y=(PREMIUM.obrotBaza||0)+deg*Math.PI/180;
     return deg;}
-  const GLB_STADIA={
-    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI},        /* FRONT: +Z -> -Z, bokiem bylo PI/2 (screen Filipa) */
-    mlody:{url:'assets/modele/kogut.glb',obrot:Math.PI},            /* KT-1 v13.5: kogut BYL w repo bez wpisu -> 30-100 km = dorosly z opaska (zgloszenie) */
-    mistrz:{url:'assets/modele/mistrz.glb',obrot:0},
+  const GLB_STADIA={                                                /* NOWE-STADIA v13.8: komplet z serii level1-4 Filipa; OBROTY do strojenia — jak ktores biegnie bokiem, zmien JEDNA liczbe ponizej (0 / 1.5708=90 / 3.1416=180 / 4.7124=270) */
+    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI},
+    mlody:{url:'assets/modele/kogut.glb',obrot:Math.PI},
+    dorosly:{url:'assets/modele/dorosly.glb',obrot:Math.PI},        /* NS-1: dorosly ma wreszcie WLASNY model (byl opaska-fallback) */
+    mistrz:{url:'assets/modele/mistrz.glb',obrot:Math.PI},
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
@@ -7602,7 +7610,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.7',
+  wersja:'13.8',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
