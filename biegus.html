@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.1 (Obroty II)</title>
+<title>Bieguś — Droga na Igrzyska · v14.2 (Artpass I)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v14.0 „OBROTY" (werdykt z trasy:
+     BIEGUŚ — DROGA NA IGRZYSKA · v14.2 „ARTPASS I" (zaklad: ten
+     poziom bez zmiany silnika. sRGB+ACES+PCFSoft byly od GFX-2;
+     brakowaly trzy rzeczy:)
+     · AP-1: KAZDY GLB rzuca cien — traverse w normalizuj() (jedno
+       miejsce = bossy, deco, stadia; dotad cienie rzucaly tylko
+       GLB-przeszkody, reszta byla odklejona od ziemi)
+     · AP-2: scene.environment (PMREM: cieply sufit, chlodna
+       podloga, pomaranczowy i blekitny panel) — metal/roughness
+       GLB wreszcie MA CO odbijac
+     · AP-3: winieta filmowa (CSS radial, zero kosztu GPU)
+     v14.1 „OBROTY II" (0.5PI = przod, kalibracja domknieta)
+     v14.0 „OBROTY" (werdykt z trasy:
      dorosly z opaska laduje sie wlasciwie, ale bokiem-lewo)
      · OB-1: cala seria level1-4 PI -> 1.5PI (+90st) — jedna reka,
        jedna os; jesli ktores stadium sie wylamie, dostanie
@@ -1658,6 +1669,7 @@
 <div id="ziarno"></div>
 <div id="naporRamka" style="position:fixed;inset:0;pointer-events:none;z-index:3;display:none;animation:naporPuls .9s ease-in-out infinite"></div>   <!-- NAPOR-SLYSZALNY -->
 <div id="zamiecBiel" style="position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .35s;background:radial-gradient(ellipse at center,rgba(255,255,255,0) 34%,rgba(240,246,255,.95) 100%)"></div>   <!-- Ż4b: biel zamieci -->
+<div id="vignette" style="position:fixed;inset:0;pointer-events:none;z-index:1;background:radial-gradient(ellipse at center,transparent 52%,rgba(8,10,18,.34) 100%)"></div>   <!-- ARTPASS-I: winieta -->
 <div id="uczSwipe" style="position:fixed;left:50%;top:56%;transform:translateX(-50%);z-index:6;display:none;font-size:46px;pointer-events:none;text-shadow:0 3px 10px #000;animation:uczSwipe 1.1s ease-in-out infinite">👆</div>   <!-- NAUKA: swipe -->
 <div id="hypeBox" style="position:fixed;left:50%;top:96px;transform:translate(-50%,-16px);opacity:0;transition:opacity .25s,transform .25s;z-index:60;pointer-events:none;background:var(--panel);border:1px solid #2a3350;border-radius:16px;padding:8px 14px;max-width:78vw;display:flex;align-items:center;gap:9px"></div>   <!-- KIBICE -->
 <div id="dymek" hidden></div>
@@ -4253,6 +4265,18 @@ const R3=(()=>{
     scena.add(slonce.target);slonce.target.position.set(0,0,-12);
   }catch(e){pokazBlad('Cienie wyłączone: '+e.message);
     slonce.castShadow=false;renderer.shadowMap.enabled=false;}
+  try{                                                               /* ARTPASS-I v14.2: envMap PMREM — odbicia na PBR */
+    const pm=new THREE.PMREMGenerator(renderer);
+    const es=new THREE.Scene();
+    const P=(w,h,c,x,y,z,rx,ry)=>{const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+      new THREE.MeshBasicMaterial({color:c}));m.position.set(x,y,z);m.rotation.set(rx||0,ry||0,0);es.add(m);};
+    P(40,40,0xfff4e2,0,12,0,Math.PI/2,0);
+    P(40,40,0x232a38,0,-6,0,-Math.PI/2,0);
+    P(24,10,0xe8863a,-14,3,0,0,Math.PI/2);
+    P(24,10,0x6a9adf,14,3,0,0,-Math.PI/2);
+    scena.environment=pm.fromScene(es,0.06).texture;pm.dispose();
+    console.log('[DROGA] envMap PMREM OK');
+  }catch(e){console.log('[DROGA] envMap pominiety: '+e.message);}
   const rim=new THREE.DirectionalLight(0x9ec8ff,0.62);               /* GFX-2: mocniejszy rim */
   rim.position.set(0,9,16);scena.add(rim);
   const feverLight=new THREE.PointLight(0xffc36e,1.5,11);             /* FLOW-GFX: zlote swiatlo fevera na graczu */
@@ -4632,6 +4656,7 @@ const R3=(()=>{
     scene.scale.setScalar(skala);
     const box2=new THREE.Box3().setFromObject(scene);
     scene.position.y-=box2.min.y;          // stopy na ziemi
+    scene.traverse(x=>{if(x.isMesh)x.castShadow=true;});               /* ARTPASS-I v14.2: kazdy GLB rzuca cien */
     const wrap=new THREE.Group();wrap.add(scene);return wrap;}
   function znajdzKlip(klipy,wzorce){
     for(const w of wzorce){const k=klipy.find(c=>w.test(c.name));if(k)return k;}
@@ -7624,7 +7649,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'14.1',
+  wersja:'14.2',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
