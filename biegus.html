@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.5 (Stolarka + miasto)</title>
+<title>Bieguś — Droga na Igrzyska · v14.6 (Pazur)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -2025,7 +2025,7 @@ function zglosPadlyAsset(url){
 /* ---------- 1. CONFIG ---------- */
 const CFG={
   PASY:[-2.3,0,2.3],GRACZ_Z:6,STREFA:[5.3,6.8],SPAWN_Z:-115,
-  PREDKOSC_BAZOWA:17.2,PREDKOSC_ETAP:0.075,   /* KT-3 v13.5: 16.6->17.2 (Filip: poczatek musi zyc) */
+  PREDKOSC_BAZOWA:19.8,PREDKOSC_ETAP:0.075,   /* PAZUR v14.6: 17.2->19.8 (+15%, Filip: jeszcze trudniej) */
   CZAS_PASA:0.13,SKOK:0.62,SKOK_WYS:1.8,PROG_PRZESKOKU:0.46,SALTO_BONUS:1.3,SLIZG:0.55,   /* TRUDNOSC: 0.38->0.46 — brzegi lotu NIE przenosza, skok trzeba TRAFIC (spam skoku konczy sie hitem) */
   NIETYKALNOSC:1.4,SERCA:3,ETAP_CZAS:60,ROZBIEG:1.2,WYBIEG:3.0,   /* START: bylo 2.5 — akcja od poczatku (Filip) */
   MIN_GAP_GLOBAL:0.42,MIN_GAP_PAS:1.05,OKNO_BLOKADY:0.35,
@@ -2033,7 +2033,7 @@ const CFG={
   ZAWODY:{KARA_HIT:3,BONUS_ZNAL:2,ZLOTO:57,SREBRO:63,BRAZ:69},
   SLOWMO:0.42,SLOWMO_CZAS:0.55,
   BUFOR:0.22,
-  FLOW_COMBO:6,PRZYSPIESZENIE:0.006,   /* TRUDNOSC: 0.005->0.006 — koncowka etapu to sprint, nie spacer */
+  FLOW_COMBO:6,PRZYSPIESZENIE:0.0075,   /* PAZUR v14.6: 0.006->0.0075 — koncowka to juz nie sprint, to ucieczka */
 };
 const lerp=(a,b,k)=>a+(b-a)*k,easeOut=k=>1-Math.pow(1-k,3),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -3490,7 +3490,7 @@ function generujEtap(nrEtapu,seedStr,kraina=1){
     const rel=((nrEtapu-1)%8)+1;
     const dostepne=typyDlaEtapu(rel,kraina);
     while(t<koniec){
-      t+=lerp(1.05,0.52,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   /* TRASY-KLASA W5: start 1.2->1.05 — gesto od gwizdka (walidator pilnuje) */
+      t+=lerp(0.88,0.47,t/CFG.ETAP_CZAS)*(0.9+rng()*0.35);   /* PAZUR v14.6: 1.05/0.52->0.88/0.47 (gesciej ~20%; 0.47*0.9=0.423>MIN_GAP_GLOBAL — walidator zyje) */
       if(t>=koniec)break;
       const typ=losujTyp(rng,t,dostepne),pas=losujPas(rng,t,ev,ostatni);
       if(pas===-1)continue;
@@ -3758,7 +3758,7 @@ function celeEtapu(e){                    // seedowany Fisher-Yates -> 3 rozne, 
     return{id:d.id,n,tekst:d.tekst(n),spr:d.spr};});}
 function nowaSymulacja(skrypt,tryb='etap'){
   return{skrypt,tryb,t:0,stan:'bieg',
-    predkoscBaza:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.1*((skrypt.kraina||1)-1))
+    predkoscBaza:CFG.PREDKOSC_BAZOWA*(1+CFG.PREDKOSC_ETAP*((skrypt.etap-1)%8))*(1+0.12*((skrypt.kraina||1)-1))                                   /* PAZUR v14.6: krainy 0.1->0.12 */
       ,   /* TETNO: taryfa e1-e4 CALKIEM out — pelne tempo od pierwszego kroku */
     predkosc:0,   /* ustawiana per krok z pędu — patrz drogaCalka */
     pas:1,pasOd:1,pasT:1,skokT:-1,skokCzas:CFG.SKOK,salto:false,salta:0,slizgT:-1,nietyk:0,
@@ -7673,7 +7673,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'14.5',
+  wersja:'14.6',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
