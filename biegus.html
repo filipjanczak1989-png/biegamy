@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.8 (Metryka)</title>
+<title>Bieguś — Droga na Igrzyska · v12.9 (Hotfix bossy-scope)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.8 „METRYKA" (znalezisko A z
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.9 „HOTFIX BOSSY-SCOPE" (pilny;
+     zgloszenie z produ po v12.8)
+     · loader is not defined @4579 + 9x "Cannot access pule before
+       initialization": blok zaladujBossyGLB (v12.7) byl IIFE POZA
+       zaladujPremium — a const loader zyje W SRODKU tej funkcji.
+       Synchroniczny ReferenceError PRZERYWAL inicjalizacje R3 przed
+       const pule; 9 udanych loadow przeszkod (nowa flota!) wpadalo
+       potem na niezainicjalizowane pule
+     · FIX: caly blok bossow przeniesiony DO WNETRZA zaladujPremium
+       (po petli przeszkod, loader w scope) + guard _bossy
+       (jednorazowo — funkcja wraca przy zmianie stadium biegusa)
+     · LEKCJA (do rytmu): nowy blok uzywajacy istniejacych nazw ->
+       najpierw grep SCOPE tych nazw (funkcja czy top-level), nie
+       tylko kolejnosc linii
+     v12.8 „METRYKA" (znalezisko A z
      raportu telemetrii cc)
      · window.Gra=Gra po IIFE — Tele.zdarzenie czyta wersje przez
        (window.Gra&&Gra.wersja)||'?', a const nie zyje na window
@@ -4564,6 +4578,25 @@ const R3=(()=>{
         glbCache[typ]=wrap;pule[typ]=[];     // czyścimy pulę klockową tego typu
         console.log('[DROGA] '+typ+'.glb załadowany');
       },undefined,()=>{});});
+    if(!zaladujPremium._bossy){zaladujPremium._bossy=1;                /* HOTFIX-BOSSY v12.9: blok W SRODKU funkcji (loader w scope!); guard bo zaladujPremium wraca przy zmianie stadium. Bylo: IIFE poza funkcja -> ReferenceError loader @start -> R3 przerwane przed const pule -> 9x TDZ pule z callbackow przeszkod */
+      const BOSSY=[[traktor3d,'heniu-traktor',1.7],[smieciarka3d,'smieciarka',2.3],
+        [dzieciol3d,'boss-dzieciol',0.6],[pies3d,'pies',0.55]];
+      BOSSY.forEach(([slot,plik,wys])=>{
+        loader.load(assetUrl('assets/modele/'+plik+'.glb'),gltf=>{
+          gltf.scene.rotation.y=(ASSETY.obrotGLB[plik]||0)*Math.PI/180;
+          const wrap=normalizuj(gltf.scene,wys);
+          slot.children.forEach(ch=>ch.visible=false);                 /* klocki zostaja (fallback + userData dla klatka) */
+          slot.add(wrap);
+          console.log('[DROGA] boss '+plik+'.glb podpiety');
+        },undefined,()=>{});});
+      loader.load(assetUrl('assets/modele/boss-golab.glb'),gltf=>{     /* chmara: klon golebia per klockowy ptak */
+        const bazowy=normalizuj(gltf.scene,0.34);
+        chmara3d.children.forEach(ch=>{
+          if(ch.userData&&ch.userData.sk){ch.visible=false;
+            const kl=bazowy.clone();kl.position.copy(ch.position);
+            kl.rotation.y=Math.PI;chmara3d.add(kl);}});
+        console.log('[DROGA] chmara golab.glb podpieta (x9)');
+      },undefined,()=>{});}
   }
   function przelaczModel(chcePremium){
     PREMIUM.wybrany=chcePremium;
@@ -4572,26 +4605,6 @@ const R3=(()=>{
     biegus.visible=!p;
     return p;}
   zaladujPremium();
-  (function zaladujBossyGLB(){                                        /* TWARZE: twarze bossow z floty Tripo */
-    const BOSSY=[[traktor3d,'heniu-traktor',1.7],[smieciarka3d,'smieciarka',2.3],
-      [dzieciol3d,'boss-dzieciol',0.6],[pies3d,'pies',0.55]];
-    BOSSY.forEach(([slot,plik,wys])=>{
-      loader.load(assetUrl('assets/modele/'+plik+'.glb'),gltf=>{
-        gltf.scene.rotation.y=(ASSETY.obrotGLB[plik]||0)*Math.PI/180;
-        const wrap=normalizuj(gltf.scene,wys);
-        slot.children.forEach(ch=>ch.visible=false);                   /* klocki zostaja (fallback + userData dla klatka) */
-        slot.add(wrap);
-        console.log('[DROGA] boss '+plik+'.glb podpiety');
-      },undefined,()=>{});});
-    loader.load(assetUrl('assets/modele/boss-golab.glb'),gltf=>{       /* chmara: klon golebia na pozycji kazdego klockowego ptaka */
-      const bazowy=normalizuj(gltf.scene,0.34);
-      chmara3d.children.forEach(ch=>{
-        if(ch.userData&&ch.userData.sk){ch.visible=false;
-          const kl=bazowy.clone();kl.position.copy(ch.position);
-          kl.rotation.y=Math.PI;chmara3d.add(kl);}});
-      console.log('[DROGA] chmara golab.glb podpieta (x9)');
-    },undefined,()=>{});
-  })();
   /* G2 BLOOM: neony/fever/pioruny swieca naprawde (deklaracje na gorze R3 — HOTFIX-TDZ) */
   (async()=>{try{
     if(!await zapewnijBloom()){console.log('[DROGA] BLOOM niedostepny (CDN) — render klasyczny');return;}
@@ -7465,7 +7478,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.8',
+  wersja:'12.9',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
