@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.0 (Obroty)</title>
+<title>Bieguś — Droga na Igrzyska · v14.1 (Obroty II)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -4579,10 +4579,10 @@ const R3=(()=>{
     PREMIUM.scenaGLB.rotation.y=(PREMIUM.obrotBaza||0)+deg*Math.PI/180;
     return deg;}
   const GLB_STADIA={                                                /* NOWE-STADIA v13.8: komplet z serii level1-4 Filipa; OBROTY do strojenia — jak ktores biegnie bokiem, zmien JEDNA liczbe ponizej (0 / 1.5708=90 / 3.1416=180 / 4.7124=270) */
-    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*1.5},
-    mlody:{url:'assets/modele/kogut.glb',obrot:Math.PI*1.5},
-    dorosly:{url:'assets/modele/dorosly.glb',obrot:Math.PI*1.5},    /* OBROTY v14.0: przy PI seria patrzyla w LEWO (werdykt z trasy) -> 1.5PI cala seria; wylamek = indywidualna liczba */
-    mistrz:{url:'assets/modele/mistrz.glb',obrot:Math.PI*1.5},
+    pisklak:{url:'assets/modele/pisklak.glb',obrot:Math.PI*0.5},
+    mlody:{url:'assets/modele/kogut.glb',obrot:Math.PI*0.5},
+    dorosly:{url:'assets/modele/dorosly.glb',obrot:Math.PI*0.5},    /* OBROTY v14.1: kalibracja domknieta — PI=lewo, 1.5PI=tyl => 0.5PI=PRZOD */
+    mistrz:{url:'assets/modele/mistrz.glb',obrot:Math.PI*0.5},
     legenda:{url:'assets/modele/biegus_zloty.glb',obrot:0}};
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
@@ -7624,7 +7624,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'14.0',
+  wersja:'14.1',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
