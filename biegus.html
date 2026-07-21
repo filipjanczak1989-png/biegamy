@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v13.2 (Ludzie na trasie)</title>
+<title>Bieguś — Droga na Igrzyska · v13.3 (Stroik z trasy)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v13.2 „LUDZIE NA TRASIE" (4 zgloszenia
+     BIEGUŚ — DROGA NA IGRZYSKA · v13.3 „STROIK Z TRASY" (3 korekty
+     z trzeciej rundy — same liczby, zero nowej mechaniki)
+     · ST-1: obrotGLB auto:90 (jechalo bokiem jak rower)
+     · ST-2: pies 0.55->0.78 (przeszkoda I boss sfory), kot
+       0.45->0.62 — byly za male
+     · ST-3 CHMARA WYZEJ: grupa 1.05->1.5 + golebie GLB +0.22 —
+       fala leci na wysokosci GLOWY, wizual sam mowi "slizgaj pod
+       nia" (golebie wygladaly jak siedzace na ziemi -> gracze
+       instynktownie skakali; mechanika slizg-only zostaje swiadomie)
+     v13.2 „LUDZIE NA TRASIE" (4 zgloszenia
      z drugiej rundy)
      · LT-4 GLOWNE: kibic/przechodnie/dzieciak/lawki/latarnie/
        fontanna/kiosk NIGDY nie byly wpiete (flota objela bossow
@@ -4520,9 +4529,9 @@ const R3=(()=>{
       galaz:'assets/modele/galaz.glb', szlaban:'assets/modele/szlaban.glb',
       walizka:'assets/modele/walizka.glb',
     },
-    wysGLB:{rower:1.75,szlaban:1.2,galaz:1.6,glaz:0.9,hulajnoga:1.05,kot:0.45,     /* TWARZE: normalizacja wysokosci per typ */
-      swistak:0.5,taksowka:1.45,biegacz:1.7,auto:1.4,pies:0.55,taczka:0.95,kosz:0.95,walizka:0.8},
-    obrotGLB:{rower:90},                                                            /* TWARZE: korekta osi (stopnie); rower z Tripo jechal bokiem — v13.2 */
+    wysGLB:{rower:1.75,szlaban:1.2,galaz:1.6,glaz:0.9,hulajnoga:1.05,kot:0.62,     /* TWARZE: normalizacja wysokosci; ST-2 kot wiekszy */
+      swistak:0.5,taksowka:1.45,biegacz:1.7,auto:1.4,pies:0.78,taczka:0.95,kosz:0.95,walizka:0.8},   /* ST-2: pies wiekszy */
+    obrotGLB:{rower:90,auto:90},                                                    /* TWARZE: korekty osi (stopnie); rower i auto z Tripo jechaly bokiem */
   };
   const glbCache={};                       // typ → gotowy Group do klonowania
   function zaladujSkrypt(url){return new Promise((res,rej)=>{
@@ -4617,7 +4626,7 @@ const R3=(()=>{
       },undefined,()=>{});});
     if(!zaladujPremium._bossy){zaladujPremium._bossy=1;                /* HOTFIX-BOSSY v12.9: blok W SRODKU funkcji (loader w scope!); guard bo zaladujPremium wraca przy zmianie stadium. Bylo: IIFE poza funkcja -> ReferenceError loader @start -> R3 przerwane przed const pule -> 9x TDZ pule z callbackow przeszkod */
       const BOSSY=[[traktor3d,'heniu-traktor',1.7],[smieciarka3d,'smieciarka',2.3],
-        [dzieciol3d,'boss-dzieciol',0.6],[pies3d,'pies',0.55]];
+        [dzieciol3d,'boss-dzieciol',0.6],[pies3d,'pies',0.78]];      /* ST-2: pies sfory wiekszy */
       BOSSY.forEach(([slot,plik,wys])=>{
         loader.load(assetUrl('assets/modele/'+plik+'.glb'),gltf=>{
           gltf.scene.rotation.y=(ASSETY.obrotGLB[plik]||0)*Math.PI/180;
@@ -4631,6 +4640,7 @@ const R3=(()=>{
         chmara3d.children.forEach(ch=>{
           if(ch.userData&&ch.userData.sk){ch.visible=false;
             const kl=bazowy.clone();kl.position.copy(ch.position);
+            kl.position.y+=0.22;                                       /* ST-3: golebie GLB w locie, nie przy ziemi */
             kl.rotation.y=Math.PI;chmara3d.add(kl);}});
         console.log('[DROGA] chmara golab.glb podpieta (x9)');
       },undefined,()=>{});
@@ -5484,7 +5494,7 @@ const R3=(()=>{
         const wf=fl&&fl.tele&&s.t<fl.t+0.35;
         chmara3d.visible=!!wf;
         if(wf){const f=1-Math.max(0,(fl.t-s.t))/N.zap;
-          chmara3d.position.set(0,1.05,CFG.GRACZ_Z-22+f*24);           /* SANITARKA S-6: nizej + cien fali na ziemi */
+          chmara3d.position.set(0,1.5,CFG.GRACZ_Z-22+f*24);            /* ST-3: fala na wysokosci GLOWY — wizual mowi 'slizgaj', nie 'skacz' */
           piorunRing.material.opacity=Math.max(piorunRing.material.opacity,0.3);
           piorunRing.position.set(0,0.06,chmara3d.position.z);piorunRing.scale.setScalar(3.4);
           piorunRing.material.color.setHex(0xcfd6e4);
@@ -7540,7 +7550,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'13.2',
+  wersja:'13.3',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
