@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v12.5 (Tętno świata)</title>
+<title>Bieguś — Droga na Igrzyska · v12.7 (Twarze świata)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -20,7 +20,27 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   /* ==========================================================
-     BIEGUŚ — DROGA NA IGRZYSKA · v12.5 „TETNO SWIATA" (werdykt
+     BIEGUŚ — DROGA NA IGRZYSKA · v12.7 „TWARZE SWIATA" (flota GLB
+     z Tripo — 24 modele na prodzie, commit 01ffb79)
+     · BOSSY: traktor/smieciarka/dzieciol/pies + chmara golebi
+       ladowane z assets/modele/ — klockowe dzieci slotow visible=
+       false (zostaja jako fallback + zywy userData dla klatka:
+       kola/kap/kog/ptak/og — zero TypeError), GLB dokladany OBOK;
+       chmara: klon golebia na pozycji kazdego klockowego ptaka
+     · PRZESZKODY: rejestr ASSETY.przeszkody przepisany na assets/
+       modele/ + nowe typy: pies/glaz/hulajnoga/kot/swistak/
+       taksowka/biegacz/rower(rowerzysta.glb)/auto; feler-czworka
+       (taczka/kosz/szlaban/walizka+galaz) wpisana na przyszlosc —
+       fallback klockowy dziala do re-genu
+     · wysGLB (normalizacja wysokosci per typ) + obrotGLB (korekta
+       osi w stopniach — stroik po weryfikacji wzrokowej: jesli cos
+       jedzie bokiem/tylem, jedna liczba w mapie)
+     v12.6 „HOTFIX TDZ ikoU" (pilny)
+     · Uncaught ReferenceError: ikoU before initialization @ menu —
+       taby menu (ikoU dla zakladek) uzywaly helpera 13 linii PRZED
+       jego const. Deklaracja ikoU przeniesiona nad blok tabow.
+       KLASA v10.6 (composer): const uzyty przed inicjalizacja
+     v12.5 „TETNO SWIATA" (werdykt
      Kasi: "za wolno na poczatku, za pusto miedzy landmarkami")
      · TEMPO: PREDKOSC_BAZOWA 15.4->16.6 (+8%), taryfa e1-e4
        CALKIEM OUT — pelne tempo od pierwszego kroku
@@ -4429,10 +4449,19 @@ const R3=(()=>{
   // pozostałe stadia → biegus.glb; obrot per model, bo skany mają różne osie
   const ASSETY={
     biegus:'assets/biegus.glb', wysokoscBiegusia:1.5, obrotY:Math.PI*(parseFloat(new URLSearchParams(location.search).get('obrot'))||0.5),   /* REW4-FINAL: 0.5PI = PRZOD (Filip potwierdzil testerem 17.07); ?obrot= zostaje na przyszle GLB */
-    przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy
-      taczka:'assets/taczka.glb', pies:'assets/pies.glb',   /* TRASY: rower.glb OFF — jechal bokiem (zla os natywna); klockowy jest poprawny */
-      kosz:'assets/kosz.glb', galaz:'assets/galaz.glb', szlaban:'assets/szlaban.glb',
+    przeszkody:{ // opcjonalne GLB per typ — brak pliku = model klockowy (TWARZE: flota Tripo w assets/modele/)
+      pies:'assets/modele/pies.glb', glaz:'assets/modele/glaz.glb',
+      hulajnoga:'assets/modele/hulajnoga.glb', kot:'assets/modele/kot.glb',
+      swistak:'assets/modele/swistak.glb', taksowka:'assets/modele/taksowka.glb',
+      biegacz:'assets/modele/biegacz.glb', rower:'assets/modele/rowerzysta.glb',   /* nowy model + galaz kierunkowych v12.4 (rotation.y=0) */
+      auto:'assets/modele/auto.glb',
+      taczka:'assets/modele/taczka.glb', kosz:'assets/modele/kosz.glb',            /* feler Tripo — czekaja na re-gen, fallback klockowy */
+      galaz:'assets/modele/galaz.glb', szlaban:'assets/modele/szlaban.glb',
+      walizka:'assets/modele/walizka.glb',
     },
+    wysGLB:{rower:1.75,szlaban:1.2,galaz:1.6,glaz:0.9,hulajnoga:1.05,kot:0.45,     /* TWARZE: normalizacja wysokosci per typ */
+      swistak:0.5,taksowka:1.45,biegacz:1.7,auto:1.4,pies:0.55,taczka:0.95,kosz:0.95,walizka:0.8},
+    obrotGLB:{},                                                                    /* TWARZE: korekta osi per typ (stopnie), np. {rower:180} — stroik po wzrokowej */
   };
   const glbCache={};                       // typ → gotowy Group do klonowania
   function zaladujSkrypt(url){return new Promise((res,rej)=>{
@@ -4519,8 +4548,8 @@ const R3=(()=>{
     /* — przeszkody premium (statyczne, klonowalne) — */
     Object.entries(ASSETY.przeszkody).forEach(([typ,url])=>{
       loader.load(assetUrl(url),gltf=>{
-        const wrap=normalizuj(gltf.scene,
-          typ==='rower'?1.9: typ==='szlaban'?1.2: typ==='galaz'?1.6: 0.95);
+        gltf.scene.rotation.y=(ASSETY.obrotGLB[typ]||0)*Math.PI/180;   /* TWARZE: korekta osi */
+        const wrap=normalizuj(gltf.scene,ASSETY.wysGLB[typ]||0.95);
         wrap.userData.glb=true;
         glbCache[typ]=wrap;pule[typ]=[];     // czyścimy pulę klockową tego typu
         console.log('[DROGA] '+typ+'.glb załadowany');
@@ -4533,6 +4562,26 @@ const R3=(()=>{
     biegus.visible=!p;
     return p;}
   zaladujPremium();
+  (function zaladujBossyGLB(){                                        /* TWARZE: twarze bossow z floty Tripo */
+    const BOSSY=[[traktor3d,'heniu-traktor',1.7],[smieciarka3d,'smieciarka',2.3],
+      [dzieciol3d,'boss-dzieciol',0.6],[pies3d,'pies',0.55]];
+    BOSSY.forEach(([slot,plik,wys])=>{
+      loader.load(assetUrl('assets/modele/'+plik+'.glb'),gltf=>{
+        gltf.scene.rotation.y=(ASSETY.obrotGLB[plik]||0)*Math.PI/180;
+        const wrap=normalizuj(gltf.scene,wys);
+        slot.children.forEach(ch=>ch.visible=false);                   /* klocki zostaja (fallback + userData dla klatka) */
+        slot.add(wrap);
+        console.log('[DROGA] boss '+plik+'.glb podpiety');
+      },undefined,()=>{});});
+    loader.load(assetUrl('assets/modele/boss-golab.glb'),gltf=>{       /* chmara: klon golebia na pozycji kazdego klockowego ptaka */
+      const bazowy=normalizuj(gltf.scene,0.34);
+      chmara3d.children.forEach(ch=>{
+        if(ch.userData&&ch.userData.sk){ch.visible=false;
+          const kl=bazowy.clone();kl.position.copy(ch.position);
+          kl.rotation.y=Math.PI;chmara3d.add(kl);}});
+      console.log('[DROGA] chmara golab.glb podpieta (x9)');
+    },undefined,()=>{});
+  })();
   /* G2 BLOOM: neony/fever/pioruny swieca naprawde (deklaracje na gorze R3 — HOTFIX-TDZ) */
   (async()=>{try{
     if(!await zapewnijBloom()){console.log('[DROGA] BLOOM niedostepny (CDN) — render klasyczny');return;}
@@ -6326,7 +6375,8 @@ const Gra=(()=>{
   el('btnSklep').onclick=()=>{Dzwiek.odpal();tryb='podglad';R3.pokazWPodgladzie('biegus');
     odswiezSklep();odswiezGarderobe();pokaz('panelSklep');};
   el('btnSklepWroc').onclick=()=>{tryb='menu';pokaz('menu');};
-  const MTABY=['mSekBiegi','mSekBiegus','mSekSwiat','mSekKlub'];     /* MENU-2 */
+  const ikoU=(slug,em,px=20)=>'<img src="'+assetUrl('assets/ui/ikony/'+slug+'.webp')+'" alt="" style="width:'+px+'px;height:'+px+'px;vertical-align:-4px;object-fit:contain" onerror="this.outerHTML=&quot;'+em+'&quot;">';   /* TABLICA-TYG: ikony z fallbackiem emoji */
+  const MTABY=['mSekBiegi','mSekBiegus','mSekSwiat','mSekKlub'];   /* HOTFIX-TDZ v12.6: ikoU przeniesiony PRZED taby (bylo uzyte 13 linii przed const) */     /* MENU-2 */
   function menuTab(i){MTABY.forEach((id,j)=>{el(id).classList.toggle('akt',i===j);
       el('mTab'+j).classList.toggle('akt',i===j);});
     try{localStorage.setItem('biegus_mtab',i);}catch(e){}}
@@ -6343,7 +6393,6 @@ const Gra=(()=>{
   el('btnMute').onclick=()=>{el('btnMute').textContent=Dzwiek.przelacz()?'🔇':'🔊';};
 
   const CEL_TYG_KM=30,NAGRODA_TYG=150;                                /* JANUSZ: cel tygodnia z mostu */
-  const ikoU=(slug,em,px=20)=>'<img src="'+assetUrl('assets/ui/ikony/'+slug+'.webp')+'" alt="" style="width:'+px+'px;height:'+px+'px;vertical-align:-4px;object-fit:contain" onerror="this.outerHTML=&quot;'+em+'&quot;">';   /* TABLICA-TYG: ikony z fallbackiem emoji */
   let januszDane=null;
   function janusz(d){januszDane=d;januszRysuj();}
   function januszRysuj(){
@@ -7405,7 +7454,7 @@ const Gra=(()=>{
 /* ---------- 11. INTEGRACJA ---------- */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'12.5',
+  wersja:'12.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
