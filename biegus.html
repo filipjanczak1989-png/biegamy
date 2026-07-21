@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.5 (Stolarka)</title>
+<title>Bieguś — Droga na Igrzyska · v14.5 (Stolarka + miasto)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -4154,7 +4154,8 @@ function krokSymulacji(s){
       if(unik==='skok'&&wPow){if(!o.uniknieto)udanyUnik(s,o);continue;}
       if(unik==='slizg'&&(s.slizgT>=0||(wPow&&wysY>=CFG.PROG_PRZESKOKU*1.15))){   /* PARKOUR v14.3: wysoki przeskok tez ratuje (3. zgloszenie gracza nr 1); slizg = opcja latwa */
         if(!o.uniknieto){o.slizgniete=s.slizgT>=0;udanyUnik(s,o);}continue;}
-      if(unik==='pas'&&(o.typ==='biegacz'||o.typ==='rower')&&wPow&&wysY>=CFG.PROG_PRZESKOKU*1.15){   /* PARKOUR v14.3: salto nad czlowiekiem — ratuje */
+      if(unik==='pas'&&(o.typ==='biegacz'||o.typ==='rower'||o.typ==='auto')&&wPow
+        &&wysY>=CFG.PROG_PRZESKOKU*(o.typ==='auto'?1.25:1.15)){        /* MIASTO v14.5: przez maske auta tez sie lata — prog 1.25 (najtrudniejszy timing) */
         if(!o.uniknieto)udanyUnik(s,o);continue;}
       if(o.typ==='kaluza'&&s.gripKaluza){o.trafione=true;               /* HOTFIX-grip: buty > startowe przebiegaja kaluze */
         s.zdarzenia.push({typ:'plusk'});continue;}
@@ -4639,7 +4640,7 @@ const R3=(()=>{
     },
     wysGLB:{rower:1.75,szlaban:1.2,galaz:1.6,glaz:0.9,hulajnoga:1.05,kot:0.62,     /* TWARZE: normalizacja wysokosci; ST-2 kot wiekszy */
       swistak:0.5,taksowka:1.45,biegacz:1.7,auto:1.4,pies:0.78,taczka:0.95,kosz:0.95,walizka:0.8},   /* ST-2: pies wiekszy */
-    obrotGLB:{rower:90,auto:90},                                                    /* TWARZE: korekty osi (stopnie); rower i auto z Tripo jechaly bokiem */
+    obrotGLB:{rower:90,auto:270,smieciarka:180},                                    /* MIASTO v14.5: auto jechalo TYLEM (90->270); smieciarka zle ustawiona (180, strzal) */
   };
   const glbCache={};                       // typ → gotowy Group do klonowania
   function zaladujSkrypt(url){return new Promise((res,rej)=>{
@@ -4758,9 +4759,9 @@ const R3=(()=>{
       },undefined,()=>{});
       const DECO_GLB=[                                                 /* LT-4 v13.2: LUDZIE+DETALE (zgloszenie: "nie widac ludzi ktorych wygenerowalismy") */
         /* nazwa, wysokosc, [grupa, x, z, cykl, rotY(rad)] ... */
-        ['lawka',0.8,[['k1',4.0,-34,200,0],['k1',-4.0,-96,200,3.1416],['k2',3.9,-58,214,0]]],   /* ST-1 v14.5: flip 180 — siedziskiem do trasy (strona+ = 0, strona- = 180) */
-        ['latarnia-park',2.6,[['k1',-3.9,-18,195,0],['k1',3.9,-62,195,3.1416],['k1',-3.9,-118,195,0]]],   /* ST-2 v14.5: prawa strona flip 180 */
-        ['latarnia-miasto',3.0,[['k3',4.1,-26,205,3.1416],['k3',-4.1,-84,205,0],['k3',4.1,-142,205,3.1416]]],   /* ST-2 v14.5: prawa strona flip 180 */
+        ['lawka',0.8,[['k1',4.0,-34,200,0],['k1',-4.0,-96,200,3.1416],['k2',3.9,-58,214,0]]],   /* STOLARKA v14.5: flip 180 */
+        ['latarnia-park',2.6,[['k1',-3.9,-18,195,0],['k1',3.9,-62,195,3.1416],['k1',-3.9,-118,195,0]]],   /* STOLARKA v14.5 */
+        ['latarnia-miasto',3.0,[['k3',4.1,-26,205,3.1416],['k3',-4.1,-84,205,0],['k3',4.1,-142,205,3.1416]]],   /* STOLARKA v14.5 */
         ['kiosk',2.2,[['k3',5.9,-52,222,3.1416]]],
         ['fontanna',1.6,[['k3',-6.1,-108,232,0]]],
         ['przechodzien-m',1.65,[['k3',5.1,-38,208,0],['k3',-5.3,-126,208,0]]],
@@ -5531,11 +5532,11 @@ const R3=(()=>{
       if(_fpsBad>180){bloomOn=false;console.log('[DROGA] BLOOM off — watchdog FPS (śr. klatka >26 ms)');}}
     ustawKraine(s.skrypt.kraina||1);
     const PAL=PALETY[s.skrypt.kraina||1];
-    const swit=clamp(0.5+(s.t/CFG.ETAP_CZAS)*0.5,0,1);             /* PORANEK II v13.2: floor 0.5 (v13.1 za malo) */
+    const swit=clamp(0.62+(s.t/CFG.ETAP_CZAS)*0.38,0,1);           /* SWIT-IV v14.5: floor 0.62 */
     const PORA=PAL.pory[(s.skrypt.pora??0)%PAL.pory.length];
     const nk=(s.skrypt.kraina||1)+'-'+(s.skrypt.pora??0);
     if(nk!==nieboKlucz){nieboKlucz=nk;
-      malujNiebo(PORA._s.clone().lerp(PORA._k,0.4),PORA._k,PORA.n==='ZŁOTA GODZINA');}   /* PORANEK II: niebo-canvas tez bez czystego switu */
+      malujNiebo(PORA._s.clone().lerp(PORA._k,0.55),PORA._k,PORA.n==='ZŁOTA GODZINA');}   /* SWIT-IV v14.5 */
     scena.background.copy(PORA._s).lerp(PORA._k,swit);
     if(s.skrypt&&s.skrypt.kraina===3){                                /* ULICA-ZYJE: pociag przejezdza w tle */
       if(!pociag3d.visible&&czasReal>pociagStan.nastepny){
@@ -5671,7 +5672,7 @@ const R3=(()=>{
     const tyGracza=tY(CFG.GRACZ_Z);
 
     scena.fog.color.copy(scena.background);
-    slonce.intensity=lerp(0.75,1.15,swit);
+    slonce.intensity=lerp(0.88,1.3,swit);                          /* MIASTO v14.5: wiecej kontrastu kierunkowego (zgloszenie: przeszkody wyblakle) */
     switGlow.material.opacity=0.5*(1-swit);switGlow2.material.opacity=0.55*(1-swit);   /* SWIATLO-3: poswiaty switu gasna z czasem */
     switGlow.position.y=lerp(3,11,swit);switGlow.scale.setScalar(lerp(56,78,swit));
     switGlow2.position.y=lerp(2,9,swit);
@@ -5805,7 +5806,7 @@ const R3=(()=>{
     if(bloomPass)bloomPass.strength=(0.33+(fv?0.15:0)                  /* SWIATLO-2 */
       +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.08:0))
       *(PORA.n==='ZŁOTA GODZINA'?0.72:1)
-      *(0.6+0.4*swit);                                                 /* SWIATLO-3 v13.4: jasna scena switu = wiecej pikseli nad progiem bloomu -> tlumik na starcie (TO bylo "oczojebnie na poczatku") */
+      *(0.5+0.5*swit);                                                 /* SWIT-IV v14.5: tlumik mocniej */
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
     fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
@@ -6991,7 +6992,7 @@ const Gra=(()=>{
     let skryptE=generujEtap(n,seed,kraina);
     {const fb=new URLSearchParams(location.search).get('boss');       /* PP-3 v14.3: tester bossow — ?boss=X wymusza napor PRAWDZIWYM generatorem */
      if(fb){const KB={traktor:1,sfora:1,dzieciol:2,burza:2,smieciarka:3,chmara:3,tornado:4,zamiec:4}[fb];
-       const NB={traktor:5,sfora:5,dzieciol:13,burza:13,smieciarka:21,chmara:21,tornado:28,zamiec:28}[fb];   /* ST-3 v14.5: gen wymaga rel>=5 — etap reprezentatywny dla krainy */
+       const NB={traktor:5,sfora:5,dzieciol:13,burza:13,smieciarka:21,chmara:21,tornado:28,zamiec:28}[fb];   /* STOLARKA v14.5: rel>=5 */
        if(KB)for(let i=0;i<300;i++){const sk=generujEtap(NB,seed+'-boss'+i,KB);
          if(sk.napor&&sk.napor.boss===fb){skryptE=sk;
            console.log('[DROGA] BOSS-TESTER: '+fb+' wymuszony (proba '+i+', kraina '+KB+', etap '+NB+')');break;}}}}
