@@ -10,7 +10,7 @@
 <meta property="og:url" content="https://biegamy.run/biegus.html">
 <meta property="og:image" content="https://biegamy.run/assets/ui/og-biegus.webp">
 <meta property="og:type" content="website">
-<title>Bieguś — Droga na Igrzyska · v14.6 (Pazur)</title>
+<title>Bieguś — Droga na Igrzyska · v14.7 (Świt V)</title>
 <meta property="og:title" content="Bieguś — Droga na Igrzyska">
 <meta property="og:description" content="Biegnij naprawdę — Twój Bieguś rośnie z Twoich kilometrów. Gra biegowa społeczności BiegaMy.">
 <meta property="og:type" content="website">
@@ -5672,7 +5672,7 @@ const R3=(()=>{
     const tyGracza=tY(CFG.GRACZ_Z);
 
     scena.fog.color.copy(scena.background);
-    slonce.intensity=lerp(0.88,1.3,swit);                          /* MIASTO v14.5: wiecej kontrastu kierunkowego (zgloszenie: przeszkody wyblakle) */
+    slonce.intensity=lerp(0.88,1.3,(swit-0.62)/0.38);              /* SWIT-V v14.7: rampa po POSTEPIE — start 0.88 (bylo efektywnie 1.14, 5. zgloszenie oczojebnie), koniec 1.3 (kontrast v14.5 zostaje) */
     switGlow.material.opacity=0.5*(1-swit);switGlow2.material.opacity=0.55*(1-swit);   /* SWIATLO-3: poswiaty switu gasna z czasem */
     switGlow.position.y=lerp(3,11,swit);switGlow.scale.setScalar(lerp(56,78,swit));
     switGlow2.position.y=lerp(2,9,swit);
@@ -5806,7 +5806,7 @@ const R3=(()=>{
     if(bloomPass)bloomPass.strength=(0.33+(fv?0.15:0)                  /* SWIATLO-2 */
       +((s.napor&&s.t>=s.napor.t0-2.5&&s.t<s.napor.koniec)?0.08:0))
       *(PORA.n==='ZŁOTA GODZINA'?0.72:1)
-      *(0.5+0.5*swit);                                                 /* SWIT-IV v14.5: tlumik mocniej */
+      *(0.5+0.5*((swit-0.62)/0.38));                                   /* SWIT-V v14.7: tlumik po postepie — start 0.5 (bylo 0.81; zrodlo oczojebnosci = bloom przy jasnej scenie, SWIATLO-3) */
     feverLight.visible=fv;
     if(fv)feverLight.position.set(x,y+tyGracza+1.3,CFG.GRACZ_Z+0.5);
     fillLight.position.set(x,y+tyGracza+1.6,CFG.GRACZ_Z+0.9);         /* ARTPASS: fill podaza za graczem */
@@ -7673,7 +7673,7 @@ const Gra=(()=>{
 window.Gra=Gra;                                                       /* METRYKA v12.8: Tele czyta Gra.wersja przez window — const nie zyje na window (ta sama klasa co TF-1 window.Tele); do dzis KAZDY wiersz game_events mial wersja:"?" */
 window.DROGA={
   resetZapisu(){localStorage.removeItem('biegus_droga_zapis_v1');location.reload();},
-  wersja:'14.6',
+  wersja:'14.7',
   get biegusStan(){return Biegus.stan();},
   /* R9: TU wpina się pipeline zegarek→intervals→BiegaMy:
      po imporcie treningu apka woła DROGA.zarejestrujTrening({km})
