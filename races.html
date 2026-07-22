@@ -367,6 +367,9 @@ html,body{height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans'
 </div>
 
 <!-- RACES LIST -->
+<!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
+<div id="banery-top"></div>
+<script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','races');});</script>
 <div class="races-list" id="races-list">
   <!-- skeleton loader -->
   <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:18px;">
