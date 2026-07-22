@@ -36,7 +36,7 @@ body{padding:0 0 100px;min-height:100vh;}
 
 /* Empty state */
 .empty{padding:60px 20px;text-align:center;font-family:'DM Mono',monospace;color:var(--muted);}
-.empty-icon{width:48px;height:48px;border-radius:10px;margin:0 auto 14px;opacity:0.4;}
+.empty-icon{width:116px;height:116px;border-radius:20px;margin:0 auto 14px;opacity:0.92;object-fit:cover;}   /* PUSTKA v1: ilustracja zamiast wyszarzonego logo */
 .empty-msg{font-size:13px;}
 .empty-hint{font-size:11px;margin-top:8px;opacity:0.7;line-height:1.5;}
 
@@ -634,7 +634,7 @@ async function loadReports() {
       : '';
     
     target.innerHTML = '<div class="empty">'
-      + '<img class="empty-icon" src="https://filipjanczak1989-png.github.io/biegamy-assets/bm-nav.webp" onerror="this.style.display=\'none\'">'
+      + '<img class="empty-icon" src="assets/ui/pustki/pustka-raporty.webp" onerror="this.style.display=\'none\'">'
       + '<div class="empty-msg">Brak raportów</div>'
       + '<div class="empty-hint">Trener wyśle Ci raport gdy będzie miał coś do przekazania' + diagInfo + '</div>'
     + '</div>';
