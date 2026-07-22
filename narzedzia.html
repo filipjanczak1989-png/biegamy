@@ -113,6 +113,9 @@ nav.botnav a span{font-size:9px;letter-spacing:0.06em;text-transform:uppercase;c
 </div>
 
 <div class="content">
+  <!-- BANERY E3: hero tygodniowy klucza 'statystyki' (no-op bez sb.js/pliku) -->
+  <div id="banery-top"></div>
+  <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','statystyki');});</script>
 
   <!-- Note: hero stats + weekly bars + types pie usunięte → analytics w sekcji Forma (zawodnik.html) -->
   <div style="background:rgba(var(--accent-rgb),0.06);border:1px solid rgba(var(--accent-rgb),0.2);border-radius:12px;padding:14px;margin-bottom:20px;text-align:center;">

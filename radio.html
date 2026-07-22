@@ -67,6 +67,9 @@ body{padding:0 0 200px;min-height:100vh;}
 </div>
 
 <div class="rad-wrap">
+  <!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
+  <div id="banery-top"></div>
+  <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','radio');});</script>
   <!-- Panel uploadu — TYLKO trener (odsłaniany w radioCheckCoach) -->
   <div id="rad-upload-panel" style="display:none;margin-bottom:12px;">
     <button class="rad-newpl" onclick="radioToggleUploadForm()"><img class="rad-ic-inline" data-ic="icon-radio-add.webp" alt="">Wgraj kawałek</button>

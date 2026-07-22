@@ -3732,3 +3732,42 @@ window._icuRenderSplits = function (d, el) {
     });
   })();
 })();
+
+/* ===== BANERY (WIZUAL E3): rotacja tygodniowa hero-banerow ===== */
+/* LUK-TYGODNIA: strony 'tydzien' = 7 scen wg dnia (pn=01..nd=07, 08rez poza rotacja). */
+/* trener = rolujaca %6. img.onerror -> hero znika (deploy odporny na brak pliku).      */
+/* Flota w MAIN repo assets/ui/banery (sciezka wzgledna, NIE assetUrl/biegamy-assets).  */
+window.BANERY = (function(){
+  var FLOTA = { login:'tydzien', index:'tydzien', races:'tydzien', wyzwania:'tydzien', statystyki:'tydzien', odznaki:'tydzien', radio:'tydzien', trener:6 };
+  var d = new Date();
+  var dayNum = Math.floor((d.getTime() - d.getTimezoneOffset()*60000)/86400000);
+  function src(page){
+    var n = FLOTA[page]; if(!n) return null;
+    var idx = (n==='tydzien') ? ((d.getDay()+6)%7 + 1) : (dayNum % n + 1);
+    return 'assets/ui/banery/baner-' + page + '-' + String(idx).padStart(2,'0') + '.webp';
+  }
+  function hero(page, tytul, podtytul){
+    var s = src(page); if(!s) return null;
+    if(!document.getElementById('banery-css')){
+      var st = document.createElement('style'); st.id='banery-css';
+      st.textContent = '.banery-hero{position:relative;height:172px;border-radius:16px;overflow:hidden;margin:8px 16px 16px;background:var(--bg2,#0d0b12)}'
+        + '.banery-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 38%}'
+        + '.banery-hero::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,11,18,.18) 0%,rgba(13,11,18,0) 38%,rgba(13,11,18,.84) 100%)}'
+        + '.banery-tyt{position:absolute;left:16px;bottom:10px;z-index:2;font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:1.5px;color:#fff;line-height:1;text-shadow:0 2px 12px rgba(0,0,0,.55)}'
+        + '.banery-pod{position:absolute;left:16px;bottom:44px;z-index:2;font-family:"DM Mono",monospace;font-size:10px;letter-spacing:.6px;color:rgba(255,255,255,.78);text-transform:uppercase}';
+      document.head.appendChild(st);
+    }
+    var el = document.createElement('div'); el.className='banery-hero';
+    var img = document.createElement('img'); img.src=s; img.alt='';
+    img.onerror = function(){ el.remove(); };
+    el.appendChild(img);
+    if(podtytul){ var p=document.createElement('div'); p.className='banery-pod'; p.textContent=podtytul; el.appendChild(p); }
+    var t = document.createElement('div'); t.className='banery-tyt'; t.textContent = tytul || ''; el.appendChild(t);
+    return el;
+  }
+  function mount(sel, page, tytul, podtytul){
+    var host = document.querySelector(sel); if(!host) return;
+    var el = hero(page, tytul, podtytul); if(el) host.appendChild(el);
+  }
+  return { src:src, hero:hero, mount:mount, _dayNum:dayNum };
+})();

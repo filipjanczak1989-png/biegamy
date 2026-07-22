@@ -67,6 +67,9 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   <h1>Odznaki</h1>
 </div>
 <div id="content">
+  <!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
+  <div id="banery-top"></div>
+  <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','odznaki');});</script>
   <div id="badges-section-content">
     <div style="text-align:center;padding:48px 0;color:var(--muted);font-size:13px;">Ładowanie...</div>
   </div>

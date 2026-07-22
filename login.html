@@ -235,6 +235,12 @@ body::after{
 <body>
 
 <div class="container">
+  <!-- BANERY-LITE v1 (E3): rotacja tygodniowa bez sb.js (pre-auth) -->
+  <div id="banery-hero-lite" style="position:relative;height:172px;border-radius:16px;overflow:hidden;margin:8px 16px 16px;display:none;">
+    <img id="banery-hero-img" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 38%;">
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(13,11,18,.18) 0%,rgba(13,11,18,0) 38%,rgba(13,11,18,.55) 100%);"></div>
+  </div>
+  <script>(function(){var i=((new Date().getDay()+6)%7)+1,el=document.getElementById('banery-hero-img');el.onload=function(){document.getElementById('banery-hero-lite').style.display='block';};el.src='assets/ui/banery/baner-login-0'+i+'.webp';})();</script>
   <div class="logo">
     <div class="logo-text">Biega<span>My</span></div>
     <div class="logo-sub">Coaching Biegowy</div>

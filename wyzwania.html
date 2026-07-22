@@ -49,6 +49,9 @@ html,body{background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;
   <h1>Wyzwania</h1>
 </div>
 <div id="content">
+  <!-- BANERY E3: hero tygodniowy (no-op bez sb.js/pliku) -->
+  <div id="banery-top"></div>
+  <script>document.addEventListener('DOMContentLoaded',function(){window.BANERY&&BANERY.mount('#banery-top','wyzwania');});</script>
   <div id="duels-section" style="margin-bottom:18px;"></div>
   <div id="challenges-content">
     <div style="text-align:center;padding:48px 0;color:var(--muted);font-size:13px;">Ładowanie...</div>
