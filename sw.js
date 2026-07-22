@@ -41,7 +41,8 @@ const PRECACHE_URLS = [
   '/vendor/three-r128.min.js',
   '/theme.css',
   '/manifest.json',
-  '/offline.html'
+  '/offline.html',
+  '/assets/ui/pustki/pustka-offline.webp'
 ];
 
 // Opcjonalne pliki — jeśli nie istnieją, NIE pokazuj ostrzeżenia

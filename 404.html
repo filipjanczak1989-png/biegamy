@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Brak połączenia · BiegaMy</title>
+<title>404 — Ta trasa nie istnieje · BiegaMy</title>
+<meta name="robots" content="noindex">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600&family=DM+Mono&display=swap" rel="stylesheet">
 <style>*{margin:0;padding:0;box-sizing:border-box}
 body{min-height:100vh;background:#0d0b12;color:#fff;font-family:'DM Sans',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -19,14 +20,15 @@ p{font-size:14px;line-height:1.6;color:rgba(255,255,255,.65);margin-bottom:26px}
 .stopka{margin-top:26px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1px;color:rgba(255,255,255,.3);text-transform:uppercase}</style>
 </head>
 <body>
-<!-- STRONA-OFFLINE v2 (WIZUAL E4-P1): fallback SW; grafika MUSI byc w SW precache zeby dzialala offline -->
+<!-- STRONA-404 v1 (WIZUAL E4-P1): GH Pages serwuje ja automatycznie dla nieznanych sciezek -->
 <div class="karta">
   <div class="grafika" id="g"><img id="gi" alt=""></div>
-  <h1>Brak połączenia</h1>
-  <p>Zasięg nie łapie, ale trening i tak się liczy. Złap oddech — wrócimy, jak tylko sieć wróci do formy.</p>
-  <button class="btn" onclick="location.reload()">Spróbuj ponownie</button>
+  <div class="kod">404</div>
+  <h1>Ta trasa nie istnieje</h1>
+  <p>Zboczyłeś ze szlaku — zdarza się najlepszym. Wróć na znaną trasę i biegniemy dalej.</p>
+  <a class="btn" href="/index.html">Wróć na trasę</a>
   <div class="stopka">jesteśmy obok · biegamy.run</div>
 </div>
-<script>(function(){var i=document.getElementById('gi');i.onload=function(){document.getElementById('g').style.display='block';};i.src='/assets/ui/pustki/pustka-offline.webp';})();</script>
+<script>(function(){var i=document.getElementById('gi');i.onload=function(){document.getElementById('g').style.display='block';};i.src='/assets/ui/pustki/pustka-404.webp';})();</script>
 </body>
 </html>
