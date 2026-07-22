@@ -939,7 +939,7 @@ async function loadPanelAI() {
   }
 
   if (!reports || reports.length === 0) {
-    target.innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak raportów. Wygeneruj pierwszy ↓</div>';
+    target.innerHTML = PUSTKA.dekoruj('raporty', '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak raportów. Wygeneruj pierwszy ↓</div>');
     return;
   }
 
@@ -2726,7 +2726,7 @@ async function loadStravaPanel() {
     .limit(20);
 
   if (!activities || activities.length === 0) {
-    el.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności Strava.</div>';
+    el.innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywności Strava.</div>');
     return;
   }
 
@@ -4756,7 +4756,7 @@ async function loadCoachSocialFeed() {
     .select('id,training_type,distance_km,pace,feel,comment,logged_at,athlete_id,attachment_url,elevation_gain,athletes(id,full_name,is_public,coach_id)').not('training_type','like','__badge__%')
     .order('logged_at', { ascending: false }).limit(60);
   if (!logs || !logs.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    feedEl.innerHTML = PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
     return;
   }
   // Filtruj: trener widzi tylko zawodników publicznych LUB swoich
@@ -4765,7 +4765,7 @@ async function loadCoachSocialFeed() {
     return l.athletes.is_public === true || l.athletes.coach_id === _coachId;
   }).slice(0, 30);
   if (!visibleLogs.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    feedEl.innerHTML = PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
     return;
   }
   const tc = { Spokojny:'#5090e0','Bieg spokojny':'#5090e0','Interwa\u0142y':'#e8b840',Tempo:'#f06030',Wybieganie:'#3db870',Regeneracja:'#9a6fe8' };
@@ -4807,7 +4807,7 @@ async function loadCoachSocialFeed() {
       +screensHtml+reactBar+'</div>';
   }
   const rendered = visibleLogs.map(buildCard).filter(Boolean).join('');
-  feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+  feedEl.innerHTML = rendered || PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
   const ids = visibleLogs.map(function(l){return l.id;});
   coachLoadReactionCounts(ids); coachLoadCommentCounts(ids);
 }
@@ -4868,7 +4868,7 @@ async function _loadCComments(logId) {
   const el=document.getElementById('cc-list');if(!el)return;
   try {
     const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
-    if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>';return;}
+    if(!data||!data.length){el.innerHTML= PUSTKA.dekoruj('wiadomosci', '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>');return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
       const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
@@ -4905,7 +4905,7 @@ async function _coachDoSearch(q) {
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
   }).slice(0,15);
-  if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wynik\u00f3w</div>';return;}
+  if(!filtered.length){el.innerHTML= PUSTKA.dekoruj('wyniki', '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wynik\u00f3w</div>');return;}
   el.innerHTML=filtered.map(function(a){
     const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
@@ -4920,7 +4920,7 @@ async function loadCoachSuggestedProfiles() {
   const filtered = (data||[]).filter(function(a){
     return a.is_public === true || a.coach_id === _coachId;
   }).slice(0,10);
-  if(!filtered.length){el.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak profili</div>';return;}
+  if(!filtered.length){el.innerHTML= PUSTKA.dekoruj('znajomi', '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak profili</div>');return;}
   el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:10px;">Publiczni i Twoi zawodnicy</div>'
     +filtered.map(function(a){const nm=a.full_name||'Biegacz';const ini=nm.split(' ').map(function(x){return x[0];}).join('').toUpperCase().slice(0,2);
     return '<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">'
@@ -4945,7 +4945,7 @@ async function loadCoachRanking() {
     nm[id]=l.athletes.full_name||'Biegacz';
   });
   const sorted=Object.keys(km).sort(function(a,b){return km[b]-km[a];}).slice(0,10);
-  if(!sorted.length){el.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych w tym tygodniu</div>';return;}
+  if(!sorted.length){el.innerHTML= PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych w tym tygodniu</div>');return;}
   const medals=['&#x1F947;','&#x1F948;','&#x1F949;'];
   el.innerHTML='<div style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);font-family:DM Mono,monospace;margin-bottom:12px;">Top km · ten tydzień</div>'
     +sorted.map(function(id,i){
@@ -4970,7 +4970,7 @@ async function loadCoachMsgsList() {
 
   const { data: athletes } = await sb.from('athletes').select('id,full_name').eq('coach_id',_coachId);
   if (!athletes || athletes.length === 0) {
-    list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników.</div>';
+    list.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak zawodników.</div>');
     return;
   }
 
@@ -5136,7 +5136,7 @@ async function loadCoachChat() {
   </div>`;
 
   if (!data || data.length === 0) {
-    thread.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak wiadomości.</div>';
+    thread.innerHTML = PUSTKA.dekoruj('wiadomosci', '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Brak wiadomości.</div>');
   } else {
     thread.innerHTML = headerHtml + data.map(m => {
       const isCoach = m.sender === 'coach';
@@ -5394,7 +5394,7 @@ async function loadAnalytics() {
     .select('id,full_name,goal,target_date,pb_marathon,pb_half,pb_10k,pb_5k,race_goals')
     .eq('coach_id', _coachId);
   if (!athletes || athletes.length === 0) {
-    el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px 0;">Brak zawodników.</div>';
+    el.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="color:var(--muted);font-size:12px;padding:20px 0;">Brak zawodników.</div>');
     return;
   }
 
@@ -7648,7 +7648,7 @@ async function loadPanelDiet() {
   const _ath = (_dbAthletes || []).find(a => a.id === athleteId);
   const nutriUid = _ath && _ath.user_id;
   if (!nutriUid) {
-    container.innerHTML = '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych odżywiania (nie rozpoznano konta zawodnika).</div>';
+    container.innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:20px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych odżywiania (nie rozpoznano konta zawodnika).</div>');
     return;
   }
 
@@ -8284,7 +8284,7 @@ document.addEventListener('keydown', (e) => {
         .limit(30);
       const listEl = document.getElementById('kb-archive-list');
       if (!data || data.length === 0) {
-        listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:24px;">Brak briefów w archiwum.</div>';
+        listEl.innerHTML = PUSTKA.dekoruj('raporty', '<div style="text-align:center;color:var(--muted);padding:24px;">Brak briefów w archiwum.</div>');
         return;
       }
       listEl.innerHTML = data.map(b => {

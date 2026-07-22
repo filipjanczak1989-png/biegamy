@@ -4323,7 +4323,7 @@ async function renderTemplatesList() {
   const list = await getTemplates();
 
   if (list.length === 0) {
-    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Brak zapisanych szablonów. Stwórz pierwszy powyżej ↑</div>';
+    wrap.innerHTML = PUSTKA.dekoruj('cele', '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Brak zapisanych szablonów. Stwórz pierwszy powyżej ↑</div>');
     return;
   }
 
@@ -4545,7 +4545,7 @@ async function renderWeekTemplatesList() {
   const list = await getWeekTemplates();
 
   if (list.length === 0) {
-    wrap.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Brak zapisanych tygodni. Stwórz pierwszy powyżej ↑</div>';
+    wrap.innerHTML = PUSTKA.dekoruj('cele', '<div style="text-align:center;color:var(--muted);padding:20px;font-size:11px;font-family:DM Mono,monospace;">Brak zapisanych tygodni. Stwórz pierwszy powyżej ↑</div>');
     return;
   }
 
