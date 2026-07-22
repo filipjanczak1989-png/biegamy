@@ -1505,7 +1505,7 @@ async function showParticipants(raceId, raceName) {
   var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
   var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';li.innerHTML='<div style="text-align:center;padding:24px;color:var(--muted);">Ładowanie...</div>';
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  if(!ids.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych uczestników</div>';return;}
+  if(!ids.length){li.innerHTML= PUSTKA.dekoruj('znajomi', '<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych uczestników</div>');return;}
   var ar=await _sb.from('athletes').select('id,full_name,avatar_url').in('id',ids);
   li.innerHTML='';
   (ar.data||[]).forEach(function(a){

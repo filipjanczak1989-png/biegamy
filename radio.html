@@ -335,7 +335,7 @@ async function loadTop(){
     .order('title', { ascending: true });
   if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania.</div>'; return; }
   _radioTopTracks = data || [];
-  if (!_radioTopTracks.length){ el.innerHTML = '<div class="rad-empty">Brak danych.</div>'; return; }
+  if (!_radioTopTracks.length){ el.innerHTML = PUSTKA.dekoruj('wyniki', '<div class="rad-empty">Brak danych.</div>'); return; }
   el.innerHTML = _radioTopTracks.map(function(t, idx){
     return radioCardHtml(t, 'radioPlayTopAt(' + idx + ')', idx + 1);
   }).join('');
@@ -413,7 +413,7 @@ async function loadTrackComments(trackId){
   const { data, error } = await sb.from('radio_comments_view').select('*').eq('track_id', trackId).order('created_at', { ascending: true });
   if (error){ el.innerHTML = '<div class="rad-empty">Błąd ładowania komentarzy.</div>'; return; }
   const rows = data || [];
-  if (!rows.length){ el.innerHTML = '<div class="rad-empty" style="padding:18px;">Brak komentarzy. Bądź pierwszy!</div>'; return; }
+  if (!rows.length){ el.innerHTML = PUSTKA.dekoruj('wiadomosci', '<div class="rad-empty" style="padding:18px;">Brak komentarzy. Bądź pierwszy!</div>'); return; }
   el.innerHTML = rows.map(function(c){
     const canDel = (c.user_id === _radioUid) || _radioIsCoach;
     const av = (c.author_avatar && window.safeUrlAttr) ? window.safeUrlAttr(c.author_avatar) : '';

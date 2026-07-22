@@ -333,7 +333,7 @@ function setPeriod(p) {
 
 function renderBars() {
   const wrap = document.getElementById('bars-wrap');
-  if (!_logs.length) { wrap.innerHTML = '<div class="chart-empty">Brak danych</div>'; return; }
+  if (!_logs.length) { wrap.innerHTML = PUSTKA.dekoruj('treningi', '<div class="chart-empty">Brak danych</div>'); return; }
 
   let buckets;
   if (_period === 'weeks') buckets = _bucketsByWeek(8);
@@ -394,7 +394,7 @@ const TYPE_COLORS = {
 
 function renderPie() {
   const wrap = document.getElementById('pie-wrap');
-  if (!_logs.length) { wrap.innerHTML = '<div class="chart-empty">Brak danych</div>'; return; }
+  if (!_logs.length) { wrap.innerHTML = PUSTKA.dekoruj('treningi', '<div class="chart-empty">Brak danych</div>'); return; }
 
   const counts = {};
   _logs.forEach(l => {
@@ -402,7 +402,7 @@ function renderPie() {
     counts[t] = (counts[t] || 0) + (parseFloat(l.distance_km) || 0);
   });
   const total = Object.values(counts).reduce((a,b)=>a+b, 0);
-  if (total === 0) { wrap.innerHTML = '<div class="chart-empty">Brak danych</div>'; return; }
+  if (total === 0) { wrap.innerHTML = PUSTKA.dekoruj('treningi', '<div class="chart-empty">Brak danych</div>'); return; }
 
   const entries = Object.entries(counts).sort((a,b) => b[1] - a[1]);
   const cx = 60, cy = 60, r = 48;

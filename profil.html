@@ -1069,7 +1069,7 @@ function renderGoals(ath) {
   const upcoming = goals.filter(g => g.date && new Date(g.date + 'T00:00:00') >= new Date()).sort((a,b) => new Date(a.date) - new Date(b.date));
   const el = document.getElementById('goals-list');
   if (!upcoming.length) {
-    el.innerHTML = '<div class="empty">Brak nadchodzących startów</div>';
+    el.innerHTML = PUSTKA.dekoruj('starty', '<div class="empty">Brak nadchodzących startów</div>');
     return;
   }
   el.innerHTML = upcoming.slice(0,5).map((g, i) => {
@@ -3010,7 +3010,7 @@ function filterTr(btn){document.querySelectorAll('#tr-ov button[data-type]').for
 function renderTr(filter){
   var li=document.getElementById('tr-list');if(!li)return;
   var logs=filter?_allTr.filter(function(l){return l.training_type===filter;}):_allTr;
-  if(!logs.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak treningów'+(filter?' — '+filter:'')+'</div>';return;}
+  if(!logs.length){li.innerHTML= PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px;">Brak treningów'+(filter?' — '+filter:'')+'</div>');return;}
   var TC={Spokojny:'#3db870',Tempo:'var(--accent)','Interwały':'#e8b840',Długi:'#5b8cff',Odpoczynek:'#9a6fe8'};var FL={good:'😊',mid:'😐',bad:'😓'};
   var months={},mk=[];
   logs.forEach(function(l){var d=new Date(l.logged_at);var k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');if(!months[k]){months[k]={label:d.toLocaleDateString('pl-PL',{month:'long',year:'numeric'}),items:[],km:0};mk.push(k);}months[k].items.push(l);months[k].km+=parseFloat(l.distance_km)||0;});
@@ -3057,7 +3057,7 @@ async function _openRacesModal() {
   var xb=document.createElement('button');xb.textContent='✕';xb.style.cssText='background:rgba(255,255,255,0.08);border:none;color:var(--fg2);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;';xb.onclick=function(){ov.remove();};hd.appendChild(xb);
   var li=document.createElement('div');li.style.cssText='overflow-y:auto;padding:8px 16px 24px;';
   sh.appendChild(hd);sh.appendChild(li);ov.appendChild(sh);document.body.appendChild(ov);
-  if(!ids.length){li.innerHTML='<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych startów</div>';return;}
+  if(!ids.length){li.innerHTML= PUSTKA.dekoruj('starty', '<div style="text-align:center;padding:32px;color:var(--muted);">Brak zapisanych startów</div>');return;}
   var races=await sb.from('races').select('id,name,date,city,distance_km').in('id',ids).order('date',{ascending:true});
   li.innerHTML=(races.data||[]).map(function(r){
     var d=new Date(r.date+'T12:00:00');var dl=Math.ceil((d-new Date())/86400000);

@@ -12,7 +12,7 @@
 <script>try{var t=localStorage.getItem("bm_theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM Sans',sans-serif;overflow-x:hidden;padding-bottom:40px;}
+html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:DM Sans,sans-serif;overflow-x:hidden;padding-bottom:40px;}
 
 /* Header */
 .header{position:sticky;top:0;z-index:10;background:rgba(7,7,10,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 16px 0;}
@@ -203,7 +203,7 @@ html,body{min-height:100%;background:var(--bg);color:var(--fg);font-family:'DM S
     <!-- v3 fix #5: Co was różni — konkretne deltas -->
     <section style="margin-top:24px;">
       <h2 class="section-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;"><img data-ic="icon-nav-idea.webp" style="width:18px;height:18px;flex-shrink:0;" alt="">Co was różni</h2>
-      <div id="cmp-deltas" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.85);"></div>
+      <div id="cmp-deltas" style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;font-family:DM Sans,sans-serif;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.85);"></div>
     </section>
 
     <!-- Bottom actions -->
@@ -263,7 +263,7 @@ async function renderPicker() {
 
   const listEl = document.getElementById('picker-list');
   if (!friendships || friendships.length === 0) {
-    listEl.innerHTML = '<p style="color:var(--fg3);font-style:italic;padding:16px;font-family:'DM Sans',sans-serif;">Brak znajomych. Dodaj kogoś w <a href="zawodnik.html?tab=social" style="color:var(--accent);">Społeczność</a>.</p>';
+    listEl.innerHTML = PUSTKA.dekoruj('znajomi', '<p style="color:var(--fg3);font-style:italic;padding:16px;font-family:DM Sans,sans-serif;">Brak znajomych. Dodaj kogoś w <a href="zawodnik.html?tab=social" style="color:var(--accent);">Społeczność</a>.</p>');
     return;
   }
 
@@ -283,7 +283,7 @@ async function renderPicker() {
       : '<span style="width:40px;height:40px;border-radius:50%;background:rgba(var(--accent-rgb),0.2);display:flex;align-items:center;justify-content:center;font-family:DM Mono,monospace;font-size:13px;color:var(--accent);flex-shrink:0;">' + initials + '</span>';
     return '<a class="picker-tile" href="compare.html?friend=' + f.id + '" style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;text-decoration:none;color:var(--fg);">'
       + avatarHtml
-      + '<span style="flex:1;font-family:'DM Sans',sans-serif;font-size:14px;">' + nameEsc + '</span>'
+      + '<span style="flex:1;font-family:DM Sans,sans-serif;font-size:14px;">' + nameEsc + '</span>'
       + '<span style="color:var(--fg3);">→</span>'
       + '</a>';
   }).join('');
@@ -305,7 +305,7 @@ async function renderCompare() {
   ]);
 
   if (!friendProf) {
-    document.querySelector('main').innerHTML = '<p style="color:var(--red);padding:20px;font-family:'DM Sans',sans-serif;">Nie znaleziono zawodnika lub nie masz uprawnień.</p>';
+    document.querySelector('main').innerHTML = '<p style="color:var(--red);padding:20px;font-family:DM Sans,sans-serif;">Nie znaleziono zawodnika lub nie masz uprawnień.</p>';
     return;
   }
 
