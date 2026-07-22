@@ -3771,3 +3771,20 @@ window.BANERY = (function(){
   }
   return { src:src, hero:hero, mount:mount, _dayNum:dayNum };
 })();
+
+/* ===== PUSTKA v1 (WIZUAL E4-P2): ilustrowane puste stany ===== */
+/* dekoruj(temat, html): obraz pustki NAD oryginalnym komunikatem.  */
+/* img onerror=remove -> brak pliku = stan wyglada jak dotad.       */
+window.PUSTKA = (function(){
+  function css(){
+    if(document.getElementById('pustka-css')) return;
+    var st=document.createElement('style'); st.id='pustka-css';
+    st.textContent='.pustka-box{text-align:center}.pustka-box>img{width:128px;height:128px;object-fit:cover;border-radius:22px;display:block;margin:14px auto 2px;opacity:.92}';
+    document.head.appendChild(st);
+  }
+  function dekoruj(temat, html){
+    css();
+    return '<div class="pustka-box"><img src="assets/ui/pustki/pustka-'+temat+'.webp" alt="" loading="lazy" onerror="this.remove()">'+(html||'')+'</div>';
+  }
+  return { dekoruj:dekoruj };
+})();

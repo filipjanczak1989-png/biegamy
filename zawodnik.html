@@ -1761,7 +1761,7 @@ function init(){
 }
 function renderLogs(){
   // Statyczne dane — pokazuj tylko jeśli nie ma DB
-  document.getElementById('log-list').innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak logów. Zaloguj pierwszy trening!</div>';
+  document.getElementById('log-list').innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak logów. Zaloguj pierwszy trening!</div>');
 }
 function toggleDayDetail(idx) {
   const el = document.getElementById('detail-' + idx);
@@ -3108,7 +3108,7 @@ function renderGoals(goals) {
   const list = document.getElementById('goals-list');
   if (!list) return;
   if (goals.length === 0) {
-    list.innerHTML = '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:12px 0;">Brak celów. Dodaj swój pierwszy start!</div>';
+    list.innerHTML = PUSTKA.dekoruj('cele', '<div style="color:var(--muted);font-size:12px;font-family:DM Mono,monospace;padding:12px 0;">Brak celów. Dodaj swój pierwszy start!</div>');
     return;
   }
   list.innerHTML = goals.map((g, i) => {
@@ -3420,7 +3420,7 @@ async function loadMessages() {
   </div>`;
 
   if (!data || data.length === 0) {
-    if(thread) thread.innerHTML = '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wiadomości. Napisz do trenera!</div>';
+    if(thread) thread.innerHTML = PUSTKA.dekoruj('wiadomosci', '<div style="padding:40px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wiadomości. Napisz do trenera!</div>');
     return;
   }
 
@@ -3920,7 +3920,7 @@ window.openCompareModal = async function() {
 
   const resEl = document.getElementById('forma-compare-result');
   if (!friendships || friendships.length === 0) {
-    if (resEl) resEl.innerHTML = '<div style="color:rgba(255,255,255,0.55);font-style:italic;font-family:Inter,sans-serif;padding:8px;">Brak znajomych do porównania — dodaj kogoś w sekcji Społeczność.</div>';
+    if (resEl) resEl.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="color:rgba(255,255,255,0.55);font-style:italic;font-family:Inter,sans-serif;padding:8px;">Brak znajomych do porównania — dodaj kogoś w sekcji Społeczność.</div>');
     return;
   }
 
@@ -5149,7 +5149,7 @@ async function loadLogs() {
       try { renderLogsDb(data); } catch(e) { console.error('renderLogsDb error:', e); }
       try { checkBadges(data); } catch(e) { console.error('checkBadges error:', e); }
     } else {
-      document.getElementById('log-list').innerHTML = '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>';
+      document.getElementById('log-list').innerHTML = PUSTKA.dekoruj('treningi', '<div style="padding:24px 0;text-align:center;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;line-height:1.7;">Brak zalogowanych treningów.<br>Kliknij <strong style="color:var(--fg)">Log</strong> żeby dodać pierwszy wynik.</div>');
     }
     await loadCoachMessage();
     await loadTodayTraining();
@@ -7107,7 +7107,7 @@ async function loadSocialFeed(compact) {
   if (_athleteId && !publicIds.includes(_athleteId)) publicIds.push(_athleteId);
 
   if (!publicIds.length) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    feedEl.innerHTML = PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
     return;
   }
 
@@ -7142,7 +7142,7 @@ async function loadSocialFeed(compact) {
     .slice(0, compact ? 8 : 60);
 
   if (!logs || logs.length === 0) {
-    feedEl.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+    feedEl.innerHTML = PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
     return;
   }
 
@@ -7217,7 +7217,7 @@ async function loadSocialFeed(compact) {
     +'</div>'
   }
   const rendered = logs.map((l,i) => buildCard(l,i)).filter(Boolean).join('');
-  feedEl.innerHTML = rendered || '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>';
+  feedEl.innerHTML = rendered || PUSTKA.dekoruj('treningi', '<div style="text-align:center;padding:20px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak aktywno\u015bci.</div>');
   if (!compact) { const ids=logs.map(function(l){return l.id;}); loadCommentCounts(ids); }
 }
 
@@ -7445,7 +7445,7 @@ async function _loadComments(logId) {
   const el=document.getElementById('comments-list');if(!el)return;
   try {
     const {data}=await sb.from('log_comments').select('id,body,created_at,athlete_id,athletes(full_name,avatar_url)').eq('log_id',logId).order('created_at',{ascending:true}).limit(50);
-    if(!data||!data.length){el.innerHTML='<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>';return;}
+    if(!data||!data.length){el.innerHTML= PUSTKA.dekoruj('wiadomosci', '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak komentarzy</div>');return;}
     el.innerHTML=data.map(function(cm){
       const nm=(cm.athletes&&cm.athletes.full_name)||'Biegacz';
       const av=(cm.athletes&&cm.athletes.avatar_url)||'';
@@ -7723,7 +7723,7 @@ async function loadFollowing() {
     .in('id', ids);
 
   if (!athletes || athletes.length === 0) {
-    el.innerHTML = '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych obserwowanych.</div>';
+    el.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak danych obserwowanych.</div>');
     return;
   }
 
@@ -7790,7 +7790,7 @@ async function _doSearch(q) {
     .limit(20);
   const results = (data || []).filter(a => a.id !== _athleteId);
   if (!results.length) {
-    el.innerHTML = '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + escapeHtml(q) + '"</div>';
+    el.innerHTML = PUSTKA.dekoruj('wyniki', '<div style="text-align:center;padding:24px 0;color:var(--muted);font-size:12px;font-family:DM Mono,monospace;">Brak wyników dla "' + escapeHtml(q) + '"</div>');
     return;
   }
   const { data: myF } = await sb.from('follows').select('following_id').eq('follower_id', _athleteId);
@@ -7894,7 +7894,7 @@ async function loadFriends() {
   var rows = res.data || [];
 
   if (!rows.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:12px;line-height:2;">Nie masz jeszcze znajomych.<br>Użyj zakładki <b>Znajdź</b>!</div>';
+    el.innerHTML = PUSTKA.dekoruj('znajomi', '<div style="text-align:center;padding:40px 16px;color:var(--muted);font-size:12px;line-height:2;">Nie masz jeszcze znajomych.<br>Użyj zakładki <b>Znajdź</b>!</div>');
     return;
   }
 
