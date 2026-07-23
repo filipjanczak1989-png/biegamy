@@ -2322,6 +2322,70 @@ window._icuRenderSplits = function (d, el) {
   /* ═══ E2-K4 TREND EF: baza tlenowa = szybkosc/HR na biegach TLENOWYCH (interwaly/tempo
      falszuja -> wlasny filtr, NIE isRunType). gap_pace preferowane, fallback pace.
      UWAGA kadencja: zapis surowy RPM intervals (jedna noga) — w UI zawsze x2 na spm! ═══ */
+  /* ═══ E3-K4+K5 GOTOWOSC DNIA: wellness (RHR/HRV/sen) vs baseline 7 dni; jezyk trenera,
+     zero diagnoz. Stany: brak intervals=ukryty · token bez flagi=CTA re-auth (K4) ·
+     flaga bez danych=czekamy na Garmina · dane=werdykt. Wspolny renderer -> trener gratis. ═══ */
+  window._renderFormaWellness = async function(athleteId, px) {
+    try {
+      const kotw = document.getElementById(px + '-mono-line') || document.getElementById(px + '-weekly-bars');
+      if (!kotw) return;
+      let el = document.getElementById(px + '-gotowosc');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = px + '-gotowosc';
+        el.style.cssText = 'margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;';
+        kotw.insertAdjacentElement('afterend', el);
+      }
+      const nag = '<div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">\ud83d\udecc Gotowo\u015b\u0107 dnia \u00b7 HRV / t\u0119tno / sen</div>';
+      const { data: ath } = await sb.from('athletes')
+        .select('intervals_connected_at,intervals_can_wellness').eq('id', athleteId).maybeSingle();
+      if (!ath || !ath.intervals_connected_at) { el.style.display = 'none'; return; }
+      el.style.display = 'block';
+      if (ath.intervals_can_wellness !== true) {   /* K4: CTA re-auth */
+        el.innerHTML = nag + '<div style="font-size:11.5px;color:rgba(255,255,255,0.6);line-height:1.55;margin-bottom:8px;">Odblokuj HRV, t\u0119tno spoczynkowe i sen z Twojego zegarka \u2014 wystarczy po\u0142\u0105czy\u0107 ponownie (15 s).</div>'
+          + '<button onclick="window.WATCH&&WATCH.odpalOAuth()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;cursor:pointer;">Po\u0142\u0105cz ponownie</button>';
+        return;
+      }
+      const od = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+      const { data: w } = await sb.from('wellness')
+        .select('date,resting_hr,hrv,sleep_secs').eq('athlete_id', athleteId)
+        .gte('date', od).order('date', { ascending: false }).limit(30);
+      const dni = w || [];
+      if (!dni.length) {
+        el.innerHTML = nag + '<div style="font-size:11px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;line-height:1.5;">Po\u0142\u0105czenie aktywne \u2014 Garmin jeszcze nie podes\u0142a\u0142 danych. Wr\u00f3\u0107 jutro.</div>';
+        return;
+      }
+      const ost = dni[0], baza = dni.slice(1, 8);
+      const sr = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
+      const bR = sr(baza.map(d => d.resting_hr).filter(v => v != null));
+      const bH = sr(baza.map(d => d.hrv).filter(v => v != null));
+      let alarmy = 0, wiersze = '';
+      const row = (naz, val, dop, kolor) => '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:rgba(255,255,255,0.6);">' + naz + '</span><span style="font-family:DM Mono,monospace;color:' + (kolor || 'rgba(255,255,255,0.85)') + ';">' + val + (dop ? ' <span style="color:rgba(255,255,255,0.4);font-size:10px;">' + dop + '</span>' : '') + '</span></div>';
+      if (ost.resting_hr != null) {
+        const zle = bR != null && (ost.resting_hr - bR) > 5;
+        if (zle) alarmy++;
+        wiersze += row('T\u0119tno spocz.', ost.resting_hr + ' bpm', bR != null ? '(baza ' + Math.round(bR) + ')' : '', zle ? '#fb923c' : null);
+      }
+      if (ost.hrv != null) {
+        const zle = bH != null && bH > 0 && (bH - ost.hrv) / bH > 0.15;
+        if (zle) alarmy++;
+        wiersze += row('HRV', ost.hrv + ' ms', bH != null ? '(baza ' + Math.round(bH) + ')' : '', zle ? '#fb923c' : null);
+      }
+      if (ost.sleep_secs != null) {
+        const h = Math.floor(ost.sleep_secs / 3600), m = Math.round(ost.sleep_secs % 3600 / 60);
+        const malo = ost.sleep_secs < 6 * 3600;
+        wiersze += row('Sen', h + ':' + String(m).padStart(2, '0') + ' h', '', malo ? 'rgba(255,255,255,0.5)' : null);
+        if (malo) alarmy += 0.5;
+      }
+      if (!wiersze) {
+        el.innerHTML = nag + '<div style="font-size:11px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;">Garmin jeszcze nie podes\u0142a\u0142 danych. Wr\u00f3\u0107 jutro.</div>';
+        return;
+      }
+      const wer = alarmy >= 2 ? ['#fb923c', 'Dzi\u015b lepiej spokojnie \u2014 organizm pracuje'] : alarmy >= 1 ? ['#eab308', 'Trenuj, ale s\u0142uchaj organizmu'] : ['#4ade80', 'Organizm gotowy na mocny akcent'];
+      el.innerHTML = nag + wiersze + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:11.5px;font-family:DM Mono,monospace;color:' + wer[0] + ';">' + wer[1] + '</div>';
+    } catch (e) {}
+  };
+
   window._renderFormaEfTrend = function(logs, px) {
     try {
       var TLEN = /spokoj|wybieg|d\u0142ug|dlug|regener|trucht|\u0142atwy|latwy/;
@@ -2931,7 +2995,8 @@ window._icuRenderSplits = function (d, el) {
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
     if (window.renderFormaHrZones) window.renderFormaHrZones(athleteId, px, { isCoach: px === 'pfo' });   // agregat stref HR (async, non-blocking; authz owner+coach server-side)
     if (window._renderFormaWatchActs) window._renderFormaWatchActs(logs || [], px, athleteId);
-    if (window._renderFormaEfTrend) window._renderFormaEfTrend(logs || [], px);   /* E2-K4 */   // ⌚ lista treningów z zegarka → drill-down dnia
+    if (window._renderFormaEfTrend) window._renderFormaEfTrend(logs || [], px);   /* E2-K4 */
+    if (window._renderFormaWellness) window._renderFormaWellness(athleteId, px);   /* E3-K5 (async, fire&forget) */   // ⌚ lista treningów z zegarka → drill-down dnia
   };
 
   // ⌚ Ostatnie treningi z zegarka — lista → drill-down dnia (wykresy per-activity).
