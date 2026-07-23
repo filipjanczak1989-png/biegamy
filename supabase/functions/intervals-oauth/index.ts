@@ -34,7 +34,14 @@ Deno.serve(async (req)=>{
     // E2: czy przyznano CALENDAR:WRITE — źródło prawdy = scope z odpowiedzi tokenowej (potwierdzone: intervals zwraca scope); brak pola → ufamy żądaniu
     const granted = String(tok?.scope || '').toUpperCase();
     const canWrite = granted ? granted.includes('CALENDAR:WRITE') : true;
-    const canWellness = granted ? granted.includes('WELLNESS:READ') : false;   /* E3-K1: false-default — stare tokeny NIE maja wellness */
+    /* E3-K1b PROBE-FIX: tok.scope intervals echa CALENDAR:WRITE ale NIE wellness (empiria 23.07,
+       token dzialal=200 przy scope bez WELLNESS) -> flaga WYLACZNIE z probe'a, nie z echa. */
+    let canWellness = false;
+    try {
+      const pr = await fetch('https://intervals.icu/api/v1/athlete/0/wellness?oldest=2026-01-01&newest=2026-01-01',
+        { headers: { Authorization: 'Bearer ' + access_token }, signal: AbortSignal.timeout(3500) });
+      canWellness = (pr.status === 200);
+    } catch (_) { canWellness = false; }   /* glitch sieci -> false; ponowny re-auth naprawia */
     // status/display (wywołania API i tak przez athlete '0' = athleta tokenu); niech gate „połączono" ma wartość
     // ⚠️ intervals zwraca athlete.id JUŻ z prefiksem "i" (np. "i583138") → NIE doklejaj drugiego 'i' (bug "ii583138")
     const raw = tok?.athlete?.id;

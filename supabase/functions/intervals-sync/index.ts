@@ -189,7 +189,43 @@ Deno.serve(async (req) => {
       if (error) return J(200, { ok: false, error: error.message });
       synced = rows.length;
     }
-    return J(200, { ok: true, synced });
+    /* ═ E3-K3 WELLNESS: rura HRV/RHR/sen/waga (nazwy potwierdzone dumpem 23.07).
+       Gate: intervals_can_wellness (flaga z probe'a K1b). 403 mimo flagi = cofnieta
+       zgoda -> samonaprawa flagi. Bledy wellness NIGDY nie psuja syncu aktywnosci. ═ */
+    let wellnessSynced = 0;
+    try {
+      const { data: athW } = await svc.from('athletes')
+        .select('intervals_can_wellness').eq('id', athlete_id).maybeSingle();
+      if (athW?.intervals_can_wellness === true) {
+        const wOld = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
+        const wNew = new Date().toISOString().slice(0, 10);
+        const wr = await fetch(`https://intervals.icu/api/v1/athlete/${icuAth}/wellness?oldest=${wOld}&newest=${wNew}`,
+          { headers: { Authorization: authH } });
+        if (wr.status === 403) {
+          await svc.from('athletes').update({ intervals_can_wellness: false }).eq('id', athlete_id);
+        } else if (wr.ok) {
+          const wdays = await wr.json();
+          const wrows = (Array.isArray(wdays) ? wdays : [])
+            .filter((d: any) => d && d.id)
+            .map((d: any) => ({
+              athlete_id,
+              date: String(d.id).slice(0, 10),   /* wellness.id = data YYYY-MM-DD (dump) */
+              resting_hr: d.restingHR != null ? Math.round(d.restingHR) : null,
+              hrv: d.hrv != null ? Math.round(d.hrv) : null,
+              sleep_secs: d.sleepSecs != null ? Math.round(d.sleepSecs) : null,
+              weight: d.weight != null ? Math.round(d.weight * 100) / 100 : null,
+              updated_at: new Date().toISOString(),
+            }))
+            .filter((r: any) => r.resting_hr != null || r.hrv != null || r.sleep_secs != null || r.weight != null);
+          if (wrows.length) {
+            const { error: wErr } = await svc.from('wellness')
+              .upsert(wrows, { onConflict: 'athlete_id,date' });
+            if (!wErr) wellnessSynced = wrows.length;
+          }
+        }
+      }
+    } catch (_) { /* wellness best-effort */ }
+    return J(200, { ok: true, synced, wellness: wellnessSynced });
   } catch (e) {
     return J(500, { ok: false, error: (e as Error).message });
   }
