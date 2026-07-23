@@ -2566,6 +2566,7 @@ function showSection(name) {
     document.getElementById('nut-widget')?.style.setProperty('display','none');
     document.getElementById('icu-home-banner')?.style.setProperty('display','none');
     document.getElementById('radio-home-banner')?.style.setProperty('display','none');
+    document.getElementById('biegus-home-banner')?.style.setProperty('display','none');
   }
 
   if (name === 'home') {
@@ -2586,6 +2587,7 @@ function showSection(name) {
     document.getElementById('daily-motivation')?.style.setProperty('display','');
     document.getElementById('week-strip')?.style.setProperty('display','');
     document.getElementById('radio-home-banner')?.style.setProperty('display','flex');
+    document.getElementById('biegus-home-banner')?.style.setProperty('display','flex');
     // Zawsze przeładuj przy powrocie na home
     // Trener-view → skip athlete-specific reloads (spójne z initAuth logic)
     const _isFromTrenerHome = (new URLSearchParams(window.location.search).get('from') === 'trener')
@@ -10847,7 +10849,7 @@ if ('serviceWorker' in navigator) {
 
 <div id="section-forma" style="display:none;padding:16px;">
   <!-- v5: Solo hero banner dla Forma section (solo-hero.png, bez tekstu — title pod chartem) -->
-  <div class="forma-hero-banner" style="position:relative;width:calc(100% - 32px);margin:0 16px 16px;height:100px;background-image:url('assets/ui/banery/baner-forma.webp');background-size:cover;background-position:center 35%;overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,0.08);">
+  <div class="forma-hero-banner" style="position:relative;width:calc(100% - 32px);margin:0 16px 16px;height:100px;background-image:url('assets/ui/banery/baner-forma.webp');background-size:cover;background-position:center 15%;   /* FORMA-FIX: glowa w kadrze (bylo 35%) */overflow:hidden;border-radius:14px;border:1px solid rgba(255,255,255,0.08);">
     <!-- Subtelny gradient dla głębi -->
     <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.05) 0%,rgba(0,0,0,0.25) 100%);border-radius:14px;"></div>
   </div>
@@ -10965,13 +10967,6 @@ if ('serviceWorker' in navigator) {
     <div style="text-align:center;margin-top:2px;font-size:8px;font-family:'DM Mono',monospace;color:rgba(255,255,255,0.4);letter-spacing:0.1em;">TRIMP DZIENNY</div>
   </div>
 
-  <!-- Legenda interpretacji -->
-  <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 14px;font-size:11px;color:rgba(255,255,255,0.7);font-family:'Inter',sans-serif;line-height:1.6;">
-    <div style="font-weight:600;color:#fff;margin-bottom:6px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;">📖 Jak czytać formę:</div>
-    <div><span style="color:#60a5fa;font-weight:600;">CTL</span> — Twój trening długoterminowy (42 dni). Rośnie = baza się buduje. <strong>Gruba linia = główny trend sezonu.</strong></div>
-    <div><span style="color:#f87171;font-weight:600;">ATL</span> — Świeże zmęczenie (7 dni). Wysokie = niedawno ciężko trenowałeś.</div>
-    <div><span style="color:#4ade80;font-weight:600;">TSB</span> = CTL − ATL — Twoja forma. <strong>+5..+15 = idealne na start.</strong></div>
-  </div>
 
   <!-- Stres tygodnia 8 tygodni — CSS bar chart -->
   <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:16px;">
