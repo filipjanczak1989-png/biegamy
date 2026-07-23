@@ -2397,6 +2397,27 @@ window._icuRenderSplits = function (d, el) {
 
     const todayDateStr = today.toISOString().slice(0, 10);
 
+    /* ═ E1a PROGNOZA (23.07): przyszly TRIMP z ZAPLANOWANYCH treningow (bylo: 0 = czysty rozpad).
+       Ten sam wzor co historia: duration_min x FORMA_EFFORT_FACTORS[type] (feel=1.0). Runalyze
+       ekstrapoluje — my znamy plan od trenera. Fallback przy braku planu = 0 (stare zachowanie). ═ */
+    const planTRIMP = {};
+    try {
+      const endDateStr = endDate.toISOString().slice(0, 10);
+      const { data: plan } = await sb.from('trainings')
+        .select('date,type,duration_min,distance_km')
+        .eq('athlete_id', athleteId)
+        .gt('date', todayDateStr)
+        .lte('date', endDateStr);
+      (plan || []).forEach(t => {
+        const key = String(t.type || '').toLowerCase().trim();
+        const eff = (window.FORMA_EFFORT_FACTORS && window.FORMA_EFFORT_FACTORS[key] !== undefined)
+          ? window.FORMA_EFFORT_FACTORS[key] : 1.0;
+        const min = (t.duration_min != null) ? +t.duration_min
+          : (t.distance_km ? Math.round(t.distance_km * 6.5) : 0);   /* fallback: ~6:30/km */
+        if (min > 0 && eff > 0) planTRIMP[t.date] = (planTRIMP[t.date] || 0) + Math.round(min * eff);
+      });
+    } catch (e) { /* prognoza opcjonalna — blad = stare zachowanie */ }
+
     // Compute series CTL/ATL/TSB (EMA)
     const labels = [];
     const ctlData = [];
@@ -2411,7 +2432,7 @@ window._icuRenderSplits = function (d, el) {
       const isFuture = dateStr > todayDateStr;
 
       if (isFuture) {
-        const trimp = 0;
+        const trimp = planTRIMP[dateStr] || 0;   /* E1a PROGNOZA */
         ctl = ctl + (trimp - ctl) / CTL_DAYS;
         atl = atl + (trimp - atl) / ATL_DAYS;
       } else {
@@ -2430,6 +2451,32 @@ window._icuRenderSplits = function (d, el) {
         trimpData.push(null);
       }
     }
+
+    /* ═ E1a: prognoza TSB na dzien najblizszego startu (element opcjonalny per widok) ═ */
+    try {
+      const tsbStartEl = document.getElementById(idPrefix + '-tsb-start');
+      if (tsbStartEl) {
+        const przyszle = (raceMarkers || []).filter(r => r.ms > today.getTime()).sort((a,b) => a.ms - b.ms);
+        if (przyszle.length) {
+          const r0 = przyszle[0];
+          const rDate = new Date(r0.ms).toISOString().slice(0, 10);
+          const idx = labels.indexOf(rDate.slice(5));
+          const tsbR = (idx >= 0) ? tsbData[idx] : null;
+          if (tsbR != null) {
+            const ocena = tsbR > 25 ? ['#eab308','over-rested — możesz tracić formę']
+              : tsbR >= 5 ? ['#4ade80','optimum — gotowość startowa']
+              : tsbR >= -10 ? ['#e5e7eb','neutralnie — dołóż tapering']
+              : ['#f87171','obciążenie — plan przewiduje ciężki blok'];
+            const dd = rDate.slice(8,10) + '.' + rDate.slice(5,7);
+            tsbStartEl.innerHTML = '🎯 <span style="color:rgba(255,255,255,0.85);">Prognoza na start (' + dd + '):</span> '
+              + '<strong style="color:' + ocena[0] + ';">TSB ' + (tsbR > 0 ? '+' : '') + tsbR + '</strong>'
+              + ' <span style="color:rgba(255,255,255,0.55);">· ' + ocena[1] + '</span>'
+              + '<span style="display:block;font-size:9px;color:rgba(255,255,255,0.4);margin-top:2px;">wg zaplanowanych treningów w kalendarzu</span>';
+            tsbStartEl.style.display = 'block';
+          }
+        }
+      }
+    } catch (e) {}
 
     // ── Update 3 kafelki premium (TSB + CTL + ATL) ──
     const lastCtl = ctlData[ctlData.length - 1] || 0;
