@@ -2946,12 +2946,23 @@ window._icuRenderSplits = function (d, el) {
       });
 
       const trimp = Math.round(weekLogs.reduce((sum, log) => sum + window.formaTRIMP(log), 0));
+      /* E1b MONOTONIA+STRAIN (Foster): mono = srednia dzienna / odch.std (7 dni, dni wolne = 0);
+         strain = TRIMP tygodnia x mono. Wysoka mono = ta sama harowka codziennie = ryzyko. */
+      const dzienne = new Array(7).fill(0);
+      weekLogs.forEach(log => {
+        const di = Math.floor((new Date(log.logged_at) - weekStart) / 86400000);
+        if (di >= 0 && di < 7) dzienne[di] += window.formaTRIMP(log);
+      });
+      const srD = dzienne.reduce((a, b) => a + b, 0) / 7;
+      const sdD = Math.sqrt(dzienne.reduce((a, b) => a + (b - srD) * (b - srD), 0) / 7);
+      const mono = (srD <= 0) ? 0 : (sdD > 0 ? Math.min(srD / sdD, 4) : 4);
+      const strain = Math.round(trimp * mono);
       const lbl = (weekStart.getMonth() + 1) + '/' + weekStart.getDate();
       const endDt = new Date(weekEnd); endDt.setDate(endDt.getDate() - 1);
       const m1 = MON[weekStart.getMonth()], m2 = MON[endDt.getMonth()];
       const range = (m1 === m2) ? (weekStart.getDate() + '-' + endDt.getDate() + ' ' + m1)
                                 : (weekStart.getDate() + ' ' + m1 + '–' + endDt.getDate() + ' ' + m2);
-      buckets.push({ trimp, lbl, range, count: weekLogs.length });
+      buckets.push({ trimp, lbl, range, count: weekLogs.length, mono, strain });
     }
 
     const localMax = Math.max(...buckets.map(b => b.trimp), 1);
@@ -2984,6 +2995,34 @@ window._icuRenderSplits = function (d, el) {
         if (vals[i]) vals[i].style.opacity = '1';
       });
     });
+
+    /* ═ E1b: linia Monotonia+Strain biezacego tygodnia (Foster) — doklejka pod barami ═ */
+    try {
+      const cur = buckets[buckets.length - 1];
+      const poprz = buckets.slice(-5, -1).filter(b => b.strain > 0);
+      const srStrain = poprz.length ? poprz.reduce((a, b) => a + b.strain, 0) / poprz.length : 0;
+      let mHtml = '';
+      if (cur && cur.trimp > 0) {
+        const mo = Math.round(cur.mono * 10) / 10;
+        const oc = mo >= 2.5 ? ['#f87171','bardzo monotonnie — zróżnicuj bodźce']
+          : mo >= 2.0 ? ['#fb923c','monotonnie — dorzuć lżejszy dzień']
+          : ['#4ade80','dobra zmienność bodźców'];
+        const sAlert = (srStrain > 0 && cur.strain > srStrain * 1.5)
+          ? ' · <span style="color:#fb923c;">strain +' + Math.round((cur.strain / srStrain - 1) * 100) + '% vs 4 tyg.</span>' : '';
+        mHtml = 'Monotonia <strong style="color:' + oc[0] + ';">' + mo + '</strong>'
+          + ' <span style="color:rgba(255,255,255,0.5);">· ' + oc[1] + '</span>'
+          + ' · Strain <strong style="color:rgba(255,255,255,0.85);">' + cur.strain + '</strong>' + sAlert;
+      }
+      let mEl = document.getElementById(px + '-mono-line');
+      if (!mEl) {
+        mEl = document.createElement('div');
+        mEl.id = px + '-mono-line';
+        mEl.style.cssText = 'margin-top:8px;font-size:10px;font-family:DM Mono,monospace;letter-spacing:0.3px;color:rgba(255,255,255,0.6);line-height:1.5;';
+        el.insertAdjacentElement('afterend', mEl);
+      }
+      mEl.innerHTML = mHtml;
+      mEl.style.display = mHtml ? 'block' : 'none';
+    } catch (e) {}
 
     // Tooltip per słupek (hover desktop + tap mobile) — bind RAZ na kontener (przeżywa re-render innerHTML)
     if (!el._fwbBound) {
