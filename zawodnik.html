@@ -934,9 +934,6 @@ body > *{position:relative;z-index:1;}
 </div>
 </div>
 
-<!-- HERO-SOLO v1: podpis dnia POD kaflem -->
-<div id="hero-solo-caption" class="fade-in" style="margin:4px 20px 12px;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:0.5px;line-height:1.55;color:rgba(240,237,232,0.88);text-align:center;min-height:20px;text-shadow:0 1px 6px rgba(0,0,0,0.5);"></div>
-
 <!-- Karta „Dzisiejszy trening" — miniatura typu + opis + akcja w jednym kaflu -->
 <div class="fade-in" id="today-card" style="margin:8px 16px 6px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -4737,8 +4734,7 @@ _heroQuotes.length = 0;   /* podpis idzie POD kadr, nie na kadr */
 (function(){
   function _soloInit(){
     var d = document.getElementById('hero-dots'); if (d) d.style.display = 'none';
-    var c = document.getElementById('hero-solo-caption');
-    if (c) c.innerHTML = _heroQuoteHtml(_SOLO_PODPISY[_SOLO_I]);
+    /* PODPISY-OFF (decyzja Filipa 23.07): render wylaczony, tablica zostaje uspiona — powrot = 2 linie */
   }
   if (document.readyState !== 'loading') _soloInit();
   else document.addEventListener('DOMContentLoaded', _soloInit);
