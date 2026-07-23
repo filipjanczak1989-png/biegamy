@@ -934,6 +934,9 @@ body > *{position:relative;z-index:1;}
 </div>
 </div>
 
+<!-- HERO-SOLO v1: podpis dnia POD kaflem -->
+<div id="hero-solo-caption" class="fade-in" style="margin:2px 20px 10px;font-family:'DM Mono',monospace;font-size:11.5px;letter-spacing:0.4px;line-height:1.5;color:var(--muted);text-align:center;min-height:16px;"></div>
+
 <!-- Karta „Dzisiejszy trening" — miniatura typu + opis + akcja w jednym kaflu -->
 <div class="fade-in" id="today-card" style="margin:8px 16px 6px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -4654,6 +4657,54 @@ _heroCards.push('__BRAND__'); // slot 6 — bez grafiki, czarny brand-slajd
 const _heroQuotes = _heroStory.txt.concat([_heroStory.final || 'Dziś *wygrałeś*.']);
 const _heroLight  = !!_heroStory.light;
 
+/* ===== HERO-SOLO v1: jeden NOWY kadr dnia + podpis POD kaflem (decyzja Filipa 22.07) ===== */
+/* Nadpisanie kart wylacza sekwencje/brand/kropki; _heroStories zostaje martwe — sprzatanie osobnym commitem. */
+const _SOLO_PODPISY = [
+  'Dzień należy do tych, którzy *wstali*.',
+  'Kilometry dzielone przez dwa ważą *połowę*.',
+  'Deszcz sprawdza, kto biega *naprawdę*.',
+  'Górka kończy się zawsze *na szczycie*.',
+  'Wszystko zaczyna się od *sznurówek*.',
+  'Zima to tylko *dekoracja*.',
+  'Nikt tu nie biegnie *sam*.',
+  'Ciemność ustępuje *pierwszemu krokowi*.',
+  'Zmęczenie smakuje *lepiej niż wygoda*.',
+  'Bieżnia pamięta każde *tempo*.',
+  'Regeneracja to też *trening*.',
+  'Kałuże są po to, żeby w nie *wpadać*.',
+  'Miasto jeszcze śpi. *Ty już nie*.',
+  'Jesień kibicuje *złotem*.',
+  'Wiatr w twarz to wiatr *w plecy w drodze powrotnej*.',
+  'Forma nie pyta o *rocznik*.',
+  'Długie wybieganie, długi *cień*, długa duma.',
+  'Najlepsze nawyki *dziedziczy się biegiem*.',
+  'Przerwa to nie *porażka*.',
+  'Błoto zmywa się. *Duma zostaje*.',
+  'Cisza też umie *dopingować*.',
+  'Na starcie wszyscy mamy *ten sam puls*.',
+  'Niektóre widoki są tylko *dla biegających*.',
+  'Noc ma najlepszy *beat*.',
+  'Wstajesz o jeden raz *więcej niż upadasz*.',
+  'Meta smakuje najlepiej *w liczbie mnogiej*.',
+  'Każdy ślad to *dowód*.',
+  'Żar hartuje *stal i nogi*.',
+  'Dobra energia *podaje się z kubkiem*.',
+  'Horyzont nie ucieka. *Czeka*.'
+];
+const _SOLO_I = _dayNum % _SOLO_PODPISY.length;
+_heroCards.length = 0;
+_heroCards.push(BASE_ASSETS + 'solo-' + String(_SOLO_I + 1).padStart(2,'0') + '.webp');
+_heroQuotes.length = 0;   /* podpis idzie POD kadr, nie na kadr */
+(function(){
+  function _soloInit(){
+    var d = document.getElementById('hero-dots'); if (d) d.style.display = 'none';
+    var c = document.getElementById('hero-solo-caption');
+    if (c) c.innerHTML = _heroQuoteHtml(_SOLO_PODPISY[_SOLO_I]);
+  }
+  if (document.readyState !== 'loading') _soloInit();
+  else document.addEventListener('DOMContentLoaded', _soloInit);
+})();
+
 // Render hasła: *słowo* → span z akcentem motywu (patent „My" z logo)
 function _heroQuoteHtml(q){
   const esc = String(q).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -4752,6 +4803,7 @@ function _heroConfettiBurst(){
   setTimeout(() => { cancelAnimationFrame(frame); ctx.clearRect(0,0,W,H); }, 1800);
 }
 function _heroStartRotation() {
+  if (_heroCards.length < 2) return;   /* HERO-SOLO: jeden kadr, zero rotacji */
   if (_heroTimer) return;
   _heroTimer = setInterval(_heroNext, 5000);
 }
