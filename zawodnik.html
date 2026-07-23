@@ -3909,7 +3909,41 @@ window.loadFormaSection = async function() {
   if (!_athleteId) return;   // PKT5: wczesny call z deep-linku (przed initAuth) = no-op; initAuth doładuje po _athleteId
   await window.renderFormaForAthlete(_athleteId, 'forma', { visibleMetrics: getFormaToggles(), animate: true });
   initFormaToggles();
+  _renderPredykcje();   /* E1c */
 };
+
+/* ═══ E1c PREDYKTOR CZASOW: Riegel T2=T1*(D2/D1)^1.06 z najblizszego dystansem PB,
+   korekta o TSB (forma dnia): głębokie obciążenie = wolniej dziś, optimum = pelnia PB. ═══ */
+async function _renderPredykcje() {
+  try {
+    const box = document.getElementById('forma-predykcje');
+    const tb = document.getElementById('forma-predykcje-tabela');
+    if (!box || !tb || !_athleteId) return;
+    const { data: ath } = await sb.from('athletes')
+      .select('pb_5k,pb_10k,pb_half,pb_marathon').eq('id', _athleteId).maybeSingle();
+    const PBS = [ ['5 km', 5, ath?.pb_5k], ['10 km', 10, ath?.pb_10k],
+      ['Półmaraton', 21.0975, ath?.pb_half], ['Maraton', 42.195, ath?.pb_marathon] ]
+      .map(([n, d, s]) => ({ n, d, s: (s && +s > 0) ? +s : null }));
+    const majace = PBS.filter(p => p.s);
+    if (!majace.length) { box.style.display = 'none'; return; }
+    const tsb = (window._formaLast && typeof window._formaLast.tsb === 'number') ? window._formaLast.tsb : 0;
+    const kor = tsb < -20 ? 0.025 : tsb < -10 ? 0.015 : tsb < 5 ? 0.005 : tsb <= 15 ? 0 : tsb <= 25 ? 0.005 : 0.01;
+    const fmt = s => { s = Math.round(s); const h = Math.floor(s/3600), m = Math.floor(s%3600/60), sec = s%60;
+      return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(sec).padStart(2,'0'); };
+    const esc = window.escapeHtml || (x => String(x));
+    tb.innerHTML = PBS.map(p => {
+      const baza = majace.reduce((a, b) => Math.abs(Math.log(b.d/p.d)) < Math.abs(Math.log(a.d/p.d)) ? b : a);
+      const riegel = baza.s * Math.pow(p.d / baza.d, 1.06);
+      const dzis = riegel * (1 + kor);
+      const pbTxt = p.s ? fmt(p.s) : '—';
+      return '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;">'
+        + '<span style="color:rgba(255,255,255,0.75);">' + esc(p.n) + '</span>'
+        + '<span style="font-family:DM Mono,monospace;"><span style="color:rgba(255,255,255,0.45);font-size:10.5px;">PB ' + pbTxt + '</span>'
+        + '  <strong style="color:#e8561e;margin-left:10px;">' + fmt(dzis) + '</strong></span></div>';
+    }).join('');
+    box.style.display = 'block';
+  } catch (e) { /* predyktor opcjonalny */ }
+}
 
 // ── COMPARE ATHLETES (Faza 6) ──────────────────────────────────────
 window.openCompareModal = async function() {
@@ -10972,6 +11006,13 @@ if ('serviceWorker' in navigator) {
       <button onclick="event.stopPropagation();window.showMetricTooltip('weekly_km')" title="Co to stres tygodnia?" style="background:rgba(74,222,128,0.15);border:1px solid rgba(74,222,128,0.35);color:#4ade80;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:10px;font-family:'DM Mono',monospace;font-weight:700;padding:0;display:inline-flex;align-items:center;justify-content:center;line-height:1;">i</button>
     </div>
     <div id="forma-weekly-bars" style="display:flex;align-items:flex-end;gap:6px;height:120px;"></div>
+  </div>
+
+  <!-- E1c PREDYKTOR CZASOW: Riegel z pb_* + korekta o dzisiejsze TSB -->
+  <div id="forma-predykcje" style="display:none;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-top:12px;">
+    <div style="display:flex;align-items:center;gap:8px;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:10px;">🔮 Predykcje czasów <span style="font-size:8px;letter-spacing:0.1em;color:rgba(255,255,255,0.3);">Riegel + forma dnia</span></div>
+    <div id="forma-predykcje-tabela"></div>
+    <div style="margin-top:8px;font-size:9px;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;">szacunek z Twoich PB skorygowany o dzisiejsze TSB — nie wyrocznia</div>
   </div>
 
   <!-- Heatmap aktywności (GitHub-style) — 13 tygodni × 7 dni -->

@@ -2482,6 +2482,7 @@ window._icuRenderSplits = function (d, el) {
     const lastCtl = ctlData[ctlData.length - 1] || 0;
     const lastAtl = atlData[atlData.length - 1] || 0;
     const lastTsb = tsbData[tsbData.length - 1] || 0;
+    window._formaLast = { ctl: lastCtl, atl: lastAtl, tsb: lastTsb };   /* E1c: most dla predyktora czasow */
     const animTiles = !!(options && options.animate);
 
     // TSB: status color + label + scale position
