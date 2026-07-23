@@ -27,6 +27,13 @@ function paceStr(distM: number, sec: number): string | null {
   const t = Math.round(p);   // round TOTAL sekund najpierw → koniec „4:60"
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
+// E2 GŁĘBIA: gap (m/s) → "M:SS"/km. Carry-first (round total s najpierw) + guard v>0.3 jak paceFromV
+// (activity-detail:35). ŚWIADOMY DUPLIKAT — kształt identyczny w intervals-webhook.
+function gapToPace(v: number): string | null {
+  if (!v || v <= 0.3) return null;
+  const t = Math.round(1000 / v);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
 // B1: ŚWIADOMY DUPLIKAT w intervals-sync i intervals-webhook (jak dawny TYPE_MAP).
 //   Bieg -> typ z PLANU (trainings.type na dzień aktywności); nie-bieg -> 'Zastępczy'.
 //   Nowy biegowy typ planu -> aktualizuj RUN_PLAN TU **oraz** w intervals-webhook.
@@ -168,6 +175,11 @@ Deno.serve(async (req) => {
           source: 'intervals',
           external_source: 'intervals',
           external_id: String(a.id),
+          // E2 GŁĘBIA (nazwy potwierdzone dumpem 23.07): brak pola = null (bez wydmuszek).
+          icu_load: a.icu_training_load != null ? Math.round(a.icu_training_load) : null,
+          cadence: a.average_cadence != null ? Math.round(a.average_cadence) : null,
+          gap_pace: gapToPace(a.gap),
+          icu_intensity: a.icu_intensity != null ? Math.round(a.icu_intensity) : null,
         };
       });
 

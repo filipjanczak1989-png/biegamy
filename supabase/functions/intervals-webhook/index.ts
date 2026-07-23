@@ -29,6 +29,12 @@ function paceStr(distM: number, sec: number): string | null {
   const t = Math.round(p);   // round TOTAL sekund najpierw → koniec „4:60"
   return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 }
+// E2 GŁĘBIA: gap (m/s) → "M:SS"/km. Carry-first + guard v>0.3 jak paceFromV. ŚWIADOMY DUPLIKAT z intervals-sync.
+function gapToPace(v: number): string | null {
+  if (!v || v <= 0.3) return null;
+  const t = Math.round(1000 / v);
+  return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+}
 // B1: patrz nota w intervals-sync — bieg -> typ z PLANU (trainings.type na dzień aktywności), nie-bieg -> 'Zastępczy'.
 const RUN_ACT = new Set(['Run', 'TrailRun', 'Treadmill', 'VirtualRun']);
 // RUN_PLAN = mirror RUN_TYPES (sb.js), lowercase — match case-insensitive (km liczą się dalej, isRunType case-fold).
@@ -59,6 +65,11 @@ function mapActivity(a: any, athlete_id: string, planType: string | null) {
     logged_at: a.start_date_local || a.start_date,
     source: 'intervals', external_source: 'intervals',             // dziedziczy pominięcie Silnika Momentu + cooldown
     external_id: String(a.id),                                     // klucz idempotencji
+    // E2 GŁĘBIA (nazwy potwierdzone dumpem 23.07): brak pola = null.
+    icu_load: a.icu_training_load != null ? Math.round(a.icu_training_load) : null,
+    cadence: a.average_cadence != null ? Math.round(a.average_cadence) : null,
+    gap_pace: gapToPace(a.gap),
+    icu_intensity: a.icu_intensity != null ? Math.round(a.icu_intensity) : null,
   };
 }
 
