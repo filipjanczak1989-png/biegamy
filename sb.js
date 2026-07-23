@@ -2319,6 +2319,58 @@ window._icuRenderSplits = function (d, el) {
   };
 
   // Core forma renderer — parametryzowany athleteId + idPrefix dla reuse w zawodnik.html + trener.html
+  /* ═══ E2-K4 TREND EF: baza tlenowa = szybkosc/HR na biegach TLENOWYCH (interwaly/tempo
+     falszuja -> wlasny filtr, NIE isRunType). gap_pace preferowane, fallback pace.
+     UWAGA kadencja: zapis surowy RPM intervals (jedna noga) — w UI zawsze x2 na spm! ═══ */
+  window._renderFormaEfTrend = function(logs, px) {
+    try {
+      var TLEN = /spokoj|wybieg|d\u0142ug|dlug|regener|trucht|\u0142atwy|latwy/;
+      var WYKL = /interwa|tempo|progres|start|wy\u015bcig|wyscig|zawod|sprawdzian|si\u0142|sil/;
+      var pts = [];
+      (logs || []).forEach(function (l) {
+        var t = String(l.training_type || '').toLowerCase();
+        if (!TLEN.test(t) || WYKL.test(t)) return;
+        var hr = +l.heart_rate; if (!hr || hr < 80 || hr > 200) return;
+        var p = l.gap_pace || l.pace; if (!p) return;
+        var m = String(p).match(/^(\d{1,2}):(\d{2})/); if (!m) return;
+        var sek = (+m[1]) * 60 + (+m[2]); if (sek < 150 || sek > 720) return;
+        pts.push({ x: new Date(l.logged_at).getTime() / 86400000, y: (1000 / sek) / hr * 1000 });
+      });
+      var kotw = document.getElementById(px + '-mono-line') || document.getElementById(px + '-weekly-bars');
+      if (!kotw) return;
+      var el = document.getElementById(px + '-ef-trend');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = px + '-ef-trend';
+        el.style.cssText = 'margin-top:12px;padding:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;';
+        kotw.insertAdjacentElement('afterend', el);
+      }
+      var naglowek = '<div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:8px;">\ud83e\udec1 Baza tlenowa \u00b7 trend EF 90 dni</div>';
+      if (pts.length < 5) {
+        el.innerHTML = naglowek + '<div style="font-size:11px;color:rgba(255,255,255,0.45);font-family:DM Mono,monospace;line-height:1.5;">Wymaga min. 5 tlenowych bieg\u00f3w z zapisem t\u0119tna (masz: ' + pts.length + '). Za\u0142\u00f3\u017c pasek HR \u2014 wykres uro\u015bnie sam.</div>';
+        return;
+      }
+      var n = pts.length, sx = 0, sy = 0, sxy = 0, sxx = 0;
+      pts.forEach(function (p) { sx += p.x; sy += p.y; sxy += p.x * p.y; sxx += p.x * p.x; });
+      var slope = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1);
+      var srY = sy / n;
+      var pct = Math.round(slope * 90 / (srY || 1) * 1000) / 10;
+      var oc = pct >= 2 ? ['#4ade80', 'baza tlenowa ro\u015bnie'] : pct <= -2 ? ['#fb923c', 'spada \u2014 sprawd\u017a regeneracj\u0119'] : ['#e5e7eb', 'stabilnie'];
+      var tygodnie = {};
+      pts.forEach(function (p) { var w = Math.floor(p.x / 7); (tygodnie[w] = tygodnie[w] || []).push(p.y); });
+      var klucze = Object.keys(tygodnie).sort(function (a, b) { return a - b; }).slice(-12);
+      var srW = klucze.map(function (k) { var a = tygodnie[k]; return a.reduce(function (x, y) { return x + y; }, 0) / a.length; });
+      var mn = Math.min.apply(null, srW), mx = Math.max.apply(null, srW), zak = (mx - mn) || 1;
+      var slupki = srW.map(function (v) {
+        var h = 6 + Math.round((v - mn) / zak * 26);
+        return '<div style="flex:1;height:' + h + 'px;background:rgba(232,86,30,0.55);border-radius:2px;"></div>';
+      }).join('');
+      el.innerHTML = naglowek
+        + '<div style="display:flex;align-items:flex-end;gap:3px;height:34px;margin-bottom:8px;">' + slupki + '</div>'
+        + '<div style="font-size:12px;font-family:DM Mono,monospace;"><strong style="color:' + oc[0] + ';">' + (pct > 0 ? '+' : '') + pct + '% / 90 dni</strong> <span style="color:rgba(255,255,255,0.5);">\u00b7 ' + oc[1] + ' \u00b7 ' + n + ' bieg\u00f3w tlenowych z HR</span></div>';
+    } catch (e) {}
+  };
+
   window.renderFormaForAthlete = async function(athleteId, idPrefix, options) {
     if (!athleteId) return;
     const px = idPrefix || 'forma';
@@ -2351,7 +2403,7 @@ window._icuRenderSplits = function (d, el) {
     start.setDate(start.getDate() - 90);
 
     const { data: logs, error } = await sb.from('training_logs')
-      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,elevation_gain,calories,source,external_id')
+      .select('logged_at,duration,training_type,feel,distance_km,pace,heart_rate,gap_pace,cadence,icu_load,elevation_gain,calories,source,external_id')
       .eq('athlete_id', athleteId)
       .not('training_type', 'like', '__badge__%')
       .gte('logged_at', start.toISOString())
@@ -2878,7 +2930,8 @@ window._icuRenderSplits = function (d, el) {
     window._renderFormaHeatmap(logs || [], px, weightKg, undefined, !!(options && options.animate), athleteId);
     window._renderFormaKcalWeekly(logs || [], px, weightKg, undefined, !!(options && options.animate));
     if (window.renderFormaHrZones) window.renderFormaHrZones(athleteId, px, { isCoach: px === 'pfo' });   // agregat stref HR (async, non-blocking; authz owner+coach server-side)
-    if (window._renderFormaWatchActs) window._renderFormaWatchActs(logs || [], px, athleteId);   // ⌚ lista treningów z zegarka → drill-down dnia
+    if (window._renderFormaWatchActs) window._renderFormaWatchActs(logs || [], px, athleteId);
+    if (window._renderFormaEfTrend) window._renderFormaEfTrend(logs || [], px);   /* E2-K4 */   // ⌚ lista treningów z zegarka → drill-down dnia
   };
 
   // ⌚ Ostatnie treningi z zegarka — lista → drill-down dnia (wykresy per-activity).
